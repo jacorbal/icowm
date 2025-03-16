@@ -1,0 +1,14 @@
+*~
+.*~
+.*.sw?
+*.[ch]2
+doc
+.hg
+*.ignore
+*.log
+tags
+_tmp*_
+Doxyfile
+doc/*.css
+*.o
+*.obj
