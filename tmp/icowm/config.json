@@ -1,0 +1,22 @@
+{
+    "theme": "default",
+    "desktops": {
+        "number": 4,
+        "inaugural": 1
+    },
+    "programs": {
+        "terminal": "xterm",
+        "launcher": "gmrun"
+    },
+    "windows": {
+        "snap": 4,
+        "focus": {
+            "is_new_focused": true,
+            "is_raised_on_focus": false
+        },
+        "placement": {
+            "policy": "smart",
+            "is_centered": false
+        }
+    }
+}

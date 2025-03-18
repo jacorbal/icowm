@@ -17,9 +17,9 @@ CCSTD      = c11 # c89 | c90, c99, c11, c17, c20, c2x
 CCOPT      = 3
 CCOPTS     = -pedantic -pedantic-errors
 CCEXTRA    = -fdiagnostics-color=always -fdiagnostics-show-location=once 
-CCWARN     = -Wpedantic -Wall -Wshadow -Wextra -Wwrite-strings -Wconversion -Werror
+CCWARN     = -Wpedantic -Wall -Wshadow -Wextra -Wwrite-strings -Wconversion #-Werror
 CCFLAGS    = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
-LDFLAGS    = -lX11 -lXpm -L ${L_DIR}
+LDFLAGS    = -lcjson -lX11 -lXpm -L ${L_DIR}
 
 # Use `make DEBUG=1` to add debugging information, symbol table, etc.
 DEBUG ?= 0

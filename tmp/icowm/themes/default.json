@@ -1,0 +1,28 @@
+{
+    "name": "Default",
+    "window": {
+        "general": {
+            "border_width": 2,
+            "is_decorated": true
+        },
+        "active": {
+            "background_color": "#ff0000",
+            "foreground_color": "#000000",
+            "frame_color": "#00ff00",
+            "font": "monospace Bold 9"
+        },
+        "inactive": {
+            "background_color": "#000000",
+            "foreground_color": "#ffffff",
+            "frame_color": "#999999",
+            "font": "monospace 9"
+        }
+    },
+    "icon": {
+        "background_color": "#ffffff",
+        "foreground_color": "#000000",
+        "border_width": 1,
+        "is_captioned": true,
+        "font": "monospace 8"
+    }
+}
