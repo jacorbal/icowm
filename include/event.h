@@ -1,11 +1,12 @@
 /**
- * file event.h
+ * @file event.h
  *
  * @brief Event handler function declaration
  */
 
 #ifndef EVENT_H
 #define EVENT_H
+
 
 /* External libraries */
 #include <X11/Xlib.h>   /* X*Event */
@@ -14,6 +15,7 @@
 #include <window.h>
 
 
+/* Public interface */
 /**
  * @brief Initialize the event system to start handling events
  *

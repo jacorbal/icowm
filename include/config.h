@@ -7,8 +7,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <stdbool.h>
 
+/* System includes */
+#include <stdbool.h>    /* bool */
+
+
+// TODO: Put this in another file
 #define MAX_COMMAND_LENGTH (128)
 #define MAX_KEYBINDING_LENGTH (128)
 #define MAX_OPTION_LENGTH (40)
@@ -162,6 +166,7 @@ struct config_theme_s {
     struct icon_s {
         COLOR background_color;
         COLOR foreground_color;
+        COLOR frame_color;
         unsigned int border_width;
         bool is_captioned;
         char font[MAX_FONTNAME_LENGTH];
@@ -182,8 +187,9 @@ typedef struct {
 } config_td;
 
 
+/* Public interface */
 /**
- * @brief Initialize a new configuration structure
+ * @brief Initialize a new structure for the configuration
  *
  * Allocates memory for a new @e config_td structure and initializes its
  * fields to default values.

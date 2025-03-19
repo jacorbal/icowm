@@ -8,8 +8,8 @@
         "active": {
             "background_color": "#ff0000",
             "foreground_color": "#000000",
-            "frame_color": "#00ff00",
-            "font": "monospace Bold 9"
+            "frame_color": "#222222",
+            "font": "monospace bold 9"
         },
         "inactive": {
             "background_color": "#000000",
@@ -22,6 +22,7 @@
         "background_color": "#ffffff",
         "foreground_color": "#000000",
         "border_width": 1,
+        "frame_color": "#000000",
         "is_captioned": true,
         "font": "monospace 8"
     }

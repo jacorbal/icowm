@@ -1,8 +1,12 @@
+/**
+ * @file window.c
+ *
+ * @brief Window structure implememtation
+ */
 
 /* System includes */
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include <stdlib.h>     /* free, malloc */
 
 /* External libraries */
 #include <X11/Xlib.h>
@@ -11,31 +15,31 @@
 /* Project includes */
 #include <config.h>
 #include <event.h>
+#include <logger.h>
 
 /* Local includes */
 #include <window.h>
 
 
-
-/**
- */
+/* Initialize a new window */
 window_td *window_init(Display *display,
         unsigned int w, unsigned int h, int x, int y,
-        struct config_theme_s *config_theme)
+        struct config_theme_s *theme)
 {
     window_td *window;
 
     window = malloc(sizeof(window_td));
     if (window == NULL) {
-        fprintf(stderr, "Error al alojar memoria para la ventana\n");
+        logger_msg(LOG_ERROR, "Cannot allocate memory for the window");
         return NULL;
     }
 
     window->display = display;
-    window->theme = config_theme;
+    window->theme = theme;
     window->geometry = (struct window_geometry_s) {w, h, x, y};
     window->properties.flags = 0;
     window->properties.state = WIN_STATE_IDLE;
+    window->properties.layer = WIN_LAYER_NORMAL;
 
     /* Initialize the window in hidden mode */
     //window->properties.flags |= (enum window_flags_e) WIN_PROPERTY_VISIBLE;
@@ -44,11 +48,11 @@ window_td *window_init(Display *display,
     window->window = XCreateSimpleWindow(display,
             DefaultRootWindow(display),
             x, y, w, h,
-            config_theme->window.general.border_width,
+            theme->window.general.border_width,
             BlackPixel(display, 0), WhitePixel(display, 0));
 
     if (!window->window) {
-        fprintf(stderr, "Error al crear la ventana\n");
+        logger_msg(LOG_ERROR, "Cannot create window");
         free(window);
         return NULL;
     }
@@ -56,6 +60,7 @@ window_td *window_init(Display *display,
     /* Configure window */
     XSetStandardProperties(display, window->window,
             "Ventana", "Titulo", None, NULL, 0, NULL);
+
     XClassHint *class_hint = XAllocClassHint();
     class_hint->res_name = (char *) "my_window";
     class_hint->res_class = (char *) "MyAppClass";
@@ -66,7 +71,7 @@ window_td *window_init(Display *display,
 }
 
 
-/* Destroy the window and frees memory */
+/* Destroy the window and free used memory */
 void window_destroy(window_td *window)
 {
     if (window) {
@@ -75,6 +80,24 @@ void window_destroy(window_td *window)
         }
         free(window);
     }
+}
+
+
+/* Update the content of the window */
+void window_update(window_td *window)
+{
+    if (window == NULL) {
+        return;
+    }
+
+    /* Clear the window */
+    XClearWindow(window->display, window->window);
+
+    /* Draw or update the content over the window */
+    // e.g.: draw_content(window);
+
+    /* Optionally, you might want to flush the output buffer */
+    XFlush(window->display);
 }
 
 
@@ -133,8 +156,7 @@ void window_decorate(window_td *window)
 {
     window->geometry.w += 10;
     window->geometry.h += 20;
-    // Cambiar el tamaño de la ventana real si es necesario, o agregar
-    // decoraciones aquí
+    /* TODO: Adjust real window size if necessary, and add decorations */
 }
 
 
@@ -143,7 +165,7 @@ void window_undecorate(window_td *window)
 {
     window->geometry.w -= 10;
     window->geometry.h -= 20;
-    // Ajusta el tamaño de la ventana real si es necesario
+    /* TODO: Adjust real window size if needed, and remove decorations */
 }
 
 
@@ -187,13 +209,13 @@ void window_state(window_td *window, enum window_state_e state)
             window_iconize(window);
             break;
         case WIN_STATE_FULLSCREEN:
-            // Implementar el cambio a pantalla completa
+            /* Start fullscreen (should be a fullscreen exit/toggle) */
             break;
         case WIN_STATE_IDLE:
-            // Resetear a un estado normal
+            /* Reset to a normal state */
             break;
         default:
-            fprintf(stderr, "Estado de ventana no manejado: %d\n", state);
+            logger_msg(LOG_WARNING, "Unknown window state: %d", state);
             break;
     }
 }

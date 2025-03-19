@@ -1,8 +1,12 @@
+/**
+ * @file window.h
+ *
+ * @brief Window definition and declaration
+ */
+
 #ifndef WINDOW_H
 #define WINDOW_H
 
-/* System includes */
-#include <stdbool.h>    /* bool */
 
 /* External libraries */
 #include <X11/Xlib.h>   /* Display, Window */
@@ -12,17 +16,19 @@
 
 
 /**
+ * @brief Possible window states
  */
 enum window_state_e {
-    WIN_STATE_IDLE,
-    WIN_STATE_ICONIZED,
-    WIN_STATE_MAXIMIZED,
-    WIN_STATE_FULLSCREEN,
-    WIN_STATE_MAX,
+    WIN_STATE_IDLE,         /** Regular state */
+    WIN_STATE_ICONIZED,     /**< Iconized window */
+    WIN_STATE_MAXIMIZED,    /**< Maximized */
+    WIN_STATE_FULLSCREEN,   /**< Full screen */
+    WIN_STATE_MAX = WIN_STATE_FULLSCREEN,
 };
 
 
 /**
+ * @brief Window characteristics using flags
  */
 enum window_flags_e {
     WIN_PROPERTY_VISIBLE   = 1 << 0, /* 0000 0001: window is visible */
@@ -34,25 +40,28 @@ enum window_flags_e {
 
 
 /**
+ * @brief Window possible layers
  */
 enum window_layer_e {
-    WIN_LAYER_TOP,      /**< Always on top */
-    WIN_LAYER_NORMAL,   /**< Normal behaviour */
-    WIN_LAYER_BOTTOM,   /**< Always behind every window */
-    WIN_LAYER_MAX,
+    WIN_LAYER_ON_TOP,       /**< Always on top */
+    WIN_LAYER_NORMAL,       /**< Normal behaviour */
+    WIN_LAYER_ON_BOTTOM,    /**< Always behind every window */
+    WIN_LAYER_MAX = WIN_LAYER_ON_BOTTOM,
 };
 
 
 /**
+ * @brief Window properties
  */
 struct window_properties_s {
     enum window_state_e state;  /**< State (maximized, iconized,...) */
-    enum window_layer_e layer;  /**< Layer (top, normal, bottom) */
+    enum window_layer_e layer;  /**< Layer (on top, normal, on bottom) */
     enum window_flags_e flags;  /**< Flags (sticky, focused,...) */
 };
 
 
 /**
+ * @brief Window dimensions and position
  */
 struct window_geometry_s {
     unsigned int w;     /**< Window width (px) */
@@ -63,13 +72,16 @@ struct window_geometry_s {
 
 
 /**
+ * @brief Window structure
  */
 typedef struct {
-    unsigned long id;   /**< Unique window identifier */
-    char *title;        /**< Window title */
+    Display *display;           /**< X11 display */
+    Window window;              /**< The actual window */
 
-    Display *display;   /**< X11 display */
-    Window window;      /**< The actual window*/
+    unsigned int screen_id;     /**< Screen index */
+    unsigned int desktop_id;    /**< Desktop index */
+    unsigned long int id;       /**< Unique window identifier */
+    char *name;                 /**< Window name */
 
     struct window_geometry_s geometry;
     struct window_properties_s properties;
@@ -77,41 +89,97 @@ typedef struct {
 } window_td;
 
 
+/* Public interface */
 /**
+ * @brief Initialize a new window with the specified parameters
+ *
+ * @param display Pointer to the X11 display
+ * @param w       Width of the window in pixels
+ * @param h       Height of the window in pixels
+ * @param x       X-coordinate of the window position
+ * @param y       Y-coordinate of the window position
+ * @param theme   Pointer to the theme configuration
+ *
+ * @return A pointer to the newly created window structure
+ *
+ * @note Complexity: @e O(1) for creating a window structure
  */
 window_td *window_init(Display *display,
         unsigned int w, unsigned int h, int x, int y,
-        struct config_theme_s *config_theme);
+        struct config_theme_s *theme);
 
 /**
+ * @brief Destroy the specified window and free associated resources
+ *
+ * @param window Pointer to the window to be destroyed
+ *
+ * @note Complexity: @e O(1)
  */
 void window_destroy(window_td *window);
 
 /**
+ * @brief Update the content of the specified window
+ *
+ * @param window Pointer to the window to be updated
+ *
+ * @note Complexity: @e O(n) where @e n is the number of elements to
+ *       update
  */
 void window_update(window_td *window);
 
 /**
+ * @brief Show the specified window on the screen
+ *
+ * @param window Pointer to the window to be shown
+ *
+ * @note Complexity: @e O(1)
  */
 void window_show(window_td *window);
 
 /**
+ * @brief Hide the specified window from the screen
+ *
+ * @param window Pointer to the window to be hidden
+ *
+ * @note Complexity: @e O(1)
  */
 void window_hide(window_td *window);
 
 /**
+ * @brief Iconize the specified window, minimizing it to an icon
+ *
+ * @param window Pointer to the window to be iconized
+ *
+ * @notes Complexity: @e O(1)
  */
 void window_iconize(window_td *window);
 
 /**
+ * @brief Move the specified window to the given coordinates
+ *
+ * @param window Pointer to the window to be moved
+ * @param x      New X-coordinate for the window
+ * @param y      New Y-coordinate for the window
+ *
+ * @note Complexity: @e O(1)
  */
 void window_move(window_td *window, int x, int y);
 
 /**
+ * @brief Add decorations to the specified window
+ *
+ * @param window Pointer to the window to be decorated
+ *
+ * @note Complexity: @e O(1)
  */
 void window_decorate(window_td *window);
 
 /**
+ * @brief Remove decorations to the specified window
+ *
+ * @param window Pointer to the window to be undecorated
+ *
+ * @note Complexity: @e O(1)
  */
 void window_undecorate(window_td *window);
 
@@ -130,27 +198,75 @@ void window_undecorate(window_td *window);
 void window_event_handle(window_td *window, XEvent *event);
 
 /**
+ * @brief Set focus to the specified window
+ *
+ * @param window Pointer to the window to receive focus
+ *
+ * @note Complexity: @e O(1)
  */
-void window_focus(window_td *win);
+void window_focus(window_td *window);
 
 /**
+ * @brief Modify the state of the specified window
+ *
+ * @param window Pointer to the window to be updated
+ * @param state  New state to be set for the window
+ *
+ * @note Complexity: @e O(1)
  */
-void window_state(window_td *win, enum window_state_e state);
+void window_state(window_td *window, enum window_state_e state);
 
 /**
+ * @brief Resize the specified window to the new dimensions
+ *
+ * @param window Pointer to the window to be resized
+ * @param width  New width for the window in pixels
+ * @param height New height for the window in pixels
+ *
+ * @note Complexity: @e O(1)
  */
 void window_resize(window_td *window,
         unsigned int width, unsigned int height);
 
 /**
+ * @brief Macro that evaluates to toggling the visibility flag
+ *
+ * @see window_flags_e
  */
-#define window_toggle_decoration(w) \
-    ((w)->properties.flags ^= WIN_PROPERTY_DECORATED)
+#define window_toggle_visibility(w) \
+    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_VISIBLE)
 
 /**
+ * @brief Macro that evaluates to toggling the focus flag
+ *
+ * @see window_flags_e
  */
-#define window_toggle_stikyness(w) \
-    ((w)->properties.flags ^= WIN_PROPERTY_STICKY)
+#define window_toggle_focus(w) \
+    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_FOCUSED)
+
+/**
+ * @brief Macro that evaluates to toggling the stickiness flag
+ *
+ * @see window_flags_e
+ */
+#define window_toggle_stickiness(w) \
+    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_STICKY)
+
+/**
+ * @brief Macro that evaluates to toggling the decoration flag
+ *
+ * @see window_flags_e
+ */
+#define window_toggle_decoration(w) \
+    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_DECORATED)
+
+/**
+ * @brief Macro that evaluates to toggling the availability flag
+ *
+ * @see window_flags_e
+ */
+#define window_toggle_availability(w) \
+    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_DISABLED)
 
 
 #endif  /* ! WINDOW_H */
