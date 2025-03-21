@@ -18,10 +18,10 @@
 void event_handle_configure_notify(window_td *window,
         XConfigureEvent *event)
 {
-    window->geometry.x = event->x;
-    window->geometry.y = event->y;
-    window->geometry.w = (unsigned int) event->width;
-    window->geometry.h = (unsigned int) event->height;
+    window->geom.x = event->x;
+    window->geom.y = event->y;
+    window->dim.w = (unsigned int) event->width;
+    window->dim.h = (unsigned int) event->height;
 }
 
 

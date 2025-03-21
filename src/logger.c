@@ -8,19 +8,18 @@
 #include <stdarg.h>     /* va_list, va_start, va_end */
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
 #include <stdlib.h>     /* free, malloc */
-#include <string.h>     /* strlen */
+#include <string.h>     /* strcpy, strlen */
 #include <time.h>       /* localtime, strftime, time, tm */
 
 /* Local includes */
 #include <logger.h>
 
 
-
 /* Though variable static dost often lurk near,
  * In shadows of scope, few e’er call thee their own,
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
-static logger_td *logger = NULL;
+static logger_td *logger = NULL;    /**< Global logger singleton pointer */
 
 
 /**
@@ -118,8 +117,8 @@ int logger_msg(enum logger_level_e level, const char *fmt, ...)
     /* Get the timestamp */
     time(&now);
     tm_info = localtime(&now);
-    strftime(timestamp,
-            sizeof(timestamp), "%Y-%m-%d %H:%M:%S %Z", tm_info);
+    strftime(timestamp, sizeof(timestamp),
+            "%Y-%m-%d %H:%M:%S %Z", tm_info);
 
     switch (level) {
         case LOG_TRACE:     level_str = "TRACE";    break;
@@ -138,16 +137,16 @@ int logger_msg(enum logger_level_e level, const char *fmt, ...)
     va_start(args, fmt);
     len = snprintf(msg, sizeof(msg), "[%s] [%s]: ",
             timestamp, level_str);
-    vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
+    len = vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
     va_end(args);
 
     /* If no buffer is used, just print it */
     if (logger->buffer == NULL) {
-        len = fprintf(logger->fp, "%s\n", msg);
+        fprintf(logger->fp, "%s\n", msg);
         return len;
     }
 
-    /* Check if there's enough space in buffer */
+    /* Check if there's enough space in buffer, or flush it */
     if (logger->buffer->count >= LOGGER_MAX_MESSAGES) {
         _logger_buffer_flush(logger->buffer, logger->fp); 
     }

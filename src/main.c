@@ -6,14 +6,38 @@
  * @author J. A. Corbal <jacorbal@gmail.com>
  * @copyright (c) 2025, J. A. Corbal
  * @license ISC License <https://opensource.org/license/isc-license-txt>
+ * @version 0.1.0 release 20250425 ("'ovelya") build 117.20250425T052707
  *
  * @note
- * “It is not the responsibility of programmers to discover whether the
+ * "It is not the responsibility of programmers to discover whether the
  *  users, the systems, and the code they encounter on their journey are
  *  in these circumstances and suffer this distress for their flaws, or
  *  for their merits: the programmer's sole responsibility is to help
  *  them as entities in need, having eyes only for their challenges, not
- *  for their mistakes.”
+ *  for their mistakes."
+ */
+/**
+ * TO THE GOOD HEED OF THY DISCERNING AND ILLUSTRIOUS READER
+ *
+ * Behold this programme, wrought with stalwart 'vi' ('nvi'      - o -
+ * v1.81.6, if thou dost desire precision), crafted in stout     - - o
+ * GNU/Linux; yet amidst this, my boundless and                  o o o
+ * unconditional love for ev'ry manifold iteration of BSD
+ * doth ever remain.  'Twas expressed upon the magnificent
+ * portable Sony Vaio TZ[21WN/B], my steadfast companion
+ * since thereabout the year two-thousand and seven.
+ * A voyager through realms both nigh and far, it bore
+ * witness to my travails, as I embraced the haunting
+ * specter of sleepless nights, seeking solace in code's
+ * warm embrace.  For this very programme, the hours
+ * twenty-four, fragmented 'neath five suns, were sacrificed
+ * as offerings to the sacred art of creation of this first
+ * completed version, where each keystroke upon its faithful
+ * keys became a whisper in the hush of night, each line an
+ * echo of my restless mind, threading time's tapestry in
+ * silent reverie.  I craft, therefore I evolve.
+ *
+ *               //JACR, March MMXXV (@ver. 0.1.0 "'ovelya")
  */
 
 /* Enable features from the POSIX.1-2008 standard */
@@ -38,19 +62,16 @@
 #define ICOWM_NAME_LONG "Iconizer Window Manager"   /* Long name */
 #define ICOWM_NAME_PROG "icowm"                     /* Binary name */
 
-#define ICOWM_BUILD_NUMBER "117"                /* Build number */
-#define ICOWM_BUILD_DATE "20250425T052707"      /* Build date (UTC) */
-#define ICOWM_RELEASE "20250425"                /* Release date */
-#define ICOWM_VERSION "0.1.0"                   /* Semantic version */
-#define ICOWM_VERSION_CODENAME "'ovelya"        /* Version codename */
-#define ICOWM_LICENSE "ISC License"             /* License name */
+#define ICOWM_BUILD_NUMBER "117"                    /* Build number */
+#define ICOWM_BUILD_DATE "20250425T052707"          /* Build date (UTC) */
+#define ICOWM_RELEASE "20250425"                    /* Release date */
+#define ICOWM_VERSION "0.1.0"                       /* Semantic version */
+#define ICOWM_VERSION_CODENAME "'ovelya"            /* Version codename */
+#define ICOWM_LICENSE "ISC License"                 /* License name */
 
-/* Message of the/this version */
-#define ICOWM_MOTV \
-    "qaStaHvIS Hu'vam chay' bIpIvneS SoH?"      /* M.O.T.V. */
-
-#define ICOWM_MESSAGE_ON_EXIT \
-    "pe'vIl mu'qaDmey"   /* Message on exit */
+/* Messages */
+#define ICOWM_MOTV "qaStaHvIS Hu'vam chay' bIpIvneS SoH?"   /* MOTV */
+#define ICOWM_MESSAGE_ON_EXIT "pe'vIl mu'qaDmey"    /* Exit message */
 
 
 /**
@@ -89,6 +110,32 @@ static void _show_version(FILE *fp)
             ICOWM_VERSION, ICOWM_RELEASE, ICOWM_VERSION_CODENAME,
             ICOWM_BUILD_NUMBER, ICOWM_BUILD_DATE);
     fprintf(fp, "MOTV: \"%s\"\n", ICOWM_MOTV);
+}
+
+
+/**
+ * @brief Show initial line to present the program when invoked
+ *
+ * @param fp File pointer to the stream where to write the output
+ */
+static void _show_salutation(FILE *fp)
+{
+    fprintf(fp, "%s -- version %s release %s (\"%s\") build %s.%s\n",
+            ICOWM_NAME_SHORT,
+            ICOWM_VERSION, ICOWM_RELEASE, ICOWM_VERSION_CODENAME,
+            ICOWM_BUILD_NUMBER, ICOWM_BUILD_DATE);
+}
+
+
+/**
+ * @brief Show farewell line to present the program when finished
+ *
+ * @param fp File pointer to the stream where to write the output
+ */
+static void _show_farewell(FILE *fp)
+{
+    fprintf(stdout, "%s exited successfully: \"%s\"  :|\n",
+            ICOWM_NAME_SHORT, ICOWM_MESSAGE_ON_EXIT);
 }
 
 
@@ -168,7 +215,7 @@ int main(int argc, char *const argv[])
     }
 
     /* Welcome */
-    _show_version(stdout);
+    _show_salutation(stdout);
 
     /* Set logger */
     if (logger_start(log_fp, log_level_min) != 0) {
@@ -188,13 +235,13 @@ int main(int argc, char *const argv[])
     /* Initialize the window manager */
     wm = wm_init(config);
     if (wm == NULL) {
-        logger_msg(LOG_FATAL, "Cannot initialize window manager");
+        logger_msg(LOG_FATAL, "Failed to initialize window manager");
         config_destroy(config);
         logger_stop();
         return -1;
     }
 
-    logger_msg(LOG_INFO, "%s starts!", ICOWM_NAME_SHORT);
+    logger_msg(LOG_INFO, "%s has started!  Qapla'!", ICOWM_NAME_SHORT);
     wm_loop(wm);            /* Main event loop */
     wm_destroy(wm);         /* End the window manager */
     logger_stop();          /* Finish the logger */
@@ -203,8 +250,7 @@ int main(int argc, char *const argv[])
     }
 
     /* Be polite, say goodbye */
-    fprintf(stdout, "%s exited successfully: \"%s\"  :|\n",
-            ICOWM_NAME_SHORT, ICOWM_MESSAGE_ON_EXIT);
+    _show_farewell(stdout);
 
     return 0;
 }

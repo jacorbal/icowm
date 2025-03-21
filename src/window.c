@@ -30,13 +30,14 @@ window_td *window_init(Display *display,
 
     window = malloc(sizeof(window_td));
     if (window == NULL) {
-        logger_msg(LOG_ERROR, "Cannot allocate memory for the window");
+        logger_msg(LOG_ERROR, "Memory allocation failure for window");
         return NULL;
     }
 
     window->display = display;
     window->theme = theme;
-    window->geometry = (struct window_geometry_s) {w, h, x, y};
+    window->geom.x = x; window->geom.y = y;
+    window->dim.w = w; window->dim.h = h;
     window->properties.flags = 0;
     window->properties.state = WIN_STATE_IDLE;
     window->properties.layer = WIN_LAYER_NORMAL;
@@ -52,7 +53,7 @@ window_td *window_init(Display *display,
             BlackPixel(display, 0), WhitePixel(display, 0));
 
     if (!window->window) {
-        logger_msg(LOG_ERROR, "Cannot create window");
+        logger_msg(LOG_ERROR, "Failed to create window");
         free(window);
         return NULL;
     }
@@ -94,7 +95,7 @@ void window_update(window_td *window)
     XClearWindow(window->display, window->window);
 
     /* Draw or update the content over the window */
-    // e.g.: draw_content(window);
+    //  e.g.: draw_content(window);
 
     /* Optionally, you might want to flush the output buffer */
     XFlush(window->display);
@@ -144,8 +145,8 @@ void window_move(window_td *window, int x, int y)
 {
     if (window->properties.flags & WIN_PROPERTY_VISIBLE) {
         XMoveWindow(window->display, window->window, x, y);
-        window->geometry.x = x;
-        window->geometry.y = y;
+        window->geom.x = x;
+        window->geom.y = y;
         XFlush(window->display);
     }
 }
@@ -154,8 +155,8 @@ void window_move(window_td *window, int x, int y)
 /* Decorate the window */
 void window_decorate(window_td *window)
 {
-    window->geometry.w += 10;
-    window->geometry.h += 20;
+    window->dim.w += 10;
+    window->dim.h += 20;
     /* TODO: Adjust real window size if necessary, and add decorations */
 }
 
@@ -163,8 +164,8 @@ void window_decorate(window_td *window)
 /* Undecorate window */
 void window_undecorate(window_td *window)
 {
-    window->geometry.w -= 10;
-    window->geometry.h -= 20;
+    window->dim.w -= 10;
+    window->dim.h -= 20;
     /* TODO: Adjust real window size if needed, and remove decorations */
 }
 
@@ -226,8 +227,8 @@ void window_resize(window_td *window, unsigned int w, unsigned int h)
 {
     if (window->properties.flags & WIN_PROPERTY_VISIBLE) {
         XResizeWindow(window->display, window->window, w, h);
-        window->geometry.w = w;
-        window->geometry.h = h;
+        window->dim.w = w;
+        window->dim.h = h;
         XFlush(window->display);
     }
 }

@@ -69,9 +69,8 @@ wm_td *wm_init(config_td *config);
  * @param wm Pointer to the window manager instance to free its memory
  *
  * @note Passing a @c NULL pointer has no effect
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       windows, as it iterates through the array of windows to free
- *       each one of them
+ * @note Complexity: @e O(n), where @e n is the number of screens, as it
+ *       iterates through the array of windows to free each one of them
  */
 void wm_destroy(wm_td *wm);
 
@@ -87,18 +86,20 @@ void wm_destroy(wm_td *wm);
  * @param wm Pointer to the initialized @c wm_td instance that contains
  *           the necessary state and configuration for the window manager
  *
+ * @note The event loop will stop when the @c is_running flag is set to
+ *       @c false, which should be handled in response to user actions
+ *       or when the window manager is terminating
  * @note Complexity: @e O(1) for each event processed; however, the
  *       overall time complexity depends on the number of events
  *       processed, so each call to @e event_handle may have a different
  *       complexity based on the event type and operations performed
- * @note The event loop will stop when the @c is_running flag is set to
- *       @c false, which should be handled in response to user actions
- *       or when the window manager is terminating
  */
 void wm_loop(wm_td *wm);
 
 /**
  * @brief Macro that evaluates to the screen count of the window manager
+ *
+ * @note Complexity: @e O(1)
  */
 #define wm_screen_count(wm) ((wm) ? wm->screens->size : 0)
 

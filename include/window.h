@@ -11,6 +11,9 @@
 /* External libraries */
 #include <X11/Xlib.h>   /* Display, Window */
 
+/* Common type structures */
+#include <types/pair.h> /* dimensions_s, geometry_s */
+
 /* Project includes */
 #include <config.h>
 
@@ -63,27 +66,22 @@ struct window_properties_s {
 /**
  * @brief Window dimensions and position
  */
-struct window_geometry_s {
-    unsigned int w;     /**< Window width (px) */
-    unsigned int h;     /**< Window height (px) */
-    int x;              /**< Window X position (px) */
-    int y;              /**< Window Y position (px) */
-};
-
 
 /**
  * @brief Window structure
  */
 typedef struct {
     Display *display;           /**< X11 display */
-    Window window;              /**< The actual window */
+    Window window;              /**< The actual X11 window */
 
     unsigned int screen_id;     /**< Screen index */
     unsigned int desktop_id;    /**< Desktop index */
     unsigned long int id;       /**< Unique window identifier */
     char *name;                 /**< Window name */
 
-    struct window_geometry_s geometry;
+    struct geometry_s geom;     /**< Window geometry (px) */
+    struct dimensions_s dim;    /**< Window dimensions (px) */
+
     struct window_properties_s properties;
     struct config_theme_s *theme;
 } window_td;
@@ -231,6 +229,8 @@ void window_resize(window_td *window,
 /**
  * @brief Macro that evaluates to toggling the visibility flag
  *
+ * @note Complexity: @e O(1)
+ *
  * @see window_flags_e
  */
 #define window_toggle_visibility(w) \
@@ -238,6 +238,8 @@ void window_resize(window_td *window,
 
 /**
  * @brief Macro that evaluates to toggling the focus flag
+ *
+ * @note Complexity: @e O(1)
  *
  * @see window_flags_e
  */
@@ -247,6 +249,8 @@ void window_resize(window_td *window,
 /**
  * @brief Macro that evaluates to toggling the stickiness flag
  *
+ * @note Complexity: @e O(1)
+ *
  * @see window_flags_e
  */
 #define window_toggle_stickiness(w) \
@@ -255,6 +259,8 @@ void window_resize(window_td *window,
 /**
  * @brief Macro that evaluates to toggling the decoration flag
  *
+ * @note Complexity: @e O(1)
+ *
  * @see window_flags_e
  */
 #define window_toggle_decoration(w) \
@@ -262,6 +268,8 @@ void window_resize(window_td *window,
 
 /**
  * @brief Macro that evaluates to toggling the availability flag
+ *
+ * @note Complexity: @e O(1)
  *
  * @see window_flags_e
  */

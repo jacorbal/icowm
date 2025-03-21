@@ -13,6 +13,7 @@
         "terminal": "modc+mod1+Return",
         "launcher": "modc+mod1+r",
         "center": "modc+mod1+g",
+        "fullscreen": "mofc+mod1-f",
         "maximize": "modc+mod1+m",
         "shade": "modc+mod1+s",
         "pin": "modc+mod1+p",

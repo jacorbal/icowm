@@ -2,15 +2,20 @@
  * @file logger.h
  *
  * @brief Log management declaration
-
+ *
  * A singleton pointer to the logger structure allows to log in the same
  * place since the logger starts until it ends working with the same
  * configuration.  The logger uses a buffer to store the formatted
  * messages before flushing them (unless the system descriptors such as
  * @c stdout or @c stderr are used).  This is build to increase
- * performance at the cost of a extra bit of memory, so the log is
- * written in chunks if everything is working properly, but it will
- * always flush the messages on any error.
+ * performance by minimizing the number of flushes at the cost of
+ * a extra bit of memory, so the log is written in chunks if everything
+ * is working properly, but it will always flush the messages on any
+ * error.
+ *
+ * The initial logic behind the different log levels came from an answer
+ * on Stack Overflow
+ * <https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels#answer-64806781>:
  *
  * @verbatim
  *      +-------+                                         ||
@@ -41,6 +46,10 @@
  *      | FATAL |<-------------------------N---´
  *      +-------+
  * @endverbatim
+ *
+ * @todo When logfile is not specified, instead of using only one system
+ *       file descriptor, send all the messages with loglevel higher
+ *       than @e LOG_WARNING to @c stderr, and the rest to @c stdout
  */
 
 #ifndef LOGGER_H
@@ -95,7 +104,7 @@ typedef struct {
  *
  * @return Status of the operation
  * @retval 0 Success
- * @retval 1 Error and could not allocate memory
+ * @retval 1 Could not allocate memory
  *
  * @note Complexity: @e O(1)
  *
@@ -106,7 +115,8 @@ int logger_start(FILE *fp, const enum logger_level_e level_min);
 /**
  * @brief Deallocates memory used by this logger instance
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is the number of messages to be
+ *       deallocated from the buffer
  */
 void logger_stop(void);
 

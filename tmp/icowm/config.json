@@ -1,12 +1,44 @@
 {
     "theme": "default",
-    "desktops": {
-        "number": 4,
-        "inaugural": 1
+    "screens": {
+        "count": 2,
+        "settings": {
+            "desktops": [
+                {
+                    "count": 4,
+                    "inaugural": 0,
+                    "settings": [
+                        {
+                            "background_color": "#00000"
+                        },
+                        {
+                            "background_color": "#00000"
+                        },
+                        {
+                            "background_color": "#00000"
+                        },
+                        {
+                            "background_color": "#00000"
+                        }
+                    ]
+                },
+                {
+                    "count": 1,
+                    "inaugural": 0,
+                    "settings": [
+                        {
+                            "background_color": "#00000"
+                        }
+                    ]
+                }
+            ]
+        }
     },
     "programs": {
         "terminal": "xterm",
-        "launcher": "gmrun"
+        "launcher": "gmrun",
+        "file_manager": "spacefm",
+        "web_browser": "firefox"
     },
     "windows": {
         "snap": 4,

@@ -26,6 +26,8 @@
 #define CONFIG_DIR_THEMES "themes/"
 
 #define COLOR unsigned long int
+#define CONFIG_MAX_SCREENS (10)     /* Maximum screens */
+#define CONFIG_MAX_DESKTOPS (10)    /* Maximum desktops per screen */
 
 
 /**
@@ -35,20 +37,32 @@ struct config_base_s {
     char theme[MAX_FILENAME_LENGTH];
 
     /* Desktops: number and which on is the default one */
-    struct desktops_s {
-        int number;
-        int inaugural;
-    } desktops;
+    unsigned int screen_count;              /**< Number of screens */
+    struct screens_s {
+        unsigned int desktop_count;         /**< Desktop count in screen */
+        unsigned int desktop_inaugural;     /**< Initial desktop */
+
+        struct desktops_s {
+            struct desktop_settings_s {
+                union {
+                    //Pixmap image;         /**< Background image*/
+                    COLOR color;            /**< Background color */
+                } background;
+            } settings;                     /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];    /**< Desktops per screen */
+    } screens[CONFIG_MAX_SCREENS];          /**< All screens */
 
     /* Basic main programs: terminal and program launcher */
     struct programs_s {
         char terminal[MAX_COMMAND_LENGTH];
         char launcher[MAX_COMMAND_LENGTH];
+        char file_manager[MAX_COMMAND_LENGTH];
+        char web_browser[MAX_COMMAND_LENGTH];
     } programs;
 
     /* General behaviour of environment towards windows */
     struct windows_s {
-        int snap;
+        unsigned int snap;
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
@@ -79,8 +93,11 @@ struct config_bindings_s {
     struct keyboard_s {
         char terminal[MAX_KEYBINDING_LENGTH];
         char launcher[MAX_KEYBINDING_LENGTH];
+        char file_manager[MAX_KEYBINDING_LENGTH];
+        char web_browser[MAX_KEYBINDING_LENGTH];
         char center[MAX_KEYBINDING_LENGTH];
         char maximize[MAX_KEYBINDING_LENGTH];
+        char fullscreen[MAX_KEYBINDING_LENGTH];
         char shade[MAX_KEYBINDING_LENGTH];
         char pin[MAX_KEYBINDING_LENGTH];
         char iconify[MAX_KEYBINDING_LENGTH];
@@ -246,6 +263,8 @@ void config_set_default_values(config_td *config);
  *
  * @return 0 on success, or otherwise on error
  *
+ * @note This function does not take into account default values,
+ *       because it's invoked after calling @e config_set_default_values
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       loaded; this may involve reading from a file or similar
  *       operations
