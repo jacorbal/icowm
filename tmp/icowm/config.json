@@ -37,6 +37,7 @@
     "programs": {
         "terminal": "xterm",
         "launcher": "gmrun",
+        "editor": "gvim",
         "file_manager": "spacefm",
         "web_browser": "firefox"
     },

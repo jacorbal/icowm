@@ -5,13 +5,13 @@
  */
 
 /* System includes */
-#include <stdlib.h>     /* free, malloc */
+#include <stdlib.h>     /* NULL, free, malloc */
 
 /* External libraries */
 #include <X11/Xlib.h>   /* Display, Screen */
 
 /* ADT */
-#include <adt/list.h>   /* Singly linked list */
+#include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Project includes */
 #include <config.h>
@@ -33,7 +33,7 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
     screen = malloc(sizeof(screen_td));
     if (screen == NULL) {
         logger_msg(LOG_FATAL,
-                "Cannot allocate memory for screen %u", screen_id);
+                "Failed to allocate memory for screen %u", screen_id);
         return NULL;
     }
 
@@ -73,7 +73,7 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
     logger_msg(LOG_TRACE,
             "Initializing desktop list structure for screen %u",
             screen_id);
-    screen->desktops = list_init((void(*)(void *)) desktop_destroy);
+    screen->desktops = cdlist_init((void(*)(void *)) desktop_destroy);
     if (screen->desktops == NULL) {
         logger_msg(LOG_FATAL,
                 "Failed to allocate memory for desktops on screen %u",
@@ -90,21 +90,21 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
         if (screen == NULL) {
             logger_msg(LOG_FATAL, "Failed to initialize desktop" \
                     " %u on screen %u", i, screen_id);
-            list_destroy(screen->desktops);
+            cdlist_destroy(screen->desktops);
             return NULL;
         }
 
         logger_msg(LOG_TRACE,
                 "Inserting desktop %u of screen %u into list",
                 i, screen_id);
-        if (list_ins_next(screen->desktops,
-                    list_tail(screen->desktops),
+        if (cdlist_ins_next(screen->desktops,
+                    cdlist_tail(screen->desktops),
                     (const void *) desktop) != 0) {
             logger_msg(LOG_FATAL,
                     "Failed to insert desktop" \
                     " %u on screen %u into desktop list", i, screen_id);
             desktop_destroy(desktop);
-            list_destroy(screen->desktops);
+            cdlist_destroy(screen->desktops);
             return NULL;
         }
     }
@@ -123,8 +123,22 @@ void screen_destroy(screen_td *screen)
 
     logger_msg(LOG_TRACE,
             "Deallocating desktops on screen %u", screen->id);
-    list_destroy(screen->desktops);
+    cdlist_destroy(screen->desktops);
 
     logger_msg(LOG_TRACE, "Destroying screen %u", screen->id);
     free(screen);
+}
+
+
+/* Update the screen */
+void screen_update(screen_td *screen)
+{
+    /* Update all desktops */
+    for (cdlist_item_td *desktop_node = cdlist_head(screen->desktops); 
+            desktop_node != NULL; 
+            desktop_node = cdlist_next(desktop_node)) {
+        desktop_td *desktop_cur =
+            (desktop_td *) cdlist_data(desktop_node);
+        desktop_update(desktop_cur);
+    }
 }

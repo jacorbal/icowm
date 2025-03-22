@@ -3,13 +3,23 @@
  *
  * @brief Configuration structures and procedures implementation
  *
- * The configuration is gather by several JSON files
+ * The configuration data is compiled in several JSON files and the
+ * structure is populated by retrieving their contents.
+ */
+/*
+ * NOTE(S):
+ *
+ * Regarding the forthcoming extant self (Fri Mar 22 05:01 CET 2025):
+ *      The current state of this code is significantly suboptimal.
+ *      I implore you to initiate refactoring at your earliest
+ *      convenience, or at a time that is deemed more suitable.
  */
 
 /* System includes */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>    /* bool, false, true */
+#include <stdio.h>      /* FILE, snprintf */
+#include <stdlib.h>     /* NULL, free, malloc, size_t */
+#include <string.h>     /* strcmp, strncpy, strlen */
 
 /* External libraries includes */
 #include <cjson/cJSON.h>
@@ -19,6 +29,32 @@
 
 /* Local includes */
 #include <config.h>
+
+
+/**
+ * @brief Convert a hexadecimal color string into a unsigned long
+ *        integer
+ *
+ * @param hex_color Hexadecimal color string
+ *
+ * @return Color value as unsigned long integer
+ *
+ * @note The initial @p hex_color string could begin with character '#',
+ *       for it's ignored
+ * @note Complexity: @e O(n), where @e n is the length of the
+ *       hexadecimal string
+ */
+static unsigned long int _hex2ul(const char *hex_color)
+{
+    unsigned long int color;
+
+    if (hex_color[0] == '#') {
+        hex_color++;
+    }
+    sscanf(hex_color, "%lx", &color);
+
+    return color;
+}
 
 
 /**
@@ -44,32 +80,6 @@ static void safe_strncpy(char *dest, const char *src, size_t size)
 {
     strncpy(dest, src, size - 1);
     dest[size - 1] = '\0';
-}
-
-
-/**
- * @brief Convert a hexadecimal color string into a unsigned long
- *        integer
- *
- * @param hex_color Hexadecimal color string
- *
- * @return Color value as unsigned long integer
- *
- * @note The initial @e hex_color string could begin with character '#',
- *       for it's ignored
- * @note Complexity: @e O(n), where @e n is the length of the
- *       hexadecimal string
- */
-static unsigned long int _hex2ul(const char *hex_color)
-{
-    unsigned long int color;
-
-    if (hex_color[0] == '#') {
-        hex_color++;
-    }
-    sscanf(hex_color, "%lx", &color);
-
-    return color;
 }
 
 
@@ -153,7 +163,7 @@ static int _json_load_from_file(const char *filename, char **data)
  * @note Complexity: @e O(1) for the search and @e O(m) for copying,
  *       where @e m is the length of the string being copied
  */
-static int _json_load_object(cJSON *json, const char *field, char *dest,
+static int _json_load_string(cJSON *json, const char *field, char *dest,
         size_t size)
 {
     cJSON *item;
@@ -164,6 +174,7 @@ static int _json_load_object(cJSON *json, const char *field, char *dest,
         return 0;
     }
 
+    logger_msg(LOG_NOTICE, "Failed to load JSON string: '%s'", field);
     return 1;
 }
 
@@ -198,6 +209,7 @@ static int _json_load_int(cJSON *json, const char *field, int *dest)
         return 0;
     }
 
+    logger_msg(LOG_NOTICE, "Failed to load JSON integer: '%s'", field);
     return 1;
 }
 */
@@ -233,6 +245,8 @@ static int _json_load_uint(cJSON *json, const char *field,
         return 0;
     }
 
+    logger_msg(LOG_NOTICE, "Failed to load JSON unsigned integer: '%s'", 
+            field);
     return 1;
 }
 
@@ -266,6 +280,7 @@ static int _json_load_bool(cJSON *json, const char *field, bool *dest)
         return 0;
     }
 
+    logger_msg(LOG_NOTICE, "Failed to load JSON boolean: '%s'", field);
     return 1;
 }
 
@@ -321,6 +336,9 @@ void config_set_default_values(config_td *config)
 
     strcpy(config->base.programs.terminal, "xterm");
     strcpy(config->base.programs.launcher, "gmrun");
+    strcpy(config->base.programs.file_manager, "spacefm");
+    strcpy(config->base.programs.web_browser, "firefox");
+    strcpy(config->base.programs.web_browser, "gvim");
     config->base.windows.snap = 4;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
@@ -340,8 +358,9 @@ void config_set_default_values(config_td *config)
     /* Predetermined configuration for keybindings */
     strcpy(config->bindings.keyboard.terminal, "modc+mod1+Return");
     strcpy(config->bindings.keyboard.launcher, "modc+mod1+r");
-    strcpy(config->bindings.keyboard.file_manager, "modc+mod1+e");
+    strcpy(config->bindings.keyboard.file_manager, "modc+mod1+q");
     strcpy(config->bindings.keyboard.web_browser, "modc+mod1+w");
+    strcpy(config->bindings.keyboard.editor, "modc+mod1+e");
     strcpy(config->bindings.keyboard.center, "modc+mod1+g");
     strcpy(config->bindings.keyboard.maximize, "modc+mod1+m");
     strcpy(config->bindings.keyboard.fullscreen, "modc+mod1+f");
@@ -512,7 +531,7 @@ int config_load_base(const char *filename,
     }
 
     /* Theme name*/
-    if (_json_load_object(json, "theme", config_base->theme,
+    if (_json_load_string(json, "theme", config_base->theme,
                 MAX_FILENAME_LENGTH) != 0) {
         logger_msg(LOG_WARNING,
                 "Invalid theme specified:" \
@@ -596,14 +615,16 @@ int config_load_base(const char *filename,
     /* Load default programs */
     cJSON *programs = cJSON_GetObjectItem(json, "programs");
     if (programs) {
-        _json_load_object(programs, "terminal",
+        _json_load_string(programs, "terminal",
                 config_base->programs.terminal, MAX_COMMAND_LENGTH);
-        _json_load_object(programs, "launcher",
+        _json_load_string(programs, "launcher",
                 config_base->programs.launcher, MAX_COMMAND_LENGTH);
-        _json_load_object(programs, "file_manager",
+        _json_load_string(programs, "file_manager",
                 config_base->programs.file_manager, MAX_COMMAND_LENGTH);
-        _json_load_object(programs, "web_browser",
+        _json_load_string(programs, "web_browser",
                 config_base->programs.web_browser, MAX_COMMAND_LENGTH);
+        _json_load_string(programs, "editor",
+                config_base->programs.editor, MAX_COMMAND_LENGTH);
     }
 
     /* Load window base configuration */
@@ -619,7 +640,7 @@ int config_load_base(const char *filename,
         }
         cJSON *placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
-            _json_load_object(placement, "policy",
+            _json_load_string(placement, "policy",
                     config_base->windows.placement.policy,
                     MAX_OPTION_LENGTH);
             _json_load_bool(placement, "is_centered",
@@ -662,70 +683,73 @@ int config_load_bindings(const char *filename,
     /* Load keyboard modifiers */
     cJSON *modifiers = cJSON_GetObjectItem(json, "modifiers");
     if (modifiers) {
-        _json_load_object(modifiers, "modc", config_bindings->modc,
+        _json_load_string(modifiers, "modc", config_bindings->modc,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mods", config_bindings->mods, 
+        _json_load_string(modifiers, "mods", config_bindings->mods, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "modl", config_bindings->modl, 
+        _json_load_string(modifiers, "modl", config_bindings->modl, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mod1", config_bindings->mod1, 
+        _json_load_string(modifiers, "mod1", config_bindings->mod1, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mod2", config_bindings->mod2, 
+        _json_load_string(modifiers, "mod2", config_bindings->mod2, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mod3", config_bindings->mod3, 
+        _json_load_string(modifiers, "mod3", config_bindings->mod3, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mod4", config_bindings->mod4, 
+        _json_load_string(modifiers, "mod4", config_bindings->mod4, 
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(modifiers, "mod5", config_bindings->mod5, 
+        _json_load_string(modifiers, "mod5", config_bindings->mod5, 
                 MAX_KEYBINDING_LENGTH);
     }
 
     /* Load keybindings */
     cJSON *keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard) {
-        _json_load_object(keyboard, "terminal",
+        _json_load_string(keyboard, "terminal",
                 config_bindings->keyboard.terminal,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "launcher",
+        _json_load_string(keyboard, "launcher",
                 config_bindings->keyboard.launcher,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "file_manager",
+        _json_load_string(keyboard, "file_manager",
                 config_bindings->keyboard.file_manager,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "web_browser",
+        _json_load_string(keyboard, "web_browser",
                 config_bindings->keyboard.web_browser,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "center",
+        _json_load_string(keyboard, "editor",
+                config_bindings->keyboard.editor,
+                MAX_KEYBINDING_LENGTH);
+        _json_load_string(keyboard, "center",
                 config_bindings->keyboard.center,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "maximize",
+        _json_load_string(keyboard, "maximize",
                 config_bindings->keyboard.maximize,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "fullscreen",
+        _json_load_string(keyboard, "fullscreen",
                 config_bindings->keyboard.fullscreen,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "shade",
+        _json_load_string(keyboard, "shade",
                 config_bindings->keyboard.shade,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "pin",
+        _json_load_string(keyboard, "pin",
                 config_bindings->keyboard.pin,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "iconify",
+        _json_load_string(keyboard, "iconify",
                 config_bindings->keyboard.iconify,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "close",
+        _json_load_string(keyboard, "close",
                 config_bindings->keyboard.close,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "kill",
+        _json_load_string(keyboard, "kill",
                 config_bindings->keyboard.kill,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "info",
+        _json_load_string(keyboard, "info",
                 config_bindings->keyboard.info,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "cycle-prev",
+        _json_load_string(keyboard, "cycle-prev",
                 config_bindings->keyboard.cycle_prev,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(keyboard, "cycle-next",
+        _json_load_string(keyboard, "cycle-next",
                 config_bindings->keyboard.cycle_next,
                 MAX_KEYBINDING_LENGTH);
 
@@ -734,32 +758,32 @@ int config_load_bindings(const char *filename,
         if (move) {
             cJSON *relative = cJSON_GetObjectItem(move, "relative");
             if (relative) {
-                _json_load_object(relative, "right",
+                _json_load_string(relative, "right",
                         config_bindings->keyboard.move.relative.right, 
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(relative, "left",
+                _json_load_string(relative, "left",
                         config_bindings->keyboard.move.relative.left, 
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(relative, "up",
+                _json_load_string(relative, "up",
                         config_bindings->keyboard.move.relative.up,
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(relative, "down",
+                _json_load_string(relative, "down",
                         config_bindings->keyboard.move.relative.down,
                         MAX_KEYBINDING_LENGTH);
             }
 
             cJSON *absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
-                _json_load_object(absolute, "top-left",
+                _json_load_string(absolute, "top-left",
                         config_bindings->keyboard.move.absolute.top_left,
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(absolute, "top-right",
+                _json_load_string(absolute, "top-right",
                         config_bindings->keyboard.move.absolute.top_right,
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(absolute, "bottom-left",
+                _json_load_string(absolute, "bottom-left",
                         config_bindings->keyboard.move.absolute.bottom_left,
                         MAX_KEYBINDING_LENGTH);
-                _json_load_object(absolute, "bottom-right",
+                _json_load_string(absolute, "bottom-right",
                         config_bindings->keyboard.move.absolute.bottom_right,
                         MAX_KEYBINDING_LENGTH);
             }
@@ -768,16 +792,16 @@ int config_load_bindings(const char *filename,
         /* Keybindings for window resizing */
         cJSON *resize = cJSON_GetObjectItem(keyboard, "resize");
         if (resize) {
-            _json_load_object(resize, "right",
+            _json_load_string(resize, "right",
                     config_bindings->keyboard.resize.right,
                     MAX_KEYBINDING_LENGTH);
-            _json_load_object(resize, "left",
+            _json_load_string(resize, "left",
                     config_bindings->keyboard.resize.left,
                     MAX_KEYBINDING_LENGTH);
-            _json_load_object(resize, "up",
+            _json_load_string(resize, "up",
                     config_bindings->keyboard.resize.up,
                     MAX_KEYBINDING_LENGTH);
-            _json_load_object(resize, "down",
+            _json_load_string(resize, "down",
                     config_bindings->keyboard.resize.down,
                     MAX_KEYBINDING_LENGTH);
         }
@@ -785,10 +809,10 @@ int config_load_bindings(const char *filename,
         /* Keybindings for desktop cycling */
         cJSON *desktop = cJSON_GetObjectItem(move, "desktop");
         if (desktop) {
-            _json_load_object(desktop, "cycle_prev",
+            _json_load_string(desktop, "cycle_prev",
                     config_bindings->keyboard.desktop.cycle_prev,
                     MAX_KEYBINDING_LENGTH);
-            _json_load_object(desktop, "cycle_next",
+            _json_load_string(desktop, "cycle_next",
                     config_bindings->keyboard.desktop.cycle_next,
                     MAX_KEYBINDING_LENGTH);
         }
@@ -797,20 +821,20 @@ int config_load_bindings(const char *filename,
     /* Load mouse bindings */
     cJSON *mouse = cJSON_GetObjectItem(json, "mouse");
     if (mouse) {
-        _json_load_object(mouse, "move", config_bindings->mouse.move,
+        _json_load_string(mouse, "move", config_bindings->mouse.move,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_object(mouse, "resize",
+        _json_load_string(mouse, "resize",
                 config_bindings->mouse.resize, MAX_KEYBINDING_LENGTH);
-        _json_load_object(mouse, "lower", config_bindings->mouse.lower,
+        _json_load_string(mouse, "lower", config_bindings->mouse.lower,
                 MAX_KEYBINDING_LENGTH);
 
         /* Mouse bindings for desktop cycling */
         cJSON *desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
-            _json_load_object(desktop, "cycle_prev",
+            _json_load_string(desktop, "cycle_prev",
                     config_bindings->mouse.desktop.cycle_prev,
                     MAX_KEYBINDING_LENGTH);
-            _json_load_object(desktop, "cycle_next",
+            _json_load_string(desktop, "cycle_next",
                     config_bindings->mouse.desktop.cycle_next,
                     MAX_KEYBINDING_LENGTH);
         }
@@ -851,7 +875,7 @@ int config_load_theme(const char *filename,
     }
 
     /* Load theme name identifier */
-    _json_load_object(json, "name", config_theme->name,
+    _json_load_string(json, "name", config_theme->name,
             MAX_FONTNAME_LENGTH);
 
     /* Load window general appearance */
@@ -886,7 +910,7 @@ int config_load_theme(const char *filename,
                 config_theme->window.active.frame_color =
                     _hex2ul(frame_color->valuestring);
             }
-            _json_load_object(active, "font",
+            _json_load_string(active, "font",
                     config_theme->window.active.font,
                     MAX_FONTNAME_LENGTH); }
 
@@ -911,7 +935,7 @@ int config_load_theme(const char *filename,
                 config_theme->window.inactive.frame_color =
                     _hex2ul(frame_color->valuestring);
             }
-            _json_load_object(inactive, "font",
+            _json_load_string(inactive, "font",
                     config_theme->window.inactive.font,
                     MAX_FONTNAME_LENGTH); }
     }
@@ -942,7 +966,7 @@ int config_load_theme(const char *filename,
                 &config_theme->icon.border_width);
         _json_load_bool(icon, "is_captioned",
                 &config_theme->icon.is_captioned);
-        _json_load_object(icon, "font", config_theme->icon.font,
+        _json_load_string(icon, "font", config_theme->icon.font,
                 MAX_FONTNAME_LENGTH);
     }
 

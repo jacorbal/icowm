@@ -12,6 +12,9 @@
     "keyboard": {
         "terminal": "modc+mod1+Return",
         "launcher": "modc+mod1+r",
+        "file_manager": "modc+mod1+q",
+        "web_browser": "modc+mod1+w",
+        "editor": "modc+mod1+e",
         "center": "modc+mod1+g",
         "fullscreen": "mofc+mod1-f",
         "maximize": "modc+mod1+m",

@@ -7,13 +7,19 @@
 #ifndef DESKTOP_H
 #define DESKTOP_H
 
+/* System includes */
+#include <stdbool.h>    /* bool */
 
 /* ADT */
-#include <adt/list.h>   /* Singly linked list */
+#include <adt/ohtbl.h>  /* Open-addressed hash table (closed hasing) */
 
 /* Project includes */
 #include <config.h>
 #include <window.h>
+
+
+// TODO: Put this in a configuration file!
+#define DESKTOP_INITIAL_CAPACITY (256)  /* (512) */
 
 
 /**
@@ -31,7 +37,7 @@ typedef struct {
         } bg;                   /**< Background information*/
     } background;
 
-    list_td *windows;           /**< Windows array for this desktop */
+    ohtbl_td *windows;          /**< Windows hash table */
     window_td *window_active;   /**< Pointer to active window */
 
     struct config_base_s *config_base;
@@ -69,6 +75,16 @@ desktop_td *desktop_init(unsigned int screen_id,
 void desktop_destroy(desktop_td *desktop);
 
 /**
+ * @brief Update the desktop by updating all its windows
+ *
+ * @param desktop Desktop to deallocate
+ *
+ * @note Complexity: @e O(n), where @e n is the number of windows on
+ *       this desktop
+ */
+void desktop_update(desktop_td *desktop);
+
+/**
  * @brief Clear a desktop by removing all its windows
  *
  * This function deallocates each and every window of the desktop and
@@ -89,7 +105,7 @@ void desktop_clear(desktop_td *desktop);
  * @param window  Pointer to the window to be added to the desktop
  *
  * @return Status of the operation
- * @retval 0 Success on removal
+ * @retval  0 Success on removal
  *
  * @note Complexity: @e O(1)
  */
@@ -102,25 +118,11 @@ int desktop_window_add(desktop_td *desktop, window_td *window);
  * @param window  Pointer to the window to be removed from the desktop
  *
  * @return Status of the operation
- * @retval 0 Success on removal
+ * @retval  0 Success on removal
  *
  * @note Complexity: @e O(1)
  */
 int desktop_window_rem(desktop_td *desktop, window_td *window);
-
-/**
- * @brief Remove a window from the desktop searching by id
- *
- * @param desktop   Pointer to the desktop where to remove the window
- * @param window_id Identifier of the window to be removed
- *
- * @return Status of the operation
- * @retval 0 Success on removal
- *
- * @note Complexity: @e O(1)
- */
-int desktop_window_rem_by_id(desktop_td *desktop,
-        unsigned int window_id);
 
 /**
  * @brief Macro that evaluates to the window count of the desktop

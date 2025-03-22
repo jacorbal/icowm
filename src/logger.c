@@ -7,7 +7,7 @@
 /* System includes */
 #include <stdarg.h>     /* va_list, va_start, va_end */
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
-#include <stdlib.h>     /* free, malloc */
+#include <stdlib.h>     /* NULL, free, malloc, size_t */
 #include <string.h>     /* strcpy, strlen */
 #include <time.h>       /* localtime, strftime, time, tm */
 
@@ -53,12 +53,21 @@ int logger_start(FILE *fp, const enum logger_level_e level_min)
         return 1;
     }
 
-    logger->level_min = level_min;
-    logger->fp = fp;
+    /* Validate and correct if necessary minimum log level value */
+    if (level_min < LOG_MIN_LEVEL) {
+        logger->level_min = LOG_MIN_LEVEL;
+    } else if (level_min > LOG_MAX_LEVEL) {
+        logger->level_min = LOG_MAX_LEVEL;
+    } else {
+        logger->level_min = level_min;
+    }
 
+    /* Set the file stream and its buffer if necessary */
+    logger->fp = fp;
     if (fp == NULL || fp == stdout || fp == stderr) {
         logger->buffer = NULL;
     } else {
+        /* Initialize the log message buffer */
         logger->buffer = malloc(sizeof(struct logger_buffer_s));
         if (logger->buffer == NULL) {
             free(logger);
@@ -87,6 +96,8 @@ void logger_stop(void)
         _logger_buffer_flush(logger->buffer, logger->fp); 
         free(logger->buffer->messages);
         free(logger->buffer);
+    } else {
+        fflush(logger->fp);
     }
     free(logger);
 }

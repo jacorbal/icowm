@@ -1,12 +1,11 @@
 /**
  * @file window.c
  *
- * @brief Window structure implememtation
+ * @brief Window structure implementation
  */
 
 /* System includes */
-#include <stdio.h>
-#include <stdlib.h>     /* free, malloc */
+#include <stdlib.h>     /* NULL, free, malloc */
 
 /* External libraries */
 #include <X11/Xlib.h>
@@ -161,7 +160,7 @@ void window_decorate(window_td *window)
 }
 
 
-/* Undecorate window */
+/* Remove decorations from window */
 void window_undecorate(window_td *window)
 {
     window->dim.w -= 10;
@@ -179,7 +178,7 @@ void window_event_handle(window_td *window, XEvent *event)
         window->properties.flags &=
             (enum window_flags_e) ~WIN_PROPERTY_FOCUSED;
     } else if (event->type == ConfigureNotify) {
-        event_handle_configure_notify(window, &event->xconfigure);
+        //event_handle_configure(window, &event->xconfigure);
     }
 }
 
@@ -189,7 +188,8 @@ void window_focus(window_td *window)
 {
     window->properties.flags |= (enum window_flags_e) WIN_PROPERTY_FOCUSED;
     XRaiseWindow(window->display, window->window);
-    XSetInputFocus(window->display, window->window, RevertToPointerRoot, CurrentTime);
+    XSetInputFocus(window->display, window->window,
+            RevertToPointerRoot, CurrentTime);
 }
 
 
@@ -210,13 +210,14 @@ void window_state(window_td *window, enum window_state_e state)
             window_iconize(window);
             break;
         case WIN_STATE_FULLSCREEN:
-            /* Start fullscreen (should be a fullscreen exit/toggle) */
+            /* Start full screen (should be a full screen toggle?) */
             break;
         case WIN_STATE_IDLE:
             /* Reset to a normal state */
             break;
         default:
-            logger_msg(LOG_WARNING, "Unknown window state: %d", state);
+            logger_msg(LOG_WARNING,
+                    "Unrecognized window state: %d", state);
             break;
     }
 }

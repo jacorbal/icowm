@@ -47,7 +47,7 @@ enum window_flags_e {
  */
 enum window_layer_e {
     WIN_LAYER_ON_TOP,       /**< Always on top */
-    WIN_LAYER_NORMAL,       /**< Normal behaviour */
+    WIN_LAYER_NORMAL,       /**< Normal behavior */
     WIN_LAYER_ON_BOTTOM,    /**< Always behind every window */
     WIN_LAYER_MAX = WIN_LAYER_ON_BOTTOM,
 };
@@ -62,10 +62,6 @@ struct window_properties_s {
     enum window_flags_e flags;  /**< Flags (sticky, focused,...) */
 };
 
-
-/**
- * @brief Window dimensions and position
- */
 
 /**
  * @brief Window structure
@@ -120,8 +116,7 @@ void window_destroy(window_td *window);
  *
  * @param window Pointer to the window to be updated
  *
- * @note Complexity: @e O(n) where @e n is the number of elements to
- *       update
+ * @note Complexity: @e O(1)
  */
 void window_update(window_td *window);
 
@@ -190,7 +185,7 @@ void window_undecorate(window_td *window);
  * state and geometry as needed.
  *
  * @param window Pointer to the window for which events are being handled
- * @param event  Pointer to an @c XEvent structure that contains the
+ * @param event  Pointer to an @p XEvent structure that contains the
  *               event information to be processed
  */
 void window_event_handle(window_td *window, XEvent *event);

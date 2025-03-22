@@ -1,8 +1,7 @@
-# vim: set filetype=make nowrap noexpandtab tabstop=4:
 # Makefile
 #
-# PROJECT: 'ICOWM' (`icowm`)
-# AUTHOR: J. A. Corbal (<jacorbal@gmail.com>)
+# Project: IcoWM (`icowm`) -- Iconizer Window Manager
+# Author: J. A. Corbal (<jacorbal@gmail.com>)
 
 ## Directories
 PWD   = $(CURDIR)
@@ -15,7 +14,7 @@ B_DIR = ${PWD}/bin
 SHELL=/bin/bash
 
 ## Compiler & linker options
-CC          = gcc  # gcc, clang
+CC          = gcc # gcc, clang
 CCSTD       = c11  # c89 | c90, c99, c11, c17, gnu11, gnu17
 CCOPT       = 2	   # 0:debug; 1:optimize; 2:optimize more; 3:even more
 CCOPTS      = -pedantic -pedantic-errors
@@ -27,7 +26,7 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
 			  -Wunreachable-code -Wmissing-format-attribute
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 			 -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-			 -Wno-suggest-attribute=format -Wno-unused-parameter
+			 -Wno-suggest-attribute=format    -Wno-unused-parameter
 CCWARN		= ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST} ${CCWARN_GCC}
 #SQL_LFLAGS  = -lsqlite3
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
@@ -43,6 +42,12 @@ else ifeq ($(DEBUG), 2)
 	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
 else
 	CCFLAGS += -DNDEBUG -O${CCOPT}
+endif
+
+# Use `make STRIP=1` to discard symbols from object files
+STRIP ?= 0
+ifeq ($(STRIP), 1)
+	LDFLAGS += -s
 endif
 
 

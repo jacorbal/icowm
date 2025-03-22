@@ -10,30 +10,30 @@
 
 /* System includes */
 #include <stdbool.h>    /* bool */
-#include <stdio.h>      /* FILE */
 
 /* ADT */
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */
 #include <config.h>
+#include <event.h>
 #include <screen.h>
 
 
 /**
  * @brief Window manager structure with information about display,
  *        screens and windows to manage, as well as the configuration
- *        used and logging behaviour
+ *        used and logging behavior
  *
  * It stores the essential components of a window manager, keeping track
  * of both the screens' arrangements and the windows that inhabit them.
  */
 typedef struct {
-    bool is_running;                /**< Running state flag */
-    list_td *screens;               /**< Screens list */
-    config_td *config;              /**< Window manager configuration */
+    bool is_running;                    /**< Running state flag */
+    list_td *screens;                   /**< Screens list */
+    config_td *config;                  /**< Window manager config. */
 
-    void (*event_handler)(XEvent*); /**< Pointer to the event handler */
+    event_handler_td *event_handler;    /**< Pointer to event handler */
 
     /* Callbacks */
 } wm_td;
@@ -43,7 +43,7 @@ typedef struct {
 /**
  * @brief Initialize window manager instance
  *
- * This function allocates memory for a @c wm_td structure, initializes
+ * This function allocates memory for a @p wm_td structure, initializes
  * its fields, and opens a connection to the X server.  It sets up the
  * managed windows array and initializes the current desktop index and
  * running state.
@@ -62,7 +62,7 @@ wm_td *wm_init(config_td *config);
 /**
  * @brief Destroy window manager instance
  *
- * This function deallocates the memory used by the @c wm_td structure,
+ * This function deallocates the memory used by the @p wm_td structure,
  * including the managed windows and closes the connection to the
  * X server.
  *
@@ -75,18 +75,31 @@ wm_td *wm_init(config_td *config);
 void wm_destroy(wm_td *wm);
 
 /**
+ * @brief Update window manager
+ *
+ * This function updates the window manager by updating every window on
+ * every desktop of every screen.
+ *
+ * @param wm Pointer to the window manager instance to update it
+ *
+ * @note Complexity: @e O(n*m), where @e n is the number of screens and
+ *       @e m is the number of desktops on the screen
+ */
+void wm_update(wm_td *wm);
+
+/**
  * @brief Enters the main event handling loop of the window manager
  *
  * This function runs continuously while the window manager is active,
  * listening for X11 events and passing them to the event handler for
- * processing.  It uses @c XNextEvent to wait for incoming events from
+ * processing.  It uses @p XNextEvent to wait for incoming events from
  * the X server, enabling responsive behavior in window management.
- * The condition to end the loop is by setting @c is_running to @c false.
+ * The condition to end the loop is by setting @p is_running to @c false.
  *
- * @param wm Pointer to the initialized @c wm_td instance that contains
+ * @param wm Pointer to the initialized @p wm_td instance that contains
  *           the necessary state and configuration for the window manager
  *
- * @note The event loop will stop when the @c is_running flag is set to
+ * @note The event loop will stop when the @p is_running flag is set to
  *       @c false, which should be handled in response to user actions
  *       or when the window manager is terminating
  * @note Complexity: @e O(1) for each event processed; however, the

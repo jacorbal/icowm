@@ -10,19 +10,17 @@
 #define LIST_H
 
 
-/* Data type includes */
-#include <stdbool.h>    /* bool, false, true */
-
 /* System includes */
-#include <stddef.h>     /* NULL */
+#include <stdbool.h>    /* bool, false, true */
+#include <stddef.h>     /* NULL, size_t */
 
 
 /**
  * @brief Linked list items structure
  */
-typedef struct list_item_td_st {
+typedef struct list_item_td_s {
     void *data;                     /**< Pointer to the data of this item */
-    struct list_item_td_st *next;   /**< Pointer to the next element */
+    struct list_item_td_s *next;    /**< Pointer to the next element */
 } list_item_td;
 
 
@@ -53,7 +51,7 @@ typedef struct {
      */
     void (*destroy)(void *data);
 
-    size_t size;        /**< Number of elements currently in the list */
+    size_t size;        /**< Number of elements in the list */
     list_item_td *head; /**< Pointer to the head of the list */
     list_item_td *tail; /**< Pointer to the tail of the list */
 } list_td;
@@ -101,7 +99,7 @@ void list_clear(list_td *list);
  * @param data Pointer to the data to be inserted
  *
  * @return Status of the insertion operation
- * @retval 0 Successfully inserted the item
+ * @retval  0 Successfully inserted the item
  *
  * @note If @e item is @c NULL, the new item is inserted at the head
  * @note Complexity: @e O(1)
@@ -117,7 +115,7 @@ int list_ins_next(list_td *list, list_item_td *item,
  * @param data Pointer to the data to be removed
  *
  * @return Status of the removal operation
- * @retval 0 Successfully removed the item
+ * @retval  0 Successfully removed the item
  *
  * @note If @e item is @c NULL, the head of the list will be removed
  * @note The allocated memory of the item must be manually freed

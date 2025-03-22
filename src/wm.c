@@ -6,18 +6,18 @@
 
 /* System includes */
 #include <stdbool.h>    /* true */
-#include <stdlib.h>     /* free, malloc */
-#include <stdio.h>      /* fprintf */
+#include <stdlib.h>     /* NULL, free, malloc */
 
 /* External libraries */
 #include <X11/Xlib.h>   /* XOpenDisplay, XCloseDisplay */
-#include <X11/keysym.h> /* XK_* */
 
 /* ADT */
+#include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */
 #include <config.h>
+#include <event.h>
 #include <logger.h>
 #include <screen.h>
 
@@ -45,7 +45,7 @@ wm_td *wm_init(config_td *config)
         logger_msg(LOG_DEBUG, "Opening X display");
         Display *display = XOpenDisplay(NULL);
         if (display == NULL) {
-            logger_msg(LOG_FATAL, "Unable to open X display");
+            logger_msg(LOG_FATAL, "Failed to open X display");
             free(wm);
             return NULL;
         }
@@ -55,6 +55,15 @@ wm_td *wm_init(config_td *config)
                 "Loading configuration into window manager");
         wm->config = config;
         config_load(wm->config);
+
+        /* Events */
+        wm->event_handler = event_handler_init();
+        if (wm->event_handler == NULL) {
+            logger_msg(LOG_FATAL,
+                    "Failed to initialize event handler");
+            free(wm);
+            return NULL;
+        }
 
         /* Handle screens */
         logger_msg(LOG_TRACE,
@@ -131,9 +140,6 @@ wm_td *wm_init(config_td *config)
                 screen->desktop_cur, i);
         }
 
-        /* Events */
-        wm->event_handler = NULL;
-
         /* Begin! */
         logger_msg(LOG_TRACE, "Setting 'is_running' status to 'true'");
         wm->is_running = true;
@@ -154,34 +160,74 @@ void wm_destroy(wm_td *wm)
     logger_msg(LOG_TRACE, "Deallocating screens in window manager");
     list_destroy(wm->screens);
     config_destroy(wm->config);
+    event_handler_destroy(wm->event_handler);
 
     logger_msg(LOG_TRACE, "Destroying window manager");
     free(wm);
 }
 
 
+/* Update window manager */
+void wm_update(wm_td *wm)
+{
+    /* Update all screens */
+    for (list_item_td *screen_node = list_head(wm->screens); 
+         screen_node != NULL; 
+         screen_node = list_next(screen_node)) {
+        screen_td *screen_cur = (screen_td *) list_data(screen_node);
+        screen_update(screen_cur);
+    }
+}
+
+
 /* Window manager main loop */
 void wm_loop(wm_td *wm)
 {
-    logger_msg(LOG_DEBUG, "Starting main event loop");
+    XEvent event;
+
     if (wm == NULL || !wm->is_running) {
-        logger_msg(LOG_TRACE, "Exiting event loop");
+        logger_msg(LOG_TRACE,
+                "Window manager is not initialized" \
+                "or set not to run");
         return;
     }
 
-    logger_msg(LOG_DEBUG, "Listening for events...");
+    logger_msg(LOG_DEBUG, "Entering main event loop");
     while (wm->is_running) {
-        XEvent event;
+        /* For each screen ('list_td *') */
+        for (list_item_td *screen_item = list_head(wm->screens);
+             screen_item != NULL; 
+             screen_item = list_next(screen_item)) {
+            screen_td *screen = (screen_td *) list_data(screen_item);
 
-        /* Wait for an event */
-//        XNextEvent(wm->screens[0].display, &event);
-        // Assuming we are handling events from the first screen
+            /* For each desktop ('cdlist_td *') */
+            for (cdlist_item_td *desktop_item =
+                    cdlist_head(screen->desktops);
+                 desktop_item != NULL; 
+                 desktop_item = cdlist_next(desktop_item)) {
+                desktop_td *desktop =
+                    (desktop_td *) cdlist_data(desktop_item);
 
-        /* Call the event handler (if it is set) */
-        if (wm->event_handler != NULL) {
-            wm->event_handler(&event);
-        }
+                /* For each window ('ohtbl_td *') */
+                for (size_t i = 0;
+                     i < ohtbl_size(desktop->windows);
+                     ++i) {
+                    void *window_data = NULL;
+                    
+                    /* Lookup the window in the hash table */
+                    int result = ohtbl_lookup(desktop->windows, 
+                            &window_data);
+                    if (result == 0 && window_data != NULL) {
+                        window_td *window = (window_td *) window_data;
 
-        /* Process the event (more event processing can occur here) */
+                        /* Wait for an event on the current screen */
+                        XNextEvent(window->display, &event);
+                        event_handler_generic(wm->event_handler, window,
+                                &event);
+                    }
+                } /* ! for (windows) */
+            } /* ! for (desktops) */
+        } /* ! for (screens) */
     }
+    logger_msg(LOG_DEBUG, "Exiting event loop");
 }

@@ -45,7 +45,7 @@ struct config_base_s {
         struct desktops_s {
             struct desktop_settings_s {
                 union {
-                    //Pixmap image;         /**< Background image*/
+                    //Pixmap image;           /**< Background image*/
                     COLOR color;            /**< Background color */
                 } background;
             } settings;                     /**< Desktop settings */
@@ -58,9 +58,10 @@ struct config_base_s {
         char launcher[MAX_COMMAND_LENGTH];
         char file_manager[MAX_COMMAND_LENGTH];
         char web_browser[MAX_COMMAND_LENGTH];
+        char editor[MAX_COMMAND_LENGTH];
     } programs;
 
-    /* General behaviour of environment towards windows */
+    /* General behavior of environment towards windows */
     struct windows_s {
         unsigned int snap;
         struct {
@@ -95,6 +96,7 @@ struct config_bindings_s {
         char launcher[MAX_KEYBINDING_LENGTH];
         char file_manager[MAX_KEYBINDING_LENGTH];
         char web_browser[MAX_KEYBINDING_LENGTH];
+        char editor[MAX_KEYBINDING_LENGTH];
         char center[MAX_KEYBINDING_LENGTH];
         char maximize[MAX_KEYBINDING_LENGTH];
         char fullscreen[MAX_KEYBINDING_LENGTH];

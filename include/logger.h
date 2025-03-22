@@ -7,7 +7,7 @@
  * place since the logger starts until it ends working with the same
  * configuration.  The logger uses a buffer to store the formatted
  * messages before flushing them (unless the system descriptors such as
- * @c stdout or @c stderr are used).  This is build to increase
+ * @e stdout or @e stderr are used).  This is build to increase
  * performance by minimizing the number of flushes at the cost of
  * a extra bit of memory, so the log is written in chunks if everything
  * is working properly, but it will always flush the messages on any
@@ -49,7 +49,7 @@
  *
  * @todo When logfile is not specified, instead of using only one system
  *       file descriptor, send all the messages with loglevel higher
- *       than @e LOG_WARNING to @c stderr, and the rest to @c stdout
+ *       than @e LOG_WARNING to @e stderr, and the rest to @e stdout
  */
 
 #ifndef LOGGER_H
@@ -68,16 +68,17 @@
  * @brief Logger levels
  */
 enum logger_level_e {
-    LOG_TRACE,      /**< Tracing every single action */
-    LOG_DEBUG,      /**< Detailed information for debugging purposes */
-    LOG_INFO,       /**< Record of the normal operation */
-    LOG_NOTICE,     /**< Normal but significant information */
-    LOG_WARNING,    /**< Potential issues that may lead to errors */
-    LOG_ERROR,      /**< Conditions on operations, not the program */
-    LOG_CRITICAL,   /**< Conditions that may lead to failure of program */
-    LOG_ALERT,      /**< Immediate action is necessary */
-    LOG_FATAL,      /**< Program in unusable: shutdown forced */
-    LOG_MAX_LEVELS = LOG_FATAL,
+    LOG_MIN_LEVEL = 0,
+    LOG_TRACE = LOG_MIN_LEVEL,  /**< Tracing every single action */
+    LOG_DEBUG,                  /**< Information for debugging purposes */
+    LOG_INFO,                   /**< Record of the normal operation */
+    LOG_NOTICE,                 /**< Normal yet significant information */
+    LOG_WARNING,                /**< Issues that may lead to errors */
+    LOG_ERROR,                  /**< Conditions on operations */
+    LOG_CRITICAL,               /**< Conditions that may lead to failure */
+    LOG_ALERT,                  /**< Immediate action is necessary */
+    LOG_FATAL,                  /**< Program in unusable: shutdown */
+    LOG_MAX_LEVEL = LOG_FATAL,
 };
 
 
@@ -103,8 +104,11 @@ typedef struct {
  * @param level_min Minimum logging level
  *
  * @return Status of the operation
- * @retval 0 Success
- * @retval 1 Could not allocate memory
+ * @retval  0 Success
+ * @retval  1 Could not allocate memory
+ *
+ * @pre @p level_min must be a valid value in the range @e LOG_MIN_LEVEL
+ *      and @e LOG_MAX_LEVEL (closed interval)
  *
  * @note Complexity: @e O(1)
  *
@@ -133,7 +137,7 @@ void logger_stop(void);
  *         end output to strings)
  *
  * @note The message to be logged should be a null-terminated string
- * @note Only messages at level @c min_level or higher will be logged
+ * @note Only messages at level @p min_level or higher will be logged
  * @note Complexity: @e O(n), where @e n is the length of the formatted
  *       string (because of @e vsnprintf)
  */

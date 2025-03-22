@@ -12,7 +12,7 @@
 #include <X11/Xlib.h>   /* Window, Colormap */
 
 /* ADT */
-#include <adt/list.h>   /* Singly linked list */
+#include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Common type structures */
 #include <types/pair.h> /* dimensions_s, size_s */
@@ -41,7 +41,7 @@ typedef struct {
 
     unsigned int desktop_count; /**< Number of desktops */
     unsigned int desktop_cur;   /**< Index of current desktop */ 
-    list_td *desktops;          /**< List of desktops */
+    cdlist_td *desktops;        /**< Circular list of desktops */
 
     config_td *config;          /**< Configuration */
 } screen_td;
@@ -71,6 +71,15 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
  *       iterates through the array of windows to free each one of them
  */
 void screen_destroy(screen_td *screen);
+
+/**
+ * @brief Update the screen by updating all its desktops
+ *
+ * @param screen Screen to update
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops
+ */
+void screen_update(screen_td *screen);
 
 /**
  * @brief Macro that evaluates to the desktop count of the screen
