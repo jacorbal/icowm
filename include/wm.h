@@ -21,12 +21,20 @@
 
 
 /**
- * @brief Window manager structure with information about display,
- *        screens and windows to manage, as well as the configuration
- *        used and logging behavior
+ * @brief Window manager structure
  *
- * It stores the essential components of a window manager, keeping track
- * of both the screens' arrangements and the windows that inhabit them.
+ * This structure represents the core components of a window manager,
+ * maintaining the state of the application as well as the relationships
+ * between different screens and their respective windows.  It includes
+ * functionality for managing configurations and handling events that
+ * affect window behavior and user interactions.
+ *
+ * The @p is_running flag indicates whether the window manager is
+ * currently operational, while the @p screens linked list holds
+ * references to all screens being managed.  The @p config pointer
+ * allows for customization of the window manager's settings, and the
+ * @p event_handler is responsible for processing user inputs and system
+ * events, keeping the window manager responsive and interactive.
  */
 typedef struct {
     bool is_running;                    /**< Running state flag */
@@ -35,7 +43,7 @@ typedef struct {
 
     event_handler_td *event_handler;    /**< Pointer to event handler */
 
-    /* Callbacks */
+    /* Callbacks? */
 } wm_td;
 
 
@@ -75,17 +83,26 @@ wm_td *wm_init(config_td *config);
 void wm_destroy(wm_td *wm);
 
 /**
- * @brief Update window manager
+ * @brief Soft window manager update
+ *
+ * @param wm Pointer to the window manager instance to update it
+ *
+ * @note Complexity: @e O(1)
+ */
+void wm_update(wm_td *wm);
+
+/**
+ * @brief Full window manager update
  *
  * This function updates the window manager by updating every window on
  * every desktop of every screen.
  *
- * @param wm Pointer to the window manager instance to update it
+ * @param wm Pointer to the window manager instance to update it fully
  *
  * @note Complexity: @e O(n*m), where @e n is the number of screens and
  *       @e m is the number of desktops on the screen
  */
-void wm_update(wm_td *wm);
+void wm_update_full(wm_td *wm);
 
 /**
  * @brief Enters the main event handling loop of the window manager

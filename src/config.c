@@ -9,19 +9,23 @@
 /*
  * NOTE(S):
  *
- * Regarding the forthcoming extant self (Fri Mar 22 05:01 CET 2025):
+ * Regarding the forthcoming extant self (Sat Mar 22 05:01 CET 2025):
  *      The current state of this code is significantly suboptimal.
  *      I implore you to initiate refactoring at your earliest
  *      convenience, or at a time that is deemed more suitable.
+ *
+ * Regarding the whilom expired self (Sun Mar 23 06:12 CET 2025):
+ *      Should've done it correctly from the get-go and avoided future
+ *      headaches: *my* present headaches.
  */
 
 /* System includes */
 #include <stdbool.h>    /* bool, false, true */
 #include <stdio.h>      /* FILE, snprintf */
-#include <stdlib.h>     /* NULL, free, malloc, size_t */
-#include <string.h>     /* strcmp, strncpy, strlen */
+#include <stdlib.h>     /* NULL, free, malloc, getenv, size_t */
+#include <string.h>     /* strncpy, strlen */
 
-/* External libraries includes */
+/* External libraries */
 #include <cjson/cJSON.h>
 
 /* Project includes */
@@ -61,7 +65,7 @@ static unsigned long int _hex2ul(const char *hex_color)
  * @brief Copy a string safely into a destination buffer
  *
  * This function copies a string from source to destination ensuring
- * that the destination buffer does not overflow.  It null-terminates 
+ * that the destination buffer does not overflow.  It null-terminates
  * the destination string.
  *
  * @param dest Pointer to the destination buffer
@@ -74,71 +78,12 @@ static unsigned long int _hex2ul(const char *hex_color)
  *       null-terminated
  *
  * @note Complexity: @e O(n), where @e n is the length of the source
- *       string or the specified size, whichever is smaller 
+ *       string or the specified size, whichever is smaller
  */
 static void safe_strncpy(char *dest, const char *src, size_t size)
 {
     strncpy(dest, src, size - 1);
     dest[size - 1] = '\0';
-}
-
-
-/**
- * @brief Load JSON data from a file into a string
- *
- * Reads the contents of a specified file and stores it in a dynamically
- * allocated string.  The caller is responsible for freeing the memory
- * allocated for the string.
- *
- * @param filename The path to the file containing JSON data
- * @param data     Pointer to a string where the loaded data is stored
- *
- * @return Status of the operation
- * @retval 0 on success, or otherwise on error
- *
- * @note This function checks if the file can be opened and reads the
- *       entire contents into memory. If an error occurs during file
- *       operations or memory allocation, it will return a non-zero
- *       value
- *
- * @note Complexity: @e O(n), where @e n is the size of the file
- */
-static int _json_load_from_file(const char *filename, char **data)
-{
-    FILE *file;
-
-    logger_msg(LOG_INFO,
-            "Parsing data from file: '%s'", filename);
-
-    logger_msg(LOG_TRACE, "Opening JSON file: '%s'", filename);
-    file = fopen(filename, "r");
-    if (!file) {
-        logger_msg(LOG_NOTICE,
-                "File not found or unable to open:" \
-                " '%s'; default values will be used", filename);
-        return 1;
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t length = (size_t) ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    *data = malloc(length + 1);
-    if (*data == NULL) {
-        logger_msg(LOG_ERROR,
-                "Failed to allocate memory for file: '%s'", filename);
-        fclose(file);
-        return 2;
-    }
-
-    logger_msg(LOG_TRACE, "Reading JSON file: '%s'", filename);
-    fread(*data, 1, length, file);
-    (*data)[length] = '\0';
-    
-    logger_msg(LOG_TRACE, "Closing JSON file: '%s'", filename);
-    fclose(file);
-
-    return 0;
 }
 
 
@@ -155,7 +100,8 @@ static int _json_load_from_file(const char *filename, char **data)
  * @param size  Maximum number of characters to copy including terminator
  *
  * @return Status of the operation
- * @retval 0 on success, or otherwise on error
+ * @retval  0 Success
+ * @retval  1 Failed to load string data
  *
  * @note The function ensures that the destination buffer does not
  *       overflow and is properly null-terminated.
@@ -174,45 +120,9 @@ static int _json_load_string(cJSON *json, const char *field, char *dest,
         return 0;
     }
 
-    logger_msg(LOG_NOTICE, "Failed to load JSON string: '%s'", field);
+    LOGGER_NOTICE("Failed to load JSON string: '%s'", field);
     return 1;
 }
-
-
-/**
- * @brief Load integer value from a JSON object into an integer pointer
- *
- * Extracts a specified field from a JSON object and stores its integer
- * value in the provided destination pointer.
- *
- * @param json  Pointer to the JSON object to extract data from
- * @param field The name of the field to extract
- * @param dest  Pointer to an integer where the value will be stored
- *
- * @return Status of the operation
- * @retval 0 on success, or otherwise on error
- *
- * @note If the field is absent or the value cannot be converted to an
- *       integer, the destination value remains unchanged
- *
- * @note Complexity: @e O(1) for accessing the field and potential
- *       parsing cost
- */
-/*
-static int _json_load_int(cJSON *json, const char *field, int *dest)
-{
-    cJSON *item;
-
-    item = cJSON_GetObjectItem(json, field);
-    if (item && cJSON_IsNumber(item)) {
-        *dest = item->valueint;
-        return 0;
-    }
-
-    logger_msg(LOG_NOTICE, "Failed to load JSON integer: '%s'", field);
-    return 1;
-}
-*/
 
 
 /**
@@ -227,7 +137,8 @@ static int _json_load_int(cJSON *json, const char *field, int *dest)
  * @param dest  Pointer to an unsigned integer where the value is stored
  *
  * @return Status of the operation
- * @retval 0 on success, or otherwise on error
+ * @retval  0 Success
+ * @retval  1 Failed to load unsigned int data
  *
  * @note If the field is absent or the value cannot be converted to an
  *       unsigned integer, the destination value remains unchanged.
@@ -241,11 +152,11 @@ static int _json_load_uint(cJSON *json, const char *field,
     cJSON *item = cJSON_GetObjectItem(json, field);
 
     if (item && cJSON_IsNumber(item)) {
-        *dest = (unsigned int)item->valueint;
+        *dest = (unsigned int) item->valueint;
         return 0;
     }
 
-    logger_msg(LOG_NOTICE, "Failed to load JSON unsigned integer: '%s'", 
+    LOGGER_NOTICE("Failed to load JSON unsigned integer: '%s'",
             field);
     return 1;
 }
@@ -262,7 +173,8 @@ static int _json_load_uint(cJSON *json, const char *field,
  * @param dest  Pointer to a boolean where the value will be stored
  *
  * @return Status of the operation
- * @retval 0 on success, or otherwise on error
+ * @retval  0 Success
+ * @retval  1 Failed to load boolean data
  *
  * @note If the field is absent or the value cannot be interpreted as
  *       a boolean, the destination value remains unchanged
@@ -280,8 +192,145 @@ static int _json_load_bool(cJSON *json, const char *field, bool *dest)
         return 0;
     }
 
-    logger_msg(LOG_NOTICE, "Failed to load JSON boolean: '%s'", field);
+    LOGGER_NOTICE("Failed to load JSON boolean: '%s'", field);
     return 1;
+}
+
+
+/**
+ * @brief Load JSON data from a file into a string
+ *
+ * Reads the contents of a specified file and stores it in a dynamically
+ * allocated string.  The caller is responsible for freeing the memory
+ * allocated for the string.
+ *
+ * @param filename The path to the file containing JSON data
+ * @param data     Pointer to a string where the loaded data is stored
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 File not found or empty file
+ * @retval  2 Failed to allocate memory
+ *
+ * @note This function checks if the file can be opened and reads the
+ *       entire contents into memory. If an error occurs during file
+ *       operations or memory allocation, it will return a non-zero
+ *       value
+ *
+ * @note Complexity: @e O(n), where @e n is the size of the file
+ */
+static int _json_load_from_file(const char *filename, char **data)
+{
+    FILE *file;
+
+    LOGGER_INFO("Parsing data from file: '%s'", filename);
+
+    LOGGER_TRACE("Opening JSON file: '%s'", filename);
+    file = fopen(filename, "r");
+    if (!file) {
+        LOGGER_NOTICE("File not found or unable to open:" \
+                " '%s'; default values will be used", filename);
+        return 1;
+    }
+
+    fseek(file, 0, SEEK_END);
+    size_t length = (size_t) ftell(file);
+    if (length == 0) {
+        fclose(file);
+        LOGGER_NOTICE("File is empty:" \
+                " '%s'; default values will be used", filename);
+        return 1;
+    }
+    fseek(file, 0, SEEK_SET);
+
+    *data = malloc(length + 1);
+    if (*data == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for file: '%s'",
+                filename);
+        fclose(file);
+        return 2;
+    }
+
+    LOGGER_TRACE("Reading JSON file: '%s'", filename);
+    fread(*data, 1, length, file);
+
+    /* Make sure data is null-terminated */
+    (*data)[length] = '\0';
+
+    LOGGER_TRACE("Closing JSON file: '%s'", filename);
+    fclose(file);
+
+    return 0;
+}
+
+
+/**
+ * @brief Load the configuration from a JSON file into a @c cJSON object
+ *
+ * @param filename The path to the file to be loaded
+ * @param json_out Pointer to pointer that will hold the @c cJSON object
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Error loading file
+ * @retval  2 Error parsing data
+ */
+static int _json_load_config(const char *filename, cJSON **json_out)
+{
+    char *data;
+
+    if (_json_load_from_file(filename, &data) != 0) {
+        return 1;
+    }
+
+    cJSON *json = cJSON_Parse(data);
+    if (json == NULL) {
+        LOGGER_WARNING("Failed to parse file:" \
+                " '%s'; default configuration will be used",
+                filename);
+        LOGGER_TRACE("Error parsing JSON file:\n%s",
+                cJSON_GetErrorPtr());
+        free(data);
+        return 2;
+    }
+
+    free(data);
+    *json_out = json;
+    return 0;
+}
+
+
+/**
+ * @brief Set the configuration directory base
+ *
+ * Set the base path for the configuration directory based on the
+ * environment variables @e XDG_CONFIG_HOME and @e HOME.  If neither is
+ * set, it defaults to the current working directory.  The resulting
+ * path is stored in the provided buffer @p config_dir_base.
+ *
+ * @param config_dir_base Pointer to a character array where the
+ *                        configuration directory path will be stored
+ *
+ * @note The buffer should be at least @c MAX_PATH_BASE_LENGTH
+ */
+static void _config_dir_set(char *config_dir_base)
+{
+    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
+    const char *config_home = getenv("HOME");
+
+    if (config_xdg_config_home != NULL) {
+        /* XDG_CONFIG_HOME/icowm */
+        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "%s%s",
+                config_xdg_config_home, CONFIG_DIR_BASE);
+    } else if (config_home != NULL) {
+        /* HOME/.icowm */
+        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "%s/.%s",
+                config_home, CONFIG_DIR_BASE);
+    } else {
+        /* $(pwd)/.icowm */
+        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "./%s",
+                CONFIG_DIR_BASE);
+    }
 }
 
 
@@ -290,16 +339,16 @@ config_td *config_init(void)
 {
     config_td *config;
 
-    logger_msg(LOG_DEBUG, "Initializing configuration structure");
+    LOGGER_DEBUG("Initializing configuration structure", L_NARG);
 
     config = malloc(sizeof(config_td));
     if (config == NULL) {
-        logger_msg(LOG_ERROR,
-                "Failed to allocate memory for configuration structure");
+        LOGGER_ERROR("Failed to allocate memory for configuration" \
+                " structure", L_NARG);
         return NULL;
     }
 
-    logger_msg(LOG_DEBUG, "Setting configuration to default values");
+    LOGGER_DEBUG("Setting configuration to default values", L_NARG);
     config_set_default_values(config);
 
     return config;
@@ -309,7 +358,7 @@ config_td *config_init(void)
 /* Destroy a configuration structure and free resources */
 void config_destroy(config_td *config)
 {
-    logger_msg(LOG_DEBUG, "Destroying configuration structure");
+    LOGGER_DEBUG("Destroying configuration structure", L_NARG);
     free(config);
 }
 
@@ -434,69 +483,55 @@ void config_set_default_values(config_td *config)
 /* Load all the configuration */
 int config_load(config_td *config)
 {
-    char config_base_file[MAX_PATH_LENGTH];
-    char config_bindings_file[MAX_PATH_LENGTH];
-    char config_theme_file[MAX_PATH_LENGTH];
+    char config_dir[MAX_PATH_BASE_LENGTH];
+    char config_base_file[MAX_PATH_CONFIG_LENGTH];
+    char config_bindings_file[MAX_PATH_CONFIG_LENGTH];
+    char config_theme_file[MAX_PATH_CONFIG_LENGTH];
 
-    logger_msg(LOG_DEBUG, "Loading configuration from files");
+    _config_dir_set(config_dir);
 
-    /* Build paths */
-    snprintf(config_base_file, sizeof(config_base_file), "%s%s",
-            CONFIG_DIR, CONFIG_FILENAME_BASE);
-    snprintf(config_bindings_file, sizeof(config_bindings_file), "%s%s",
-            CONFIG_DIR, CONFIG_FILENAME_BINDINGS);
+    LOGGER_DEBUG("Loading configuration from files on: '%s'",
+            config_dir);
+
+    /* Set main base configuration path */
+    snprintf(config_base_file, sizeof(config_base_file),
+            "%s/%s", config_dir, CONFIG_FILENAME_BASE);
 
     /* Load base configuration */
     if (config_load_base(config_base_file, &(config->base)) != 0) {
-        logger_msg(LOG_NOTICE,
-            "Base configuration could not be loaded;" \
-            " default values will be used");
+        LOGGER_NOTICE("Base configuration could not be loaded;" \
+                " default values will be used", L_NARG);
         return 1;
     }
 
-    /* Build theme path */
-    snprintf(config_theme_file, sizeof(config_theme_file),
-            "%s%s%s.json", CONFIG_DIR, CONFIG_DIR_THEMES,
-            config->base.theme);
-
-    /* Check theme string is not too long */
-    if (strlen(config->base.theme) >
-            (MAX_FILENAME_LENGTH - strlen(CONFIG_DIR_THEMES) - 5)) {
-        logger_msg(LOG_WARNING,
-            "Value for 'config.theme' is too long;" \
-            " default theme will be used");
-        config->base.theme[0] = '\0';
-//        return 1;
-    }
+    /* Set bindings configuration path */
+    snprintf(config_bindings_file, sizeof(config_bindings_file),
+            "%s/%s", config_dir, CONFIG_FILENAME_BINDINGS);
 
     /* Load bindings */
     if (config_load_bindings(config_bindings_file,
                 &(config->bindings)) != 0) {
-        logger_msg(LOG_ERROR, "Failed to load bindings from: '%s'",
+        LOGGER_ERROR("Failed to load bindings from:" \
+                " '%s'; default bindings will be used",
                 config_bindings_file);
     }
 
-    /* Load theme if it's specified, i.e., not empty string */
-    if (strcmp(config->base.theme, "") != 0) {
-        FILE *theme_file = fopen(config_theme_file, "r");
+    /* Set theme file path */
+    snprintf(config_theme_file, sizeof(config_theme_file),
+            "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
+            config->base.theme);
 
-        if (theme_file) {
-            fclose(theme_file);
-            if (config_load_theme(config_theme_file,
-                        &(config->theme)) != 0) {
-                logger_msg(LOG_NOTICE, "Failed to load theme from:" \
-                        " '%s'", config_theme_file);
-            }
-        } else {
-            logger_msg(LOG_NOTICE,
-                    "Theme file not found: '%s';" \
-                    " default theme will be used",
-                    config_theme_file);
-            }
+    /* Load theme if it's specified, i.e., not empty string */
+    if (strlen(config->base.theme) == 0) {
+        LOGGER_NOTICE("No theme specified in base configuration;" \
+                " default will be used", L_NARG);
     } else {
-        logger_msg(LOG_NOTICE,
-                "No theme specified in base configuration;" \
-                " default will be used");
+        if (config_load_theme(config_theme_file,
+                    &(config->theme)) != 0) {
+            LOGGER_NOTICE("Failed to load theme from:" \
+                    " '%s'; default theme will be used",
+                    config_theme_file);
+        }
     }
 
     return 0;
@@ -507,34 +542,20 @@ int config_load(config_td *config)
 int config_load_base(const char *filename,
         struct config_base_s *config_base)
 {
-    char *data;
+    cJSON *json;
 
-    logger_msg(LOG_TRACE,
-            "Preparing to parse base configuration from file: '%s'",
-            filename);
+    LOGGER_TRACE("Preparing to parse base configuration from file:" \
+            " '%s'", filename);
 
     /* Load file, or exit */
-    if (_json_load_from_file(filename, &data) != 0) {
+    if (_json_load_config(filename, &json) != 0) {
         return 1;
-    }
-
-    cJSON *json = cJSON_Parse(data);
-    if (json == NULL) {
-        logger_msg(LOG_WARNING,
-                "Failed to parse file:" \
-                " '%s'; default configuration will be used",
-                filename);
-        logger_msg(LOG_TRACE,
-                "Error parsing JSON file:\n%s", cJSON_GetErrorPtr());
-        free(data);
-        return 2;
     }
 
     /* Theme name*/
     if (_json_load_string(json, "theme", config_base->theme,
                 MAX_FILENAME_LENGTH) != 0) {
-        logger_msg(LOG_WARNING,
-                "Invalid theme specified:" \
+        LOGGER_WARNING("Invalid theme specified:" \
                 " '%s'; default configuration will be used",
                 config_base->theme);
         config_base->theme[0] = '\0';
@@ -585,12 +606,13 @@ int config_load_base(const char *filename,
                     cJSON *desktop_settings =
                         cJSON_GetObjectItem(desktop_item, "settings");
                     if (desktop_settings &&
-                        cJSON_IsArray(desktop_settings)) {
+                            cJSON_IsArray(desktop_settings)) {
                         unsigned int settings_count =
                             (unsigned int)
                                 cJSON_GetArraySize(desktop_settings);
                         for (unsigned int j = 0;
-                             j < settings_count && j < CONFIG_MAX_DESKTOPS;
+                                j < settings_count &&
+                                j < CONFIG_MAX_DESKTOPS;
                              ++j) {
                             cJSON *setting_item =
                                 cJSON_GetArrayItem(desktop_settings,
@@ -600,7 +622,7 @@ int config_load_base(const char *filename,
                                     cJSON_GetObjectItem(setting_item,
                                             "background_color");
                                 if (background_color_item &&
-                                    cJSON_IsString(background_color_item)) {
+                                        cJSON_IsString(background_color_item)) {
                                     config_base->screens[i].desktops[j].settings.background.color =
                                         _hex2ul(background_color_item->valuestring);
                                 } /* ! if (background_color) */
@@ -650,7 +672,6 @@ int config_load_base(const char *filename,
 
     /* Free memory */
     cJSON_Delete(json);
-    free(data);
     return 0;
 }
 
@@ -659,25 +680,14 @@ int config_load_base(const char *filename,
 int config_load_bindings(const char *filename,
         struct config_bindings_s *config_bindings)
 {
-    char *data;
+    cJSON *json;
 
-    logger_msg(LOG_TRACE,
-            "Parsing bindings configuration from file: '%s'", filename);
+    LOGGER_TRACE("Parsing bindings configuration from file: '%s'",
+            filename);
 
     /* Load file or exit */
-    if (_json_load_from_file(filename, &data) != 0) {
+    if (_json_load_config(filename, &json) != 0) {
         return 1;
-    }
-
-    cJSON *json = cJSON_Parse(data);
-    if (json == NULL) {
-        logger_msg(LOG_WARNING,
-                "Failed to parse file:" \
-                " '%s'; default configuration will be used", filename);
-        logger_msg(LOG_TRACE,
-                "Error parsing JSON file:\n%s", cJSON_GetErrorPtr());
-        free(data);
-        return 2;
     }
 
     /* Load keyboard modifiers */
@@ -685,19 +695,19 @@ int config_load_bindings(const char *filename,
     if (modifiers) {
         _json_load_string(modifiers, "modc", config_bindings->modc,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mods", config_bindings->mods, 
+        _json_load_string(modifiers, "mods", config_bindings->mods,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "modl", config_bindings->modl, 
+        _json_load_string(modifiers, "modl", config_bindings->modl,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mod1", config_bindings->mod1, 
+        _json_load_string(modifiers, "mod1", config_bindings->mod1,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mod2", config_bindings->mod2, 
+        _json_load_string(modifiers, "mod2", config_bindings->mod2,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mod3", config_bindings->mod3, 
+        _json_load_string(modifiers, "mod3", config_bindings->mod3,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mod4", config_bindings->mod4, 
+        _json_load_string(modifiers, "mod4", config_bindings->mod4,
                 MAX_KEYBINDING_LENGTH);
-        _json_load_string(modifiers, "mod5", config_bindings->mod5, 
+        _json_load_string(modifiers, "mod5", config_bindings->mod5,
                 MAX_KEYBINDING_LENGTH);
     }
 
@@ -759,10 +769,10 @@ int config_load_bindings(const char *filename,
             cJSON *relative = cJSON_GetObjectItem(move, "relative");
             if (relative) {
                 _json_load_string(relative, "right",
-                        config_bindings->keyboard.move.relative.right, 
+                        config_bindings->keyboard.move.relative.right,
                         MAX_KEYBINDING_LENGTH);
                 _json_load_string(relative, "left",
-                        config_bindings->keyboard.move.relative.left, 
+                        config_bindings->keyboard.move.relative.left,
                         MAX_KEYBINDING_LENGTH);
                 _json_load_string(relative, "up",
                         config_bindings->keyboard.move.relative.up,
@@ -842,7 +852,6 @@ int config_load_bindings(const char *filename,
 
     /* Free memory */
     cJSON_Delete(json);
-    free(data);
 
     return 0;
 }
@@ -852,26 +861,14 @@ int config_load_bindings(const char *filename,
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme)
 {
-    char *data;
+    cJSON *json;
 
-    logger_msg(LOG_TRACE,
-            "Parsing theme configuration from file: '%s'", filename);
+    LOGGER_TRACE("Parsing theme configuration from file: '%s'",
+            filename);
 
     /* Load file or exit */
-    if (_json_load_from_file(filename, &data) != 0) {
+    if (_json_load_config(filename, &json) != 0) {
         return 1;
-    }
-
-    cJSON *json = cJSON_Parse(data);
-    if (json == NULL) {
-        logger_msg(LOG_WARNING,
-                "Failed to parse file:" \
-                " '%s'; default configuration will be used",
-                filename);
-        logger_msg(LOG_TRACE,
-                "Error parsing JSON file:\n%s", cJSON_GetErrorPtr());
-        free(data);
-        return 2;
     }
 
     /* Load theme name identifier */
@@ -972,7 +969,6 @@ int config_load_theme(const char *filename,
 
     /* Free memory */
     cJSON_Delete(json);
-    free(data);
 
     return 0;
 }

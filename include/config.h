@@ -2,6 +2,12 @@
  * @file config.h
  *
  * @brief Configuration structures and procedures declaration
+ *
+ * The default configuration is taken from the configuration files on
+ * the default configuration base directory.  This directory depends on
+ * the environment variables: @e XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
+ * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
+ * classic @e HOME/.ICOWM_NAME_PROG.
  */
 
 #ifndef CONFIG_H
@@ -17,13 +23,16 @@
 #define MAX_KEYBINDING_LENGTH (128)
 #define MAX_OPTION_LENGTH (40)
 #define MAX_FONTNAME_LENGTH (80)
-#define MAX_FILENAME_LENGTH (128)
-#define MAX_PATH_LENGTH (MAX_FILENAME_LENGTH + 256)
 
-#define CONFIG_DIR  "./tmp/icowm/"
+#define MAX_FILENAME_LENGTH (256)
+#define MAX_PATH_BASE_LENGTH (1024)
+#define MAX_PATH_CONFIG_LENGTH \
+    (MAX_PATH_BASE_LENGTH + MAX_FILENAME_LENGTH)
+
+#define CONFIG_DIR_BASE  "icowm"
+#define CONFIG_DIR_THEMES "themes"
 #define CONFIG_FILENAME_BASE "config.json"
 #define CONFIG_FILENAME_BINDINGS "bindings.json"
-#define CONFIG_DIR_THEMES "themes/"
 
 #define COLOR unsigned long int
 #define CONFIG_MAX_SCREENS (10)     /* Maximum screens */
@@ -110,14 +119,14 @@ struct config_bindings_s {
         char cycle_next[MAX_KEYBINDING_LENGTH];
 
         /* Window movement, absolute and relative positions */
-        struct move_s {        
+        struct move_s {
             struct relative_s {
                 char right[MAX_KEYBINDING_LENGTH];
                 char left[MAX_KEYBINDING_LENGTH];
                 char up[MAX_KEYBINDING_LENGTH];
                 char down[MAX_KEYBINDING_LENGTH];
             } relative;
-            
+
             struct absolute_s {
                 char top_left[MAX_KEYBINDING_LENGTH];
                 char top_right[MAX_KEYBINDING_LENGTH];
@@ -132,7 +141,7 @@ struct config_bindings_s {
             char up[MAX_KEYBINDING_LENGTH];
             char down[MAX_KEYBINDING_LENGTH];
         } resize;
-        
+
         struct desktop_s {
             char cycle_prev[MAX_KEYBINDING_LENGTH];
             char cycle_next[MAX_KEYBINDING_LENGTH];

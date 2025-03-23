@@ -29,7 +29,7 @@ window_td *window_init(Display *display,
 
     window = malloc(sizeof(window_td));
     if (window == NULL) {
-        logger_msg(LOG_ERROR, "Memory allocation failure for window");
+        LOGGER_ERROR("Memory allocation failure for window", L_NARG);
         return NULL;
     }
 
@@ -52,7 +52,7 @@ window_td *window_init(Display *display,
             BlackPixel(display, 0), WhitePixel(display, 0));
 
     if (!window->window) {
-        logger_msg(LOG_ERROR, "Failed to create window");
+        LOGGER_ERROR("Failed to create window", L_NARG);
         free(window);
         return NULL;
     }
@@ -74,6 +74,7 @@ window_td *window_init(Display *display,
 /* Destroy the window and free used memory */
 void window_destroy(window_td *window)
 {
+    LOGGER_TRACE("Deallocating structure for window %#lx", window->id);
     if (window) {
         if (window->window) {
             XDestroyWindow(window->display, window->window);
@@ -89,6 +90,8 @@ void window_update(window_td *window)
     if (window == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Updating window %#lx", window->id);
 
     /* Clear the window */
     XClearWindow(window->display, window->window);
@@ -216,20 +219,20 @@ void window_state(window_td *window, enum window_state_e state)
             /* Reset to a normal state */
             break;
         default:
-            logger_msg(LOG_WARNING,
-                    "Unrecognized window state: %d", state);
+            LOGGER_WARNING("Unrecognized window state: %d", state);
             break;
     }
 }
 
 
 /*  */
-void window_resize(window_td *window, unsigned int w, unsigned int h)
+void window_resize(window_td *window,
+        unsigned int width, unsigned int height)
 {
     if (window->properties.flags & WIN_PROPERTY_VISIBLE) {
-        XResizeWindow(window->display, window->window, w, h);
-        window->dim.w = w;
-        window->dim.h = h;
+        XResizeWindow(window->display, window->window, width, height);
+        window->dim.w = width;
+        window->dim.h = height;
         XFlush(window->display);
     }
 }

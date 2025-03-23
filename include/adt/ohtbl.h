@@ -57,7 +57,6 @@ typedef struct {
     bool (*match)(const void *key1, const void *key2);
 
     size_t size;        /**< Size of the open-addressed hash table */
-    size_t capacity;    /**< Current capacity before needing to resize */
     void **table;       /**< Table to allocate items in */
 } ohtbl_td;
 
@@ -179,7 +178,7 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data);
 /**
  * @brief Resizes the open-addressed hash table to a new capacity
  *
- * This function doubles the current capacity of the hash table and
+ * This function doubles the current positions of the hash table and
  * rehashes all existing items into the new table. If the memory
  * allocation for the new table fails, the operation is aborted and an
  * error code is returned.

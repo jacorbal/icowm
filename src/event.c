@@ -19,95 +19,95 @@
 #include <logger.h>
 
 
-/*  */
+/* Callback invoked on button press event */
 static void _handle_button_press(window_td *window, XButtonEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on button release event */
 static void _handle_button_release(window_td *window, XButtonEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on key press event */
 static void _handle_key_press(window_td *window, XKeyEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on key release event */
 static void _handle_key_release(window_td *window, XKeyEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on expose event */
 static void _handle_expose(window_td *window, XExposeEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on configure notify event */
 static void _handle_configure_notify(window_td *window,
         XConfigureEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on configure request event */
 static void _handle_configure_request(window_td *window,
         XConfigureRequestEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on map notify event */
 static void _handle_map_notify(window_td *window, XMapEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on unmap notify event */
 static void _handle_unmap_notify(window_td *window, XUnmapEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on destroy notify event */
 static void _handle_destroy_notify(window_td *window,
         XDestroyWindowEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on focus in event */
 static void _handle_focus_in(window_td *window, XFocusInEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on focus out event */
 static void _handle_focus_out(window_td *window, XFocusOutEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on motion notify event */
 static void _handle_motion_notify(window_td *window, XMotionEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on client message event */
 static void _handle_client_message(window_td *window,
         XClientMessageEvent *event)
 {
 }
 
 
-/*  */
+/* Callback invoked on property notify event */
 static void _handle_property_notify(window_td *window,
         XPropertyEvent *event)
 {
@@ -119,14 +119,15 @@ event_handler_td *event_handler_init(void)
 {
     event_handler_td *event_handler;
 
-    logger_msg(LOG_INFO, "Initializing event system");
+    LOGGER_INFO("Initializing event system", L_NARG);
     event_handler = malloc(sizeof(event_handler_td));
     if (event_handler == NULL) {
-        logger_msg(LOG_FATAL,
-                "Failed to allocate memory for event system");
+        LOGGER_FATAL("Failed to allocate memory for event system",
+                L_NARG);
         return NULL;
     }
 
+    /* Set the pointer to event functions */
     event_handler->button_press = _handle_button_press;
     event_handler->button_release = _handle_button_release;
     event_handler->key_press = _handle_key_press;
@@ -149,13 +150,13 @@ event_handler_td *event_handler_init(void)
 /* @brief Destroy the event system */
 void event_handler_destroy(event_handler_td *event_handler)
 {
-    logger_msg(LOG_DEBUG, "Destroying event system");
+    LOGGER_DEBUG("Destroying event system", L_NARG);
     free(event_handler);
 }
 
 
-/*  */
-void event_handler_generic(event_handler_td *event_handler,
+/* Generic event handler */
+void event_handler_process(event_handler_td *event_handler,
         window_td *window, XEvent *event)
 {
     if (event->type == ButtonPress) {

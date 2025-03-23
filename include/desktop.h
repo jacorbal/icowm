@@ -24,10 +24,25 @@
 
 /**
  * @brief Desktop structure
+ *
+ * This structure represents a virtual desktop within an X11 screen,
+ * containing specifics about the desktop's properties, including its
+ * associated windows, configuration settings, and visual elements.
+ *
+ * Each desktop can be customized with unique backgrounds and themes,
+ * where the background can either be a solid color or an pixmap image.
+ * The structure tracks its own active window, facilitating the
+ * management of user interactions within that desktop space.
+ *
+ * The  @p is_outdated flag serves to identify when the desktop's
+ * attributes or properties have changed and need to be updated,
+ * ensuring that users always have access to the most current
+ * information about their environment.
  */
 typedef struct {
     unsigned int screen_id;     /**< Screen index */
     unsigned int id;            /**< Desktop index */
+//    char *name;
 
     struct background_s {
 //        bool is_image;          /** Color or image for background */
@@ -42,6 +57,8 @@ typedef struct {
 
     struct config_base_s *config_base;
     struct config_theme_s *config_theme;
+
+    bool is_outdated;           /**< Flag when data needs to be updated */
 } desktop_td;
 
 
@@ -75,14 +92,25 @@ desktop_td *desktop_init(unsigned int screen_id,
 void desktop_destroy(desktop_td *desktop);
 
 /**
- * @brief Update the desktop by updating all its windows
+ * @brief Soft desktop update
  *
- * @param desktop Desktop to deallocate
+ * @param desktop Pointer to the desktop to update softly
  *
- * @note Complexity: @e O(n), where @e n is the number of windows on
- *       this desktop
+ * @note Complexity: @e O(1)
  */
 void desktop_update(desktop_td *desktop);
+
+/**
+ * @brief Full desktop update
+ *
+ * This function updates the desktop by updating all its windows.
+ *
+ * @param desktop Pointer to the desktop to update fully
+ *
+ * @note Complexity: @e O(1) because that's the order of the access to
+ *       a hash table of windows
+ */
+void desktop_update_full(desktop_td *desktop);
 
 /**
  * @brief Clear a desktop by removing all its windows
@@ -90,7 +118,7 @@ void desktop_update(desktop_td *desktop);
  * This function deallocates each and every window of the desktop and
  * resets the window counter to zero.
  *
- * @param desktop Desktop to be cleared from windows
+ * @param desktop Pointer to the desktop to be cleared from windows
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       windows, as it iterates through the array of windows to free
@@ -125,14 +153,6 @@ int desktop_window_add(desktop_td *desktop, window_td *window);
 int desktop_window_rem(desktop_td *desktop, window_td *window);
 
 /**
- * @brief Macro that evaluates to the window count of the desktop
- *
- * @note Complexity: @e O(1)
- */
-#define desktop_window_count(d) ((d) ? d->windows->size : 0)
-
-
-/**
  * @brief Macro that evaluates to the active window of the desktop
  *
  * @note Complexity: @e O(1)
@@ -146,6 +166,13 @@ int desktop_window_rem(desktop_td *desktop, window_td *window);
  * @note Complexity: @e O(1)
  */
 #define desktop_set_window_active(d, w) (((d)->window_active) = (w))
+
+/**
+ * @brief Macro that evaluates to the window count of the desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+#define desktop_window_count(d) ((d) ? d->windows->size : 0)
 
 
 #endif  /* ! DESKTOP_H */

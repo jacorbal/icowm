@@ -36,9 +36,8 @@ ohtbl_td *ohtbl_init(size_t positions,
         return NULL;
     }
 
-    /* Initialize each position and set initial capacity */
+    /* Initialize each positions */
     htbl->positions = positions;
-    htbl->capacity = positions;
 
     for (size_t i = 0; i < htbl->positions; ++i) {
         htbl->table[i] = NULL;
@@ -103,7 +102,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
     size_t position;
 
     /* Re-dimension the table if size is bigger than
-     * (OHTBL_MAX_LOAD_FACTOR * 100)% of its capacity */
+     * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
         if (ohtbl_resize(htbl) != 0) {
@@ -227,17 +226,17 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data)
 }
 
 
-/* Resize the table if exceeds the maximum capacity */
+/* Resize the table if exceeds the maximum positions */
 int ohtbl_resize(ohtbl_td *htbl)
 {
-    size_t new_capacity;
+    size_t new_positions;
     void **new_table;
 
-    /* Set initial capacity by doubling the previous value*/
-    new_capacity = htbl->capacity * 2;
+    /* Set initial positions by doubling the previous value*/
+    new_positions = htbl->positions * 2;
 
     /* Initialize a new table */
-    new_table = malloc(new_capacity * sizeof(void *));
+    new_table = malloc(new_positions * sizeof(void *));
     if (new_table == NULL) {
         return -1;
     }
@@ -248,25 +247,25 @@ int ohtbl_resize(ohtbl_td *htbl)
         if (element != NULL && element != htbl->vacated) {
             /* Only re-insert valid elements */
             size_t position;
-            for (size_t j = 0; j < new_capacity; ++j) {
+            for (size_t j = 0; j < new_positions; ++j) {
                 /* Search new position */
                 position = (htbl->h1(element) +
-                        (j * htbl->h2(element))) % new_capacity;
+                        (j * htbl->h2(element))) % new_positions;
                 if (new_table[position] == NULL) {
                     /* Found empty position */
                     new_table[position] = element;
                     break;
                 }
-            }
+            } /* ! for (j) */
         }
-    }
+    } /* ! for (i) */
 
     /* Deallocate previous table*/
     free(htbl->table);
 
-    /* Update pointers and new capacity */
+    /* Update pointers and new positions */
     htbl->table = new_table;
-    htbl->capacity = new_capacity;
+    htbl->positions = new_positions;
 
     return 0;
 }

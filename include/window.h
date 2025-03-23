@@ -19,7 +19,7 @@
 
 
 /**
- * @brief Possible window states
+ * @brief Possible window states a window can be in
  */
 enum window_state_e {
     WIN_STATE_IDLE,         /** Regular state */
@@ -31,7 +31,7 @@ enum window_state_e {
 
 
 /**
- * @brief Window characteristics using flags
+ * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
     WIN_PROPERTY_VISIBLE   = 1 << 0, /* 0000 0001: window is visible */
@@ -44,6 +44,9 @@ enum window_flags_e {
 
 /**
  * @brief Window possible layers
+ *
+ * Identifies the layering options for windows, which affect their
+ * visibility order on the screen.
  */
 enum window_layer_e {
     WIN_LAYER_ON_TOP,       /**< Always on top */
@@ -55,6 +58,9 @@ enum window_layer_e {
 
 /**
  * @brief Window properties
+ *
+ * Encapsulates various properties of a window: state, layering
+ * behavior, and any applicable flags.
  */
 struct window_properties_s {
     enum window_state_e state;  /**< State (maximized, iconized,...) */
@@ -65,6 +71,20 @@ struct window_properties_s {
 
 /**
  * @brief Window structure
+ *
+ * This structure represents a window in an X11 environment,
+ * encapsulating essential attributes for window management, including
+ * its unique identifier, dimensions, and graphical properties.
+ *
+ * The @p screen_id and @p desktop_id fields link the window to its
+ * respective screen and desktop, facilitating the organization of
+ * windows within the graphical user interface.
+ *
+ * Additionally, the @p properties field contains various settings that
+ * define the behavior and appearance of the window, while the @p theme
+ * pointer allows for dynamic theming, enabling customization of the
+ * window's visual aspects based on user preferences or system
+ * themes.
  */
 typedef struct {
     Display *display;           /**< X11 display */
@@ -75,6 +95,7 @@ typedef struct {
     unsigned long int id;       /**< Unique window identifier */
     char *name;                 /**< Window name */
 
+//    Pixmap pixmap;              /**< Icon image */
     struct geometry_s geom;     /**< Window geometry (px) */
     struct dimensions_s dim;    /**< Window dimensions (px) */
 
