@@ -11,7 +11,7 @@
 /* System includes */
 #include <stdbool.h>    /* bool */
 
-/* ADT */
+/* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */
@@ -37,13 +37,12 @@
  * events, keeping the window manager responsive and interactive.
  */
 typedef struct {
-    bool is_running;                    /**< Running state flag */
+    Display *display;                   /**< Pointer to X11 display */
     list_td *screens;                   /**< Screens list */
     config_td *config;                  /**< Window manager config. */
+    bool is_running;                    /**< Running state flag */
 
     event_handler_td *event_handler;    /**< Pointer to event handler */
-
-    /* Callbacks? */
 } wm_td;
 
 
@@ -56,16 +55,22 @@ typedef struct {
  * managed windows array and initializes the current desktop index and
  * running state.
  *
- * @param config Pointer to window manager configuration
+ * @param display_name Name of the display
  *
- * @return Pointer to newly created window manager instance, or @c NULL
+ * @return Status of the initialization
+ * @retval  0 Success
+ * @retval  1 Failed to allocate memory
+ * @retval  2 Cannot open X display
+ * @retval  3 Cannot open load configuration
+ * @retval  4-7 Failed to initialize data structures
+ * @retval -1 Singleton was already initialized; no action taken
  *
- * @note Is responsibility of the caller to free the memory allocated
- *       for the @c wm_td instance using the @e wm_destroy function
+ * @note If @p display_name is @c NULL, the inialization tries to get
+ *       the environment variable "DISPLAY", if set.
  * @note This function uses a singleton pattern
  * @note Complexity: @e O(1)
  */
-wm_td *wm_init(config_td *config);
+int wm_start(const char *display_name);
 
 /**
  * @brief Destroy window manager instance
@@ -74,64 +79,25 @@ wm_td *wm_init(config_td *config);
  * including the managed windows and closes the connection to the
  * X server.
  *
- * @param wm Pointer to the window manager instance to free its memory
+ * @return Status of the operation
+ * @return  0 Success
+ * @return  1 No operation has been performed
  *
  * @note Passing a @c NULL pointer has no effect
  * @note Complexity: @e O(n), where @e n is the number of screens, as it
  *       iterates through the array of windows to free each one of them
  */
-void wm_destroy(wm_td *wm);
+int wm_stop(void);
+
 
 /**
- * @brief Soft window manager update
+ * @brief Count the screens of the window manager
  *
- * @param wm Pointer to the window manager instance to update it
+ * @return Number of screens handled by the window manager
  *
  * @note Complexity: @e O(1)
  */
-void wm_update(wm_td *wm);
-
-/**
- * @brief Full window manager update
- *
- * This function updates the window manager by updating every window on
- * every desktop of every screen.
- *
- * @param wm Pointer to the window manager instance to update it fully
- *
- * @note Complexity: @e O(n*m), where @e n is the number of screens and
- *       @e m is the number of desktops on the screen
- */
-void wm_update_full(wm_td *wm);
-
-/**
- * @brief Enters the main event handling loop of the window manager
- *
- * This function runs continuously while the window manager is active,
- * listening for X11 events and passing them to the event handler for
- * processing.  It uses @p XNextEvent to wait for incoming events from
- * the X server, enabling responsive behavior in window management.
- * The condition to end the loop is by setting @p is_running to @c false.
- *
- * @param wm Pointer to the initialized @p wm_td instance that contains
- *           the necessary state and configuration for the window manager
- *
- * @note The event loop will stop when the @p is_running flag is set to
- *       @c false, which should be handled in response to user actions
- *       or when the window manager is terminating
- * @note Complexity: @e O(1) for each event processed; however, the
- *       overall time complexity depends on the number of events
- *       processed, so each call to @e event_handle may have a different
- *       complexity based on the event type and operations performed
- */
-void wm_loop(wm_td *wm);
-
-/**
- * @brief Macro that evaluates to the screen count of the window manager
- *
- * @note Complexity: @e O(1)
- */
-#define wm_screen_count(wm) ((wm) ? wm->screens->size : 0)
+size_t wm_screen_count(void);
 
 
 #endif  /* ! WM_H */

@@ -6,20 +6,18 @@
 
 /* System includes */
 #include <stdarg.h>     /* va_list, va_start, va_end */
-#include <stdbool.h>    /* false, true */
+#include <stdbool.h>    /* bool, false, true */
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
 #include <stdlib.h>     /* NULL, free, malloc, size_t */
-#include <string.h>     /* strcpy, strlen */
 #include <time.h>       /* localtime, strftime, time, tm */
+
+/* Utils includes */
+#include <utils/safestr.h>
 
 /* Local includes */
 #include <logger.h>
 
 
-/* Though variable static dost often lurk near,
- * In shadows of scope, few e’er call thee their own,
- * Thy global existence, to none dost bring fear,
- * A sentinel watching, though thou art alone. */
 static logger_td *logger = NULL;    /**< Logger singleton pointer */
 
 
@@ -48,78 +46,91 @@ static void _logger_buffer_flush(struct logger_buffer_s *logger_buffer,
 
 /* Initialize logger */
 int logger_start(const char *filename,
-        const enum logger_level_e level_min)
+        const enum logger_level_e level_min, bool is_tracking)
 {
-    logger = malloc(sizeof(logger_td));
     if (logger == NULL) {
-        return 1;
-    }
-
-    /* Validate and correct if necessary the minimum log level value */
-    logger->level_min = (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
-                        (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
-                         level_min;
-
-    /* Set the file stream and its buffer if necessary */
-    logger->file.is_open = false;
-    logger->buffer = NULL;
-
-    /* If file name could be:
-     *      - "NULL", deactivate the logger;
-     *      - "STDOUT", write always to 'stdout';
-     *      - "STDERR", write always to 'stderr';
-     *      - "DEFAULT", write all messages to 'stdout' if
-     *        'severity < LOG_ERROR', and to 'stderr' if
-     *        'severity >= LOG_ERROR';
-     * else, open the file name and write to it */
-    if (strcmp(filename, "DEFAULT") == 0) { /* log to stdout & stderr */
-        logger->file.fp_out = stdout;
-        logger->file.fp_err = stderr;
-    } else if (strcmp(filename, "STDOUT") == 0) {   /* log in stdout */
-        logger->file.fp_out = stdout;
-        logger->file.fp_err = stdout;
-    } else if (strcmp(filename, "STDERR") == 0) {   /* log in stderr */
-        logger->file.fp_out = stderr;
-        logger->file.fp_err = stderr;
-    } else if (strcmp(filename, "NULL") == 0 ) {    /* log deactivated */
-        logger->file.fp_out = NULL;
-        logger->file.fp_err = NULL;
-    } else {                                        /* log in file */
-        logger->file.fp_err = NULL;
-        logger->file.fp_out = fopen(filename, "a+t");
-        if (logger->file.fp_out == NULL) {
-            fprintf(stderr, "Failed to open file to log: '%s'\n",
-                    filename);
-            free(logger);
-            return 2;
-        }
-        logger->file.is_open = true;
-
-        /* Initialize the log message buffer */
-        logger->buffer = malloc(sizeof(struct logger_buffer_s));
-        if (logger->buffer == NULL) {
-            free(logger);
+        logger = malloc(sizeof(logger_td));
+        if (logger == NULL) {
+            fprintf(stderr, "Failed to allocate memory for logger\n");
             return 1;
         }
 
-        logger->buffer->messages = malloc(LOGGER_MAX_MESSAGES *
-                sizeof(char *));
-        if (logger->buffer->messages == NULL) {
-            free(logger->buffer);
-            free(logger);
-            return 1;
+        /* Validate and correct the minimum log level value */
+        logger->level_min =
+            (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
+            (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
+            level_min;
+            
+        /* Set tracking to always, or only on 'LOG_TRACE' level */
+        logger->is_tracking = is_tracking;
+
+        /* Set the file stream and its buffer if necessary */
+        logger->file.is_open = false;
+        logger->buffer = NULL;
+
+        /* If file name could be:
+         *      - "NULL", deactivate the logger;
+         *      - "STDOUT", write always to 'stdout';
+         *      - "STDERR", write always to 'stderr';
+         *      - "DEFAULT", write all messages to 'stdout' if
+         *        'severity < LOG_ERROR', and to 'stderr' if
+         *        'severity >= LOG_ERROR';
+         * else, open the file name and write to it */
+        if (safe_strcmp(filename, "DEFAULT") == 0) {
+            logger->file.fp_out = stdout;
+            logger->file.fp_err = stderr;
+        } else if (safe_strcmp(filename, "STDOUT") == 0) {
+            logger->file.fp_out = stdout;
+            logger->file.fp_err = stdout;
+        } else if (safe_strcmp(filename, "STDERR") == 0) {
+            logger->file.fp_out = stderr;
+            logger->file.fp_err = stderr;
+        } else if (safe_strcmp(filename, "NULL") == 0 ) {
+            logger->file.fp_out = NULL;
+            logger->file.fp_err = NULL;
+        } else {
+            logger->file.fp_err = NULL;
+            logger->file.fp_out = fopen(filename, "a+t");
+            if (logger->file.fp_out == NULL) {
+                fprintf(stderr, "Failed to open file to log: '%s'\n",
+                        filename);
+                free(logger);
+                return 2;
+            }
+            logger->file.is_open = true;
+
+            /* Initialize the log message buffer */
+            logger->buffer = malloc(sizeof(struct logger_buffer_s));
+            if (logger->buffer == NULL) {
+                free(logger);
+                return 1;
+            }
+
+            logger->buffer->messages = malloc(LOGGER_FLUSH_THRESHOLD *
+                    sizeof(char *));
+            if (logger->buffer->messages == NULL) {
+                free(logger->buffer);
+                free(logger);
+                return 1;
+            }
+
+            logger->buffer->count = 0;
         }
 
-        logger->buffer->count = 0;
+        return 0;
     }
 
-    return 0;
+    return -1;
 }
 
 
 /* Free allocated memory */
-void logger_stop(void)
+int logger_stop(void)
 {
+    if (logger == NULL) {
+        return 1;
+    }
+
     if (logger->buffer) {
         _logger_buffer_flush(logger->buffer, logger->file.fp_out);
         free(logger->buffer->messages);
@@ -140,6 +151,9 @@ void logger_stop(void)
     }
 
     free(logger);
+    logger = NULL;  /* Make sure the singleton points back to 'NULL' */
+
+    return 0;
 }
 
 
@@ -151,16 +165,16 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     struct tm *tm_info;
     char timestamp[100];
     const char *level_str;
-    char msg[LOGGER_MAX_MSG_LENGTH];
+    char msg[LOGGER_MAX_LENGTH_MSG];
     va_list args;
-    int len;
+    int len, len_fmt;
 
     /* If the logger is not set, do nothing */
     if (logger == NULL || logger->file.fp_out == NULL) {
         return -1;
     }
 
-    /* Ignore the logging if the level is not high enough */
+    /* Ignore logging if the level is not high enough */
     if (level < logger->level_min) {
         return 0;
     }
@@ -170,29 +184,48 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     strftime(timestamp, sizeof(timestamp),
             "%Y-%m-%d %H:%M:%S %Z", tm_info);
 
+    /* Set the level string to output */
     switch (level) {
-        case LOG_TRACE:     level_str = "TRACE";    break;  /* INFO. */
+        case LOG_TRACE:     level_str = "TRACE";    break;  /* debugs */
         case LOG_DEBUG:     level_str = "DEBUG";    break;
-        case LOG_INFO:      level_str = "INFO";     break;
+        case LOG_INFO:      level_str = "INFO";     break;  /* infos. */
         case LOG_NOTICE:    level_str = "NOTICE";   break;
-        case LOG_WARNING:   level_str = "WARNING";  break;  /* WARN. */
-        case LOG_ERROR:     level_str = "ERROR";    break;  /* ERROR */
+        case LOG_WARNING:   level_str = "WARNING";  break;  /* warns. */
+        case LOG_ERROR:     level_str = "ERROR";    break;  /* errors */
         case LOG_CRITICAL:  level_str = "CRITICAL"; break;
         case LOG_ALERT:     level_str = "ALERT";    break;
-        case LOG_FATAL:     level_str = "FATAL";    break;
+        case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
         default:            level_str = "UNKNOWN";  break;
     }
 
-    /* Format the message */
     va_start(args, fmt);
-    len = snprintf(msg, sizeof(msg), "[%s] [%s] (%s): ",
-            timestamp, level_str, prefix);
-    len = vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
+
+    /* Format first part message */
+    if (logger->level_min == LOG_TRACE || logger->is_tracking) {
+        len = snprintf(msg, sizeof(msg), "[%s] (%s) <%s>: ",
+                timestamp, level_str, prefix);
+    } else {
+        len = snprintf(msg, sizeof(msg), "[%s] (%s): ",
+                timestamp, level_str);
+    }
+
+    /* Handle possible errors */
+    if (len < 0 || (size_t) len >= sizeof(msg)) {
+        va_end(args);
+        return -1;
+    }
+
+    /* Format additional message */
+    len_fmt = vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
     va_end(args);
+    if (len_fmt < 0 ) {
+        return -1;
+    }
+    len += len_fmt; /* Update total length */
 
     /* If no buffer is used, just print it */
     if (logger->buffer == NULL) {
-        if (level < LOG_ERROR) {
+        if (level < LOG_WARNING) {
             fprintf(logger->file.fp_out, "%s\n", msg);
         } else {
             fprintf(logger->file.fp_err, "%s\n", msg);
@@ -201,17 +234,23 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     }
 
     /* Check if there's enough space in buffer, or flush it */
-    if (logger->buffer->count >= LOGGER_MAX_MESSAGES) {
+    if (logger->buffer->count >= LOGGER_FLUSH_THRESHOLD) {
         _logger_buffer_flush(logger->buffer, logger->file.fp_out);
         if (logger->file.fp_out != logger->file.fp_err) {
             _logger_buffer_flush(logger->buffer, logger->file.fp_err);
         }
     }
 
-    /* Copy message to buffer */
+    /* Allocate memory for the message */
     logger->buffer->messages[logger->buffer->count] =
-            malloc(strlen(msg) + 1);
-    strcpy(logger->buffer->messages[logger->buffer->count], msg);
+            malloc(safe_strlen(msg) + 1);
+    if (logger->buffer->messages[logger->buffer->count] == NULL) {
+        /* Failure to allocate memory */
+        return -2;
+    }
+
+    /* Copy message to buffer */
+    safe_strcpy(logger->buffer->messages[logger->buffer->count], msg);
     logger->buffer->count++;
 
     /* Flush the buffer on error to make sure it's on the logfile */
@@ -228,4 +267,22 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 */
 
     return len;
+}
+
+
+/* Set the logger to always track */
+void logger_tracking_on(void)
+{
+    if (logger != NULL && !logger->is_tracking) {
+        logger->is_tracking = true;
+    }
+}
+
+
+/* Set the logger to never track except in 'LOG_TRACE' level */
+void logger_tracking_off(void)
+{
+    if (logger != NULL && logger->is_tracking) {
+        logger->is_tracking = false;
+    }
 }

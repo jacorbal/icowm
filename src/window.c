@@ -40,11 +40,12 @@ window_td *window_init(Display *display,
     window->properties.flags = 0;
     window->properties.state = WIN_STATE_IDLE;
     window->properties.layer = WIN_LAYER_NORMAL;
+    window->name = NULL;    // <-- TODO
 
     /* Initialize the window in hidden mode */
     //window->properties.flags |= (enum window_flags_e) WIN_PROPERTY_VISIBLE;
 
-    /* Create the window */
+    /* Create the X window */
     window->window = XCreateSimpleWindow(display,
             DefaultRootWindow(display),
             x, y, w, h,
@@ -74,7 +75,8 @@ window_td *window_init(Display *display,
 /* Destroy the window and free used memory */
 void window_destroy(window_td *window)
 {
-    LOGGER_TRACE("Deallocating structure for window %#lx", window->id);
+    LOGGER_TRACE("Deallocating structure for window %#lx ('%s')",
+            window->id, window->name);
     if (window) {
         if (window->window) {
             XDestroyWindow(window->display, window->window);
@@ -91,7 +93,8 @@ void window_update(window_td *window)
         return;
     }
 
-    LOGGER_TRACE("Updating window %#lx", window->id);
+    LOGGER_TRACE("Updating window %#lx ('%s')",
+            window->id, window->name);
 
     /* Clear the window */
     XClearWindow(window->display, window->window);

@@ -13,6 +13,11 @@
  * is working properly, but it will always flush the messages on any
  * error.
  *
+ * Unless specified the opposite, tracking, debug or information logs
+ * are displayed on @c stdout, and warnings or errors on @c stderrr.
+ * This is achieved by using the keyword "DEFAULT" as the file name when
+ * initializing the logger.
+ *
  * The initial logic behind the different log levels came from an answer
  * on Stack Overflow
  * <https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels#answer-64806781>:
@@ -65,9 +70,10 @@
                                          at least one argument should be
                                          there */
 
-// TODO: Add this to a config file?
-#define LOGGER_MAX_MESSAGES (16)    /**< Messages on buffer before flush */
-#define LOGGER_MAX_MSG_LENGTH (160) /**< Maximum length of a log message */
+// TODO: Add this to a config. file?
+#define LOGGER_MAX_LENGTH_MSG (160) /**< Maximum length of a log message */
+#define LOGGER_FLUSH_THRESHOLD (16) /**< Number of messages stored in
+                                         buffer before flushing */
 
 
 /**
@@ -109,6 +115,7 @@ enum logger_level_e {
  */
 typedef struct {
     enum logger_level_e level_min;  /**< Minimum logging level */
+    bool is_tracking;               /**< Track even when not in LOG_TRACE */
 
     struct file_s {
         FILE *fp_out;               /**< Pointer to output stream */
@@ -127,8 +134,10 @@ typedef struct {
 /**
  * @brief Initializes a new logger
  *
- * @param filename  Filename where to output log messages, or keyword
- * @param level_min Minimum logging level
+ * @param filename    Filename where to output log messages, or keyword
+ * @param level_min   Minimum logging level
+ * @param is_tracking If @c true, the caller function is traced always,
+ *                    otherwise, track only on @c LOG_TRACE level
  *
  * This function initializes the logger based on the specified filename.
  * The logging behavior is as follows:
@@ -136,8 +145,8 @@ typedef struct {
  *      - "NULL", the logger will be deactivated.
  *      - "STDOUT", all logs will be written to @c stdout
  *      - "STDERR", all logs will be written to @c stderr
- *      - "DEFAULT", normal severity logs are sent to @c stdout, and
- *        error severity logs are sent to @c stderr.
+ *      - "DEFAULT", debug or information logs are sent to @c stdout,
+ *        and warning or error logs are sent to @c stderr.
  *  - For any other name, the logger will open this file for appending
  *
  * If it's a file, log entries are written to a buffer until it reaches
@@ -149,6 +158,7 @@ typedef struct {
  * @retval  0 Success
  * @retval  1 Could not allocate memory
  * @retval  2 Failed to open file
+ * @retval -1 Singleton was already initialized; no action taken
  *
  * @pre @p level_min must be a valid value in the range @e LOG_MIN_LEVEL
  *      and @e LOG_MAX_LEVEL (closed interval)
@@ -158,15 +168,19 @@ typedef struct {
  * @see logger_level_e
  */
 int logger_start(const char *filename,
-        const enum logger_level_e level_min);
+        const enum logger_level_e level_min, bool is_tracking);
 
 /**
  * @brief Deallocates memory used by this logger instance
  *
+ * @return Status of the operation
+ * @return  0 Success
+ * @return  1 No operation has been performed
+ *
  * @note Complexity: @e O(n), where @e n is the number of messages to be
  *       deallocated from the buffer
  */
-void logger_stop(void);
+int logger_stop(void);
 
 /**
  * @brief Log formatted messages with varying levels of severity
@@ -176,10 +190,13 @@ void logger_stop(void);
  * @param fmt    Formatted message to be logged
  *
  * This function logs messages with a specified severity level to the
- * given file pointer by the logger instance
+ * given file pointer by the logger instance.  If the severity level is
+ * @e LOG_TRACE, then the caller function will be prepended before the
+ * message, otherwise is ignored.
  *
  * @return Number of characters printed (excluding the null byte used to
- *         end output to strings)
+ *         end output to strings), or a negative value if an output
+ *         error is encountered
  *
  * @note The message to be logged should be a null-terminated string
  * @note Only messages at level @p min_level or higher will be logged
@@ -188,6 +205,17 @@ void logger_stop(void);
  */
 int logger_msg(enum logger_level_e level, const char *prefix,
         const char *fmt, ...);
+
+/**
+ * @brief Set the logger to always show the calling function in messages
+ */
+void logger_tracking_on(void);
+
+/**
+ * @brief Set the logger to never show the calling function in messages
+ *        except in those of level @c LOG_TRACE
+ */
+void logger_tracking_off(void);
 
 /**
  * @brief Logger helper macro for various severity levels

@@ -19,31 +19,31 @@
 
 
 // TODO: Put this in another file
-#define MAX_COMMAND_LENGTH (128)
-#define MAX_KEYBINDING_LENGTH (128)
-#define MAX_OPTION_LENGTH (40)
-#define MAX_FONTNAME_LENGTH (80)
+#define CONFIG_MAX_LENGTH_COMMAND (128)
+#define CONFIG_MAX_LENGTH_BINDING (128)
+#define CONFIG_MAX_LENGTH_OPTION (40)
+#define CONFIG_MAX_LENGTH_FONTNAME (80)
 
-#define MAX_FILENAME_LENGTH (256)
-#define MAX_PATH_BASE_LENGTH (1024)
-#define MAX_PATH_CONFIG_LENGTH \
-    (MAX_PATH_BASE_LENGTH + MAX_FILENAME_LENGTH)
+#define CONFIG_MAX_LENGTH_NAME (256)
+#define CONFIG_MAX_LENGHT_FILENAME (256)
+#define CONFIG_MAX_LENGTH_PATH_BASE (1024)
+#define CONFIG_MAX_LENGTH_PATH_CONFIG \
+    (CONFIG_MAX_LENGTH_PATH_BASE + CONFIG_MAX_LENGHT_FILENAME)
 
 #define CONFIG_DIR_BASE  "icowm"
 #define CONFIG_DIR_THEMES "themes"
 #define CONFIG_FILENAME_BASE "config.json"
 #define CONFIG_FILENAME_BINDINGS "bindings.json"
 
-#define COLOR unsigned long int
-#define CONFIG_MAX_SCREENS (10)     /* Maximum screens */
-#define CONFIG_MAX_DESKTOPS (10)    /* Maximum desktops per screen */
+#define CONFIG_MAX_SCREENS (4)      /* Initial number of screens */
+#define CONFIG_MAX_DESKTOPS (10)    /* Initial desktops per screen */
 
 
 /**
  * @brief Base settings configuration structure
  */
 struct config_base_s {
-    char theme[MAX_FILENAME_LENGTH];
+    char theme[CONFIG_MAX_LENGHT_FILENAME];
 
     /* Desktops: number and which on is the default one */
     unsigned int screen_count;              /**< Number of screens */
@@ -52,10 +52,11 @@ struct config_base_s {
         unsigned int desktop_inaugural;     /**< Initial desktop */
 
         struct desktops_s {
+            char name[CONFIG_MAX_LENGTH_NAME];     /**< Desktop name */
             struct desktop_settings_s {
                 union {
                     //Pixmap image;           /**< Background image*/
-                    COLOR color;            /**< Background color */
+                    unsigned long int color;            /**< Background color */
                 } background;
             } settings;                     /**< Desktop settings */
         } desktops[CONFIG_MAX_DESKTOPS];    /**< Desktops per screen */
@@ -63,11 +64,11 @@ struct config_base_s {
 
     /* Basic main programs: terminal and program launcher */
     struct programs_s {
-        char terminal[MAX_COMMAND_LENGTH];
-        char launcher[MAX_COMMAND_LENGTH];
-        char file_manager[MAX_COMMAND_LENGTH];
-        char web_browser[MAX_COMMAND_LENGTH];
-        char editor[MAX_COMMAND_LENGTH];
+        char terminal[CONFIG_MAX_LENGTH_COMMAND];
+        char launcher[CONFIG_MAX_LENGTH_COMMAND];
+        char file_manager[CONFIG_MAX_LENGTH_COMMAND];
+        char web_browser[CONFIG_MAX_LENGTH_COMMAND];
+        char editor[CONFIG_MAX_LENGTH_COMMAND];
     } programs;
 
     /* General behavior of environment towards windows */
@@ -78,7 +79,7 @@ struct config_base_s {
             bool is_raised_on_focus;
         } focus;
         struct {
-            char policy[MAX_OPTION_LENGTH];
+            char policy[CONFIG_MAX_LENGTH_OPTION];
             bool is_centered;
         } placement;
     } windows;
@@ -90,72 +91,72 @@ struct config_base_s {
  */
 struct config_bindings_s {
     /* Modifiers */
-    char modc[MAX_KEYBINDING_LENGTH];
-    char mods[MAX_KEYBINDING_LENGTH];
-    char modl[MAX_KEYBINDING_LENGTH];
-    char mod1[MAX_KEYBINDING_LENGTH];
-    char mod2[MAX_KEYBINDING_LENGTH];
-    char mod3[MAX_KEYBINDING_LENGTH];
-    char mod4[MAX_KEYBINDING_LENGTH];
-    char mod5[MAX_KEYBINDING_LENGTH];
+    char modc[CONFIG_MAX_LENGTH_BINDING];
+    char mods[CONFIG_MAX_LENGTH_BINDING];
+    char modl[CONFIG_MAX_LENGTH_BINDING];
+    char mod1[CONFIG_MAX_LENGTH_BINDING];
+    char mod2[CONFIG_MAX_LENGTH_BINDING];
+    char mod3[CONFIG_MAX_LENGTH_BINDING];
+    char mod4[CONFIG_MAX_LENGTH_BINDING];
+    char mod5[CONFIG_MAX_LENGTH_BINDING];
 
     /* Keyboard bindings */
     struct keyboard_s {
-        char terminal[MAX_KEYBINDING_LENGTH];
-        char launcher[MAX_KEYBINDING_LENGTH];
-        char file_manager[MAX_KEYBINDING_LENGTH];
-        char web_browser[MAX_KEYBINDING_LENGTH];
-        char editor[MAX_KEYBINDING_LENGTH];
-        char center[MAX_KEYBINDING_LENGTH];
-        char maximize[MAX_KEYBINDING_LENGTH];
-        char fullscreen[MAX_KEYBINDING_LENGTH];
-        char shade[MAX_KEYBINDING_LENGTH];
-        char pin[MAX_KEYBINDING_LENGTH];
-        char iconify[MAX_KEYBINDING_LENGTH];
-        char close[MAX_KEYBINDING_LENGTH];
-        char kill[MAX_KEYBINDING_LENGTH];
-        char info[MAX_KEYBINDING_LENGTH];
-        char cycle_prev[MAX_KEYBINDING_LENGTH];
-        char cycle_next[MAX_KEYBINDING_LENGTH];
+        char terminal[CONFIG_MAX_LENGTH_BINDING];
+        char launcher[CONFIG_MAX_LENGTH_BINDING];
+        char file_manager[CONFIG_MAX_LENGTH_BINDING];
+        char web_browser[CONFIG_MAX_LENGTH_BINDING];
+        char editor[CONFIG_MAX_LENGTH_BINDING];
+        char center[CONFIG_MAX_LENGTH_BINDING];
+        char maximize[CONFIG_MAX_LENGTH_BINDING];
+        char fullscreen[CONFIG_MAX_LENGTH_BINDING];
+        char shade[CONFIG_MAX_LENGTH_BINDING];
+        char pin[CONFIG_MAX_LENGTH_BINDING];
+        char iconify[CONFIG_MAX_LENGTH_BINDING];
+        char close[CONFIG_MAX_LENGTH_BINDING];
+        char kill[CONFIG_MAX_LENGTH_BINDING];
+        char info[CONFIG_MAX_LENGTH_BINDING];
+        char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
+        char cycle_next[CONFIG_MAX_LENGTH_BINDING];
 
         /* Window movement, absolute and relative positions */
         struct move_s {
             struct relative_s {
-                char right[MAX_KEYBINDING_LENGTH];
-                char left[MAX_KEYBINDING_LENGTH];
-                char up[MAX_KEYBINDING_LENGTH];
-                char down[MAX_KEYBINDING_LENGTH];
+                char right[CONFIG_MAX_LENGTH_BINDING];
+                char left[CONFIG_MAX_LENGTH_BINDING];
+                char up[CONFIG_MAX_LENGTH_BINDING];
+                char down[CONFIG_MAX_LENGTH_BINDING];
             } relative;
 
             struct absolute_s {
-                char top_left[MAX_KEYBINDING_LENGTH];
-                char top_right[MAX_KEYBINDING_LENGTH];
-                char bottom_left[MAX_KEYBINDING_LENGTH];
-                char bottom_right[MAX_KEYBINDING_LENGTH];
+                char top_left[CONFIG_MAX_LENGTH_BINDING];
+                char top_right[CONFIG_MAX_LENGTH_BINDING];
+                char bottom_left[CONFIG_MAX_LENGTH_BINDING];
+                char bottom_right[CONFIG_MAX_LENGTH_BINDING];
             } absolute;
         } move;
 
         struct resize_s {
-            char right[MAX_KEYBINDING_LENGTH];
-            char left[MAX_KEYBINDING_LENGTH];
-            char up[MAX_KEYBINDING_LENGTH];
-            char down[MAX_KEYBINDING_LENGTH];
+            char right[CONFIG_MAX_LENGTH_BINDING];
+            char left[CONFIG_MAX_LENGTH_BINDING];
+            char up[CONFIG_MAX_LENGTH_BINDING];
+            char down[CONFIG_MAX_LENGTH_BINDING];
         } resize;
 
         struct desktop_s {
-            char cycle_prev[MAX_KEYBINDING_LENGTH];
-            char cycle_next[MAX_KEYBINDING_LENGTH];
+            char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
+            char cycle_next[CONFIG_MAX_LENGTH_BINDING];
         } desktop;
     } keyboard;
 
     /* Mouse bindings */
     struct mouse_s {
-        char move[MAX_KEYBINDING_LENGTH];
-        char resize[MAX_KEYBINDING_LENGTH];
-        char lower[MAX_KEYBINDING_LENGTH];
+        char move[CONFIG_MAX_LENGTH_BINDING];
+        char resize[CONFIG_MAX_LENGTH_BINDING];
+        char lower[CONFIG_MAX_LENGTH_BINDING];
         struct {
-            char cycle_prev[MAX_KEYBINDING_LENGTH];
-            char cycle_next[MAX_KEYBINDING_LENGTH];
+            char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
+            char cycle_next[CONFIG_MAX_LENGTH_BINDING];
         } desktop;
     } mouse;
 };
@@ -176,28 +177,28 @@ struct config_theme_s {
         } general;
 
         struct active_s {
-            COLOR background_color;
-            COLOR foreground_color;
-            COLOR frame_color;
-            char font[MAX_FONTNAME_LENGTH];
+            unsigned long int background_color;
+            unsigned long int foreground_color;
+            unsigned long int frame_color;
+            char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
         struct inactive_s {
-            COLOR background_color;
-            COLOR foreground_color;
-            COLOR frame_color;
-            char font[MAX_FONTNAME_LENGTH];
+            unsigned long int background_color;
+            unsigned long int foreground_color;
+            unsigned long int frame_color;
+            char font[CONFIG_MAX_LENGTH_FONTNAME];
         } inactive;
     } window;
 
     /* Icons theme when iconized programs */
     struct icon_s {
-        COLOR background_color;
-        COLOR foreground_color;
-        COLOR frame_color;
+        unsigned long int background_color;
+        unsigned long int foreground_color;
+        unsigned long int frame_color;
         unsigned int border_width;
         bool is_captioned;
-        char font[MAX_FONTNAME_LENGTH];
+        char font[CONFIG_MAX_LENGTH_FONTNAME];
     } icon;
 };
 

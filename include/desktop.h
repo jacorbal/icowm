@@ -10,7 +10,7 @@
 /* System includes */
 #include <stdbool.h>    /* bool */
 
-/* ADT */
+/* ADT includes */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hasing) */
 
 /* Project includes */
@@ -19,7 +19,21 @@
 
 
 // TODO: Put this in a configuration file!
+
+/**
+ * @brief Initial capacity of windows for the desktop
+ *
+ * Number of windows that the desktop is initialized with.  A higher
+ * initial capacity may reduce the need for resizing the underlying data
+ * structure as windows are added to the open-addressed hash table.
+ */
 #define DESKTOP_INITIAL_CAPACITY (256)  /* (512) */
+
+/**
+ * @brief Maximum number of characters allowed in the name of the
+ *        desktop, including the null terminator
+ */
+#define DESKTOP_MAX_LENGTH_NAME (64)
 
 
 /**
@@ -42,7 +56,8 @@
 typedef struct {
     unsigned int screen_id;     /**< Screen index */
     unsigned int id;            /**< Desktop index */
-//    char *name;
+
+    char name[DESKTOP_MAX_LENGTH_NAME]; /** Desktop name*/
 
     struct background_s {
 //        bool is_image;          /** Color or image for background */
@@ -55,10 +70,10 @@ typedef struct {
     ohtbl_td *windows;          /**< Windows hash table */
     window_td *window_active;   /**< Pointer to active window */
 
-    struct config_base_s *config_base;
-    struct config_theme_s *config_theme;
+    struct config_base_s *config_base;      /**< Base configuration */
+    struct config_theme_s *config_theme;    /**< Theme configuration */
 
-    bool is_outdated;           /**< Flag when data needs to be updated */
+    bool is_outdated;   /**< Flag when data needs to be updated */
 } desktop_td;
 
 

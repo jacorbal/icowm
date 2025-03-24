@@ -23,10 +23,12 @@
 #include <stdbool.h>    /* bool, false, true */
 #include <stdio.h>      /* FILE, snprintf */
 #include <stdlib.h>     /* NULL, free, malloc, getenv, size_t */
-#include <string.h>     /* strncpy, strlen */
 
 /* External libraries */
 #include <cjson/cJSON.h>
+
+/* Utils includes */
+#include <utils/safestr.h>
 
 /* Project includes */
 #include <logger.h>
@@ -59,33 +61,6 @@ static unsigned long int _hex2ul(const char *hex_color)
 
     return color;
 }
-
-
-/**
- * @brief Copy a string safely into a destination buffer
- *
- * This function copies a string from source to destination ensuring
- * that the destination buffer does not overflow.  It null-terminates
- * the destination string.
- *
- * @param dest Pointer to the destination buffer
- * @param src  Pointer to the source string
- * @param size Maximum number of characters to copy, including the null
- *             terminator
- *
- * @note If the length of the source string exceeds @e size, the
- *       destination will be truncated. It will always be
- *       null-terminated
- *
- * @note Complexity: @e O(n), where @e n is the length of the source
- *       string or the specified size, whichever is smaller
- */
-static void safe_strncpy(char *dest, const char *src, size_t size)
-{
-    strncpy(dest, src, size - 1);
-    dest[size - 1] = '\0';
-}
-
 
 /**
  * @brief Load a string value from a JSON object into destination buffer
@@ -311,7 +286,7 @@ static int _json_load_config(const char *filename, cJSON **json_out)
  * @param config_dir_base Pointer to a character array where the
  *                        configuration directory path will be stored
  *
- * @note The buffer should be at least @c MAX_PATH_BASE_LENGTH
+ * @note The buffer should be at least @c CONFIG_MAX_LENGTH_PATH_BASE
  */
 static void _config_dir_set(char *config_dir_base)
 {
@@ -319,16 +294,16 @@ static void _config_dir_set(char *config_dir_base)
     const char *config_home = getenv("HOME");
 
     if (config_xdg_config_home != NULL) {
-        /* XDG_CONFIG_HOME/icowm */
-        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "%s%s",
+        /* "${XDG_CONFIG_HOME}/icowm" */
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "%s%s",
                 config_xdg_config_home, CONFIG_DIR_BASE);
     } else if (config_home != NULL) {
-        /* HOME/.icowm */
-        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "%s/.%s",
+        /* "${HOME}/.icowm" */
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "%s/.%s",
                 config_home, CONFIG_DIR_BASE);
     } else {
-        /* $(pwd)/.icowm */
-        snprintf(config_dir_base, MAX_PATH_BASE_LENGTH, "./%s",
+        /* "$(pwd)/.icowm"; let's hope there's always a "${HOME}" */
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "./%s",
                 CONFIG_DIR_BASE);
     }
 }
@@ -369,124 +344,139 @@ void config_set_default_values(config_td *config)
     /* Assign predetermined values for base configuration */
     config->base.screen_count = 1;
 
+    LOGGER_TRACE("Setting configuration for each screen", L_NARG);
     for (unsigned int i = 0; i < config->base.screen_count; ++i) {
         /* Set number of desktops per screen */
         config->base.screens[i].desktop_count = CONFIG_MAX_DESKTOPS;
         config->base.screens[i].desktop_inaugural = 0;
 
         /* All desktop settings */
+        LOGGER_TRACE("Setting desktops configuration on screen %u", i);
         for (unsigned int j = 0;
-             j < config->base.screens[i].desktop_count;
-             ++j) {
+                j < config->base.screens[i].desktop_count;
+                ++j) {
+            char desktop_name[CONFIG_MAX_LENGTH_NAME];
+            snprintf(desktop_name, sizeof(desktop_name),
+                    "Desktop %u", j);
+            safe_strncpy(config->base.screens[i].desktops[j].name,
+                desktop_name, CONFIG_MAX_LENGTH_NAME);
+
             config->base.screens[i].desktops[j].settings.background.color
                 = _hex2ul("#000000");
         }
     }
 
-    strcpy(config->base.programs.terminal, "xterm");
-    strcpy(config->base.programs.launcher, "gmrun");
-    strcpy(config->base.programs.file_manager, "spacefm");
-    strcpy(config->base.programs.web_browser, "firefox");
-    strcpy(config->base.programs.web_browser, "gvim");
+    LOGGER_TRACE("Setting default base programs", L_NARG);
+    safe_strcpy(config->base.programs.terminal, "xterm");
+    safe_strcpy(config->base.programs.launcher, "gmrun");
+    safe_strcpy(config->base.programs.file_manager, "spacefm");
+    safe_strcpy(config->base.programs.web_browser, "firefox");
+    safe_strcpy(config->base.programs.web_browser, "gvim");
     config->base.windows.snap = 4;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
-    strcpy(config->base.windows.placement.policy, "smart");
+    safe_strcpy(config->base.windows.placement.policy, "smart");
     config->base.windows.placement.is_centered = false;
 
     /* Assign predetermined values for bindings modifiers */
-    strcpy(config->bindings.modc, "Control");
-    strcpy(config->bindings.mods, "Shift");
-    strcpy(config->bindings.modl, "Caps_Lock");
-    strcpy(config->bindings.mod1, "Alt");
-    strcpy(config->bindings.mod2, "Num_Lock");
-    strcpy(config->bindings.mod3, "");
-    strcpy(config->bindings.mod4, "Super");
-    strcpy(config->bindings.mod5, "Hyper");
+    LOGGER_TRACE("Setting default bindings modifiers", L_NARG);
+    safe_strcpy(config->bindings.modc, "Control");
+    safe_strcpy(config->bindings.mods, "Shift");
+    safe_strcpy(config->bindings.modl, "Caps_Lock");
+    safe_strcpy(config->bindings.mod1, "Alt");
+    safe_strcpy(config->bindings.mod2, "Num_Lock");
+    safe_strcpy(config->bindings.mod3, "");
+    safe_strcpy(config->bindings.mod4, "Super");
+    safe_strcpy(config->bindings.mod5, "Hyper");
 
     /* Predetermined configuration for keybindings */
-    strcpy(config->bindings.keyboard.terminal, "modc+mod1+Return");
-    strcpy(config->bindings.keyboard.launcher, "modc+mod1+r");
-    strcpy(config->bindings.keyboard.file_manager, "modc+mod1+q");
-    strcpy(config->bindings.keyboard.web_browser, "modc+mod1+w");
-    strcpy(config->bindings.keyboard.editor, "modc+mod1+e");
-    strcpy(config->bindings.keyboard.center, "modc+mod1+g");
-    strcpy(config->bindings.keyboard.maximize, "modc+mod1+m");
-    strcpy(config->bindings.keyboard.fullscreen, "modc+mod1+f");
-    strcpy(config->bindings.keyboard.shade, "modc+mod1+s");
-    strcpy(config->bindings.keyboard.pin, "modc+mod1+p");
-    strcpy(config->bindings.keyboard.iconify, "modc+mod1+i");
-    strcpy(config->bindings.keyboard.close, "modc+mod1+c");
-    strcpy(config->bindings.keyboard.kill, "modc+mod1+mods+Escape");
-    strcpy(config->bindings.keyboard.info, "modc+mod1+mods+i");
-    strcpy(config->bindings.keyboard.cycle_prev, "mod1+mods+Tab");
-    strcpy(config->bindings.keyboard.cycle_next, "mod1+Tab");
+    LOGGER_TRACE("Setting default keybindings", L_NARG);
+    safe_strcpy(config->bindings.keyboard.terminal, "modc+mod1+Return");
+    safe_strcpy(config->bindings.keyboard.launcher, "modc+mod1+r");
+    safe_strcpy(config->bindings.keyboard.file_manager, "modc+mod1+q");
+    safe_strcpy(config->bindings.keyboard.web_browser, "modc+mod1+w");
+    safe_strcpy(config->bindings.keyboard.editor, "modc+mod1+e");
+    safe_strcpy(config->bindings.keyboard.center, "modc+mod1+g");
+    safe_strcpy(config->bindings.keyboard.maximize, "modc+mod1+m");
+    safe_strcpy(config->bindings.keyboard.fullscreen, "modc+mod1+f");
+    safe_strcpy(config->bindings.keyboard.shade, "modc+mod1+s");
+    safe_strcpy(config->bindings.keyboard.pin, "modc+mod1+p");
+    safe_strcpy(config->bindings.keyboard.iconify, "modc+mod1+i");
+    safe_strcpy(config->bindings.keyboard.close, "modc+mod1+c");
+    safe_strcpy(config->bindings.keyboard.kill, "modc+mod1+mods+Escape");
+    safe_strcpy(config->bindings.keyboard.info, "modc+mod1+mods+i");
+    safe_strcpy(config->bindings.keyboard.cycle_prev, "mod1+mods+Tab");
+    safe_strcpy(config->bindings.keyboard.cycle_next, "mod1+Tab");
 
     /* Predetermined configuration for movement with keyboard */
-    strcpy(config->bindings.keyboard.move.relative.right,
+    LOGGER_TRACE("Setting default movement/resizing keybindings",
+            L_NARG);
+    safe_strcpy(config->bindings.keyboard.move.relative.right,
             "modc+mod1+l");
-    strcpy(config->bindings.keyboard.move.relative.left,
+    safe_strcpy(config->bindings.keyboard.move.relative.left,
             "modc+mod1+h");
-    strcpy(config->bindings.keyboard.move.relative.up,
+    safe_strcpy(config->bindings.keyboard.move.relative.up,
             "modc+mod1+k");
-    strcpy(config->bindings.keyboard.move.relative.down,
+    safe_strcpy(config->bindings.keyboard.move.relative.down,
             "modc+mod1+j");
-    strcpy(config->bindings.keyboard.move.absolute.top_left,
+    safe_strcpy(config->bindings.keyboard.move.absolute.top_left,
             "modc+mod1+y");
-    strcpy(config->bindings.keyboard.move.absolute.top_right,
+    safe_strcpy(config->bindings.keyboard.move.absolute.top_right,
             "modc+mod1+u");
-    strcpy(config->bindings.keyboard.move.absolute.bottom_left,
+    safe_strcpy(config->bindings.keyboard.move.absolute.bottom_left,
             "modc+mod1+b");
-    strcpy(config->bindings.keyboard.move.absolute.bottom_right,
+    safe_strcpy(config->bindings.keyboard.move.absolute.bottom_right,
             "modc+mod1+n");
-    strcpy(config->bindings.keyboard.resize.right,
+    safe_strcpy(config->bindings.keyboard.resize.right,
             "modc+mod1+mods+l");
-    strcpy(config->bindings.keyboard.resize.left,
+    safe_strcpy(config->bindings.keyboard.resize.left,
             "modc+mod1+mods+h");
-    strcpy(config->bindings.keyboard.resize.up,
+    safe_strcpy(config->bindings.keyboard.resize.up,
             "modc+mod1+mods+k");
-    strcpy(config->bindings.keyboard.resize.down,
+    safe_strcpy(config->bindings.keyboard.resize.down,
             "modc+mod1+mods+j");
-    strcpy(config->bindings.keyboard.desktop.cycle_prev,
+    safe_strcpy(config->bindings.keyboard.desktop.cycle_prev,
             "modc+mod1+Left");
-    strcpy(config->bindings.keyboard.desktop.cycle_next,
+    safe_strcpy(config->bindings.keyboard.desktop.cycle_next,
             "modc+mod1+Right");
 
     /* Predetermined configuration for mouse bindings */
-    strcpy(config->bindings.mouse.move, "button1");
-    strcpy(config->bindings.mouse.resize, "button2");
-    strcpy(config->bindings.mouse.lower, "button3");
-    strcpy(config->bindings.mouse.desktop.cycle_prev, "button4");
-    strcpy(config->bindings.mouse.desktop.cycle_next, "button5");
+    LOGGER_TRACE("Setting default mouse bindings", L_NARG);
+    safe_strcpy(config->bindings.mouse.move, "button1");
+    safe_strcpy(config->bindings.mouse.resize, "button2");
+    safe_strcpy(config->bindings.mouse.lower, "button3");
+    safe_strcpy(config->bindings.mouse.desktop.cycle_prev, "button4");
+    safe_strcpy(config->bindings.mouse.desktop.cycle_next, "button5");
 
     /* Predetermined values for a default theme */
-    strcpy(config->theme.name, "Default (builtin)");
+    LOGGER_TRACE("Setting default theme", L_NARG);
+    safe_strcpy(config->theme.name, "Default (builtin)");
     config->theme.window.general.border_width = 2;
     config->theme.window.general.is_decorated = true;
     config->theme.window.active.background_color = _hex2ul("FFFFFF");
     config->theme.window.active.foreground_color = _hex2ul("000000");
     config->theme.window.active.frame_color = _hex2ul("222222");
-    strcpy(config->theme.window.active.font, "monospace bold 9");
+    safe_strcpy(config->theme.window.active.font, "monospace bold 9");
     config->theme.window.inactive.background_color = _hex2ul("000000");
     config->theme.window.inactive.foreground_color = _hex2ul("FFFFFF");
     config->theme.window.inactive.frame_color = _hex2ul("999999");
-    strcpy(config->theme.window.inactive.font, "monospace 9");
+    safe_strcpy(config->theme.window.inactive.font, "monospace 9");
     config->theme.icon.background_color = _hex2ul("FFFFFF");
     config->theme.icon.foreground_color = _hex2ul("000000");
     config->theme.icon.frame_color = _hex2ul("000000");
     config->theme.icon.border_width = 1;
     config->theme.icon.is_captioned = true;
-    strcpy(config->theme.icon.font, "monospace 8");
+    safe_strcpy(config->theme.icon.font, "monospace 8");
 }
 
 
 /* Load all the configuration */
 int config_load(config_td *config)
 {
-    char config_dir[MAX_PATH_BASE_LENGTH];
-    char config_base_file[MAX_PATH_CONFIG_LENGTH];
-    char config_bindings_file[MAX_PATH_CONFIG_LENGTH];
-    char config_theme_file[MAX_PATH_CONFIG_LENGTH];
+    char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
+    char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
+    char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
+    char config_theme_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
 
     _config_dir_set(config_dir);
 
@@ -517,12 +507,13 @@ int config_load(config_td *config)
     }
 
     /* Set theme file path */
-    snprintf(config_theme_file, sizeof(config_theme_file),
+    snprintf(config_theme_file,
+            sizeof(config_theme_file) + CONFIG_MAX_LENGHT_FILENAME,
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
 
     /* Load theme if it's specified, i.e., not empty string */
-    if (strlen(config->base.theme) == 0) {
+    if (safe_strlen(config->base.theme) == 0) {
         LOGGER_NOTICE("No theme specified in base configuration;" \
                 " default will be used", L_NARG);
     } else {
@@ -554,7 +545,7 @@ int config_load_base(const char *filename,
 
     /* Theme name*/
     if (_json_load_string(json, "theme", config_base->theme,
-                MAX_FILENAME_LENGTH) != 0) {
+                CONFIG_MAX_LENGHT_FILENAME) != 0) {
         LOGGER_WARNING("Invalid theme specified:" \
                 " '%s'; default configuration will be used",
                 config_base->theme);
@@ -581,8 +572,8 @@ int config_load_base(const char *filename,
             unsigned int desktop_count =
                 (unsigned int) cJSON_GetArraySize(desktops_array);
             for (unsigned int i = 0;
-                 i < desktop_count && i < CONFIG_MAX_DESKTOPS;
-                 ++i) {
+                    i < desktop_count && i < CONFIG_MAX_DESKTOPS;
+                    ++i) {
                 cJSON *desktop_item =
                     cJSON_GetArrayItem(desktops_array, (int) i);
 
@@ -612,12 +603,18 @@ int config_load_base(const char *filename,
                                 cJSON_GetArraySize(desktop_settings);
                         for (unsigned int j = 0;
                                 j < settings_count &&
-                                j < CONFIG_MAX_DESKTOPS;
-                             ++j) {
+                                    j < CONFIG_MAX_DESKTOPS;
+                                ++j) {
                             cJSON *setting_item =
                                 cJSON_GetArrayItem(desktop_settings,
                                         (int) j);
                             if (setting_item) {
+                                /* Load desktop name */
+                                _json_load_string(setting_item, "name",
+                                        config_base->screens[i].desktops[j].name,
+                                        CONFIG_MAX_LENGTH_NAME);
+
+                                /* Load background color */
                                 cJSON *background_color_item =
                                     cJSON_GetObjectItem(setting_item,
                                             "background_color");
@@ -638,15 +635,20 @@ int config_load_base(const char *filename,
     cJSON *programs = cJSON_GetObjectItem(json, "programs");
     if (programs) {
         _json_load_string(programs, "terminal",
-                config_base->programs.terminal, MAX_COMMAND_LENGTH);
+                config_base->programs.terminal,
+                CONFIG_MAX_LENGTH_COMMAND);
         _json_load_string(programs, "launcher",
-                config_base->programs.launcher, MAX_COMMAND_LENGTH);
+                config_base->programs.launcher,
+                CONFIG_MAX_LENGTH_COMMAND);
         _json_load_string(programs, "file_manager",
-                config_base->programs.file_manager, MAX_COMMAND_LENGTH);
+                config_base->programs.file_manager, 
+                CONFIG_MAX_LENGTH_COMMAND);
         _json_load_string(programs, "web_browser",
-                config_base->programs.web_browser, MAX_COMMAND_LENGTH);
+                config_base->programs.web_browser, 
+                CONFIG_MAX_LENGTH_COMMAND);
         _json_load_string(programs, "editor",
-                config_base->programs.editor, MAX_COMMAND_LENGTH);
+                config_base->programs.editor,
+                CONFIG_MAX_LENGTH_COMMAND);
     }
 
     /* Load window base configuration */
@@ -664,7 +666,7 @@ int config_load_base(const char *filename,
         if (placement) {
             _json_load_string(placement, "policy",
                     config_base->windows.placement.policy,
-                    MAX_OPTION_LENGTH);
+                    CONFIG_MAX_LENGTH_OPTION);
             _json_load_bool(placement, "is_centered",
                     &config_base->windows.placement.is_centered);
         }
@@ -694,21 +696,21 @@ int config_load_bindings(const char *filename,
     cJSON *modifiers = cJSON_GetObjectItem(json, "modifiers");
     if (modifiers) {
         _json_load_string(modifiers, "modc", config_bindings->modc,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mods", config_bindings->mods,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "modl", config_bindings->modl,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mod1", config_bindings->mod1,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mod2", config_bindings->mod2,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mod3", config_bindings->mod3,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mod4", config_bindings->mod4,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(modifiers, "mod5", config_bindings->mod5,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
     }
 
     /* Load keybindings */
@@ -716,52 +718,52 @@ int config_load_bindings(const char *filename,
     if (keyboard) {
         _json_load_string(keyboard, "terminal",
                 config_bindings->keyboard.terminal,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "launcher",
                 config_bindings->keyboard.launcher,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "file_manager",
                 config_bindings->keyboard.file_manager,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "web_browser",
                 config_bindings->keyboard.web_browser,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "editor",
                 config_bindings->keyboard.editor,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "center",
                 config_bindings->keyboard.center,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "maximize",
                 config_bindings->keyboard.maximize,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "fullscreen",
                 config_bindings->keyboard.fullscreen,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "shade",
                 config_bindings->keyboard.shade,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "pin",
                 config_bindings->keyboard.pin,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "iconify",
                 config_bindings->keyboard.iconify,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "close",
                 config_bindings->keyboard.close,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "kill",
                 config_bindings->keyboard.kill,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "info",
                 config_bindings->keyboard.info,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "cycle-prev",
                 config_bindings->keyboard.cycle_prev,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(keyboard, "cycle-next",
                 config_bindings->keyboard.cycle_next,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
 
         /* Keybindings for window movement */
         cJSON *move = cJSON_GetObjectItem(keyboard, "move");
@@ -770,32 +772,32 @@ int config_load_bindings(const char *filename,
             if (relative) {
                 _json_load_string(relative, "right",
                         config_bindings->keyboard.move.relative.right,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(relative, "left",
                         config_bindings->keyboard.move.relative.left,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(relative, "up",
                         config_bindings->keyboard.move.relative.up,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(relative, "down",
                         config_bindings->keyboard.move.relative.down,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
             }
 
             cJSON *absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
                 _json_load_string(absolute, "top-left",
                         config_bindings->keyboard.move.absolute.top_left,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(absolute, "top-right",
                         config_bindings->keyboard.move.absolute.top_right,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(absolute, "bottom-left",
                         config_bindings->keyboard.move.absolute.bottom_left,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
                 _json_load_string(absolute, "bottom-right",
                         config_bindings->keyboard.move.absolute.bottom_right,
-                        MAX_KEYBINDING_LENGTH);
+                        CONFIG_MAX_LENGTH_BINDING);
             }
         }
 
@@ -804,16 +806,16 @@ int config_load_bindings(const char *filename,
         if (resize) {
             _json_load_string(resize, "right",
                     config_bindings->keyboard.resize.right,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
             _json_load_string(resize, "left",
                     config_bindings->keyboard.resize.left,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
             _json_load_string(resize, "up",
                     config_bindings->keyboard.resize.up,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
             _json_load_string(resize, "down",
                     config_bindings->keyboard.resize.down,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         /* Keybindings for desktop cycling */
@@ -821,10 +823,10 @@ int config_load_bindings(const char *filename,
         if (desktop) {
             _json_load_string(desktop, "cycle_prev",
                     config_bindings->keyboard.desktop.cycle_prev,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
             _json_load_string(desktop, "cycle_next",
                     config_bindings->keyboard.desktop.cycle_next,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
         }
     }
 
@@ -832,21 +834,22 @@ int config_load_bindings(const char *filename,
     cJSON *mouse = cJSON_GetObjectItem(json, "mouse");
     if (mouse) {
         _json_load_string(mouse, "move", config_bindings->mouse.move,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(mouse, "resize",
-                config_bindings->mouse.resize, MAX_KEYBINDING_LENGTH);
+                config_bindings->mouse.resize,
+                CONFIG_MAX_LENGTH_BINDING);
         _json_load_string(mouse, "lower", config_bindings->mouse.lower,
-                MAX_KEYBINDING_LENGTH);
+                CONFIG_MAX_LENGTH_BINDING);
 
         /* Mouse bindings for desktop cycling */
         cJSON *desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
             _json_load_string(desktop, "cycle_prev",
                     config_bindings->mouse.desktop.cycle_prev,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
             _json_load_string(desktop, "cycle_next",
                     config_bindings->mouse.desktop.cycle_next,
-                    MAX_KEYBINDING_LENGTH);
+                    CONFIG_MAX_LENGTH_BINDING);
         }
     }
 
@@ -873,7 +876,7 @@ int config_load_theme(const char *filename,
 
     /* Load theme name identifier */
     _json_load_string(json, "name", config_theme->name,
-            MAX_FONTNAME_LENGTH);
+            CONFIG_MAX_LENGTH_FONTNAME);
 
     /* Load window general appearance */
     cJSON *window = cJSON_GetObjectItem(json, "window");
@@ -909,7 +912,7 @@ int config_load_theme(const char *filename,
             }
             _json_load_string(active, "font",
                     config_theme->window.active.font,
-                    MAX_FONTNAME_LENGTH); }
+                    CONFIG_MAX_LENGTH_FONTNAME); }
 
         /* Load inactive window appearance */
         cJSON *inactive = cJSON_GetObjectItem(window, "inactive");
@@ -934,7 +937,7 @@ int config_load_theme(const char *filename,
             }
             _json_load_string(inactive, "font",
                     config_theme->window.inactive.font,
-                    MAX_FONTNAME_LENGTH); }
+                    CONFIG_MAX_LENGTH_FONTNAME); }
     }
 
     /* Load icon appearance when iconizing */
@@ -964,7 +967,7 @@ int config_load_theme(const char *filename,
         _json_load_bool(icon, "is_captioned",
                 &config_theme->icon.is_captioned);
         _json_load_string(icon, "font", config_theme->icon.font,
-                MAX_FONTNAME_LENGTH);
+                CONFIG_MAX_LENGTH_FONTNAME);
     }
 
     /* Free memory */

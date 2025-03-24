@@ -11,7 +11,7 @@
 /* External libraries */
 #include <X11/Xlib.h>   /* Display, Screen */
 
-/* ADT */
+/* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Project includes */
@@ -85,20 +85,21 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
         desktop_td *desktop = desktop_init(screen_id, i,
                 &(screen->config->base), &(screen->config->theme));
         if (screen == NULL) {
-            LOGGER_FATAL("Failed to initialize desktop" \
-                    " %u on screen %u", i, screen_id);
+            LOGGER_FATAL("Failed to initialize desktop %u on" \
+                    " screen %u", i, screen_id);
             cdlist_destroy(screen->desktops);
             return NULL;
         }
 
-        LOGGER_TRACE("Inserting desktop %u of screen %u into list",
-                i, screen_id);
+        LOGGER_TRACE("Inserting desktop %u ('%s') of " \
+                "screen %u into desktop list",
+                i, desktop->name, screen_id);
         if (cdlist_ins_next(screen->desktops,
                     cdlist_tail(screen->desktops),
                     (const void *) desktop) != 0) {
-            LOGGER_FATAL("Failed to insert desktop" \
-                    " %u on screen %u into desktop list",
-                    i, screen_id);
+            LOGGER_FATAL("Failed to insert desktop %u ('%s') on" \
+                    " screen %u into desktop list",
+                    i, desktop->name, screen_id);
             desktop_destroy(desktop);
             cdlist_destroy(screen->desktops);
             return NULL;
@@ -130,7 +131,7 @@ void screen_destroy(screen_td *screen)
 /* Soft screen update */
 void screen_update(screen_td *screen)
 {
-    LOGGER_TRACE("Updating screen %u", screen->id);
+//    LOGGER_TRACE("Updating screen %u", screen->id);
 
     /* Establish that this screen is already updated */
     screen->is_outdated = false;
@@ -146,13 +147,22 @@ void screen_update_full(screen_td *screen)
     screen_update(screen);
 
     /* Update all desktops */
-    for (cdlist_item_td *desktop_node = cdlist_head(screen->desktops);
-         desktop_node != NULL;
-         desktop_node = cdlist_next(desktop_node)) {
-        desktop_td *desktop_cur =
-            (desktop_td *) cdlist_data(desktop_node);
-        desktop_update_full(desktop_cur);
+    cdlist_item_td *desktop_node = cdlist_head(screen->desktops);
+    if (desktop_node != NULL) {
+        /* Reference to the initial node not to end up an infinite loop
+         * in this circular list */
+        cdlist_item_td *desktop_initial = desktop_node;
+        do {
+            desktop_td *desktop_cur =
+                (desktop_td *) cdlist_data(desktop_node);
+                if (desktop_cur->is_outdated) {
+                    desktop_update_full(desktop_cur);
+                }
+                desktop_node = cdlist_prev(desktop_node);
+        } while (desktop_node != desktop_initial);
     }
+
+    LOGGER_TRACE("Updated screen %u", screen->id);
 }
 
 

@@ -21,7 +21,28 @@
 #include <stddef.h>     /* NULL, size_t */
 
 
-/**/
+/**
+ * @brief Maximum hash table load factor
+ *
+ * Determines the occupancy threshold that, if exceeded, will trigger a
+ * resize of the hash table.  On a new insertion, the table will be
+ * re-dimensioned and re-hashed when its @p ohtbl->size is equal or
+ * bigger than the (100 *  @c OHTBL_MAX_LOAD_FACTOR)% of its positions
+ * given by @p ohtbl->positions.
+ *
+ *  - If the value is 0, the condition for resizing will always be
+ *    @c true, as the current size will always be greater than or equal
+ *    to 0.  This means the table will attempt to resize every time an
+ *    element is added, which can lead to inefficient performance.
+ *  - If the value is greater than 1, the hash table will permit an
+ *    excessive number of elements, leading to a significant decrease in
+ *    search and insertion efficiency due to increased collisions
+ *
+ * @note This value must be in the domain [0 ,1]
+ * @note A suggested value is 0.75f
+ *
+ * @see ohtbl_insert
+ */
 #define OHTBL_MAX_LOAD_FACTOR (0.75f)
 
 
@@ -71,7 +92,8 @@ typedef struct {
  * @param match     Pointer to a function to test if two keys are equal
  * @param destroy   Pointer to a function to free the memory
  *
- * @return Allocated open-addressed hash table, or @c NULL otherwise
+ * @return Pointer to new allocated open-addressed hash table, or
+ *         @c NULL otherwise
  *
  * @note This operation must be called for a open-addressed hash table
  *       before the hash table can be used with any other operation

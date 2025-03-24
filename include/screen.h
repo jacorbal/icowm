@@ -8,12 +8,13 @@
 #define SCREEN_H
 
 /* System includes */
+#include <stddef.h>     /* size_t */
 #include <stdbool.h>    /* bool */
 
 /* External libraries */
 #include <X11/Xlib.h>   /* Window, Colormap */
 
-/* ADT */
+/* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Common type structures */
@@ -56,7 +57,7 @@ typedef struct {
 
     struct dimensions_s dim;    /**< Screen dimensions (px) */
 
-    unsigned int desktop_count; /**< Number of desktops */
+    size_t desktop_count;       /**< Number of desktops */
     unsigned int desktop_cur;   /**< Index of current desktop */
     cdlist_td *desktops;        /**< Circular list of desktops */
 

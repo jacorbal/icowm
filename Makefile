@@ -26,14 +26,14 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
 			  -Wunreachable-code -Wmissing-format-attribute
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 			 -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-			 -Wno-suggest-attribute=format    -Wno-unused-parameter
+			 -Wno-suggest-attribute=format      -Wno-unused-parameter
 CCWARN		= ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST} ${CCWARN_GCC}
 #SQL_LFLAGS  = -lsqlite3
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
 LDFLAGS     = -L ${L_DIR} -lcjson -lX11 -lXpm
 
-# Use `make DEBUG=1` to add debugging information, symbol table, etc.
-# Use `make DEBUG=2` to link with the address sanitizer 
+# Use `make clean && make DEBUG=1` to add debugging information, symbol table...
+# Use `malc clean && make DEBUG=2` to also link with the address sanitizer 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
 	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
@@ -44,7 +44,7 @@ else
 	CCFLAGS += -DNDEBUG -O${CCOPT}
 endif
 
-# Use `make STRIP=1` to discard symbols from object files
+# Use `make clean; make STRIP=1` to discard symbols from object files
 STRIP ?= 0
 ifeq ($(STRIP), 1)
 	LDFLAGS += -s
