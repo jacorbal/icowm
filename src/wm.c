@@ -12,13 +12,13 @@
 #include <X11/Xlib.h>   /* XOpenDisplay, XCloseDisplay */
 #include <X11/keysym.h> /* XK_* */
 
-/* ADT includes */
+/* ADT */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */
 #include <config.h>
-#include <event.h>
+#include <eventq.h>
 #include <logger.h>
 #include <screen.h>
 
@@ -31,6 +31,8 @@
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
 static wm_td *wm = NULL;    /**< Window manager singleton pointer */
+
+
 
 
 /**
@@ -93,7 +95,7 @@ static void _wm_loop(void)
 {
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
-                "or set not to run", L_NARG);
+                "or set to not run", L_NARG);
         return;
     }
 
@@ -103,8 +105,12 @@ static void _wm_loop(void)
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
         XEvent event;
-        event_handler_process(wm->event_handler, &event);
+//        event_handler_process(wm->event_handler, &event);
 
+        /* Process window manager events from event priority queue */
+        eventq_process();
+
+        /* Process X events */
         while (XPending(wm->display) > 0) {
             XNextEvent(wm->display, &event);
 
@@ -127,8 +133,7 @@ static void _wm_loop(void)
 
         /* Update the window manager */
         _wm_update();
-        XFlush(wm->display);    //<- ?
-    }
+    } /* ! while (is_running) */
     LOGGER_DEBUG("Exiting event loop", L_NARG);
 }
 
@@ -173,12 +178,12 @@ int wm_start(const char *display_name)
                 L_NARG);
         config_load(wm->config);
 
-        /* Events */
-        wm->event_handler = event_handler_init();
-        if (wm->event_handler == NULL) {
-            LOGGER_FATAL("Failed to initialize event handler", L_NARG);
-            XCloseDisplay(wm->display);
+        /* Events: priority queue as min-heap (bottom-heavy heap) */
+        if (eventq_start() != 0) {
+            LOGGER_FATAL("Failed to initialize event priority queue",
+                    L_NARG);
             config_destroy(wm->config);
+            XCloseDisplay(wm->display);
             free(wm);
             return 4;
         }
@@ -189,9 +194,9 @@ int wm_start(const char *display_name)
         if (wm->screens == NULL) {
             LOGGER_FATAL("Failed to allocate memory for screens array",
                     L_NARG);
-            event_handler_destroy(wm->event_handler);
-            XCloseDisplay(wm->display);
+            eventq_stop();
             config_destroy(wm->config);
+            XCloseDisplay(wm->display);
             free(wm);
             return 5;
         }
@@ -226,9 +231,9 @@ int wm_start(const char *display_name)
             if (screen == NULL) {
                 LOGGER_FATAL("Failed to initialize screen %u", i);
                 list_destroy(wm->screens);
-                XCloseDisplay(wm->display);
-                event_handler_destroy(wm->event_handler);
+                eventq_stop();
                 config_destroy(wm->config);
+                XCloseDisplay(wm->display);
                 free(wm);
                 return 6;
             }
@@ -241,9 +246,9 @@ int wm_start(const char *display_name)
                         "%u into screen list", i);
                 screen_destroy(screen);
                 list_destroy(wm->screens);
-                XCloseDisplay(wm->display);
-                event_handler_destroy(wm->event_handler);
+                eventq_stop();
                 config_destroy(wm->config);
+                XCloseDisplay(wm->display);
                 free(wm);
                 return 7;
             }
@@ -277,19 +282,25 @@ int wm_stop(void)
         return 1;
     }
 
+    /* Deallocate every screen */
     LOGGER_TRACE("Deallocating screens in window manager", L_NARG);
     list_destroy(wm->screens);
 
-    event_handler_destroy(wm->event_handler);
+    /* Stop event priority queue */
+    eventq_stop();
 
+    /* Destroy configuration structure */
+    config_destroy(wm->config);
+
+    /* Close the display */
     LOGGER_TRACE("Closing X display", L_NARG);
     XCloseDisplay(wm->display);
-
-    config_destroy(wm->config);
 
     LOGGER_TRACE("Destroying window manager", L_NARG);
     free(wm);
     wm = NULL;  /* Make sure the singleton points back to 'NULL' */
+
+    LOGGER_DEBUG("Window manager has been destroyed", L_NARG);
 
     return 0;
 }

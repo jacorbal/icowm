@@ -6,7 +6,7 @@
 
 /* System includes */
 #include <stdbool.h>    /* bool, false, true */
-#include <stdint.h>     /* uint32_t, uint64_t */
+#include <stdint.h>     /* uint32_t */
 #include <stdlib.h>     /* NULL, free, malloc, rand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* getpid */
@@ -15,9 +15,10 @@
 //#include <X11/Xlib.h>
 
 /* ADT includes */
-#include <adt/ohtbl.h>  /* Open-addressed hash table (closed hasing) */
+#include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
 /* Utils includes */
+#include <utils/murmurhash.h>
 #include <utils/safestr.h>
 
 /* Project includes */
@@ -28,75 +29,6 @@
 #include <desktop.h>
 
 
-/*
- * @brief Computes the 32-bit MurmurHash3 hash of a given input key
- *
- * This function implements the MurmurHash3 algorithm, which is a fast,
- * non-cryptographic hash function suitable for general hash-based
- * lookup tasks.  It generates a 32-bit hash value based on the input
- * key and an optional seed value.
- *
- * @param key  Pointer to the data to be hashed
- * @param len  Length of the input data in bytes.
- * @param seed Seed value used to initialize the hash calculation
- *
- * @return Computed 32-bit hash value as an unsigned integer
- *
- * @note Parameter @p len should be the size of the data pointed by the
- *       @p key parameter.
- * @note Parameter @p seed can be used to produce different hash results
- *       for the same input key
- */
-static uint32_t _murmurhash3_32(const void *key, int len, uint32_t seed)
-{
-    const uint8_t *data = (const uint8_t*) key;
-    const int nblocks = len / 4;
-
-    uint32_t h = seed;
-    uint32_t c1 = 0xcc9e2d51;
-    uint32_t c2 = 0x1b873593;
-
-    /* Process groups of 4 bytes */
-    for (int i = 0; i < nblocks; ++i) {
-        uint32_t k = *(uint32_t *) (data + i * 4);
-        k *= c1;
-        k = (k << 15) | (k >> (32 - 15));           /* ROTL32 */
-        k *= c2;
-
-        h ^= k;
-        h = (h << 13) | (h >> (32 - 13));           /* ROTL32 */
-        h = h * 5 + 0xe6546b64;
-    }
-
-    /* Process the rest */
-    const uint8_t *tail = (const uint8_t *) (data + nblocks * 4);
-    uint32_t k = 0;
-    switch (len & 3) {
-        case 3:
-            k ^= tail[2] << 16;
-            /* fall through */
-        case 2:
-            k ^= tail[1] << 8;
-            /* fall through */
-        case 1: k ^= tail[0];
-                k *= c1;
-                k = (k << 15) | (k >> (32 - 15));   /* ROTL32 */
-                k *= c2;
-                h ^= k;
-    }
-
-    /* Finish the hash */
-    h ^= (uint32_t) len;
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-
-    return h;
-}
-
-
 /* Define a hash function with a random seed */
 static size_t _h1(const void *data)
 {
@@ -104,7 +36,7 @@ static size_t _h1(const void *data)
     const window_td *window = (const window_td *) data;
 
     seed = (uint32_t) (time(NULL) ^ getpid() ^ rand());
-    return (size_t) _murmurhash3_32(window, sizeof(window_td), seed);
+    return (size_t) murmurhash3_32(window, sizeof(window_td), seed);
 }
 
 
@@ -115,15 +47,17 @@ static size_t _h2(const void *data)
     const window_td *window = (const window_td *) data;
 
     seed = (uint32_t) (time(NULL) ^ (getpid() << 16) ^ rand());
-    return (size_t) _murmurhash3_32(window, sizeof(window_td), seed);
+    return (size_t) murmurhash3_32(window, sizeof(window_td), seed);
 }
 
 
-/* Members of the hash table match if they have equal key value */
-static bool _match(const void *key1, const void *key2)
+/* Members of the hash table (windows) match if they have equal key
+ * value (identifier) */
+static bool _window_match(const void *key1, const void *key2)
 {
     const window_td *window1 = (const window_td *) key1;
     const window_td *window2 = (const window_td *) key2;
+
     return window1->id == window2->id;
 }
 
@@ -168,7 +102,7 @@ desktop_td *desktop_init(unsigned int screen_id,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
     desktop->windows =
-        ohtbl_init(DESKTOP_INITIAL_CAPACITY, _h1, _h2, _match,
+        ohtbl_init(DESKTOP_INITIAL_CAPACITY, _h1, _h2, _window_match,
                 (void(*)(void *)) window_destroy);
     if (desktop->windows == NULL) {
         LOGGER_ERROR("Failed to allocate memory for window hash table" \
@@ -190,15 +124,18 @@ void desktop_destroy(desktop_td *desktop)
 {
     LOGGER_DEBUG("Deallocating structure for desktop %u ('%s')",
             desktop->id, desktop->name);
-    if (desktop != NULL) {
-        LOGGER_TRACE("Deallocating windows on desktop %u ('%s')",
-                desktop->id, desktop->name);
-        ohtbl_destroy(desktop->windows);
-        LOGGER_TRACE("Destroying desktop %u ('%s')",
-                desktop->id, desktop->name);
-        free(desktop);
+    if (desktop == NULL) {
+        return;
     }
+
+    LOGGER_TRACE("Deallocating windows on desktop %u ('%s')",
+            desktop->id, desktop->name);
+    ohtbl_destroy(desktop->windows);
+    LOGGER_TRACE("Destroying desktop %u ('%s')",
+            desktop->id, desktop->name);
+    free(desktop);
 }
+
 
 /* Soft desktop update */
 void desktop_update(desktop_td *desktop)

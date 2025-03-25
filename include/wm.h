@@ -16,7 +16,6 @@
 
 /* Project includes */
 #include <config.h>
-#include <event.h>
 #include <screen.h>
 
 
@@ -37,12 +36,10 @@
  * events, keeping the window manager responsive and interactive.
  */
 typedef struct {
-    Display *display;                   /**< Pointer to X11 display */
-    list_td *screens;                   /**< Screens list */
-    config_td *config;                  /**< Window manager config. */
-    bool is_running;                    /**< Running state flag */
-
-    event_handler_td *event_handler;    /**< Pointer to event handler */
+    Display *display;   /**< Pointer to X11 display */
+    list_td *screens;   /**< List of screens */
+    config_td *config;  /**< Window manager configuration details */
+    bool is_running;    /**< Running state flag */
 } wm_td;
 
 
@@ -50,10 +47,10 @@ typedef struct {
 /**
  * @brief Initialize window manager instance
  *
- * This function allocates memory for a @p wm_td structure, initializes
- * its fields, and opens a connection to the X server.  It sets up the
- * managed windows array and initializes the current desktop index and
- * running state.
+ * Allocates memory for a @p wm_td structure, initializes its fields,
+ * and opens a connection to the X server.  It sets up the managed
+ * windows array and initializes the current desktop index and running
+ * state.
  *
  * @param display_name Name of the display
  *
@@ -68,30 +65,32 @@ typedef struct {
  * @note If @p display_name is @c NULL, the inialization tries to get
  *       the environment variable "DISPLAY", if set.
  * @note This function uses a singleton pattern
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n*m), where @e n is the number of screens to
+ *       initialize, and @e m the number of desktops per window, as for
+ *       the initialization requires iterate over a list of lists
  */
 int wm_start(const char *display_name);
 
 /**
  * @brief Destroy window manager instance
  *
- * This function deallocates the memory used by the @p wm_td structure,
- * including the managed windows and closes the connection to the
- * X server.
+ * Deallocates the memory used by the @p wm_td structure, including the
+ * managed windows and closes the connection to the X server.
  *
  * @return Status of the operation
  * @return  0 Success
  * @return  1 No operation has been performed
  *
  * @note Passing a @c NULL pointer has no effect
- * @note Complexity: @e O(n), where @e n is the number of screens, as it
+ * @note Complexity: @e O(n^2 + m*n^2), where @e n is the number of
+ *       screens, and @e m is the number of desktops per screen, as it
  *       iterates through the array of windows to free each one of them
  */
 int wm_stop(void);
 
 
 /**
- * @brief Count the screens of the window manager
+ * @brief Count the screens in the window manager
  *
  * @return Number of screens handled by the window manager
  *

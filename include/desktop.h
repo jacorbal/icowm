@@ -11,7 +11,7 @@
 #include <stdbool.h>    /* bool */
 
 /* ADT includes */
-#include <adt/ohtbl.h>  /* Open-addressed hash table (closed hasing) */
+#include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
 /* Project includes */
 #include <config.h>

@@ -334,7 +334,9 @@ config_td *config_init(void)
 void config_destroy(config_td *config)
 {
     LOGGER_DEBUG("Destroying configuration structure", L_NARG);
-    free(config);
+    if (config != NULL) {
+        free(config);
+    }
 }
 
 

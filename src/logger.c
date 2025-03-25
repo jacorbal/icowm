@@ -61,7 +61,7 @@ int logger_start(const char *filename,
             (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
             level_min;
             
-        /* Set tracking to always, or only on 'LOG_TRACE' level */
+        /* Tracking: always or only on 'LOG_TRACE' level */
         logger->is_tracking = is_tracking;
 
         /* Set the file stream and its buffer if necessary */

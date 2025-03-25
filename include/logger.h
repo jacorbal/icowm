@@ -14,7 +14,7 @@
  * error.
  *
  * Unless specified the opposite, tracking, debug or information logs
- * are displayed on @c stdout, and warnings or errors on @c stderrr.
+ * are displayed on @c stdout, and warnings or errors on @c stderr.
  * This is achieved by using the keyword "DEFAULT" as the file name when
  * initializing the logger.
  *
