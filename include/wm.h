@@ -16,17 +16,18 @@
 
 /* Project includes */
 #include <config.h>
+#include <eventq.h>
 #include <screen.h>
 
 
 /**
  * @brief Window manager structure
  *
- * This structure represents the core components of a window manager,
- * maintaining the state of the application as well as the relationships
- * between different screens and their respective windows.  It includes
- * functionality for managing configurations and handling events that
- * affect window behavior and user interactions.
+ * Core components of a window manager, maintaining the state of the
+ * application as well as the relationships between different screens
+ * and their respective windows.  It includes functionality for managing
+ * configurations and handling events that affect window behavior and
+ * user interactions.
  *
  * The @p is_running flag indicates whether the window manager is
  * currently operational, while the @p screens linked list holds
@@ -48,11 +49,13 @@ typedef struct {
  * @brief Initialize window manager instance
  *
  * Allocates memory for a @p wm_td structure, initializes its fields,
- * and opens a connection to the X server.  It sets up the managed
+ * and opens a connection to the X server.  It also sets up the managed
  * windows array and initializes the current desktop index and running
  * state.
  *
- * @param display_name Name of the display
+ * @param display_name      Name of the display, or @c NULL for default
+ * @param config_dir_prefix Configuration directory, or @c NULL to use
+ *                          the default value
  *
  * @return Status of the initialization
  * @retval  0 Success
@@ -62,14 +65,14 @@ typedef struct {
  * @retval  4-7 Failed to initialize data structures
  * @retval -1 Singleton was already initialized; no action taken
  *
- * @note If @p display_name is @c NULL, the inialization tries to get
- *       the environment variable "DISPLAY", if set.
+ * @note If @p display_name is @c NULL, the initialization attempts to
+ *       get the "DISPLAY" environment variable, if set.
  * @note This function uses a singleton pattern
- * @note Complexity: @e O(n*m), where @e n is the number of screens to
+ * @note Complexity: @e O(n * m), where @e n is the number of screens to
  *       initialize, and @e m the number of desktops per window, as for
  *       the initialization requires iterate over a list of lists
  */
-int wm_start(const char *display_name);
+int wm_start(const char *display_name, const char *config_dir_prefix);
 
 /**
  * @brief Destroy window manager instance
@@ -82,21 +85,75 @@ int wm_start(const char *display_name);
  * @return  1 No operation has been performed
  *
  * @note Passing a @c NULL pointer has no effect
- * @note Complexity: @e O(n^2 + m*n^2), where @e n is the number of
+ * @note Complexity: @e O(n^2 + m * n^2), where @e n is the number of
  *       screens, and @e m is the number of desktops per screen, as it
  *       iterates through the array of windows to free each one of them
  */
 int wm_stop(void);
 
+/**
+ * @brief Reload the configuration from the configuration files
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the operation
+ *
+ * @note Complexity: @e O(n), where @e n is the number of parameters
+ *       saved because it involves reading from the configuration file
+ */
+int wm_action_config_reload(void);
 
 /**
- * @brief Count the screens in the window manager
+ * @brief Save the configuration, overwriting the existing one
  *
- * @return Number of screens handled by the window manager
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the operation
+ *
+ * @note Complexity: @e O(n), where @e n is the number of parameters
+ *       saved because it involves writing to the configuration file
+ */
+int wm_action_config_save(void);
+
+/**
+ * @brief Insert a screen into the window manager's screen list
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the operation
+ */
+int wm_action_screen_ins(void);
+
+/**
+ * @brief Remove a screen from the window manager's screen list
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the operation
+ */
+int wm_action_screen_rem(void);
+
+/**
+ * @brief Perform actions required before destroying the window manager
+ *
+ * Executes necessary actions required before invoking @e wm_stop, such
+ * as sending additional events to the @e eventq priority queue and
+ * ensuring it's completely empty by calling the required actions.
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the operation
+ */
+int wm_action_exit(void);
+
+/**
+ * @brief Macro that evaluates to the number of screens handled by the
+ *        window manager
  *
  * @note Complexity: @e O(1)
  */
-size_t wm_screen_count(void);
+#define wm_screen_count(wm) \
+  (((wm) == NULL) || (((wm)->screens) == NULL) ? 0 : ((wm)->screens)->size)
 
 
 #endif  /* ! WM_H */

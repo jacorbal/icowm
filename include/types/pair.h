@@ -9,17 +9,6 @@
 
 
 /**
- * @brief Geometry
- *
- * @note This values are always non-negative
- */
-struct geometry_s {
-    int x;
-    int y;
-};
-
-
-/**
  * @brief Generic size
  *
  * @note Size is always positive or zero
@@ -31,14 +20,41 @@ struct size_s {
 
 
 /**
- * @brief Dimensions structure
+ * @brief DPI structure
+ */
+struct dpi_s {
+    unsigned int x;
+    unsigned int y;
+};
+
+
+/**
+ * @brief Resolution structure
  *
- * @note Dimensions are always non-negative, referenced in 2D as width and
- *       height
+ */
+struct resolution_s {
+    unsigned int x;
+    unsigned int y;
+};
+
+
+/**
+ * @brief Dimensions structure
  */
 struct dimensions_s {
     unsigned int w;
     unsigned int h;
+};
+
+
+/**
+ * @brief Geometry structure
+ *
+ * @note This values are always non-negative
+ */
+struct geometry_s {
+    int x;
+    int y;
 };
 
 

@@ -30,7 +30,7 @@
 
 
 /* Define a hash function with a random seed */
-static size_t _h1(const void *data)
+static size_t s_h1(const void *data)
 {
     uint32_t seed;
     const window_td *window = (const window_td *) data;
@@ -41,7 +41,7 @@ static size_t _h1(const void *data)
 
 
 /* Define an auxiliary hash function with a random seed */
-static size_t _h2(const void *data)
+static size_t s_h2(const void *data)
 {
     uint32_t seed;
     const window_td *window = (const window_td *) data;
@@ -53,7 +53,7 @@ static size_t _h2(const void *data)
 
 /* Members of the hash table (windows) match if they have equal key
  * value (identifier) */
-static bool _window_match(const void *key1, const void *key2)
+static bool s_window_match(const void *key1, const void *key2)
 {
     const window_td *window1 = (const window_td *) key1;
     const window_td *window2 = (const window_td *) key2;
@@ -102,7 +102,7 @@ desktop_td *desktop_init(unsigned int screen_id,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
     desktop->windows =
-        ohtbl_init(DESKTOP_INITIAL_CAPACITY, _h1, _h2, _window_match,
+        ohtbl_init(DESKTOP_INITIAL_CAPACITY, s_h1, s_h2, s_window_match,
                 (void(*)(void *)) window_destroy);
     if (desktop->windows == NULL) {
         LOGGER_ERROR("Failed to allocate memory for window hash table" \
@@ -186,7 +186,7 @@ void desktop_clear(desktop_td *desktop)
 
 
 /* Add a previously allocated window in the desktop */
-int desktop_window_add(desktop_td *desktop, window_td *window)
+int desktop_action_window_add(desktop_td *desktop, window_td *window)
 {
     LOGGER_DEBUG("Preparing to add window %#lx ('%s') to" \
             " desktop %u ('%s')",
@@ -212,7 +212,7 @@ int desktop_window_add(desktop_td *desktop, window_td *window)
 
 
 /* Remove a window from the desktop */
-int desktop_window_rem(desktop_td *desktop, window_td *window)
+int desktop_action_window_rem(desktop_td *desktop, window_td *window)
 {
     LOGGER_DEBUG("Preparing to remove window %#lx ('%s') from" \
             " desktop %u ('%s')",

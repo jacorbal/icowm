@@ -5,6 +5,7 @@
 
 /* System includes */
 #include <stdint.h>     /* uint8_t, uint32_t */
+#include <string.h>     /* memcpy */
 
 /* Local includes */
 #include <utils/murmurhash.h>
@@ -19,7 +20,9 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
-        uint32_t k = *(uint32_t *) (data + i * 4);
+        /* uint32_t k = *(uint32_t *) (data + i * 4); */
+        uint32_t k;
+        memcpy(&k, data + i * 4, sizeof(uint32_t));
         k *= 0xc6a4a793;
         k ^= k >> 24;
         k *= 0xc6a4a793;
@@ -32,11 +35,11 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     uint32_t k = 0;
 
     switch (len & 3) {
-        case 3: k ^= tail[2] << 16;             /* SLL16 */
-            /* fall through */
-        case 2: k ^= tail[1] << 8;              /* SLL8 */
-            /* fall through */
-        case 1: k ^= tail[0];
+        case 3: k ^= (unsigned int) tail[2] << 16;      /* SLL16 */
+            __attribute__((fallthrough));
+        case 2: k ^= (unsigned int) tail[1] << 8;       /* SLL8 */
+            __attribute__((fallthrough));
+        case 1: k ^= (unsigned int) tail[0];
                 h ^= k;
     }
 
@@ -63,7 +66,9 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
-        uint32_t k = *(uint32_t *) (data + i * 4);
+        /* uint32_t k = *(uint32_t *) (data + i * 4); */
+        uint32_t k;
+        memcpy(&k, data + i * 4, sizeof(uint32_t));
         k *= c1;
         k = (k << 15) | (k >> (32 - 15));           /* ROTL15 */
         k *= c2;
@@ -77,11 +82,11 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
     uint32_t k = 0;
 
     switch (len & 3) {
-        case 3: k ^= tail[2] << 16;
-            /* fall through */
-        case 2: k ^= tail[1] << 8;
-            /* fall through */
-        case 1: k ^= tail[0];
+        case 3: k ^= (unsigned int) tail[2] << 16;
+            __attribute__((fallthrough));
+        case 2: k ^= (unsigned int) tail[1] << 8;
+            __attribute__((fallthrough));
+        case 1: k ^= (unsigned int) tail[0];
                 h ^= k;
     }
 
@@ -108,7 +113,9 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
-        uint32_t k = *(uint32_t *) (data + i * 4);
+        /* uint32_t k = *(uint32_t *) (data + i * 4); */
+        uint32_t k;
+        memcpy(&k, data + i * 4, sizeof(uint32_t));
         k *= c1;
         k = (k << 15) | (k >> (32 - 15));           /* ROTL15 */
         k *= c2;
@@ -123,12 +130,12 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
     uint32_t k = 0;
     switch (len & 3) {
         case 3:
-            k ^= tail[2] << 16;
-            /* fall through */
+            k ^= (unsigned int) tail[2] << 16;
+            __attribute__((fallthrough));
         case 2:
-            k ^= tail[1] << 8;
-            /* fall through */
-        case 1: k ^= tail[0];
+            k ^= (unsigned int) tail[1] << 8;
+            __attribute__((fallthrough));
+        case 1: k ^= (unsigned int) tail[0];
                 k *= c1;
                 k = (k << 15) | (k >> (32 - 15));   /* ROTL15 */
                 k *= c2;

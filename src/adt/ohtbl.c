@@ -13,7 +13,7 @@
 
 
 /* Reserve a sentinel memory address for vacated elements */
-static char _vacated;
+static char s_vacated;
 
 
 /* Initialize a new open-addressed hash table */
@@ -45,7 +45,7 @@ ohtbl_td *ohtbl_init(size_t positions,
 
     /* Set the vacated member to the sentinel memory address reserved
      * for this */
-    htbl->vacated = &_vacated;
+    htbl->vacated = &s_vacated;
 
     /* Encapsulate the functions */
     htbl->h1 = h1;

@@ -23,6 +23,52 @@
 #include <screen.h>
 
 
+/* Update screen properties by asking X */
+static void s_update_properties(screen_td *screen, Screen *xscreen)
+{
+    /* Update screen dimensions */
+    screen->properties.dim.w = (unsigned int) XWidthOfScreen(xscreen);
+    screen->properties.dim.h = (unsigned int) XHeightOfScreen(xscreen);
+
+    /* Calculate DPI; dpi = px / (mm/25.4);  1 in ~= 25.4 mm */
+    screen->properties.dim_mm.h =
+        (unsigned int) XWidthMMOfScreen(xscreen);
+    screen->properties.dim_mm.w =
+        (unsigned int) XHeightMMOfScreen(xscreen);
+
+    /* Calculate DPI for x-axis */
+    if (screen->properties.dim_mm.w> 0) {
+        screen->properties.dpi.x =
+            (unsigned int) ((float) screen->properties.dim.w /
+                    ((float) screen->properties.dim_mm.w / 25.4f));
+    } else {
+        /* Division by zero:  DPI in 'x' set to 0 */
+        /** @todo Handle division by zero in 'dpi.x' */
+        screen->properties.dpi.x = 0;
+    }
+
+    /* Calculate DPI for y-axis */
+    if (screen->properties.dim_mm.h > 0) {
+        screen->properties.dpi.y =
+            (unsigned int) ((float) screen->properties.dim.h /
+                    ((float) screen->properties.dim_mm.h / 25.4f));
+    } else {
+        /* Division by zero:  DPI in 'y' set to 0 */
+        /** @todo Handle division by zero in 'dpi.y' */
+        screen->properties.dpi.y = 0;
+    }
+
+    /* Set visual properties */
+    screen->properties.visual_info.properties.depth = 
+        DefaultDepth(screen->display, screen->id);
+    screen->properties.visual_info.properties.colormaps = 
+        DefaultColormap(screen->display, screen->id);
+    screen->properties.visual_info.visual =
+        DefaultVisual(screen->display, screen->id);
+    screen->root = RootWindow(screen->display, screen->id);
+}
+
+
 /* Initialize a new screen */
 screen_td *screen_init(Display *display, const unsigned int screen_id,
         unsigned int desktop_count, config_td *config)
@@ -50,21 +96,8 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
     screen->display = display;
     screen->config = config;
 
-    screen->dim.w = (unsigned int) xscreen->width;
-    screen->dim.h = (unsigned int) xscreen->height;
-
-    /* DPI = px / (mm/25.4);  1 in = 25.4 mm*/
-    screen->dpi.x = (unsigned int)
-        ((float) screen->dim.w /
-         (((float) XDisplayWidthMM(display, (int) screen_id) / 25.4f)));
-    screen->dpi.y = (unsigned int)
-        ((float) screen->dim.h /
-         (((float) XDisplayHeightMM(display, (int) screen_id) / 25.4f)));
-
-    screen->depth = DefaultDepth(display, screen_id);
-    screen->colormaps = DefaultColormap(display, screen_id);
-    screen->visual = DefaultVisual(display, screen_id);
-    screen->root = RootWindow(display, screen_id);
+    /* Update screen properties */
+    s_update_properties(screen, xscreen);
 
     /* Handle desktops */
     LOGGER_TRACE("Setting up all %d desktops", desktop_count);
@@ -114,11 +147,11 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
 /* Free allocated memory for a screen */
 void screen_destroy(screen_td *screen)
 {
-    LOGGER_DEBUG("Deallocating structure for screen %u",
-            screen->id);
     if (screen == NULL) {
         return;
     }
+
+    LOGGER_DEBUG("Deallocating structure for screen %u", screen->id);
 
     LOGGER_TRACE("Deallocating desktops on screen %u", screen->id);
     cdlist_destroy(screen->desktops);
@@ -170,12 +203,12 @@ void screen_update_full(screen_td *screen)
 void screen_resize(screen_td *screen,
         unsigned int width, unsigned int height)
 {
-    if (screen->dim.w != width) {
-        screen->dim.w = width;
+    if (screen->properties.dim.w != width) {
+        screen->properties.dim.w = width;
     }
 
-    if (screen->dim.h != height) {
-        screen->dim.h = height;
+    if (screen->properties.dim.h != height) {
+        screen->properties.dim.h = height;
     }
 
     /* TODO: More logic here to update display, desktops, &c. */

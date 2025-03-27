@@ -180,4 +180,4 @@ int list_rem_next(list_td *list, list_item_td *item, void **data);
 #define list_is_empty(self) (((self)->size == 0) ? true : false)
 
 
-#endif /* ! LIST_H */
+#endif  /* ! LIST_H */

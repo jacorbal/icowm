@@ -18,7 +18,8 @@
 #include <logger.h>
 
 
-static logger_td *logger = NULL;    /**< Logger singleton pointer */
+static logger_td *logger = NULL;    /**< Pointer to the singleton
+                                         instance of the logger */
 
 
 /**
@@ -30,7 +31,7 @@ static logger_td *logger = NULL;    /**< Logger singleton pointer */
  * @note Complexity: @e O(n), where @e n is the number of messages in
  *       the buffer
  */
-static void _logger_buffer_flush(struct logger_buffer_s *logger_buffer,
+static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         FILE *fp)
 {
     fflush(fp);
@@ -132,7 +133,7 @@ int logger_stop(void)
     }
 
     if (logger->buffer) {
-        _logger_buffer_flush(logger->buffer, logger->file.fp_out);
+        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
         free(logger->buffer->messages);
         free(logger->buffer);
     } else {
@@ -151,7 +152,7 @@ int logger_stop(void)
     }
 
     free(logger);
-    logger = NULL;  /* Make sure the singleton points back to 'NULL' */
+    logger = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 
     return 0;
 }
@@ -164,7 +165,7 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     time_t now = time(NULL);
     struct tm *tm_info;
     char timestamp[100];
-    const char *level_str;
+    const char *level_str = NULL;
     char msg[LOGGER_MAX_LENGTH_MSG];
     va_list args;
     int len, len_fmt;
@@ -195,7 +196,6 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         case LOG_CRITICAL:  level_str = "CRITICAL"; break;
         case LOG_ALERT:     level_str = "ALERT";    break;
         case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
-        default:            level_str = "UNKNOWN";  break;
     }
 
     va_start(args, fmt);
@@ -235,9 +235,9 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 
     /* Check if there's enough space in buffer, or flush it */
     if (logger->buffer->count >= LOGGER_FLUSH_THRESHOLD) {
-        _logger_buffer_flush(logger->buffer, logger->file.fp_out);
+        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
         if (logger->file.fp_out != logger->file.fp_err) {
-            _logger_buffer_flush(logger->buffer, logger->file.fp_err);
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
         }
     }
 
@@ -255,9 +255,9 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 
     /* Flush the buffer on error to make sure it's on the logfile */
     if (level > LOG_WARNING) {
-        _logger_buffer_flush(logger->buffer, logger->file.fp_out);
+        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
         if (logger->file.fp_out != logger->file.fp_err) {
-            _logger_buffer_flush(logger->buffer, logger->file.fp_err);
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
         }
     }
 

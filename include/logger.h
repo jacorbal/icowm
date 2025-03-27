@@ -7,7 +7,7 @@
  * place since the logger starts until it ends working with the same
  * configuration.  The logger uses a buffer to store the formatted
  * messages before flushing them (unless the system descriptors such as
- * @c stdout or @c stderr are used).  This is build to increase
+ * @c stdout or @c stderr are used).  This is built to increase
  * performance by minimizing the number of flushes at the cost of
  * a extra bit of memory, so the log is written in chunks if everything
  * is working properly, but it will always flush the messages on any
@@ -61,16 +61,16 @@
 #include <stdio.h>      /* FILE */
 
 
-/* Yes, '((void *) 0)' is 'NULL', and it's also included in 'stddef.h'
- * which is called by 'stdio.h', so '#define L_NARG NULL' should be
- * enough, but I like it this way. */
-#define L_NARG ((void *) 0)         /**< No arguments modifier, when the
-                                         log message has no arguments,
-                                         but because of variadic macros,
-                                         at least one argument should be
-                                         there */
+/* This is used as "there are no arguments" argument so the variadic
+ * macros do not complain.
+ *
+ * Yes, '((void *) 0)' is 'NULL', and it's also included in 'stddef.h'
+ * which is inarguably called by 'stdio.h', so '#define L_NARG NULL'
+ * should be enough, but I like it this way. */
+#define L_NARG ((void *) 0)         /**< "No arguments" modifier for
+                                         variadic macros in log
+                                         messages */
 
-// TODO: Add this to a config. file?
 #define LOGGER_MAX_LENGTH_MSG (160) /**< Maximum length of a log message */
 #define LOGGER_FLUSH_THRESHOLD (16) /**< Number of messages stored in
                                          buffer before flushing */
@@ -97,9 +97,14 @@ enum logger_level_e {
 /**
  * @brief Logger structure with buffer
  *
- * This structure provides a mechanism for logging messages within the
- * application, including support for different logging levels and
- * buffered message storage.
+ * Provides a mechanism for logging messages within the application,
+ * including support for different logging levels and buffered message
+ * storage.  The logger utilizes a buffer to temporarily store up to
+ * @p LOGGER_FLUSH_THRESHOLD (16) messages, each with a maximum length
+ * of @p LOGGER_MAX_LENGTH_MSG (160 characters).  This approach minimizes
+ * direct file I/O operations by allowing the logger to flush messages
+ * in chunks, thereby improving performance while still ensuring message
+ * delivery in the event of an error.
  *
  * The @p level_min field defines the minimum severity level of messages
  * that will be logged, allowing for fine-grained control over what
@@ -110,8 +115,7 @@ enum logger_level_e {
  * and tracks if the output file needs to be closed.  The @p buffer
  * structure holds an array of logged messages, facilitating temporary
  * storage for efficient message management before they are written to
- * the output.  I hope this approach helps to improve the performance of
- * logging operations by minimizing direct file I/O.
+ * the output.
  */
 typedef struct {
     enum logger_level_e level_min;  /**< Minimum logging level */
@@ -125,8 +129,9 @@ typedef struct {
 
     struct logger_buffer_s {
         char **messages;            /**< Array of messages in buffer */
-        unsigned int count;         /**< Number of messages in buffer */
-    } *buffer;                      /**< Log buffer to store messages */
+        unsigned int count;         /**< No. of messages in buffer */
+    } *buffer;                      /**< Log buffer to store messages
+                                         temporarily before flushing */
 } logger_td;
 
 
@@ -139,8 +144,8 @@ typedef struct {
  * @param is_tracking If @c true, the caller function is traced always,
  *                    otherwise, track only on @c LOG_TRACE level
  *
- * This function initializes the logger based on the specified filename.
- * The logging behavior is as follows:
+ * Initializes the logger based on the specified filename.  The logging
+ * behavior is as follows:
  *  - If filename is keyword:
  *      - "NULL", the logger will be deactivated.
  *      - "STDOUT", all logs will be written to @c stdout
@@ -171,7 +176,7 @@ int logger_start(const char *filename,
         const enum logger_level_e level_min, bool is_tracking);
 
 /**
- * @brief Deallocates memory used by this logger instance
+ * @brief Deallocate memory used by this logger instance
  *
  * @return Status of the operation
  * @return  0 Success
@@ -189,8 +194,8 @@ int logger_stop(void);
  * @param prefix Prefix to display before the message
  * @param fmt    Formatted message to be logged
  *
- * This function logs messages with a specified severity level to the
- * given file pointer by the logger instance.  If the severity level is
+ * Logs messages with a specified severity level to the given file
+ * pointer by the logger instance.  If the severity level is
  * @e LOG_TRACE, then the caller function will be prepended before the
  * message, otherwise is ignored.
  *
@@ -220,7 +225,7 @@ void logger_tracking_off(void);
 /**
  * @brief Logger helper macro for various severity levels
  *
- * These macro call the @c LOGGER_* macros with the appropriate level
+ * Macro that calls the @c LOGGER_* macros with the appropriate level
  *
  * @param level Message level
  * @param msg   Message format string, or @c NULL if no additional
@@ -228,25 +233,25 @@ void logger_tracking_off(void);
  *
  * @see logger_msg
  */
-#define _LOGGER(level, msg, ...) \
-    logger_msg(level, __func__, msg, ##__VA_ARGS__)
+#define s_LOGGER(level, msg, ...) \
+    logger_msg(level, __func__, msg, __VA_ARGS__)
 
 /**
  * @defgroup Logger_Macros Macros that evaluate to the logger message
  *                         sender by severity for simplicity of the code
  *
- * @see _LOGGER
+ * @see s_LOGGER
  * @{
  */
-#define LOGGER_TRACE(msg, ...) _LOGGER(LOG_TRACE, msg, ##__VA_ARGS__)
-#define LOGGER_DEBUG(msg, ...) _LOGGER(LOG_DEBUG, msg, ##__VA_ARGS__)
-#define LOGGER_INFO(msg, ...) _LOGGER(LOG_INFO, msg, ##__VA_ARGS__)
-#define LOGGER_NOTICE(msg, ...) _LOGGER(LOG_NOTICE, msg, ##__VA_ARGS__)
-#define LOGGER_WARNING(msg, ...) _LOGGER(LOG_WARNING, msg, ##__VA_ARGS__)
-#define LOGGER_ERROR(msg, ...) _LOGGER(LOG_ERROR, msg, ##__VA_ARGS__)
-#define LOGGER_CRITICAL(msg, ...) _LOGGER(LOG_CRITICAL, msg, ##__VA_ARGS__)
-#define LOGGER_ALERT(msg, ...) _LOGGER(LOG_ALERT, msg, ##__VA_ARGS__)
-#define LOGGER_FATAL(msg, ...) _LOGGER(LOG_FATAL, msg, ##__VA_ARGS__)
+#define LOGGER_TRACE(msg, ...) s_LOGGER(LOG_TRACE, msg, __VA_ARGS__)
+#define LOGGER_DEBUG(msg, ...) s_LOGGER(LOG_DEBUG, msg, __VA_ARGS__)
+#define LOGGER_INFO(msg, ...) s_LOGGER(LOG_INFO, msg, __VA_ARGS__)
+#define LOGGER_NOTICE(msg, ...) s_LOGGER(LOG_NOTICE, msg, __VA_ARGS__)
+#define LOGGER_WARNING(msg, ...) s_LOGGER(LOG_WARNING, msg, __VA_ARGS__)
+#define LOGGER_ERROR(msg, ...) s_LOGGER(LOG_ERROR, msg, __VA_ARGS__)
+#define LOGGER_CRITICAL(msg, ...) s_LOGGER(LOG_CRITICAL, msg, __VA_ARGS__)
+#define LOGGER_ALERT(msg, ...) s_LOGGER(LOG_ALERT, msg, __VA_ARGS__)
+#define LOGGER_FATAL(msg, ...) s_LOGGER(LOG_FATAL, msg, __VA_ARGS__)
 /** @} */
 
 

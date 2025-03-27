@@ -33,16 +33,17 @@
  * other words, it's a bottom-heavy heap, where in this case, it's
  * distributed by priority, where the highest priority corresponds to
  * the smallest value. */
-static pqueue_td *eventq = NULL;   /**< Event priority queue (min-heap;
-                                        heavy-bottom) singleton pointer */
+static pqueue_td *eventq = NULL;   /**< Pointer to the singleton
+                                        instance of the event priority
+                                        queue (min-heap; heavy-bottom) */
 
 
 /**
  * @brief Compare data of two events based on their priority
  *
- * This function is used to determine the order of events in a priority
- * queue, allowing events with lower priority values (more negative) to
- * be considered of higher priority.
+ * Determines the order of events in a priority queue, allowing events
+ * with lower priority values (more negative) to be considered of higher
+ * priority.
  *
  * @param e1 Pointer to the first event
  * @param e2 Pointer to the second event
@@ -52,10 +53,10 @@ static pqueue_td *eventq = NULL;   /**< Event priority queue (min-heap;
  * @retval  0 Both events have equal priority
  *
  * @note A negative priority value indicates a higher importance
- * @Note Complexity: @e O(1), as it performs a constant number of
+ * @note Complexity: @e O(1), as it performs a constant number of
  *       comparisons between the two priority values
  */
-static int _event_compare(const void *e1, const void *e2)
+static int s_event_compare(const void *e1, const void *e2)
 {
     const event_td *event1 = (const event_td *) e1;
     const event_td *event2 = (const event_td *) e2;
@@ -71,19 +72,19 @@ static int _event_compare(const void *e1, const void *e2)
 
 
 /* */
-static void _event_handle_window(event_td *event)
+static void s_event_handle_window(event_td *event)
 {
 }
 
 
 /* */
-static void _event_handle_desktop(event_td *event)
+static void s_event_handle_desktop(event_td *event)
 {
 }
 
 
 /* */
-static void _event_handle_screen(event_td *event)
+static void s_event_handle_screen(event_td *event)
 {
 }
 
@@ -93,7 +94,7 @@ int eventq_start(void)
 {
     LOGGER_DEBUG("Initializing priority queue for events", L_NARG);
     if (eventq == NULL) {
-        eventq = pqueue_init(_event_compare,
+        eventq = pqueue_init(s_event_compare,
                 (void (*)(void *)) event_destroy);
         if (eventq == NULL) {
             LOGGER_FATAL("Failed to initialize event priority queue",
@@ -116,7 +117,7 @@ int eventq_stop(void)
     }
 
     pqueue_destroy(eventq);
-    eventq = NULL;
+    eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 
     return 0;
 }
@@ -153,10 +154,8 @@ event_td *event_init(void *object,
             event->object.screen = (screen_td *) object;
             break;
 
-        default:
-            LOGGER_WARNING("Failed to identify event type", L_NARG);
-            free(event);
-            return NULL;
+        case ACTION_TYPE_WM:
+            break;
     }
 
     return event;
@@ -198,15 +197,15 @@ void eventq_process(void)
         /* Handle each type of event */
         switch (processed_event->action.type) {
             case ACTION_TYPE_WINDOW:
-                _event_handle_window(processed_event);
+                s_event_handle_window(processed_event);
                 break;
             case ACTION_TYPE_DESKTOP:
-                _event_handle_desktop(processed_event);
+                s_event_handle_desktop(processed_event);
                 break;
             case ACTION_TYPE_SCREEN:
-                _event_handle_screen(processed_event);
+                s_event_handle_screen(processed_event);
                 break;
-            default:
+            case ACTION_TYPE_WM:
                 break;
         }
 

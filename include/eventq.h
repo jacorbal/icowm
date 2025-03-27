@@ -107,9 +107,9 @@ void event_destroy(event_td *event);
 /**
  * @brief Add a event to the event priority queue
  *
- * Initialize a new event and insert it on the event queue.  The memory
- * allocated for this event will be destroyed by the event queue on
- * extraction if it's still within the queue.
+ * Initializes a new event and inserts it on the event queue.  The
+ * memory allocated for this event will be destroyed by the event queue
+ * on extraction if it's still within the queue.
  *
  * @param event New event to add to the priority queue
  *

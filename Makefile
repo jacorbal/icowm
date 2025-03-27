@@ -1,6 +1,6 @@
 # Makefile
 #
-# Project: IcoWM (`icowm`) -- Iconizer Window Manager
+# Project: IcoWM (`icowm`) -- Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
 
 ## Directories
@@ -11,43 +11,63 @@ L_DIR = ${PWD}/lib
 O_DIR = ${PWD}/obj
 B_DIR = ${PWD}/bin
 
-SHELL=/bin/bash
+SHELL=/bin/sh
 
 ## Compiler & linker options
-CC          = gcc  # gcc, clang
-CCSTD       = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17
-CCOPT       = 2	   # 0:debug; 1:optimize; 2:optimize more; 3:even more
+CCSTD       = c99 # c89 | c90, c99, c11, c17, gnu11, gnu17
+CCOPT       = 2   # 0:debug; 1:optimize; 2:optimize more; 3:even more
 CCOPTS      = -pedantic -pedantic-errors
 CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
-CCWARN_TINY = -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
+
+CCWARN_POSIX = -D_POSIX_C_SOURCE=199009L
+
+CCWARN_TINY = ${CCWARN_POSIX} -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
+
 CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
+
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
-			  -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
-			  -Wunreachable-code -Wmissing-format-attribute
-CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
-			 -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-			 -Wno-suggest-attribute=format      -Wno-unused-parameter
-CCWARN		= ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST} ${CCWARN_GCC}
-#SQL_LFLAGS  = -lsqlite3
+              -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
+              -Wunreachable-code -Wmissing-format-attribute \
+              -Wno-padded -Wno-unused-parameter
+
+CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
+              -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
+              -Wno-suggest-attribute=format
+
+CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
+               -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
+               -Wno-declaration-after-statement -Wno-fortify-source
+
+CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
 LDFLAGS     = -L ${L_DIR} -lcjson -lX11 -lXpm
 
-# Use `make clean && make DEBUG=1` to add debugging information, symbol table...
+# Compiler: `make clean && make CC=gcc` or `make clean && make CC=clang`
+CC = gcc
+ifeq ($(CC), gcc)
+    CCWARN += ${CCWARN_GCC}
+else ifeq ($(CC), clang)
+    CCWARN += ${CCWARN_CLANG}
+else
+    $(error Unsupported compiler '$(CC)'. CC only admits 'gcc' or 'clang')
+endif
+
+# Use `make clean && make DEBUG=1` to add debugging information
 # Use `malc clean && make DEBUG=2` to also link with the address sanitizer 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
+    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
-	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
-	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
+    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
+    LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
 else
-	CCFLAGS += -DNDEBUG -O${CCOPT}
+    CCFLAGS += -DNDEBUG -O${CCOPT}
 endif
 
-# Use `make clean; make STRIP=1` to discard symbols from object files
+# Use `make clean && make STRIP=1` to discard symbols from object files
 STRIP ?= 0
 ifeq ($(STRIP), 1)
-	LDFLAGS += -s
+    LDFLAGS += -s
 endif
 
 

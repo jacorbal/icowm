@@ -17,50 +17,32 @@
 /* System includes */
 #include <stdbool.h>    /* bool */
 
-
-// TODO: Put this in another file
-#define CONFIG_MAX_LENGTH_COMMAND (128)
-#define CONFIG_MAX_LENGTH_BINDING (128)
-#define CONFIG_MAX_LENGTH_OPTION (40)
-#define CONFIG_MAX_LENGTH_FONTNAME (80)
-
-#define CONFIG_MAX_LENGTH_NAME (256)
-#define CONFIG_MAX_LENGHT_FILENAME (256)
-#define CONFIG_MAX_LENGTH_PATH_BASE (1024)
-#define CONFIG_MAX_LENGTH_PATH_CONFIG \
-    (CONFIG_MAX_LENGTH_PATH_BASE + CONFIG_MAX_LENGHT_FILENAME)
-
-#define CONFIG_DIR_BASE  "icowm"
-#define CONFIG_DIR_THEMES "themes"
-#define CONFIG_FILENAME_BASE "config.json"
-#define CONFIG_FILENAME_BINDINGS "bindings.json"
-
-#define CONFIG_MAX_SCREENS (4)      /* Initial number of screens */
-#define CONFIG_MAX_DESKTOPS (10)    /* Initial desktops per screen */
+/* Default initial values */
+#include <defs/config.h>
 
 
 /**
  * @brief Base settings configuration structure
  */
 struct config_base_s {
-    char theme[CONFIG_MAX_LENGHT_FILENAME];
+    char theme[CONFIG_MAX_LENGTH_FILENAME];
 
     /* Desktops: number and which on is the default one */
-    unsigned int screen_count;              /**< Number of screens */
+    unsigned int screen_count;                  /**< Number of screens */
     struct screens_s {
-        unsigned int desktop_count;         /**< Desktop count in screen */
-        unsigned int desktop_inaugural;     /**< Initial desktop */
+        unsigned int desktop_count;             /**< No. of desktops */
+        unsigned int desktop_inaugural;         /**< Initial desktop */
 
         struct desktops_s {
-            char name[CONFIG_MAX_LENGTH_NAME];     /**< Desktop name */
+            char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
             struct desktop_settings_s {
                 union {
-                    //Pixmap image;           /**< Background image*/
-                    unsigned long int color;            /**< Background color */
+                    //Pixmap image;             /**< Background image */
+                    unsigned long int color;    /**< Background color */
                 } background;
-            } settings;                     /**< Desktop settings */
-        } desktops[CONFIG_MAX_DESKTOPS];    /**< Desktops per screen */
-    } screens[CONFIG_MAX_SCREENS];          /**< All screens */
+            } settings;                         /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
+    } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
     /* Basic main programs: terminal and program launcher */
     struct programs_s {
@@ -179,23 +161,23 @@ struct config_theme_s {
         struct active_s {
             unsigned long int background_color;
             unsigned long int foreground_color;
-            unsigned long int frame_color;
+            unsigned long int border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
         struct inactive_s {
             unsigned long int background_color;
             unsigned long int foreground_color;
-            unsigned long int frame_color;
+            unsigned long int border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } inactive;
     } window;
 
-    /* Icons theme when iconized programs */
+    /* Icons theme when windows are iconified */
     struct icon_s {
         unsigned long int background_color;
         unsigned long int foreground_color;
-        unsigned long int frame_color;
+        unsigned long int border_color;
         unsigned int border_width;
         bool is_captioned;
         char font[CONFIG_MAX_LENGTH_FONTNAME];
@@ -206,8 +188,8 @@ struct config_theme_s {
 /**
  * @brief Main configuration structure
  *
- * This structure encapsulates the main configuration, including base
- * settings, bindings, and theme.
+ * Encapsulates the main configuration, including base settings,
+ * bindings, and theme.
  */
 typedef struct {
     struct config_base_s base;
@@ -270,20 +252,21 @@ void config_set_default_values(config_td *config);
  * functions @e config_load_base, @e config_load_bindings and
  * @e config_load_theme.
  *
- * @param config Pointer to the configuration structure where to load
- *               the data
+ * @param config            Pointer to the configuration structure where
+ *                          to load the data
+ * @param config_dir_prefix Configuration directory, or @c NULL to use
+ *                          default value
  *
  * @return 0 on success, or otherwise on error
  *
  * @note This function does not take into account default values,
  *       because it's invoked after calling @e config_set_default_values
  * @note Complexity: @e O(n), where @e n is the number of parameters
- *       loaded; this may involve reading from a file or similar
- *       operations
+ *       loaded because it involves reading from the configuration file
  *
  * @see config_load_base, config_load_bindings, config_load_theme
  */
-int config_load(config_td *config);
+int config_load(config_td *config, const char *config_dir_prefix);
 
 /**
  * @brief Load base configuration settings from a JSON file

@@ -13,62 +13,43 @@
 /* ADT includes */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
+/* Definitions and inclusions */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <config.h>
 #include <window.h>
 
 
-// TODO: Put this in a configuration file!
-
 /**
- * @brief Initial capacity of windows for the desktop
- *
- * Number of windows that the desktop is initialized with.  A higher
- * initial capacity may reduce the need for resizing the underlying data
- * structure as windows are added to the open-addressed hash table.
- */
-#define DESKTOP_INITIAL_CAPACITY (256)  /* (512) */
-
-/**
- * @brief Maximum number of characters allowed in the name of the
- *        desktop, including the null terminator
- */
-#define DESKTOP_MAX_LENGTH_NAME (64)
-
-
-/**
- * @brief Desktop structure
- *
- * This structure represents a virtual desktop within an X11 screen,
- * containing specifics about the desktop's properties, including its
- * associated windows, configuration settings, and visual elements.
+ * @brief Structure for a virtual desktop within an X11 screen
  *
  * Each desktop can be customized with unique backgrounds and themes,
  * where the background can either be a solid color or an pixmap image.
  * The structure tracks its own active window, facilitating the
  * management of user interactions within that desktop space.
  *
- * The  @p is_outdated flag serves to identify when the desktop's
+ * The @p is_outdated flag serves to identify when the desktop's
  * attributes or properties have changed and need to be updated,
  * ensuring that users always have access to the most current
  * information about their environment.
  */
 typedef struct {
-    unsigned int screen_id;     /**< Screen index */
-    unsigned int id;            /**< Desktop index */
+    unsigned int screen_id;                 /**< Screen index */
+    unsigned int id;                        /**< Desktop index */
 
-    char name[DESKTOP_MAX_LENGTH_NAME]; /** Desktop name*/
+    char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
 
     struct background_s {
-//        bool is_image;          /** Color or image for background */
+//        bool is_image;                      /**< BG color or image? */
         union {
-            unsigned long color;    /**< Background color */
-//            Pixmap pixmap;           /**< Background image */
-        } bg;                   /**< Background information*/
+            unsigned long color;            /**< Background color */
+//            Pixmap pixmap;                  /**< Background image */
+        } bg;                               /**< Background information */
     } background;
 
-    ohtbl_td *windows;          /**< Windows hash table */
-    window_td *window_active;   /**< Pointer to active window */
+    ohtbl_td *windows;                      /**< Windows hash table */
+    window_td *window_active;               /**< Pointer to active window */
 
     struct config_base_s *config_base;      /**< Base configuration */
     struct config_theme_s *config_theme;    /**< Theme configuration */
@@ -118,7 +99,7 @@ void desktop_update(desktop_td *desktop);
 /**
  * @brief Full desktop update
  *
- * This function updates the desktop by updating all its windows.
+ * Updates the desktop by updating all its windows.
  *
  * @param desktop Pointer to the desktop to update fully
  *
@@ -130,8 +111,8 @@ void desktop_update_full(desktop_td *desktop);
 /**
  * @brief Clear a desktop by removing all its windows
  *
- * This function deallocates each and every window of the desktop and
- * resets the window counter to zero.
+ * Deallocates each and every window of the desktop and resets the
+ * window counter to zero.
  *
  * @param desktop Pointer to the desktop to be cleared from windows
  *
@@ -149,10 +130,11 @@ void desktop_clear(desktop_td *desktop);
  *
  * @return Status of the operation
  * @retval  0 Success on removal
+ * @retval  1 Failed to perform the action
  *
  * @note Complexity: @e O(1)
  */
-int desktop_window_add(desktop_td *desktop, window_td *window);
+int desktop_action_window_add(desktop_td *desktop, window_td *window);
 
 /**
  * @brief Remove a window from the desktop
@@ -162,10 +144,224 @@ int desktop_window_add(desktop_td *desktop, window_td *window);
  *
  * @return Status of the operation
  * @retval  0 Success on removal
+ * @retval  1 Failed to perform the action
  *
  * @note Complexity: @e O(1)
  */
-int desktop_window_rem(desktop_td *desktop, window_td *window);
+int desktop_action_window_rem(desktop_td *desktop, window_td *window);
+
+/**
+ * @brief Rename the desktop
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ * @param name    New name for the desktop
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_rename(desktop_td *desktop, const char *name);
+
+/**
+ * @brief Send a window to another desktop
+ *
+ * @param desktop    Pointer to the desktop to receive the action
+ * @param window     Pointer to the window to be sent
+ * @param desktop_id Destination desktop identifier
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_send_window(desktop_td *desktop, window_td *window,
+        unsigned int desktop_id);
+
+/**
+ * @brief Update the desktop background color
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ * @param color   New color
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_background_update(desktop_td *desktop,
+        unsigned int color);
+
+/**
+ * @brief Set a window to the front
+ *
+ * Brings the specified window to the top of the stacking order.
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ * @param window  Pointer to the window to be sent to the front
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_window_send_front(desktop_td *desktop,
+        window_td *window);
+
+/**
+ * @brief Set a window to the back
+ *
+ * Sends the specified window to the bottom of the stacking order.
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ * @param window  Pointer to the window to be sent to the back
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_window_send_back(desktop_td *desktop,
+        window_td *window);
+
+/**
+ * @brief Rearrange windows on the current desktop
+ *
+ * Alters the positions of windows on the current desktop.
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(n), where @e n is the number of windows to
+ *       rearrange
+ */
+int desktop_action_windows_rearrange(desktop_td *desktop);
+
+/**
+ * @brief Iconify (minimize) all windows on the current desktop
+ *
+ * Set all visible windows on the current desktop to an iconified state
+ * (also, technically, minimized).
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(n), where @e n is the number of windows on the
+ *       desktop
+ */
+int desktop_action_windows_iconify_all(desktop_td *desktop);
+
+/**
+ * @brief Cycle through active windows on the current desktop
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(n), where @e n is the number of active windows
+ */
+int desktop_action_cycle_windows_active(desktop_td *desktop);
+
+/**
+ * @brief Cycle through iconified windows on the current desktop
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(n), where @e n is the number of iconified
+ *       windows
+ */
+int desktop_action_cycle_windows_icons(desktop_td *desktop);
+
+/**
+ * @brief Lock the current desktop session,  preventing unauthorized
+ *        access
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_lock(desktop_td *desktop);
+
+/**
+ * @brief Unlock the current desktop session, allowing user access
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_unlock(desktop_td *desktop);
+
+/**
+ * @brief Change the layout of the current desktop
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ * @param layout New layout configuration
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_set_layout(desktop_td *desktop, const char *layout);
+
+/**
+ * @brief Launch a new application
+ *
+ * @param desktop          Pointer to the desktop to receive the action
+ * @param application_path Path to the executable of the application
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_application_launch(desktop_td *desktop,
+        const char *application_path);
+
+/**
+ * @brief Terminate an application
+ *
+ * Stops the specified application that is running in the desktop
+ * session by killing it.
+ *
+ * @param desktop        Pointer to the desktop to receive the action
+ * @param application_id Identifier of the application to be terminated
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(1)
+ */
+int desktop_action_application_kill(desktop_td *desktop,
+        unsigned int application_id);
 
 /**
  * @brief Macro that evaluates to the active window of the desktop

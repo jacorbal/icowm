@@ -30,9 +30,8 @@
  * In shadows of scope, few e’er call thee their own,
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
-static wm_td *wm = NULL;    /**< Window manager singleton pointer */
-
-
+static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
+                                 the window manager */
 
 
 /**
@@ -40,7 +39,7 @@ static wm_td *wm = NULL;    /**< Window manager singleton pointer */
  *
  * @note Complexity: @e O(1)
  */
-static void _wm_update(void)
+static void s_wm_update(void)
 {
 //    LOGGER_TRACE("Updating window manager", L_NARG);
 }
@@ -49,18 +48,18 @@ static void _wm_update(void)
 /**
  * @brief Full window manager update
  *
- * This function updates the window manager by updating every window on
- * every desktop of every screen.
+ * Updates the window manager by updating every window on every desktop
+ * of every screen.
  *
- * @note Complexity: @e O(n*m), where @e n is the number of screens and
- *       @e m is the number of desktops on the screen
+ * @note Complexity: @e O(n * m), where @e n is the number of screens
+ *       and @e m is the number of desktops on the screen
  */
-static void _wm_update_full(void)
+static void s_wm_update_full(void)
 {
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
     /* Soft update */
-    _wm_update();
+    s_wm_update();
 
     /* Update all screens */
     for (list_item_td *screen_node = list_head(wm->screens);
@@ -77,11 +76,11 @@ static void _wm_update_full(void)
 /**
  * @brief Enters the main event handling loop of the window manager
  *
- * This function runs continuously while the window manager is active,
- * listening for X11 events and passing them to the event handler for
- * processing.  It uses @p XNextEvent to wait for incoming events from
- * the X server, enabling responsive behavior in window management.
- * The condition to end the loop is by setting @p is_running to @c false.
+ * Runs continuously while the window manager is active, listening for
+ * X11 events and passing them to the event handler for processing.  It
+ * uses @p XNextEvent to wait for incoming events from the X server,
+ * enabling responsive behavior in window management.  The condition to
+ * end the loop is by setting @p is_running to @c false.
  *
  * @note The event loop will stop when the @p is_running flag is set to
  *       @c false, which should be handled in response to user actions
@@ -91,7 +90,7 @@ static void _wm_update_full(void)
  *       processed, so each call to @e event_handle may have a different
  *       complexity based on the event type and operations performed
  */
-static void _wm_loop(void)
+static void s_wm_loop(void)
 {
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
@@ -100,46 +99,71 @@ static void _wm_loop(void)
     }
 
     /* Update window manager before start */
-    _wm_update_full();
+    s_wm_update_full();
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
-        XEvent event;
-//        event_handler_process(wm->event_handler, &event);
+        XEvent xevent;
+        //event_handler_process(wm->event_handler, &event);
 
         /* Process window manager events from event priority queue */
         eventq_process();
 
         /* Process X events */
         while (XPending(wm->display) > 0) {
-            XNextEvent(wm->display, &event);
+            XNextEvent(wm->display, &xevent);
 
-            /* Key pressed */
-            if (event.type == KeyPress) {
-                KeySym keysym = XLookupKeysym(&event.xkey, 0);
+            /* Quit: Ctr+Alt+Shift+Backspace */
+            switch (xevent.type) {
+                case KeyPress:
+                {
+                    KeySym keysym = XLookupKeysym(&xevent.xkey, 0);
 
-                /* Quit: Ctr+Alt+Shift+Backspace */
-                if (keysym == XK_BackSpace &&
-                        (event.xkey.state & ControlMask) &&
-                        (event.xkey.state & Mod1Mask) &&
-                        (event.xkey.state & ShiftMask)) {
-                    LOGGER_TRACE("Setting 'is_running' status to 'false'",
-                            L_NARG);
-                    wm->is_running = false;
+                    if (keysym == XK_BackSpace &&
+                            (xevent.xkey.state & ControlMask) &&
+                            (xevent.xkey.state & Mod1Mask) &&
+                            (xevent.xkey.state & ShiftMask)) {
+                        LOGGER_TRACE("Setting 'is_running' status" \
+                                " to 'false'", L_NARG);
+                        wm->is_running = false;
+                    } else {
+                        //event_handler_handle_process(&event);
+                    }
                     break;
                 }
-            } /* ! if (KeyPress) */
+                case ConfigureNotify:
+                    /* Handle window resize or move events */
+                    //event_handler_handle_configure(&event);
+                    break;
+
+                case MapNotify:
+                    /* Handle window mapping events (when a window
+                     * is shown) */
+                    //event_handler_handle_map(&event);
+                    break;
+
+                case UnmapNotify:
+                    /* Handle window unmapping events (when a window
+                     * is hidden) */
+                    // event_handler_handle_unmap(&event);
+                    break;
+
+                    /* Add cases for other event types as required */
+                default:
+                    /* Optional: handle unknown events if needed */
+                    break;
+            } /* switch (event.type) */
         } /* ! while (XPending) */
 
         /* Update the window manager */
-        _wm_update();
+        s_wm_update();
     } /* ! while (is_running) */
     LOGGER_DEBUG("Exiting event loop", L_NARG);
 }
 
 
 /* Initialize a window manager instance */
-int wm_start(const char *display_name)
+int wm_start(const char *display_name, const char *config_dir_prefix)
 {
     LOGGER_DEBUG("Initializing window manager", L_NARG);
     if (wm == NULL) {
@@ -154,7 +178,7 @@ int wm_start(const char *display_name)
         }
 
         LOGGER_DEBUG("Opening X display", L_NARG);
-        /* If 'display_name' is NULL, then it defaults to the value of
+        /* If 'display_name' is 'NULL', then it defaults to the value of
          * the 'DISPLAY' environment variable */
         wm->display = XOpenDisplay(display_name);
         if (wm->display == NULL) {
@@ -176,7 +200,7 @@ int wm_start(const char *display_name)
 
         LOGGER_TRACE("Loading configuration into window manager",
                 L_NARG);
-        config_load(wm->config);
+        config_load(wm->config, config_dir_prefix);
 
         /* Events: priority queue as min-heap (bottom-heavy heap) */
         if (eventq_start() != 0) {
@@ -265,7 +289,7 @@ int wm_start(const char *display_name)
         /* Begin! */
         LOGGER_TRACE("Setting 'is_running' status to 'true'", L_NARG);
         wm->is_running = true;
-        _wm_loop();
+        s_wm_loop();
 
         return 0;
     }
@@ -298,16 +322,9 @@ int wm_stop(void)
 
     LOGGER_TRACE("Destroying window manager", L_NARG);
     free(wm);
-    wm = NULL;  /* Make sure the singleton points back to 'NULL' */
+    wm = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 
     LOGGER_DEBUG("Window manager has been destroyed", L_NARG);
 
     return 0;
-}
-
-
-/* Window manager screen count */
-size_t wm_screen_count(void)
-{
-    return ((wm == NULL) ? 0 : wm->screens->size);
 }

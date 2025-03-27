@@ -14,7 +14,7 @@
 #include <stddef.h>     /* NULL */
 
 /* ADT includes */
-#include <adt/heap.h>   /* Heap */
+#include <adt/heap.h>   /* Heap (as a rustic binary tree) */
 
 
 /**
@@ -68,9 +68,12 @@ typedef heap_td pqueue_td;
 #define pqueue_size heap_size
 
 /**
- * @brief Macro that evaluates to the emptiness of the priority queue
+ * @brief Macro that evaluates to the emptiness state of the priority
+ *        queue
+ * 
+ * @see heap_is_empty
  */
-#define pqueue_is_empty(p) ((pqueue_size(p) > 0) ? 1 : 0)
+#define pqueue_is_empty heap_is_empty
 
 
-#endif /* ! PQUEUE_H */
+#endif  /* ! PQUEUE_H */

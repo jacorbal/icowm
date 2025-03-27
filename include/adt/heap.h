@@ -9,6 +9,10 @@
 #ifndef HEAP_H
 #define HEAP_H
 
+/* System includes */
+#include <stdbool.h>    /* bool, false, true */
+#include <stddef.h>     /* size_t */
+
 
 /**
  * @brief Heap structure implemented as a rustic binary tree
@@ -104,5 +108,12 @@ int heap_extract(heap_td *heap, void **data);
  */
 #define heap_size(self) ((self)->size)
 
+/**
+ * @brief Macro that evaluates to the emptiness state of the heap
+ *
+ * @note Complexity: @e O(1)
+ */
+#define heap_is_empty(p) ((heap_size(p) > 0) ? true : false)
 
-#endif /* ! HEAP_H */
+
+#endif  /* ! HEAP_H */

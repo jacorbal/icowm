@@ -22,7 +22,7 @@ evolve.
 Every programmer, a Quixote, doth strive with fervent might against the
 giants that loom in the realm of code.
 
-                                   //JACR, MMXXV (@ver. 1.0.0 "'ovelya")
+//JACR, MMXXV (@ver. 1.0.0 "'ovelya")
 
 
 > Verily, it cometh not upon the shoulders of the noble programmers to

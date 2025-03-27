@@ -14,17 +14,17 @@
 #include <adt/heap.h>
 
 
-static size_t _heap_parent(size_t npos)
+static size_t s_heap_parent(size_t npos)
 {
     return (size_t) ((npos - 1) / 2);
 }
 
-static size_t _heap_left(size_t npos)
+static size_t s_heap_left(size_t npos)
 {
     return (npos * 2) + 1;
 }
 
-static size_t _heap_right(size_t npos)
+static size_t s_heap_right(size_t npos)
 {
     return (npos * 2) + 2;
 }
@@ -86,7 +86,7 @@ int heap_insert(heap_td *heap, const void *data)
 
     /* Heapify the tree by pushing the contents of the new node upward */
     ipos = heap_size(heap);
-    ppos = _heap_parent(ipos);
+    ppos = s_heap_parent(ipos);
 
     while (ipos > 0 &&
             heap->compare(heap->tree[ppos], heap->tree[ipos]) < 0) {
@@ -97,7 +97,7 @@ int heap_insert(heap_td *heap, const void *data)
 
         /* Move up one level in the tree to continue heapifying */
         ipos = ppos;
-        ppos = _heap_parent(ipos);
+        ppos = s_heap_parent(ipos);
     }
 
     /* Adjust the size of the heap to account for the inserted node */
@@ -147,13 +147,13 @@ int heap_extract(heap_td *heap, void **data)
 
     /* Heapify the tree by pushing the contents of the new top downward */
     ipos = 0;
-    lpos = _heap_left(ipos);
-    rpos = _heap_right(ipos);
+    lpos = s_heap_left(ipos);
+    rpos = s_heap_right(ipos);
 
     while (true) {
         /* Select the child to swap with the current node */
-        lpos = _heap_left(ipos);
-        rpos = _heap_right(ipos);
+        lpos = s_heap_left(ipos);
+        rpos = s_heap_right(ipos);
 
         if (lpos < heap_size(heap) &&
                 heap->compare(heap->tree[lpos], heap->tree[ipos]) > 0) {

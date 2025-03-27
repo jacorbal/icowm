@@ -228,4 +228,4 @@ int ohtbl_resize(ohtbl_td *htbl);
 #define ohtbl_size(self) ((self)->size)
 
 
-#endif /* ! OHTBL_H */
+#endif  /* ! OHTBL_H */

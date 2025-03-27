@@ -8,6 +8,17 @@
  * @version 1.0.0 release 20250425 ("'ovelya") build 117.20250425T052707
  * @copyright Copyright (c) 2025, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
+ *
+ * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
+ *       conforms to POSIX (POSIX.1-1990)
+ * @note Built with GCC 12.2.0 and Clang 14.0.6
+ */
+/*              ____         _       ____  ___
+ *             /  _/________| |     / /  |/  /
+ *             / // ___/ __ \ | /| / / /|_/ /
+ *           _/ // /__/ /_/ / |/ |/ / /  / /
+ *          /___/\___/\____/|__/|__/_/  /_/
+ *              Iconifying Window Manager
  */
 
 /* Enable features from the POSIX.1-1990 standard */
@@ -16,49 +27,21 @@
 /* System includes */
 #include <stdbool.h>    /* bool, false, true */
 #include <stdio.h>      /* FILE, fprintf */
-#include <stdlib.h>     /* NULL, atoi, srand */
+#include <stdlib.h>     /* NULL, atoi, getenv, srand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* getopt, getpid */
 
 /* Utils includes */
+#include <utils/safemem.h>
 #include <utils/safestr.h>
+
+/* Default initial values */
+#include <defs/config.h>
+#include <defs/main.h>
 
 /* Project includes */
 #include <logger.h>
 #include <wm.h>
-
-
-// TODO: PUT THIS DEFINITIONS ON A FILE
-#define ICOWM_AUTHOR "J. A. Corbal"
-#define ICOWM_NAME_LONG "Iconizer Window Manager"
-#define ICOWM_NAME_SHORT "IcoWM"
-#define ICOWM_NAME_PROG "icowm"
-#define ICOWM_DESCRIPTION \
-    "IcoWM is an austere, ascetic, minimal, and unembellished" \
-    " window manager for X11"
-
-#define ICOWM_BUILD_NUMBER "117"
-#define ICOWM_BUILD_DATE "20250425T052707"
-#define ICOWM_RELEASE "20250425"
-#define ICOWM_VERSION "1.0.0"
-#define ICOWM_VERSION_CODENAME "'ovelya"
-#define ICOWM_LICENSE "ISC License"
-#define ICOWM_COPYRIGHT "Copyright (c) 2025"
-
-#ifdef DEBUG
-#define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_TRACE)
-#else
-#define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_NOTICE)
-#endif /* ! DEBUG */
-
-#define ICOWM_DEFAULT_LOGGER_BEHAVIOR "DEFAULT"
-
-/* Messages I should understand due many decades of 'Star Trek' until
- * they destroyed the franchise, like a phaser set to kill vaporizing my
- * poor human heart!  Those petaQpu'!  ghuy'cha'!  D'kar tel G'denna!
- * Now, everything looks like a starless night of boundless black... */
-#define ICOWM_MSG_ON_INIT "Qapla'!"
-#define ICOWM_MSG_ON_EXIT "pe'vIl mu'qaDmey tIbach"
 
 
 /**
@@ -68,7 +51,7 @@
  *
  * @note Complexity: @e O(1)
  */
-static void _show_copyright_str(FILE *fp)
+static inline void s_show_copyright_str(FILE *fp)
 {
     fprintf(fp, "'%s'; %s, %s\n",
             ICOWM_LICENSE, ICOWM_COPYRIGHT, ICOWM_AUTHOR);
@@ -82,7 +65,7 @@ static void _show_copyright_str(FILE *fp)
  *
  * @note Complexity: @e O(1)
  */
-static void _show_version_str(FILE *fp)
+static inline void s_show_version_str(FILE *fp)
 {
     fprintf(fp, "%s release %s (\"%s\") build %s.%s\n",
             ICOWM_VERSION, ICOWM_RELEASE, ICOWM_VERSION_CODENAME,
@@ -97,11 +80,11 @@ static void _show_version_str(FILE *fp)
  *
  * @note Complexity: @e O(1)
  */
-static void _show_version(FILE *fp)
+static inline void s_show_version(FILE *fp)
 {
     fprintf(fp, "%s\n", ICOWM_DESCRIPTION);
-    fprintf(fp, "Licensed under "); _show_copyright_str(fp);
-    fprintf(fp, "Version "); _show_version_str(fp);
+    fprintf(fp, "Licensed under "); s_show_copyright_str(fp);
+    fprintf(fp, "Version "); s_show_version_str(fp);
 }
 
 
@@ -112,39 +95,101 @@ static void _show_version(FILE *fp)
  *
  * @note Complexity: @e O(1)
  */
-static void _show_help(FILE *fp)
+static inline void s_show_help(FILE *fp)
 {
+    /* Show name and usage */
     fprintf(fp, "%s -- %s\n", ICOWM_NAME_SHORT, ICOWM_NAME_LONG);
     fprintf(fp, "Usage: %s [<options>]\n", ICOWM_NAME_PROG);
 
+    /* Show options by category */
     fprintf(fp, "\nMain options:\n");
-    fprintf(fp, "   -d <display>    Set the X display name\n");
-
+    fprintf(fp, "   -d <display>    Set the X server display\n");
+    fprintf(fp, "   -c <config_dir> Set the configuration directory\n");
     fprintf(fp, "\nLogging:\n");
+    fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
+            LOG_MIN_LEVEL, LOG_MAX_LEVEL);
     fprintf(fp, "   -l <log_file>   Log file (or keyword: 'DEFAULT'," \
-            " 'NULL', 'STDOUT', 'STDERR')\n");
-    fprintf(fp, "   -L <log_level>  Log verbosity" \
-                " (%d:trace; %d:debug; %d:info ... %d=alert; %d=fatal)\n",
-                LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_ALERT, LOG_FATAL);
-    fprintf(fp, "   -q              Quiet, except on fatal errors" \
-                " (equivalent to '-L%d')\n", LOG_MAX_LEVEL);
-    fprintf(fp, "   -t              Activate tracking for all" \
-                " messages, not only for level %d\n", LOG_TRACE);
+                " 'STDOUT', 'STDERR', 'NULL')\n");
+    fprintf(fp, "   -q              Quiet mode; only show fatal" \
+                " errors (equivalent to '-L%d')\n", LOG_MAX_LEVEL);
+    fprintf(fp, "   -t              Enable function tracking for all" \
+                " messages, not just level %d\n", LOG_TRACE);
 
     fprintf(fp, "\nOther options:\n");
-    fprintf(fp, "   -h              This help\n");
+    fprintf(fp, "   -h              Show this help information\n");
     fprintf(fp, "   -v              Show version and license" \
                 " information\n");
 
     fprintf(fp, "\n");
-    fprintf(fp, "By default: logging mode set to '%s'; log level" \
-                " severity status set to %d\n",
-                ICOWM_DEFAULT_LOGGER_BEHAVIOR,
-                ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
-    fprintf(fp, "Display: if not given, it defaults to the" \
-                " 'DISPLAY' environment variable value\n");
-    fprintf(fp, "Log: 'DEFAULT' sends errors to 'stderr', others to" \
+
+    /* Show information for display */
+    fprintf(fp, "Display: if not specified, the X server defaults to" \
+                " the 'DISPLAY' env. variable\n");
+
+    /* Show default configuration directory values */
+    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
+    const char *config_home = getenv("HOME");
+    fprintf(fp, "Configuration directory is set to ");
+    if (config_xdg_config_home) {
+        fprintf(fp, "'%s/%s'\n", config_xdg_config_home,
+        CONFIG_DIR_BASE);
+    } else if (config_home) {
+        fprintf(fp, "'%s/.%s'\n", config_home, CONFIG_DIR_BASE);
+    } else {
+        fprintf(fp, "'%s'\n", CONFIG_DIR_BASE);
+    }
+
+    /* Show default logging information */
+    fprintf(fp, "Logging mode is set to '%s'; log level" \
+                " verbose status is set to %d\n",
+            ICOWM_DEFAULT_LOGGER_BEHAVIOR,
+            ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
+    fprintf(fp, "Log: 'DEFAULT' sends errors to 'stderr' & info to" \
                 " 'stdout'; 'NULL' disables it\n");
+    fprintf(fp, "Log verbosity levels:" \
+                " %d:trace; %d:debug; %d:information; %d:notice;\n" \
+                "                      %d:warning; %d: error;" \
+                " %d:critical; %d:alert; %d:fatal\n",
+            LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING,
+            LOG_ERROR, LOG_CRITICAL, LOG_ALERT, LOG_FATAL);
+}
+
+
+/**
+ * @brief Show where the logger is writing the messages in
+ *        a human-readable fashion, and the logging level in use
+ *
+ * @param fp       File pointer to the stream where to write the output
+ * @param filename Filename that is either the log file, or a keyword
+ * @param level    Current level the logger is working on
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline void s_show_logger_destination(FILE *fp,
+        const char *filename, enum logger_level_e level)
+{
+    if (filename == NULL) {
+        fprintf(fp, "Nowhere to write the log!\n");
+        return;
+    }
+
+    if (safe_strcmp(filename, "NULL") == 0) {
+        fprintf(fp, "Log deactivated!\n");
+    } else {
+        fprintf(fp, "Logging ");
+        if (safe_strcmp(filename, "DEFAULT") == 0) {
+            fprintf(fp, "warnings/errors to 'stderr'" \
+                    " and information to 'stdout' ");
+        } else if (safe_strcmp(filename, "STDOUT") == 0) {
+            fprintf(fp, "everything to 'stdout' ");
+        } else if (safe_strcmp(filename, "STDERR") == 0) {
+            fprintf(fp, "everything to 'stderr' ");
+        } else {
+            fprintf(fp, "in chunks to the innocuous file '%s' ",
+                    filename);
+        }
+        fprintf(fp, "with level %u\n", level);
+    }
 }
 
 
@@ -155,10 +200,10 @@ static void _show_help(FILE *fp)
  *
  * @note Complexity: @e O(1)
  */
-static void _show_salutation(FILE *fp)
+static inline void s_show_salutation(FILE *fp)
 {
     fprintf(fp, "%s -- ", ICOWM_NAME_SHORT);
-    _show_version_str(fp);
+    s_show_version_str(fp);
     fprintf(fp, "%s is starting...  \"%s\"  :)\n",
             ICOWM_NAME_SHORT, ICOWM_MSG_ON_INIT);
 }
@@ -171,10 +216,20 @@ static void _show_salutation(FILE *fp)
  *
  * @note Complexity: @e O(1)
  */
-static void _show_farewell(FILE *fp)
+static inline void s_show_farewell(FILE *fp)
 {
     fprintf(fp, "%s has stopped...  \"%s\"  :|\n",
             ICOWM_NAME_SHORT, ICOWM_MSG_ON_EXIT);
+}
+
+
+/* Just a subroutine to free three pointers, for it's repeated through
+ * the main code when there's a need to exit */
+static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
+{
+    safe_free((void **) &s1);
+    safe_free((void **) &s2);
+    safe_free((void **) &s3);
 }
 
 
@@ -194,6 +249,7 @@ static void _show_farewell(FILE *fp)
 int main(int argc, char *const argv[])
 {
     char *display_name = NULL;
+    char *config_dir = NULL;
     char *log_filename = safe_strdup(ICOWM_DEFAULT_LOGGER_BEHAVIOR);
     enum logger_level_e log_level_min = ICOWM_DEFAULT_LOGGER_LEVEL_MIN;
     bool log_is_tracking = false;
@@ -204,36 +260,47 @@ int main(int argc, char *const argv[])
     srand((unsigned int) (time(NULL) ^ getpid()));
 
     /* Get user options */
-    while ((opt = getopt(argc, argv, "hvd:l:L:qt")) != -1) {
+    while ((opt = getopt(argc, argv, "hvd:c:l:L:qt")) != -1) {
+        int opt_level;
+
         switch (opt) {
             case 'h':
-                _show_help(stdout);
+                s_show_help(stdout);
+                s_deallocate_buffers(log_filename,
+                                     display_name,
+                                     config_dir);
                 return 0;
-                break;
 
             case 'v':
-                _show_version(stdout);
+                s_show_version(stdout);
+                s_deallocate_buffers(log_filename,
+                                     display_name,
+                                     config_dir);
                 return 0;
-                break;
 
             case 'd':
                 display_name = safe_strdup(optarg);
                 break;
 
+            case 'c':
+                config_dir = safe_strdup(optarg);
+                break;
+
             case 'l':
-                /* If user enters as logfile the keywords "STDOUT" or
-                 * "STDERR", then the log will be written entirely on
-                 * those descriptors, and if the user enters the word
-                 * "NULL", the log will be deactivated.  When the
-                 * keyword is "DEFAULT", only warning and errors will be
-                 * in 'stderr', and debut or information in 'stdout'.
-                 * Otherwise, use the log in the specified file. */
                 free(log_filename);
                 log_filename = safe_strdup(optarg);
                 break;
 
             case 'L':
-                log_level_min = (enum logger_level_e) atoi(optarg);
+                opt_level = atoi(optarg);
+                if (opt_level >= LOG_MIN_LEVEL &&
+                    opt_level <= LOG_MAX_LEVEL) {
+                    log_level_min = (enum logger_level_e) opt_level;
+                } else {
+                    fprintf(stderr, "Log level out of range:" \
+                                    " using default level %d",
+                                    ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
+                }
                 break;
 
             case 'q':
@@ -245,22 +312,29 @@ int main(int argc, char *const argv[])
                 break;
 
             default:
-                _show_help(stderr);
+                s_show_help(stderr);
+                s_deallocate_buffers(log_filename,
+                                     display_name,
+                                     config_dir);
                 return -1;
         }
     }
 
-    _show_salutation(stdout);   /* Welcome: be polite, greet */
+    /* Welcome: be polite, greet */
+    s_show_salutation(stdout);
 
     /* Start logging */
     if (logger_start(log_filename,
                 log_level_min, log_is_tracking) != 0) {
+        s_deallocate_buffers(log_filename, display_name, config_dir);
         return 2;
     }
+    s_show_logger_destination(stdout, log_filename, log_level_min);
 
     /* Window manager "magic" */
-    if (wm_start(display_name) != 0) {
+    if (wm_start(display_name, config_dir) != 0) {
         logger_stop();
+        s_deallocate_buffers(log_filename, display_name, config_dir);
         return 1;
     }
 
@@ -269,12 +343,10 @@ int main(int argc, char *const argv[])
     logger_stop();
 
     /* Deallocate last things... */
-    free(log_filename);
-    if (display_name) {
-        free(display_name);
-    }
+    s_deallocate_buffers(log_filename, display_name, config_dir);
 
-    _show_farewell(stdout);     /* Depart: be polite, say goodbye */
+    /* Depart: be polite, say goodbye */
+    s_show_farewell(stdout);
 
     return 0;
 }

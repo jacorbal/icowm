@@ -1,5 +1,5 @@
 /**
- * @file config.h
+ * @file config.c
  *
  * @brief Configuration structures and procedures implementation
  *
@@ -50,7 +50,7 @@
  * @note Complexity: @e O(n), where @e n is the length of the
  *       hexadecimal string
  */
-static unsigned long int _hex2ul(const char *hex_color)
+static unsigned long int s_hex2ul(const char *hex_color)
 {
     unsigned long int color;
 
@@ -84,7 +84,7 @@ static unsigned long int _hex2ul(const char *hex_color)
  * @note Complexity: @e O(1) for the search and @e O(m) for copying,
  *       where @e m is the length of the string being copied
  */
-static int _json_load_string(cJSON *json, const char *field, char *dest,
+static int s_json_load_string(cJSON *json, const char *field, char *dest,
         size_t size)
 {
     cJSON *item;
@@ -121,7 +121,7 @@ static int _json_load_string(cJSON *json, const char *field, char *dest,
  * @note Complexity: @e O(1) for accessing the field and potential
  *       parsing cost
  */
-static int _json_load_uint(cJSON *json, const char *field,
+static int s_json_load_uint(cJSON *json, const char *field,
         unsigned int *dest)
 {
     cJSON *item = cJSON_GetObjectItem(json, field);
@@ -157,7 +157,7 @@ static int _json_load_uint(cJSON *json, const char *field,
  * @note Complexity: @e O(1) for accessing the field and potential
  *       parsing cost
  */
-static int _json_load_bool(cJSON *json, const char *field, bool *dest)
+static int s_json_load_bool(cJSON *json, const char *field, bool *dest)
 {
     cJSON *item;
 
@@ -194,7 +194,7 @@ static int _json_load_bool(cJSON *json, const char *field, bool *dest)
  *
  * @note Complexity: @e O(n), where @e n is the size of the file
  */
-static int _json_load_from_file(const char *filename, char **data)
+static int s_json_load_from_file(const char *filename, char **data)
 {
     FILE *file;
 
@@ -250,11 +250,11 @@ static int _json_load_from_file(const char *filename, char **data)
  * @retval  1 Error loading file
  * @retval  2 Error parsing data
  */
-static int _json_load_config(const char *filename, cJSON **json_out)
+static int s_json_load_config(const char *filename, cJSON **json_out)
 {
     char *data;
 
-    if (_json_load_from_file(filename, &data) != 0) {
+    if (s_json_load_from_file(filename, &data) != 0) {
         return 1;
     }
 
@@ -283,28 +283,35 @@ static int _json_load_config(const char *filename, cJSON **json_out)
  * set, it defaults to the current working directory.  The resulting
  * path is stored in the provided buffer @p config_dir_base.
  *
- * @param config_dir_base Pointer to a character array where the
- *                        configuration directory path will be stored
+ * @param config_dir_prefix Base configuration directory, or @c NULL to
+ *                          use the default directory
+ * @param config_dir_base   Pointer to a character array where the
+ *                          configuration directory path will be stored
  *
  * @note The buffer should be at least @c CONFIG_MAX_LENGTH_PATH_BASE
  */
-static void _config_dir_set(char *config_dir_base)
+static void s_config_dir_set(const char *config_dir_prefix,
+        char *config_dir_base)
 {
     const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
     const char *config_home = getenv("HOME");
 
-    if (config_xdg_config_home != NULL) {
+    if (config_dir_prefix) {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s", config_dir_prefix);
+
+    } else if (config_xdg_config_home) {
         /* "${XDG_CONFIG_HOME}/icowm" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "%s%s",
-                config_xdg_config_home, CONFIG_DIR_BASE);
-    } else if (config_home != NULL) {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s/%s", config_xdg_config_home, CONFIG_DIR_BASE);
+    } else if (config_home) {
         /* "${HOME}/.icowm" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "%s/.%s",
-                config_home, CONFIG_DIR_BASE);
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s/.%s", config_home, CONFIG_DIR_BASE);
     } else {
         /* "$(pwd)/.icowm"; let's hope there's always a "${HOME}" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE, "./%s",
-                CONFIG_DIR_BASE);
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "./%s", CONFIG_DIR_BASE);
     }
 }
 
@@ -364,7 +371,7 @@ void config_set_default_values(config_td *config)
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
 
             config->base.screens[i].desktops[j].settings.background.color
-                = _hex2ul("#000000");
+                = s_hex2ul("#000000");
         }
     }
 
@@ -455,17 +462,17 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->theme.name, "Default (builtin)");
     config->theme.window.general.border_width = 2;
     config->theme.window.general.is_decorated = true;
-    config->theme.window.active.background_color = _hex2ul("FFFFFF");
-    config->theme.window.active.foreground_color = _hex2ul("000000");
-    config->theme.window.active.frame_color = _hex2ul("222222");
+    config->theme.window.active.background_color = s_hex2ul("FFFFFF");
+    config->theme.window.active.foreground_color = s_hex2ul("000000");
+    config->theme.window.active.border_color = s_hex2ul("222222");
     safe_strcpy(config->theme.window.active.font, "monospace bold 9");
-    config->theme.window.inactive.background_color = _hex2ul("000000");
-    config->theme.window.inactive.foreground_color = _hex2ul("FFFFFF");
-    config->theme.window.inactive.frame_color = _hex2ul("999999");
+    config->theme.window.inactive.background_color = s_hex2ul("000000");
+    config->theme.window.inactive.foreground_color = s_hex2ul("FFFFFF");
+    config->theme.window.inactive.border_color = s_hex2ul("999999");
     safe_strcpy(config->theme.window.inactive.font, "monospace 9");
-    config->theme.icon.background_color = _hex2ul("FFFFFF");
-    config->theme.icon.foreground_color = _hex2ul("000000");
-    config->theme.icon.frame_color = _hex2ul("000000");
+    config->theme.icon.background_color = s_hex2ul("FFFFFF");
+    config->theme.icon.foreground_color = s_hex2ul("000000");
+    config->theme.icon.border_color = s_hex2ul("000000");
     config->theme.icon.border_width = 1;
     config->theme.icon.is_captioned = true;
     safe_strcpy(config->theme.icon.font, "monospace 8");
@@ -473,14 +480,14 @@ void config_set_default_values(config_td *config)
 
 
 /* Load all the configuration */
-int config_load(config_td *config)
+int config_load(config_td *config, const char *config_prefix)
 {
     char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
     char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_theme_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
 
-    _config_dir_set(config_dir);
+    s_config_dir_set(config_prefix, config_dir);
 
     LOGGER_DEBUG("Loading configuration from files on: '%s'",
             config_dir);
@@ -510,7 +517,7 @@ int config_load(config_td *config)
 
     /* Set theme file path */
     snprintf(config_theme_file,
-            sizeof(config_theme_file) + CONFIG_MAX_LENGHT_FILENAME,
+            sizeof(config_theme_file) + CONFIG_MAX_LENGTH_FILENAME,
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
 
@@ -541,13 +548,13 @@ int config_load_base(const char *filename,
             " '%s'", filename);
 
     /* Load file, or exit */
-    if (_json_load_config(filename, &json) != 0) {
+    if (s_json_load_config(filename, &json) != 0) {
         return 1;
     }
 
-    /* Theme name*/
-    if (_json_load_string(json, "theme", config_base->theme,
-                CONFIG_MAX_LENGHT_FILENAME) != 0) {
+    /* Theme name */
+    if (s_json_load_string(json, "theme", config_base->theme,
+                CONFIG_MAX_LENGTH_FILENAME) != 0) {
         LOGGER_WARNING("Invalid theme specified:" \
                 " '%s'; default configuration will be used",
                 config_base->theme);
@@ -557,7 +564,7 @@ int config_load_base(const char *filename,
     cJSON *screen_settings = cJSON_GetObjectItem(json, "screens");
     if (screen_settings) {
         /* Load total number of screen */
-        _json_load_uint(screen_settings, "count",
+        s_json_load_uint(screen_settings, "count",
                 &config_base->screen_count);
 
         /* Get 'desktop' array inside 'settings' */
@@ -581,9 +588,9 @@ int config_load_base(const char *filename,
 
                 if (desktop_item) {
                     /* Load desktop 'count' and 'inaugural' */
-                    _json_load_uint(desktop_item, "count",
+                    s_json_load_uint(desktop_item, "count",
                             &config_base->screens[i].desktop_count);
-                    _json_load_uint(desktop_item, "inaugural",
+                    s_json_load_uint(desktop_item, "inaugural",
                             &config_base->screens[i].desktop_inaugural);
 
                     /* Desktops, as screens, are zero-based indexed, so
@@ -612,7 +619,7 @@ int config_load_base(const char *filename,
                                         (int) j);
                             if (setting_item) {
                                 /* Load desktop name */
-                                _json_load_string(setting_item, "name",
+                                s_json_load_string(setting_item, "name",
                                         config_base->screens[i].desktops[j].name,
                                         CONFIG_MAX_LENGTH_NAME);
 
@@ -623,7 +630,7 @@ int config_load_base(const char *filename,
                                 if (background_color_item &&
                                         cJSON_IsString(background_color_item)) {
                                     config_base->screens[i].desktops[j].settings.background.color =
-                                        _hex2ul(background_color_item->valuestring);
+                                        s_hex2ul(background_color_item->valuestring);
                                 } /* ! if (background_color) */
                             } /* ! if (setting_item) */
                         } /* ! for(j in 0..settings_count) */
@@ -636,19 +643,19 @@ int config_load_base(const char *filename,
     /* Load default programs */
     cJSON *programs = cJSON_GetObjectItem(json, "programs");
     if (programs) {
-        _json_load_string(programs, "terminal",
+        s_json_load_string(programs, "terminal",
                 config_base->programs.terminal,
                 CONFIG_MAX_LENGTH_COMMAND);
-        _json_load_string(programs, "launcher",
+        s_json_load_string(programs, "launcher",
                 config_base->programs.launcher,
                 CONFIG_MAX_LENGTH_COMMAND);
-        _json_load_string(programs, "file_manager",
+        s_json_load_string(programs, "file_manager",
                 config_base->programs.file_manager, 
                 CONFIG_MAX_LENGTH_COMMAND);
-        _json_load_string(programs, "web_browser",
+        s_json_load_string(programs, "web_browser",
                 config_base->programs.web_browser, 
                 CONFIG_MAX_LENGTH_COMMAND);
-        _json_load_string(programs, "editor",
+        s_json_load_string(programs, "editor",
                 config_base->programs.editor,
                 CONFIG_MAX_LENGTH_COMMAND);
     }
@@ -656,20 +663,20 @@ int config_load_base(const char *filename,
     /* Load window base configuration */
     cJSON *windows = cJSON_GetObjectItem(json, "windows");
     if (windows) {
-        _json_load_uint(windows, "snap", &config_base->windows.snap);
+        s_json_load_uint(windows, "snap", &config_base->windows.snap);
         cJSON *focus = cJSON_GetObjectItem(windows, "focus");
         if (focus) {
-            _json_load_bool(focus, "is_new_focused",
+            s_json_load_bool(focus, "is_new_focused",
                     &config_base->windows.focus.is_new_focused);
-            _json_load_bool(focus, "is_raised_on_focus",
+            s_json_load_bool(focus, "is_raised_on_focus",
                     &config_base->windows.focus.is_raised_on_focus);
         }
         cJSON *placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
-            _json_load_string(placement, "policy",
+            s_json_load_string(placement, "policy",
                     config_base->windows.placement.policy,
                     CONFIG_MAX_LENGTH_OPTION);
-            _json_load_bool(placement, "is_centered",
+            s_json_load_bool(placement, "is_centered",
                     &config_base->windows.placement.is_centered);
         }
     }
@@ -690,80 +697,80 @@ int config_load_bindings(const char *filename,
             filename);
 
     /* Load file or exit */
-    if (_json_load_config(filename, &json) != 0) {
+    if (s_json_load_config(filename, &json) != 0) {
         return 1;
     }
 
     /* Load keyboard modifiers */
     cJSON *modifiers = cJSON_GetObjectItem(json, "modifiers");
     if (modifiers) {
-        _json_load_string(modifiers, "modc", config_bindings->modc,
+        s_json_load_string(modifiers, "modc", config_bindings->modc,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mods", config_bindings->mods,
+        s_json_load_string(modifiers, "mods", config_bindings->mods,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "modl", config_bindings->modl,
+        s_json_load_string(modifiers, "modl", config_bindings->modl,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mod1", config_bindings->mod1,
+        s_json_load_string(modifiers, "mod1", config_bindings->mod1,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mod2", config_bindings->mod2,
+        s_json_load_string(modifiers, "mod2", config_bindings->mod2,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mod3", config_bindings->mod3,
+        s_json_load_string(modifiers, "mod3", config_bindings->mod3,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mod4", config_bindings->mod4,
+        s_json_load_string(modifiers, "mod4", config_bindings->mod4,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(modifiers, "mod5", config_bindings->mod5,
+        s_json_load_string(modifiers, "mod5", config_bindings->mod5,
                 CONFIG_MAX_LENGTH_BINDING);
     }
 
     /* Load keybindings */
     cJSON *keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard) {
-        _json_load_string(keyboard, "terminal",
+        s_json_load_string(keyboard, "terminal",
                 config_bindings->keyboard.terminal,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "launcher",
+        s_json_load_string(keyboard, "launcher",
                 config_bindings->keyboard.launcher,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "file_manager",
+        s_json_load_string(keyboard, "file_manager",
                 config_bindings->keyboard.file_manager,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "web_browser",
+        s_json_load_string(keyboard, "web_browser",
                 config_bindings->keyboard.web_browser,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "editor",
+        s_json_load_string(keyboard, "editor",
                 config_bindings->keyboard.editor,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "center",
+        s_json_load_string(keyboard, "center",
                 config_bindings->keyboard.center,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "maximize",
+        s_json_load_string(keyboard, "maximize",
                 config_bindings->keyboard.maximize,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "fullscreen",
+        s_json_load_string(keyboard, "fullscreen",
                 config_bindings->keyboard.fullscreen,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "shade",
+        s_json_load_string(keyboard, "shade",
                 config_bindings->keyboard.shade,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "pin",
+        s_json_load_string(keyboard, "pin",
                 config_bindings->keyboard.pin,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "iconify",
+        s_json_load_string(keyboard, "iconify",
                 config_bindings->keyboard.iconify,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "close",
+        s_json_load_string(keyboard, "close",
                 config_bindings->keyboard.close,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "kill",
+        s_json_load_string(keyboard, "kill",
                 config_bindings->keyboard.kill,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "info",
+        s_json_load_string(keyboard, "info",
                 config_bindings->keyboard.info,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "cycle-prev",
+        s_json_load_string(keyboard, "cycle-prev",
                 config_bindings->keyboard.cycle_prev,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(keyboard, "cycle-next",
+        s_json_load_string(keyboard, "cycle-next",
                 config_bindings->keyboard.cycle_next,
                 CONFIG_MAX_LENGTH_BINDING);
 
@@ -772,32 +779,32 @@ int config_load_bindings(const char *filename,
         if (move) {
             cJSON *relative = cJSON_GetObjectItem(move, "relative");
             if (relative) {
-                _json_load_string(relative, "right",
+                s_json_load_string(relative, "right",
                         config_bindings->keyboard.move.relative.right,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(relative, "left",
+                s_json_load_string(relative, "left",
                         config_bindings->keyboard.move.relative.left,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(relative, "up",
+                s_json_load_string(relative, "up",
                         config_bindings->keyboard.move.relative.up,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(relative, "down",
+                s_json_load_string(relative, "down",
                         config_bindings->keyboard.move.relative.down,
                         CONFIG_MAX_LENGTH_BINDING);
             }
 
             cJSON *absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
-                _json_load_string(absolute, "top-left",
+                s_json_load_string(absolute, "top-left",
                         config_bindings->keyboard.move.absolute.top_left,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(absolute, "top-right",
+                s_json_load_string(absolute, "top-right",
                         config_bindings->keyboard.move.absolute.top_right,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(absolute, "bottom-left",
+                s_json_load_string(absolute, "bottom-left",
                         config_bindings->keyboard.move.absolute.bottom_left,
                         CONFIG_MAX_LENGTH_BINDING);
-                _json_load_string(absolute, "bottom-right",
+                s_json_load_string(absolute, "bottom-right",
                         config_bindings->keyboard.move.absolute.bottom_right,
                         CONFIG_MAX_LENGTH_BINDING);
             }
@@ -806,16 +813,16 @@ int config_load_bindings(const char *filename,
         /* Keybindings for window resizing */
         cJSON *resize = cJSON_GetObjectItem(keyboard, "resize");
         if (resize) {
-            _json_load_string(resize, "right",
+            s_json_load_string(resize, "right",
                     config_bindings->keyboard.resize.right,
                     CONFIG_MAX_LENGTH_BINDING);
-            _json_load_string(resize, "left",
+            s_json_load_string(resize, "left",
                     config_bindings->keyboard.resize.left,
                     CONFIG_MAX_LENGTH_BINDING);
-            _json_load_string(resize, "up",
+            s_json_load_string(resize, "up",
                     config_bindings->keyboard.resize.up,
                     CONFIG_MAX_LENGTH_BINDING);
-            _json_load_string(resize, "down",
+            s_json_load_string(resize, "down",
                     config_bindings->keyboard.resize.down,
                     CONFIG_MAX_LENGTH_BINDING);
         }
@@ -823,10 +830,10 @@ int config_load_bindings(const char *filename,
         /* Keybindings for desktop cycling */
         cJSON *desktop = cJSON_GetObjectItem(move, "desktop");
         if (desktop) {
-            _json_load_string(desktop, "cycle_prev",
+            s_json_load_string(desktop, "cycle_prev",
                     config_bindings->keyboard.desktop.cycle_prev,
                     CONFIG_MAX_LENGTH_BINDING);
-            _json_load_string(desktop, "cycle_next",
+            s_json_load_string(desktop, "cycle_next",
                     config_bindings->keyboard.desktop.cycle_next,
                     CONFIG_MAX_LENGTH_BINDING);
         }
@@ -835,21 +842,21 @@ int config_load_bindings(const char *filename,
     /* Load mouse bindings */
     cJSON *mouse = cJSON_GetObjectItem(json, "mouse");
     if (mouse) {
-        _json_load_string(mouse, "move", config_bindings->mouse.move,
+        s_json_load_string(mouse, "move", config_bindings->mouse.move,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(mouse, "resize",
+        s_json_load_string(mouse, "resize",
                 config_bindings->mouse.resize,
                 CONFIG_MAX_LENGTH_BINDING);
-        _json_load_string(mouse, "lower", config_bindings->mouse.lower,
+        s_json_load_string(mouse, "lower", config_bindings->mouse.lower,
                 CONFIG_MAX_LENGTH_BINDING);
 
         /* Mouse bindings for desktop cycling */
         cJSON *desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
-            _json_load_string(desktop, "cycle_prev",
+            s_json_load_string(desktop, "cycle_prev",
                     config_bindings->mouse.desktop.cycle_prev,
                     CONFIG_MAX_LENGTH_BINDING);
-            _json_load_string(desktop, "cycle_next",
+            s_json_load_string(desktop, "cycle_next",
                     config_bindings->mouse.desktop.cycle_next,
                     CONFIG_MAX_LENGTH_BINDING);
         }
@@ -872,12 +879,12 @@ int config_load_theme(const char *filename,
             filename);
 
     /* Load file or exit */
-    if (_json_load_config(filename, &json) != 0) {
+    if (s_json_load_config(filename, &json) != 0) {
         return 1;
     }
 
     /* Load theme name identifier */
-    _json_load_string(json, "name", config_theme->name,
+    s_json_load_string(json, "name", config_theme->name,
             CONFIG_MAX_LENGTH_FONTNAME);
 
     /* Load window general appearance */
@@ -885,9 +892,9 @@ int config_load_theme(const char *filename,
     if (window) {
         cJSON *general = cJSON_GetObjectItem(window, "general");
         if (general) {
-            _json_load_uint(general, "border_width",
+            s_json_load_uint(general, "border_width",
                     &config_theme->window.general.border_width);
-            _json_load_bool(general, "is_decorated",
+            s_json_load_bool(general, "is_decorated",
                     &config_theme->window.general.is_decorated);
         }
 
@@ -898,21 +905,21 @@ int config_load_theme(const char *filename,
                     "background_color");
             if (background_color) {
                 config_theme->window.active.background_color =
-                    _hex2ul(background_color->valuestring);
+                    s_hex2ul(background_color->valuestring);
             }
             cJSON *foreground_color = cJSON_GetObjectItem(active,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.active.foreground_color =
-                    _hex2ul(foreground_color->valuestring);
+                    s_hex2ul(foreground_color->valuestring);
             }
-            cJSON *frame_color = cJSON_GetObjectItem(active,
-                    "frame_color");
-            if (frame_color) {
-                config_theme->window.active.frame_color =
-                    _hex2ul(frame_color->valuestring);
+            cJSON *border_color = cJSON_GetObjectItem(active,
+                    "border_color");
+            if (border_color) {
+                config_theme->window.active.border_color =
+                    s_hex2ul(border_color->valuestring);
             }
-            _json_load_string(active, "font",
+            s_json_load_string(active, "font",
                     config_theme->window.active.font,
                     CONFIG_MAX_LENGTH_FONTNAME); }
 
@@ -923,52 +930,52 @@ int config_load_theme(const char *filename,
                     "background_color");
             if (background_color) {
                 config_theme->window.inactive.background_color =
-                    _hex2ul(background_color->valuestring);
+                    s_hex2ul(background_color->valuestring);
             }
             cJSON *foreground_color = cJSON_GetObjectItem(inactive,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.inactive.foreground_color =
-                    _hex2ul(foreground_color->valuestring);
+                    s_hex2ul(foreground_color->valuestring);
             }
-            cJSON *frame_color = cJSON_GetObjectItem(inactive,
-                    "frame_color");
-            if (frame_color) {
-                config_theme->window.inactive.frame_color =
-                    _hex2ul(frame_color->valuestring);
+            cJSON *border_color = cJSON_GetObjectItem(inactive,
+                    "border_color");
+            if (border_color) {
+                config_theme->window.inactive.border_color =
+                    s_hex2ul(border_color->valuestring);
             }
-            _json_load_string(inactive, "font",
+            s_json_load_string(inactive, "font",
                     config_theme->window.inactive.font,
                     CONFIG_MAX_LENGTH_FONTNAME); }
     }
 
-    /* Load icon appearance when iconizing */
+    /* Load icon appearance when iconifying */
     cJSON *icon = cJSON_GetObjectItem(json, "icon");
     if (icon) {
         cJSON *background_color = cJSON_GetObjectItem(icon,
                 "background_color");
         if (background_color) {
             config_theme->icon.background_color =
-                _hex2ul(background_color->valuestring);
+                s_hex2ul(background_color->valuestring);
         }
         cJSON *foreground_color = cJSON_GetObjectItem(icon,
                 "foreground_color");
         if (foreground_color) {
             config_theme->icon.foreground_color =
-                _hex2ul(foreground_color->valuestring);
+                s_hex2ul(foreground_color->valuestring);
         }
-        cJSON *frame_color = cJSON_GetObjectItem(icon,
-                "frame_color");
-        if (frame_color) {
-            config_theme->icon.frame_color =
-                _hex2ul(frame_color->valuestring);
+        cJSON *border_color = cJSON_GetObjectItem(icon,
+                "border_color");
+        if (border_color) {
+            config_theme->icon.border_color =
+                s_hex2ul(border_color->valuestring);
         }
 
-        _json_load_uint(icon, "border_width",
+        s_json_load_uint(icon, "border_width",
                 &config_theme->icon.border_width);
-        _json_load_bool(icon, "is_captioned",
+        s_json_load_bool(icon, "is_captioned",
                 &config_theme->icon.is_captioned);
-        _json_load_string(icon, "font", config_theme->icon.font,
+        s_json_load_string(icon, "font", config_theme->icon.font,
                 CONFIG_MAX_LENGTH_FONTNAME);
     }
 

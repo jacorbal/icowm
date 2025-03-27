@@ -21,7 +21,7 @@
 
 
 /* Initialize a new window */
-window_td *window_init(Display *display,
+window_td *window_init(Display *display, window_td *parent,
         unsigned int w, unsigned int h, int x, int y,
         struct config_theme_s *theme)
 {
@@ -34,16 +34,27 @@ window_td *window_init(Display *display,
     }
 
     window->display = display;
-    window->theme = theme;
-    window->geom.x = x; window->geom.y = y;
-    window->dim.w = w; window->dim.h = h;
-    window->properties.flags = 0;
+    window->parent = parent;
+
+    window->properties.geometry.pos.x = x;
+    window->properties.geometry.pos.y = y;
+    window->properties.geometry.dim.w = w;
+    window->properties.geometry.dim.h = h;
+
+    window->properties.flags = WIN_PROPERTY_VISIBLE;
     window->properties.state = WIN_STATE_IDLE;
     window->properties.layer = WIN_LAYER_NORMAL;
+
+    window->process.pid = -1;
+    window->process.command = NULL;
+    window->theme = theme;
+
     window->name = NULL;    // <-- TODO
+    window->class = NULL;   // <-- TODO
 
     /* Initialize the window in hidden mode */
-    //window->properties.flags |= (enum window_flags_e) WIN_PROPERTY_VISIBLE;
+//    window->properties.flags |=
+//        (enum window_flags_e) WIN_PROPERTY_VISIBLE;
 
     /* Create the X window */
     window->window = XCreateSimpleWindow(display,
@@ -58,13 +69,14 @@ window_td *window_init(Display *display,
         return NULL;
     }
 
+    // TODO: Esto debería ir en 'window_action_create'
     /* Configure window */
     XSetStandardProperties(display, window->window,
             "Ventana", "Titulo", None, NULL, 0, NULL);
 
     XClassHint *class_hint = XAllocClassHint();
     class_hint->res_name = (char *) "my_window";
-    class_hint->res_class = (char *) "MyAppClass";
+    class_hint->res_class = (char *) "my_class";
     XSetClassHint(display, window->window, class_hint);
     XFree(class_hint);
 

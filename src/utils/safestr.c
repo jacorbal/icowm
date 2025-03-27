@@ -1,12 +1,11 @@
 /**
  * @file safestr.c
  *
- * @brief Provide safe string handling functions implementation
+ * @brief Implementation of safe string handling functions
  */
 
 /* System includes */
-#include <stddef.h>     /* size_t */
-#include <stdlib.h>     /* malloc */
+#include <stdlib.h>     /* size_t, malloc */
 #include <string.h>     /* memcpy */
 
 /* Local includes */
@@ -50,7 +49,8 @@ size_t safe_strlen(const char *str)
 
 
 /* Safely copies a string from 'src' to 'dst' */
-char *safe_strncpy(char *dst, const char *src, size_t size)
+char *safe_strncpy(char *restrict dst, const char *restrict src,
+        size_t size)
 {
     if (dst == NULL || src == NULL || size == 0) {
         return dst;
@@ -74,7 +74,7 @@ char *safe_strncpy(char *dst, const char *src, size_t size)
 
 
 /* Copies a string from 'src' to 'dst' without exceeding buffer size */
-char *safe_strcpy(char *dst, const char *src)
+char *safe_strcpy(char *restrict dst, const char *restrict src)
 {
     if (dst == NULL || src == NULL) {
         return dst;
@@ -160,7 +160,7 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
 
     return (n == (size_t) (-1)) ?
         0 :
-        *(unsigned char *)s1 - *(unsigned char *)s2;
+        *(const unsigned char *) s1 - *(const unsigned char *) s2;
 }
 
 
@@ -188,5 +188,5 @@ int safe_strcmp(const char *s1, const char *s2)
         s2++;
     }
 
-    return *(unsigned char *)s1 - *(unsigned char *)s2;
+    return *(const unsigned char *) s1 - *(const unsigned char *) s2;
 }
