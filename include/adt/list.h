@@ -35,7 +35,7 @@ typedef struct {
      * @param key2 Second key to compare
      *
      * @return Status of the operation
-     * @retval true  Both keys match
+     * @retval  true Both keys match
      * @retval false The keys do not match
      *
      * @note This linked list does not use this function, but it's
@@ -77,7 +77,7 @@ list_td *list_init(void (*destroy)(void *data));
  * @param list List to destroy
  *
  * @note No other operations are permitted after calling this function,
- *       unless @e list_init is called again
+ *       unless @a list_init is called again
  * @note Complexity: @e O(n), where @e n is the number of items
  */
 void list_destroy(list_td *list);
@@ -101,7 +101,7 @@ void list_clear(list_td *list);
  * @return Status of the insertion operation
  * @retval  0 Successfully inserted the item
  *
- * @note If @e item is @c NULL, the new item is inserted at the head
+ * @note If @p item is @c NULL, the new item is inserted at the head
  * @note Complexity: @e O(1)
  */
 int list_ins_next(list_td *list, list_item_td *item,
@@ -117,7 +117,7 @@ int list_ins_next(list_td *list, list_item_td *item,
  * @return Status of the removal operation
  * @retval  0 Successfully removed the item
  *
- * @note If @e item is @c NULL, the head of the list will be removed
+ * @note If @p item is @c NULL, the head of the list will be removed
  * @note The allocated memory of the item must be manually freed
  * @note Complexity: @e O(1)
  */

@@ -29,7 +29,8 @@ window_td *window_init(Display *display, window_td *parent,
 
     window = malloc(sizeof(window_td));
     if (window == NULL) {
-        LOGGER_ERROR("Memory allocation failure for window", L_NARG);
+        LOGGER_ERROR("Failed to allocate memory for new window",
+                L_NARG);
         return NULL;
     }
 
@@ -41,9 +42,9 @@ window_td *window_init(Display *display, window_td *parent,
     window->properties.geometry.dim.w = w;
     window->properties.geometry.dim.h = h;
 
-    window->properties.flags = WIN_PROPERTY_VISIBLE;
-    window->properties.state = WIN_STATE_IDLE;
-    window->properties.layer = WIN_LAYER_NORMAL;
+    window->properties.flags = WINDOW_FLAG_VISIBLE;
+    window->properties.state = WINDOW_STATE_IDLE;
+    window->properties.layer = WINDOW_LAYER_NORMAL;
 
     window->process.pid = -1;
     window->process.command = NULL;
@@ -54,7 +55,7 @@ window_td *window_init(Display *display, window_td *parent,
 
     /* Initialize the window in hidden mode */
 //    window->properties.flags |=
-//        (enum window_flags_e) WIN_PROPERTY_VISIBLE;
+//        (enum window_flags_e) WINDOW_FLAG_VISIBLE;
 
     /* Create the X window */
     window->window = XCreateSimpleWindow(display,

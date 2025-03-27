@@ -298,7 +298,7 @@ int main(int argc, char *const argv[])
                     log_level_min = (enum logger_level_e) opt_level;
                 } else {
                     fprintf(stderr, "Log level out of range:" \
-                                    " using default level %d",
+                                    " using default level %d\n",
                                     ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
                 }
                 break;

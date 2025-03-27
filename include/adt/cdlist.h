@@ -35,9 +35,9 @@ typedef struct {
      */
     void (*destroy)(void *data);
 
-    size_t size;            /**< Number of elements in the list */
-    cdlist_item_td *head;   /**< Pointer to the head of the list */
-    cdlist_item_td *tail;   /**< Pointer to the tail of the list */
+    size_t size;                    /**< Number of elements in the list */
+    cdlist_item_td *head;           /**< Pointer to the head of the list */
+    cdlist_item_td *tail;           /**< Pointer to the tail of the list */
 } cdlist_td;
 
 
@@ -50,8 +50,8 @@ typedef struct {
  * @return New allocated doubly linked circular list, or @c NULL
  *         otherwise
  *
- * @note This operation must be called for a list before it
- *       can be used with any other operation
+ * @note This operation must be called for a list before it can be used
+ *       with any other operation
  * @note Complexity: @e O(1)
  */
 cdlist_td *cdlist_init(void (*destroy)(void *data));
@@ -63,7 +63,7 @@ cdlist_td *cdlist_init(void (*destroy)(void *data));
  * @param cdlist List to destroy
  *
  * @note No other operations are permitted after calling this function,
- *       unless @e cdlist_init is called again
+ *       unless @a cdlist_init is called again
  * @note Complexity: @e O(n), where @e n is the number of items
  */
 void cdlist_destroy(cdlist_td *cdlist);
@@ -87,7 +87,7 @@ void cdlist_clear(cdlist_td *cdlist);
  * @return Status of the insertion operation
  * @retval  0 Successfully inserted the item
  *
- * @note If @e item is @c NULL, the new item is inserted at the tail
+ * @note If @p item is @c NULL, the new item is inserted at the tail
  * @note Complexity: @e O(1)
  */
 int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
@@ -103,7 +103,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
  * @return Status of the insertion operation
  * @retval  0 Successfully inserted the item
  *
- * @note If @e item is @c NULL, the new item is inserted at the head
+ * @note If @p item is @c NULL, the new item is inserted at the head
  * @note Complexity: @e O(1)
  */
 int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
@@ -119,7 +119,7 @@ int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
  * @return Status of the removal operation
  * @retval  0 Successfully removed the item
  *
- * @note If @e item is @c NULL, the tail of the list will be removed
+ * @note If @p item is @c NULL, the tail of the list will be removed
  * @note The allocated memory of the item must be manually freed
  * @note Complexity: @e O(1)
  */
@@ -136,7 +136,7 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
  * @return Status of the removal operation
  * @retval  0 Successfully removed the item
  *
- * @note If @e item is @c NULL, the head of the list will be removed
+ * @note If @p item is @c NULL, the head of the list will be removed
  * @note The allocated memory of the item must be manually freed
  * @note Complexity: @e O(1)
  */

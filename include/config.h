@@ -5,9 +5,9 @@
  *
  * The default configuration is taken from the configuration files on
  * the default configuration base directory.  This directory depends on
- * the environment variables: @e XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
+ * the environment variables: @c XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
  * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
- * classic @e HOME/.ICOWM_NAME_PROG.
+ * classic @c HOME/.ICOWM_NAME_PROG.
  */
 
 #ifndef CONFIG_H
@@ -202,7 +202,7 @@ typedef struct {
 /**
  * @brief Initialize a new structure for the configuration
  *
- * Allocates memory for a new @e config_td structure and initializes its
+ * Allocates memory for a new @c config_td structure and initializes its
  * fields to default values.
  *
  * @return Pointer to the initialized configuration structure, or @c NULL
@@ -211,27 +211,27 @@ typedef struct {
  * @note Complexity: @e O(1), as it only involves memory allocation and
  *       initialization
  *
- * @see config_td
+ * @see @c config_td
  */
 config_td *config_init(void);
 
 /**
  * @brief Destroy a configuration structure and free resources
  *
- * Frees the memory associated with a @e config_td structure.
+ * Frees the memory associated with a @c config_td structure.
  *
  * @param config Pointer to the configuration structure to destroy
  *
  * @note Complexity: @e O(1), as it only involves freeing memory
  *
- * @see config_td
+ * @see @c config_td
  */
 void config_destroy(config_td *config);
 
 /**
  * @brief Populate the configuration structure with default values
  *
- * Sets default values for all fields in the given @e config_td
+ * Sets default values for all fields in the given @c config_td
  * structure.
  *
  * @param config Pointer to the configuration structure to set the
@@ -247,43 +247,45 @@ void config_set_default_values(config_td *config);
 /**
  * @brief Load all the configuration
  *
- * Loads configuration settings into the provided @e config_td structure
+ * Loads configuration settings into the provided @c config_td structure
  * from predefined sources (configuration files) by invoking the
- * functions @e config_load_base, @e config_load_bindings and
- * @e config_load_theme.
+ * functions @a config_load_base, @a config_load_bindings and
+ * @a config_load_theme.
  *
  * @param config            Pointer to the configuration structure where
  *                          to load the data
  * @param config_dir_prefix Configuration directory, or @c NULL to use
  *                          default value
  *
- * @return 0 on success, or otherwise on error
+ * @return 0 on success, or otherwise
  *
  * @note This function does not take into account default values,
- *       because it's invoked after calling @e config_set_default_values
+ *       because it's invoked after calling @a config_set_default_values
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       loaded because it involves reading from the configuration file
  *
- * @see config_load_base, config_load_bindings, config_load_theme
+ * @see @a config_load_base,
+ *      @a config_load_bindings,
+ *      @a config_load_theme
  */
 int config_load(config_td *config, const char *config_dir_prefix);
 
 /**
  * @brief Load base configuration settings from a JSON file
  *
- * Loads base configuration settings into the provided @e config_base_s
+ * Loads base configuration settings into the provided @c config_base_s
  * structure from the specified file.
  *
  * @param filename    The path to the configuration file
  * @param config_base Pointer to the base configuration structure to
  *                    populate
  *
- * @return 0 on success, or otherwise on error.
+ * @return 0 on success, or otherwise
  *
  * @note Complexity: @e O(n), where @e n is the size of the
  *       configuration file being read
  *
- * see config_base_s
+ * @see @c config_base_s
  */
 int config_load_base(const char *filename,
         struct config_base_s *config_base);
@@ -291,19 +293,19 @@ int config_load_base(const char *filename,
 /**
  * @brief Load key bindings from a JSON file
  *
- * Loads key bindings into the provided @e config_bindings_s structure
+ * Loads key bindings into the provided @c config_bindings_s structure
  * from the specified file.
  *
  * @param filename        Path to the key bindings configuration file
  * @param config_bindings Pointer to the bindings configuration
  *                        structure to populate
  *
- * @return 0 on success, or otherwise on error
+ * @return 0 on success, or otherwise
  *
  * @note Complexity: @e O(n), where @e n is the size of the key bindings
  *       file being read
  *
- * @see config_bindings_s
+ * @see @c config_bindings_s
  */
 int config_load_bindings(const char *filename,
         struct config_bindings_s *config_bindings);
@@ -311,19 +313,19 @@ int config_load_bindings(const char *filename,
 /**
  * @brief Load theme settings from a JSON file
  *
- * Loads theme settings into the provided @e config_theme_s structure
+ * Loads theme settings into the provided @c config_theme_s structure
  * from the specified file.
  *
  * @param filename     The path to the theme configuration file.
  * @param config_theme Pointer to the theme configuration structure to
  *                     populate
  *
- * @return 0 on success, or otherwise on error
+ * @return 0 on success, or otherwise
  *
  * @note Complexity: @e O(n), where @e n is the size of the theme file
  *       being read
  *
- * @see config_theme_s
+ * @see @c config_theme_s
  */
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme);

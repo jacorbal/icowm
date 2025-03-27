@@ -13,7 +13,7 @@
 #include <sys/types.h>  /* pid_t */
 
 /* External libraries */
-#include <X11/Xlib.h>   /* Display, Window */
+#include <X11/Xlib.h>   /* Display, Window, Pixmap */
 
 /* Common type structures */
 #include <types/pair.h> /* dimensions_s, geometry_s */
@@ -26,11 +26,10 @@
  * @brief Possible window states a window can be in
  */
 enum window_state_e {
-    WIN_STATE_IDLE,         /** Regular state */
-    WIN_STATE_ICONIFIED,    /**< Iconified window */
-    WIN_STATE_MAXIMIZED,    /**< Maximized */
-    WIN_STATE_FULLSCREEN,   /**< Full screen */
-    WIN_STATE_MAX = WIN_STATE_FULLSCREEN,
+    WINDOW_STATE_IDLE,         /**< Regular state */
+    WINDOW_STATE_ICONIFIED,    /**< Iconified window */
+    WINDOW_STATE_MAXIMIZED,    /**< Maximized */
+    WINDOW_STATE_FULLSCREEN,   /**< Full screen */
 };
 
 
@@ -38,11 +37,11 @@ enum window_state_e {
  * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
-    WIN_PROPERTY_VISIBLE   = 1 << 0, /* 0000 0001: window is visible */
-    WIN_PROPERTY_FOCUSED   = 1 << 1, /* 0000 0010: window has focus */
-    WIN_PROPERTY_STICKY    = 1 << 2, /* 0000 0100: window in all desktops */
-    WIN_PROPERTY_DECORATED = 1 << 3, /* 0000 1000: window has decoration */
-    WIN_PROPERTY_DISABLED  = 1 << 4, /* 0001 0000: window is disabled */
+    WINDOW_FLAG_VISIBLE   = 1 << 0, /* 0000 0001: window is visible */
+    WINDOW_FLAG_FOCUSED   = 1 << 1, /* 0000 0010: window has focus */
+    WINDOW_FLAG_STICKY    = 1 << 2, /* 0000 0100: window in all desktops */
+    WINDOW_FLAG_DECORATED = 1 << 3, /* 0000 1000: window has decoration */
+    WINDOW_FLAG_DISABLED  = 1 << 4, /* 0001 0000: window is disabled */
 };
 
 
@@ -53,10 +52,9 @@ enum window_flags_e {
  * visibility order on the screen.
  */
 enum window_layer_e {
-    WIN_LAYER_ON_TOP,       /**< Always on top */
-    WIN_LAYER_NORMAL,       /**< Normal behavior */
-    WIN_LAYER_ON_BOTTOM,    /**< Always behind every window */
-    WIN_LAYER_MAX = WIN_LAYER_ON_BOTTOM,
+    WINDOW_LAYER_ON_TOP,       /**< Always on top */
+    WINDOW_LAYER_NORMAL,       /**< Normal behavior */
+    WINDOW_LAYER_ON_BOTTOM,    /**< Always behind every window */
 };
 
 
@@ -184,7 +182,7 @@ int window_action_close(window_td *window);
  *
  * @note Complexity: @e O(1)
  *
- * @see window_properties_s
+ * @see @c window_properties_s
  */
 int window_action_set_property(window_td *window,
         const struct window_properties_s *properties);
@@ -244,7 +242,7 @@ int window_action_unfocus(window_td *window);
  *
  * @note Complexity: @e O(1)
  *
- * @see dimensions_s
+ * @see @c dimensions_s
  */
 int window_action_resize(window_td *window, struct dimensions_s dim);
 
@@ -260,7 +258,7 @@ int window_action_resize(window_td *window, struct dimensions_s dim);
  *
  * @note Complexity: @e O(1)
  *
- * @see geometry_s
+ * @see @c geometry_s
  */
 int window_action_move(window_td *window, struct geometry_s geometry);
 
@@ -476,50 +474,50 @@ int window_action_set_icon(window_td *window, const char *icon_path);
  *
  * @note Complexity: @e O(1)
  *
- * @see window_flags_e
+ * @see @c window_flags_e
  */
 #define window_toggle_visibility(w) \
-    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_VISIBLE)
+    ((w)->properties.flags ^= (enum window_flags_e) WINDOW_FLAG_VISIBLE)
 
 /**
  * @brief Macro that evaluates to toggling the focus flag
  *
  * @note Complexity: @e O(1)
  *
- * @see window_flags_e
+ * @see @c window_flags_e
  */
 #define window_toggle_focus(w) \
-    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_FOCUSED)
+    ((w)->properties.flags ^= (enum window_flags_e) WINDOW_FLAG_FOCUSED)
 
 /**
  * @brief Macro that evaluates to toggling the stickiness flag
  *
  * @note Complexity: @e O(1)
  *
- * @see window_flags_e
+ * @see @c window_flags_e
  */
 #define window_toggle_stickiness(w) \
-    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_STICKY)
+    ((w)->properties.flags ^= (enum window_flags_e) WINDOW_FLAG_STICKY)
 
 /**
  * @brief Macro that evaluates to toggling the decoration flag
  *
  * @note Complexity: @e O(1)
  *
- * @see window_flags_e
+ * @see @c window_flags_e
  */
 #define window_toggle_decoration(w) \
-    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_DECORATED)
+    ((w)->properties.flags ^= (enum window_flags_e) WINDOW_FLAG_DECORATED)
 
 /**
  * @brief Macro that evaluates to toggling the availability flag
  *
  * @note Complexity: @e O(1)
  *
- * @see window_flags_e
+ * @see @c window_flags_e
  */
 #define window_toggle_availability(w) \
-    ((w)->properties.flags ^= (enum window_flags_e) WIN_PROPERTY_DISABLED)
+    ((w)->properties.flags ^= (enum window_flags_e) WINDOW_FLAG_DISABLED)
 
 
 #endif  /* ! WINDOW_H */

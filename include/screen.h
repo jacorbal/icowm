@@ -365,7 +365,7 @@ int screen_action_toggle_fullscreen(screen_td *screen);
  *
  * @note Complexity: @e O(1)
  *
- * @see dimensions_s
+ * @see @c dimensions_s
  */
 int screen_action_set_resolution(screen_td *screen,
         struct dimensions_s resolution);

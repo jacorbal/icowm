@@ -47,7 +47,7 @@ void safe_free(void **ptr);
  * @note Complexity: @e O(n), where @e n is the number of pointers
  *       provided up to the first @c NULL
  *
- * This example demonstrates how to call the @e safe_free_multiple
+ * This example demonstrates how to call the @a safe_free_multiple
  * function with a mixture of valid and @c NULL pointers:
  *
  * @code
@@ -65,7 +65,7 @@ void safe_free(void **ptr);
  *  } else if (result == -1) {
  *      printf("First pointer could not be freed or was NULL\n");
  *  } else {
- *      printf("Could not free pointer at index: %d\n", result);
+ *      printf("Could not free pointer at index %d\n", result);
  *  }
  * @endcode
  *

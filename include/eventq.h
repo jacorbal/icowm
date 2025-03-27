@@ -90,7 +90,7 @@ int eventq_stop(void);
  *
  * @note Complexity: @e O(1)
  *
- * @see action_td, event_priority_e
+ * @see @c action_td, @c event_priority_e
  */
 event_td *event_init(void *object, action_td action,
         enum event_priority_e event_priority);

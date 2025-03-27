@@ -41,7 +41,7 @@
  *         terminating null byte, or 0 if @p str is @c NULL
  *
  * @note If @p str is @c NULL, the function returns 0
- * @note Complexity: @e O(n) where @e n is the length of the string
+ * @note Complexity: @e O(n), where @e n is the length of the string
  *       being measured, up to @p size - 1
  */
 size_t safe_strnlen(const char *str, size_t maxlen);
@@ -58,7 +58,7 @@ size_t safe_strnlen(const char *str, size_t maxlen);
  *         byte, or 0 if @p str is @c NULL
  *
  * @note If @p str is NULL, the function returns 0
- * @note Complexity: @e O(n) where @e n is the length of the string
+ * @note Complexity: @e O(n), where @e n is the length of the string
  *       being measured
  */
 size_t safe_strlen(const char *str);
@@ -81,7 +81,7 @@ size_t safe_strlen(const char *str);
  * @note If the length of the source string exceeds @p size, the
  *       destination will be truncated
  * @note Destination string will always be null-terminated
- * @note Complexity: @e O(n) where @e n is the length of the string
+ * @note Complexity: @e O(n), where @e n is the length of the string
  *       being copied, up to @p size - 1
  */
 char *safe_strncpy(char *restrict dst, const char *restrict src,
@@ -102,10 +102,10 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
  * @note If @p size is 0, the function will not perform any copying and
  *       will return @p dst
  * @note Destination string will always be null-terminated
- * @note This could have been donde referencing @e safe_strncpty with
+ * @note This could have been donde referencing @a safe_strncpty with
  *       @c "return safe_strncpy(dst, src, safe_strlen(src) + 1);", but
  *       it was done otherwise to reduce coupling
- * @note Complexity: @e O(n) where @e n is the length of the string
+ * @note Complexity: @e O(n), where @e n is the length of the string
  *       being copied
  */
 char *safe_strcpy(char *restrict dst, const char *restrict src);
@@ -123,7 +123,7 @@ char *safe_strcpy(char *restrict dst, const char *restrict src);
  *         @p s, or @c NULL if @p s is @c NULL
  *
  * @note The caller is responsible for freeing the allocated memory
- * @note Complexity: @e O(n) where @e n is the minimum of the length of
+ * @note Complexity: @e O(n), where @e n is the minimum of the length of
  *       the string and @e n
  */
 char *safe_strndup(const char *s, size_t n);
@@ -140,7 +140,7 @@ char *safe_strndup(const char *s, size_t n);
  *         @p s, or @c NULL if @p s is @c NULL
  *
  * @note The caller is responsible for freeing the allocated memory
- * @note Complexity: @e O(n) where @e n is the length of the string
+ * @note Complexity: @e O(n), where @e n is the length of the string
  *       being duplicated
  */
 char *safe_strdup(const char *s);
@@ -156,11 +156,13 @@ char *safe_strdup(const char *s);
  *
  * @return Negative value if @p s1 < @p s2, zero if @p s1 == @p s2,
  *         positive @p value if s1 > @p s2, or the value that would be
- *         returned by @e strncmp when one of the strings is @c NULL
+ *         returned by @a strncmp when one of the strings is @c NULL
  *
  * @note If both strings are @c NULL, they are considered equal
  * @note If one of the strings is @c NULL, it handles it appropriately
  *       to avoid undefined behavior
+ * @note Complexity: @e O(n), where @e n is the number of characters to
+ *       compare
  */
 int safe_strncmp(const char *s1, const char *s2, size_t n);
 
@@ -182,6 +184,8 @@ int safe_strncmp(const char *s1, const char *s2, size_t n);
  *       on the @c NULL string
  * @note It prevents undefined behavior from dereferencing @c NULL
  *       pointers
+ * @note Complexity: @e O(n), where @e n is the length of the longest
+ *       string between @p s1 and @p s2
  */
 int safe_strcmp(const char *s1, const char *s2);
 

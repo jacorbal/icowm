@@ -20,7 +20,7 @@
 /**
  * @brief Priority queue implementation as a heap
  *
- * @see heap_td
+ * @see @c heap_td
  */
 typedef heap_td pqueue_td;
 
@@ -29,28 +29,28 @@ typedef heap_td pqueue_td;
 /**
  * @brief Macro that evaluates to the priority queue initialization
  *
- * @see heap_init
+ * @see @a heap_init
  */
 #define pqueue_init heap_init
 
 /**
  * @brief Macro that evaluates to the priority queue deallocation
  *
- * @see heap_destroy
+ * @see @a heap_destroy
  */
 #define pqueue_destroy heap_destroy
 
 /**
  * @brief Insert a new item in the priority queue
  *
- * @see heap_insert
+ * @see @a heap_insert
  */
 #define pqueue_insert heap_insert
 
 /**
  * @brief Extract a item from the priority queue
  *
- * @see heap_extract
+ * @see @a heap_extract
  */
 #define pqueue_extract heap_extract
 
@@ -63,7 +63,7 @@ typedef heap_td pqueue_td;
 /**
  * @brief Macro that evaluates to the size of the priority queue
  *
- * @see heap_size
+ * @see @a heap_size
  */
 #define pqueue_size heap_size
 
@@ -71,7 +71,7 @@ typedef heap_td pqueue_td;
  * @brief Macro that evaluates to the emptiness state of the priority
  *        queue
  * 
- * @see heap_is_empty
+ * @see @a heap_is_empty
  */
 #define pqueue_is_empty heap_is_empty
 

@@ -165,12 +165,12 @@ typedef struct {
  * @retval  2 Failed to open file
  * @retval -1 Singleton was already initialized; no action taken
  *
- * @pre @p level_min must be a valid value in the range @e LOG_MIN_LEVEL
- *      and @e LOG_MAX_LEVEL (closed interval)
+ * @pre @p level_min must be a valid value in the range @c LOG_MIN_LEVEL
+ *      and @c LOG_MAX_LEVEL (closed interval)
  *
  * @note Complexity: @e O(1)
  *
- * @see logger_level_e
+ * @see @c logger_level_e
  */
 int logger_start(const char *filename,
         const enum logger_level_e level_min, bool is_tracking);
@@ -196,7 +196,7 @@ int logger_stop(void);
  *
  * Logs messages with a specified severity level to the given file
  * pointer by the logger instance.  If the severity level is
- * @e LOG_TRACE, then the caller function will be prepended before the
+ * @c LOG_TRACE, then the caller function will be prepended before the
  * message, otherwise is ignored.
  *
  * @return Number of characters printed (excluding the null byte used to
@@ -206,7 +206,7 @@ int logger_stop(void);
  * @note The message to be logged should be a null-terminated string
  * @note Only messages at level @p min_level or higher will be logged
  * @note Complexity: @e O(n), where @e n is the length of the formatted
- *       string (because of @e vsnprintf)
+ *       string (because of @a vsnprintf)
  */
 int logger_msg(enum logger_level_e level, const char *prefix,
         const char *fmt, ...);
@@ -231,27 +231,27 @@ void logger_tracking_off(void);
  * @param msg   Message format string, or @c NULL if no additional
  *              arguments are needed
  *
- * @see logger_msg
+ * @see @a logger_msg
  */
-#define s_LOGGER(level, msg, ...) \
+#define LOGGER(level, msg, ...) \
     logger_msg(level, __func__, msg, __VA_ARGS__)
 
 /**
  * @defgroup Logger_Macros Macros that evaluate to the logger message
  *                         sender by severity for simplicity of the code
  *
- * @see s_LOGGER
+ * @see @c LOGGER
  * @{
  */
-#define LOGGER_TRACE(msg, ...) s_LOGGER(LOG_TRACE, msg, __VA_ARGS__)
-#define LOGGER_DEBUG(msg, ...) s_LOGGER(LOG_DEBUG, msg, __VA_ARGS__)
-#define LOGGER_INFO(msg, ...) s_LOGGER(LOG_INFO, msg, __VA_ARGS__)
-#define LOGGER_NOTICE(msg, ...) s_LOGGER(LOG_NOTICE, msg, __VA_ARGS__)
-#define LOGGER_WARNING(msg, ...) s_LOGGER(LOG_WARNING, msg, __VA_ARGS__)
-#define LOGGER_ERROR(msg, ...) s_LOGGER(LOG_ERROR, msg, __VA_ARGS__)
-#define LOGGER_CRITICAL(msg, ...) s_LOGGER(LOG_CRITICAL, msg, __VA_ARGS__)
-#define LOGGER_ALERT(msg, ...) s_LOGGER(LOG_ALERT, msg, __VA_ARGS__)
-#define LOGGER_FATAL(msg, ...) s_LOGGER(LOG_FATAL, msg, __VA_ARGS__)
+#define LOGGER_TRACE(msg, ...) LOGGER(LOG_TRACE, msg, __VA_ARGS__)
+#define LOGGER_DEBUG(msg, ...) LOGGER(LOG_DEBUG, msg, __VA_ARGS__)
+#define LOGGER_INFO(msg, ...) LOGGER(LOG_INFO, msg, __VA_ARGS__)
+#define LOGGER_NOTICE(msg, ...) LOGGER(LOG_NOTICE, msg, __VA_ARGS__)
+#define LOGGER_WARNING(msg, ...) LOGGER(LOG_WARNING, msg, __VA_ARGS__)
+#define LOGGER_ERROR(msg, ...) LOGGER(LOG_ERROR, msg, __VA_ARGS__)
+#define LOGGER_CRITICAL(msg, ...) LOGGER(LOG_CRITICAL, msg, __VA_ARGS__)
+#define LOGGER_ALERT(msg, ...) LOGGER(LOG_ALERT, msg, __VA_ARGS__)
+#define LOGGER_FATAL(msg, ...) LOGGER(LOG_FATAL, msg, __VA_ARGS__)
 /** @} */
 
 

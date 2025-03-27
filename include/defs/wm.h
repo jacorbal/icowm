@@ -1,4 +1,6 @@
 /**
+ * @file wm.h
+ *
  * @brief Definitions for all related to the window manager itself, as
  *        for screens, desktops and windows
  */

@@ -87,7 +87,7 @@ static void s_wm_update_full(void)
  *       or when the window manager is terminating
  * @note Complexity: @e O(1) for each event processed; however, the
  *       overall time complexity depends on the number of events
- *       processed, so each call to @e event_handle may have a different
+ *       processed, so each call to @a event_handle may have a different
  *       complexity based on the event type and operations performed
  */
 static void s_wm_loop(void)

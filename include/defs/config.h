@@ -1,4 +1,6 @@
 /**
+ * @file config.h
+ *
  * @brief Definitions related to the configuration structure
  */
 

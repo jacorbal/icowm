@@ -136,8 +136,8 @@ int wm_action_screen_rem(void);
 /**
  * @brief Perform actions required before destroying the window manager
  *
- * Executes necessary actions required before invoking @e wm_stop, such
- * as sending additional events to the @e eventq priority queue and
+ * Executes necessary actions required before invoking @a wm_stop, such
+ * as sending additional events to the @p eventq priority queue and
  * ensuring it's completely empty by calling the required actions.
  *
  * @return Status of the operation

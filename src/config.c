@@ -279,7 +279,7 @@ static int s_json_load_config(const char *filename, cJSON **json_out)
  * @brief Set the configuration directory base
  *
  * Set the base path for the configuration directory based on the
- * environment variables @e XDG_CONFIG_HOME and @e HOME.  If neither is
+ * environment variables @c XDG_CONFIG_HOME and @c HOME.  If neither is
  * set, it defaults to the current working directory.  The resulting
  * path is stored in the provided buffer @p config_dir_base.
  *

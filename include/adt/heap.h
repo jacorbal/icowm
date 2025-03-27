@@ -26,11 +26,11 @@ typedef struct {
      * @param key2 Second key to compare
      *
      * @return Status of the operation
-     * @retval -1 if @e key1 < @e key2 for a top-heavy heap
-     * @retval -1 if @e key1 > @e key2 for a bottom-heavy heap
-     * @retval  0 if @e key1 == @e key2
-     * @retval  1 if @e key1 > @e key2 for a top-heavy heap
-     * @retval  1 if @e key1 < @e key2 for a bottom-heavy heap
+     * @retval -1 if @p key1 < @p key2 for a top-heavy heap
+     * @retval -1 if @p key1 > @p key2 for a bottom-heavy heap
+     * @retval  0 if @p key1 == @p key2
+     * @retval  1 if @p key1 > @p key2 for a top-heavy heap
+     * @retval  1 if @p key1 < @p key2 for a bottom-heavy heap
      */
     int (*compare)(const void *key1, const void *key2);
 
@@ -68,7 +68,7 @@ heap_td *heap_init(int (*compare)(const void *key1, const void *key2),
  * @param heap Heap to destroy
  *
  * @note No other operations are permitted after calling this function,
- *       unless @e heap_init is called again
+ *       unless @a heap_init is called again
  * @note Complexity: @e O(n), where @e n is the number of nodes
  */
 void heap_destroy(heap_td *heap);

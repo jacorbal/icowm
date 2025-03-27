@@ -41,7 +41,7 @@
  * @note This value must be in the domain [0 ,1]
  * @note A suggested value is 0.75f
  *
- * @see ohtbl_insert
+ * @see @a ohtbl_insert
  */
 #define OHTBL_MAX_LOAD_FACTOR (0.75f)
 
@@ -72,7 +72,7 @@ typedef struct {
      * @param key2 Second key to compare
      *
      * @return Status of the match inquiry operation
-     * @retval true  Both keys match
+     * @retval  true Both keys match
      * @retval false The keys do not match
      */
     bool (*match)(const void *key1, const void *key2);
@@ -110,7 +110,7 @@ ohtbl_td *ohtbl_init(size_t positions,
  * @param htbl Pointer to the hash table to deallocate
  *
  * @note No other operations are permitted after calling this function,
- *       unless @e ohtbl_init is called again
+ *       unless @a ohtbl_init is called again
  * @note Complexity: @e O(m), where @e m is the number of positions
  */
 void ohtbl_destroy(ohtbl_td *htbl);
@@ -163,10 +163,10 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
 int ohtbl_update(ohtbl_td *htbl, const void *data);
 
 /**
- * @brief Remove an item from the hash table that matches @e data
+ * @brief Remove an item from the hash table that matches @p data
  *
- * If @e data is a match, @e data will point to the data stored in the
- * element that was removed
+ * If @p data is a match, @p data will point to the data stored in the
+ * element that was removed.
  *
  * @param htbl Pointer to the open-addressed hash table
  * @param data Pointer to the data to be matched
@@ -184,7 +184,7 @@ int ohtbl_remove(ohtbl_td *htbl, void **data);
  * @brief Determines if an item matches the data in the hash table
  *
  * If @p data is a match, @p data will point to the matching data in the
- * open-addressed hash table
+ * open-addressed hash table.
  *
  * @param htbl Pointer to the open-addressed hash table to look up in
  * @param data Pointer to the data to look for
