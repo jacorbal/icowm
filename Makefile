@@ -14,7 +14,7 @@ B_DIR = ${PWD}/bin
 SHELL=/bin/sh
 
 ## Compiler & linker options
-CCSTD       = c99 # c89 | c90, c99, c11, c17, gnu11, gnu17
+CCSTD       = c11 # c89 | c90, c99, c11, c17, gnu11, gnu17
 CCOPT       = 2   # 0:debug; 1:optimize; 2:optimize more; 3:even more
 CCOPTS      = -pedantic -pedantic-errors
 CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
@@ -28,6 +28,7 @@ CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
               -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
               -Wunreachable-code -Wmissing-format-attribute \
+              -Wdeprecated \
               -Wno-padded -Wno-unused-parameter
 
 CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
@@ -36,18 +37,20 @@ CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
                -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
-               -Wno-declaration-after-statement -Wno-fortify-source
+               -Wdeclaration-after-statement -Wsometimes-uninitialized \
+               -Wdocumentation -Weverything \
+               -Wno-fortify-source -Wno-cast-align -Wno-cast-qual
 
 CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
 LDFLAGS     = -L ${L_DIR} -lcjson -lX11 -lXpm
 
-# Compiler: `make clean && make CC=gcc` or `make clean && make CC=clang`
-CC = gcc
-ifeq ($(CC), gcc)
-    CCWARN += ${CCWARN_GCC}
-else ifeq ($(CC), clang)
+# Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
+CC = clang
+ifeq ($(CC), clang)
     CCWARN += ${CCWARN_CLANG}
+else ifeq ($(CC), gcc)
+    CCWARN += ${CCWARN_GCC}
 else
     $(error Unsupported compiler '$(CC)'. CC only admits 'gcc' or 'clang')
 endif

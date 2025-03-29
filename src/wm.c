@@ -8,12 +8,11 @@
 #include <stdbool.h>    /* bool, false, true */
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* External libraries */
+/* X11 includes */
 #include <X11/Xlib.h>   /* XOpenDisplay, XCloseDisplay */
 #include <X11/keysym.h> /* XK_* */
 
-/* ADT */
-#include <adt/cdlist.h> /* Doubly linked circular list */
+/* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */

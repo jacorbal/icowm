@@ -5,19 +5,30 @@
  */
 
 /* System includes */
+#include <stdarg.h>     /* va_list, va_start, va_end */
+#include <stdbool.h>    /* bool, false, true */
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* External libraries */
+/* X11 includes */
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+/* Utils includes */
+#include <utils/safemem.h>
+#include <utils/safestr.h>
+
+/* Type includes */
+#include <types/pair.h> /* dimensions_s, geometry_s */
+
 /* Project includes */
+#include <action.h>
+#include <atdata.h>
 #include <config.h>
+#include <event.h>
 #include <eventq.h>
 #include <logger.h>
-
-/* Local includes */
 #include <window.h>
+#include <priority.h>
 
 
 /* Initialize a new window */
@@ -26,6 +37,7 @@ window_td *window_init(Display *display, window_td *parent,
         struct config_theme_s *theme)
 {
     window_td *window;
+    XClassHint *class_hint;
 
     window = malloc(sizeof(window_td));
     if (window == NULL) {
@@ -50,8 +62,9 @@ window_td *window_init(Display *display, window_td *parent,
     window->process.command = NULL;
     window->theme = theme;
 
-    window->name = NULL;    // <-- TODO
-    window->class = NULL;   // <-- TODO
+    window->name = NULL;        // <-- TODO
+    window->class = NULL;       // <-- TODO
+    window->icon_path = NULL;   // <-- TODO
 
     /* Initialize the window in hidden mode */
 //    window->properties.flags |=
@@ -70,12 +83,12 @@ window_td *window_init(Display *display, window_td *parent,
         return NULL;
     }
 
-    // TODO: Esto debería ir en 'window_action_create'
+    // TODO: This should go in 'window_action_create'
     /* Configure window */
     XSetStandardProperties(display, window->window,
             "Ventana", "Titulo", None, NULL, 0, NULL);
 
-    XClassHint *class_hint = XAllocClassHint();
+    class_hint = XAllocClassHint();
     class_hint->res_name = (char *) "my_window";
     class_hint->res_class = (char *) "my_class";
     XSetClassHint(display, window->window, class_hint);
@@ -116,5 +129,141 @@ void window_update(window_td *window)
     //  e.g.: draw_content(window);
 
     /* Optionally, you might want to flush the output buffer */
-    XFlush(window->display);
+    //XFlush(window->display);
+}
+
+
+/* Action to rename a window */
+int window_action_rename(window_td *window, const char *new_name)
+{
+    event_td *event;
+    action_td action;
+    action_data_window_td *data;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = ACTION_WINDOW_RENAME;
+
+    /* NOTE: Memory for the action data structure 'data' must be freed
+     *       with 'action_data_window_destroy' once the event has
+     *       finished processing this action to avoid memory leaks */
+    data = action_data_window_init(window, action.object.window);
+    data->new_data.name = safe_strdup(new_name);
+
+    event = event_init((void *) window, (void *) data,
+            action, PRIORITY_NORMAL);
+
+    return eventq_add(event);
+}
+
+
+/* Action to change class of a window */
+int window_action_reclass(window_td *window, const char *new_class)
+{
+    event_td *event;
+    action_td action;
+    action_data_window_td *data;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = ACTION_WINDOW_RECLASS;
+
+    /* NOTE: Memory for the action data structure 'data' must be freed
+     *       with 'action_data_window_destroy' once the event has
+     *       finished processing this action to avoid memory leaks */
+    data = action_data_window_init(window, action.object.window);
+    data->new_data.class = safe_strdup(new_class);
+
+    event = event_init((void *) window, (void *) data,
+            action, PRIORITY_NORMAL);
+
+    return eventq_add(event);
+}
+
+
+/* Action to move a window to a new position */
+int window_action_move(window_td *window, int new_x, int new_y)
+{
+    event_td *event;
+    action_td action;
+    action_data_window_td *data;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = ACTION_WINDOW_MOVE;
+
+    /* NOTE: Memory for the action data structure 'data' must be freed
+     *       with 'action_data_window_destroy' once the event has
+     *       finished processing this action to avoid memory leaks */
+    data = action_data_window_init(window, action.object.window);
+
+    data->new_data.pos.x = new_x;
+    data->new_data.pos.y = new_y;
+
+    event = event_init((void *) window, (void *) data,
+            action, PRIORITY_NORMAL);
+
+    return eventq_add(event);
+}
+
+
+/* Action to resize a window to a new position */
+int window_action_resize(window_td *window,
+        unsigned int new_w, unsigned int new_h)
+{
+    event_td *event;
+    action_td action;
+    action_data_window_td *data;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = ACTION_WINDOW_RESIZE;
+
+    /* NOTE: Memory for the action data structure 'data' must be freed
+     *       with 'action_data_window_destroy' once the event has
+     *       finished processing this action to avoid memory leaks */
+    data = action_data_window_init(window, action.object.window);
+
+    data->new_data.dim.w = new_w;
+    data->new_data.dim.h = new_h;
+
+    event = event_init((void *) window, (void *) data,
+            action, PRIORITY_NORMAL);
+
+    return eventq_add(event);
+}
+
+
+/* Action to change window icon */
+int window_action_set_icon(window_td *window, const char *icon_path)
+{
+    event_td *event;
+    action_td action;
+    action_data_window_td *data;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = ACTION_WINDOW_SET_ICON;
+
+    /* NOTE: Memory for the action data structure 'data' must be freed
+     *       with 'action_data_window_destroy' once the event has
+     *       finished processing this action to avoid memory leaks */
+    data = action_data_window_init(window, action.object.window);
+    data->new_data.icon_path = safe_strdup(icon_path);
+
+    event = event_init((void *) window, (void *) data,
+            action, PRIORITY_NORMAL);
+
+    return eventq_add(event);
+}
+
+
+/* Generic action for a window */
+int window_action(window_td *window, enum action_window_e action_window,
+        enum priority_e priority)
+{
+    event_td *event;
+    action_td action;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = action_window;
+
+    event = event_init((void *) window, NULL, action, priority);
+
+    return eventq_add(event);
 }

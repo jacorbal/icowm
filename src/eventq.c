@@ -8,15 +8,16 @@
 /* System includes */
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* External libraries */
+/* X11 includes */
 #include <X11/Xlib.h>   /* XEvent */
+#include <X11/Xatom.h>
 //#include <X11/keysym.h> /* XK_* */
 
 /* ADT includes */
 #include <adt/pqueue.h> /* Priority queue (as a heap) */
 
 /* Project includes */
-#include <actions.h>
+#include <action.h>
 #include <desktop.h>
 #include <logger.h>
 #include <screen.h>
@@ -71,20 +72,140 @@ static int s_event_compare(const void *e1, const void *e2)
 }
 
 
-/* */
+/* Handle window events */
 static void s_event_handle_window(event_td *event)
 {
+    if (event == NULL) {
+        LOGGER_ERROR("Received 'NULL' event to process in event queue",
+                L_NARG);
+        return;
+    }
+
+    if (event->action.type != ACTION_TYPE_WINDOW) {
+        return; /* Invalid type */
+    }
+
+    if (event->action.object.window < ACTION_WINDOW_MIN ||
+        event->action.object.window > ACTION_WINDOW_MAX) {
+        return; /* Invalid action */
+    }
+
+    switch (event->action.object.window) {
+        case ACTION_WINDOW_CREATE:
+            break;
+
+        case ACTION_WINDOW_CLOSE:
+            break;
+
+        case ACTION_WINDOW_RESTORE:
+            break;
+
+        case ACTION_WINDOW_FOCUS:
+            break;
+
+        case ACTION_WINDOW_UNFOCUS:
+            break;
+
+        case ACTION_WINDOW_RESIZE:
+            break;
+
+        case ACTION_WINDOW_MOVE:
+            break;
+
+        case ACTION_WINDOW_RENAME:
+            break;
+
+        case ACTION_WINDOW_RECLASS:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_MAXIMIZE:
+            break;
+
+        case ACTION_WINDOW_MAXIMIZE_HORZ:
+            break;
+
+        case ACTION_WINDOW_MAXIMIZE_VERT:
+            break;
+
+        case ACTION_WINDOW_ICONIFY:
+            break;
+
+        case ACTION_WINDOW_STICKY:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_UNSTICKY:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_TOGGLE_STICKY:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_FULLSCREEN:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_UNFULLSCREEN:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_TOGGLE_FULLSCREEN:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_RAISE:
+            /* TODO */
+            XRaiseWindow(((window_td *) event->object)->display,
+                    ((window_td *) event->object)->window);
+            break;
+
+        case ACTION_WINDOW_LOWER:
+            /* TODO */
+            XLowerWindow(((window_td *) event->object)->display,
+                    ((window_td *) event->object)->window);
+            break;
+
+        case ACTION_WINDOW_LAYER_ON_TOP:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_LAYER_NORMAL:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_LAYER_ON_BOTTOM:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_SET_URGENT:
+            /* TODO */
+            break;
+
+        case ACTION_WINDOW_SET_ICON:
+            /* TODO */
+            break;
+    }
+
+    event_destroy(event);
 }
 
 
-/* */
+/* Handle desktop events */
 static void s_event_handle_desktop(event_td *event)
 {
 }
 
 
-/* */
+/* Handle screen events */
 static void s_event_handle_screen(event_td *event)
+{
+}
+
+
+/* Handle window manager events */
+static void s_event_handle_wm(event_td *event)
 {
 }
 
@@ -123,55 +244,6 @@ int eventq_stop(void)
 }
 
 
-/* Initializes a new event structure */
-event_td *event_init(void *object,
-        action_td action,
-        enum event_priority_e priority)
-{
-    event_td *event;
-
-    LOGGER_TRACE("Initializing event data structure", L_NARG);
-    event = malloc(sizeof(event_td));
-    if (event == NULL) {
-        LOGGER_WARNING("Failed to allocate memory for event data" \
-                "structure", L_NARG);
-        return NULL;
-    }
-
-    event->action = action;
-    event->priority = priority;
-
-    switch (event->action.type) {
-        case ACTION_TYPE_WINDOW:
-            event->object.window = (window_td *) object;
-            break;
-
-        case ACTION_TYPE_DESKTOP:
-            event->object.desktop = (desktop_td *) object;
-            break;
-
-        case ACTION_TYPE_SCREEN:
-            event->object.screen = (screen_td *) object;
-            break;
-
-        case ACTION_TYPE_WM:
-            break;
-    }
-
-    return event;
-}
-
-
-/* Deallocate memory for an event structure */
-void event_destroy(event_td *event)
-{
-    LOGGER_TRACE("Destroying event data structure", L_NARG);
-    if (event != NULL) {
-        free(event);
-    }
-}
-
-
 /* Add a event to the event priority queue */
 int eventq_add(event_td *event)
 {
@@ -186,13 +258,34 @@ int eventq_add(event_td *event)
 }
 
 
+/* Dequeue event from priority queue */
+event_td *eventq_extract(void)
+{
+    event_td *event;
+
+    LOGGER_TRACE("Extracting event from event queue", L_NARG);
+    if (pqueue_extract(eventq, (void **) &event) != 0) {
+        LOGGER_WARNING("Failed to extract event from event queue",
+                L_NARG);
+        return NULL;
+    }
+
+    return event;
+}
+
+
 /* Process events in event queue */
-void eventq_process(void)
+int eventq_process(void)
 {
     /* Process 'eventq' events */
     event_td *processed_event;
     while (pqueue_size(eventq) > 0) {
-        pqueue_extract(eventq, (void **) &processed_event);
+        /* pqueue_extract(eventq, (void **) &processed_event); */
+        processed_event = eventq_extract();
+        if (processed_event != 0) {
+            LOGGER_WARNING("Failed to process event", L_NARG);
+            return 1;
+        }
 
         /* Handle each type of event */
         switch (processed_event->action.type) {
@@ -206,10 +299,13 @@ void eventq_process(void)
                 s_event_handle_screen(processed_event);
                 break;
             case ACTION_TYPE_WM:
+                s_event_handle_wm(processed_event);
                 break;
         }
 
         /* Deallocate processed event */
         event_destroy(processed_event);
     }
+
+    return 0;
 }

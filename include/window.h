@@ -12,24 +12,29 @@
 #include <stdbool.h>    /* bool */
 #include <sys/types.h>  /* pid_t */
 
-/* External libraries */
-#include <X11/Xlib.h>   /* Display, Window, Pixmap */
+/* X11 includes */
+#include <X11/Xlib.h>   /* Display, Window */
 
-/* Common type structures */
+/* Type includes */
 #include <types/pair.h> /* dimensions_s, geometry_s */
 
 /* Project includes */
+#include <action.h>
 #include <config.h>
+#include <event.h>
+#include <priority.h>
 
 
 /**
  * @brief Possible window states a window can be in
  */
 enum window_state_e {
-    WINDOW_STATE_IDLE,         /**< Regular state */
-    WINDOW_STATE_ICONIFIED,    /**< Iconified window */
-    WINDOW_STATE_MAXIMIZED,    /**< Maximized */
-    WINDOW_STATE_FULLSCREEN,   /**< Full screen */
+    WINDOW_STATE_IDLE,          /**< Regular state */
+    WINDOW_STATE_ICONIFIED,     /**< Iconified window */
+    WINDOW_STATE_MAXIMIZED,     /**< Maximized */
+    WINDOW_STATE_MAXIMIZED_HORZ,/**< Maximized horizontally */
+    WINDOW_STATE_MAXIMIZED_VERT,/**< Maximized vertically */
+    WINDOW_STATE_FULLSCREEN,    /**< Full screen */
 };
 
 
@@ -65,9 +70,9 @@ enum window_layer_e {
  * behavior, and any applicable flags.
  */
 struct window_properties_s {
-    enum window_state_e state;  /**< State (maximized, iconified,...) */
-    enum window_layer_e layer;  /**< Layer (on top, normal, on bottom) */
-    enum window_flags_e flags;  /**< Flags (sticky, focused,...) */
+    enum window_state_e state;      /**< State (maximized, iconified,...) */
+    enum window_layer_e layer;      /**< Layer (top, normal, bottom) */
+    enum window_flags_e flags;      /**< Flags (sticky, focused,...) */
 
     struct {
         struct geometry_s pos;      /**< Window position (px) */
@@ -106,7 +111,7 @@ typedef struct window_s {
         pid_t pid;              /**< PID of the running program */
     } process;                  /**< Information of process in window */
 
-    Pixmap icon;                /**< Icon image */
+    char *icon_path;            /**< Icon image path */
     struct config_theme_s *theme;
 
     struct window_properties_s properties;
@@ -152,322 +157,163 @@ void window_destroy(window_td *window);
 void window_update(window_td *window);
 
 /**
- * @brief Close the window
+ * @brief Action that initializes an event to rename a specified window
  *
- * Closes the specified window, but does not deallocate any used
- * resources.
+ * @param window   Pointer to the window to be renamed
+ * @param new_name The new name for the window
  *
- * @param window Pointer to the window to be closed
+ * @return Returns the result of adding the event to the queue @p eventq
  *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
+ * @note Memory for the action data structure @p data must be freed with
+ *       @a action_data_window_destroy once the event has finished
+ *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
- */
-int window_action_close(window_td *window);
-
-/**
- * @brief Change properties of the specified window
- *
- * Updates various properties (state, layer, flags) of the specified
- * window.
- *
- * @param window     Pointer to window whose properties will be changed
- * @param properties New properties for the window
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- *
- * @see @c window_properties_s
- */
-int window_action_set_property(window_td *window,
-        const struct window_properties_s *properties);
-
-/**
- * @brief Restore the window to its normal state
- *
- * Restores a minimized or maximized window to its normal size.
- *
- * @param window Pointer to the window to be restored
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_restore(window_td *window);
-
-/**
- * @brief Focus on the specified window
- *
- * Brings the specified window into focus, making it the active window.
- *
- * @param window Pointer to the window to be focused
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_focus(window_td *window);
-
-/**
- * @brief Unfocus the specified window
- *
- * @param window Pointer to the window to be unfocused
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_unfocus(window_td *window);
-
-/**
- * @brief Resize the specified window
- *
- * @param window Pointer to the window to be resized
- * @param dim    Dimensions structure with new values
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- *
- * @see @c dimensions_s
- */
-int window_action_resize(window_td *window, struct dimensions_s dim);
-
-/**
- * @brief Move the specified window to a new position
- *
- * @param window   Pointer to the window to be moved
- * @param geometry Geometry structure with new values
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- *
- * @see @c geometry_s
- */
-int window_action_move(window_td *window, struct geometry_s geometry);
-
-/**
- * @brief Rename the specified window
- *
- * @param window Pointer to the window to be renamed
- * @param new_name New name for the window
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
  */
 int window_action_rename(window_td *window, const char *new_name);
 
 /**
- * @brief Maximize the window horizontally
+ * @brief Action that initializes an event to change the class of
+ *        a specified window
  *
- * Maximizes the width of the specified window while keeping its height
- * unchanged.
+ * @param window    Pointer to the window to be reclassified
+ * @param new_class The new class for the window
  *
- * @param window Pointer to the window to be maximized horizontally
+ * @return Returns the result of adding the event to the queue @p eventq
  *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
+ * @note Memory for the action data structure @p data must be freed with
+ *       @a action_data_window_destroy once the event has finished
+ *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_maximize_horizontally(window_td *window);
+int window_action_reclass(window_td *window, const char *new_class);
 
 /**
- * @brief Maximize the window vertically
+ * @brief Action that initializes an event to move the specified window
+ *        to the given @e (x, y) coordinates
  *
- * Maximizes the height of the specified window while keeping its width
- * unchanged.
+ * @param window Pointer to the window to be reclassified
+ * @param new_x  The new @e x coordinate for the window
+ * @param new_y  The new @e y coordinate for the window
  *
- * @param window Pointer to the window to be maximized vertically
+ * @return Returns the result of adding the event to the queue @p eventq
  *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
+ * @note Memory for the action data structure @p data must be freed with
+ *       @a action_data_window_destroy once the event has finished
+ *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_maximize_vertically(window_td *window);
+int window_action_move(window_td *window, int new_x, int new_y);
 
 /**
- * @brief Maximize the specified window
+ * @brief Action that initializes an event to resize the specified
+ *        window to the given width and height
  *
- * @param window Pointer to the window to be maximized
+ * @param window Pointer to the window to be reclassified
+ * @param new_w  The new width for the window
+ * @param new_h  The new height for the window
  *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
+ * @return Returns the result of adding the event to the queue @p eventq
  *
+ * @note Memory for the action data structure @p data must be freed with
+ *       @a action_data_window_destroy once the event has finished
+ *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_maximize(window_td *window);
+int window_action_resize(window_td *window,
+        unsigned int new_w, unsigned int new_h);
 
 /**
- * @brief Iconify (and also minimize) the specified window
+ * @brief Action that initializes an event to change the icon of
+ *        a specified window
  *
- * Reduces the specified window to an icon on the desktop.  Indeed, the
- * minimization occurs, but it's not seen unless there's a taskbar or
- * dock on the desktop.  The default action is to hide (minimize) the
- * window, and replace it with a pixmap icon that's only visible on the
- * desktop the window was, or the current on if the window was sticky,
- * to be restored when clicking the icon.
+ * @param window    Pointer to the window for which the icon is to change
+ * @param icon_path The file path of the new icon
  *
- * @param window Pointer to the window to be iconified
+ * @return Returns the result of adding the event to the queue @p eventq
  *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_iconify(window_td *window);
-
-/**
- * @brief Toggle the sticky mode of the specified window
- *
- * @param window Pointer to the window to toggle sticky mode
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_toggle_sticky(window_td *window);
-
-/**
- * @brief Toggle full screen mode for the specified window
- *
- * @param window Pointer to the window to toggle full screen mode
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_toggle_fullscreen(window_td *window);
-
-/**
- * @brief Clone an existing window
- *
- * Creates a new window that is a clone of the specified window with
- * same properties, name, and running application.
- *
- * @param window Pointer to the window to clone
- *
- * @return Pointer to the new cloned window, or @c NULL otherwise
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-window_td* window_action_clone(window_td *window);
-
-/**
- * @brief Set the window to always be on top
- *
- * @param window Pointer to the window to be set on top
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_layer_on_top(window_td *window);
-
-/**
- * @brief Set the window to normal layer
- *
- * @param window Pointer to the window to be set to normal layer
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_layer_normal(window_td *window);
-
-/**
- * @brief Set the window to always be at the bottom
- *
- * @param window Pointer to the window to be set at the bottom
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_layer_on_bottom(window_td *window);
-
-/**
- * @brief Update the class of the specified window
- *
- * @param window Pointer to the window whose class will be changed
- * @param class  New class identifier for the window
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_set_class(window_td *window, const char *class);
-
-/**
- * @brief Mark the specified window as urgent
- *
- * Sets the urgency flag for the specified window, typically to grab
- * attention.
- *
- * @param window Pointer to the window to be marked urgent
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int window_action_set_urgent(window_td *window);
-
-/**
- * @brief Set an icon for the specified window
- *
- * Assigns an icon to the specified window, which may be displayed on
- * the desktop, and on taskbar or dock if available.
- *
- * @param window    Pointer to the window for which the icon will be set
- * @param icon_path Path to the icon file to be used
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
+ * @note Memory for the action data structure @p data must be freed with
+ *       @a action_data_window_destroy once the event has finished
+ *       processing this action to avoid memory leaks
+ * @note Complexity @e O(1)
  */
 int window_action_set_icon(window_td *window, const char *icon_path);
+
+/**
+ * @brief Generic action for a window
+ *
+ * Initializes a generic event for a specified action on a window, in
+ * particular, those events related to actions that do not require extra
+ * data.
+ *
+ * @param window        Pointer to the target window
+ * @param action_window The action to be performed on the window
+ * @param priority      The priority level of the action
+ *
+ * @return Returns the result of adding the event to the queue
+ */
+int window_action(window_td *window, enum action_window_e action_window,
+        enum priority_e priority);
+
+#define window_action_close(w) \
+    window_action(w, ACTION_WINDOW_CLOSE, EVENT_PRIORITY_NORMAL)
+
+#define window_action_restore(w) \
+    window_action(w, ACTION_WINDOW_RESTORE, EVENT_PRIORITY_NORMAL)
+
+#define window_action_focus(w) \
+    window_action(w, ACTION_WINDOW_FOCUS, EVENT_PRIORITY_NORMAL)
+
+#define window_action_unfocus(w) \
+    window_action(w, ACTION_WINDOW_FOCUS, EVENT_PRIORITY_NORMAL)
+
+#define window_action_iconify(w) \
+    window_action(w, ACTION_WINDOW_ICONIFY, EVENT_PRIORITY_NORMAL)
+
+#define window_action_iconify(w) \
+    window_action(w, ACTION_WINDOW_ICONIFY, EVENT_PRIORITY_NORMAL)
+
+#define window_action_maximize(w) \
+    window_action(w, ACTION_WINDOW_MAXIMIZE, EVENT_PRIORITY_NORMAL)
+
+#define window_action_sticky(w) \
+    window_action(w, ACTION_WINDOW_STICKY, EVENT_PRIORITY_NORMAL)
+
+#define window_action_unsticky(w) \
+    window_action(w, ACTION_WINDOW_UNSTICKY, EVENT_PRIORITY_NORMAL)
+
+#define window_action_sticky_toggle(w) \
+    window_action(w, ACTION_WINDOW_STICKY_TOGGLE, EVENT_PRIORITY_NORMAL)
+
+#define window_action_fullscreen(w) \
+    window_action(w, ACTION_WINDOW_FULLSCREEN, EVENT_PRIORITY_NORMAL)
+
+#define window_action_fullscreen_toggle(w) \
+    window_action(w, ACTION_WINDOW_FULLSCREEN_TOGGLE, \
+            EVENT_PRIORITY_NORMAL)
+
+#define window_action_raise(w) \
+    window_action(w, ACTION_WINDOW_RAISE, EVENT_PRIORITY_NORMAL)
+
+#define window_action_lower(w) \
+    window_action(w, ACTION_WINDOW_LOWER, EVENT_PRIORITY_NORMAL)
+
+#define window_action_layer_on_top(w) \
+    window_action(w, ACTION_WINDOW_LAYER_ON_TOP, EVENT_PRIORITY_NORMAL)
+
+#define window_action_layer_on_bottom(w) \
+    window_action(w, ACTION_WINDOW_LAYER_ON_BOTTOM, EVENT_PRIORITY_NORMAL)
+
+#define window_action_layer_normal(w) \
+    window_action(w, ACTION_WINDOW_LAYER_NORMAL, EVENT_PRIORITY_NORMAL)
+
+#define window_action_maximize_horz(w) \
+    window_action(w, ACTION_WINDOW_MAXIMIZE_HORZ, EVENT_PRIORITY_NORMAL)
+
+#define window_action_maximize_vert(w) \
+    window_action(w, ACTION_WINDOW_MAXIMIZE_VERT, EVENT_PRIORITY_NORMAL)
+
+#define window_action_set_urgent(w) \
+    window_action(w, ACTION_WINDOW_SET_URGENT, EVENT_PRIORITY_HIGH)
 
 /**
  * @brief Macro that evaluates to toggling the visibility flag

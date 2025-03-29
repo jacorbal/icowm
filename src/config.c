@@ -24,7 +24,7 @@
 #include <stdio.h>      /* FILE, snprintf */
 #include <stdlib.h>     /* NULL, free, malloc, getenv, size_t */
 
-/* External libraries */
+/* X11 includes */
 #include <cjson/cJSON.h>
 
 /* Utils includes */
@@ -124,8 +124,9 @@ static int s_json_load_string(cJSON *json, const char *field, char *dest,
 static int s_json_load_uint(cJSON *json, const char *field,
         unsigned int *dest)
 {
-    cJSON *item = cJSON_GetObjectItem(json, field);
+    cJSON *item;
 
+    item = cJSON_GetObjectItem(json, field);
     if (item && cJSON_IsNumber(item)) {
         *dest = (unsigned int) item->valueint;
         return 0;
@@ -197,6 +198,7 @@ static int s_json_load_bool(cJSON *json, const char *field, bool *dest)
 static int s_json_load_from_file(const char *filename, char **data)
 {
     FILE *file;
+    size_t length;
 
     LOGGER_INFO("Parsing data from file: '%s'", filename);
 
@@ -209,7 +211,7 @@ static int s_json_load_from_file(const char *filename, char **data)
     }
 
     fseek(file, 0, SEEK_END);
-    size_t length = (size_t) ftell(file);
+    length = (size_t) ftell(file);
     if (length == 0) {
         fclose(file);
         LOGGER_NOTICE("File is empty:" \
@@ -252,13 +254,14 @@ static int s_json_load_from_file(const char *filename, char **data)
  */
 static int s_json_load_config(const char *filename, cJSON **json_out)
 {
+    cJSON *json;
     char *data;
 
     if (s_json_load_from_file(filename, &data) != 0) {
         return 1;
     }
 
-    cJSON *json = cJSON_Parse(data);
+    json = cJSON_Parse(data);
     if (json == NULL) {
         LOGGER_WARNING("Failed to parse file:" \
                 " '%s'; default configuration will be used",
@@ -543,6 +546,9 @@ int config_load_base(const char *filename,
         struct config_base_s *config_base)
 {
     cJSON *json;
+    cJSON *programs;
+    cJSON *windows;
+    cJSON *screen_settings;
 
     LOGGER_TRACE("Preparing to parse base configuration from file:" \
             " '%s'", filename);
@@ -561,16 +567,19 @@ int config_load_base(const char *filename,
         config_base->theme[0] = '\0';
     }
 
-    cJSON *screen_settings = cJSON_GetObjectItem(json, "screens");
+    screen_settings = cJSON_GetObjectItem(json, "screens");
     if (screen_settings) {
+        cJSON *settings;
+        cJSON *desktops_array;
+
         /* Load total number of screen */
         s_json_load_uint(screen_settings, "count",
                 &config_base->screen_count);
 
         /* Get 'desktop' array inside 'settings' */
-        cJSON *settings =
+        settings =
             cJSON_GetObjectItem(screen_settings, "settings");
-        cJSON *desktops_array =
+        desktops_array =
             cJSON_GetObjectItem(settings, "desktops");
 
         /* NOTE.  While I recognize this maze of if statements could
@@ -583,10 +592,13 @@ int config_load_base(const char *filename,
             for (unsigned int i = 0;
                     i < desktop_count && i < CONFIG_MAX_DESKTOPS;
                     ++i) {
-                cJSON *desktop_item =
-                    cJSON_GetArrayItem(desktops_array, (int) i);
+                cJSON *desktop_item;
 
+                desktop_item =
+                    cJSON_GetArrayItem(desktops_array, (int) i);
                 if (desktop_item) {
+                    cJSON *desktop_settings;
+
                     /* Load desktop 'count' and 'inaugural' */
                     s_json_load_uint(desktop_item, "count",
                             &config_base->screens[i].desktop_count);
@@ -603,7 +615,7 @@ int config_load_base(const char *filename,
                     }
 
                     /* Get 'settings' field for each desktop */
-                    cJSON *desktop_settings =
+                    desktop_settings =
                         cJSON_GetObjectItem(desktop_item, "settings");
                     if (desktop_settings &&
                             cJSON_IsArray(desktop_settings)) {
@@ -614,7 +626,10 @@ int config_load_base(const char *filename,
                                 j < settings_count &&
                                     j < CONFIG_MAX_DESKTOPS;
                                 ++j) {
-                            cJSON *setting_item =
+                            cJSON *setting_item;
+                            cJSON *background_color_item;
+
+                            setting_item =
                                 cJSON_GetArrayItem(desktop_settings,
                                         (int) j);
                             if (setting_item) {
@@ -624,7 +639,7 @@ int config_load_base(const char *filename,
                                         CONFIG_MAX_LENGTH_NAME);
 
                                 /* Load background color */
-                                cJSON *background_color_item =
+                                background_color_item =
                                     cJSON_GetObjectItem(setting_item,
                                             "background_color");
                                 if (background_color_item &&
@@ -641,7 +656,7 @@ int config_load_base(const char *filename,
     } /* ! if (screen_settings) */
 
     /* Load default programs */
-    cJSON *programs = cJSON_GetObjectItem(json, "programs");
+    programs = cJSON_GetObjectItem(json, "programs");
     if (programs) {
         s_json_load_string(programs, "terminal",
                 config_base->programs.terminal,
@@ -650,10 +665,10 @@ int config_load_base(const char *filename,
                 config_base->programs.launcher,
                 CONFIG_MAX_LENGTH_COMMAND);
         s_json_load_string(programs, "file_manager",
-                config_base->programs.file_manager, 
+                config_base->programs.file_manager,
                 CONFIG_MAX_LENGTH_COMMAND);
         s_json_load_string(programs, "web_browser",
-                config_base->programs.web_browser, 
+                config_base->programs.web_browser,
                 CONFIG_MAX_LENGTH_COMMAND);
         s_json_load_string(programs, "editor",
                 config_base->programs.editor,
@@ -661,17 +676,20 @@ int config_load_base(const char *filename,
     }
 
     /* Load window base configuration */
-    cJSON *windows = cJSON_GetObjectItem(json, "windows");
+    windows = cJSON_GetObjectItem(json, "windows");
     if (windows) {
+        cJSON *focus;
+        cJSON *placement;
+
         s_json_load_uint(windows, "snap", &config_base->windows.snap);
-        cJSON *focus = cJSON_GetObjectItem(windows, "focus");
+        focus = cJSON_GetObjectItem(windows, "focus");
         if (focus) {
             s_json_load_bool(focus, "is_new_focused",
                     &config_base->windows.focus.is_new_focused);
             s_json_load_bool(focus, "is_raised_on_focus",
                     &config_base->windows.focus.is_raised_on_focus);
         }
-        cJSON *placement = cJSON_GetObjectItem(windows, "placement");
+        placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
             s_json_load_string(placement, "policy",
                     config_base->windows.placement.policy,
@@ -692,6 +710,9 @@ int config_load_bindings(const char *filename,
         struct config_bindings_s *config_bindings)
 {
     cJSON *json;
+    cJSON *modifiers;
+    cJSON *keyboard;
+    cJSON *mouse;
 
     LOGGER_TRACE("Parsing bindings configuration from file: '%s'",
             filename);
@@ -702,7 +723,7 @@ int config_load_bindings(const char *filename,
     }
 
     /* Load keyboard modifiers */
-    cJSON *modifiers = cJSON_GetObjectItem(json, "modifiers");
+    modifiers = cJSON_GetObjectItem(json, "modifiers");
     if (modifiers) {
         s_json_load_string(modifiers, "modc", config_bindings->modc,
                 CONFIG_MAX_LENGTH_BINDING);
@@ -723,8 +744,12 @@ int config_load_bindings(const char *filename,
     }
 
     /* Load keybindings */
-    cJSON *keyboard = cJSON_GetObjectItem(json, "keyboard");
+    keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard) {
+        cJSON *move;
+        cJSON *resize;
+        cJSON *desktop;
+
         s_json_load_string(keyboard, "terminal",
                 config_bindings->keyboard.terminal,
                 CONFIG_MAX_LENGTH_BINDING);
@@ -775,9 +800,12 @@ int config_load_bindings(const char *filename,
                 CONFIG_MAX_LENGTH_BINDING);
 
         /* Keybindings for window movement */
-        cJSON *move = cJSON_GetObjectItem(keyboard, "move");
+        move = cJSON_GetObjectItem(keyboard, "move");
         if (move) {
-            cJSON *relative = cJSON_GetObjectItem(move, "relative");
+            cJSON *relative;
+            cJSON *absolute;
+
+            relative = cJSON_GetObjectItem(move, "relative");
             if (relative) {
                 s_json_load_string(relative, "right",
                         config_bindings->keyboard.move.relative.right,
@@ -793,7 +821,7 @@ int config_load_bindings(const char *filename,
                         CONFIG_MAX_LENGTH_BINDING);
             }
 
-            cJSON *absolute = cJSON_GetObjectItem(move, "absolute");
+            absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
                 s_json_load_string(absolute, "top-left",
                         config_bindings->keyboard.move.absolute.top_left,
@@ -811,7 +839,7 @@ int config_load_bindings(const char *filename,
         }
 
         /* Keybindings for window resizing */
-        cJSON *resize = cJSON_GetObjectItem(keyboard, "resize");
+        resize = cJSON_GetObjectItem(keyboard, "resize");
         if (resize) {
             s_json_load_string(resize, "right",
                     config_bindings->keyboard.resize.right,
@@ -828,7 +856,7 @@ int config_load_bindings(const char *filename,
         }
 
         /* Keybindings for desktop cycling */
-        cJSON *desktop = cJSON_GetObjectItem(move, "desktop");
+        desktop = cJSON_GetObjectItem(move, "desktop");
         if (desktop) {
             s_json_load_string(desktop, "cycle_prev",
                     config_bindings->keyboard.desktop.cycle_prev,
@@ -840,8 +868,11 @@ int config_load_bindings(const char *filename,
     }
 
     /* Load mouse bindings */
-    cJSON *mouse = cJSON_GetObjectItem(json, "mouse");
+    mouse = cJSON_GetObjectItem(json, "mouse");
+
     if (mouse) {
+        cJSON *desktop;
+
         s_json_load_string(mouse, "move", config_bindings->mouse.move,
                 CONFIG_MAX_LENGTH_BINDING);
         s_json_load_string(mouse, "resize",
@@ -851,7 +882,7 @@ int config_load_bindings(const char *filename,
                 CONFIG_MAX_LENGTH_BINDING);
 
         /* Mouse bindings for desktop cycling */
-        cJSON *desktop = cJSON_GetObjectItem(mouse, "desktop");
+        desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
             s_json_load_string(desktop, "cycle_prev",
                     config_bindings->mouse.desktop.cycle_prev,
@@ -874,6 +905,8 @@ int config_load_theme(const char *filename,
         struct config_theme_s *config_theme)
 {
     cJSON *json;
+    cJSON *window;
+    cJSON *icon;
 
     LOGGER_TRACE("Parsing theme configuration from file: '%s'",
             filename);
@@ -888,9 +921,13 @@ int config_load_theme(const char *filename,
             CONFIG_MAX_LENGTH_FONTNAME);
 
     /* Load window general appearance */
-    cJSON *window = cJSON_GetObjectItem(json, "window");
+    window = cJSON_GetObjectItem(json, "window");
     if (window) {
-        cJSON *general = cJSON_GetObjectItem(window, "general");
+        cJSON *general;
+        cJSON *active;
+        cJSON *inactive;
+
+        general = cJSON_GetObjectItem(window, "general");
         if (general) {
             s_json_load_uint(general, "border_width",
                     &config_theme->window.general.border_width);
@@ -899,21 +936,25 @@ int config_load_theme(const char *filename,
         }
 
         /* Load active window appearance */
-        cJSON *active = cJSON_GetObjectItem(window, "active");
+        active = cJSON_GetObjectItem(window, "active");
         if (active) {
-            cJSON *background_color = cJSON_GetObjectItem(active,
+            cJSON *background_color;
+            cJSON *foreground_color;
+            cJSON *border_color;
+
+            background_color = cJSON_GetObjectItem(active,
                     "background_color");
             if (background_color) {
                 config_theme->window.active.background_color =
                     s_hex2ul(background_color->valuestring);
             }
-            cJSON *foreground_color = cJSON_GetObjectItem(active,
+            foreground_color = cJSON_GetObjectItem(active,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.active.foreground_color =
                     s_hex2ul(foreground_color->valuestring);
             }
-            cJSON *border_color = cJSON_GetObjectItem(active,
+            border_color = cJSON_GetObjectItem(active,
                     "border_color");
             if (border_color) {
                 config_theme->window.active.border_color =
@@ -924,21 +965,25 @@ int config_load_theme(const char *filename,
                     CONFIG_MAX_LENGTH_FONTNAME); }
 
         /* Load inactive window appearance */
-        cJSON *inactive = cJSON_GetObjectItem(window, "inactive");
+        inactive = cJSON_GetObjectItem(window, "inactive");
         if (inactive) {
-            cJSON *background_color = cJSON_GetObjectItem(inactive,
+            cJSON *background_color;
+            cJSON *foreground_color;
+            cJSON *border_color;
+
+            background_color = cJSON_GetObjectItem(inactive,
                     "background_color");
             if (background_color) {
                 config_theme->window.inactive.background_color =
                     s_hex2ul(background_color->valuestring);
             }
-            cJSON *foreground_color = cJSON_GetObjectItem(inactive,
+            foreground_color = cJSON_GetObjectItem(inactive,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.inactive.foreground_color =
                     s_hex2ul(foreground_color->valuestring);
             }
-            cJSON *border_color = cJSON_GetObjectItem(inactive,
+            border_color = cJSON_GetObjectItem(inactive,
                     "border_color");
             if (border_color) {
                 config_theme->window.inactive.border_color =
@@ -950,21 +995,25 @@ int config_load_theme(const char *filename,
     }
 
     /* Load icon appearance when iconifying */
-    cJSON *icon = cJSON_GetObjectItem(json, "icon");
+    icon = cJSON_GetObjectItem(json, "icon");
     if (icon) {
-        cJSON *background_color = cJSON_GetObjectItem(icon,
+        cJSON *background_color;
+        cJSON *foreground_color;
+        cJSON *border_color;
+
+        background_color = cJSON_GetObjectItem(icon,
                 "background_color");
         if (background_color) {
             config_theme->icon.background_color =
                 s_hex2ul(background_color->valuestring);
         }
-        cJSON *foreground_color = cJSON_GetObjectItem(icon,
+        foreground_color = cJSON_GetObjectItem(icon,
                 "foreground_color");
         if (foreground_color) {
             config_theme->icon.foreground_color =
                 s_hex2ul(foreground_color->valuestring);
         }
-        cJSON *border_color = cJSON_GetObjectItem(icon,
+        border_color = cJSON_GetObjectItem(icon,
                 "border_color");
         if (border_color) {
             config_theme->icon.border_color =

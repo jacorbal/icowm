@@ -29,11 +29,11 @@ struct config_base_s {
 
     /* Desktops: number and which on is the default one */
     unsigned int screen_count;                  /**< Number of screens */
-    struct screens_s {
+    struct {
         unsigned int desktop_count;             /**< No. of desktops */
         unsigned int desktop_inaugural;         /**< Initial desktop */
 
-        struct desktops_s {
+        struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
             struct desktop_settings_s {
                 union {
@@ -45,7 +45,7 @@ struct config_base_s {
     } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
     /* Basic main programs: terminal and program launcher */
-    struct programs_s {
+    struct {
         char terminal[CONFIG_MAX_LENGTH_COMMAND];
         char launcher[CONFIG_MAX_LENGTH_COMMAND];
         char file_manager[CONFIG_MAX_LENGTH_COMMAND];
@@ -54,7 +54,7 @@ struct config_base_s {
     } programs;
 
     /* General behavior of environment towards windows */
-    struct windows_s {
+    struct {
         unsigned int snap;
         struct {
             bool is_new_focused;
@@ -102,7 +102,7 @@ struct config_bindings_s {
         char cycle_next[CONFIG_MAX_LENGTH_BINDING];
 
         /* Window movement, absolute and relative positions */
-        struct move_s {
+        struct {
             struct relative_s {
                 char right[CONFIG_MAX_LENGTH_BINDING];
                 char left[CONFIG_MAX_LENGTH_BINDING];
@@ -110,7 +110,7 @@ struct config_bindings_s {
                 char down[CONFIG_MAX_LENGTH_BINDING];
             } relative;
 
-            struct absolute_s {
+            struct {
                 char top_left[CONFIG_MAX_LENGTH_BINDING];
                 char top_right[CONFIG_MAX_LENGTH_BINDING];
                 char bottom_left[CONFIG_MAX_LENGTH_BINDING];
@@ -118,21 +118,21 @@ struct config_bindings_s {
             } absolute;
         } move;
 
-        struct resize_s {
+        struct {
             char right[CONFIG_MAX_LENGTH_BINDING];
             char left[CONFIG_MAX_LENGTH_BINDING];
             char up[CONFIG_MAX_LENGTH_BINDING];
             char down[CONFIG_MAX_LENGTH_BINDING];
         } resize;
 
-        struct desktop_s {
+        struct {
             char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
             char cycle_next[CONFIG_MAX_LENGTH_BINDING];
         } desktop;
     } keyboard;
 
     /* Mouse bindings */
-    struct mouse_s {
+    struct {
         char move[CONFIG_MAX_LENGTH_BINDING];
         char resize[CONFIG_MAX_LENGTH_BINDING];
         char lower[CONFIG_MAX_LENGTH_BINDING];
@@ -152,20 +152,20 @@ struct config_theme_s {
     char name[80];
 
     /* Window theme */
-    struct window_theme {
+    struct window_theme_s {
         struct general_s {
             unsigned int border_width;
             bool is_decorated;
         } general;
 
-        struct active_s {
+        struct {
             unsigned long int background_color;
             unsigned long int foreground_color;
             unsigned long int border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
-        struct inactive_s {
+        struct {
             unsigned long int background_color;
             unsigned long int foreground_color;
             unsigned long int border_color;
@@ -174,7 +174,7 @@ struct config_theme_s {
     } window;
 
     /* Icons theme when windows are iconified */
-    struct icon_s {
+    struct {
         unsigned long int background_color;
         unsigned long int foreground_color;
         unsigned long int border_color;

@@ -61,7 +61,7 @@ int logger_start(const char *filename,
             (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
             (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
             level_min;
-            
+
         /* Tracking: always or only on 'LOG_TRACE' level */
         logger->is_tracking = is_tracking;
 
@@ -198,7 +198,6 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
     }
 
-    va_start(args, fmt);
 
     /* Format first part message */
     if (logger->level_min == LOG_TRACE || logger->is_tracking) {
@@ -211,17 +210,28 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 
     /* Handle possible errors */
     if (len < 0 || (size_t) len >= sizeof(msg)) {
-        va_end(args);
         return -1;
     }
 
     /* Format additional message */
+    va_start(args, fmt);
     len_fmt = vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
     va_end(args);
-    if (len_fmt < 0 ) {
+    if (len_fmt < 0) {
+        /* Fail if 'vsnprintf' did not complete successfully */
         return -1;
     }
-    len += len_fmt; /* Update total length */
+
+    /* Calculate final length, accounting for potential truncation */
+    len += len_fmt;     /* Update total length */
+    msg[len] = '\0';    /* Ensure null termination */
+
+    /* Truncate the message if necessary */
+    if ((size_t) len >= sizeof(msg)) {
+        len = sizeof(msg) - 4;
+        msg[len] = '\0';
+        safe_strcat(msg, "..."); /* Append "..." if truncation */
+    }
 
     /* If no buffer is used, just print it */
     if (logger->buffer == NULL) {

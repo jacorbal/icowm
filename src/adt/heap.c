@@ -82,7 +82,7 @@ int heap_insert(heap_td *heap, const void *data)
     }
 
     /* Insert the node after the last node */
-    heap->tree[heap_size(heap)] = (void *)data;
+    heap->tree[heap_size(heap)] = (void *) data;
 
     /* Heapify the tree by pushing the contents of the new node upward */
     ipos = heap_size(heap);

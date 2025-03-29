@@ -2,6 +2,10 @@
  * @file pair.h
  *
  * @brief Common shared structures for pair types (2D)
+ *
+ * @note Some of them are repeated but with different name, for clarity
+ *       of the code, although I will implement this in a better way in
+ *       the future
  */
 
 #ifndef PAIR_H

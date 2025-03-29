@@ -100,8 +100,8 @@ enum logger_level_e {
  * Provides a mechanism for logging messages within the application,
  * including support for different logging levels and buffered message
  * storage.  The logger utilizes a buffer to temporarily store up to
- * @p LOGGER_FLUSH_THRESHOLD (16) messages, each with a maximum length
- * of @p LOGGER_MAX_LENGTH_MSG (160 characters).  This approach minimizes
+ * @c LOGGER_FLUSH_THRESHOLD (16) messages, each with a maximum length
+ * of @c LOGGER_MAX_LENGTH_MSG (160 characters).  This approach minimizes
  * direct file I/O operations by allowing the logger to flush messages
  * in chunks, thereby improving performance while still ensuring message
  * delivery in the event of an error.
@@ -225,7 +225,7 @@ void logger_tracking_off(void);
 /**
  * @brief Logger helper macro for various severity levels
  *
- * Macro that calls the @c LOGGER_* macros with the appropriate level
+ * Macro that calls the @a LOGGER_* macros with the appropriate level
  *
  * @param level Message level
  * @param msg   Message format string, or @c NULL if no additional
@@ -234,13 +234,13 @@ void logger_tracking_off(void);
  * @see @a logger_msg
  */
 #define LOGGER(level, msg, ...) \
-    logger_msg(level, __func__, msg, __VA_ARGS__)
+    logger_msg(level, __func__, (const char *) msg, __VA_ARGS__)
 
 /**
- * @defgroup Logger_Macros Macros that evaluate to the logger message
- *                         sender by severity for simplicity of the code
+ * @defgroup Logger Macros that evaluate to the logger message sender by
+ *                  severity for simplicity of the code
  *
- * @see @c LOGGER
+ * @see @a LOGGER
  * @{
  */
 #define LOGGER_TRACE(msg, ...) LOGGER(LOG_TRACE, msg, __VA_ARGS__)

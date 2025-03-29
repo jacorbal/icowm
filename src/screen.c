@@ -8,7 +8,7 @@
 #include <stdbool.h>    /* bool, false, true */
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* External libraries */
+/* X11 includes */
 #include <X11/Xlib.h>   /* Display, Screen */
 
 /* ADT includes */
@@ -59,9 +59,9 @@ static void s_update_properties(screen_td *screen, Screen *xscreen)
     }
 
     /* Set visual properties */
-    screen->properties.visual_info.properties.depth = 
+    screen->properties.visual_info.properties.depth =
         DefaultDepth(screen->display, screen->id);
-    screen->properties.visual_info.properties.colormaps = 
+    screen->properties.visual_info.properties.colormaps =
         DefaultColormap(screen->display, screen->id);
     screen->properties.visual_info.visual =
         DefaultVisual(screen->display, screen->id);
@@ -174,13 +174,14 @@ void screen_update(screen_td *screen)
 /* Full screen update */
 void screen_update_full(screen_td *screen)
 {
+    cdlist_item_td *desktop_node  = cdlist_head(screen->desktops);
+
     LOGGER_TRACE("Fully updating screen %u", screen->id);
 
     /* Soft update */
     screen_update(screen);
 
     /* Update all desktops */
-    cdlist_item_td *desktop_node = cdlist_head(screen->desktops);
     if (desktop_node != NULL) {
         /* Reference to the initial node not to end up an infinite loop
          * in this circular list */
@@ -295,12 +296,14 @@ desktop_td *screen_desktop_get(screen_td *screen,
 desktop_td *screen_desktop_prev(screen_td *screen,
         unsigned int desktop_id, bool cycle)
 {
+    cdlist_item_td *current_item;
+
     if (screen == NULL || screen->desktops == NULL ||
             screen->desktop_count == 0) {
         return NULL;
     }
 
-    cdlist_item_td *current_item = cdlist_head(screen->desktops);
+    current_item = cdlist_head(screen->desktops);
     for (size_t i = 0; i < screen->desktop_count; ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
@@ -327,12 +330,14 @@ desktop_td *screen_desktop_prev(screen_td *screen,
 desktop_td *screen_desktop_next(screen_td *screen,
         unsigned int desktop_id, bool cycle)
 {
+    cdlist_item_td *current_item;
+
     if (screen == NULL || screen->desktops == NULL ||
             screen->desktop_count == 0) {
         return NULL;
     }
 
-    cdlist_item_td *current_item = cdlist_head(screen->desktops);
+    current_item = cdlist_head(screen->desktops);
     for (size_t i = 0; i < screen->desktop_count; ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
@@ -359,11 +364,13 @@ desktop_td *screen_desktop_next(screen_td *screen,
 /* Select the previous desktop, optionally cycling */
 int screen_desktop_select_prev(screen_td *screen, bool cycle)
 {
-   if (screen == NULL || screen->desktop_count == 0) {
+    desktop_td *prev_desktop;
+
+    if (screen == NULL || screen->desktop_count == 0) {
         return -1;
     }
 
-    desktop_td *prev_desktop =
+    prev_desktop =
         screen_desktop_prev(screen, screen->desktop_cur, cycle);
     if (prev_desktop) {
         /* Update ID of new current desktop */
@@ -379,11 +386,13 @@ int screen_desktop_select_prev(screen_td *screen, bool cycle)
 /* Select the next desktop, optionally cycling */
 int screen_desktop_select_next(screen_td *screen, bool cycle)
 {
+    desktop_td *next_desktop;
+
     if (screen == NULL || screen->desktop_count == 0) {
         return -1;
     }
 
-    desktop_td *next_desktop =
+    next_desktop =
         screen_desktop_next(screen, screen->desktop_cur, cycle);
     if (next_desktop) {
         /* Update ID of new current desktop */
@@ -399,12 +408,14 @@ int screen_desktop_select_next(screen_td *screen, bool cycle)
 /* Select a specific desktop by ID */
 int screen_desktop_select(screen_td *screen, unsigned int desktop_id)
 {
+    cdlist_item_td *current_item;
+
     if (screen == NULL || screen->desktop_count == 0) {
         return -1;
     }
 
     /* Iterate through the desktops list to check if ID is valid */
-    cdlist_item_td *current_item = cdlist_head(screen->desktops);
+    current_item = cdlist_head(screen->desktops);
     for (size_t i = 0; i < screen->desktop_count; ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {

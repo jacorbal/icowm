@@ -68,7 +68,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
     }
 
     /* Insert the item into the list */
-    new_item->data = (void *)data;
+    new_item->data = (void *) data;
 
     /* Handle insertion at the tail of the list */
     if (item == NULL) {
@@ -125,7 +125,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
 
 /* Insert an item after a given item */
 int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
-        const void *data) 
+        const void *data)
 {
     cdlist_item_td *new_item;
 
@@ -135,10 +135,10 @@ int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
     }
 
     /* Insert the item into the list */
-    new_item->data = (void *)data;
+    new_item->data = (void *) data;
 
+    /* Handle insertion at the head of the list */
     if (item == NULL) {
-        /* Handle insertion at the head of the list */
         if (cdlist_size(cdlist) == 0) {
             new_item->next = new_item;  /* Point to itself */
             new_item->prev = new_item;  /* Point to itself */
@@ -205,9 +205,9 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
             /* Move tail to the previous item */
             cdlist->tail = cdlist->tail->prev;
             /* New tail points to the head */
-            cdlist->tail->next = cdlist->head; 
+            cdlist->tail->next = cdlist->head;
             /* Head points back to new tail */
-            cdlist->head->prev = cdlist->tail; 
+            cdlist->head->prev = cdlist->tail;
         }
     } else {
         /* Handle removal from somewhere other than the tail */
@@ -221,15 +221,15 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
 
         if (old_item->prev != NULL) {
             /* Link previous item to current item's previous */
-            old_item->prev->next = item; 
+            old_item->prev->next = item;
         } else {
             /* If we're removing the head, update head */
-            cdlist->head = item; 
+            cdlist->head = item;
         }
 
         if (old_item == cdlist->tail) {
             /* If we are removing the tail */
-            cdlist->tail = item->prev; 
+            cdlist->tail = item->prev;
         } else {
             /* Link current item's previous to the next item */
             item->prev->next = item;

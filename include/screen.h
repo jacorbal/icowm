@@ -11,18 +11,24 @@
 #include <stddef.h>     /* size_t */
 #include <stdbool.h>    /* bool */
 
-/* External libraries */
+/* X11 includes */
 #include <X11/Xlib.h>   /* Window, Colormap */
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 
-/* Common type structures */
+/* Type includes */
 #include <types/pair.h> /* dimensions_s, size_s */
 
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
+
+
+/* Forward declaration; allows 'desktop_td' to be referenced without
+ * complete definition, improving modularity and reducing compilation
+ * dependencies, and supporting possible circular dependencies */
+typedef struct desktop_s desktop_td;
 
 
 /**

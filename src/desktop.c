@@ -11,7 +11,7 @@
 #include <time.h>       /* time */
 #include <unistd.h>     /* getpid */
 
-/* External libraries */
+/* X11 includes */
 //#include <X11/Xlib.h>
 
 /* ADT includes */
@@ -95,6 +95,8 @@ desktop_td *desktop_init(unsigned int screen_id,
         desktop->name[DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
 
     /* Set background color */
+    /* TODO: use image instead of color, and 'image_path' */
+    desktop->background.is_image = false;
     desktop->background.bg.color =
         config_base->screens[screen_id].desktops[desktop_id].settings.background.color;
 
@@ -214,6 +216,8 @@ int desktop_action_window_add(desktop_td *desktop, window_td *window)
 /* Remove a window from the desktop */
 int desktop_action_window_rem(desktop_td *desktop, window_td *window)
 {
+    void *removed_window = NULL;
+
     LOGGER_DEBUG("Preparing to remove window %#lx ('%s') from" \
             " desktop %u ('%s')",
             window->id, window->name, desktop->id, desktop->name);
@@ -223,7 +227,6 @@ int desktop_action_window_rem(desktop_td *desktop, window_td *window)
     }
 
     /* Search window in list of windows */
-    void *removed_window = NULL;
     if (ohtbl_remove(desktop->windows,
                 (void **) &removed_window) == 0) {
         window_td *removed_window_td = (window_td *) removed_window;

@@ -17,22 +17,24 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     const uint8_t *data = (const uint8_t *) key;
     const int nblocks = len / 4;
     uint32_t h = seed;
+    const uint8_t *tail;
+    uint32_t k;
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
-        /* uint32_t k = *(uint32_t *) (data + i * 4); */
-        uint32_t k;
-        memcpy(&k, data + i * 4, sizeof(uint32_t));
-        k *= 0xc6a4a793;
-        k ^= k >> 24;
-        k *= 0xc6a4a793;
-        h ^= k;
+        /* uint32_t k_ = *(uint32_t *) (data + i * 4); */
+        uint32_t k_;
+        memcpy(&k_, data + i * 4, sizeof(uint32_t));
+        k_ *= 0xc6a4a793;
+        k_ ^= k_ >> 24;
+        k_ *= 0xc6a4a793;
+        h ^= k_;
         h *= 0xc6a4a793;
     }
 
     /* Process remaining bytes */
-    const uint8_t *tail = data + nblocks * 4;
-    uint32_t k = 0;
+    tail = data + nblocks * 4;
+    k = 0;
 
     switch (len & 3) {
         case 3: k ^= (unsigned int) tail[2] << 16;      /* SLL16 */
@@ -53,33 +55,34 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     return h;
 }
 
- 
+
 /* MurmurHash2 32-bit hash function */
 uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
 {
     const uint8_t *data = (const uint8_t *) key;
     const int nblocks = len / 4;
     uint32_t h = seed ^ (uint32_t) len;
-
     const uint32_t c1 = 0xcc9e2d51;
     const uint32_t c2 = 0x1b873593;
+    const uint8_t *tail;
+    uint32_t k;
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
-        /* uint32_t k = *(uint32_t *) (data + i * 4); */
-        uint32_t k;
-        memcpy(&k, data + i * 4, sizeof(uint32_t));
-        k *= c1;
-        k = (k << 15) | (k >> (32 - 15));           /* ROTL15 */
-        k *= c2;
-        h ^= k;
+        /* uint32_t k_ = *(uint32_t *) (data + i * 4); */
+        uint32_t k_;
+        memcpy(&k_, data + i * 4, sizeof(uint32_t));
+        k_ *= c1;
+        k_ = (k_ << 15) | (k_ >> (32 - 15));           /* ROTL15 */
+        k_ *= c2;
+        h ^= k_;
         h = (h << 13) | (h >> (32 - 13));           /* ROTL13 */
         h = h * 5 + 0xe6546b64;
     }
 
     /* Process remaining bytes */
-    const uint8_t *tail = data + nblocks * 4;
-    uint32_t k = 0;
+    tail = data + nblocks * 4;
+    k = 0;
 
     switch (len & 3) {
         case 3: k ^= (unsigned int) tail[2] << 16;
@@ -106,28 +109,29 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
 {
     const uint8_t *data = (const uint8_t*) key;
     const int nblocks = len / 4;
-
     uint32_t h = seed;
     uint32_t c1 = 0xcc9e2d51;
     uint32_t c2 = 0x1b873593;
+    const uint8_t *tail;
+    uint32_t k;
 
     /* Process 4-byte blocks */
     for (int i = 0; i < nblocks; ++i) {
         /* uint32_t k = *(uint32_t *) (data + i * 4); */
-        uint32_t k;
-        memcpy(&k, data + i * 4, sizeof(uint32_t));
-        k *= c1;
-        k = (k << 15) | (k >> (32 - 15));           /* ROTL15 */
-        k *= c2;
+        uint32_t k_;
+        memcpy(&k_, data + i * 4, sizeof(uint32_t));
+        k_ *= c1;
+        k_ = (k_ << 15) | (k_ >> (32 - 15));           /* ROTL15 */
+        k_ *= c2;
 
-        h ^= k;
+        h ^= k_;
         h = (h << 13) | (h >> (32 - 13));           /* ROTL13 */
         h = h * 5 + 0xe6546b64;
     }
 
     /* Process remaining bytes */
-    const uint8_t *tail = (const uint8_t *) (data + nblocks * 4);
-    uint32_t k = 0;
+    tail = (const uint8_t *) (data + nblocks * 4);
+    k = 0;
     switch (len & 3) {
         case 3:
             k ^= (unsigned int) tail[2] << 16;

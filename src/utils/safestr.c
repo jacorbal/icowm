@@ -1,7 +1,7 @@
 /**
  * @file safestr.c
  *
- * @brief Implementation of safe string handling functions
+ * @brief Implementation for enhanced safe string functions
  */
 
 /* System includes */
@@ -15,12 +15,15 @@
 /* Calculate the length of a string, up to a maximum length */
 size_t safe_strnlen(const char *str, size_t maxlen)
 {
+    size_t len;
+    const char *s;
+
     if (str == NULL) {
         return 0;
     }
 
-    const char *s = str;
-    size_t len = 0;
+    s = str;
+    len = 0;
 
     while (len < maxlen && *s) {
         s++;
@@ -34,11 +37,13 @@ size_t safe_strnlen(const char *str, size_t maxlen)
 /* Calculate the length of a string */
 size_t safe_strlen(const char *str)
 {
+    const char *s;
+
     if (str == NULL) {
         return 0;
     }
 
-    const char *s = str;
+    s = str;
 
     while (*s) {
         s++;
@@ -50,20 +55,22 @@ size_t safe_strlen(const char *str)
 
 /* Safely copies a string from 'src' to 'dst' */
 char *safe_strncpy(char *restrict dst, const char *restrict src,
-        size_t size)
+        size_t sz)
 {
-    if (dst == NULL || src == NULL || size == 0) {
+    char *dst_s;
+
+    if (dst == NULL || src == NULL || sz == 0) {
         return dst;
     }
 
-    char *dst_s = dst;
+    dst_s = dst;
 
     /* Copy until n-th character */
-    while (size - 1 > 0 && *src != '\0') {
+    while (sz - 1 > 0 && *src != '\0') {
         *dst = *src;
         dst++;
         src++;
-        size--;
+        sz--;
     }
 
     /* Null-terminate the destination string */
@@ -76,11 +83,13 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
 /* Copies a string from 'src' to 'dst' without exceeding buffer size */
 char *safe_strcpy(char *restrict dst, const char *restrict src)
 {
+    char *dst_s;
+
     if (dst == NULL || src == NULL) {
         return dst;
     }
 
-    char *dst_s = dst;
+    dst_s = dst;
 
     while (*src != '\0') {
         *dst = *src;
@@ -96,12 +105,15 @@ char *safe_strcpy(char *restrict dst, const char *restrict src)
 /* Creates a duplicate of a string with a specified maximum length */
 char *safe_strndup(const char *s, size_t n)
 {
+    size_t len;
+    char *copy;
+
     if (s == NULL) {
         return NULL;
     }
 
-    size_t len = safe_strnlen(s, n);
-    char *copy = (char *) malloc(len + 1);
+    len = safe_strnlen(s, n);
+    copy = (char *) malloc(len + 1);
 
     if (copy) {
         memcpy(copy, s, len);
@@ -115,18 +127,77 @@ char *safe_strndup(const char *s, size_t n)
 /* Safely duplicates a string */
 char *safe_strdup(const char *s)
 {
+    size_t len;
+    char *copy;
+
     if (s == NULL) {
         return NULL;
     }
 
-    size_t len = safe_strlen(s) + 1;
-    char *copy = (char *) malloc(len);
+    len = safe_strlen(s) + 1;
+    copy = (char *) malloc(len);
 
     if (copy) {
         memcpy(copy, s, len);
     }
 
     return copy;
+}
+
+
+/* Concatenates at most 'n' characters from one string to another */
+char *safe_strncat(char *restrict dst, const char *restrict src, size_t sz)
+{
+    size_t dst_len;
+    size_t remaining_space;
+    size_t i;
+
+    if (dst == NULL || src == NULL || sz == 0) {
+        return dst; /* Return 'dst' if there's nothing to concatenate */
+    }
+
+    dst_len = safe_strlen(dst);
+
+    if (dst_len >= sz) {
+        /* No enough space, nothing done */
+        return dst;
+    }
+
+    remaining_space = sz - dst_len;
+
+    /* Concatenate the maximum number of characters from 'src' */
+    for (i = 0; i < remaining_space - 1 && src[i] != '\0'; ++i) {
+        dst[dst_len + i] = src[i];  /* Copy the character */
+    }
+
+    /* Ensure that 'dst' is null terminated */
+    dst[dst_len + i] = '\0';
+
+    return dst;
+}
+
+
+/* Concatenate two strings */
+char *safe_strcat(char *restrict dst, const char *restrict src)
+{
+    size_t dst_len;
+    size_t i;
+
+    if (dst == NULL || src == NULL) {
+        return dst; /* Return 'dst' if there's nothing to concatenate */
+    }
+
+    dst_len = safe_strlen(dst);
+
+    /* Concatenate characters from 'src' to 'dst' */
+    for (i = 0; src[i] != '\0'; i++) {
+        dst[dst_len + i] = src[i];  /* Copy every character */
+    }
+
+    /* Ensure that 'dst' is null terminated */
+    dst[dst_len + i] = '\0';
+
+    return dst;
 }
 
 

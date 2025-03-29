@@ -70,7 +70,7 @@ typedef heap_td pqueue_td;
 /**
  * @brief Macro that evaluates to the emptiness state of the priority
  *        queue
- * 
+ *
  * @see @a heap_is_empty
  */
 #define pqueue_is_empty heap_is_empty

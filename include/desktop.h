@@ -13,7 +13,7 @@
 /* ADT includes */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
-/* Definitions and inclusions */
+/* Default initial values */
 #include <defs/wm.h>
 
 /* Project includes */
@@ -21,11 +21,17 @@
 #include <window.h>
 
 
+/* Forward declaration; allows 'window_td' to be referenced without
+ * complete definition, improving modularity and reducing compilation
+ * dependencies, and supporting possible circular dependencies */
+typedef struct window_s window_td;
+
+
 /**
  * @brief Structure for a virtual desktop within an X11 screen
  *
  * Each desktop can be customized with unique backgrounds and themes,
- * where the background can either be a solid color or an pixmap image.
+ * where the background can either be a solid color or a pixmap image.
  * The structure tracks its own active window, facilitating the
  * management of user interactions within that desktop space.
  *
@@ -34,17 +40,17 @@
  * ensuring that users always have access to the most current
  * information about their environment.
  */
-typedef struct {
+typedef struct desktop_s {
     unsigned int screen_id;                 /**< Screen index */
     unsigned int id;                        /**< Desktop index */
 
     char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
 
     struct background_s {
-//        bool is_image;                      /**< BG color or image? */
+        bool is_image;                      /**< BG color or image? */
         union {
             unsigned long color;            /**< Background color */
-//            Pixmap pixmap;                  /**< Background image */
+            char *image_path;               /**< Background image */
         } bg;                               /**< Background information */
     } background;
 
@@ -54,7 +60,8 @@ typedef struct {
     struct config_base_s *config_base;      /**< Base configuration */
     struct config_theme_s *config_theme;    /**< Theme configuration */
 
-    bool is_outdated;   /**< Flag when data needs to be updated */
+    bool is_outdated;                       /**< Flag when data needs to
+                                                 be updated */
 } desktop_td;
 
 

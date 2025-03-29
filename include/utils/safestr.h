@@ -1,26 +1,49 @@
 /**
  * @file safestr.h
  *
- * @brief Provide safe string handling functions declaration
+ * @brief Declarations for enhanced safe string functions
  *
- * Contains various safe string manipulation functions that ensure no
+ * Contains various safe string manipulation functions to ensure no
  * buffer overflows occur and that strings are properly null-terminated.
  *
  * Functions:
  *  - @c 'size_t safe_strnlen(const char *str, size_t maxlen)'
  *  - @c 'size_t safe_strlen(const char *str)'
- *  - @c 'char *safe_strncpy(char *dst, const char *src, size_t size)'
+ *  - @c 'char *safe_strncpy(char *restrict dst, const char *restrict src,
+ *                                                           size_t sz)'
  *  - @c 'char *safe_strcpy(char *restrict dst, const char *restrict src)'
  *  - @c 'char *safe_strndup(const char *s, size_t n)'
  *  - @c 'char *safe_strdup(const char *s)'
+ *  - @c 'char *safe_strncat(char *restrict dst, const char *restrict src,
+ *                                                           size_t sz)'
+ *  - @c 'char *safe_strcat(char *restrict dst, const char *restrict src)'
  *  - @c 'int safe_strncmp(const char *s1, const char *s2)'
- *  - @p 'int safe_strcmp(const char *s1, const char *s2)'
+ *  - @c 'int safe_strcmp(const char *s1, const char *s2)'
  *
  * @ingroup str Safe string utils
  */
 
 #ifndef SAFESTR_H
 #define SAFESTR_H
+
+/*
+ * This macro definition of 'restrict' is provided for compatibility
+ * with compilers that do not support the 'restrict' keyword, which was
+ * introduced in ISO/IEC 9899:1999 (C99).
+ *
+ * The macro checks if the compiler is using a C standard prior to C99
+ * or if the '__STDC_NO_RESTRICT__' feature test macro is defined,
+ * indicating that 'restrict' is not available.
+ *
+ * If either condition is true, 'restrict' is defined as an empty macro,
+ * allowing code that uses 'restrict' to compile without errors in
+ * environments where 'restrict' is unsupported.
+ */
+#if !defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L || \
+    defined(__STDC_NO_RESTRICT__))
+#define restrict /* empty */
+#endif
+
 
 #include <stddef.h>     /* size_t */
 
@@ -42,7 +65,7 @@
  *
  * @note If @p str is @c NULL, the function returns 0
  * @note Complexity: @e O(n), where @e n is the length of the string
- *       being measured, up to @p size - 1
+ *       being measured, up to @e size - 1
  */
 size_t safe_strnlen(const char *str, size_t maxlen);
 
@@ -66,26 +89,26 @@ size_t safe_strlen(const char *str);
 /**
  * @brief Safely copies a string from @p src to @p dst
  *
- * Copies up to @p size - 1 characters from @p src to @p dst and
+ * Copies up to @p sz - 1 characters from @p src to @p dst and
  * null-terminates the destination string.
  *
  * @param dst  Pointer to the destination buffer where the string is
  *             copied
- * @param src  Pointer to the source string to be copied
- * @param size The size of the destination buffer
+ * @param src Pointer to the source string to be copied
+ * @param sz  The size of the destination buffer
  *
  * @return A pointer to @p dst
  *
- * @note If @p size is 0, the function will not perform any copying and
+ * @note If @p sz is 0, the function will not perform any copying and
  *       will return @p dst
- * @note If the length of the source string exceeds @p size, the
+ * @note If the length of the source string exceeds @p sz, the
  *       destination will be truncated
  * @note Destination string will always be null-terminated
  * @note Complexity: @e O(n), where @e n is the length of the string
- *       being copied, up to @p size - 1
+ *       being copied, up to @p sz - 1
  */
 char *safe_strncpy(char *restrict dst, const char *restrict src,
-        size_t size);
+        size_t sz);
 
 /**
  * @brief Safely copies a string from @p src to @p dst without
@@ -144,6 +167,57 @@ char *safe_strndup(const char *s, size_t n);
  *       being duplicated
  */
 char *safe_strdup(const char *s);
+
+/**
+ * @brief Concatenate at most @e n characters from one string to another
+ *
+ * Appends up to the first @e n characters of the source string @p src
+ * to the end of the destination string @p dst.  The resulting string
+ * will always be null-terminated.
+ *
+ * @param dst Pointer to the destination string where the content is
+ *            appended
+ * @param src Pointer to the source string that will be appended to
+ *            @p dst
+ * @param sz  Maximum number of characters to append from @p src
+ *
+ * @return A pointer to the resulting string @p dst.
+ *
+ * @note If @p sz is greater than the length of @p src, the entire @p src
+ *       string will be appended
+ * @note It is the caller's responsibility to ensure that @p dst has
+ *       enough space to accommodate the concatenated result, including
+ *       the null terminator
+ * @note If either @p dst or @p src is @c NULL, the function will return
+ *       @p dst without modifying it
+ * @note Complexity: @e O(n), where @e n is the number of characters
+ *       appended from @p src
+ */
+char *safe_strncat(char *restrict dst, const char *restrict src, size_t sz);
+
+/**
+ * @brief Concatenate two strings
+ *
+ * Appends the source string @p src to the end of the destination string
+ * @p dst.  The concatenation will occur until the null character of
+ * @p src is encountered.
+ *
+ * @param dst Pointer to the destination string where the content is
+ *            appended
+ * @param src Pointer to the source string that will be appended to
+ *            @p dst
+ *
+ * @return A pointer to the resulting string @p dst.
+ *
+ * @note It is the caller's responsibility to ensure that @p dst has
+ *       enough space to accommodate the concatenated result, including
+ *       the null terminator
+ * @note If either @p dst or @p src is @c NULL, the function will return
+ *       @p dst without modifying it
+ * @note Complexity: @e O(n), where @e n is the length of the @p src
+ *       string
+ */
+char *safe_strcat(char *restrict dst, const char *restrict src);
 
 /**
  * @brief Safely compares two strings up to a specific length

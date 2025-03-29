@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2025, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *
- * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
+ * @note Compiled according to the ISO/IEC 9899:2011 (C11) standard;
  *       conforms to POSIX (POSIX.1-1990)
  * @note Built with GCC 12.2.0 and Clang 14.0.6
  */
@@ -97,6 +97,9 @@ static inline void s_show_version(FILE *fp)
  */
 static inline void s_show_help(FILE *fp)
 {
+    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
+    const char *config_home = getenv("HOME");
+
     /* Show name and usage */
     fprintf(fp, "%s -- %s\n", ICOWM_NAME_SHORT, ICOWM_NAME_LONG);
     fprintf(fp, "Usage: %s [<options>]\n", ICOWM_NAME_PROG);
@@ -127,8 +130,6 @@ static inline void s_show_help(FILE *fp)
                 " the 'DISPLAY' env. variable\n");
 
     /* Show default configuration directory values */
-    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
-    const char *config_home = getenv("HOME");
     fprintf(fp, "Configuration directory is set to ");
     if (config_xdg_config_home) {
         fprintf(fp, "'%s/%s'\n", config_xdg_config_home,
