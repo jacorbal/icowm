@@ -104,7 +104,8 @@ desktop_td *desktop_init(unsigned int screen_id,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
     desktop->windows =
-        ohtbl_init(DESKTOP_INITIAL_CAPACITY, s_h1, s_h2, s_window_match,
+        ohtbl_init(DESKTOP_INITIAL_CAPACITY, 0,
+                s_h1, s_h2, s_window_match,
                 (void(*)(void *)) window_destroy);
     if (desktop->windows == NULL) {
         LOGGER_ERROR("Failed to allocate memory for window hash table" \

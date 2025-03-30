@@ -49,22 +49,20 @@ window_td *window_init(Display *display, window_td *parent,
     window->display = display;
     window->parent = parent;
 
-    window->properties.geometry.pos.x = x;
-    window->properties.geometry.pos.y = y;
-    window->properties.geometry.dim.w = w;
-    window->properties.geometry.dim.h = h;
-
-    /* Set the original coordinates the same */
-    window->properties.geometry_orig.pos =
-        window->properties.geometry.pos;
-    window->properties.geometry_orig.dim =
-        window->properties.geometry.dim;
+    /* Set the current geometry, and the "old" as the current one */
+    window->properties.geometry_cur =
+        (struct geometry_s) {.pos = {.x = x, .y = y},
+                             .dim = {.w = w, .h = h}};
+    window->properties.geometry_old = window->properties.geometry_cur;
 
     // TODO: Test this...
+    window->properties.flags =
+        WINDOW_FLAG_HIDDEN | WINDOW_FLAG_FOCUSABLE | WINDOW_FLAG_RESIZABLE;
     window->properties.type = WINDOW_TYPE_NORMAL;
     window->properties.state = WINDOW_STATE_NORMAL;
     window->properties.layer = WINDOW_LAYER_NORMAL;
-    window->properties.flags = WINDOW_FLAG_HIDDEN | WINDOW_FLAG_DECORATED;
+    window->properties.operation = WINDOW_OPERATION_IDLE;
+    window->properties.focusing = WINDOW_FOCUSING_FOCUSED;
 
     window->process.pid = -1;
     window->process.command = NULL;
@@ -73,10 +71,6 @@ window_td *window_init(Display *display, window_td *parent,
     window->name = NULL;        // <-- TODO
     window->class_name = NULL;  // <-- TODO
     window->icon_path = NULL;   // <-- TODO
-
-    /* Initialize the window in hidden mode */
-//    window->properties.flags |=
-//        (enum window_flags_e) WINDOW_FLAG_VISIBLE;
 
     /* Create the X window */
     window->xwindow = XCreateSimpleWindow(display,

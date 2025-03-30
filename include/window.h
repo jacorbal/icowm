@@ -52,12 +52,24 @@ enum window_type_e {
     WINDOW_TYPE_NOTIFICATION,   /* Temporal messages */
     WINDOW_TYPE_MENU,           /* Menu options */
     WINDOW_TYPE_DESKTOP,        /* The desktop "window" */
-    WINDOW_TYPE_SPLASH,         /* Loading message */
+    WINDOW_TYPE_SPLASH,         /* The window is a loading message */
     WINDOW_TYPE_UTILITY,        /* Additional functions: control panels... */
     WINDOW_TYPE_DROPDOWN_MENU,  /* Drop-down menu */
     WINDOW_TYPE_POPUP_MENU,     /* Contextual menu */
     WINDOW_TYPE_COMBO,          /* Part of a combined frame */
-    WINDOW_TYPE_TOOLTIP,        /* A little tip for the user */
+    WINDOW_TYPE_TOOLTIP,        /* The window is a tooltip */
+    WINDOW_TYPE_DOCK,           /* Dock or panel feature */
+    WINDOW_TYPE_DND,            /* The window is being dragged */
+};
+
+
+/**
+ * @brief Operations on a window
+ */
+enum window_operation_e {
+    WINDOW_OPERATION_IDLE,      /* No operation ongoing */
+    WINDOW_OPERATION_MOVING,    /* Window is being moved */
+    WINDOW_OPERATION_RESIZING,  /* Window is being resized */
 };
 
 
@@ -65,19 +77,30 @@ enum window_type_e {
  * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
-    WINDOW_FLAG_HIDDEN    = 1 << 0, /* 0000 0001: hidden, not visible */
-    WINDOW_FLAG_FOCUSED   = 1 << 1, /* 0000 0010: has focus */
-    WINDOW_FLAG_STICKY    = 1 << 2, /* 0000 0100: pinned to all desktops */
-    WINDOW_FLAG_DECORATED = 1 << 3, /* 0000 1000: has decoration */
-    WINDOW_FLAG_URGENT    = 1 << 4, /* 0001 0000: has urgent state */
-    WINDOW_FLAG_NO_FOCUS  = 1 << 7, /* 0010 0000: cannot get focus */
-    WINDOW_FLAG_DISABLED  = 1 << 6, /* 0100 0000: disabled window */
-    WINDOW_FLAG_MAX = 7,
+    WINDOW_FLAG_HIDDEN       = 1 << 0,  /* 0000 0000 0001: hidden */
+    WINDOW_FLAG_FOCUSABLE    = 1 << 1,  /* 0000 0000 0010: is focusable */
+    WINDOW_FLAG_STICKY       = 1 << 2,  /* 0000 0000 0100: on all desktops */
+    WINDOW_FLAG_DECORATED    = 1 << 3,  /* 0000 0000 1000: has decoration */
+    WINDOW_FLAG_URGENT       = 1 << 4,  /* 0000 0001 0000: has urgent state */
+    WINDOW_FLAG_RESIZABLE    = 1 << 5,  /* 0000 0010 0000: resizable window */
+    WINDOW_FLAG_DISABLED     = 1 << 6,  /* 0000 0100 0000: disabled window */
+    WINDOW_FLAG_SKIP_TASKBAR = 1 << 7,  /* 0000 1000 0000: skip taskbar */
+    WINDOW_FLAG_SKIP_PAGER   = 1 << 8,  /* 0001 0000 0000: skip pager */
+    WINDOW_FLAG_MAX = 9,
 };
 
 
 /**
- * @brief Window possible layers
+ * @brief Mutual exclusive status about the window focus
+ */
+enum window_focusing_e {
+    WINDOW_FOCUSING_UNFOCUSED,  /* No focus state */
+    WINDOW_FOCUSING_FOCUSED,    /* Window has focus */
+};
+
+
+/**
+ * @brief Window mutual exclusive possible layers
  *
  * Identifies the layering options for windows, which affect their
  * visibility order on the screen.
@@ -97,13 +120,19 @@ enum window_layer_e {
  */
 struct window_properties_s {
     unsigned int state;     /**< State (maximized, iconified,...) */
-    unsigned int layer;     /**< Layer (top, normal, bottom) */
-    unsigned int flags;     /**< Flags (sticky, focused,...) */
-    unsigned int type;      /**< Type: (normal, notification...) */
+    unsigned int layer;     /**< Layer (above, normal, below) */
+    unsigned int flags;     /**< Flags (hidden, sticky, focusable,...) */
+    unsigned int type;      /**< Type (normal, notification...) */
+    unsigned int operation; /**< Operation (moving, resizing...) */
+    unsigned int focusing;  /**< Focusing (focused, unfocused) */
 
-    /* This are the current position and dimensions of the window */
-    struct geometry_s geometry;
-    struct geometry_s geometry_orig;
+    /* This are the position and dimensions of the window.  The "old"
+     * one is to save the position when the "cur" one is needed to be
+     * recovered later; as in saving the current geometry before
+     * maximizing, and restoring it with the "old" position and
+     * dimensions. */
+    struct geometry_s geometry_cur;
+    struct geometry_s geometry_old;
 };
 
 
@@ -132,7 +161,7 @@ typedef struct window_s {
     char *name;                 /**< Window name */
     char *class_name;           /**< Window class */
 
-    struct window_process_s {
+    struct {
         const char *command;    /**< Command to execute in this window */
         pid_t pid;              /**< PID of the running program */
     } process;                  /**< Information of process in window */
@@ -148,14 +177,28 @@ typedef struct window_s {
 /* Saves the current geometry of the window to the original geometry */
 static inline void window_geometry_save(window_td *window)
 {
-    window->properties.geometry_orig = window->properties.geometry;
+    window->properties.geometry_old = window->properties.geometry_cur;
 }
 
 
 /* Restores the window's geometry from the saved original geometry */
 static inline void window_geometry_restore(window_td *window)
 {
-    window->properties.geometry = window->properties.geometry_orig;
+    window->properties.geometry_cur = window->properties.geometry_old;
+}
+
+/* Set the focus on window, if focusable, but take no action */
+static inline void window_focus(window_td *window)
+{
+    if (window->properties.flags & WINDOW_FLAG_FOCUSABLE) {
+        window->properties.focusing = WINDOW_FOCUSING_FOCUSED;
+    }
+}
+
+/* Remove the focus from the window, but take no action */
+static inline void window_unfocus(window_td *window)
+{
+    window->properties.focusing = WINDOW_FOCUSING_UNFOCUSED;
 }
 
 
@@ -529,8 +572,8 @@ int window_action(window_td *window, enum action_window_e action_window,
  *
  * @note Complexity: @e O(1)
  */
-#define window_is_focused(w) \
-    ((w)->properties.flags & WINDOW_FLAG_FOCUSED)
+#define window_is_focusable(w) \
+    ((w)->properties.flags & WINDOW_FLAG_FOCUSABLE)
 
 
 /**
@@ -574,11 +617,11 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_set_hidden(w) \
-    safeflg_set(&(w)->properties.flags, \
+    safeflg_set(&((w)->properties.flags), \
             WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the hidden flag of a window
+ * @brief Macro that clears the hidden flag of a window
  *
  * @param w Pointer to the window structure whose visibility is to be
  *          set
@@ -586,7 +629,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_unset_hidden(w) \
-    safeflg_unset(&(w)->properties.flags, \
+    safeflg_unset(&((w)->properties.flags), \
             WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -598,7 +641,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_toggle_hidden(w) \
-    safeflg_toggle(&(w)->properties.flags, \
+    safeflg_toggle(&((w)->properties.flags), \
             WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -608,21 +651,21 @@ int window_action(window_td *window, enum action_window_e action_window,
  *
  * @note Complexity: @e O(1)
  */
-#define window_set_focus(w) \
-    safeflg_set(&(w)->properties.flags, \
-            WINDOW_FLAG_FOCUSED, (1 << WINDOW_FLAG_MAX))
+#define window_set_focusable(w) \
+    safeflg_set(&((w)->properties.flags), \
+            WINDOW_FLAG_FOCUSABLE, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the focus flag of a window
+ * @brief Macro that clears the focus flag of a window
  *
  * @param w Pointer to the window structure whose focus is to be
  *          cleared
  *
  * @note Complexity: @e O(1)
  */
-#define window_unset_focus(w) \
-    safeflg_unset(&(w)->properties.flags, \
-            WINDOW_FLAG_FOCUSED, (1 << WINDOW_FLAG_MAX))
+#define window_unset_focusable(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            WINDOW_FLAG_FOCUSABLE, (1 << WINDOW_FLAG_MAX))
 
 /**
  * @brief Macro that toggles the focus flag of a window
@@ -632,9 +675,9 @@ int window_action(window_td *window, enum action_window_e action_window,
  *
  * @note Complexity: @e O(1)
  */
-#define window_toggle_focus(w) \
-    safeflg_toggle(&(w)->properties.flags, \
-            WINDOW_FLAG_FOCUSED, (1 << WINDOW_FLAG_MAX))
+#define window_toggle_focusable(w) \
+    safeflg_toggle(&((w)->properties.flags), \
+            WINDOW_FLAG_FOCUSABLE, (1 << WINDOW_FLAG_MAX))
 
 /**
  * @brief Macro that sets the sticky flag of a window
@@ -644,11 +687,11 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_set_sticky(w) \
-    safeflg_set(&(w)->properties.flags, \
+    safeflg_set(&((w)->properties.flags), \
             WINDOW_FLAG_STICKY, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the sticky flag of a window
+ * @brief Macro that clears the sticky flag of a window
  *
  * @param w Pointer to the window structure whose sticky is to be
  *          cleared
@@ -656,7 +699,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_unset_sticky(w) \
-    safeflg_unset(&(w)->properties.flags, \
+    safeflg_unset(&((w)->properties.flags), \
             WINDOW_FLAG_STICKY, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -668,7 +711,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_toggle_sticky(w) \
-    safeflg_toggle(&(w)->properties.flags, \
+    safeflg_toggle(&((w)->properties.flags), \
             WINDOW_FLAG_STICKY, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -679,11 +722,11 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_set_decoration(w) \
-    safeflg_set(&(w)->properties.flags, \
+    safeflg_set(&((w)->properties.flags), \
             WINDOW_FLAG_DECORATED, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the decoration flag of a window
+ * @brief Macro that clears the decoration flag of a window
  *
  * @param w Pointer to the window structure whose decoration is to be
  *          cleared
@@ -691,7 +734,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_unset_decoration(w) \
-    safeflg_unset(&(w)->properties.flags, \
+    safeflg_unset(&((w)->properties.flags), \
             WINDOW_FLAG_DECORATED, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -703,7 +746,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_toggle_decoration(w) \
-    safeflg_toggle(&(w)->properties.flags, \
+    safeflg_toggle(&((w)->properties.flags), \
             WINDOW_FLAG_DECORATED, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -714,11 +757,11 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_set_urgent(w) \
-    safeflg_set(&(w)->properties.flags, \
+    safeflg_set(&((w)->properties.flags), \
             WINDOW_FLAG_URGENT, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the urgent flag of a window
+ * @brief Macro that clears the urgent flag of a window
  *
  * @param w Pointer to the window structure whose urgent is to be
  *          cleared
@@ -726,7 +769,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_unset_urgent(w) \
-    safeflg_unset(&(w)->properties.flags, \
+    safeflg_unset(&((w)->properties.flags), \
             WINDOW_FLAG_URGENT, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -738,8 +781,79 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_toggle_urgent(w) \
-    safeflg_toggle(&(w)->properties.flags, \
+    safeflg_toggle(&((w)->properties.flags), \
             WINDOW_FLAG_URGENT, (1 << WINDOW_FLAG_MAX))
+
+
+/**
+ * @brief Macro that sets the unfocusable flag of a window
+ *
+ * @param w Pointer to the window structure whose disable is to be set
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_set_unfocusable(w) \
+    safeflg_set(&((w)->properties.flags), \
+            WINDOW_FLAG_UNFOCUSABLE, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the unfocusable flag of a window
+ *
+ * @param w Pointer to the window structure whose disable is to be
+ *          cleared
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_unset_unfocusable(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            WINDOW_FLAG_UNFOCUSABLE, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that toggles the unfocusable flag of a window
+ *
+ * @param w Pointer to the window structure whose disable is to be
+ *          toggled
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_toggle_unfocusable(w) \
+    safeflg_toggle(&((w)->properties.flags), \
+            WINDOW_FLAG_UNFOCUSABLE, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that sets the resizable flag of a window
+ *
+ * @param w Pointer to the window structure whose resizable is to be set
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_set_resizable(w) \
+    safeflg_set(&((w)->properties.flags), \
+            WINDOW_FLAG_RESIZABLE, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the resizable flag of a window
+ *
+ * @param w Pointer to the window structure whose resizable is to be
+ *          cleared
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_unset_resizable(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            WINDOW_FLAG_RESIZABLE, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that toggles the resizable flag of a window
+ *
+ * @param w Pointer to the window structure whose resizable is to be
+ *          toggled
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_toggle_resizable(w) \
+    safeflg_toggle(&((w)->properties.flags), \
+            WINDOW_FLAG_RESIZABLE, (1 << WINDOW_FLAG_MAX))
 
 /**
  * @brief Macro that sets the disable flag of a window
@@ -749,11 +863,11 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_set_disable(w) \
-    safeflg_set(&(w)->properties.flags, \
+    safeflg_set(&((w)->properties.flags), \
             WINDOW_FLAG_DISABLED, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that unsets the disable flag of a window
+ * @brief Macro that clears the disable flag of a window
  *
  * @param w Pointer to the window structure whose disable is to be
  *          cleared
@@ -761,7 +875,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_unset_disable(w) \
-    safeflg_unset(&(w)->properties.flags, \
+    safeflg_unset(&((w)->properties.flags), \
             WINDOW_FLAG_DISABLED, (1 << WINDOW_FLAG_MAX))
 
 /**
@@ -773,7 +887,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_toggle_disable(w) \
-    safeflg_toggle(&(w)->properties.flags, \
+    safeflg_toggle(&((w)->properties.flags), \
             WINDOW_FLAG_DISABLED, (1 << WINDOW_FLAG_MAX))
 
 /**

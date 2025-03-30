@@ -32,8 +32,10 @@ action_data_window_td *action_data_window_init(window_td *window,
         return NULL;
     }
 
-    action_data_window->window = window;
-    action_data_window->action_window = action_window;
+    *action_data_window =
+        (action_data_window_td) {.window = window,
+                                 .action_window = action_window,
+                                 .new_data = {0}};
 
     return action_data_window;
 }

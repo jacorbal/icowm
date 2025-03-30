@@ -17,7 +17,7 @@ static char s_vacated;
 
 
 /* Initialize a new open-addressed hash table */
-ohtbl_td *ohtbl_init(size_t positions,
+ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
         size_t (*h1)(const void *key), size_t (*h2)(const void *key),
         bool (*match)(const void *key1, const void *key2),
         void (*destroy)(void *data))
@@ -37,8 +37,10 @@ ohtbl_td *ohtbl_init(size_t positions,
     }
 
     /* Initialize each positions */
+    htbl->min_positions =
+        (positions > min_positions || min_positions == 0) ? positions
+                                                          : min_positions;
     htbl->positions = positions;
-
     for (size_t i = 0; i < htbl->positions; ++i) {
         htbl->table[i] = NULL;
     }
@@ -105,14 +107,9 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
      * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
-        if (ohtbl_resize(htbl) != 0) {
+        if (ohtbl_resize_double(htbl) != 0) {
             return -2;
         }
-    }
-
-    /* Do not exceed the number of positions in the table */
-    if (htbl->size == htbl->positions) {
-        return -1;
     }
 
     /* Do nothing if the data is already in the table */
@@ -152,16 +149,20 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
 
         if (htbl->table[position] == NULL ||
                 htbl->table[position] == htbl->vacated) {
-            /* Do not exceed the number of positions in the table */
-            if (htbl->size == htbl->positions) {
-                return -1;
+            /* Check if we need to resize before inserting */
+            if (htbl->size >= (size_t)
+                    ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
+                if (ohtbl_resize_double(htbl) != 0) {
+                    return -2; 
+                }
             }
+
             /* Insert the element as new increasing the table size */
             htbl->table[position] = (void *) data;
             htbl->size++;
             return 0;
         } else if (htbl->match(htbl->table[position], data)) {
-            /* Overwrite the old value with the new one*/
+            /* Overwrite the old value with the new one */
             htbl->table[position] = (void *) data;
             return 0;
         }
@@ -192,6 +193,16 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
             *data = htbl->table[position];
             htbl->table[position] = htbl->vacated;
             htbl->size--;
+
+            /* Re-dimension the table if size if smaller than
+             * (OHTBL_MIN_LOAD_FACTOR * 100)% of its positions */
+            if (htbl->size < (size_t)
+                    ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
+                if (ohtbl_resize_halve(htbl) != 0) {
+                    return -2;
+                }
+            }
+
             return 0;
         }
     } /* ! for */
@@ -226,14 +237,10 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data)
 }
 
 
-/* Resize the table if exceeds the maximum positions */
-int ohtbl_resize(ohtbl_td *htbl)
+/* Resize the table to a new size */
+int ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
 {
-    size_t new_positions;
     void **new_table;
-
-    /* Set initial positions by doubling the previous value*/
-    new_positions = htbl->positions * 2;
 
     /* Initialize a new table */
     new_table = malloc(new_positions * sizeof(void *));
@@ -260,7 +267,7 @@ int ohtbl_resize(ohtbl_td *htbl)
         }
     } /* ! for (i) */
 
-    /* Deallocate previous table*/
+    /* Deallocate previous table */
     free(htbl->table);
 
     /* Update pointers and new positions */
@@ -268,4 +275,31 @@ int ohtbl_resize(ohtbl_td *htbl)
     htbl->positions = new_positions;
 
     return 0;
+}
+
+
+/* Doubles the current size of the open-addressed hash table */
+int ohtbl_resize_double(ohtbl_td *htbl)
+{
+    size_t new_positions;
+
+    /* Set initial positions by doubling the previous value */
+    new_positions = (size_t) (htbl->positions * 2);
+    return ohtbl_resize(htbl, new_positions);
+}
+
+
+/* Halves the current size of the open-addressed hash table */
+int ohtbl_resize_halve(ohtbl_td *htbl)
+{
+    size_t new_positions;
+
+    /* Set initial positions by halving the previous value */
+    new_positions = (size_t) (htbl->positions / 2);
+
+    /* Prevent the table to go below a threshold */
+    if (new_positions < htbl->min_positions) {
+        return 1;
+    }
+    return ohtbl_resize(htbl, new_positions);
 }

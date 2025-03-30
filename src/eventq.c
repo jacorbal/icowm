@@ -143,13 +143,13 @@ static void s_event_handle_window(event_td *event)
                     window->xwindow, RevertToPointerRoot, CurrentTime);
             XRaiseWindow(window->display, window->xwindow);
             XMapRaised(window->display, window->xwindow);
-            window_set_focus(window);
+            window_focus(window);
             ewmh_set_window_state(window->display, window->xwindow,
                     "_NET_WM_STATE_FOCUSED");
             break;
 
         case ACTION_WINDOW_UNFOCUS:
-            window_unset_focus(window);
+            window_unfocus(window);
             ewmh_unset_window_state(window->display, window->xwindow,
                     "_NET_WM_STATE_FOCUSED");
             break;
@@ -158,7 +158,7 @@ static void s_event_handle_window(event_td *event)
             XResizeWindow(window->display, window->xwindow,
                     window_data->new_data.geometry.dim.w,
                     window_data->new_data.geometry.dim.h);
-            window->properties.geometry.dim =
+            window->properties.geometry_cur.dim =
                 window_data->new_data.geometry.dim;
             break;
 
@@ -166,7 +166,7 @@ static void s_event_handle_window(event_td *event)
             XMoveWindow(window->display, window->xwindow,
                     window_data->new_data.geometry.pos.x,
                     window_data->new_data.geometry.pos.y);
-            window->properties.geometry.pos =
+            window->properties.geometry_cur.pos =
                 window_data->new_data.geometry.pos;
             break;
 
@@ -209,7 +209,7 @@ static void s_event_handle_window(event_td *event)
                     &attrs);
             XMoveResizeWindow(window->display, window->xwindow, 0, 0,
                     (unsigned int) attrs.screen->width,
-                    (unsigned int) window->properties.geometry.dim.h);
+                    (unsigned int) window->properties.geometry_cur.dim.h);
             window->properties.state = WINDOW_STATE_MAXIMIZED_HORZ;
             ewmh_set_window_state(window->display, window->xwindow,
                     "_NET_WM_STATE_MAXIMIZED_HORZ");
@@ -220,7 +220,7 @@ static void s_event_handle_window(event_td *event)
             XGetWindowAttributes(window->display, window->xwindow,
                     &attrs);
             XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                    window->properties.geometry.dim.w,
+                    window->properties.geometry_cur.dim.w,
                     (unsigned int) attrs.screen->width);
             window->properties.state = WINDOW_STATE_MAXIMIZED_VERT;
             ewmh_set_window_state(window->display, window->xwindow,
@@ -229,7 +229,7 @@ static void s_event_handle_window(event_td *event)
 
         case ACTION_WINDOW_ICONIFY:
             /* TODO: Implement here the "iconifying" routine to create
-             *       the icon*/
+             *       the icon */
             window_geometry_save(window);   /* Just in case */
             XIconifyWindow(window->display, window->xwindow,
                     (int) window->screen_id);
@@ -289,10 +289,10 @@ static void s_event_handle_window(event_td *event)
         case ACTION_WINDOW_UNFULLSCREEN:
             window_geometry_restore(window);
             XMoveResizeWindow(window->display, window->xwindow,
-                    window->properties.geometry.pos.x,
-                    window->properties.geometry.pos.y,
-                    window->properties.geometry.dim.w,
-                    window->properties.geometry.dim.h);
+                    window->properties.geometry_cur.pos.x,
+                    window->properties.geometry_cur.pos.y,
+                    window->properties.geometry_cur.dim.w,
+                    window->properties.geometry_cur.dim.h);
             window->properties.state = WINDOW_STATE_NORMAL;
             ewmh_unset_window_state(window->display, window->xwindow,
                     "_NET_WM_STATE_FULLSCREEN");
@@ -302,10 +302,10 @@ static void s_event_handle_window(event_td *event)
             if (window_is_fullscreen(window)) {
                 window_geometry_restore(window);
                 XMoveResizeWindow(window->display, window->xwindow,
-                        window->properties.geometry.pos.x,
-                        window->properties.geometry.pos.y,
-                        window->properties.geometry.dim.w,
-                        window->properties.geometry.dim.h);
+                        window->properties.geometry_cur.pos.x,
+                        window->properties.geometry_cur.pos.y,
+                        window->properties.geometry_cur.dim.w,
+                        window->properties.geometry_cur.dim.h);
                 window->properties.state = WINDOW_STATE_NORMAL;
                 /* TODO: Check this positions are saved before */
             } else {
