@@ -1,12 +1,12 @@
 /**
- * @file atdata.h
+ * @file actdata.h
  *
  * @brief Object data structures when objects need to update their
  *        properties by events by the execution of an action
  */
 
-#ifndef ATDATA_H
-#define ATDATA_H
+#ifndef ACTDATA_H
+#define ACTDATA_H
 
 /* Type includes */
 #include <types/pair.h>
@@ -139,4 +139,4 @@ action_data_screen_td *action_data_screen_init(screen_td *screen,
 void action_data_screen_destroy(action_data_screen_td *action_data_screen);
 
 
-#endif  /* ! ATDATA_H */
+#endif  /* ! ACTDATA_H */

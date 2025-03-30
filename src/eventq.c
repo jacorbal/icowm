@@ -10,7 +10,6 @@
 
 /* X11 includes */
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
 
 /* ADT includes */
 #include <adt/pqueue.h> /* Priority queue (as a heap) */
@@ -21,7 +20,7 @@
 
 /* Project includes */
 #include <action.h>
-#include <atdata.h>
+#include <actdata.h>
 #include <desktop.h>
 #include <ewmh.h>
 #include <logger.h>
@@ -114,7 +113,7 @@ static void s_event_handle_window(event_td *event)
             // XCreateWindow...
             XMapWindow(window->display, window->xwindow);
 
-            //window_unset_visible(window);
+            //window_set_hidden(window);
             //window.properties.state = WINDOW_STATE_NORMAL;
             ewmh_set_window_state(window->display, window->xwindow,
                     "_NET_WM_STATE_HIDDEN");
@@ -181,10 +180,11 @@ static void s_event_handle_window(event_td *event)
             break;
 
         case ACTION_WINDOW_RECLASS:
+            safe_free((void **) &(window->class_name));
+            window->class_name =
+                safe_strdup(window_data->new_data.class_name);
             ewmh_set_window_class(window->display, window->xwindow,
                     window_data->new_data.class_name);
-//            ewmh_set_window_type(window->display, window->xwindow,
-//                    window_data->new_data.window_type);
             break;
 
         case ACTION_WINDOW_MAXIMIZE:
@@ -240,9 +240,15 @@ static void s_event_handle_window(event_td *event)
 
         case ACTION_WINDOW_HIDE:
             XUnmapWindow(window->display, window->xwindow);
-            window_unset_visible(window);
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_HIDDEN");
+            window_set_hidden(window);
+            ewmh_set_window_state_hidden(window->display,
+                    window->xwindow);
+            break;
+
+        case ACTION_WINDOW_SHADE:
+            //TODO
+            ewmh_set_window_state_shaded(window->display,
+                    window->xwindow);
             break;
 
         case ACTION_WINDOW_STICKY:

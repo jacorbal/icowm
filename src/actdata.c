@@ -1,5 +1,5 @@
 /**
- * @file atdata.c
+ * @file actdata.c
  *
  * @brief Allocation and deallocation functions for object data structures
  */
@@ -17,7 +17,7 @@
 #include <utils/safemem.h>
 
 /* Local includes */
-#include <atdata.h>
+#include <actdata.h>
 
 
 /* Allocate window data structure */

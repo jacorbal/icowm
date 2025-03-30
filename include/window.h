@@ -32,12 +32,13 @@
  * @brief Possible window states a window can be in
  */
 enum window_state_e {
-    WINDOW_STATE_NORMAL,            /**<  Regular state */
-    WINDOW_STATE_ICONIFIED,         /**<  Iconified */
-    WINDOW_STATE_MAXIMIZED,         /**<  Maximized */
-    WINDOW_STATE_MAXIMIZED_HORZ,    /**<  Maximized horiz. */
-    WINDOW_STATE_MAXIMIZED_VERT,    /**<  Maximized vert. */
-    WINDOW_STATE_FULLSCREEN,        /**<  Full screen */
+    WINDOW_STATE_NORMAL,            /**< Regular state */
+    WINDOW_STATE_ICONIFIED,         /**< Iconified */
+    WINDOW_STATE_SHADED,            /**< Shaded (rolled-up), if decorated */
+    WINDOW_STATE_MAXIMIZED,         /**< Maximized */
+    WINDOW_STATE_MAXIMIZED_HORZ,    /**< Maximized horiz. */
+    WINDOW_STATE_MAXIMIZED_VERT,    /**< Maximized vert. */
+    WINDOW_STATE_FULLSCREEN,        /**< Full screen */
 };
 
 
@@ -56,6 +57,7 @@ enum window_type_e {
     WINDOW_TYPE_DROPDOWN_MENU,  /* Drop-down menu */
     WINDOW_TYPE_POPUP_MENU,     /* Contextual menu */
     WINDOW_TYPE_COMBO,          /* Part of a combined frame */
+    WINDOW_TYPE_TOOLTIP,        /* A little tip for the user */
 };
 
 
@@ -63,13 +65,14 @@ enum window_type_e {
  * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
-    WINDOW_FLAG_VISIBLE   = 1 << 0, /* 0000 0001: is visible, not hidden */
+    WINDOW_FLAG_HIDDEN    = 1 << 0, /* 0000 0001: hidden, not visible */
     WINDOW_FLAG_FOCUSED   = 1 << 1, /* 0000 0010: has focus */
     WINDOW_FLAG_STICKY    = 1 << 2, /* 0000 0100: pinned to all desktops */
     WINDOW_FLAG_DECORATED = 1 << 3, /* 0000 1000: has decoration */
     WINDOW_FLAG_URGENT    = 1 << 4, /* 0001 0000: has urgent state */
-    WINDOW_FLAG_DISABLED  = 1 << 5, /* 0010 0000: is disabled */
-    WINDOW_FLAG_MAX = 6,
+    WINDOW_FLAG_NO_FOCUS  = 1 << 7, /* 0010 0000: cannot get focus */
+    WINDOW_FLAG_DISABLED  = 1 << 6, /* 0100 0000: disabled window */
+    WINDOW_FLAG_MAX = 7,
 };
 
 
@@ -93,10 +96,10 @@ enum window_layer_e {
  * behavior, and any applicable flags.
  */
 struct window_properties_s {
-    enum window_state_e state;      /**< State (maximized, iconified,...) */
-    enum window_layer_e layer;      /**< Layer (top, normal, bottom) */
-    enum window_flags_e flags;      /**< Flags (sticky, focused,...) */
-    enum window_type_e type;        /**< Type: (normal, notification...) */
+    unsigned int state;     /**< State (maximized, iconified,...) */
+    unsigned int layer;     /**< Layer (top, normal, bottom) */
+    unsigned int flags;     /**< Flags (sticky, focused,...) */
+    unsigned int type;      /**< Type: (normal, notification...) */
 
     /* This are the current position and dimensions of the window */
     struct geometry_s geometry;
@@ -519,7 +522,7 @@ int window_action(window_td *window, enum action_window_e action_window,
  * @note Complexity: @e O(1)
  */
 #define window_is_visible(w) \
-    ((w)->properties.flags & WINDOW_FLAG_VISIBLE)
+    ((w)->properties.flags & WINDOW_FLAG_HIDDEN)
 
 /**
  * @brief Macro that evaluates to the window focused flag
@@ -563,39 +566,40 @@ int window_action(window_td *window, enum action_window_e action_window,
     ((w)->properties.flags & WINDOW_FLAG_DISABLED)
 
 /**
- * @brief Macro that sets the visibility flag of a window
- *
- * @param w Pointer to the window structure whose visibility is to be set
- *
- * @note Complexity: @e O(1)
- */
-#define window_set_visible(w) \
-    safeflg_set(&(w)->properties.flags, \
-            WINDOW_FLAG_VISIBLE, (1 << WINDOW_FLAG_MAX))
-
-/**
- * @brief Macro that unsets the visibility flag of a window
+ * @brief Macro that sets the hidden flag of a window
  *
  * @param w Pointer to the window structure whose visibility is to be
  *          cleared
  *
  * @note Complexity: @e O(1)
  */
-#define window_unset_visible(w) \
-    safeflg_unset(&(w)->properties.flags, \
-            WINDOW_FLAG_VISIBLE, (1 << WINDOW_FLAG_MAX))
+#define window_set_hidden(w) \
+    safeflg_set(&(w)->properties.flags, \
+            WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
 
 /**
- * @brief Macro that toggles the visibility flag of a window
+ * @brief Macro that unsets the hidden flag of a window
+ *
+ * @param w Pointer to the window structure whose visibility is to be
+ *          set
+ *
+ * @note Complexity: @e O(1)
+ */
+#define window_unset_hidden(w) \
+    safeflg_unset(&(w)->properties.flags, \
+            WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
+
+/**
+ * @brief Macro that toggles the hidden flag of a window
  *
  * @param w Pointer to the window structure whose visibility is to be
  *          toggled
  *
  * @note Complexity: @e O(1)
  */
-#define window_toggle_visible(w) \
+#define window_toggle_hidden(w) \
     safeflg_toggle(&(w)->properties.flags, \
-            WINDOW_FLAG_VISIBLE, (1 << WINDOW_FLAG_MAX))
+            WINDOW_FLAG_HIDDEN, (1 << WINDOW_FLAG_MAX))
 
 /**
  * @brief Macro that sets the focus flag of a window

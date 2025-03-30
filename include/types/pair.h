@@ -4,8 +4,9 @@
  * @brief Common shared structures for pair types (2D)
  *
  * @note Some of them are repeated but with different name, for clarity
- *       of the code, although I will implement this in a better way in
- *       the future
+ *       of the code when trying not to use 'typedef'.  I could use
+ *       a common structure for those, but readability is important.
+ *       Maybe in the future there will be some refactoring...
  */
 
 #ifndef PAIR_H
@@ -42,14 +43,6 @@ struct resolution_s {
 };
 
 
-/**
- * @brief Dimensions structure
- */
-struct dimensions_s {
-    unsigned int w;
-    unsigned int h;
-};
-
 /*
  * @brief Position structure
  *
@@ -58,6 +51,15 @@ struct dimensions_s {
 struct position_s {
     int x;
     int y;
+};
+
+
+/**
+ * @brief Dimensions structure
+ */
+struct dimensions_s {
+    unsigned int w;
+    unsigned int h;
 };
 
 

@@ -22,7 +22,7 @@
 
 /* Project includes */
 #include <action.h>
-#include <atdata.h>
+#include <actdata.h>
 #include <config.h>
 #include <event.h>
 #include <eventq.h>
@@ -60,17 +60,18 @@ window_td *window_init(Display *display, window_td *parent,
     window->properties.geometry_orig.dim =
         window->properties.geometry.dim;
 
+    // TODO: Test this...
     window->properties.type = WINDOW_TYPE_NORMAL;
     window->properties.state = WINDOW_STATE_NORMAL;
     window->properties.layer = WINDOW_LAYER_NORMAL;
-    window->properties.flags = WINDOW_FLAG_VISIBLE;
+    window->properties.flags = WINDOW_FLAG_HIDDEN | WINDOW_FLAG_DECORATED;
 
     window->process.pid = -1;
     window->process.command = NULL;
     window->theme = theme;
 
     window->name = NULL;        // <-- TODO
-    window->class_name = NULL;       // <-- TODO
+    window->class_name = NULL;  // <-- TODO
     window->icon_path = NULL;   // <-- TODO
 
     /* Initialize the window in hidden mode */

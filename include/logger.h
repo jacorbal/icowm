@@ -237,8 +237,10 @@ void logger_tracking_off(void);
     logger_msg(level, __func__, (const char *) msg, __VA_ARGS__)
 
 /**
- * @defgroup Logger Macros that evaluate to the logger message sender by
- *                  severity for simplicity of the code
+ * @defgroup Logger Logger macros
+ *
+ * Macros that evaluate to the logger message sender severity for
+ * simplicity of the code.
  *
  * @see @a LOGGER
  * @{

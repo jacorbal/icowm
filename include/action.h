@@ -46,6 +46,7 @@ enum action_window_e {
     ACTION_WINDOW_MAXIMIZE_VERT,        /**< Maximize window vertically */
     ACTION_WINDOW_ICONIFY,              /**< Iconify (& minimize) */
     ACTION_WINDOW_HIDE,                 /**< Hide the window */
+    ACTION_WINDOW_SHADE,                /**< Shade (roll-up) the window */
     ACTION_WINDOW_STICKY,               /**< Set window sticky mode */
     ACTION_WINDOW_UNSTICKY,             /**< Remove window sticky mode */
     ACTION_WINDOW_TOGGLE_STICKY,        /**< Toggle window sticky mode */
