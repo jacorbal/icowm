@@ -18,7 +18,7 @@
 #include <utils/safestr.h>
 
 /* Type includes */
-#include <types/pair.h> /* dimensions_s, geometry_s */
+#include <types/pair.h> /* geometry_s */
 
 /* Project includes */
 #include <action.h>
@@ -27,8 +27,8 @@
 #include <event.h>
 #include <eventq.h>
 #include <logger.h>
-#include <window.h>
 #include <priority.h>
+#include <window.h>
 
 
 /* Initialize a new window */
@@ -54,16 +54,23 @@ window_td *window_init(Display *display, window_td *parent,
     window->properties.geometry.dim.w = w;
     window->properties.geometry.dim.h = h;
 
-    window->properties.flags = WINDOW_FLAG_VISIBLE;
-    window->properties.state = WINDOW_STATE_IDLE;
+    /* Set the original coordinates the same */
+    window->properties.geometry_orig.pos =
+        window->properties.geometry.pos;
+    window->properties.geometry_orig.dim =
+        window->properties.geometry.dim;
+
+    window->properties.type = WINDOW_TYPE_NORMAL;
+    window->properties.state = WINDOW_STATE_NORMAL;
     window->properties.layer = WINDOW_LAYER_NORMAL;
+    window->properties.flags = WINDOW_FLAG_VISIBLE;
 
     window->process.pid = -1;
     window->process.command = NULL;
     window->theme = theme;
 
     window->name = NULL;        // <-- TODO
-    window->class = NULL;       // <-- TODO
+    window->class_name = NULL;       // <-- TODO
     window->icon_path = NULL;   // <-- TODO
 
     /* Initialize the window in hidden mode */
@@ -71,13 +78,13 @@ window_td *window_init(Display *display, window_td *parent,
 //        (enum window_flags_e) WINDOW_FLAG_VISIBLE;
 
     /* Create the X window */
-    window->window = XCreateSimpleWindow(display,
+    window->xwindow = XCreateSimpleWindow(display,
             DefaultRootWindow(display),
             x, y, w, h,
             theme->window.general.border_width,
             BlackPixel(display, 0), WhitePixel(display, 0));
 
-    if (!window->window) {
+    if (!window->xwindow) {
         LOGGER_ERROR("Failed to create window", L_NARG);
         free(window);
         return NULL;
@@ -85,13 +92,13 @@ window_td *window_init(Display *display, window_td *parent,
 
     // TODO: This should go in 'window_action_create'
     /* Configure window */
-    XSetStandardProperties(display, window->window,
+    XSetStandardProperties(display, window->xwindow,
             "Ventana", "Titulo", None, NULL, 0, NULL);
 
     class_hint = XAllocClassHint();
     class_hint->res_name = (char *) "my_window";
     class_hint->res_class = (char *) "my_class";
-    XSetClassHint(display, window->window, class_hint);
+    XSetClassHint(display, window->xwindow, class_hint);
     XFree(class_hint);
 
     return window;
@@ -104,8 +111,8 @@ void window_destroy(window_td *window)
     LOGGER_TRACE("Deallocating structure for window %#lx ('%s')",
             window->id, window->name);
     if (window) {
-        if (window->window) {
-            XDestroyWindow(window->display, window->window);
+        if (window->xwindow) {
+            XDestroyWindow(window->display, window->xwindow);
         }
         free(window);
     }
@@ -123,7 +130,7 @@ void window_update(window_td *window)
             window->id, window->name);
 
     /* Clear the window */
-    XClearWindow(window->display, window->window);
+    XClearWindow(window->display, window->xwindow);
 
     /* Draw or update the content over the window */
     //  e.g.: draw_content(window);
@@ -170,7 +177,7 @@ int window_action_reclass(window_td *window, const char *new_class)
      *       with 'action_data_window_destroy' once the event has
      *       finished processing this action to avoid memory leaks */
     data = action_data_window_init(window, action.object.window);
-    data->new_data.class = safe_strdup(new_class);
+    data->new_data.class_name = safe_strdup(new_class);
 
     event = event_init((void *) window, (void *) data,
             action, PRIORITY_NORMAL);
@@ -194,8 +201,8 @@ int window_action_move(window_td *window, int new_x, int new_y)
      *       finished processing this action to avoid memory leaks */
     data = action_data_window_init(window, action.object.window);
 
-    data->new_data.pos.x = new_x;
-    data->new_data.pos.y = new_y;
+    data->new_data.geometry.pos.x = new_x;
+    data->new_data.geometry.pos.y = new_y;
 
     event = event_init((void *) window, (void *) data,
             action, PRIORITY_NORMAL);
@@ -220,8 +227,8 @@ int window_action_resize(window_td *window,
      *       finished processing this action to avoid memory leaks */
     data = action_data_window_init(window, action.object.window);
 
-    data->new_data.dim.w = new_w;
-    data->new_data.dim.h = new_h;
+    data->new_data.geometry.dim.w = new_w;
+    data->new_data.geometry.dim.h = new_h;
 
     event = event_init((void *) window, (void *) data,
             action, PRIORITY_NORMAL);

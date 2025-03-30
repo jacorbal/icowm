@@ -50,15 +50,23 @@ struct dimensions_s {
     unsigned int h;
 };
 
-
-/**
- * @brief Geometry structure
+/*
+ * @brief Position structure
  *
  * @note This values are always non-negative
  */
-struct geometry_s {
+struct position_s {
     int x;
     int y;
+};
+
+
+/**
+ * @brief Geometry structure
+ */
+struct geometry_s {
+    struct position_s pos;
+    struct dimensions_s dim;
 };
 
 

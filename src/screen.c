@@ -95,6 +95,7 @@ screen_td *screen_init(Display *display, const unsigned int screen_id,
     screen->id = screen_id;
     screen->display = display;
     screen->config = config;
+    screen->xscreen = xscreen;
 
     /* Update screen properties */
     s_update_properties(screen, xscreen);

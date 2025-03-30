@@ -37,10 +37,10 @@ typedef struct event_s {
 /**
  * @brief Initializes a new event structure
  *
- * @param object         Object for which this event is
- * @param object_data    Data for the object with updating information
- * @param action         Action to be performed on the object
- * @param priority Initial priority for this event
+ * @param object      Object for which this event is
+ * @param object_data Data for the object with updating information
+ * @param action      Action to be performed on the object
+ * @param priority    Initial priority for this event
  *
  * @return Pointer to new allocated event structure, or @c NULL
  *         otherwise

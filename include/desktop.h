@@ -18,12 +18,13 @@
 
 /* Project includes */
 #include <config.h>
-#include <window.h>
+/*#include <window.h>*/
 
 
-/* Forward declaration; allows 'window_td' to be referenced without
- * complete definition, improving modularity and reducing compilation
- * dependencies, and supporting possible circular dependencies */
+/* <window.h>:
+ * Forward declaration of the type 'window_td', allowing it to be
+ * referenced without a complete definition, which helps to prevent
+ * circular dependencies and reduces compilation dependencies. */
 typedef struct window_s window_td;
 
 

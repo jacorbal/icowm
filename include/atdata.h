@@ -30,10 +30,9 @@ typedef struct {
 
     union {
         char *name;
-        char *class;
+        char *class_name;
         char *icon_path;
-        struct geometry_s pos;
-        struct dimensions_s dim;
+        struct geometry_s geometry;
     } new_data;                         /** New values to update */
 } action_data_window_td;
 

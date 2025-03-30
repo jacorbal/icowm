@@ -11,7 +11,7 @@ portable Sony Vaio TZ[21WN/B], my steadfast companion since thereabout
 the year two-thousand and seven.  A voyager through realms both nigh and
 far, it bore witness to my travails, as I embraced the haunting specter
 of sleepless nights, seeking solace in code's warm embrace.  For this
-very programme, the hours twenty-four, fragmented 'neath seven
+very programme, the hours twenty-four, fragmented 'neath a dozen
 non-sequential suns, in the measure of thrice and half hours daily, were
 sacrificed as offerings to the sacred art of creation of this first
 completed version, where each keystroke upon its faithful keys became a

@@ -22,12 +22,13 @@
 
 /* Project includes */
 #include <config.h>
-#include <desktop.h>
+/*#include <desktop.h>*/
 
 
-/* Forward declaration; allows 'desktop_td' to be referenced without
- * complete definition, improving modularity and reducing compilation
- * dependencies, and supporting possible circular dependencies */
+/* <desktop.h>:
+ * Forward declaration of the type 'desktop_td', allowing it to be
+ * referenced without a complete definition, which helps to prevent
+ * circular dependencies and reduces compilation dependencies. */
 typedef struct desktop_s desktop_td;
 
 
@@ -72,7 +73,7 @@ typedef struct {
     unsigned int id;            /**< Screen unique identifier or index */
 
     Display *display;           /**< Pointer to X11 display */
-    Screen *screen;             /**< Pointer to X11 screen */
+    Screen *xscreen;            /**< Pointer to X11 screen */
     Window root;                /**< Root window for this screen */
 
     /* Properties */
@@ -433,11 +434,25 @@ int screen_action_set_contrast(screen_td *screen, int contrast);
 int screen_action_configure_settings(screen_td *screen);
 
 /**
+ * @brief Macro that evaluates to the screen width
+ *
+ * @note Complexity: @e O(1)
+ */
+#define screen_width(s) ((s) ? (s).properties.dim.w : 0)
+
+/**
+ * @brief Macro that evaluates to the screen height
+ *
+ * @note Complexity: @e O(1)
+ */
+#define screen_height(s) ((s) ? (s).properties.dim.h : 0)
+
+/**
  * @brief Macro that evaluates to the desktop count of the screen
  *
  * @note Complexity: @e O(1)
  */
-#define screen_desktop_count(s) ((s) ? s->desktops->size : 0)
+#define screen_desktop_count(s) ((s) ? (s)->desktops->size : 0)
 
 
 #endif  /* ! SCREEN_H */

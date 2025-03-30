@@ -30,9 +30,10 @@ event_td *event_init(void *object, void *object_data,
         return NULL;
     }
 
+    event->object = object;     /* Cast later */
+    event->data = object_data;  /* Cast later */
     event->action = action;
     event->priority = priority;
-    event->object = object;     /* Will need casting later */
 
     return event;
 }

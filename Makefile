@@ -29,8 +29,7 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
               -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
               -Wunreachable-code -Wmissing-format-attribute \
               -Wdeprecated \
-              -Wno-padded -Wno-unused-parameter
-
+              -Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
 CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
               -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
               -Wno-suggest-attribute=format

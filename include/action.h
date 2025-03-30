@@ -45,6 +45,7 @@ enum action_window_e {
     ACTION_WINDOW_MAXIMIZE_HORZ,        /**< Maximize window horizontally */
     ACTION_WINDOW_MAXIMIZE_VERT,        /**< Maximize window vertically */
     ACTION_WINDOW_ICONIFY,              /**< Iconify (& minimize) */
+    ACTION_WINDOW_HIDE,                 /**< Hide the window */
     ACTION_WINDOW_STICKY,               /**< Set window sticky mode */
     ACTION_WINDOW_UNSTICKY,             /**< Remove window sticky mode */
     ACTION_WINDOW_TOGGLE_STICKY,        /**< Toggle window sticky mode */
@@ -53,10 +54,11 @@ enum action_window_e {
     ACTION_WINDOW_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */
     ACTION_WINDOW_RAISE,                /**< Raise the window */
     ACTION_WINDOW_LOWER,                /**< Lower the window */
-    ACTION_WINDOW_LAYER_ON_TOP,         /**< Window always on top */
+    ACTION_WINDOW_LAYER_ABOVE,          /**< Window always on top */
     ACTION_WINDOW_LAYER_NORMAL,         /**< Window normal layer */
-    ACTION_WINDOW_LAYER_ON_BOTTOM,      /**< Window always on bottom */
+    ACTION_WINDOW_LAYER_BELOW,          /**< Window always on bottom */
     ACTION_WINDOW_SET_URGENT,           /**< Mark window as urgent */
+    ACTION_WINDOW_CLEAR_URGENT,         /**< Clear urgency level */
     ACTION_WINDOW_SET_ICON,             /**< Set icon for the window */
 
     /* Add more as needed */
@@ -74,7 +76,9 @@ enum action_window_e {
  * @brief Desktop-related actions
  */
 enum action_desktop_e {
-    ACTION_DESKTOP_RENAME,              /**< Rename desktop */
+    ACTION_DESKTOP_MIN,
+    ACTION_DESKTOP_RENAME =             /**< Rename desktop */
+        ACTION_DESKTOP_MIN,
     ACTION_DESKTOP_SET_BACKGROUND,      /**< Change background */
     ACTION_DESKTOP_CLEAR,               /**< Close and remove all w. */
     ACTION_DESKTOP_WINDOW_ADD,          /**< Add a new window */
@@ -97,6 +101,9 @@ enum action_desktop_e {
 //    ACTION_DESKTOP_SWITCH,              /**< Switch desktop */
 //    ACTION_DESKTOP_SWITCH_NEXT,         /**< Switch to next */
 //    ACTION_DESKTOP_SWITCH_PREV,         /**< Switch to previous */
+
+    ACTION_DESKTOP_MAX =
+        ACTION_DESKTOP_APPLICATION_KILL,
 };
 
 
@@ -104,7 +111,9 @@ enum action_desktop_e {
  * @brief Screen-related actions
  */
 enum action_screen_e {
-    ACTION_SCREEN_DESKTOP_ADD,          /**< Add a new desktop */
+    ACTION_SCREEN_MIN,
+    ACTION_SCREEN_DESKTOP_ADD =         /**< Add a new desktop */
+        ACTION_SCREEN_MIN,
     ACTION_SCREEN_DESKTOP_REMOVE,       /**< Remove a desktop */
     ACTION_SCREEN_DESKTOP_SWITCH,       /**< Switch another desktop */
     ACTION_SCREEN_DESKTOP_SWITCH_NEXT,  /**< Switch to next desktop */
@@ -118,6 +127,9 @@ enum action_screen_e {
 
     /* Add more as needed */
 //    ACTION_SCREEN_SWITCH,               /**< Switch active screen */
+
+    ACTION_SCREEN_MAX =
+        ACTION_SCREEN_CONFIGURE_SETTINGS,
 };
 
 
@@ -125,7 +137,9 @@ enum action_screen_e {
  * @brief Window manager actions
  */
 enum action_wm_e {
-    ACTION_WM_CONFIGURATION_RELOAD,     /**< Reload current configuration */
+    ACTION_WM_MIN,
+    ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
+        ACTION_WM_MIN,
     ACTION_WM_CONFIGURATION_SAVE,       /**< Save current configuration */
     ACTION_SCREEN_ADD,                  /**< Add new screen */
     ACTION_SCREEN_REMOVE,               /**< Remove screen */
@@ -133,6 +147,8 @@ enum action_wm_e {
     ACTION_WM_EXIT,                     /**< Exit the window manager */
 
     /* Add more as needed */
+
+    ACTION_WM_MAX = ACTION_WM_EXIT,
 };
 
 

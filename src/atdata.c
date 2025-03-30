@@ -42,10 +42,13 @@ action_data_window_td *action_data_window_init(window_td *window,
 /* Deallocate window data structure */
 void action_data_window_destroy(action_data_window_td *action_data_window)
 {
-    safe_free((void **) &action_data_window->new_data.name);
-    safe_free((void **) &action_data_window->new_data.class);
-    safe_free((void **) &action_data_window->new_data.icon_path);
-    free(action_data_window);
+    if (action_data_window) {
+        safe_free((void **) &action_data_window->new_data.name);
+        safe_free((void **) &action_data_window->new_data.class_name);
+        safe_free((void **) &action_data_window->new_data.icon_path);
+
+        free(action_data_window);
+    }
 }
 
 
