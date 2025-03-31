@@ -21,10 +21,10 @@
 /*#include <window.h>*/
 
 
-/* <window.h>:
- * Forward declaration of the type 'window_td', allowing it to be
- * referenced without a complete definition, which helps to prevent
- * circular dependencies and reduces compilation dependencies. */
+/* '<window.h>': Forward declaration of the type 'window_td', allowing
+ *               it to be referenced without a complete definition,
+ *               which helps to prevent circular dependencies and
+ *               reduces compilation dependencies */
 typedef struct window_s window_td;
 
 

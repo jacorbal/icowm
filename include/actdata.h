@@ -24,7 +24,7 @@
  *
  * @see action_window_e
  */
-typedef struct {
+typedef struct action_data_window_s {
     window_td *window;                  /**< Window affected */
     enum action_window_e action_window; /**< Action for this window */
 

@@ -1,7 +1,7 @@
 /**
  * @file ohtbl.h
  *
- * @brief Open-addressed hash table (closed hasing) declaration
+ * @brief Open-addressed hash table (closed hashing) declaration
  *
  * The hash table dynamically resizes itself when the number of stored
  * elements exceeds or falls below a predefined threshold, a load
@@ -175,7 +175,7 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
 void ohtbl_destroy(ohtbl_td *htbl);
 
 /**
- * @brief Sets all entries to @c NULL and resets the table
+ * @brief Set all entries to @c NULL and resets the table
  *
  * @param htbl Pointer to the open-addressed hash table to reset
  *
@@ -190,8 +190,8 @@ void ohtbl_reset(ohtbl_td *htbl);
 /**
  * @brief Insert a new item in the hash table
  *
- * If the size of the table is below the @c OHTBL_MAX_LOAD_FACTOR
- * threshold, the table will be resized doubling its positions.
+ * If the size of the table exceeds the @c OHTBL_MAX_LOAD_FACTOR
+ * threshold, the table will be resized by doubling its positions.
  *
  * @param htbl Pointer to the open-addressed hash table where to insert
  * @param data Pointer to the data to be inserted
@@ -209,10 +209,14 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
  * @brief Update an existing element in the has table, or insert it as
  *        new if didn't exist
  *
- * If the item didn't exist in the table, it'll be inserted normally, if
+ * If the item didn't exist in the table, it'll be inserted normally; if
  * exists, it'll be updated to the new value.  If the size of the table
  * is below the @c OHTBL_MAX_LOAD_FACTOR threshold, the table will be
  * resized doubling its positions.
+ *
+ * This means that if the item doesn't previously exist in the hash
+ * table, it will be inserted only after resizing the table it, only if
+ * the size of the table requires it.
  *
  * @param htbl Pointer to the open-addressed hash table to update
  * @param data Pointer to the data to be updated
@@ -221,7 +225,8 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
  * @retval  0 The update was successful
  * @retval  1 The item already existed in the table
  * @retval -1 Nothing was done, possible bad hash functions
- * @retval -2 Could not resize the table
+ * @retval -2 Could not resize the table, and the element was not
+ *            inserted
  *
  * @note Complexity: @e O(1)
  */
@@ -233,8 +238,8 @@ int ohtbl_update(ohtbl_td *htbl, const void *data);
  * If @p data is a match, @p data will point to the data stored in the
  * element that was removed.
  *
- * If the size of the table is above the @c OHTBL_MIN_LOAD_FACTOR
- * threshold, the table will be resized halving its positions.
+ * If the size of the table falls below the @c OHTBL_MIN_LOAD_FACTOR
+ * threshold, the table will be resized by halving its positions.
  *
  * @param htbl Pointer to the open-addressed hash table
  * @param data Pointer to the data to be matched
@@ -294,9 +299,7 @@ int ohtbl_resize(ohtbl_td *htbl, size_t new_positions);
  * @brief Double the current size of the open-addressed hash table
  *
  * Invokes the resize operation to increase the capacity of the hash
- * table by doubling the current number of positions.  It ensures that
- * the resulting table can accommodate more entries and maintain
- * efficient operations.
+ * table by doubling the current number of positions.
  *
  * This doubling is triggered on insertions when the load factor exceeds
  * the defined maximum load factor (@c OHTBL_MAX_LOAD_FACTOR).
@@ -321,12 +324,11 @@ int ohtbl_resize_double(ohtbl_td *htbl);
  * @brief Halve the current size of the open-addressed hash table
  *
  * Invokes the resize operation to decrease the capacity of the hash
- * table by halving the current number of positions.  The function
- * ensures that the new size does not drop below the minimum allowed
- * size established in @c OHTBL_MIN_POSITIONS.
+ * table by halving the current number of positions.
  *
- * This halving is triggered on removals when the load factor is beneath
- * the minimum load factor (@c OHTBL_MIN_LOAD_FACTOR).
+ * This halving is triggered on removals when the load factor falls
+ * below the minimum load factor (@c OHTBL_MIN_LOAD_FACTOR), as long as
+ * the table size does not go below the specified minimum positions.
  *
  * @param htbl Pointer to the hash table to be halved in size
  *
@@ -346,8 +348,8 @@ int ohtbl_resize_double(ohtbl_td *htbl);
 int ohtbl_resize_halve(ohtbl_td *htbl);
 
 /**
- * @brief Macro that evaluates to the hash table size giving the number
- *        of items
+ * @brief Macro that evaluates to the current size of the hash table,
+ *        returning the number of stored items
  *
  * @note Complexity: @e O(1)
  */

@@ -24,12 +24,14 @@
  * desktop, or screen).
  */
 typedef struct event_s {
-    void *data;                     /**< Specific event data */
-    action_td action;               /**< Event action */
-    enum priority_e priority;       /**< Event priority; higher values
-                                         imply less priority */
+    void *data;                 /**< Specific event data */
+    action_td action;           /**< Event action */
+    enum priority_e priority;   /**< Event priority; higher values imply
+                                     less priority */
 
-    /**< Object affected by this event (window, desktop, screen) */
+    /**
+     * @brief Object affected by this event (window, desktop, screen)
+     */
     void *object;
 } event_td;
 

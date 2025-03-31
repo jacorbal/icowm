@@ -25,10 +25,10 @@
 /*#include <desktop.h>*/
 
 
-/* <desktop.h>:
- * Forward declaration of the type 'desktop_td', allowing it to be
- * referenced without a complete definition, which helps to prevent
- * circular dependencies and reduces compilation dependencies. */
+/* '<desktop.h>': Forward declaration of the type 'desktop_td', allowing
+ *                it to be referenced without a complete definition,
+ *                which helps to prevent circular dependencies and
+ *                reduces compilation dependencies */
 typedef struct desktop_s desktop_td;
 
 

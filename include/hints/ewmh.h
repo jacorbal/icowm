@@ -59,8 +59,8 @@
  *  - @c _NET_WM_WINDOW_TYPE_UTILITY: @a ewmh_set_window_type_utility
  */
 
-#ifndef EWMH_H
-#define EWMH_H
+#ifndef HINTS_EWMH_H
+#define HINTS_EWMH_H
 
 
 /* System includes */
@@ -68,38 +68,169 @@
 #include <sys/types.h>  /* pid_t */
 
 /* X11 includes */
-#include <X11/Xlib.h>   /* Window, Display, Pixmap */
+#include <X11/Xlib.h>   /* Window, Pixmap */
 #include <X11/Xatom.h>  /* Atom */
+
+/* Project includes */
+/*#include <window.h>*/
+
+/* '<window.h>': Forward declaration of the type 'window_td' */
+typedef struct window_s window_td;
 
 
 /* Public interface */
 /**
- * @brief Ping an EWMH-compliant window to check if it is responding
+ * @brief Send a @c ClientMessage event to a specified window with
+ *        a variable number of items
  *
- * Sends a ping to the specified window, which can be used to determine
- * if the window is alive and responding.
+ * Sends an arbitrary number of data values via @c ClientMessage events.
+ * It splits the sending into multiple events when the length of the
+ * data exceeds the limit of 5 elements per event.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window to ping
+ * @param window   Pointer to the window to receive the message
+ * @param msg_type String representing the type of the message
+ * @param data     Pointer to an array of data to be sent
+ * @param data_len Length of the data array
+ *
+ * @return Number of messages successfully sent via @a XSendEvent
+ * @retval -1 Data length is incorrect (zero)
+ * @retval -2 Nothing done; atom could not be created
+ *
+ * @note Ensure the destination window manager is configured to handle
+ *       the message type you are sending, using the correct atom type
+ * @note Complexity: @e O(n), with @e n is the number of data items
+ *
+ * Example:
+ * @code
+ * window_td my_window;
+ * my_window.display = XOpenDisplay(NULL);
+ * my_window.xwindow = 1;   // Obtain or create the window identifier
+ *
+ * long message_data[12] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+ * int result = ewmh_send_client_messages(&my_window,
+ *                              "_NET_WM_STATE", message_data, 12);
+ *
+ * if (result < 0) {
+ *     if (result == -1) {
+ *         printf("Error: Invalid message length.\n");
+ *     } else if (result == -2) {
+ *         printf("Error: Could not create atom.\n");
+ *     }
+ * } else {
+ *     printf("Messages sent: %d\n", result);
+ * }
+ * @endcode
+ */
+int ewmh_send_client_messages(window_td *window,
+        const char* msg_type, long* data, unsigned int data_len);
+
+/**
+ * @brief Send a @c ClientMessage to the specified window
+ *
+ * Sends the message with a preset format that includes the current time
+ * and the window identifier.
+ *
+ * @param window ointer to the window structure that contains the
+ *               pointer to the X server connection and the window
+ *               identifier
+ *
+ * @param state String representing the state (message type) to be sent
  *
  * @return Status of the operation
- * @retval  true Event was accepted for its sending, but receiving isn't
- *               guaranteed
- * @retval false Event couldn't be sent, or atom couldn't be created
+ * @retval  true Message was sent successfully
+ * @retval false Failed to send the message
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @a ewmh_send_client_messages
+ */
+bool ewmh_send_client_message(window_td *window, const char *state);
+
+/**
+ * @brief Update a property on the specified window
+ *
+ * Updates a property on the specified window, sending a message to the
+ * window manager and updating the property atom.
+ *
+ * @param window        Pointer to the window to update
+ * @param property_name The name of the property to update
+ * @param value         The value to set for the property
+ * @param value_type    The type of the value
+ * @param data_len      The length of the value
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval -1 Failed to update the status
+ * @retval -2 Nothing was done; atom couldn't be created
+ *
+ * @note Complexity: @e O(1), although there is a call to
+ *       @a XChangeProperty, which is typically considered a constant
+ *       time operation, however, if we take into account that an atom
+ *       needs to be created (using @a XInternAtom), it may take time
+ *       depending on the number of atoms that already exist; it is
+ *       generally considered @e O(1) on average in this context
+ */
+int ewmh_update_window_property(window_td *window,
+        const char* property_name, void* value, int value_type,
+        unsigned int data_len);
+
+/**
+ * @brief Update a state on the specified window
+ *
+ * Updates a state on the specified window, sending a message to the
+ * window manager and updating the state.
+ *
+ * @param window     Pointer to the window to update
+ * @param state_type The type of state to update
+ * @param data       Pointer to the state data
+ * @param data_len   The length of the state data
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval -1 Failed to update the status
+ * @retval -2 Nothing was done; atom couldn't be created
  *
  * @note Complexity: @e O(1)
  */
-bool ewmh_ping_window(Display *display, Window window);
+int ewmh_update_window_state(window_td *window, const char* state_type,
+        long int *data, unsigned int data_len);
+
+int ewmh_unset_window_state(window_td *window, const char *state);
+
+
+/* @brief Set the window name for an EWMH-compliant window
+ *
+ * Sets the name of the specified window, using the EWMH standard.  It
+ * updates the @c _NET_WM_NAME property of the X11 window to the
+ * provided name string.
+ *
+ * @param window Window structure whose name is to be set
+ * @param state  State to change
+ * @param str    New name for the window
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to set the status
+ * @retval -1 If @p name is @c NULL
+ * @retval -2 Nothing was done; atom couldn't be created
+ *
+ * @note The name string is expected to be null-terminated
+ *       The provided name's length is determined using @a safe_strlen
+ * @note This function does not check if the window exists; it is the
+ *       caller's responsibility to ensure the window ID is valid
+ * @note Complexity: @e O(1)
+ */
+int ewmh_set_window_state_string(window_td *window, const char *state,
+        const char *str);
 
 /**
  * @brief Set the icon for an EWMH-compliant window
  *
  * Sets the icon associated with the specified window, using the EWMH
- * standard.  It updates the @c _NET_WM_ICON property of the window with
- * the provided icon data.
+ * standard.  It updates the @c _NET_WM_ICON property of the X11 window
+ * with the provided icon data.
  *
- * @param display    Pointer to the X11 Display structure
- * @param window     X11 window to which the icon belongs
+ * @param window     Window structure to which the icon belongs
  * @param icon       Pointer to the array containing the icon data
  * @param icon_count Number of icons provided in the array
  *
@@ -107,22 +238,22 @@ bool ewmh_ping_window(Display *display, Window window);
  * @retval  0 Success
  * @retval  1 Failed to set the status
  * @retval -1 If @p icon is @c NULL
+ * @retval -2 Nothing was done; atom couldn't be created
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_icon(Display *display, Window window,
-        Pixmap *icon, int icon_count);
+int ewmh_set_window_icon(window_td *window, Pixmap *icon,
+        unsigned int icon_count);
 
 /**
  * @brief Set the process ID for an EWMH-compliant window
  *
  * Sets the process ID associated with the specified window, using the
- * EWMH standard.  It updates the @c _NET_WM_PID property of the window
- * with the provided PID.
+ * EWMH standard.  It updates the @c _NET_WM_PID property of the X11
+ * window with the provided PID.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window to which the PID belongs
- * @param pid     New process ID for the window
+ * @param window Window structure to which the PID belongs
+ * @param pid    New process ID for the window
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -131,17 +262,16 @@ int ewmh_set_window_icon(Display *display, Window window,
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_pid(Display *display, Window window, pid_t pid);
+int ewmh_set_window_pid(window_td *window, pid_t pid);
 
 /**
  * @brief Set the desktop number for an EWMH-compliant window
  *
  * Sets the desktop number of the specified window, using the EWMH
- * standard.  It updates the @c _NET_WM_DESKTOP property of the window
- * to the provided desktop number.
+ * standard.  It updates the @c _NET_WM_DESKTOP property of the X11
+ * window to the provided desktop number.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window whose desktop number is to be set
+ * @param window  Window structure whose desktop number is to be set
  * @param desktop New desktop number for the window
  *
  * @return Status of the operation
@@ -151,19 +281,17 @@ int ewmh_set_window_pid(Display *display, Window window, pid_t pid);
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_desktop(Display *display, Window window,
-        int desktop);
+int ewmh_set_window_desktop(window_td *window, int desktop);
 
 /**
  * @brief Set the user time for an EWMH-compliant window
  *
  * Sets the user time associated with the specified window, using the
  * EWMH standard.  It updates the @c _NET_WM_USER_TIME property of the
- * window with the provided user time value.
+ * X11 window with the provided user time value.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window to which the user time belongs
- * @param time    New user time for the window
+ * @param window Window structure to which the user time belongs
+ * @param time   New user time for the window
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -172,19 +300,17 @@ int ewmh_set_window_desktop(Display *display, Window window,
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_user_time(Display *display, Window window,
-        Time time);
+int ewmh_set_window_user_time(window_td *window, Time time);
 
 /**
  * @brief Set the user time window for an EWMH-compliant window
  *
  * Sets the user time window associated with the specified window using
  * the EWMH standard.  It updates the @c _NET_WM_USER_TIME_WINDOW
- * property of the window with the specified user time window.
+ * property of the X11 window with the specified user time window.
  *
- * @param display          Pointer to the X11 Display structure
- * @param window           X11 window to which user time window belongs
- * @param user_time_window New user time window for the window
+ * @param window           Window to which user time window belongs
+ * @param user_time_window New user time window for the X11 window
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -193,18 +319,17 @@ int ewmh_set_window_user_time(Display *display, Window window,
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_user_time_window(Display *display, Window window,
+int ewmh_set_window_user_time_window(window_td *window,
         Window user_time_window);
 
 /**
  * @brief Set the opacity for an EWMH-compliant window
  *
  * Sets the opacity of the specified window, using the EWMH standard.
- * It updates the @c _NET_WM_WINDOW_OPACITY property of the window with
- * the provided opacity value.
+ * It updates the @c _NET_WM_WINDOW_OPACITY property of the X11 window
+ * with the provided opacity value.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window whose opacity is to be set
+ * @param window  Window structure whose opacity is to be set
  * @param opacity New opacity value for the window
  *
  * @return Status of the operation
@@ -217,7 +342,7 @@ int ewmh_set_window_user_time_window(Display *display, Window window,
  *       will be capped to the maximum opacity level
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_opacity(Display *display, Window window,
+int ewmh_set_window_opacity(window_td *window,
         unsigned long int opacity);
 
 /**
@@ -225,10 +350,9 @@ int ewmh_set_window_opacity(Display *display, Window window,
  *
  * Sets the actions that can be performed on the specified window
  * according to the EWMH standard. It updates the @c _NET_WM_ACTIONS
- * property of the window with the provided actions.
+ * property of the X11 window with the provided actions.
  *
- * @param display      Pointer to the X11 Display structure
- * @param window       X11 window whose actions are to be set
+ * @param window       Window structure whose actions are to be set
  * @param actions      Array of action strings to be set for the window
  * @param action_count Number of actions provided in the array
  *
@@ -244,17 +368,17 @@ int ewmh_set_window_opacity(Display *display, Window window,
  * @note Complexity: @e O(n), where @e n is the number of actions being
  *       set
  */
-int ewmh_set_window_actions(Display *display, Window window,
-        const char **actions, int action_count);
+int ewmh_set_window_actions(window_td *window, const char **actions,
+        unsigned int action_count);
 
 /**
  * @brief Set the frame extents for an EWMH-compliant window
  *
- * Sets the frame extents of the specified window, using the EWMH
- * standard.  This describes the size of the window frame.
+ * Sets the frame extents of the specified window structure containing
+ * the X11 window, using the EWMH standard.  This describes the size of
+ * the window frame.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window to set the frame extents for
+ * @param window  Window structure to set the frame extents for
  * @param extents Pointer to an array containing the frame extents
  *                (left, right, top, bottom)
  *
@@ -267,8 +391,7 @@ int ewmh_set_window_actions(Display *display, Window window,
  *       right, top, and bottom extents
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_frame_extents(Display *display, Window window,
-        int *extents);
+int ewmh_set_window_frame_extents(window_td *window, int *extents);
 
 /**
  * @brief Indicate that a window is shown
@@ -276,8 +399,7 @@ int ewmh_set_window_frame_extents(Display *display, Window window,
  * Notifies the window manager that the window is currently visible to
  * the user.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window to notify
+ * @param window Window structure to notify
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -286,7 +408,7 @@ int ewmh_set_window_frame_extents(Display *display, Window window,
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_shown(Display *display, Window window);
+int ewmh_set_window_shown(window_td *window);
 
 /**
  * @brief Indicate that a window is being moved or resized
@@ -295,28 +417,42 @@ int ewmh_set_window_shown(Display *display, Window window);
  * being moved or resized. This may be useful for managing UI elements
  * properly.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window that is being moved or resized
+ * @param window Window structure that is being moved or resized
  *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to update the state
+ * @retval -1 Failed to send client message
  * @retval -2 Nothing was done; atom couldn't be created
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_moveresize(Display *display, Window window);
+int ewmh_set_window_moveresize(window_td *window);
+
+/**
+ * @brief Indicate that a window is being restored
+ *
+ * @param window Window structure that is being moved or resized
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to update the state
+ * @retval -1 Failed to send client message
+ * @retval -2 Nothing was done; atom couldn't be created
+ *
+ * @note Complexity: @e O(1)
+ */
+int ewmh_set_window_restore(window_td *window);
 
 /**
  * @brief General function to set the type for an EWMH-compliant window
  *
  * Sets the type of the specified window, using the EWMH standard.  It
- * updates the @c _NET_WM_WINDOW_TYPE property of the window to the
+ * updates the @c _NET_WM_WINDOW_TYPE property of the X11 window to the
  * provided window type.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window whose type is to be set
- * @param type    New type for the window
+ * @param window Window structure whose type is to be set
+ * @param type   New type for the window
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -326,42 +462,13 @@ int ewmh_set_window_moveresize(Display *display, Window window);
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_type(Display *display, Window window,
-        const char *type);
-
-/**
- * @brief Set the window name for an EWMH-compliant window
- *
- * Sets the name of the specified window, using the EWMH standard.  It
- * updates the @c _NET_WM_NAME property of the window to the provided
- * name string.
- *
- * @param display A pointer to the X11 Display structure
- * @param window  X11 window whose name is to be set
- * @param state   State to change
- * @param str     New name for the window
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to set the status
- * @retval -1 If @p name is @c NULL
- * @retval -2 Nothing was done; atom couldn't be created
- *
- * @note The name string is expected to be null-terminated
- *       The provided name's length is determined using @a safe_strlen
- * @note This function does not check if the window exists; it is the
- *       caller's responsibility to ensure the window ID is valid
- * @note Complexity: @e O(1)
- */
-int ewmh_set_window_state_string(Display *display, Window window,
-        const char *state, const char *str);
+int ewmh_set_window_type(window_td *window, const char *type);
 
 /**
  * @brief Check whether a state is set or not
  *
- * @param display     Pointer to the X11 Display structure
- * @param window      X11 window whose states are to be set
- * @param state       Status to check if it's already set
+ * @param window Window structure whose states are to be set
+ * @param state  Status to check if it's already set
  *
  * @return Status of the inquiry
  * @retval  true The status is set
@@ -370,8 +477,7 @@ int ewmh_set_window_state_string(Display *display, Window window,
  * @note Complexity: @e O(n), where @e n is the current number of states
  *       to transverse until the @p state is found
  */
-bool ewmh_is_state_set(Display *display, Window window,
-        const char *state);
+bool ewmh_is_state_set(window_td *window, const char *state);
 
 /**
  * @brief General function to set multiple states for an EWMH-compliant
@@ -379,10 +485,9 @@ bool ewmh_is_state_set(Display *display, Window window,
  *
  * Sets multiple states associated with the specified window, using the
  * EWMH standard.  It updates the @c _NET_WM_STATE property of the
- * window with the provided state values.
+ * X11 window with the provided state values.
  *
- * @param display     Pointer to the X11 Display structure
- * @param window      X11 window whose states are to be set
+ * @param window      Window structure whose states are to be set
  * @param states      Pointer to the array of states to be set
  * @param state_count Number of states provided in the array
  *
@@ -394,8 +499,8 @@ bool ewmh_is_state_set(Display *display, Window window,
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_state_multiple(Display *display, Window window,
-        Atom *states, int state_count);
+int ewmh_set_window_state_multiple(window_td *window, Atom *states,
+        unsigned int state_count);
 
 /**
  * @brief General window to set a single state for an EWMH-compliant
@@ -403,22 +508,20 @@ int ewmh_set_window_state_multiple(Display *display, Window window,
  *
  * Sets a single state associated with the specified window, using the
  * EWMH standard.  It updates the @c _NET_WM_STATE property of the
- * window with the provided state value.
+ * X11 window with the provided state value.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 window whose state is to be set
- * @param state   New state for the window
+ * @param window Window structure whose state is to be set
+ * @param state  New state for the window
  *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to set the status
- * @retval -1 If @p display or @p window are @c NULL
+ * @retval -1 If @p window or its display is @c NULL
  * @retval -2 Nothing was done; atom couldn't be created
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_set_window_state(Display *display, Window window,
-        const char *state);
+int ewmh_set_window_state(window_td *window, const char *state);
 
 /**
  * @brief General function to unset a single state for an EWMH-compliant
@@ -426,23 +529,21 @@ int ewmh_set_window_state(Display *display, Window window,
  *
  * Unsets a single state associated with the specified window, using the
  * EWMH standard.  It removes the provided state from the
- * @c _NET_WM_STATE property of the window.
+ * @c _NET_WM_STATE property of the X11 window.
  *
- * @param display Pointer to the X11 Display structure
- * @param window  X11 Window ID of the window whose state is to be unset
- * @param state   State to be removed from the window
+ * @param window Window ID of the window whose state is to be unset
+ * @param state  State to be removed from the window
  *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to unset the status
- * @retval -1 If @p display or @p window are @c NULL
+ * @retval -1 If @p window or its display is @c NULL
  * @retval -2 Nothing was done; atom couldn't be created
  * @retval -3 State was not set; cannot be unset
  *
  * @note Complexity: @e O(1)
  */
-int ewmh_unset_window_state(Display *display, Window window,
-        const char *state);
+int ewmh_unset_window_state(window_td *window, const char *state);
 
 /**
  * @brief General function to unset a single state for an EWMH-compliant
@@ -456,21 +557,19 @@ int ewmh_unset_window_state(Display *display, Window window,
  * is not found in the current list, it does nothing, ensuring that the
  * state remains unchanged if it was not previously set.
  *
- * @param display Pointer to the X11 Display structure
  * @param window  X11 Window ID of the window whose state is to be unset
  * @param state   State to be removed from the window
  *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to unset the status
- * @retval -1 If @p display or @p window are @c NULL
+ * @retval -1 If @p window or its display is @c NULL
  * @retval -2 Nothing was done; atom couldn't be created
  *
  * @note Complexity: @e O(n), where @e n is the number of states that
  *       initially are on the window
  */
-int ewmh_unset_window_state_adjust(Display *display, Window window,
-        const char *state);
+int ewmh_unset_window_state_adjust(window_td *window, const char *state);
 
 /**
  * @brief Macro thats sets the window name for an EWMH-compliant window
@@ -483,8 +582,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_string
  */
-#define ewmh_set_window_name(d, w, str) \
-    ewmh_set_window_state_string(d, w, "_NET_WM_NAME", str)
+#define ewmh_set_window_name(w, str) \
+    ewmh_set_window_state_string(w, "_NET_WM_NAME", str)
 
 /**
  * @brief Macro that sets the class name for an EWMH-compliant window
@@ -497,8 +596,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_string
  */
-#define ewmh_set_window_class(d, w, str) \
-    ewmh_set_window_state_string(d, w, "_NET_WM_CLASS", str)
+#define ewmh_set_window_class(w, str) \
+    ewmh_set_window_state_string(w, "_NET_WM_CLASS", str)
 
 /**
  * @brief Macro that sets the icon name for an EWMH-compliant window
@@ -511,8 +610,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_string
  */
-#define ewmh_set_window_icon_name(d, w, str) \
-    ewmh_set_window_state_string(d, w, "_NET_WM_ICON_NAME", str)
+#define ewmh_set_window_icon_name(w, str) \
+    ewmh_set_window_state_string(w, "_NET_WM_ICON_NAME", str)
 
 /**
  * @brief Macro that sets the startup ID for an EWMH-compliant window
@@ -525,8 +624,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_string
  */
-#define ewmh_set_window_startup_id(d, w, str) \
-    ewmh_set_window_state_string(d, w, "_NET_STARTUP_ID", str)
+#define ewmh_set_window_startup_id(w, str) \
+    ewmh_set_window_state_string(w, "_NET_STARTUP_ID", str)
 
 /**
  * @brief Macro that changes the window state to modal
@@ -539,8 +638,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_modal(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_MODAL")
+#define ewmh_set_window_state_modal(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_MODAL")
 
 /**
  * @brief Macro that changes the window state to skip the pager
@@ -553,8 +652,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_skip_pager(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_SKIP_PAGER")
+#define ewmh_set_window_state_skip_pager(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_SKIP_PAGER")
 
 /**
  * @brief Macro that changes the window state to skip the taskbar
@@ -567,8 +666,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_skip_taskbar(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_SKIP_TASKBAR")
+#define ewmh_set_window_state_skip_taskbar(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_SKIP_TASKBAR")
 
 /**
  * @brief Macro that changes the window state to full screen
@@ -580,8 +679,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_fullscreen(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_FULLSCREEN")
+#define ewmh_set_window_state_fullscreen(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_FULLSCREEN")
 
 /**
  * @brief Macro that changes the window state to maximized horizontally
@@ -593,8 +692,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_maximized_horz(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_MAXIMIZED_HORZ")
+#define ewmh_set_window_state_maximized_horz(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_MAXIMIZED_HORZ")
 
 /**
  * @brief Macro that changes the window state to maximized vertically
@@ -606,8 +705,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_maximized_vert(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_MAXIMIZED_VERT")
+#define ewmh_set_window_state_maximized_vert(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_MAXIMIZED_VERT")
 
 /**
  * @brief Macro that changes the window state to minimized
@@ -619,8 +718,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_minimized(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_MINIMIZED")
+#define ewmh_set_window_state_minimized(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_MINIMIZED")
 
 /**
  * @brief Macro that changes the window state to focused
@@ -632,8 +731,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_focused(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_FOCUSED")
+#define ewmh_set_window_state_focused(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_FOCUSED")
 
 /**
  * @brief Macro that changes the window state to sticky
@@ -645,8 +744,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_sticky(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_STICKY")
+#define ewmh_set_window_state_sticky(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_STICKY")
 
 /**
  * @brief Macro that changes the window state to always on top
@@ -658,8 +757,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_above(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_ABOVE")
+#define ewmh_set_window_state_above(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_ABOVE")
 
 /**
  * @brief Macro that changes the window state to below
@@ -671,8 +770,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_below(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_BELOW")
+#define ewmh_set_window_state_below(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_BELOW")
 
 /**
  * @brief Macro that changes the window state to shaded
@@ -685,8 +784,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_shaded(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_SHADED")
+#define ewmh_set_window_state_shaded(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_SHADED")
 
 /**
  * @brief Macro that changes the window state to hidden
@@ -698,8 +797,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_hidden(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_HIDDEN")
+#define ewmh_set_window_state_hidden(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_HIDDEN")
 
 /**
  * @brief Macro that changes the window state to demands attention
@@ -713,8 +812,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_state
  */
-#define ewmh_set_window_state_demands_attention(d, w) \
-    ewmh_set_window_state(d, w, "_NET_WM_STATE_DEMANDS_ATTENTION")
+#define ewmh_set_window_state_demands_attention(w) \
+    ewmh_set_window_state(w, "_NET_WM_STATE_DEMANDS_ATTENTION")
 
 /**
  * @brief Macro alias to @a ewmh_set_window_state_demands_attention
@@ -738,8 +837,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_normal(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_NORMAL")
+#define ewmh_set_window_type_normal(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_NORMAL")
 
 /**
  * @brief Macro that changes the window type to dialog
@@ -751,8 +850,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_dialog(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_DIALOG")
+#define ewmh_set_window_type_dialog(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_DIALOG")
 
 /**
  * @brief Macro that changes the window type to toolbar
@@ -764,8 +863,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_toolbar(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_TOOLBAR")
+#define ewmh_set_window_type_toolbar(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_TOOLBAR")
 
 /**
  * @brief Macro that changes the window type to notification
@@ -777,8 +876,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_notification(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_NOTIFICATION")
+#define ewmh_set_window_type_notification(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_NOTIFICATION")
 
 /**
  * @brief Macro that changes the window type to menu
@@ -790,8 +889,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_menu(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_MENU")
+#define ewmh_set_window_type_menu(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_MENU")
 
 /**
  * @brief Macro that changes the window type to utility
@@ -803,8 +902,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_utility(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_UTILITY")
+#define ewmh_set_window_type_utility(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_UTILITY")
 
 /**
  * @brief Macro that changes the window type to splash
@@ -816,8 +915,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_splash(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_SPLASH")
+#define ewmh_set_window_type_splash(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_SPLASH")
 
 /**
  * @brief Macro that changes the window type to desktop
@@ -829,8 +928,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_desktop(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_DESKTOP")
+#define ewmh_set_window_type_desktop(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_DESKTOP")
 
 /**
  * @brief Macro that changes the window type to drop-down menu
@@ -842,8 +941,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_dropdown_menu(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU")
+#define ewmh_set_window_type_dropdown_menu(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU")
 
 /**
  * @brief Macro that changes the window type to popup menu
@@ -855,8 +954,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_popup_menu(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_POPUP_MENU")
+#define ewmh_set_window_type_popup_menu(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_POPUP_MENU")
 
 /**
  * @brief Macro that changes the window type to combo
@@ -868,8 +967,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_combo(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_COMBO")
+#define ewmh_set_window_type_combo(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_COMBO")
 
 /**
  * @brief Macro that changes the window type to dock
@@ -881,8 +980,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_dock(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_DOCK")
+#define ewmh_set_window_type_dock(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_DOCK")
 
 /**
  * @brief Macro that changes the window type to dnd
@@ -894,8 +993,8 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_dnd(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_DND")
+#define ewmh_set_window_type_dnd(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_DND")
 
 /**
  * @brief Set the tooltip state for an EWMH-compliant window
@@ -907,8 +1006,16 @@ int ewmh_unset_window_state_adjust(Display *display, Window window,
  *
  * @see @a ewmh_set_window_type
  */
-#define ewmh_set_window_type_tooltip(d, w) \
-    ewmh_set_window_type(d, w, "_NET_WM_WINDOW_TYPE_TOOLTIP")
+#define ewmh_set_window_type_tooltip(w) \
+    ewmh_set_window_type(w, "_NET_WM_WINDOW_TYPE_TOOLTIP")
+
+/**
+ * @brief Ping an EWMH-compliant window to check if it is responding
+ *
+ * @see @a ewmh_send_client_message
+ */
+#define ewmh_ping_window(w) \
+    ewmh_send_client_message(w, "_NET_PING");
 
 
-#endif  /* ! EWMH_H */
+#endif  /* ! HINTS_EWMH_H */

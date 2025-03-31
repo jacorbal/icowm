@@ -21,12 +21,14 @@
 /* Project includes */
 #include <action.h>
 #include <actdata.h>
+#include <cmd.h>
 #include <desktop.h>
-#include <ewmh.h>
 #include <logger.h>
 #include <screen.h>
 #include <window.h>
 #include <wm.h>
+
+#include <hints/ewmh.h>
 
 /* Local includes */
 #include <eventq.h>
@@ -115,17 +117,11 @@ static void s_event_handle_window(event_td *event)
 
             //window_set_hidden(window);
             //window.properties.state = WINDOW_STATE_NORMAL;
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_HIDDEN");
+            ewmh_set_window_state(window, "_NET_WM_STATE_HIDDEN");
             break;
 
         case ACTION_WINDOW_CLOSE:
-            /* This destroys the window in window->xwindow, but does not
-             * deallocates the memory of the window object.  This action
-             * is intended to be called by the desktop, therefore, it's
-             * responsibility of the desktop to execute this action, and
-             * then invoke 'window_destroy' */
-            XDestroyWindow(window->display, window->xwindow);
+            cmd_window_close(window);
             break;
 
         case ACTION_WINDOW_RESTORE:
@@ -134,8 +130,7 @@ static void s_event_handle_window(event_td *event)
             window_geometry_restore(window);
             XMapWindow(window->display, window->xwindow);
             window->properties.state = WINDOW_STATE_NORMAL;
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_NORMAL");
+            ewmh_set_window_state(window, "_NET_WM_STATE_NORMAL");
             break;
 
         case ACTION_WINDOW_FOCUS:
@@ -144,22 +139,12 @@ static void s_event_handle_window(event_td *event)
             XRaiseWindow(window->display, window->xwindow);
             XMapRaised(window->display, window->xwindow);
             window_focus(window);
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_FOCUSED");
+            ewmh_set_window_state(window, "_NET_WM_STATE_FOCUSED");
             break;
 
         case ACTION_WINDOW_UNFOCUS:
             window_unfocus(window);
-            ewmh_unset_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_FOCUSED");
-            break;
-
-        case ACTION_WINDOW_RESIZE:
-            XResizeWindow(window->display, window->xwindow,
-                    window_data->new_data.geometry.dim.w,
-                    window_data->new_data.geometry.dim.h);
-            window->properties.geometry_cur.dim =
-                window_data->new_data.geometry.dim;
+            ewmh_unset_window_state(window, "_NET_WM_STATE_FOCUSED");
             break;
 
         case ACTION_WINDOW_MOVE:
@@ -170,20 +155,26 @@ static void s_event_handle_window(event_td *event)
                 window_data->new_data.geometry.pos;
             break;
 
+        case ACTION_WINDOW_RESIZE:
+            XResizeWindow(window->display, window->xwindow,
+                    window_data->new_data.geometry.dim.w,
+                    window_data->new_data.geometry.dim.h);
+            window->properties.geometry_cur.dim =
+                window_data->new_data.geometry.dim;
+            break;
         case ACTION_WINDOW_RENAME:
             XStoreName(window->display, window->xwindow,
                     window_data->new_data.name);
             safe_free((void **) &(window->name));
             window->name = safe_strdup(window_data->new_data.name);
-            ewmh_set_window_name(window->display, window->xwindow,
-                    window_data->new_data.name);
+            ewmh_set_window_name(window, window_data->new_data.name);
             break;
 
         case ACTION_WINDOW_RECLASS:
             safe_free((void **) &(window->class_name));
             window->class_name =
                 safe_strdup(window_data->new_data.class_name);
-            ewmh_set_window_class(window->display, window->xwindow,
+            ewmh_set_window_class(window,
                     window_data->new_data.class_name);
             break;
 
@@ -195,8 +186,7 @@ static void s_event_handle_window(event_td *event)
                     (unsigned int) attrs.screen->width,
                     (unsigned int) attrs.screen->height);
             window->properties.state = WINDOW_STATE_MAXIMIZED;
-            ewmh_set_window_state_multiple(window->display,
-                    window->xwindow,
+            ewmh_set_window_state_multiple(window,
                     (Atom[]){XInternAtom(window->display,
                             "_NET_WM_STATE_MAXIMIZED_HORZ", False),
                     XInternAtom(window->display,
@@ -211,7 +201,7 @@ static void s_event_handle_window(event_td *event)
                     (unsigned int) attrs.screen->width,
                     (unsigned int) window->properties.geometry_cur.dim.h);
             window->properties.state = WINDOW_STATE_MAXIMIZED_HORZ;
-            ewmh_set_window_state(window->display, window->xwindow,
+            ewmh_set_window_state(window,
                     "_NET_WM_STATE_MAXIMIZED_HORZ");
             break;
 
@@ -223,7 +213,7 @@ static void s_event_handle_window(event_td *event)
                     window->properties.geometry_cur.dim.w,
                     (unsigned int) attrs.screen->width);
             window->properties.state = WINDOW_STATE_MAXIMIZED_VERT;
-            ewmh_set_window_state(window->display, window->xwindow,
+            ewmh_set_window_state(window,
                     "_NET_WM_STATE_MAXIMIZED_VERT");
             break;
 
@@ -234,42 +224,35 @@ static void s_event_handle_window(event_td *event)
             XIconifyWindow(window->display, window->xwindow,
                     (int) window->screen_id);
             window->properties.state = WINDOW_STATE_ICONIFIED;
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_ICONIFIED");
+            ewmh_set_window_state(window, "_NET_WM_STATE_ICONIFIED");
             break;
 
         case ACTION_WINDOW_HIDE:
             XUnmapWindow(window->display, window->xwindow);
             window_set_hidden(window);
-            ewmh_set_window_state_hidden(window->display,
-                    window->xwindow);
+            ewmh_set_window_state_hidden(window);
             break;
 
         case ACTION_WINDOW_SHADE:
             //TODO
-            ewmh_set_window_state_shaded(window->display,
-                    window->xwindow);
+            ewmh_set_window_state_shaded(window);
             break;
 
         case ACTION_WINDOW_STICKY:
             window_set_sticky(window);
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_STICKY");
+            ewmh_set_window_state(window, "_NET_WM_STATE_STICKY");
             break;
 
         case ACTION_WINDOW_UNSTICKY:
             window_unset_sticky(window);
-            ewmh_unset_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_STICKY");
+            ewmh_unset_window_state(window, "_NET_WM_STATE_STICKY");
             break;
 
         case ACTION_WINDOW_TOGGLE_STICKY:
             if (window_is_sticky(window)) {
-                ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_STICKY");
+                ewmh_set_window_state(window, "_NET_WM_STATE_STICKY");
             } else {
-                ewmh_unset_window_state(window->display, window->xwindow,
-                        "_NET_WM_STATE_STICKY");
+                ewmh_unset_window_state(window, "_NET_WM_STATE_STICKY");
             }
             window_toggle_sticky(window);
             break;
@@ -282,8 +265,7 @@ static void s_event_handle_window(event_td *event)
                     (unsigned int) attrs.screen->width,
                     (unsigned int) attrs.screen->height);
             window->properties.state = WINDOW_STATE_FULLSCREEN;
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_FULLSCREEN");
+            ewmh_set_window_state(window, "_NET_WM_STATE_FULLSCREEN");
             break;
 
         case ACTION_WINDOW_UNFULLSCREEN:
@@ -294,8 +276,7 @@ static void s_event_handle_window(event_td *event)
                     window->properties.geometry_cur.dim.w,
                     window->properties.geometry_cur.dim.h);
             window->properties.state = WINDOW_STATE_NORMAL;
-            ewmh_unset_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_FULLSCREEN");
+            ewmh_unset_window_state(window, "_NET_WM_STATE_FULLSCREEN");
             break;
 
         case ACTION_WINDOW_TOGGLE_FULLSCREEN:
@@ -317,57 +298,49 @@ static void s_event_handle_window(event_td *event)
                         (unsigned int) attrs.screen->height);
                 window->properties.state = WINDOW_STATE_FULLSCREEN;
             }
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_FULLSCREEN");
+            ewmh_set_window_state(window, "_NET_WM_STATE_FULLSCREEN");
             break;
 
         case ACTION_WINDOW_RAISE:
             XRaiseWindow(window->display, window->xwindow);
             //TODO
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_ABOVE");
+            ewmh_set_window_state(window, "_NET_WM_STATE_ABOVE");
             break;
 
         case ACTION_WINDOW_LOWER:
             XLowerWindow(window->display, window->xwindow);
             //TODO
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_BELOW");
+            ewmh_set_window_state(window, "_NET_WM_STATE_BELOW");
             break;
 
         case ACTION_WINDOW_LAYER_ABOVE:
             XRaiseWindow(window->display, window->xwindow);
             window->properties.layer = WINDOW_LAYER_ABOVE;
             //TODO
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_ABOVE");
+            ewmh_set_window_state(window, "_NET_WM_STATE_ABOVE");
             break;
 
         case ACTION_WINDOW_LAYER_NORMAL:
             window->properties.layer = WINDOW_LAYER_NORMAL;
             //TODO
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_NORMAL");
+            ewmh_set_window_state(window, "_NET_WM_STATE_NORMAL");
             break;
 
         case ACTION_WINDOW_LAYER_BELOW:
             XLowerWindow(window->display, window->xwindow);
             window->properties.layer = WINDOW_LAYER_BELOW;
             //TODO
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_BELOW");
+            ewmh_set_window_state(window, "_NET_WM_STATE_BELOW");
             break;
 
         case ACTION_WINDOW_SET_URGENT:
             window_set_urgent(window);
-            ewmh_set_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_URGENT");
+            ewmh_set_window_state(window, "_NET_WM_STATE_URGENT");
             break;
 
         case ACTION_WINDOW_CLEAR_URGENT:
             window_unset_urgent(window);
-            ewmh_unset_window_state(window->display, window->xwindow,
-                    "_NET_WM_STATE_URGENT");
+            ewmh_unset_window_state(window, "_NET_WM_STATE_URGENT");
             break;
 
         case ACTION_WINDOW_SET_ICON:
@@ -379,7 +352,7 @@ static void s_event_handle_window(event_td *event)
                     (unsigned char*) &window_data->new_data.icon_path,
                     1);
             //TODO
-            ewmh_set_window_icon_name(window->display, window->xwindow,
+            ewmh_set_window_icon_name(window,
                     window_data->new_data.name);
 //            ewmh_set_window_icon(window->display, window->xwindow,
 //                    window_data->new_data.icon,
