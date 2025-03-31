@@ -1,5 +1,5 @@
 /**
- * @file wcmds.h
+ * @file wcmd.h
  *
  * @brief Functions on executions over windows using the X11 interface
  */
