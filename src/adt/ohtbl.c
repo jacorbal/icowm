@@ -5,7 +5,7 @@
  */
 
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
 #include <stdlib.h>     /* calloc, malloc, free, NULL */
 
 /* Local includes */

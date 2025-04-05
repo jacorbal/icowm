@@ -17,7 +17,7 @@
 
 
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
 
 

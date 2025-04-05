@@ -5,7 +5,7 @@
  */
 
 /* System includes */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
 
 /* X11 includes */
@@ -19,7 +19,7 @@
 #include <config.h>
 #include <eventq.h>
 #include <logger.h>
-#include <screen.h>
+#include <surface.h>
 
 /* Local includes */
 #include <wm.h>
@@ -48,10 +48,10 @@ static void s_wm_update(void)
  * @brief Full window manager update
  *
  * Updates the window manager by updating every window on every desktop
- * of every screen.
+ * of every surface.
  *
- * @note Complexity: @e O(n * m), where @e n is the number of screens
- *       and @e m is the number of desktops on the screen
+ * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ *       and @e m is the number of desktops on the surface
  */
 static void s_wm_update_full(void)
 {
@@ -60,13 +60,13 @@ static void s_wm_update_full(void)
     /* Soft update */
     s_wm_update();
 
-    /* Update all screens */
-    for (list_item_td *screen_node = list_head(wm->screens);
-         screen_node != NULL;
-         screen_node = list_next(screen_node)) {
-        screen_td *screen_cur = (screen_td *) list_data(screen_node);
-        if (screen_cur->is_outdated) {
-            screen_update_full(screen_cur);
+    /* Update all surfaces */
+    for (list_item_td *surface_node = list_head(wm->surfaces);
+         surface_node != NULL;
+         surface_node = list_next(surface_node)) {
+        surface_td *surface_cur = (surface_td *) list_data(surface_node);
+        if (surface_cur->is_outdated) {
+            surface_update_full(surface_cur);
         }
     }
 }
@@ -123,13 +123,14 @@ static void s_wm_loop(void)
                             (xevent.xkey.state & Mod1Mask) &&
                             (xevent.xkey.state & ShiftMask)) {
                         LOGGER_TRACE("Setting 'is_running' status" \
-                                " to 'false'", L_NARG);
+                                " flag to 'false'", L_NARG);
                         wm->is_running = false;
                     } else {
                         //event_handler_handle_process(&event);
                     }
                     break;
                 }
+
                 case ConfigureNotify:
                     /* Handle window resize or move events */
                     //event_handler_handle_configure(&event);
@@ -211,11 +212,11 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             return 4;
         }
 
-        /* Handle screens */
-        LOGGER_TRACE("Allocating memory for screen structures", L_NARG);
-        wm->screens = list_init((void(*)(void *)) screen_destroy);
-        if (wm->screens == NULL) {
-            LOGGER_FATAL("Failed to allocate memory for screens array",
+        /* Handle surfaces */
+        LOGGER_TRACE("Allocating memory for surface structures", L_NARG);
+        wm->surfaces = list_init((void(*)(void *)) surface_destroy);
+        if (wm->surfaces == NULL) {
+            LOGGER_FATAL("Failed to allocate memory for surfaces array",
                     L_NARG);
             eventq_stop();
             config_destroy(wm->config);
@@ -224,36 +225,38 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             return 5;
         }
 
-        /* Initialize screens */
-        LOGGER_TRACE("Initializing screen structures", L_NARG);
-        /* NOTE.  Maybe there are more screens defined in the
+        /* Initialize surfaces */
+        LOGGER_TRACE("Initializing surface structures", L_NARG);
+        /* NOTE.  Maybe there are more surfaces defined in the
          *        configuration file, but only those detected will be
          *        initialized, hence the 'ScreenCount(display)' instead
          *        of taking the JSON information.  In the same way,
-         *        maybe there are 'n' screens, but only want to use
+         *        maybe there are 'n' surfaces, but only want to use
          *        the 'm < n' defined in the JSON file. */
         screens_detected = (unsigned int) ScreenCount(wm->display);
         if (wm->config->base.screen_count != screens_detected) {
-            LOGGER_INFO("Detected %u screens; %u are specified in" \
+            LOGGER_NOTICE("Detected %u surfaces; %u are specified in" \
                     " the configuration file",
                     screens_detected, wm->config->base.screen_count);
             if (wm->config->base.screen_count >= screens_detected) {
                 wm->config->base.screen_count = screens_detected;
             }
+            LOGGER_INFO("Setting number of surfaces to: %u",
+                    wm->config->base.screen_count);
+        } else {
+            LOGGER_DEBUG("Setting number of surfaces to: %u",
+                    wm->config->base.screen_count);
         }
 
-        LOGGER_NOTICE("Setting number of screens to: %u",
-                wm->config->base.screen_count);
-
-        for (unsigned int i = 0; i < wm->config->base.screen_count; ++i) {
-            /* Get number of desktops for this screen */
+        for (size_t i = 0; i < wm->config->base.screen_count; ++i) {
+            /* Get number of desktops for this surface */
             unsigned int desktops_count =
                 wm->config->base.screens[i].desktop_count;
-            screen_td *screen =
-                screen_init(wm->display, i, desktops_count, wm->config);
-            if (screen == NULL) {
-                LOGGER_FATAL("Failed to initialize screen %u", i);
-                list_destroy(wm->screens);
+            surface_td *surface =
+                surface_init(wm->display, i, desktops_count, wm->config);
+            if (surface == NULL) {
+                LOGGER_FATAL("Failed to initialize surface %lu", i);
+                list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
                 XCloseDisplay(wm->display);
@@ -261,14 +264,14 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 return 6;
             }
 
-            LOGGER_TRACE("Inserting screen %u into screen list", i);
-            if (list_ins_next(wm->screens,
-                        list_tail(wm->screens),
-                        (const void *) screen) != 0) {
-                LOGGER_FATAL("Failed to insert screen " \
-                        "%u into screen list", i);
-                screen_destroy(screen);
-                list_destroy(wm->screens);
+            LOGGER_TRACE("Inserting surface %lu into surface list", i);
+            if (list_ins_next(wm->surfaces,
+                        list_tail(wm->surfaces),
+                        (const void *) surface) != 0) {
+                LOGGER_FATAL("Failed to insert surface " \
+                        "%lu into surface list", i);
+                surface_destroy(surface);
+                list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
                 XCloseDisplay(wm->display);
@@ -276,17 +279,18 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 return 7;
             }
 
-            screen->desktop_count =
+            surface->desktop_count =
                 wm->config->base.screens[i].desktop_count;
-            screen->desktop_cur =
+            surface->desktop_cur =
                 wm->config->base.screens[i].desktop_inaugural;
 
-            LOGGER_TRACE("Setting desktop %u as the startup desktop" \
-                    " on screen %u", screen->desktop_cur, i);
+            LOGGER_TRACE("Setting desktop %lu as the startup desktop" \
+                    " on surface %lu", surface->desktop_cur, i);
         }
 
         /* Begin! */
-        LOGGER_TRACE("Setting 'is_running' status to 'true'", L_NARG);
+        LOGGER_TRACE("Setting 'is_running' status flag to 'true'",
+                L_NARG);
         wm->is_running = true;
         s_wm_loop();
 
@@ -305,9 +309,9 @@ int wm_stop(void)
         return 1;
     }
 
-    /* Deallocate every screen */
-    LOGGER_TRACE("Deallocating screens in window manager", L_NARG);
-    list_destroy(wm->screens);
+    /* Deallocate every surface */
+    LOGGER_TRACE("Deallocating surfaces in window manager", L_NARG);
+    list_destroy(wm->surfaces);
 
     /* Stop event priority queue */
     eventq_stop();

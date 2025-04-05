@@ -2,7 +2,7 @@
  * @file action.h
  *
  * @brief Enumeration for all possible actions regarding windows,
- *        desktops and screens, and action structure
+ *        desktops and surfaces, and action structure
  */
 
 #ifndef ACTION_H
@@ -18,7 +18,7 @@
 enum action_type_e {
     ACTION_TYPE_WINDOW,  /**< Window-related actions */
     ACTION_TYPE_DESKTOP, /**< Desktop-related actions */
-    ACTION_TYPE_SCREEN,  /**< Screen-related actions */
+    ACTION_TYPE_SURFACE, /**< Screen-related actions */
     ACTION_TYPE_WM,      /**< Miscellaneous actions related exclusively
                               to the window manager */
 };
@@ -40,19 +40,23 @@ enum action_window_e {
     ACTION_WINDOW_RESIZE,               /**< Resize window */
     ACTION_WINDOW_MOVE,                 /**< Move window */
     ACTION_WINDOW_RECLASS,              /**< Change the window class */
+    ACTION_WINDOW_REROLE,               /**< Change the window role */
     ACTION_WINDOW_RENAME,               /**< Rename window */
     ACTION_WINDOW_MAXIMIZE,             /**< Maximize window */
     ACTION_WINDOW_MAXIMIZE_HORZ,        /**< Maximize window horizontally */
     ACTION_WINDOW_MAXIMIZE_VERT,        /**< Maximize window vertically */
     ACTION_WINDOW_ICONIFY,              /**< Iconify (& minimize) */
     ACTION_WINDOW_HIDE,                 /**< Hide the window */
+    ACTION_WINDOW_UNHIDE,               /**< Show the window */
     ACTION_WINDOW_SHADE,                /**< Shade (roll-up) the window */
+    ACTION_WINDOW_UNSHADE,              /**< Shade (roll-up) the window */
+    ACTION_WINDOW_TOGGLE_SHADE,         /**< Shade (roll-up) the window */
     ACTION_WINDOW_STICKY,               /**< Set window sticky mode */
     ACTION_WINDOW_UNSTICKY,             /**< Remove window sticky mode */
     ACTION_WINDOW_TOGGLE_STICKY,        /**< Toggle window sticky mode */
-    ACTION_WINDOW_FULLSCREEN,           /**< Set full screen mode */
-    ACTION_WINDOW_UNFULLSCREEN,         /**< Remove full screen mode */
-    ACTION_WINDOW_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */
+    ACTION_WINDOW_FULLSCREEN,           /**< Set full surface mode */
+    ACTION_WINDOW_UNFULLSCREEN,         /**< Remove full surface mode */
+    ACTION_WINDOW_TOGGLE_FULLSCREEN,    /**< Toggle full surface mode */
     ACTION_WINDOW_RAISE,                /**< Raise the window */
     ACTION_WINDOW_LOWER,                /**< Lower the window */
     ACTION_WINDOW_LAYER_ABOVE,          /**< Window always on top */
@@ -111,7 +115,7 @@ enum action_desktop_e {
 /**
  * @brief Screen-related actions
  */
-enum action_screen_e {
+enum action_surface_e {
     ACTION_SCREEN_MIN,
     ACTION_SCREEN_DESKTOP_ADD =         /**< Add a new desktop */
         ACTION_SCREEN_MIN,
@@ -119,15 +123,15 @@ enum action_screen_e {
     ACTION_SCREEN_DESKTOP_SWITCH,       /**< Switch another desktop */
     ACTION_SCREEN_DESKTOP_SWITCH_NEXT,  /**< Switch to next desktop */
     ACTION_SCREEN_DESKTOP_SWITCH_PREV,  /**< Switch to previous desktop */
-    ACTION_SCREEN_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */
+    ACTION_SCREEN_TOGGLE_FULLSCREEN,    /**< Toggle full surface mode */
     ACTION_SCREEN_SET_RESOLUTION,       /**< Change resolution */
     ACTION_SCREEN_SET_ORIENTATION,      /**< Change orientation */
-    ACTION_SCREEN_SET_BRIGHTNESS,       /**< Change screen brightness */
-    ACTION_SCREEN_SET_CONTRAST,         /**< Change screen contrast */
+    ACTION_SCREEN_SET_BRIGHTNESS,       /**< Change surface brightness */
+    ACTION_SCREEN_SET_CONTRAST,         /**< Change surface contrast */
     ACTION_SCREEN_CONFIGURE_SETTINGS,   /**< Screen configuration */
 
     /* Add more as needed */
-//    ACTION_SCREEN_SWITCH,               /**< Switch active screen */
+//    ACTION_SCREEN_SWITCH,               /**< Switch active surface */
 
     ACTION_SCREEN_MAX =
         ACTION_SCREEN_CONFIGURE_SETTINGS,
@@ -142,9 +146,9 @@ enum action_wm_e {
     ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
         ACTION_WM_MIN,
     ACTION_WM_CONFIGURATION_SAVE,       /**< Save current configuration */
-    ACTION_SCREEN_ADD,                  /**< Add new screen */
-    ACTION_SCREEN_REMOVE,               /**< Remove screen */
-//    ACTION_WM_SCREEN_SWITCH,            /**< Switch active screen */
+    ACTION_SCREEN_ADD,                  /**< Add new surface */
+    ACTION_SCREEN_REMOVE,               /**< Remove surface */
+//    ACTION_WM_SCREEN_SWITCH,            /**< Switch active surface */
     ACTION_WM_EXIT,                     /**< Exit the window manager */
 
     /* Add more as needed */
@@ -157,14 +161,14 @@ enum action_wm_e {
  * @brief Possible actions based on type
  *
  * @see action_type_e,
- *      action_window_e, action_desktop_e, action_screen_e, action_wm_e
+ *      action_window_e, action_desktop_e, action_surface_e, action_wm_e
  */
 typedef struct {
     enum action_type_e type;                    /**< Type of the action */
     union {
         enum action_window_e window;            /**< Window actions */
         enum action_desktop_e desktop;          /**< Desktop actions */
-        enum action_screen_e screen;            /**< Screen actions */
+        enum action_surface_e surface;          /**< Surface actions */
         enum action_wm_e wm;                    /**< WM actions */
     } object;
 } action_td;

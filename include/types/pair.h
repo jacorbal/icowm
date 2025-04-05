@@ -1,5 +1,5 @@
 /**
- * @file pair.h
+ * @file types/pair.h
  *
  * @brief Common shared structures for pair types (2D)
  *
@@ -9,8 +9,8 @@
  *       Maybe in the future there will be some refactoring...
  */
 
-#ifndef PAIR_H
-#define PAIR_H
+#ifndef TYPE_PAIR_H
+#define TYPE_PAIR_H
 
 
 /**
@@ -72,4 +72,4 @@ struct geometry_s {
 };
 
 
-#endif  /* ! PAIR_H */
+#endif  /* ! TYPE_PAIR_H */

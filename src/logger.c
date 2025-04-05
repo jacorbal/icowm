@@ -5,8 +5,8 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stdarg.h>     /* va_list, va_start, va_end */
-#include <stdbool.h>    /* bool, false, true */
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
 #include <stdlib.h>     /* NULL, free, malloc, size_t */
 #include <time.h>       /* localtime, strftime, time, tm */

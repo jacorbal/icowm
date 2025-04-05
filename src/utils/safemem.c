@@ -17,13 +17,13 @@ void safe_free(void **ptr)
 {
     if (ptr && *ptr) {
         free(*ptr);
-        *ptr = NULL;    /* optional */
+        *ptr = NULL;
     }
 }
 
 
-/* Free multiple dynamically allocated pointers */
-int safe_free_multiple(void **first, ...)
+/* Free var dynamically allocated pointers */
+int safe_free_var(void **first, ...)
 {
     va_list args;
     void** ptr = first; /* The first argument is the first pointer */
@@ -41,7 +41,7 @@ int safe_free_multiple(void **first, ...)
     while (ptr != NULL) {
         if (*ptr) {
             free(*ptr);
-            *ptr = NULL;    /* optional */
+            *ptr = NULL;
         } else {
             /* Return the index of the first pointer that could not be
              * freed ('NULL' pointer) */

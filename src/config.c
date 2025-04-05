@@ -20,7 +20,7 @@
  */
 
 /* System includes */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 #include <stdio.h>      /* FILE, snprintf */
 #include <stdlib.h>     /* NULL, free, malloc, getenv, size_t */
 
@@ -43,16 +43,16 @@
  *
  * @param hex_color Hexadecimal color string
  *
- * @return Color value as unsigned long integer
+ * @return Color value as unsigned longeger
  *
  * @note The initial @p hex_color string could begin with character '#',
  *       for it's ignored
  * @note Complexity: @e O(n), where @e n is the length of the
  *       hexadecimal string
  */
-static unsigned long int s_hex2ul(const char *hex_color)
+static unsigned long s_hex2ul(const char *hex_color)
 {
-    unsigned long int color;
+    unsigned long color;
 
     if (hex_color[0] == '#') {
         hex_color++;

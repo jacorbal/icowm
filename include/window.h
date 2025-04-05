@@ -2,6 +2,13 @@
  * @file window.h
  *
  * @brief Window definition and declaration
+
+ * Defines the data structure that encapsulates all relevant information
+ * about a specific window and its state within the windowing system
+ * environment.  In this regards, provides a framework for managing the
+ * visual and operational properties of the window, including its
+ * identifier, name, state, graphical attributes, geometry, and behavior
+ * preferences.
  */
 
 #ifndef WINDOW_H
@@ -9,7 +16,7 @@
 
 
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
 #include <sys/types.h>  /* pid_t */
 
 /* X11 includes */
@@ -28,13 +35,16 @@
 #include <priority.h>
 
 
+#define WINDOW_PRIORITY_DEFAULT (PRIORITY_NORMAL)
+
+
 /**
  * @brief Possible window states a window can be in
  */
 enum window_state_e {
     WINDOW_STATE_NORMAL,            /**< Regular state */
     WINDOW_STATE_ICONIFIED,         /**< Iconified */
-    WINDOW_STATE_SHADED,            /**< Shaded (rolled-up), if decorated */
+//    WINDOW_STATE_SHADED,            /**< Shaded (rolled-up), if decorated */
     WINDOW_STATE_MAXIMIZED,         /**< Maximized */
     WINDOW_STATE_MAXIMIZED_HORZ,    /**< Maximized horiz. */
     WINDOW_STATE_MAXIMIZED_VERT,    /**< Maximized vert. */
@@ -77,16 +87,17 @@ enum window_operation_e {
  * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
-    WINDOW_FLAG_HIDDEN       = 1 << 0,  /* 0000 0000 0001: hidden */
-    WINDOW_FLAG_FOCUSABLE    = 1 << 1,  /* 0000 0000 0010: is focusable */
-    WINDOW_FLAG_STICKY       = 1 << 2,  /* 0000 0000 0100: on all desktops */
-    WINDOW_FLAG_DECORATED    = 1 << 3,  /* 0000 0000 1000: has decoration */
-    WINDOW_FLAG_URGENT       = 1 << 4,  /* 0000 0001 0000: has urgent state */
-    WINDOW_FLAG_RESIZABLE    = 1 << 5,  /* 0000 0010 0000: resizable window */
-    WINDOW_FLAG_DISABLED     = 1 << 6,  /* 0000 0100 0000: disabled window */
-    WINDOW_FLAG_SKIP_TASKBAR = 1 << 7,  /* 0000 1000 0000: skip taskbar */
-    WINDOW_FLAG_SKIP_PAGER   = 1 << 8,  /* 0001 0000 0000: skip pager */
-    WINDOW_FLAG_MAX = 9,
+    WINDOW_FLAG_HIDDEN       = 1 << 0,
+    WINDOW_FLAG_FOCUSABLE    = 1 << 1,
+    WINDOW_FLAG_STICKY       = 1 << 2,
+    WINDOW_FLAG_SHADED       = 1 << 3,
+    WINDOW_FLAG_DECORATED    = 1 << 4,
+    WINDOW_FLAG_URGENT       = 1 << 5,
+    WINDOW_FLAG_RESIZABLE    = 1 << 6,
+    WINDOW_FLAG_DISABLED     = 1 << 7,
+    WINDOW_FLAG_SKIP_TASKBAR = 1 << 8,
+    WINDOW_FLAG_SKIP_PAGER   = 1 << 9,
+    WINDOW_FLAG_MAX = 10,
 };
 
 
@@ -154,9 +165,9 @@ typedef struct window_s {
     Window xwindow;             /**< The actual X11 window */
     struct window_s *parent;    /**< Pointer to the parent window */
 
-    unsigned int screen_id;     /**< Screen index */
-    unsigned int desktop_id;    /**< Desktop index */
-    unsigned long int id;       /**< Unique window identifier */
+    XID screen_id;     /**< Screen index */
+    XID desktop_id;    /**< Desktop index */
+    XID id;           /**< Unique window identifier */
 
     char *name;                 /**< Window name */
     char *class_name;           /**< Window class */
@@ -166,7 +177,7 @@ typedef struct window_s {
         pid_t pid;              /**< PID of the running program */
     } process;                  /**< Information of process in window */
 
-    char *icon_path;            /**< Icon image path */
+    char *icon_name;            /**< Icon image path */
     struct config_theme_s *theme;
 
     struct window_properties_s properties;
@@ -241,7 +252,22 @@ void window_destroy(window_td *window);
 void window_update(window_td *window);
 
 /**
- * @brief Action that initializes an event to rename a specified window
+ * @brief Generic event sender for a window
+ *
+ * Sends event for a specified action on a window, in particular, those
+ * events related to actions that do not require extra data.
+ *
+ * @param window        Pointer to the target window
+ * @param action_window The action to be performed on the window
+ * @param priority      The priority level of the action
+ *
+ * @return Returns the result of adding the event to the queue
+ */
+int window_send_event(window_td *window, enum action_window_e action_window,
+        enum priority_e priority);
+
+/**
+ * @brief Send an event to rename a specified window
  *
  * @param window   Pointer to the window to be renamed
  * @param new_name The new name for the window
@@ -253,11 +279,10 @@ void window_update(window_td *window);
  *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_rename(window_td *window, const char *new_name);
+int window_send_event_rename(window_td *window, const char *new_name);
 
 /**
- * @brief Action that initializes an event to change the class of
- *        a specified window
+ * @brief Send an event to change the class of a specified window
  *
  * @param window    Pointer to the window to be reclassified
  * @param new_class The new class for the window
@@ -269,11 +294,11 @@ int window_action_rename(window_td *window, const char *new_name);
  *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_reclass(window_td *window, const char *new_class);
+int window_send_event_reclass(window_td *window, const char *new_class);
 
 /**
- * @brief Action that initializes an event to move the specified window
- *        to the given @e (x, y) coordinates
+ * @brief Send event to move the specified window to the given  @e (x, y)
+ *        coordinates
  *
  * @param window Pointer to the window to be reclassified
  * @param new_x  The new @e x coordinate for the window
@@ -286,11 +311,11 @@ int window_action_reclass(window_td *window, const char *new_class);
  *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_move(window_td *window, int new_x, int new_y);
+int window_send_event_move(window_td *window, int new_x, int new_y);
 
 /**
- * @brief Action that initializes an event to resize the specified
- *        window to the given width and height
+ * @brief Send an event to resize the specified window to the given
+ *        width and height
  *
  * @param window Pointer to the window to be reclassified
  * @param new_w  The new width for the window
@@ -303,15 +328,14 @@ int window_action_move(window_td *window, int new_x, int new_y);
  *       processing this action to avoid memory leaks
  * @note Complexity: @e O(1)
  */
-int window_action_resize(window_td *window,
+int window_send_event_resize(window_td *window,
         unsigned int new_w, unsigned int new_h);
 
 /**
- * @brief Action that initializes an event to change the icon of
- *        a specified window
+ * @brief Send an event to change the icon of a specified window
  *
  * @param window    Pointer to the window for which the icon is to change
- * @param icon_path The file path of the new icon
+ * @param icon_name The file path of the new icon
  *
  * @return Returns the result of adding the event to the queue @p eventq
  *
@@ -320,59 +344,41 @@ int window_action_resize(window_td *window,
  *       processing this action to avoid memory leaks
  * @note Complexity @e O(1)
  */
-int window_action_set_icon(window_td *window, const char *icon_path);
+int window_send_event_set_icon(window_td *window, const char *icon_name);
 
 /**
- * @brief Generic action for a window
+ * @brief Macro that sends an event to close the specified window
  *
- * Initializes a generic event for a specified action on a window, in
- * particular, those events related to actions that do not require extra
- * data.
- *
- * @param window        Pointer to the target window
- * @param action_window The action to be performed on the window
- * @param priority      The priority level of the action
- *
- * @return Returns the result of adding the event to the queue
+ * @see @a window_send_event
  */
-int window_action(window_td *window, enum action_window_e action_window,
-        enum priority_e priority);
+#define window_send_event_close(w) \
+    window_send_event(w, ACTION_WINDOW_CLOSE, WINDOW_PRIORITY_DEFAULT)
 
 /**
- * @brief Macro that performs the action that initializes an event to
- *        close the specified window
+ * @brief Macro that sends an event to restore the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_close(w) \
-    window_action(w, ACTION_WINDOW_CLOSE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_restore(w) \
+    window_send_event(w, ACTION_WINDOW_RESTORE, WINDOW_PRIORITY_DEFAULT)
 
 /**
- * @brief Macro that performs the action that initializes an event to
- *        restore the specified window
+ * @brief Macro that sends an event to give focus to the specified
+ *        window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_restore(w) \
-    window_action(w, ACTION_WINDOW_RESTORE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_focus(w) \
+    window_send_event(w, ACTION_WINDOW_FOCUS, WINDOW_PRIORITY_DEFAULT)
 
 /**
- * @brief Macro that performs the action that initializes an event to
- *        give focus to the specified window
+ * @brief Macro that sends an event to set unfocused the specified
+ *        window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_focus(w) \
-    window_action(w, ACTION_WINDOW_FOCUS, EVENT_PRIORITY_NORMAL)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        set unfocused the specified window
- *
- * @see @a window_action
- */
-#define window_action_unfocus(w) \
-    window_action(w, ACTION_WINDOW_FOCUS, EVENT_PRIORITY_NORMAL)
+#define window_send_event_unfocus(w) \
+    window_send_event(w, ACTION_WINDOW_FOCUS, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
@@ -385,137 +391,137 @@ int window_action(window_td *window, enum action_window_e action_window,
  * appear as minimized, and when restored, the icon should be gone as
  * well.
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_iconify(w) \
-    window_action(w, ACTION_WINDOW_ICONIFY, EVENT_PRIORITY_NORMAL)
+#define window_send_event_iconify(w) \
+    window_send_event(w, ACTION_WINDOW_ICONIFY, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        maximize the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_maximize(w) \
-    window_action(w, ACTION_WINDOW_MAXIMIZE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_maximize(w) \
+    window_send_event(w, ACTION_WINDOW_MAXIMIZE, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        horizontally maximize the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_maximize_horz(w) \
-    window_action(w, ACTION_WINDOW_MAXIMIZE_HORZ, EVENT_PRIORITY_NORMAL)
+#define window_send_event_maximize_horz(w) \
+    window_send_event(w, ACTION_WINDOW_MAXIMIZE_HORZ, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        vertically maximize the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_maximize_vert(w) \
-    window_action(w, ACTION_WINDOW_MAXIMIZE_VERT, EVENT_PRIORITY_NORMAL)
+#define window_send_event_maximize_vert(w) \
+    window_send_event(w, ACTION_WINDOW_MAXIMIZE_VERT, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        make sticky the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_sticky(w) \
-    window_action(w, ACTION_WINDOW_STICKY, EVENT_PRIORITY_NORMAL)
+#define window_send_event_sticky(w) \
+    window_send_event(w, ACTION_WINDOW_STICKY, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        make not sticky the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_unsticky(w) \
-    window_action(w, ACTION_WINDOW_UNSTICKY, EVENT_PRIORITY_NORMAL)
+#define window_send_event_unsticky(w) \
+    window_send_event(w, ACTION_WINDOW_UNSTICKY, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        toggle the sticky state the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_sticky_toggle(w) \
-    window_action(w, ACTION_WINDOW_STICKY_TOGGLE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_sticky_toggle(w) \
+    window_send_event(w, ACTION_WINDOW_STICKY_TOGGLE, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        make full screen the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_fullscreen(w) \
-    window_action(w, ACTION_WINDOW_FULLSCREEN, EVENT_PRIORITY_NORMAL)
+#define window_send_event_fullscreen(w) \
+    window_send_event(w, ACTION_WINDOW_FULLSCREEN, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        remove the full screen state from the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_fullscreen_toggle(w) \
-    window_action(w, ACTION_WINDOW_FULLSCREEN_TOGGLE, \
-            EVENT_PRIORITY_NORMAL)
+#define window_send_event_fullscreen_toggle(w) \
+    window_send_event(w, ACTION_WINDOW_FULLSCREEN_TOGGLE, \
+            WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        raise the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_raise(w) \
-    window_action(w, ACTION_WINDOW_RAISE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_raise(w) \
+    window_send_event(w, ACTION_WINDOW_RAISE, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        lower the specified window
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_lower(w) \
-    window_action(w, ACTION_WINDOW_LOWER, EVENT_PRIORITY_NORMAL)
+#define window_send_event_lower(w) \
+    window_send_event(w, ACTION_WINDOW_LOWER, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        set specified window on the top desktop layer
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_layer_on_top(w) \
-    window_action(w, ACTION_WINDOW_LAYER_ABOVE, EVENT_PRIORITY_NORMAL)
+#define window_send_event_layer_on_top(w) \
+    window_send_event(w, ACTION_WINDOW_LAYER_ABOVE, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        set specified window on the normal desktop layer
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_layer_on_bottom(w) \
-    window_action(w, ACTION_WINDOW_LAYER_BELOW, EVENT_PRIORITY_NORMAL)
+#define window_send_event_layer_on_bottom(w) \
+    window_send_event(w, ACTION_WINDOW_LAYER_BELOW, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        set specified window on the bottom desktop layer
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_layer_normal(w) \
-    window_action(w, ACTION_WINDOW_LAYER_NORMAL, EVENT_PRIORITY_NORMAL)
+#define window_send_event_layer_normal(w) \
+    window_send_event(w, ACTION_WINDOW_LAYER_NORMAL, WINDOW_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
  *        set specified window on urgency level
  *
- * @see @a window_action
+ * @see @a window_send_event
  */
-#define window_action_set_urgent(w) \
-    window_action(w, ACTION_WINDOW_SET_URGENT, EVENT_PRIORITY_HIGH)
+#define window_send_event_set_urgent(w) \
+    window_send_event(w, ACTION_WINDOW_SET_URGENT, PRIORITY_HIGHER)
 
 /**
  * @brief Macro that evaluates to the window iconify state

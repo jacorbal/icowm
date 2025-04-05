@@ -22,10 +22,10 @@
 /* Project includes */
 #include <action.h>
 #include <actdata.h>
-#include <cmd.h>
+#include <cmds/wcmd.h>
 #include <desktop.h>
 #include <logger.h>
-#include <screen.h>
+#include <surface.h>
 #include <window.h>
 #include <wm.h>
 
@@ -83,7 +83,6 @@ static void s_event_handle_window(event_td *event)
 {
     window_td *window;
     action_data_window_td *window_data;
-    XWindowAttributes attrs;
 
     if (event == NULL) {
         LOGGER_ERROR("Received 'NULL' window event to process in " \
@@ -116,246 +115,137 @@ static void s_event_handle_window(event_td *event)
 
             //window_set_hidden(window);
             //window.properties.state = WINDOW_STATE_NORMAL;
-//            ewmh_set_window_state(window, "_NET_WM_STATE_HIDDEN");
             break;
 
         case ACTION_WINDOW_CLOSE:
-            cmd_window_close(window);
+            wcmd_window_close(window);
             break;
 
         case ACTION_WINDOW_RESTORE:
-            /* TODO: This has to unminimize, unmaximize, unfullscreen
-             *       the window */
-            window_geometry_restore(window);
-            XMapWindow(window->display, window->xwindow);
-            window->properties.state = WINDOW_STATE_NORMAL;
-//            ewmh_set_window_state(window, "_NET_WM_STATE_NORMAL");
+            wcmd_window_restore(window);
             break;
 
         case ACTION_WINDOW_FOCUS:
-            XSetInputFocus(window->display,
-                    window->xwindow, RevertToPointerRoot, CurrentTime);
-            XRaiseWindow(window->display, window->xwindow);
-            XMapRaised(window->display, window->xwindow);
-            window_focus(window);
-//            ewmh_set_window_state(window, "_NET_WM_STATE_FOCUSED");
+            wcmd_window_focus(window);
             break;
 
         case ACTION_WINDOW_UNFOCUS:
-            window_unfocus(window);
-//            ewmh_unset_window_state(window, "_NET_WM_STATE_FOCUSED");
+            wcmd_window_unfocus(window);
             break;
 
         case ACTION_WINDOW_MOVE:
-            XMoveWindow(window->display, window->xwindow,
-                    window_data->new_data.geometry.pos.x,
-                    window_data->new_data.geometry.pos.y);
-            window->properties.geometry_cur.pos =
-                window_data->new_data.geometry.pos;
+            wcmd_window_move(window, window_data);
             break;
 
         case ACTION_WINDOW_RESIZE:
-            XResizeWindow(window->display, window->xwindow,
-                    window_data->new_data.geometry.dim.w,
-                    window_data->new_data.geometry.dim.h);
-            window->properties.geometry_cur.dim =
-                window_data->new_data.geometry.dim;
+            wcmd_window_resize(window, window_data);
             break;
+
         case ACTION_WINDOW_RENAME:
-            XStoreName(window->display, window->xwindow,
-                    window_data->new_data.name);
-            safe_free((void **) &(window->name));
-            window->name = safe_strdup(window_data->new_data.name);
-//            ewmh_set_window_name(window, window_data->new_data.name);
+            wcmd_window_rename(window, window_data);
             break;
 
         case ACTION_WINDOW_RECLASS:
+            wcmd_window_reclass(window, window_data);
+            break;
+
+        case ACTION_WINDOW_REROLE:
+            //TODO
             safe_free((void **) &(window->class_name));
             window->class_name =
                 safe_strdup(window_data->new_data.class_name);
-//            ewmh_set_window_class(window,
-//                    window_data->new_data.class_name);
             break;
 
         case ACTION_WINDOW_MAXIMIZE:
-            window_geometry_save(window);
-            XGetWindowAttributes(window->display, window->xwindow,
-                    &attrs);
-            XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                    (unsigned int) attrs.screen->width,
-                    (unsigned int) attrs.screen->height);
-            window->properties.state = WINDOW_STATE_MAXIMIZED;
-//            ewmh_set_window_state_multiple(window,
-//                    (Atom[]){XInternAtom(window->display,
-//                            "_NET_WM_STATE_MAXIMIZED_HORZ", False),
-//                    XInternAtom(window->display,
-//                            "_NET_WM_STATE_MAXIMIZED_VERT", False)}, 2);
+            wcmd_window_maximize(window);
             break;
 
         case ACTION_WINDOW_MAXIMIZE_HORZ:
-            window_geometry_save(window);
-            XGetWindowAttributes(window->display, window->xwindow,
-                    &attrs);
-            XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                    (unsigned int) attrs.screen->width,
-                    (unsigned int) window->properties.geometry_cur.dim.h);
-            window->properties.state = WINDOW_STATE_MAXIMIZED_HORZ;
-//            ewmh_set_window_state(window,
-//                    "_NET_WM_STATE_MAXIMIZED_HORZ");
+            wcmd_window_maximize_horz(window);
             break;
 
         case ACTION_WINDOW_MAXIMIZE_VERT:
-            window_geometry_save(window);
-            XGetWindowAttributes(window->display, window->xwindow,
-                    &attrs);
-            XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                    window->properties.geometry_cur.dim.w,
-                    (unsigned int) attrs.screen->width);
-            window->properties.state = WINDOW_STATE_MAXIMIZED_VERT;
-//            ewmh_set_window_state(window,
-//                    "_NET_WM_STATE_MAXIMIZED_VERT");
+            wcmd_window_maximize_vert(window);
             break;
 
         case ACTION_WINDOW_ICONIFY:
-            /* TODO: Implement here the "iconifying" routine to create
-             *       the icon */
-            window_geometry_save(window);   /* Just in case */
-            XIconifyWindow(window->display, window->xwindow,
-                    (int) window->screen_id);
-            window->properties.state = WINDOW_STATE_ICONIFIED;
-//            ewmh_set_window_state(window, "_NET_WM_STATE_ICONIFIED");
+            wcmd_window_iconify(window);
             break;
 
         case ACTION_WINDOW_HIDE:
-            XUnmapWindow(window->display, window->xwindow);
-            window_set_hidden(window);
-//            ewmh_set_window_state_hidden(window);
+            wcmd_window_hide(window);
+            break;
+
+        case ACTION_WINDOW_UNHIDE:
+            wcmd_window_unhide(window);
             break;
 
         case ACTION_WINDOW_SHADE:
-            //TODO
-//            ewmh_set_window_state_shaded(window);
+            wcmd_window_shade(window);
+            break;
+
+        case ACTION_WINDOW_UNSHADE:
+            wcmd_window_unshade(window);
+            break;
+
+        case ACTION_WINDOW_TOGGLE_SHADE:
+            wcmd_window_toggle_shade(window);
             break;
 
         case ACTION_WINDOW_STICKY:
-            window_set_sticky(window);
-//            ewmh_set_window_state(window, "_NET_WM_STATE_STICKY");
+            wcmd_window_sticky(window);
             break;
 
         case ACTION_WINDOW_UNSTICKY:
-            window_unset_sticky(window);
-//            ewmh_unset_window_state(window, "_NET_WM_STATE_STICKY");
+            wcmd_window_unsticky(window);
             break;
 
         case ACTION_WINDOW_TOGGLE_STICKY:
-            if (window_is_sticky(window)) {
-//                ewmh_set_window_state(window, "_NET_WM_STATE_STICKY");
-            } else {
-//                ewmh_unset_window_state(window, "_NET_WM_STATE_STICKY");
-            }
-            window_toggle_sticky(window);
+            wcmd_window_toggle_sticky(window);
             break;
 
         case ACTION_WINDOW_FULLSCREEN:
-            window_geometry_save(window);
-            XGetWindowAttributes(window->display, window->xwindow,
-                    &attrs);
-            XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                    (unsigned int) attrs.screen->width,
-                    (unsigned int) attrs.screen->height);
-            window->properties.state = WINDOW_STATE_FULLSCREEN;
-//            ewmh_set_window_state(window, "_NET_WM_STATE_FULLSCREEN");
+            wcmd_window_fullscreen(window);
             break;
 
         case ACTION_WINDOW_UNFULLSCREEN:
-            window_geometry_restore(window);
-            XMoveResizeWindow(window->display, window->xwindow,
-                    window->properties.geometry_cur.pos.x,
-                    window->properties.geometry_cur.pos.y,
-                    window->properties.geometry_cur.dim.w,
-                    window->properties.geometry_cur.dim.h);
-            window->properties.state = WINDOW_STATE_NORMAL;
-//            ewmh_unset_window_state(window, "_NET_WM_STATE_FULLSCREEN");
+            wcmd_window_unfullscreen(window);
             break;
 
         case ACTION_WINDOW_TOGGLE_FULLSCREEN:
-            if (window_is_fullscreen(window)) {
-                window_geometry_restore(window);
-                XMoveResizeWindow(window->display, window->xwindow,
-                        window->properties.geometry_cur.pos.x,
-                        window->properties.geometry_cur.pos.y,
-                        window->properties.geometry_cur.dim.w,
-                        window->properties.geometry_cur.dim.h);
-                window->properties.state = WINDOW_STATE_NORMAL;
-                /* TODO: Check this positions are saved before */
-            } else {
-                window_geometry_save(window);
-                XGetWindowAttributes(window->display, window->xwindow,
-                        &attrs);
-                XMoveResizeWindow(window->display, window->xwindow, 0, 0,
-                        (unsigned int) attrs.screen->width,
-                        (unsigned int) attrs.screen->height);
-                window->properties.state = WINDOW_STATE_FULLSCREEN;
-            }
-//            ewmh_set_window_state(window, "_NET_WM_STATE_FULLSCREEN");
+            wcmd_window_toggle_fullscreen(window);
             break;
 
         case ACTION_WINDOW_RAISE:
-            XRaiseWindow(window->display, window->xwindow);
-            //TODO
-//            ewmh_set_window_state(window, "_NET_WM_STATE_ABOVE");
+            wcmd_window_raise(window);
             break;
 
         case ACTION_WINDOW_LOWER:
-            XLowerWindow(window->display, window->xwindow);
-            //TODO
-//            ewmh_set_window_state(window, "_NET_WM_STATE_BELOW");
+            wcmd_window_lower(window);
             break;
 
         case ACTION_WINDOW_LAYER_ABOVE:
-            XRaiseWindow(window->display, window->xwindow);
-            window->properties.layer = WINDOW_LAYER_ABOVE;
-            //TODO
-//            ewmh_set_window_state(window, "_NET_WM_STATE_ABOVE");
+            wcmd_window_layer_above(window);
             break;
 
         case ACTION_WINDOW_LAYER_NORMAL:
-            window->properties.layer = WINDOW_LAYER_NORMAL;
-            //TODO
-//            ewmh_set_window_state(window, "_NET_WM_STATE_NORMAL");
+            wcmd_window_layer_normal(window);
             break;
 
         case ACTION_WINDOW_LAYER_BELOW:
-            XLowerWindow(window->display, window->xwindow);
-            window->properties.layer = WINDOW_LAYER_BELOW;
-            //TODO
-//            ewmh_set_window_state(window, "_NET_WM_STATE_BELOW");
+            wcmd_window_layer_below(window);
             break;
 
         case ACTION_WINDOW_SET_URGENT:
-            window_set_urgent(window);
-//            ewmh_set_window_state(window, "_NET_WM_STATE_URGENT");
+            wcmd_window_set_urgent(window);
             break;
 
         case ACTION_WINDOW_CLEAR_URGENT:
-            window_unset_urgent(window);
-//            ewmh_unset_window_state(window, "_NET_WM_STATE_URGENT");
+            wcmd_window_clear_urgent(window);
             break;
 
         case ACTION_WINDOW_SET_ICON:
-            XSetIconName(window->display, window->xwindow,
-                    window_data->new_data.name);
-            XChangeProperty(window->display, window->xwindow,
-                    XA_CARDINAL, XA_PIXMAP, 32,
-                    PropModeReplace,
-                    (unsigned char*) &window_data->new_data.icon_path,
-                    1);
-            //TODO
-//            ewmh_set_window_icon_name(window,
-//                    window_data->new_data.name);
-//            ewmh_set_window_icon(window->display, window->xwindow,
-//                    window_data->new_data.icon,
-//                    window_data->new_data.icon_count);
+            wcmd_window_set_icon(window, window_data);
             break;
     }
 
@@ -451,16 +341,16 @@ static void s_event_handle_screen(event_td *event)
         return;
     }
 
-    if (event->action.type != ACTION_TYPE_SCREEN) {
+    if (event->action.type != ACTION_TYPE_SURFACE) {
         return; /* Invalid type */
     }
 
-    if (event->action.object.screen < ACTION_SCREEN_MIN ||
-        event->action.object.screen > ACTION_SCREEN_MAX) {
+    if (event->action.object.surface < ACTION_SCREEN_MIN ||
+        event->action.object.surface > ACTION_SCREEN_MAX) {
         return; /* Invalid action */
     }
 
-    switch (event->action.object.screen) {
+    switch (event->action.object.surface) {
         case ACTION_SCREEN_DESKTOP_ADD:
             break;
 
@@ -624,7 +514,7 @@ int eventq_process(void)
             case ACTION_TYPE_DESKTOP:
                 s_event_handle_desktop(processed_event);
                 break;
-            case ACTION_TYPE_SCREEN:
+            case ACTION_TYPE_SURFACE:
                 s_event_handle_screen(processed_event);
                 break;
             case ACTION_TYPE_WM:

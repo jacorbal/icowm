@@ -6,7 +6,7 @@
 
 /* System includes */
 #include <stdarg.h>     /* va_list, va_start, va_end */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
 
 /* X11 includes */
@@ -70,7 +70,7 @@ window_td *window_init(Display *display, window_td *parent,
 
     window->name = NULL;        // <-- TODO
     window->class_name = NULL;  // <-- TODO
-    window->icon_path = NULL;   // <-- TODO
+    window->icon_name = NULL;   // <-- TODO
 
     /* Create the X window */
     window->xwindow = XCreateSimpleWindow(display,
@@ -85,7 +85,7 @@ window_td *window_init(Display *display, window_td *parent,
         return NULL;
     }
 
-    // TODO: This should go in 'window_action_create'
+    // TODO: This should go in 'window_send_event_create'
     /* Configure window */
     XSetStandardProperties(display, window->xwindow,
             "Ventana", "Titulo", None, NULL, 0, NULL);
@@ -135,8 +135,24 @@ void window_update(window_td *window)
 }
 
 
-/* Action to rename a window */
-int window_action_rename(window_td *window, const char *new_name)
+/* Generic window event sending */
+int window_send_event(window_td *window,
+        enum action_window_e action_window, enum priority_e priority)
+{
+    event_td *event;
+    action_td action;
+
+    action.type = ACTION_TYPE_WINDOW;
+    action.object.window = action_window;
+
+    event = event_init((void *) window, NULL, action, priority);
+
+    return eventq_add(event);
+}
+
+
+/* Send event to rename a window */
+int window_send_event_rename(window_td *window, const char *new_name)
 {
     event_td *event;
     action_td action;
@@ -152,14 +168,14 @@ int window_action_rename(window_td *window, const char *new_name)
     data->new_data.name = safe_strdup(new_name);
 
     event = event_init((void *) window, (void *) data,
-            action, PRIORITY_NORMAL);
+            action, WINDOW_PRIORITY_DEFAULT);
 
     return eventq_add(event);
 }
 
 
-/* Action to change class of a window */
-int window_action_reclass(window_td *window, const char *new_class)
+/* Send event to change class of a window */
+int window_send_event_reclass(window_td *window, const char *new_class)
 {
     event_td *event;
     action_td action;
@@ -175,14 +191,14 @@ int window_action_reclass(window_td *window, const char *new_class)
     data->new_data.class_name = safe_strdup(new_class);
 
     event = event_init((void *) window, (void *) data,
-            action, PRIORITY_NORMAL);
+            action, WINDOW_PRIORITY_DEFAULT);
 
     return eventq_add(event);
 }
 
 
-/* Action to move a window to a new position */
-int window_action_move(window_td *window, int new_x, int new_y)
+/* Send event to move a window to a new position */
+int window_send_event_move(window_td *window, int new_x, int new_y)
 {
     event_td *event;
     action_td action;
@@ -200,14 +216,14 @@ int window_action_move(window_td *window, int new_x, int new_y)
     data->new_data.geometry.pos.y = new_y;
 
     event = event_init((void *) window, (void *) data,
-            action, PRIORITY_NORMAL);
+            action, WINDOW_PRIORITY_DEFAULT);
 
     return eventq_add(event);
 }
 
 
-/* Action to resize a window to a new position */
-int window_action_resize(window_td *window,
+/* Send envent to resize a window to a new position */
+int window_send_event_resize(window_td *window,
         unsigned int new_w, unsigned int new_h)
 {
     event_td *event;
@@ -226,14 +242,14 @@ int window_action_resize(window_td *window,
     data->new_data.geometry.dim.h = new_h;
 
     event = event_init((void *) window, (void *) data,
-            action, PRIORITY_NORMAL);
+            action, WINDOW_PRIORITY_DEFAULT);
 
     return eventq_add(event);
 }
 
 
-/* Action to change window icon */
-int window_action_set_icon(window_td *window, const char *icon_path)
+/* Send the event to change window icon */
+int window_send_event_set_icon(window_td *window, const char *icon_name)
 {
     event_td *event;
     action_td action;
@@ -246,26 +262,10 @@ int window_action_set_icon(window_td *window, const char *icon_path)
      *       with 'action_data_window_destroy' once the event has
      *       finished processing this action to avoid memory leaks */
     data = action_data_window_init(window, action.object.window);
-    data->new_data.icon_path = safe_strdup(icon_path);
+    data->new_data.icon_name = safe_strdup(icon_name);
 
     event = event_init((void *) window, (void *) data,
-            action, PRIORITY_NORMAL);
-
-    return eventq_add(event);
-}
-
-
-/* Generic action for a window */
-int window_action(window_td *window, enum action_window_e action_window,
-        enum priority_e priority)
-{
-    event_td *event;
-    action_td action;
-
-    action.type = ACTION_TYPE_WINDOW;
-    action.object.window = action_window;
-
-    event = event_init((void *) window, NULL, action, priority);
+            action, WINDOW_PRIORITY_DEFAULT);
 
     return eventq_add(event);
 }

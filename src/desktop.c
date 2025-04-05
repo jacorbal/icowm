@@ -5,7 +5,7 @@
  */
 
 /* System includes */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 #include <stdint.h>     /* uint32_t */
 #include <stdlib.h>     /* NULL, free, malloc, rand */
 #include <time.h>       /* time */
@@ -63,26 +63,25 @@ static bool s_window_match(const void *key1, const void *key2)
 
 
 /* Initialize a new desktop */
-desktop_td *desktop_init(unsigned int screen_id,
-        unsigned int desktop_id,
+desktop_td *desktop_init(XID screen_id, XID desktop_id,
         struct config_base_s *config_base,
         struct config_theme_s *config_theme)
 {
     desktop_td *desktop;
 
-    LOGGER_DEBUG("Initializing desktop %u on screen %u",
+    LOGGER_DEBUG("Initializing desktop %lu on screen %lu",
             desktop_id, screen_id);
     desktop = malloc(sizeof(desktop_td));
     if (desktop == NULL) {
         LOGGER_ERROR("Failed to allocate memory for" \
-                "desktop %u on screen %u", desktop_id, screen_id);
+                "desktop %lu on screen %lu", desktop_id, screen_id);
         return NULL;
     }
 
     /* Stablish the basics */
     desktop->screen_id = screen_id;
     desktop->id = desktop_id;
-    desktop->window_active = NULL;
+    desktop->window_active = 0;
 
     /* Get the configuration */
     desktop->config_base = config_base;
@@ -101,7 +100,7 @@ desktop_td *desktop_init(unsigned int screen_id,
         config_base->screens[screen_id].desktops[desktop_id].settings.background.color;
 
     LOGGER_TRACE("Initializing window list structure for" \
-            " desktop %u ('%s') on screen %u",
+            " desktop %lu ('%s') on screen %lu",
             desktop_id, desktop->name, screen_id);
     desktop->windows =
         ohtbl_init(DESKTOP_INITIAL_CAPACITY, 0,
@@ -109,7 +108,7 @@ desktop_td *desktop_init(unsigned int screen_id,
                 (void(*)(void *)) window_destroy);
     if (desktop->windows == NULL) {
         LOGGER_ERROR("Failed to allocate memory for window hash table" \
-                " on desktop %u ('%s') on screen %u",
+                " on desktop %lu ('%s') on screen %lu",
                 desktop_id, desktop->name, screen_id);
         free(desktop);
         return NULL;
@@ -125,16 +124,16 @@ desktop_td *desktop_init(unsigned int screen_id,
 /* Free memory for allocated desktop */
 void desktop_destroy(desktop_td *desktop)
 {
-    LOGGER_DEBUG("Deallocating structure for desktop %u ('%s')",
+    LOGGER_DEBUG("Deallocating structure for desktop %lu ('%s')",
             desktop->id, desktop->name);
     if (desktop == NULL) {
         return;
     }
 
-    LOGGER_TRACE("Deallocating windows on desktop %u ('%s')",
+    LOGGER_TRACE("Deallocating windows on desktop %lu ('%s')",
             desktop->id, desktop->name);
     ohtbl_destroy(desktop->windows);
-    LOGGER_TRACE("Destroying desktop %u ('%s')",
+    LOGGER_TRACE("Destroying desktop %lu ('%s')",
             desktop->id, desktop->name);
     free(desktop);
 }
@@ -143,7 +142,7 @@ void desktop_destroy(desktop_td *desktop)
 /* Soft desktop update */
 void desktop_update(desktop_td *desktop)
 {
-//    LOGGER_TRACE("Updating desktop %u ('%s')",
+//    LOGGER_TRACE("Updating desktop %lu ('%s')",
 //            desktop->id, desktop->name);
 
     /* Establish that this desktop is already updated */
@@ -154,7 +153,7 @@ void desktop_update(desktop_td *desktop)
 /* Full desktop update */
 void desktop_update_full(desktop_td *desktop)
 {
-    LOGGER_TRACE("Fully updating desktop %u ('%s')",
+    LOGGER_TRACE("Fully updating desktop %lu ('%s')",
             desktop->id, desktop->name);
 
     /* Soft update */
@@ -172,7 +171,7 @@ void desktop_update_full(desktop_td *desktop)
         }
     }
 
-    LOGGER_TRACE("Updated desktop %u ('%s')",
+    LOGGER_TRACE("Updated desktop %lu ('%s')",
             desktop->id, desktop->name);
 }
 
@@ -180,7 +179,7 @@ void desktop_update_full(desktop_td *desktop)
 /* Clear a desktop by removing all its windows */
 void desktop_clear(desktop_td *desktop)
 {
-    LOGGER_DEBUG("Preparing to clear desktop %u ('%s')",
+    LOGGER_DEBUG("Preparing to clear desktop %lu ('%s')",
             desktop->id, desktop->name);
     if (desktop != NULL && desktop->windows != NULL) {
         ohtbl_destroy(desktop->windows);
@@ -192,7 +191,7 @@ void desktop_clear(desktop_td *desktop)
 int desktop_action_window_add(desktop_td *desktop, window_td *window)
 {
     LOGGER_DEBUG("Preparing to add window %#lx ('%s') to" \
-            " desktop %u ('%s')",
+            " desktop %lu ('%s')",
             window->id, window->name, desktop->id, desktop->name);
 
     if (desktop == NULL || window == NULL) {
@@ -202,13 +201,13 @@ int desktop_action_window_add(desktop_td *desktop, window_td *window)
     /* Add window */
     if (ohtbl_insert(desktop->windows, (void *) window) != 0) {
         LOGGER_ALERT("Failed to allocate memory for window" \
-                " %#lx on desktop %u ('%s') on screen %u",
+                " %#lx on desktop %lu ('%s') on screen %lu",
                 window->id,
                 desktop->id, desktop->name, desktop->screen_id);
         return -1;
     }
 
-    LOGGER_TRACE("Added window %#lx ('%s') to desktop %u ('%s')",
+    LOGGER_TRACE("Added window %#lx ('%s') to desktop %lu ('%s')",
             window->id, window->name, desktop->id, desktop->name);
     return 0;
 }
@@ -220,7 +219,7 @@ int desktop_action_window_rem(desktop_td *desktop, window_td *window)
     void *removed_window = NULL;
 
     LOGGER_DEBUG("Preparing to remove window %#lx ('%s') from" \
-            " desktop %u ('%s')",
+            " desktop %lu ('%s')",
             window->id, window->name, desktop->id, desktop->name);
 
     if (desktop == NULL || window == NULL) {
@@ -236,7 +235,7 @@ int desktop_action_window_rem(desktop_td *desktop, window_td *window)
             /* Remove window */
             window_destroy(removed_window_td);
             LOGGER_TRACE("Removing window %#lx ('%s') from" \
-                    " desktop %u ('%s')",
+                    " desktop %lu ('%s')",
                     window->id, window->name,
                     desktop->id, desktop->name);
             return 0;
@@ -244,7 +243,7 @@ int desktop_action_window_rem(desktop_td *desktop, window_td *window)
     }
 
     /* Window not found */
-    LOGGER_TRACE("Window %#lx ('%s') not found on desktop %u ('%s')",
+    LOGGER_TRACE("Window %#lx ('%s') not found on desktop %lu ('%s')",
             window->id, window->name, desktop->id, desktop->name);
     return -1;
 }

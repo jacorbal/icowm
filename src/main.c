@@ -5,27 +5,28 @@
  *
  * @author J. A. Corbal <jacorbal@gmail.com>
  *
- * @version 1.0.0 release 20250425 ("'ovelya") build 117.20250425T052707
+ * @date Fri Apr  4 06:40:11 AM UTC 2025
+ *
+ * @version 0.1.0 ("'ovelya")
  * @copyright Copyright (c) 2025, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *
- * @note Compiled according to the ISO/IEC 9899:2011 (C11) standard;
- *       conforms to POSIX (POSIX.1-1990)
+ * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
+ *       conforms to POSIX (POSIX.1-2001)
  * @note Built with GCC 12.2.0 and Clang 14.0.6
  */
-/*              ____         _       ____  ___
- *             /  _/________| |     / /  |/  /
- *             / // ___/ __ \ | /| / / /|_/ /
- *           _/ // /__/ /_/ / |/ |/ / /  / /
- *          /___/\___/\____/|__/|__/_/  /_/
- *              Iconifying Window Manager
+/*                 ____       _      ____  ___
+ *                /  _/______| | /| / /  |/  /
+ *               _/ // __/ _ \ |/ |/ / /|_/ / 
+ *              /___/\__/\___/__/|__/_/  /_/  
+ *               Iconifying Window Manager
  */
 
-/* Enable features from the POSIX.1-1990 standard */
-#define _POSIX_C_SOURCE 199009L /* getopt */
+/* Enable features from the POSIX.1-2001 standard */
+#define _POSIX_C_SOURCE 200112L /* getopt */
 
 /* System includes */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 #include <stdio.h>      /* FILE, fprintf */
 #include <stdlib.h>     /* NULL, atoi, getenv, srand */
 #include <time.h>       /* time */
@@ -54,7 +55,7 @@
 static inline void s_show_copyright_str(FILE *fp)
 {
     fprintf(fp, "'%s'; %s, %s\n",
-            ICOWM_LICENSE, ICOWM_COPYRIGHT, ICOWM_AUTHOR);
+            __LICENSE, __COPYRIGHT, __AUTHOR);
 }
 
 
@@ -67,9 +68,12 @@ static inline void s_show_copyright_str(FILE *fp)
  */
 static inline void s_show_version_str(FILE *fp)
 {
-    fprintf(fp, "%s release %s (\"%s\") build %s.%s\n",
-            ICOWM_VERSION, ICOWM_RELEASE, ICOWM_VERSION_CODENAME,
-            ICOWM_BUILD_NUMBER, ICOWM_BUILD_DATE);
+    fprintf(fp, "%s+%d.%s (\"%s\"); release %s\n",
+            __PROJECT_VERSION,
+            __BUILD_NUMBER,
+            __BUILD_TIMESTAMP,
+            __PROJECT_VERSION_CODENAME,
+            __RELEASE_DATE);
 }
 
 
@@ -101,13 +105,13 @@ static inline void s_show_help(FILE *fp)
     const char *config_home = getenv("HOME");
 
     /* Show name and usage */
-    fprintf(fp, "%s -- %s\n", ICOWM_NAME_SHORT, ICOWM_NAME_LONG);
-    fprintf(fp, "Usage: %s [<options>]\n", ICOWM_NAME_PROG);
+    fprintf(fp, "%s -- %s\n", __PROJECT_NAME_SHORT, __PROJECT_NAME_LONG);
+    fprintf(fp, "Usage: %s [<options>]\n", __PROJECT_NAME_PROG);
 
     /* Show options by category */
     fprintf(fp, "\nMain options:\n");
-    fprintf(fp, "   -d <display>    Set the X server display\n");
-    fprintf(fp, "   -c <config_dir> Set the configuration directory\n");
+    fprintf(fp, "   -d <display>    Set X server display (e.g.: ':0')\n");
+    fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -148,9 +152,9 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "Log: 'DEFAULT' sends errors to 'stderr' & info to" \
                 " 'stdout'; 'NULL' disables it\n");
     fprintf(fp, "Log verbosity levels:" \
-                " %d:trace; %d:debug; %d:information; %d:notice;\n" \
-                "                      %d:warning; %d: error;" \
-                " %d:critical; %d:alert; %d:fatal\n",
+                " | %d:trace; %d:debug; %d:info; %d:notice; %d:warn;\n" \
+                "                     " \
+                " | %d:error; %d:critical; %d:alert; %d:fatal\n",
             LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING,
             LOG_ERROR, LOG_CRITICAL, LOG_ALERT, LOG_FATAL);
 }
@@ -167,7 +171,7 @@ static inline void s_show_help(FILE *fp)
  * @note Complexity: @e O(1)
  */
 static inline void s_show_logger_destination(FILE *fp,
-        const char *filename, enum logger_level_e level)
+        const char *filename, const enum logger_level_e level)
 {
     if (filename == NULL) {
         fprintf(fp, "Nowhere to write the log!\n");
@@ -180,7 +184,7 @@ static inline void s_show_logger_destination(FILE *fp,
         fprintf(fp, "Logging ");
         if (safe_strcmp(filename, "DEFAULT") == 0) {
             fprintf(fp, "warnings/errors to 'stderr'" \
-                    " and information to 'stdout' ");
+                        " and information to 'stdout' ");
         } else if (safe_strcmp(filename, "STDOUT") == 0) {
             fprintf(fp, "everything to 'stdout' ");
         } else if (safe_strcmp(filename, "STDERR") == 0) {
@@ -203,10 +207,10 @@ static inline void s_show_logger_destination(FILE *fp,
  */
 static inline void s_show_salutation(FILE *fp)
 {
-    fprintf(fp, "%s -- ", ICOWM_NAME_SHORT);
+    fprintf(fp, "%s -- ", __PROJECT_NAME_SHORT);
     s_show_version_str(fp);
     fprintf(fp, "%s is starting...  \"%s\"  :)\n",
-            ICOWM_NAME_SHORT, ICOWM_MSG_ON_INIT);
+            __PROJECT_NAME_SHORT, ICOWM_MSG_ON_INIT);
 }
 
 
@@ -220,7 +224,7 @@ static inline void s_show_salutation(FILE *fp)
 static inline void s_show_farewell(FILE *fp)
 {
     fprintf(fp, "%s has stopped...  \"%s\"  :|\n",
-            ICOWM_NAME_SHORT, ICOWM_MSG_ON_EXIT);
+            __PROJECT_NAME_SHORT, ICOWM_MSG_ON_EXIT);
 }
 
 

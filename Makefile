@@ -3,6 +3,17 @@
 # Project: IcoWM (`icowm`) -- Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
 
+## Project metadata
+__PROJECT_NAME_PROG = "icowm"
+__PROJECT_NAME_SHORT = "IcoWM"
+__PROJECT_NAME_LONG = "Iconifying Window Manager"
+__PROJECT_VERSION = "0.1.0-alpha"
+__PROJECT_VERSION_CODENAME = "'ovelya"
+__LICENSE = "ISC License"
+__COPYRIGHT = "Copyright (c) 2025"
+__AUTHOR = "J. A. Corbal"
+__RELEASE_DATE = "20250621 (intended)"
+
 ## Directories
 PWD   = $(CURDIR)
 I_DIR = ${PWD}/include
@@ -14,12 +25,12 @@ B_DIR = ${PWD}/bin
 SHELL=/bin/sh
 
 ## Compiler & linker options
-CCSTD       = c11 # c89 | c90, c99, c11, c17, gnu11, gnu17
+CCSTD       = c99 # c89 | c90, c99, c11, c17, gnu11, gnu17
 CCOPT       = 2   # 0:debug; 1:optimize; 2:optimize more; 3:even more
 CCOPTS      = -pedantic -pedantic-errors
 CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
-CCWARN_POSIX = -D_POSIX_C_SOURCE=199009L
+CCWARN_POSIX = -D_POSIX_C_SOURCE=200112L #-D__STRICT_ANSI__
 
 CCWARN_TINY = ${CCWARN_POSIX} -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
 
@@ -44,6 +55,28 @@ CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
 LDFLAGS     = -L ${L_DIR} -lcjson -lX11 -lXpm
 
+
+## Data & build information
+BUILD_NUMBER_FILE = Build
+ifneq (,$(wildcard $(BUILD_NUMBER_FILE)))
+    LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
+    __BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
+else
+    __BUILD_NUMBER := 1
+endif
+CCFLAGS += -D__BUILD_NUMBER=$(__BUILD_NUMBER)
+CCFLAGS += -D__BUILD_TIMESTAMP=\"$(shell date -u +'%Y%m%dT%H%M')\"
+CCFLAGS += -D__PROJECT_NAME_LONG=\"$(__PROJECT_NAME_LONG)\"
+CCFLAGS += -D__PROJECT_NAME_SHORT=\"$(__PROJECT_NAME_SHORT)\"
+CCFLAGS += -D__PROJECT_NAME_PROG=\"$(__PROJECT_NAME_PROG)\"
+CCFLAGS += -D__PROJECT_VERSION=\"$(__PROJECT_VERSION)\"
+CCFLAGS += -D__PROJECT_VERSION_CODENAME=\"$(__PROJECT_VERSION_CODENAME)\"
+CCFLAGS += -D__AUTHOR=\"$(__AUTHOR)\"
+CCFLAGS += -D__COPYRIGHT=\"$(__COPYRIGHT)\"
+CCFLAGS += -D__LICENSE=\"$(__LICENSE)\"
+CCFLAGS += -D__RELEASE_DATE=\"$(__RELEASE_DATE)\"
+
+## Options on `make`
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
 CC = clang
 ifeq ($(CC), clang)
@@ -55,7 +88,7 @@ else
 endif
 
 # Use `make clean && make DEBUG=1` to add debugging information
-# Use `malc clean && make DEBUG=2` to also link with the address sanitizer 
+# Use `make clean && make DEBUG=2` to also link with the address sanitizer 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
     CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
@@ -73,34 +106,36 @@ ifeq ($(STRIP), 1)
 endif
 
 
-## Makefile options
+## Makefile files & directories
 SHELL = /bin/sh
 .SUFFIXES:
 .SUFFIXES: .h .c .o
 
-
-## Files options
+# File options
 TARGET = ${B_DIR}/main
-SRCS = $(wildcard ${S_DIR}/*.c) $(wildcard ${S_DIR}/*/*.c)
-OBJS = $(patsubst ${S_DIR}/%.c, ${O_DIR}/%.o, $(SRCS))
 RUN_ARGS =
 
+# Sources and objects
+SRCS = $(wildcard ${S_DIR}/*.c) \
+       $(wildcard ${S_DIR}/*/*.c) \
+       $(wildcard ${S_DIR}/*/*/*.c)
+OBJS = $(patsubst ${S_DIR}/%.c, ${O_DIR}/%.o, $(SRCS))
 
-## Linkage
+# Linkage
 ${TARGET}: ${OBJS}
-	${CC} -o $@ $^ ${LDFLAGS} 
+	${CC} -o $@ $^ ${LDFLAGS}
 
-
-## Compilation
+# Compilation
 ${O_DIR}/%.o: ${S_DIR}/%.c
 	${CC} -o $@ -c $< ${CCFLAGS}
 
 
 ## Make options
-.PHONY: ctags clean clean-obj clean-all run hard hard-run doxygen
+.PHONY: ctags clean clean-obj clean-all run hard hard-run doxygen \
+        $(BUILD_NUMBER_FILE)
 
 all:
-	make ${TARGET}
+	make ${TARGET} ${BUILD_NUMBER_FILE}
 	@make ctags
 
 ctags:
@@ -114,6 +149,9 @@ clean-obj:
 
 clean-bin:
 	rm --force ${TARGET}
+
+clean-build:
+	rm --force ${BUILD_NUMBER_FILE}
 
 clean:
 	@make clean-obj
@@ -138,9 +176,14 @@ help:
 	@echo "  'make all'........................................ Build project"
 	@echo "  'make clean-obj'............................. Clean object files"
 	@echo "  'make clean'...................... Clean binary and object files"
+	@echo "  'make ctags'...................... Generate tag files for source"
 	@echo "  'make doxygen'..................... Create Doxygen documentation"
 	@echo "  'make hard'..................................... Clean and build"
 	@echo "  'make run'............................... Run binary (if exists)"
 	@echo "  'make hard-run'......... Clean, build and run binary (if exists)"
 	@echo ""
 	@echo "  Binary will be placed in '${TARGET}'"
+
+$(BUILD_NUMBER_FILE):
+	@echo "Increasing build number to $(__BUILD_NUMBER)..."
+	@echo $(__BUILD_NUMBER) > $(BUILD_NUMBER_FILE)

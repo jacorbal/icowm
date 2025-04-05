@@ -10,10 +10,7 @@
 
 /* Project includes */
 #include <action.h>
-#include <desktop.h>
-#include <screen.h>
 #include <priority.h>
-#include <window.h>
 
 
 /**

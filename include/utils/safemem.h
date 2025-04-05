@@ -5,7 +5,7 @@
  *
  * Functions:
  *  - @c 'void safe_free(void **ptr)'
- *  - @c 'int safe_free_multiple(void **first, ...)'
+ *  - @c 'int safe_free_var(void **first, ...)'
  *
  * @ingroup mem Safe memory management utils
  */
@@ -28,8 +28,10 @@ void safe_free(void **ptr);
 /**
  * @brief Free multiple dynamically allocated pointers
  *
- * Frees the memory of the provided pointers as arguments.  The list of
- * pointers is terminated with a @c NULL pointer.
+ * Frees the memory of provided pointers as a variable list arguments.
+ * The list of pointers must be terminated with a @c NULL pointer, as
+ * this function stops when it encounters the first null value, and it
+ * requires at least one null argument.
  *
  * @param first A pointer to the first pointer to free
  * @param ...   Additional pointers to free, terminated with @c NULL
@@ -47,7 +49,7 @@ void safe_free(void **ptr);
  * @note Complexity: @e O(n), where @e n is the number of pointers
  *       provided up to the first @c NULL
  *
- * This example demonstrates how to call the @a safe_free_multiple
+ * This example demonstrates how to call the @a safe_free_var
  * function with a mixture of valid and @c NULL pointers:
  *
  * @code
@@ -55,10 +57,10 @@ void safe_free(void **ptr);
  *  char *ptr2 = NULL;
  *  char *ptr3 = malloc(64);
  *
- *  int result = safe_free_multiple((void **) &ptr1,
- *                                  (void **) &ptr2,
- *                                  (void **) &ptr3,
- *                                  NULL);
+ *  int result = safe_free_var((void **) &ptr1,
+ *                             (void **) &ptr2,
+ *                             (void **) &ptr3,
+ *                             NULL);
  *
  *  if (result == 0) {
  *      printf("All pointers were freed successfully\n");
@@ -74,4 +76,4 @@ void safe_free(void **ptr);
  * the index 1, indicating that the second pointer could not be
  * processed.
  */
-int safe_free_multiple(void **first, ...);
+int safe_free_var(void **first, ...);

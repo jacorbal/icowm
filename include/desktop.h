@@ -2,13 +2,25 @@
  * @file desktop.h
  *
  * @brief Desktop structure declaration
+ *
+ * Defines the structure that holds information and properties about
+ * a particular workspace (desktop) within a window manager environment.
+ * It includes a unique identifier, the window associated with the last
+ * recorded event, the currently focused window, and additional metadata
+ * such as the workspace name, workspace dimensions, and the available
+ * area for windows.  It also contains references to hash tables and
+ * lists that manage the stacking of windows within that workspace.
  */
 
 #ifndef DESKTOP_H
 #define DESKTOP_H
 
+
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
+
+/* X11 includes */
+#include <X11/Xlib.h>   /* Window */
 
 /* ADT includes */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
@@ -18,14 +30,7 @@
 
 /* Project includes */
 #include <config.h>
-/*#include <window.h>*/
-
-
-/* '<window.h>': Forward declaration of the type 'window_td', allowing
- *               it to be referenced without a complete definition,
- *               which helps to prevent circular dependencies and
- *               reduces compilation dependencies */
-typedef struct window_s window_td;
+#include <window.h>
 
 
 /**
@@ -42,8 +47,8 @@ typedef struct window_s window_td;
  * information about their environment.
  */
 typedef struct desktop_s {
-    unsigned int screen_id;                 /**< Screen index */
-    unsigned int id;                        /**< Desktop index */
+    XID screen_id;                 /**< Screen index */
+    XID id;                        /**< Desktop index */
 
     char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
 
@@ -56,7 +61,7 @@ typedef struct desktop_s {
     } background;
 
     ohtbl_td *windows;                      /**< Windows hash table */
-    window_td *window_active;               /**< Pointer to active window */
+    Window window_active;                   /**< Pointer to active window */
 
     struct config_base_s *config_base;      /**< Base configuration */
     struct config_theme_s *config_theme;    /**< Theme configuration */
@@ -70,7 +75,7 @@ typedef struct desktop_s {
 /**
  * @brief Initialize a new desktop
  *
- * @param screen_id    Screen identifier where this desktop belongs
+ * @param surface_id   Screen identifier where this desktop belongs
  * @param desktop_id   Desktop identifier
  * @param config_base  Pointer to base configuration
  * @param config_theme Pointer to theme configuration
@@ -79,8 +84,7 @@ typedef struct desktop_s {
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *desktop_init(unsigned int screen_id,
-        unsigned int desktop_id,
+desktop_td *desktop_init(XID surface_id, XID desktop_id,
         struct config_base_s *config_base,
         struct config_theme_s *config_theme);
 
@@ -186,7 +190,7 @@ int desktop_action_rename(desktop_td *desktop, const char *name);
  * @note Complexity: @e O(1)
  */
 int desktop_action_send_window(desktop_td *desktop, window_td *window,
-        unsigned int desktop_id);
+        XID desktop_id);
 
 /**
  * @brief Update the desktop background color
@@ -369,7 +373,7 @@ int desktop_action_application_launch(desktop_td *desktop,
  * @note Complexity: @e O(1)
  */
 int desktop_action_application_kill(desktop_td *desktop,
-        unsigned int application_id);
+        XID application_id);
 
 /**
  * @brief Macro that evaluates to the active window of the desktop

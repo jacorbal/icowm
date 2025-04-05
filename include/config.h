@@ -15,7 +15,7 @@
 
 
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -38,7 +38,7 @@ struct config_base_s {
             struct desktop_settings_s {
                 union {
                     //Pixmap image;             /**< Background image */
-                    unsigned long int color;    /**< Background color */
+                    unsigned long color;    /**< Background color */
                 } background;
             } settings;                         /**< Desktop settings */
         } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
@@ -159,25 +159,25 @@ struct config_theme_s {
         } general;
 
         struct {
-            unsigned long int background_color;
-            unsigned long int foreground_color;
-            unsigned long int border_color;
+            unsigned long background_color;
+            unsigned long foreground_color;
+            unsigned long border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
         struct {
-            unsigned long int background_color;
-            unsigned long int foreground_color;
-            unsigned long int border_color;
+            unsigned long background_color;
+            unsigned long foreground_color;
+            unsigned long border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } inactive;
     } window;
 
     /* Icons theme when windows are iconified */
     struct {
-        unsigned long int background_color;
-        unsigned long int foreground_color;
-        unsigned long int border_color;
+        unsigned long background_color;
+        unsigned long foreground_color;
+        unsigned long border_color;
         unsigned int border_width;
         bool is_captioned;
         char font[CONFIG_MAX_LENGTH_FONTNAME];

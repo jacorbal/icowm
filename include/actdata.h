@@ -14,7 +14,7 @@
 /* Project includes */
 #include <action.h>
 #include <desktop.h>
-#include <screen.h>
+#include <surface.h>
 #include <window.h>
 
 
@@ -30,8 +30,11 @@ typedef struct action_data_window_s {
 
     union {
         char *name;
+        char *visible_name;
+        char *icon_name;
+        char *visible_icon_name;
         char *class_name;
-        char *icon_path;
+        char *role_name;
         struct geometry_s geometry;
     } new_data;                         /** New values to update */
 } action_data_window_td;
@@ -52,17 +55,17 @@ typedef struct {
 
 
 /**
- * @brief Screen data to store information when updating the screen by
+ * @brief Screen data to store information when updating the surface by
  *        an action
  *
  * @see action_window_e
  */
 typedef struct {
-    screen_td *screen;                  /**< Screen affected */
-    enum action_screen_e action_screen; /**< Action for this screen */
+    surface_td *surface;                  /**< Surface affected */
+    enum action_surface_e action_surface; /**< Action for this surface */
 
     /* TODO */
-} action_data_screen_td;
+} action_data_surface_td;
 
 
 /* Public interface */
@@ -115,10 +118,10 @@ action_data_desktop_td *action_data_desktop_init(desktop_td *desktop,
 void action_data_desktop_destroy(action_data_desktop_td *action_data_desktop);
 
 /**
- * @brief Allocate memory for the screen data structure
+ * @brief Allocate memory for the surface data structure
  *
- * @param screen        Pointer to the screen that's going to be updated
- * @param action_screen Action type to perform with this data
+ * @param surface        Pointer to the surface that's going to be updated
+ * @param action_surface Action type to perform with this data
  *
  * @return Pointer to the new allocated structure, or @c NULL otherwise
  *
@@ -126,17 +129,17 @@ void action_data_desktop_destroy(action_data_desktop_td *action_data_desktop);
  *       initialization
  * @note Complexity: @e O(1)
  */
-action_data_screen_td *action_data_screen_init(screen_td *screen,
-        enum action_screen_e action_screen);
+action_data_surface_td *action_data_surface_init(surface_td *surface,
+        enum action_surface_e action_surface);
 
 /**
- * @brief Deallocate screen data structure
+ * @brief Deallocate surface data structure
  *
- * @param action_data_screen Pointer to the data structure to deallocate
+ * @param action_data_surface Pointer to the data structure to deallocate
  *
  * @note Complexity: @e O(1)
  */
-void action_data_screen_destroy(action_data_screen_td *action_data_screen);
+void action_data_surface_destroy(action_data_surface_td *action_data_surface);
 
 
 #endif  /* ! ACTDATA_H */

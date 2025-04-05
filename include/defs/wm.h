@@ -8,8 +8,9 @@
 #ifndef DEFS_WM_H
 #define DEFS_WM_H
 
+
 /**
- * @brief Initial capacity of windows for the desktop
+ * @brief Initial capacity of windows for a desktop
  *
  * Number of windows that the desktop is initialized with.  A higher
  * initial capacity may reduce the need for resizing the underlying data

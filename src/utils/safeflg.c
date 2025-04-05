@@ -5,7 +5,7 @@
  */
 
 /* System includes */
-#include <stdbool.h>    /* bool, false, true */
+#include <stdbool.h>
 
 /* Local includes */
 #include <utils/safeflg.h>
