@@ -1,7 +1,8 @@
 /**
  * @file wcmd.h
  *
- * @brief Functions on executions over windows using the X11 interface
+ * @brief Functions on executions over clients using the XCB interface
+ *        that update EWMH and ICCCM hints
  */
 
 #ifndef WCMD_H
@@ -13,305 +14,316 @@
 
 /* Project includes */
 #include <actdata.h>
-#include <window.h>
+#include <client.h>
 
 
-/* '<actdata.h>': Forward declaration of the type 'action_data_window_td' */
-//typedef struct action_data_window_s action_data_window_td;
+/* '<actdata.h>': Forward declaration of the type 'action_data_client_td' */
+//typedef struct action_data_client_s action_data_client_td;
 
-/* '<window.h>': Forward declaration of the type 'window_td' */
-//typedef struct window_s window_td;
+/* '<client.h>': Forward declaration of the type 'client_td' */
+//typedef struct client_s client_td;
 
 
 /* Public interface */
 /**
- * @brief Perform the action to close the window
+ * @brief Perform the action to close the client
  *
- * @param window Window to close
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_window_close(window_td *window);
-
-/**
- * @brief Restore the window to its original state
- *
- * @param window Window to restore
+ * @param client Window to close
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_restore(window_td *window);
+void wcmd_client_close(client_td *client);
 
 /**
- @brief Focus on the given window
+ * @brief Restore the client to its original state
  *
- * @param window Window to focus
+ * @param client Window to restore
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_focus(window_td *window);
+void wcmd_client_restore(client_td *client);
 
 /**
- * @brief Remove focus from the given window
+ @brief Focus on the given client
  *
- * @param window Window to unfocus
+ * @param client Window to focus
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_unfocus(window_td *window);
+void wcmd_client_focus(client_td *client);
 
 /**
-* @brief Move the window to a new position
+ * @brief Remove focus from the given client
  *
- * @param window      Window to move
- * @param window_data Data containing new position
+ * @param client Window to unfocus
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_move(window_td *window,
-        action_data_window_td *window_data);
+void wcmd_client_unfocus(client_td *client);
 
 /**
- * @brief Resize the window to new dimensions
+* @brief Move the client to a new position
  *
- * @param window      Window to resize
- * @param window_data Data containing new size
+ * @param client      Window to move
+ * @param client_data Data containing new position
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_resize(window_td *window,
-        action_data_window_td *window_data);
+void wcmd_client_move(client_td *client,
+        action_data_client_td *client_data);
 
 /**
-* @brief Rename the window
+ * @brief Resize the client to new dimensions
  *
- * @param window      Window to rename
- * @param window_data Data containing new name
+ * @param client      Window to resize
+ * @param client_data Data containing new size
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_resize(client_td *client,
+        action_data_client_td *client_data);
+
+/**
+* @brief Rename the client
+ *
+ * @param client      Window to rename
+ * @param client_data Data containing new name
  *
  * @note Complexity: @e O(n), where @e n is the length of the new name
  */
-void wcmd_window_rename(window_td *window,
-        action_data_window_td *window_data);
+void wcmd_client_rename(client_td *client,
+        action_data_client_td *client_data);
 
 /**
- * @brief Change the class of the window
+ * @brief Change the class of the client
  *
- * @param window      Window to reclassify
- * @param window_data Data containing new class
+ * @param client      Window to reclassify
+ * @param client_data Data containing new class
  *
  * @note Complexity: @e O(1), where @e n is the length of the class name
  */
-void wcmd_window_reclass(window_td *window,
-        action_data_window_td *window_data);
+void wcmd_client_reclass(client_td *client,
+        action_data_client_td *client_data);
 
 /**
- * @brief Perform the action to maximize a window horizontally
+ * @brief Change the role of the client
  *
- * @param window Window to maximize horizontally
+ * @param client      Window to change its role
+ * @param client_data Data containing new class
+ *
+ * @note Complexity: @e O(1), where @e n is the length of the role name
+ */
+void wcmd_client_rerole(client_td *client,
+        action_data_client_td *client_data);
+
+/**
+ * @brief Perform the action to maximize a client horizontally
+ *
+ * @param client Window to maximize horizontally
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_maximize_horz(window_td *window);
+void wcmd_client_maximize_horz(client_td *client);
 
 /**
- * @brief Perform the action to maximize a window vertically
+ * @brief Perform the action to maximize a client vertically
  *
- * @param window Window to maximize vertically
+ * @param client Window to maximize vertically
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_maximize_vert(window_td *window);
+void wcmd_client_maximize_vert(client_td *client);
 
 /**
- * @brief Perform the action to maximize a window entirely
+ * @brief Perform the action to maximize a client entirely
  *
- * @param window Window to maximize
+ * @param client Window to maximize
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_maximize(window_td *window);
+void wcmd_client_maximize(client_td *client);
 
 /**
  * @brief Perform the action to iconify (and minimize it)
  *
- * @param window Window to iconify
+ * @param client Window to iconify
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_iconify(window_td *window);
+void wcmd_client_iconify(client_td *client);
 
 /**
- * @brief Hide the window by minimizing it without iconifying
+ * @brief Hide the client by minimizing it without iconifying
  *
- * @param window Window to hide
+ * @param client Window to hide
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_hide(window_td *window);
+void wcmd_client_hide(client_td *client);
 
 /**
- * @brief Show (unhide) the window
+ * @brief Show (unhide) the client
  *
- * @param window Window to hide
+ * @param client Window to hide
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_unhide(window_td *window);
+void wcmd_client_unhide(client_td *client);
 
 /**
- * @brief Shade (roll-up) the window
+ * @brief Shade (roll-up) the client
  *
- * @param window Window to shade
+ * @param client Window to shade
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_shade(window_td *window);
+void wcmd_client_shade(client_td *client);
 
 /**
- * @brief Unshade (roll-down) the window
+ * @brief Unshade (roll-down) the client
  *
- * @param window Window to unshade
+ * @param client Window to unshade
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_unshade(window_td *window);
+void wcmd_client_unshade(client_td *client);
 
 /**
- * @brief Toggle window shading
+ * @brief Toggle client shading
  *
- * @param window Window to toggle shade in
+ * @param client Window to toggle shade in
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_toggle_shade(window_td *window);
+void wcmd_client_toggle_shade(client_td *client);
 
 /**
- * @brief Set the window to sticky mode
+ * @brief Set the client to sticky mode
  *
- * @param window Window to make sticky
+ * @param client Window to make sticky
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_sticky(window_td *window);
+void wcmd_client_sticky(client_td *client);
 
 /**
- * @brief Remove sticky mode from the window
+ * @brief Remove sticky mode from the client
  *
- * @param window Window to unstick
+ * @param client Window to unstick
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_unsticky(window_td *window);
+void wcmd_client_unsticky(client_td *client);
 
 /**
- * @brief Toggle sticky mode for the window
+ * @brief Toggle sticky mode for the client
  *
- * @param window Window to toggle sticky state
+ * @param client Window to toggle sticky state
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_toggle_sticky(window_td *window);
+void wcmd_client_toggle_sticky(client_td *client);
 
 /**
- * @brief Set the window to full screen mode
+ * @brief Set the client to full screen mode
  *
- * @param window Window to maximize
+ * @param client Window to maximize
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_fullscreen(window_td *window);
+void wcmd_client_fullscreen(client_td *client);
 
 /**
- * @brief Remove full screen mode from the window
+ * @brief Remove full screen mode from the client
  *
- * @param window Window to unmaximize
+ * @param client Window to unmaximize
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_unfullscreen(window_td *window);
+void wcmd_client_unfullscreen(client_td *client);
 
 /**
- * @brief Toggle full screen mode for the window
+ * @brief Toggle full screen mode for the client
  *
- * @param window Window to toggle full screen state
+ * @param client Window to toggle full screen state
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_toggle_fullscreen(window_td *window);
+void wcmd_client_toggle_fullscreen(client_td *client);
 
 /**
- * @brief Raise the window to the top of stack
+ * @brief Raise the client to the top of stack
  *
- * @param window Window to raise
+ * @param client Window to raise
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_raise(window_td *window);
+void wcmd_client_raise(client_td *client);
 
 /**
- * @brief Lower the window to the bottom of stack
+ * @brief Lower the client to the bottom of stack
  *
- * @param window Window to lower
+ * @param client Window to lower
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_lower(window_td *window);
+void wcmd_client_lower(client_td *client);
 
 /**
- * @brief Layer the window above others
+ * @brief Layer the client above others
  *
- * @param window Window to layer above
+ * @param client Window to layer above
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_layer_above(window_td *window);
+void wcmd_client_layer_above(client_td *client);
 
 /**
- * @brief Layer the window in normal position
+ * @brief Layer the client in normal position
  *
- * @param window Window to normalize
+ * @param client Window to normalize
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_layer_normal(window_td *window);
+void wcmd_client_layer_normal(client_td *client);
 
 /**
- * @brief Layer the window below others
+ * @brief Layer the client below others
  *
- * @param window Window to layer below
+ * @param client Window to layer below
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_layer_below(window_td *window);
+void wcmd_client_layer_below(client_td *client);
 
 /**
- * @brief Mark the window as urgent
+ * @brief Mark the client as urgent
  *
- * @param window Window to mark as urgent
+ * @param client Window to mark as urgent
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_set_urgent(window_td *window);
+void wcmd_client_set_urgent(client_td *client);
 
 /**
- * @brief Clear urgency marking from the window
+ * @brief Clear urgency marking from the client
  *
- * @param window Window to clear urgency
+ * @param client Window to clear urgency
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_window_clear_urgent(window_td *window);
+void wcmd_client_clear_urgent(client_td *client);
 
 /**
- * @brief Set the icon for the window
+ * @brief Set the icon for the client
  *
- * @param window      Window to set icon
- * @param window_data Data containing icon information
+ * @param client      Window to set icon
+ * @param client_data Data containing icon information
  *
  * @note Complexity: @e O(1), where @e n is the length of the icon name
  */
-void wcmd_window_set_icon(window_td *window,
-        action_data_window_td *window_data);
+void wcmd_client_set_icon(client_td *client,
+        action_data_client_td *client_data);
 
 
 #endif  /* ! WCMD_H */

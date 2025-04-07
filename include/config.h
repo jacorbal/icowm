@@ -16,6 +16,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -28,17 +29,17 @@ struct config_base_s {
     char theme[CONFIG_MAX_LENGTH_FILENAME];
 
     /* Desktops: number and which on is the default one */
-    unsigned int screen_count;                  /**< Number of screens */
+    uint32_t screen_count;                  /**< Number of screens */
     struct {
-        unsigned int desktop_count;             /**< No. of desktops */
-        unsigned int desktop_inaugural;         /**< Initial desktop */
+        uint32_t desktop_count;             /**< No. of desktops */
+        uint32_t desktop_inaugural;         /**< Initial desktop */
 
         struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
             struct desktop_settings_s {
                 union {
                     //Pixmap image;             /**< Background image */
-                    unsigned long color;    /**< Background color */
+                    uint32_t color;    /**< Background color */
                 } background;
             } settings;                         /**< Desktop settings */
         } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
@@ -55,7 +56,7 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
-        unsigned int snap;
+        uint32_t snap;
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
@@ -154,31 +155,31 @@ struct config_theme_s {
     /* Window theme */
     struct window_theme_s {
         struct general_s {
-            unsigned int border_width;
+            uint32_t border_width;
             bool is_decorated;
         } general;
 
         struct {
-            unsigned long background_color;
-            unsigned long foreground_color;
-            unsigned long border_color;
+            uint32_t background_color;
+            uint32_t foreground_color;
+            uint32_t border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
         struct {
-            unsigned long background_color;
-            unsigned long foreground_color;
-            unsigned long border_color;
+            uint32_t background_color;
+            uint32_t foreground_color;
+            uint32_t border_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } inactive;
     } window;
 
     /* Icons theme when windows are iconified */
     struct {
-        unsigned long background_color;
-        unsigned long foreground_color;
-        unsigned long border_color;
-        unsigned int border_width;
+        uint32_t background_color;
+        uint32_t foreground_color;
+        uint32_t border_color;
+        uint32_t border_width;
         bool is_captioned;
         char font[CONFIG_MAX_LENGTH_FONTNAME];
     } icon;

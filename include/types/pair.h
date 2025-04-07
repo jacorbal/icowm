@@ -13,14 +13,28 @@
 #define TYPE_PAIR_H
 
 
+#include <stdint.h>
+
+
+/**
+ * @brief Sides structure
+ */
+struct sides_s {
+    int32_t left;
+    int32_t right;
+    int32_t top;
+    int32_t bottom;
+};
+
+
 /**
  * @brief Generic size
  *
  * @note Size is always positive or zero
  */
 struct size_s {
-    unsigned int x;
-    unsigned int y;
+    uint32_t x;
+    uint32_t y;
 };
 
 
@@ -28,8 +42,8 @@ struct size_s {
  * @brief DPI structure
  */
 struct dpi_s {
-    unsigned int x;
-    unsigned int y;
+    uint32_t x;
+    uint32_t y;
 };
 
 
@@ -38,8 +52,8 @@ struct dpi_s {
  *
  */
 struct resolution_s {
-    unsigned int x;
-    unsigned int y;
+    uint32_t x;
+    uint32_t y;
 };
 
 
@@ -49,8 +63,8 @@ struct resolution_s {
  * @note This values are always non-negative
  */
 struct position_s {
-    int x;
-    int y;
+    int32_t x;
+    int32_t y;
 };
 
 
@@ -58,8 +72,8 @@ struct position_s {
  * @brief Dimensions structure
  */
 struct dimensions_s {
-    unsigned int w;
-    unsigned int h;
+    uint32_t w;
+    uint32_t h;
 };
 
 

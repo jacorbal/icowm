@@ -6,13 +6,14 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Local includes */
 #include <utils/safeflg.h>
 
 
 /* Validate if a flag is within the allowed range */
-bool safeflg_is_valid(unsigned int flag, unsigned int max_flags)
+bool safeflg_is_valid(uint16_t flag, uint16_t max_flags)
 {
     if (max_flags == 0) {
         return false;
@@ -22,13 +23,12 @@ bool safeflg_is_valid(unsigned int flag, unsigned int max_flags)
      * A valid flag must be a power of 2 and should also fall within the
      * defined range of allowed flags. */
     return (flag != 0 && (flag & (flag - 1)) == 0 &&
-            flag < (1U << max_flags));
+            flag < (1u << max_flags));
 }
 
 
 /* Set (enable) the specified flag in the given flag set */
-int safeflg_set(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags)
+int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags)
 {
     if (!safeflg_is_valid(flag, max_flags)) {
         return 1;
@@ -40,8 +40,7 @@ int safeflg_set(unsigned int *flags, unsigned int flag,
 
 
 /* Unset (clear) the specified flag in the given flag set */
-int safeflg_unset(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags)
+int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags)
 {
     if (!safeflg_is_valid(flag, max_flags)) {
         return 1;
@@ -53,8 +52,7 @@ int safeflg_unset(unsigned int *flags, unsigned int flag,
 
 
 /* Toggle the specified flag in the given flag set */
-int safeflg_toggle(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags)
+int safeflg_toggle(uint16_t *flags, uint16_t flag, uint16_t max_flags)
 {
     if (!safeflg_is_valid(flag, max_flags)) {
         return 1;

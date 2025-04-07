@@ -6,11 +6,12 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* X11 includes */
-#include <X11/Xlib.h>   /* XOpenDisplay, XCloseDisplay */
-#include <X11/keysym.h> /* XK_* */
+/* XCB includes */
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
@@ -76,10 +77,10 @@ static void s_wm_update_full(void)
  * @brief Enters the main event handling loop of the window manager
  *
  * Runs continuously while the window manager is active, listening for
- * X11 events and passing them to the event handler for processing.  It
- * uses @p XNextEvent to wait for incoming events from the X server,
- * enabling responsive behavior in window management.  The condition to
- * end the loop is by setting @p is_running to @c false.
+ * XCB events and passing them to the event handler for processing.  It
+ * uses @a xcb_poll_for_event to wait for incoming events from the
+ * X server, enabling responsive behavior in window management.  The
+ * condition to end the loop is by setting @p is_running to @c false.
  *
  * @note The event loop will stop when the @p is_running flag is set to
  *       @c false, which should be handled in response to user actions
@@ -91,6 +92,8 @@ static void s_wm_update_full(void)
  */
 static void s_wm_loop(void)
 {
+    xcb_key_symbols_t *keysyms;
+
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
                 "or set to not run", L_NARG);
@@ -100,49 +103,52 @@ static void s_wm_loop(void)
     /* Update window manager before start */
     s_wm_update_full();
 
+    keysyms = xcb_key_symbols_alloc(wm->connection);
+
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
-        XEvent xevent;
+        xcb_generic_event_t *event;
         //event_handler_process(wm->event_handler, &event);
 
         /* Process window manager events from event priority queue */
         eventq_process();
 
         /* Process X events */
-        while (XPending(wm->display) > 0) {
-            XNextEvent(wm->display, &xevent);
+        while ((event = xcb_poll_for_event(wm->connection))) {
+            xcb_keysym_t keysym;
+            xcb_key_press_event_t *key_event;
 
-            /* Quit: Ctr+Alt+Shift+Backspace */
-            switch (xevent.type) {
-                case KeyPress:
-                {
-                    KeySym keysym = XLookupKeysym(&xevent.xkey, 0);
+            switch (event->response_type & ~0x80) { /* Ignore error bits */
+                case XCB_KEY_PRESS:
+                    key_event = (xcb_key_press_event_t *) event;
+                    keysym = xcb_key_symbols_get_keysym(keysyms,
+                            key_event->detail, 0);
 
-                    if (keysym == XK_BackSpace &&
-                            (xevent.xkey.state & ControlMask) &&
-                            (xevent.xkey.state & Mod1Mask) &&
-                            (xevent.xkey.state & ShiftMask)) {
+                    /* Ctrl+Mod1+Shift+Backspace */
+                    if (keysym == 0x0078 &&
+                            (key_event->state & XCB_MOD_MASK_CONTROL) &&
+                            (key_event->state & XCB_MOD_MASK_1) &&
+                            (key_event->state & XCB_MOD_MASK_SHIFT)) {
                         LOGGER_TRACE("Setting 'is_running' status" \
                                 " flag to 'false'", L_NARG);
                         wm->is_running = false;
                     } else {
-                        //event_handler_handle_process(&event);
+                        /* event_handler_handle_process(&event); */
                     }
                     break;
-                }
 
-                case ConfigureNotify:
+                case XCB_CONFIGURE_NOTIFY:
                     /* Handle window resize or move events */
                     //event_handler_handle_configure(&event);
                     break;
 
-                case MapNotify:
+                case XCB_MAP_NOTIFY:
                     /* Handle window mapping events (when a window
                      * is shown) */
                     //event_handler_handle_map(&event);
                     break;
 
-                case UnmapNotify:
+                case XCB_UNMAP_NOTIFY:
                     /* Handle window unmapping events (when a window
                      * is hidden) */
                     // event_handler_handle_unmap(&event);
@@ -152,8 +158,9 @@ static void s_wm_loop(void)
                 default:
                     /* Optional: handle unknown events if needed */
                     break;
-            } /* switch (event.type) */
-        } /* ! while (XPending) */
+            } /* switch (event->response_type) */
+            free(event);
+        } /* ! while (event) */
 
         /* Update the window manager */
         s_wm_update();
@@ -167,7 +174,9 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 {
     LOGGER_DEBUG("Initializing window manager", L_NARG);
     if (wm == NULL) {
-        unsigned int screens_detected;
+        uint32_t screens_detected;
+        const xcb_setup_t *setup;
+        xcb_screen_iterator_t it;
 
         /* Allocate memory for the window manager */
         wm = malloc(sizeof(wm_td));
@@ -180,14 +189,11 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         LOGGER_DEBUG("Opening X display", L_NARG);
         /* If 'display_name' is 'NULL', then it defaults to the value of
          * the 'DISPLAY' environment variable */
-        wm->display = XOpenDisplay(display_name);
-        if (wm->display == NULL) {
-            if (XDisplayName(NULL)[0] == '\0') {
-                LOGGER_FATAL("Failed to open X display", L_NARG);
-            } else {
-                LOGGER_FATAL("Failed to open X display: '%s'", \
-                        XDisplayName(NULL));
-            }
+        wm->connection = xcb_connect(display_name,
+                (int *) &(wm->screenp));
+
+        if (xcb_connection_has_error(wm->connection)) {
+            LOGGER_FATAL("Failed to open X display", L_NARG);
             free(wm);
             return 2;
         }
@@ -207,9 +213,29 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             LOGGER_FATAL("Failed to initialize event priority queue",
                     L_NARG);
             config_destroy(wm->config);
-            XCloseDisplay(wm->display);
+            xcb_disconnect(wm->connection);
             free(wm);
             return 4;
+        }
+
+        /* Count the number of screens */
+        setup = xcb_get_setup(wm->connection);
+        it = xcb_setup_roots_iterator(setup);
+        screens_detected = 0;
+        for (; it.rem > 0; xcb_screen_next(&it)) {
+            screens_detected++;
+        }
+
+        /* Check 'screens_detected' for it could be zero on some weird error */
+        if (screens_detected == 0) {
+            LOGGER_FATAL("No screens detected", L_NARG);
+            config_destroy(wm->config);
+            xcb_disconnect(wm->connection);
+            free(wm);
+            return 5;
+        } else {
+            LOGGER_INFO("Detected preferred screen ID: %lu",
+                    wm->screenp);
         }
 
         /* Handle surfaces */
@@ -220,72 +246,79 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     L_NARG);
             eventq_stop();
             config_destroy(wm->config);
-            XCloseDisplay(wm->display);
+            xcb_disconnect(wm->connection);
             free(wm);
             return 5;
         }
 
         /* Initialize surfaces */
         LOGGER_TRACE("Initializing surface structures", L_NARG);
-        /* NOTE.  Maybe there are more surfaces defined in the
-         *        configuration file, but only those detected will be
-         *        initialized, hence the 'ScreenCount(display)' instead
-         *        of taking the JSON information.  In the same way,
-         *        maybe there are 'n' surfaces, but only want to use
-         *        the 'm < n' defined in the JSON file. */
-        screens_detected = (unsigned int) ScreenCount(wm->display);
+        /* Maybe there are more surfaces defined in the configuration
+         * file, but only those detected will be initialized, hence the
+         * 'screen_count' instead of taking the JSON information.  In
+         * the same way, maybe there are 'n' surfaces, but only want to
+         * use the 'm < n' defined in the JSON file. */
         if (wm->config->base.screen_count != screens_detected) {
-            LOGGER_NOTICE("Detected %u surfaces; %u are specified in" \
+            LOGGER_NOTICE("Detected %u screens; %u are specified in" \
                     " the configuration file",
                     screens_detected, wm->config->base.screen_count);
-            if (wm->config->base.screen_count >= screens_detected) {
+            if (wm->config->base.screen_count >= screens_detected ||
+                wm->config->base.screen_count == 0) {
                 wm->config->base.screen_count = screens_detected;
             }
-            LOGGER_INFO("Setting number of surfaces to: %u",
+            LOGGER_INFO("Setting number of screens to: %u",
                     wm->config->base.screen_count);
         } else {
-            LOGGER_DEBUG("Setting number of surfaces to: %u",
+            LOGGER_DEBUG("Setting number of screens to: %u",
                     wm->config->base.screen_count);
         }
 
-        for (size_t i = 0; i < wm->config->base.screen_count; ++i) {
+        /* Not interested in using XCB iterator because it's needed to
+         * transverse the screens from 0 to go in the same order as in
+         * the configuration file. */
+        for (unsigned int i = 0; i < screens_detected; ++i) {
             /* Get number of desktops for this surface */
-            unsigned int desktops_count =
-                wm->config->base.screens[i].desktop_count;
+            uint32_t desktops_count =
+                wm->config->base.screens[it.rem].desktop_count;
             surface_td *surface =
-                surface_init(wm->display, i, desktops_count, wm->config);
+                surface_init(wm->connection, (uint32_t) it.rem,
+                        desktops_count, wm->config);
             if (surface == NULL) {
-                LOGGER_FATAL("Failed to initialize surface %lu", i);
+                LOGGER_FATAL("Failed to initialize surface %lu",
+                        it.rem);
                 list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
-                XCloseDisplay(wm->display);
+                xcb_disconnect(wm->connection);
                 free(wm);
                 return 6;
             }
 
-            LOGGER_TRACE("Inserting surface %lu into surface list", i);
+            LOGGER_TRACE("Inserting surface %lu into surface list",
+                    it.rem);
             if (list_ins_next(wm->surfaces,
                         list_tail(wm->surfaces),
                         (const void *) surface) != 0) {
                 LOGGER_FATAL("Failed to insert surface " \
-                        "%lu into surface list", i);
+                        "%lu into surface list", it.rem);
                 surface_destroy(surface);
                 list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
-                XCloseDisplay(wm->display);
+                xcb_disconnect(wm->connection);
                 free(wm);
                 return 7;
             }
 
             surface->desktop_count =
-                wm->config->base.screens[i].desktop_count;
+                wm->config->base.screens[it.rem].desktop_count;
             surface->desktop_cur =
-                wm->config->base.screens[i].desktop_inaugural;
+                wm->config->base.screens[it.rem].desktop_inaugural;
 
             LOGGER_TRACE("Setting desktop %lu as the startup desktop" \
-                    " on surface %lu", surface->desktop_cur, i);
+                    " on surface %lu", surface->desktop_cur, it.rem);
+
+            xcb_screen_next(&it);
         }
 
         /* Begin! */
@@ -321,7 +354,7 @@ int wm_stop(void)
 
     /* Close the display */
     LOGGER_TRACE("Closing X display", L_NARG);
-    XCloseDisplay(wm->display);
+    xcb_disconnect(wm->connection);
 
     LOGGER_TRACE("Destroying window manager", L_NARG);
     free(wm);

@@ -53,7 +53,11 @@ CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
 
 CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
-LDFLAGS     = -L ${L_DIR} -lcjson -lX11 -lXpm
+
+JSON_LFLAGS = -lcjson
+XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util)
+OTHR_LFLAGS = -lpthread
+LDFLAGS     = -L ${L_DIR} ${JSON_LFLAGS} ${XCB_LFLAGS} ${OTHR_LFLAGS}
 
 
 ## Data & build information

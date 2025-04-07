@@ -24,7 +24,7 @@
 #include <stdio.h>      /* FILE, snprintf */
 #include <stdlib.h>     /* NULL, free, malloc, getenv, size_t */
 
-/* X11 includes */
+/* JSON includes */
 #include <cjson/cJSON.h>
 
 /* Utils includes */
@@ -38,26 +38,26 @@
 
 
 /**
- * @brief Convert a hexadecimal color string into a unsigned long
+ * @brief Convert a hexadecimal color string into a unsigned 32-bit
  *        integer
  *
  * @param hex_color Hexadecimal color string
  *
- * @return Color value as unsigned longeger
+ * @return Color value as unsigned 32-bit integer
  *
  * @note The initial @p hex_color string could begin with character '#',
  *       for it's ignored
  * @note Complexity: @e O(n), where @e n is the length of the
  *       hexadecimal string
  */
-static unsigned long s_hex2ul(const char *hex_color)
+static uint32_t s_hex2uint32(const char *hex_color)
 {
-    unsigned long color;
+    uint32_t color;
 
     if (hex_color[0] == '#') {
         hex_color++;
     }
-    sscanf(hex_color, "%lx", &color);
+    sscanf(hex_color, "%x", &color);
 
     return color;
 }
@@ -374,7 +374,7 @@ void config_set_default_values(config_td *config)
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
 
             config->base.screens[i].desktops[j].settings.background.color
-                = s_hex2ul("#000000");
+                = s_hex2uint32("#000000");
         }
     }
 
@@ -465,17 +465,17 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->theme.name, "Default (builtin)");
     config->theme.window.general.border_width = 2;
     config->theme.window.general.is_decorated = true;
-    config->theme.window.active.background_color = s_hex2ul("FFFFFF");
-    config->theme.window.active.foreground_color = s_hex2ul("000000");
-    config->theme.window.active.border_color = s_hex2ul("222222");
+    config->theme.window.active.background_color = s_hex2uint32("FFFFFF");
+    config->theme.window.active.foreground_color = s_hex2uint32("000000");
+    config->theme.window.active.border_color = s_hex2uint32("222222");
     safe_strcpy(config->theme.window.active.font, "monospace bold 9");
-    config->theme.window.inactive.background_color = s_hex2ul("000000");
-    config->theme.window.inactive.foreground_color = s_hex2ul("FFFFFF");
-    config->theme.window.inactive.border_color = s_hex2ul("999999");
+    config->theme.window.inactive.background_color = s_hex2uint32("000000");
+    config->theme.window.inactive.foreground_color = s_hex2uint32("FFFFFF");
+    config->theme.window.inactive.border_color = s_hex2uint32("999999");
     safe_strcpy(config->theme.window.inactive.font, "monospace 9");
-    config->theme.icon.background_color = s_hex2ul("FFFFFF");
-    config->theme.icon.foreground_color = s_hex2ul("000000");
-    config->theme.icon.border_color = s_hex2ul("000000");
+    config->theme.icon.background_color = s_hex2uint32("FFFFFF");
+    config->theme.icon.foreground_color = s_hex2uint32("000000");
+    config->theme.icon.border_color = s_hex2uint32("000000");
     config->theme.icon.border_width = 1;
     config->theme.icon.is_captioned = true;
     safe_strcpy(config->theme.icon.font, "monospace 8");
@@ -589,6 +589,11 @@ int config_load_base(const char *filename,
         if (desktops_array && cJSON_IsArray(desktops_array)) {
             unsigned int desktop_count =
                 (unsigned int) cJSON_GetArraySize(desktops_array);
+
+            desktop_count = (desktop_count > CONFIG_MAX_DESKTOPS)
+                ? CONFIG_MAX_DESKTOPS
+                : desktop_count;
+
             for (unsigned int i = 0;
                     i < desktop_count && i < CONFIG_MAX_DESKTOPS;
                     ++i) {
@@ -598,7 +603,6 @@ int config_load_base(const char *filename,
                     cJSON_GetArrayItem(desktops_array, (int) i);
                 if (desktop_item) {
                     cJSON *desktop_settings;
-
                     /* Load desktop 'count' and 'inaugural' */
                     s_json_load_uint(desktop_item, "count",
                             &config_base->screens[i].desktop_count);
@@ -628,7 +632,6 @@ int config_load_base(const char *filename,
                                 ++j) {
                             cJSON *setting_item;
                             cJSON *background_color_item;
-
                             setting_item =
                                 cJSON_GetArrayItem(desktop_settings,
                                         (int) j);
@@ -637,7 +640,6 @@ int config_load_base(const char *filename,
                                 s_json_load_string(setting_item, "name",
                                         config_base->screens[i].desktops[j].name,
                                         CONFIG_MAX_LENGTH_NAME);
-
                                 /* Load background color */
                                 background_color_item =
                                     cJSON_GetObjectItem(setting_item,
@@ -645,7 +647,7 @@ int config_load_base(const char *filename,
                                 if (background_color_item &&
                                         cJSON_IsString(background_color_item)) {
                                     config_base->screens[i].desktops[j].settings.background.color =
-                                        s_hex2ul(background_color_item->valuestring);
+                                        s_hex2uint32(background_color_item->valuestring);
                                 } /* ! if (background_color) */
                             } /* ! if (setting_item) */
                         } /* ! for(j in 0..settings_count) */
@@ -946,19 +948,19 @@ int config_load_theme(const char *filename,
                     "background_color");
             if (background_color) {
                 config_theme->window.active.background_color =
-                    s_hex2ul(background_color->valuestring);
+                    s_hex2uint32(background_color->valuestring);
             }
             foreground_color = cJSON_GetObjectItem(active,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.active.foreground_color =
-                    s_hex2ul(foreground_color->valuestring);
+                    s_hex2uint32(foreground_color->valuestring);
             }
             border_color = cJSON_GetObjectItem(active,
                     "border_color");
             if (border_color) {
                 config_theme->window.active.border_color =
-                    s_hex2ul(border_color->valuestring);
+                    s_hex2uint32(border_color->valuestring);
             }
             s_json_load_string(active, "font",
                     config_theme->window.active.font,
@@ -975,19 +977,19 @@ int config_load_theme(const char *filename,
                     "background_color");
             if (background_color) {
                 config_theme->window.inactive.background_color =
-                    s_hex2ul(background_color->valuestring);
+                    s_hex2uint32(background_color->valuestring);
             }
             foreground_color = cJSON_GetObjectItem(inactive,
                     "foreground_color");
             if (foreground_color) {
                 config_theme->window.inactive.foreground_color =
-                    s_hex2ul(foreground_color->valuestring);
+                    s_hex2uint32(foreground_color->valuestring);
             }
             border_color = cJSON_GetObjectItem(inactive,
                     "border_color");
             if (border_color) {
                 config_theme->window.inactive.border_color =
-                    s_hex2ul(border_color->valuestring);
+                    s_hex2uint32(border_color->valuestring);
             }
             s_json_load_string(inactive, "font",
                     config_theme->window.inactive.font,
@@ -1005,19 +1007,19 @@ int config_load_theme(const char *filename,
                 "background_color");
         if (background_color) {
             config_theme->icon.background_color =
-                s_hex2ul(background_color->valuestring);
+                s_hex2uint32(background_color->valuestring);
         }
         foreground_color = cJSON_GetObjectItem(icon,
                 "foreground_color");
         if (foreground_color) {
             config_theme->icon.foreground_color =
-                s_hex2ul(foreground_color->valuestring);
+                s_hex2uint32(foreground_color->valuestring);
         }
         border_color = cJSON_GetObjectItem(icon,
                 "border_color");
         if (border_color) {
             config_theme->icon.border_color =
-                s_hex2ul(border_color->valuestring);
+                s_hex2uint32(border_color->valuestring);
         }
 
         s_json_load_uint(icon, "border_width",

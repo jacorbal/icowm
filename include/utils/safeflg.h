@@ -9,7 +9,7 @@
  * invalid operations on flags are avoided.  The implementation utilizes
  * bitwise operations to manipulate flag states efficiently.
  *
- * @note The implementation uses @c 'unsigned int' for flag storage, which
+ * @note The implementation uses @c uint16_t for flag storage, which
  *       allows for a wide range of defined flags while maintaining type
  *       safety and clarity
  * @note These functions are designed to be used with a variety of
@@ -23,6 +23,7 @@
 
 /* System includes */
 #include <stdbool.h>    /* bool */
+#include <stdint.h>     /* uint16_t */
 
 
 /* Public interface */
@@ -37,11 +38,11 @@
  * @param flag      Flag to be validated
  * @param max_flags Maximum value for the flag, which should typically
  *                  be based on the number of defined flags
- *                  (e.g., @c 1U << @p max_flags)
+ *                  (e.g., @c 1u << @p max_flags)
  *
  * @return @c true if the flag is valid, @c false otherwise
  */
-bool safeflg_is_valid(unsigned int flag, unsigned int max_flags);
+bool safeflg_is_valid(uint16_t flag, uint16_t max_flags);
 
 /**
  * @brief Set (enable) the specified flag in the given flag set
@@ -61,8 +62,7 @@ bool safeflg_is_valid(unsigned int flag, unsigned int max_flags);
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_set(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags);
+int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags);
 
 /**
  * @brief Unset (clear) the specified flag in the given flag set
@@ -82,8 +82,7 @@ int safeflg_set(unsigned int *flags, unsigned int flag,
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_unset(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags);
+int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags);
 
 /**
  * @brief Toggle the specified flag in the given flag set
@@ -103,8 +102,7 @@ int safeflg_unset(unsigned int *flags, unsigned int flag,
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_toggle(unsigned int *flags, unsigned int flag,
-        unsigned int max_flags);
+int safeflg_toggle(uint16_t *flags, uint16_t flag, uint16_t max_flags);
 
 
 #endif  /* ! SAFEFLG_H */

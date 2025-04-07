@@ -1,15 +1,16 @@
 /**
  * @file surface.c
  *
- * @brief Screen handling implementation
+ * @brief Surface handling implementation
  */
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
 
-/* X11 includes */
-#include <X11/Xlib.h>   /* Display, Screen */
+/* XCB includes */
+#include <xcb/xcb.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -23,125 +24,139 @@
 #include <surface.h>
 
 
-/* Update surface properties by asking X */
-static void s_update_properties(surface_td *surface, Screen *xsurface)
+/* Update the properties of the surface */
+static void s_update_properties(surface_td *surface,
+        xcb_screen_t *screen)
 {
+    xcb_depth_iterator_t depth_iter;
     int xx, yy;
 
     /* Update surface dimensions */
-    xx = XWidthOfScreen(xsurface);
-    yy = XWidthOfScreen(xsurface);
-    surface->properties.dim.w = (xx > 0) ? (unsigned int) xx : 0;
-    surface->properties.dim.w = (yy > 0) ? (unsigned int) yy : 0;
+    xx = screen->width_in_pixels;  // XCB allows direct access to these values.
+    yy = screen->height_in_pixels;
 
-    xx = XHeightOfScreen(xsurface);
-    yy = XHeightOfScreen(xsurface);
-    surface->properties.dim.h = (xx > 0) ? (unsigned int) xx : 0;
-    surface->properties.dim.h = (yy > 0) ? (unsigned int) yy : 0;
+    surface->properties.dim.w = (xx > 0) ? (uint32_t)xx : 0;
+    surface->properties.dim.h = (yy > 0) ? (uint32_t)yy : 0;
+
+    /* Get dimensions in mm from the screen */
+    xx = screen->width_in_millimeters;
+    yy = screen->height_in_millimeters;
+
+    surface->properties.dim_mm.w = (xx > 0) ? (uint32_t)xx : 0;
+    surface->properties.dim_mm.h = (yy > 0) ? (uint32_t)yy : 0;
 
     /* Calculate DPI; dpi = px / (mm/25.4);  1 in ~= 25.4 mm */
-    xx = XWidthMMOfScreen(xsurface);
-    yy = XHeightMMOfScreen(xsurface);
-    surface->properties.dim_mm.w = (xx > 0) ? (unsigned int) xx : 0;
-    surface->properties.dim_mm.h = (yy > 0) ? (unsigned int) yy : 0;
-
     /* Calculate DPI for x-axis */
-    if (surface->properties.dim_mm.w> 0) {
+    if (surface->properties.dim_mm.w > 0) {
         surface->properties.dpi.x =
-            (unsigned int) ((float) surface->properties.dim.w /
-                    ((float) surface->properties.dim_mm.w / 25.4f));
+            (uint32_t)((float)surface->properties.dim.w /
+                    ((float)surface->properties.dim_mm.w / 25.4f));
     } else {
-        /* Division by zero:  DPI in 'x' set to 0 */
-        /** @todo Handle division by zero in 'dpi.x' */
+        /* Division by zero: DPI in 'x' set to 0 */
         surface->properties.dpi.x = 0;
     }
 
     /* Calculate DPI for y-axis */
     if (surface->properties.dim_mm.h > 0) {
         surface->properties.dpi.y =
-            (unsigned int) ((float) surface->properties.dim.h /
-                    ((float) surface->properties.dim_mm.h / 25.4f));
+            (uint32_t)((float)surface->properties.dim.h /
+                    ((float)surface->properties.dim_mm.h / 25.4f));
     } else {
-        /* Division by zero:  DPI in 'y' set to 0 */
-        /** @todo Handle division by zero in 'dpi.y' */
+        /* Division by zero: DPI in 'y' set to 0 */
         surface->properties.dpi.y = 0;
     }
 
     /* Set visual properties */
-    surface->properties.visual_info.properties.depth =
-        DefaultDepth(surface->display, surface->id);
-    surface->properties.visual_info.properties.colormaps =
-        DefaultColormap(surface->display, surface->id);
-    surface->properties.visual_info.visual =
-        DefaultVisual(surface->display, surface->id);
-    surface->root = RootWindow(surface->display, surface->id);
+    /* Iterate through depths to find the appropriate visual */
+    depth_iter = xcb_screen_allowed_depths_iterator(screen);
+
+    // Assume we take the first depth available (modify as necessary)
+    if (depth_iter.rem > 0) {
+        xcb_depth_t *depth = depth_iter.data;
+        xcb_visualtype_iterator_t visual_iter;
+
+        surface->properties.visual_info.properties.depth = depth->depth;
+
+        // Get the first visual ID from the first depth
+        visual_iter =
+            xcb_depth_visuals_iterator(depth);
+        if (visual_iter.rem > 0) {
+            surface->properties.visual_info.visual_id =
+                visual_iter.data->visual_id;
+        }
+
+        /* NOTE: It may be needed to get the default colormap from the
+         *       root window's configuration */
+        surface->properties.visual_info.properties.colormap =
+            screen->default_colormap;
+    }
 }
 
 
 /* Initialize a new surface */
-surface_td *surface_init(Display *display, const XID surface_id,
-        unsigned int desktop_count, config_td *config)
+surface_td *surface_init(xcb_connection_t *connection,
+        const uint32_t surface_id, uint32_t desktop_count,
+        config_td *config)
 {
     surface_td *surface;
-    Screen *xsurface;
+    xcb_screen_iterator_t iter;
 
-    LOGGER_DEBUG("Initializing surface %lu", surface_id);
+    LOGGER_DEBUG("Initializing surface %u", surface_id);
     surface = malloc(sizeof(surface_td));
     if (surface == NULL) {
-        LOGGER_FATAL("Failed to allocate memory for surface %lu",
+        LOGGER_FATAL("Failed to allocate memory for surface %u",
                 surface_id);
         return NULL;
     }
 
     LOGGER_TRACE("Retrieving surface information from X server", L_NARG);
-    xsurface = ScreenOfDisplay(display, surface_id);
-    if (xsurface == NULL) {
-        LOGGER_FATAL("Failed to retrieve information for surface %lu",
+    iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+    surface->screen = iter.data;
+    if (surface->screen == NULL) {
+        LOGGER_FATAL("Failed to retrieve information for surface %u",
                 surface_id);
         return NULL;
     }
 
     surface->id = surface_id;
-    surface->display = display;
+    surface->connection = connection;
     surface->config = config;
-    surface->xsurface = xsurface;
 
     /* Update surface properties */
-    s_update_properties(surface, xsurface);
+    s_update_properties(surface, surface->screen);
 
     /* Handle desktops */
     LOGGER_TRACE("Setting up all %d desktops", desktop_count);
 
-    LOGGER_TRACE("Initializing desktop list structure for surface %lu",
+    LOGGER_TRACE("Initializing desktop list structure for surface %u",
             surface_id);
     surface->desktops = cdlist_init((void(*)(void *)) desktop_destroy);
     if (surface->desktops == NULL) {
         LOGGER_FATAL("Failed to allocate memory for desktops on" \
-                " surface %lu", surface_id);
+                " surface %u", surface_id);
         free(surface);
         return NULL;
     }
 
     /* Initialize desktops */
     surface->desktop_count = desktop_count;
-    for (unsigned int i = 0; i < desktop_count; ++i) {
+    for (uint32_t i = 0; i < desktop_count; ++i) {
         desktop_td *desktop = desktop_init(surface_id, i,
                 &(surface->config->base), &(surface->config->theme));
         if (surface == NULL) {
-            LOGGER_FATAL("Failed to initialize desktop %lu on" \
-                    " surface %lu", i, surface_id);
+            LOGGER_FATAL("Failed to initialize desktop %u on" \
+                    " surface %u", i, surface_id);
             cdlist_destroy(surface->desktops);
             return NULL;
         }
 
-        LOGGER_TRACE("Inserting desktop %lu ('%s') of " \
-                "surface %lu into desktop list",
+        LOGGER_TRACE("Inserting desktop %u ('%s') of " \
+                "surface %u into desktop list",
                 i, desktop->name, surface_id);
-        if (cdlist_ins_next(surface->desktops,
-                    cdlist_tail(surface->desktops),
-                    (const void *) desktop) != 0) {
-            LOGGER_FATAL("Failed to insert desktop %lu ('%s') on" \
-                    " surface %lu into desktop list",
+
+        if (surface_desktop_add(surface, desktop) != 0) {
+            LOGGER_FATAL("Failed to insert desktop %u ('%s') on" \
+                    " surface %u into desktop list",
                     i, desktop->name, surface_id);
             desktop_destroy(desktop);
             cdlist_destroy(surface->desktops);
@@ -161,12 +176,12 @@ void surface_destroy(surface_td *surface)
         return;
     }
 
-    LOGGER_DEBUG("Deallocating structure for surface %lu", surface->id);
+    LOGGER_DEBUG("Deallocating structure for surface %u", surface->id);
 
-    LOGGER_TRACE("Deallocating desktops on surface %lu", surface->id);
+    LOGGER_TRACE("Deallocating desktops on surface %u", surface->id);
     cdlist_destroy(surface->desktops);
 
-    LOGGER_TRACE("Destroying surface %lu", surface->id);
+    LOGGER_TRACE("Destroying surface %u", surface->id);
     free(surface);
 }
 
@@ -174,7 +189,7 @@ void surface_destroy(surface_td *surface)
 /* Soft surface update */
 void surface_update(surface_td *surface)
 {
-//    LOGGER_TRACE("Updating surface %lu", surface->id);
+//    LOGGER_TRACE("Updating surface %u", surface->id);
 
     /* Establish that this surface is already updated */
     surface->is_outdated = false;
@@ -186,7 +201,7 @@ void surface_update_full(surface_td *surface)
 {
     cdlist_item_td *desktop_node  = cdlist_head(surface->desktops);
 
-    LOGGER_TRACE("Fully updating surface %lu", surface->id);
+    LOGGER_TRACE("Fully updating surface %u", surface->id);
 
     /* Soft update */
     surface_update(surface);
@@ -202,17 +217,17 @@ void surface_update_full(surface_td *surface)
                 if (desktop_cur->is_outdated) {
                     desktop_update_full(desktop_cur);
                 }
-                desktop_node = cdlist_prev(desktop_node);
+                desktop_node = cdlist_next(desktop_node);
         } while (desktop_node != desktop_initial);
     }
 
-    LOGGER_TRACE("Updated surface %lu", surface->id);
+    LOGGER_TRACE("Updated surface %u", surface->id);
 }
 
 
 /* Resize the surface */
 void surface_resize(surface_td *surface,
-        unsigned int width, unsigned int height)
+        uint32_t width, uint32_t height)
 {
     if (surface->properties.dim.w != width) {
         surface->properties.dim.w = width;
@@ -222,7 +237,7 @@ void surface_resize(surface_td *surface,
         surface->properties.dim.h = height;
     }
 
-    /* TODO: More logic here to update display, desktops, &c. */
+    /* TODO: More logic here to update connection, desktops, &c. */
 }
 
 
@@ -248,7 +263,7 @@ int surface_desktop_add(surface_td *surface, desktop_td *desktop)
 
 
 /* Remove a desktop from the list by its ID */
-int surface_desktop_rem(surface_td *surface, XID desktop_id)
+int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
 {
     if (surface == NULL || surface->desktop_count == 0) {
         return -1;
@@ -280,7 +295,8 @@ int surface_desktop_rem(surface_td *surface, XID desktop_id)
 
 
 /* Get a desktop from the list by its ID */
-desktop_td *surface_desktop_get(surface_td *surface, XID desktop_id)
+desktop_td *surface_desktop_get(surface_td *surface,
+        uint32_t desktop_id)
 {
     if (surface == NULL) {
         return NULL;
@@ -302,7 +318,8 @@ desktop_td *surface_desktop_get(surface_td *surface, XID desktop_id)
 
 
 /* Get the previous desktop in the list, optionally cycling */
-desktop_td *surface_desktop_prev(surface_td *surface, XID desktop_id,
+desktop_td *surface_desktop_prev(surface_td *surface,
+        uint32_t desktop_id,
         bool cycle)
 {
     cdlist_item_td *current_item;
@@ -336,8 +353,8 @@ desktop_td *surface_desktop_prev(surface_td *surface, XID desktop_id,
 
 
 /* Get the next desktop in the list, optionally cycling */
-desktop_td *surface_desktop_next(surface_td *surface, XID desktop_id,
-        bool cycle)
+desktop_td *surface_desktop_next(surface_td *surface,
+        uint32_t desktop_id, bool cycle)
 {
     cdlist_item_td *current_item;
 
@@ -354,7 +371,8 @@ desktop_td *surface_desktop_next(surface_td *surface, XID desktop_id,
             if (next_item == cdlist_head(surface->desktops)) {
                 if (cycle) {
                     /* Circular behavior; wrap to the first desktop */
-                    return (desktop_td *) cdlist_data(cdlist_head(surface->desktops));
+                    return (desktop_td *)
+                        cdlist_data(cdlist_head(surface->desktops));
                 }
 
                 /* No valid next desktop */
@@ -415,7 +433,7 @@ int surface_desktop_select_next(surface_td *surface, bool cycle)
 
 
 /* Select a specific desktop by ID */
-int surface_desktop_select(surface_td *surface, XID desktop_id)
+int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
 {
     cdlist_item_td *current_item;
 

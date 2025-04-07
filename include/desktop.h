@@ -4,12 +4,12 @@
  * @brief Desktop structure declaration
  *
  * Defines the structure that holds information and properties about
- * a particular workspace (desktop) within a window manager environment.
+ * a particular workspace (desktop) within a client manager environment.
  * It includes a unique identifier, the window associated with the last
  * recorded event, the currently focused window, and additional metadata
  * such as the workspace name, workspace dimensions, and the available
- * area for windows.  It also contains references to hash tables and
- * lists that manage the stacking of windows within that workspace.
+ * area for clients.  It also contains references to hash tables and
+ * lists that manage the stacking of clients within that workspace.
  */
 
 #ifndef DESKTOP_H
@@ -18,27 +18,29 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <sys/types.h>  /* pid_t */
 
-/* X11 includes */
-#include <X11/Xlib.h>   /* Window */
+/* XCB includes */
+#include <xcb/xcb.h>
 
 /* ADT includes */
+#include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
 /* Default initial values */
 #include <defs/wm.h>
 
 /* Project includes */
+#include <client.h>
 #include <config.h>
-#include <window.h>
 
 
 /**
- * @brief Structure for a virtual desktop within an X11 screen
+ * @brief Structure for a virtual desktop within an XCB screen
  *
  * Each desktop can be customized with unique backgrounds and themes,
  * where the background can either be a solid color or a pixmap image.
- * The structure tracks its own active window, facilitating the
+ * The structure tracks its own active client, facilitating the
  * management of user interactions within that desktop space.
  *
  * The @p is_outdated flag serves to identify when the desktop's
@@ -47,21 +49,22 @@
  * information about their environment.
  */
 typedef struct desktop_s {
-    XID screen_id;                 /**< Screen index */
-    XID id;                        /**< Desktop index */
+    uint32_t screen_id;                     /**< Screen index */
+    uint32_t id;                            /**< Desktop index */
 
     char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
 
     struct background_s {
         bool is_image;                      /**< BG color or image? */
         union {
-            unsigned long color;            /**< Background color */
+            uint32_t color;                 /**< Background color */
             char *image_path;               /**< Background image */
         } bg;                               /**< Background information */
     } background;
 
-    ohtbl_td *windows;                      /**< Windows hash table */
-    Window window_active;                   /**< Pointer to active window */
+    ohtbl_td *clients;                      /**< Clients hash table */
+    cdlist_td *stacking;                    /**< Stacking list */
+    xcb_window_t client_active_id;          /**< Active window */
 
     struct config_base_s *config_base;      /**< Base configuration */
     struct config_theme_s *config_theme;    /**< Theme configuration */
@@ -75,7 +78,7 @@ typedef struct desktop_s {
 /**
  * @brief Initialize a new desktop
  *
- * @param surface_id   Screen identifier where this desktop belongs
+ * @param screen_id    Screen identifier where this desktop belongs
  * @param desktop_id   Desktop identifier
  * @param config_base  Pointer to base configuration
  * @param config_theme Pointer to theme configuration
@@ -84,7 +87,7 @@ typedef struct desktop_s {
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *desktop_init(XID surface_id, XID desktop_id,
+desktop_td *desktop_init(uint32_t screen_id, uint32_t desktop_id,
         struct config_base_s *config_base,
         struct config_theme_s *config_theme);
 
@@ -94,7 +97,7 @@ desktop_td *desktop_init(XID surface_id, XID desktop_id,
  * @param desktop Desktop to deallocate
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       windows, as it iterates through the array of windows to free
+ *       clients, as it iterates through the array of clients to free
  *       each one of them
  */
 void desktop_destroy(desktop_td *desktop);
@@ -111,34 +114,34 @@ void desktop_update(desktop_td *desktop);
 /**
  * @brief Full desktop update
  *
- * Updates the desktop by updating all its windows.
+ * Updates the desktop by updating all its clients.
  *
  * @param desktop Pointer to the desktop to update fully
  *
  * @note Complexity: @e O(1) because that's the order of the access to
- *       a hash table of windows
+ *       a hash table of clients
  */
 void desktop_update_full(desktop_td *desktop);
 
 /**
- * @brief Clear a desktop by removing all its windows
+ * @brief Clear a desktop by removing all its clients
  *
- * Deallocates each and every window of the desktop and resets the
- * window counter to zero.
+ * Deallocates each and every client of the desktop and resets the
+ * client counter to zero.
  *
- * @param desktop Pointer to the desktop to be cleared from windows
+ * @param desktop Pointer to the desktop to be cleared from clients
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       windows, as it iterates through the array of windows to free
+ *       clients, as it iterates through the array of clients to free
  *       each one of them
  */
 void desktop_clear(desktop_td *desktop);
 
 /**
- * @brief Add a previously allocated window to the desktop
+ * @brief Add a previously allocated client to the desktop
  *
- * @param desktop Pointer to the desktop where to add the new window
- * @param window  Pointer to the window to be added to the desktop
+ * @param desktop Pointer to the desktop where to add the new client
+ * @param client  Pointer to the client to be added to the desktop
  *
  * @return Status of the operation
  * @retval  0 Success on removal
@@ -146,13 +149,13 @@ void desktop_clear(desktop_td *desktop);
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_window_add(desktop_td *desktop, window_td *window);
+int desktop_action_client_add(desktop_td *desktop, client_td *client);
 
 /**
- * @brief Remove a window from the desktop
+ * @brief Remove a client from the desktop
  *
- * @param desktop Pointer to the desktop where to remove the window
- * @param window  Pointer to the window to be removed from the desktop
+ * @param desktop Pointer to the desktop where to remove the client
+ * @param client  Pointer to the client to be removed from the desktop
  *
  * @return Status of the operation
  * @retval  0 Success on removal
@@ -160,7 +163,7 @@ int desktop_action_window_add(desktop_td *desktop, window_td *window);
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_window_rem(desktop_td *desktop, window_td *window);
+int desktop_action_client_rem(desktop_td *desktop, client_td *client);
 
 /**
  * @brief Rename the desktop
@@ -177,10 +180,10 @@ int desktop_action_window_rem(desktop_td *desktop, window_td *window);
 int desktop_action_rename(desktop_td *desktop, const char *name);
 
 /**
- * @brief Send a window to another desktop
+ * @brief Send a client to another desktop
  *
  * @param desktop    Pointer to the desktop to receive the action
- * @param window     Pointer to the window to be sent
+ * @param client     Pointer to the client to be sent
  * @param desktop_id Destination desktop identifier
  *
  * @return Status of the operation
@@ -189,8 +192,8 @@ int desktop_action_rename(desktop_td *desktop, const char *name);
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_send_window(desktop_td *desktop, window_td *window,
-        XID desktop_id);
+int desktop_action_send_client(desktop_td *desktop, client_td *client,
+        uint32_t desktop_id);
 
 /**
  * @brief Update the desktop background color
@@ -205,15 +208,15 @@ int desktop_action_send_window(desktop_td *desktop, window_td *window,
  * @note Complexity: @e O(1)
  */
 int desktop_action_background_update(desktop_td *desktop,
-        unsigned int color);
+        uint32_t color);
 
 /**
- * @brief Set a window to the front
+ * @brief Set a client to the front
  *
- * Brings the specified window to the top of the stacking order.
+ * Brings the specified client to the top of the stacking order.
  *
  * @param desktop Pointer to the desktop to receive the action
- * @param window  Pointer to the window to be sent to the front
+ * @param client  Pointer to the client to be sent to the front
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -221,16 +224,16 @@ int desktop_action_background_update(desktop_td *desktop,
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_window_send_front(desktop_td *desktop,
-        window_td *window);
+int desktop_action_client_send_front(desktop_td *desktop,
+        client_td *client);
 
 /**
- * @brief Set a window to the back
+ * @brief Set a client to the back
  *
- * Sends the specified window to the bottom of the stacking order.
+ * Sends the specified client to the bottom of the stacking order.
  *
  * @param desktop Pointer to the desktop to receive the action
- * @param window  Pointer to the window to be sent to the back
+ * @param client  Pointer to the client to be sent to the back
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -238,13 +241,13 @@ int desktop_action_window_send_front(desktop_td *desktop,
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_window_send_back(desktop_td *desktop,
-        window_td *window);
+int desktop_action_client_send_back(desktop_td *desktop,
+        client_td *client);
 
 /**
- * @brief Rearrange windows on the current desktop
+ * @brief Rearrange clients on the current desktop
  *
- * Alters the positions of windows on the current desktop.
+ * Alters the positions of clients on the current desktop.
  *
  * @param desktop Pointer to the desktop to receive the action
  *
@@ -252,15 +255,15 @@ int desktop_action_window_send_back(desktop_td *desktop,
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(n), where @e n is the number of windows to
+ * @note Complexity: @e O(n), where @e n is the number of clients to
  *       rearrange
  */
-int desktop_action_windows_rearrange(desktop_td *desktop);
+int desktop_action_clients_rearrange(desktop_td *desktop);
 
 /**
- * @brief Iconify (minimize) all windows on the current desktop
+ * @brief Iconify (minimize) all clients on the current desktop
  *
- * Set all visible windows on the current desktop to an iconified state
+ * Set all visible clients on the current desktop to an iconified state
  * (also, technically, minimized).
  *
  * @param desktop Pointer to the desktop to receive the action
@@ -269,13 +272,13 @@ int desktop_action_windows_rearrange(desktop_td *desktop);
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(n), where @e n is the number of windows on the
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop
  */
-int desktop_action_windows_iconify_all(desktop_td *desktop);
+int desktop_action_clients_iconify_all(desktop_td *desktop);
 
 /**
- * @brief Cycle through active windows on the current desktop
+ * @brief Cycle through active clients on the current desktop
  *
  * @param desktop Pointer to the desktop to receive the action
  *
@@ -283,12 +286,12 @@ int desktop_action_windows_iconify_all(desktop_td *desktop);
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(n), where @e n is the number of active windows
+ * @note Complexity: @e O(n), where @e n is the number of active clients
  */
-int desktop_action_cycle_windows_active(desktop_td *desktop);
+int desktop_action_cycle_clients_active(desktop_td *desktop);
 
 /**
- * @brief Cycle through iconified windows on the current desktop
+ * @brief Cycle through iconified clients on the current desktop
  *
  * @param desktop Pointer to the desktop to receive the action
  *
@@ -297,9 +300,9 @@ int desktop_action_cycle_windows_active(desktop_td *desktop);
  * @retval  1 Failed to perform the action
  *
  * @note Complexity: @e O(n), where @e n is the number of iconified
- *       windows
+ *       clients
  */
-int desktop_action_cycle_windows_icons(desktop_td *desktop);
+int desktop_action_cycle_clients_icons(desktop_td *desktop);
 
 /**
  * @brief Lock the current desktop session,  preventing unauthorized
@@ -360,11 +363,11 @@ int desktop_action_application_launch(desktop_td *desktop,
 /**
  * @brief Terminate an application
  *
- * Stops the specified application that is running in the desktop
- * session by killing it.
+ * Stops the specified process that is running in the desktop session by
+ * killing it.
  *
- * @param desktop        Pointer to the desktop to receive the action
- * @param application_id Identifier of the application to be terminated
+ * @param desktop    Pointer to the desktop to receive the action
+ * @param process_id Identifier of the application to be terminated
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -373,29 +376,29 @@ int desktop_action_application_launch(desktop_td *desktop,
  * @note Complexity: @e O(1)
  */
 int desktop_action_application_kill(desktop_td *desktop,
-        XID application_id);
+        pid_t process_id);
 
 /**
- * @brief Macro that evaluates to the active window of the desktop
+ * @brief Macro that evaluates to the active client of the desktop
  *
  * @note Complexity: @e O(1)
  */
-#define desktop_window_active(d) ((d)->window_active)
+#define desktop_client_active(d) ((d)->client_active)
 
 /**
- * @brief Macro that sets the active window of the desktop
+ * @brief Macro that sets the active client of the desktop
  *
- * @note If no window show be focused/active, @c NULL is the right value
+ * @note If no client show be focused/active, @c NULL is the right value
  * @note Complexity: @e O(1)
  */
-#define desktop_set_window_active(d, w) (((d)->window_active) = (w))
+#define desktop_set_client_active(d, w) (((d)->client_active) = (w))
 
 /**
- * @brief Macro that evaluates to the window count of the desktop
+ * @brief Macro that evaluates to the client count of the desktop
  *
  * @note Complexity: @e O(1)
  */
-#define desktop_window_count(d) ((d) ? d->windows->size : 0)
+#define desktop_client_count(d) ((d) ? d->clients->size : 0)
 
 
 #endif  /* ! DESKTOP_H */

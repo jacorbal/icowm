@@ -10,6 +10,10 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
+
+/* XCB includes */
+#include <xcb/xcb.h>
 
 /* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
@@ -37,10 +41,12 @@
  * events, keeping the window manager responsive and interactive.
  */
 typedef struct {
-    Display *display;   /**< Pointer to X11 display */
-    list_td *surfaces;   /**< List of surfaces */
-    config_td *config;  /**< Window manager configuration details */
-    bool is_running;    /**< Running state flag */
+    xcb_connection_t *connection;   /**< Pointer to XCB connection */
+    list_td *surfaces;              /**< List of surfaces */
+    uint32_t surface_count;
+    uint32_t screenp;               /**< Preferred screen */
+    config_td *config;              /**< Window manager configuration */
+    bool is_running;                /**< Running state flag */
 } wm_td;
 
 
@@ -60,7 +66,7 @@ typedef struct {
  * @return Status of the initialization
  * @retval  0 Success
  * @retval  1 Failed to allocate memory
- * @retval  2 Cannot open X display
+ * @retval  2 Cannot open X connection
  * @retval  3 Cannot open load configuration
  * @retval  4-7 Failed to initialize data structures
  * @retval -1 Singleton was already initialized; no action taken

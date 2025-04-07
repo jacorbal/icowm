@@ -9,9 +9,9 @@
 
 /* Project includes */
 #include <action.h>
+#include <client.h>
 #include <desktop.h>
 #include <surface.h>
-#include <window.h>
 
 /* Utils includes */
 #include <utils/safemem.h>
@@ -20,36 +20,36 @@
 #include <actdata.h>
 
 
-/* Allocate window data structure */
-action_data_window_td *action_data_window_init(window_td *window,
-        enum action_window_e action_window)
+/* Allocate client data structure */
+action_data_client_td *action_data_client_init(client_td *client,
+        enum action_client_e action_client)
 
 {
-    action_data_window_td *action_data_window;
+    action_data_client_td *action_data_client;
 
-    action_data_window = malloc(sizeof(action_data_window_td));
-    if (action_data_window == NULL) {
+    action_data_client = malloc(sizeof(action_data_client_td));
+    if (action_data_client == NULL) {
         return NULL;
     }
 
-    *action_data_window =
-        (action_data_window_td) {.window = window,
-                                 .action_window = action_window,
+    *action_data_client =
+        (action_data_client_td) {.client = client,
+                                 .action_client = action_client,
                                  .new_data = {0}};
 
-    return action_data_window;
+    return action_data_client;
 }
 
 
-/* Deallocate window data structure */
-void action_data_window_destroy(action_data_window_td *action_data_window)
+/* Deallocate client data structure */
+void action_data_client_destroy(action_data_client_td *action_data_client)
 {
-    if (action_data_window) {
-        safe_free((void **) &action_data_window->new_data.name);
-        safe_free((void **) &action_data_window->new_data.class_name);
-        safe_free((void **) &action_data_window->new_data.icon_name);
+    if (action_data_client) {
+        safe_free((void **) &action_data_client->new_data.name);
+        safe_free((void **) &action_data_client->new_data.class_name);
+        safe_free((void **) &action_data_client->new_data.icon_name);
 
-        free(action_data_window);
+        free(action_data_client);
     }
 }
 

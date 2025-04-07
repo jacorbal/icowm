@@ -153,7 +153,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
             if (htbl->size >= (size_t)
                     ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
                 if (ohtbl_resize_double(htbl) != 0) {
-                    return -2; 
+                    return -2;
                 }
             }
 

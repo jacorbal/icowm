@@ -6,11 +6,13 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <pthread.h>    /* pthread_t, pthread_* */
+#include <time.h>       /* nanosleep */
 
-/* X11 includes */
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>  // TODO: Check if this is needed when finish
+/* XCB includes */
+#include <xcb/xcb.h>
 
 /* ADT includes */
 #include <adt/pqueue.h> /* Priority queue (as a heap) */
@@ -20,29 +22,90 @@
 #include <utils/safestr.h>
 
 /* Project includes */
-#include <action.h>
 #include <actdata.h>
+#include <action.h>
+#include <client.h>
 #include <cmds/wcmd.h>
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
-#include <window.h>
 #include <wm.h>
 
 /* Local includes */
 #include <eventq.h>
 
 
-/* This is the event priority queue defined over a heap data structure
+/**
+ * @brief Pointer to the singleton instance of the event priority queue
+ *
+ * This is the event priority queue defined over a heap data structure
  * and organized as a min-heap, using it as a tree where the value of
  * the root node must be the smallest among all its descendant nodes and
- * the same thing must be done for its left and right sub-tree also.  In
- * other words, it's a bottom-heavy heap, where in this case, it's
+ * the same thing must be done for its left and right sub-tree also.
+ * In other words, it's a bottom-heavy heap, where in this case, it's
  * distributed by priority, where the highest priority corresponds to
  * the smallest value. */
-static pqueue_td *eventq = NULL;   /**< Pointer to the singleton
-                                        instance of the event priority
-                                        queue (min-heap; heavy-bottom) */
+static pqueue_td *eventq = NULL;        /* Event priority queue
+                                           (min-heap; heavy-bottom) */
+
+/**
+ * @brief Holds the identifier of the thread that is responsible for
+ *        processing events from the event queue
+ *
+ * @note Its value is assigned when the thread is created
+ */
+static pthread_t event_thread;          /* Thread identifier for the
+                                           event processing thread */
+
+/**
+ * @brief Used to control the running state of the event processing
+ *        thread
+ *
+ * @note It should be set to @c true to start processing events
+ * (@a eventq_start) and @c false to stop it (@a eventq_stop)
+ */
+static bool eventq_is_running = false;  /* Running state of the event
+                                           processing thread */
+
+
+/**
+ * @brief Thread function to process events from the event queue
+ *
+ * Checks continuously if the event queue is running.  If there are
+ * events in the queue, it processes them using the @a eventq_process
+ * function.  If the queue is empty, it will suspend the thread for
+ * a specified amount of time to avoid wasting CPU cycles.
+ *
+ * @param arg Unused argument, can be used to pass data to the thread
+ *
+ * @return @c NULL, since this is intended to be run as a thread
+ *
+ * @note The function assumes that @p eventq_is_running is managed
+ *       externally to safely start and stop the processing loop.
+ *
+ * @note Complexity: @e (O(n), where @e n is number of events being
+ *       processed in @a eventq_process, however, it depends on the size
+ *       of the event queue when events are presented for processings
+ *
+ * @see @a evetnq_process
+ */
+static void *eventq_process_thread(void *arg)
+{
+    while (eventq_is_running) {
+        if (pqueue_size(eventq) > 0) {
+            eventq_process();   /* Process events from the queue */
+        } else {
+            /* Sleep to prevent busy-waiting and reduce CPU usage when
+             * there are no events to process */
+            struct timespec req;
+            req.tv_sec = 0;
+            req.tv_nsec = EVENTQ_PROCESSING_SLEEP_NANOSECONDS;
+            nanosleep(&req, NULL);
+        }
+    }
+
+    return NULL;
+}
 
 
 /**
@@ -78,178 +141,175 @@ static int s_event_compare(const void *e1, const void *e2)
 }
 
 
-/* Handle window events */
-static void s_event_handle_window(event_td *event)
+/* Handle client events */
+static void s_event_handle_client(event_td *event)
 {
-    window_td *window;
-    action_data_window_td *window_data;
+    client_td *client;
+    action_data_client_td *client_data;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' window event to process in " \
+        LOGGER_ERROR("Received 'NULL' client event to process in " \
                 " event queue", L_NARG);
         return;
     }
 
-    if (event->action.type != ACTION_TYPE_WINDOW) {
+    if (event->action.type != ACTION_TYPE_CLIENT) {
         return; /* Invalid type */
     }
 
-    if (event->action.object.window < ACTION_WINDOW_MIN ||
-            event->action.object.window > ACTION_WINDOW_MAX) {
+    if (event->action.object.client < ACTION_CLIENT_MIN ||
+            event->action.object.client > ACTION_CLIENT_MAX) {
         return; /* Invalid action */
     }
 
-    /* Point to the actual window and its data if needed */
-    window = (window_td *) event->object;
-    window_data = (action_data_window_td *) event->data;
+    /* Point to the actual client and its data if needed */
+    client = (client_td *) event->object;
+    client_data = (action_data_client_td *) event->data;
 
-    switch (event->action.object.window) {
-        case ACTION_WINDOW_CREATE:
-            /* This creates the window in window->xwindow, but does not
-             * allocates the memory of the window object.  This action
+    switch (event->action.object.client) {
+        case ACTION_CLIENT_CREATE:
+            /* This creates the client in client->xclient, but does not
+             * allocates the memory of the client object.  This action
              * is intended to be called by the desktop, therefore, it's
              * responsibility of the desktop to execute this action
-             * after invoking 'window_create' */
+             * after invoking 'client_create' */
             // XCreateWindow...
-            XMapWindow(window->display, window->xwindow);
+            //XMapWindow(client->connection, client->xclient);
 
-            //window_set_hidden(window);
-            //window.properties.state = WINDOW_STATE_NORMAL;
+            //client_set_hidden(client);
+            //client.properties.state = CLIENT_STATE_NORMAL;
             break;
 
-        case ACTION_WINDOW_CLOSE:
-            wcmd_window_close(window);
+        case ACTION_CLIENT_CLOSE:
+            wcmd_client_close(client);
             break;
 
-        case ACTION_WINDOW_RESTORE:
-            wcmd_window_restore(window);
+        case ACTION_CLIENT_RESTORE:
+            wcmd_client_restore(client);
             break;
 
-        case ACTION_WINDOW_FOCUS:
-            wcmd_window_focus(window);
+        case ACTION_CLIENT_FOCUS:
+            wcmd_client_focus(client);
             break;
 
-        case ACTION_WINDOW_UNFOCUS:
-            wcmd_window_unfocus(window);
+        case ACTION_CLIENT_UNFOCUS:
+            wcmd_client_unfocus(client);
             break;
 
-        case ACTION_WINDOW_MOVE:
-            wcmd_window_move(window, window_data);
+        case ACTION_CLIENT_MOVE:
+            wcmd_client_move(client, client_data);
             break;
 
-        case ACTION_WINDOW_RESIZE:
-            wcmd_window_resize(window, window_data);
+        case ACTION_CLIENT_RESIZE:
+            wcmd_client_resize(client, client_data);
             break;
 
-        case ACTION_WINDOW_RENAME:
-            wcmd_window_rename(window, window_data);
+        case ACTION_CLIENT_RENAME:
+            wcmd_client_rename(client, client_data);
             break;
 
-        case ACTION_WINDOW_RECLASS:
-            wcmd_window_reclass(window, window_data);
+        case ACTION_CLIENT_RECLASS:
+            wcmd_client_reclass(client, client_data);
             break;
 
-        case ACTION_WINDOW_REROLE:
-            //TODO
-            safe_free((void **) &(window->class_name));
-            window->class_name =
-                safe_strdup(window_data->new_data.class_name);
+        case ACTION_CLIENT_REROLE:
+            wcmd_client_rerole(client, client_data);
             break;
 
-        case ACTION_WINDOW_MAXIMIZE:
-            wcmd_window_maximize(window);
+        case ACTION_CLIENT_MAXIMIZE:
+            wcmd_client_maximize(client);
             break;
 
-        case ACTION_WINDOW_MAXIMIZE_HORZ:
-            wcmd_window_maximize_horz(window);
+        case ACTION_CLIENT_MAXIMIZE_HORZ:
+            wcmd_client_maximize_horz(client);
             break;
 
-        case ACTION_WINDOW_MAXIMIZE_VERT:
-            wcmd_window_maximize_vert(window);
+        case ACTION_CLIENT_MAXIMIZE_VERT:
+            wcmd_client_maximize_vert(client);
             break;
 
-        case ACTION_WINDOW_ICONIFY:
-            wcmd_window_iconify(window);
+        case ACTION_CLIENT_ICONIFY:
+            wcmd_client_iconify(client);
             break;
 
-        case ACTION_WINDOW_HIDE:
-            wcmd_window_hide(window);
+        case ACTION_CLIENT_HIDE:
+            wcmd_client_hide(client);
             break;
 
-        case ACTION_WINDOW_UNHIDE:
-            wcmd_window_unhide(window);
+        case ACTION_CLIENT_UNHIDE:
+            wcmd_client_unhide(client);
             break;
 
-        case ACTION_WINDOW_SHADE:
-            wcmd_window_shade(window);
+        case ACTION_CLIENT_SHADE:
+            wcmd_client_shade(client);
             break;
 
-        case ACTION_WINDOW_UNSHADE:
-            wcmd_window_unshade(window);
+        case ACTION_CLIENT_UNSHADE:
+            wcmd_client_unshade(client);
             break;
 
-        case ACTION_WINDOW_TOGGLE_SHADE:
-            wcmd_window_toggle_shade(window);
+        case ACTION_CLIENT_TOGGLE_SHADE:
+            wcmd_client_toggle_shade(client);
             break;
 
-        case ACTION_WINDOW_STICKY:
-            wcmd_window_sticky(window);
+        case ACTION_CLIENT_STICKY:
+            wcmd_client_sticky(client);
             break;
 
-        case ACTION_WINDOW_UNSTICKY:
-            wcmd_window_unsticky(window);
+        case ACTION_CLIENT_UNSTICKY:
+            wcmd_client_unsticky(client);
             break;
 
-        case ACTION_WINDOW_TOGGLE_STICKY:
-            wcmd_window_toggle_sticky(window);
+        case ACTION_CLIENT_TOGGLE_STICKY:
+            wcmd_client_toggle_sticky(client);
             break;
 
-        case ACTION_WINDOW_FULLSCREEN:
-            wcmd_window_fullscreen(window);
+        case ACTION_CLIENT_FULLSCREEN:
+            wcmd_client_fullscreen(client);
             break;
 
-        case ACTION_WINDOW_UNFULLSCREEN:
-            wcmd_window_unfullscreen(window);
+        case ACTION_CLIENT_UNFULLSCREEN:
+            wcmd_client_unfullscreen(client);
             break;
 
-        case ACTION_WINDOW_TOGGLE_FULLSCREEN:
-            wcmd_window_toggle_fullscreen(window);
+        case ACTION_CLIENT_TOGGLE_FULLSCREEN:
+            wcmd_client_toggle_fullscreen(client);
             break;
 
-        case ACTION_WINDOW_RAISE:
-            wcmd_window_raise(window);
+        case ACTION_CLIENT_RAISE:
+            wcmd_client_raise(client);
             break;
 
-        case ACTION_WINDOW_LOWER:
-            wcmd_window_lower(window);
+        case ACTION_CLIENT_LOWER:
+            wcmd_client_lower(client);
             break;
 
-        case ACTION_WINDOW_LAYER_ABOVE:
-            wcmd_window_layer_above(window);
+        case ACTION_CLIENT_LAYER_ABOVE:
+            wcmd_client_layer_above(client);
             break;
 
-        case ACTION_WINDOW_LAYER_NORMAL:
-            wcmd_window_layer_normal(window);
+        case ACTION_CLIENT_LAYER_NORMAL:
+            wcmd_client_layer_normal(client);
             break;
 
-        case ACTION_WINDOW_LAYER_BELOW:
-            wcmd_window_layer_below(window);
+        case ACTION_CLIENT_LAYER_BELOW:
+            wcmd_client_layer_below(client);
             break;
 
-        case ACTION_WINDOW_SET_URGENT:
-            wcmd_window_set_urgent(window);
+        case ACTION_CLIENT_SET_URGENT:
+            wcmd_client_set_urgent(client);
             break;
 
-        case ACTION_WINDOW_CLEAR_URGENT:
-            wcmd_window_clear_urgent(window);
+        case ACTION_CLIENT_CLEAR_URGENT:
+            wcmd_client_clear_urgent(client);
             break;
 
-        case ACTION_WINDOW_SET_ICON:
-            wcmd_window_set_icon(window, window_data);
+        case ACTION_CLIENT_SET_ICON:
+            wcmd_client_set_icon(client, client_data);
             break;
     }
 
-    XFlush(window->display);
+    xcb_flush(client->connection);
     event_destroy(event);
 }
 
@@ -282,34 +342,34 @@ static void s_event_handle_desktop(event_td *event)
         case ACTION_DESKTOP_CLEAR:
             break;
 
-        case ACTION_DESKTOP_WINDOW_ADD:
+        case ACTION_DESKTOP_CLIENT_ADD:
             break;
 
-        case ACTION_DESKTOP_WINDOW_REMOVE:
+        case ACTION_DESKTOP_CLIENT_REMOVE:
             break;
 
-        case ACTION_DESKTOP_WINDOW_SEND:
+        case ACTION_DESKTOP_CLIENT_SEND:
             break;
 
-        case ACTION_DESKTOP_WINDOW_CLONE:
+        case ACTION_DESKTOP_CLIENT_CLONE:
             break;
 
-        case ACTION_DESKTOP_WINDOW_SEND_FRONT:
+        case ACTION_DESKTOP_CLIENT_SEND_FRONT:
             break;
 
-        case ACTION_DESKTOP_WINDOW_SEND_BACK:
+        case ACTION_DESKTOP_CLIENT_SEND_BACK:
             break;
 
-        case ACTION_DESKTOP_WINDOWS_REARRANGE:
+        case ACTION_DESKTOP_CLIENTS_REARRANGE:
             break;
 
-        case ACTION_DESKTOP_WINDOWS_ICONIFY_ALL:
+        case ACTION_DESKTOP_CLIENTS_ICONIFY_ALL:
             break;
 
-        case ACTION_DESKTOP_CYCLE_WINDOWS_ACTIVE:
+        case ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE:
             break;
 
-        case ACTION_DESKTOP_CYCLE_WINDOWS_ICONS:
+        case ACTION_DESKTOP_CYCLE_CLIENTS_ICONS:
             break;
 
         case ACTION_DESKTOP_LOCK:
@@ -345,43 +405,43 @@ static void s_event_handle_screen(event_td *event)
         return; /* Invalid type */
     }
 
-    if (event->action.object.surface < ACTION_SCREEN_MIN ||
-        event->action.object.surface > ACTION_SCREEN_MAX) {
+    if (event->action.object.surface < ACTION_SURFACE_MIN ||
+        event->action.object.surface > ACTION_SURFACE_MAX) {
         return; /* Invalid action */
     }
 
     switch (event->action.object.surface) {
-        case ACTION_SCREEN_DESKTOP_ADD:
+        case ACTION_SURFACE_DESKTOP_ADD:
             break;
 
-        case ACTION_SCREEN_DESKTOP_REMOVE:
+        case ACTION_SURFACE_DESKTOP_REMOVE:
             break;
 
-        case ACTION_SCREEN_DESKTOP_SWITCH:
+        case ACTION_SURFACE_DESKTOP_SWITCH:
             break;
 
-        case ACTION_SCREEN_DESKTOP_SWITCH_NEXT:
+        case ACTION_SURFACE_DESKTOP_SWITCH_NEXT:
             break;
 
-        case ACTION_SCREEN_DESKTOP_SWITCH_PREV:
+        case ACTION_SURFACE_DESKTOP_SWITCH_PREV:
             break;
 
-        case ACTION_SCREEN_TOGGLE_FULLSCREEN:
+        case ACTION_SURFACE_TOGGLE_FULLSCREEN:
             break;
 
-        case ACTION_SCREEN_SET_RESOLUTION:
+        case ACTION_SURFACE_SET_RESOLUTION:
             break;
 
-        case ACTION_SCREEN_SET_ORIENTATION:
+        case ACTION_SURFACE_SET_ORIENTATION:
             break;
 
-        case ACTION_SCREEN_SET_BRIGHTNESS:
+        case ACTION_SURFACE_SET_BRIGHTNESS:
             break;
 
-        case ACTION_SCREEN_SET_CONTRAST:
+        case ACTION_SURFACE_SET_CONTRAST:
             break;
 
-        case ACTION_SCREEN_CONFIGURE_SETTINGS:
+        case ACTION_SURFACE_CONFIGURE_SETTINGS:
             break;
     }
 
@@ -389,7 +449,7 @@ static void s_event_handle_screen(event_td *event)
 }
 
 
-/* Handle window manager events */
+/* Handle client manager events */
 static void s_event_handle_wm(event_td *event)
 {
     if (event == NULL) {
@@ -414,10 +474,10 @@ static void s_event_handle_wm(event_td *event)
         case ACTION_WM_CONFIGURATION_SAVE:
             break;
 
-        case ACTION_SCREEN_ADD:
+        case ACTION_SURFACE_ADD:
             break;
 
-        case ACTION_SCREEN_REMOVE:
+        case ACTION_SURFACE_REMOVE:
             break;
 
         case ACTION_WM_EXIT:
@@ -441,6 +501,14 @@ int eventq_start(void)
                     L_NARG);
             return 1;
         }
+
+        LOGGER_TRACE("Starting event thread", L_NARG);
+        eventq_is_running = true;
+        if (pthread_create(&event_thread, NULL,
+                    eventq_process_thread, NULL) != 0) {
+            LOGGER_FATAL("Failed to create event thread", L_NARG);
+            return 1;
+        }
         return 0;
     }
 
@@ -455,6 +523,10 @@ int eventq_stop(void)
     if (eventq == NULL) {
         return 1;
     }
+
+    eventq_is_running = false;
+    LOGGER_TRACE("Waiting for the event thread to finish", L_NARG);
+    pthread_join(event_thread, NULL);
 
     pqueue_destroy(eventq);
     eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
@@ -499,7 +571,6 @@ int eventq_process(void)
     /* Process 'eventq' events */
     event_td *processed_event;
     while (pqueue_size(eventq) > 0) {
-        /* pqueue_extract(eventq, (void **) &processed_event); */
         processed_event = eventq_extract();
         if (processed_event != 0) {
             LOGGER_WARNING("Failed to process event", L_NARG);
@@ -508,8 +579,8 @@ int eventq_process(void)
 
         /* Handle each type of event */
         switch (processed_event->action.type) {
-            case ACTION_TYPE_WINDOW:
-                s_event_handle_window(processed_event);
+            case ACTION_TYPE_CLIENT:
+                s_event_handle_client(processed_event);
                 break;
             case ACTION_TYPE_DESKTOP:
                 s_event_handle_desktop(processed_event);
@@ -521,9 +592,6 @@ int eventq_process(void)
                 s_event_handle_wm(processed_event);
                 break;
         }
-
-        /* Deallocate processed event */
-        event_destroy(processed_event);
     }
 
     return 0;

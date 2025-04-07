@@ -14,10 +14,11 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stddef.h>     /* size_t */
 
-/* X11 includes */
-#include <X11/Xlib.h>   /* Window, Colormap */
+/* XCB includes */
+#include <xcb/xcb.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -30,18 +31,11 @@
 #include <desktop.h>
 
 
-/* '<desktop.h>': Forward declaration of the type 'desktop_td', allowing
- *                it to be referenced without a complete definition,
- *                which helps to prevent circular dependencies and
- *                reduces compilation dependencies */
-//typedef struct desktop_s desktop_td;
-
-
 /**
  * @brief Structure to hold properties of the visual
  */
 struct visual_properties_s {
-    Colormap colormaps;         /**< Color maps for the visual */
+    xcb_colormap_t colormap;    /**< Color maps for the visual */
     int depth;                  /**< Color depth (bits per pixel) */
 };
 
@@ -55,14 +49,14 @@ struct surface_properties_s {
     struct dpi_s dpi;           /**< Dots per pixel */
 
     struct {
-        Visual *visual;                         /**< Associated visual */
+        xcb_visualid_t visual_id;               /**< Associated visual */
         struct visual_properties_s properties;  /**< Visual properties */
     } visual_info;
 };
 
 
 /**
- * @brief Structure for a surface in an X11 environment
+ * @brief Structure for a surface in an XCB environment
  *
  * Maintains a circular list of desktops to support multiple virtual
  * desktops on the surface, allowing for more organized and flexible
@@ -72,26 +66,25 @@ struct surface_properties_s {
  *
  * The @p is_outdated flag indicates whether the surface data needs to
  * be refreshed, ensuring the surface information remains synchronized
- * with underlying changes in the X11 environment or user preferences.
+ * with underlying changes in the XCB environment or user preferences.
  */
 typedef struct surface_s {
-    XID id;            /**< Screen unique identifier or index */
+    uint32_t id;                    /**< Screen unique identifier or index */
 
-    Display *display;           /**< Pointer to X11 display */
-    Screen *xsurface;            /**< Pointer to X11 surface */
-    Window root;                /**< Root window for this surface */
+    xcb_connection_t *connection;   /**< Pointer to XCB connection */
+    xcb_screen_t *screen;           /**< Pointer to XCB screen */
 
     /* Properties */
     struct surface_properties_s properties;
 
-    size_t desktop_count;       /**< No. of desktops for this surface */
-    XID desktop_cur;   /**< Index of current desktop */
-    cdlist_td *desktops;        /**< Circular list of desktops */
+    uint32_t desktop_count;         /**< Number of desktops for this surface */
+    uint32_t desktop_cur;           /**< Index of current desktop */
+    cdlist_td *desktops;            /**< Circular list of desktops */
 
-    config_td *config;          /**< Configuration */
+    config_td *config;              /**< Configuration */
 
-    bool fullsurface;            /**< Full surface or not */
-    bool is_outdated;           /**< Flag if data needs to be updated */
+    bool fullsurface;               /**< Full surface or not */
+    bool is_outdated;               /**< Flag if data needs to be updated */
 } surface_td;
 
 
@@ -99,16 +92,17 @@ typedef struct surface_s {
 /**
  * @brief Initialize a new surface
  *
- * @param display       Pointer to X11 display
- * @param surface_id     Screen identifier
+ * @param connection    Pointer to XCB connection
+ * @param screen_id     Screen identifier
  * @param desktop_count Number of desktops on this surface
  *
  * @return Pointer to new surface, or @c NULL otherwise
  *
  * @note Complexity: @e O(1)
  */
-surface_td *surface_init(Display *display, const XID surface_id,
-        unsigned int desktop_count, config_td *config);
+surface_td *surface_init(xcb_connection_t *connection,
+        const uint32_t screen_id, uint32_t desktop_count,
+        config_td *config);
 
 /**
  * @brief Free allocated memory for a surface
@@ -144,18 +138,18 @@ void surface_update_full(surface_td *surface);
  * @brief Resize the specified surface to the new dimensions
  *
  * @param surface Pointer to the surface to be resized
- * @param width  New width for the surface in pixels
- * @param height New height for the surface in pixels
+ * @param width   New width for the surface in pixels
+ * @param height  New height for the surface in pixels
  *
  * @note Complexity: @e O(1)
  */
 void surface_resize(surface_td *surface,
-        unsigned int width, unsigned int height);
+        uint32_t width, uint32_t height);
 
 /**
  * @brief Add a new desktop to the list
  *
- * @param surface  Pointer to the surface structure
+ * @param surface Pointer to the surface structure
  * @param desktop Pointer to the desktop to be added
  *
  * @return Status of the adding operation
@@ -168,16 +162,16 @@ int surface_desktop_add(surface_td *surface, desktop_td *desktop);
 /**
  * @brief Remove a desktop from the list by its ID
  *
- * @param surface Pointer to the surface structure.
+ * @param surface    Pointer to the surface structure.
  * @param desktop_id ID of the desktop to be removed
  *
- * @return Status of the remova operation
+ * @return Status of the removal operation
  * @retval  0 Success
  * @retval  1 Failed to remove the desktop from the list
  * @retval  2 Could not find the desktop matching that ID
  * @retval -1 Invalid surface or no desktops
  */
-int surface_desktop_rem(surface_td *surface, XID desktop_id);
+int surface_desktop_rem(surface_td *surface, uint32_t desktop_id);
 
 /**
  * @brief Get a desktop from the list by its ID
@@ -186,12 +180,13 @@ int surface_desktop_rem(surface_td *surface, XID desktop_id);
  * surface.  If the desktop is found, its pointer is returned; otherwise,
  * @c NULL is returned.
  *
- * @param surface     Pointer to the surface structure
+ * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to retrieve
  *
  * @return Pointer to the desktop if found, or @c NULL otherwise
  */
-desktop_td *surface_desktop_get(surface_td *surface, XID desktop_id);
+desktop_td *surface_desktop_get(surface_td *surface,
+        uint32_t desktop_id);
 
 /**
  * @brief Get the previous desktop in the list, optionally cycling
@@ -201,7 +196,7 @@ desktop_td *surface_desktop_get(surface_td *surface, XID desktop_id);
  * the first in the list, and cycling is enabled, it will return the
  * last desktop.
  *
- * @param surface     Pointer to the surface structure
+ * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
  * @param cycle      If @c true, the function will cycle back to the
  *                   last desktop if the current is the first
@@ -209,8 +204,8 @@ desktop_td *surface_desktop_get(surface_td *surface, XID desktop_id);
  * @return Pointer to the previous desktop or @c NULL if not
  *         found or not invalid
  */
-desktop_td *surface_desktop_prev(surface_td *surface, XID desktop_id,
-        bool cycle);
+desktop_td *surface_desktop_prev(surface_td *surface,
+        unsigned desktop_id, bool cycle);
 
 /**
  * @brief Get the next desktop in the list, optionally cycling
@@ -220,7 +215,7 @@ desktop_td *surface_desktop_prev(surface_td *surface, XID desktop_id,
  * the last in the list, and cycling is enabled, it will return the
  * first desktop.
  *
- * @param surface     Pointer to the surface structure
+ * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
  * @param cycle      If @c true, the function will cycle to the first
  *                   desktop if the current is the last
@@ -228,8 +223,8 @@ desktop_td *surface_desktop_prev(surface_td *surface, XID desktop_id,
  * @return Pointer to the next desktop or @c NULL if not found or not
  *         valid
  */
-desktop_td *surface_desktop_next(surface_td *surface, XID desktop_id,
-        bool cycle);
+desktop_td *surface_desktop_next(surface_td *surface,
+        uint32_t desktop_id, bool cycle);
 
 /**
  * @brief Select the previous desktop, optionally cycling
@@ -239,8 +234,8 @@ desktop_td *surface_desktop_next(surface_td *surface, XID desktop_id,
  * it will select the last desktop updating @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
- * @param cycle  If @c true, will cycle to the last desktop if the
- *               current is the first
+ * @param cycle   If @c true, will cycle to the last desktop if the
+ *                current is the first
  *
  * @return Status of the selection
  * @retval  0 Sucess
@@ -257,8 +252,8 @@ int surface_desktop_select_prev(surface_td *surface, bool cycle);
  * it will select the first desktop updating @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
- * @param cycle  If @c true, will cycle to the first desktop if the
- *               current is the last
+ * @param cycle   If @c true, will cycle to the first desktop if the
+ *                current is the last
  *
  * @return Status of the selection
  * @retval  0 Sucess
@@ -275,7 +270,7 @@ int surface_desktop_select_next(surface_td *surface, bool cycle);
  * an error and updates nothing if the ID is not found in the list of
  * desktops.
  *
- * @param surface     Pointer to the surface structure
+ * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to select
  *
  * @return Status of the selection
@@ -283,7 +278,8 @@ int surface_desktop_select_next(surface_td *surface, bool cycle);
  * @retval  1 No next desktop found
  * @retval -1 Invalid surface or no desktops
  */
-int surface_desktop_select(surface_td *surface, XID desktop_id);
+int surface_desktop_select(surface_td *surface,
+        uint32_t desktop_id);
 
 /**
  * @brief Add a new desktop associated with the surface
@@ -314,7 +310,7 @@ int surface_action_desktop_remove(surface_td *surface);
 /**
  * @brief Switch the current view to another specified desktop
  *
- * @param surface     Pointer to the surface to receive the action
+ * @param surface    Pointer to the surface to receive the action
  * @param desktop_id The identifier of the desktop to switch to
  *
  * @return Status of the operation
@@ -323,7 +319,8 @@ int surface_action_desktop_remove(surface_td *surface);
  *
  * @note Complexity: @e O(1)
  */
-int surface_action_desktop_switch(surface_td *surface, XID desktop_id);
+int surface_action_desktop_switch(surface_td *surface,
+        uint32_t desktop_id);
 
 /**
  * @brief Switch the current view to the next desktop in sequence
@@ -367,7 +364,7 @@ int surface_action_toggle_fullsurface(surface_td *surface);
 /**
  * @brief Update the surface resolution to the specified dimensions
  *
- * @param surface     Pointer to the surface to receive the action
+ * @param surface    Pointer to the surface to receive the action
  * @param resolution Structure for new dimensions of new resolution
  *
  * @return Status of the operation
@@ -384,7 +381,7 @@ int surface_action_set_resolution(surface_td *surface,
 /**
  * @brief Update the orientation of the surface
  *
- * @param surface      Pointer to the surface to receive the action
+ * @param surface     Pointer to the surface to receive the action
  * @param orientation New orientation for the surface (e.g., portrait or
  *                    landscape)
  *
@@ -399,7 +396,7 @@ int surface_action_set_orientation(surface_td *surface, int orientation);
 /**
  * @brief Updates the brightness level of the surface
  *
- * @param surface     Pointer to the surface to receive the action
+ * @param surface    Pointer to the surface to receive the action
  * @param brightness New brightness level [0-100]
  *
  * @return Status of the operation
@@ -408,12 +405,13 @@ int surface_action_set_orientation(surface_td *surface, int orientation);
  *
  * @note Complexity: @e O(1)
  */
-int surface_action_set_brightness(surface_td *surface, int brightness);
+int surface_action_set_brightness(surface_td *surface,
+        uint16_t brightness);
 
 /**
  * @brief Update the contrast level of the surface
  *
- * @param surface   Pointer to the surface to receive the action
+ * @param surface  Pointer to the surface to receive the action
  * @param contrast New contrast level [0-100]
  *
  * @return Status of the operation
@@ -422,7 +420,7 @@ int surface_action_set_brightness(surface_td *surface, int brightness);
  *
  * @note Complexity: @e O(1)
  */
-int surface_action_set_contrast(surface_td *surface, int contrast);
+int surface_action_set_contrast(surface_td *surface, uint16_t contrast);
 
 /**
  * @brief Apply the current surface configuration settings

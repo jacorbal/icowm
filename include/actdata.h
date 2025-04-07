@@ -13,20 +13,20 @@
 
 /* Project includes */
 #include <action.h>
+#include <client.h>
 #include <desktop.h>
 #include <surface.h>
-#include <window.h>
 
 
 /**
- * @brief Window data to store information when updating the window by
+ * @brief Window data to store information when updating the client by
  *        an action
  *
- * @see action_window_e
+ * @see action_client_e
  */
-typedef struct action_data_window_s {
-    window_td *window;                  /**< Window affected */
-    enum action_window_e action_window; /**< Action for this window */
+typedef struct action_data_client_s {
+    client_td *client;                  /**< Window affected */
+    enum action_client_e action_client; /**< Action for this client */
 
     union {
         char *name;
@@ -37,14 +37,14 @@ typedef struct action_data_window_s {
         char *role_name;
         struct geometry_s geometry;
     } new_data;                         /** New values to update */
-} action_data_window_td;
+} action_data_client_td;
 
 
 /**
  * @brief Desktop data to store information when updating the desktop by
  *        an action
  *
- * @see action_window_e
+ * @see action_client_e
  */
 typedef struct {
     desktop_td *desktop;                    /**< Desktop affected */
@@ -58,7 +58,7 @@ typedef struct {
  * @brief Screen data to store information when updating the surface by
  *        an action
  *
- * @see action_window_e
+ * @see action_client_e
  */
 typedef struct {
     surface_td *surface;                  /**< Surface affected */
@@ -70,10 +70,10 @@ typedef struct {
 
 /* Public interface */
 /**
- * @brief Allocate memory for the window data structure
+ * @brief Allocate memory for the client data structure
  *
- * @param window        Pointer to the window that's going to be updated
- * @param action_window Action to perform with this data
+ * @param client        Pointer to the client that's going to be updated
+ * @param action_client Action to perform with this data
  *
  * @return Pointer to the new allocated structure, or @c NULL otherwise
  *
@@ -81,17 +81,17 @@ typedef struct {
  *       initialization
  * @note Complexity: @e O(1)
  */
-action_data_window_td *action_data_window_init(window_td *window,
-        enum action_window_e action_window);
+action_data_client_td *action_data_client_init(client_td *client,
+        enum action_client_e action_client);
 
 /**
- * @brief Deallocate window data structure
+ * @brief Deallocate client data structure
  *
- * @param action_data_window Pointer to the data structure to deallocate
+ * @param action_data_client Pointer to the data structure to deallocate
  *
  * @note Complexity: @e O(1)
  */
-void action_data_window_destroy(action_data_window_td *action_data_window);
+void action_data_client_destroy(action_data_client_td *action_data_client);
 
 /**
  * @brief Allocate memory for the desktop data structure
