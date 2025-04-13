@@ -36,6 +36,10 @@ Basic features are:
     users with the convenience of adjusting settings without
     necessitating a complete restart of the window manager.
 
+  - **Iconifying (classical).**
+    Instead of classical minimization on the taskbar, the window is
+    iconified on the desktop.
+
 The primary objective of this endeavor is to establish a window manager
 that can be navigated entirely through keyboard commands, while still
 accommodating optional mouse interaction.  This dual capability fosters
@@ -56,8 +60,8 @@ minimalism and functionality within their desktop environments.
 License
 =======
 
-This software is licensed using ISC Open Source Software License.  Read
-the `COPYING` file or gather more information on [ISC Licenses
-website](https://www.isc.org/licenses/).
+This software is licensed under the 'ISC License'.
+Read the `LICENSE` file on this repository, or gather more information
+on [ISC Open Source Software Licenses](https://www.isc.org/licenses/).
 
 Copyright (c) 2025, J. A. Corbal.

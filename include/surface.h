@@ -8,6 +8,10 @@
  * with that surface and an index indicating which workspace is
  * currently active.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef SURFACE_H
 #define SURFACE_H
@@ -19,6 +23,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -73,6 +78,7 @@ typedef struct surface_s {
 
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_screen_t *screen;           /**< Pointer to XCB screen */
+    xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
 
     /* Properties */
     struct surface_properties_s properties;
@@ -101,6 +107,7 @@ typedef struct surface_s {
  * @note Complexity: @e O(1)
  */
 surface_td *surface_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
         const uint32_t screen_id, uint32_t desktop_count,
         config_td *config);
 

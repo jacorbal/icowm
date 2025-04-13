@@ -3,6 +3,10 @@
  *
  * @brief Declaration of window manager structure and main functions
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef WM_H
 #define WM_H
@@ -14,6 +18,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
@@ -42,8 +47,8 @@
  */
 typedef struct {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
+    xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
     list_td *surfaces;              /**< List of surfaces */
-    uint32_t surface_count;
     uint32_t screenp;               /**< Preferred screen */
     config_td *config;              /**< Window manager configuration */
     bool is_running;                /**< Running state flag */
@@ -54,7 +59,7 @@ typedef struct {
 /**
  * @brief Initialize window manager instance
  *
- * Allocates memory for a @p wm_td structure, initializes its fields,
+ * Allocates memory for a @c wm_td structure, initializes its fields,
  * and opens a connection to the X server.  It also sets up the managed
  * windows array and initializes the current desktop index and running
  * state.

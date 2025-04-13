@@ -3,6 +3,10 @@
  *
  * @brief Event structure declaration
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef EVENT_H
 #define EVENT_H

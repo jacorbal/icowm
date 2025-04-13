@@ -18,6 +18,10 @@
  *      Should've done it correctly from the get-go and avoided future
  *      headaches: *my* present headaches.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>

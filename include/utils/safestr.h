@@ -22,6 +22,10 @@
  *
  * @ingroup str Safe string utils
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef SAFESTR_H
 #define SAFESTR_H

@@ -55,7 +55,7 @@ CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
 
 JSON_LFLAGS = -lcjson
-XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util)
+XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh)
 OTHR_LFLAGS = -lpthread
 LDFLAGS     = -L ${L_DIR} ${JSON_LFLAGS} ${XCB_LFLAGS} ${OTHR_LFLAGS}
 
@@ -88,7 +88,7 @@ ifeq ($(CC), clang)
 else ifeq ($(CC), gcc)
     CCWARN += ${CCWARN_GCC}
 else
-    $(error Unsupported compiler '$(CC)'. CC only admits 'gcc' or 'clang')
+    $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
 
 # Use `make clean && make DEBUG=1` to add debugging information

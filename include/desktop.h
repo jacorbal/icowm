@@ -11,6 +11,10 @@
  * area for clients.  It also contains references to hash tables and
  * lists that manage the stacking of clients within that workspace.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef DESKTOP_H
 #define DESKTOP_H
@@ -22,6 +26,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -49,8 +54,10 @@
  * information about their environment.
  */
 typedef struct desktop_s {
+    xcb_connection_t *connection;           /**< XCB connection */
+    xcb_ewmh_connection_t *ewmh;            /**< EWMH connection */
     uint32_t screen_id;                     /**< Screen index */
-    uint32_t id;                            /**< Desktop index */
+    xcb_window_t id;                        /**< Desktop index */
 
     char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
 
@@ -80,6 +87,7 @@ typedef struct desktop_s {
  *
  * @param screen_id    Screen identifier where this desktop belongs
  * @param desktop_id   Desktop identifier
+ * @param ewmh         EWMH connection pointer
  * @param config_base  Pointer to base configuration
  * @param config_theme Pointer to theme configuration
  *
@@ -87,7 +95,9 @@ typedef struct desktop_s {
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *desktop_init(uint32_t screen_id, uint32_t desktop_id,
+desktop_td *desktop_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
+        uint32_t screen_id, uint32_t desktop_id,
         struct config_base_s *config_base,
         struct config_theme_s *config_theme);
 

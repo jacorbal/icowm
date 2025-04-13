@@ -52,6 +52,10 @@
  *      +-------+
  * @endverbatim
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef LOGGER_H
 #define LOGGER_H
@@ -119,7 +123,7 @@ enum logger_level_e {
  */
 typedef struct {
     enum logger_level_e level_min;  /**< Minimum logging level */
-    bool is_tracking;               /**< Track even when not in LOG_TRACE */
+    bool is_tracking;               /**< Track even if not in 'LOG_TRACE' */
 
     struct file_s {
         FILE *fp_out;               /**< Pointer to output stream */
@@ -139,25 +143,25 @@ typedef struct {
 /**
  * @brief Initializes a new logger
  *
- * @param filename    Filename where to output log messages, or keyword
- * @param level_min   Minimum logging level
- * @param is_tracking If @c true, the caller function is traced always,
- *                    otherwise, track only on @c LOG_TRACE level
- *
- * Initializes the logger based on the specified filename.  The logging
- * behavior is as follows:
+ * The logging behavior is as follows:
  *  - If filename is keyword:
- *      - "NULL", the logger will be deactivated.
- *      - "STDOUT", all logs will be written to @c stdout
- *      - "STDERR", all logs will be written to @c stderr
- *      - "DEFAULT", debug or information logs are sent to @c stdout,
- *        and warning or error logs are sent to @c stderr.
- *  - For any other name, the logger will open this file for appending
+ *      - "NULL", the logger will be deactivated;
+ *      - "STDOUT", all logs will be written to @c stdout;
+ *      - "STDERR", all logs will be written to @c stderr;
+ *      - "DEFAULT", debug and information logs are sent to @c stdout,
+ *        warning and error logs are sent to @c stderr.
+ *  - For any other name, the logger will open that filename to append
+ *    newer information
  *
  * If it's a file, log entries are written to a buffer until it reaches
  * its capacity.  Once the buffer is full or an error occurs, the
  * contents are flushed to the log file, which is opened in append mode.
  * The buffer is then cleared and reset for future log entries.
+ *
+ * @param filename    Filename where to output log messages, or keyword
+ * @param level_min   Minimum logging level
+ * @param is_tracking If @c true, the caller function is traced always,
+ *                    otherwise, track only on @c LOG_TRACE level
  *
  * @return Status of the operation
  * @retval  0 Success

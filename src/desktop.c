@@ -3,6 +3,10 @@
  *
  * @brief Desktop handling implementation
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>
@@ -13,6 +17,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
@@ -63,7 +68,9 @@ static bool s_client_match(const void *key1, const void *key2)
 
 
 /* Initialize a new desktop */
-desktop_td *desktop_init(uint32_t screen_id, uint32_t desktop_id,
+desktop_td *desktop_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
+        uint32_t screen_id, uint32_t desktop_id,
         struct config_base_s *config_base,
         struct config_theme_s *config_theme)
 {
@@ -82,13 +89,13 @@ desktop_td *desktop_init(uint32_t screen_id, uint32_t desktop_id,
     desktop->screen_id = screen_id;
     desktop->id = desktop_id;
     desktop->client_active_id = 0;
+    desktop->ewmh = ewmh;
 
     /* Get the configuration */
     desktop->config_base = config_base;
     desktop->config_theme = config_theme;
 
     /* Set desktop name */
-
     if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
         snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1,
                 "Desktop %u", desktop_id);
@@ -197,7 +204,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
     LOGGER_DEBUG("Preparing to add client %#x ('%s') to" \
             " desktop %u ('%s')",
-            client->id, client->names.name, desktop->id, desktop->name);
+            client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
         return -1;
@@ -213,7 +220,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     }
 
     LOGGER_TRACE("Added client %#x ('%s') to desktop %u ('%s')",
-            client->id, client->names.name, desktop->id, desktop->name);
+            client->id, client->info.name, desktop->id, desktop->name);
     return 0;
 }
 
@@ -225,7 +232,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 
     LOGGER_DEBUG("Preparing to remove client %#x ('%s') from" \
             " desktop %u ('%s')",
-            client->id, client->names.name, desktop->id, desktop->name);
+            client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
         return -1;
@@ -241,7 +248,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
             client_destroy(removed_client_td);
             LOGGER_TRACE("Removing client %#x ('%s') from" \
                     " desktop %u ('%s')",
-                    client->id, client->names.name,
+                    client->id, client->info.name,
                     desktop->id, desktop->name);
             return 0;
         }
@@ -249,6 +256,6 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 
     /* Window not found */
     LOGGER_TRACE("Window %#x ('%s') not found on desktop %u ('%s')",
-            client->id, client->names.name, desktop->id, desktop->name);
+            client->id, client->info.name, desktop->id, desktop->name);
     return -1;
 }

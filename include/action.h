@@ -4,6 +4,10 @@
  * @brief Enumeration for all possible actions regarding clients,
  *        desktops and surfaces, and action structure
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef ACTION_H
 #define ACTION_H
@@ -99,8 +103,8 @@ enum action_desktop_e {
     ACTION_DESKTOP_LOCK,                /**< Lock desktop session */
     ACTION_DESKTOP_UNLOCK,              /**< Unlock desktop session */
     ACTION_DESKTOP_SET_LAYOUT,          /**< Change desktop layout */
-    ACTION_DESKTOP_APPLICATION_LAUNCH,  /**< Launch application */
-    ACTION_DESKTOP_APPLICATION_KILL,    /**< Terminate application */
+    ACTION_DESKTOP_COMMAND_LAUNCH,      /**< Launch program */
+    ACTION_DESKTOP_PROCESS_KILL,        /**< Terminate process */
 
     /* Add more as needed */
 //    ACTION_DESKTOP_SWITCH,              /**< Switch desktop */
@@ -108,7 +112,7 @@ enum action_desktop_e {
 //    ACTION_DESKTOP_SWITCH_PREV,         /**< Switch to previous */
 
     ACTION_DESKTOP_MAX =
-        ACTION_DESKTOP_APPLICATION_KILL,
+        ACTION_DESKTOP_PROCESS_KILL,
 };
 
 

@@ -3,6 +3,15 @@
  *
  * @brief Object data structures when objects need to update their
  *        properties by events by the execution of an action
+ *
+ * These data structures are precisely for passing generic data, so the
+ * events management is more uniform receiving only "packets of data"
+ * and a object (client, desktop, surface,...) that will be "itemized"
+ * in a general sense.
+ */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
  */
 
 #ifndef ACTDATA_H
@@ -16,26 +25,36 @@
 #include <client.h>
 #include <desktop.h>
 #include <surface.h>
+#include <wm.h>
 
 
 /**
  * @brief Window data to store information when updating the client by
  *        an action
  *
- * @see action_client_e
+ * This structure serves as a flexible container for passing various
+ * types of information.  It can hold integers or geometry values for
+ * operations such as resizing and moving, as well as strings.  While
+ * typically only one string is needed, there are scenarios where two
+ * may be required (e.g., when setting the window role for compatibility
+ * purposes).  In cases where only one string is needed, use 'str0'.
+ *
+ * @see @c action_client_e
  */
 typedef struct action_data_client_s {
-    client_td *client;                  /**< Window affected */
+    client_td *client;                  /**< Affected client */
     enum action_client_e action_client; /**< Action for this client */
 
     union {
-        char *name;
-        char *visible_name;
-        char *icon_name;
-        char *visible_icon_name;
-        char *class_name;
-        char *role_name;
         struct geometry_s geometry;
+/*
+        int32_t svalue;
+        uint32_t uvalue;
+*/
+        struct {
+            char *str0;
+            char *str1;
+       } str;
     } new_data;                         /** New values to update */
 } action_data_client_td;
 
@@ -44,12 +63,17 @@ typedef struct action_data_client_s {
  * @brief Desktop data to store information when updating the desktop by
  *        an action
  *
- * @see action_client_e
+ * @see @c action_desktop_e
  */
 typedef struct {
-    desktop_td *desktop;                    /**< Desktop affected */
+    desktop_td *desktop;                    /**< Affected desktop */
     enum action_desktop_e action_desktop;   /**< Action for this desktop */
 
+    union {
+        char *str;
+        int32_t svalue;
+        uint32_t uvalue;
+    } new_data;
     /* TODO */
 } action_data_desktop_td;
 
@@ -58,14 +82,28 @@ typedef struct {
  * @brief Screen data to store information when updating the surface by
  *        an action
  *
- * @see action_client_e
+ * @see @c action_surface_e
  */
 typedef struct {
-    surface_td *surface;                  /**< Surface affected */
+    surface_td *surface;                  /**< Affected surface */
     enum action_surface_e action_surface; /**< Action for this surface */
 
     /* TODO */
 } action_data_surface_td;
+
+
+/**
+ * @brief Screen data to store information when updating the surface by
+ *        an action
+ *
+ * @see @c action_surface_e
+ */
+typedef struct {
+    wm_td *wm;                  /**< Pointer to the window manager*/
+    enum action_wm_e action_wm; /**< Action for this surface */
+
+    /* TODO */
+} action_data_wm_td;
 
 
 /* Public interface */
@@ -140,6 +178,30 @@ action_data_surface_td *action_data_surface_init(surface_td *surface,
  * @note Complexity: @e O(1)
  */
 void action_data_surface_destroy(action_data_surface_td *action_data_surface);
+
+/**
+ * @brief Allocate memory for the window manager data structure
+ *
+ * @param wm        Pointer to the window manager instance
+ * @param action_wm Action type to perform with this data
+ *
+ * @return Pointer to the new allocated structure, or @c NULL otherwise
+ *
+ * @note The values of the structure must be filled manually, not at the
+ *       initialization
+ * @note Complexity: @e O(1)
+ */
+action_data_wm_td *action_data_wm_init(wm_td *wm,
+        enum action_wm_e action_wm);
+
+/**
+ * @brief Deallocate window manager data structure
+ *
+ * @param action_data_wm Pointer to the data structure to deallocate
+ *
+ * @note Complexity: @e O(1)
+ */
+void action_data_wm_destroy(action_data_wm_td *action_data_wm);
 
 
 #endif  /* ! ACTDATA_H */

@@ -3,6 +3,10 @@
  *
  * @brief Allocation and deallocation functions for object data structures
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdlib.h>     /* NULL, free, malloc */
@@ -33,9 +37,13 @@ action_data_client_td *action_data_client_init(client_td *client,
     }
 
     *action_data_client =
-        (action_data_client_td) {.client = client,
-                                 .action_client = action_client,
-                                 .new_data = {0}};
+        (action_data_client_td) { .client = client,
+                                  .action_client = action_client,
+                                  .new_data = {
+                                      .str = { .str0 = NULL,
+                                               .str1 = NULL }
+                                  }
+                                };
 
     return action_data_client;
 }
@@ -45,10 +53,8 @@ action_data_client_td *action_data_client_init(client_td *client,
 void action_data_client_destroy(action_data_client_td *action_data_client)
 {
     if (action_data_client) {
-        safe_free((void **) &action_data_client->new_data.name);
-        safe_free((void **) &action_data_client->new_data.class_name);
-        safe_free((void **) &action_data_client->new_data.icon_name);
-
+        safe_free((void **) &action_data_client->new_data.str.str0);
+        safe_free((void **) &action_data_client->new_data.str.str1);
         free(action_data_client);
     }
 }
@@ -67,9 +73,11 @@ action_data_desktop_td *action_data_desktop_init(desktop_td *desktop,
 
     action_data_desktop->desktop = desktop;
     action_data_desktop->action_desktop = action_desktop;
+    action_data_desktop->new_data.str = NULL;
 
     return action_data_desktop;
 }
+
 
 /* Deallocate desktop data structure */
 void action_data_desktop_destroy(action_data_desktop_td *action_data_desktop)
@@ -100,4 +108,29 @@ action_data_surface_td *action_data_surface_init(surface_td *surface,
 void action_data_surface_destroy(action_data_surface_td *action_data_surface)
 {
     free(action_data_surface);
+}
+
+
+/* Allocate memory for the window manager data structure */
+action_data_wm_td *action_data_wm_init(wm_td *wm,
+        enum action_wm_e action_wm)
+{
+    action_data_wm_td *action_data_wm;
+
+    action_data_wm = malloc(sizeof(action_data_wm_td));
+    if (action_data_wm == NULL) {
+        return NULL;
+    }
+
+    action_data_wm->wm = wm;
+    action_data_wm->action_wm = action_wm;
+
+    return action_data_wm;
+}
+
+
+/* Deallocate window manager data structure */
+void action_data_wm_destroy(action_data_wm_td *action_data_wm)
+{
+    free(action_data_wm);
 }

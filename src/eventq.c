@@ -4,6 +4,10 @@
  * @brief Event priority queue (min-heap) handler function
  *        implementation
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>
@@ -25,11 +29,13 @@
 #include <actdata.h>
 #include <action.h>
 #include <client.h>
-#include <cmds/wcmd.h>
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
+
+/* Commands includes */
+#include <cmds/ccmd.h>
 
 /* Local includes */
 #include <eventq.h>
@@ -44,7 +50,8 @@
  * the same thing must be done for its left and right sub-tree also.
  * In other words, it's a bottom-heavy heap, where in this case, it's
  * distributed by priority, where the highest priority corresponds to
- * the smallest value. */
+ * the smallest value.
+ */
 static pqueue_td *eventq = NULL;        /* Event priority queue
                                            (min-heap; heavy-bottom) */
 
@@ -168,11 +175,11 @@ static void s_event_handle_client(event_td *event)
 
     switch (event->action.object.client) {
         case ACTION_CLIENT_CREATE:
-            /* This creates the client in client->xclient, but does not
-             * allocates the memory of the client object.  This action
-             * is intended to be called by the desktop, therefore, it's
-             * responsibility of the desktop to execute this action
-             * after invoking 'client_create' */
+            /* This creates the client in 'client->xclient', but does
+             * not allocates the memory of the client object.  This
+             * action is intended to be called by the desktop,
+             * therefore, it's responsibility of the desktop to execute
+             * this action after invoking 'client_create'. */
             // XCreateWindow...
             //XMapWindow(client->connection, client->xclient);
 
@@ -381,10 +388,10 @@ static void s_event_handle_desktop(event_td *event)
         case ACTION_DESKTOP_SET_LAYOUT:
             break;
 
-        case ACTION_DESKTOP_APPLICATION_LAUNCH:
+        case ACTION_DESKTOP_COMMAND_LAUNCH:
             break;
 
-        case ACTION_DESKTOP_APPLICATION_KILL:
+        case ACTION_DESKTOP_PROCESS_KILL:
             break;
     }
 

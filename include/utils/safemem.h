@@ -9,6 +9,13 @@
  *
  * @ingroup mem Safe memory management utils
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#ifndef SAFEMEM_H
+#define SAFEMEM_H
 
 
 /**
@@ -77,3 +84,6 @@ void safe_free(void **ptr);
  * processed.
  */
 int safe_free_var(void **first, ...);
+
+
+#endif  /* ! SAFEMEM_H */

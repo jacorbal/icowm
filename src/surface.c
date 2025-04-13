@@ -3,6 +3,10 @@
  *
  * @brief Surface handling implementation
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>
@@ -11,6 +15,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -32,7 +37,7 @@ static void s_update_properties(surface_td *surface,
     int xx, yy;
 
     /* Update surface dimensions */
-    xx = screen->width_in_pixels;  // XCB allows direct access to these values.
+    xx = screen->width_in_pixels;  // XCB allows direct access to these
     yy = screen->height_in_pixels;
 
     surface->properties.dim.w = (xx > 0) ? (uint32_t)xx : 0;
@@ -95,6 +100,7 @@ static void s_update_properties(surface_td *surface,
 
 /* Initialize a new surface */
 surface_td *surface_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
         const uint32_t surface_id, uint32_t desktop_count,
         config_td *config)
 {
@@ -141,7 +147,9 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Initialize desktops */
     surface->desktop_count = desktop_count;
     for (uint32_t i = 0; i < desktop_count; ++i) {
-        desktop_td *desktop = desktop_init(surface_id, i,
+        desktop_td *desktop = desktop_init(surface->connection,
+                surface->ewmh,
+                surface_id, i,
                 &(surface->config->base), &(surface->config->theme));
         if (surface == NULL) {
             LOGGER_FATAL("Failed to initialize desktop %u on" \

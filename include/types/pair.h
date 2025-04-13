@@ -8,6 +8,10 @@
  *       a common structure for those, but readability is important.
  *       Maybe in the future there will be some refactoring...
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef TYPE_PAIR_H
 #define TYPE_PAIR_H

@@ -15,6 +15,10 @@
  *       context and may introduce delays when idle to minimize CPU
  *       usage
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef EVENTQ_H
 #define EVENTQ_H
@@ -86,12 +90,12 @@ event_td *eventq_extract(void);
 /**
  * @brief Process the event in the priority queue
  *
- * @note Complexity: @e O(log n), where @e n is the number of events to
- *       process
- *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to process the event
+ *
+ * @note Complexity: @e O(log n), where @e n is the number of events to
+ *       process
  */
 int eventq_process(void);
 

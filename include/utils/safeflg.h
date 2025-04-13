@@ -16,6 +16,10 @@
  *       enumerations and provide a reusable mechanism for safe flag
  *       manipulation across different contexts within an application
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef SAFEFLG_H
 #define SAFEFLG_H

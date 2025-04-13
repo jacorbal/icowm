@@ -10,6 +10,10 @@
  * identifier, name, state, graphical attributes, geometry, and behavior
  * preferences.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef CLIENT_H
 #define CLIENT_H
@@ -22,6 +26,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* Type includes */
 #include <types/pair.h> /* geometry_s, sides_s */
@@ -130,8 +135,8 @@ enum client_layer_e {
  *
  * @note EWMH: "Window Managers MUST honor the @c win_gravity field of
  *             @c WM_NORMAL_HINTS for both @c MapRequest @e and
- *             @c ConfigureRequest events (ICCCM Version 2.0, §4.1.2.3
- *             and §4.1.5)"
+ *             @c ConfigureRequest events (ICCCM Version 2.0,
+ *                §4.1.2.3 and §4.1.5)"
  */
 enum client_gravity_e {     /* Placed at the reference point: */
     CLIENT_GRAVITY_STATIC,      /* 0: left top corner of client client */
@@ -216,6 +221,7 @@ struct client_layout_s {
  */
 typedef struct client_s {
     xcb_connection_t *connection;   /**< XCB display / connection */
+    xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
     xcb_window_t window;            /**< The actual XCB client */
     xcb_window_t parent_id;         /**< Pointer to the parent client */
     xcb_window_t id;                /**< Unique client identifier */
@@ -226,25 +232,24 @@ typedef struct client_s {
     struct {
         char *name;                 /**< Window name */
         char *visible_name;         /**< Visible name on taskbar */
-        char *class_name;           /**< Window class (for grouping) */
         char *role_name;            /**< Role (for compatibility) */
-    } names;
+        char *class_name[2];        /**< Window class (for grouping) */
+    } info;
 
     struct {
         char *icon_name;            /**< Icon image path */
         char *visible_icon_name;    /**< Icon on task bar*/
         char **icons;
-    } icons;
+    } icon_info;
 
     struct config_theme_s *theme;   /**< User defined theme */
 
     uint32_t user_time;             /**< Time since last used */
 
-    /* Process information */
     struct {
-        pid_t pid;
-        char *command;
-    } process;
+        pid_t pid;                  /**< PID being executed */
+        char *command;              /**< Command being executed */
+    } process;                      /**< Process information */
 
     struct client_layout_s layout;
     struct client_properties_s properties;
@@ -297,6 +302,7 @@ static inline void client_unfocus(client_td *client)
  * @note Complexity: @e O(1) for creating a client structure
  */
 client_td *client_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
         xcb_window_t parent_id,
         uint32_t w, uint32_t h, int32_t x, int32_t y,
         struct config_theme_s *theme);

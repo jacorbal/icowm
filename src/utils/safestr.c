@@ -3,6 +3,10 @@
  *
  * @brief Implementation for enhanced safe string functions
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdlib.h>     /* size_t, malloc */

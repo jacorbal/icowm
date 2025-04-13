@@ -3,6 +3,10 @@
  *
  * @brief Window structure implementation
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>
@@ -11,6 +15,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* Utils includes */
 #include <utils/safemem.h>
@@ -32,6 +37,7 @@
 
 /* Initialize a new client */
 client_td *client_init(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
         xcb_window_t parent_id,
         uint32_t w, uint32_t h, int32_t x, int32_t y,
         struct config_theme_s *theme)
@@ -75,12 +81,13 @@ client_td *client_init(xcb_connection_t *connection,
 
     client->theme = theme;
 
-    client->names.name = NULL;              // <-- TODO
-    client->names.visible_name = NULL;      // <-- TODO
-    client->names.class_name = NULL;        // <-- TODO
-    client->names.role_name = NULL;         // <-- TODO
-    client->icons.icon_name = NULL;         // <-- TODO
-    client->icons.visible_icon_name = NULL; // <-- TODO
+    client->info.name = NULL;              // <-- TODO
+    client->info.visible_name = NULL;      // <-- TODO
+    client->info.role_name = NULL;         // <-- TODO
+    client->info.class_name[0] = NULL;        // <-- TODO
+    client->info.class_name[1] = NULL;        // <-- TODO
+    client->icon_info.icon_name = NULL;         // <-- TODO
+    client->icon_info.visible_icon_name = NULL; // <-- TODO
 
     /* Create the X client */
     client->window = xcb_generate_id(connection);
@@ -126,7 +133,7 @@ client_td *client_init(xcb_connection_t *connection,
 void client_destroy(client_td *client)
 {
     LOGGER_TRACE("Deallocating structure for client %#lx ('%s')",
-            client->id, client->names.name);
+            client->id, client->info.name);
     if (client) {
         if (client->window) {
             xcb_destroy_window(client->connection, client->window);
@@ -144,7 +151,7 @@ void client_update(client_td *client)
     }
 
     LOGGER_TRACE("Updating client %#lx ('%s')",
-            client->id, client->names.name);
+            client->id, client->info.name);
 
     /* Clear the client */
     xcb_clear_area(client->connection,
@@ -190,7 +197,7 @@ int client_send_event_rename(client_td *client, const char *new_name)
      *       with 'action_data_client_destroy' once the event has
      *       finished processing this action to avoid memory leaks */
     data = action_data_client_init(client, action.object.client);
-    data->new_data.name = safe_strdup(new_name);
+    data->new_data.str.str0 = safe_strdup(new_name);
 
     event = event_init((void *) client, (void *) data,
             action, CLIENT_PRIORITY_DEFAULT);
@@ -213,7 +220,7 @@ int client_send_event_reclass(client_td *client, const char *new_class)
      *       with 'action_data_client_destroy' once the event has
      *       finished processing this action to avoid memory leaks */
     data = action_data_client_init(client, action.object.client);
-    data->new_data.class_name = safe_strdup(new_class);
+    data->new_data.str.str0 = safe_strdup(new_class);
 
     event = event_init((void *) client, (void *) data,
             action, CLIENT_PRIORITY_DEFAULT);
@@ -288,7 +295,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name)
      *       with 'action_data_client_destroy' once the event has
      *       finished processing this action to avoid memory leaks */
     data = action_data_client_init(client, action.object.client);
-    data->new_data.icon_name = safe_strdup(icon_name);
+    data->new_data.str.str0 = safe_strdup(icon_name);
 
     event = event_init((void *) client, (void *) data,
             action, CLIENT_PRIORITY_DEFAULT);

@@ -8,6 +8,10 @@
  * or @c PRIORITY_NORMAL.  This enumeration just shows possible initial
  * values to standard events that always will use the same priorirty.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef PRIORITY_H
 #define PRIORITY_H

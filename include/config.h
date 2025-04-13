@@ -9,6 +9,10 @@
  * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
  * classic @c HOME/.ICOWM_NAME_PROG.
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef CONFIG_H
 #define CONFIG_H

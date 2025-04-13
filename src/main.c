@@ -1,7 +1,8 @@
 /**
  * @file main.c
  *
- * @brief Main entry point
+ * @brief Main entry point, i.e., the mystical enchanting gateway where
+ *        the program awakens, and the symphony of logic begins to play
  *
  * @author J. A. Corbal <jacorbal@gmail.com>
  *
@@ -12,7 +13,7 @@
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *
  * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
- *       conforms to POSIX (POSIX.1-2001)
+ *       conforms to POSIX.1-2001
  * @note Built with GCC 12.2.0 and Clang 14.0.6
  */
 /*                 ____       _      ____  ___

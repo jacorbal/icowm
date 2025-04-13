@@ -1,27 +1,21 @@
 /**
- * @file wcmd.h
+ * @file cmds/ccmd.h
  *
  * @brief Functions on executions over clients using the XCB interface
- *        that update EWMH and ICCCM hints
+ *        with needed EWMH and ICCCM updates
+ */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef WCMD_H
-#define WCMD_H
+#ifndef CMDS_WCMD_H
+#define CMDS_WCMD_H
 
-
-/* System includes */
-#include <sys/types.h>  /* pid_t */
 
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
-
-
-/* '<actdata.h>': Forward declaration of the type 'action_data_client_td' */
-//typedef struct action_data_client_s action_data_client_td;
-
-/* '<client.h>': Forward declaration of the type 'client_td' */
-//typedef struct client_s client_td;
 
 
 /* Public interface */
@@ -326,4 +320,4 @@ void wcmd_client_set_icon(client_td *client,
         action_data_client_td *client_data);
 
 
-#endif  /* ! WCMD_H */
+#endif  /* ! CMDS_WCMD_H */

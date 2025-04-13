@@ -3,6 +3,10 @@
  *
  * @brief Implementation of safe memory handling functions
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdarg.h>     /* va_list, va_args, va_start, va_end */

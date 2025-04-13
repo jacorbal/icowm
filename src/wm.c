@@ -3,6 +3,10 @@
  *
  * @brief Window manager implementation
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* System includes */
 #include <stdbool.h>
@@ -11,6 +15,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
@@ -198,6 +203,21 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             return 2;
         }
 
+        /* Establish EWMH connection */
+        LOGGER_TRACE("Allocating memory for EWMH connection", L_NARG);
+        wm->ewmh = malloc(sizeof(xcb_ewmh_connection_t));
+        if (wm->ewmh == NULL) {
+            LOGGER_ERROR("Error allocating memory for EWMH connection",
+                    L_NARG);
+        }
+
+        /* Initializate atoms */
+        if (!xcb_ewmh_init_atoms_replies(wm->ewmh, 
+                    xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
+                    NULL)) {
+               LOGGER_ERROR("Error initializating EWMH atoms", L_NARG);
+        }
+
         /* Set and load configuration */
         wm->config = config_init();
         if (wm->config == NULL) {
@@ -281,7 +301,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             uint32_t desktops_count =
                 wm->config->base.screens[it.rem].desktop_count;
             surface_td *surface =
-                surface_init(wm->connection, (uint32_t) it.rem,
+                surface_init(wm->connection,
+                        wm->ewmh, (uint32_t) it.rem,
                         desktops_count, wm->config);
             if (surface == NULL) {
                 LOGGER_FATAL("Failed to initialize surface %lu",
@@ -345,6 +366,10 @@ int wm_stop(void)
     /* Deallocate every surface */
     LOGGER_TRACE("Deallocating surfaces in window manager", L_NARG);
     list_destroy(wm->surfaces);
+
+    /* Deallocating EWMH structure */
+    LOGGER_TRACE("Deallocating EWMH structure", L_NARG);
+    free(wm->ewmh);
 
     /* Stop event priority queue */
     eventq_stop();
