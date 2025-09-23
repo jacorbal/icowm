@@ -126,6 +126,7 @@ surface_td *surface_init(xcb_connection_t *connection,
 
     surface->id = surface_id;
     surface->connection = connection;
+    surface->ewmh = ewmh;
     surface->config = config;
 
     /* Update surface properties */

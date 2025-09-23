@@ -180,7 +180,6 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     LOGGER_DEBUG("Initializing window manager", L_NARG);
     if (wm == NULL) {
         uint32_t screens_detected;
-        const xcb_setup_t *setup;
         xcb_screen_iterator_t it;
 
         /* Allocate memory for the window manager */
@@ -198,7 +197,11 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 (int *) &(wm->screenp));
 
         if (xcb_connection_has_error(wm->connection)) {
-            LOGGER_FATAL("Failed to open X display", L_NARG);
+            if (display_name == NULL) {
+                LOGGER_FATAL("Failed to open X display", L_NARG);
+            } else {
+                LOGGER_FATAL("Failed to open X display '%s'", display_name);
+            }
             free(wm);
             return 2;
         }
@@ -238,9 +241,10 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             return 4;
         }
 
-        /* Count the number of screens */
-        setup = xcb_get_setup(wm->connection);
-        it = xcb_setup_roots_iterator(setup);
+        /* Count the number of screens.
+         * NOTE. Yes,... I can use 'xcb_setup_roots_length', but this
+         *       it's better for *my* purposes, "bIjatlh 'e' yImev!" */
+        it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
         screens_detected = 0;
         for (; it.rem > 0; xcb_screen_next(&it)) {
             screens_detected++;
@@ -338,8 +342,6 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
             LOGGER_TRACE("Setting desktop %lu as the startup desktop" \
                     " on surface %lu", surface->desktop_cur, it.rem);
-
-            xcb_screen_next(&it);
         }
 
         /* Begin! */

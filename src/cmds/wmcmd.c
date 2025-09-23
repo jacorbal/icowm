@@ -51,7 +51,7 @@ void wmcmd_surface_remove(wm_td *wm, action_data_wm_td *wm_data)
 }
 
 
-/* Exit the window manager */
+/* Prepare to exit the window manager */
 void wmcmd_exit(wm_td *wm)
 {
     /* TODO: Implement logic to cleanly exit the window manager */

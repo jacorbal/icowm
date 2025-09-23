@@ -124,9 +124,9 @@ static inline void s_show_help(FILE *fp)
                 " messages, not just level %d\n", LOG_TRACE);
 
     fprintf(fp, "\nOther options:\n");
-    fprintf(fp, "   -h              Show this help information\n");
+    fprintf(fp, "   -h              Show this help information, and exit\n");
     fprintf(fp, "   -v              Show version and license" \
-                " information\n");
+                " information, and exit\n");
 
     fprintf(fp, "\n");
 
@@ -153,7 +153,7 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "Log: 'DEFAULT' sends errors to 'stderr' & info to" \
                 " 'stdout'; 'NULL' disables it\n");
     fprintf(fp, "Log verbosity levels:" \
-                " | %d:trace; %d:debug; %d:info; %d:notice; %d:warn;\n" \
+                " | %d:trace; %d:debug; %d:info; %d:notice; %d:warning;\n" \
                 "                     " \
                 " | %d:error; %d:critical; %d:alert; %d:fatal\n",
             LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING,
@@ -259,6 +259,7 @@ int main(int argc, char *const argv[])
     char *log_filename = safe_strdup(ICOWM_DEFAULT_LOGGER_BEHAVIOR);
     enum logger_level_e log_level_min = ICOWM_DEFAULT_LOGGER_LEVEL_MIN;
     bool log_is_tracking = false;
+    bool verbose = true;
     int opt;
 
     /* Generate a random seed (windows are in a hash table and the seeds
@@ -311,6 +312,7 @@ int main(int argc, char *const argv[])
 
             case 'q':
                 log_level_min = LOG_FATAL;
+                verbose = false;
                 break;
 
             case 't':
@@ -335,7 +337,9 @@ int main(int argc, char *const argv[])
         s_deallocate_buffers(log_filename, display_name, config_dir);
         return 2;
     }
-    s_show_logger_destination(stdout, log_filename, log_level_min);
+    if (verbose) {
+        s_show_logger_destination(stdout, log_filename, log_level_min);
+    }
 
     /* Window manager "magic" */
     if (wm_start(display_name, config_dir) != 0) {

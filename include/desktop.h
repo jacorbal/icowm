@@ -76,6 +76,9 @@ typedef struct desktop_s {
     struct config_base_s *config_base;      /**< Base configuration */
     struct config_theme_s *config_theme;    /**< Theme configuration */
 
+    struct geometry_s geometry;
+    struct geometry_s workarea;
+
     bool is_outdated;                       /**< Flag when data needs to
                                                  be updated */
 } desktop_td;

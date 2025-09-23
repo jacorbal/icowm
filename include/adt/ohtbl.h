@@ -355,5 +355,14 @@ int ohtbl_resize_halve(ohtbl_td *htbl);
  */
 #define ohtbl_size(self) ((self)->size)
 
+/**
+ * @brief Macro that initializes the hash table with default postions
+ *        value
+ *
+ * @see @a ohtbl_init
+ */
+#define ohtbl_init_quick(p, h1, h2, m, d) \
+    ohtbl_init(p, p, h1, h2, m, d)
+
 
 #endif  /* ! OHTBL_H */

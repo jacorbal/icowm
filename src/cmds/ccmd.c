@@ -10,10 +10,11 @@
  */
 
 /* System includes */
-#include <stdarg.h>
+#include <stdarg.h>     /* va_arg, va_end, va_start */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* size_t, snprintf */
+#include <stdlib.h>     /* NULL, free, malloc */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -141,6 +142,11 @@ static void s_wcmd_add_window_states(client_td *client,
     for (uint32_t i = 0; i < num_states; ++i) {
         const char *state_name = va_arg(args, const char *);
         states[i] = s_wcmd_intern_atom(client->connection, state_name);
+        if (states[i] == XCB_ATOM_NONE) {
+            free(states);
+            va_end(args);
+            return;
+        }
     }
     va_end(args);
 
@@ -422,7 +428,7 @@ void wcmd_client_maximize_vert(client_td *client)
         return;
     }
 
-    //TODO: Deactivate CLIENT_STATE_MAXIMIZED first?
+    // TODO: Deactivate CLIENT_STATE_MAXIMIZED first?
     client_geometry_save(client);
 
     xcb_configure_window(client->connection, client->window,

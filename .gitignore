@@ -12,3 +12,4 @@ Doxyfile
 .*.sw?
 tags
 _tmp*_
+Build

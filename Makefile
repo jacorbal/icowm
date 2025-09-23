@@ -12,7 +12,7 @@ __PROJECT_VERSION_CODENAME = "'ovelya"
 __LICENSE = "ISC License"
 __COPYRIGHT = "Copyright (c) 2025"
 __AUTHOR = "J. A. Corbal"
-__RELEASE_DATE = "20250621 (intended)"
+__RELEASE_DATE = "20251221 (intended)"
 
 ## Directories
 PWD   = $(CURDIR)
@@ -48,7 +48,7 @@ CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
                -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
                -Wdeclaration-after-statement -Wsometimes-uninitialized \
-               -Wdocumentation -Weverything \
+               -Wdocumentation \
                -Wno-fortify-source -Wno-cast-align -Wno-cast-qual
 
 CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
@@ -82,7 +82,7 @@ CCFLAGS += -D__RELEASE_DATE=\"$(__RELEASE_DATE)\"
 
 ## Options on `make`
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
-CC = clang
+CC = gcc
 ifeq ($(CC), clang)
     CCWARN += ${CCWARN_CLANG}
 else ifeq ($(CC), gcc)
@@ -131,7 +131,7 @@ ${TARGET}: ${OBJS}
 
 # Compilation
 ${O_DIR}/%.o: ${S_DIR}/%.c
-	${CC} -o $@ -c $< ${CCFLAGS}
+	${CC} ${CCFLAGS} -c -o $@ $<
 
 
 ## Make options
