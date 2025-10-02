@@ -61,7 +61,8 @@ License
 =======
 
 This software is licensed under the 'ISC License'.
-Read the `LICENSE` file on this repository, or gather more information
-on [ISC Open Source Software Licenses](https://www.isc.org/licenses/).
+Read the [`LICENSE`](LICENSE) file on this repository, or gather more
+information on [ISC Open Source Software
+Licenses](https://www.isc.org/licenses/).
 
 Copyright (c) 2025, J. A. Corbal.

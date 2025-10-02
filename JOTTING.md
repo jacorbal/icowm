@@ -80,6 +80,6 @@ ventures in thy endeavors and wishing for Fortune's favour upon thine
 undertakings.  Together, let us weave the tapestry of code and craft
 wonders that shall echo through the chronicles of technology's age.
 
-*jaj vIghaj*!
+*jaj QaQ*!
 
             //JACR, PhD <jacorbal@gmail.com>; MMXXV (@ver. 1.0.0 "'ovelya")

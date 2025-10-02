@@ -25,8 +25,8 @@ B_DIR = ${PWD}/bin
 SHELL=/bin/sh
 
 ## Compiler & linker options
-CCSTD       = c99 # c89 | c90, c99, c11, c17, gnu11, gnu17
-CCOPT       = 2   # 0:debug; 1:optimize; 2:optimize more; 3:even more
+CCSTD       = c11 # c89 | c90, c99, c11, c17, gnu11, gnu17,...
+CCOPT       = 3   # 0:debug; 1:optimize; 2:optimize more; 3:yet more
 CCOPTS      = -pedantic -pedantic-errors
 CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
@@ -37,19 +37,19 @@ CCWARN_TINY = ${CCWARN_POSIX} -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
 CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
-              -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
-              -Wunreachable-code -Wmissing-format-attribute \
-              -Wdeprecated \
-              -Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
+				-Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
+				-Wunreachable-code -Wmissing-format-attribute \
+				-Wdeprecated \
+				-Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
 CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
-              -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-              -Wno-suggest-attribute=format
+				-Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
+				-Wno-suggest-attribute=format
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
-               -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
-               -Wdeclaration-after-statement -Wsometimes-uninitialized \
-               -Wdocumentation \
-               -Wno-fortify-source -Wno-cast-align -Wno-cast-qual
+				-Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
+				-Wdeclaration-after-statement -Wsometimes-uninitialized \
+				-Wdocumentation \
+				-Wno-fortify-source -Wno-cast-align -Wno-cast-qual
 
 CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
 CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
@@ -63,10 +63,10 @@ LDFLAGS     = -L ${L_DIR} ${JSON_LFLAGS} ${XCB_LFLAGS} ${OTHR_LFLAGS}
 ## Data & build information
 BUILD_NUMBER_FILE = Build
 ifneq (,$(wildcard $(BUILD_NUMBER_FILE)))
-    LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
-    __BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
+	LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
+	__BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
 else
-    __BUILD_NUMBER := 1
+	__BUILD_NUMBER := 1
 endif
 CCFLAGS += -D__BUILD_NUMBER=$(__BUILD_NUMBER)
 CCFLAGS += -D__BUILD_TIMESTAMP=\"$(shell date -u +'%Y%m%dT%H%M')\"
@@ -84,29 +84,29 @@ CCFLAGS += -D__RELEASE_DATE=\"$(__RELEASE_DATE)\"
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
 CC = gcc
 ifeq ($(CC), clang)
-    CCWARN += ${CCWARN_CLANG}
+	CCWARN += ${CCWARN_CLANG}
 else ifeq ($(CC), gcc)
-    CCWARN += ${CCWARN_GCC}
+	CCWARN += ${CCWARN_GCC}
 else
-    $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
+	$(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
 
 # Use `make clean && make DEBUG=1` to add debugging information
 # Use `make clean && make DEBUG=2` to also link with the address sanitizer 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
+	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
-    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
-    LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
+	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
+	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
 else
-    CCFLAGS += -DNDEBUG -O${CCOPT}
+	CCFLAGS += -DNDEBUG -O${CCOPT}
 endif
 
 # Use `make clean && make STRIP=1` to discard symbols from object files
 STRIP ?= 0
 ifeq ($(STRIP), 1)
-    LDFLAGS += -s
+	LDFLAGS += -s
 endif
 
 
@@ -115,14 +115,15 @@ SHELL = /bin/sh
 .SUFFIXES:
 .SUFFIXES: .h .c .o
 
-# File options
+# Binary file options and running arguments
 TARGET = ${B_DIR}/main
-RUN_ARGS =
+DOXIGEN_FILE = Doxyfile
+ARGS ?=
 
 # Sources and objects
 SRCS = $(wildcard ${S_DIR}/*.c) \
-       $(wildcard ${S_DIR}/*/*.c) \
-       $(wildcard ${S_DIR}/*/*/*.c)
+		$(wildcard ${S_DIR}/*/*.c) \
+		$(wildcard ${S_DIR}/*/*/*.c)
 OBJS = $(patsubst ${S_DIR}/%.c, ${O_DIR}/%.o, $(SRCS))
 
 # Linkage
@@ -136,7 +137,7 @@ ${O_DIR}/%.o: ${S_DIR}/%.c
 
 ## Make options
 .PHONY: ctags clean clean-obj clean-all run hard hard-run doxygen \
-        $(BUILD_NUMBER_FILE)
+	$(BUILD_NUMBER_FILE)
 
 all:
 	make ${TARGET} ${BUILD_NUMBER_FILE}
@@ -145,7 +146,10 @@ all:
 ctags:
 ifeq (,$(wildcard "/usr/bin/ctags"))
 	@echo "Generating tags..."
-	@ctags -R --exclude='doc' --exclude='obj' .
+	@ctags -R --exclude='doc' --exclude='obj' --exclude='_tmp_' .
+	@echo "Tag files generated"
+else
+	$(error Cannot find '/usr/bin/ctags')
 endif
 
 clean-obj:
@@ -162,7 +166,7 @@ clean:
 	@make clean-bin
 
 run:
-	${TARGET} ${RUN_ARGS}
+	${TARGET} ${ARGS}
 
 hard:
 	@make clean
@@ -173,7 +177,8 @@ hard-run:
 	@make run
 
 doxygen:
-	@[ -f 'Doxyfile' ] && doxygen || echo "'Doxyfile' not found" >&2
+	@[ -f '${DOXIGEN_FILE}' ] && doxygen || \
+		echo "Error: '${DOXIGEN_FILE}' not found" >&2
 
 help:
 	@echo "Type:"
@@ -184,10 +189,13 @@ help:
 	@echo "  'make doxygen'..................... Create Doxygen documentation"
 	@echo "  'make hard'..................................... Clean and build"
 	@echo "  'make run'............................... Run binary (if exists)"
+	@echo "  'make run ARGS=\"<args>\"'.. Run binary with arguments (if exists)"
 	@echo "  'make hard-run'......... Clean, build and run binary (if exists)"
 	@echo ""
+	@echo "  'Use 'make DEBUG=1' to generate detailed debug information"
 	@echo "  Binary will be placed in '${TARGET}'"
 
+# Increase build number manually
 $(BUILD_NUMBER_FILE):
 	@echo "Increasing build number to $(__BUILD_NUMBER)..."
 	@echo $(__BUILD_NUMBER) > $(BUILD_NUMBER_FILE)
