@@ -1,5 +1,5 @@
 /**
- * @file safeflg.c
+ * @file utils/safeflg.c
  *
  * @brief Implementation of safe flag management functions
  */
@@ -9,8 +9,8 @@
  */
 
 /* System includes */
-#include <stdbool.h>
-#include <stdint.h>
+#include <stdbool.h>    /* bools, true, false */
+#include <stdint.h>     /* uint16_t */
 
 /* Local includes */
 #include <utils/safeflg.h>

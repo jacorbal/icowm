@@ -23,6 +23,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>      /* FILE, snprintf */
@@ -32,6 +33,7 @@
 #include <cjson/cJSON.h>
 
 /* Utils includes */
+#include <utils/path.h>
 #include <utils/safestr.h>
 
 /* Project includes */
@@ -302,24 +304,32 @@ static void s_config_dir_set(const char *config_dir_prefix,
 {
     const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
     const char *config_home = getenv("HOME");
+    char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
 
     if (config_dir_prefix) {
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s", config_dir_prefix);
 
     } else if (config_xdg_config_home) {
         /* "${XDG_CONFIG_HOME}/icowm" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s/%s", config_xdg_config_home, CONFIG_DIR_BASE);
     } else if (config_home) {
         /* "${HOME}/.icowm" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s/.%s", config_home, CONFIG_DIR_BASE);
     } else {
         /* "$(pwd)/.icowm"; let's hope there's always a "${HOME}" */
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "./%s", CONFIG_DIR_BASE);
     }
+
+    path_simplify(temp_path);
+    safe_strncpy(config_dir_base, temp_path, CONFIG_MAX_LENGTH_PATH_BASE);
+
+    /* Use generated path in case of error */
+    snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+            "%s", temp_path);
 }
 
 

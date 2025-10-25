@@ -1,5 +1,5 @@
 /**
- * @file safestr.c
+ * @file utils/safestr.c
  *
  * @brief Implementation for enhanced safe string functions
  */

@@ -1,5 +1,5 @@
 /**
- * @file safemem.c
+ * @file utils/safemem.c
  *
  * @brief Implementation of safe memory handling functions
  */

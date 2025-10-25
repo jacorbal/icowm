@@ -1,5 +1,5 @@
 /**
- * @file safeflg.h
+ * @file utils/safeflg.h
  *
   * @brief Safe flag management
  *
@@ -58,7 +58,7 @@ bool safeflg_is_valid(uint16_t flag, uint16_t max_flags);
  * @param flag      Flag to be set (enabled)
  * @param max_flags Maximum value for the flag, for range checking
  *
- * @return Status of the operations
+ * @return Status of the operation
  * @retval  0 Success toggling the flag
  * @retval  1 Failed to toggling the flag
  *
@@ -78,7 +78,7 @@ int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags);
  * @param flag      Flag to be unset (cleared)
  * @param max_flags Maximum value for the flag, for range checking
  *
- * @return Status of the operations
+ * @return Status of the operation
  * @retval  0 Success clearing the flag
  * @retval  1 Failed to clear the flag
  *
@@ -98,7 +98,7 @@ int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags);
  * @param flag      Flag to be toggled
  * @param max_flags Maximum value for the flag, for range checking
  *
- * @return Status of the operations
+ * @return Status of the operation
  * @retval  0 Success toggling the flag
  * @retval  1 Failed to toggling the flag
  *

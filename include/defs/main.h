@@ -8,13 +8,17 @@
 #define DEFS_MAIN_H
 
 
+/* Project includes */
+#include <logger.h>     /* 'logger_level_e' values */
+
+
 /* Use 'notice' as default log level unless 'DEBUG' is on, in that case
  * use 'trace' log level */
 #ifndef DEBUG
 #define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_NOTICE)
 #else
 #define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_TRACE)
-#endif /* ! DEBUG */
+#endif  /* ! DEBUG */
 
 /* Set the logger standard behavior */
 #define ICOWM_DEFAULT_LOGGER_BEHAVIOR "DEFAULT"

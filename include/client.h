@@ -257,14 +257,14 @@ typedef struct client_s {
 
 
 /* Inline functions */
-/* Saves the current geometry of the client to the original geometry */
+/* Save the current geometry of the client to the original geometry */
 static inline void client_geometry_save(client_td *client)
 {
     client->layout.geometry.old = client->layout.geometry.cur;
 }
 
 
-/* Restores the client's geometry from the saved original geometry */
+/* Restore the client's geometry from the saved original geometry */
 static inline void client_geometry_restore(client_td *client)
 {
     client->layout.geometry.cur = client->layout.geometry.old;

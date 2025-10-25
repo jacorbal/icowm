@@ -26,6 +26,7 @@
 /* Enable features from the POSIX.1-2001 standard */
 #define _POSIX_C_SOURCE 200112L /* getopt */
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>      /* FILE, fprintf */
@@ -118,8 +119,8 @@ static inline void s_show_help(FILE *fp)
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
     fprintf(fp, "   -l <log_file>   Log file (or keyword: 'DEFAULT'," \
                 " 'STDOUT', 'STDERR', 'NULL')\n");
-    fprintf(fp, "   -q              Quiet mode; only show fatal" \
-                " errors (equivalent to '-L%d')\n", LOG_MAX_LEVEL);
+    fprintf(fp, "   -q              Quiet mode; filter to fatal errors" \
+                " only (identical to '-L%d')\n", LOG_MAX_LEVEL);
     fprintf(fp, "   -t              Enable function tracking for all" \
                 " messages, not just level %d\n", LOG_TRACE);
 
@@ -137,10 +138,9 @@ static inline void s_show_help(FILE *fp)
     /* Show default configuration directory values */
     fprintf(fp, "Configuration directory is set to ");
     if (config_xdg_config_home) {
-        fprintf(fp, "'%s/%s'\n", config_xdg_config_home,
-        CONFIG_DIR_BASE);
+        fprintf(fp, "'%s%s'\n", config_xdg_config_home, CONFIG_DIR_BASE);
     } else if (config_home) {
-        fprintf(fp, "'%s/.%s'\n", config_home, CONFIG_DIR_BASE);
+        fprintf(fp, "'%s.%s'\n", config_home, CONFIG_DIR_BASE);
     } else {
         fprintf(fp, "'%s'\n", CONFIG_DIR_BASE);
     }
@@ -184,7 +184,7 @@ static inline void s_show_logger_destination(FILE *fp,
     } else {
         fprintf(fp, "Logging ");
         if (safe_strcmp(filename, "DEFAULT") == 0) {
-            fprintf(fp, "warnings/errors to 'stderr'" \
+            fprintf(fp, "warnings & errors to 'stderr'," \
                         " and information to 'stdout' ");
         } else if (safe_strcmp(filename, "STDOUT") == 0) {
             fprintf(fp, "everything to 'stdout' ");

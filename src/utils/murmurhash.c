@@ -1,4 +1,5 @@
-/** @file murmurhash.c
+/**
+ * @file utils/murmurhash.c
  *
  * @brief MurmurHash different variations implementation
  */
