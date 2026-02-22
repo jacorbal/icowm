@@ -16,11 +16,11 @@ __RELEASE_DATE = "20260320 (intended)"
 
 ## Directories
 PWD   = $(CURDIR)
-I_DIR = ${PWD}/include
-S_DIR = ${PWD}/src
-L_DIR = ${PWD}/lib
-O_DIR = ${PWD}/obj
-B_DIR = ${PWD}/bin
+I_DIR = $(PWD)/include
+S_DIR = $(PWD)/src
+L_DIR = $(PWD)/lib
+O_DIR = $(PWD)/obj
+B_DIR = $(PWD)/bin
 
 SHELL=/bin/sh
 
@@ -32,7 +32,7 @@ CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
 CCWARN_POSIX = -D_POSIX_C_SOURCE=200112L #-D__STRICT_ANSI__
 
-CCWARN_TINY = ${CCWARN_POSIX} -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
+CCWARN_TINY = $(CCWARN_POSIX) -Wpedantic -Wall -Wextra -Wshadow -Wundef #-Werror
 
 CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 
@@ -51,13 +51,13 @@ CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
 				-Wdocumentation \
 				-Wno-fortify-source -Wno-cast-align -Wno-cast-qual
 
-CCWARN      = ${CCWARN_TINY} ${CCWARN_MORE} ${CCWARN_MOST}
-CCFLAGS     = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR}
+CCWARN      = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
+CCFLAGS     = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR)
 
 JSON_LFLAGS = -lcjson
 XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh)
 OTHR_LFLAGS = -lpthread
-LDFLAGS     = -L ${L_DIR} ${JSON_LFLAGS} ${XCB_LFLAGS} ${OTHR_LFLAGS}
+LDFLAGS     = -L $(L_DIR) $(JSON_LFLAGS) $(XCB_LFLAGS) $(OTHR_LFLAGS)
 
 
 ## Data & build information
@@ -85,9 +85,9 @@ CCFLAGS += -D__RELEASE_DATE=\"$(__RELEASE_DATE)\"
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
 CC = clang
 ifeq ($(CC), clang)
-	CCWARN += ${CCWARN_CLANG}
+	CCWARN += $(CCWARN_CLANG)
 else ifeq ($(CC), gcc)
-	CCWARN += ${CCWARN_GCC}
+	CCWARN += $(CCWARN_GCC)
 else
 	$(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
@@ -101,7 +101,7 @@ else ifeq ($(DEBUG), 2)
 	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
 else
-	CCFLAGS += -DNDEBUG -O${CCOPT}
+	CCFLAGS += -DNDEBUG -O$(CCOPT)
 endif
 
 # Use `make clean && make STRIP=1` to discard symbols from object files
@@ -117,19 +117,19 @@ SHELL = /bin/sh
 .SUFFIXES: .h .c .o
 
 # Binary file options and running arguments
-TARGET = ${B_DIR}/main
+TARGET = $(B_DIR)/main
 DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
 # Sources and objects
-SRCS = $(wildcard ${S_DIR}/*.c) \
-		$(wildcard ${S_DIR}/*/*.c) \
-		$(wildcard ${S_DIR}/*/*/*.c)
-OBJS = $(patsubst ${S_DIR}/%.c, ${O_DIR}/%.o, $(SRCS))
+SRCS = $(wildcard $(S_DIR)/*.c) \
+		$(wildcard $(S_DIR)/*/*.c) \
+		$(wildcard $(S_DIR)/*/*/*.c)
+OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 
 # Make all, create needed directories and build
-all: mkdirs ${TARGET} ctags
-	@echo "Build ${__BUILD_NUMBER} complete"
+all: mkdirs $(TARGET) ctags
+	@echo "Build $(__BUILD_NUMBER) complete"
 
 mkdirs:
 	@if [ ! -d $(B_DIR) ]; then mkdir -p $(B_DIR); fi
@@ -139,13 +139,13 @@ mkdirs:
 	done
 
 # Linkage
-${TARGET}: ${OBJS}
-	${CC} -o $@ $^ ${LDFLAGS}
-	make ${BUILD_NUMBER_FILE}
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
+	make $(BUILD_NUMBER_FILE)
 
 # Compilation
-${O_DIR}/%.o: ${S_DIR}/%.c
-	${CC} ${CCFLAGS} -c -o $@ $<
+$(O_DIR)/%.o: $(S_DIR)/%.c
+	$(CC) $(CCFLAGS) -c -o $@ $<
 
 ctags:
 ifeq (,$(wildcard "/usr/bin/ctags"))
@@ -157,20 +157,20 @@ else
 endif
 
 clean-obj:
-	rm --force ${OBJS}
+	rm --force $(OBJS)
 
 clean-bin:
-	rm --force ${TARGET}
+	rm --force $(TARGET)
 
 clean-build:
-	rm --force ${BUILD_NUMBER_FILE}
+	rm --force $(BUILD_NUMBER_FILE)
 
 clean:
 	@make clean-obj
 	@make clean-bin
 
 run:
-	${TARGET} ${ARGS}
+	$(TARGET) $(ARGS)
 
 hard:
 	@make clean
@@ -181,8 +181,8 @@ hard-run:
 	@make run
 
 doxygen:
-	@[ -f '${DOXIGEN_FILE}' ] && doxygen || \
-		echo "Error: '${DOXIGEN_FILE}' not found" >&2
+	@[ -f '$(DOXIGEN_FILE)' ] && doxygen || \
+		echo "Error: '$(DOXIGEN_FILE)' not found" >&2
 
 help:
 	@echo "Command:"
@@ -201,10 +201,10 @@ help:
 	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
 	@echo "  Use 'CC=<compiler>' to select a compiler ('gcc' or 'clang')"
 	@echo
-	@echo "Binary will be placed in '${TARGET}'"
+	@echo "Binary will be placed in '$(TARGET)'"
 
 # Increase build number manually
-$(BUILD_NUMBER_FILE): ${TARGET}
+$(BUILD_NUMBER_FILE): $(TARGET)
 	@echo "Increasing build number to $(__BUILD_NUMBER)..."
 	@echo $(__BUILD_NUMBER) >$(BUILD_NUMBER_FILE)
 
