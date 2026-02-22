@@ -8,6 +8,10 @@
  *
  * @ingroup path Path management utils
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef UTILS_PATH
 #define UTILS_PATH
@@ -17,9 +21,9 @@
  * @brief Normalize a given file path by removing unnecessary components
  *
  * Processes the input path and simplifies it by:
- *   - Removing consecutive slashes
- *   - Ignoring the current directory indicators ('./')
- *   - Resolving the parent directory indicators ('../')
+ *   - removing consecutive slashes;
+ *   - ignoring the current directory indicators ('./');
+ *   - resolving the parent directory indicators ('../').
  *
  * @param path Pointer to the input path string to be normalized
  * 

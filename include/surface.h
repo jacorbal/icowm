@@ -212,7 +212,7 @@ desktop_td *surface_desktop_get(surface_td *surface,
  *         found or not invalid
  */
 desktop_td *surface_desktop_prev(surface_td *surface,
-        unsigned desktop_id, bool cycle);
+        uint32_t desktop_id, bool cycle);
 
 /**
  * @brief Get the next desktop in the list, optionally cycling

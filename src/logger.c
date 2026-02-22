@@ -9,10 +9,11 @@
  */
 
 /* System includes */
-#include <stdbool.h>
 #include <stdarg.h>     /* va_list, va_start, va_end */
+#include <stdbool.h>
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
 #include <stdlib.h>     /* NULL, free, malloc, size_t */
+#include <sys/time.h>   /* gettimeofday */
 #include <time.h>       /* localtime, strftime, time, tm */
 
 /* Utils includes */
@@ -49,6 +50,124 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
 }
 
 
+/**
+ * @brief Format current timestamp with microseconds and timezone offset
+ *
+ * Retrieves the current time, including microseconds, and formats it
+ * into the provided buffer as a human-readable timestamp with timezone
+ * offset.
+ *
+ * @param buffer    Pointer to the character array where the formatted
+ *                  timestamp will be stored
+ * @param buffer_sz Size of the buffer in bytes
+ * @param flags     X
+ *
+ * @note Format: `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`
+ * @note Uses POSIX global variable @p timezone to determine timezone
+ *       offset adjusting for daylight saving time using @e tm_isdst
+ *       from @a localtime
+ * @note Complexity: @e O(1)
+ */
+static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
+{
+    struct timeval tv;
+    struct tm tm_info;
+    char tz_sign = '+';
+    int tz_hours = 0;
+    int tz_minutes = 0;
+    long tz_offset_seconds;
+#if !LOGGER_OS_HAS_TM_GMTOFF
+#ifdef __linux__
+    extern long timezone; /* Linux 'glibc' */
+#endif  /* !__linux__ */
+#endif
+
+    gettimeofday(&tv, NULL);
+    if (localtime_r(&tv.tv_sec, &tm_info) == NULL) {
+        snprintf(buffer, buffer_sz, "Timestamp error");
+        return;
+    }
+
+    /* Calculate timezone offset */
+#if LOGGER_OS_HAS_TM_GMTOFF
+    tz_offset_seconds = tm_info.tm_gmtoff;  /* BSD, macOS */
+#else
+#ifdef __linux__
+    /* Check if daylight saving time is in effect:
+     *   - tm_isdst  > 0: summer -- daylight saving time
+     *   - tm_isdst == 0: winter -- standard time (winter)
+     *   - tm_isdst  < 0: info. not available */
+    tz_offset_seconds = -timezone;          /* Linux 'glibc' */
+    if (tm_info.tm_isdst > 0) {
+        tz_offset_seconds += 3600;
+    }
+#else
+    /* Other systems without 'tm_gmtoff' nor 'timezone' */
+    tz_offset_seconds = 0;
+#endif  /* ! __linux__ */
+#endif
+
+
+    /* Determine timezone sign offset and convert to 'HHMM' format */
+    if (flags & LOGGER_TIMESTAMP_TZ) {
+        tz_sign = '+';
+        if (tz_offset_seconds < 0) {
+            tz_sign = '-';
+            tz_offset_seconds = -tz_offset_seconds;
+        }
+        tz_hours = (int) tz_offset_seconds / 3600;
+        tz_minutes = ((int) tz_offset_seconds % 3600) / 60;
+    }
+
+    /* Format the buffer */
+    if ((flags & LOGGER_TIMESTAMP_USEC) && (flags & LOGGER_TIMESTAMP_TZ)) {
+        snprintf(buffer, buffer_sz,
+                "%04d-%02d-%02d %02d:%02d:%02d.%06ld %c%02d%02d",
+                tm_info.tm_year + 1900,
+                tm_info.tm_mon + 1,
+                tm_info.tm_mday,
+                tm_info.tm_hour,
+                tm_info.tm_min,
+                tm_info.tm_sec,
+                tv.tv_usec,
+                tz_sign,
+                tz_hours,
+                tz_minutes);
+    } else if (flags & LOGGER_TIMESTAMP_USEC) {
+        snprintf(buffer, buffer_sz,
+                "%04d-%02d-%02d %02d:%02d:%02d.%06ld",
+                tm_info.tm_year + 1900,
+                tm_info.tm_mon + 1,
+                tm_info.tm_mday,
+                tm_info.tm_hour,
+                tm_info.tm_min,
+                tm_info.tm_sec,
+                tv.tv_usec);
+    } else if (flags & LOGGER_TIMESTAMP_TZ) {
+        snprintf(buffer, buffer_sz,
+                "%04d-%02d-%02d %02d:%02d:%02d %c%02d%02d",
+                tm_info.tm_year + 1900,
+                tm_info.tm_mon + 1,
+                tm_info.tm_mday,
+                tm_info.tm_hour,
+                tm_info.tm_min,
+                tm_info.tm_sec,
+                tz_sign,
+                tz_hours,
+                tz_minutes);
+    } else {
+        snprintf(buffer, buffer_sz,
+                "%04d-%02d-%02d %02d:%02d:%02d",
+                tm_info.tm_year + 1900,
+                tm_info.tm_mon + 1,
+                tm_info.tm_mday,
+                tm_info.tm_hour,
+                tm_info.tm_min,
+                tm_info.tm_sec);
+    }
+}
+
+
 /* Initialize logger */
 int logger_start(const char *filename,
         const enum logger_level_e level_min, bool is_tracking)
@@ -74,12 +193,12 @@ int logger_start(const char *filename,
         logger->buffer = NULL;
 
         /* If file name could be:
-         *      - "NULL", deactivate the logger;
-         *      - "STDOUT", write always to 'stdout';
-         *      - "STDERR", write always to 'stderr';
-         *      - "DEFAULT", write all messages to 'stdout' if
-         *        'severity < LOG_ERROR', and to 'stderr' if
-         *        'severity >= LOG_ERROR';
+         *   - "NULL", deactivate the logger;
+         *   - "STDOUT", write always to 'stdout';
+         *   - "STDERR", write always to 'stderr';
+         *   - "DEFAULT", write all messages to 'stdout' if
+         *     'severity < LOG_ERROR', and to 'stderr' if
+         *     'severity >= LOG_ERROR';
          * else, open the file name and write to it */
         if (safe_strcmp(filename, "DEFAULT") == 0) {
             logger->file.fp_out = stdout;
@@ -166,9 +285,7 @@ int logger_stop(void)
 int logger_msg(enum logger_level_e level, const char *prefix,
         const char *fmt, ...)
 {
-    time_t now = time(NULL);
-    struct tm *tm_info;
-    char timestamp[100];
+    char timestamp[64];
     const char *level_str = NULL;
     char msg[LOGGER_MAX_LENGTH_MSG];
     va_list args;
@@ -185,9 +302,8 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     }
 
     /* Get the timestamp */
-    tm_info = localtime(&now);
-    strftime(timestamp, sizeof(timestamp),
-            "%Y-%m-%d %H:%M:%S %Z", tm_info);
+    s_timestamp_fmt(timestamp, sizeof(timestamp),
+        LOGGER_TIMESTAMP_USEC | LOGGER_TIMESTAMP_TZ);
 
     /* Set the level string to output */
     switch (level) {

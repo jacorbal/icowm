@@ -69,7 +69,7 @@ static pthread_t event_thread;          /* Thread identifier for the
  *        thread
  *
  * @note It should be set to @c true to start processing events
- * (@a eventq_start) and @c false to stop it (@a eventq_stop)
+ *       (@a eventq_start) and @c false to stop it (@a eventq_stop)
  */
 static bool eventq_is_running = false;  /* Running state of the event
                                            processing thread */
@@ -89,8 +89,7 @@ static bool eventq_is_running = false;  /* Running state of the event
  *
  * @note The function assumes that @p eventq_is_running is managed
  *       externally to safely start and stop the processing loop.
- *
- * @note Complexity: @e (O(n), where @e n is number of events being
+ * @note Complexity: @e O(n), where @e n is number of events being
  *       processed in @a eventq_process, however, it depends on the size
  *       of the event queue when events are presented for processings
  *
@@ -139,11 +138,11 @@ static int s_event_compare(const void *e1, const void *e2)
     const event_td *event2 = (const event_td *) e2;
 
     if (event1->priority < event2->priority) {
-        return -1;  /* pr(event1) -gt pr(event2) */
+        return -1;  /* pr(event1) > pr(event2) */
     } else if (event1->priority > event2->priority) {
-        return 1;   /* pr(event1) -lt pr(event2) */
+        return 1;   /* pr(event2) < pr(event1) */
     } else {
-        return 0;   /* pr(event1) -eq p(event2) */
+        return 0;   /* pr(event1) == p(event2) */
     }
 }
 
@@ -155,7 +154,7 @@ static void s_event_handle_client(event_td *event)
     action_data_client_td *client_data;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' client event to process in " \
+        LOGGER_ERROR("Received 'NULL' client event to process in" \
                 " event queue", L_NARG);
         return;
     }

@@ -101,7 +101,7 @@ static void s_wm_loop(void)
 
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
-                "or set to not run", L_NARG);
+                " or set to not run", L_NARG);
         return;
     }
 

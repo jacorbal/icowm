@@ -40,22 +40,22 @@ static void s_update_properties(surface_td *surface,
     xx = screen->width_in_pixels;  // XCB allows direct access to these
     yy = screen->height_in_pixels;
 
-    surface->properties.dim.w = (xx > 0) ? (uint32_t)xx : 0;
-    surface->properties.dim.h = (yy > 0) ? (uint32_t)yy : 0;
+    surface->properties.dim.w = (xx > 0) ? (uint32_t) xx : 0;
+    surface->properties.dim.h = (yy > 0) ? (uint32_t) yy : 0;
 
     /* Get dimensions in mm from the screen */
     xx = screen->width_in_millimeters;
     yy = screen->height_in_millimeters;
 
-    surface->properties.dim_mm.w = (xx > 0) ? (uint32_t)xx : 0;
-    surface->properties.dim_mm.h = (yy > 0) ? (uint32_t)yy : 0;
+    surface->properties.dim_mm.w = (xx > 0) ? (uint32_t) xx : 0;
+    surface->properties.dim_mm.h = (yy > 0) ? (uint32_t) yy : 0;
 
     /* Calculate DPI; dpi = px / (mm/25.4);  1 in ~= 25.4 mm */
     /* Calculate DPI for x-axis */
     if (surface->properties.dim_mm.w > 0) {
         surface->properties.dpi.x =
-            (uint32_t)((float)surface->properties.dim.w /
-                    ((float)surface->properties.dim_mm.w / 25.4f));
+            (uint32_t) ((float) surface->properties.dim.w /
+                    ((float) surface->properties.dim_mm.w / 25.4f));
     } else {
         /* Division by zero: DPI in 'x' set to 0 */
         surface->properties.dpi.x = 0;
@@ -64,8 +64,8 @@ static void s_update_properties(surface_td *surface,
     /* Calculate DPI for y-axis */
     if (surface->properties.dim_mm.h > 0) {
         surface->properties.dpi.y =
-            (uint32_t)((float)surface->properties.dim.h /
-                    ((float)surface->properties.dim_mm.h / 25.4f));
+            (uint32_t) ((float) surface->properties.dim.h /
+                    ((float) surface->properties.dim_mm.h / 25.4f));
     } else {
         /* Division by zero: DPI in 'y' set to 0 */
         surface->properties.dpi.y = 0;
@@ -328,8 +328,7 @@ desktop_td *surface_desktop_get(surface_td *surface,
 
 /* Get the previous desktop in the list, optionally cycling */
 desktop_td *surface_desktop_prev(surface_td *surface,
-        uint32_t desktop_id,
-        bool cycle)
+        uint32_t desktop_id, bool cycle)
 {
     cdlist_item_td *current_item;
 
@@ -346,7 +345,8 @@ desktop_td *surface_desktop_prev(surface_td *surface,
             if (prev_item == cdlist_head(surface->desktops)) {
                 if (cycle) {
                     /* Circular behavior; wrap to the last desktop */
-                    return (desktop_td *) cdlist_data(cdlist_tail(surface->desktops));
+                    return (desktop_td *)
+                        cdlist_data(cdlist_tail(surface->desktops));
                 }
                 /* No valid previous desktop */
                 return NULL;

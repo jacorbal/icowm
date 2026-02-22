@@ -7,7 +7,7 @@
  * structure is populated by retrieving their contents.
  */
 /*
- * NOTE(S):
+ * NOTE, i.e., MUSINGS AND ADMONITIONS TO MINE OWN REFLECTIVE INNER SELF:
  *
  * Regarding the forthcoming extant self (Sat Mar 22 05:01 CET 2025):
  *      The current state of this code is significantly suboptimal.
@@ -15,14 +15,22 @@
  *      convenience, or at a time that is deemed more suitable.
  *
  * Regarding the whilom expired self (Sun Mar 23 06:12 CET 2025):
- *      Should've done it correctly from the get-go and avoided future
- *      headaches: *my* present headaches.
+ *      Should've done it correctly from the very outset and avoided
+ *      future headaches: *my* current headaches.
+ *
+ * Regarding the erstwhile selves now faded (Sun Jan 11 22:18 CET 2026):
+ *      I find myself ensnared in the dire consequences of this wretched
+ *      code, which continues to vex my weary soul with its torment.
+ *      Each passing hour doth remind me of the ill-advised choices of
+ *      yore; verily, I remain a prisoner of my own flawed creations.
+ *
+ * Regarding my rambling selves of yesteryear (Sat Feb 14 11:36 CET 2026):
+ *      Pish, let it matter not, ye idle knaves!  I shall change naught!
  */
 /*
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
-
 
 /* System includes */
 #include <stdbool.h>

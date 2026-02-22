@@ -3,6 +3,10 @@
  *
  * @brief Implementation for path handling functions
  */
+/*
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 /* Utils includes */
 #include <utils/safestr.h>
@@ -29,12 +33,12 @@ void path_simplify(char *restrict path)
         } else if (safe_strncmp(src, "./", 2) == 0) {
             src += 2;   /* Jump over "./" */
         } else if (safe_strncmp(src, "../", 3) == 0 && last_slash) {
-            // Retrocede al último nivel
-            dst = last_slash;   /* Go back to last slash */
+            dst = last_slash;       /* Go back to last slash */
             src += 3;   /* Jump over "../" */
         } else {
             *dst++ = *src++;
         }
     }
+
     *dst = '\0';    /* End string */
 }

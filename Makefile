@@ -10,9 +10,9 @@ __PROJECT_NAME_LONG = "Iconifying Window Manager"
 __PROJECT_VERSION = "0.1.0-alpha"
 __PROJECT_VERSION_CODENAME = "'ovelya"
 __LICENSE = "ISC License"
-__COPYRIGHT = "Copyright (c) 2025"
+__COPYRIGHT = "Copyright (c) 2026"
 __AUTHOR = "J. A. Corbal"
-__RELEASE_DATE = "20251221 (intended)"
+__RELEASE_DATE = "20260320 (intended)"
 
 ## Directories
 PWD   = $(CURDIR)
@@ -82,7 +82,7 @@ CCFLAGS += -D__RELEASE_DATE=\"$(__RELEASE_DATE)\"
 
 ## Options on `make`
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
-CC = gcc
+CC = clang
 ifeq ($(CC), clang)
 	CCWARN += ${CCWARN_CLANG}
 else ifeq ($(CC), gcc)
@@ -181,19 +181,23 @@ doxygen:
 		echo "Error: '${DOXIGEN_FILE}' not found" >&2
 
 help:
-	@echo "Type:"
-	@echo "  'make all'........................................ Build project"
-	@echo "  'make clean-obj'............................. Clean object files"
-	@echo "  'make clean'...................... Clean binary and object files"
-	@echo "  'make ctags'...................... Generate tag files for source"
-	@echo "  'make doxygen'..................... Create Doxygen documentation"
-	@echo "  'make hard'..................................... Clean and build"
-	@echo "  'make run'............................... Run binary (if exists)"
-	@echo "  'make run ARGS=\"<args>\"'.. Run binary with arguments (if exists)"
-	@echo "  'make hard-run'......... Clean, build and run binary (if exists)"
-	@echo ""
-	@echo "  'Use 'make DEBUG=1' to generate detailed debug information"
-	@echo "  Binary will be placed in '${TARGET}'"
+	@echo "Command:"
+	@echo "  make all               Build project"
+	@echo "  make clean-obj         Clean object files"
+	@echo "  make clean             Clean binary and object files"
+	@echo "  make ctags             Generate tag files for source"
+	@echo "  make doxygen           Create Doxygen documentation"
+	@echo "  make hard              Clean and build"
+	@echo "  make run               Run binary (if exists)"
+	@echo "  make run ARGS=<args>   Run with arguments (if binary exists)"
+	@echo "  make hard-run          Clean, build and run (if binary exists)"
+	@echo
+	@echo "Options:"
+	@echo "  Use 'DEBUG=1' to generate detailed debug information"
+	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
+	@echo "  Use 'CC=<compiler>' to select a compiler ('gcc' or 'clang')"
+	@echo
+	@echo "Binary will be placed in '${TARGET}'"
 
 # Increase build number manually
 $(BUILD_NUMBER_FILE):

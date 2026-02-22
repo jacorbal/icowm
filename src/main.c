@@ -6,15 +6,15 @@
  *
  * @author J. A. Corbal <jacorbal@gmail.com>
  *
- * @date Fri Apr  4 06:40:11 AM UTC 2025
+ * @date Sat Feb 14 11:48:59 CET 2026
  *
  * @version 0.1.0 ("'ovelya")
- * @copyright Copyright (c) 2025, J. A. Corbal.
+ * @copyright Copyright (c) 2026, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *
  * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
  *       conforms to POSIX.1-2001
- * @note Built with GCC 12.2.0 and Clang 14.0.6
+ * @note Built with `gcc` 14.2.0 and `clang` 19.1.7
  */
 /*                 ____       _      ____  ___
  *                /  _/______| | /| / /  |/  /
@@ -32,7 +32,7 @@
 #include <stdio.h>      /* FILE, fprintf */
 #include <stdlib.h>     /* NULL, atoi, getenv, srand */
 #include <time.h>       /* time */
-#include <unistd.h>     /* getopt, getpid */
+#include <unistd.h>     /* optarg, getopt, getpid */
 
 /* Utils includes */
 #include <utils/safemem.h>

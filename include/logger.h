@@ -61,9 +61,30 @@
 #define LOGGER_H
 
 /* System includes */
-#include <stdbool.h>    /* bool */
+#include <stdbool.h>
 #include <stdio.h>      /* FILE */
 
+
+/* Define 'LOGGER_OS_HAS_TM_GMTOFF' as 1 if the system is a BSD-derived
+ * or macOS system, which typically supports 'tm_gmtoff' in 'struct tm'.
+ *
+ * The condition checks for UNIX-like systems that are not Linux (e.g.,
+ * FreeBSD, OpenBSD, NetBSD, DragonFly BSD), which generally include
+ * 'tm_gmtoff'.  It also covers other UNIX systems like Tru64
+ * ('__osf__'), Irix ('__sgi__'), and Solaris ('__sun__'), which also
+ * support 'tm_gmtoff', as well as macOS ('__APPLE__').
+ *
+ * For Linux systems ('__linux__'), 'struct tm' does not include
+ * 'tm_gmtoff', so the macro 'LOGGER_OS_HAS_TM_GMTOFF' is set to 0.
+ * For all other systems, the macro defaults to 0 as a fallback. */
+#if (defined(__unix__) && !defined(__linux__)) || \
+    defined(__APPLE__) || defined(__FreeBSD__) || \
+    defined(__NetBSD__) || defined(__OpenBSD__) || \
+    defined(__osf__) || defined(__sgi__) || defined(__sun__)
+#define LOGGER_OS_HAS_TM_GMTOFF (1)
+#else
+#define LOGGER_OS_HAS_TM_GMTOFF (0)
+#endif
 
 /* This is used as "there are no arguments" argument so the variadic
  * macros do not complain.
@@ -71,14 +92,18 @@
  * Yes, '((void *) 0)' is 'NULL', and it's also included in 'stddef.h'
  * which is inarguably called by 'stdio.h', so '#define L_NARG NULL'
  * should be enough, but I like it this way. */
-#define L_NARG ((void *) 0)         /**< "No arguments" modifier for
-                                         variadic macros in log
-                                         messages */
+#define L_NARG ((void *) 0)             /**< "No arguments" modifier for
+                                             variadic macros in log
+                                             messages */
 
-#define LOGGER_MAX_LENGTH_MSG (160) /**< Maximum length of a log message */
-#define LOGGER_FLUSH_THRESHOLD (16) /**< Number of messages stored in
-                                         buffer before flushing */
+#define LOGGER_MAX_LENGTH_MSG (160)     /**< Max. length of a log message */
+#define LOGGER_FLUSH_THRESHOLD (16)     /**< Number of messages stored in
+                                             buffer before flushing */
 
+#define LOGGER_TIMESTAMP_USEC (1 << 0)  /**< Flag to add microseconds
+                                             to timestamp */
+#define LOGGER_TIMESTAMP_TZ (1 << 1)    /**< Flag to add timezone offset
+                                             to timestamp */
 
 /**
  * @brief Logger levels

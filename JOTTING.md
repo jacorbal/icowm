@@ -18,8 +18,8 @@ lore.  For this very programme, the hours twenty and four, broken asunder
 'neath a dozen non-sequential suns, in the measure of thrice and half hours
 *per diem*, were perchance as offerings to the sacred art of creation of
 this first draft begetting, whereupon each keystroke on its faithful keys
-didst become a whisper in the dead of night, each line, a tremor, a
-reverberation of my restless spirit, weaving Time’s tapestry in tranquil
+didst become a whisper in the dead of night, each line, a tremor,
+a reverberation of my restless spirit, weaving Time’s tapestry in tranquil
 musing and silent reverie.  I craft, therefore I evolve.
 
 > Verily, 'tis not the province of us, the noble artificers of code, to
@@ -33,10 +33,10 @@ Ev'ry programmer, a Quixote, doth strive with fervent might 'gainst the
 giants that loom in the realm of code.  The sole tongue that a programmer
 doth fully know is that of lamentation and of striving.
 
-In yon realm of fainèant scribes and digital quills, where desks do whisper
-oft of labor's call, the intention hath ever been, and ever shall be, to
-forge a sanctuary of productivity, wherein the scriber of code's spirit may
-flourish unencumbered.  The icons doth stand as steadfast sentinels,
+In yon realm of fainèant scribes and digital quills, where desks oft do
+whisper of labor's call, the intention hath ever been, and ever shall be,
+to forge a sanctuary of productivity, wherein the scriber of code's spirit
+may flourish unencumbered.  The icons doth stand as steadfast sentinels,
 guardians of thought, representing not mere distractions, but rather the
 delicate minimisations of that which doth continue to be unfolded in the
 recesses of the mind.  With purpose pure, each emblem doth symbolize a task
@@ -44,7 +44,7 @@ half-formed, awaiting patiently to be realised, whilst the laborer
 remaineth anchored in the placid quietude of creation.  No gaze dost lift
 unto the ever-changing tapestry of the task-bar, for the true wisdom lieth
 not in fleeting glances, but rather in the focused intent of the work at
-hand.  
+hand.
 
 Methinks that in the nascent hour of these new-sprung pictur'd interfaces
 of userkind, by shrinking a casement, 'twas transform'd into a sigil,
@@ -82,4 +82,4 @@ wonders that shall echo through the chronicles of technology's age.
 
 *jaj QaQ*!
 
-            //JACR, PhD <jacorbal@gmail.com>; MMXXV (@ver. 1.0.0 "'ovelya")
+//JACR, PhD <jacorbal@gmail.com>; MMXXVI (@ver. 1.0.0 "'ovelya")
