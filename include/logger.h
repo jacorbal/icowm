@@ -68,10 +68,10 @@
 /* Define 'LOGGER_OS_HAS_TM_GMTOFF' as 1 if the system is a BSD-derived
  * or macOS system, which typically supports 'tm_gmtoff' in 'struct tm'.
  *
- * The condition checks for UNIX-like systems that are not Linux (e.g.,
- * FreeBSD, OpenBSD, NetBSD, DragonFly BSD), which generally include
- * 'tm_gmtoff'.  It also covers other UNIX systems like Tru64
- * ('__osf__'), Irix ('__sgi__'), and Solaris ('__sun__'), which also
+ * Checks for UNIX-like systems that are not Linux (e.g., FreeBSD,
+ * OpenBSD, NetBSD, DragonFly BSD), which generally include 'tm_gmtoff'.
+ * It also covers other UNIX systems like Tru64 ('__osf__'), Irix
+ * ('__sgi__'), and Solaris ('__sun__'), which also
  * support 'tm_gmtoff', as well as macOS ('__APPLE__').
  *
  * For Linux systems ('__linux__'), 'struct tm' does not include

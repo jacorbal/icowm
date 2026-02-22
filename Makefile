@@ -64,10 +64,11 @@ LDFLAGS     = -L ${L_DIR} ${JSON_LFLAGS} ${XCB_LFLAGS} ${OTHR_LFLAGS}
 BUILD_NUMBER_FILE = Build
 ifneq (,$(wildcard $(BUILD_NUMBER_FILE)))
 	LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
-	__BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
 else
-	__BUILD_NUMBER := 1
+	LAST_BUILD_NUMBER := 0
 endif
+__BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
+
 CCFLAGS += -D__BUILD_NUMBER=$(__BUILD_NUMBER)
 CCFLAGS += -D__BUILD_TIMESTAMP=\"$(shell date -u +'%Y%m%dT%H%M')\"
 CCFLAGS += -D__PROJECT_NAME_LONG=\"$(__PROJECT_NAME_LONG)\"
@@ -126,22 +127,25 @@ SRCS = $(wildcard ${S_DIR}/*.c) \
 		$(wildcard ${S_DIR}/*/*/*.c)
 OBJS = $(patsubst ${S_DIR}/%.c, ${O_DIR}/%.o, $(SRCS))
 
+# Make all, create needed directories and build
+all: mkdirs ${TARGET} ctags
+	@echo "Build ${__BUILD_NUMBER} complete"
+
+mkdirs:
+	@if [ ! -d $(B_DIR) ]; then mkdir -p $(B_DIR); fi
+	@if [ ! -d $(O_DIR) ]; then mkdir -p $(O_DIR); fi
+	@for dir in $$(find $(S_DIR) -mindepth 1 -maxdepth 1 -type d | sed 's|$(S_DIR)/||'); do \
+		mkdir -p "$(O_DIR)/$$dir"; \
+	done
+
 # Linkage
 ${TARGET}: ${OBJS}
 	${CC} -o $@ $^ ${LDFLAGS}
+	make ${BUILD_NUMBER_FILE}
 
 # Compilation
 ${O_DIR}/%.o: ${S_DIR}/%.c
 	${CC} ${CCFLAGS} -c -o $@ $<
-
-
-## Make options
-.PHONY: ctags clean clean-obj clean-all run hard hard-run doxygen \
-	$(BUILD_NUMBER_FILE)
-
-all:
-	make ${TARGET} ${BUILD_NUMBER_FILE}
-	@make ctags
 
 ctags:
 ifeq (,$(wildcard "/usr/bin/ctags"))
@@ -200,6 +204,11 @@ help:
 	@echo "Binary will be placed in '${TARGET}'"
 
 # Increase build number manually
-$(BUILD_NUMBER_FILE):
+$(BUILD_NUMBER_FILE): ${TARGET}
 	@echo "Increasing build number to $(__BUILD_NUMBER)..."
-	@echo $(__BUILD_NUMBER) > $(BUILD_NUMBER_FILE)
+	@echo $(__BUILD_NUMBER) >$(BUILD_NUMBER_FILE)
+
+
+## Phony targets
+.PHONY: all mkdirs ctags clean clean-obj clean-all run hard hard-run \
+	doxygen $(BUILD_NUMBER_FILE)

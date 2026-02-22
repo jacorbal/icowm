@@ -276,7 +276,7 @@ int desktop_action_clients_rearrange(desktop_td *desktop);
 /**
  * @brief Iconify (minimize) all clients on the current desktop
  *
- * Set all visible clients on the current desktop to an iconified state
+ * Sets all visible clients on the current desktop to an iconified state
  * (also, technically, minimized).
  *
  * @param desktop Pointer to the desktop to receive the action
@@ -318,7 +318,7 @@ int desktop_action_cycle_clients_active(desktop_td *desktop);
 int desktop_action_cycle_clients_icons(desktop_td *desktop);
 
 /**
- * @brief Lock the current desktop session,  preventing unauthorized
+ * @brief Lock the current desktop session, preventing unauthorized
  *        access
  *
  * @param desktop Pointer to the desktop to receive the action
@@ -348,7 +348,7 @@ int desktop_action_unlock(desktop_td *desktop);
  * @brief Change the layout of the current desktop
  *
  * @param desktop Pointer to the desktop to receive the action
- * @param layout New layout configuration
+ * @param layout  New layout configuration
  *
  * @return Status of the operation
  * @retval  0 Success

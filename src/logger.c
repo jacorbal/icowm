@@ -94,9 +94,9 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
 #else
 #ifdef __linux__
     /* Check if daylight saving time is in effect:
-     *   - tm_isdst  > 0: summer -- daylight saving time
-     *   - tm_isdst == 0: winter -- standard time (winter)
-     *   - tm_isdst  < 0: info. not available */
+     *   - 'tm_isdst'  > 0: summer; daylight saving time
+     *   - 'tm_isdst' == 0: winter; standard time
+     *   - 'tm_isdst'  < 0: info. not available */
     tz_offset_seconds = -timezone;          /* Linux 'glibc' */
     if (tm_info.tm_isdst > 0) {
         tz_offset_seconds += 3600;
@@ -108,7 +108,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
 #endif
 
 
-    /* Determine timezone sign offset and convert to 'HHMM' format */
+    /* Determine timezone sign offset and convert to "HHMM" format */
     if (flags & LOGGER_TIMESTAMP_TZ) {
         tz_sign = '+';
         if (tz_offset_seconds < 0) {
