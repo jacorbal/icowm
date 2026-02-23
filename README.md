@@ -4,7 +4,7 @@ IcoWM
 **IcoWM** is a minimalist stacking window manager for the X Window
 System that was meticulously crafted without the inclusion of desktop
 icons for inactive windows, placing a significant emphasis on the
-utilisation of iconification (iconization) in a manner reminiscent of
+utilization of iconification (iconization) in a manner reminiscent of
 traditional TWM aesthetics, but with a modern touch.
 
 Basic features are:
@@ -18,8 +18,8 @@ Basic features are:
     shortcuts and mouse actions.
 
   - **Virtual Desktops.**
-    Facilitates the organization of open applications into discrete
-    workspaces minimizing visual clutter.
+    Organization of open applications into discrete workspaces
+    minimizing visual clutter.
 
   - **Extended Window Manager Hints (EWMH) compliance.**
     As it provides needed compatibility.

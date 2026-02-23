@@ -75,21 +75,25 @@ desktop_td *desktop_init(xcb_connection_t *connection,
         struct config_theme_s *config_theme)
 {
     desktop_td *desktop;
+    xcb_screen_t *screen;
+    xcb_screen_iterator_t iter;
 
     LOGGER_DEBUG("Initializing desktop %u on screen %u",
             desktop_id, screen_id);
+
     desktop = malloc(sizeof(desktop_td));
     if (desktop == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for" \
-                "desktop %u on screen %u", desktop_id, screen_id);
+        LOGGER_ERROR("Failed to allocate memory for desktop %u on screen %u",
+                desktop_id, screen_id);
         return NULL;
     }
 
-    /* Stablish the basics */
+    /* Establish the basics */
     desktop->screen_id = screen_id;
     desktop->id = desktop_id;
     desktop->client_active_id = 0;
     desktop->ewmh = ewmh;
+    desktop->connection = connection;
 
     /* Get the configuration */
     desktop->config_base = config_base;
@@ -106,7 +110,6 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     }
 
     /* Set background color */
-    /* TODO: use image instead of color, and 'image_path' */
     desktop->background.is_image = false;
     desktop->background.bg.color =
         config_base->screens[screen_id].desktops[desktop_id].settings.background.color;
@@ -114,20 +117,72 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     LOGGER_TRACE("Initializing client list structure for" \
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
+
+    /* Initialize hash table for quick client lookup */
     desktop->clients =
         ohtbl_init(DESKTOP_INITIAL_CAPACITY, 0,
                 s_h1, s_h2, s_client_match,
                 (void(*)(void *)) client_destroy);
     if (desktop->clients == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for client hash table" \
-                " on desktop %u ('%s') on screen %u",
+        LOGGER_ERROR("Failed to allocate memory for" \
+                " client hash table on desktop %u ('%s') on screen %u",
                 desktop_id, desktop->name, screen_id);
         free(desktop);
         return NULL;
     }
 
-    /* Needs too be updated */
+    LOGGER_TRACE("Initializing stacking list structure for" \
+            " desktop %u ('%s') on screen %u",
+            desktop_id, desktop->name, screen_id);
+
+    /* Initialize circular list for rendering in stacking order */
+    desktop->stacking = cdlist_init(NULL);  /* NULL destroy: FIXME */
+    if (desktop->stacking == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for stacking list" \
+                " on desktop %u ('%s') on screen %u",
+                desktop_id, desktop->name, screen_id);
+        ohtbl_destroy(desktop->clients);
+        free(desktop);
+        return NULL;
+    }
+
+    /* Get XCB screen to obtain dimensions */
+    iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+    screen = NULL;
+
+    /* Iterate through screens to find the correct one */
+    for (uint32_t i = 0; i < screen_id && iter.rem > 0; ++i) {
+        xcb_screen_next(&iter);
+    }
+
+    if (iter.rem == 0 || iter.data == NULL) {
+        LOGGER_ERROR("Invalid screen_id %u, could not retrieve" \
+                " screen information", screen_id);
+        cdlist_destroy(desktop->stacking);
+        ohtbl_destroy(desktop->clients);
+        free(desktop);
+        return NULL;
+    }
+
+    screen = iter.data;
+
+    /* Initialize geometry with screen dimensions */
+    desktop->geometry = (struct geometry_s) {
+        .pos = {.x = 0, .y = 0},
+        .dim = {.w = screen->width_in_pixels,
+                .h = screen->height_in_pixels}
+    };
+
+    /* Work area is the same as geometry for now (no panels/struts) */
+    desktop->workarea = desktop->geometry;
+
+    /* Mark desktop as outdated to trigger initial render */
     desktop->is_outdated = true;
+
+    LOGGER_TRACE("Desktop %u ('%s') on screen %u initialized" \
+            " successfully with geometry %ux%u",
+        desktop_id, desktop->name, screen_id,
+        desktop->geometry.dim.w, desktop->geometry.dim.h);
 
     return desktop;
 }
@@ -136,15 +191,39 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 /* Free memory for allocated desktop */
 void desktop_destroy(desktop_td *desktop)
 {
-    LOGGER_DEBUG("Deallocating structure for desktop %u ('%s')",
-            desktop->id, desktop->name);
     if (desktop == NULL) {
         return;
     }
 
+    LOGGER_DEBUG("Destroying desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    /* Destroy stacking list (clients not destroyed here, just the list) */
+    LOGGER_TRACE("Deallocating stacking list on desktop %u ('%s')",
+            desktop->id, desktop->name);
+    if (desktop->stacking != NULL) {
+        cdlist_destroy(desktop->stacking);
+        desktop->stacking = NULL;
+    }
+
+    /* Destroy hash table (also destroys all clients via client_destroy
+     * callback) */
     LOGGER_TRACE("Deallocating clients on desktop %u ('%s')",
             desktop->id, desktop->name);
-    ohtbl_destroy(desktop->clients);
+    if (desktop->clients != NULL) {
+        ohtbl_destroy(desktop->clients);
+        desktop->clients = NULL;
+    }
+
+    /* Free background image path if it exists */
+    if (desktop->background.is_image &&
+            desktop->background.bg.image_path != NULL) {
+        LOGGER_TRACE("Deallocating image on desktop %u ('%s')",
+                desktop->id, desktop->name);
+        free(desktop->background.bg.image_path);
+        desktop->background.bg.image_path = NULL;
+    }
+
     LOGGER_TRACE("Destroying desktop %u ('%s')",
             desktop->id, desktop->name);
     free(desktop);
@@ -202,25 +281,34 @@ void desktop_clear(desktop_td *desktop)
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
-    LOGGER_DEBUG("Preparing to add client %#x ('%s') to" \
-            " desktop %u ('%s')",
+    LOGGER_DEBUG("Adding client %#x ('%s') to desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
         return -1;
     }
 
-    /* Add client */
+    /* Add to hash table for quick lookup */
     if (ohtbl_insert(desktop->clients, (void *) client) != 0) {
-        LOGGER_ALERT("Failed to allocate memory for client" \
-                " %#x on desktop %u ('%s') on screen %u",
-                client->id,
-                desktop->id, desktop->name, desktop->screen_id);
+        LOGGER_ALERT("Failed to add client to hash table", L_NARG);
         return -1;
     }
 
-    LOGGER_TRACE("Added client %#x ('%s') to desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
+    /* Add to stacking list for rendering order */
+    if (cdlist_ins_next(desktop->stacking,
+                cdlist_tail(desktop->stacking),
+                (void *) client) != 0) {
+        LOGGER_ALERT("Failed to add client to stacking list", L_NARG);
+        /* Remove from hash table on failure */
+        ohtbl_remove(desktop->clients, (void *) client);
+        return -1;
+    }
+
+    LOGGER_TRACE("Successfully added client %#x to desktop %u",
+            client->id, desktop->id);
+    desktop->is_outdated = true;  /* Mark for redraw */
+
     return 0;
 }
 
@@ -228,34 +316,44 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 /* Remove a client from the desktop */
 int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 {
-    void *removed_client = NULL;
+    cdlist_item_td *node;
 
-    LOGGER_DEBUG("Preparing to remove client %#x ('%s') from" \
-            " desktop %u ('%s')",
+    LOGGER_DEBUG("Removing client %#x ('%s') from desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
         return -1;
     }
 
-    /* Search client in list of clients */
-    if (ohtbl_remove(desktop->clients,
-                (void **) &removed_client) == 0) {
-        client_td *removed_client_td = (client_td *) removed_client;
-        if (removed_client_td != NULL &&
-            removed_client_td->id == client->id) {
-            /* Remove client */
-            client_destroy(removed_client_td);
-            LOGGER_TRACE("Removing client %#x ('%s') from" \
-                    " desktop %u ('%s')",
-                    client->id, client->info.name,
-                    desktop->id, desktop->name);
-            return 0;
-        }
+    /* Remove from hash table */
+    if (ohtbl_remove(desktop->clients, (void *) client) != 0) {
+        LOGGER_ALERT("Failed to remove client from hash table", L_NARG);
+        return -1;
     }
 
-    /* Window not found */
-    LOGGER_TRACE("Window %#x ('%s') not found on desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
-    return -1;
+    /* Remove from stacking list (iterate and find the matching client) */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            if (cdlist_data(node) == (void *) client) {
+                /* Found it, remove it */
+                if (cdlist_rem_next(desktop->stacking,
+                            cdlist_prev(node), NULL) != 0) {
+                    LOGGER_ALERT("Failed to remove client from" \
+                            " stacking list", L_NARG);
+                    return -1;
+                }
+                break;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    LOGGER_TRACE("Successfully removed client %#x from desktop %u",
+            client->id, desktop->id);
+    desktop->is_outdated = true;  /* Mark for redraw */
+
+    return 0;
 }

@@ -47,6 +47,8 @@ client_td *client_init(xcb_connection_t *connection,
     xcb_screen_t *screen =
         xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
     client_td *client;
+    uint32_t mask;
+    uint32_t values[3];
 
     client = malloc(sizeof(client_td));
     if (client == NULL) {
@@ -67,7 +69,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     // TODO: Strut & Frame extents
 
-    // TODO: Test this...
+    // TODO: Test this... and consider if 'CLIENT_FLAG_HIDDEN' must be here
     client->properties.flags =
         CLIENT_FLAG_HIDDEN | CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
     client->properties.type = CLIENT_TYPE_NORMAL;
@@ -81,16 +83,27 @@ client_td *client_init(xcb_connection_t *connection,
 
     client->theme = theme;
 
-    client->info.name = NULL;              // <-- TODO
-    client->info.visible_name = NULL;      // <-- TODO
-    client->info.role_name = NULL;         // <-- TODO
-    client->info.class_name[0] = NULL;        // <-- TODO
-    client->info.class_name[1] = NULL;        // <-- TODO
-    client->icon_info.icon_name = NULL;         // <-- TODO
-    client->icon_info.visible_icon_name = NULL; // <-- TODO
+    client->info.name = malloc(256);                // <-- TODO
+    if (client->info.name != NULL) {
+        snprintf(client->info.name, 255, "Test client '%s'",
+                client->info.name);
+    }
+
+    client->info.visible_name = client->info.name;  // <-- TODO
+    client->info.role_name = NULL;                  // <-- TODO
+    client->info.class_name[0] = NULL;              // <-- TODO
+    client->info.class_name[1] = NULL;              // <-- TODO
+    client->icon_info.icon_name = NULL;             // <-- TODO
+    client->icon_info.visible_icon_name = NULL;     // <-- TODO
 
     /* Create the X client */
     client->window = xcb_generate_id(connection);
+
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = 0xFFFFFF;   /* white background */
+    values[1] = 0x000000;   /* black border */
+    values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+
     cookie = xcb_create_window(
             connection,
             XCB_COPY_FROM_PARENT,
@@ -101,10 +114,7 @@ client_td *client_init(xcb_connection_t *connection,
             (uint16_t) theme->window.general.border_width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             screen->root_visual,
-            XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
-            (uint32_t[]) {
-                screen->white_pixel,
-                XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS});
+            mask, values);
 
     err = xcb_request_check(connection, cookie);
     if (err) {
@@ -123,7 +133,12 @@ client_td *client_init(xcb_connection_t *connection,
             strlen("my_class"), "my_class");
     */
 
+    xcb_map_window(connection, client->window);
     xcb_flush(connection);
+
+    LOGGER_DEBUG("Created X window %#x for client %#x" \
+            " at (%d, %d) with size %ux%u",
+            client->window, client->id, x, y, w, h);
 
     return client;
 }

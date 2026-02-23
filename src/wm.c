@@ -25,6 +25,7 @@
 #include <config.h>
 #include <eventq.h>
 #include <logger.h>
+#include <render/surface.h>
 #include <surface.h>
 
 /* Local includes */
@@ -68,13 +69,24 @@ static void s_wm_update_full(void)
 
     /* Update all surfaces */
     for (list_item_td *surface_node = list_head(wm->surfaces);
-         surface_node != NULL;
-         surface_node = list_next(surface_node)) {
+            surface_node != NULL;
+            surface_node = list_next(surface_node)) {
         surface_td *surface_cur = (surface_td *) list_data(surface_node);
+
         if (surface_cur->is_outdated) {
-            surface_update_full(surface_cur);
+            /* Render all desktops on this surface */
+            if (surface_render_all_desktops(surface_cur) != 0) {
+                LOGGER_ERROR("Failed to render surface %u",
+                        surface_cur->id);
+            }
+        } else {
+            /* Just update the current desktop */
+            if (surface_render_current_desktop(surface_cur) != 0) {
+                LOGGER_ERROR("Failed to render current desktop on"
+                        " surface %u", surface_cur->id);
+            }
         }
-    }
+    } /* ! for (surface_node) */
 }
 
 
@@ -107,6 +119,53 @@ static void s_wm_loop(void)
 
     /* Update window manager before start */
     s_wm_update_full();
+
+#ifdef DEBUG
+    /* TEST: Create dummy windows to test rendering */
+    if (wm->surfaces != NULL) {
+        list_item_td *surface_node = list_head(wm->surfaces);
+        if (surface_node != NULL) {
+            surface_td *surface = (surface_td *) list_data(surface_node);
+
+            if (surface != NULL && surface->desktops != NULL) {
+                cdlist_item_td *desktop_node = cdlist_head(surface->desktops);
+                /* Iterate to the current desktop */
+                for (uint32_t i = 0; i < surface->desktop_cur; ++i) {
+                    desktop_node = cdlist_next(desktop_node);
+                    if (desktop_node == NULL) {
+                        break;
+                    }
+                }
+
+                if (desktop_node != NULL) {
+                    desktop_td *desktop =
+                        (desktop_td *) cdlist_data(desktop_node);
+                    if (desktop != NULL) {
+                        /* Create a test window */
+                        client_td *test_client = client_init(
+                                wm->connection,
+                                wm->ewmh,
+                                surface->screen->root,  /* Parent window */
+                                100, 100,   /* width, height */
+                                50, 50,     /* x, y position */
+                                &(wm->config->theme));
+
+                        if (test_client != NULL) {
+                            /* Remove 'HIDDEN' flag */
+                            safeflg_unset(&(test_client)->properties.flags,
+                                    CLIENT_FLAG_HIDDEN, CLIENT_FLAG_MAX);
+
+                            desktop_action_client_add(desktop, test_client);
+                            desktop->is_outdated = true;
+                            LOGGER_DEBUG("Created test client for rendering",
+                                    L_NARG);
+                        } /* ! if (test_client) */
+                    } /* ! if (desktop) */
+                } /* if (desktop_node) */
+            } /* ! if (surface) */
+        } /* ! if (surface_node) */
+    }
+#endif  /* ! DEBUG */
 
     keysyms = xcb_key_symbols_alloc(wm->connection);
 
@@ -215,7 +274,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Initializate atoms */
-        if (!xcb_ewmh_init_atoms_replies(wm->ewmh, 
+        if (!xcb_ewmh_init_atoms_replies(wm->ewmh,
                     xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
                     NULL)) {
                LOGGER_ERROR("Error initializating EWMH atoms", L_NARG);
