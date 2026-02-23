@@ -41,14 +41,15 @@ int desktop_render_background(desktop_td *desktop)
         return 1;
     }
 
-    LOGGER_DEBUG("Rendering background for desktop '%s' with color #%06x",
-            desktop->name, desktop->background.bg.color);
+    LOGGER_DEBUG("Rendering background for desktop %u ('%s')" \
+            " with color #%06x",
+            desktop->id, desktop->name, desktop->background.bg.color);
 
     /* Get the screen */
     iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
     screen = NULL;
     
-    for (uint32_t i = 0; i < desktop->screen_id && iter.rem > 0; i++) {
+    for (uint32_t i = 0; i < desktop->screen_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
     }
     
@@ -73,7 +74,8 @@ int desktop_render_background(desktop_td *desktop)
             screen->width_in_pixels,
             screen->height_in_pixels);
 
-    LOGGER_DEBUG("Background rendered for desktop '%s'", desktop->name);
+    LOGGER_TRACE("Background rendered for desktop %u ('%s')",
+            desktop->id, desktop->name);
 
     return 0;
 }
@@ -101,18 +103,21 @@ int desktop_render_clients(desktop_td *desktop)
     }
 
     stacking_size = cdlist_size(desktop->stacking);
-    LOGGER_DEBUG("Rendering %zu client(s) from stacking list on desktop '%s'",
-            stacking_size, desktop->name);
+    LOGGER_DEBUG("Rendering %zu client(s) from stacking list" \
+            " on desktop %u ('%s')",
+            stacking_size, desktop->id, desktop->name);
 
     /* If no clients, return early */
     if (stacking_size == 0) {
-        LOGGER_DEBUG("No clients to render on desktop '%s'", desktop->name);
+        LOGGER_TRACE("No clients to render on desktop %u ('%s')",
+                desktop->id, desktop->name);
         return 0;
     }
 
     stacking_node = cdlist_head(desktop->stacking);
     if (stacking_node == NULL) {
-        LOGGER_ERROR("Stacking list head is NULL despite size > 0", L_NARG);
+        LOGGER_ERROR("Stacking list head is NULL despite size > 0",
+                L_NARG);
         return 1;
     }
 
@@ -132,7 +137,7 @@ int desktop_render_clients(desktop_td *desktop)
 
         /* Skip hidden clients */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            LOGGER_TRACE("Skipping hidden client %#x", client->id);
+            LOGGER_TRACE("Skipping hidden client 0x%08x", client->id);
             stacking_node = cdlist_next(stacking_node);
             continue;
         }
@@ -151,20 +156,22 @@ int desktop_render_clients(desktop_td *desktop)
         xcb_configure_window(desktop->connection, client->window,
                 mask, (uint32_t *) values);
 
-        LOGGER_TRACE("Rendered client %#x at (%u, %u) size (%u x %u)",
+        LOGGER_TRACE("Rendered client 0x%08x with" \
+                     " geometry (%ux%u%+u%+u)",
                 client->id,
-                client->layout.geometry.cur.pos.x,
-                client->layout.geometry.cur.pos.y,
                 client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h);
+                client->layout.geometry.cur.dim.h,
+                client->layout.geometry.cur.pos.x,
+                client->layout.geometry.cur.pos.y);
 
         stacking_node = cdlist_next(stacking_node);
     } while (stacking_node != NULL && 
              stacking_node != stacking_initial &&
              client_count < (int)stacking_size);
 
-    LOGGER_DEBUG("Successfully rendered %d clients on desktop '%s'",
-            client_count, desktop->name);
+    LOGGER_DEBUG("Successfully rendered %d clients" \
+            " on desktop %u ('%s')",
+            client_count, desktop->id, desktop->name);
 
     return 0;
 }
@@ -178,11 +185,13 @@ int desktop_render_full(desktop_td *desktop)
         return 1;
     }
 
-    LOGGER_DEBUG("Full render of desktop '%s'", desktop->name);
+    LOGGER_TRACE("Full render of desktop %u ('%s')",
+            desktop->id, desktop->name);
 
     /* Draw background (currently a no-op in X11) */
     if (desktop_render_background(desktop) != 0) {
-        LOGGER_ERROR("Failed to render background", L_NARG);
+        LOGGER_ERROR("Failed to render background on" \
+                 " desktop %u ('%s')", desktop->id, desktop->name);
         return 1;
     }
 
@@ -195,7 +204,7 @@ int desktop_render_full(desktop_td *desktop)
     /* Mark desktop as up-to-date */
     desktop->is_outdated = false;
 
-    /* NOTE: Do NOT flush here! Let the caller (surface) handle flushing */
+    /* NOTE: Do NOT flush here!  Let the surface handle the flushing */
 
     return 0;
 }
@@ -205,7 +214,8 @@ int desktop_render_full(desktop_td *desktop)
 void desktop_render_flush(desktop_td *desktop)
 {
     if (desktop == NULL || desktop->connection == NULL) {
-        LOGGER_ERROR("Invalid desktop or connection for flushing", L_NARG);
+        LOGGER_ERROR("Invalid desktop or connection for flushing",
+                L_NARG);
         return;
     }
 

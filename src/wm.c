@@ -82,7 +82,7 @@ static void s_wm_update_full(void)
         } else {
             /* Just update the current desktop */
             if (surface_render_current_desktop(surface_cur) != 0) {
-                LOGGER_ERROR("Failed to render current desktop on"
+                LOGGER_ERROR("Failed to render current desktop on" \
                         " surface %u", surface_cur->id);
             }
         }
@@ -317,7 +317,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             free(wm);
             return 5;
         } else {
-            LOGGER_INFO("Detected preferred screen ID: %lu",
+            LOGGER_INFO("Detected preferred screen ID: %u",
                     wm->screenp);
         }
 
@@ -349,10 +349,10 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 wm->config->base.screen_count == 0) {
                 wm->config->base.screen_count = screens_detected;
             }
-            LOGGER_INFO("Setting number of screens to: %u",
+            LOGGER_INFO("Setting number of screens to %u",
                     wm->config->base.screen_count);
         } else {
-            LOGGER_DEBUG("Setting number of screens to: %u",
+            LOGGER_DEBUG("Setting number of screens to %u",
                     wm->config->base.screen_count);
         }
 
@@ -368,7 +368,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                         wm->ewmh, (uint32_t) it.rem,
                         desktops_count, wm->config);
             if (surface == NULL) {
-                LOGGER_FATAL("Failed to initialize surface %lu",
+                LOGGER_FATAL("Failed to initialize surface %u",
                         it.rem);
                 list_destroy(wm->surfaces);
                 eventq_stop();
@@ -378,13 +378,13 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 return 6;
             }
 
-            LOGGER_TRACE("Inserting surface %lu into surface list",
+            LOGGER_TRACE("Inserting surface %u into surface list",
                     it.rem);
             if (list_ins_next(wm->surfaces,
                         list_tail(wm->surfaces),
                         (const void *) surface) != 0) {
                 LOGGER_FATAL("Failed to insert surface " \
-                        "%lu into surface list", it.rem);
+                        "%u into surface list", it.rem);
                 surface_destroy(surface);
                 list_destroy(wm->surfaces);
                 eventq_stop();
@@ -399,8 +399,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             surface->desktop_cur =
                 wm->config->base.screens[it.rem].desktop_inaugural;
 
-            LOGGER_TRACE("Setting desktop %lu as the startup desktop" \
-                    " on surface %lu", surface->desktop_cur, it.rem);
+            LOGGER_TRACE("Setting desktop %u as the startup desktop" \
+                    " on surface %u", surface->desktop_cur, it.rem);
         }
 
         /* Begin! */

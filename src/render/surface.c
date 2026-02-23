@@ -118,7 +118,7 @@ int surface_render_all_desktops(surface_td *surface)
             continue;
         }
 
-        LOGGER_DEBUG("Rendering desktop %u: '%s'",
+        LOGGER_DEBUG("Rendering desktop %u ('%s')",
                 rendered_count, desktop->name);
 
         /* Only render if outdated */
@@ -134,7 +134,6 @@ int surface_render_all_desktops(surface_td *surface)
         }
         rendered_count++;
         desktop_node = cdlist_next(desktop_node);
-
     } while (rendered_count < surface->desktop_count &&
              desktop_node != NULL &&
              desktop_node != desktop_initial);

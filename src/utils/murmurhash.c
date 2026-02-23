@@ -1,7 +1,7 @@
 /**
  * @file utils/murmurhash.c
  *
- * @brief MurmurHash different variations implementation
+ * @brief Implementation of different variations on MurmurHash algorithm
  */
 
 /* System includes */
@@ -38,9 +38,9 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     k = 0;
 
     switch (len & 3) {
-        case 3: k ^= (unsigned int) tail[2] << 16;      /* SLL16 */
+        case 3: k ^= (unsigned int) tail[2] << 16;  /* SLL16 */
             __attribute__((fallthrough));
-        case 2: k ^= (unsigned int) tail[1] << 8;       /* SLL8 */
+        case 2: k ^= (unsigned int) tail[1] << 8;   /* SLL8 */
             __attribute__((fallthrough));
         case 1: k ^= (unsigned int) tail[0];
                 h ^= k;
@@ -74,7 +74,7 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
         uint32_t k_;
         memcpy(&k_, data + i * 4, sizeof(uint32_t));
         k_ *= c1;
-        k_ = (k_ << 15) | (k_ >> (32 - 15));           /* ROTL15 */
+        k_ = (k_ << 15) | (k_ >> (32 - 15));        /* ROTL15 */
         k_ *= c2;
         h ^= k_;
         h = (h << 13) | (h >> (32 - 13));           /* ROTL13 */
@@ -122,7 +122,7 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
         uint32_t k_;
         memcpy(&k_, data + i * 4, sizeof(uint32_t));
         k_ *= c1;
-        k_ = (k_ << 15) | (k_ >> (32 - 15));           /* ROTL15 */
+        k_ = (k_ << 15) | (k_ >> (32 - 15));        /* ROTL15 */
         k_ *= c2;
 
         h ^= k_;

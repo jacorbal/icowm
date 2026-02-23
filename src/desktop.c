@@ -10,7 +10,7 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stdint.h>     /* uint32_t */
+#include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc, rand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* getpid */
@@ -83,7 +83,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     desktop = malloc(sizeof(desktop_td));
     if (desktop == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for desktop %u on screen %u",
+        LOGGER_ERROR("Failed to allocate memory for" \
+                " desktop %u on screen %u",
                 desktop_id, screen_id);
         return NULL;
     }
@@ -136,7 +137,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             desktop_id, desktop->name, screen_id);
 
     /* Initialize circular list for rendering in stacking order */
-    desktop->stacking = cdlist_init(NULL);  /* NULL destroy: FIXME */
+//    desktop->stacking = cdlist_init(NULL);  /* FIXME: 'NULL' destroy */
+    desktop->stacking = cdlist_init((void(*)(void *)) client_destroy);
     if (desktop->stacking == NULL) {
         LOGGER_ERROR("Failed to allocate memory for stacking list" \
                 " on desktop %u ('%s') on screen %u",
@@ -150,13 +152,13 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen = NULL;
 
-    /* Iterate through screens to find the correct one */
+    /* Iterate through screens to find the "correct" one */
     for (uint32_t i = 0; i < screen_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
     }
 
     if (iter.rem == 0 || iter.data == NULL) {
-        LOGGER_ERROR("Invalid screen_id %u, could not retrieve" \
+        LOGGER_ERROR("Invalid screen ID %u, could not retrieve" \
                 " screen information", screen_id);
         cdlist_destroy(desktop->stacking);
         ohtbl_destroy(desktop->clients);
@@ -173,7 +175,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
                 .h = screen->height_in_pixels}
     };
 
-    /* Work area is the same as geometry for now (no panels/struts) */
+    /* TODO: Work area is the same as geometry for now (panels/struts) */
     desktop->workarea = desktop->geometry;
 
     /* Mark desktop as outdated to trigger initial render */
@@ -181,8 +183,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     LOGGER_TRACE("Desktop %u ('%s') on screen %u initialized" \
             " successfully with geometry %ux%u",
-        desktop_id, desktop->name, screen_id,
-        desktop->geometry.dim.w, desktop->geometry.dim.h);
+            desktop_id, desktop->name, screen_id,
+            desktop->geometry.dim.w, desktop->geometry.dim.h);
 
     return desktop;
 }
@@ -281,7 +283,7 @@ void desktop_clear(desktop_td *desktop)
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
-    LOGGER_DEBUG("Adding client %#x ('%s') to desktop %u ('%s')",
+    LOGGER_DEBUG("Adding client 0x%08x ('%s') to desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
@@ -305,8 +307,8 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
         return -1;
     }
 
-    LOGGER_TRACE("Successfully added client %#x to desktop %u",
-            client->id, desktop->id);
+    LOGGER_TRACE("Successfully added client 0x%08x to desktop %u ('%s')",
+            client->id, desktop->id, desktop->name);
     desktop->is_outdated = true;  /* Mark for redraw */
 
     return 0;
@@ -318,7 +320,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 {
     cdlist_item_td *node;
 
-    LOGGER_DEBUG("Removing client %#x ('%s') from desktop %u ('%s')",
+    LOGGER_DEBUG("Removing client 0x%08x ('%s') from desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
@@ -351,7 +353,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
         } while (node != NULL && node != initial);
     }
 
-    LOGGER_TRACE("Successfully removed client %#x from desktop %u",
+    LOGGER_TRACE("Successfully removed client 0x%08x from desktop %u",
             client->id, desktop->id);
     desktop->is_outdated = true;  /* Mark for redraw */
 

@@ -11,13 +11,10 @@
 #ifndef RENDER_DESKTOP_H
 #define RENDER_DESKTOP_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-
-/* XCB includes */
-#include <xcb/xcb.h>
-#include <xcb/xcb_ewmh.h>
 
 /* Project includes */
 #include <desktop.h>
@@ -35,8 +32,8 @@
  * @note Complexity: @e O(1)
  *
  * @todo Currently, this is a no-op as X11 background management is
- * typically handled by separate tools or the EWMH-compliant desktop
- * environment.
+ *       typically handled by separate tools or the EWMH-compliant
+ *       desktop environment
  */
 int desktop_render_background(desktop_td *desktop);
 

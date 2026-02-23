@@ -9,7 +9,7 @@
  */
 
 /* System includes */
-#include <stdarg.h>     /* va_list, va_args, va_start, va_end */
+#include <stdarg.h>     /* va_args, va_list, va_start, va_end */
 #include <stdlib.h>     /* free */
 
 /* Local includes */
@@ -30,7 +30,7 @@ void safe_free(void **ptr)
 int safe_free_var(void **first, ...)
 {
     va_list args;
-    void** ptr = first; /* The first argument is the first pointer */
+    void **ptr = first; /* The first argument is the first pointer */
     int index = 0;      /* Index to track the position */
 
     /* Return a negative error if the first pointer is 'NULL' */
@@ -54,7 +54,7 @@ int safe_free_var(void **first, ...)
         }
 
         /* Get the next pointer */
-        ptr = va_arg(args, void**);
+        ptr = va_arg(args, void **);
         index++;
     }
 

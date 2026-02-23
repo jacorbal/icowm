@@ -194,7 +194,7 @@ char *safe_strcat(char *restrict dst, const char *restrict src)
     dst_len = safe_strlen(dst);
 
     /* Concatenate characters from 'src' to 'dst' */
-    for (i = 0; src[i] != '\0'; i++) {
+    for (i = 0; src[i] != '\0'; ++i) {
         dst[dst_len + i] = src[i];  /* Copy every character */
     }
 

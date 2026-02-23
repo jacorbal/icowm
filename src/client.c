@@ -85,8 +85,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     client->info.name = malloc(256);                // <-- TODO
     if (client->info.name != NULL) {
-        snprintf(client->info.name, 255, "Test client '%s'",
-                client->info.name);
+        snprintf(client->info.name, 255, "Test client");
     }
 
     client->info.visible_name = client->info.name;  // <-- TODO
@@ -136,9 +135,9 @@ client_td *client_init(xcb_connection_t *connection,
     xcb_map_window(connection, client->window);
     xcb_flush(connection);
 
-    LOGGER_DEBUG("Created X window %#x for client %#x" \
-            " at (%d, %d) with size %ux%u",
-            client->window, client->id, x, y, w, h);
+    LOGGER_DEBUG("Created X window %#x for client 0x%08x" \
+                 " with geometry %ux%u%+d%+d",
+            client->window, client->id, w, h, x, y);
 
     return client;
 }
@@ -147,7 +146,7 @@ client_td *client_init(xcb_connection_t *connection,
 /* Destroy the client and free used memory */
 void client_destroy(client_td *client)
 {
-    LOGGER_TRACE("Deallocating structure for client %#lx ('%s')",
+    LOGGER_TRACE("Deallocating structure for client 0x%08x ('%s')",
             client->id, client->info.name);
     if (client) {
         if (client->window) {
@@ -165,7 +164,7 @@ void client_update(client_td *client)
         return;
     }
 
-    LOGGER_TRACE("Updating client %#lx ('%s')",
+    LOGGER_TRACE("Updating client 0x%08x ('%s')",
             client->id, client->info.name);
 
     /* Clear the client */

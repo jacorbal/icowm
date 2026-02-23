@@ -18,8 +18,8 @@
  * This is achieved by using the keyword "DEFAULT" as the file name when
  * initializing the logger.
  *
- * The initial logic behind the different log levels came from an answer
- * on Stack Overflow
+ * @note The initial logic behind the different log levels came from an
+ *       answer on Stack Overflow (answered on Nov 12, 2020)
  * <https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels#answer-64806781>:
  *
  * @verbatim

@@ -60,13 +60,15 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
  * @param buffer    Pointer to the character array where the formatted
  *                  timestamp will be stored
  * @param buffer_sz Size of the buffer in bytes
- * @param flags     X
+ * @param flags     Flags to modify the final format
  *
  * @note Format: `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`
  * @note Uses POSIX global variable @p timezone to determine timezone
  *       offset adjusting for daylight saving time using @e tm_isdst
  *       from @a localtime
  * @note Complexity: @e O(1)
+ *
+ * @see @a LOGGER_TIMESTAMP_USEC, @a LOGGER_TIMESTAMP_TZ
  */
 static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
 {
@@ -78,7 +80,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
     long tz_offset_seconds;
 #if !LOGGER_OS_HAS_TM_GMTOFF
 #ifdef __linux__
-    extern long timezone; /* Linux 'glibc' */
+    extern long timezone;   /* Linux 'glibc' */
 #endif  /* !__linux__ */
 #endif
 
@@ -106,7 +108,6 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
     tz_offset_seconds = 0;
 #endif  /* ! __linux__ */
 #endif
-
 
     /* Determine timezone sign offset and convert to "HHMM" format */
     if (flags & LOGGER_TIMESTAMP_TZ) {
@@ -181,8 +182,8 @@ int logger_start(const char *filename,
 
         /* Validate and correct the minimum log level value */
         logger->level_min =
-            (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
-            (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
+            (level_min < LOG_MIN_LEVEL) ?  LOG_MIN_LEVEL :
+            (level_min > LOG_MAX_LEVEL) ?  LOG_MAX_LEVEL :
             level_min;
 
         /* Tracking: always or only on 'LOG_TRACE' level */

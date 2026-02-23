@@ -57,7 +57,7 @@ void heap_destroy(heap_td *heap)
 {
     /* Remove all the nodes from the heap */
     if (heap->destroy != NULL) {
-        for (size_t i = 0; i < heap_size(heap); i++) {
+        for (size_t i = 0; i < heap_size(heap); ++i) {
             heap->destroy(heap->tree[i]);
         }
     }

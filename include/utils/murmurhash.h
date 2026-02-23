@@ -1,7 +1,7 @@
 /**
  * @file utils/murmurhash.h
  *
- * @brief MurmurHash different variationos declaration
+ * @brief Declaration for different variations on MurmurHash algorithm
  *
  * Hash function purpose:
  *
@@ -52,6 +52,7 @@
 #ifndef MURMURHASH
 #define MURMURHASH
 
+
 /* System includes */
 #include <stdint.h>     /* uint8_t, uint32_t */
 
@@ -66,7 +67,7 @@
  * @param key  Pointer to the input data.
  * @param len  Length of the input data in bytes
  * @param seed The seed value mixed into the hash, allowing different
- *              hash results for the same data
+ *             hash results for the same data
  *
  * @return Computed 32-bit hash value of the input data
  *
@@ -84,12 +85,12 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed);
  * @brief MurmurHash2 32-bit hash function
  *
  * Generates a 32-bit hash value from the provided input data using the
- * MurmurHash2 algorithm  It is designed to be fast, with good
+ * MurmurHash2 algorithm, which is designed to be fast, with good
  * statistical properties, making it suitable for hash tables and
  * similar structures.
  *
- * @param key Pointer to the input data.
- * @param len Length of the input data in bytes
+ * @param key  Pointer to the input data.
+ * @param len  Length of the input data in bytes
  * @param seed The seed value that is mixed into the hash, allowing for
  *             different hash outputs for the same input data
  *
@@ -107,9 +108,9 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed);
  * @brief MurmurHash3 32-bit hash function
  *
  * Generates a 32-bit hash value based on the input key and an optional
- * seed value.  MurmurHash3 algorithm implementation, which is a fast,
- * non-cryptographic hash function suitable for general hash-based
- * lookup tasks
+ * seed value using the MurmurHash3 algorithm implementation, which is
+ * a fast, non-cryptographic hash function suitable for general
+ * hash-based lookup tasks.
  *
  * @param key  Pointer to the data to be hashed
  * @param len  Length of the input data in bytes

@@ -26,7 +26,7 @@
  *   - resolving the parent directory indicators ('../').
  *
  * @param path Pointer to the input path string to be normalized
- * 
+ *
  * @note The function modifies the path in place
  * @note Complexity: @e O(n), where @e n is the length of the input path
  */

@@ -12,7 +12,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <pthread.h>    /* pthread_t, pthread_* */
+#include <pthread.h>    /* pthread_t, pthread_create, pthread_join */
 #include <time.h>       /* nanosleep */
 
 /* XCB includes */
@@ -44,16 +44,17 @@
 /**
  * @brief Pointer to the singleton instance of the event priority queue
  *
- * This is the event priority queue defined over a heap data structure
- * and organized as a min-heap, using it as a tree where the value of
- * the root node must be the smallest among all its descendant nodes and
- * the same thing must be done for its left and right sub-tree also.
- * In other words, it's a bottom-heavy heap, where in this case, it's
- * distributed by priority, where the highest priority corresponds to
- * the smallest value.
+ * Event priority queue defined over a heap data structure and organized
+ * as a min-heap, using it as a tree where the value of the root node
+ * must be the smallest among all its descendant nodes and the same
+ * thing must be done for its left and right sub-tree also.  In other
+ * words, it's a bottom-heavy heap, where in this case, it's distributed
+ * by priority, where the highest priority corresponds to the smallest
+ * value.
  */
-static pqueue_td *eventq = NULL;        /* Event priority queue
-                                           (min-heap; heavy-bottom) */
+static pqueue_td *eventq = NULL;                /* Event priority queue
+                                                   (min-heap;
+                                                   heavy-bottom) */
 
 /**
  * @brief Holds the identifier of the thread that is responsible for
@@ -61,18 +62,19 @@ static pqueue_td *eventq = NULL;        /* Event priority queue
  *
  * @note Its value is assigned when the thread is created
  */
-static pthread_t event_thread;          /* Thread identifier for the
-                                           event processing thread */
+static pthread_t event_thread;                  /* Thread identifier for
+                                                   the event processing
+                                                   thread */
 
 /**
- * @brief Used to control the running state of the event processing
- *        thread
+ * @brief Manage the running state of the event processing thread
  *
  * @note It should be set to @c true to start processing events
  *       (@a eventq_start) and @c false to stop it (@a eventq_stop)
  */
-static bool eventq_is_running = false;  /* Running state of the event
-                                           processing thread */
+static volatile bool eventq_is_running = false;  /* Running state of the
+                                                    event processing
+                                                    thread */
 
 
 /**
@@ -138,11 +140,11 @@ static int s_event_compare(const void *e1, const void *e2)
     const event_td *event2 = (const event_td *) e2;
 
     if (event1->priority < event2->priority) {
-        return -1;  /* pr(event1) > pr(event2) */
+        return -1;  /* pri(evt_1) > pri(evt_2) */
     } else if (event1->priority > event2->priority) {
-        return 1;   /* pr(event2) < pr(event1) */
+        return 1;   /* pri(evt_2) < pri(evt_1) */
     } else {
-        return 0;   /* pr(event1) == p(event2) */
+        return 0;   /* pri(evt_1) == pri(evt_2) */
     }
 }
 
@@ -576,6 +578,7 @@ int eventq_process(void)
 {
     /* Process 'eventq' events */
     event_td *processed_event;
+
     while (pqueue_size(eventq) > 0) {
         processed_event = eventq_extract();
         if (processed_event != 0) {
