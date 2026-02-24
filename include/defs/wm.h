@@ -4,6 +4,13 @@
  * @brief Definitions for all related to the window manager itself, as
  *        for screens/surfaces, desktops and windows/clients
  */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef DEFS_WM_H
 #define DEFS_WM_H

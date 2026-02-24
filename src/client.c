@@ -4,6 +4,9 @@
  * @brief Window structure implementation
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -98,6 +101,8 @@ client_td *client_init(xcb_connection_t *connection,
     /* Create the X client */
     client->window = xcb_generate_id(connection);
 
+    /* TODO/FIXME: Pass the theme values here instead of hardcoding
+     *             the background and the border, and maybe the flags */
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = 0xFFFFFF;   /* white background */
     values[1] = 0x000000;   /* black border */
@@ -135,7 +140,7 @@ client_td *client_init(xcb_connection_t *connection,
     xcb_map_window(connection, client->window);
     xcb_flush(connection);
 
-    LOGGER_DEBUG("Created X window %#x for client 0x%08x" \
+    LOGGER_TRACE("Created X window %#x for client 0x%08x" \
                  " with geometry %ux%u%+d%+d",
             client->window, client->id, w, h, x, y);
 
@@ -170,13 +175,13 @@ void client_update(client_td *client)
     /* Clear the client */
     xcb_clear_area(client->connection,
             0, client->window,
-            0, 0,
-            0, 0);
+            0, 0,   /* x, y */
+            0, 0);  /* w, h */
 
     /* Draw or update the content over the client */
     //  e.g.: draw_content(client);
 
-    /* Optionally, you might want to flush the output buffer */
+    /* Optionally, flush the output buffer */
     //XFlush(client->display);
 }
 

@@ -6,7 +6,7 @@
  *
  * @author J. A. Corbal <jacorbal@gmail.com>
  *
- * @date Sat Feb 14 11:48:59 CET 2026
+ * @date Tue Feb 24 11:42:50 UTC 2026
  *
  * @version 0.1.0 ("'ovelya")
  * @copyright Copyright (c) 2026, J. A. Corbal.
@@ -21,6 +21,13 @@
  *               _/ // __/ _ \ |/ |/ / /|_/ /
  *              /___/\__/\___/__/|__/_/  /_/
  *               Iconifying Window Manager
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
  */
 
 /* Enable features from the POSIX.1-2001 standard */

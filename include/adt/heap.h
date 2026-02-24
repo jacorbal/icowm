@@ -9,6 +9,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
+
 /* System includes */
 #include <stdbool.h>    /* bool, false, true */
 #include <stddef.h>     /* size_t */

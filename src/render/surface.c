@@ -4,6 +4,9 @@
  * @brief Surface rendering implementation
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -94,7 +97,7 @@ int surface_render_all_desktops(surface_td *surface)
         return 0;
     }
 
-    LOGGER_DEBUG("Full render of all %u desktops on surface %u",
+    LOGGER_DEBUG("Fully rendering all %u desktops on surface %u",
             surface->desktop_count, surface->id);
 
     /* Get the first desktop */

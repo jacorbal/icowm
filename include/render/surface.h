@@ -4,6 +4,9 @@
  * @brief Surface rendering and drawing functions
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */

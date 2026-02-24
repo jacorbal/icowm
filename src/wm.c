@@ -4,6 +4,9 @@
  * @brief Window manager implementation
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -157,7 +160,7 @@ static void s_wm_loop(void)
 
                             desktop_action_client_add(desktop, test_client);
                             desktop->is_outdated = true;
-                            LOGGER_DEBUG("Created test client for rendering",
+                            LOGGER_TRACE("Created test client for rendering",
                                     L_NARG);
                         } /* ! if (test_client) */
                     } /* ! if (desktop) */
@@ -317,8 +320,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             free(wm);
             return 5;
         } else {
-            LOGGER_INFO("Detected preferred screen ID: %u",
-                    wm->screenp);
+            LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
         }
 
         /* Handle surfaces */
@@ -338,12 +340,12 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         LOGGER_TRACE("Initializing surface structures", L_NARG);
         /* Maybe there are more surfaces defined in the configuration
          * file, but only those detected will be initialized, hence the
-         * 'screen_count' instead of taking the JSON information.  In
-         * the same way, maybe there are 'n' surfaces, but only want to
-         * use the 'm < n' defined in the JSON file. */
+         * 'screen_count' instead of taking the JSON information as
+         * true.  In the same way, maybe there are 'n' surfaces, but
+         * only want to use the 'm < n' defined in the JSON file. */
         if (wm->config->base.screen_count != screens_detected) {
-            LOGGER_NOTICE("Detected %u screens; %u are specified in" \
-                    " the configuration file",
+            LOGGER_NOTICE("Detected %u screen(s); %u" \
+                    " specified in the configuration file",
                     screens_detected, wm->config->base.screen_count);
             if (wm->config->base.screen_count >= screens_detected ||
                 wm->config->base.screen_count == 0) {

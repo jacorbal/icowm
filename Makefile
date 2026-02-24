@@ -3,8 +3,14 @@
 # Project: IcoWM (`icowm`) -- Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
 
+# Copyright (c) 2026, J. A. Corbal
+# All rights reserved.
+#
+# This file is licensed under the 'ISC License'.
+# Read the 'LICENSE' file in the root of this repository for details.
+
 ## Project metadata
-__PROJECT_NAME_PROG = "icowm"
+__PROJECT_NAME_PROG = icowm
 __PROJECT_NAME_SHORT = "IcoWM"
 __PROJECT_NAME_LONG = "Iconifying Window Manager"
 __PROJECT_VERSION = "0.1.0-alpha"
@@ -117,7 +123,7 @@ SHELL = /bin/sh
 .SUFFIXES: .h .c .o
 
 # Binary file options and running arguments
-TARGET = $(B_DIR)/main
+TARGET = $(B_DIR)/$(__PROJECT_NAME_PROG)
 DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
@@ -126,6 +132,7 @@ SRCS = $(wildcard $(S_DIR)/*.c) \
 		$(wildcard $(S_DIR)/*/*.c) \
 		$(wildcard $(S_DIR)/*/*/*.c)
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
+
 
 # Make all, create needed directories and build
 all: mkdirs $(TARGET) ctags
@@ -155,6 +162,12 @@ ifeq (,$(wildcard "/usr/bin/ctags"))
 else
 	$(error Cannot find '/usr/bin/ctags')
 endif
+
+ccflags:
+	@echo $(CCFLAGS)
+
+ldflags:
+	@echo $(LDFLAGS)
 
 clean-obj:
 	rm --force $(OBJS)
@@ -210,5 +223,5 @@ $(BUILD_NUMBER_FILE): $(TARGET)
 
 
 ## Phony targets
-.PHONY: all mkdirs ctags clean clean-obj clean-all run hard hard-run \
-	doxygen $(BUILD_NUMBER_FILE)
+.PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
+		hard hard-run doxygen help $(BUILD_NUMBER_FILE)

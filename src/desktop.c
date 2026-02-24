@@ -4,6 +4,9 @@
  * @brief Desktop handling implementation
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -181,8 +184,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     /* Mark desktop as outdated to trigger initial render */
     desktop->is_outdated = true;
 
-    LOGGER_TRACE("Desktop %u ('%s') on screen %u initialized" \
-            " successfully with geometry %ux%u",
+    LOGGER_TRACE("Initialized desktop %u ('%s') on screen %u" \
+            " with geometry %ux%u",
             desktop_id, desktop->name, screen_id,
             desktop->geometry.dim.w, desktop->geometry.dim.h);
 
@@ -283,7 +286,7 @@ void desktop_clear(desktop_td *desktop)
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
-    LOGGER_DEBUG("Adding client 0x%08x ('%s') to desktop %u ('%s')",
+    LOGGER_TRACE("Adding client 0x%08x ('%s') to desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
@@ -307,7 +310,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
         return -1;
     }
 
-    LOGGER_TRACE("Successfully added client 0x%08x to desktop %u ('%s')",
+    LOGGER_TRACE("Added client 0x%08x to desktop %u ('%s')",
             client->id, desktop->id, desktop->name);
     desktop->is_outdated = true;  /* Mark for redraw */
 
@@ -353,7 +356,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
         } while (node != NULL && node != initial);
     }
 
-    LOGGER_TRACE("Successfully removed client 0x%08x from desktop %u",
+    LOGGER_TRACE("Removed client 0x%08x from desktop %u",
             client->id, desktop->id);
     desktop->is_outdated = true;  /* Mark for redraw */
 

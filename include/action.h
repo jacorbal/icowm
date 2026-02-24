@@ -5,6 +5,9 @@
  *        desktops and surfaces, and action structure
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -94,7 +97,7 @@ enum action_desktop_e {
     ACTION_DESKTOP_CLIENT_REMOVE,       /**< Remove a window */
     ACTION_DESKTOP_CLIENT_SEND,         /**< Send w. to another desktop */
     ACTION_DESKTOP_CLIENT_CLONE,        /**< Clone an existing window */
-    ACTION_DESKTOP_CLIENT_SEND_FRONT,   /**< Set w. wto front of stack */
+    ACTION_DESKTOP_CLIENT_SEND_FRONT,   /**< Set w. to front of stack */
     ACTION_DESKTOP_CLIENT_SEND_BACK,    /**< Set w. to back of stack */
     ACTION_DESKTOP_CLIENTS_REARRANGE,   /**< Rearrange windows */
     ACTION_DESKTOP_CLIENTS_ICONIFY_ALL, /**< Iconify (& minim.) all w. */

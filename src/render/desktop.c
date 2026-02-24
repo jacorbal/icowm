@@ -4,6 +4,9 @@
  * @brief Desktop rendering implementation
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -41,24 +44,34 @@ int desktop_render_background(desktop_td *desktop)
         return 1;
     }
 
-    LOGGER_DEBUG("Rendering background for desktop %u ('%s')" \
+    LOGGER_TRACE("Rendering background for desktop %u ('%s')" \
             " with color #%06x",
             desktop->id, desktop->name, desktop->background.bg.color);
 
     /* Get the screen */
+    /* TODO/FIXME: The 'screen_id' is taken by iterating all screens
+     *             with the current 'desktop->screen_id', and this
+     *             should be by direct access.  Maybe passing a pointer
+     *             to the screen instead getting the id on
+     *             'desktop_init' (vid. 'src/desktop.c').
+     *
+     *  But, in general terms, the number of screens in any setup tends
+     *  to be low, so this loop has a complexity of O(n), where 'n' is
+     *  the number of screens, in most cases, 'n' approaches 1 or
+     *  a small constant.
+     */
     iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
     screen = NULL;
-    
     for (uint32_t i = 0; i < desktop->screen_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
     }
-    
+
     if (iter.rem == 0 || iter.data == NULL) {
         LOGGER_ERROR("Could not get screen for background rendering",
                 L_NARG);
         return 1;
     }
-    
+
     screen = iter.data;
 
     /* Change the root window background color */
@@ -126,10 +139,10 @@ int desktop_render_clients(desktop_td *desktop)
     /* Iterate through stacking list (back to front) */
     do {
         client = (client_td *) cdlist_data(stacking_node);
-        
+
         if (client == NULL) {
-            LOGGER_ERROR("NULL client found in stacking list at position %d",
-                    client_count);
+            LOGGER_ERROR("NULL client found in stacking list at" \
+                    " position %d", client_count);
             stacking_node = cdlist_next(stacking_node);
             continue;
         }
@@ -165,7 +178,7 @@ int desktop_render_clients(desktop_td *desktop)
                 client->layout.geometry.cur.pos.y);
 
         stacking_node = cdlist_next(stacking_node);
-    } while (stacking_node != NULL && 
+    } while (stacking_node != NULL &&
              stacking_node != stacking_initial &&
              client_count < (int)stacking_size);
 
@@ -185,7 +198,7 @@ int desktop_render_full(desktop_td *desktop)
         return 1;
     }
 
-    LOGGER_TRACE("Full render of desktop %u ('%s')",
+    LOGGER_TRACE("Fully rendering desktop %u ('%s')",
             desktop->id, desktop->name);
 
     /* Draw background (currently a no-op in X11) */

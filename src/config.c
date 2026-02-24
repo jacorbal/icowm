@@ -28,6 +28,9 @@
  *      Pish, let it matter not, ye idle knaves!  I shall change naught!
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -214,9 +217,9 @@ static int s_json_load_from_file(const char *filename, char **data)
     FILE *file;
     size_t length;
 
-    LOGGER_INFO("Parsing data from file: '%s'", filename);
+    LOGGER_INFO("Parsing data from file '%s'", filename);
 
-    LOGGER_TRACE("Opening JSON file: '%s'", filename);
+    LOGGER_TRACE("Opening JSON file '%s'", filename);
     file = fopen(filename, "r");
     if (!file) {
         LOGGER_NOTICE("File not found or unable to open:" \
@@ -236,19 +239,19 @@ static int s_json_load_from_file(const char *filename, char **data)
 
     *data = malloc(length + 1);
     if (*data == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for file: '%s'",
+        LOGGER_ERROR("Failed to allocate memory for file '%s'",
                 filename);
         fclose(file);
         return 2;
     }
 
-    LOGGER_TRACE("Reading JSON file: '%s'", filename);
+    LOGGER_TRACE("Reading JSON file '%s'", filename);
     fread(*data, 1, length, file);
 
     /* Make sure data is null-terminated */
     (*data)[length] = '\0';
 
-    LOGGER_TRACE("Closing JSON file: '%s'", filename);
+    LOGGER_TRACE("Closing JSON file '%s'", filename);
     fclose(file);
 
     return 0;
@@ -277,10 +280,10 @@ static int s_json_load_config(const char *filename, cJSON **json_out)
 
     json = cJSON_Parse(data);
     if (json == NULL) {
-        LOGGER_WARNING("Failed to parse file:" \
+        LOGGER_WARNING("Failed to parse file" \
                 " '%s'; default configuration will be used",
                 filename);
-        LOGGER_TRACE("Error parsing JSON file:\n%s",
+        LOGGER_TRACE("Error parsing JSON file\n%s",
                 cJSON_GetErrorPtr());
         free(data);
         return 2;
@@ -572,7 +575,7 @@ int config_load_base(const char *filename,
     cJSON *windows;
     cJSON *screen_settings;
 
-    LOGGER_TRACE("Preparing to parse base configuration from file:" \
+    LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
 
     /* Load file, or exit */
@@ -738,7 +741,7 @@ int config_load_bindings(const char *filename,
     cJSON *keyboard;
     cJSON *mouse;
 
-    LOGGER_TRACE("Parsing bindings configuration from file: '%s'",
+    LOGGER_TRACE("Parsing bindings configuration from file '%s'",
             filename);
 
     /* Load file or exit */
@@ -932,7 +935,7 @@ int config_load_theme(const char *filename,
     cJSON *window;
     cJSON *icon;
 
-    LOGGER_TRACE("Parsing theme configuration from file: '%s'",
+    LOGGER_TRACE("Parsing theme configuration from file '%s'",
             filename);
 
     /* Load file or exit */

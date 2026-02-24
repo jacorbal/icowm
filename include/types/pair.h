@@ -9,6 +9,9 @@
  *       Maybe in the future there will be some refactoring...
  */
 /*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
@@ -18,6 +21,26 @@
 
 
 #include <stdint.h>
+
+
+/**
+ * @brief Generic size structure
+ *
+ * @note Size is always positive
+ */
+struct size_s {
+    uint32_t x;
+    uint32_t y;
+};
+
+
+/*
+ * @brief Generic position structure
+ */
+struct position_s {
+    int32_t x;
+    int32_t y;
+};
 
 
 /**
@@ -32,18 +55,9 @@ struct sides_s {
 
 
 /**
- * @brief Generic size
- *
- * @note Size is always positive or zero
- */
-struct size_s {
-    uint32_t x;
-    uint32_t y;
-};
-
-
-/**
  * @brief DPI structure
+ *
+ * @note DPI is always positive
  */
 struct dpi_s {
     uint32_t x;
@@ -54,6 +68,7 @@ struct dpi_s {
 /**
  * @brief Resolution structure
  *
+ * @note Resolution is always positive
  */
 struct resolution_s {
     uint32_t x;
@@ -61,19 +76,10 @@ struct resolution_s {
 };
 
 
-/*
- * @brief Position structure
- *
- * @note This values are always non-negative
- */
-struct position_s {
-    int32_t x;
-    int32_t y;
-};
-
-
 /**
  * @brief Dimensions structure
+ *
+ * @note Dimensions are always non-negative
  */
 struct dimensions_s {
     uint32_t w;
@@ -83,6 +89,8 @@ struct dimensions_s {
 
 /**
  * @brief Geometry structure
+ *
+ * @see @c position_s, @c dimensions_s
  */
 struct geometry_s {
     struct position_s pos;

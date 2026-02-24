@@ -3,6 +3,13 @@
  *
  * @brief Definitions related to the configuration structure
  */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
 
 #ifndef DEFS_CONFIG_H
 #define DEFS_CONFIG_H
