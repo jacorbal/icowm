@@ -65,3 +65,7 @@ dkms.conf
 # Debug information files
 *.dwo
 *.log
+
+# Ignored folders
+bin
+obj
