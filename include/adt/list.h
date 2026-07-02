@@ -36,7 +36,7 @@ typedef struct {
      *
      * @return Status of the operation
      * @retval  true Both keys match
-     * @retval false The keys do not match
+     * @retval false Keys do not match
      *
      * @note This linked list does not use this function, but it's
      *       required for other modules that use a linked list as
@@ -118,7 +118,7 @@ int list_ins_next(list_td *list, list_item_td *item,
  * @retval  0 Successfully removed the item
  *
  * @note If @p item is @c NULL, the head of the list will be removed
- * @note The allocated memory of the item must be manually freed
+ * @note Allocated memory for the item must be manually freed
  * @note Complexity: @e O(1)
  */
 int list_rem_next(list_td *list, list_item_td *item, void **data);

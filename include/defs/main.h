@@ -39,8 +39,7 @@
 #define ICOWM_MSG_ON_EXIT "pe'vIl mu'qaDmey tIbach"
 
 #define ICOWM_DESCRIPTION \
-    __PROJECT_NAME_SHORT \
-    " is an austere, ascetic, minimal, and" \
+    "is an austere, ascetic, minimal, and" \
     " unembellished window manager for X11"
 
 

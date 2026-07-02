@@ -241,7 +241,7 @@ typedef struct client_s {
 
     struct {
         char *icon_name;            /**< Icon image path */
-        char *visible_icon_name;    /**< Icon on task bar*/
+        char *visible_icon_name;    /**< Icon on task bar */
         char **icons;
     } icon_info;
 

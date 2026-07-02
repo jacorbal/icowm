@@ -140,7 +140,6 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             desktop_id, desktop->name, screen_id);
 
     /* Initialize circular list for rendering in stacking order */
-//    desktop->stacking = cdlist_init(NULL);  /* FIXME: 'NULL' destroy */
     desktop->stacking = cdlist_init((void(*)(void *)) client_destroy);
     if (desktop->stacking == NULL) {
         LOGGER_ERROR("Failed to allocate memory for stacking list" \

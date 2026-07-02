@@ -33,7 +33,7 @@ event_td *event_init(void *object, void *object_data,
     event = malloc(sizeof(event_td));
     if (event == NULL) {
         LOGGER_WARNING("Failed to allocate memory for event data" \
-                "structure", L_NARG);
+                " structure", L_NARG);
         return NULL;
     }
 

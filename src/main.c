@@ -63,8 +63,7 @@
  */
 static inline void s_show_copyright_str(FILE *fp)
 {
-    fprintf(fp, "'%s'; %s, %s\n",
-            __LICENSE, __COPYRIGHT, __AUTHOR);
+    fprintf(fp, "'%s'; %s, %s\n", LICENSE, COPYRIGHT, AUTHOR);
 }
 
 
@@ -78,11 +77,11 @@ static inline void s_show_copyright_str(FILE *fp)
 static inline void s_show_version_str(FILE *fp)
 {
     fprintf(fp, "%s+%d.%s (\"%s\"); release %s\n",
-            __PROJECT_VERSION,
-            __BUILD_NUMBER,
-            __BUILD_TIMESTAMP,
-            __PROJECT_VERSION_CODENAME,
-            __RELEASE_DATE);
+            PROJECT_VERSION,
+            BUILD_NUMBER,
+            BUILD_TIMESTAMP,
+            PROJECT_VERSION_CODENAME,
+            RELEASE_DATE);
 }
 
 
@@ -95,7 +94,7 @@ static inline void s_show_version_str(FILE *fp)
  */
 static inline void s_show_version(FILE *fp)
 {
-    fprintf(fp, "%s\n", ICOWM_DESCRIPTION);
+    fprintf(fp, "%s %s\n", PROJECT_NAME_SHORT, ICOWM_DESCRIPTION);
     fprintf(fp, "Licensed under "); s_show_copyright_str(fp);
     fprintf(fp, "Version "); s_show_version_str(fp);
 }
@@ -114,8 +113,8 @@ static inline void s_show_help(FILE *fp)
     const char *config_home = getenv("HOME");
 
     /* Show name and usage */
-    fprintf(fp, "%s -- %s\n", __PROJECT_NAME_SHORT, __PROJECT_NAME_LONG);
-    fprintf(fp, "Usage: %s [<options>]\n", __PROJECT_NAME_PROG);
+    fprintf(fp, "%s -- %s\n", PROJECT_NAME_SHORT, PROJECT_NAME_LONG);
+    fprintf(fp, "Usage: %s [<options>]\n", PROJECT_NAME_PROG);
 
     /* Show options by category */
     fprintf(fp, "\nMain options:\n");
@@ -215,10 +214,10 @@ static inline void s_show_logger_destination(FILE *fp,
  */
 static inline void s_show_salutation(FILE *fp)
 {
-    fprintf(fp, "%s -- ", __PROJECT_NAME_SHORT);
+    fprintf(fp, "%s -- ", PROJECT_NAME_SHORT);
     s_show_version_str(fp);
     fprintf(fp, "%s is starting...  \"%s\"  :)\n",
-            __PROJECT_NAME_SHORT, ICOWM_MSG_ON_INIT);
+            PROJECT_NAME_SHORT, ICOWM_MSG_ON_INIT);
 }
 
 
@@ -232,7 +231,7 @@ static inline void s_show_salutation(FILE *fp)
 static inline void s_show_farewell(FILE *fp)
 {
     fprintf(fp, "%s has stopped...  \"%s\"  :|\n",
-            __PROJECT_NAME_SHORT, ICOWM_MSG_ON_EXIT);
+            PROJECT_NAME_SHORT, ICOWM_MSG_ON_EXIT);
 }
 
 

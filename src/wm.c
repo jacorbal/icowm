@@ -44,21 +44,246 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
 
 
 /**
+ * @brief Handle KEY_PRESS events from the X server
+ *
+ * Processes keyboard input events by converting XCB keycodes to
+ * keysyms and performing appropriate window manager actions based
+ * on configured key bindings.
+ *
+ * @param keysyms  Pointer to XCB key symbols structure
+ * @param event    Pointer to the key press event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
+        xcb_key_press_event_t *event)
+{
+    xcb_keysym_t keysym;
+
+    if (keysyms == NULL || event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in key press handler",
+                L_NARG);
+        return;
+    }
+
+    /*
+     * Translate keycode to keysym using the key symbols table
+     */
+    keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
+
+    LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
+            keysym, event->state);
+
+    /*
+     * Check for exit key combination: Ctrl+Mod1+Shift+BackSpace
+     * This is the hardcoded emergency exit key
+     */
+    if (keysym == 0xff08 &&     // == XK_BackSpace &&
+            (event->state & XCB_MOD_MASK_CONTROL) &&
+            (event->state & XCB_MOD_MASK_1) &&
+            (event->state & XCB_MOD_MASK_SHIFT)) {
+        LOGGER_TRACE("Exit key combination detected," \
+                " setting is_running to false",
+                L_NARG);
+        wm->is_running = false;
+        return;
+    }
+
+    /*
+     * TODO: Implement key binding lookup and action dispatch
+     * This would involve:
+     * 1. Looking up the keysym in the configuration bindings
+     * 2. Determining the appropriate action
+     * 3. Creating an event and adding it to the event queue
+     */
+}
+
+
+/**
+ * @brief Handle CONFIGURE_NOTIFY events from the X server
+ *
+ * Processes window configuration change notifications. These events
+ * indicate that a window's geometry or stacking order has changed.
+ *
+ * @param event Pointer to the configure notify event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_configure_notify(
+        xcb_configure_notify_event_t *event)
+{
+    if (event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in configure handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Configure notify event: window=0x%x," \
+            " geom=%ux%u+%d+%d",
+            event->window, event->width, event->height,
+            event->x, event->y);
+
+    /*
+     * TODO: Handle window geometry changes
+     * This may involve updating internal client state if necessary
+     */
+}
+
+
+/**
+ * @brief Handle MAP_REQUEST events from the X server
+ *
+ * Processes requests to map (display) windows. This event is sent
+ * when a window wants to become visible on the screen.
+ *
+ * @param event Pointer to the map request event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_map_request(
+        xcb_map_request_event_t *event)
+{
+    if (event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in map request handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Map request event: window=0x%x, parent=0x%x",
+            event->window, event->parent);
+
+    /*
+     * TODO: Implement client addition to the window manager
+     * This would involve:
+     * 1. Creating a new client structure for the window
+     * 2. Determining which desktop it belongs to
+     * 3. Adding it to the appropriate desktop
+     * 4. Marking the surface as outdated for rendering
+     */
+}
+
+
+/**
+ * @brief Handle UNMAP_NOTIFY events from the X server
+ *
+ * Processes notifications that a window has been unmapped (hidden).
+ * This typically means the window is no longer visible on screen.
+ *
+ * @param event Pointer to the unmap notify event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_unmap_notify(
+        xcb_unmap_notify_event_t *event)
+{
+    if (event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in unmap handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
+
+    /*
+     * TODO: Handle window unmapping
+     * This would involve:
+     * 1. Finding the client associated with the window
+     * 2. Removing it from the desktop client list
+     * 3. Marking the surface as outdated for rendering
+     */
+}
+
+
+/**
+ * @brief Handle DESTROY_NOTIFY events from the X server
+ *
+ * Processes notifications that a window has been destroyed. When
+ * this event is received, the window is no longer valid and any
+ * references to it should be cleaned up.
+ *
+ * @param event Pointer to the destroy notify event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_destroy_notify(
+        xcb_destroy_notify_event_t *event)
+{
+    if (event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in destroy handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Destroy notify event: window=0x%x", event->window);
+
+    /*
+     * TODO: Handle window destruction
+     * This would involve:
+     * 1. Finding the client associated with the window
+     * 2. Completely removing it from all data structures
+     * 3. Freeing associated resources
+     * 4. Marking the surface as outdated for rendering
+     */
+}
+
+
+/**
+ * @brief Handle PROPERTY_NOTIFY events from the X server
+ *
+ * Processes notifications that window properties have changed.
+ * Properties may include WM_NAME, WM_CLASS, WM_HINTS, and others
+ * which affect how the window manager displays or manages the window.
+ *
+ * @param event Pointer to the property notify event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_property_notify(
+        xcb_property_notify_event_t *event)
+{
+    if (event == NULL) {
+        LOGGER_ERROR("Received NULL pointer in property handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Property notify event: window=0x%x, atom=%u",
+            event->window, event->atom);
+
+    /*
+     * TODO: Handle property changes
+     * This would involve:
+     * 1. Determining which property changed
+     * 2. Updating the client information accordingly
+     * 3. Marking the surface as outdated if visual changes needed
+     */
+}
+
+
+/**
  * @brief Soft window manager update
+ *
+ * Performs a minimal update of the window manager state. This is
+ * called frequently to maintain responsiveness without doing heavy
+ * rendering operations.
  *
  * @note Complexity: @e O(1)
  */
 static void s_wm_update(void)
 {
-//    LOGGER_TRACE("Updating window manager", L_NARG);
+    /*
+     * Light update operations would go here
+     * For now this is a no-op to avoid excessive logging
+     */
 }
 
 
 /**
  * @brief Full window manager update
  *
- * Updates the window manager by updating every window on every desktop
- * of every surface.
+ * Updates the window manager by rendering every window on every desktop
+ * of every surface.  This is called when major changes occur that
+ * require a complete visual refrelsh.
  *
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
  *       and @e m is the number of desktops on the surface
@@ -67,7 +292,7 @@ static void s_wm_update_full(void)
 {
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
-    /* Soft update */
+    /* Soft update first */
     s_wm_update();
 
     /* Update all surfaces */
@@ -97,22 +322,20 @@ static void s_wm_update_full(void)
  * @brief Enters the main event handling loop of the window manager
  *
  * Runs continuously while the window manager is active, listening for
- * XCB events and passing them to the event handler for processing.  It
- * uses @a xcb_poll_for_event to wait for incoming events from the
- * X server, enabling responsive behavior in window management.  The
- * condition to end the loop is by setting @p is_running to @c false.
+ * XCB events and passing them to appropriate handlers. Uses
+ * @a xcb_poll_for_event to achieve non-blocking event processing for
+ * responsive behavior.
  *
- * @note The event loop will stop when the @p is_running flag is set to
- *       @c false, which should be handled in response to user actions
- *       or when the window manager is terminating
- * @note Complexity: @e O(1) for each event processed; however, the
- *       overall time complexity depends on the number of events
- *       processed, so each call to @a event_handle may have a different
- *       complexity based on the event type and operations performed
+ * @note The event loop will stop when the @p is_running flag is set
+ *       to @c false, typically in response to user actions or during
+ *       window manager termination
+ * @note Complexity: @e O(1) for each event; overall complexity
+ *       depends on the number of events processed
  */
 static void s_wm_loop(void)
 {
     xcb_key_symbols_t *keysyms;
+    xcb_generic_event_t *event;
 
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
@@ -120,8 +343,15 @@ static void s_wm_loop(void)
         return;
     }
 
-    /* Update window manager before start */
+    /* Update window manager before starting the event loop */
     s_wm_update_full();
+
+    /* Allocate key symbols table for keyboard event processing */
+    keysyms = xcb_key_symbols_alloc(wm->connection);
+    if (keysyms == NULL) {
+        LOGGER_ERROR("Failed to allocate key symbols table", L_NARG);
+        return;
+    }
 
 #ifdef DEBUG
     /* TEST: Create dummy windows to test rendering */
@@ -131,7 +361,8 @@ static void s_wm_loop(void)
             surface_td *surface = (surface_td *) list_data(surface_node);
 
             if (surface != NULL && surface->desktops != NULL) {
-                cdlist_item_td *desktop_node = cdlist_head(surface->desktops);
+                cdlist_item_td *desktop_node =
+                    cdlist_head(surface->desktops);
                 /* Iterate to the current desktop */
                 for (uint32_t i = 0; i < surface->desktop_cur; ++i) {
                     desktop_node = cdlist_next(desktop_node);
@@ -144,7 +375,7 @@ static void s_wm_loop(void)
                     desktop_td *desktop =
                         (desktop_td *) cdlist_data(desktop_node);
                     if (desktop != NULL) {
-                        /* Create a test window */
+                        /* Create a test window for rendering */
                         client_td *test_client = client_init(
                                 wm->connection,
                                 wm->ewmh,
@@ -154,7 +385,7 @@ static void s_wm_loop(void)
                                 &(wm->config->theme));
 
                         if (test_client != NULL) {
-                            /* Remove 'HIDDEN' flag */
+                            /* Remove 'HIDDEN' flag to show the window */
                             safeflg_unset(&(test_client)->properties.flags,
                                     CLIENT_FLAG_HIDDEN, CLIENT_FLAG_MAX);
 
@@ -170,69 +401,74 @@ static void s_wm_loop(void)
     }
 #endif  /* ! DEBUG */
 
-    keysyms = xcb_key_symbols_alloc(wm->connection);
-
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
-        xcb_generic_event_t *event;
-        //event_handler_process(wm->event_handler, &event);
-
         /* Process window manager events from event priority queue */
         eventq_process();
 
-        /* Process X events */
+        /* Process X events.
+         * 'xcb_poll_for_event' is non-blocking and returns NULL when no
+         * events are available */
         while ((event = xcb_poll_for_event(wm->connection))) {
-            xcb_keysym_t keysym;
-            xcb_key_press_event_t *key_event;
-
+            /* Dispatch event to appropriate handler based on type.
+             * The & ~0x80 mask clears the synthetic event bit */
             switch (event->response_type & ~0x80) { /* Ignore error bits */
                 case XCB_KEY_PRESS:
-                    key_event = (xcb_key_press_event_t *) event;
-                    keysym = xcb_key_symbols_get_keysym(keysyms,
-                            key_event->detail, 0);
-
-                    /* Ctrl+Mod1+Shift+Backspace */
-                    if (keysym == 0x0078 &&
-                            (key_event->state & XCB_MOD_MASK_CONTROL) &&
-                            (key_event->state & XCB_MOD_MASK_1) &&
-                            (key_event->state & XCB_MOD_MASK_SHIFT)) {
-                        LOGGER_TRACE("Setting 'is_running' status" \
-                                " flag to 'false'", L_NARG);
-                        wm->is_running = false;
-                    } else {
-                        /* event_handler_handle_process(&event); */
-                    }
+                    s_wm_handle_key_press(
+                            keysyms,
+                            (xcb_key_press_event_t *) event);
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:
-                    /* Handle window resize or move events */
-                    //event_handler_handle_configure(&event);
+                    s_wm_handle_configure_notify(
+                            (xcb_configure_notify_event_t *) event);
                     break;
 
-                case XCB_MAP_NOTIFY:
-                    /* Handle window mapping events (when a window
-                     * is shown) */
-                    //event_handler_handle_map(&event);
+                case XCB_MAP_REQUEST:
+                    s_wm_handle_map_request(
+                            (xcb_map_request_event_t *) event);
                     break;
 
                 case XCB_UNMAP_NOTIFY:
-                    /* Handle window unmapping events (when a window
-                     * is hidden) */
-                    // event_handler_handle_unmap(&event);
+                    s_wm_handle_unmap_notify(
+                            (xcb_unmap_notify_event_t *) event);
                     break;
 
-                    /* Add cases for other event types as required */
+                case XCB_DESTROY_NOTIFY:
+                    s_wm_handle_destroy_notify(
+                            (xcb_destroy_notify_event_t *) event);
+                    break;
+
+                case XCB_PROPERTY_NOTIFY:
+                    s_wm_handle_property_notify(
+                            (xcb_property_notify_event_t *) event);
+                    break;
+
                 default:
-                    /* Optional: handle unknown events if needed */
+                    LOGGER_TRACE(
+                            "Unhandled X event type: %d",
+                            event->response_type & ~0x80);
                     break;
-            } /* switch (event->response_type) */
-            free(event);
-        } /* ! while (event) */
+            }
 
-        /* Update the window manager */
+            /*
+             * Free the event structure after processing
+             */
+            free(event);
+        }
+
+        /*
+         * Update the window manager after processing all events
+         */
         s_wm_update();
-    } /* ! while (is_running) */
+    }
+
     LOGGER_DEBUG("Exiting event loop", L_NARG);
+
+    /*
+     * Free key symbols table before exiting
+     */
+    xcb_key_symbols_free(keysyms);
 }
 
 
@@ -265,6 +501,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 LOGGER_FATAL("Failed to open X display '%s'", display_name);
             }
             free(wm);
+            wm = NULL;
             return 2;
         }
 
@@ -276,7 +513,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     L_NARG);
         }
 
-        /* Initializate atoms */
+        /* Initializate EWMH atoms */
         if (!xcb_ewmh_init_atoms_replies(wm->ewmh,
                     xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
                     NULL)) {
@@ -286,11 +523,14 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         /* Set and load configuration */
         wm->config = config_init();
         if (wm->config == NULL) {
+            xcb_disconnect(wm->connection);
+            free(wm->ewmh);
+            free(wm);
+            wm = NULL;
             return 3;
         }
 
-        LOGGER_TRACE("Loading configuration into window manager",
-                L_NARG);
+        LOGGER_TRACE("Loading configuration into window manager", L_NARG);
         config_load(wm->config, config_dir_prefix);
 
         /* Events: priority queue as min-heap (bottom-heavy heap) */
@@ -299,11 +539,13 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     L_NARG);
             config_destroy(wm->config);
             xcb_disconnect(wm->connection);
+            free(wm->ewmh);
             free(wm);
+            wm = NULL;
             return 4;
         }
 
-        /* Count the number of screens.
+        /* Count the number of screens detected by the X server.
          * NOTE. Yes,... I can use 'xcb_setup_roots_length', but this
          *       it's better for *my* purposes, "bIjatlh 'e' yImev!" */
         it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
@@ -312,12 +554,16 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             screens_detected++;
         }
 
-        /* Check 'screens_detected' for it could be zero on some weird error */
+        /* Verify 'screens_detected' for it could be zero on some
+         * strange error */
         if (screens_detected == 0) {
             LOGGER_FATAL("No screens detected", L_NARG);
             config_destroy(wm->config);
+            eventq_stop();
             xcb_disconnect(wm->connection);
+            free(wm->ewmh);
             free(wm);
+            wm = NULL;
             return 5;
         } else {
             LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
@@ -332,7 +578,9 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             eventq_stop();
             config_destroy(wm->config);
             xcb_disconnect(wm->connection);
+            free(wm->ewmh);
             free(wm);
+            wm = NULL;
             return 5;
         }
 
@@ -364,50 +612,51 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         for (unsigned int i = 0; i < screens_detected; ++i) {
             /* Get number of desktops for this surface */
             uint32_t desktops_count =
-                wm->config->base.screens[it.rem].desktop_count;
+                wm->config->base.screens[i].desktop_count;
             surface_td *surface =
                 surface_init(wm->connection,
-                        wm->ewmh, (uint32_t) it.rem,
+                        wm->ewmh, (uint32_t) i,
                         desktops_count, wm->config);
             if (surface == NULL) {
-                LOGGER_FATAL("Failed to initialize surface %u",
-                        it.rem);
+                LOGGER_FATAL("Failed to initialize surface %u", i);
                 list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
                 xcb_disconnect(wm->connection);
+                free(wm->ewmh);
                 free(wm);
+                wm = NULL;
                 return 6;
             }
 
-            LOGGER_TRACE("Inserting surface %u into surface list",
-                    it.rem);
+            LOGGER_TRACE("Inserting surface %u into surface list", i);
             if (list_ins_next(wm->surfaces,
                         list_tail(wm->surfaces),
                         (const void *) surface) != 0) {
                 LOGGER_FATAL("Failed to insert surface " \
-                        "%u into surface list", it.rem);
+                        "%u into surface list", i);
                 surface_destroy(surface);
                 list_destroy(wm->surfaces);
                 eventq_stop();
                 config_destroy(wm->config);
                 xcb_disconnect(wm->connection);
+                free(wm->ewmh);
                 free(wm);
+                wm = NULL;
                 return 7;
             }
 
             surface->desktop_count =
-                wm->config->base.screens[it.rem].desktop_count;
+                wm->config->base.screens[i].desktop_count;
             surface->desktop_cur =
-                wm->config->base.screens[it.rem].desktop_inaugural;
+                wm->config->base.screens[i].desktop_inaugural;
 
             LOGGER_TRACE("Setting desktop %u as the startup desktop" \
-                    " on surface %u", surface->desktop_cur, it.rem);
+                    " on surface %u", surface->desktop_cur, i);
         }
 
         /* Begin! */
-        LOGGER_TRACE("Setting 'is_running' status flag to 'true'",
-                L_NARG);
+        LOGGER_TRACE("Setting 'is_running' status flag to 'true'", L_NARG);
         wm->is_running = true;
         s_wm_loop();
 
@@ -426,11 +675,11 @@ int wm_stop(void)
         return 1;
     }
 
-    /* Deallocate every surface */
+    /* Deallocate every surface and its contents */
     LOGGER_TRACE("Deallocating surfaces in window manager", L_NARG);
     list_destroy(wm->surfaces);
 
-    /* Deallocating EWMH structure */
+    /* Deallocate EWMH structure */
     LOGGER_TRACE("Deallocating EWMH structure", L_NARG);
     free(wm->ewmh);
 
@@ -440,13 +689,14 @@ int wm_stop(void)
     /* Destroy configuration structure */
     config_destroy(wm->config);
 
-    /* Close the display */
+    /* Close the X display connection */
     LOGGER_TRACE("Closing X display", L_NARG);
     xcb_disconnect(wm->connection);
 
+    /* Free the WM structure itself */
     LOGGER_TRACE("Destroying window manager", L_NARG);
     free(wm);
-    wm = NULL;  /* Reset the singleton instance pointer to 'NULL' */
+    wm = NULL;
 
     LOGGER_DEBUG("Window manager has been destroyed", L_NARG);
 

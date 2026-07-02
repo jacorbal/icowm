@@ -46,32 +46,32 @@ enum action_client_e {
     ACTION_CLIENT_UNFOCUS,              /**< Defocus window */
     ACTION_CLIENT_RESIZE,               /**< Resize window */
     ACTION_CLIENT_MOVE,                 /**< Move window */
-    ACTION_CLIENT_RECLASS,              /**< Change the window class */
-    ACTION_CLIENT_REROLE,               /**< Change the window role */
+    ACTION_CLIENT_RECLASS,              /**< Change window class */
+    ACTION_CLIENT_REROLE,               /**< Change window role */
     ACTION_CLIENT_RENAME,               /**< Rename window */
     ACTION_CLIENT_MAXIMIZE,             /**< Maximize window */
     ACTION_CLIENT_MAXIMIZE_HORZ,        /**< Maximize window horizontally */
     ACTION_CLIENT_MAXIMIZE_VERT,        /**< Maximize window vertically */
     ACTION_CLIENT_ICONIFY,              /**< Iconify (& minimize) */
-    ACTION_CLIENT_HIDE,                 /**< Hide the window */
-    ACTION_CLIENT_UNHIDE,               /**< Show the window */
+    ACTION_CLIENT_HIDE,                 /**< Hide window */
+    ACTION_CLIENT_UNHIDE,               /**< Show window */
     ACTION_CLIENT_SHADE,                /**< Shade (roll-up) the window */
-    ACTION_CLIENT_UNSHADE,              /**< Shade (roll-up) the window */
-    ACTION_CLIENT_TOGGLE_SHADE,         /**< Shade (roll-up) the window */
+    ACTION_CLIENT_UNSHADE,              /**< Unshade (roll-down) the window */
+    ACTION_CLIENT_TOGGLE_SHADE,         /**< Toggle window shade status */
     ACTION_CLIENT_STICKY,               /**< Set window sticky mode */
     ACTION_CLIENT_UNSTICKY,             /**< Remove window sticky mode */
     ACTION_CLIENT_TOGGLE_STICKY,        /**< Toggle window sticky mode */
     ACTION_CLIENT_FULLSCREEN,           /**< Set full surface mode */
     ACTION_CLIENT_UNFULLSCREEN,         /**< Remove full surface mode */
     ACTION_CLIENT_TOGGLE_FULLSCREEN,    /**< Toggle full surface mode */
-    ACTION_CLIENT_RAISE,                /**< Raise the window */
-    ACTION_CLIENT_LOWER,                /**< Lower the window */
+    ACTION_CLIENT_RAISE,                /**< Raise window */
+    ACTION_CLIENT_LOWER,                /**< Lower window */
     ACTION_CLIENT_LAYER_ABOVE,          /**< Window always on top */
     ACTION_CLIENT_LAYER_NORMAL,         /**< Window normal layer */
     ACTION_CLIENT_LAYER_BELOW,          /**< Window always on bottom */
     ACTION_CLIENT_SET_URGENT,           /**< Mark window as urgent */
     ACTION_CLIENT_CLEAR_URGENT,         /**< Clear urgency level */
-    ACTION_CLIENT_SET_ICON,             /**< Set icon for the window */
+    ACTION_CLIENT_SET_ICON,             /**< Set window icon */
 
     /* Add more as needed */
 //    ACTION_CLIENT_SET_OPACITY,          /**< Change window opacity */
@@ -153,9 +153,9 @@ enum action_wm_e {
     ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
         ACTION_WM_MIN,
     ACTION_WM_CONFIGURATION_SAVE,       /**< Save current configuration */
-    ACTION_SURFACE_ADD,                  /**< Add new surface */
-    ACTION_SURFACE_REMOVE,               /**< Remove surface */
-//    ACTION_WM_SURFACE_SWITCH,            /**< Switch active surface */
+    ACTION_SURFACE_ADD,                 /**< Add new surface */
+    ACTION_SURFACE_REMOVE,              /**< Remove surface */
+//    ACTION_WM_SURFACE_SWITCH,           /**< Switch active surface */
     ACTION_WM_EXIT,                     /**< Exit the window manager */
 
     /* Add more as needed */

@@ -127,7 +127,7 @@ typedef struct {
      *
      * @return Status of the match inquiry operation
      * @retval  true Both keys match
-     * @retval false The keys do not match
+     * @retval false Keys do not match
      */
     bool (*match)(const void *key1, const void *key2);
 
@@ -197,8 +197,8 @@ void ohtbl_reset(ohtbl_td *htbl);
  * @param data Pointer to the data to be inserted
  *
  * @return Status of the insertion operation
- * @retval  0 The insertion was successful
- * @retval  1 The item already existed in the table
+ * @retval  0 Insertion was successful
+ * @retval  1 Item already existed in the table
  * @retval -2 Could not resize the table, or bad hash functions
  *
  * @note Complexity: @e O(1)
@@ -222,8 +222,8 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
  * @param data Pointer to the data to be updated
  *
  * @return Status of the update operation
- * @retval  0 The update was successful
- * @retval  1 The item already existed in the table
+ * @retval  0 Update was successful
+ * @retval  1 Item already existed in the table
  * @retval -1 Nothing was done, possible bad hash functions
  * @retval -2 Could not resize the table, and the element was not
  *            inserted
@@ -245,11 +245,11 @@ int ohtbl_update(ohtbl_td *htbl, const void *data);
  * @param data Pointer to the data to be matched
  *
  * @return Status of the removal operation
- * @retval  0 The removal was successful
+ * @retval  0 Removal was successful
  * @retval -1 Data was not found
  * @retval -2 Removal successful, but could not resize the table
  *
- * @note The memory of this item has to be deallocated manually
+ * @note Memory for this item has to be deallocated manually
  * @note Complexity: @e O(1)
  */
 int ohtbl_remove(ohtbl_td *htbl, void **data);
@@ -264,8 +264,8 @@ int ohtbl_remove(ohtbl_td *htbl, void **data);
  * @param data Pointer to the data to look for
  *
  * @return Status of the lookup operation
- * @retval  0 The item was successfully found
- * @retval -1 The item was not found
+ * @retval  0 Item was successfully found
+ * @retval -1 Item was not found
  *
  * @note Complexity: @e O(1)
  */
@@ -283,12 +283,12 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data);
  * @param new_positions New positions to resize to
  *
  * @return Status of the resize operation
- * @retval  0 The resize operation was successful
+ * @retval  0 Resize operation was successful
  * @retval -1 Failed to allocate memory for the new table
  *
- * @note The function assumes that the current table is using open
- *       addressing and that structures for each item are still valid
- *       after rehashing
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
  * @note Complexity: @e O(n), where @e n is the number of elements in
  *       the hash table
  */
@@ -307,12 +307,12 @@ int ohtbl_resize(ohtbl_td *htbl, size_t new_positions);
  * @param htbl Pointer to the hash table to be doubled in size
  *
  * @return Status of the resize operation
- * @retval  0 The resize operation was successful
+ * @retval  0 Resize operation was successful
  * @retval -1 Failed to allocate memory for the new table
  *
- * @note The function assumes that the current table is using open
- *       addressing and that structures for each item are still valid
- *       after rehashing
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
  * @note Complexity: @e O(n), where @e n is the number of elements in
  *       the hash table
  *
@@ -333,13 +333,13 @@ int ohtbl_resize_double(ohtbl_td *htbl);
  * @param htbl Pointer to the hash table to be halved in size
  *
  * @return Status of the resize operation
- * @retval  0 The resize operation was successful
+ * @retval  0 Resize operation was successful
  * @retval  1 Below threshold of minimum size
  * @retval -1 Memory allocation for the new table failed
  *
- * @note The function assumes that the current table is using open
- *       addressing and that structures for each item are still valid
- *       after rehashing
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
  * @note Complexity: @e O(n), where @e n is the number of elements in
  *       the hash table
  *

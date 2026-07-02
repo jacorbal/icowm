@@ -103,7 +103,7 @@ typedef struct {
  * @see @c action_surface_e
  */
 typedef struct {
-    wm_td *wm;                  /**< Pointer to the window manager*/
+    wm_td *wm;                  /**< Pointer to the window manager */
     enum action_wm_e action_wm; /**< Action for this surface */
 
     /* TODO */

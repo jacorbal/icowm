@@ -329,8 +329,8 @@ static void s_event_handle_client(event_td *event)
 static void s_event_handle_desktop(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop event to process in " \
-                     " event queue", L_NARG);
+        LOGGER_ERROR("Received 'NULL' desktop event to process in" \
+                " event queue", L_NARG);
         return;
     }
 
@@ -407,8 +407,8 @@ static void s_event_handle_desktop(event_td *event)
 static void s_event_handle_screen(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' screen event to process in " \
-                     " event queue", L_NARG);
+        LOGGER_ERROR("Received 'NULL' screen event to process in" \
+                " event queue", L_NARG);
         return;
     }
 
@@ -464,7 +464,7 @@ static void s_event_handle_screen(event_td *event)
 static void s_event_handle_wm(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' manager event to process in " \
+        LOGGER_ERROR("Received 'NULL' manager event to process in" \
                 " event queue", L_NARG);
         return;
     }

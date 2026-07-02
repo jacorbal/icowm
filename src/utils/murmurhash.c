@@ -101,7 +101,7 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
     h *= 0xc2b2ae35;
     h ^= h >> 16;
 
-    return h; // Retornar el hash resultante
+    return h;
 }
 
 

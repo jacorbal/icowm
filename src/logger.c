@@ -110,7 +110,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
     /* Other systems without 'tm_gmtoff' nor 'timezone' */
     tz_offset_seconds = 0;
 #endif  /* ! __linux__ */
-#endif
+#endif  /* ! LOGGER_OS_HAS_TM_GMTOFF */
 
     /* Determine timezone sign offset and convert to "HHMM" format */
     if (flags & LOGGER_TIMESTAMP_TZ) {
@@ -197,12 +197,12 @@ int logger_start(const char *filename,
         logger->buffer = NULL;
 
         /* If file name could be:
-         *   - "NULL", deactivate the logger;
-         *   - "STDOUT", write always to 'stdout';
-         *   - "STDERR", write always to 'stderr';
-         *   - "DEFAULT", write all messages to 'stdout' if
-         *     'severity < LOG_ERROR', and to 'stderr' if
-         *     'severity >= LOG_ERROR';
+         *    - "NULL", deactivate the logger
+         *    - "STDOUT", write always to 'stdout'
+         *    - "STDERR", write always to 'stderr'
+         *    - "DEFAULT", write all messages to:
+         *      - 'stdout' if 'severity < LOG_ERROR'
+         *      - 'stderr' if 'severity >= LOG_ERROR'
          * else, open the file name and write to it */
         if (safe_strcmp(filename, "DEFAULT") == 0) {
             logger->file.fp_out = stdout;
@@ -259,6 +259,7 @@ int logger_stop(void)
         return 1;
     }
 
+    /* Free buffer */
     if (logger->buffer) {
         s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
         free(logger->buffer->messages);
