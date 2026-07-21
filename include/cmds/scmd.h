@@ -41,7 +41,7 @@ void scmd_surface_desktop_add(surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_desktop_remove(surface_td *surface,
+void scmd_surface_desktop_rem(surface_td *surface,
         action_data_surface_td *surface_data);
 
 /**

@@ -45,19 +45,30 @@
 /**
  * @brief Start priority queue (min-heap) for events
  *
+ * Initializes the event priority queue and starts the event processing
+ * thread that will continuously process events from the queue.
+ *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Could not allocate memory
  * @retval -1 Singleton was already initialized; no action taken
+ *
+ * @note Complexity: @e O(1)
  */
 int eventq_start(void);
 
 /**
  * @brief Deallocates memory used by this event priority queue
  *
+ * Stops the event processing thread and deallocates all memory used by
+ * the evnt priority queue.
+ *
  * @return Status of the operation
  * @return  0 Success
  * @return  1 No operation has been performed
+ *
+ * @note Complexity: @e O(n), where @e n is the number of events
+ *       remaining in the queue
  */
 int eventq_stop(void);
 
@@ -66,7 +77,9 @@ int eventq_stop(void);
  *
  * Initializes a new event and inserts it on the event queue.  The
  * memory allocated for this event will be destroyed by the event queue
- * on extraction if it's still within the queue.
+ * on extraction if it's still within the queue, based on its priority.
+ * The event will be processed based on its priority relative to other
+ * events in the queue.
  *
  * @param event New event to add to the priority queue
  *
@@ -74,12 +87,16 @@ int eventq_stop(void);
  * @retval  0 Success
  * @retval  1 Failed to insert the event into the event queue @p eventq
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int eventq_add(event_td *event);
 
 /**
  * @brief Extract an event at from the priority queue
+ *
+ * Removes and returns the highest priority event (smallest priority
+ * value) from the priority queue.
  *
  * @return Pointer to extracted event, or @c NULL otherwise
  *
@@ -93,12 +110,17 @@ event_td *eventq_extract(void);
 /**
  * @brief Process the event in the priority queue
  *
+ * Extracts and processes all events currently in the priority queue.
+ * Each event is dispatched to the appropiate handler based on its
+ * action type.  This function processes events until the queue is
+ * empty.
+ *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to process the event
  *
- * @note Complexity: @e O(log n), where @e n is the number of events to
- *       process
+ * @note Complexity: @e O(n log n), where @e n is the number of events
+ *       in the queue, due to extraction operations
  */
 int eventq_process(void);
 

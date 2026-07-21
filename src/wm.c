@@ -44,7 +44,7 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
 
 
 /**
- * @brief Handle KEY_PRESS events from the X server
+ * @brief Handle @c KEY_PRESS events from the X server
  *
  * Processes keyboard input events by converting XCB keycodes to
  * keysyms and performing appropriate window manager actions based
@@ -66,18 +66,14 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /*
-     * Translate keycode to keysym using the key symbols table
-     */
+    /* Translate keycode to keysym using the key symbols table */
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
 
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, event->state);
 
-    /*
-     * Check for exit key combination: Ctrl+Mod1+Shift+BackSpace
-     * This is the hardcoded emergency exit key
-     */
+    /* Check for exit key combination: 'Ctrl+Mod1+Shift+BackSpace'.
+     * This is the hardcoded emergency exit key */
     if (keysym == 0xff08 &&     // == XK_BackSpace &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1) &&
@@ -100,9 +96,9 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 
 
 /**
- * @brief Handle CONFIGURE_NOTIFY events from the X server
+ * @brief Handle @c CONFIGURE_NOTIFY events from the X server
  *
- * Processes window configuration change notifications. These events
+ * Processes window configuration change notifications.  These events
  * indicate that a window's geometry or stacking order has changed.
  *
  * @param event Pointer to the configure notify event
@@ -123,18 +119,16 @@ static void s_wm_handle_configure_notify(
             event->window, event->width, event->height,
             event->x, event->y);
 
-    /*
-     * TODO: Handle window geometry changes
-     * This may involve updating internal client state if necessary
-     */
+    /* TODO: Handle window geometry changes
+     * This may involve updating internal client state if necessary */
 }
 
 
 /**
- * @brief Handle MAP_REQUEST events from the X server
+ * @brief Handle @c MAP_REQUEST events from the X server
  *
- * Processes requests to map (display) windows. This event is sent
- * when a window wants to become visible on the screen.
+ * Processes requests to map (display) windows.  This event is sent when
+ * a window wants to become visible on the screen.
  *
  * @param event Pointer to the map request event
  *
@@ -195,11 +189,11 @@ static void s_wm_handle_unmap_notify(
 
 
 /**
- * @brief Handle DESTROY_NOTIFY events from the X server
+ * @brief Handle @c DESTROY_NOTIFY events from the X server
  *
- * Processes notifications that a window has been destroyed. When
- * this event is received, the window is no longer valid and any
- * references to it should be cleaned up.
+ * Processes notifications that a window has been destroyed.  When this
+ * event is received, the window is no longer valid and any references
+ * to it should be cleaned up.
  *
  * @param event Pointer to the destroy notify event
  *
@@ -228,11 +222,12 @@ static void s_wm_handle_destroy_notify(
 
 
 /**
- * @brief Handle PROPERTY_NOTIFY events from the X server
+ * @brief Handle @c PROPERTY_NOTIFY events from the X server
  *
  * Processes notifications that window properties have changed.
- * Properties may include WM_NAME, WM_CLASS, WM_HINTS, and others
- * which affect how the window manager displays or manages the window.
+ * Properties may include @c WM_NAME, @c WM_CLASS, @c WM_HINTS, and
+ * others which affect how the window manager displays or manages the
+ * window.
  *
  * @param event Pointer to the property notify event
  *
@@ -263,7 +258,7 @@ static void s_wm_handle_property_notify(
 /**
  * @brief Soft window manager update
  *
- * Performs a minimal update of the window manager state. This is
+ * Performs a minimal update of the window manager state.  This is
  * called frequently to maintain responsiveness without doing heavy
  * rendering operations.
  *
@@ -271,10 +266,8 @@ static void s_wm_handle_property_notify(
  */
 static void s_wm_update(void)
 {
-    /*
-     * Light update operations would go here
-     * For now this is a no-op to avoid excessive logging
-     */
+    /* Light update operations would go here.
+     * For now this is a no-op to avoid excessive logging */
 }
 
 
@@ -322,7 +315,7 @@ static void s_wm_update_full(void)
  * @brief Enters the main event handling loop of the window manager
  *
  * Runs continuously while the window manager is active, listening for
- * XCB events and passing them to appropriate handlers. Uses
+ * XCB events and passing them to appropriate handlers.  It uses
  * @a xcb_poll_for_event to achieve non-blocking event processing for
  * responsive behavior.
  *
@@ -411,7 +404,7 @@ static void s_wm_loop(void)
          * events are available */
         while ((event = xcb_poll_for_event(wm->connection))) {
             /* Dispatch event to appropriate handler based on type.
-             * The & ~0x80 mask clears the synthetic event bit */
+             * Mask '& ~0x80' clears the synthetic event bit */
             switch (event->response_type & ~0x80) { /* Ignore error bits */
                 case XCB_KEY_PRESS:
                     s_wm_handle_key_press(
@@ -451,23 +444,17 @@ static void s_wm_loop(void)
                     break;
             }
 
-            /*
-             * Free the event structure after processing
-             */
+            /* Free the event structure after processing */
             free(event);
-        }
+        } /* ! while (event) */
 
-        /*
-         * Update the window manager after processing all events
-         */
+        /* Update the window manager after processing all events */
         s_wm_update();
-    }
+    } /* ! while(wm->is_running) */
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
 
-    /*
-     * Free key symbols table before exiting
-     */
+    /* Free key symbols table */
     xcb_key_symbols_free(keysyms);
 }
 
@@ -498,7 +485,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             if (display_name == NULL) {
                 LOGGER_FATAL("Failed to open X display", L_NARG);
             } else {
-                LOGGER_FATAL("Failed to open X display '%s'", display_name);
+                LOGGER_FATAL("Failed to open X display '%s'",
+                        display_name);
             }
             free(wm);
             wm = NULL;
@@ -546,7 +534,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Count the number of screens detected by the X server.
-         * NOTE. Yes,... I can use 'xcb_setup_roots_length', but this
+         * NOTE: Yes,... I can use 'xcb_setup_roots_length', but this
          *       it's better for *my* purposes, "bIjatlh 'e' yImev!" */
         it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
         screens_detected = 0;
@@ -608,7 +596,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
         /* Not interested in using XCB iterator because it's needed to
          * transverse the screens from 0 to go in the same order as in
-         * the configuration file. */
+         * the configuration file */
         for (unsigned int i = 0; i < screens_detected; ++i) {
             /* Get number of desktops for this surface */
             uint32_t desktops_count =
@@ -656,7 +644,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Begin! */
-        LOGGER_TRACE("Setting 'is_running' status flag to 'true'", L_NARG);
+        LOGGER_TRACE("Setting 'is_running' status flag to 'true'",
+                L_NARG);
         wm->is_running = true;
         s_wm_loop();
 

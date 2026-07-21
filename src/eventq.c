@@ -12,6 +12,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* nanosleep (199309L would suffice) */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
@@ -39,6 +42,9 @@
 
 /* Commands includes */
 #include <cmds/ccmd.h>
+#include <cmds/dcmd.h>
+#include <cmds/scmd.h>
+//#include <cmds/wmcmd.h>
 
 /* Local includes */
 #include <eventq.h>
@@ -98,10 +104,12 @@ static volatile bool eventq_is_running = false;  /* Running state of the
  *       processed in @a eventq_process, however, it depends on the size
  *       of the event queue when events are presented for processings
  *
- * @see @a evetnq_process
+ * @see @a eventq_process
  */
 static void *eventq_process_thread(void *arg)
 {
+    (void) arg;
+
     while (eventq_is_running) {
         if (pqueue_size(eventq) > 0) {
             eventq_process();   /* Process events from the queue */
@@ -152,15 +160,24 @@ static int s_event_compare(const void *e1, const void *e2)
 }
 
 
-/* Handle client events */
+/**
+ * @brief Handle client events
+ *
+ * Process client-related events by dispatching them to appropiate
+ * command handlers based on the action type.
+ *
+ * @param event Pointer to the client event to handle
+ *
+ * @note Complexity: @e O(1) for dispatch
+ */
 static void s_event_handle_client(event_td *event)
 {
     client_td *client;
     action_data_client_td *client_data;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' client event to process in" \
-                " event queue", L_NARG);
+        LOGGER_ERROR("Received 'NULL' client event to process" \
+                " in event queue", L_NARG);
         return;
     }
 
@@ -170,12 +187,23 @@ static void s_event_handle_client(event_td *event)
 
     if (event->action.object.client < ACTION_CLIENT_MIN ||
             event->action.object.client > ACTION_CLIENT_MAX) {
+        LOGGER_WARNING("Invalid client action type: %d",
+                event->action.object.client);
         return; /* Invalid action */
     }
 
     /* Point to the actual client and its data if needed */
     client = (client_td *) event->object;
     client_data = (action_data_client_td *) event->data;
+
+    if (client == NULL) {
+        LOGGER_ERROR("Received 'NULL' client object in event", L_NARG);
+        event_destroy(event);
+        return;
+    }
+
+    LOGGER_TRACE("Processing client event: action=%d, client=%p",
+            event->action.object.client, (void *) client);
 
     switch (event->action.object.client) {
         case ACTION_CLIENT_CREATE:
@@ -325,12 +353,24 @@ static void s_event_handle_client(event_td *event)
 }
 
 
-/* Handle desktop events */
+/**
+ * @brief Handle desktop events
+ *
+ * Process desktop-related events by dispatching them to appropiate
+ * command handlers based on the action type.
+ *
+ * @param event Pointer to the desktop event to handle
+ *
+ * @note Complexity: @e O(1) for dispatch
+ */
 static void s_event_handle_desktop(event_td *event)
 {
+    desktop_td *desktop;
+    action_data_desktop_td *desktop_data;
+
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop event to process in" \
-                " event queue", L_NARG);
+        LOGGER_ERROR("Received 'NULL' desktop event to process" \
+                " in event queue", L_NARG);
         return;
     }
 
@@ -340,62 +380,95 @@ static void s_event_handle_desktop(event_td *event)
 
     if (event->action.object.desktop < ACTION_DESKTOP_MIN ||
         event->action.object.desktop > ACTION_DESKTOP_MAX) {
+        LOGGER_WARNING("Invalid desktop action type: %d",
+                event->action.object.desktop);
         return; /* Invalid action */
     }
 
+    /* Point to the actial desktop and its data if needed */
+    desktop = (desktop_td *) event->object;
+    desktop_data = (action_data_desktop_td *) event->data;
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Received 'NULL' desktop object in event", L_NARG);
+        event_destroy(event);
+        return;
+    }
+
+    LOGGER_TRACE("Processing desktop event: action=%d, desktop=%p",
+            event->action.object.desktop, (void *) desktop);
+
     switch (event->action.object.desktop) {
         case ACTION_DESKTOP_RENAME:
+            dcmd_desktop_rename(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_SET_BACKGROUND:
+            dcmd_desktop_bg_color(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLEAR:
+            dcmd_desktop_clear(desktop);
             break;
 
         case ACTION_DESKTOP_CLIENT_ADD:
+            dcmd_desktop_client_add(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_REMOVE:
+            dcmd_desktop_client_rem(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_SEND:
+            dcmd_desktop_client_send(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_CLONE:
+            dcmd_desktop_client_send(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_SEND_FRONT:
+            dcmd_desktop_client_send_front(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_SEND_BACK:
+            dcmd_desktop_client_send_back(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENTS_REARRANGE:
+            dcmd_desktop_clients_rearrange(desktop);
             break;
 
         case ACTION_DESKTOP_CLIENTS_ICONIFY_ALL:
+            dcmd_desktop_clients_iconify_all(desktop);
             break;
 
         case ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE:
+            dcmd_desktop_clients_cycle_active(desktop);
             break;
 
         case ACTION_DESKTOP_CYCLE_CLIENTS_ICONS:
+            dcmd_desktop_clients_cycle_icons(desktop);
             break;
 
         case ACTION_DESKTOP_LOCK:
+            dcmd_desktop_lock(desktop);
             break;
 
         case ACTION_DESKTOP_UNLOCK:
+            dcmd_desktop_unlock(desktop);
             break;
 
         case ACTION_DESKTOP_SET_LAYOUT:
+            dcmd_desktop_layout(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_COMMAND_LAUNCH:
+            dcmd_desktop_process_launch(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_PROCESS_KILL:
+            dcmd_desktop_process_kill(desktop, desktop_data);
             break;
     }
 
@@ -403,9 +476,21 @@ static void s_event_handle_desktop(event_td *event)
 }
 
 
-/* Handle screen events */
-static void s_event_handle_screen(event_td *event)
+/**
+ * @brief Handle surface events
+ *
+ * Process surface-related events by dispatching them to appropiate
+ * command handlers based on the action type.
+ *
+ * @param event Pointer to the surface event to handle
+ *
+ * @note Complexity: @e O(1) for dispatch
+ */
+static void s_event_handle_surface(event_td *event)
 {
+    surface_td *surface;
+    action_data_surface_td *surface_data;
+
     if (event == NULL) {
         LOGGER_ERROR("Received 'NULL' screen event to process in" \
                 " event queue", L_NARG);
@@ -418,41 +503,68 @@ static void s_event_handle_screen(event_td *event)
 
     if (event->action.object.surface < ACTION_SURFACE_MIN ||
         event->action.object.surface > ACTION_SURFACE_MAX) {
+        LOGGER_WARNING("Invalid surface action type: %d",
+                event->action.object.surface);
         return; /* Invalid action */
     }
 
+    /* Point to the actual surface and its data if needed */
+    surface = (surface_td *) event->object;
+    surface_data = (action_data_surface_td *) event->data;
+
+    if (surface == NULL) {
+        LOGGER_ERROR("Received 'NULL' surface object in event", L_NARG);
+        event_destroy(event);
+        return;
+    }
+
+
+    LOGGER_TRACE("Processing surface event: action=%d, surface=%p",
+            event->action.object.surface, (void *) surface);
+
     switch (event->action.object.surface) {
         case ACTION_SURFACE_DESKTOP_ADD:
+            scmd_surface_desktop_add(surface, surface_data);
             break;
 
         case ACTION_SURFACE_DESKTOP_REMOVE:
+            scmd_surface_desktop_rem(surface, surface_data);
             break;
 
         case ACTION_SURFACE_DESKTOP_SWITCH:
+            scmd_surface_desktop_switch(surface, surface_data);
             break;
 
         case ACTION_SURFACE_DESKTOP_SWITCH_NEXT:
+            scmd_surface_desktop_switch_next(surface);
             break;
 
         case ACTION_SURFACE_DESKTOP_SWITCH_PREV:
+            scmd_surface_desktop_switch_prev(surface);
             break;
 
         case ACTION_SURFACE_TOGGLE_FULLSCREEN:
+            scmd_surface_toggle_fullscreen(surface);
             break;
 
         case ACTION_SURFACE_SET_RESOLUTION:
+            scmd_surface_set_resolution(surface, surface_data);
             break;
 
         case ACTION_SURFACE_SET_ORIENTATION:
+            scmd_surface_set_orientation(surface, surface_data);
             break;
 
         case ACTION_SURFACE_SET_BRIGHTNESS:
+            scmd_surface_set_brightness(surface, surface_data);
             break;
 
         case ACTION_SURFACE_SET_CONTRAST:
+            scmd_surface_set_contrast(surface, surface_data);
             break;
 
         case ACTION_SURFACE_CONFIGURE_SETTINGS:
+            scmd_surface_configure_settings(surface, surface_data);
             break;
     }
 
@@ -460,12 +572,21 @@ static void s_event_handle_screen(event_td *event)
 }
 
 
-/* Handle client manager events */
+/**
+ * @brief Handle window manager events
+ *
+ * Process window manager -related events by dispatching them to
+ * appropiate command handlers based on the action type.
+ *
+ * @param event Pointer to the window manager event to handle
+ *
+ * @note Complexity: @e O(1) for dispatch
+ */
 static void s_event_handle_wm(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' manager event to process in" \
-                " event queue", L_NARG);
+        LOGGER_ERROR("Received 'NULL' window manager event to process" \
+                " in event queue", L_NARG);
         return;
     }
 
@@ -475,23 +596,33 @@ static void s_event_handle_wm(event_td *event)
 
     if (event->action.object.wm < ACTION_WM_MIN ||
             event->action.object.wm > ACTION_WM_MAX) {
+        LOGGER_WARNING("Invalid window manager action type: %d",
+                event->action.object.wm);
         return; /* Invalid action */
     }
 
+    LOGGER_TRACE("Processing window manager event: action=%d",
+            event->action.object.wm);
+
     switch (event->action.object.wm) {
         case ACTION_WM_CONFIGURATION_RELOAD:
+            LOGGER_TRACE("WM configuration reload requested", L_NARG);
             break;
 
         case ACTION_WM_CONFIGURATION_SAVE:
+            LOGGER_TRACE("WM configuration save requested", L_NARG);
             break;
 
         case ACTION_SURFACE_ADD:
+            LOGGER_TRACE("Surface addition requested", L_NARG);
             break;
 
         case ACTION_SURFACE_REMOVE:
+            LOGGER_TRACE("Surface removal requested", L_NARG);
             break;
 
         case ACTION_WM_EXIT:
+            LOGGER_TRACE("WM exit action requested", L_NARG);
             wm_stop();
             break;
     }
@@ -518,6 +649,9 @@ int eventq_start(void)
         if (pthread_create(&event_thread, NULL,
                     eventq_process_thread, NULL) != 0) {
             LOGGER_FATAL("Failed to create event thread", L_NARG);
+            pqueue_destroy(eventq);
+            eventq = NULL;
+            eventq_is_running = false;
             return 1;
         }
         return 0;
@@ -527,7 +661,7 @@ int eventq_start(void)
 }
 
 
-/* Deallocate memory for the event priority queue */
+/* Deallocate memory used by the event priority queue */
 int eventq_stop(void)
 {
     LOGGER_DEBUG("Deallocating priority queue for events", L_NARG);
@@ -549,6 +683,11 @@ int eventq_stop(void)
 /* Add a event to the event priority queue */
 int eventq_add(event_td *event)
 {
+    if (event == NULL) {
+        LOGGER_ERROR("Attempted to add 'NULL' event to queue", L_NARG);
+        return 1;
+    }
+
     LOGGER_TRACE("Inserting event into event queue", L_NARG);
     if (pqueue_insert(eventq, (void *) event) != 0){
         LOGGER_WARNING("Failed to insert event into event queue",
@@ -584,12 +723,13 @@ int eventq_process(void)
 
     while (pqueue_size(eventq) > 0) {
         processed_event = eventq_extract();
-        if (processed_event != 0) {
-            LOGGER_WARNING("Failed to process event", L_NARG);
+        if (processed_event == NULL) {
+            LOGGER_WARNING("Failed to extract event", L_NARG);
             return 1;
         }
 
-        /* Handle each type of event */
+        /* Handle each type of event by dispatching to the appropiate
+         * handler function */
         switch (processed_event->action.type) {
             case ACTION_TYPE_CLIENT:
                 s_event_handle_client(processed_event);
@@ -598,7 +738,7 @@ int eventq_process(void)
                 s_event_handle_desktop(processed_event);
                 break;
             case ACTION_TYPE_SURFACE:
-                s_event_handle_screen(processed_event);
+                s_event_handle_surface(processed_event);
                 break;
             case ACTION_TYPE_WM:
                 s_event_handle_wm(processed_event);

@@ -12,8 +12,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_WCMD_H
-#define CMDS_WCMD_H
+#ifndef CMDS_DCMD_H
+#define CMDS_DCMD_H
 
 
 /* System includes */
@@ -218,4 +218,5 @@ pid_t dcmd_desktop_process_launch(desktop_td *desktop,
 bool dcmd_desktop_process_kill(desktop_td *desktop,
         action_data_desktop_td *desktop_data);
 
-#endif  /* ! CMDS_WCMD_H */
+
+#endif  /* ! CMDS_DCMD_H */
