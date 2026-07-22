@@ -162,9 +162,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
         snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1,
                 "Desktop %u", desktop_id);
     } else {
-        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1,
-                config_base->screens[screen_id].desktops[desktop_id].name,
-                DESKTOP_MAX_LENGTH_NAME - 1);
+        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1, "%s",
+                config_base->screens[screen_id].desktops[desktop_id].name);
     }
 
     /* Set background color */

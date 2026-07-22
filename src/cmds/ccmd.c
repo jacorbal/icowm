@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* size_t, snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* memcpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -420,60 +421,50 @@ void wcmd_client_rename(client_td *client,
 void wcmd_client_reclass(client_td *client,
         action_data_client_td *client_data)
 {
-    char *wm_class[2];
     char *wm_class_combined;
     size_t wm_class_combined_len;
+    size_t len0;
+    size_t len1;
 
     if (client == NULL || client_data == NULL) {
         return;
     }
 
-    wm_class[0] = safe_strdup(client_data->new_data.str.str0);
-    wm_class[1] = safe_strdup(client_data->new_data.str.str1);
-
-    xcb_change_property(client->connection,
-            XCB_PROP_MODE_REPLACE,  /* insert */
-            client->window,
-            XCB_ATOM_WM_CLASS,
-            XCB_ATOM_STRING,
-            8,
-            (uint32_t) safe_strlen(wm_class[0]),
-            wm_class[0]);
-
-    xcb_change_property(client->connection,
-            XCB_PROP_MODE_APPEND,   /* append */
-            client->window,
-            XCB_ATOM_WM_CLASS,
-            XCB_ATOM_STRING,
-            8,
-            (uint32_t) safe_strlen(wm_class[1]),
-            wm_class[1]);
-
-    free(wm_class[0]);
-    free(wm_class[1]);
+    free(client->info.class_name[0]);
+    free(client->info.class_name[1]);
+    client->info.class_name[0] =
+        safe_strdup(client_data->new_data.str.str0);
+    client->info.class_name[1] =
+        safe_strdup(client_data->new_data.str.str1);
 
     /* The 'WM_CLASS' property (of type 'STRING' without control
      * characters) contains two consecutive null-terminated
      * strings.  These specify the Instance and Class names to be used
      * by both the client and the window manager for looking up
      * resources for the application or as identifying information
-     * (ICCCM v 2.0, § 4.1.2.5). */
-    wm_class_combined_len =
-        safe_strlen(client->info.class_name[0]) +
-        safe_strlen(client->info.class_name[1]) + 2;
+     * (ICCCM v 2.0, § 4.1.2.5).  A single buffer is built manually
+     * (instead of relying on '%s' with an embedded '\0' argument, which
+     * prints as an empty string and therefore never inserts the
+     * separator) so that both null terminators actually land in the
+     * buffer passed to 'xcb_icccm_set_wm_class' */
+    len0 = safe_strlen(client->info.class_name[0]);
+    len1 = safe_strlen(client->info.class_name[1]);
+    wm_class_combined_len = len0 + len1 + 2;
     wm_class_combined = malloc(wm_class_combined_len);
     if (wm_class_combined) {
-        snprintf(wm_class_combined, wm_class_combined_len, "%s%s%s",
-                client->info.class_name[0], "\0",
-                client->info.class_name[1]);
+        memcpy(wm_class_combined, client->info.class_name[0], len0);
+        wm_class_combined[len0] = '\0';
+        memcpy(wm_class_combined + len0 + 1,
+                client->info.class_name[1], len1);
+        wm_class_combined[len0 + 1 + len1] = '\0';
 
-        xcb_icccm_set_wm_class(client->connection, client->window, 1,
-                wm_class_combined);
+        xcb_icccm_set_wm_class(client->connection, client->window,
+                (uint32_t) wm_class_combined_len, wm_class_combined);
         free(wm_class_combined);
     } else {
         /* On error, at least get the first string */
-        xcb_icccm_set_wm_class(client->connection, client->id, 1,
-                client->info.class_name[0]);
+        xcb_icccm_set_wm_class(client->connection, client->window,
+                (uint32_t) (len0 + 1), client->info.class_name[0]);
     }
 }
 

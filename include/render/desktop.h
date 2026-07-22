@@ -33,10 +33,6 @@
  * @retval  1 Failed to draw background
  *
  * @note Complexity: @e O(1)
- *
- * @todo Currently, this is a no-op as X11 background management is
- *       typically handled by separate tools or the EWMH-compliant
- *       desktop environment
  */
 int desktop_render_background(desktop_td *desktop);
 

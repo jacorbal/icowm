@@ -66,6 +66,7 @@ void dcmd_desktop_bg_color(desktop_td *desktop,
 
     desktop->background.is_image = false;
     desktop->background.bg.color = desktop_data->new_data.uvalue;
+    desktop->is_outdated = true;
 }
 
 

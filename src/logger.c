@@ -347,15 +347,21 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         return -1;
     }
 
-    /* Calculate final length, accounting for potential truncation */
+    /* Calculate final length, accounting for potential truncation.
+     * Note that 'vsnprintf' reports the length the string *would* have
+     * had if 'msg' were large enough, so 'len' must be checked against
+     * 'sizeof(msg)' *before* it is used to index 'msg'; otherwise the
+     * null-termination write below could land past the end of the
+     * buffer */
     len += len_fmt;     /* Update total length */
-    msg[len] = '\0';    /* Ensure null termination */
 
     /* Truncate the message if necessary */
     if ((size_t) len >= sizeof(msg)) {
         len = sizeof(msg) - 4;
         msg[len] = '\0';
         safe_strcat(msg, "..."); /* Append "..." if truncation */
+    } else {
+        msg[len] = '\0';    /* Ensure null termination */
     }
 
     /* If no buffer is used, just print it */

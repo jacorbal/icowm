@@ -510,8 +510,8 @@ static int s_wm_subscribe_root_events(void)
         err = xcb_request_check(wm->connection, cookie);
         if (err != NULL) {
             LOGGER_FATAL("Cannot subscribe to root events on" \
-                    " surface %u, for another window manager is" \
-                    " likely running (XCB error code %d)",
+                    " surface %u; another window manager may be" \
+                    " running (XCB error code %d)",
                     surface->id, err->error_code);
             free(err);
             return -1;
@@ -1743,7 +1743,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         LOGGER_TRACE("Loading configuration into window manager", L_NARG);
-        config_load(wm->config, config_dir_prefix);
+        wm->config_dir_prefix = config_dir_prefix;
+        config_load(wm->config, wm->config_dir_prefix);
 
         /* Events: priority queue as min-heap (bottom-heavy heap) */
         if (eventq_start() != 0) {
@@ -1952,7 +1953,7 @@ int wm_action_config_reload(void)
         return 1;
     }
 
-    if (config_load(wm->config, NULL) != 0) {
+    if (config_load(wm->config, wm->config_dir_prefix) != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
     }

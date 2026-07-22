@@ -36,7 +36,7 @@ bool wmcmd_configuration_reload(wm_td *wm)
 /* Save current configuration */
 bool wmcmd_configuration_save(wm_td *wm)
 {
-        if (wm == NULL) {
+    if (wm == NULL) {
         return false;
     }
 

@@ -75,6 +75,11 @@ static uint32_t s_hex2uint32(const char *hex_color)
         hex_color++;
     }
     sscanf(hex_color, "%x", &color);
+    if (sscanf(hex_color, "%x", &color) != 1) {
+        LOGGER_NOTICE("Failed to parse hexadecimal color '%s';" \
+                " defaulting to '#000000'", hex_color);
+        return 0;
+    }
 
     return color;
 }
@@ -118,6 +123,39 @@ static int s_json_load_string(cJSON *json, const char *field, char *dest,
 
 
 /**
+ * @brief Load a desktop entry from a JSON object
+ *
+ * @param desktop_json JSON object with desktop settings
+ * @param name_out     Destination desktop name
+ * @param settings_out Destination desktop settings
+ */
+static void s_config_load_desktop_entry(cJSON *desktop_json,
+        char *name_out, struct desktop_settings_s *settings_out)
+{
+    cJSON *background_color_item;
+
+    if (desktop_json == NULL || name_out == NULL || settings_out == NULL) {
+        return;
+    }
+
+    s_json_load_string(desktop_json, "name", name_out,
+            CONFIG_MAX_LENGTH_NAME);
+
+    background_color_item =
+        cJSON_GetObjectItem(desktop_json, "background_color");
+    if (background_color_item &&
+            cJSON_IsString(background_color_item)) {
+        settings_out->background.color =
+            s_hex2uint32(background_color_item->valuestring);
+    } else {
+        LOGGER_NOTICE("Failed to load JSON string:" \
+                " 'background_color'; desktop '%s' keeps its" \
+                " default background color", name_out);
+    }
+}
+
+
+/**
  * @brief Load a string value from one of two JSON field names
  *
  * Tries the primary field name first and then a fallback alias.  The
@@ -143,7 +181,7 @@ static int s_json_load_string_alt(cJSON *json, const char *field,
         return 0;
     }
 
-    LOGGER_TRACE("Failed to load JSON string: '%s' or '%s'",
+    LOGGER_TRACE("Failed to load JSON string; '%s' or '%s'",
             field, field_alt);
     return 1;
 }
@@ -271,7 +309,7 @@ static int s_json_load_from_file(const char *filename, char **data)
 
     if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to seek JSON file: '%s'; default values"
+        LOGGER_NOTICE("Unable to seek JSON file '%s'; default values"
                 " will be used", filename);
         return 1;
     }
@@ -279,20 +317,20 @@ static int s_json_load_from_file(const char *filename, char **data)
 
     if (file_length <= 0) {
         fclose(file);
-        LOGGER_NOTICE("File is empty or unreadable: '%s'; default values"
+        LOGGER_NOTICE("File '%s' is empty or unreadable; default values"
                 " will be used", filename);
         return 1;
     }
     length = (size_t) file_length;
     if (length == 0) {
         fclose(file);
-        LOGGER_NOTICE("File is empty:" \
-                " '%s'; default values will be used", filename);
+        LOGGER_NOTICE("File '%s' is empty; default values" \
+                " will be used", filename);
         return 1;
     }
     if (fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to rewind JSON file: '%s'; default values"
+        LOGGER_NOTICE("Unable to rewind JSON file '%s'; default values"
                 " will be used", filename);
         return 1;
     }
@@ -308,7 +346,7 @@ static int s_json_load_from_file(const char *filename, char **data)
     LOGGER_TRACE("Reading JSON file '%s'", filename);
     nread = fread(*data, 1, length, file);
     if (nread != length) {
-        LOGGER_NOTICE("Failed to read full JSON file: '%s'; default"
+        LOGGER_NOTICE("Failed to read full JSON file '%s'; default"
                 " values will be used", filename);
         free(*data);
         *data = NULL;
@@ -340,21 +378,55 @@ static int s_json_load_from_file(const char *filename, char **data)
 static int s_json_load_config(const char *filename, cJSON **json_out)
 {
     cJSON *json;
+    cJSON *json_root;
     char *data;
 
     if (s_json_load_from_file(filename, &data) != 0) {
         return 1;
     }
 
-    json = cJSON_Parse(data);
-    if (json == NULL) {
-        LOGGER_WARNING("Failed to parse file" \
-                " '%s'; default configuration will be used",
-                filename);
-        LOGGER_TRACE("Error parsing JSON file\n%s",
-                cJSON_GetErrorPtr());
+    json_root = cJSON_Parse(data);
+    if (json_root == NULL) {
+        LOGGER_WARNING("Failed to parse file '%s';" \
+                " default configuration will be used", filename);
+        LOGGER_TRACE("Error parsing JSON file\n%s", cJSON_GetErrorPtr());
         free(data);
         return 2;
+    }
+
+    json = json_root;
+    if (!cJSON_IsObject(json_root)) {
+        if (cJSON_IsArray(json_root) && cJSON_GetArraySize(json_root) >= 1) {
+            cJSON *array_first = cJSON_GetArrayItem(json_root, 0);
+
+            if (array_first && cJSON_IsObject(array_first)) {
+                json = cJSON_Duplicate(array_first, cJSON_True);
+                cJSON_Delete(json_root);
+                if (json == NULL) {
+                    LOGGER_WARNING("Failed to duplicate configuration" \
+                            " object from '%s'; default configuration" \
+                            " will be used", filename);
+                    free(data);
+                    return 2;
+                }
+                LOGGER_NOTICE("Using first object from top-level array" \
+                        " in '%s' as compatibility fallback", filename);
+            } else {
+                LOGGER_WARNING("Invalid top-level JSON in '%s'; expected" \
+                        " an object and default configuration will be used",
+                        filename);
+                cJSON_Delete(json_root);
+                free(data);
+                return 2;
+            }
+        } else {
+            LOGGER_WARNING("Invalid top-level JSON in '%s'; expected" \
+                    " an object and default configuration will be used",
+                    filename);
+            cJSON_Delete(json_root);
+            free(data);
+            return 2;
+        }
     }
 
     free(data);
@@ -419,7 +491,7 @@ config_td *config_init(void)
 
     LOGGER_DEBUG("Initializing configuration structure", L_NARG);
 
-    config = malloc(sizeof(config_td));
+    config = calloc(1, sizeof(config_td));
     if (config == NULL) {
         LOGGER_ERROR("Failed to allocate memory for configuration" \
                 " structure", L_NARG);
@@ -447,6 +519,7 @@ void config_destroy(config_td *config)
 void config_set_default_values(config_td *config)
 {
     /* Assign predetermined values for base configuration */
+    config->base.theme[0] = '\0';
     config->base.screen_count = 1;
 
     LOGGER_TRACE("Setting configuration for each screen", L_NARG);
@@ -476,7 +549,7 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.launcher, "gmrun");
     safe_strcpy(config->base.programs.file_manager, "spacefm");
     safe_strcpy(config->base.programs.web_browser, "firefox");
-    safe_strcpy(config->base.programs.web_browser, "gvim");
+    safe_strcpy(config->base.programs.editor, "gvim");
     config->base.windows.snap = 4;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
@@ -613,7 +686,7 @@ int config_load(config_td *config, const char *config_prefix)
 
     /* Set theme file path */
     snprintf(config_theme_file,
-            sizeof(config_theme_file) + CONFIG_MAX_LENGTH_FILENAME,
+            sizeof(config_theme_file),
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
 
@@ -661,7 +734,11 @@ int config_load_base(const char *filename,
     }
 
     screen_settings = cJSON_GetObjectItem(json, "screens");
-    if (screen_settings) {
+    if (screen_settings == NULL) {
+        LOGGER_NOTICE("No 'screens' object found in '%s';" \
+                " desktop settings, including background colors," \
+                " will keep their default values", filename);
+    } else {
         cJSON *settings;
         cJSON *desktops_array;
 
@@ -682,71 +759,103 @@ int config_load_base(const char *filename,
         if (desktops_array && cJSON_IsArray(desktops_array)) {
             unsigned int desktop_count =
                 (unsigned int) cJSON_GetArraySize(desktops_array);
+            cJSON *first_desktop_item;
+            bool uses_nested_screen_layout = false;
 
             desktop_count = (desktop_count > CONFIG_MAX_DESKTOPS)
                 ? CONFIG_MAX_DESKTOPS
                 : desktop_count;
+            first_desktop_item = cJSON_GetArrayItem(desktops_array, 0);
+            if (first_desktop_item && cJSON_IsObject(first_desktop_item)) {
+                if (cJSON_GetObjectItem(first_desktop_item, "settings") ||
+                        cJSON_GetObjectItem(first_desktop_item, "count") ||
+                        cJSON_GetObjectItem(first_desktop_item,
+                            "inaugural")) {
+                    uses_nested_screen_layout = true;
+                }
+            }
 
-            for (unsigned int i = 0;
-                    i < desktop_count && i < CONFIG_MAX_DESKTOPS;
-                    ++i) {
-                cJSON *desktop_item;
+            if (!uses_nested_screen_layout) {
+                config_base->screens[0].desktop_count = desktop_count;
 
-                desktop_item =
-                    cJSON_GetArrayItem(desktops_array, (int) i);
-                if (desktop_item) {
-                    cJSON *desktop_settings;
-                    /* Load desktop 'count' and 'inaugural' */
-                    s_json_load_uint(desktop_item, "count",
-                            &config_base->screens[i].desktop_count);
-                    s_json_load_uint(desktop_item, "inaugural",
-                            &config_base->screens[i].desktop_inaugural);
+                for (unsigned int i = 0;
+                        i < desktop_count && i < CONFIG_MAX_DESKTOPS;
+                        ++i) {
+                    cJSON *desktop_item;
 
-                    /* Desktops, as screens, are zero-based indexed, so
-                     * if the inaugural desktop is a number bigger than
-                     * the desktop, it reverts to the first desktop of
-                     * all: the 0th */
-                    if (config_base->screens[i].desktop_inaugural >
-                        config_base->screens[i].desktop_count - 1) {
-                        config_base->screens[i].desktop_inaugural = 0;
+                    desktop_item =
+                        cJSON_GetArrayItem(desktops_array, (int) i);
+                    if (desktop_item == NULL) {
+                        continue;
                     }
+                    s_config_load_desktop_entry(desktop_item,
+                            config_base->screens[0].desktops[i].name,
+                            &config_base->screens[0].desktops[i].settings);
+                }
+            } else {
+                /* Each entry of 'desktops_array' represents a screen in
+                 * this layout, so the bound must be
+                 * 'CONFIG_MAX_SCREENS', not 'CONFIG_MAX_DESKTOPS';
+                 * otherwise 'config_base->screens[i]' would be written
+                 * out of bounds */
+                for (unsigned int i = 0;
+                        i < desktop_count && i < CONFIG_MAX_SCREENS;
+                        ++i) {
+                    cJSON *desktop_item;
 
-                    /* Get 'settings' field for each desktop */
-                    desktop_settings =
-                        cJSON_GetObjectItem(desktop_item, "settings");
-                    if (desktop_settings &&
-                            cJSON_IsArray(desktop_settings)) {
-                        unsigned int settings_count =
-                            (unsigned int)
+                    desktop_item =
+                        cJSON_GetArrayItem(desktops_array, (int) i);
+                    if (desktop_item) {
+                        cJSON *desktop_settings;
+                        /* Load desktop 'count' and 'inaugural' */
+                        s_json_load_uint(desktop_item, "count",
+                                &config_base->screens[i].desktop_count);
+                        s_json_load_uint(desktop_item, "inaugural",
+                                &config_base->screens[i].desktop_inaugural);
+
+                        /* Desktops, as screens, are zero-based indexed, so
+                         * if the inaugural desktop is a number bigger than
+                         * the desktop, it reverts to the first desktop of
+                         * all: the 0th */
+                        if (config_base->screens[i].desktop_inaugural >
+                                config_base->screens[i].desktop_count - 1) {
+                            config_base->screens[i].desktop_inaugural = 0;
+                        }
+
+                        /* Get 'settings' field for each desktop */
+                        desktop_settings =
+                            cJSON_GetObjectItem(desktop_item, "settings");
+                        if (desktop_settings &&
+                                cJSON_IsArray(desktop_settings)) {
+                            unsigned int settings_count =
+                                (unsigned int)
                                 cJSON_GetArraySize(desktop_settings);
-                        for (unsigned int j = 0;
-                                j < settings_count &&
+                            for (unsigned int j = 0;
+                                    j < settings_count &&
                                     j < CONFIG_MAX_DESKTOPS;
-                                ++j) {
-                            cJSON *setting_item;
-                            cJSON *background_color_item;
-                            setting_item =
-                                cJSON_GetArrayItem(desktop_settings,
-                                        (int) j);
-                            if (setting_item) {
-                                /* Load desktop name */
-                                s_json_load_string(setting_item, "name",
-                                        config_base->screens[i].desktops[j].name,
-                                        CONFIG_MAX_LENGTH_NAME);
-                                /* Load background color */
-                                background_color_item =
-                                    cJSON_GetObjectItem(setting_item,
-                                            "background_color");
-                                if (background_color_item &&
-                                        cJSON_IsString(background_color_item)) {
-                                    config_base->screens[i].desktops[j].settings.background.color =
-                                        s_hex2uint32(background_color_item->valuestring);
-                                } /* ! if (background_color) */
-                            } /* ! if (setting_item) */
-                        } /* ! for(j in 0..settings_count) */
-                    } /* ! if (desktop_settings) */
-                } /* ! if (desktop_item) */
-            } /* ! for (i in 0..desktop_count) */
+                                    ++j) {
+                                cJSON *setting_item;
+
+                                setting_item =
+                                    cJSON_GetArrayItem(desktop_settings,
+                                            (int) j);
+                                if (setting_item) {
+                                    s_config_load_desktop_entry(setting_item,
+                                            config_base->screens[i]
+                                            .desktops[j].name,
+                                            &config_base->screens[i]
+                                            .desktops[j].settings);
+                                } /* ! if (setting_item) */
+                            } /* ! for(j in 0..settings_count) */
+                        } /* ! if (desktop_settings) */
+                    } /* ! if (desktop_item) */
+                } /* ! for (i in 0..desktop_count) */
+            } /* ! if (!uses_nested_screen_layout) */
+        } else {
+            LOGGER_NOTICE("No 'desktops' array found under" \
+                    " 'screens.settings' in '%s'; desktop" \
+                    " settings, including background colors, will" \
+                    " keep their default values", filename);
         } /* ! if (desktops_array) */
     } /* ! if (screen_settings) */
 

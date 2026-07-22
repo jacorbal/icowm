@@ -54,6 +54,10 @@ typedef struct {
     list_td *surfaces;              /**< List of surfaces */
     uint32_t screenp;               /**< Preferred screen */
     config_td *config;              /**< Window manager configuration */
+    const char *config_dir_prefix;  /**< Config dir. passed at startup,
+                                         for @c NULL if the default
+                                         config. dir. is used; kept to
+                                         reuse it on config. reload */
     bool is_running;                /**< Running state flag */
 } wm_td;
 

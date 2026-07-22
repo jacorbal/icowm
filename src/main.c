@@ -144,9 +144,9 @@ static inline void s_show_help(FILE *fp)
     /* Show default configuration directory values */
     fprintf(fp, "Configuration directory is set to ");
     if (config_xdg_config_home) {
-        fprintf(fp, "'%s%s'\n", config_xdg_config_home, CONFIG_DIR_BASE);
+        fprintf(fp, "'%s/%s'\n", config_xdg_config_home, CONFIG_DIR_BASE);
     } else if (config_home) {
-        fprintf(fp, "'%s.%s'\n", config_home, CONFIG_DIR_BASE);
+        fprintf(fp, "'%s/.%s'\n", config_home, CONFIG_DIR_BASE);
     } else {
         fprintf(fp, "'%s'\n", CONFIG_DIR_BASE);
     }

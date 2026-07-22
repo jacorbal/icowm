@@ -36,8 +36,7 @@ int desktop_render_background(desktop_td *desktop)
 {
     xcb_screen_t *screen;
     xcb_screen_iterator_t iter;
-    uint32_t mask;
-    uint32_t values[1];
+    uint32_t values[2];
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
@@ -74,18 +73,19 @@ int desktop_render_background(desktop_td *desktop)
 
     screen = iter.data;
 
-    /* Change the root window background color */
-    mask = XCB_CW_BACK_PIXEL;
-    values[0] = desktop->background.bg.color;
-
-    xcb_change_window_attributes(desktop->connection,
-            screen->root, mask, values);
-
-    /* Clear/expose the window to show the new background */
-    xcb_clear_area(desktop->connection, 1,
-            screen->root, 0, 0,
-            screen->width_in_pixels,
-            screen->height_in_pixels);
+    /* NOTE: Clear any existing background pixmap, then set the
+     *       background pixel and repaint the root window.  Values are
+     *       ordered by ascending bit position: 'XCB_CW_BACK_PIXMAP'
+     *       (bit 0) comes before 'XCB_CW_BACK_PIXEL' (bit 1).
+     *       Unsetting the background pixmap ensures that xcb_clear_area
+     *       fills with the pixel color rather than the previous
+     *       pixmap. */
+    values[0] = XCB_BACK_PIXMAP_NONE;
+    values[1] = desktop->background.bg.color;
+    xcb_change_window_attributes(desktop->connection, screen->root,
+            XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
+    xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
+            screen->width_in_pixels, screen->height_in_pixels);
 
     LOGGER_TRACE("Background rendered for desktop %u ('%s')",
             desktop->id, desktop->name);
@@ -201,7 +201,7 @@ int desktop_render_full(desktop_td *desktop)
     LOGGER_TRACE("Fully rendering desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    /* Draw background (currently a no-op in X11) */
+    /* Draw background */
     if (desktop_render_background(desktop) != 0) {
         LOGGER_ERROR("Failed to render background on" \
                  " desktop %u ('%s')", desktop->id, desktop->name);

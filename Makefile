@@ -147,6 +147,8 @@ DEPS = $(OBJS:.o=.d)
 
 
 ## Options
+.DEFAULT_GOAL := all
+
 # Make all, create needed directories and build
 all: mkdirs $(TARGET) ctags
 	@echo "Build $(BUILD_NUMBER) complete"
