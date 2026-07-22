@@ -220,6 +220,7 @@ static void s_event_handle_client(event_td *event)
     }
 
     if (event->action.type != ACTION_TYPE_CLIENT) {
+        event_destroy(event);
         return; /* Invalid type */
     }
 
@@ -227,6 +228,7 @@ static void s_event_handle_client(event_td *event)
             event->action.object.client > ACTION_CLIENT_MAX) {
         LOGGER_WARNING("Invalid client action type: %d",
                 event->action.object.client);
+        event_destroy(event);
         return; /* Invalid action */
     }
 
@@ -419,6 +421,7 @@ static void s_event_handle_desktop(event_td *event)
     }
 
     if (event->action.type != ACTION_TYPE_DESKTOP) {
+        event_destroy(event);
         return; /* Invalid type */
     }
 
@@ -426,6 +429,7 @@ static void s_event_handle_desktop(event_td *event)
         event->action.object.desktop > ACTION_DESKTOP_MAX) {
         LOGGER_WARNING("Invalid desktop action type: %d",
                 event->action.object.desktop);
+        event_destroy(event);
         return; /* Invalid action */
     }
 
@@ -542,6 +546,7 @@ static void s_event_handle_surface(event_td *event)
     }
 
     if (event->action.type != ACTION_TYPE_SURFACE) {
+        event_destroy(event);
         return; /* Invalid type */
     }
 
@@ -549,6 +554,7 @@ static void s_event_handle_surface(event_td *event)
         event->action.object.surface > ACTION_SURFACE_MAX) {
         LOGGER_WARNING("Invalid surface action type: %d",
                 event->action.object.surface);
+        event_destroy(event);
         return; /* Invalid action */
     }
 
@@ -635,6 +641,7 @@ static void s_event_handle_wm(event_td *event)
     }
 
     if (event->action.type != ACTION_TYPE_WM) {
+        event_destroy(event);
         return; /* Invalid type */
     }
 
@@ -642,6 +649,7 @@ static void s_event_handle_wm(event_td *event)
             event->action.object.wm > ACTION_WM_MAX) {
         LOGGER_WARNING("Invalid window manager action type: %d",
                 event->action.object.wm);
+        event_destroy(event);
         return; /* Invalid action */
     }
 
@@ -766,6 +774,7 @@ event_td *eventq_extract(void)
         pthread_mutex_unlock(&eventq_mutex);
         return NULL;
     }
+    pthread_mutex_unlock(&eventq_mutex);
 
     return event;
 }

@@ -69,12 +69,11 @@
  */
 static uint32_t s_hex2uint32(const char *hex_color)
 {
-    uint32_t color;
+    uint32_t color = 0;
 
     if (hex_color[0] == '#') {
         hex_color++;
     }
-    sscanf(hex_color, "%x", &color);
     if (sscanf(hex_color, "%x", &color) != 1) {
         LOGGER_NOTICE("Failed to parse hexadecimal color '%s';" \
                 " defaulting to '#000000'", hex_color);

@@ -11,8 +11,12 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* sigaction, sigemptyset, strtok_r */
+
+
 /* System includes */
 #include <limits.h>     /* UINT16_MAX */
+#include <signal.h>     /* sigaction, SIGINT, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
@@ -1458,37 +1462,18 @@ static void s_wm_handle_property_notify(
 /**
  * @brief Soft window manager update
  *
- * Performs a minimal update of the window manager state.  This is
- * called frequently to maintain responsiveness without doing heavy
- * rendering operations.
+ * Performs a minimal update of the window manager state, redrawing only
+ * those surfaces that were actually marked as outdated (e.g., by
+ * a background color change, a configuration reload, or a property
+ * change on a client window).  This is called on every iteration of the
+ * main event loop, so surfaces that have nothing pending are left
+ * untouched to avoid unnecessary rendering.
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 static void s_wm_update(void)
 {
-    /* Light update operations would go here.
-     * For now this is a no-op to avoid excessive logging */
-}
-
-
-/**
- * @brief Full window manager update
- *
- * Updates the window manager by rendering every window on every desktop
- * of every surface.  This is called when major changes occur that
- * require a complete visual refresh.
- *
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces
- *       and @e m is the number of desktops on the surface
- */
-static void s_wm_update_full(void)
-{
-    LOGGER_TRACE("Fully updating window manager", L_NARG);
-
-    /* Soft update first */
-    s_wm_update();
-
-    /* Update all surfaces */
+    /* Update only the surfaces that actually need it */
     for (list_item_td *surface_node = list_head(wm->surfaces);
             surface_node != NULL;
             surface_node = list_next(surface_node)) {
@@ -1500,14 +1485,94 @@ static void s_wm_update_full(void)
                 LOGGER_ERROR("Failed to render surface %u",
                         surface_cur->id);
             }
-        } else {
-            /* Just update the current desktop */
-            if (surface_render_current_desktop(surface_cur) != 0) {
-                LOGGER_ERROR("Failed to render current desktop on" \
-                        " surface %u", surface_cur->id);
-            }
         }
     } /* ! for (surface_node) */
+}
+
+
+/**
+ * @brief Full window manager update
+ *
+ * Forces a complete visual refresh by marking every surface as outdated
+ * before delegating to @a s_wm_update.  This is called once, right
+ * before entering the main event loop, so that surfaces (and any
+ * windows adopted from a previous session) are drawn from scratch
+ * regardless of their current outdated state.
+ *
+ * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ *       and @e m is the number of desktops on the surface
+ */
+static void s_wm_update_full(void)
+{
+    LOGGER_TRACE("Fully updating window manager", L_NARG);
+
+    /* Force every surface to be redrawn, regardless of its current
+     * outdated state */
+    for (list_item_td *surface_node = list_head(wm->surfaces);
+            surface_node != NULL;
+            surface_node = list_next(surface_node)) {
+        surface_td *surface_cur = (surface_td *) list_data(surface_node);
+        surface_cur->is_outdated = true;
+    } /* ! for (surface_node) */
+
+    /* Perform the actual rendering of every (now outdated) surface */
+    s_wm_update();
+}
+
+
+/**
+ * @brief Flag set (in an async-signal-safe manner) when @c SIGINT or
+ *        @c SIGTERM has been received
+ *
+ * Holds the number of the received signal, or 0 if none has been
+ * received yet.  It is only ever written from @a s_wm_handle_signal and
+ * only ever read from the main event loop (@a s_wm_loop), so its
+ * @c volatile @c sig_atomic_t type is sufficient without any further
+ * synchronization.
+ */
+static volatile sig_atomic_t s_stop_signal_received = 0;
+
+
+/**
+ * @brief Signal handler for @c SIGINT and @c SIGTERM
+ *
+ * Only records the signal number; the actual shutdown request is
+ * performed later, from normal execution context inside @a s_wm_loop,
+ * since @a wm_request_stop is not guaranteed to be async-signal-safe.
+ *
+ * @param signum Number of the received signal
+ */
+static void s_wm_handle_signal(int signum)
+{
+    s_stop_signal_received = signum;
+}
+
+
+/**
+ * @brief Installs handlers for @c SIGINT and @c SIGTERM so the window
+ *        manager shuts down gracefully instead of being killed abruptly
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval -1 Failed to install one of the handlers
+ */
+static int s_wm_install_signal_handlers(void)
+{
+    struct sigaction sa;
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = s_wm_handle_signal;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+
+    if (sigaction(SIGINT, &sa, NULL) != 0 ||
+            sigaction(SIGTERM, &sa, NULL) != 0) {
+        LOGGER_ERROR("Failed to install SIGINT/SIGTERM handlers",
+                L_NARG);
+        return -1;
+    }
+
+    return 0;
 }
 
 
@@ -1534,6 +1599,14 @@ static void s_wm_loop(void)
         LOGGER_TRACE("Window manager is not initialized" \
                 " or set to not run", L_NARG);
         return;
+    }
+
+    /* Install signal handlers so 'SIGINT'/'SIGTERM' (e.g. Ctrl+C, or
+     * a plain 'kill') trigger a graceful shutdown instead of an
+     * abrupt termination that would skip 'wm_stop' */
+    if (s_wm_install_signal_handlers() != 0) {
+        LOGGER_WARNING("Continuing without SIGINT/SIGTERM handling",
+                L_NARG);
     }
 
     /* Allocate key symbols table for keyboard event processing */
@@ -1604,6 +1677,15 @@ static void s_wm_loop(void)
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
+        /* Notice signals received asynchronously and request a
+         * graceful shutdown from this normal execution context */
+        if (s_stop_signal_received != 0) {
+            LOGGER_INFO("Termination signal %d received;" \
+                    " requesting shutdown",
+                    (int) s_stop_signal_received);
+            wm_request_stop();
+        }
+
         /* Process X events.
          * 'xcb_poll_for_event' is non-blocking and returns NULL when no
          * events are available */
@@ -1957,6 +2039,41 @@ int wm_action_config_reload(void)
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
     }
+
+    /* 'config_load' only refreshes 'wm->config'.  Already-existing
+     * desktops cached their background color once, when they were
+     * created (vid. 'desktop_init', in 'src/desktop.c'), so they have
+     * to be re-synchronized here with the freshly reloaded values and
+     * marked as outdated to actually get redrawn on the next update */
+    for (list_item_td *surface_node = list_head(wm->surfaces);
+            surface_node != NULL;
+            surface_node = list_next(surface_node)) {
+        surface_td *surface_cur = (surface_td *) list_data(surface_node);
+        struct config_base_s *config_base = &(wm->config->base);
+
+        if (surface_cur->id >= config_base->screen_count) {
+            continue;   /* Screen no longer present in reloaded config */
+        }
+
+        for (uint32_t i = 0; i < surface_cur->desktop_count; ++i) {
+            desktop_td *desktop_cur =
+                surface_desktop_get(surface_cur, i);
+
+            if (desktop_cur == NULL ||
+                    i >= config_base->screens[surface_cur->id]
+                        .desktop_count) {
+                continue;   /* Desktop no longer present */
+            }
+
+            desktop_cur->background.is_image = false;
+            desktop_cur->background.bg.color =
+                config_base->screens[surface_cur->id]
+                    .desktops[i].settings.background.color;
+            desktop_cur->is_outdated = true;
+        }
+
+        surface_cur->is_outdated = true;
+    } /* ! for (surface_node) */
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
 

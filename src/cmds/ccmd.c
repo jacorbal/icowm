@@ -449,7 +449,7 @@ void wcmd_client_reclass(client_td *client,
      * buffer passed to 'xcb_icccm_set_wm_class' */
     len0 = safe_strlen(client->info.class_name[0]);
     len1 = safe_strlen(client->info.class_name[1]);
-    wm_class_combined_len = len0 + len1 + 2;
+    wm_class_combined_len = (len0 + 1) + (len1 + 1);
     wm_class_combined = malloc(wm_class_combined_len);
     if (wm_class_combined) {
         memcpy(wm_class_combined, client->info.class_name[0], len0);
