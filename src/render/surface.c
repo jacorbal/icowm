@@ -85,6 +85,7 @@ int surface_render_all_desktops(surface_td *surface)
     cdlist_item_td *desktop_node;
     cdlist_item_td *desktop_initial;
     desktop_td *desktop;
+    desktop_td *cur;
     uint32_t rendered_count = 0;
 
     if (surface == NULL || surface->desktops == NULL) {
@@ -143,6 +144,17 @@ int surface_render_all_desktops(surface_td *surface)
 
     LOGGER_DEBUG("Rendered %u desktops on surface %u",
             rendered_count, surface->id);
+
+    /* Re-apply the current desktop's background last so that it is the
+     * one visible on the root window.  Earlier desktops in the list
+     * would otherwise overwrite it. */
+    cur = surface_desktop_get(surface, surface->desktop_cur);
+    if (cur != NULL) {
+        if (desktop_render_background(cur) != 0) {
+            LOGGER_ERROR("Failed to re-apply background for current" \
+                    " desktop '%s'", cur->name);
+        }
+    }
 
     /* FLUSH ONCE at the end, not per-desktop */
     surface_render_flush(surface);

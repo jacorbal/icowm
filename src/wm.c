@@ -487,10 +487,11 @@ static int s_wm_subscribe_root_events(void)
 {
     uint32_t values[1];
 
-    values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT  |
-                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY    |
-                XCB_EVENT_MASK_KEY_PRESS              |
-                XCB_EVENT_MASK_BUTTON_PRESS           |
+    values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY   |
+                XCB_EVENT_MASK_KEY_PRESS             |
+                XCB_EVENT_MASK_BUTTON_PRESS          |
+                XCB_EVENT_MASK_BUTTON_RELEASE        |
                 XCB_EVENT_MASK_PROPERTY_CHANGE;
 
     for (list_item_td *node = list_head(wm->surfaces);
@@ -936,6 +937,13 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     desktop_td *desktop;
     uint16_t state;
 
+    /* Used for sub-window ancestor walk */
+    xcb_window_t w;
+    xcb_query_tree_cookie_t qt_c;
+    xcb_query_tree_reply_t *qt_r;
+    xcb_window_t qt_parent;
+    xcb_window_t qt_root;
+
     if (event == NULL) {
         return;
     }
@@ -954,6 +962,27 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
 
     window = (event->child != XCB_NONE) ? event->child : event->event;
     client = s_wm_find_client(window, NULL, &desktop);
+    if (client == NULL && event->child != XCB_NONE) {
+        /* 'event->child' may be a sub-window.  Walk up the window tree
+         * until we find a managed ancestor or reach root. */
+        w = event->child;
+        while (client == NULL) {
+            qt_c = xcb_query_tree(wm->connection, w);
+            qt_r = xcb_query_tree_reply(wm->connection, qt_c, NULL);
+            if (qt_r == NULL) {
+                break;
+            }
+            qt_parent = qt_r->parent;
+            qt_root   = qt_r->root;
+            free(qt_r);
+            if (qt_parent == XCB_NONE || qt_parent == qt_root) { 
+                break;
+            }
+            w = qt_parent;
+            client = s_wm_find_client(w, NULL, &desktop);
+        }
+    }
+
     if (client == NULL) {
         return;
     }
@@ -1433,7 +1462,7 @@ static void s_wm_handle_property_notify(
  * called frequently to maintain responsiveness without doing heavy
  * rendering operations.
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 static void s_wm_update(void)
 {
@@ -1447,7 +1476,7 @@ static void s_wm_update(void)
  *
  * Updates the window manager by rendering every window on every desktop
  * of every surface.  This is called when major changes occur that
- * require a complete visual refrelsh.
+ * require a complete visual refresh.
  *
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
  *       and @e m is the number of desktops on the surface
@@ -1507,9 +1536,6 @@ static void s_wm_loop(void)
         return;
     }
 
-    /* Update window manager before starting the event loop */
-    s_wm_update_full();
-
     /* Allocate key symbols table for keyboard event processing */
     keysyms = xcb_key_symbols_alloc(wm->connection);
     if (keysyms == NULL) {
@@ -1521,8 +1547,12 @@ static void s_wm_loop(void)
     s_wm_grab_keys(keysyms);
     s_wm_grab_buttons();
 
-    /* Adopt any windows already on screen before we started */
+    /* Adopt any windows already on screen before we started, then do
+     * the first full render so pre-existing windows are included */
     s_wm_scan_existing_windows();
+
+    /* Update window manager before starting the event loop */
+    s_wm_update_full();
 
 #ifdef DEBUG
     /* TEST: Create dummy windows to test rendering */
@@ -1552,7 +1582,7 @@ static void s_wm_loop(void)
                                 wm->ewmh,
                                 surface->screen->root,  /* Parent window */
                                 100, 100,   /* width, height */
-                                50, 50,     /* x, y position */
+                                50, 50,     /* x, y */
                                 &(wm->config->theme));
 
                         if (test_client != NULL) {
@@ -1566,7 +1596,7 @@ static void s_wm_loop(void)
                                     L_NARG);
                         } /* ! if (test_client) */
                     } /* ! if (desktop) */
-                } /* if (desktop_node) */
+                } /* ! if (desktop_node) */
             } /* ! if (surface) */
         } /* ! if (surface_node) */
     }

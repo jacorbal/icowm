@@ -155,7 +155,7 @@ surface_td *surface_init(xcb_connection_t *connection,
                 surface->ewmh,
                 surface_id, i,
                 &(surface->config->base), &(surface->config->theme));
-        if (surface == NULL) {
+        if (desktop == NULL) {
             LOGGER_FATAL("Failed to initialize desktop %u on" \
                     " surface %u", i, surface_id);
             cdlist_destroy(surface->desktops);
