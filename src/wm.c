@@ -15,12 +15,14 @@
 
 
 /* System includes */
+#include <errno.h>      /* errno, EINTR */
 #include <limits.h>     /* UINT16_MAX */
+#include <poll.h>       /* poll, struct pollfd, POLLIN */
 #include <signal.h>     /* sigaction, SIGINT, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <string.h>     /* strtok_r, memcpy */
+#include <string.h>     /* memcpy, strerror, strtok_r */
 #include <strings.h>    /* strcasecmp */
 #include <sys/wait.h>   /* waitpid */
 #include <unistd.h>     /* fork, execl, _exit */
@@ -1594,6 +1596,8 @@ static void s_wm_loop(void)
 {
     xcb_key_symbols_t *keysyms;
     xcb_generic_event_t *event;
+    struct pollfd pfd;
+    int poll_status;
 
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialized" \
@@ -1684,6 +1688,22 @@ static void s_wm_loop(void)
                     " requesting shutdown",
                     (int) s_stop_signal_received);
             wm_request_stop();
+            break;
+        }
+
+        /* Block until the X connection has data to read (or a signal
+         * interrupts the call).  Without this, 'xcb_poll_for_event'
+         * alone would spin the loop as fast as possible, keeping a CPU
+         * core permanently busy even while completely idle */
+        pfd.fd = xcb_get_file_descriptor(wm->connection);
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+
+        poll_status = poll(&pfd, 1, -1);
+        if (poll_status < 0 && errno != EINTR) {
+            LOGGER_ERROR("Failed waiting on X connection: %s",
+                    strerror(errno));
+            break;
         }
 
         /* Process X events.

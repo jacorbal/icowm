@@ -151,7 +151,7 @@ DEPS = $(OBJS:.o=.d)
 
 # Make all, create needed directories and build
 all: mkdirs $(TARGET) ctags
-	@echo "Build $(BUILD_NUMBER) complete"
+	@echo "Build $(BUILD_NUMBER)"
 
 parallel:
 	$(MAKE) -j$(JOBS) all
