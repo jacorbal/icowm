@@ -71,6 +71,8 @@ typedef struct action_data_client_s {
  */
 typedef struct {
     desktop_td *desktop;                    /**< Affected desktop */
+    desktop_td *target;                     /**< Target desktop if needed */
+    client_td *client;                      /**< Affected clent, if needed */
     enum action_desktop_e action_desktop;   /**< Action for this desktop */
 
     union {

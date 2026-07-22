@@ -361,3 +361,270 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 
     return 0;
 }
+
+
+/* Send a client to the front of the desktop's window stack */
+int desktop_action_client_send_front(desktop_td *desktop,
+        client_td *client)
+{
+    cdlist_item_td *node;
+
+    LOGGER_DEBUG("Sending client 0x%08x ('%s') to front" \
+            " of desktop %u ('%s')",
+            client->id, client->info.name, desktop->id, desktop->name);
+
+    if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        return -1;
+    }
+
+    /* Find the client in the stacking list */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            if (cdlist_data(node) == (void *) client) {
+                /* Found it, move to tail (front/top of stack) */
+                if (cdlist_rem_next(desktop->stacking,
+                            cdlist_prev(node), NULL) != 0) {
+                    LOGGER_ALERT("Failed to remove client from stacking",
+                            L_NARG);
+                    return -1;
+                }
+                if (cdlist_ins_next(desktop->stacking,
+                            cdlist_tail(desktop->stacking),
+                            (void *) client) != 0) {
+                    LOGGER_ALERT("Failed to insert client to stacking",
+                            L_NARG);
+                    return -1;
+                }
+                desktop->is_outdated = true;
+                return 0;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    LOGGER_ALERT("Client not found in desktop stacking", L_NARG);
+    return -1;
+}
+
+
+/* Send a client to the back of the desktop's window stack */
+int desktop_action_client_send_back(desktop_td *desktop,
+        client_td *client)
+{
+    cdlist_item_td *node;
+
+    LOGGER_DEBUG("Sending client 0x%08x ('%s') to back" \
+            " of desktop %u ('%s')",
+            client->id, client->info.name, desktop->id, desktop->name);
+
+    if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        return -1;
+    }
+
+    /* Find the client in the stacking list */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            if (cdlist_data(node) == (void *) client) {
+                /* Found it, move to head (back/bottom of stack) */
+                if (cdlist_rem_next(desktop->stacking,
+                            cdlist_prev(node), NULL) != 0) {
+                    LOGGER_ALERT("Failed to remove client from stacking",
+                            L_NARG);
+                    return -1;
+                }
+                if (cdlist_ins_next(desktop->stacking,
+                            cdlist_head(desktop->stacking),
+                            (void *) client) != 0) {
+                    LOGGER_ALERT("Failed to insert client to stacking",
+                            L_NARG);
+                    return -1;
+                }
+                desktop->is_outdated = true;
+                return 0;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    LOGGER_ALERT("Client not found in desktop stacking", L_NARG);
+    return -1;
+}
+
+
+/* Rearrange clients on the desktop */
+int desktop_action_clients_rearrange(desktop_td *desktop)
+{
+    LOGGER_DEBUG("Rearranging clients on desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* Mark desktop as needing redraw */
+    desktop->is_outdated = true;
+
+    return 0;
+}
+
+
+/* Iconify all clients on the desktop */
+int desktop_action_clients_iconify_all(desktop_td *desktop)
+{
+    LOGGER_DEBUG("Iconifying all clients on desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* Iterate through all clients in hash table and iconify them */
+    for (size_t i = 0; i < desktop->clients->positions; ++i) {
+        if (desktop->clients->table[i] != NULL &&
+            desktop->clients->table[i] != desktop->clients->vacated) {
+            client_td *client = (client_td *) desktop->clients->table[i];
+            client_send_event_iconify(client);
+        }
+    }
+
+    return 0;
+}
+
+
+/* Cycle through active clients on the desktop */
+int desktop_action_cycle_clients_active(desktop_td *desktop)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *target = NULL;
+
+    LOGGER_DEBUG("Cycling through active clients on desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* Find first non-hidden client */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL && !client_is_iconified(client)) {
+                target = node;
+                break;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    /* Focus the target client */
+    if (target != NULL) {
+        client_td *client = (client_td *) cdlist_data(target);
+        if (client != NULL) {
+            client_send_event_focus(client);
+        }
+    }
+
+    return 0;
+}
+
+
+/* Cycle through iconified clients on the desktop */
+int desktop_action_cycle_clients_icons(desktop_td *desktop)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *target = NULL;
+
+    LOGGER_DEBUG("Cycling through iconified clients" \
+            " on desktop %u ('%s')", desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* Find first iconified client */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL && client_is_iconified(client)) {
+                target = node;
+                break;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    /* Restore the target client */
+    if (target != NULL) {
+        client_td *client = (client_td *) cdlist_data(target);
+        if (client != NULL) {
+            client_send_event_restore(client);
+        }
+    }
+
+    return 0;
+}
+
+
+/* Lock the desktop */
+int desktop_action_lock(desktop_td *desktop)
+{
+    LOGGER_DEBUG("Locking desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* TODO: Implement desktop locking mechanism */
+
+    return 0;
+}
+
+
+/* Unlock the desktop */
+int desktop_action_unlock(desktop_td *desktop)
+{
+    LOGGER_DEBUG("Unlocking desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    /* TODO: Implement desktop unlocking mechanism */
+
+    return 0;
+}
+
+
+/* Set the layout of the desktop */
+int desktop_action_set_layout(desktop_td *desktop, const char *layout)
+{
+    LOGGER_DEBUG("Setting layout '%s' on desktop %u ('%s')",
+            layout, desktop->id, desktop->name);
+
+    if (desktop == NULL || layout == NULL) {
+        LOGGER_ERROR("Invalid desktop or layout pointer", L_NARG);
+        return -1;
+    }
+
+    /* TODO: Implement layout switching mechanism */
+
+    return 0;
+}

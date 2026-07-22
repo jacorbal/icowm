@@ -12,11 +12,16 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* kill */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>  /* pid_t */
-#include <unistd.h>     /* NULL, fork */
+#include <signal.h>     /* kill */
+#include <unistd.h>     /* NULL, execvp, fork */
+#include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -39,21 +44,16 @@
 void dcmd_desktop_rename(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->new_data.str == NULL) {
         return;
     }
 
-    /* Change the desktop name property */
-    // TODO
-
-    /* Update the EWMH desktop name */
-/*
-    xcb_ewmh_set_desktop_name(desktop->ewmh,
-            (uint32_t) safe_strlen(desktop_data->new_data.str),
+    snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1, "%s",
             desktop_data->new_data.str);
-*/
+
+    xcb_ewmh_set_desktop_names(desktop->ewmh, (int) desktop->screen_id,
+            1, desktop->name);
 }
 
 
@@ -61,29 +61,23 @@ void dcmd_desktop_rename(desktop_td *desktop,
 void dcmd_desktop_bg_color(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
     if (desktop == NULL || desktop_data == NULL) {
         return;
     }
 
-    /* Set the background color using the provided data */
-    // TODO
+    desktop->background.is_image = false;
+    desktop->background.bg.color = desktop_data->new_data.uvalue;
 }
 
 
 /* Clear the desktop */
 void dcmd_desktop_clear(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to clear the desktop, such as removing clients or resetting
-     * properties */
-    // TODO: Placeholder for client cleanup logic
-
-    //xcb_map_window(desktop->connection, desktop->window);
+    desktop_clear(desktop);
 }
 
 
@@ -91,21 +85,12 @@ void dcmd_desktop_clear(desktop_td *desktop)
 void dcmd_desktop_client_add(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Variables for adding client */
-    xcb_window_t new_client_window;
-
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->client == NULL) {
         return;
     }
 
-    /* Create a new client window and add it to the desktop */
-    new_client_window = xcb_generate_id(desktop->connection);
-    xcb_map_window(desktop->connection, new_client_window);
-    // TODO: client_init...
-
-    /* Here we can also inform EWMH if necessary */
-    xcb_ewmh_set_wm_state(desktop->ewmh, new_client_window, 0, NULL);
+    desktop_action_client_add(desktop, desktop_data->client);
 }
 
 
@@ -113,13 +98,11 @@ void dcmd_desktop_client_add(desktop_td *desktop,
 void dcmd_desktop_client_rem(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
-        return;
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->client == NULL) {
     }
 
-    /* Logic to remove the specified client from the desktop */
-    // TODO
+    desktop_action_client_rem(desktop, desktop_data->client);
 }
 
 
@@ -127,19 +110,16 @@ void dcmd_desktop_client_rem(desktop_td *desktop,
 void dcmd_desktop_client_send(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->client == NULL ||
+            desktop_data->target == NULL) {
         return;
     }
 
-    /* Logic to send the client to the specified desktop */
-/*  // TODO
-    xcb_unmap_window(desktop->connection,
-            desktop_data->old_data.window);
-    xcb_ewmh_request_change_active_window(desktop->ewmh,
-            desktop->screen_id, desktop_data->old_data.window, 0,
-            XCB_CURRENT_TIME, 0);
-*/
+    desktop_action_client_rem(desktop, desktop_data->client);
+    desktop_action_client_add(desktop_data->target,
+            desktop_data->client);
+    desktop_data->client->desktop_id = desktop_data->target->id;
 }
 
 
@@ -147,14 +127,12 @@ void dcmd_desktop_client_send(desktop_td *desktop,
 void dcmd_desktop_client_send_front(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->client == NULL) {
         return;
     }
 
-    /* Logic to raise the specified client window */
-    // TODO
-    //xcb_map_window(desktop->connection, desktop_data->old_data.window);
+    desktop_action_client_send_front(desktop, desktop_data->client);
 }
 
 
@@ -162,93 +140,78 @@ void dcmd_desktop_client_send_front(desktop_td *desktop,
 void dcmd_desktop_client_send_back(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->client == NULL) {
         return;
     }
 
-    /* Logic to lower the specified client window */
-    // TODO
-    //xcb_lower_window(desktop->connection, desktop_data->old_data.window);
+    desktop_action_client_send_back(desktop, desktop_data->client);
 }
 
 
 /* Rearrange the clients on the desktop */
 void dcmd_desktop_clients_rearrange(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to rearrange client windows on the desktop */
-    // TODO
+    desktop_action_clients_rearrange(desktop);
 }
 
 
 /* Iconify all clients on the desktop */
 void dcmd_desktop_clients_iconify_all(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to iconify all clients */
-    // Placeholder for iterating over all clients and iconifying them
-    // TODO
+    desktop_action_clients_iconify_all(desktop);
 }
 
 
 /* Cycle through active clients on the desktop */
 void dcmd_desktop_clients_cycle_active(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to cycle through active clients */
-    // TODO
+    desktop_action_cycle_clients_active(desktop);
 }
 
 
 /* Cycle through client icons */
 void dcmd_desktop_clients_cycle_icons(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to cycle through client icons */
-    // TODO
+    desktop_action_cycle_clients_icons(desktop);
 }
 
 
 /* Lock the desktop */
 void dcmd_desktop_lock(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to lock the desktop */
-    // TODO
+    desktop_action_lock(desktop);
 }
 
 
 /* Unlock the desktop */
 void dcmd_desktop_unlock(desktop_td *desktop)
 {
-    /* Check if the desktop is valid */
     if (desktop == NULL) {
         return;
     }
 
-    /* Logic to unlock the desktop */
-    // TODO
+    desktop_action_unlock(desktop);
 }
 
 
@@ -256,12 +219,12 @@ void dcmd_desktop_unlock(desktop_td *desktop)
 void dcmd_desktop_layout(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->new_data.str == NULL) {
         return;
     }
 
-    /* Logic to change the desktop layout */
+    desktop_action_set_layout(desktop, desktop_data->new_data.str);
 }
 
 
@@ -271,15 +234,20 @@ pid_t dcmd_desktop_process_launch(desktop_td *desktop,
 {
     pid_t pid;
 
-    /* Check if the desktop and data are valid */
-    if (desktop == NULL || desktop_data == NULL) {
+    if (desktop == NULL || desktop_data == NULL ||
+            desktop_data->new_data.str == NULL) {
         return -1;
     }
 
-    /* Logic to launch a new process and return its PID */
     pid = fork();
     if (pid == 0) {
-        /* TODO: Child process code here */
+        /* Child process: execute command */
+        execvp(desktop_data->new_data.str,
+                (char *const[]) {
+                    desktop_data->new_data.str,
+                    NULL
+                });
+        _exit(127);
     }
 
     return pid;
@@ -290,13 +258,16 @@ pid_t dcmd_desktop_process_launch(desktop_td *desktop,
 bool dcmd_desktop_process_kill(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    /* Check if the desktop and data are valid */
+    pid_t target_pid;
+
     if (desktop == NULL || desktop_data == NULL) {
         return false;
     }
 
-    /* Logic to kill the specified process */
-    // TODO
+    target_pid = (pid_t) desktop_data->new_data.svalue;
+    if (target_pid <= 0) {
+        return false;
+    }
 
-    return true;
+    return (kill(target_pid, SIGTERM) == 0);
 }

@@ -24,7 +24,7 @@
 #ifdef DEBUG
 #define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_TRACE)
 #else
-#define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_NOTICE)
+#define ICOWM_DEFAULT_LOGGER_LEVEL_MIN (LOG_INFO)
 #endif  /* ! DEBUG */
 
 /* Set the logger standard behavior */

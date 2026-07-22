@@ -195,7 +195,6 @@ void dcmd_desktop_layout(desktop_td *desktop,
  * @param desktop      Pointer to the desktop
  * @param desktop_data Data containing information of the process to
  *                     launch
- *
  * @return PID of the launched process
  *
  * @note Complexity: @e O(1)

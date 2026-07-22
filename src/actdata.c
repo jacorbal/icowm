@@ -75,6 +75,8 @@ action_data_desktop_td *action_data_desktop_init(desktop_td *desktop,
     }
 
     action_data_desktop->desktop = desktop;
+    action_data_desktop->target = NULL;
+    action_data_desktop->client = NULL;
     action_data_desktop->action_desktop = action_desktop;
     action_data_desktop->new_data.str = NULL;
 
