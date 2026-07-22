@@ -215,7 +215,7 @@ static void s_wcmd_rem_window_states(client_td *client,
     va_end(args);
 
     /* Get current window states using proper EWMH API */
-    cookie = xcb_ewmh_get_wm_state(client->ewmh, client->window);
+    cookie = xcb_ewmh_get_wm_state(client->ewmh, client->id);
     success = xcb_ewmh_get_wm_state_reply(client->ewmh, cookie,
             &current_states_reply, NULL);
  
@@ -258,11 +258,11 @@ static void s_wcmd_rem_window_states(client_td *client,
 
     /* Set the filtered states back to the window */
     if (new_count > 0) {
-        xcb_ewmh_set_wm_state(client->ewmh, client->window, new_count,
+        xcb_ewmh_set_wm_state(client->ewmh, client->id, new_count,
                 new_states);
     } else {
         /* No states remain, set empty state list */
-        xcb_ewmh_set_wm_state(client->ewmh, client->window, 0, NULL);
+        xcb_ewmh_set_wm_state(client->ewmh, client->id, 0, NULL);
     }
 
     /* Cleanup allocated memory */
@@ -275,6 +275,10 @@ static void s_wcmd_rem_window_states(client_td *client,
 /* Close the client */
 void wcmd_client_close(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     /* This destroys the client in client->window, but does not
      * deallocates the memory of the client object.  This action is
      * intended to be called by the desktop, therefore, it's
@@ -287,6 +291,10 @@ void wcmd_client_close(client_td *client)
 /* Restore a client to its normal state */
 void wcmd_client_restore(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_geometry_restore(client);
 
     xcb_map_window(client->connection, client->window);
@@ -306,6 +314,10 @@ void wcmd_client_restore(client_td *client)
 /* Focus a client */
 void wcmd_client_focus(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
                         client->window, XCB_CURRENT_TIME);
     xcb_map_window(client->connection, client->window);
@@ -321,6 +333,10 @@ void wcmd_client_focus(client_td *client)
 /* Unfocus the client */
 void wcmd_client_unfocus(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_unfocus(client);
 
     xcb_ewmh_request_change_active_window(client->ewmh,
@@ -334,6 +350,10 @@ void wcmd_client_unfocus(client_td *client)
 void wcmd_client_move(client_td *client,
         action_data_client_td *client_data)
 {
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
+
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {
@@ -343,7 +363,7 @@ void wcmd_client_move(client_td *client,
     client->layout.geometry.cur.pos =
         client_data->new_data.geometry.pos;
 
-    // TODO: hints
+    // TODO: Update 'WM_NORMAL_HINTS' with window gravity hints
 }
 
 
@@ -351,6 +371,10 @@ void wcmd_client_move(client_td *client,
 void wcmd_client_resize(client_td *client,
         action_data_client_td *client_data)
 {
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
+
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
@@ -361,7 +385,7 @@ void wcmd_client_resize(client_td *client,
     client->layout.geometry.cur.dim =
         client_data->new_data.geometry.dim;
 
-    // TODO: hints
+    // TODO: Update 'WM_NORMAL_HINTS' with window gravity hints
 }
 
 
@@ -369,6 +393,10 @@ void wcmd_client_resize(client_td *client,
 void wcmd_client_rename(client_td *client,
         action_data_client_td *client_data)
 {
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
+
     free(client->info.name);
     client->info.name = safe_strdup(client_data->new_data.str.str0);
 
@@ -395,6 +423,10 @@ void wcmd_client_reclass(client_td *client,
     char *wm_class[2];
     char *wm_class_combined;
     size_t wm_class_combined_len;
+
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
 
     wm_class[0] = safe_strdup(client_data->new_data.str.str0);
     wm_class[1] = safe_strdup(client_data->new_data.str.str1);
@@ -453,6 +485,10 @@ void wcmd_client_rerole(client_td *client,
     xcb_intern_atom_cookie_t role_atom_cookie;
     xcb_intern_atom_reply_t *role_atom_reply;
 
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
+
     free(client->info.role_name);
     client->info.role_name =
         safe_strdup(client_data->new_data.str.str0);
@@ -474,14 +510,21 @@ void wcmd_client_rerole(client_td *client,
             8,/*bits*/
             (uint32_t) safe_strlen(client->info.role_name),
             client->info.role_name);
+
+    free(role_atom_reply);
 }
 
 
 /* Maximize client horizontally */
 void wcmd_client_maximize_horz(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs =
-        xcb_get_geometry_reply(client->connection,
+    xcb_get_geometry_reply_t *attrs;
+
+    if (client == NULL) {
+        return;
+    }
+
+    attrs = xcb_get_geometry_reply(client->connection,
                 xcb_get_geometry(client->connection,
                     client->window), NULL);
     if (!attrs) {
@@ -494,10 +537,9 @@ void wcmd_client_maximize_horz(client_td *client)
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH,
             (const uint32_t[]) {
-                0,
-                0,  /* Y */
-                attrs->width,   /* Width */
-                client->layout.geometry.cur.dim.h   /* Current height */
+                0,                                              /* X */
+                (uint32_t) client->layout.geometry.cur.pos.y,   /* Keep Y */
+                (uint32_t) attrs->width                         /* Width */
             });
     safe_free((void *) attrs);
 
@@ -512,8 +554,13 @@ void wcmd_client_maximize_horz(client_td *client)
 /* Maximize client vertically */
 void wcmd_client_maximize_vert(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs =
-        xcb_get_geometry_reply(client->connection,
+    xcb_get_geometry_reply_t *attrs;
+
+    if (client == NULL) {
+        return;
+    }
+
+    attrs = xcb_get_geometry_reply(client->connection,
                 xcb_get_geometry(client->connection,
                     client->window), NULL);
     if (!attrs) {
@@ -527,10 +574,9 @@ void wcmd_client_maximize_vert(client_td *client)
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-                0,  /* X */
-                0,  /* Y */
-                client->layout.geometry.cur.dim.w, /* Current width */
-                attrs->height   /* Height */
+                (uint32_t) client->layout.geometry.cur.pos.x,   /* Keep X */
+                0,                                              /* Y */
+                (uint32_t) attrs->height                        /* Height */
             });
     safe_free((void *) attrs);
 
@@ -545,8 +591,13 @@ void wcmd_client_maximize_vert(client_td *client)
 /* Maximize client entirely */
 void wcmd_client_maximize(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs =
-        xcb_get_geometry_reply(client->connection,
+    xcb_get_geometry_reply_t *attrs;
+
+    if (client == NULL) {
+        return;
+    }
+
+    attrs = xcb_get_geometry_reply(client->connection,
                 xcb_get_geometry(client->connection,
                     client->window), NULL);
     if (!attrs) {
@@ -559,10 +610,10 @@ void wcmd_client_maximize(client_td *client)
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-                0,  /* X */
-                0,  /* Y */
-                attrs->width,   /* Width */
-                attrs->height   /* Height */
+                0,                          /* X */
+                0,                          /* Y */
+                (uint32_t) attrs->width,    /* Width */
+                (uint32_t) attrs->height    /* Height */
             });
 
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
@@ -592,7 +643,8 @@ void wcmd_client_iconify(client_td *client)
     client_set_hidden(client);
     client->properties.state = CLIENT_STATE_ICONIFIED;
 
-    // TODO: Logic to actually iconify!
+    /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
+     * Icon display handled by pager/desktop */
 
     s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -604,6 +656,10 @@ void wcmd_client_iconify(client_td *client)
 /* Hide the client (minimize, but not iconify) */
 void wcmd_client_hide(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_geometry_save(client);
 
     xcb_unmap_window(client->connection, client->window);
@@ -618,6 +674,10 @@ void wcmd_client_hide(client_td *client)
 /* Show (unhide) the client */
 void wcmd_client_unhide(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_geometry_save(client);
 
     xcb_map_window(client->connection, client->window);
@@ -667,12 +727,14 @@ void wcmd_client_unshade(client_td *client)
 /* Toggle shading */
 void wcmd_client_toggle_shade(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     if (client_is_shaded(client)) {
-        client_unset_shade(client);
-        s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_SHADED");
+        wcmd_client_unshade(client);
     } else {
-        client_set_shade(client);
-        s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_SHADED");
+        wcmd_client_shade(client);
     }
 }
 
@@ -680,6 +742,10 @@ void wcmd_client_toggle_shade(client_td *client)
 /* Set client sticky mode */
 void wcmd_client_sticky(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_set_sticky(client);
     s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_STICKY");
 }
@@ -687,6 +753,10 @@ void wcmd_client_sticky(client_td *client)
 /* Remove client sticky mode */
 void wcmd_client_unsticky(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_unset_sticky(client);
     s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_STICKY");
 }
@@ -695,12 +765,14 @@ void wcmd_client_unsticky(client_td *client)
 /* Toggle stickiness */
 void wcmd_client_toggle_sticky(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     if (client_is_sticky(client)) {
-        client_unset_sticky(client);
-        s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_STICKY");
+        wcmd_client_unsticky(client);
     } else {
-        client_set_sticky(client);
-        s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_STICKY");
+        wcmd_client_sticky(client);
     }
 }
 
@@ -730,10 +802,10 @@ void wcmd_client_fullscreen(client_td *client)
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-            0,              /* X: top-left corner */
-            0,              /* Y: top-left corner */
-            attrs->width,   /* Width: full screen width */
-            attrs->height   /* Height: full screen height */
+                0,                          /* X: top-left corner */
+                0,                          /* Y: top-left corner */
+                (uint32_t) attrs->width,    /* Width: full screen width */
+                (uint32_t) attrs->height    /* Height: full screen height */
             });
 
     /* Update internal client state */
@@ -766,21 +838,15 @@ void wcmd_client_unfullscreen(client_td *client)
     /* Restore saved geometry */
     client_geometry_restore(client);
 
-    /* Reconfigure window to restored height first */
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_HEIGHT,
-            (const uint32_t[]) {
-            (uint32_t) client->layout.geometry.cur.dim.h
-            });
-
-    /* Then reconfigure to restored position and width */
+    /* Reconfigure window to restored position and dimensions */
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH,
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-            (uint32_t) client->layout.geometry.cur.pos.x,
-            (uint32_t) client->layout.geometry.cur.pos.y,
-            (uint32_t) client->layout.geometry.cur.dim.w
+                (uint32_t) client->layout.geometry.cur.pos.x,
+                (uint32_t) client->layout.geometry.cur.pos.y,
+                (uint32_t) client->layout.geometry.cur.dim.w,
+                (uint32_t) client->layout.geometry.cur.dim.h
             });
 
     /* Update internal client state */
@@ -801,12 +867,14 @@ void wcmd_client_unfullscreen(client_td *client)
 /* Toggle full screen mode */
 void wcmd_client_toggle_fullscreen(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     if (client->properties.state == CLIENT_STATE_FULLSCREEN) {
-        wcmd_client_unfullscreen(client);
-        s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        wcmd_client_unfullscreen(client);        
     } else {
-        wcmd_client_fullscreen(client);
-        s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        wcmd_client_fullscreen(client);        
     }
 }
 
@@ -935,18 +1003,24 @@ void wcmd_client_layer_below(client_td *client)
 /* Set client urgency */
 void wcmd_client_set_urgent(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_set_urgent(client);
-//    ewmh_add_net_wm_state(client->connection, client->window,
-//    "_NET_WM_STATE_DEMANDS_ATTENTION");
+    s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 }
 
 
 /* Clear client urgency */
 void wcmd_client_clear_urgent(client_td *client)
 {
+    if (client == NULL) {
+        return;
+    }
+
     client_unset_urgent(client);
-//    ewmh_rem_net_wm_state(client->connection, client->window,
-//    "_NET_WM_STATE_DEMANDS_ATTENTION");
+    s_wcmd_rem_window_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 }
 
 
@@ -954,6 +1028,10 @@ void wcmd_client_clear_urgent(client_td *client)
 void wcmd_client_set_icon(client_td *client,
         action_data_client_td *client_data)
 {
+    if (client == NULL || client_data == NULL) {
+        return;
+    }
+
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,
             client->window,
@@ -963,8 +1041,10 @@ void wcmd_client_set_icon(client_td *client,
             (uint32_t) safe_strlen(client_data->new_data.str.str0),
             client_data->new_data.str.str0);
 
-    // Update the client properties.  Call any additional functions that
-    // might handle update graphics.
-    // ewmh_alter_net_wm_icon_name(client->connection, client->window,
-    // client_data->new_data.icon_name);
+    /* Update '_NET_WM_ICON_NAME EWMH' property for compliance
+     * Note: '_NET_WM_ICON' pixmap data is typically set by the client itself,
+     *       not by the window manager */
+    xcb_ewmh_set_wm_icon_name(client->ewmh, client->id,
+            (uint32_t) safe_strlen(client_data->new_data.str.str0),
+            client_data->new_data.str.str0);
 }

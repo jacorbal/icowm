@@ -12,8 +12,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_WCMD_H
-#define CMDS_WCMD_H
+#ifndef CMDS_CCMD_H
+#define CMDS_CCMD_H
 
 
 /* Project includes */
@@ -323,4 +323,4 @@ void wcmd_client_set_icon(client_td *client,
         action_data_client_td *client_data);
 
 
-#endif  /* ! CMDS_WCMD_H */
+#endif  /* ! CMDS_CCMD_H */

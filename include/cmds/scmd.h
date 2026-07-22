@@ -11,8 +11,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
  
-#ifndef SMDS_WCMD_H
-#define SMDS_WCMD_H
+#ifndef CMDS_SCMD_H
+#define CMDS_SCMD_H
 
 
 /* Project includes */
