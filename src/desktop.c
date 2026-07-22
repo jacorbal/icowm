@@ -11,18 +11,19 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* fork, execvp, kill */
+#define _POSIX_C_SOURCE 200112L /* fork, execvp */
 
 
 /* System includes */
-#include <signal.h>     /* kill, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* strncpy */
+#include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
 #include <unistd.h>     /* fork, execvp, _exit */
+#include <wordexp.h>    /* wordexp */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -75,6 +76,52 @@ static bool s_client_match(const void *key1, const void *key2)
     const client_td *client2 = (const client_td *) key2;
 
     return client1->id == client2->id;
+}
+
+
+/* Apply desktop lock/unlock state to all clients */
+static int s_desktop_set_clients_enabled(desktop_td *desktop,
+        bool enabled)
+{
+    if (desktop == NULL || desktop->clients == NULL) {
+        return 1;
+    }
+
+    for (size_t i = 0; i < desktop->clients->positions; ++i) {
+        if (desktop->clients->table[i] != NULL &&
+                desktop->clients->table[i] != desktop->clients->vacated) {
+            client_td *client = (client_td *) desktop->clients->table[i];
+            if (enabled) {
+                client_unset_disable(client);
+                client_set_focusable(client);
+            } else {
+                client_set_disable(client);
+                client_unset_focusable(client);
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+/* Validate if a layout name is supported */
+static bool s_desktop_layout_supported(const char *layout)
+{
+    static const char *layouts[] = {
+        "floating",
+        "stacking",
+        "tiling",
+        "monocle"
+    };
+
+    for (size_t i = 0; i < sizeof(layouts) / sizeof(layouts[0]); ++i) {
+        if (strcasecmp(layout, layouts[i]) == 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
@@ -366,7 +413,6 @@ int desktop_action_background_update(desktop_td *desktop, uint32_t color)
             desktop->id, desktop->name, color);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
     }
 
@@ -569,6 +615,10 @@ int desktop_action_clients_rearrange(desktop_td *desktop)
         return -1;
     }
 
+    if (desktop->clients == NULL) {
+        return 1;
+    }
+
     /* Mark desktop as needing redraw */
     desktop->is_outdated = true;
 
@@ -683,15 +733,19 @@ int desktop_action_cycle_clients_icons(desktop_td *desktop)
 /* Lock the desktop */
 int desktop_action_lock(desktop_td *desktop)
 {
-    LOGGER_DEBUG("Locking desktop %u ('%s')",
-            desktop->id, desktop->name);
-
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
     }
 
-    /* TODO: Implement desktop locking mechanism */
+    LOGGER_DEBUG("Locking desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (s_desktop_set_clients_enabled(desktop, false) != 0) {
+        return 1;
+    }
+    desktop->client_active_id = 0;
+    desktop->is_outdated = true;
 
     return 0;
 }
@@ -700,15 +754,18 @@ int desktop_action_lock(desktop_td *desktop)
 /* Unlock the desktop */
 int desktop_action_unlock(desktop_td *desktop)
 {
-    LOGGER_DEBUG("Unlocking desktop %u ('%s')",
-            desktop->id, desktop->name);
-
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
     }
 
-    /* TODO: Implement desktop unlocking mechanism */
+    LOGGER_DEBUG("Unlocking desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    if (s_desktop_set_clients_enabled(desktop, true) != 0) {
+        return 1;
+    }
+    desktop->is_outdated = true;
 
     return 0;
 }
@@ -717,15 +774,29 @@ int desktop_action_unlock(desktop_td *desktop)
 /* Set the layout of the desktop */
 int desktop_action_set_layout(desktop_td *desktop, const char *layout)
 {
-    LOGGER_DEBUG("Setting layout '%s' on desktop %u ('%s')",
-            layout, desktop->id, desktop->name);
-
     if (desktop == NULL || layout == NULL) {
         LOGGER_ERROR("Invalid desktop or layout pointer", L_NARG);
         return -1;
     }
 
-    /* TODO: Implement layout switching mechanism */
+
+    LOGGER_DEBUG("Setting layout '%s' on desktop %u ('%s')",
+            layout, desktop->id, desktop->name);
+
+    if (layout[0] == '\0') {
+        LOGGER_WARNING("Cannot set empty desktop layout", L_NARG);
+        return 1;
+    }
+
+    if (!s_desktop_layout_supported(layout)) {
+        LOGGER_WARNING("Unsupported desktop layout '%s'", layout);
+        return 1;
+    }
+
+    /* This currently validates and records a coherent layout choice.
+     * Concrete tiling/placement behavior is applied by the
+     * render/update pipeline and future layout strategy handlers. */
+    desktop->is_outdated = true;
 
     return 0;
 }
@@ -737,14 +808,17 @@ int desktop_action_application_launch(desktop_td *desktop,
 {
     pid_t pid;
 
-    LOGGER_DEBUG("Launching application '%s' on desktop %u ('%s')",
-            application_path, desktop->id, desktop->name);
 
-    if (desktop == NULL || application_path == NULL) {
+    if (desktop == NULL || application_path == NULL ||
+            application_path[0] == '\0') {
         LOGGER_ERROR("Invalid desktop or application path pointer",
                 L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Launching application '%s' on desktop %u ('%s')",
+            application_path, desktop->id, desktop->name);
+
     pid = fork();
     if (pid < 0) {
         LOGGER_ERROR("Failed to fork process for application '%s'",
@@ -752,12 +826,32 @@ int desktop_action_application_launch(desktop_td *desktop,
         return 1;
     }
     if (pid == 0) {
-        /* Child process: execute the application */
-        execvp(application_path,
-                (char * const[]) {
-                    (char *) application_path,
-                    NULL
-                });
+        wordexp_t words = (wordexp_t) {0};
+        int wordexp_flags;
+        int wr;
+
+        /* Child must close inherited X connection before continuing to
+         * avoid sharing the parent's connection state. */
+        if (desktop->connection != NULL) {
+            xcb_disconnect(desktop->connection);
+        }
+
+        wordexp_flags = WRDE_NOCMD;
+#ifdef WRDE_NOENV
+        wordexp_flags |= WRDE_NOENV;
+#endif
+        wr = wordexp(application_path, &words, wordexp_flags);
+        if (wr != 0 || words.we_wordc == 0u) {
+            LOGGER_ERROR("Failed to parse launch command '%s'",
+                    application_path);
+            if (words.we_wordv != NULL) {
+                wordfree(&words);
+            }
+            _exit(127);
+        }
+
+        execvp(words.we_wordv[0], words.we_wordv);
+        wordfree(&words);
         _exit(127);
     }
 

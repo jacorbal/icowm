@@ -34,7 +34,7 @@ JOBS ?= $(shell nproc)
 
 
 ## Compiler & linker options
-CCSTD       = c11  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
+CCSTD       = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
 CCOPT       = 3    # 0:debug; 1:optimize; 2:optimize more; 3:even more
 CCOPTS      = -pedantic -pedantic-errors
 CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once

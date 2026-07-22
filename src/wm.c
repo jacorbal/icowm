@@ -12,11 +12,14 @@
  */
 
 /* System includes */
+#include <limits.h>     /* UINT16_MAX */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* strtok_r, memcpy */
 #include <strings.h>    /* strcasecmp */
+#include <sys/wait.h>   /* waitpid */
+#include <unistd.h>     /* fork, execl, _exit */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -29,6 +32,7 @@
 #include <adt/ohtbl.h>  /* Open-addressed hash table */
 
 /* Project includes */
+#include <actdata.h>
 #include <action.h>
 #include <client.h>
 #include <config.h>
@@ -70,17 +74,57 @@ enum wm_keybind_type_e {
     KEYBIND_LAUNCH_LAUNCHER,    /**< Launch application launcher */
 };
 
-/** One resolved key binding */
+/* One resolved key binding */
 typedef struct {
     xcb_keysym_t keysym;
     uint16_t     modmask;
     enum wm_keybind_type_e type;
 } wm_keybinding_td;
 
-#define WM_MAX_KEYBINDINGS 64
+
+#define WM_MAX_KEYBINDINGS (64)
+#define WM_MIN_WINDOW_DIMENSION (1u)
+
 
 static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
 static int s_keybindings_count = 0;
+
+
+/* Mouse drag state for move/resize interactions */
+static struct {
+    bool active;
+    enum window_operation_e operation;
+    client_td *client;
+    int16_t pointer_start_x;
+    int16_t pointer_start_y;
+    int32_t client_start_x;
+    int32_t client_start_y;
+    uint16_t client_start_w;
+    uint16_t client_start_h;
+} s_drag = {
+    .active = false,
+    .operation = CLIENT_OPERATION_IDLE,
+    .client = NULL,
+    .pointer_start_x = 0,
+    .pointer_start_y = 0,
+    .client_start_x = 0,
+    .client_start_y = 0,
+    .client_start_w = 0,
+    .client_start_h = 0
+};
+
+
+/* Clamp dimensions to supported client geometry bounds */
+static uint16_t s_wm_clamp_dimension(int32_t value)
+{
+    if (value < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+        return WM_MIN_WINDOW_DIMENSION;
+    }
+    if (value > (int32_t) UINT16_MAX) {
+        return UINT16_MAX;
+    }
+    return (uint16_t) value;
+}
 
 
 /* ------------------------------------------------------------------ */
@@ -264,6 +308,117 @@ static desktop_td *s_wm_get_current_desktop(surface_td *surface)
         return NULL;
     }
     return surface_desktop_get(surface, surface->desktop_cur);
+}
+
+
+/**
+ * @brief Launch a shell command asynchronously
+ *
+ * @param command Command line to execute
+ *
+ * @return 0 on success, non-zero on error
+ */
+static int s_wm_spawn_command(const char *command)
+{
+    pid_t pid;
+    pid_t pid2;
+    int status;
+
+    if (command == NULL || command[0] == '\0') {
+        LOGGER_WARNING("Cannot launch empty command", L_NARG);
+        return -1;
+    }
+
+    pid = fork();
+    if (pid < 0) {
+        LOGGER_ERROR("Failed to fork command '%s'", command);
+        return 1;
+    }
+
+    if (pid == 0) {
+        pid2 = fork();
+        if (pid2 < 0) {
+            _exit(126);
+        }
+        if (pid2 > 0) {
+            _exit(0);
+        }
+
+        if (wm != NULL && wm->connection != NULL) {
+            xcb_disconnect(wm->connection);
+        }
+
+        (void) execl("/bin/sh", "sh", "-c", command, (char *) NULL);
+        _exit(127);
+    }
+
+    if (waitpid(pid, &status, 0) < 0) {
+        LOGGER_WARNING("Failed to reap launcher process for command '%s'",
+                command);
+        return 4;
+    } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        LOGGER_ERROR("Failed to launch command '%s' (exit status %d)",
+                command, WEXITSTATUS(status));
+        return 2;
+    } else if (WIFSIGNALED(status)) {
+        LOGGER_ERROR("Failed to launch command '%s' (signal %d)",
+                command, WTERMSIG(status));
+        return 3;
+    }
+
+    LOGGER_INFO("Successfully initiated command '%s'", command);
+    return 0;
+}
+
+
+
+/**
+ * @brief Send a desktop event to launch a command
+ *
+ * @param desktop Target desktop
+ * @param command Command line to execute
+ *
+ * @return 0 on success, non-zero on error
+ */
+static int s_wm_send_desktop_launch_event(desktop_td *desktop,
+        const char *command)
+{
+    action_td action;
+    action_data_desktop_td *data;
+    event_td *event;
+
+    if (desktop == NULL || command == NULL || command[0] == '\0') {
+        LOGGER_WARNING("Cannot launch: command is null or empty", L_NARG);
+        return -1;
+    }
+
+    action.type = ACTION_TYPE_DESKTOP;
+    action.object.desktop = ACTION_DESKTOP_COMMAND_LAUNCH;
+
+    data = action_data_desktop_init(desktop, action.object.desktop);
+    if (data == NULL) {
+        LOGGER_ERROR("Failed to allocate desktop action data", L_NARG);
+        return 1;
+    }
+    /* Command pointer originates from persistent WM configuration data
+     * and remains valid for the event queue lifecycle. */
+    data->new_data.str = (char *) command;
+
+    event = event_init((void *) desktop, (void *) data,
+            action, PRIORITY_NORMAL);
+    if (event == NULL) {
+        LOGGER_ERROR("Failed to create desktop launch event", L_NARG);
+        action_data_desktop_destroy(data);
+        return 1;
+    }
+
+    if (eventq_add(event) != 0) {
+        LOGGER_ERROR("Failed to queue desktop launch event", L_NARG);
+        event_destroy(event);
+        return 1;
+    }
+
+    return 0;
 }
 
 
@@ -463,8 +618,51 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
 
 
 /**
+ * @brief Register mouse button grabs for move/resize interactions
+ */
+static void s_wm_grab_buttons(void)
+{
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        xcb_grab_button(wm->connection,
+                0,  /* owner_events */
+                surface->screen->root,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE |
+                XCB_EVENT_MASK_POINTER_MOTION,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,
+                XCB_NONE,
+                XCB_BUTTON_INDEX_1,
+                XCB_MOD_MASK_1);
+
+        xcb_grab_button(wm->connection,
+                0,  /* owner_events */
+                surface->screen->root,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE |
+                XCB_EVENT_MASK_POINTER_MOTION,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,
+                XCB_NONE,
+                XCB_BUTTON_INDEX_3,
+                XCB_MOD_MASK_1);
+    }
+
+    xcb_flush(wm->connection);
+}
+
+
+/**
  * @brief Adopt all pre-existing mapped windows at window manager
- * startup
+ *        startup
  *
  * Queries the window tree for each screen and calls
  * @c client_manage on any already-mapped, non-override-redirect child.
@@ -598,10 +796,6 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     state = (uint16_t) ((unsigned int) event->state &
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
-/*
-    state = event->state & ~((uint16_t) XCB_MOD_MASK_LOCK |
-                              (uint16_t) XCB_MOD_MASK_2);
-*/
 
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
@@ -625,13 +819,9 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     /* Iterate the binding table and dispatch on first match */
     for (int i = 0; i < s_keybindings_count; ++i) {
         uint16_t bind_state =
-            (uint16_t)((unsigned int) s_keybindings[i].modmask &
+            (uint16_t) ((unsigned int) s_keybindings[i].modmask &
                     ~((unsigned int) XCB_MOD_MASK_LOCK |
                         (unsigned int) XCB_MOD_MASK_2));
-/*
-        uint16_t bind_state = s_keybindings[i].modmask &
-            ~((uint16_t) XCB_MOD_MASK_LOCK | (uint16_t) XCB_MOD_MASK_2);
-*/
 
         if (keysym != s_keybindings[i].keysym || state != bind_state) {
             continue;
@@ -709,17 +899,170 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_LAUNCH_TERMINAL:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        (void) s_wm_send_desktop_launch_event(
+                                desktop,
+                                wm->config->base.programs.terminal);
+                    }
+                }
+                return;
+
             case KEYBIND_LAUNCH_LAUNCHER:
-                /* TODO: launch external command */
-                LOGGER_DEBUG("Launch binding triggered (not yet"
-                        " implemented)", L_NARG);
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        (void) s_wm_send_desktop_launch_event(
+                                desktop,
+                                wm->config->base.programs.launcher);
+                    }
+                }
                 return;
 
             case KEYBIND_NONE:
-                /* No binding; nothing to do */
+                (void) s_wm_spawn_command(
+                        wm->config->base.programs.launcher);
                 return;
         }
     }
+}
+
+
+/**
+ * @brief Handle @c BUTTON_PRESS events for mouse-driven interactions
+ *
+ * Uses @c Mod1+Button1 to move and @c Mod1+Button3 to resize.
+ *
+ * @param event Pointer to the button press event
+ */
+static void s_wm_handle_button_press(xcb_button_press_event_t *event)
+{
+    xcb_window_t window;
+    client_td *client;
+    desktop_td *desktop;
+    uint16_t state;
+
+    if (event == NULL) {
+        return;
+    }
+
+    state = (uint16_t) ((unsigned int) event->state &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
+    if ((state & XCB_MOD_MASK_1) == 0) {
+        return;
+    }
+
+    if (event->detail != XCB_BUTTON_INDEX_1 &&
+            event->detail != XCB_BUTTON_INDEX_3) {
+        return;
+    }
+
+    window = (event->child != XCB_NONE) ? event->child : event->event;
+    client = s_wm_find_client(window, NULL, &desktop);
+    if (client == NULL) {
+        return;
+    }
+
+    if (event->detail == XCB_BUTTON_INDEX_3 &&
+            !client_is_resizable(client)) {
+        return;
+    }
+
+    s_drag.active = true;
+    s_drag.client = client;
+    s_drag.pointer_start_x = event->root_x;
+    s_drag.pointer_start_y = event->root_y;
+    s_drag.client_start_x = client->layout.geometry.cur.pos.x;
+    s_drag.client_start_y = client->layout.geometry.cur.pos.y;
+    s_drag.client_start_w = (uint16_t) client->layout.geometry.cur.dim.w;
+    s_drag.client_start_h = (uint16_t) client->layout.geometry.cur.dim.h;
+    s_drag.operation = (event->detail == XCB_BUTTON_INDEX_1)
+        ? CLIENT_OPERATION_MOVING
+        : CLIENT_OPERATION_RESIZING;
+
+    client->properties.operation = (uint16_t) s_drag.operation;
+    if (desktop != NULL) {
+        desktop->client_active_id = client->id;
+        (void) desktop_action_client_send_front(desktop, client);
+    }
+
+    xcb_grab_pointer(wm->connection,
+            0,  /* owner events */
+            event->root,
+            XCB_EVENT_MASK_BUTTON_RELEASE |
+            XCB_EVENT_MASK_POINTER_MOTION,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_NONE,
+            XCB_NONE,
+            XCB_CURRENT_TIME);
+    xcb_flush(wm->connection);
+}
+
+
+/**
+ * @brief Handle @c MOTION_NOTIFY events during move/resize drags
+ *
+ * @param event Pointer to the motion event
+ */
+static void s_wm_handle_motion_notify(xcb_motion_notify_event_t *event)
+{
+    client_td *client;
+    int32_t dx;
+    int32_t dy;
+
+    if (event == NULL || !s_drag.active || s_drag.client == NULL) {
+        return;
+    }
+
+    client = s_drag.client;
+    dx = (int32_t) event->root_x - (int32_t) s_drag.pointer_start_x;
+    dy = (int32_t) event->root_y - (int32_t) s_drag.pointer_start_y;
+
+    if (s_drag.operation == CLIENT_OPERATION_MOVING) {
+        (void) client_send_event_move(client,
+                s_drag.client_start_x + dx,
+                s_drag.client_start_y + dy);
+    } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
+        uint16_t width;
+        uint16_t height;
+        int32_t new_w = (int32_t) s_drag.client_start_w + dx;
+        int32_t new_h = (int32_t) s_drag.client_start_h + dy;
+        width = s_wm_clamp_dimension(new_w);
+        height = s_wm_clamp_dimension(new_h);
+
+        (void) client_send_event_resize(client, width, height);
+    }
+}
+
+
+/**
+ * @brief Handle @c BUTTON_RELEASE events for move/resize drags
+ *
+ * @param event Pointer to the button release event
+ */
+static void s_wm_handle_button_release(xcb_button_release_event_t *event)
+{
+    (void) event;
+
+    if (!s_drag.active) {
+        return;
+    }
+
+    if (s_drag.client != NULL) {
+        s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
+    }
+
+    s_drag.active = false;
+    s_drag.operation = CLIENT_OPERATION_IDLE;
+    s_drag.client = NULL;
+
+    xcb_ungrab_pointer(wm->connection, XCB_CURRENT_TIME);
+    xcb_flush(wm->connection);
 }
 
 
@@ -925,6 +1268,13 @@ static void s_wm_handle_destroy_notify(
         return;
     }
 
+    if (s_drag.active && s_drag.client == client) {
+        s_drag.active = false;
+        s_drag.operation = CLIENT_OPERATION_IDLE;
+        s_drag.client = NULL;
+        xcb_ungrab_pointer(wm->connection, XCB_CURRENT_TIME);
+    }
+
     if (desktop != NULL &&
             desktop->client_active_id == event->window) {
         desktop->client_active_id = 0;
@@ -1088,6 +1438,7 @@ static void s_wm_loop(void)
 
     /* Grab configured key bindings (must be after keysyms alloc) */
     s_wm_grab_keys(keysyms);
+    s_wm_grab_buttons();
 
     /* Adopt any windows already on screen before we started */
     s_wm_scan_existing_windows();
@@ -1156,9 +1507,18 @@ static void s_wm_loop(void)
                     break;
 
                 case XCB_BUTTON_PRESS:
+                    s_wm_handle_button_press(
+                            (xcb_button_press_event_t *) event);
+                    break;
+
                 case XCB_BUTTON_RELEASE:
+                    s_wm_handle_button_release(
+                            (xcb_button_release_event_t *) event);
+                    break;
+
                 case XCB_MOTION_NOTIFY:
-                    /* TODO: implement mouse-driven move/resize */
+                    s_wm_handle_motion_notify(
+                            (xcb_motion_notify_event_t *) event);
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:

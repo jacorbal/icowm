@@ -754,6 +754,14 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
     ((w)->properties.flags & CLIENT_FLAG_DISABLED)
 
 /**
+ * @brief Macro that evaluates to the client resizable flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_resizable(w) \
+    ((w)->properties.flags & CLIENT_FLAG_RESIZABLE)
+
+/**
  * @brief Macro that sets the hidden flag of a client
  *
  * @param w Pointer to the client structure whose visibility is to be

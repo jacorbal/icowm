@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include <sys/types.h>  /* pid_t */
 #include <signal.h>     /* kill */
-#include <unistd.h>     /* NULL, execvp, fork */
 #include <stdio.h>      /* snprintf */
 
 /* XCB includes */
@@ -232,25 +231,13 @@ void dcmd_desktop_layout(desktop_td *desktop,
 pid_t dcmd_desktop_process_launch(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
-    pid_t pid;
-
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->new_data.str == NULL) {
         return -1;
     }
 
-    pid = fork();
-    if (pid == 0) {
-        /* Child process: execute command */
-        execvp(desktop_data->new_data.str,
-                (char *const[]) {
-                    desktop_data->new_data.str,
-                    NULL
-                });
-        _exit(127);
-    }
-
-    return pid;
+    return (pid_t) desktop_action_application_launch(desktop,
+            desktop_data->new_data.str);
 }
 
 
