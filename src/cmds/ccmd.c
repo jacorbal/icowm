@@ -153,7 +153,7 @@ static void s_wcmd_add_window_states(client_td *client,
     }
     va_end(args);
 
-    xcb_ewmh_set_wm_state(client->ewmh, client->id, num_states, states);
+    xcb_ewmh_set_wm_state(client->ewmh, client->window, num_states, states);
 
     free(states);
 }
@@ -215,7 +215,7 @@ static void s_wcmd_rem_window_states(client_td *client,
     va_end(args);
 
     /* Get current window states using proper EWMH API */
-    cookie = xcb_ewmh_get_wm_state(client->ewmh, client->id);
+    cookie = xcb_ewmh_get_wm_state(client->ewmh, client->window);
     success = xcb_ewmh_get_wm_state_reply(client->ewmh, cookie,
             &current_states_reply, NULL);
  
@@ -258,11 +258,11 @@ static void s_wcmd_rem_window_states(client_td *client,
 
     /* Set the filtered states back to the window */
     if (new_count > 0) {
-        xcb_ewmh_set_wm_state(client->ewmh, client->id, new_count,
+        xcb_ewmh_set_wm_state(client->ewmh, client->window, new_count,
                 new_states);
     } else {
         /* No states remain, set empty state list */
-        xcb_ewmh_set_wm_state(client->ewmh, client->id, 0, NULL);
+        xcb_ewmh_set_wm_state(client->ewmh, client->window, 0, NULL);
     }
 
     /* Cleanup allocated memory */
@@ -324,7 +324,7 @@ void wcmd_client_focus(client_td *client)
 
     xcb_ewmh_request_change_active_window(client->ewmh,
             (int) client->screen_id,
-            client->id, 0,
+            client->window, 0,
             XCB_CURRENT_TIME,
             s_wcmd_get_active_window(client->ewmh, client->screen_id));
 }
@@ -410,7 +410,7 @@ void wcmd_client_rename(client_td *client,
             client->info.name);
 
     /* '_NET_WM_NAME' */
-    xcb_ewmh_set_wm_name(client->ewmh, client->id,
+    xcb_ewmh_set_wm_name(client->ewmh, client->window,
             (uint32_t) safe_strlen(client->info.name),
             client->info.name);
 }
@@ -433,7 +433,7 @@ void wcmd_client_reclass(client_td *client,
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,  /* insert */
-            client->id,
+            client->window,
             XCB_ATOM_WM_CLASS,
             XCB_ATOM_STRING,
             8,
@@ -442,7 +442,7 @@ void wcmd_client_reclass(client_td *client,
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_APPEND,   /* append */
-            client->id,
+            client->window,
             XCB_ATOM_WM_CLASS,
             XCB_ATOM_STRING,
             8,
@@ -467,7 +467,7 @@ void wcmd_client_reclass(client_td *client,
                 client->info.class_name[0], "\0",
                 client->info.class_name[1]);
 
-        xcb_icccm_set_wm_class(client->connection, client->id, 1,
+        xcb_icccm_set_wm_class(client->connection, client->window, 1,
                 wm_class_combined);
         free(wm_class_combined);
     } else {
@@ -1044,7 +1044,7 @@ void wcmd_client_set_icon(client_td *client,
     /* Update '_NET_WM_ICON_NAME EWMH' property for compliance
      * Note: '_NET_WM_ICON' pixmap data is typically set by the client itself,
      *       not by the window manager */
-    xcb_ewmh_set_wm_icon_name(client->ewmh, client->id,
+    xcb_ewmh_set_wm_icon_name(client->ewmh, client->window,
             (uint32_t) safe_strlen(client_data->new_data.str.str0),
             client_data->new_data.str.str0);
 }

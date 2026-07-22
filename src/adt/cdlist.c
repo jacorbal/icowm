@@ -222,6 +222,7 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
         void **data)
 {
     cdlist_item_td *old_item;
+    void *old_data = NULL;
 
     /* Do not allow removal from an empty list */
     if (cdlist_size(cdlist) == 0) {
@@ -231,7 +232,7 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
     /* Remove the item from the list */
     if (item == NULL) {
         /* Handle removal from the head of the list */
-        *data = cdlist->head->data;
+        old_data = cdlist->head->data;
         old_item = cdlist->head;
 
         if (cdlist_size(cdlist) == 1) { /* Only one item on the list */
@@ -249,7 +250,7 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
         }
 
         old_item = item->next;
-        *data = old_item->data;
+        old_data = old_item->data;
         item->next = old_item->next;
 
         if (old_item->next != cdlist->head) {
@@ -263,6 +264,10 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
 
     /* Free the storage allocated by the abstract data type */
     free(old_item);
+
+    if (data != NULL) {
+        *data = old_data;
+    }
 
     /* Adjust the size of the list */
     cdlist->size--;

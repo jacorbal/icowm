@@ -396,9 +396,6 @@ static void s_wm_loop(void)
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
     while (wm->is_running) {
-        /* Process window manager events from event priority queue */
-        eventq_process();
-
         /* Process X events.
          * 'xcb_poll_for_event' is non-blocking and returns NULL when no
          * events are available */
@@ -689,5 +686,17 @@ int wm_stop(void)
 
     LOGGER_DEBUG("Window manager has been destroyed", L_NARG);
 
+    return 0;
+}
+
+
+/* Request a graceful stop of the main WM loop */
+int wm_request_stop(void)
+{
+    if (wm == NULL) {
+        return 1;
+    }
+
+    wm->is_running = false;
     return 0;
 }

@@ -14,9 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc, rand */
-#include <time.h>       /* time */
-#include <unistd.h>     /* getpid */
+#include <stdlib.h>     /* NULL, free, malloc */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -37,25 +35,27 @@
 #include <desktop.h>
 
 
-/* Define a hash function with a random seed */
+/* Define a stable hash function */
 static size_t s_h1(const void *data)
 {
-    uint32_t seed;
     const client_td *client = (const client_td *) data;
+    const uint32_t key = (client == NULL) ? 0u : client->id;
 
-    seed = (uint32_t) (time(NULL) ^ getpid() ^ rand());
-    return (size_t) murmurhash3_32(client, sizeof(client_td), seed);
+    return (size_t) murmurhash3_32(&key, sizeof(key), 0x9E3779B9u);
 }
 
 
-/* Define an auxiliary hash function with a random seed */
+/* Define an auxiliary stable hash function */
 static size_t s_h2(const void *data)
 {
-    uint32_t seed;
     const client_td *client = (const client_td *) data;
+    const uint32_t key = (client == NULL) ? 0u : client->id;
+    size_t hash2 = (size_t) murmurhash3_32(&key, sizeof(key), 0x85EBCA6Bu);
 
-    seed = (uint32_t) (time(NULL) ^ (getpid() << 16) ^ rand());
-    return (size_t) murmurhash3_32(client, sizeof(client_td), seed);
+    if (hash2 == 0u) {
+        hash2 = 1u;
+    }
+    return hash2;
 }
 
 
@@ -139,8 +139,9 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
 
-    /* Initialize circular list for rendering in stacking order */
-    desktop->stacking = cdlist_init((void(*)(void *)) client_destroy);
+    /* Initialize circular list for rendering in stacking order.
+     * Ownership of client memory is managed by 'desktop->clients' */
+    desktop->stacking = cdlist_init(NULL);
     if (desktop->stacking == NULL) {
         LOGGER_ERROR("Failed to allocate memory for stacking list" \
                 " on desktop %u ('%s') on screen %u",
@@ -274,10 +275,32 @@ void desktop_update_full(desktop_td *desktop)
 /* Clear a desktop by removing all its clients */
 void desktop_clear(desktop_td *desktop)
 {
+    client_td *client;
+
+    if (desktop == NULL) {
+        return;
+    }
+
     LOGGER_DEBUG("Preparing to clear desktop %u ('%s')",
             desktop->id, desktop->name);
-    if (desktop != NULL && desktop->clients != NULL) {
-        ohtbl_destroy(desktop->clients);
+
+    if (desktop->stacking != NULL) {
+        while (true) {
+            client = NULL;
+            if (cdlist_rem_next(desktop->stacking, NULL,
+                        (void **) &client) != 0) {
+                break;
+            }
+            /* The list may legitimately contain NULL data pointers;
+             * destroy only valid clients. */
+            if (client != NULL) {
+                client_destroy(client);
+            }
+        }
+    }
+
+    if (desktop->clients != NULL) {
+        ohtbl_reset(desktop->clients);
     }
 }
 
@@ -285,6 +308,8 @@ void desktop_clear(desktop_td *desktop)
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
+    void *removed_client;
+
     LOGGER_TRACE("Adding client 0x%08x ('%s') to desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
@@ -305,7 +330,8 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
                 (void *) client) != 0) {
         LOGGER_ALERT("Failed to add client to stacking list", L_NARG);
         /* Remove from hash table on failure */
-        ohtbl_remove(desktop->clients, (void *) client);
+        removed_client = (void *) client;
+        ohtbl_remove(desktop->clients, &removed_client);
         return -1;
     }
 
@@ -321,6 +347,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 {
     cdlist_item_td *node;
+    void *removed_client;
 
     LOGGER_DEBUG("Removing client 0x%08x ('%s') from desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
@@ -331,7 +358,8 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
     }
 
     /* Remove from hash table */
-    if (ohtbl_remove(desktop->clients, (void *) client) != 0) {
+    removed_client = (void *) client;
+    if (ohtbl_remove(desktop->clients, &removed_client) != 0) {
         LOGGER_ALERT("Failed to remove client from hash table", L_NARG);
         return -1;
     }

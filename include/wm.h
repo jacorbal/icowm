@@ -106,6 +106,18 @@ int wm_start(const char *display_name, const char *config_dir_prefix);
 int wm_stop(void);
 
 /**
+ * @brief Request a clean stop of the window manager main loop
+ *
+ * Sets the running flag to @c false so @a wm_start can return and
+ * teardown can happen from the main thread.
+ *
+ * @return Status of the operation
+ * @retval 0 Success
+ * @retval 1 If the window manager singleton is not initialized
+ */
+int wm_request_stop(void);
+
+/**
  * @brief Reload the configuration from the configuration files
  *
  * @return Status of the operation

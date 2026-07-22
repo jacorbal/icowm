@@ -85,6 +85,44 @@ static volatile bool eventq_is_running = false;  /* Running state of the
                                                     event processing
                                                     thread */
 
+/**
+ * @brief Mutex used to synchronize access to the event queue
+ *
+ * Protects operations on @a eventq to prevent race conditions when
+ * multiple threads access or modify the queue concurrently.
+ *
+ * @note It must be locked before accessing the queue and unlocked
+ *       immediately after the operation
+ */
+static pthread_mutex_t eventq_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+/**
+ * @brief Retrieve current size of the event queue in a thread-safe way
+ *
+ * Accesses @a eventq while holding @a eventq_mutex to ensure
+ * consistency when other threads may be modifying the queue.
+ *
+ * @return Number of events currently in the queue, or 0 if the queue is
+ *         not initialized, (@c NULL)
+ *
+ * @note This function is thread-safe due to the use of a mutex
+ * @note Complexity depends on @a pqueue_size implementation, typically
+ *       @e O(1)
+ */
+static size_t s_eventq_size(void)
+{
+    size_t size = 0;
+
+    pthread_mutex_lock(&eventq_mutex);
+    if (eventq != NULL) {
+        size = pqueue_size(eventq);
+    }
+    pthread_mutex_unlock(&eventq_mutex);
+
+    return size;
+}
+
 
 /**
  * @brief Thread function to process events from the event queue
@@ -111,7 +149,7 @@ static void *eventq_process_thread(void *arg)
     (void) arg;
 
     while (eventq_is_running) {
-        if (pqueue_size(eventq) > 0) {
+        if (s_eventq_size() > 0) {
             eventq_process();   /* Process events from the queue */
         } else {
             /* Sleep to prevent busy-waiting and reduce CPU usage when
@@ -623,7 +661,7 @@ static void s_event_handle_wm(event_td *event)
 
         case ACTION_WM_EXIT:
             LOGGER_TRACE("WM exit action requested", L_NARG);
-            wm_stop();
+            wm_request_stop();
             break;
     }
 
@@ -670,11 +708,19 @@ int eventq_stop(void)
     }
 
     eventq_is_running = false;
+    if (pthread_equal(pthread_self(), event_thread)) {
+        LOGGER_WARNING("Skipping self-join in event thread; defer stop"
+                " to main thread", L_NARG);
+        return 0;
+    }
+
     LOGGER_TRACE("Waiting for the event thread to finish", L_NARG);
     pthread_join(event_thread, NULL);
 
+    pthread_mutex_lock(&eventq_mutex);
     pqueue_destroy(eventq);
     eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
+    pthread_mutex_unlock(&eventq_mutex);
 
     return 0;
 }
@@ -688,12 +734,15 @@ int eventq_add(event_td *event)
         return 1;
     }
 
+    pthread_mutex_lock(&eventq_mutex);
     LOGGER_TRACE("Inserting event into event queue", L_NARG);
-    if (pqueue_insert(eventq, (void *) event) != 0){
+    if (eventq == NULL || pqueue_insert(eventq, (void *) event) != 0) {
+        pthread_mutex_unlock(&eventq_mutex);
         LOGGER_WARNING("Failed to insert event into event queue",
                 L_NARG);
         return 1;
     }
+    pthread_mutex_unlock(&eventq_mutex);
 
     return 0;
 }
@@ -704,10 +753,11 @@ event_td *eventq_extract(void)
 {
     event_td *event;
 
+    pthread_mutex_lock(&eventq_mutex);
     LOGGER_TRACE("Extracting event from event queue", L_NARG);
-    if (pqueue_extract(eventq, (void **) &event) != 0) {
-        LOGGER_WARNING("Failed to extract event from event queue",
-                L_NARG);
+    if (eventq == NULL || pqueue_size(eventq) == 0 ||
+            pqueue_extract(eventq, (void **) &event) != 0) {
+        pthread_mutex_unlock(&eventq_mutex);
         return NULL;
     }
 
@@ -721,11 +771,11 @@ int eventq_process(void)
     /* Process 'eventq' events */
     event_td *processed_event;
 
-    while (pqueue_size(eventq) > 0) {
+    /* Loop until the queue is empty; 'eventq_extract' handles sync. */
+    while (true) {
         processed_event = eventq_extract();
         if (processed_event == NULL) {
-            LOGGER_WARNING("Failed to extract event", L_NARG);
-            return 1;
+            break;
         }
 
         /* Handle each type of event by dispatching to the appropiate
