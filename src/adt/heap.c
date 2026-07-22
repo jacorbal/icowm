@@ -64,6 +64,9 @@ void heap_destroy(heap_td *heap)
 
     /* Free the storage allocated for the heap */
     free(heap->tree);
+
+    /* Free the heap structure itself */
+    free(heap);
 }
 
 

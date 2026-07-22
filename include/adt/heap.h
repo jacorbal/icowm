@@ -82,6 +82,7 @@ void heap_destroy(heap_td *heap);
  *
  * @return Status of the node insertion operation
  * @retval  0 Successfully inserted the node
+ * @retval -1 Failed to allocate memory for the new node
  *
  * @note Complexity: @e O(log n), where @e n is the number of nodes
  */
@@ -95,6 +96,7 @@ int heap_insert(heap_td *heap, const void *data);
  *
  * @return Status of the extraction operation
  * @retval  0 Successfully extracted the node
+ * @retval -1 Heap is empty, or failed to reallocate storage
  *
  * @note Upon return, @e data points to the extracted node of the heap
  * @note The allocated memory for the node must be manually freed
@@ -114,7 +116,7 @@ int heap_extract(heap_td *heap, void **data);
  *
  * @note Complexity: @e O(1)
  */
-#define heap_is_empty(p) ((heap_size(p) > 0) ? true : false)
+#define heap_is_empty(p) ((heap_size(p) == 0) ? true : false)
 
 
 #endif  /* ! HEAP_H */

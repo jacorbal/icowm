@@ -33,6 +33,7 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
     /* Allocate space for the hash table */
     htbl->table = malloc((size_t) positions * sizeof(void *));
     if (htbl->table == NULL) {
+        free(htbl);
         return NULL;
     }
 
@@ -155,6 +156,16 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
                 if (ohtbl_resize_double(htbl) != 0) {
                     return -2;
                 }
+                /* After resize, positions and table have changed;
+                 * re-probe from the start to find the correct slot */
+                for (size_t j = 0; j < htbl->positions; ++j) {
+                    position = (htbl->h1(data) +
+                            (j * htbl->h2(data))) % htbl->positions;
+                    if (htbl->table[position] == NULL ||
+                            htbl->table[position] == htbl->vacated) {
+                        break;
+                    }
+                }
             }
 
             /* Insert the element as new increasing the table size */
@@ -225,6 +236,9 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data)
         if (htbl->table[position] == NULL) {
             /*  Return that the data was not found */
             return -1;
+        } else if (htbl->table[position] == htbl->vacated) {
+            /* Search beyond vacated positions */
+            continue;
         } else if (htbl->match(htbl->table[position], *data)) {
             /* Pass back the data from the table */
             *data = htbl->table[position];
@@ -243,7 +257,7 @@ int ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
     void **new_table;
 
     /* Initialize a new table */
-    new_table = malloc(new_positions * sizeof(void *));
+    new_table = calloc(new_positions, sizeof(void *));
     if (new_table == NULL) {
         return -1;
     }
