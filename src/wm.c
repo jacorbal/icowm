@@ -131,31 +131,85 @@ static uint16_t s_wm_clamp_dimension(int32_t value)
 /* Key-string parsing helpers                                          */
 /* ------------------------------------------------------------------ */
 
-/** Map a single modifier token to an XCB modifier mask */
-static uint16_t s_parse_modifier_token(const char *tok)
+/** Resolve configured modifier aliases such as "modc" or "mods" */
+static const char *s_resolve_modifier_token(const char *tok)
 {
-    if (strcasecmp(tok, "mod1") == 0 || strcasecmp(tok, "alt") == 0) {
-        return XCB_MOD_MASK_1;
+    if (tok == NULL) {
+        return tok;
+    }
+
+    if (strcasecmp(tok, "modc") == 0) {
+        return wm->config->bindings.modc;
+    }
+    if (strcasecmp(tok, "mods") == 0) {
+        return wm->config->bindings.mods;
+    }
+    if (strcasecmp(tok, "modl") == 0) {
+        return wm->config->bindings.modl;
+    }
+    if (strcasecmp(tok, "mod1") == 0) {
+        return wm->config->bindings.mod1;
     }
     if (strcasecmp(tok, "mod2") == 0) {
-        return XCB_MOD_MASK_2;
+        return wm->config->bindings.mod2;
     }
     if (strcasecmp(tok, "mod3") == 0) {
-        return XCB_MOD_MASK_3;
+        return wm->config->bindings.mod3;
     }
-    if (strcasecmp(tok, "mod4") == 0 || strcasecmp(tok, "super") == 0 ||
-            strcasecmp(tok, "win") == 0) {
-        return XCB_MOD_MASK_4;
+    if (strcasecmp(tok, "mod4") == 0) {
+        return wm->config->bindings.mod4;
     }
     if (strcasecmp(tok, "mod5") == 0) {
+        return wm->config->bindings.mod5;
+    }
+
+    return tok;
+}
+
+
+/* Map a single modifier token to an XCB modifier mask */
+static uint16_t s_parse_modifier_token(const char *tok)
+{
+    const char *resolved = s_resolve_modifier_token(tok);
+
+    if (resolved == NULL || resolved[0] == '\0') {
+        return 0;
+    }
+
+    if (strcasecmp(resolved, "mod1") == 0 ||
+            strcasecmp(resolved, "alt") == 0) {
+        return XCB_MOD_MASK_1;
+    }
+    if (strcasecmp(resolved, "mod2") == 0 ||
+            strcasecmp(resolved, "num_lock") == 0 ||
+            strcasecmp(resolved, "num-lock") == 0) {
+        return XCB_MOD_MASK_2;
+    }
+    if (strcasecmp(resolved, "mod3") == 0) {
+        return XCB_MOD_MASK_3;
+    }
+    if (strcasecmp(resolved, "mod4") == 0 ||
+            strcasecmp(resolved, "super") == 0 ||
+            strcasecmp(resolved, "win") == 0) {
+        return XCB_MOD_MASK_4;
+    }
+    if (strcasecmp(resolved, "mod5") == 0 ||
+            strcasecmp(resolved, "hyper") == 0) {
         return XCB_MOD_MASK_5;
     }
-    if (strcasecmp(tok, "ctrl") == 0 || strcasecmp(tok, "control") == 0) {
+    if (strcasecmp(resolved, "ctrl") == 0 ||
+            strcasecmp(resolved, "control") == 0) {
         return XCB_MOD_MASK_CONTROL;
     }
-    if (strcasecmp(tok, "shift") == 0) {
+    if (strcasecmp(resolved, "shift") == 0) {
         return XCB_MOD_MASK_SHIFT;
     }
+    if (strcasecmp(resolved, "lock") == 0 ||
+            strcasecmp(resolved, "caps_lock") == 0 ||
+            strcasecmp(resolved, "caps-lock") == 0) {
+        return XCB_MOD_MASK_LOCK;
+    }
+
     return 0;
 }
 
@@ -312,67 +366,6 @@ static desktop_td *s_wm_get_current_desktop(surface_td *surface)
 
 
 /**
- * @brief Launch a shell command asynchronously
- *
- * @param command Command line to execute
- *
- * @return 0 on success, non-zero on error
- */
-static int s_wm_spawn_command(const char *command)
-{
-    pid_t pid;
-    pid_t pid2;
-    int status;
-
-    if (command == NULL || command[0] == '\0') {
-        LOGGER_WARNING("Cannot launch empty command", L_NARG);
-        return -1;
-    }
-
-    pid = fork();
-    if (pid < 0) {
-        LOGGER_ERROR("Failed to fork command '%s'", command);
-        return 1;
-    }
-
-    if (pid == 0) {
-        pid2 = fork();
-        if (pid2 < 0) {
-            _exit(126);
-        }
-        if (pid2 > 0) {
-            _exit(0);
-        }
-
-        if (wm != NULL && wm->connection != NULL) {
-            xcb_disconnect(wm->connection);
-        }
-
-        (void) execl("/bin/sh", "sh", "-c", command, (char *) NULL);
-        _exit(127);
-    }
-
-    if (waitpid(pid, &status, 0) < 0) {
-        LOGGER_WARNING("Failed to reap launcher process for command '%s'",
-                command);
-        return 4;
-    } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-        LOGGER_ERROR("Failed to launch command '%s' (exit status %d)",
-                command, WEXITSTATUS(status));
-        return 2;
-    } else if (WIFSIGNALED(status)) {
-        LOGGER_ERROR("Failed to launch command '%s' (signal %d)",
-                command, WTERMSIG(status));
-        return 3;
-    }
-
-    LOGGER_INFO("Successfully initiated command '%s'", command);
-    return 0;
-}
-
-
-
-/**
  * @brief Send a desktop event to launch a command
  *
  * @param desktop Target desktop
@@ -400,8 +393,9 @@ static int s_wm_send_desktop_launch_event(desktop_td *desktop,
         LOGGER_ERROR("Failed to allocate desktop action data", L_NARG);
         return 1;
     }
-    /* Command pointer originates from persistent WM configuration data
-     * and remains valid for the event queue lifecycle. */
+    /* Command pointer originates from persistent window manager
+     * configuration data and remains valid for the event queue
+     * lifecycle */
     data->new_data.str = (char *) command;
 
     event = event_init((void *) desktop, (void *) data,
@@ -484,10 +478,10 @@ static client_td *s_wm_find_client(xcb_window_t window,
  * @brief Subscribe to SubstructureRedirect and related events on each
  *        root window
  *
- * Fails with a fatal log if another WM is already running
- * (@c BadAccess error).
- *
  * @return 0 on success, -1 on error
+ *
+ * @note Fails with a fatal log if another WM is already running
+ *       (@c BadAccess error)
  */
 static int s_wm_subscribe_root_events(void)
 {
@@ -514,15 +508,15 @@ static int s_wm_subscribe_root_events(void)
                 XCB_CW_EVENT_MASK, values);
         err = xcb_request_check(wm->connection, cookie);
         if (err != NULL) {
-            LOGGER_FATAL("Cannot subscribe to root events on"
-                    " surface %u: another window manager is likely"
-                    " running (XCB error code %d)",
+            LOGGER_FATAL("Cannot subscribe to root events on" \
+                    " surface %u, for another window manager is" \
+                    " likely running (XCB error code %d)",
                     surface->id, err->error_code);
             free(err);
             return -1;
         }
 
-        LOGGER_DEBUG("Subscribed to root events on surface %u"
+        LOGGER_DEBUG("Subscribed to root events on surface %u" \
                 " (root %#x)", surface->id, surface->screen->root);
     }
 
@@ -661,8 +655,7 @@ static void s_wm_grab_buttons(void)
 
 
 /**
- * @brief Adopt all pre-existing mapped windows at window manager
- *        startup
+ * @brief Adopt all pre-existing mapped windows at window manager startup
  *
  * Queries the window tree for each screen and calls
  * @c client_manage on any already-mapped, non-override-redirect child.
@@ -791,7 +784,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     /* Translate keycode to keysym using the key symbols table */
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
 
-    /* Strip locking modifiers (Num Lock = Mod2, Caps Lock = Lock) so
+    /* Strip locking modifiers (Num_Lock=Mod2, Caps_Lock=Lock) so
      * comparisons against configured masks are clean */
     state = (uint16_t) ((unsigned int) event->state &
             ~((unsigned int) XCB_MOD_MASK_LOCK |
@@ -863,8 +856,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_MAXIMIZE:
             case KEYBIND_CLIENT_CYCLE_NEXT:
             case KEYBIND_CLIENT_CYCLE_PREV:
-                /* Determine the focused/top client on the current
-                 * desktop */
+                /* Determine the focused/top client on current desktop */
                 if (surface != NULL) {
                     desktop_td *desktop =
                         s_wm_get_current_desktop(surface);
@@ -923,8 +915,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_NONE:
-                (void) s_wm_spawn_command(
-                        wm->config->base.programs.launcher);
+                LOGGER_TRACE("Ignoring 'KEYBIND_NONE' entry", L_NARG);
                 return;
         }
     }
@@ -1067,6 +1058,96 @@ static void s_wm_handle_button_release(xcb_button_release_event_t *event)
 
 
 /**
+ * @brief Handle @c CONFIGURE_REQUEST events from the X server
+ *
+ * Applies geometry and stacking requests directly through XCB and keeps
+ * the managed client's cached geometry synchronized when applicable.
+ *
+ * @param event Pointer to the configure request event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_configure_request(
+        xcb_configure_request_event_t *event)
+{
+    client_td *client;
+    surface_td *surface;
+    desktop_td *desktop;
+    uint16_t mask;
+    uint32_t values[7];
+    int i = 0;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received 'NULL' pointer in configure request" \
+                " handler", L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Configure request event: window=0x%x, mask=0x%x",
+            event->window, event->value_mask);
+
+    mask = event->value_mask &
+        (XCB_CONFIG_WINDOW_X            |
+         XCB_CONFIG_WINDOW_Y            |
+         XCB_CONFIG_WINDOW_WIDTH        |
+         XCB_CONFIG_WINDOW_HEIGHT       |
+         XCB_CONFIG_WINDOW_BORDER_WIDTH |
+         XCB_CONFIG_WINDOW_SIBLING      |
+         XCB_CONFIG_WINDOW_STACK_MODE);
+
+    /* Managed windows update cached geometry; unmanaged windows still
+     * receive the XCB configure request verbatim. */
+    client = s_wm_find_client(event->window, &surface, &desktop);
+
+    if (mask & XCB_CONFIG_WINDOW_X) {
+        values[i++] = (uint32_t) event->x;
+        if (client != NULL) {
+            client->layout.geometry.cur.pos.x = event->x;
+        }
+    }
+    if (mask & XCB_CONFIG_WINDOW_Y) {
+        values[i++] = (uint32_t) event->y;
+        if (client != NULL) {
+            client->layout.geometry.cur.pos.y = event->y;
+        }
+    }
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+        values[i++] = (uint32_t) event->width;
+        if (client != NULL) {
+            client->layout.geometry.cur.dim.w = event->width;
+        }
+    }
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        values[i++] = (uint32_t) event->height;
+        if (client != NULL) {
+            client->layout.geometry.cur.dim.h = event->height;
+        }
+    }
+    if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+        values[i++] = (uint32_t) event->border_width;
+    }
+    if (mask & XCB_CONFIG_WINDOW_SIBLING) {
+        values[i++] = event->sibling;
+    }
+    if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+        values[i++] = (uint32_t) event->stack_mode;
+    }
+
+    if (mask != 0) {
+        xcb_configure_window(wm->connection, event->window, mask, values);
+        xcb_flush(wm->connection);
+    }
+
+    if (surface != NULL) {
+        surface->is_outdated = true;
+    }
+    if (desktop != NULL) {
+        desktop->is_outdated = true;
+    }
+}
+
+
+/**
  * @brief Handle @c CONFIGURE_NOTIFY events from the X server
  *
  * Processes window configuration change notifications.  These events
@@ -1151,7 +1232,7 @@ static void s_wm_handle_map_request(
 
     desktop = s_wm_get_current_desktop(surface);
     if (desktop == NULL) {
-        LOGGER_ERROR("No current desktop on surface %u; mapping"
+        LOGGER_ERROR("No current desktop on surface %u; mapping" \
                 " without management", surface->id);
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
@@ -1196,7 +1277,7 @@ static void s_wm_handle_map_request(
 
 
 /**
- * @brief Handle UNMAP_NOTIFY events from the X server
+ * @brief Handle @c UNMAP_NOTIFY events from the X server
  *
  * Processes notifications that a window has been unmapped (hidden).
  * This typically means the window is no longer visible on screen.
@@ -1526,11 +1607,6 @@ static void s_wm_loop(void)
                             (xcb_configure_notify_event_t *) event);
                     break;
 
-                case XCB_MAP_REQUEST:
-                    s_wm_handle_map_request(
-                            (xcb_map_request_event_t *) event);
-                    break;
-
                 case XCB_UNMAP_NOTIFY:
                     s_wm_handle_unmap_notify(
                             (xcb_unmap_notify_event_t *) event);
@@ -1546,9 +1622,18 @@ static void s_wm_loop(void)
                             (xcb_property_notify_event_t *) event);
                     break;
 
+                case XCB_CONFIGURE_REQUEST:
+                    s_wm_handle_configure_request(
+                            (xcb_configure_request_event_t *) event);
+                    break;
+
+                case XCB_MAP_REQUEST:
+                    s_wm_handle_map_request(
+                            (xcb_map_request_event_t *) event);
+                    break;
+
                 default:
-                    LOGGER_TRACE(
-                            "Unhandled X event type: %d",
+                    LOGGER_TRACE("Unhandled X event type: %d",
                             event->response_type & ~0x80);
                     break;
             }

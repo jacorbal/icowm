@@ -194,8 +194,7 @@ client_td *client_init(xcb_connection_t *connection,
     char wm_instance[256];
 
     LOGGER_TRACE("Initializing client at (%d, %d)" \
-            " with size %ux%u",
-            x, y, w, h);
+            " with size %ux%u", x, y, w, h);
 
     /* Allocate memory for the client structure and verify the
      * allocation was successful before proceeding */
@@ -530,9 +529,8 @@ client_td *client_manage(xcb_connection_t *connection,
             client->info.class_name[1] == NULL ||
             client->icon_info.icon_name == NULL ||
             client->icon_info.visible_icon_name == NULL) {
-        LOGGER_ERROR(
-                "Failed to allocate string buffers for managed client",
-                L_NARG);
+        LOGGER_ERROR("Failed to allocate string buffers" \
+                " for managed client", L_NARG);
         safe_free((void **) &client->info.name);
         safe_free((void **) &client->info.visible_name);
         safe_free((void **) &client->info.role_name);
@@ -627,8 +625,7 @@ int client_send_event(client_td *client,
         return -1;
     }
 
-    LOGGER_TRACE("Sending event to client %p: action %d" \
-            ", priority %d",
+    LOGGER_TRACE("Sending event to client %p: action %d, priority %d",
             (void *) client, action_client, priority);
 
     action.type = ACTION_TYPE_CLIENT;

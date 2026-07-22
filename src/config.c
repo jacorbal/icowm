@@ -118,6 +118,38 @@ static int s_json_load_string(cJSON *json, const char *field, char *dest,
 
 
 /**
+ * @brief Load a string value from one of two JSON field names
+ *
+ * Tries the primary field name first and then a fallback alias.  The
+ * hyphenated spelling is preferred, while the alternate spelling
+ * remains accepted for backward compatibility.
+ *
+ * @return 0 on success, 1 if neither field contains a string
+ */
+static int s_json_load_string_alt(cJSON *json, const char *field,
+        const char *field_alt, char *dest, size_t size)
+{
+    cJSON *item;
+
+    item = cJSON_GetObjectItem(json, field);
+    if (item && cJSON_IsString(item)) {
+        safe_strncpy(dest, item->valuestring, size);
+        return 0;
+    }
+
+    item = cJSON_GetObjectItem(json, field_alt);
+    if (item && cJSON_IsString(item)) {
+        safe_strncpy(dest, item->valuestring, size);
+        return 0;
+    }
+
+    LOGGER_TRACE("Failed to load JSON string: '%s' or '%s'",
+            field, field_alt);
+    return 1;
+}
+
+
+/**
  * @brief Load unsigned integer value from a JSON object into an unsigned
  *        integer pointer
  *
@@ -216,8 +248,18 @@ static int s_json_load_from_file(const char *filename, char **data)
 {
     FILE *file;
     size_t length;
+    size_t nread;
+    long file_length;
 
     LOGGER_INFO("Parsing data from file '%s'", filename);
+
+    if (data == NULL) {
+        LOGGER_ERROR("Received 'NULL' output pointer for file '%s'",
+                filename);
+        return 1;
+    }
+
+    *data = NULL;   /* Always leave caller with a known value on error */
 
     LOGGER_TRACE("Opening JSON file '%s'", filename);
     file = fopen(filename, "r");
@@ -227,15 +269,33 @@ static int s_json_load_from_file(const char *filename, char **data)
         return 1;
     }
 
-    fseek(file, 0, SEEK_END);
-    length = (size_t) ftell(file);
+    if (fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        LOGGER_NOTICE("Unable to seek JSON file: '%s'; default values"
+                " will be used", filename);
+        return 1;
+    }
+    file_length = ftell(file);
+
+    if (file_length <= 0) {
+        fclose(file);
+        LOGGER_NOTICE("File is empty or unreadable: '%s'; default values"
+                " will be used", filename);
+        return 1;
+    }
+    length = (size_t) file_length;
     if (length == 0) {
         fclose(file);
         LOGGER_NOTICE("File is empty:" \
                 " '%s'; default values will be used", filename);
         return 1;
     }
-    fseek(file, 0, SEEK_SET);
+    if (fseek(file, 0, SEEK_SET) != 0) {
+        fclose(file);
+        LOGGER_NOTICE("Unable to rewind JSON file: '%s'; default values"
+                " will be used", filename);
+        return 1;
+    }
 
     *data = malloc(length + 1);
     if (*data == NULL) {
@@ -246,7 +306,15 @@ static int s_json_load_from_file(const char *filename, char **data)
     }
 
     LOGGER_TRACE("Reading JSON file '%s'", filename);
-    fread(*data, 1, length, file);
+    nread = fread(*data, 1, length, file);
+    if (nread != length) {
+        LOGGER_NOTICE("Failed to read full JSON file: '%s'; default"
+                " values will be used", filename);
+        free(*data);
+        *data = NULL;
+        fclose(file);
+        return 1;
+    }
 
     /* Make sure data is null-terminated */
     (*data)[length] = '\0';
@@ -772,7 +840,7 @@ int config_load_bindings(const char *filename,
 
     /* Load keybindings */
     keyboard = cJSON_GetObjectItem(json, "keyboard");
-    if (keyboard) {
+    if (keyboard != NULL) {
         cJSON *move;
         cJSON *resize;
         cJSON *desktop;
@@ -819,10 +887,10 @@ int config_load_bindings(const char *filename,
         s_json_load_string(keyboard, "info",
                 config_bindings->keyboard.info,
                 CONFIG_MAX_LENGTH_BINDING);
-        s_json_load_string(keyboard, "cycle-prev",
+        s_json_load_string_alt(keyboard, "cycle-prev", "cycle_prev",
                 config_bindings->keyboard.cycle_prev,
                 CONFIG_MAX_LENGTH_BINDING);
-        s_json_load_string(keyboard, "cycle-next",
+        s_json_load_string_alt(keyboard, "cycle-next", "cycle-next",
                 config_bindings->keyboard.cycle_next,
                 CONFIG_MAX_LENGTH_BINDING);
 
@@ -883,12 +951,12 @@ int config_load_bindings(const char *filename,
         }
 
         /* Keybindings for desktop cycling */
-        desktop = cJSON_GetObjectItem(move, "desktop");
+        desktop = cJSON_GetObjectItem(keyboard, "desktop");
         if (desktop) {
-            s_json_load_string(desktop, "cycle_prev",
+            s_json_load_string_alt(desktop, "cycle_prev", "cycle-prev",
                     config_bindings->keyboard.desktop.cycle_prev,
                     CONFIG_MAX_LENGTH_BINDING);
-            s_json_load_string(desktop, "cycle_next",
+            s_json_load_string_alt(desktop, "cycle_next", "cycle-next",
                     config_bindings->keyboard.desktop.cycle_next,
                     CONFIG_MAX_LENGTH_BINDING);
         }
@@ -911,10 +979,10 @@ int config_load_bindings(const char *filename,
         /* Mouse bindings for desktop cycling */
         desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
-            s_json_load_string(desktop, "cycle_prev",
+            s_json_load_string_alt(desktop, "cycle_prev", "cycle_prev",
                     config_bindings->mouse.desktop.cycle_prev,
                     CONFIG_MAX_LENGTH_BINDING);
-            s_json_load_string(desktop, "cycle_next",
+            s_json_load_string_alt(desktop, "cycle_next", "cycle-next",
                     config_bindings->mouse.desktop.cycle_next,
                     CONFIG_MAX_LENGTH_BINDING);
         }

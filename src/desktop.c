@@ -142,8 +142,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop = malloc(sizeof(desktop_td));
     if (desktop == NULL) {
         LOGGER_ERROR("Failed to allocate memory for" \
-                " desktop %u on screen %u",
-                desktop_id, screen_id);
+                " desktop %u on screen %u", desktop_id, screen_id);
         return NULL;
     }
 
@@ -409,8 +408,7 @@ int desktop_action_send_client(desktop_td *desktop, client_td *client,
 int desktop_action_background_update(desktop_td *desktop, uint32_t color)
 {
     LOGGER_DEBUG("Updating background color of desktop %u ('%s')"
-            " to 0x%08x",
-            desktop->id, desktop->name, color);
+            " to 0x%08x", desktop->id, desktop->name, color);
 
     if (desktop == NULL) {
         return -1;
