@@ -94,7 +94,10 @@ typedef struct {
     surface_td *surface;                  /**< Affected surface */
     enum action_surface_e action_surface; /**< Action for this surface */
 
-    /* TODO */
+    union {
+        uint32_t uvalue;    /**< Generic unsigned value (e.g., desktop ID) */
+        int32_t  svalue;    /**< Generic signed value */
+    } new_data;
 } action_data_surface_td;
 
 

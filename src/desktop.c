@@ -11,10 +11,18 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* fork, execvp, kill */
+
+
 /* System includes */
+#include <signal.h>     /* kill, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* strncpy */
+#include <sys/types.h>  /* pid_t */
+#include <unistd.h>     /* fork, execvp, _exit */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -302,6 +310,71 @@ void desktop_clear(desktop_td *desktop)
     if (desktop->clients != NULL) {
         ohtbl_reset(desktop->clients);
     }
+}
+
+
+/* Rename the desktop */
+int desktop_action_rename(desktop_td *desktop, const char *name)
+{
+    LOGGER_DEBUG("Renaming desktop %u ('%s') to '%s'",
+            desktop->id, desktop->name, name);
+    if (desktop == NULL || name == NULL) {
+        LOGGER_ERROR("Invalid desktop or name pointer", L_NARG);
+        return -1;
+    }
+
+    snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME, "%s", name);
+    desktop->name[DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
+    desktop->is_outdated = true;
+
+    return 0;
+}
+
+
+/* Send a client to another desktop */
+int desktop_action_send_client(desktop_td *desktop, client_td *client,
+        uint32_t desktop_id)
+{
+    LOGGER_DEBUG("Sending client 0x%08x ('%s') from desktop %u ('%s')"
+            " to desktop %u",
+            client->id, client->info.name,
+            desktop->id, desktop->name, desktop_id);
+
+    if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        return -1;
+    }
+
+    /* Remove client from this desktop */
+    if (desktop_action_client_rem(desktop, client) != 0) {
+        LOGGER_ERROR("Failed to remove client from source desktop",
+                L_NARG);
+        return 1;
+    }
+
+    /* Update client's recorded desktop */
+    client->desktop_id = desktop_id;
+    return 0;
+}
+
+
+/* Update the desktop background color */
+int desktop_action_background_update(desktop_td *desktop, uint32_t color)
+{
+    LOGGER_DEBUG("Updating background color of desktop %u ('%s')"
+            " to 0x%08x",
+            desktop->id, desktop->name, color);
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    desktop->background.is_image = false;
+    desktop->background.bg.color = color;
+    desktop->is_outdated = true;
+
+    return 0;
 }
 
 
@@ -655,4 +728,42 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout)
     /* TODO: Implement layout switching mechanism */
 
     return 0;
+}
+
+
+/* Launch an application on the desktop */
+int desktop_action_application_launch(desktop_td *desktop,
+        const char *application_path)
+{
+    pid_t pid;
+
+    LOGGER_DEBUG("Launching application '%s' on desktop %u ('%s')",
+            application_path, desktop->id, desktop->name);
+
+    if (desktop == NULL || application_path == NULL) {
+        LOGGER_ERROR("Invalid desktop or application path pointer",
+                L_NARG);
+        return -1;
+    }
+    pid = fork();
+    if (pid < 0) {
+        LOGGER_ERROR("Failed to fork process for application '%s'",
+                application_path);
+        return 1;
+    }
+    if (pid == 0) {
+        /* Child process: execute the application */
+        execvp(application_path,
+                (char * const[]) {
+                    (char *) application_path,
+                    NULL
+                });
+        _exit(127);
+    }
+
+    LOGGER_INFO("Launched application '%s' with PID %d",
+            application_path, (int) pid);
+
+    return 0;
+
 }

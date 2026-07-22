@@ -292,6 +292,11 @@ static inline void client_unfocus(client_td *client)
 /**
  * @brief Initialize a new client with the specified parameters
  *
+ * Allocates and initializes a new client structure, retrieving its
+ * properties from the X server (@c WM_NAME, @c WM_CLASS) and creating
+ * an XCB window with the given dimensions and position.  The client is
+ * initialized in a hidden state.
+ *
  * @param connection Pointer to the XCB connection
  * @param parent_id  Pointer to the parent client index
  * @param w          Width of the client in pixels
@@ -300,7 +305,8 @@ static inline void client_unfocus(client_td *client)
  * @param y          Y-coordinate of the client position
  * @param theme      Pointer to the theme configuration
  *
- * @return A pointer to the newly created client structure
+ * @return A pointer to the newly created client structure, or @c NULL
+ *         on failure
  *
  * @note Complexity: @e O(1) for creating a client structure
  */
@@ -313,6 +319,9 @@ client_td *client_init(xcb_connection_t *connection,
 /**
  * @brief Destroy the specified client and free associated resources
  *
+ * Deallocates all memory associated with the client, including the
+ * XCB window, all string buffers, and the client structure itself.
+ *
  * @param client Pointer to the client structure to be destroyed
  *
  * @note Complexity: @e O(1)
@@ -320,7 +329,36 @@ client_td *client_init(xcb_connection_t *connection,
 void client_destroy(client_td *client);
 
 /**
+ * @brief Adopt an existing X window under window manager control
+ *
+ * Wraps an existing X window in a client structure without creating a
+ * new window.  Reads the @c WM_NAME and @c WM_CLASS hints, queries the
+ * current window geometry, and subscribes to property and structure
+ * events on the window.
+ *
+ * @param connection Pointer to the XCB connection
+ * @param ewmh       Pointer to EWMH connection
+ * @param window     ID of the existing X window to adopt
+ * @param theme      Pointer to the theme configuration
+ *
+ * @return A pointer to the client structure wrapping the window, or
+ *         @c NULL if the window should not be managed (e.g.,
+ *         override-redirect) or on allocation failure
+ *
+ * @note The returned client is @e not mapped by this function; the
+ *       caller is responsible for calling @c xcb_map_window when ready
+ * @note Complexity: @e O(1)
+ */
+client_td *client_manage(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        struct config_theme_s *theme);
+
+/**
  * @brief Update the content of the specified client
+ *
+ * Performs a soft update on the client by refreshing its internal state
+ * as needed.  This may include checking for property changes and
+ * synchronizing the visual state with the internal representation.
  *
  * @param client Pointer to the client to be updated
  *
@@ -331,14 +369,18 @@ void client_update(client_td *client);
 /**
  * @brief Generic event sender for a client
  *
- * Sends event for a specified action on a client, in particular, those
- * events related to actions that do not require extra data.
+ * Creates and sends an event for a specified action on a client.  The
+ * event is inserted into the event priority queue for processing by the
+ * main event handler.
  *
  * @param client        Pointer to the target client
- * @param action_client The action to be performed on the client
- * @param priority      The priority level of the action
+ * @param action_client Action to be performed on the client
+ * @param priority      Priority level of the action
  *
- * @return Returns the result of adding the event to the queue
+ * @return 0 on success, -1 otherwise
+ *
+ * @note Complexity: @e O(log n), where @e n is the number of events
+ *       in the priority queue
  */
 int client_send_event(client_td *client, enum action_client_e action_client,
         enum priority_e priority);
@@ -346,65 +388,67 @@ int client_send_event(client_td *client, enum action_client_e action_client,
 /**
  * @brief Send an event to rename a specified client
  *
+ * Creates an event to update the name of the client.  The new name is
+ * passed as part of the event data for processing by the handler.
+ *
  * @param client   Pointer to the client to be renamed
- * @param new_name The new name for the client
+ * @param new_name New name for the client
  *
- * @return Returns the result of adding the event to the queue @p eventq
+ * @return 0 on success, -1 otherwise
  *
- * @note Memory for the action data structure @p data must be freed with
- *       @a action_data_client_destroy once the event has finished
- *       processing this action to avoid memory leaks
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int client_send_event_rename(client_td *client, const char *new_name);
 
 /**
  * @brief Send an event to change the class of a specified client
  *
+ * Creates an event to update the class of the client.  The new class is
+ * passed as part of the event data for processing by the handler.
+ *
  * @param client    Pointer to the client to be reclassified
- * @param new_class The new class for the client
+ * @param new_class New class for the client
  *
- * @return Returns the result of adding the event to the queue @p eventq
+ * @return 0 on success, -1 otherwise
  *
- * @note Memory for the action data structure @p data must be freed with
- *       @a action_data_client_destroy once the event has finished
- *       processing this action to avoid memory leaks
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int client_send_event_reclass(client_td *client, const char *new_class);
 
 /**
- * @brief Send event to move the specified client to the given  @e (x, y)
- *        coordinates
+ * @brief Send event to move the specified client to given coordinates
  *
- * @param client Pointer to the client to be reclassified
- * @param new_x  The new @e x coordinate for the client
- * @param new_y  The new @e y coordinate for the client
+ * Creates an event to move the client to the specified @e (x, y)
+ * position.  The new coordinates are passed as part of the event data.
  *
- * @return Returns the result of adding the event to the queue @p eventq
+ * @param client Pointer to the client to be moved
+ * @param new_x  New @e x coordinate for the client
+ * @param new_y  New @e y coordinate for the client
  *
- * @note Memory for the action data structure @p data must be freed with
- *       @a action_data_client_destroy once the event has finished
- *       processing this action to avoid memory leaks
- * @note Complexity: @e O(1)
+ * @return 0 on success, -1 otherwise
+ *
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int client_send_event_move(client_td *client,
         int32_t new_x, int32_t new_y);
 
 /**
- * @brief Send an event to resize the specified client to the given
- *        width and height
+ * @brief Send an event to resize the specified client
  *
- * @param client Pointer to the client to be reclassified
- * @param new_w  The new width for the client
- * @param new_h  The new height for the client
+ * Creates an event to resize the client to the specified dimensions.
+ * The new width and height are passed as part of the event data.
  *
- * @return Returns the result of adding the event to the queue @p eventq
+ * @param client Pointer to the client to be resized
+ * @param new_w  New width for the client
+ * @param new_h  New height for the client
  *
- * @note Memory for the action data structure @p data must be freed with
- *       @a action_data_client_destroy once the event has finished
- *       processing this action to avoid memory leaks
- * @note Complexity: @e O(1)
+ * @return 0 on success, -1 otherwise
+ *
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int client_send_event_resize(client_td *client,
         uint32_t new_w, uint32_t new_h);
@@ -412,15 +456,16 @@ int client_send_event_resize(client_td *client,
 /**
  * @brief Send an event to change the icon of a specified client
  *
+ * Creates an event to update the icon of the client.  The icon name is
+ * passed as part of the event data for processing by the handler.
+ *
  * @param client    Pointer to the client for which the icon is to change
- * @param icon_name The file path of the new icon
+ * @param icon_name File path of the new icon
  *
- * @return Returns the result of adding the event to the queue @p eventq
+ * @return 0 on success, -1 otherwise
  *
- * @note Memory for the action data structure @p data must be freed with
- *       @a action_data_client_destroy once the event has finished
- *       processing this action to avoid memory leaks
- * @note Complexity @e O(1)
+ * @note Complexity: @e O(log n), where @e n is the number of events in
+ *       the priority queue
  */
 int client_send_event_set_icon(client_td *client, const char *icon_name);
 

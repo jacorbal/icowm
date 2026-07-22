@@ -18,6 +18,7 @@
 
 /* Project includes */
 #include <actdata.h>
+#include <logger.h>
 #include <surface.h>
 
 /* Local includes */
@@ -28,13 +29,11 @@
 void scmd_surface_desktop_add(surface_td *surface,
         action_data_surface_td *surface_data)
 {
-    /* Check if the surface and data are valid */
     if (surface == NULL || surface_data == NULL) {
         return;
     }
 
-    /* Logic to add a new desktop */
-    // TODO: Implement adding a new desktop
+    surface_action_desktop_add(surface);
 }
 
 
@@ -42,13 +41,11 @@ void scmd_surface_desktop_add(surface_td *surface,
 void scmd_surface_desktop_rem(surface_td *surface,
         action_data_surface_td *surface_data)
 {
-    /* Check if the surface and data are valid */
     if (surface == NULL || surface_data == NULL) {
         return;
     }
 
-    /* Logic to remove a specified desktop */
-    // TODO: Implement removal of a desktop
+    surface_action_desktop_remove(surface);
 }
 
 
@@ -56,52 +53,95 @@ void scmd_surface_desktop_rem(surface_td *surface,
 void scmd_surface_desktop_switch(surface_td *surface,
         action_data_surface_td *surface_data)
 {
-    /* Check if the surface and data are valid */
+    uint32_t old_id;
+    uint32_t new_id;
+
     if (surface == NULL || surface_data == NULL) {
         return;
     }
 
-    /* Logic to switch to a specified desktop */
-    // TODO: Implement switch to a desktop
+    new_id = surface_data->new_data.uvalue;
+    old_id = surface->desktop_cur;
+    if (new_id == old_id) {
+        return;     /* Already on this desktop */
+    }
+
+    LOGGER_DEBUG("Switching desktop: %u → %u on surface %u",
+            old_id, new_id, surface->id);
+
+    surface_clients_hide(surface, old_id);
+    surface_desktop_select(surface, new_id);
+    surface_clients_show(surface, new_id);
+
+    surface->is_outdated = true;
+    xcb_flush(surface->connection);
 }
 
 
 /* Switch to the next desktop */
 void scmd_surface_desktop_switch_next(surface_td *surface)
 {
-    /* Check if the surface is valid */
+    uint32_t old_id;
+
     if (surface == NULL) {
         return;
     }
 
-    /* Logic to switch to the next desktop */
-    // TODO: Implement switching to the next desktop
+    old_id = surface->desktop_cur;
+
+    LOGGER_DEBUG("Switching to next desktop on surface %u", surface->id);
+
+    surface_clients_hide(surface, old_id);
+    surface_desktop_select_next(surface, true);
+
+    if (surface->desktop_cur != old_id) {
+        surface_clients_show(surface, surface->desktop_cur);
+        surface->is_outdated = true;
+        xcb_flush(surface->connection);
+    } else {
+        /* No switch happened; restore visibility */
+        surface_clients_show(surface, old_id);
+    }
 }
 
 
 /* Switch to the previous desktop */
 void scmd_surface_desktop_switch_prev(surface_td *surface)
 {
-    /* Check if the surface is valid */
+    uint32_t old_id;
+
     if (surface == NULL) {
         return;
     }
 
-    /* Logic to switch to the previous desktop */
-    // TODO: Implement switching to the previous desktop
+    old_id = surface->desktop_cur;
+
+    LOGGER_DEBUG("Switching to previous desktop on surface %u",
+            surface->id);
+
+    surface_clients_hide(surface, old_id);
+    surface_desktop_select_prev(surface, true);
+
+    if (surface->desktop_cur != old_id) {
+        surface_clients_show(surface, surface->desktop_cur);
+        surface->is_outdated = true;
+        xcb_flush(surface->connection);
+    } else {
+        /* No switch happened; restore visibility */
+        surface_clients_show(surface, old_id);
+    }
 }
 
 
 /* Toggle fullscreen surface mode */
 void scmd_surface_toggle_fullscreen(surface_td *surface)
 {
-    /* Check if the surface is valid */
     if (surface == NULL) {
         return;
     }
 
-    /* Logic to toggle fullscreen mode */
-    // TODO: Implement toggle fullscreen
+    surface_action_toggle_fullsurface(surface);
+
 }
 
 
@@ -109,13 +149,15 @@ void scmd_surface_toggle_fullscreen(surface_td *surface)
 void scmd_surface_set_resolution(surface_td *surface,
         action_data_surface_td *surface_data)
 {
-    /* Check if the surface and data are valid */
+    struct dimensions_s resolution;
+
     if (surface == NULL || surface_data == NULL) {
         return;
     }
 
-    /* Logic to set screen resolution */
-    // TODO: Implement setting of screen resolution
+    resolution.w = (uint32_t)(surface_data->new_data.uvalue >> 16);
+    resolution.h = (uint32_t)(surface_data->new_data.uvalue & 0xFFFFu);
+    surface_action_set_resolution(surface, resolution);
 }
 
 
@@ -128,8 +170,8 @@ void scmd_surface_set_orientation(surface_td *surface,
         return;
     }
 
-    /* Logic to set screen orientation */
-    // TODO: Implement setting of screen orientation
+    surface_action_set_orientation(surface,
+            (int) surface_data->new_data.svalue);
 }
 
 
@@ -142,8 +184,8 @@ void scmd_surface_set_brightness(surface_td *surface,
         return;
     }
 
-    /* Logic to set the brightness */
-    // TODO: Implement setting of brightness
+    surface_action_set_brightness(surface,
+            (uint16_t) surface_data->new_data.uvalue);
 }
 
 
@@ -156,8 +198,8 @@ void scmd_surface_set_contrast(surface_td *surface,
         return;
     }
 
-    /* Logic to set the contrast */
-    // TODO: Implement setting of contrast
+    surface_action_set_contrast(surface,
+            (uint16_t) surface_data->new_data.uvalue);
 }
 
 
@@ -170,6 +212,5 @@ void scmd_surface_configure_settings(surface_td *surface,
         return;
     }
 
-    /* Logic to configure screen settings */
-    // TODO: Implement configuration of screen settings
+    surface_action_configure_settings(surface);
 }

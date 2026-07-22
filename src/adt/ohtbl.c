@@ -156,6 +156,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
                 if (ohtbl_resize_double(htbl) != 0) {
                     return -2;
                 }
+
                 /* After resize, positions and table have changed;
                  * re-probe from the start to find the correct slot */
                 for (size_t j = 0; j < htbl->positions; ++j) {

@@ -15,6 +15,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* strtok_r, memcpy */
+#include <strings.h>    /* strcasecmp */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -22,12 +24,19 @@
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
+#include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/list.h>   /* Singly linked list */
+#include <adt/ohtbl.h>  /* Open-addressed hash table */
 
 /* Project includes */
+#include <action.h>
+#include <client.h>
 #include <config.h>
+#include <desktop.h>
+#include <event.h>
 #include <eventq.h>
 #include <logger.h>
+#include <priority.h>
 #include <render/surface.h>
 #include <surface.h>
 
@@ -43,15 +52,528 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
                                  the window manager */
 
 
+/* ------------------------------------------------------------------ */
+/* Key binding infrastructure                                          */
+/* ------------------------------------------------------------------ */
+
+/** Action types for key bindings */
+enum wm_keybind_type_e {
+    KEYBIND_NONE,
+    KEYBIND_DESKTOP_NEXT,       /**< Switch to next desktop */
+    KEYBIND_DESKTOP_PREV,       /**< Switch to previous desktop */
+    KEYBIND_CLIENT_ICONIFY,     /**< Iconify focused client */
+    KEYBIND_CLIENT_CLOSE,       /**< Close focused client */
+    KEYBIND_CLIENT_MAXIMIZE,    /**< Maximize focused client */
+    KEYBIND_CLIENT_CYCLE_NEXT,  /**< Focus next client */
+    KEYBIND_CLIENT_CYCLE_PREV,  /**< Focus previous client */
+    KEYBIND_LAUNCH_TERMINAL,    /**< Launch terminal */
+    KEYBIND_LAUNCH_LAUNCHER,    /**< Launch application launcher */
+};
+
+/** One resolved key binding */
+typedef struct {
+    xcb_keysym_t keysym;
+    uint16_t     modmask;
+    enum wm_keybind_type_e type;
+} wm_keybinding_td;
+
+#define WM_MAX_KEYBINDINGS 64
+
+static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
+static int s_keybindings_count = 0;
+
+
+/* ------------------------------------------------------------------ */
+/* Key-string parsing helpers                                          */
+/* ------------------------------------------------------------------ */
+
+/** Map a single modifier token to an XCB modifier mask */
+static uint16_t s_parse_modifier_token(const char *tok)
+{
+    if (strcasecmp(tok, "mod1") == 0 || strcasecmp(tok, "alt") == 0) {
+        return XCB_MOD_MASK_1;
+    }
+    if (strcasecmp(tok, "mod2") == 0) {
+        return XCB_MOD_MASK_2;
+    }
+    if (strcasecmp(tok, "mod3") == 0) {
+        return XCB_MOD_MASK_3;
+    }
+    if (strcasecmp(tok, "mod4") == 0 || strcasecmp(tok, "super") == 0 ||
+            strcasecmp(tok, "win") == 0) {
+        return XCB_MOD_MASK_4;
+    }
+    if (strcasecmp(tok, "mod5") == 0) {
+        return XCB_MOD_MASK_5;
+    }
+    if (strcasecmp(tok, "ctrl") == 0 || strcasecmp(tok, "control") == 0) {
+        return XCB_MOD_MASK_CONTROL;
+    }
+    if (strcasecmp(tok, "shift") == 0) {
+        return XCB_MOD_MASK_SHIFT;
+    }
+    return 0;
+}
+
+
+/** Map a key-name token to an X11 keysym */
+static xcb_keysym_t s_parse_keysym_token(const char *tok)
+{
+    /* Single printable character */
+    if (tok[1] == '\0') {
+        char c = tok[0];
+        if (c >= 'a' && c <= 'z') {
+            return (xcb_keysym_t) c;
+        }
+        if (c >= 'A' && c <= 'Z') {
+            return (xcb_keysym_t) (c + 32);  /* keysym = lowercase */
+        }
+        if (c >= '0' && c <= '9') {
+            return (xcb_keysym_t) c;
+        }
+    }
+
+    /* Function keys F1–F12 */
+    if ((tok[0] == 'F' || tok[0] == 'f') &&
+            tok[1] >= '1' && tok[1] <= '9') {
+        char *end = NULL;
+        long n = strtol(tok + 1, &end, 10);
+        if (end != NULL && *end == '\0' && n >= 1 && n <= 12) {
+            return (xcb_keysym_t) (0xffbdu + (unsigned long) n);
+        }
+    }
+
+    /* Named keys */
+    if (strcasecmp(tok, "return")    == 0 ||
+            strcasecmp(tok, "enter") == 0) { return 0xff0du; }
+    if (strcasecmp(tok, "space")     == 0) { return 0x0020u; }
+    if (strcasecmp(tok, "tab")       == 0) { return 0xff09u; }
+    if (strcasecmp(tok, "escape")    == 0 ||
+            strcasecmp(tok, "esc")   == 0) { return 0xff1bu; }
+    if (strcasecmp(tok, "backspace") == 0) { return 0xff08u; }
+    if (strcasecmp(tok, "delete")    == 0 ||
+            strcasecmp(tok, "del")   == 0) { return 0xffffu; }
+    if (strcasecmp(tok, "left")      == 0) { return 0xff51u; }
+    if (strcasecmp(tok, "up")        == 0) { return 0xff52u; }
+    if (strcasecmp(tok, "right")     == 0) { return 0xff53u; }
+    if (strcasecmp(tok, "down")      == 0) { return 0xff54u; }
+    if (strcasecmp(tok, "home")      == 0) { return 0xff50u; }
+    if (strcasecmp(tok, "end")       == 0) { return 0xff57u; }
+    if (strcasecmp(tok, "pageup")    == 0 ||
+            strcasecmp(tok, "prior") == 0) { return 0xff55u; }
+    if (strcasecmp(tok, "pagedown")  == 0 ||
+            strcasecmp(tok, "next")  == 0) { return 0xff56u; }
+
+    return XCB_NO_SYMBOL;
+}
+
+
 /**
- * @brief Handle @c KEY_PRESS events from the X server
+ * @brief Parse a binding string such as "Mod1+Shift+F9"
+ *
+ * Splits on '+' and classifies each token as a modifier or the key
+ * (last token).
+ *
+ * @param[in]  binding  Binding string from configuration
+ * @param[out] modmask  Receives the combined modifier mask
+ * @param[out] keysym   Receives the main keysym
+ *
+ * @return @c true if the binding could be parsed, @c false otherwise
+ */
+static bool s_parse_binding(const char *binding,
+        uint16_t *modmask, xcb_keysym_t *keysym)
+{
+    char buf[128];
+    char *tok;
+    char *save;
+    char *prev_tok = NULL;
+    size_t len;
+
+    if (binding == NULL || binding[0] == '\0') {
+        return false;
+    }
+
+    /* Safe copy into a local buffer */
+    len = strlen(binding);
+    if (len >= sizeof(buf)) {
+        len = sizeof(buf) - 1;
+    }
+    memcpy(buf, binding, len);
+    buf[len] = '\0';
+
+    *modmask = 0;
+    *keysym  = XCB_NO_SYMBOL;
+
+    tok = strtok_r(buf, "+", &save);
+    while (tok != NULL) {
+        if (prev_tok != NULL) {
+            /* Previous token was a modifier */
+            uint16_t mod = s_parse_modifier_token(prev_tok);
+            if (mod != 0) {
+                *modmask |= mod;
+            }
+        }
+        prev_tok = tok;
+        tok = strtok_r(NULL, "+", &save);
+    }
+
+    /* The last token is the key */
+    if (prev_tok != NULL) {
+        *keysym = s_parse_keysym_token(prev_tok);
+    }
+
+    return *keysym != XCB_NO_SYMBOL;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* WM helper functions                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @brief Find the surface whose root window matches @p root
+ *
+ * @param root Root window ID to search for
+ *
+ * @return Pointer to the matching surface, or @c NULL if not found
+ */
+static surface_td *s_wm_get_surface_for_root(xcb_window_t root)
+{
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        if (surface != NULL && surface->screen != NULL &&
+                surface->screen->root == root) {
+            return surface;
+        }
+    }
+    return NULL;
+}
+
+
+/**
+ * @brief Return the currently active desktop for a surface
+ *
+ * @param surface Pointer to the surface
+ *
+ * @return Pointer to the current desktop, or @c NULL on error
+ */
+static desktop_td *s_wm_get_current_desktop(surface_td *surface)
+{
+    if (surface == NULL) {
+        return NULL;
+    }
+    return surface_desktop_get(surface, surface->desktop_cur);
+}
+
+
+/**
+ * @brief Search all surfaces and desktops for a client by window ID
+ *
+ * @param window      X window ID to search for
+ * @param out_surface If non-NULL, receives the owning surface pointer
+ * @param out_desktop If non-NULL, receives the owning desktop pointer
+ *
+ * @return Pointer to the client, or @c NULL if not found
+ */
+static client_td *s_wm_find_client(xcb_window_t window,
+        surface_td **out_surface, desktop_td **out_desktop)
+{
+    /* Stack-allocated needle for hash-table lookup */
+    client_td needle;
+    memset(&needle, 0, sizeof(needle));
+    needle.id = window;
+
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        cdlist_item_td *dinitial;
+        if (surface == NULL || surface->desktops == NULL ||
+                cdlist_size(surface->desktops) == 0) {
+            continue;
+        }
+
+        dnode = cdlist_head(surface->desktops);
+        dinitial = dnode;
+        if (dnode == NULL) {
+            continue;
+        }
+
+        do {
+            desktop_td *desktop =
+                (desktop_td *) cdlist_data(dnode);
+            if (desktop != NULL && desktop->clients != NULL) {
+                void *found = (void *) &needle;
+                if (ohtbl_lookup(desktop->clients, &found) == 0 &&
+                        found != (void *) &needle) {
+                    client_td *client = (client_td *) found;
+                    if (out_surface != NULL) {
+                        *out_surface = surface;
+                    }
+                    if (out_desktop != NULL) {
+                        *out_desktop = desktop;
+                    }
+                    return client;
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    }
+
+    return NULL;
+}
+
+
+/**
+ * @brief Subscribe to SubstructureRedirect and related events on each
+ *        root window
+ *
+ * Fails with a fatal log if another WM is already running
+ * (@c BadAccess error).
+ *
+ * @return 0 on success, -1 on error
+ */
+static int s_wm_subscribe_root_events(void)
+{
+    uint32_t values[1];
+
+    values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT  |
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY    |
+                XCB_EVENT_MASK_KEY_PRESS              |
+                XCB_EVENT_MASK_BUTTON_PRESS           |
+                XCB_EVENT_MASK_PROPERTY_CHANGE;
+
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        xcb_void_cookie_t cookie;
+        xcb_generic_error_t *err;
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        cookie = xcb_change_window_attributes_checked(
+                wm->connection, surface->screen->root,
+                XCB_CW_EVENT_MASK, values);
+        err = xcb_request_check(wm->connection, cookie);
+        if (err != NULL) {
+            LOGGER_FATAL("Cannot subscribe to root events on"
+                    " surface %u: another window manager is likely"
+                    " running (XCB error code %d)",
+                    surface->id, err->error_code);
+            free(err);
+            return -1;
+        }
+
+        LOGGER_DEBUG("Subscribed to root events on surface %u"
+                " (root %#x)", surface->id, surface->screen->root);
+    }
+
+    xcb_flush(wm->connection);
+    return 0;
+}
+
+
+/**
+ * @brief Register key grabs for the emergency exit and every
+ *        configured key binding
+ *
+ * @param keysyms Allocated key-symbols table
+ */
+static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
+{
+    /* Binding strings paired with their action type */
+    struct {
+        const char *binding;
+        enum wm_keybind_type_e type;
+    } defs[] = {
+        { wm->config->bindings.keyboard.terminal,
+          KEYBIND_LAUNCH_TERMINAL },
+        { wm->config->bindings.keyboard.launcher,
+          KEYBIND_LAUNCH_LAUNCHER },
+        { wm->config->bindings.keyboard.iconify,
+          KEYBIND_CLIENT_ICONIFY },
+        { wm->config->bindings.keyboard.close,
+          KEYBIND_CLIENT_CLOSE },
+        { wm->config->bindings.keyboard.maximize,
+          KEYBIND_CLIENT_MAXIMIZE },
+        { wm->config->bindings.keyboard.cycle_prev,
+          KEYBIND_CLIENT_CYCLE_PREV },
+        { wm->config->bindings.keyboard.cycle_next,
+          KEYBIND_CLIENT_CYCLE_NEXT },
+        { wm->config->bindings.keyboard.desktop.cycle_prev,
+          KEYBIND_DESKTOP_PREV },
+        { wm->config->bindings.keyboard.desktop.cycle_next,
+          KEYBIND_DESKTOP_NEXT },
+        /* Hardcoded emergency exit */
+        { "Ctrl+Mod1+Shift+BackSpace", KEYBIND_NONE },
+        { NULL, KEYBIND_NONE }
+    };
+
+    s_keybindings_count = 0;
+
+    for (int i = 0; defs[i].binding != NULL; ++i) {
+        xcb_keysym_t  keysym;
+        uint16_t      modmask;
+        xcb_keycode_t *keycodes;
+
+        if (!s_parse_binding(defs[i].binding, &modmask, &keysym)) {
+            continue;
+        }
+
+        keycodes = xcb_key_symbols_get_keycode(keysyms, keysym);
+        if (keycodes == NULL) {
+            continue;
+        }
+
+        /* Store in the binding table (avoid overflow) */
+        if (s_keybindings_count < WM_MAX_KEYBINDINGS) {
+            s_keybindings[s_keybindings_count].keysym  = keysym;
+            s_keybindings[s_keybindings_count].modmask = modmask;
+            s_keybindings[s_keybindings_count].type    = defs[i].type;
+            s_keybindings_count++;
+        }
+
+        /* Grab on all root windows */
+        for (list_item_td *node = list_head(wm->surfaces);
+                node != NULL; node = list_next(node)) {
+            surface_td *surface = (surface_td *) list_data(node);
+            if (surface == NULL || surface->screen == NULL) {
+                continue;
+            }
+            for (int j = 0; keycodes[j] != 0; ++j) {
+                xcb_grab_key(wm->connection,
+                        1,   /* owner_events */
+                        surface->screen->root,
+                        modmask,
+                        keycodes[j],
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_GRAB_MODE_ASYNC);
+            }
+        }
+
+        free(keycodes);
+    }
+
+    xcb_flush(wm->connection);
+    LOGGER_DEBUG("Grabbed %d key binding(s)", s_keybindings_count);
+}
+
+
+/**
+ * @brief Adopt all pre-existing mapped windows at window manager
+ * startup
+ *
+ * Queries the window tree for each screen and calls
+ * @c client_manage on any already-mapped, non-override-redirect child.
+ */
+static void s_wm_scan_existing_windows(void)
+{
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        xcb_query_tree_cookie_t qt_cookie;
+        xcb_query_tree_reply_t *qt_reply;
+        xcb_window_t *children;
+        int nchildren;
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        qt_cookie = xcb_query_tree(wm->connection,
+                surface->screen->root);
+        qt_reply  = xcb_query_tree_reply(wm->connection,
+                qt_cookie, NULL);
+        if (qt_reply == NULL) {
+            continue;
+        }
+
+        children  = xcb_query_tree_children(qt_reply);
+        nchildren = xcb_query_tree_children_length(qt_reply);
+
+        for (int i = 0; i < nchildren; ++i) {
+            xcb_get_window_attributes_cookie_t ac =
+                xcb_get_window_attributes(wm->connection, children[i]);
+            xcb_get_window_attributes_reply_t *ar =
+                xcb_get_window_attributes_reply(wm->connection, ac, NULL);
+
+            if (ar == NULL) {
+                continue;
+            }
+
+            if (!ar->override_redirect &&
+                    ar->map_state == XCB_MAP_STATE_VIEWABLE) {
+                desktop_td *desktop = s_wm_get_current_desktop(surface);
+                if (desktop != NULL) {
+                    client_td *client = client_manage(
+                            wm->connection, wm->ewmh,
+                            children[i], &wm->config->theme);
+                    if (client != NULL) {
+                        client->screen_id  = surface->id;
+                        client->desktop_id = desktop->id;
+                        desktop_action_client_add(desktop, client);
+                        surface->is_outdated = true;
+                    }
+                }
+            }
+
+            free(ar);
+        }
+
+        free(qt_reply);
+    }
+
+    xcb_flush(wm->connection);
+}
+
+
+/**
+ * @brief Update a managed client's name from the X server
+ *
+ * @param client Client whose @c WM_NAME should be re-read
+ */
+static void s_wm_refresh_client_name(client_td *client)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+
+    if (client == NULL) {
+        return;
+    }
+
+    cookie = xcb_get_property(client->connection, 0, client->window,
+            XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 0, 255);
+    reply  = xcb_get_property_reply(client->connection, cookie, NULL);
+
+    if (reply != NULL && reply->value_len > 0) {
+        size_t len = reply->value_len < 255u
+            ? reply->value_len
+            : 254u;
+        char *value = (char *) xcb_get_property_value(reply);
+        memcpy(client->info.name, value, len);
+        memcpy(client->info.visible_name, value, len);
+        client->info.name[len] = '\0';
+        client->info.visible_name[len] = '\0';
+    }
+
+    if (reply != NULL) {
+        free(reply);
+    }
+}
+
+
+/**
+ * @brief Handle key press events from the X server
  *
  * Processes keyboard input events by converting XCB keycodes to
  * keysyms and performing appropriate window manager actions based
  * on configured key bindings.
  *
- * @param keysyms  Pointer to XCB key symbols structure
- * @param event    Pointer to the key press event
+ * @param keysyms Pointer to XCB key symbols structure
+ * @param event   Pointer to the key press event
  *
  * @note Complexity: @e O(1)
  */
@@ -59,6 +581,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event)
 {
     xcb_keysym_t keysym;
+    uint16_t state;
+    surface_td *surface;
 
     if (keysyms == NULL || event == NULL) {
         LOGGER_ERROR("Received NULL pointer in key press handler",
@@ -69,29 +593,122 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     /* Translate keycode to keysym using the key symbols table */
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
 
-    LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
-            keysym, event->state);
+    /* Strip locking modifiers (Num Lock = Mod2, Caps Lock = Lock) so
+     * comparisons against configured masks are clean */
+    state = event->state & ~((uint16_t) XCB_MOD_MASK_LOCK |
+                              (uint16_t) XCB_MOD_MASK_2);
 
-    /* Check for exit key combination: 'Ctrl+Mod1+Shift+BackSpace'.
-     * This is the hardcoded emergency exit key */
+    LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
+            keysym, state);
+
+    /* Hardcoded emergency exit: Ctrl+Mod1+Shift+BackSpace */
     if (keysym == 0xff08 &&     // == XK_BackSpace &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1) &&
             (event->state & XCB_MOD_MASK_SHIFT)) {
-        LOGGER_TRACE("Exit key combination detected," \
-                " setting is_running to false",
-                L_NARG);
+        LOGGER_TRACE("Emergency exit key combination detected", L_NARG);
         wm->is_running = false;
         return;
     }
 
-    /*
-     * TODO: Implement key binding lookup and action dispatch
-     * This would involve:
-     * 1. Looking up the keysym in the configuration bindings
-     * 2. Determining the appropriate action
-     * 3. Creating an event and adding it to the event queue
-     */
+    /* Identify the surface that generated this event */
+    surface = s_wm_get_surface_for_root(event->root);
+    if (surface == NULL && !list_is_empty(wm->surfaces)) {
+        surface = (surface_td *) list_data(list_head(wm->surfaces));
+    }
+
+    /* Iterate the binding table and dispatch on first match */
+    for (int i = 0; i < s_keybindings_count; ++i) {
+        uint16_t bind_state = s_keybindings[i].modmask &
+            ~((uint16_t) XCB_MOD_MASK_LOCK | (uint16_t) XCB_MOD_MASK_2);
+
+        if (keysym != s_keybindings[i].keysym || state != bind_state) {
+            continue;
+        }
+
+        switch (s_keybindings[i].type) {
+            case KEYBIND_DESKTOP_NEXT:
+                if (surface != NULL) {
+                    event_td *ev;
+                    action_td action;
+                    action.type = ACTION_TYPE_SURFACE;
+                    action.object.surface =
+                        ACTION_SURFACE_DESKTOP_SWITCH_NEXT;
+                    ev = event_init((void *) surface, NULL,
+                            action, PRIORITY_NORMAL);
+                    if (ev != NULL) {
+                        eventq_add(ev);
+                    }
+                }
+                return;
+
+            case KEYBIND_DESKTOP_PREV:
+                if (surface != NULL) {
+                    event_td *ev;
+                    action_td action;
+                    action.type = ACTION_TYPE_SURFACE;
+                    action.object.surface =
+                        ACTION_SURFACE_DESKTOP_SWITCH_PREV;
+                    ev = event_init((void *) surface, NULL,
+                            action, PRIORITY_NORMAL);
+                    if (ev != NULL) {
+                        eventq_add(ev);
+                    }
+                }
+                return;
+
+            case KEYBIND_CLIENT_ICONIFY:
+            case KEYBIND_CLIENT_CLOSE:
+            case KEYBIND_CLIENT_MAXIMIZE:
+            case KEYBIND_CLIENT_CYCLE_NEXT:
+            case KEYBIND_CLIENT_CYCLE_PREV:
+                /* Determine the focused/top client on the current
+                 * desktop */
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL &&
+                            desktop->client_active_id != 0) {
+                        client_td *client = NULL;
+                        surface_td *cs = NULL;
+                        desktop_td *cd = NULL;
+                        client = s_wm_find_client(
+                                desktop->client_active_id, &cs, &cd);
+                        if (client != NULL) {
+                            enum action_client_e act =
+                                ACTION_CLIENT_ICONIFY;
+                            if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_CLOSE) {
+                                act = ACTION_CLIENT_CLOSE;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_MAXIMIZE) {
+                                act = ACTION_CLIENT_MAXIMIZE;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_CYCLE_NEXT) {
+                                act = ACTION_CLIENT_CYCLE_NEXT;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_CYCLE_PREV) {
+                                act = ACTION_CLIENT_CYCLE_PREV;
+                            }
+                            client_send_event(client, act,
+                                    PRIORITY_NORMAL);
+                        }
+                    }
+                }
+                return;
+
+            case KEYBIND_LAUNCH_TERMINAL:
+            case KEYBIND_LAUNCH_LAUNCHER:
+                /* TODO: launch external command */
+                LOGGER_DEBUG("Launch binding triggered (not yet"
+                        " implemented)", L_NARG);
+                return;
+
+            case KEYBIND_NONE:
+                /* No binding; nothing to do */
+                return;
+        }
+    }
 }
 
 
@@ -108,6 +725,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 static void s_wm_handle_configure_notify(
         xcb_configure_notify_event_t *event)
 {
+    client_td *client;
+
     if (event == NULL) {
         LOGGER_ERROR("Received NULL pointer in configure handler",
                 L_NARG);
@@ -119,8 +738,14 @@ static void s_wm_handle_configure_notify(
             event->window, event->width, event->height,
             event->x, event->y);
 
-    /* TODO: Handle window geometry changes
-     * This may involve updating internal client state if necessary */
+    /* Update the client's cached geometry */
+    client = s_wm_find_client(event->window, NULL, NULL);
+    if (client != NULL) {
+        client->layout.geometry.cur.pos.x = event->x;
+        client->layout.geometry.cur.pos.y = event->y;
+        client->layout.geometry.cur.dim.w = event->width;
+        client->layout.geometry.cur.dim.h = event->height;
+    }
 }
 
 
@@ -137,8 +762,12 @@ static void s_wm_handle_configure_notify(
 static void s_wm_handle_map_request(
         xcb_map_request_event_t *event)
 {
+    surface_td *surface;
+    desktop_td *desktop;
+    client_td  *client;
+
     if (event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in map request handler",
+        LOGGER_ERROR("Received 'NULL' pointer in map request handler",
                 L_NARG);
         return;
     }
@@ -146,14 +775,69 @@ static void s_wm_handle_map_request(
     LOGGER_TRACE("Map request event: window=0x%x, parent=0x%x",
             event->window, event->parent);
 
-    /*
-     * TODO: Implement client addition to the window manager
-     * This would involve:
-     * 1. Creating a new client structure for the window
-     * 2. Determining which desktop it belongs to
-     * 3. Adding it to the appropriate desktop
-     * 4. Marking the surface as outdated for rendering
-     */
+    /* Do not re-manage already-known windows */
+    if (s_wm_find_client(event->window, NULL, NULL) != NULL) {
+        LOGGER_TRACE("Window %#x already managed; mapping directly",
+                event->window);
+        xcb_map_window(wm->connection, event->window);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* Find the surface that owns this root window */
+    surface = s_wm_get_surface_for_root(event->parent);
+    if (surface == NULL && !list_is_empty(wm->surfaces)) {
+        surface = (surface_td *) list_data(list_head(wm->surfaces));
+    }
+    if (surface == NULL) {
+        LOGGER_ERROR("No surface found for 'MAP_REQUEST' on root %#x",
+                event->parent);
+        return;
+    }
+
+    desktop = s_wm_get_current_desktop(surface);
+    if (desktop == NULL) {
+        LOGGER_ERROR("No current desktop on surface %u; mapping"
+                " without management", surface->id);
+        xcb_map_window(wm->connection, event->window);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* Adopt the window */
+    client = client_manage(wm->connection, wm->ewmh,
+            event->window, &wm->config->theme);
+    if (client == NULL) {
+        /* override-redirect or allocation failure; just map it */
+        xcb_map_window(wm->connection, event->window);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* Bind to the current desktop */
+    client->screen_id  = surface->id;
+    client->desktop_id = desktop->id;
+
+    if (desktop_action_client_add(desktop, client) != 0) {
+        LOGGER_ERROR("Failed to add client %#x to desktop %u",
+                event->window, desktop->id);
+        client->window = 0;  /* Prevent double-destroy below */
+        client_destroy(client);
+        xcb_map_window(wm->connection, event->window);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* Show the window and record it as the active client */
+    xcb_map_window(wm->connection, event->window);
+    desktop->client_active_id = event->window;
+
+    surface->is_outdated = true;
+    desktop->is_outdated = true;
+    xcb_flush(wm->connection);
+
+    LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
+            event->window, client->info.name, desktop->id);
 }
 
 
@@ -170,6 +854,10 @@ static void s_wm_handle_map_request(
 static void s_wm_handle_unmap_notify(
         xcb_unmap_notify_event_t *event)
 {
+    client_td  *client;
+    surface_td *surface;
+    desktop_td *desktop;
+
     if (event == NULL) {
         LOGGER_ERROR("Received NULL pointer in unmap handler",
                 L_NARG);
@@ -178,13 +866,20 @@ static void s_wm_handle_unmap_notify(
 
     LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
 
-    /*
-     * TODO: Handle window unmapping
-     * This would involve:
-     * 1. Finding the client associated with the window
-     * 2. Removing it from the desktop client list
-     * 3. Marking the surface as outdated for rendering
-     */
+    /* Mark as hidden but keep the client managed.
+     * The app may map it again later (e.g., [de]iconify). */
+    client = s_wm_find_client(event->window, &surface, &desktop);
+    if (client != NULL) {
+        safeflg_set(&client->properties.flags,
+                CLIENT_FLAG_HIDDEN, CLIENT_FLAG_MAX);
+        if (surface != NULL) {
+            surface->is_outdated = true;
+        }
+        if (desktop != NULL &&
+                desktop->client_active_id == event->window) {
+            desktop->client_active_id = 0;
+        }
+    }
 }
 
 
@@ -202,22 +897,46 @@ static void s_wm_handle_unmap_notify(
 static void s_wm_handle_destroy_notify(
         xcb_destroy_notify_event_t *event)
 {
+    client_td  *client;
+    surface_td *surface;
+    desktop_td *desktop;
+
     if (event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in destroy handler",
+        LOGGER_ERROR("Received 'NULL' pointer in destroy handler",
                 L_NARG);
         return;
     }
 
     LOGGER_TRACE("Destroy notify event: window=0x%x", event->window);
 
-    /*
-     * TODO: Handle window destruction
-     * This would involve:
-     * 1. Finding the client associated with the window
-     * 2. Completely removing it from all data structures
-     * 3. Freeing associated resources
-     * 4. Marking the surface as outdated for rendering
-     */
+    client = s_wm_find_client(event->window, &surface, &desktop);
+    if (client == NULL) {
+        return;
+    }
+
+    if (desktop != NULL &&
+            desktop->client_active_id == event->window) {
+        desktop->client_active_id = 0;
+    }
+
+    /* Remove from data structures */
+    if (desktop != NULL) {
+        desktop_action_client_rem(desktop, client);
+    }
+
+    /* The X window is already gone; clear the handle so client_destroy
+     * does not attempt xcb_destroy_window on a dead window */
+    client->window = 0;
+    client_destroy(client);
+
+    if (surface != NULL) {
+        surface->is_outdated = true;
+    }
+    if (desktop != NULL) {
+        desktop->is_outdated = true;
+    }
+
+    LOGGER_DEBUG("Removed destroyed window %#x", event->window);
 }
 
 
@@ -236,6 +955,9 @@ static void s_wm_handle_destroy_notify(
 static void s_wm_handle_property_notify(
         xcb_property_notify_event_t *event)
 {
+    client_td  *client;
+    surface_td *surface;
+
     if (event == NULL) {
         LOGGER_ERROR("Received NULL pointer in property handler",
                 L_NARG);
@@ -245,13 +967,20 @@ static void s_wm_handle_property_notify(
     LOGGER_TRACE("Property notify event: window=0x%x, atom=%u",
             event->window, event->atom);
 
-    /*
-     * TODO: Handle property changes
-     * This would involve:
-     * 1. Determining which property changed
-     * 2. Updating the client information accordingly
-     * 3. Marking the surface as outdated if visual changes needed
-     */
+    if (event->state == XCB_PROPERTY_DELETE) {
+        return;     /* Deleted properties do not need refresh */
+    }
+
+    /* Re-read WM_NAME when it changes */
+    if (event->atom == XCB_ATOM_WM_NAME) {
+        client = s_wm_find_client(event->window, &surface, NULL);
+        if (client != NULL) {
+            s_wm_refresh_client_name(client);
+            if (surface != NULL) {
+                surface->is_outdated = true;
+            }
+        }
+    }
 }
 
 
@@ -346,6 +1075,12 @@ static void s_wm_loop(void)
         return;
     }
 
+    /* Grab configured key bindings (must be after keysyms alloc) */
+    s_wm_grab_keys(keysyms);
+
+    /* Adopt any windows already on screen before we started */
+    s_wm_scan_existing_windows();
+
 #ifdef DEBUG
     /* TEST: Create dummy windows to test rendering */
     if (wm->surfaces != NULL) {
@@ -407,6 +1142,12 @@ static void s_wm_loop(void)
                     s_wm_handle_key_press(
                             keysyms,
                             (xcb_key_press_event_t *) event);
+                    break;
+
+                case XCB_BUTTON_PRESS:
+                case XCB_BUTTON_RELEASE:
+                case XCB_MOTION_NOTIFY:
+                    /* TODO: implement mouse-driven move/resize */
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:
@@ -640,6 +1381,19 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     " on surface %u", surface->desktop_cur, i);
         }
 
+        /* Subscribe to root window events (MUST be done before loop.
+         * NOTE: fails with fatal log if another win. manager is running */
+        if (s_wm_subscribe_root_events() != 0) {
+            list_destroy(wm->surfaces);
+            eventq_stop();
+            config_destroy(wm->config);
+            xcb_disconnect(wm->connection);
+            free(wm->ewmh);
+            free(wm);
+            wm = NULL;
+            return 8;
+        }
+
         /* Begin! */
         LOGGER_TRACE("Setting 'is_running' status flag to 'true'",
                 L_NARG);
@@ -698,5 +1452,94 @@ int wm_request_stop(void)
     }
 
     wm->is_running = false;
+    return 0;
+}
+
+
+/* Reload the configuration */
+int wm_action_config_reload(void)
+{
+    LOGGER_DEBUG("Reloading configuration", L_NARG);
+
+    if (wm == NULL || wm->config == NULL) {
+        LOGGER_ERROR("Window manager is not initialized", L_NARG);
+        return 1;
+    }
+
+    if (config_load(wm->config, NULL) != 0) {
+        LOGGER_ERROR("Failed to reload configuration", L_NARG);
+        return 1;
+    }
+
+    LOGGER_INFO("Configuration reloaded successfully", L_NARG);
+
+    return 0;
+}
+
+
+/* Save the current configuration */
+int wm_action_config_save(void)
+{
+    LOGGER_DEBUG("Saving configuration", L_NARG);
+
+    if (wm == NULL || wm->config == NULL) {
+        LOGGER_ERROR("Window manager is not initialized", L_NARG);
+        return 1;
+    }
+
+    /* Configuration saving is not implemented */
+    LOGGER_NOTICE("Configuration saving is not yet implemented", L_NARG);
+
+    return 1;
+}
+
+
+/* Insert a surface into the surface list */
+int wm_action_surface_ins(void)
+{
+    LOGGER_DEBUG("Inserting new surface", L_NARG);
+
+    if (wm == NULL) {
+        LOGGER_ERROR("Window manager is not initialized", L_NARG);
+        return 1;
+    }
+
+    /* Dynamic surface insertion requires multi-monitor detection */
+    LOGGER_NOTICE("Dynamic surface insertion is not yet implemented",
+            L_NARG);
+
+    return 1;
+}
+
+
+/* Remove a surface from the surface list */
+int wm_action_surface_rem(void)
+{
+    LOGGER_DEBUG("Removing surface", L_NARG);
+
+    if (wm == NULL) {
+        LOGGER_ERROR("Window manager is not initialized", L_NARG);
+        return 1;
+    }
+
+    /* Dynamic surface removal requires multi-monitor detection */
+    LOGGER_NOTICE("Dynamic surface removal is not yet implemented",
+            L_NARG);
+
+    return 1;
+}
+
+
+/* Perform exit actions before stopping the window manager */
+int wm_action_exit(void)
+{
+    LOGGER_DEBUG("Executing exit actions", L_NARG);
+
+    if (wm == NULL) {
+        return 1;
+    }
+
+    wm_request_stop();
+
     return 0;
 }

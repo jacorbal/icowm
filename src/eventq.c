@@ -384,6 +384,12 @@ static void s_event_handle_client(event_td *event)
         case ACTION_CLIENT_SET_ICON:
             wcmd_client_set_icon(client, client_data);
             break;
+
+        case ACTION_CLIENT_CYCLE_NEXT:
+        case ACTION_CLIENT_CYCLE_PREV:
+            /* Cycling is handled at the desktop level; no client-level
+             * action needed here */
+            break;
     }
 
     xcb_flush(client->connection);

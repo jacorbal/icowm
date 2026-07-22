@@ -72,6 +72,8 @@ enum action_client_e {
     ACTION_CLIENT_SET_URGENT,           /**< Mark window as urgent */
     ACTION_CLIENT_CLEAR_URGENT,         /**< Clear urgency level */
     ACTION_CLIENT_SET_ICON,             /**< Set window icon */
+    ACTION_CLIENT_CYCLE_NEXT,           /**< Cycle focus to next client */
+    ACTION_CLIENT_CYCLE_PREV,           /**< Cycle focus to previous client */
 
     /* Add more as needed */
 //    ACTION_CLIENT_SET_OPACITY,          /**< Change window opacity */
@@ -81,7 +83,7 @@ enum action_client_e {
 //    ACTION_CLIENT_STACK,                /**< Rearrange Z windows order */
 
     ACTION_CLIENT_MAX =
-        ACTION_CLIENT_SET_ICON,
+        ACTION_CLIENT_CYCLE_PREV,
 };
 
 /**

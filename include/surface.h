@@ -447,6 +447,39 @@ int surface_action_set_contrast(surface_td *surface, uint16_t contrast);
 int surface_action_configure_settings(surface_td *surface);
 
 /**
+ * @brief Unmap all non-sticky client windows belonging to a desktop
+ *
+ * Iterates the stacking list of the specified desktop and calls
+ * @c xcb_unmap_window for each client that does not have the
+ * @c CLIENT_FLAG_STICKY flag set.  Used when switching away from a
+ * desktop to hide its windows.
+ *
+ * @param surface    Pointer to the surface that owns the desktop
+ * @param desktop_id ID of the desktop whose clients should be hidden
+ *
+ * @note Complexity: @e O(n), where @e n is the number of stacked
+ *       clients on the desktop
+ */
+void surface_clients_hide(surface_td *surface, uint32_t desktop_id);
+
+/**
+ * @brief Map all visible client windows belonging to a desktop
+ *
+ * Iterates the stacking list of the specified desktop and calls
+ * @c xcb_map_window for each client that is neither hidden
+ * (@c CLIENT_FLAG_HIDDEN) nor iconified
+ * (@c CLIENT_STATE_ICONIFIED).  Used when switching to a desktop to
+ * reveal its windows.
+ *
+ * @param surface    Pointer to the surface that owns the desktop
+ * @param desktop_id ID of the desktop whose clients should be shown
+ *
+ * @note Complexity: @e O(n), where @e n is the number of stacked
+ *       clients on the desktop
+ */
+void surface_clients_show(surface_td *surface, uint32_t desktop_id);
+
+/**
  * @brief Macro that evaluates to the surface width
  *
  * @note Complexity: @e O(1)

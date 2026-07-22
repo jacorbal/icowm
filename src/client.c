@@ -177,28 +177,7 @@ static int s_client_get_wm_class(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Initialize a new client with the specified parameters
- *
- * Allocates and initializes a new client structure, retrieving its
- * properties from the X server (@c WM_NAME, @c WM_CLASS) and creating
- * an XCB window with the given dimensions and position.  The client is
- * initialized in a hidden state.
- *
- * @param connection Pointer to the XCB connection
- * @param ewmh       Pointer to EWMH connection
- * @param parent_id  Parent window ID (root window of screen)
- * @param w          Width of the client in pixels
- * @param h          Height of the client in pixels
- * @param x          X-coordinate of the client position
- * @param y          Y-coordinate of the client position
- * @param theme      Pointer to the theme configuration
- *
- * @return A pointer to the newly created client structure, or @c NULL
- *         on failure
- *
- * @note Complexity: @e O(1)
- */
+/* Initialize a new client with the specified parameters */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t parent_id,
@@ -417,16 +396,7 @@ client_td *client_init(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Destroy the specified client and free associated resources
- *
- * Deallocates all memory associated with the client, including the
- * XCB window, all string buffers, and the client structure itself.
- *
- * @param client Pointer to the client structure to be destroyed
- *
- * @note Complexity: @e O(1)
- */
+/* Destroy the specified client and free associated resources */
 void client_destroy(client_td *client)
 {
     if (client == NULL) {
@@ -459,17 +429,167 @@ void client_destroy(client_td *client)
 }
 
 
-/**
- * @brief Update the content of the specified client
- *
- * Performs a soft update on the client by refreshing its internal state
- * as needed.  This may include checking for property changes and
- * synchronizing the visual state with the internal representation.
- *
- * @param client Pointer to the client to be updated
- *
- * @note Complexity: @e O(1)
- */
+/* Adopt an existing X window under window manager control */
+client_td *client_manage(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
+        xcb_window_t window,
+        struct config_theme_s *theme)
+{
+    client_td *client;
+    xcb_get_geometry_cookie_t geom_cookie;
+    xcb_get_geometry_reply_t *geom_reply;
+    xcb_get_window_attributes_cookie_t attr_cookie;
+    xcb_get_window_attributes_reply_t *attr_reply;
+    uint32_t values[1];
+    char wm_name[256];
+    char wm_class[256];
+    char wm_instance[256];
+
+    LOGGER_TRACE("Attempting to manage existing window %#x", window);
+
+    /* Reject override-redirect windows — they manage themselves */
+    attr_cookie = xcb_get_window_attributes(connection, window);
+    attr_reply  = xcb_get_window_attributes_reply(connection,
+            attr_cookie, NULL);
+    if (attr_reply != NULL) {
+        bool skip = attr_reply->override_redirect;
+        free(attr_reply);
+        if (skip) {
+            LOGGER_TRACE("Skipping override-redirect window %#x",
+                    window);
+            return NULL;
+        }
+    }
+
+    client = malloc(sizeof(client_td));
+    if (client == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for managed client",
+                L_NARG);
+        return NULL;
+    }
+
+    /* Zero-initialise to prevent uninitialised reads */
+    memset(client, 0, sizeof(client_td));
+
+    /* Basic connections */
+    client->connection = connection;
+    client->ewmh = ewmh;
+    client->theme = theme;
+    client->process.pid = -1;
+
+    /* Use the X window ID as both window handle and hash/lookup key */
+    client->window = window;
+    client->id = window;
+
+    /* Query existing geometry */
+    geom_cookie = xcb_get_geometry(connection, window);
+    geom_reply  = xcb_get_geometry_reply(connection, geom_cookie, NULL);
+    if (geom_reply != NULL) {
+        client->layout.geometry.cur.pos.x = geom_reply->x;
+        client->layout.geometry.cur.pos.y = geom_reply->y;
+        client->layout.geometry.cur.dim.w = geom_reply->width;
+        client->layout.geometry.cur.dim.h = geom_reply->height;
+        free(geom_reply);
+    } else {
+        client->layout.geometry.cur.pos.x = 0;
+        client->layout.geometry.cur.pos.y = 0;
+        client->layout.geometry.cur.dim.w = 100;
+        client->layout.geometry.cur.dim.h = 100;
+    }
+    client->layout.geometry.old = client->layout.geometry.cur;
+
+    /* Default properties: visible, focusable, resizable */
+    client->properties.flags = CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
+    client->properties.type = CLIENT_TYPE_NORMAL;
+    client->properties.state = CLIENT_STATE_NORMAL;
+    client->properties.layer = CLIENT_LAYER_NORMAL;
+    client->properties.operation = CLIENT_OPERATION_IDLE;
+    client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+    client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
+
+    /* Allocate string buffers */
+    client->info.name = malloc(256);
+    client->info.visible_name = malloc(256);
+    client->info.role_name = malloc(256);
+    client->info.class_name[0] = malloc(256);
+    client->info.class_name[1] = malloc(256);
+    client->icon_info.icon_name = malloc(256);
+    client->icon_info.visible_icon_name = malloc(256);
+
+    if (client->info.name == NULL ||
+            client->info.visible_name == NULL ||
+            client->info.role_name == NULL ||
+            client->info.class_name[0] == NULL ||
+            client->info.class_name[1] == NULL ||
+            client->icon_info.icon_name == NULL ||
+            client->icon_info.visible_icon_name == NULL) {
+        LOGGER_ERROR(
+                "Failed to allocate string buffers for managed client",
+                L_NARG);
+        safe_free((void **) &client->info.name);
+        safe_free((void **) &client->info.visible_name);
+        safe_free((void **) &client->info.role_name);
+        safe_free((void **) &client->info.class_name[0]);
+        safe_free((void **) &client->info.class_name[1]);
+        safe_free((void **) &client->icon_info.icon_name);
+        safe_free((void **) &client->icon_info.visible_icon_name);
+        free(client);
+        return NULL;
+    }
+
+    client->icon_info.icons = NULL;
+
+    /* Default string values */
+    snprintf(client->info.name, 255, "Window %#x", window);
+    snprintf(client->info.visible_name, 255, "Window %#x", window);
+    snprintf(client->info.role_name, 255, "");
+    snprintf(client->info.class_name[0], 255, "");
+    snprintf(client->info.class_name[1], 255, "");
+    snprintf(client->icon_info.icon_name, 255, "");
+    snprintf(client->icon_info.visible_icon_name, 255, "");
+
+    /* Read WM_NAME */
+    s_client_get_wm_name(connection, window, wm_name, sizeof(wm_name));
+    if (wm_name[0] != '\0') {
+        safe_strncpy(client->info.name, wm_name, 255);
+        safe_strncpy(client->info.visible_name, wm_name, 255);
+    }
+
+    /* Read WM_CLASS */
+    s_client_get_wm_class(connection, window,
+            wm_class, sizeof(wm_class),
+            wm_instance, sizeof(wm_instance));
+    if (wm_class[0] != '\0') {
+        safe_strncpy(client->info.class_name[1], wm_class, 255);
+    }
+    if (wm_instance[0] != '\0') {
+        safe_strncpy(client->info.class_name[0], wm_instance, 255);
+    }
+
+    /* Subscribe to events on the adopted window */
+    values[0] = XCB_EVENT_MASK_ENTER_WINDOW    |
+                XCB_EVENT_MASK_LEAVE_WINDOW    |
+                XCB_EVENT_MASK_FOCUS_CHANGE    |
+                XCB_EVENT_MASK_PROPERTY_CHANGE |
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    xcb_change_window_attributes(connection, window,
+            XCB_CW_EVENT_MASK, values);
+
+    /* Apply border width from theme */
+    if (theme != NULL) {
+        uint32_t bw[1] = { theme->window.general.border_width };
+        xcb_configure_window(connection, window,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
+    }
+
+    LOGGER_TRACE("Now managing window %#x ('%s')",
+            window, client->info.name);
+
+    return client;
+}
+
+
+/* Update the content of the specified client */
 void client_update(client_td *client)
 {
     if (client == NULL) {
@@ -481,22 +601,7 @@ void client_update(client_td *client)
 }
 
 
-/**
- * @brief Generic event sender for a client
- *
- * Creates and sends an event for a specified action on a client.  The
- * event is inserted into the event priority queue for processing by the
- * main event handler.
- *
- * @param client        Pointer to the target client
- * @param action_client Action to be performed on the client
- * @param priority      Priority level of the action
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events
- *       in the priority queue
- */
+/* Generic event sender for a client */
 int client_send_event(client_td *client,
         enum action_client_e action_client, enum priority_e priority)
 {
@@ -525,20 +630,7 @@ int client_send_event(client_td *client,
 }
 
 
-/**
- * @brief Send an event to rename a specified client
- *
- * Creates an event to update the name of the client.  The new name is
- * passed as part of the event data for processing by the handler.
- *
- * @param client   Pointer to the client to be renamed
- * @param new_name New name for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
+/* Send an event to rename a specified client */
 int client_send_event_rename(client_td *client, const char *new_name)
 {
     event_td *event;
@@ -576,20 +668,7 @@ int client_send_event_rename(client_td *client, const char *new_name)
 }
 
 
-/**
- * @brief Send an event to change the class of a specified client
- *
- * Creates an event to update the class of the client.  The new class is
- * passed as part of the event data for processing by the handler.
- *
- * @param client    Pointer to the client to be reclassified
- * @param new_class New class for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
+/* Send an event to change the class of a specified client */
 int client_send_event_reclass(client_td *client, const char *new_class)
 {
     event_td *event;
@@ -627,21 +706,7 @@ int client_send_event_reclass(client_td *client, const char *new_class)
 }
 
 
-/**
- * @brief Send event to move the specified client to given coordinates
- *
- * Creates an event to move the client to the specified @e (x, y)
- * position.  The new coordinates are passed as part of the event data.
- *
- * @param client Pointer to the client to be moved
- * @param new_x  New @e x coordinate for the client
- * @param new_y  New @e y coordinate for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
+/* Send event to move the specified client to given coordinates */
 int client_send_event_move(client_td *client,
         int32_t new_x, int32_t new_y)
 {
@@ -695,21 +760,7 @@ int client_send_event_move(client_td *client,
 }
 
 
-/**
- * @brief Send an event to resize the specified client
- *
- * Creates an event to resize the client to the specified dimensions.
- * The new width and height are passed as part of the event data.
- *
- * @param client Pointer to the client to be resized
- * @param new_w  New width for the client
- * @param new_h  New height for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
+/* Send an event to resize the specified client */
 int client_send_event_resize(client_td *client,
         uint32_t new_w, uint32_t new_h)
 {
@@ -764,20 +815,7 @@ int client_send_event_resize(client_td *client,
 }
 
 
-/**
- * @brief Send an event to change the icon of a specified client
- *
- * Creates an event to update the icon of the client.  The icon name is
- * passed as part of the event data for processing by the handler.
- *
- * @param client    Pointer to the client for which the icon is to change
- * @param icon_name File path of the new icon
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
+/* Send an event to change the icon of a specified client */
 int client_send_event_set_icon(client_td *client, const char *icon_name)
 {
     event_td *event;
