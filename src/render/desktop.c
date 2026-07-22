@@ -40,7 +40,7 @@ int desktop_render_background(desktop_td *desktop)
     uint32_t values[1];
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Received NULL desktop pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
         return 1;
     }
 
@@ -106,7 +106,7 @@ int desktop_render_clients(desktop_td *desktop)
     int32_t values[4];
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Received NULL desktop pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
         return 1;
     }
 
@@ -129,7 +129,7 @@ int desktop_render_clients(desktop_td *desktop)
 
     stacking_node = cdlist_head(desktop->stacking);
     if (stacking_node == NULL) {
-        LOGGER_ERROR("Stacking list head is NULL despite size > 0",
+        LOGGER_ERROR("Stacking list head is 'NULL' despite size > 0",
                 L_NARG);
         return 1;
     }
@@ -194,7 +194,7 @@ int desktop_render_clients(desktop_td *desktop)
 int desktop_render_full(desktop_td *desktop)
 {
     if (desktop == NULL) {
-        LOGGER_ERROR("Received NULL desktop pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
         return 1;
     }
 

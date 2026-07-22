@@ -306,11 +306,18 @@ client_td *client_init(xcb_connection_t *connection,
     /* Initialize all strings with default empty values */
     snprintf(client->info.name, 255, "Client %p", (void *) client);
     snprintf(client->info.visible_name, 255, "Client %p", (void *) client);
+    client->info.role_name[0] = '\0';
+    client->info.class_name[0][0] = '\0';
+    client->info.class_name[1][0] = '\0';
+    client->icon_info.icon_name[0] = '\0';
+    client->icon_info.visible_icon_name[0] = '\0';
+/*
     snprintf(client->info.role_name, 255, "");
     snprintf(client->info.class_name[0], 255, "");
     snprintf(client->info.class_name[1], 255, "");
     snprintf(client->icon_info.icon_name, 255, "");
     snprintf(client->icon_info.visible_icon_name, 255, "");
+*/
 
     /* Create the XCB window that represents this client */
     client->window = xcb_generate_id(connection);
@@ -542,11 +549,18 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Default string values */
     snprintf(client->info.name, 255, "Window %#x", window);
     snprintf(client->info.visible_name, 255, "Window %#x", window);
+    client->info.role_name[0] = '\0';
+    client->info.class_name[0][0] = '\0';
+    client->info.class_name[1][0] = '\0';
+    client->icon_info.icon_name[0] = '\0';
+    client->icon_info.visible_icon_name[0] = '\0';
+/*
     snprintf(client->info.role_name, 255, "");
     snprintf(client->info.class_name[0], 255, "");
     snprintf(client->info.class_name[1], 255, "");
     snprintf(client->icon_info.icon_name, 255, "");
     snprintf(client->icon_info.visible_icon_name, 255, "");
+*/
 
     /* Read WM_NAME */
     s_client_get_wm_name(connection, window, wm_name, sizeof(wm_name));
@@ -609,7 +623,7 @@ int client_send_event(client_td *client,
     action_td action;
 
     if (client == NULL) {
-        LOGGER_ERROR("Received NULL client pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
         return -1;
     }
 
@@ -638,7 +652,7 @@ int client_send_event_rename(client_td *client, const char *new_name)
     action_data_client_td *data;
 
     if (client == NULL || new_name == NULL) {
-        LOGGER_ERROR("Received NULL pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
         return -1;
     }
 
@@ -676,7 +690,7 @@ int client_send_event_reclass(client_td *client, const char *new_class)
     action_data_client_td *data;
 
     if (client == NULL || new_class == NULL) {
-        LOGGER_ERROR("Received NULL pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
         return -1;
     }
 
@@ -716,7 +730,7 @@ int client_send_event_move(client_td *client,
     uint32_t values[2];
 
     if (client == NULL) {
-        LOGGER_ERROR("Received NULL client pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
         return -1;
     }
 
@@ -770,7 +784,7 @@ int client_send_event_resize(client_td *client,
     uint32_t values[2];
 
     if (client == NULL) {
-        LOGGER_ERROR("Received NULL client pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
         return -1;
     }
 
@@ -823,7 +837,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name)
     action_data_client_td *data;
 
     if (client == NULL || icon_name == NULL) {
-        LOGGER_ERROR("Received NULL pointer", L_NARG);
+        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
         return -1;
     }
 

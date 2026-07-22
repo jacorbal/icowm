@@ -585,7 +585,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     surface_td *surface;
 
     if (keysyms == NULL || event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in key press handler",
+        LOGGER_ERROR("Received 'NULL' pointer in key press handler",
                 L_NARG);
         return;
     }
@@ -595,8 +595,13 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 
     /* Strip locking modifiers (Num Lock = Mod2, Caps Lock = Lock) so
      * comparisons against configured masks are clean */
+    state = (uint16_t) ((unsigned int) event->state &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
+/*
     state = event->state & ~((uint16_t) XCB_MOD_MASK_LOCK |
                               (uint16_t) XCB_MOD_MASK_2);
+*/
 
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
@@ -619,8 +624,14 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 
     /* Iterate the binding table and dispatch on first match */
     for (int i = 0; i < s_keybindings_count; ++i) {
+        uint16_t bind_state =
+            (uint16_t)((unsigned int) s_keybindings[i].modmask &
+                    ~((unsigned int) XCB_MOD_MASK_LOCK |
+                        (unsigned int) XCB_MOD_MASK_2));
+/*
         uint16_t bind_state = s_keybindings[i].modmask &
             ~((uint16_t) XCB_MOD_MASK_LOCK | (uint16_t) XCB_MOD_MASK_2);
+*/
 
         if (keysym != s_keybindings[i].keysym || state != bind_state) {
             continue;
@@ -728,7 +739,7 @@ static void s_wm_handle_configure_notify(
     client_td *client;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in configure handler",
+        LOGGER_ERROR("Received 'NULL' pointer in configure handler",
                 L_NARG);
         return;
     }
@@ -859,7 +870,7 @@ static void s_wm_handle_unmap_notify(
     desktop_td *desktop;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in unmap handler",
+        LOGGER_ERROR("Received 'NULL' pointer in unmap handler",
                 L_NARG);
         return;
     }
@@ -959,7 +970,7 @@ static void s_wm_handle_property_notify(
     surface_td *surface;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received NULL pointer in property handler",
+        LOGGER_ERROR("Received 'NULL' pointer in property handler",
                 L_NARG);
         return;
     }

@@ -58,9 +58,9 @@
 static xcb_window_t s_wcmd_get_active_window(xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id)
 {
+    xcb_window_t active_window;
     xcb_get_property_cookie_t cookie =
         xcb_ewmh_get_active_window(ewmh, (int) screen_id);
-    xcb_window_t active_window;
 
     if (!xcb_ewmh_get_active_window_reply(ewmh, cookie,
                 &active_window, NULL)) {
@@ -94,10 +94,10 @@ static xcb_window_t s_wcmd_get_active_window(xcb_ewmh_connection_t *ewmh,
 static xcb_atom_t s_wcmd_intern_atom(xcb_connection_t *connection,
         const char *name)
 {
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 0,
-            (uint16_t) safe_strlen(name), name);
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(connection,
-            cookie, NULL);
+    xcb_intern_atom_cookie_t cookie =
+        xcb_intern_atom(connection, 0, (uint16_t) safe_strlen(name), name);
+    xcb_intern_atom_reply_t *reply =
+        xcb_intern_atom_reply(connection, cookie, NULL);
 
     if (reply) {
         xcb_atom_t atom = reply->atom;
@@ -218,7 +218,7 @@ static void s_wcmd_rem_window_states(client_td *client,
     cookie = xcb_ewmh_get_wm_state(client->ewmh, client->window);
     success = xcb_ewmh_get_wm_state_reply(client->ewmh, cookie,
             &current_states_reply, NULL);
- 
+
     if (!success || current_states_reply.atoms_len == 0) {
         /* Failed to get current states, or no states present */
         free(remove_states);
@@ -534,7 +534,8 @@ void wcmd_client_maximize_horz(client_td *client)
     client_geometry_save(client);
 
     xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_X     |
+            XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH,
             (const uint32_t[]) {
                 0,                                              /* X */
@@ -571,7 +572,8 @@ void wcmd_client_maximize_vert(client_td *client)
     client_geometry_save(client);
 
     xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_X     |
+            XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 (uint32_t) client->layout.geometry.cur.pos.x,   /* Keep X */
@@ -607,8 +609,10 @@ void wcmd_client_maximize(client_td *client)
     client_geometry_save(client);
 
     xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            XCB_CONFIG_WINDOW_X     |
+            XCB_CONFIG_WINDOW_Y     |
+            XCB_CONFIG_WINDOW_WIDTH |
+            XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 0,                          /* X */
                 0,                          /* Y */
@@ -636,7 +640,7 @@ void wcmd_client_iconify(client_td *client)
 
     client_geometry_save(client);
 
-    /* Unmap the window (make it invisible) - ICCC requirement */
+    /* Unmap the window (make it invisible); ICCC requirement */
     //unmap === iconify?  iconify => unmap?
     xcb_unmap_window(client->connection, client->window);
 
@@ -789,7 +793,7 @@ void wcmd_client_fullscreen(client_td *client)
     /* Get screen dimensions */
     attrs = xcb_get_geometry_reply(client->connection,
             xcb_get_geometry(client->connection, client->window), NULL);
- 
+
     if (!attrs) {
         return;
     }
@@ -872,12 +876,11 @@ void wcmd_client_toggle_fullscreen(client_td *client)
     }
 
     if (client->properties.state == CLIENT_STATE_FULLSCREEN) {
-        wcmd_client_unfullscreen(client);        
+        wcmd_client_unfullscreen(client);
     } else {
-        wcmd_client_fullscreen(client);        
+        wcmd_client_fullscreen(client);
     }
 }
-
 
 
 /* Raise the client to the top */
@@ -1041,9 +1044,9 @@ void wcmd_client_set_icon(client_td *client,
             (uint32_t) safe_strlen(client_data->new_data.str.str0),
             client_data->new_data.str.str0);
 
-    /* Update '_NET_WM_ICON_NAME EWMH' property for compliance
-     * Note: '_NET_WM_ICON' pixmap data is typically set by the client itself,
-     *       not by the window manager */
+    /* UPDT: '_NET_WM_ICON_NAME EWMH' property for compliance
+     * NOTE: '_NET_WM_ICON' pixmap data is typically set by the client
+     *       itself, not by the window manager */
     xcb_ewmh_set_wm_icon_name(client->ewmh, client->window,
             (uint32_t) safe_strlen(client_data->new_data.str.str0),
             client_data->new_data.str.str0);
