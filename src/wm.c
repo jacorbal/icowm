@@ -610,6 +610,16 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
         { NULL, KEYBIND_NONE }
     };
 
+    /* Lock-modifier variants: passive grabs match the modifier mask
+     * exactly, so Caps_Lock (Lock) and/or Num_Lock (Mod2) being active
+     * would otherwise stop the grab from firing */
+    static const uint16_t lockmods[] = {
+        0,
+        XCB_MOD_MASK_LOCK,
+        XCB_MOD_MASK_2,
+        XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
+    };
+
     s_keybindings_count = 0;
 
     for (int i = 0; defs[i].binding != NULL; ++i) {
@@ -642,13 +652,17 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
                 continue;
             }
             for (int j = 0; keycodes[j] != 0; ++j) {
-                xcb_grab_key(wm->connection,
-                        1,   /* owner_events */
-                        surface->screen->root,
-                        modmask,
-                        keycodes[j],
-                        XCB_GRAB_MODE_ASYNC,
-                        XCB_GRAB_MODE_ASYNC);
+                for (size_t k = 0;
+                        k < sizeof(lockmods) / sizeof(lockmods[0]);
+                        ++k) {
+                    xcb_grab_key(wm->connection,
+                            1,   /* owner_events */
+                            surface->screen->root,
+                            (uint16_t) (modmask | lockmods[k]),
+                            keycodes[j],
+                            XCB_GRAB_MODE_ASYNC,
+                            XCB_GRAB_MODE_ASYNC);
+                }
             }
         }
 
@@ -665,38 +679,48 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
  */
 static void s_wm_grab_buttons(void)
 {
+    /* Lock-modifier variants: passive grabs match the modifier mask
+     * exactly, so Caps_Lock (Lock) and/or Num_Lock (Mod2) being active
+     * would otherwise stop the grab from firing */
+    static const uint16_t lockmods[] = {
+        0,
+        XCB_MOD_MASK_LOCK,
+        XCB_MOD_MASK_2,
+        XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
+    };
+    static const xcb_button_index_t buttons[] = {
+        XCB_BUTTON_INDEX_1,
+        XCB_BUTTON_INDEX_3
+    };
+
     for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
+            node != NULL;
+            node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         if (surface == NULL || surface->screen == NULL) {
             continue;
         }
 
-        xcb_grab_button(wm->connection,
-                0,  /* owner_events */
-                surface->screen->root,
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_RELEASE |
-                XCB_EVENT_MASK_POINTER_MOTION,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_NONE,
-                XCB_NONE,
-                XCB_BUTTON_INDEX_1,
-                XCB_MOD_MASK_1);
-
-        xcb_grab_button(wm->connection,
-                0,  /* owner_events */
-                surface->screen->root,
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_RELEASE |
-                XCB_EVENT_MASK_POINTER_MOTION,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_NONE,
-                XCB_NONE,
-                XCB_BUTTON_INDEX_3,
-                XCB_MOD_MASK_1);
+        for (size_t b = 0;
+                b < sizeof(buttons) / sizeof(buttons[0]);
+                ++b) {
+            for (size_t k = 0;
+                    k < sizeof(lockmods) / sizeof(lockmods[0]);
+                    ++k) {
+                xcb_grab_button(wm->connection,
+                        0,  /* owner_events */
+                        surface->screen->root,
+                        XCB_EVENT_MASK_BUTTON_PRESS |
+                        XCB_EVENT_MASK_BUTTON_RELEASE |
+                        XCB_EVENT_MASK_POINTER_MOTION,
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_NONE,
+                        XCB_NONE,
+                        (uint8_t) buttons[b],
+                        (uint16_t) (XCB_MOD_MASK_1 | lockmods[k]));
+            }
+        }
     }
 
     xcb_flush(wm->connection);
