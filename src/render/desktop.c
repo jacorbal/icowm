@@ -156,7 +156,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         }
 
         /* Map the window to make it visible */
-        /* NOTE: Only do this when 'desktop' is the surface's currently
+        /* NOTE. Only do this when 'desktop' is the surface's currently
          *       displayed desktop.  This function is also invoked as
          *       part of a general 'surface_render_all_desktops()'
          *       refresh pass whenever ANY desktop's 'is_outdated' flag

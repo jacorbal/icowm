@@ -32,6 +32,23 @@
 void wcmd_client_close(client_td *client);
 
 /**
+ * @brief Forcibly terminate the client's connection to the X server
+ *
+ * Unlike @a wcmd_client_close (which only destroys the client's window
+ * resource), this severs the client's entire X connection at the
+ * protocol level via @c xcb_kill_client, matching the conventional
+ * "force kill an unresponsive window" behavior (e.g.,
+ * @c xkill). Intended as a last resort for clients that do not react to
+ * a normal close request.
+ *
+ * @param client Window whose owning client connection should be
+ *               forcibly terminated
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_kill(client_td *client);
+
+/**
  * @brief Restore the client to its original state
  *
  * @param client Window to restore

@@ -76,6 +76,7 @@ void action_data_client_destroy(action_data_client_td *action_data_client)
 
         case ACTION_CLIENT_CREATE:
         case ACTION_CLIENT_CLOSE:
+        case ACTION_CLIENT_KILL:
         case ACTION_CLIENT_RESTORE:
         case ACTION_CLIENT_FOCUS:
         case ACTION_CLIENT_UNFOCUS:

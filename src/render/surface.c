@@ -127,7 +127,7 @@ int surface_render_all_desktops(surface_td *surface)
                 rendered_count, desktop->name);
 
         /* Only render if outdated */
-        /* NOTE: Pass wether this is the surface's currently displayed
+        /* NOTE. Pass wether this is the surface's currently displayed
          * desktop so that 'desktop_render_full()' never (re-)maps
          * clients that belong to a desktop the user is not currently
          * looking at (see NOTE in 'desktop_render_clients') */

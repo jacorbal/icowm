@@ -1070,8 +1070,15 @@ int config_load_bindings(const char *filename,
         }
     }
 
-    /* Load mouse bindings */
+    /* Load mouse bindings.  Accept the 'mouse' section either at the
+     * top level of the file, or nested inside 'keyboard', both layouts
+     * have been observed in configuration files in the wild, and
+     * silently ignoring one of them would leave the user's mouse
+     * configuration inert without any indication why. */
     mouse = cJSON_GetObjectItem(json, "mouse");
+    if (mouse == NULL && keyboard != NULL) {
+        mouse = cJSON_GetObjectItem(keyboard, "mouse");
+    }
 
     if (mouse) {
         cJSON *desktop;

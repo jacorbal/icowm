@@ -41,6 +41,7 @@ enum action_client_e {
 //    ACTION_CLIENT_SET_PROPERTY,         /**< Change window properties */
 //    ACTION_CLIENT_DESTROY,              /**< Destroy and free resources */
     ACTION_CLIENT_CLOSE,                /**< Close window */
+    ACTION_CLIENT_KILL,                 /**< Forcibly kill window's client */
     ACTION_CLIENT_RESTORE,              /**< Restore window */
     ACTION_CLIENT_FOCUS,                /**< Focus on window */
     ACTION_CLIENT_UNFOCUS,              /**< Defocus window */

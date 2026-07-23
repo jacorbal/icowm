@@ -73,6 +73,7 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
+    KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
@@ -113,6 +114,30 @@ typedef struct {
 static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
 static int s_keybindings_count = 0;
 
+
+/** Action types for mouse bindings */
+enum wm_mousebind_type_e {
+    MOUSEBIND_NONE,
+    MOUSEBIND_MOVE,             /**< Move the clicked client */
+    MOUSEBIND_RESIZE,           /**< Resize the clicked client */
+    MOUSEBIND_LOWER,            /**< Lower the clicked client */
+    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel) */
+    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel) */
+};
+
+
+/* One resolved mouse binding */
+typedef struct {
+    xcb_button_index_t button;
+    enum wm_mousebind_type_e type;
+} wm_mousebinding_td;
+
+
+#define WM_MAX_MOUSEBINDINGS (8)
+
+
+static wm_mousebinding_td s_mousebindings[WM_MAX_MOUSEBINDINGS];
+static int s_mousebindings_count = 0;
 
 /* Mouse drag state for move/resize interactions */
 static struct {
@@ -345,6 +370,35 @@ static bool s_parse_binding(const char *binding,
     }
 
     return *keysym != XCB_NO_SYMBOL;
+}
+
+
+/**
+ * @brief Parse a mouse button token such as "button1" into an XCB
+ *        button index
+ *
+ * @param[in] tok Button token from configuration (e.g. "button1"
+ *                 through "button5")
+ *
+ * @return The parsed button index, or @c 0 if @p tok could not be
+ *         parsed as a valid button token
+ */
+static xcb_button_index_t s_parse_button_token(const char *tok)
+{
+    long n;
+    char *end = NULL;
+
+    if (tok == NULL || strncasecmp(tok, "button", 6) != 0) {
+        return 0;
+    }
+
+    n = strtol(tok + 6, &end, 10);
+    if (end == NULL || *end != '\0' || tok[6] == '\0' ||
+            n < 1 || n > 5) {
+        return 0;
+    }
+
+    return (xcb_button_index_t) n;
 }
 
 
@@ -582,6 +636,8 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_CLIENT_ICONIFY },
         { wm->config->bindings.keyboard.close,
           KEYBIND_CLIENT_CLOSE },
+        { wm->config->bindings.keyboard.kill,
+          KEYBIND_CLIENT_KILL },
         { wm->config->bindings.keyboard.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
         { wm->config->bindings.keyboard.cycle_prev,
@@ -690,6 +746,25 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
  */
 static void s_wm_grab_buttons(void)
 {
+    /* Binding strings paired with their action type, read from
+     * configuration instead of hardcoding specific button numbers.
+     * All mouse actions are gated behind the same 'mod1' (Alt)
+     * modifier as the rest of the mouse section, for consistency
+     * with the existing move/resize grabs. */
+    struct {
+        const char *binding;
+        enum wm_mousebind_type_e type;
+    } defs[] = {
+        { wm->config->bindings.mouse.move, MOUSEBIND_MOVE },
+        { wm->config->bindings.mouse.resize, MOUSEBIND_RESIZE },
+        { wm->config->bindings.mouse.lower, MOUSEBIND_LOWER },
+        { wm->config->bindings.mouse.desktop.cycle_prev,
+          MOUSEBIND_DESKTOP_PREV },
+        { wm->config->bindings.mouse.desktop.cycle_next,
+          MOUSEBIND_DESKTOP_NEXT },
+        { NULL, MOUSEBIND_NONE }
+    };
+
     /* Lock-modifier variants: passive grabs match the modifier mask
      * exactly, so 'Caps_Lock' ('Lock') and/or 'Num_Lock' ('Mod2') being
      * active would otherwise stop the grab from firing */
@@ -699,22 +774,31 @@ static void s_wm_grab_buttons(void)
         XCB_MOD_MASK_2,
         XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
     };
-    static const xcb_button_index_t buttons[] = {
-        XCB_BUTTON_INDEX_1,
-        XCB_BUTTON_INDEX_3
-    };
 
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL;
-            node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-        if (surface == NULL || surface->screen == NULL) {
+    s_mousebindings_count = 0;
+
+    for (int i = 0; defs[i].binding != NULL; ++i) {
+        xcb_button_index_t button = s_parse_button_token(defs[i].binding);
+
+        if (button == 0) {
+            LOGGER_WARNING("Ignoring unparseable mouse binding '%s'",
+                    defs[i].binding);
             continue;
         }
 
-        for (size_t b = 0;
-                b < sizeof(buttons) / sizeof(buttons[0]);
-                ++b) {
+        if (s_mousebindings_count < WM_MAX_MOUSEBINDINGS) {
+            s_mousebindings[s_mousebindings_count].button = button;
+            s_mousebindings[s_mousebindings_count].type   = defs[i].type;
+            s_mousebindings_count++;
+        }
+
+        for (list_item_td *node = list_head(wm->surfaces);
+                node != NULL; node = list_next(node)) {
+            surface_td *surface = (surface_td *) list_data(node);
+            if (surface == NULL || surface->screen == NULL) {
+                continue;
+            }
+
             for (size_t k = 0;
                     k < sizeof(lockmods) / sizeof(lockmods[0]);
                     ++k) {
@@ -728,13 +812,14 @@ static void s_wm_grab_buttons(void)
                         XCB_GRAB_MODE_ASYNC,
                         XCB_NONE,
                         XCB_NONE,
-                        (uint8_t) buttons[b],
+                        (uint8_t) button,
                         (uint16_t) (XCB_MOD_MASK_1 | lockmods[k]));
             }
         }
     }
 
     xcb_flush(wm->connection);
+    LOGGER_DEBUG("Grabbed %d mouse binding(s)", s_mousebindings_count);
 }
 
 
@@ -938,6 +1023,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_CLIENT_ICONIFY:
             case KEYBIND_CLIENT_CLOSE:
+            case KEYBIND_CLIENT_KILL:
             case KEYBIND_CLIENT_MAXIMIZE:
             case KEYBIND_CLIENT_CYCLE_NEXT:
             case KEYBIND_CLIENT_CYCLE_PREV:
@@ -958,6 +1044,9 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_CLOSE) {
                                 act = ACTION_CLIENT_CLOSE;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_KILL) {
+                                act = ACTION_CLIENT_KILL;
                             } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_MAXIMIZE) {
                                 act = ACTION_CLIENT_MAXIMIZE;
@@ -1140,6 +1229,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     client_td *client;
     desktop_td *desktop;
     uint16_t state;
+    enum wm_mousebind_type_e type = MOUSEBIND_NONE;
 
     /* Used for sub-window ancestor walk */
     xcb_window_t w;
@@ -1159,8 +1249,39 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         return;
     }
 
-    if (event->detail != XCB_BUTTON_INDEX_1 &&
-            event->detail != XCB_BUTTON_INDEX_3) {
+    /* Identify which configured mouse action (if any) this button
+     * corresponds to, instead of hardcoding specific button numbers */
+    for (int i = 0; i < s_mousebindings_count; ++i) {
+        if (s_mousebindings[i].button ==
+                (xcb_button_index_t) event->detail) {
+            type = s_mousebindings[i].type;
+            break;
+        }
+    }
+
+    if (type == MOUSEBIND_NONE) {
+        return;
+    }
+
+    /* Desktop cycling via the mouse wheel is not tied to any
+     * particular client: dispatch it immediately, mirroring the
+     * keyboard desktop-cycle key bindings, and return without
+     * touching the drag state machine */
+    if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
+        surface_td *surface = s_wm_get_surface_for_root(event->root);
+        if (surface != NULL) {
+            event_td *ev;
+            action_td action;
+            action.type = ACTION_TYPE_SURFACE;
+            action.object.surface = (type == MOUSEBIND_DESKTOP_NEXT)
+                ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
+                : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
+            ev = event_init((void *) surface, NULL, action,
+                    PRIORITY_NORMAL);
+            if (ev != NULL) {
+                eventq_add(ev);
+            }
+        }
         return;
     }
 
@@ -1191,8 +1312,18 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         return;
     }
 
-    if (event->detail == XCB_BUTTON_INDEX_3 &&
-            !client_is_resizable(client)) {
+    if (type == MOUSEBIND_RESIZE && !client_is_resizable(client)) {
+        return;
+    }
+
+    /* Lowering a window is a single-shot action: perform it
+     * immediately and return without starting a drag */
+    if (type == MOUSEBIND_LOWER) {
+        if (desktop != NULL) {
+            desktop->client_active_id = client->id;
+            (void) desktop_action_client_send_back(desktop, client);
+        }
+        (void) client_send_event_lower(client);
         return;
     }
 
@@ -1204,7 +1335,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     s_drag.client_start_y = client->layout.geometry.cur.pos.y;
     s_drag.client_start_w = (uint16_t) client->layout.geometry.cur.dim.w;
     s_drag.client_start_h = (uint16_t) client->layout.geometry.cur.dim.h;
-    s_drag.operation = (event->detail == XCB_BUTTON_INDEX_1)
+    s_drag.operation = (type == MOUSEBIND_MOVE)
         ? CLIENT_OPERATION_MOVING
         : CLIENT_OPERATION_RESIZING;
 
@@ -1897,6 +2028,19 @@ static void s_wm_loop(void)
             break;
         }
 
+        /* Defensively verify the X connection is still alive. If it
+         * were ever to break (e.g. X server crash/disconnect), reading
+         * from a broken connection never blocks and never yields new
+         * events, so 'poll()' below would return immediately forever,
+         * spinning this loop at 100% CPU without making progress.
+         * Shut down gracefully instead. */
+        if (xcb_connection_has_error(wm->connection) != 0) {
+            LOGGER_ERROR("X connection error detected;" \
+                    " requesting shutdown", L_NARG);
+            wm_request_stop();
+            break;
+        }
+
         /* Block until the X connection has data to read (or a signal
          * interrupts the call).  Without this, 'xcb_poll_for_event'
          * alone would spin the loop as fast as possible, keeping a CPU
@@ -2188,7 +2332,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Subscribe to root window events (MUST be done before loop */
-        /* NOTE: fails with fatal log if another win. manager is running */
+        /* NOTE. Fails with fatal log if another win. manager is running */
         if (s_wm_subscribe_root_events() != 0) {
             list_destroy(wm->surfaces);
             eventq_stop();

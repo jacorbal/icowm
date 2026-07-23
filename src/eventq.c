@@ -263,6 +263,10 @@ static void s_event_handle_client(event_td *event)
             wcmd_client_close(client);
             break;
 
+        case ACTION_CLIENT_KILL:
+            wcmd_client_kill(client);
+            break;
+
         case ACTION_CLIENT_RESTORE:
             wcmd_client_restore(client);
             break;
