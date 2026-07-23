@@ -210,7 +210,10 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
              * (OHTBL_MIN_LOAD_FACTOR * 100)% of its positions */
             if (htbl->size < (size_t)
                     ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
-                if (ohtbl_resize_halve(htbl) != 0) {
+                /* It has to be '<0' and not '!=0', so when no resize is
+                 * needed (returning '1', success), it isn't considered
+                 * an error. */
+                if (ohtbl_resize_halve(htbl) < 0) {
                     return -2;
                 }
             }
@@ -316,5 +319,6 @@ int ohtbl_resize_halve(ohtbl_td *htbl)
     if (new_positions < htbl->min_positions) {
         return 1;
     }
+
     return ohtbl_resize(htbl, new_positions);
 }
