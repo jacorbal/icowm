@@ -157,13 +157,19 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->config_base = config_base;
     desktop->config_theme = config_theme;
 
-    /* Set desktop name */
+    /* Set desktop name.  The config-provided name is copied with
+     * 'safe_strncpy' instead of 'snprintf("%s", ...)' because its
+     * source field is wider than 'desktop->name'.  GCC's
+     * '-Wformat-truncation' cannot prove the copy never truncates, and
+     * truncating a name that does not fit is the desired, harmless
+     * behavior here anyway */
     if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
-        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1,
+        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
     } else {
-        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1, "%s",
-                config_base->screens[screen_id].desktops[desktop_id].name);
+        safe_strncpy(desktop->name,
+                config_base->screens[screen_id].desktops[desktop_id].name,
+                DESKTOP_MAX_LENGTH_NAME);
     }
 
     /* Set background color */
@@ -426,13 +432,13 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
     void *removed_client;
 
-    LOGGER_TRACE("Adding client 0x%08x ('%s') to desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
-
     if (desktop == NULL || client == NULL) {
         LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_TRACE("Adding client 0x%08x ('%s') to desktop %u ('%s')",
+            client->id, client->info.name, desktop->id, desktop->name);
 
     /* Add to hash table for quick lookup */
     if (ohtbl_insert(desktop->clients, (void *) client) != 0) {
@@ -465,13 +471,13 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
     cdlist_item_td *node;
     void *removed_client;
 
-    LOGGER_DEBUG("Removing client 0x%08x ('%s') from desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
-
     if (desktop == NULL || client == NULL) {
         LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Removing client 0x%08x ('%s') from desktop %u ('%s')",
+            client->id, client->info.name, desktop->id, desktop->name);
 
     /* Remove from hash table */
     removed_client = (void *) client;

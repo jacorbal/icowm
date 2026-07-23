@@ -100,6 +100,7 @@ void dcmd_desktop_client_rem(desktop_td *desktop,
 {
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->client == NULL) {
+        return;
     }
 
     desktop_action_client_rem(desktop, desktop_data->client);

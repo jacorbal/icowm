@@ -207,12 +207,14 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
             htbl->size--;
 
             /* Re-dimension the table if size if smaller than
-             * (OHTBL_MIN_LOAD_FACTOR * 100)% of its positions */
+             * ('OHTBL_MIN_LOAD_FACTOR' * 100)% of its positions */
             if (htbl->size < (size_t)
                     ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
-                /* It has to be '<0' and not '!=0', so when no resize is
-                 * needed (returning '1', success), it isn't considered
-                 * an error. */
+                /* NOTE: A return of '1' from 'ohtbl_resize_halve()' means the
+                 *       table is already at its minimum size and was
+                 *       intentionally left untouched, which is not an error;
+                 *       only a negative return (allocation failure) must turn
+                 *       this already-successful removal into an error */
                 if (ohtbl_resize_halve(htbl) < 0) {
                     return -2;
                 }

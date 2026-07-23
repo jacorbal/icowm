@@ -653,7 +653,7 @@ int config_load(config_td *config, const char *config_prefix)
     char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
     char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
-    char config_theme_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
+    char config_theme_file[CONFIG_MAX_LENGTH_PATH_THEME];
 
     s_config_dir_set(config_prefix, config_dir);
 

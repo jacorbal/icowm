@@ -25,7 +25,7 @@
 #include <string.h>     /* memcpy, strerror, strtok_r */
 #include <strings.h>    /* strcasecmp */
 #include <sys/wait.h>   /* waitpid */
-#include <unistd.h>     /* fork, execl, _exit */
+#include <unistd.h>     /* execl, _exit, fork */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -78,6 +78,22 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_CYCLE_PREV,  /**< Focus previous client */
     KEYBIND_LAUNCH_TERMINAL,    /**< Launch terminal */
     KEYBIND_LAUNCH_LAUNCHER,    /**< Launch application launcher */
+
+    /* Window movement (fixed step, or snap to a screen corner) */
+    KEYBIND_CLIENT_MOVE_LEFT,         /**< Move focused client left */
+    KEYBIND_CLIENT_MOVE_RIGHT,        /**< Move focused client right */
+    KEYBIND_CLIENT_MOVE_UP,            /**< Move focused client up */
+    KEYBIND_CLIENT_MOVE_DOWN,          /**< Move focused client down */
+    KEYBIND_CLIENT_MOVE_TOP_LEFT,      /**< Snap to top-left corner */
+    KEYBIND_CLIENT_MOVE_TOP_RIGHT,     /**< Snap to top-right corner */
+    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT,   /**< Snap to bottom-left corner */
+    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT,  /**< Snap to bottom-right corner */
+
+    /* Window resizing (fixed step) */
+    KEYBIND_CLIENT_RESIZE_LEFT,   /**< Shrink focused client width */
+    KEYBIND_CLIENT_RESIZE_RIGHT,  /**< Grow focused client width */
+    KEYBIND_CLIENT_RESIZE_UP,     /**< Shrink focused client height */
+    KEYBIND_CLIENT_RESIZE_DOWN,   /**< Grow focused client height */
 };
 
 /* One resolved key binding */
@@ -90,6 +106,8 @@ typedef struct {
 
 #define WM_MAX_KEYBINDINGS (64)
 #define WM_MIN_WINDOW_DIMENSION (1u)
+#define WM_KEYBOARD_MOVE_STEP (20)
+#define WM_KEYBOARD_RESIZE_STEP (20)
 
 
 static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
@@ -563,6 +581,30 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_DESKTOP_PREV },
         { wm->config->bindings.keyboard.desktop.cycle_next,
           KEYBIND_DESKTOP_NEXT },
+        { wm->config->bindings.keyboard.move.relative.left,
+          KEYBIND_CLIENT_MOVE_LEFT },
+        { wm->config->bindings.keyboard.move.relative.right,
+          KEYBIND_CLIENT_MOVE_RIGHT },
+        { wm->config->bindings.keyboard.move.relative.up,
+          KEYBIND_CLIENT_MOVE_UP },
+        { wm->config->bindings.keyboard.move.relative.down,
+          KEYBIND_CLIENT_MOVE_DOWN },
+        { wm->config->bindings.keyboard.move.absolute.top_left,
+          KEYBIND_CLIENT_MOVE_TOP_LEFT },
+        { wm->config->bindings.keyboard.move.absolute.top_right,
+          KEYBIND_CLIENT_MOVE_TOP_RIGHT },
+        { wm->config->bindings.keyboard.move.absolute.bottom_left,
+          KEYBIND_CLIENT_MOVE_BOTTOM_LEFT },
+        { wm->config->bindings.keyboard.move.absolute.bottom_right,
+          KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT },
+        { wm->config->bindings.keyboard.resize.left,
+          KEYBIND_CLIENT_RESIZE_LEFT },
+        { wm->config->bindings.keyboard.resize.right,
+          KEYBIND_CLIENT_RESIZE_RIGHT },
+        { wm->config->bindings.keyboard.resize.up,
+          KEYBIND_CLIENT_RESIZE_UP },
+        { wm->config->bindings.keyboard.resize.down,
+          KEYBIND_CLIENT_RESIZE_DOWN },
         /* Hardcoded emergency exit */
         { "Ctrl+Mod1+Shift+BackSpace", KEYBIND_NONE },
         { NULL, KEYBIND_NONE }
@@ -917,6 +959,126 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                         (void) s_wm_send_desktop_launch_event(
                                 desktop,
                                 wm->config->base.programs.launcher);
+                    }
+                }
+                return;
+
+            case KEYBIND_CLIENT_MOVE_LEFT:
+            case KEYBIND_CLIENT_MOVE_RIGHT:
+            case KEYBIND_CLIENT_MOVE_UP:
+            case KEYBIND_CLIENT_MOVE_DOWN:
+            case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+            case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+            case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+            case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
+                /* Move the focused/top client on current desktop by
+                 * a fixed step, or snap it to a screen corner */
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL &&
+                            desktop->client_active_id != 0) {
+                        client_td *client = NULL;
+                        surface_td *cs = NULL;
+                        desktop_td *cd = NULL;
+                        client = s_wm_find_client(
+                                desktop->client_active_id, &cs, &cd);
+                        if (client != NULL) {
+                            enum wm_keybind_type_e type =
+                                s_keybindings[i].type;
+                            int32_t new_x =
+                                client->layout.geometry.cur.pos.x;
+                            int32_t new_y =
+                                client->layout.geometry.cur.pos.y;
+                            int32_t max_x = (cs != NULL)
+                                ? (int32_t) cs->properties.dim.w -
+                                    (int32_t) client->layout.
+                                        geometry.cur.dim.w
+                                : new_x;
+                            int32_t max_y = (cs != NULL)
+                                ? (int32_t) cs->properties.dim.h -
+                                    (int32_t) client->layout.
+                                        geometry.cur.dim.h
+                                : new_y;
+
+                            if (type == KEYBIND_CLIENT_MOVE_LEFT) {
+                                new_x -= WM_KEYBOARD_MOVE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_RIGHT) {
+                                new_x += WM_KEYBOARD_MOVE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_UP) {
+                                new_y -= WM_KEYBOARD_MOVE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_DOWN) {
+                                new_y += WM_KEYBOARD_MOVE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_TOP_LEFT) {
+                                new_x = 0;
+                                new_y = 0;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_TOP_RIGHT) {
+                                new_x = max_x;
+                                new_y = 0;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT) {
+                                new_x = 0;
+                                new_y = max_y;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT) {
+                                new_x = max_x;
+                                new_y = max_y;
+                            }
+
+                            (void) client_send_event_move(client,
+                                    new_x, new_y);
+                        }
+                    }
+                }
+                return;
+
+            case KEYBIND_CLIENT_RESIZE_LEFT:
+            case KEYBIND_CLIENT_RESIZE_RIGHT:
+            case KEYBIND_CLIENT_RESIZE_UP:
+            case KEYBIND_CLIENT_RESIZE_DOWN:
+                /* Resize the focused/top client on current desktop
+                 * by a fixed step */
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL &&
+                            desktop->client_active_id != 0) {
+                        client_td *client = NULL;
+                        surface_td *cs = NULL;
+                        desktop_td *cd = NULL;
+                        client = s_wm_find_client(
+                                desktop->client_active_id, &cs, &cd);
+                        if (client != NULL &&
+                                client_is_resizable(client)) {
+                            enum wm_keybind_type_e type =
+                                s_keybindings[i].type;
+                            int32_t new_w = (int32_t)
+                                client->layout.geometry.cur.dim.w;
+                            int32_t new_h = (int32_t)
+                                client->layout.geometry.cur.dim.h;
+
+                            if (type == KEYBIND_CLIENT_RESIZE_LEFT) {
+                                new_w -= WM_KEYBOARD_RESIZE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_RESIZE_RIGHT) {
+                                new_w += WM_KEYBOARD_RESIZE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_RESIZE_UP) {
+                                new_h -= WM_KEYBOARD_RESIZE_STEP;
+                            } else if (type ==
+                                    KEYBIND_CLIENT_RESIZE_DOWN) {
+                                new_h += WM_KEYBOARD_RESIZE_STEP;
+                            }
+
+                            (void) client_send_event_resize(client,
+                                    s_wm_clamp_dimension(new_w),
+                                    s_wm_clamp_dimension(new_h));
+                        }
                     }
                 }
                 return;
@@ -1582,15 +1744,16 @@ static int s_wm_install_signal_handlers(void)
  * @brief Enters the main event handling loop of the window manager
  *
  * Runs continuously while the window manager is active, listening for
- * XCB events and passing them to appropriate handlers.  It uses
- * @a xcb_poll_for_event to achieve non-blocking event processing for
- * responsive behavior.
+ * XCB events and passing them to appropriate handlers.  It blocks on
+ * @a poll waiting for activity on the X connection's file descriptor,
+ * then drains all pending events with @a xcb_poll_for_event, so the
+ * process consumes no CPU while idle instead of spinning.
  *
- * @note The event loop will stop when the @p is_running flag is set
- *       to @c false, typically in response to user actions or during
+ * @note The event loop will stop when the @p is_running flag is set to
+ *       @c false, typically in response to user actions or during
  *       window manager termination
- * @note Complexity: @e O(1) for each event; overall complexity
- *       depends on the number of events processed
+ * @note Complexity: @e O(1) for each event; overall complexity depends
+ *       on the number of events processed
  */
 static void s_wm_loop(void)
 {
@@ -1823,8 +1986,12 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         LOGGER_TRACE("Allocating memory for EWMH connection", L_NARG);
         wm->ewmh = malloc(sizeof(xcb_ewmh_connection_t));
         if (wm->ewmh == NULL) {
-            LOGGER_ERROR("Error allocating memory for EWMH connection",
+            LOGGER_FATAL("Error allocating memory for EWMH connection",
                     L_NARG);
+            xcb_disconnect(wm->connection);
+            free(wm);
+            wm = NULL;
+            return 1;
         }
 
         /* Initializate EWMH atoms */
@@ -1838,6 +2005,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         wm->config = config_init();
         if (wm->config == NULL) {
             xcb_disconnect(wm->connection);
+            xcb_ewmh_connection_wipe(wm->ewmh);
             free(wm->ewmh);
             free(wm);
             wm = NULL;
@@ -1854,6 +2022,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     L_NARG);
             config_destroy(wm->config);
             xcb_disconnect(wm->connection);
+            xcb_ewmh_connection_wipe(wm->ewmh);
             free(wm->ewmh);
             free(wm);
             wm = NULL;
@@ -1876,6 +2045,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             config_destroy(wm->config);
             eventq_stop();
             xcb_disconnect(wm->connection);
+            xcb_ewmh_connection_wipe(wm->ewmh);
             free(wm->ewmh);
             free(wm);
             wm = NULL;
@@ -1893,6 +2063,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             eventq_stop();
             config_destroy(wm->config);
             xcb_disconnect(wm->connection);
+            xcb_ewmh_connection_wipe(wm->ewmh);
             free(wm->ewmh);
             free(wm);
             wm = NULL;
@@ -1938,6 +2109,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 eventq_stop();
                 config_destroy(wm->config);
                 xcb_disconnect(wm->connection);
+                xcb_ewmh_connection_wipe(wm->ewmh);
                 free(wm->ewmh);
                 free(wm);
                 wm = NULL;
@@ -1955,6 +2127,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 eventq_stop();
                 config_destroy(wm->config);
                 xcb_disconnect(wm->connection);
+                xcb_ewmh_connection_wipe(wm->ewmh);
                 free(wm->ewmh);
                 free(wm);
                 wm = NULL;
@@ -1977,6 +2150,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             eventq_stop();
             config_destroy(wm->config);
             xcb_disconnect(wm->connection);
+            xcb_ewmh_connection_wipe(wm->ewmh);
             free(wm->ewmh);
             free(wm);
             wm = NULL;
@@ -2010,6 +2184,7 @@ int wm_stop(void)
 
     /* Deallocate EWMH structure */
     LOGGER_TRACE("Deallocating EWMH structure", L_NARG);
+    xcb_ewmh_connection_wipe(wm->ewmh);
     free(wm->ewmh);
 
     /* Stop event priority queue */
