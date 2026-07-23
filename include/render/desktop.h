@@ -40,9 +40,18 @@ int desktop_render_background(desktop_td *desktop);
  * @brief Draw all clients on a desktop
  *
  * Iterates through all clients in the desktop's stacking list and
- * configures them to be visible (maps windows and sets geometry).
+ * configures their geometry.  Windows are only mapped (made visible)
+ * when @p is_current is @c true; for a desktop that is not the one
+ * currently displayed on its surface, only geometry/stacking is updated
+ * so that a stale full-render pass (triggered by an unrelated
+ * 'is_outdated' flag, e.g., after moving/resizing a client) cannot undo
+ * an explicit 'surface_clients_hide()' and make a client reappear on
+ * top of the desktop the user actually switched to.
  *
- * @param desktop Pointer to the desktop to draw
+ * @param desktop    Pointer to the desktop to draw
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop; when @c false, clients are not
+ *                   (re-)mapped, only their geometry is updated
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -50,7 +59,7 @@ int desktop_render_background(desktop_td *desktop);
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
-int desktop_render_clients(desktop_td *desktop);
+int desktop_render_clients(desktop_td *desktop, bool is_current);
 
 /**
  * @brief Full desktop render
@@ -58,7 +67,12 @@ int desktop_render_clients(desktop_td *desktop);
  * Clears the desktop and redraws everything: background and clients.
  * This is called when the desktop needs a complete refresh.
  *
- * @param desktop Pointer to the desktop to render
+ * @param desktop    Pointer to the desktop to render
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop; forwarded to
+ *                   'desktop_render_clients()' so that clients on
+ *                   a desktop that is not currently shown are never
+ *                   (re-)mapped by this general refresh path
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -66,7 +80,7 @@ int desktop_render_clients(desktop_td *desktop);
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
-int desktop_render_full(desktop_td *desktop);
+int desktop_render_full(desktop_td *desktop, bool is_current);
 
 /**
  * @brief Flush drawing operations to the X server

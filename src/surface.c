@@ -345,7 +345,17 @@ desktop_td *surface_desktop_prev(surface_td *surface,
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             cdlist_item_td *prev_item = cdlist_prev(current_item);
-            if (prev_item == cdlist_head(surface->desktops)) {
+            /* Wrapping is detected when the computed previous item is
+             * the tail, that only happens when 'current_item' was the
+             * head, since 'cdlist_prev' on a circular list wraps
+             * 'head->tail'.  Comparing against the head here, as
+             * a previous version of this function did, is wrong.  For
+             * any desktop other than the first one, 'prev_item' can
+             * legitimately equal the head (e.g. moving from the second
+             * to the first desktop) which incorrectly looked like
+             * a wraparound and jumped to the tail instead of stopping
+             * at the head. */
+            if (prev_item == cdlist_tail(surface->desktops)) {
                 if (cycle) {
                     /* Circular behavior; wrap to the last desktop */
                     return (desktop_td *)

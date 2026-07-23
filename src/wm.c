@@ -63,37 +63,37 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
 
 
 /* ------------------------------------------------------------------ */
-/* Key binding infrastructure                                          */
+/* Key binding infrastructure                                         */
 /* ------------------------------------------------------------------ */
 
 /** Action types for key bindings */
 enum wm_keybind_type_e {
     KEYBIND_NONE,
-    KEYBIND_DESKTOP_NEXT,       /**< Switch to next desktop */
-    KEYBIND_DESKTOP_PREV,       /**< Switch to previous desktop */
-    KEYBIND_CLIENT_ICONIFY,     /**< Iconify focused client */
-    KEYBIND_CLIENT_CLOSE,       /**< Close focused client */
-    KEYBIND_CLIENT_MAXIMIZE,    /**< Maximize focused client */
-    KEYBIND_CLIENT_CYCLE_NEXT,  /**< Focus next client */
-    KEYBIND_CLIENT_CYCLE_PREV,  /**< Focus previous client */
-    KEYBIND_LAUNCH_TERMINAL,    /**< Launch terminal */
-    KEYBIND_LAUNCH_LAUNCHER,    /**< Launch application launcher */
+    KEYBIND_DESKTOP_NEXT,               /**< Switch to next desktop */
+    KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
+    KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
+    KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
+    KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
+    KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
+    KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
+    KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
+    KEYBIND_LAUNCH_LAUNCHER,            /**< Launch application launcher */
 
     /* Window movement (fixed step, or snap to a screen corner) */
-    KEYBIND_CLIENT_MOVE_LEFT,         /**< Move focused client left */
-    KEYBIND_CLIENT_MOVE_RIGHT,        /**< Move focused client right */
-    KEYBIND_CLIENT_MOVE_UP,            /**< Move focused client up */
-    KEYBIND_CLIENT_MOVE_DOWN,          /**< Move focused client down */
-    KEYBIND_CLIENT_MOVE_TOP_LEFT,      /**< Snap to top-left corner */
-    KEYBIND_CLIENT_MOVE_TOP_RIGHT,     /**< Snap to top-right corner */
-    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT,   /**< Snap to bottom-left corner */
-    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT,  /**< Snap to bottom-right corner */
+    KEYBIND_CLIENT_MOVE_LEFT,           /**< Move focused client left */
+    KEYBIND_CLIENT_MOVE_RIGHT,          /**< Move focused client right */
+    KEYBIND_CLIENT_MOVE_UP,             /**< Move focused client up */
+    KEYBIND_CLIENT_MOVE_DOWN,           /**< Move focused client down */
+    KEYBIND_CLIENT_MOVE_TOP_LEFT,       /**< Snap to top-left corner */
+    KEYBIND_CLIENT_MOVE_TOP_RIGHT,      /**< Snap to top-right corner */
+    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT,    /**< Snap to bottom-left corner */
+    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT,   /**< Snap to bottom-right corner */
 
     /* Window resizing (fixed step) */
-    KEYBIND_CLIENT_RESIZE_LEFT,   /**< Shrink focused client width */
-    KEYBIND_CLIENT_RESIZE_RIGHT,  /**< Grow focused client width */
-    KEYBIND_CLIENT_RESIZE_UP,     /**< Shrink focused client height */
-    KEYBIND_CLIENT_RESIZE_DOWN,   /**< Grow focused client height */
+    KEYBIND_CLIENT_RESIZE_LEFT,         /**< Shrink focused client width */
+    KEYBIND_CLIENT_RESIZE_RIGHT,        /**< Grow focused client width */
+    KEYBIND_CLIENT_RESIZE_UP,           /**< Shrink focused client height */
+    KEYBIND_CLIENT_RESIZE_DOWN,         /**< Grow focused client height */
 };
 
 /* One resolved key binding */
@@ -152,7 +152,7 @@ static uint16_t s_wm_clamp_dimension(int32_t value)
 
 
 /* ------------------------------------------------------------------ */
-/* Key-string parsing helpers                                          */
+/* Key-string parsing helpers                                         */
 /* ------------------------------------------------------------------ */
 
 /** Resolve configured modifier aliases such as "modc" or "mods" */
@@ -248,14 +248,14 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
             return (xcb_keysym_t) c;
         }
         if (c >= 'A' && c <= 'Z') {
-            return (xcb_keysym_t) (c + 32);  /* keysym = lowercase */
+            return (xcb_keysym_t) (c + 32); /* keysym = lowercase */
         }
         if (c >= '0' && c <= '9') {
             return (xcb_keysym_t) c;
         }
     }
 
-    /* Function keys F1–F12 */
+    /* Function keys F1-F12 */
     if ((tok[0] == 'F' || tok[0] == 'f') &&
             tok[1] >= '1' && tok[1] <= '9') {
         char *end = NULL;
@@ -291,9 +291,9 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
 
 
 /**
- * @brief Parse a binding string such as "Mod1+Shift+F9"
+ * @brief Parse a binding string (such as @c Mod1+Shift+F9)
  *
- * Splits on '+' and classifies each token as a modifier or the key
+ * Splits on `+` and classifies each token as a modifier or the key
  * (last token).
  *
  * @param[in]  binding  Binding string from configuration
@@ -349,7 +349,7 @@ static bool s_parse_binding(const char *binding,
 
 
 /* ------------------------------------------------------------------ */
-/* WM helper functions                                                 */
+/* Window manager helper functions                                    */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -444,8 +444,8 @@ static int s_wm_send_desktop_launch_event(desktop_td *desktop,
  * @brief Search all surfaces and desktops for a client by window ID
  *
  * @param window      X window ID to search for
- * @param out_surface If non-NULL, receives the owning surface pointer
- * @param out_desktop If non-NULL, receives the owning desktop pointer
+ * @param out_surface If non-null, receives the owning surface pointer
+ * @param out_desktop If non-null, receives the owning desktop pointer
  *
  * @return Pointer to the client, or @c NULL if not found
  */
@@ -456,6 +456,17 @@ static client_td *s_wm_find_client(xcb_window_t window,
     client_td needle;
     memset(&needle, 0, sizeof(needle));
     needle.id = window;
+
+    /* Callers typically declare their surface/desktop pointers without
+     * an initialiser and only check them for 'NULL' afterwards; make
+     * sure they are always defined (and safely 'NULL') even when no
+     * matching client is found below. */
+    if (out_surface != NULL) {
+        *out_surface = NULL;
+    }
+    if (out_desktop != NULL) {
+        *out_desktop = NULL;
+    }
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
@@ -504,8 +515,8 @@ static client_td *s_wm_find_client(xcb_window_t window,
  *
  * @return 0 on success, -1 on error
  *
- * @note Fails with a fatal log if another WM is already running
- *       (@c BadAccess error)
+ * @note Fails with a fatal log if another window manager is already
+ *       running (@c BadAccess error)
  */
 static int s_wm_subscribe_root_events(void)
 {
@@ -606,13 +617,13 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
         { wm->config->bindings.keyboard.resize.down,
           KEYBIND_CLIENT_RESIZE_DOWN },
         /* Hardcoded emergency exit */
-        { "Ctrl+Mod1+Shift+BackSpace", KEYBIND_NONE },
+        { "Ctrl+Mod1+BackSpace", KEYBIND_NONE },
         { NULL, KEYBIND_NONE }
     };
 
     /* Lock-modifier variants: passive grabs match the modifier mask
-     * exactly, so Caps_Lock (Lock) and/or Num_Lock (Mod2) being active
-     * would otherwise stop the grab from firing */
+     * exactly, so 'Caps_Lock' ('Lock') and/or 'Num_Lock' ('Mod2') being
+     * active would otherwise stop the grab from firing */
     static const uint16_t lockmods[] = {
         0,
         XCB_MOD_MASK_LOCK,
@@ -680,8 +691,8 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
 static void s_wm_grab_buttons(void)
 {
     /* Lock-modifier variants: passive grabs match the modifier mask
-     * exactly, so Caps_Lock (Lock) and/or Num_Lock (Mod2) being active
-     * would otherwise stop the grab from firing */
+     * exactly, so 'Caps_Lock' ('Lock') and/or 'Num_Lock' ('Mod2') being
+     * active would otherwise stop the grab from firing */
     static const uint16_t lockmods[] = {
         0,
         XCB_MOD_MASK_LOCK,
@@ -857,7 +868,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     /* Translate keycode to keysym using the key symbols table */
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
 
-    /* Strip locking modifiers (Num_Lock=Mod2, Caps_Lock=Lock) so
+    /* Strip locking modifiers ('Num_Lock=Mod2', 'Caps_Lock=Lock') so
      * comparisons against configured masks are clean */
     state = (uint16_t) ((unsigned int) event->state &
             ~((unsigned int) XCB_MOD_MASK_LOCK |
@@ -866,11 +877,12 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
 
-    /* Hardcoded emergency exit: Ctrl+Mod1+Shift+BackSpace */
+    /* Hardcoded emergency exit: 'Ctrl+Mod1+Shift+BackSpace' (the
+     * classic X11 'panic' combination; 'Shift' is intentionally not
+     * required so it matches what users conventionally expect/try) */
     if (keysym == 0xff08 &&     // == XK_BackSpace &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
-            (event->state & XCB_MOD_MASK_1) &&
-            (event->state & XCB_MOD_MASK_SHIFT)) {
+            (event->state & XCB_MOD_MASK_1)) {
         LOGGER_TRACE("Emergency exit key combination detected", L_NARG);
         wm->is_running = false;
         return;
@@ -1464,7 +1476,7 @@ static void s_wm_handle_map_request(
     client = client_manage(wm->connection, wm->ewmh,
             event->window, &wm->config->theme);
     if (client == NULL) {
-        /* override-redirect or allocation failure; just map it */
+        /* Override-redirect or allocation failure; just map it */
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
         return;
@@ -1522,12 +1534,18 @@ static void s_wm_handle_unmap_notify(
 
     LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
 
-    /* Mark as hidden but keep the client managed.
-     * The app may map it again later (e.g., [de]iconify). */
+    /* Keep the client managed; do not force the 'hidden' flag here.
+     * Explicit user actions (iconify/hide, see 'wcmd_client_iconify'
+     * and 'wcmd_client_hide' in 'cmds/ccmd.c') already set
+     * 'CLIENT_FLAG_HIDDEN' themselves right before unmapping the
+     * window. Desktop switching (see 'surface_clients_hide' in
+     * 'surface.c') also unmaps windows but must NOT be treated as
+     * hidden, or the client would never be remapped when switching back
+     * to its desktop ('surface_clients_show' skips clients with
+     * 'CLIENT_FLAG_HIDDEN' set).  Setting the flag unconditionally on
+     * every unmap notification broke exactly that case. */
     client = s_wm_find_client(event->window, &surface, &desktop);
     if (client != NULL) {
-        safeflg_set(&client->properties.flags,
-                CLIENT_FLAG_HIDDEN, CLIENT_FLAG_MAX);
         if (surface != NULL) {
             surface->is_outdated = true;
         }
@@ -1587,8 +1605,9 @@ static void s_wm_handle_destroy_notify(
         desktop_action_client_rem(desktop, client);
     }
 
-    /* The X window is already gone; clear the handle so client_destroy
-     * does not attempt xcb_destroy_window on a dead window */
+    /* The X window is already gone; clear the handle so
+     * 'client_destroy' does not attempt 'xcb_destroy_window' on a dead
+     * window */
     client->window = 0;
     client_destroy(client);
 
@@ -1634,7 +1653,7 @@ static void s_wm_handle_property_notify(
         return;     /* Deleted properties do not need refresh */
     }
 
-    /* Re-read WM_NAME when it changes */
+    /* Re-read 'WM_NAME' when it changes */
     if (event->atom == XCB_ATOM_WM_NAME) {
         client = s_wm_find_client(event->window, &surface, NULL);
         if (client != NULL) {
@@ -1792,7 +1811,7 @@ static void s_wm_loop(void)
         return;
     }
 
-    /* Install signal handlers so 'SIGINT'/'SIGTERM' (e.g. Ctrl+C, or
+    /* Install signal handlers so 'SIGINT'/'SIGTERM' (e.g. 'Ctrl+C', or
      * a plain 'kill') trigger a graceful shutdown instead of an
      * abrupt termination that would skip 'wm_stop' */
     if (s_wm_install_signal_handlers() != 0) {
@@ -1844,9 +1863,9 @@ static void s_wm_loop(void)
                         client_td *test_client = client_init(
                                 wm->connection,
                                 wm->ewmh,
-                                surface->screen->root,  /* Parent window */
-                                100, 100,   /* width, height */
-                                50, 50,     /* x, y */
+                                surface->screen->root,  /* parent window */
+                                100, 100,               /* width, height */
+                                50, 50,                 /* x, y */
                                 &(wm->config->theme));
 
                         if (test_client != NULL) {
@@ -1894,8 +1913,8 @@ static void s_wm_loop(void)
         }
 
         /* Process X events.
-         * 'xcb_poll_for_event' is non-blocking and returns NULL when no
-         * events are available */
+         * 'xcb_poll_for_event' is non-blocking and returns 'NULL' when
+         * no events are available */
         while ((event = xcb_poll_for_event(wm->connection))) {
             /* Dispatch event to appropriate handler based on type.
              * Mask '& ~0x80' clears the synthetic event bit */
@@ -2053,9 +2072,10 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             return 4;
         }
 
-        /* Count the number of screens detected by the X server.
-         * NOTE: Yes,... I can use 'xcb_setup_roots_length', but this
-         *       it's better for *my* purposes, "bIjatlh 'e' yImev!" */
+        /* Count the number of screens detected by the X server */
+        /* NOTE: Yes,... I can use 'xcb_setup_roots_length', but this
+         *       way it's more suitable for *my* purposes.
+         *       "bIjatlh 'e' yImev!" */
         it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
         screens_detected = 0;
         for (; it.rem > 0; xcb_screen_next(&it)) {
@@ -2167,8 +2187,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     " on surface %u", surface->desktop_cur, i);
         }
 
-        /* Subscribe to root window events (MUST be done before loop.
-         * NOTE: fails with fatal log if another win. manager is running */
+        /* Subscribe to root window events (MUST be done before loop */
+        /* NOTE: fails with fatal log if another win. manager is running */
         if (s_wm_subscribe_root_events() != 0) {
             list_destroy(wm->surfaces);
             eventq_stop();
@@ -2221,7 +2241,7 @@ int wm_stop(void)
     LOGGER_TRACE("Closing X display", L_NARG);
     xcb_disconnect(wm->connection);
 
-    /* Free the WM structure itself */
+    /* Free the window manager structure itself */
     LOGGER_TRACE("Destroying window manager", L_NARG);
     free(wm);
     wm = NULL;
@@ -2232,7 +2252,7 @@ int wm_stop(void)
 }
 
 
-/* Request a graceful stop of the main WM loop */
+/* Request a graceful stop of the main window manager loop */
 int wm_request_stop(void)
 {
     if (wm == NULL) {

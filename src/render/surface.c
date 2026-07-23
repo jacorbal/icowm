@@ -66,8 +66,9 @@ int surface_render_current_desktop(surface_td *surface)
 
     LOGGER_DEBUG("Rendering desktop '%s'", desktop->name);
 
-    /* Render only this desktop */
-    if (desktop_render_full(desktop) != 0) {
+    /* Render only this desktop.  It is always the surface's current
+     * desktop here, so clients must be (re-)mapped. */
+    if (desktop_render_full(desktop, true) != 0) {
         LOGGER_ERROR("Failed to render desktop '%s'", desktop->name);
         return 1;
     }
@@ -126,8 +127,13 @@ int surface_render_all_desktops(surface_td *surface)
                 rendered_count, desktop->name);
 
         /* Only render if outdated */
+        /* NOTE: Pass wether this is the surface's currently displayed
+         * desktop so that 'desktop_render_full()' never (re-)maps
+         * clients that belong to a desktop the user is not currently
+         * looking at (see NOTE in 'desktop_render_clients') */
         if (desktop->is_outdated) {
-            if (desktop_render_full(desktop) != 0) {
+            if (desktop_render_full(desktop,
+                        rendered_count == surface->desktop_cur) != 0) {
                 LOGGER_ERROR("Failed to render desktop '%s'",
                         desktop->name);
                 return 1;

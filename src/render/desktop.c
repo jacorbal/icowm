@@ -95,7 +95,7 @@ int desktop_render_background(desktop_td *desktop)
 
 
 /* Draw all clients on a desktop */
-int desktop_render_clients(desktop_td *desktop)
+int desktop_render_clients(desktop_td *desktop, bool is_current)
 {
     cdlist_item_td *stacking_node;
     cdlist_item_td *stacking_initial;
@@ -156,7 +156,22 @@ int desktop_render_clients(desktop_td *desktop)
         }
 
         /* Map the window to make it visible */
-        xcb_map_window(desktop->connection, client->window);
+        /* NOTE: Only do this when 'desktop' is the surface's currently
+         *       displayed desktop.  This function is also invoked as
+         *       part of a general 'surface_render_all_desktops()'
+         *       refresh pass whenever ANY desktop's 'is_outdated' flag
+         *       is set (e.g., after moving or resizing a client, which
+         *       marks its own desktop outdated).  If that pass
+         *       unconditionally mapped clients on a desktop that is not
+         *       currently shown, it could race with (and undo) an
+         *       explicit 'surface_clients_hide()' issued by a desktop
+         *       switch, making a client reappear on top of the desktop
+         *       the user just switched to.  Visibility of non-current
+         *       desktops must be governed solely by
+         *       'surface_clients_hide()'/'surface_clients_show()'. */
+        if (is_current) {
+            xcb_map_window(desktop->connection, client->window);
+        }
 
         /* Configure position and size */
         mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
@@ -191,7 +206,7 @@ int desktop_render_clients(desktop_td *desktop)
 
 
 /* Full desktop render */
-int desktop_render_full(desktop_td *desktop)
+int desktop_render_full(desktop_td *desktop, bool is_current)
 {
     if (desktop == NULL) {
         LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
@@ -209,7 +224,7 @@ int desktop_render_full(desktop_td *desktop)
     }
 
     /* Draw all clients */
-    if (desktop_render_clients(desktop) != 0) {
+    if (desktop_render_clients(desktop, is_current) != 0) {
         LOGGER_ERROR("Failed to render clients", L_NARG);
         return 1;
     }
