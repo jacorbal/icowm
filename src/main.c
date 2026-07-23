@@ -348,6 +348,7 @@ int main(int argc, char *const argv[])
     }
 
     /* Window manager "magic" */
+    LOGGER_INFO("Starting up window manager", L_NARG);
     if (wm_start(display_name, config_dir) != 0) {
         logger_stop();
         s_deallocate_buffers(log_filename, display_name, config_dir);
@@ -356,6 +357,7 @@ int main(int argc, char *const argv[])
 
     /* Stop everything */
     wm_stop();
+    LOGGER_INFO("Shutting down window manager", L_NARG);
     logger_stop();
 
     /* Deallocate last things... */

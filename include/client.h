@@ -501,7 +501,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @see @a client_send_event
  */
 #define client_send_event_unfocus(w) \
-    client_send_event(w, ACTION_CLIENT_FOCUS, CLIENT_PRIORITY_DEFAULT)
+    client_send_event(w, ACTION_CLIENT_UNFOCUS, CLIENT_PRIORITY_DEFAULT)
 
 /**
  * @brief Macro that performs the action that initializes an event to
@@ -575,7 +575,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @see @a client_send_event
  */
 #define client_send_event_sticky_toggle(w) \
-    client_send_event(w, ACTION_CLIENT_STICKY_TOGGLE, \
+    client_send_event(w, ACTION_CLIENT_TOGGLE_STICKY, \
             CLIENT_PRIORITY_DEFAULT)
 
 /**
@@ -595,7 +595,17 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @see @a client_send_event
  */
 #define client_send_event_fullscreen_toggle(w) \
-    client_send_event(w, ACTION_CLIENT_FULLSCREEN_TOGGLE, \
+    client_send_event(w, ACTION_CLIENT_TOGGLE_FULLSCREEN, \
+            CLIENT_PRIORITY_DEFAULT)
+
+/**
+ * @brief Macro that performs the action that initializes an event to
+ *        center the specified client
+ *
+ * @see @a client_send_event
+ */
+#define client_send_event_center(w) \
+    client_send_event(w, ACTION_CLIENT_CENTER, \
             CLIENT_PRIORITY_DEFAULT)
 
 /**

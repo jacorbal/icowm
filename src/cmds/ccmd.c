@@ -889,6 +889,17 @@ void wcmd_client_toggle_fullscreen(client_td *client)
 }
 
 
+/* Center client on screen */
+void wcmd_client_center(client_td *client)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    return; /* TODO: Implement the logic here */
+}
+
+
 /* Raise the client to the top */
 void wcmd_client_raise(client_td *client)
 {

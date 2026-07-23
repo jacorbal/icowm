@@ -87,6 +87,15 @@ void wcmd_client_move(client_td *client,
         action_data_client_td *client_data);
 
 /**
+ * @brief Center the client on its current surface
+ *
+ * @param client Window to center
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_center(client_td *client);
+
+/**
  * @brief Resize the client to new dimensions
  *
  * @param client      Window to resize
@@ -264,6 +273,15 @@ void wcmd_client_unfullscreen(client_td *client);
  * @note Complexity: @e O(1)
  */
 void wcmd_client_toggle_fullscreen(client_td *client);
+
+/**
+ * @brief Center the client on screen
+ *
+ * @param client Window to center on screen
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_center(client_td *client);
 
 /**
  * @brief Raise the client to the top of stack

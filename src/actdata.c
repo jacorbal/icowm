@@ -82,6 +82,7 @@ void action_data_client_destroy(action_data_client_td *action_data_client)
         case ACTION_CLIENT_UNFOCUS:
         case ACTION_CLIENT_RESIZE:
         case ACTION_CLIENT_MOVE:
+        case ACTION_CLIENT_CENTER:
         case ACTION_CLIENT_MAXIMIZE:
         case ACTION_CLIENT_MAXIMIZE_HORZ:
         case ACTION_CLIENT_MAXIMIZE_VERT:

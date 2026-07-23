@@ -283,6 +283,10 @@ static void s_event_handle_client(event_td *event)
             wcmd_client_move(client, client_data);
             break;
 
+        case ACTION_CLIENT_CENTER:
+            wcmd_client_center(client);
+            break;
+
         case ACTION_CLIENT_RESIZE:
             wcmd_client_resize(client, client_data);
             break;

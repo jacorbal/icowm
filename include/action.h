@@ -47,6 +47,7 @@ enum action_client_e {
     ACTION_CLIENT_UNFOCUS,              /**< Defocus window */
     ACTION_CLIENT_RESIZE,               /**< Resize window */
     ACTION_CLIENT_MOVE,                 /**< Move window */
+    ACTION_CLIENT_CENTER,               /**< Center window */
     ACTION_CLIENT_RECLASS,              /**< Change window class */
     ACTION_CLIENT_REROLE,               /**< Change window role */
     ACTION_CLIENT_RENAME,               /**< Rename window */
