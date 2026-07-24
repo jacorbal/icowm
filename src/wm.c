@@ -162,8 +162,15 @@ typedef struct {
 
 
 // FIXME: rename & should this be in 'defs/config.h'?
-#define WM_MAX_MOUSEBINDINGS (8)    /**< Maximum number of supported
-                                         mouse bindings */
+#define WM_MAX_MOUSEBINDINGS (8)            /**< Maximum number of
+                                                 supported mouse
+                                                 bindings */
+#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)     /**< Pixels between baseline
+                                                 and the bottom of the
+                                                 titlebar */
+#define WM_INFO_POPUP_LINE_MAX_LEN (256)    /**< Maximum length of each
+                                                 info popup text line */
+
 
 /** Mouse bindings registered by the window manager */
 static wm_mousebinding_td s_mousebindings[WM_MAX_MOUSEBINDINGS];
@@ -173,6 +180,9 @@ static int s_mousebindings_count = 0;
 
 /** Window identifier of the currently visible info popup */
 static xcb_window_t s_info_popup_window = XCB_WINDOW_NONE;
+
+/** Cached text content of the info popup, used to repaint on exposure */
+static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
 
 /**
@@ -787,10 +797,6 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
 static void s_wm_show_client_info(surface_td *surface,
         desktop_td *desktop, client_td *client)
 {
-    char line0[256];
-    char line1[256];
-    char line2[256];
-    char line3[256];
     const char *name;
     const char *class_name;
     const char *instance_name;
@@ -839,29 +845,33 @@ static void s_wm_show_client_info(surface_td *surface,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    snprintf(line0, sizeof(line0), "name=%s class=%s instance=%s",
+    snprintf(s_info_popup_lines[0], sizeof(s_info_popup_lines[0]),
+            "name=%s class=%s instance=%s",
             name, class_name, instance_name);
-    snprintf(line1, sizeof(line1),
+    snprintf(s_info_popup_lines[1], sizeof(s_info_popup_lines[1]),
             "window=%#x frame=%#x desktop=%u surface=%u",
             client->window, client->frame, desktop->id, surface->id);
-    snprintf(line2, sizeof(line2), "geom=%ux%u+%d+%d",
+    snprintf(s_info_popup_lines[2], sizeof(s_info_popup_lines[2]),
+            "geom=%ux%u+%d+%d",
             client->layout.geometry.cur.dim.w,
             client->layout.geometry.cur.dim.h,
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y);
-    snprintf(line3, sizeof(line3), "flags=%#x state=%#x",
+    snprintf(s_info_popup_lines[3], sizeof(s_info_popup_lines[3]),
+            "flags=%#x state=%#x",
             client->properties.flags, client->properties.state);
 
     text_renderer_init(wm->connection,
             wm->config->theme.window.active.font);
     text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 16, line0);
+            8, 16, s_info_popup_lines[0]);
     text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 34, line1);
+            8, 16, s_info_popup_lines[1]);
     text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 52, line2);
+            8, 16, s_info_popup_lines[2]);
     text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 70, line3);
+            8, 16, s_info_popup_lines[3]);
+
     xcb_map_window(wm->connection, s_info_popup_window);
     xcb_flush(wm->connection);
 }
@@ -1668,9 +1678,16 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
 /**
  * @brief Handle @c BUTTON_PRESS events for mouse-driven interactions
  *
- * Uses @c Mod1+Button1 to move and @c Mod1+Button3 to resize.
+ * Processes mouse-driven window manager actions triggered with @c Mod1,
+ * including focusing clients, restoring iconified windows, cycling
+ * desktops, lowering windows, and starting move or resize drags
+ * according to the configured mouse bindings.
  *
  * @param event Pointer to the button press event
+ *
+ * @note This handler may walk up the window tree when @c event->child
+ *       refers to a subwindow, so the actual managed client resolved
+ *       for move or resize can differ from the original click target
  */
 static void s_wm_handle_button_press(xcb_button_press_event_t *event)
 {
@@ -2339,7 +2356,7 @@ static void s_wm_handle_focus_in(xcb_focus_in_event_t *event)
 
 
 /**
- * @brief Handle @c MAPPING_NOTIFY events from the X server
+ * @brief Handle @c XCB_MAPPING_NOTIFY events from the X server
  *
  * Refreshes the cached keyboard-mapping table and re-establishes all
  * passive key grabs with updated keycodes.  Without this, any keyboard
@@ -2414,6 +2431,86 @@ static void s_wm_handle_mapping_notify(xcb_key_symbols_t *keysyms,
         xcb_flush(wm->connection);
         s_wm_grab_buttons();
     }
+}
+
+
+/**
+ * @brief Handle @c XCB_EXPOSE events for decoration repaints
+ *
+ * Repaints decoration windows after an expose sequence completes.
+ * Only the final event in a sequence (@c count == 0) triggers a repaint
+ * to avoid redundant draws.
+ *
+ * Two targets are handled:
+ * - Info popup window: redraws the cached text lines.
+ * - Managed client's titlebar: repaints the background and title text
+ *   in the appropriate active/inactive theme colours.
+ *
+ * @param event Pointer to the expose event
+ *
+ * @note Complexity: @e O(n) for the titlebar case, where @e n is the
+ *       number of managed clients searched by @a s_wm_find_client
+ */
+static void s_wm_handle_expose(xcb_expose_event_t *event)
+{
+    client_td *client;
+    desktop_td *desktop;
+    bool is_focused;
+    uint16_t top;
+
+    if (event == NULL || event->count != 0) {
+        return;
+    }
+
+    /* Info popup: repaint from the cached text lines */
+    if (s_info_popup_window != XCB_WINDOW_NONE &&
+            event->window == s_info_popup_window) {
+        text_renderer_init(wm->connection,
+                wm->config->theme.window.active.font);
+        text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+                8, 16, s_info_popup_lines[0]);
+        text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+                8, 34, s_info_popup_lines[1]);
+        text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+                8, 52, s_info_popup_lines[2]);
+        text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+                8, 70, s_info_popup_lines[3]);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* Titlebar: repaint background and title text for the owning client */
+    client = s_wm_find_client(event->window, NULL, &desktop);
+    if (client == NULL || client->titlebar != event->window ||
+            client->info.name == NULL) {
+        return;
+    }
+
+    is_focused = (desktop != NULL &&
+                  desktop->client_active_id == client->id);
+
+    top = (uint16_t) client->layout.frame_extents.top;
+    xcb_change_window_attributes(wm->connection, client->titlebar,
+            XCB_CW_BACK_PIXEL,
+            (const uint32_t[]) {
+                (is_focused)
+                ? wm->config->theme.window.active.background_color
+                : wm->config->theme.window.inactive.background_color
+            });
+    xcb_clear_area(wm->connection, 0, client->titlebar, 0, 0, 0, 0);
+
+    text_renderer_init(wm->connection,
+            (is_focused)
+            ? wm->config->theme.window.active.font
+            : wm->config->theme.window.inactive.font);
+    text_draw_string(wm->connection, client->titlebar, XCB_NONE,
+            8,
+            (int16_t) ((top > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                    ? top - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                    : top),
+            client->info.name);
+
+    xcb_flush(wm->connection);
 }
 
 
@@ -2727,6 +2824,11 @@ static void s_wm_loop(void)
                 case XCB_FOCUS_IN:
                     s_wm_handle_focus_in(
                             (xcb_focus_in_event_t *) event);
+                    break;
+
+                case XCB_EXPOSE:
+                    s_wm_handle_expose(
+                            (xcb_expose_event_t *) event);
                     break;
 
                 case XCB_CONFIGURE_REQUEST:
