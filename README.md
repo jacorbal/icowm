@@ -29,21 +29,34 @@ Basic features are:
     subsequently be reloaded in response to a `SIGHUP` signal.
 
   - **Iconifying (classical).**
-    Instead of classical minimization on the taskbar, the window is
-    iconified on the desktop in TWM-style.
+    Instead of classical minimization, the window is iconified on the
+    desktop in TWM-style.
+
+IcoWM aspires to blend a lightweight design *ethos* with usability.
 
 The primary goal of this endeavor is to create a window manager that can
-be entirely navigated  through keyboard commands, whilst still
+be entirely navigated through keyboard commands, whilst still
 accommodating optional mouse interaction.  This dual capability fosters
 an environment conducive to efficiency, especially for those users who
-prefer the elegance of keyboard-driven workflows.  The icon
-functionality has been retained despite its diminished prevalence in
-contemporary interfaces, for this feature harkens back to an era when
-applications were elegantly transformed into icons, which is a stylistic
-choice that has largely been overshadowed by contemporary minimization
-practices into a crowded taskbar.  Drawing inspiration from classical
-window managers such as TWM, evilwm, and Openbox, this window manager
-aspires to blend a lightweight design *ethos* with usability.
+prefer the elegance of keyboard-driven workflows.
+
+The icon functionality has been retained despite its diminished
+prevalence in contemporary interfaces, for this feature harkens back to
+an era when applications were elegantly transformed into icons, which is
+a stylistic choice that has largely been overshadowed by contemporary
+minimization practices towards a crowded taskbar.  Thus, IcoWM retains
+classical iconification not as a vestigial convenience, but as
+a principal element of its intended mode of use, thereby permitting
+windows to be set aside as actual desktop icons, rather than being
+reduced solely to entries within such bars.
+
+Likewise, although IcoWM remains a stacking window manager, it seeks to
+borrow something of the discipline more commonly associated with
+keyboard-centred tiling environments.  Its aim is not to impose an
+overly aggressive automatism upon window placement, but rather to
+provide a mode of interaction that is orderly, intelligible, and
+deliberate, wherein changes of focus, iconification, and navigation
+between desktops are treated as essential operations.
 
 License
 -------
