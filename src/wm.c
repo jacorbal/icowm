@@ -773,7 +773,7 @@ static void s_wm_show_client_info(surface_td *surface,
     snprintf(line1, sizeof(line1),
             "window=%#x frame=%#x desktop=%u surface=%u",
             client->window, client->frame, desktop->id, surface->id);
-    snprintf(line2, sizeof(line2), "geom=%dx%d+%d+%d",
+    snprintf(line2, sizeof(line2), "geom=%ux%u+%d+%d",
             client->layout.geometry.cur.dim.w,
             client->layout.geometry.cur.dim.h,
             client->layout.geometry.cur.pos.x,
