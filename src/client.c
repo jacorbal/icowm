@@ -323,8 +323,33 @@ static int s_client_create_decorations(client_td *client)
             client->window,
             client->frame,
             (int16_t) left, (int16_t) top);
+
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0});
+
+    /* Passive grab: any button, any modifier, SYNC pointer mode.  With
+     * 'owner_events=0' ALL button presses on the frame or any of its
+     * children (titlebar, client window) are delivered to the window
+     * manager through this grab rather than via SelectInput.  SYNC mode
+     * freezes pointer events until the window manager calls
+     * 'xcb_allow_events', which lets the manager focus the window
+     * before deciding whether to replay the click to the application or
+     * consume it silently.  'XCB_MOD_MASK_ANY' already covers all
+     * lock-modifier combinations, so no lock-modifier loop is required.
+     * NOTE: root-level 'MOD1+button' grabs are more specific (specific
+     * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
+     * priority for move/resize interactions. */
+    xcb_grab_button(client->connection,
+            0,                                  /* owner_events */
+            client->frame,
+            XCB_EVENT_MASK_BUTTON_PRESS |
+            XCB_EVENT_MASK_BUTTON_RELEASE,
+            XCB_GRAB_MODE_SYNC,                 /* freeze until allow_events */
+            XCB_GRAB_MODE_ASYNC,
+            XCB_NONE,
+            XCB_NONE,
+            XCB_BUTTON_INDEX_ANY,
+            XCB_MOD_MASK_ANY);
 
     client->layout.geometry.cur.pos.x = frame_x;
     client->layout.geometry.cur.pos.y = frame_y;
@@ -766,8 +791,7 @@ client_td *client_manage(xcb_connection_t *connection,
                 XCB_EVENT_MASK_LEAVE_WINDOW     |
                 XCB_EVENT_MASK_FOCUS_CHANGE     |
                 XCB_EVENT_MASK_PROPERTY_CHANGE  |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                XCB_EVENT_MASK_BUTTON_PRESS;
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     xcb_change_window_attributes(connection, window,
             XCB_CW_EVENT_MASK, values);
 

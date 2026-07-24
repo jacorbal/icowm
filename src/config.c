@@ -552,6 +552,7 @@ void config_set_default_values(config_td *config)
     config->base.windows.snap = 4;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
+    safe_strcpy(config->base.windows.focus.policy, "click");
     safe_strcpy(config->base.windows.placement.policy, "smart");
     config->base.windows.placement.is_centered = false;
 
@@ -891,6 +892,9 @@ int config_load_base(const char *filename,
                     &config_base->windows.focus.is_new_focused);
             s_json_load_bool(focus, "is_raised_on_focus",
                     &config_base->windows.focus.is_raised_on_focus);
+            s_json_load_string(focus, "focus_policy",
+                    config_base->windows.focus.policy,
+                    CONFIG_MAX_LENGTH_OPTION);
         }
         placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {

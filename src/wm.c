@@ -70,8 +70,12 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
  */
 enum wm_keybind_type_e {
     KEYBIND_NONE,
+
+    /* Desktop cycling */
     KEYBIND_DESKTOP_NEXT,               /**< Switch to next desktop */
     KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
+
+    /* Window operations */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
     KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
@@ -83,6 +87,8 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_INFO,                /**< Show focused client info */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
+
+    /* Program launcher */
     KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
     KEYBIND_LAUNCH_LAUNCHER,            /**< Launch application launcher */
     KEYBIND_LAUNCH_FILE_MANAGER,        /**< Launch file manager */
@@ -1705,10 +1711,12 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     xcb_window_t qt_parent;
     xcb_window_t qt_root;
 
+    xcb_grab_pointer_cookie_t grab_c;
+    xcb_grab_pointer_reply_t *grab_r;
+
     if (event == NULL) {
         return;
     }
-
 
     if (s_info_popup_window != XCB_WINDOW_NONE) {
         if (event->event == s_info_popup_window ||
@@ -1730,6 +1738,12 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
                 s_wm_focus_client(surface, desktop, client, true);
             }
         }
+
+        /* Unfreeze the pointer; safe even when no passive grab is
+         * active (generates a silent 'NoCurrentGrab', per spec) */
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
@@ -1742,10 +1756,31 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         if (surface != NULL && desktop != NULL) {
             s_wm_focus_client(surface, desktop, client, true);
         }
+
+        /* Unfreeze the pointer (frame's SYNC passive grab is active).
+         * Replay the click to the application if it landed on the
+         * client content window; consume it silently for frame or
+         * titlebar clicks (WM-decoration actions only). */
+        if (event->child == client->window) {
+            xcb_allow_events(wm->connection, XCB_ALLOW_REPLAY_POINTER,
+                    event->time);
+        } else {
+            xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                    event->time);
+        }
+        xcb_flush(wm->connection);
         return;
     } 
 
     if ((state & XCB_MOD_MASK_1) == 0) {
+        /* Click on root background or orphaned frame.  If a SYNC
+         * passive grab is somehow active (orphaned frame), unfreeze; if
+         * not, this is a no-op (silent 'NoCurrentGrab' per spec). */
+        if (event->event != event->root) {
+            xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                    event->time);
+            xcb_flush(wm->connection);
+        }
         return;
     }
 
@@ -1849,7 +1884,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         (void) desktop_action_client_send_front(desktop, client);
     }
 
-    xcb_grab_pointer(wm->connection,
+    grab_c = xcb_grab_pointer(wm->connection,
             0,  /* owner events */
             event->root,
             XCB_EVENT_MASK_BUTTON_RELEASE |
@@ -1859,6 +1894,23 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             XCB_NONE,
             XCB_NONE,
             event->time);
+    grab_r = xcb_grab_pointer_reply(wm->connection, grab_c, NULL);
+    if (grab_r != NULL) {
+        /* ALREADY_GRABBED is expected: the root's passive button grab
+         * (registered in s_wm_grab_buttons) is the current active grab
+         * and cannot be replaced mid-event.  Motion and release events
+         * are still delivered through that grab so the drag works
+         * regardless.  Any other non-SUCCESS status is unexpected and
+         * worth logging. */
+        if (grab_r->status != XCB_GRAB_STATUS_SUCCESS &&
+                grab_r->status != XCB_GRAB_STATUS_ALREADY_GRABBED) {
+            LOGGER_WARNING(
+                    "Pointer grab for drag operation failed: status %u",
+                    (unsigned int) grab_r->status);
+        }
+        free(grab_r);
+    }
+
     xcb_flush(wm->connection);
 }
 
@@ -2604,7 +2656,72 @@ static void s_wm_handle_signal(int signum)
 
 
 /**
- * @brief Installs handlers for @c SIGINT and @c SIGTERM so the window
+ * @brief Handle @c XCB_ENTER_NOTIFY events for configurable focus policy
+ *
+ * When the focus policy is set to @c "focus_follows_mouse" the window
+ * under the pointer is focused automatically as soon as the pointer
+ * enters it, without requiring a button click.  The window is focused
+ * but not raised, so stacking order is preserved and cascading raise
+ * events are avoided.
+ *
+ * Only @c XCB_NOTIFY_MODE_NORMAL events are acted upon; events
+ * generated by grab/ungrab transitions (@c XCB_NOTIFY_MODE_GRAB,
+ * @c XCB_NOTIFY_MODE_UNGRAB) are ignored to prevent spurious focus
+ * changes during drag operations.  Detail @c XCB_NOTIFY_DETAIL_INFERIOR
+ * (pointer moving into a child window within the same frame) is also
+ * ignored to suppress redundant re-focus of the already-focused client.
+ *
+ * @param event Pointer to the enter-notify event; must not be @c NULL
+ *
+ * @note Complexity: @e O(n) where n is the total number of managed
+ *       clients (one hash-table lookup via @c s_wm_find_client)
+ */
+static void s_wm_handle_enter_notify(xcb_enter_notify_event_t *event)
+{
+    client_td *client;
+    desktop_td *desktop;
+    surface_td *surface;
+
+    if (event == NULL) {
+        return;
+    }
+
+    /* Ignore grab/ungrab-generated events to avoid interfering with
+     * ongoing drag operations or other pointer grabs */
+    if (event->mode != XCB_NOTIFY_MODE_NORMAL) {
+        return;
+    }
+
+    /* Ignore sub-window transitions within the same frame hierarchy */
+    if (event->detail == XCB_NOTIFY_DETAIL_INFERIOR) {
+        return;
+    }
+
+    /* Act only when focus-follows-mouse policy is in effect */
+    if (wm == NULL ||
+            strcasecmp(wm->config->base.windows.focus.policy,
+                "focus_follows_mouse") != 0) {
+        return;
+    }
+
+    client = s_wm_find_client(event->event, NULL, &desktop);
+    if (client == NULL) {
+        return;
+    }
+
+    surface = s_wm_get_surface_for_root(event->root);
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    /* Focus without raise to preserve stacking order */
+    s_wm_focus_client(surface, desktop, client, false);
+    xcb_flush(wm->connection);
+}
+
+
+/**
+ * @brief Install handlers for @c SIGINT and @c SIGTERM so the window
  *        manager shuts down gracefully instead of being killed abruptly
  *
  * @return Status of the operation
@@ -2799,6 +2916,11 @@ static void s_wm_loop(void)
                 case XCB_MOTION_NOTIFY:
                     s_wm_handle_motion_notify(
                             (xcb_motion_notify_event_t *) event);
+                    break;
+
+                case XCB_ENTER_NOTIFY:
+                    s_wm_handle_enter_notify(
+                            (xcb_enter_notify_event_t *) event);
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:

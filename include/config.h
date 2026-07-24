@@ -36,17 +36,17 @@ struct config_base_s {
     char theme[CONFIG_MAX_LENGTH_FILENAME];
 
     /* Desktops: number and which on is the default one */
-    uint32_t screen_count;                  /**< Number of screens */
+    uint32_t screen_count;                      /**< Number of screens */
     struct {
-        uint32_t desktop_count;             /**< No. of desktops */
-        uint32_t desktop_inaugural;         /**< Initial desktop */
+        uint32_t desktop_count;                 /**< No. of desktops */
+        uint32_t desktop_inaugural;             /**< Initial desktop */
 
         struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
             struct desktop_settings_s {
                 union {
-                    //Pixmap image;             /**< Background image */
-                    uint32_t color;    /**< Background color */
+                    //Pixmap image;               /**< Background image */
+                    uint32_t color;             /**< Background color */
                 } background;
             } settings;                         /**< Desktop settings */
         } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
@@ -67,9 +67,10 @@ struct config_base_s {
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
+            char policy[CONFIG_MAX_LENGTH_OPTION];  /* "click", "follow_mouse */
         } focus;
         struct {
-            char policy[CONFIG_MAX_LENGTH_OPTION];
+            char policy[CONFIG_MAX_LENGTH_OPTION];  /* "smart",... */
             bool is_centered;
         } placement;
     } windows;
