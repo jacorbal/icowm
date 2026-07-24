@@ -111,6 +111,76 @@ static xcb_atom_t s_wcmd_intern_atom(xcb_connection_t *connection,
 
 
 /**
+ * @brief Return the frame window when decorated, otherwise the client
+ *        window
+ *
+ * Returns the decoration frame window when the client is decorated and
+ * the frame has already been created.  In any other case, returns the
+ * client window itself.
+ *
+ * @param client Pointer to the client to inspect
+ *
+ * @return Frame window when available, or the client window otherwise;
+ *         @c XCB_WINDOW_NONE if @p client is @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_window_t s_wcmd_target_window(client_td *client)
+{
+    if (client == NULL) {
+        return XCB_WINDOW_NONE;
+    }
+    if (client_is_decorated(client) && client->frame != 0) {
+        return client->frame;
+    }
+    return client->window;
+}
+
+
+/**
+ * @brief Get the dimensions of the client's current screen
+ *
+ * Retrieves the width and height in pixels of the screen associated
+ * with the client. Either output parameter may be @c NULL, but not
+ * both.  The function walks the XCB screen iterator until it reaches
+ * the client's screen index.
+ *
+ * @param client Pointer to the client whose screen is queried
+ * @param out_w  Destination for the screen width in pixels, or @c NULL
+ * @param out_h  Destination for the screen height in pixels, or @c NULL
+ *
+ * @return @c true on success, @c false on failure
+ *
+ * @note Complexity: @e O(n), where @e n is the screen index
+ */
+static bool s_wcmd_get_screen_dimensions(client_td *client,
+        uint16_t *out_w, uint16_t *out_h)
+{
+    xcb_screen_iterator_t iter;
+
+    if (client == NULL || (out_w == NULL && out_h == NULL)) {
+        return false;
+    }
+
+    iter = xcb_setup_roots_iterator(xcb_get_setup(client->connection));
+    for (uint32_t i = 0; i < client->screen_id && iter.rem > 0; ++i) {
+        xcb_screen_next(&iter);
+    }
+    if (iter.rem == 0 || iter.data == NULL) {
+        return false;
+    }
+
+    if (out_w != NULL) {
+        *out_w = iter.data->width_in_pixels;
+    }
+    if (out_h != NULL) {
+        *out_h = iter.data->height_in_pixels;
+    }
+    return true;
+}
+
+
+/**
  * @brief Add multiple EWMH states to a client
  *
  * Accepts a variable number of string arguments representing the states
@@ -307,13 +377,27 @@ void wcmd_client_kill(client_td *client)
 /* Restore a client to its normal state */
 void wcmd_client_restore(client_td *client)
 {
+    xcb_window_t target;
+
     if (client == NULL) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
     client_geometry_restore(client);
 
     xcb_map_window(client->connection, client->window);
+    if (client->icon_window != 0 && client->is_icon_mapped) {
+        xcb_unmap_window(client->connection, client->icon_window);
+        client->is_icon_mapped = false;
+    }
+    if (client->titlebar != 0) {
+        xcb_map_window(client->connection, client->titlebar);
+    }
+    xcb_map_window(client->connection, target);
+    if (target != client->window) {
+        xcb_map_window(client->connection, client->window);
+    }
 
     client_toggle_hidden(client);
     client->properties.state = CLIENT_STATE_NORMAL;
@@ -366,11 +450,14 @@ void wcmd_client_unfocus(client_td *client)
 void wcmd_client_move(client_td *client,
         action_data_client_td *client_data)
 {
+    xcb_window_t target;
+
     if (client == NULL || client_data == NULL) {
         return;
     }
 
-    xcb_configure_window(client->connection, client->window,
+    target = s_wcmd_target_window(client);
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {
                 (uint32_t) client_data->new_data.geometry.pos.x,
@@ -383,15 +470,50 @@ void wcmd_client_move(client_td *client,
 }
 
 
+/* Center client on screen */
+void wcmd_client_center(client_td *client)
+{
+    uint16_t sw;
+    uint16_t sh;
+    int32_t x;
+    int32_t y;
+    xcb_window_t target;
+
+    if (client == NULL ||
+            !s_wcmd_get_screen_dimensions(client, &sw, &sh)) {
+        return;
+    }
+
+    target = s_wcmd_target_window(client);
+    x = ((int32_t) sw - (int32_t) client->layout.geometry.cur.dim.w) / 2;
+    y = ((int32_t) sh - (int32_t) client->layout.geometry.cur.dim.h) / 2;
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+            (const uint32_t[]) {(uint32_t) x, (uint32_t) y});
+    client->layout.geometry.cur.pos.x = x;
+    client->layout.geometry.cur.pos.y = y;
+}
+
+
 /* Resize client */
 void wcmd_client_resize(client_td *client,
         action_data_client_td *client_data)
 {
+    xcb_window_t target;
+
     if (client == NULL || client_data == NULL) {
         return;
     }
 
-    xcb_configure_window(client->connection, client->window,
+    target = s_wcmd_target_window(client);
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 (uint32_t) client_data->new_data.geometry.dim.w,
@@ -524,31 +646,34 @@ void wcmd_client_rerole(client_td *client,
 /* Maximize client horizontally */
 void wcmd_client_maximize_horz(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs;
+    uint16_t sw;
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
     }
 
-    attrs = xcb_get_geometry_reply(client->connection,
-                xcb_get_geometry(client->connection,
-                    client->window), NULL);
-    if (!attrs) {
+    if (!s_wcmd_get_screen_dimensions(client, &sw, NULL)) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
+
+    // TODO: Deactivate CLIENT_STATE_MAXIMIZED first?
     client_geometry_save(client);
 
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X     |
             XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH,
             (const uint32_t[]) {
                 0,                                              /* X */
                 (uint32_t) client->layout.geometry.cur.pos.y,   /* Keep Y */
-                (uint32_t) attrs->width                         /* Width */
+                (uint32_t) sw                                   /* Width */
             });
-    safe_free((void *) attrs);
+
+    client->layout.geometry.cur.pos.x = 0;
+    client->layout.geometry.cur.dim.w = sw;
 
     client->properties.state = CLIENT_STATE_MAXIMIZED_HORZ;
 
@@ -561,32 +686,34 @@ void wcmd_client_maximize_horz(client_td *client)
 /* Maximize client vertically */
 void wcmd_client_maximize_vert(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs;
+    uint16_t sh;
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
     }
 
-    attrs = xcb_get_geometry_reply(client->connection,
-                xcb_get_geometry(client->connection,
-                    client->window), NULL);
-    if (!attrs) {
+    if (!s_wcmd_get_screen_dimensions(client, NULL, &sh)) {
         return;
     }
+
+    target = s_wcmd_target_window(client);
 
     // TODO: Deactivate CLIENT_STATE_MAXIMIZED first?
     client_geometry_save(client);
 
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X     |
             XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 (uint32_t) client->layout.geometry.cur.pos.x,   /* Keep X */
                 0,                                              /* Y */
-                (uint32_t) attrs->height                        /* Height */
+                (uint32_t) sh                                   /* Height */
             });
-    safe_free((void *) attrs);
+
+    client->layout.geometry.cur.pos.y = 0;
+    client->layout.geometry.cur.dim.h = sh;
 
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
 
@@ -599,32 +726,36 @@ void wcmd_client_maximize_vert(client_td *client)
 /* Maximize client entirely */
 void wcmd_client_maximize(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs;
+    uint16_t sw;
+    uint16_t sh;
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
     }
 
-    attrs = xcb_get_geometry_reply(client->connection,
-                xcb_get_geometry(client->connection,
-                    client->window), NULL);
-    if (!attrs) {
+    if (!s_wcmd_get_screen_dimensions(client, &sw, &sh)) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
     client_geometry_save(client);
 
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X     |
             XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-                0,                          /* X */
-                0,                          /* Y */
-                (uint32_t) attrs->width,    /* Width */
-                (uint32_t) attrs->height    /* Height */
+                0,                  /* X */
+                0,                  /* Y */
+                (uint32_t) sw,      /* Width */
+                (uint32_t) sh       /* Height */
             });
+    client->layout.geometry.cur.pos.x = 0;
+    client->layout.geometry.cur.pos.y = 0;
+    client->layout.geometry.cur.dim.w = sw;
+    client->layout.geometry.cur.dim.h = sh;
 
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
 
@@ -632,23 +763,50 @@ void wcmd_client_maximize(client_td *client)
     s_wcmd_add_window_states(client, 2,
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
-
-    safe_free((void *) attrs);
 }
 
 
 /* Iconify client (and minimize it) */
 void wcmd_client_iconify(client_td *client)
 {
+    xcb_window_t target;
+    uint32_t mask;
+    uint32_t values[3];
+
     if (client == NULL) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
     client_geometry_save(client);
 
-    /* Unmap the window (make it invisible); ICCC requirement */
-    //unmap === iconify?  iconify => unmap?
-    xcb_unmap_window(client->connection, client->window);
+    if (client->icon_window == 0) {
+        client->icon_window = xcb_generate_id(client->connection);
+        mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+        values[0] = client->theme->icon.background_color;
+        values[1] = client->theme->icon.border_color;
+        values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
+        xcb_create_window(client->connection,
+                XCB_COPY_FROM_PARENT,
+                client->icon_window,
+                client->parent_id,
+                8, 8,
+                140, 32,
+                (uint16_t) client->theme->icon.border_width,
+                XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                XCB_COPY_FROM_PARENT,
+                mask, values);
+    }
+
+    if (client->titlebar != 0) {
+        xcb_unmap_window(client->connection, client->titlebar);
+    }
+    xcb_unmap_window(client->connection, target);
+    if (target != client->window) {
+        xcb_unmap_window(client->connection, client->window);
+    }
+    xcb_map_window(client->connection, client->icon_window);
+    client->is_icon_mapped = true;
 
     client_set_hidden(client);
     client->properties.state = CLIENT_STATE_ICONIFIED;
@@ -666,13 +824,22 @@ void wcmd_client_iconify(client_td *client)
 /* Hide the client (minimize, but not iconify) */
 void wcmd_client_hide(client_td *client)
 {
+    xcb_window_t target;
+
     if (client == NULL) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
     client_geometry_save(client);
 
-    xcb_unmap_window(client->connection, client->window);
+    if (client->titlebar != 0) {
+        xcb_unmap_window(client->connection, client->titlebar);
+    }
+    xcb_unmap_window(client->connection, target);
+    if (target != client->window) {
+        xcb_unmap_window(client->connection, client->window);
+    }
 
     client_set_hidden(client);
 
@@ -684,13 +851,22 @@ void wcmd_client_hide(client_td *client)
 /* Show (unhide) the client */
 void wcmd_client_unhide(client_td *client)
 {
+    xcb_window_t target;
+
     if (client == NULL) {
         return;
     }
 
+    target = s_wcmd_target_window(client);
     client_geometry_save(client);
 
-    xcb_map_window(client->connection, client->window);
+    if (client->titlebar != 0) {
+        xcb_map_window(client->connection, client->titlebar);
+    }
+    xcb_map_window(client->connection, target);
+    if (target != client->window) {
+        xcb_map_window(client->connection, client->window);
+    }
 
     client_unset_hidden(client);
 
@@ -790,35 +966,37 @@ void wcmd_client_toggle_sticky(client_td *client)
 /* Set full screen mode */
 void wcmd_client_fullscreen(client_td *client)
 {
-    xcb_get_geometry_reply_t *attrs;
+    uint16_t sw;
+    uint16_t sh;
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
     }
 
-    /* Get screen dimensions */
-    attrs = xcb_get_geometry_reply(client->connection,
-            xcb_get_geometry(client->connection, client->window), NULL);
-
-    if (!attrs) {
+    if (!s_wcmd_get_screen_dimensions(client, &sw, &sh)) {
         return;
     }
 
-    /* Save current geometry for restoration */
+    target = s_wcmd_target_window(client);
     client_geometry_save(client);
 
     /* Configure window to fill entire screen */
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-                0,                          /* X: top-left corner */
-                0,                          /* Y: top-left corner */
-                (uint32_t) attrs->width,    /* Width: full screen width */
-                (uint32_t) attrs->height    /* Height: full screen height */
+                0,                  /* X: top-left corner */
+                0,                  /* Y: top-left corner */
+                (uint32_t) sw,      /* Width: full screen width */
+                (uint32_t) sh       /* Height: full screen height */
             });
 
-    /* Update internal client state */
+    client->layout.geometry.cur.pos.x = 0;
+    client->layout.geometry.cur.pos.y = 0;
+    client->layout.geometry.cur.dim.w = sw;
+    client->layout.geometry.cur.dim.h = sh;
+
     client->properties.state = CLIENT_STATE_FULLSCREEN;
 
     /* Hide client decorations if decorated (EWMH recommendation) */
@@ -833,7 +1011,6 @@ void wcmd_client_fullscreen(client_td *client)
             "_NET_WM_STATE_MAXIMIZED_VERT");
     s_wcmd_add_window_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
-    safe_free((void *) attrs);
     xcb_flush(client->connection);
 }
 
@@ -841,15 +1018,17 @@ void wcmd_client_fullscreen(client_td *client)
 /* Remove full screen mode */
 void wcmd_client_unfullscreen(client_td *client)
 {
+    xcb_window_t target; 
+
     if (client == NULL) {
         return;
     }
 
-    /* Restore saved geometry */
+    target = s_wcmd_target_window(client);
     client_geometry_restore(client);
 
     /* Reconfigure window to restored position and dimensions */
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
@@ -889,21 +1068,11 @@ void wcmd_client_toggle_fullscreen(client_td *client)
 }
 
 
-/* Center client on screen */
-void wcmd_client_center(client_td *client)
-{
-    if (client == NULL) {
-        return;
-    }
-
-    return; /* TODO: Implement the logic here */
-}
-
-
 /* Raise the client to the top */
 void wcmd_client_raise(client_td *client)
 {
     uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
@@ -916,7 +1085,8 @@ void wcmd_client_raise(client_td *client)
 //    }
 
     /* Raise the window in XCB using StackMode */
-    xcb_configure_window(client->connection, client->window,
+    target = s_wcmd_target_window(client);
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_STACK_MODE, values);
 
     /* Update the desktop's internal stack if needed.
@@ -929,6 +1099,7 @@ void wcmd_client_raise(client_td *client)
 void wcmd_client_lower(client_td *client)
 {
     uint32_t values[] = { XCB_STACK_MODE_BELOW };
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
@@ -941,7 +1112,8 @@ void wcmd_client_lower(client_td *client)
 //    }
 
     /* Lower the window in XCB using StackMode */
-    xcb_configure_window(client->connection, client->window,
+    target = s_wcmd_target_window(client);
+    xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_STACK_MODE, values);
 
     /* Update the desktop's internal stack if needed.

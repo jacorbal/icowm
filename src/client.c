@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
@@ -177,6 +178,164 @@ static int s_client_get_wm_class(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Apply decoration defaults from the loaded theme
+ *
+ * Initializes the client's decoration-related fields using the
+ * currently selected theme.  This includes the titlebar height, frame
+ * extents, and the decorated state of the client.
+ *
+ * @param client Pointer to the client to update
+ * @param theme  Pointer to the theme providing decoration settings
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_set_decoration_defaults(client_td *client,
+        struct config_theme_s *theme)
+{
+    uint16_t border_width = 0;
+
+    if (client == NULL) {
+        return;
+    }
+
+    client->title_height = 22;
+    if (theme != NULL) {
+        border_width = (uint16_t) theme->window.general.border_width;
+    }
+
+    if (theme != NULL && theme->window.general.is_decorated) {
+        client_set_decoration(client);
+        client->layout.frame_extents.left = border_width;
+        client->layout.frame_extents.right = border_width;
+        client->layout.frame_extents.top =
+            (uint16_t) (border_width + client->title_height);
+        client->layout.frame_extents.bottom = border_width;
+    } else {
+        client_unset_decoration(client);
+        client->layout.frame_extents = (struct sides_s) {0, 0, 0, 0};
+    }
+}
+
+
+/**
+ * @brief Create frame and titlebar windows for a decorated client
+ *
+ * Creates the outer frame window and the titlebar window associated
+ * with a client, then reparents the client window into that frame.
+ * The frame geometry is computed from the current client geometry and
+ * the configured frame extents.
+ *
+ * If the client is not decorated, has no theme, or has no valid parent
+ * window, the function returns without creating decoration windows.
+ *
+ * @param client Pointer to client for which decorations are created
+ *
+ * @return 0 on success or if decoration creation is skipped, or
+ *         otherwise
+ *
+ * @note On success, the client's stored geometry is updated to match
+ *       the newly created frame dimensions and position
+ * @note Complexity: @e O(1)
+ */
+static int s_client_create_decorations(client_td *client)
+{
+    uint32_t mask;
+    uint32_t values[3];
+    uint16_t frame_w;
+    uint16_t frame_h;
+    int16_t frame_x;
+    int16_t frame_y;
+    int32_t frame_x32;
+    int32_t frame_y32;
+    uint16_t left;
+    uint16_t right;
+    uint16_t top;
+    uint16_t bottom;
+
+    if (client == NULL || !client_is_decorated(client) ||
+            client->theme == NULL || client->parent_id == 0) {
+        return 0;
+    }
+
+    left = (uint16_t) client->layout.frame_extents.left;
+    right = (uint16_t) client->layout.frame_extents.right;
+    top = (uint16_t) client->layout.frame_extents.top;
+    bottom = (uint16_t) client->layout.frame_extents.bottom;
+
+    frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
+    frame_y32 = client->layout.geometry.cur.pos.y - (int32_t) top;
+    if (frame_x32 < INT16_MIN) {
+        frame_x = INT16_MIN;
+    } else if (frame_x32 > INT16_MAX) {
+        frame_x = INT16_MAX;
+    } else {
+        frame_x = (int16_t) frame_x32;
+    }
+    if (frame_y32 < INT16_MIN) {
+        frame_y = INT16_MIN;
+    } else if (frame_y32 > INT16_MAX) {
+        frame_y = INT16_MAX;
+    } else {
+        frame_y = (int16_t) frame_y32;
+    }
+    frame_w =
+        (uint16_t) (client->layout.geometry.cur.dim.w + left + right);
+    frame_h =
+        (uint16_t) (client->layout.geometry.cur.dim.h + top + bottom);
+
+    client->frame = xcb_generate_id(client->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = client->theme->window.inactive.background_color;
+    values[1] = client->theme->window.inactive.border_color;
+    values[2] = XCB_EVENT_MASK_EXPOSURE |
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    xcb_create_window(client->connection,
+            XCB_COPY_FROM_PARENT,
+            client->frame,
+            client->parent_id,
+            frame_x, frame_y,
+            frame_w, frame_h,
+            0,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    client->titlebar = xcb_generate_id(client->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = client->theme->window.inactive.background_color;
+    values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
+    xcb_create_window(client->connection,
+            XCB_COPY_FROM_PARENT,
+            client->titlebar,
+            client->frame,
+            0, 0,
+            frame_w,
+            top,
+            0,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    xcb_reparent_window(client->connection,
+            client->window,
+            client->frame,
+            (int16_t) left, (int16_t) top);
+    xcb_configure_window(client->connection, client->window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0});
+
+    client->layout.geometry.cur.pos.x = frame_x;
+    client->layout.geometry.cur.pos.y = frame_y;
+    client->layout.geometry.cur.dim.w = frame_w;
+    client->layout.geometry.cur.dim.h = frame_h;
+    client->layout.geometry.old = client->layout.geometry.cur;
+
+    return 0;
+}
+
+
 /* Initialize a new client with the specified parameters */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
@@ -213,6 +372,11 @@ client_td *client_init(xcb_connection_t *connection,
     client->process.pid = -1;
     client->process.command = NULL;
 
+    client->frame = 0;
+    client->titlebar = 0;
+    client->icon_window = 0;
+    client->is_icon_mapped = false;
+
     /* Set the current geometry, and the "old" as the current one.
      * This allows for saved state when resizing or maximizing */
     client->layout.geometry.cur =
@@ -241,6 +405,7 @@ client_td *client_init(xcb_connection_t *connection,
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
     client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
+    s_client_set_decoration_defaults(client, theme);
 
     /* Allocate buffers for client information strings.
      * Each buffer is separately allocated for independent management */
@@ -419,6 +584,17 @@ void client_destroy(client_td *client)
         xcb_flush(client->connection);
     }
 
+    /* Destroy decorations if any */
+    if (client->connection != NULL && client->titlebar != 0) {
+        xcb_destroy_window(client->connection, client->titlebar);
+    }
+    if (client->connection != NULL && client->icon_window != 0) {
+        xcb_destroy_window(client->connection, client->icon_window);
+    }
+    if (client->connection != NULL && client->frame != 0) {
+        xcb_destroy_window(client->connection, client->frame);
+    }
+
     /* Free all allocated string buffers */
     safe_free((void **) &client->info.name);
     safe_free((void **) &client->info.visible_name);
@@ -481,6 +657,10 @@ client_td *client_manage(xcb_connection_t *connection,
     client->connection = connection;
     client->ewmh = ewmh;
     client->theme = theme;
+    client->frame = 0;
+    client->titlebar = 0;
+    client->icon_window = 0;
+    client->is_icon_mapped = false;
     client->process.pid = -1;
 
     /* Use the X window ID as both window handle and hash/lookup key */
@@ -491,6 +671,7 @@ client_td *client_manage(xcb_connection_t *connection,
     geom_cookie = xcb_get_geometry(connection, window);
     geom_reply  = xcb_get_geometry_reply(connection, geom_cookie, NULL);
     if (geom_reply != NULL) {
+        client->parent_id = geom_reply->root;
         client->layout.geometry.cur.pos.x = geom_reply->x;
         client->layout.geometry.cur.pos.y = geom_reply->y;
         client->layout.geometry.cur.dim.w = geom_reply->width;
@@ -512,6 +693,7 @@ client_td *client_manage(xcb_connection_t *connection,
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
     client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
+    s_client_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers */
     client->info.name = malloc(256);
@@ -593,6 +775,9 @@ client_td *client_manage(xcb_connection_t *connection,
         xcb_configure_window(connection, window,
                 XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
     }
+
+    /* Ignore return value, as decoration creation is non-fatal here */
+    (void) s_client_create_decorations(client);
 
     LOGGER_TRACE("Now managing window %#x ('%s')",
             window, client->info.name);

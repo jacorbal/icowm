@@ -21,6 +21,7 @@
 #include <signal.h>     /* sigaction, SIGINT, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* memcpy, strerror, strtok_r */
 #include <strings.h>    /* strcasecmp */
@@ -48,6 +49,7 @@
 #include <logger.h>
 #include <priority.h>
 #include <render/surface.h>
+#include <render/text.h>
 #include <surface.h>
 
 /* Local includes */
@@ -62,11 +64,10 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
                                  the window manager */
 
 
-/* ------------------------------------------------------------------ */
-/* Key binding infrastructure                                         */
-/* ------------------------------------------------------------------ */
-
-/** Action types for key bindings */
+/* Key binding infrastructure */
+/**
+ * @brief Action types for key bindings
+ */
 enum wm_keybind_type_e {
     KEYBIND_NONE,
     KEYBIND_DESKTOP_NEXT,               /**< Switch to next desktop */
@@ -75,10 +76,18 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
     KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
+    KEYBIND_CLIENT_CENTER,              /**< Center focused client */
+    KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
+    KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle focused clt. fullscreen */
+    KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */
+    KEYBIND_CLIENT_INFO,                /**< Show focused client info */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
     KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
     KEYBIND_LAUNCH_LAUNCHER,            /**< Launch application launcher */
+    KEYBIND_LAUNCH_FILE_MANAGER,        /**< Launch file manager */
+    KEYBIND_LAUNCH_WEB_BROWSER,         /**< Launch web browser */
+    KEYBIND_LAUNCH_EDITOR,              /**< Launch editor */
 
     /* Window movement (fixed step, or snap to a screen corner) */
     KEYBIND_CLIENT_MOVE_LEFT,           /**< Move focused client left */
@@ -97,7 +106,12 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_RESIZE_DOWN,         /**< Grow focused client height */
 };
 
-/* One resolved key binding */
+/**
+ * @brief Key binding resolved from configuration
+ *
+ * Stores a keyboard key symbol, its modifier mask, and the action type
+ * associated with the binding.
+ */
 typedef struct {
     xcb_keysym_t keysym;
     uint16_t     modmask;
@@ -105,41 +119,69 @@ typedef struct {
 } wm_keybinding_td;
 
 
-#define WM_MAX_KEYBINDINGS (64)
-#define WM_MIN_WINDOW_DIMENSION (1u)
-#define WM_KEYBOARD_MOVE_STEP (20)
-#define WM_KEYBOARD_RESIZE_STEP (20)
+// FIXME: should this be in 'defs/config.h'?
+#define WM_MAX_KEYBINDINGS (64)         /**< Maximum number of supported
+                                             key bindings */
+#define WM_MIN_WINDOW_DIMENSION (1u)    /**< Minimum supported client
+                                             window dimension */
+#define WM_KEYBOARD_MOVE_STEP (20)      /**< Keyboard move step in pixels */
+#define WM_KEYBOARD_RESIZE_STEP (20)    /**< Keyboard resize step in pixels */
 
 
+ /** Resolved key bindings loaded from configuration */
 static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
+
+/** Number of active key bindings */
 static int s_keybindings_count = 0;
 
 
-/** Action types for mouse bindings */
+/**
+ * @brief Action types for mouse bindings
+ *
+ * Defines the actions that a mouse binding can trigger.
+ */
 enum wm_mousebind_type_e {
     MOUSEBIND_NONE,
     MOUSEBIND_MOVE,             /**< Move the clicked client */
     MOUSEBIND_RESIZE,           /**< Resize the clicked client */
     MOUSEBIND_LOWER,            /**< Lower the clicked client */
-    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel) */
-    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel) */
+    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel: 5) */
+    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel: 4) */
 };
 
 
-/* One resolved mouse binding */
+/**
+ * @brief Mouse binding resolved from configuration
+ *
+ * Stores a mouse button and the action associated with it.
+ */
 typedef struct {
     xcb_button_index_t button;
     enum wm_mousebind_type_e type;
 } wm_mousebinding_td;
 
 
-#define WM_MAX_MOUSEBINDINGS (8)
+// FIXME: rename & should this be in 'defs/config.h'?
+#define WM_MAX_MOUSEBINDINGS (8)    /**< Maximum number of supported
+                                         mouse bindings */
 
-
+/** Mouse bindings registered by the window manager */
 static wm_mousebinding_td s_mousebindings[WM_MAX_MOUSEBINDINGS];
+
+/** Number of active mouse bindings */
 static int s_mousebindings_count = 0;
 
-/* Mouse drag state for move/resize interactions */
+/** Window identifier of the currently visible info popup */
+static xcb_window_t s_info_popup_window = XCB_WINDOW_NONE;
+
+
+/**
+ * @brief Mouse drag state for move and resize interactions
+ *
+ * Stores the current drag status, the active client, the pointer
+ * position at the beginning of the drag, and the client's geometry at
+ * drag start.
+ */
 static struct {
     bool active;
     enum window_operation_e operation;
@@ -163,7 +205,18 @@ static struct {
 };
 
 
-/* Clamp dimensions to supported client geometry bounds */
+/**
+ * @brief Clamp a dimension to the supported client geometry bounds
+ *
+ * Ensures that a requested window dimension stays within the minimum
+ * supported size and the maximum value representable by @c uint16_t.
+ *
+ * @param value Dimension value to clamp
+ *
+ * @return Clamped dimension value
+ *
+ * @note Complexity: @e O(1)
+ */
 static uint16_t s_wm_clamp_dimension(int32_t value)
 {
     if (value < (int32_t) WM_MIN_WINDOW_DIMENSION) {
@@ -176,11 +229,21 @@ static uint16_t s_wm_clamp_dimension(int32_t value)
 }
 
 
-/* ------------------------------------------------------------------ */
-/* Key-string parsing helpers                                         */
-/* ------------------------------------------------------------------ */
-
-/** Resolve configured modifier aliases such as "modc" or "mods" */
+/* Key-string parsing helpers */
+/**
+ * @brief Resolve configured modifier aliases such as @c modc or @c mods
+ *
+ * Expands symbolic modifier aliases from the configuration into their
+ * actual configured string values.  If the token does not match a known
+ * alias, the original token is returned unchanged.
+ *
+ * @param tok Modifier token to resolve
+ *
+ * @return Resolved modifier token, or the original token if no alias
+ *         matches
+ *
+ * @note Complexity: @e O(1)
+ */
 static const char *s_resolve_modifier_token(const char *tok)
 {
     if (tok == NULL) {
@@ -216,7 +279,20 @@ static const char *s_resolve_modifier_token(const char *tok)
 }
 
 
-/* Map a single modifier token to an XCB modifier mask */
+/**
+ * @brief Map a single modifier token to an XCB modifier mask
+ *
+ * Converts a textual modifier name into the corresponding XCB modifier
+ * mask.  Supports configured aliases, common modifier names, and
+ * some alternative spellings.
+ *
+ * @param tok Modifier token to parse
+ *
+ * @return Matching XCB modifier mask, or 0 if the token is not
+ *         recognized
+ *
+ * @note Complexity: @e O(1)
+ */
 static uint16_t s_parse_modifier_token(const char *tok)
 {
     const char *resolved = s_resolve_modifier_token(tok);
@@ -263,7 +339,20 @@ static uint16_t s_parse_modifier_token(const char *tok)
 }
 
 
-/** Map a key-name token to an X11 keysym */
+/**
+ * @brief Map a key-name token to an X11 keysym
+ *
+ * Converts a textual key name into its corresponding X11 keysym value.
+ * Supports printable single-character keys, function keys, and a set of
+ * common named keys such as arrows, navigation keys, and editing keys.
+ *
+ * @param tok Key token to parse
+ *
+ * @return Matching @e keysym, or @c XCB_NO_SYMBOL if the token is not
+ *         recognized
+ *
+ * @note Complexity: @e O(1)
+ */
 static xcb_keysym_t s_parse_keysym_token(const char *tok)
 {
     /* Single printable character */
@@ -402,10 +491,7 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
 }
 
 
-/* ------------------------------------------------------------------ */
-/* Window manager helper functions                                    */
-/* ------------------------------------------------------------------ */
-
+/* Window manager helper functions */
 /**
  * @brief Find the surface whose root window matches @p root
  *
@@ -423,6 +509,7 @@ static surface_td *s_wm_get_surface_for_root(xcb_window_t root)
             return surface;
         }
     }
+
     return NULL;
 }
 
@@ -439,7 +526,273 @@ static desktop_td *s_wm_get_current_desktop(surface_td *surface)
     if (surface == NULL) {
         return NULL;
     }
+
     return surface_desktop_get(surface, surface->desktop_cur);
+}
+
+
+/**
+ * @brief Test whether an X window belongs to a managed client
+ *
+ * Checks whether the specified window matches any of the windows
+ * associated with the client, including the client window, frame,
+ * titlebar, icon window, or the client identifier itself.
+ *
+ * @param client Pointer to the client to test
+ * @param window Window ID to compare against the client
+ *
+ * @return @c true if the window belongs to the client, or @c false
+ *         otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_wm_client_matches_window(const client_td *client,
+        xcb_window_t window)
+{
+    if (client == NULL || window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    return client->id == window ||
+           client->window == window ||
+           client->frame == window ||
+           client->titlebar == window ||
+           client->icon_window == window;
+}
+
+
+/**
+ * @brief Destroy the currently visible info popup window
+ *
+ * Closes the info popup window if it exists and resets the cached popup
+ * window identifier.
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_close_info_popup(void)
+{
+    if (wm == NULL || wm->connection == NULL ||
+            s_info_popup_window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_destroy_window(wm->connection, s_info_popup_window);
+    s_info_popup_window = XCB_WINDOW_NONE;
+}
+
+
+/**
+ * @brief Search all surfaces and desktops for a client by window ID
+ *
+ * @param window      X window ID to search for
+ * @param out_surface If non-null, receives the owning surface pointer
+ * @param out_desktop If non-null, receives the owning desktop pointer
+ *
+ * @return Pointer to the client, or @c NULL if not found
+ */
+static client_td *s_wm_find_client(xcb_window_t window,
+        surface_td **out_surface, desktop_td **out_desktop)
+{
+    if (out_surface != NULL) {
+        *out_surface = NULL;
+    }
+    if (out_desktop != NULL) {
+        *out_desktop = NULL;
+    }
+
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        cdlist_item_td *dinitial;
+        if (surface == NULL || surface->desktops == NULL ||
+                cdlist_size(surface->desktops) == 0) {
+            continue;
+        }
+
+        dnode = cdlist_head(surface->desktops);
+        dinitial = dnode;
+        if (dnode == NULL) {
+            continue;
+        }
+
+        do {
+            desktop_td *desktop =
+                (desktop_td *) cdlist_data(dnode);
+            if (desktop != NULL && desktop->clients != NULL) {
+                for (size_t i = 0;
+                        i < desktop->clients->positions;
+                        ++i) {
+                    client_td *client;
+                    if (desktop->clients->table[i] == NULL ||
+                            desktop->clients->table[i] ==
+                                desktop->clients->vacated) {
+                        continue;
+                    }
+                    client = (client_td *) desktop->clients->table[i];
+                    if (!s_wm_client_matches_window(client, window)) {
+                        continue;
+                    }
+
+                    if (out_surface != NULL) {
+                        *out_surface = surface;
+                    }
+                    if (out_desktop != NULL) {
+                        *out_desktop = desktop;
+                    }
+                    return client;
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    }
+
+    return NULL;
+}
+
+
+/**
+ * @brief Focus a client and keep focus-related state in sync
+ *
+ * Updates the active client for the desktop, sends focus and unfocus
+ * events as needed, and optionally raises the client to the front.
+ *
+ * @param surface Pointer to the surface containing the client
+ * @param desktop Pointer to the desktop tracking the active client
+ * @param client  Pointer to the client to focus
+ * @param raise   Whether the client should be raised immediately
+ *
+ * @note The previous active client is unfocused before the new client
+ *       is marked as active
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
+        client_td *client, bool raise)
+{
+    client_td *previous = NULL;
+    surface_td *ps = NULL;
+    desktop_td *pd = NULL;
+
+    if (surface == NULL || desktop == NULL || client == NULL) {
+        return;
+    }
+
+    if (desktop->client_active_id != 0 &&
+            desktop->client_active_id != client->id) {
+        previous = s_wm_find_client(desktop->client_active_id, &ps, &pd);
+        if (previous != NULL) {
+            (void) client_send_event_unfocus(previous);
+        }
+    }
+
+    desktop->client_active_id = client->id;
+    (void) client_send_event_focus(client);
+
+    if (raise || wm->config->base.windows.focus.is_raised_on_focus) {
+        (void) desktop_action_client_send_front(desktop, client);
+        (void) client_send_event_raise(client);
+    }
+
+    (void) surface;
+}
+
+
+/**
+ * @brief Show a small centered popup with focused-client information
+ *
+ * Creates a popup window centered on the current surface and displays
+ * basic information about the focused client, including its name,
+ * class, instance, window identifiers, geometry, and state flags.
+ *
+ * @param surface Pointer to the surface where the popup should be shown
+ * @param desktop Pointer to the desktop associated with the client
+ * @param client  Pointer to the client to describe in the popup
+ *
+ * @note Any previously visible popup is closed before the new one is
+ *       shown
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_show_client_info(surface_td *surface,
+        desktop_td *desktop, client_td *client)
+{
+    char line0[256];
+    char line1[256];
+    char line2[256];
+    char line3[256];
+    const char *name;
+    const char *class_name;
+    const char *instance_name;
+    const int16_t width = 520;
+    const int16_t height = 96;
+    int16_t x;
+    int16_t y;
+    uint32_t mask;
+    uint32_t values[3];
+
+    if (surface == NULL || desktop == NULL || client == NULL ||
+            surface->screen == NULL) {
+        return;
+    }
+    name = (client->info.name != NULL) ? client->info.name : "";
+    class_name = (client->info.class_name[1] != NULL)
+        ? client->info.class_name[1] : "";
+    instance_name = (client->info.class_name[0] != NULL)
+        ? client->info.class_name[0] : "";
+
+    s_wm_close_info_popup();
+
+    x = (int16_t) (((int32_t) surface->properties.dim.w - width) / 2);
+    y = (int16_t) (((int32_t) surface->properties.dim.h - height) / 2);
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+
+    s_info_popup_window = xcb_generate_id(wm->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = wm->config->theme.window.active.background_color;
+    values[1] = wm->config->theme.window.active.border_color;
+    values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_KEY_PRESS;
+    xcb_create_window(wm->connection,
+            XCB_COPY_FROM_PARENT,
+            s_info_popup_window,
+            surface->screen->root,
+            x, y,
+            (uint16_t) width, (uint16_t) height,
+            1,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    snprintf(line0, sizeof(line0), "name=%s class=%s instance=%s",
+            name, class_name, instance_name);
+    snprintf(line1, sizeof(line1),
+            "window=%#x frame=%#x desktop=%u surface=%u",
+            client->window, client->frame, desktop->id, surface->id);
+    snprintf(line2, sizeof(line2), "geom=%dx%d+%d+%d",
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y);
+    snprintf(line3, sizeof(line3), "flags=%#x state=%#x",
+            client->properties.flags, client->properties.state);
+
+    text_renderer_init(wm->connection,
+            wm->config->theme.window.active.font);
+    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+            8, 16, line0);
+    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+            8, 34, line1);
+    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+            8, 52, line2);
+    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
+            8, 70, line3);
+    xcb_map_window(wm->connection, s_info_popup_window);
+    xcb_flush(wm->connection);
 }
 
 
@@ -491,75 +844,6 @@ static int s_wm_send_desktop_launch_event(desktop_td *desktop,
     }
 
     return 0;
-}
-
-
-/**
- * @brief Search all surfaces and desktops for a client by window ID
- *
- * @param window      X window ID to search for
- * @param out_surface If non-null, receives the owning surface pointer
- * @param out_desktop If non-null, receives the owning desktop pointer
- *
- * @return Pointer to the client, or @c NULL if not found
- */
-static client_td *s_wm_find_client(xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
-{
-    /* Stack-allocated needle for hash-table lookup */
-    client_td needle;
-    memset(&needle, 0, sizeof(needle));
-    needle.id = window;
-
-    /* Callers typically declare their surface/desktop pointers without
-     * an initialiser and only check them for 'NULL' afterwards; make
-     * sure they are always defined (and safely 'NULL') even when no
-     * matching client is found below. */
-    if (out_surface != NULL) {
-        *out_surface = NULL;
-    }
-    if (out_desktop != NULL) {
-        *out_desktop = NULL;
-    }
-
-    for (list_item_td *snode = list_head(wm->surfaces);
-            snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
-        cdlist_item_td *dinitial;
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
-            continue;
-        }
-
-        dnode = cdlist_head(surface->desktops);
-        dinitial = dnode;
-        if (dnode == NULL) {
-            continue;
-        }
-
-        do {
-            desktop_td *desktop =
-                (desktop_td *) cdlist_data(dnode);
-            if (desktop != NULL && desktop->clients != NULL) {
-                void *found = (void *) &needle;
-                if (ohtbl_lookup(desktop->clients, &found) == 0 &&
-                        found != (void *) &needle) {
-                    client_td *client = (client_td *) found;
-                    if (out_surface != NULL) {
-                        *out_surface = surface;
-                    }
-                    if (out_desktop != NULL) {
-                        *out_desktop = desktop;
-                    }
-                    return client;
-                }
-            }
-            dnode = cdlist_next(dnode);
-        } while (dnode != NULL && dnode != dinitial);
-    }
-
-    return NULL;
 }
 
 
@@ -632,6 +916,12 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_LAUNCH_TERMINAL },
         { wm->config->bindings.keyboard.launcher,
           KEYBIND_LAUNCH_LAUNCHER },
+        { wm->config->bindings.keyboard.file_manager,
+          KEYBIND_LAUNCH_FILE_MANAGER },
+        { wm->config->bindings.keyboard.web_browser,
+          KEYBIND_LAUNCH_WEB_BROWSER },
+        { wm->config->bindings.keyboard.editor,
+          KEYBIND_LAUNCH_EDITOR },
         { wm->config->bindings.keyboard.iconify,
           KEYBIND_CLIENT_ICONIFY },
         { wm->config->bindings.keyboard.close,
@@ -640,6 +930,16 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_CLIENT_KILL },
         { wm->config->bindings.keyboard.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
+        { wm->config->bindings.keyboard.center,
+          KEYBIND_CLIENT_CENTER },
+        { wm->config->bindings.keyboard.shade,
+          KEYBIND_CLIENT_SHADE },
+        { wm->config->bindings.keyboard.fullscreen,
+          KEYBIND_CLIENT_FULLSCREEN },
+        { wm->config->bindings.keyboard.pin,
+          KEYBIND_CLIENT_PIN },
+        { wm->config->bindings.keyboard.info,
+          KEYBIND_CLIENT_INFO },
         { wm->config->bindings.keyboard.cycle_prev,
           KEYBIND_CLIENT_CYCLE_PREV },
         { wm->config->bindings.keyboard.cycle_next,
@@ -950,6 +1250,10 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
+    if (s_info_popup_window != XCB_WINDOW_NONE) {
+        s_wm_close_info_popup();
+    }
+
     /* Translate keycode to keysym using the key symbols table */
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
 
@@ -1025,6 +1329,11 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_CLOSE:
             case KEYBIND_CLIENT_KILL:
             case KEYBIND_CLIENT_MAXIMIZE:
+            case KEYBIND_CLIENT_CENTER:
+            case KEYBIND_CLIENT_SHADE:
+            case KEYBIND_CLIENT_FULLSCREEN:
+            case KEYBIND_CLIENT_PIN:
+            case KEYBIND_CLIENT_INFO:
             case KEYBIND_CLIENT_CYCLE_NEXT:
             case KEYBIND_CLIENT_CYCLE_PREV:
                 /* Determine the focused/top client on current desktop */
@@ -1041,6 +1350,14 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                         if (client != NULL) {
                             enum action_client_e act =
                                 ACTION_CLIENT_ICONIFY;
+
+                            if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_INFO) {
+                                s_wm_show_client_info(surface,
+                                        desktop, client);
+                                return;
+                            }
+
                             if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_CLOSE) {
                                 act = ACTION_CLIENT_CLOSE;
@@ -1050,6 +1367,18 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_MAXIMIZE) {
                                 act = ACTION_CLIENT_MAXIMIZE;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_CENTER) {
+                                act = ACTION_CLIENT_CENTER;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_SHADE) {
+                                act = ACTION_CLIENT_TOGGLE_SHADE;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_FULLSCREEN) {
+                                act = ACTION_CLIENT_TOGGLE_FULLSCREEN;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_PIN) {
+                                act = ACTION_CLIENT_TOGGLE_STICKY;
                             } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_CYCLE_NEXT) {
                                 act = ACTION_CLIENT_CYCLE_NEXT;
@@ -1084,6 +1413,43 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                         (void) s_wm_send_desktop_launch_event(
                                 desktop,
                                 wm->config->base.programs.launcher);
+                    }
+                }
+                return;
+
+
+            case KEYBIND_LAUNCH_FILE_MANAGER:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        (void) s_wm_send_desktop_launch_event(
+                                desktop,
+                                wm->config->base.programs.file_manager);
+                    }
+                }
+                return;
+
+            case KEYBIND_LAUNCH_WEB_BROWSER:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        (void) s_wm_send_desktop_launch_event(
+                                desktop,
+                                wm->config->base.programs.web_browser);
+                    }
+                }
+                return;
+
+            case KEYBIND_LAUNCH_EDITOR:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        (void) s_wm_send_desktop_launch_event(
+                                desktop,
+                                wm->config->base.programs.editor);
                     }
                 }
                 return;
@@ -1228,6 +1594,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     xcb_window_t window;
     client_td *client;
     desktop_td *desktop;
+    surface_td *surface;
     uint16_t state;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
 
@@ -1242,9 +1609,42 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         return;
     }
 
+
+    if (s_info_popup_window != XCB_WINDOW_NONE) {
+        if (event->event == s_info_popup_window ||
+                event->child == s_info_popup_window) {
+            s_wm_close_info_popup();
+            xcb_flush(wm->connection);
+            return;
+        }
+        s_wm_close_info_popup();
+    }
+
+    window = (event->child != XCB_NONE) ? event->child : event->event;
+    client = s_wm_find_client(window, NULL, &desktop);
+    if (client != NULL && window == client->icon_window) {
+        (void) client_send_event_restore(client);
+        if (desktop != NULL) {
+            surface = s_wm_get_surface_for_root(event->root);
+            if (surface != NULL) {
+                s_wm_focus_client(surface, desktop, client, true);
+            }
+        }
+        return;
+    }
+
     state = (uint16_t) ((unsigned int) event->state &
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
+
+    if (client != NULL && (state & XCB_MOD_MASK_1) == 0) {
+        surface = s_wm_get_surface_for_root(event->root);
+        if (surface != NULL && desktop != NULL) {
+            s_wm_focus_client(surface, desktop, client, true);
+        }
+        return;
+    } 
+
     if ((state & XCB_MOD_MASK_1) == 0) {
         return;
     }
@@ -1268,7 +1668,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
      * keyboard desktop-cycle key bindings, and return without
      * touching the drag state machine */
     if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
-        surface_td *surface = s_wm_get_surface_for_root(event->root);
+        surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL) {
             event_td *ev;
             action_td action;
@@ -1300,7 +1700,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             qt_parent = qt_r->parent;
             qt_root   = qt_r->root;
             free(qt_r);
-            if (qt_parent == XCB_NONE || qt_parent == qt_root) { 
+            if (qt_parent == XCB_NONE || qt_parent == qt_root) {
                 break;
             }
             w = qt_parent;
@@ -1320,8 +1720,12 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
      * immediately and return without starting a drag */
     if (type == MOUSEBIND_LOWER) {
         if (desktop != NULL) {
-            desktop->client_active_id = client->id;
-            (void) desktop_action_client_send_back(desktop, client);
+            surface = s_wm_get_surface_for_root(event->root);
+            if (surface != NULL) {
+                s_wm_focus_client(surface, desktop, client, true);
+            } else {
+                desktop->client_active_id = client->id;
+            }
         }
         (void) client_send_event_lower(client);
         return;
@@ -1627,9 +2031,20 @@ static void s_wm_handle_map_request(
         return;
     }
 
-    /* Show the window and record it as the active client */
-    xcb_map_window(wm->connection, event->window);
-    desktop->client_active_id = event->window;
+    /* Show the managed object */
+    if (client->titlebar != 0) {
+        xcb_map_window(wm->connection, client->titlebar);
+    }
+    if (client->frame != 0) {
+        xcb_map_window(wm->connection, client->frame);
+        xcb_map_window(wm->connection, client->window);
+    } else {
+        xcb_map_window(wm->connection, event->window);
+    }
+
+    if (wm->config->base.windows.focus.is_new_focused) {
+        s_wm_focus_client(surface, desktop, client, true);
+    }
 
     surface->is_outdated = true;
     desktop->is_outdated = true;
@@ -1677,11 +2092,12 @@ static void s_wm_handle_unmap_notify(
      * every unmap notification broke exactly that case. */
     client = s_wm_find_client(event->window, &surface, &desktop);
     if (client != NULL) {
-        if (surface != NULL) {
-            surface->is_outdated = true;
+        if (event->window != client->window &&
+                event->window != client->frame) {
+            return;
         }
         if (desktop != NULL &&
-                desktop->client_active_id == event->window) {
+                desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
         }
     }
@@ -1719,6 +2135,10 @@ static void s_wm_handle_destroy_notify(
         return;
     }
 
+    if (event->window != client->window) {
+        return;
+    }
+
     if (s_drag.active && s_drag.client == client) {
         s_drag.active = false;
         s_drag.operation = CLIENT_OPERATION_IDLE;
@@ -1727,7 +2147,7 @@ static void s_wm_handle_destroy_notify(
     }
 
     if (desktop != NULL &&
-            desktop->client_active_id == event->window) {
+            desktop->client_active_id == client->id) {
         desktop->client_active_id = 0;
     }
 
@@ -2380,6 +2800,9 @@ int wm_stop(void)
 
     /* Destroy configuration structure */
     config_destroy(wm->config);
+
+    /* Free the text renderer */
+    text_renderer_destroy();
 
     /* Close the X display connection */
     LOGGER_TRACE("Closing X display", L_NARG);

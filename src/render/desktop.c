@@ -26,9 +26,13 @@
 /* Project includes */
 #include <client.h>
 #include <logger.h>
+#include <render/text.h>
 
 /* Local includes */
 #include <render/desktop.h>
+
+
+#define TITLE_TEXT_BOTTOM_PADDING (6)   // FIXME: rename and document
 
 
 /* Draw the background of a desktop */
@@ -104,6 +108,14 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     size_t stacking_size;
     uint16_t mask;
     int32_t values[4];
+    xcb_window_t target;
+    bool is_focused;
+    uint16_t left;
+    uint16_t right;
+    uint16_t top;
+    uint16_t bottom;
+    uint16_t inner_w;
+    uint16_t inner_h;
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
@@ -148,12 +160,27 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         }
         client_count++;
 
-        /* Skip hidden clients */
+        /* Keep icon windows visible for iconified clients */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            LOGGER_TRACE("Skipping hidden client 0x%08x", client->id);
+            if (is_current && client->is_icon_mapped &&
+                    client->icon_window != 0) {
+                xcb_map_window(desktop->connection, client->icon_window);
+                if (desktop->config_theme->icon.is_captioned) {
+                    text_renderer_init(desktop->connection,
+                            desktop->config_theme->icon.font);
+                    text_draw_string(desktop->connection,
+                            client->icon_window, XCB_NONE,
+                            6, 18, client->info.name);
+                }
+            }
             stacking_node = cdlist_next(stacking_node);
             continue;
         }
+
+        is_focused = (desktop->client_active_id == client->id);
+        target = (client_is_decorated(client) && client->frame != 0)
+            ? client->frame
+            : client->window;
 
         /* Map the window to make it visible */
         /* NOTE. Only do this when 'desktop' is the surface's currently
@@ -170,7 +197,17 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
          *       desktops must be governed solely by
          *       'surface_clients_hide()'/'surface_clients_show()'. */
         if (is_current) {
-            xcb_map_window(desktop->connection, client->window);
+            if (client->icon_window != 0 && client->is_icon_mapped) {
+                xcb_unmap_window(desktop->connection, client->icon_window);
+                client->is_icon_mapped = false;
+            }
+            if (client->titlebar != 0) {
+                xcb_map_window(desktop->connection, client->titlebar);
+            }
+            xcb_map_window(desktop->connection, target);
+            if (target != client->window) {
+                xcb_map_window(desktop->connection, client->window);
+            }
         }
 
         /* Configure position and size */
@@ -181,8 +218,56 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         values[2] = (int32_t) client->layout.geometry.cur.dim.w;
         values[3] = (int32_t) client->layout.geometry.cur.dim.h;
 
-        xcb_configure_window(desktop->connection, client->window,
-                mask, (uint32_t *) values);
+        xcb_configure_window(desktop->connection, target, mask,
+                (uint32_t *) values);
+
+        if (target != client->window) {
+            left = (uint16_t) client->layout.frame_extents.left;
+            right = (uint16_t) client->layout.frame_extents.right;
+            top = (uint16_t) client->layout.frame_extents.top;
+            bottom = (uint16_t) client->layout.frame_extents.bottom;
+            inner_w = (client->layout.geometry.cur.dim.w > left + right)
+                ? (uint16_t)
+                    (client->layout.geometry.cur.dim.w - left - right)
+                : 1;
+            inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
+                ? (uint16_t)
+                    (client->layout.geometry.cur.dim.h - top - bottom)
+                : 1;
+
+            xcb_configure_window(desktop->connection, client->window,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    (const uint32_t[]) {
+                        left, top, inner_w, inner_h
+                    });
+            if (client->titlebar != 0) {
+                xcb_configure_window(desktop->connection, client->titlebar,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                            0, 0,
+                            client->layout.geometry.cur.dim.w, top
+                        });
+                xcb_change_window_attributes(desktop->connection,
+                        client->titlebar, XCB_CW_BACK_PIXEL,
+                        (const uint32_t[]) {
+                    (is_focused)
+                    ? desktop->config_theme->window.active.background_color
+                    : desktop->config_theme->window.inactive.background_color
+                        });
+                text_renderer_init(desktop->connection,
+                        (is_focused)
+                            ? desktop->config_theme->window.active.font
+                            : desktop->config_theme->window.inactive.font);
+                text_draw_string(desktop->connection,
+                        client->titlebar, XCB_NONE,
+                        8, (int16_t) ((top > TITLE_TEXT_BOTTOM_PADDING)
+                                ? top - TITLE_TEXT_BOTTOM_PADDING
+                                : top),
+                        client->info.name);
+            }
+        }
 
         LOGGER_TRACE("Rendered client 0x%08x with" \
                      " geometry (%ux%u%+u%+u)",

@@ -229,6 +229,12 @@ typedef struct client_s {
     xcb_window_t parent_id;         /**< Pointer to the parent client */
     xcb_window_t id;                /**< Unique client identifier */
 
+    xcb_window_t frame;             /**< Optional decoration frame */
+    xcb_window_t titlebar;          /**< Optional titlebar window */
+    xcb_window_t icon_window;       /**< Optional iconified placeholder */
+    bool is_icon_mapped;            /**< Whether icon window is mapped */
+    uint16_t title_height;          /**< Cached titlebar height */
+
     uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */
     uint32_t screen_id;             /**< Screen index */
 
@@ -292,10 +298,10 @@ static inline void client_unfocus(client_td *client)
 /**
  * @brief Initialize a new client with the specified parameters
  *
- * Allocates and initializes a new client structure, retrieving its
- * properties from the X server (@c WM_NAME, @c WM_CLASS) and creating
- * an XCB window with the given dimensions and position.  The client is
- * initialized in a hidden state.
+ * Allocates and initializes a new client structure, attempting to
+ * retrieve its properties from the X server (@c WM_NAME, @c WM_CLASS)
+ * and creating an XCB window with the given dimensions and position.
+ * The client is initialized in a hidden state.
  *
  * @param connection Pointer to the XCB connection
  * @param parent_id  Pointer to the parent client index
@@ -308,7 +314,8 @@ static inline void client_unfocus(client_td *client)
  * @return A pointer to the newly created client structure, or @c NULL
  *         on failure
  *
- * @note Complexity: @e O(1) for creating a client structure
+ * @note Complexity: @e O(1) for creating a client structure, excluding
+ *       X server interactions and property retrieval costs
  */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,

@@ -120,6 +120,9 @@ surface_td *surface_init(xcb_connection_t *connection,
 
     LOGGER_TRACE("Retrieving surface information from X server", L_NARG);
     iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+    for (uint32_t i = 0; i < surface_id && iter.rem > 0; ++i) {
+        xcb_screen_next(&iter);
+    }
     surface->screen = iter.data;
     if (surface->screen == NULL) {
         LOGGER_FATAL("Failed to retrieve information for surface %u",
