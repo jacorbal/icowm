@@ -657,7 +657,8 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
 int desktop_action_cycle_clients_active(desktop_td *desktop)
 {
     cdlist_item_td *node;
-    cdlist_item_td *target = NULL;
+    cdlist_item_td *initial;
+    cdlist_item_td *active_node = NULL;
 
     LOGGER_DEBUG("Cycling through active clients on desktop %u ('%s')",
             desktop->id, desktop->name);
@@ -667,27 +668,41 @@ int desktop_action_cycle_clients_active(desktop_td *desktop)
         return -1;
     }
 
-    /* Find first non-hidden client */
     node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        cdlist_item_td *initial = node;
-        do {
-            client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL && !client_is_iconified(client)) {
-                target = node;
-                break;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+    if (node == NULL) {
+        return 0;
     }
 
-    /* Focus the target client */
-    if (target != NULL) {
-        client_td *client = (client_td *) cdlist_data(target);
-        if (client != NULL) {
-            client_send_event_focus(client);
+    /* Find the node holding the currently active client */
+    initial = node;
+    active_node = NULL;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && c->id == desktop->client_active_id) {
+            active_node = node;
+            break;
         }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    /* Start searching from the node after the active one */
+    node = (active_node != NULL)
+        ? cdlist_next(active_node)
+        : cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        node = cdlist_head(desktop->stacking);
     }
+
+    /* Find next non-iconified client */
+    initial = node;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && !client_is_iconified(c)) {
+            client_send_event_focus(c);
+            return 0;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
 
     return 0;
 }
@@ -835,7 +850,7 @@ int desktop_action_application_launch(desktop_td *desktop,
 
         /* Child must close its inherited copy of the X connection's
          * file descriptor before continuing */
-        /* NOTE. 'desktop->connection' is the SAME 'xcb_connection_t'
+        /* NOTE: 'desktop->connection' is the SAME 'xcb_connection_t'
          *       pointer shared with the parent (it is not duplicated by
          *       'fork()'), so calling 'xcb_disconnect()' here would
          *       tear down the connection's internal state and break it

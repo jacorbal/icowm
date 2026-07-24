@@ -751,10 +751,10 @@ int config_load_base(const char *filename,
         desktops_array =
             cJSON_GetObjectItem(settings, "desktops");
 
-        /* NOTE.  While I recognize this maze of if statements could
-         *        benefit from finesse, I am stuck with it for now.
-         *        A sophisticated refactor will come, but deadlines have
-         *        a way of complicating matters. */
+        /* NOTE: While I recognize this maze of if statements could
+         *       benefit from finesse, I am stuck with it for now.
+         *       A sophisticated refactor will come, but deadlines have
+         *       a way of complicating matters. */
         if (desktops_array && cJSON_IsArray(desktops_array)) {
             unsigned int desktop_count =
                 (unsigned int) cJSON_GetArraySize(desktops_array);
@@ -998,7 +998,7 @@ int config_load_bindings(const char *filename,
         s_json_load_string_alt(keyboard, "cycle-prev", "cycle_prev",
                 config_bindings->keyboard.cycle_prev,
                 CONFIG_MAX_LENGTH_BINDING);
-        s_json_load_string_alt(keyboard, "cycle-next", "cycle-next",
+        s_json_load_string_alt(keyboard, "cycle-next", "cycle_next",
                 config_bindings->keyboard.cycle_next,
                 CONFIG_MAX_LENGTH_BINDING);
 
@@ -1094,7 +1094,7 @@ int config_load_bindings(const char *filename,
         /* Mouse bindings for desktop cycling */
         desktop = cJSON_GetObjectItem(mouse, "desktop");
         if (desktop) {
-            s_json_load_string_alt(desktop, "cycle_prev", "cycle_prev",
+            s_json_load_string_alt(desktop, "cycle_prev", "cycle-prev",
                     config_bindings->mouse.desktop.cycle_prev,
                     CONFIG_MAX_LENGTH_BINDING);
             s_json_load_string_alt(desktop, "cycle_next", "cycle-next",

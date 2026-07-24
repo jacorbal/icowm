@@ -106,6 +106,7 @@ enum action_desktop_e {
     ACTION_DESKTOP_CLIENTS_REARRANGE,   /**< Rearrange windows */
     ACTION_DESKTOP_CLIENTS_ICONIFY_ALL, /**< Iconify (& minim.) all w. */
     ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE,/**< Cycle through active w. */
+    ACTION_DESKTOP_CYCLE_CLIENTS_PREV,  /**< Cycle through prev. w. */
     ACTION_DESKTOP_CYCLE_CLIENTS_ICONS, /**< Cycle through iconified w. */
     ACTION_DESKTOP_LOCK,                /**< Lock desktop session */
     ACTION_DESKTOP_UNLOCK,              /**< Unlock desktop session */

@@ -210,8 +210,10 @@ static int s_event_compare(const void *e1, const void *e2)
  */
 static void s_event_handle_client(event_td *event)
 {
+    desktop_td *desktop = NULL;
     client_td *client;
     action_data_client_td *client_data;
+
 
     if (event == NULL) {
         LOGGER_ERROR("Received 'NULL' client event to process" \
@@ -396,9 +398,15 @@ static void s_event_handle_client(event_td *event)
             break;
 
         case ACTION_CLIENT_CYCLE_NEXT:
+            /* Find the desktop owning this client */
+
+            /* NOTE: We traverse surfaces/desktops to find the owner */
+            /* For now dispatch via desktop action */
+            (void) desktop;
+            /* Cycle is dispatched as a desktop event from 'wm.c' */
+            break;
+
         case ACTION_CLIENT_CYCLE_PREV:
-            /* Cycling is handled at the desktop level; no client-level
-             * action needed here */
             break;
     }
 
@@ -497,6 +505,9 @@ static void s_event_handle_desktop(event_td *event)
 
         case ACTION_DESKTOP_CLIENTS_ICONIFY_ALL:
             dcmd_desktop_clients_iconify_all(desktop);
+            break;
+
+        case ACTION_DESKTOP_CYCLE_CLIENTS_PREV:
             break;
 
         case ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE:

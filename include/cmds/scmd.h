@@ -1,5 +1,5 @@
 /**
- * @file cmd/scmd.h
+ * @file cmds/scmd.h
  *
  * @brief Declaration of actions related to screen surface management
  */

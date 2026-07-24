@@ -652,6 +652,77 @@ static client_td *s_wm_find_client(xcb_window_t window,
 
 
 /**
+ * @brief Select the next or previous focusable visible client
+ *
+ * Traverses the desktop stacking list starting from the currently
+ * active client and returns the next candidate according to the
+ * requested cycling direction.
+ *
+ * @param desktop Pointer to the desktop where cycling is performed
+ * @param is_next When @c true, cycle to next; when @c false, cycle to
+ *                previous
+ *
+ * @return Pointer to the selected client, or @c NULL if no suitable
+ *         client exists
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients in the
+ *       desktop stacking list
+ */
+static client_td *s_wm_cycle_target_client(desktop_td *desktop,
+        bool is_next)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    cdlist_item_td *active_node = NULL;
+
+    if (desktop == NULL || desktop->stacking == NULL ||
+            cdlist_size(desktop->stacking) == 0) {
+        return NULL;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return NULL;
+    }
+
+    initial = node;
+    do {
+        client_td *client = (client_td *) cdlist_data(node);
+        if (client != NULL && client->id == desktop->client_active_id) {
+            active_node = node;
+            break;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    if (active_node != NULL) {
+        node = is_next ? cdlist_prev(active_node) : cdlist_next(active_node);
+    } else {
+        node = is_next
+            ? cdlist_tail(desktop->stacking)
+            : cdlist_head(desktop->stacking);
+    }
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    initial = node;
+    do {
+        client_td *client = (client_td *) cdlist_data(node);
+        if (client != NULL &&
+                !client_is_iconified(client) &&
+                client_is_focusable(client)) {
+            return client;
+        }
+        node = is_next ? cdlist_prev(node) : cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return NULL;
+}
+
+
+/**
  * @brief Focus a client and keep focus-related state in sync
  *
  * Updates the active client for the desktop, sends focus and unfocus
@@ -1325,6 +1396,25 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                 }
                 return;
 
+            case KEYBIND_CLIENT_CYCLE_NEXT:
+            case KEYBIND_CLIENT_CYCLE_PREV:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        const bool is_next =
+                            (s_keybindings[i].type ==
+                                KEYBIND_CLIENT_CYCLE_NEXT);
+                        client_td *target =
+                            s_wm_cycle_target_client(desktop, is_next);
+                        if (target != NULL) {
+                            s_wm_focus_client(surface, desktop, target,
+                                    true);
+                        }
+                    }
+                }
+                return;
+
             case KEYBIND_CLIENT_ICONIFY:
             case KEYBIND_CLIENT_CLOSE:
             case KEYBIND_CLIENT_KILL:
@@ -1334,8 +1424,6 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:
             case KEYBIND_CLIENT_INFO:
-            case KEYBIND_CLIENT_CYCLE_NEXT:
-            case KEYBIND_CLIENT_CYCLE_PREV:
                 /* Determine the focused/top client on current desktop */
                 if (surface != NULL) {
                     desktop_td *desktop =
@@ -1379,12 +1467,6 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_PIN) {
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
-                            } else if (s_keybindings[i].type ==
-                                    KEYBIND_CLIENT_CYCLE_NEXT) {
-                                act = ACTION_CLIENT_CYCLE_NEXT;
-                            } else if (s_keybindings[i].type ==
-                                    KEYBIND_CLIENT_CYCLE_PREV) {
-                                act = ACTION_CLIENT_CYCLE_PREV;
                             }
                             client_send_event(client, act,
                                     PRIORITY_NORMAL);
@@ -1688,8 +1770,8 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     window = (event->child != XCB_NONE) ? event->child : event->event;
     client = s_wm_find_client(window, NULL, &desktop);
     if (client == NULL && event->child != XCB_NONE) {
-        /* 'event->child' may be a sub-window.  Walk up the window tree
-         * until we find a managed ancestor or reach root. */
+        /* 'event->child' may be a sub-window; so walk up the window
+         * tree until we find a managed ancestor or reach root */
         w = event->child;
         while (client == NULL) {
             qt_c = xcb_query_tree(wm->connection, w);
@@ -2218,6 +2300,43 @@ static void s_wm_handle_property_notify(
 
 
 /**
+ * @brief Handle @c XCB_FOCUS_IN events from the X server
+ *
+ * Synchronizes the desktop active-client identifier with the real X11
+ * input focus when a managed client receives focus.
+ *
+ * @param event Pointer to the focus-in event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients searched by @a s_wm_find_client
+ */
+static void s_wm_handle_focus_in(xcb_focus_in_event_t *event)
+{
+    client_td  *client;
+    surface_td *surface;
+    desktop_td *desktop;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received 'NULL' pointer in focus handler", L_NARG);
+        return;
+    }
+
+    client = s_wm_find_client(event->event, &surface, &desktop);
+    if (client == NULL || desktop == NULL) {
+        return;
+    }
+
+    if (desktop->client_active_id != client->id) {
+        desktop->client_active_id = client->id;
+        desktop->is_outdated = true;
+        if (surface != NULL) {
+            surface->is_outdated = true;
+        }
+    }
+}
+
+
+/**
  * @brief Soft window manager update
  *
  * Performs a minimal update of the window manager state, redrawing only
@@ -2524,6 +2643,11 @@ static void s_wm_loop(void)
                             (xcb_property_notify_event_t *) event);
                     break;
 
+                case XCB_FOCUS_IN:
+                    s_wm_handle_focus_in(
+                            (xcb_focus_in_event_t *) event);
+                    break;
+
                 case XCB_CONFIGURE_REQUEST:
                     s_wm_handle_configure_request(
                             (xcb_configure_request_event_t *) event);
@@ -2752,7 +2876,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Subscribe to root window events (MUST be done before loop */
-        /* NOTE. Fails with fatal log if another win. manager is running */
+        /* NOTE: Fails with fatal log if another win. manager is running */
         if (s_wm_subscribe_root_events() != 0) {
             list_destroy(wm->surfaces);
             eventq_stop();
