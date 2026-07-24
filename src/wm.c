@@ -1468,6 +1468,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                                     KEYBIND_CLIENT_PIN) {
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
                             }
+
                             client_send_event(client, act,
                                     PRIORITY_NORMAL);
                         }
@@ -1840,7 +1841,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             XCB_GRAB_MODE_ASYNC,
             XCB_NONE,
             XCB_NONE,
-            XCB_CURRENT_TIME);
+            event->time);
     xcb_flush(wm->connection);
 }
 
@@ -2226,6 +2227,7 @@ static void s_wm_handle_destroy_notify(
         s_drag.operation = CLIENT_OPERATION_IDLE;
         s_drag.client = NULL;
         xcb_ungrab_pointer(wm->connection, XCB_CURRENT_TIME);
+        xcb_flush(wm->connection);
     }
 
     if (desktop != NULL &&
@@ -2332,6 +2334,85 @@ static void s_wm_handle_focus_in(xcb_focus_in_event_t *event)
         if (surface != NULL) {
             surface->is_outdated = true;
         }
+    }
+}
+
+
+/**
+ * @brief Handle @c MAPPING_NOTIFY events from the X server
+ *
+ * Refreshes the cached keyboard-mapping table and re-establishes all
+ * passive key grabs with updated keycodes.  Without this, any keyboard
+ * layout change (e.g. via @c setxkbmap or an input-method switch) that
+ * moves keycodes causes existing grabs to stop firing silently.
+ *
+ * When the @e modifier mapping changes the button grabs are also
+ * rebuilt, because modifier-key reassignments can break the
+ * @c XCB_MOD_MASK_1 match used for every mouse action.
+ *
+ * @param keysyms Pointer to the XCB key symbols table to refresh
+ * @param event   Pointer to the mapping notify event
+ *
+ * @note Complexity: @e O(k * s), where @e k is the number of key
+ *       bindings and @e s is the number of surfaces
+ */
+static void s_wm_handle_mapping_notify(xcb_key_symbols_t *keysyms,
+        xcb_mapping_notify_event_t *event)
+{
+    list_item_td *node;
+    surface_td *surface;
+    if (keysyms == NULL || event == NULL) {
+        LOGGER_ERROR("Received 'NULL' pointer in mapping notify handler",
+                L_NARG);
+        return;
+    }
+    /* Pointer-only remaps do not affect any grab we registered */
+    if (event->request == XCB_MAPPING_POINTER) {
+        return;
+    }
+
+    LOGGER_TRACE("Mapping notify: request=%u; refreshing grabs",
+            (unsigned int) event->request);
+
+    /* Update the cached keycode→keysym table */
+    xcb_refresh_keyboard_mapping(keysyms, event);
+
+    /* Remove every passive key grab from every root window so that the
+     * re-grab below can install fresh ones with the new keycodes */
+    for (node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface = (surface_td *) list_data(node);
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        xcb_ungrab_key(wm->connection,
+                (xcb_keycode_t) XCB_GRAB_ANY,
+                surface->screen->root,
+                (uint16_t) XCB_MOD_MASK_ANY);
+    }
+
+    xcb_flush(wm->connection);
+    s_wm_grab_keys(keysyms);
+
+    /* A modifier-map change can also invalidate button grabs because
+     * the physical key producing XCB_MOD_MASK_1 may have moved */
+    if (event->request == XCB_MAPPING_MODIFIER) {
+        for (node = list_head(wm->surfaces);
+                node != NULL; node = list_next(node)) {
+            surface = (surface_td *) list_data(node);
+            if (surface == NULL || surface->screen == NULL) {
+                continue;
+            }
+
+            xcb_ungrab_button(wm->connection,
+                    (uint8_t) XCB_BUTTON_INDEX_ANY,
+                    surface->screen->root,
+                    (uint16_t) XCB_MOD_MASK_ANY);
+        }
+
+        xcb_flush(wm->connection);
+        s_wm_grab_buttons();
     }
 }
 
@@ -2656,6 +2737,11 @@ static void s_wm_loop(void)
                 case XCB_MAP_REQUEST:
                     s_wm_handle_map_request(
                             (xcb_map_request_event_t *) event);
+                    break;
+
+                case XCB_MAPPING_NOTIFY:
+                    s_wm_handle_mapping_notify(keysyms,
+                            (xcb_mapping_notify_event_t *) event);
                     break;
 
                 default:
