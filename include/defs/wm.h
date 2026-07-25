@@ -70,8 +70,14 @@
 /** Padding from frame edge */
 #define WM_DECOR_BTN_PAD (4u)
 
-/** Minimum permitted frame/client dimension (px) when toggling decoration */
-#define WCMD_MIN_DIM (1)
+/** Button fill color when active (focused window) */
+#define WM_DECOR_COLOR_ACTIVE (0x000000u)
+
+/** Button fill color when inactive (unfocused window) */
+#define WM_DECOR_COLOR_INACTIVE (0xFFFFFFu)
+
+/** Button fill color when disabled (action not available) */
+#define WM_DECOR_COLOR_DISABLED (0x808080u)
 
 
 #endif  /* ! DEFS_WM_H */

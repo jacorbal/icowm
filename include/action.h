@@ -63,9 +63,9 @@ enum action_client_e {
     ACTION_CLIENT_STICKY,               /**< Set window sticky mode */
     ACTION_CLIENT_UNSTICKY,             /**< Remove window sticky mode */
     ACTION_CLIENT_TOGGLE_STICKY,        /**< Toggle window sticky mode */
-    ACTION_CLIENT_FULLSCREEN,           /**< Set full surface mode */
-    ACTION_CLIENT_UNFULLSCREEN,         /**< Remove full surface mode */
-    ACTION_CLIENT_TOGGLE_FULLSCREEN,    /**< Toggle full surface mode */
+    ACTION_CLIENT_FULLSCREEN,           /**< Set full screen mode */
+    ACTION_CLIENT_UNFULLSCREEN,         /**< Remove full screen mode */
+    ACTION_CLIENT_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */
     ACTION_CLIENT_RAISE,                /**< Raise window */
     ACTION_CLIENT_LOWER,                /**< Lower window */
     ACTION_CLIENT_LAYER_ABOVE,          /**< Window always on top */

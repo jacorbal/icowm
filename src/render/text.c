@@ -42,10 +42,9 @@ static struct {
 };
 
 
-// FIXME: rename & should this be in 'defs/config.h'?
+// FIXME: rename & should this be in 'defs/config/*.h'?
 #define TEXT_COLOR_WHITE (0xFFFFFFu)
 #define TEXT_COLOR_BLACK (0x000000u)
-
 
 
 /* Initialize the text renderer using the specified font */
@@ -107,12 +106,15 @@ void text_renderer_destroy(void)
     if (!s_text.initialized || s_text.connection == NULL) {
         return;
     }
+
     if (s_text.gc != XCB_NONE) {
         xcb_free_gc(s_text.connection, s_text.gc);
     }
+
     if (s_text.font != XCB_NONE) {
         xcb_close_font(s_text.connection, s_text.font);
     }
+
     s_text.connection = NULL;
     s_text.font = XCB_NONE;
     s_text.gc = XCB_NONE;

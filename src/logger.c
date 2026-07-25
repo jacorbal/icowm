@@ -42,6 +42,10 @@ static logger_td *logger = NULL;    /**< Pointer to the singleton
 static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         FILE *fp)
 {
+    if (fp == NULL) {
+        return;
+    }
+
     fflush(fp);
 
     for (unsigned int i = 0; i < logger_buffer->count; ++i) {
