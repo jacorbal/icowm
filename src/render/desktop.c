@@ -32,7 +32,33 @@
 #include <render/desktop.h>
 
 
-#define TITLE_TEXT_BOTTOM_PADDING (6)   // FIXME: rename and document
+// FIXME: should this be in 'defs/config.h'?
+#define TITLE_TEXT_BOTTOM_PADDING (6)   /**< Pixels from text baseline
+                                             to titlebar bottom */
+
+/** Size of square icon window, in pixels */
+#define WM_ICON_SQUARE_SIZE         (48u)
+
+/** Height of caption area below the icon square, in pixels */
+#define WM_ICON_CAPTION_HEIGHT      (14u)
+
+/** Size of a single decoration button square, in pixels */
+#define WM_DECOR_BTN_SIZE           (12u)
+
+/** Gap between adjacent decoration buttons, in pixels */
+#define WM_DECOR_BTN_GAP            (2u)
+
+/** Horizontal padding from the frame edge to the outermost button */
+#define WM_DECOR_BTN_PAD            (4u)
+
+/** Button fill color when active (focused window, normal state) */
+#define WM_DECOR_COLOR_ACTIVE       (0x000000u)
+
+/** Button fill color when inactive (unfocused window) */
+#define WM_DECOR_COLOR_INACTIVE     (0xFFFFFFu)
+
+/** Button fill color when disabled (action not available) */
+#define WM_DECOR_COLOR_DISABLED     (0x808080u)
 
 
 /* Draw the background of a desktop */
@@ -95,6 +121,82 @@ int desktop_render_background(desktop_td *desktop)
             desktop->id, desktop->name);
 
     return 0;
+}
+
+
+/**
+ * @brief Draw the decoration button squares on a titlebar window
+ *
+ * Renders six right-aligned button squares (Iconify, Hide, Shade,
+ * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
+ * using filled rectangles.  Right-aligned buttons use black fill when
+ * the client is focused (active state) and white fill when unfocused
+ * (inactive state).  The pin button uses black fill when the client is
+ * sticky and white fill otherwise.
+ *
+ * @param connection  XCB connection
+ * @param titlebar    XCB window id of the titlebar
+ * @param frame_w     Total width of the titlebar in pixels
+ * @param frame_top   Total height of the titlebar in pixels
+ * @param is_focused  Whether the owning client is focused
+ * @param is_sticky   Whether the owning client is sticky (pin active)
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
+        xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
+        bool is_focused, bool is_sticky)
+{
+    xcb_gcontext_t gc;
+    uint32_t color;
+    xcb_rectangle_t rect;
+    uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
+    uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
+    uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
+    int16_t  btn_y;
+    int16_t  x;
+    uint16_t fill;
+    uint16_t step;
+    int16_t right_edge;
+
+    /* Vertically center buttons in the titlebar */
+    btn_y = (frame_top > btn)
+        ? (int16_t) ((frame_top - btn) / 2u)
+        : 0;
+
+    gc = xcb_generate_id(connection);
+    /* Left-aligned: Pin button */
+    color = is_sticky ? WM_DECOR_COLOR_ACTIVE : WM_DECOR_COLOR_INACTIVE;
+    xcb_create_gc(connection, gc, titlebar,
+            XCB_GC_FOREGROUND, &color);
+    rect = (xcb_rectangle_t) { (int16_t) pad, btn_y, btn, btn };
+    xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
+    xcb_free_gc(connection, gc);
+
+    /* Right-aligned:
+     * Iconify, Hide, Shade, Maximize, Fullscreen, Close (RTL alloc.) */
+    /* Six buttons; compute starting 'x' from right edge */
+    step = (uint16_t) (btn + gap);
+    right_edge = (int16_t) (frame_w - pad);
+
+    /* Button fill: black for focused window (active state),
+     * white for unfocused window (inactive state). */
+    fill = (uint16_t) ((is_focused)
+            ? WM_DECOR_COLOR_ACTIVE
+            : WM_DECOR_COLOR_INACTIVE);
+
+    for (int bi = 0; bi < 6; ++bi) {
+        x = (int16_t) (right_edge - (int16_t) btn -
+                (int16_t) ((uint16_t) bi * step));
+        color = fill;
+        gc = xcb_generate_id(connection);
+
+        xcb_create_gc(connection, gc, titlebar,
+                XCB_GC_FOREGROUND, &color);
+        rect = (xcb_rectangle_t) { x, btn_y, btn, btn };
+        xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
+        xcb_free_gc(connection, gc);
+    }
 }
 
 
@@ -165,12 +267,17 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             if (is_current && client->is_icon_mapped &&
                     client->icon_window != 0) {
                 xcb_map_window(desktop->connection, client->icon_window);
-                if (desktop->config_theme->icon.is_captioned) {
+
+                if (desktop->config_theme->icon.is_captioned &&
+                        client->info.name != NULL) {
                     text_renderer_init(desktop->connection,
                             desktop->config_theme->icon.font);
                     text_draw_string(desktop->connection,
                             client->icon_window, XCB_NONE,
-                            6, 18, client->info.name);
+                            2,
+                            (int16_t) (WM_ICON_SQUARE_SIZE +
+                                WM_ICON_CAPTION_HEIGHT - 2u),
+                            client->info.name);
                 }
             }
             stacking_node = cdlist_next(stacking_node);
@@ -262,10 +369,19 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             : desktop->config_theme->window.inactive.font);
                 text_draw_string(desktop->connection,
                         client->titlebar, XCB_NONE,
-                        8, (int16_t) ((top > TITLE_TEXT_BOTTOM_PADDING)
-                                ? top - TITLE_TEXT_BOTTOM_PADDING
-                                : top),
+                        (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
+                            WM_DECOR_BTN_PAD),
+                        (int16_t) ((top > TITLE_TEXT_BOTTOM_PADDING)
+                            ? top - TITLE_TEXT_BOTTOM_PADDING
+                            : top),
                         client->info.name);
+
+                desktop_draw_titlebar_buttons(desktop->connection,
+                        client->titlebar,
+                        (uint16_t) client->layout.geometry.cur.dim.w,
+                        top,
+                        is_focused,
+                        (bool) client_is_sticky(client));
             }
         }
 

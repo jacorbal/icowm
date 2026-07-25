@@ -585,6 +585,8 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.keyboard.info, "modc+mod1+mods+i");
     safe_strcpy(config->bindings.keyboard.cycle_prev, "mod1+mods+Tab");
     safe_strcpy(config->bindings.keyboard.cycle_next, "mod1+Tab");
+    safe_strcpy(config->bindings.keyboard.hide, "modc+mod1+mods+h");
+    safe_strcpy(config->bindings.keyboard.toggle_decoration, "modc+mod1+d");
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -617,6 +619,10 @@ void config_set_default_values(config_td *config)
             "modc+mod1+Left");
     safe_strcpy(config->bindings.keyboard.desktop.cycle_next,
             "modc+mod1+Right");
+    safe_strcpy(config->bindings.keyboard.desktop.cycle_icon_prev,
+            "modc+mod1+mods+Left");
+    safe_strcpy(config->bindings.keyboard.desktop.cycle_icon_next,
+            "modc+mod1+mods+Right");
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
@@ -868,10 +874,10 @@ int config_load_base(const char *filename,
         s_json_load_string(programs, "launcher",
                 config_base->programs.launcher,
                 CONFIG_MAX_LENGTH_COMMAND);
-        s_json_load_string(programs, "file_manager",
+        s_json_load_string_alt(programs, "file_manager", "file-manager",
                 config_base->programs.file_manager,
                 CONFIG_MAX_LENGTH_COMMAND);
-        s_json_load_string(programs, "web_browser",
+        s_json_load_string_alt(programs, "web_browser", "web-browser",
                 config_base->programs.web_browser,
                 CONFIG_MAX_LENGTH_COMMAND);
         s_json_load_string(programs, "editor",
@@ -1005,6 +1011,13 @@ int config_load_bindings(const char *filename,
         s_json_load_string_alt(keyboard, "cycle-next", "cycle_next",
                 config_bindings->keyboard.cycle_next,
                 CONFIG_MAX_LENGTH_BINDING);
+        s_json_load_string(keyboard, "hide",
+                config_bindings->keyboard.hide,
+                CONFIG_MAX_LENGTH_BINDING);
+        s_json_load_string_alt(keyboard, "toggle-decoration",
+                "toggle_decoration",
+                config_bindings->keyboard.toggle_decoration,
+                CONFIG_MAX_LENGTH_BINDING);
 
         /* Keybindings for window movement */
         move = cJSON_GetObjectItem(keyboard, "move");
@@ -1030,16 +1043,18 @@ int config_load_bindings(const char *filename,
 
             absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
-                s_json_load_string(absolute, "top-left",
+                s_json_load_string_alt(absolute, "top-left", "top_left",
                         config_bindings->keyboard.move.absolute.top_left,
                         CONFIG_MAX_LENGTH_BINDING);
-                s_json_load_string(absolute, "top-right",
+                s_json_load_string_alt(absolute, "top-right", "top_right",
                         config_bindings->keyboard.move.absolute.top_right,
                         CONFIG_MAX_LENGTH_BINDING);
-                s_json_load_string(absolute, "bottom-left",
+                s_json_load_string_alt(absolute, "bottom-left",
+                        "bottom_left",
                         config_bindings->keyboard.move.absolute.bottom_left,
                         CONFIG_MAX_LENGTH_BINDING);
-                s_json_load_string(absolute, "bottom-right",
+                s_json_load_string_alt(absolute, "bottom-right",
+                        "bottom_right",
                         config_bindings->keyboard.move.absolute.bottom_right,
                         CONFIG_MAX_LENGTH_BINDING);
             }
@@ -1070,6 +1085,14 @@ int config_load_bindings(const char *filename,
                     CONFIG_MAX_LENGTH_BINDING);
             s_json_load_string_alt(desktop, "cycle_next", "cycle-next",
                     config_bindings->keyboard.desktop.cycle_next,
+                    CONFIG_MAX_LENGTH_BINDING);
+            s_json_load_string_alt(desktop, "cycle_icon_prev",
+                    "cycle-icon-prev",
+                    config_bindings->keyboard.desktop.cycle_icon_prev,
+                    CONFIG_MAX_LENGTH_BINDING);
+            s_json_load_string_alt(desktop, "cycle_icon_next",
+                    "cycle-icon-next",
+                    config_bindings->keyboard.desktop.cycle_icon_next,
                     CONFIG_MAX_LENGTH_BINDING);
         }
     }

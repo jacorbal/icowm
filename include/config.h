@@ -104,9 +104,11 @@ struct config_bindings_s {
         char shade[CONFIG_MAX_LENGTH_BINDING];
         char pin[CONFIG_MAX_LENGTH_BINDING];
         char iconify[CONFIG_MAX_LENGTH_BINDING];
+        char hide[CONFIG_MAX_LENGTH_BINDING];
         char close[CONFIG_MAX_LENGTH_BINDING];
         char kill[CONFIG_MAX_LENGTH_BINDING];
         char info[CONFIG_MAX_LENGTH_BINDING];
+        char toggle_decoration[CONFIG_MAX_LENGTH_BINDING];
         char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
         char cycle_next[CONFIG_MAX_LENGTH_BINDING];
 
@@ -137,6 +139,8 @@ struct config_bindings_s {
         struct {
             char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
             char cycle_next[CONFIG_MAX_LENGTH_BINDING];
+            char cycle_icon_prev[CONFIG_MAX_LENGTH_BINDING];
+            char cycle_icon_next[CONFIG_MAX_LENGTH_BINDING];
         } desktop;
     } keyboard;
 

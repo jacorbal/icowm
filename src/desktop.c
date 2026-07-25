@@ -23,7 +23,7 @@
 #include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
 #include <unistd.h>     /* fork, execvp, _exit */
-#include <wordexp.h>    /* wordexp */
+#include <wordexp.h>    /* wordexp, wordfree */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -50,6 +50,9 @@ static size_t s_h1(const void *data)
     const client_td *client = (const client_td *) data;
     const uint32_t key = (client == NULL) ? 0u : client->id;
 
+    /* Stable primary hash using a fixed seed (0x9E3779B9, 32-bit golden
+     * ratio, 2^32/phi) to ensure good dispersion and reproducible
+     * results across runs. */
     return (size_t) murmurhash3_32(&key, sizeof(key), 0x9E3779B9u);
 }
 
@@ -61,10 +64,10 @@ static size_t s_h2(const void *data)
     const uint32_t key = (client == NULL) ? 0u : client->id;
     size_t hash2 = (size_t) murmurhash3_32(&key, sizeof(key), 0x85EBCA6Bu);
 
-    if (hash2 == 0u) {
-        hash2 = 1u;
-    }
-    return hash2;
+    /* Stable secondary hash using a different fixed seed (0x85EBCA6B)
+     * to reduce correlation with 'h1'.  The result is forced to be
+     * non-zero to guarantee a valid step size in double hashing. */
+    return (hash2 == 0u) ? 1u : hash2;
 }
 
 
@@ -159,10 +162,10 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     /* Set desktop name.  The config-provided name is copied with
      * 'safe_strncpy' instead of 'snprintf("%s", ...)' because its
-     * source field is wider than 'desktop->name'.  GCC's
-     * '-Wformat-truncation' cannot prove the copy never truncates, and
-     * truncating a name that does not fit is the desired, harmless
-     * behavior here anyway */
+     * source field is wider than 'desktop->name'*/
+    /* GCC's option '-Wformat-truncation' cannot prove the copy never
+     * truncates, and truncating a name that does not fit is the
+     * desired, harmless behavior here anyway. */
     if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
         snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
@@ -350,7 +353,7 @@ void desktop_clear(desktop_td *desktop)
                         (void **) &client) != 0) {
                 break;
             }
-            /* The list may legitimately contain NULL data pointers;
+            /* The list may legitimately contain 'NULL' data pointers;
              * destroy only valid clients. */
             if (client != NULL) {
                 client_destroy(client);

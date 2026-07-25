@@ -105,6 +105,7 @@ void action_data_client_destroy(action_data_client_td *action_data_client)
         case ACTION_CLIENT_LAYER_BELOW:
         case ACTION_CLIENT_SET_URGENT:
         case ACTION_CLIENT_CLEAR_URGENT:
+        case ACTION_CLIENT_TOGGLE_DECORATION:
         case ACTION_CLIENT_CYCLE_NEXT:
         case ACTION_CLIENT_CYCLE_PREV:
             /* No heap-allocated data to release for these actions */

@@ -74,6 +74,7 @@ enum action_client_e {
     ACTION_CLIENT_SET_URGENT,           /**< Mark window as urgent */
     ACTION_CLIENT_CLEAR_URGENT,         /**< Clear urgency level */
     ACTION_CLIENT_SET_ICON,             /**< Set window icon */
+    ACTION_CLIENT_TOGGLE_DECORATION,    /**< Toggle window decoration */
     ACTION_CLIENT_CYCLE_NEXT,           /**< Cycle focus to next client */
     ACTION_CLIENT_CYCLE_PREV,           /**< Cycle focus to previous client */
 

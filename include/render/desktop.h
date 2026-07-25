@@ -95,4 +95,27 @@ int desktop_render_full(desktop_td *desktop, bool is_current);
 void desktop_render_flush(desktop_td *desktop);
 
 
+/**
+ * @brief Draw decoration button squares on a titlebar window	
+ *
+ * Renders six right-aligned button squares (Iconify, Hide, Shade,
+ * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
+ * as filled rectangles.  Right-aligned buttons use black fill when
+ * @p is_focused is @c true and white fill otherwise.  The pin uses
+ * black when sticky, white otherwise	
+ *
+ * @param connection  Active XCB connection
+ * @param titlebar    XCB window identifier of the titlebar
+ * @param frame_w     Width of the titlebar in pixels
+ * @param frame_top   Height of the titlebar in pixels
+ * @param is_focused  Whether the owning client is currently focused
+ * @param is_sticky   Whether the owning client has the sticky flag set	
+ *
+ * @note Complexity: @e O(1)	
+ */
+void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
+        xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,	
+        bool is_focused, bool is_sticky);
+
+
 #endif  /* ! RENDER_DESKTOP_H */

@@ -358,4 +358,19 @@ void wcmd_client_set_icon(client_td *client,
         action_data_client_td *client_data);
 
 
+/**
+ * @brief Toggle window decoration on or off for the client
+ *
+ * If the client is currently decorated, removes the titlebar (unmaps
+ * it) and adjusts the frame extents so the frame covers only the client
+ * content area plus border.  If not decorated, restores the titlebar
+ * and the original frame extents.
+ *
+ * @param client Window whose decoration is to be toggled
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_toggle_decoration(client_td *client);
+
+
 #endif  /* ! CMDS_CCMD_H */

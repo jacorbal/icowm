@@ -48,12 +48,41 @@
 #include <eventq.h>
 #include <logger.h>
 #include <priority.h>
+#include <render/desktop.h>
 #include <render/surface.h>
 #include <render/text.h>
 #include <surface.h>
 
 /* Local includes */
 #include <wm.h>
+
+
+// FIXME: should this be in 'defs/config.h'?
+#define WM_MAX_KEYBINDINGS (128)            /**< Maximum number of
+                                                 supported key bindings */
+#define WM_MAX_MOUSEBINDINGS (8)            /**< Maximum number of
+                                                 supported mouse bindings */
+
+#define WM_MIN_WINDOW_DIMENSION (1u)        /**< Minimum supported client
+                                                 window dimension */
+#define WM_KEYBOARD_MOVE_STEP (20)          /**< Keyboard move step
+                                                (pixels) */
+#define WM_KEYBOARD_RESIZE_STEP (20)        /**< Keyboard resize step
+                                                 (pixels) */
+
+#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)     /**< Pixels between baseline
+                                                 and the bottom of the
+                                                 titlebar */
+#define WM_INFO_POPUP_LINE_MAX_LEN (256)    /**< Maximum length of each
+                                                 info popup text line */
+
+#define WM_ICON_SQUARE_SIZE     (48u)       /**< Width/height of icon
+                                                 square (pixels) */
+
+#define WM_ICON_CAPTION_HEIGHT  (14u)       /**< Caption area below icon */
+#define WM_DECOR_BTN_SIZE       (12u)       /**< Decoration button side px */
+#define WM_DECOR_BTN_GAP        (2u)        /**< Gap between buttons */
+#define WM_DECOR_BTN_PAD        (4u)        /**< Padding from frame edge */
 
 
 /* Though variable static dost often lurk near,
@@ -77,16 +106,20 @@ enum wm_keybind_type_e {
 
     /* Window operations */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
+    KEYBIND_CLIENT_HIDE,                /**< Hide (minimize) focused client */
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
     KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
     KEYBIND_CLIENT_CENTER,              /**< Center focused client */
     KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
-    KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle focused clt. fullscreen */
+    KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle foc. client fullscreen */
     KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */
     KEYBIND_CLIENT_INFO,                /**< Show focused client info */
+    KEYBIND_CLIENT_TOGGLE_DECORATION,   /**< Toggle decoration on client */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
+    KEYBIND_DESKTOP_ICON_NEXT,          /**< Cycle to next iconified client */
+    KEYBIND_DESKTOP_ICON_PREV,          /**< Cycle to prev iconified client */
 
     /* Program launcher */
     KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
@@ -125,15 +158,6 @@ typedef struct {
 } wm_keybinding_td;
 
 
-// FIXME: should this be in 'defs/config.h'?
-#define WM_MAX_KEYBINDINGS (64)         /**< Maximum number of supported
-                                             key bindings */
-#define WM_MIN_WINDOW_DIMENSION (1u)    /**< Minimum supported client
-                                             window dimension */
-#define WM_KEYBOARD_MOVE_STEP (20)      /**< Keyboard move step in pixels */
-#define WM_KEYBOARD_RESIZE_STEP (20)    /**< Keyboard resize step in pixels */
-
-
  /** Resolved key bindings loaded from configuration */
 static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
 
@@ -165,17 +189,6 @@ typedef struct {
     xcb_button_index_t button;
     enum wm_mousebind_type_e type;
 } wm_mousebinding_td;
-
-
-// FIXME: rename & should this be in 'defs/config.h'?
-#define WM_MAX_MOUSEBINDINGS (8)            /**< Maximum number of
-                                                 supported mouse
-                                                 bindings */
-#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)     /**< Pixels between baseline
-                                                 and the bottom of the
-                                                 titlebar */
-#define WM_INFO_POPUP_LINE_MAX_LEN (256)    /**< Maximum length of each
-                                                 info popup text line */
 
 
 /** Mouse bindings registered by the window manager */
@@ -712,9 +725,11 @@ static client_td *s_wm_cycle_target_client(desktop_td *desktop,
     } while (node != NULL && node != initial);
 
     if (active_node != NULL) {
-        node = is_next ? cdlist_prev(active_node) : cdlist_next(active_node);
+        node = (is_next)
+            ? cdlist_prev(active_node)
+            : cdlist_next(active_node);
     } else {
-        node = is_next
+        node = (is_next)
             ? cdlist_tail(desktop->stacking)
             : cdlist_head(desktop->stacking);
     }
@@ -729,6 +744,80 @@ static client_td *s_wm_cycle_target_client(desktop_td *desktop,
         if (client != NULL &&
                 !client_is_iconified(client) &&
                 client_is_focusable(client)) {
+            return client;
+        }
+        node = (is_next) ? cdlist_prev(node) : cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return NULL;
+}
+
+
+/**
+ * @brief Select the next or previous iconified client
+ *
+ * Traverses the desktop stacking list and returns the next iconified
+ * client according to the requested cycling direction.  When found, the
+ * client is restored from iconification.
+ *
+ * @param desktop Pointer to the desktop where cycling is performed
+ * @param is_next When @c true, cycle to next; when @c false, cycle to
+ *                previous
+ *
+ * @return Pointer to the selected (and now restored) client, or @c NULL
+ *         if no iconified client exists
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients in the
+ *       desktop stacking list
+ */
+static client_td *s_wm_cycle_icon_client(desktop_td *desktop,
+        bool is_next)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    cdlist_item_td *active_node = NULL;
+
+    if (desktop == NULL || desktop->stacking == NULL ||
+            cdlist_size(desktop->stacking) == 0) {
+        return NULL;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return NULL;
+    }
+
+    initial = node;
+    do {
+        client_td *client = (client_td *) cdlist_data(node);
+        if (client != NULL && client->id == desktop->client_active_id) {
+            active_node = node;
+            break;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    if (active_node != NULL) {
+        node = (is_next)
+            ? cdlist_prev(active_node)
+            : cdlist_next(active_node);
+    } else {
+        node = (is_next)
+            ? cdlist_tail(desktop->stacking)
+            : cdlist_head(desktop->stacking);
+    }
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    initial = node;
+    do {
+        client_td *client = (client_td *) cdlist_data(node);
+        if (client != NULL &&
+                client_is_iconified(client) &&
+                client_is_focusable(client)) {
+            client_send_event_restore(client);
             return client;
         }
         node = is_next ? cdlist_prev(node) : cdlist_next(node);
@@ -1011,6 +1100,8 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_LAUNCH_EDITOR },
         { wm->config->bindings.keyboard.iconify,
           KEYBIND_CLIENT_ICONIFY },
+        { wm->config->bindings.keyboard.hide,
+          KEYBIND_CLIENT_HIDE },
         { wm->config->bindings.keyboard.close,
           KEYBIND_CLIENT_CLOSE },
         { wm->config->bindings.keyboard.kill,
@@ -1031,10 +1122,16 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
           KEYBIND_CLIENT_CYCLE_PREV },
         { wm->config->bindings.keyboard.cycle_next,
           KEYBIND_CLIENT_CYCLE_NEXT },
+        { wm->config->bindings.keyboard.toggle_decoration,
+          KEYBIND_CLIENT_TOGGLE_DECORATION },
         { wm->config->bindings.keyboard.desktop.cycle_prev,
           KEYBIND_DESKTOP_PREV },
         { wm->config->bindings.keyboard.desktop.cycle_next,
           KEYBIND_DESKTOP_NEXT },
+        { wm->config->bindings.keyboard.desktop.cycle_icon_prev,
+          KEYBIND_DESKTOP_ICON_PREV },
+        { wm->config->bindings.keyboard.desktop.cycle_icon_next,
+          KEYBIND_DESKTOP_ICON_NEXT },
         { wm->config->bindings.keyboard.move.relative.left,
           KEYBIND_CLIENT_MOVE_LEFT },
         { wm->config->bindings.keyboard.move.relative.right,
@@ -1105,19 +1202,32 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
             if (surface == NULL || surface->screen == NULL) {
                 continue;
             }
+
             for (int j = 0; keycodes[j] != 0; ++j) {
                 for (size_t k = 0;
                         k < sizeof(lockmods) / sizeof(lockmods[0]);
                         ++k) {
-                    xcb_grab_key(wm->connection,
+                    xcb_void_cookie_t ck;
+                    xcb_generic_error_t *err;
+                    ck = xcb_grab_key_checked(wm->connection,
                             1,   /* owner_events */
                             surface->screen->root,
                             (uint16_t) (modmask | lockmods[k]),
                             keycodes[j],
                             XCB_GRAB_MODE_ASYNC,
                             XCB_GRAB_MODE_ASYNC);
-                }
-            }
+
+                    err = xcb_request_check(wm->connection, ck);
+                    if (err != NULL) {
+                        LOGGER_WARNING("xcb_grab_key failed for "
+                                "keycode=%u modmask=0x%x error=%d",
+                                keycodes[j],
+                                (unsigned) (modmask | lockmods[k]),
+                                err->error_code);
+                        free(err);
+                    }
+                } /* ! for (k) */
+            } /* ! for (j) */
         }
 
         free(keycodes);
@@ -1431,7 +1541,27 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                 }
                 return;
 
+            case KEYBIND_DESKTOP_ICON_NEXT:
+            case KEYBIND_DESKTOP_ICON_PREV:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        s_wm_get_current_desktop(surface);
+                    if (desktop != NULL) {
+                        const bool is_next =
+                            (s_keybindings[i].type ==
+                                KEYBIND_DESKTOP_ICON_NEXT);
+                        client_td *target =
+                            s_wm_cycle_icon_client(desktop, is_next);
+                        if (target != NULL) {
+                            s_wm_focus_client(surface, desktop, target,
+                                    true);
+                        }
+                    }
+                }
+                return;
+
             case KEYBIND_CLIENT_ICONIFY:
+            case KEYBIND_CLIENT_HIDE:
             case KEYBIND_CLIENT_CLOSE:
             case KEYBIND_CLIENT_KILL:
             case KEYBIND_CLIENT_MAXIMIZE:
@@ -1440,6 +1570,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:
             case KEYBIND_CLIENT_INFO:
+            case KEYBIND_CLIENT_TOGGLE_DECORATION:
                 /* Determine the focused/top client on current desktop */
                 if (surface != NULL) {
                     desktop_td *desktop =
@@ -1463,6 +1594,9 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             }
 
                             if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_HIDE) {
+                                act = ACTION_CLIENT_HIDE;
+                            } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_CLOSE) {
                                 act = ACTION_CLIENT_CLOSE;
                             } else if (s_keybindings[i].type ==
@@ -1483,6 +1617,9 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             } else if (s_keybindings[i].type ==
                                     KEYBIND_CLIENT_PIN) {
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
+                            } else if (s_keybindings[i].type ==
+                                    KEYBIND_CLIENT_TOGGLE_DECORATION) {
+                                act = ACTION_CLIENT_TOGGLE_DECORATION;
                             }
 
                             client_send_event(client, act,
@@ -1755,6 +1892,57 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL && desktop != NULL) {
             s_wm_focus_client(surface, desktop, client, true);
+        }
+
+        /* Check if click landed on a titlebar decoration button.
+         * Buttons are in the titlebar ('y < frame_extents.top') and we
+         * test event_x against each button's x-extent. */
+        if (event->child == client->titlebar && client->titlebar != 0) {
+            int16_t  ex  = event->event_x;
+            int16_t  ey = event->event_y;
+            uint16_t top = (uint16_t) client->layout.frame_extents.top;
+            uint16_t fw = (uint16_t) client->layout.geometry.cur.dim.w;
+            uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
+            uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
+            uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
+            uint16_t step = (uint16_t) (btn + gap);
+            int16_t  btn_y = (top > btn) ? (int16_t) ((top - btn) / 2u) : 0;
+	
+            if (ey >= btn_y && ey < btn_y + (int16_t) btn) {
+                /* Check Pin button (left-aligned) */
+                if (ex >= (int16_t) pad &&
+                        ex < (int16_t) (pad + btn)) {
+                    client_send_event(client,
+                            ACTION_CLIENT_TOGGLE_STICKY,
+                            PRIORITY_NORMAL);
+                }
+
+                /* Check right-aligned buttons (right-to-left):
+                 * Values of 'i':
+                 * 0=Close, 1=Fullscreen, 2=Maximize, 3=Shade, 4=Hide,
+                 * 5=Iconify */
+                else {
+                    int bi;
+                    static const enum action_client_e btn_actions[6] = {
+                        ACTION_CLIENT_CLOSE,
+                        ACTION_CLIENT_TOGGLE_FULLSCREEN,
+                        ACTION_CLIENT_MAXIMIZE,
+                        ACTION_CLIENT_TOGGLE_SHADE,
+                        ACTION_CLIENT_HIDE,
+                        ACTION_CLIENT_ICONIFY
+                    };
+
+                    for (bi = 0; bi < 6; ++bi) {
+                        int16_t bx = (int16_t)(fw - pad - btn -
+                                (int16_t) (bi * step));
+                        if (ex >= bx && ex < bx + (int16_t) btn) {
+                            client_send_event(client, btn_actions[bi],
+                                    PRIORITY_NORMAL);
+                            break;
+                        }
+                    } /* ! for (bi) */
+                }
+            }
         }
 
         /* Unfreeze the pointer (frame's SYNC passive grab is active).
@@ -2531,10 +2719,33 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
         return;
     }
 
-    /* Titlebar: repaint background and title text for the owning client */
     client = s_wm_find_client(event->window, NULL, &desktop);
-    if (client == NULL || client->titlebar != event->window ||
-            client->info.name == NULL) {
+    if (client == NULL) {
+        return;
+    }
+
+    /* Icon window: repaint caption below the square */
+    if (client->icon_window == event->window) {
+        if (wm->config->theme.icon.is_captioned &&
+                client->info.name != NULL) {
+            text_renderer_init(wm->connection,
+                    wm->config->theme.icon.font);
+            text_draw_string(wm->connection, client->icon_window,
+                    XCB_NONE,
+                    2,
+                    (int16_t) (WM_ICON_SQUARE_SIZE +
+                               WM_ICON_CAPTION_HEIGHT - 2u),
+                    client->info.name);
+        }
+
+        xcb_flush(wm->connection);
+
+        return;
+    }
+	
+	
+    /* Titlebar: repaint background, title text, and decoration buttons */
+    if (client->titlebar != event->window || client->info.name == NULL) {
         return;
     }
 
@@ -2556,11 +2767,16 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
             ? wm->config->theme.window.active.font
             : wm->config->theme.window.inactive.font);
     text_draw_string(wm->connection, client->titlebar, XCB_NONE,
-            8,
+            (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
+                WM_DECOR_BTN_PAD),
             (int16_t) ((top > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                     ? top - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
                     : top),
             client->info.name);
+
+    desktop_draw_titlebar_buttons(wm->connection, client->titlebar,
+            (uint16_t) client->layout.geometry.cur.dim.w, top,
+            is_focused, (bool) client_is_sticky(client));
 
     xcb_flush(wm->connection);
 }

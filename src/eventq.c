@@ -408,6 +408,10 @@ static void s_event_handle_client(event_td *event)
 
         case ACTION_CLIENT_CYCLE_PREV:
             break;
+
+        case ACTION_CLIENT_TOGGLE_DECORATION:
+            wcmd_client_toggle_decoration(client);
+            break;
     }
 
     xcb_flush(client->connection);
