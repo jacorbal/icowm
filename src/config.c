@@ -422,13 +422,16 @@ static int s_json_load_from_file(const char *filename, char **data)
                 " will be used", filename);
         return 1;
     }
+
     length = (size_t) file_length;
+/*
     if (length == 0) {
         fclose(file);
         LOGGER_NOTICE("File '%s' is empty; default values" \
                 " will be used", filename);
         return 1;
     }
+*/
     if (fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
         LOGGER_NOTICE("Unable to rewind JSON file '%s'; default values"
@@ -478,7 +481,6 @@ static int s_json_load_from_file(const char *filename, char **data)
  */
 static int s_json_load_config(const char *filename, cJSON **json_out)
 {
-    cJSON *json;
     cJSON *json_root;
     char *data;
 
@@ -495,21 +497,21 @@ static int s_json_load_config(const char *filename, cJSON **json_out)
         return 2;
     }
 
-    json = json_root;
     if (!cJSON_IsObject(json_root)) {
         if (cJSON_IsArray(json_root) && cJSON_GetArraySize(json_root) >= 1) {
             cJSON *array_first = cJSON_GetArrayItem(json_root, 0);
 
             if (array_first && cJSON_IsObject(array_first)) {
-                json = cJSON_Duplicate(array_first, cJSON_True);
+                cJSON *json_dup = cJSON_Duplicate(array_first, cJSON_True);
                 cJSON_Delete(json_root);
-                if (json == NULL) {
+                if (json_dup == NULL) {
                     LOGGER_WARNING("Failed to duplicate configuration" \
                             " object from '%s'; default configuration" \
                             " will be used", filename);
                     free(data);
                     return 2;
                 }
+                json_root = json_dup;
                 LOGGER_NOTICE("Using first object from top-level array" \
                         " in '%s' as compatibility fallback", filename);
             } else {
@@ -531,7 +533,7 @@ static int s_json_load_config(const char *filename, cJSON **json_out)
     }
 
     free(data);
-    *json_out = json;
+    *json_out = json_root;
     return 0;
 }
 
