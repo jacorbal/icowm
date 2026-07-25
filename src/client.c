@@ -500,13 +500,6 @@ client_td *client_init(xcb_connection_t *connection,
     client->info.class_name[1][0] = '\0';
     client->icon_info.icon_name[0] = '\0';
     client->icon_info.visible_icon_name[0] = '\0';
-/*
-    snprintf(client->info.role_name, 255, "");
-    snprintf(client->info.class_name[0], 255, "");
-    snprintf(client->info.class_name[1], 255, "");
-    snprintf(client->icon_info.icon_name, 255, "");
-    snprintf(client->icon_info.visible_icon_name, 255, "");
-*/
 
     /* Create the XCB window that represents this client */
     client->window = xcb_generate_id(connection);
@@ -760,13 +753,6 @@ client_td *client_manage(xcb_connection_t *connection,
     client->info.class_name[1][0] = '\0';
     client->icon_info.icon_name[0] = '\0';
     client->icon_info.visible_icon_name[0] = '\0';
-/*
-    snprintf(client->info.role_name, 255, "");
-    snprintf(client->info.class_name[0], 255, "");
-    snprintf(client->info.class_name[1], 255, "");
-    snprintf(client->icon_info.icon_name, 255, "");
-    snprintf(client->icon_info.visible_icon_name, 255, "");
-*/
 
     /* Read WM_NAME */
     s_client_get_wm_name(connection, window, wm_name, sizeof(wm_name));

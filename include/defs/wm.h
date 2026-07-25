@@ -31,10 +31,47 @@
  */
 #define DESKTOP_MAX_LENGTH_NAME (64)
 
-/**
- * @brief Desktop identifier when the client is pinned to all desktops
- */
+/** Desktop identifier when the client is pinned to all desktops */
 #define DESKTOP_ID_ALL (0xFFFFFFFF)
+
+/** Maximum number of supported key bindings */
+#define WM_MAX_KEYBINDINGS (128)
+
+/** Maximum number of supported mouse bindings */
+#define WM_MAX_MOUSEBINDINGS (8)
+
+/** Minimum supported client window dimension */
+#define WM_MIN_WINDOW_DIMENSION (1u)
+
+/** Keyboard move step (pixels) */
+#define WM_KEYBOARD_MOVE_STEP (20)
+
+/** Keyboard resize step (pixels) */
+#define WM_KEYBOARD_RESIZE_STEP (20)
+
+/** Pixels between baseline and the bottom of the titlebar */
+#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)
+
+/** Maximum length of each info popup text line */
+#define WM_INFO_POPUP_LINE_MAX_LEN (256)
+
+/** Width/height of icon square in pixels */
+#define WM_ICON_SQUARE_SIZE (48u)
+
+/** Caption area below icon in pixels */
+#define WM_ICON_CAPTION_HEIGHT (14u)
+
+/** Decoration button side pixels */
+#define WM_DECOR_BTN_SIZE (12u)
+
+/** Gap between buttons */
+#define WM_DECOR_BTN_GAP (2u)
+
+/** Padding from frame edge */
+#define WM_DECOR_BTN_PAD (4u)
+
+/** Minimum permitted frame/client dimension (px) when toggling decoration */
+#define WCMD_MIN_DIM (1)
 
 
 #endif  /* ! DEFS_WM_H */

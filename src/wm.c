@@ -38,6 +38,12 @@
 #include <adt/list.h>   /* Singly linked list */
 #include <adt/ohtbl.h>  /* Open-addressed hash table */
 
+/* Utils includes */
+#include <utils/safestr.h>
+
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <action.h>
@@ -55,34 +61,6 @@
 
 /* Local includes */
 #include <wm.h>
-
-
-// FIXME: should this be in 'defs/config.h'?
-#define WM_MAX_KEYBINDINGS (128)            /**< Maximum number of
-                                                 supported key bindings */
-#define WM_MAX_MOUSEBINDINGS (8)            /**< Maximum number of
-                                                 supported mouse bindings */
-
-#define WM_MIN_WINDOW_DIMENSION (1u)        /**< Minimum supported client
-                                                 window dimension */
-#define WM_KEYBOARD_MOVE_STEP (20)          /**< Keyboard move step
-                                                (pixels) */
-#define WM_KEYBOARD_RESIZE_STEP (20)        /**< Keyboard resize step
-                                                 (pixels) */
-
-#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)     /**< Pixels between baseline
-                                                 and the bottom of the
-                                                 titlebar */
-#define WM_INFO_POPUP_LINE_MAX_LEN (256)    /**< Maximum length of each
-                                                 info popup text line */
-
-#define WM_ICON_SQUARE_SIZE     (48u)       /**< Width/height of icon
-                                                 square (pixels) */
-
-#define WM_ICON_CAPTION_HEIGHT  (14u)       /**< Caption area below icon */
-#define WM_DECOR_BTN_SIZE       (12u)       /**< Decoration button side px */
-#define WM_DECOR_BTN_GAP        (2u)        /**< Gap between buttons */
-#define WM_DECOR_BTN_PAD        (4u)        /**< Padding from frame edge */
 
 
 /* Though variable static dost often lurk near,
@@ -459,7 +437,7 @@ static bool s_parse_binding(const char *binding,
     }
 
     /* Safe copy into a local buffer */
-    len = strlen(binding);
+    len = safe_strlen(binding);
     if (len >= sizeof(buf)) {
         len = sizeof(buf) - 1;
     }
@@ -955,17 +933,6 @@ static void s_wm_show_client_info(surface_td *surface,
     snprintf(s_info_popup_lines[3], sizeof(s_info_popup_lines[3]),
             "flags=%#x state=%#x",
             client->properties.flags, client->properties.state);
-
-    text_renderer_init(wm->connection,
-            wm->config->theme.window.active.font);
-    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 16, s_info_popup_lines[0]);
-    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 16, s_info_popup_lines[1]);
-    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 16, s_info_popup_lines[2]);
-    text_draw_string(wm->connection, s_info_popup_window, XCB_NONE,
-            8, 16, s_info_popup_lines[3]);
 
     xcb_map_window(wm->connection, s_info_popup_window);
     xcb_flush(wm->connection);
@@ -1469,7 +1436,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     if (keysym == 0xff08 &&     // == XK_BackSpace &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
-        LOGGER_TRACE("Emergency exit key combination detected", L_NARG);
+        LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
         wm->is_running = false;
         return;
     }
@@ -1907,7 +1874,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
             uint16_t step = (uint16_t) (btn + gap);
             int16_t  btn_y = (top > btn) ? (int16_t) ((top - btn) / 2u) : 0;
-	
+
             if (ey >= btn_y && ey < btn_y + (int16_t) btn) {
                 /* Check Pin button (left-aligned) */
                 if (ex >= (int16_t) pad &&
@@ -1958,7 +1925,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         }
         xcb_flush(wm->connection);
         return;
-    } 
+    }
 
     if ((state & XCB_MOD_MASK_1) == 0) {
         /* Click on root background or orphaned frame.  If a SYNC
@@ -2032,6 +1999,9 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     }
 
     if (client == NULL) {
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
@@ -2742,8 +2712,7 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
         return;
     }
-	
-	
+
     /* Titlebar: repaint background, title text, and decoration buttons */
     if (client->titlebar != event->window || client->info.name == NULL) {
         return;

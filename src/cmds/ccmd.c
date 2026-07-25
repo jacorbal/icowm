@@ -29,6 +29,9 @@
 #include <utils/safemem.h>
 #include <utils/safestr.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
@@ -766,14 +769,6 @@ void wcmd_client_maximize(client_td *client)
 }
 
 
-/* Icon square dimensions */
-#define WM_ICON_SQUARE_SIZE     (48u)   /**< Width/height of the icon square */
-#define WM_ICON_CAPTION_HEIGHT  (14u)   /**< Height of caption below the icon */
-
-/** Minimum permitted frame/client dimension when toggling decoration */
-#define WCMD_MIN_DIM            (1)
-
-
 /* Iconify client (and minimize it) */
 void wcmd_client_iconify(client_td *client)
 {
@@ -1033,7 +1028,7 @@ void wcmd_client_fullscreen(client_td *client)
 /* Remove full screen mode */
 void wcmd_client_unfullscreen(client_td *client)
 {
-    xcb_window_t target; 
+    xcb_window_t target;
 
     if (client == NULL) {
         return;
@@ -1271,7 +1266,7 @@ void wcmd_client_toggle_decoration(client_td *client)
     th = (int32_t) client->title_height;
 
     if (client_is_decorated(client)) {  /* Remove decoration */
-         /* Compute inner client geometry from current frame geometry. */
+         /* Compute inner client geometry from current frame geometry */
         int32_t inner_x = client->layout.geometry.cur.pos.x +
                           client->layout.frame_extents.left;
         int32_t inner_y = client->layout.geometry.cur.pos.y +
@@ -1283,8 +1278,12 @@ void wcmd_client_toggle_decoration(client_td *client)
                           client->layout.frame_extents.top -
                           client->layout.frame_extents.bottom;
 
-        if (inner_w < WCMD_MIN_DIM) { inner_w = WCMD_MIN_DIM; }
-        if (inner_h < WCMD_MIN_DIM) { inner_h = WCMD_MIN_DIM; }
+        if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+        if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
 
         /* Reposition frame to cover only the client content area */
         xcb_configure_window(client->connection, client->frame,
@@ -1331,8 +1330,12 @@ void wcmd_client_toggle_decoration(client_td *client)
         int32_t frame_h = (int32_t) client->layout.geometry.cur.dim.h +
                           2 * bw + th;
 
-        if (frame_w < WCMD_MIN_DIM) { frame_w = WCMD_MIN_DIM; }
-        if (frame_h < WCMD_MIN_DIM) { frame_h = WCMD_MIN_DIM; }
+        if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+        if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
 
         /* Expand frame to include borders and titlebar */
         xcb_configure_window(client->connection, client->frame,

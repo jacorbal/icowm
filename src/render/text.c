@@ -15,10 +15,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free */
-#include <string.h>     /* strlen */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Utils includes */
+#include <utils/safestr.h>
 
 /* Local includes */
 #include <render/text.h>
@@ -28,6 +30,7 @@ static struct {
     xcb_connection_t *connection;
     xcb_font_t font;
     xcb_gcontext_t gc;
+    char font_name[256];
     uint16_t char_width;
     bool initialized;
 } s_text = {
@@ -60,15 +63,19 @@ int text_renderer_init(xcb_connection_t *connection,
         return -1;
     }
 
-    if (s_text.initialized && s_text.connection == connection) {
+    if (s_text.initialized &&
+            s_text.connection == connection &&
+            safe_strcmp(s_text.font_name, font) == 0) {
         return 0;
     }
 
     text_renderer_destroy();
 
     s_text.connection = connection;
+    safe_strncpy(s_text.font_name, font, sizeof(s_text.font_name));
     s_text.font = xcb_generate_id(connection);
-    xcb_open_font(connection, s_text.font, (uint16_t) strlen(font), font);
+    xcb_open_font(connection, s_text.font,
+            (uint16_t) safe_strlen(font), font);
 
     s_text.gc = xcb_generate_id(connection);
     gc_values[0] = TEXT_COLOR_WHITE;
@@ -109,6 +116,7 @@ void text_renderer_destroy(void)
     s_text.connection = NULL;
     s_text.font = XCB_NONE;
     s_text.gc = XCB_NONE;
+    s_text.font_name[0] = '\0';
     s_text.char_width = 8;
     s_text.initialized = false;
 }
@@ -130,7 +138,7 @@ void text_draw_string(xcb_connection_t *connection,
         }
     }
 
-    len = strlen(text);
+    len = safe_strlen(text);
     if (len == 0) {
         return;
     }
@@ -146,7 +154,7 @@ void text_draw_string(xcb_connection_t *connection,
 /* Measure the rendered width of a string */
 uint16_t text_measure_string(const char *text)
 {
-    size_t len = (text == NULL) ? 0 : strlen(text);
+    size_t len = safe_strlen(text);
 
     if (len > UINT16_MAX / s_text.char_width) {
         return UINT16_MAX;
