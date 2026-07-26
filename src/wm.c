@@ -236,6 +236,37 @@ static uint16_t s_wm_clamp_dimension(int32_t value)
 }
 
 
+/**
+ * @brief Determine whether the loaded focus policy follows the pointer
+ *
+ * Accepts the historical policy spellings used by the configuration,
+ * including both prefixed and unprefixed variants, as well as '_' and
+ * '-' separators.
+ *
+ * @return @c true when focus should follow mouse enter events
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_wm_is_focus_follows_mouse_policy(void)
+{
+    const char *policy;
+
+    if (wm == NULL || wm->config == NULL) {
+        return false;
+    }
+
+    policy = wm->config->base.windows.focus.policy;
+    if (policy == NULL) {
+        return false;
+    }
+
+    return strcasecmp(policy, "focus_follows_mouse") == 0 ||
+        strcasecmp(policy, "focus-follows-mouse") == 0 ||
+        strcasecmp(policy, "follow_mouse") == 0 ||
+        strcasecmp(policy, "follow-mouse") == 0;
+}
+
+
 /* Key-string parsing helpers */
 /**
  * @brief Resolve configured modifier aliases such as @c modc or @c mods
@@ -1243,15 +1274,16 @@ static void s_wm_grab_buttons(void)
     struct {
         const char *binding;
         enum wm_mousebind_type_e type;
+        bool requires_mod1;
     } defs[] = {
-        { wm->config->bindings.mouse.move, MOUSEBIND_MOVE },
-        { wm->config->bindings.mouse.resize, MOUSEBIND_RESIZE },
-        { wm->config->bindings.mouse.lower, MOUSEBIND_LOWER },
+        { wm->config->bindings.mouse.move, MOUSEBIND_MOVE, true },
+        { wm->config->bindings.mouse.resize, MOUSEBIND_RESIZE, true },
+        { wm->config->bindings.mouse.lower, MOUSEBIND_LOWER, true },
         { wm->config->bindings.mouse.desktop.cycle_prev,
-          MOUSEBIND_DESKTOP_PREV },
+            MOUSEBIND_DESKTOP_PREV, false },
         { wm->config->bindings.mouse.desktop.cycle_next,
-          MOUSEBIND_DESKTOP_NEXT },
-        { NULL, MOUSEBIND_NONE }
+            MOUSEBIND_DESKTOP_NEXT, false },
+        { NULL, MOUSEBIND_NONE, false }
     };
 
     /* Lock-modifier variants: passive grabs match the modifier mask
@@ -1302,7 +1334,9 @@ static void s_wm_grab_buttons(void)
                         XCB_NONE,
                         XCB_NONE,
                         (uint8_t) button,
-                        (uint16_t) (XCB_MOD_MASK_1 | lockmods[k]));
+                        (uint16_t) (((defs[i].requires_mod1)
+                                ? XCB_MOD_MASK_1
+                                : 0u) | lockmods[k]));
             }
         }
     }
@@ -1462,7 +1496,7 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
         LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
-        wm->is_running = false;
+        (void) wm_request_stop();
         return;
     }
 
@@ -1880,6 +1914,34 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
 
+    for (int i = 0; i < s_mousebindings_count; ++i) {
+        if (s_mousebindings[i].button ==
+                (xcb_button_index_t) event->detail) {
+            type = s_mousebindings[i].type;
+            break;
+        }
+    }
+
+    if ((state & XCB_MOD_MASK_1) == 0 &&
+            (type == MOUSEBIND_DESKTOP_NEXT ||
+             type == MOUSEBIND_DESKTOP_PREV)) {
+        surface = s_wm_get_surface_for_root(event->root);
+        if (surface != NULL) {
+            event_td *ev;
+            action_td action;
+            action.type = ACTION_TYPE_SURFACE;
+            action.object.surface = (type == MOUSEBIND_DESKTOP_NEXT)
+                ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
+                : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
+            ev = event_init((void *) surface, NULL, action,
+                    PRIORITY_NORMAL);
+            if (ev != NULL) {
+                eventq_add(ev);
+            }
+        }
+        return;
+    }
+
     if (client != NULL && (state & XCB_MOD_MASK_1) == 0) {
         surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL && desktop != NULL) {
@@ -1892,13 +1954,20 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         if (event->child == client->titlebar && client->titlebar != 0) {
             int16_t  ex  = event->event_x;
             int16_t  ey = event->event_y;
-            uint16_t top = (uint16_t) client->layout.frame_extents.top;
-            uint16_t fw = (uint16_t) client->layout.geometry.cur.dim.w;
+            uint16_t left = (uint16_t) client->layout.frame_extents.left;
+            uint16_t right = (uint16_t) client->layout.frame_extents.right;
+            uint16_t frame_w = (uint16_t) client->layout.geometry.cur.dim.w;
+            uint16_t fw = (frame_w > left + right)
+                ? (uint16_t) (frame_w - left - right)
+                : 1u;
             uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
             uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
             uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
             uint16_t step = (uint16_t) (btn + gap);
-            int16_t  btn_y = (top > btn) ? (int16_t) ((top - btn) / 2u) : 0;
+            uint16_t title_h = client->title_height;
+            int16_t  btn_y = (title_h > btn)
+                ? (int16_t) ((title_h - btn) / 2u)
+                : 0;
 
             if (ey >= btn_y && ey < btn_y + (int16_t) btn) {
                 /* Check Pin button (left-aligned) */
@@ -1964,24 +2033,14 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         return;
     }
 
-    /* Identify which configured mouse action (if any) this button
-     * corresponds to, instead of hardcoding specific button numbers */
-    for (int i = 0; i < s_mousebindings_count; ++i) {
-        if (s_mousebindings[i].button ==
-                (xcb_button_index_t) event->detail) {
-            type = s_mousebindings[i].type;
-            break;
-        }
-    }
-
     if (type == MOUSEBIND_NONE) {
         return;
     }
 
-    /* Desktop cycling via the mouse wheel is not tied to any
-     * particular client: dispatch it immediately, mirroring the
-     * keyboard desktop-cycle key bindings, and return without
-     * touching the drag state machine */
+    /* Desktop cycling without 'Alt' was already handled above.  If the
+     * configured wheel binding also happens to be used while 'Alt' is
+     * held, dispatch it here too before touching the drag state
+     * machine */
     if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
         surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL) {
@@ -2295,7 +2354,6 @@ static void s_wm_handle_configure_notify(
             ? (event->window == client->frame)
             : (event->window == client->window ||
                     event->window == client->id);
-
         if (is_frame_event) {
             client->layout.geometry.cur.pos.x = event->x;
             client->layout.geometry.cur.pos.y = event->y;
@@ -2710,7 +2768,10 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
     client_td *client;
     desktop_td *desktop;
     bool is_focused;
-    uint16_t top;
+    uint16_t left;
+    uint16_t right;
+    uint16_t title_h;
+    uint16_t inner_w;
 
     if (event == NULL || event->count != 0) {
         return;
@@ -2740,10 +2801,22 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
     /* Icon window: repaint caption below the square */
     if (client->icon_window == event->window) {
+        xcb_change_window_attributes(wm->connection, client->icon_window,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                (const uint32_t[]) {
+                    wm->config->theme.icon.background_color,
+                    wm->config->theme.icon.border_color
+                });
+        xcb_clear_area(wm->connection, 0, client->icon_window,
+                0, 0, 0, 0);
+
         if (wm->config->theme.icon.is_captioned &&
                 client->info.name != NULL) {
             text_renderer_init(wm->connection,
                     wm->config->theme.icon.font);
+            text_renderer_set_color(
+                    wm->config->theme.icon.foreground_color,
+                    wm->config->theme.icon.background_color);
             text_draw_string(wm->connection, client->icon_window,
                     XCB_NONE,
                     2,
@@ -2765,7 +2838,40 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
     is_focused = (desktop != NULL &&
                   desktop->client_active_id == client->id);
 
-    top = (uint16_t) client->layout.frame_extents.top;
+        if (client->frame == event->window) {
+        xcb_change_window_attributes(wm->connection, client->frame,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                (const uint32_t[]) {
+                    (is_focused)
+                        ? wm->config->theme.window.active.border_color
+                        : wm->config->theme.window.inactive.border_color,
+                    (is_focused)
+                        ? wm->config->theme.window.active.border_color
+                        : wm->config->theme.window.inactive.border_color
+                });
+        xcb_clear_area(wm->connection, 0, client->frame, 0, 0, 0, 0);
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    left = (uint16_t) client->layout.frame_extents.left;
+    right = (uint16_t) client->layout.frame_extents.right;
+    title_h = client->title_height;
+    inner_w = (client->layout.geometry.cur.dim.w > left + right)
+        ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
+        : 1u;
+    xcb_change_window_attributes(wm->connection, client->frame,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                (is_focused)
+                    ? wm->config->theme.window.active.border_color
+                    : wm->config->theme.window.inactive.border_color,
+                (is_focused)
+                    ? wm->config->theme.window.active.border_color
+                    : wm->config->theme.window.inactive.border_color
+            });
+    xcb_clear_area(wm->connection, 0, client->frame, 0, 0, 0, 0);
+
     xcb_change_window_attributes(wm->connection, client->titlebar,
             XCB_CW_BACK_PIXEL,
             (const uint32_t[]) {
@@ -2779,7 +2885,6 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
             (is_focused)
                 ? wm->config->theme.window.active.font
                 : wm->config->theme.window.inactive.font);
-
     text_renderer_set_color(
             (is_focused)
                 ? wm->config->theme.window.active.foreground_color
@@ -2787,17 +2892,16 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
             (is_focused)
                 ? wm->config->theme.window.active.background_color
                 : wm->config->theme.window.inactive.background_color);
-
     text_draw_string(wm->connection, client->titlebar, XCB_NONE,
             (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                 WM_DECOR_BTN_PAD),
-            (int16_t) ((top > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
-                    ? top - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
-                    : top),
+            (int16_t) ((title_h > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                    ? title_h - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                    : title_h),
             client->info.name);
 
     desktop_draw_titlebar_buttons(wm->connection, client->titlebar,
-            (uint16_t) client->layout.geometry.cur.dim.w, top,
+            inner_w, title_h,
             is_focused, (bool) client_is_sticky(client),
             &wm->config->theme);
 
@@ -2937,9 +3041,7 @@ static void s_wm_handle_enter_notify(xcb_enter_notify_event_t *event)
     }
 
     /* Act only when focus-follows-mouse policy is in effect */
-    if (wm == NULL ||
-            strcasecmp(wm->config->base.windows.focus.policy,
-                "focus_follows_mouse") != 0) {
+    if (!s_wm_is_focus_follows_mouse_policy()) {
         return;
     }
 

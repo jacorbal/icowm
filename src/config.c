@@ -731,8 +731,8 @@ void config_set_default_values(config_td *config)
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
     safe_strcpy(config->bindings.mouse.move, "button1");
-    safe_strcpy(config->bindings.mouse.resize, "button2");
-    safe_strcpy(config->bindings.mouse.lower, "button3");
+    safe_strcpy(config->bindings.mouse.lower, "button2");
+    safe_strcpy(config->bindings.mouse.resize, "button3");
     safe_strcpy(config->bindings.mouse.desktop.cycle_prev, "button4");
     safe_strcpy(config->bindings.mouse.desktop.cycle_next, "button5");
 

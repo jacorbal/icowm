@@ -221,6 +221,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     uint16_t right;
     uint16_t top;
     uint16_t bottom;
+    uint16_t title_h;
     uint16_t inner_w;
     uint16_t inner_h;
 
@@ -271,12 +272,24 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
             if (is_current && client->is_icon_mapped &&
                     client->icon_window != 0) {
+                xcb_change_window_attributes(desktop->connection,
+                        client->icon_window,
+                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                        (const uint32_t[]) {
+                            desktop->config_theme->icon.background_color,
+                            desktop->config_theme->icon.border_color
+                        });
+                xcb_clear_area(desktop->connection, 0,
+                        client->icon_window, 0, 0, 0, 0);
                 xcb_map_window(desktop->connection, client->icon_window);
 
                 if (desktop->config_theme->icon.is_captioned &&
                         client->info.name != NULL) {
                     text_renderer_init(desktop->connection,
                             desktop->config_theme->icon.font);
+                    text_renderer_set_color(
+                            desktop->config_theme->icon.foreground_color,
+                            desktop->config_theme->icon.background_color);
                     text_draw_string(desktop->connection,
                             client->icon_window, XCB_NONE,
                             2,
@@ -338,6 +351,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
             bottom = (uint16_t) client->layout.frame_extents.bottom;
+            title_h = client->title_height;
             inner_w = (client->layout.geometry.cur.dim.w > left + right)
                 ? (uint16_t)
                     (client->layout.geometry.cur.dim.w - left - right)
@@ -356,6 +370,19 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         left, top, inner_w, inner_h
                     });
 
+            xcb_change_window_attributes(desktop->connection, client->frame,
+                    XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                    (const uint32_t[]) {
+                (is_focused)
+                    ? desktop->config_theme->window.active.border_color
+                    : desktop->config_theme->window.inactive.border_color,
+                (is_focused)
+                    ? desktop->config_theme->window.active.border_color
+                    : desktop->config_theme->window.inactive.border_color
+                    });
+            xcb_clear_area(desktop->connection, 0, client->frame,
+                    0, 0, 0, 0);
+
             if (client->titlebar != 0) {
                 xcb_configure_window(desktop->connection, client->titlebar,
                         XCB_CONFIG_WINDOW_X     |
@@ -363,8 +390,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         XCB_CONFIG_WINDOW_WIDTH |
                         XCB_CONFIG_WINDOW_HEIGHT,
                         (const uint32_t[]) {
-                            0, 0,
-                            client->layout.geometry.cur.dim.w, top
+                            left,
+                            (top > title_h) ? top - title_h : 0,
+                            inner_w, title_h
                         });
 
                 xcb_change_window_attributes(desktop->connection,
@@ -383,7 +411,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             ? desktop->config_theme->window.active.font
                             : desktop->config_theme->window.inactive.font);
 
-                /* Use theme foreground colour so text contrasts against
+                /* Use theme foreground color so text contrasts against
                  * the titlebar background (active or inactive) */
                 text_renderer_set_color(
                         (is_focused)
@@ -404,8 +432,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 
                 desktop_draw_titlebar_buttons(desktop->connection,
                         client->titlebar,
-                        (uint16_t) client->layout.geometry.cur.dim.w,
-                        top,
+                        inner_w,
+                        title_h,
                         is_focused,
                         (bool) client_is_sticky(client),
                         desktop->config_theme);

@@ -23,6 +23,9 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Utils includes */
 #include <utils/safemem.h>
 #include <utils/safestr.h>
@@ -219,6 +222,67 @@ static void s_client_set_decoration_defaults(client_td *client,
 
 
 /**
+ * @brief Reconfigure a decorated client's child windows to match
+ *        extents
+ *
+ * Applies the current cached frame extents to the reparented client
+ * window and titlebar so the themed border area, titlebar, and client
+ * content stay aligned after geometry changes.
+ *
+ * @param client Pointer to the decorated client to synchronize
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_sync_decoration_layout(client_td *client)
+{
+    uint16_t left;
+    uint16_t right;
+    uint16_t top;
+    uint16_t bottom;
+    uint16_t title_h;
+    uint16_t inner_w;
+    uint16_t inner_h;
+    uint16_t title_y;
+
+    if (client == NULL || client->frame == 0 ||
+            !client_is_decorated(client)) {
+        return;
+    }
+
+    left = (uint16_t) client->layout.frame_extents.left;
+    right = (uint16_t) client->layout.frame_extents.right;
+    top = (uint16_t) client->layout.frame_extents.top;
+    bottom = (uint16_t) client->layout.frame_extents.bottom;
+    title_h = client->title_height;
+    title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
+    inner_w = (client->layout.geometry.cur.dim.w > left + right)
+        ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
+        : WM_MIN_WINDOW_DIMENSION;
+    inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
+        ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
+        : WM_MIN_WINDOW_DIMENSION;
+
+    xcb_configure_window(client->connection, client->window,
+            XCB_CONFIG_WINDOW_X     |
+            XCB_CONFIG_WINDOW_Y     |
+            XCB_CONFIG_WINDOW_WIDTH |
+            XCB_CONFIG_WINDOW_HEIGHT,
+            (const uint32_t[]) {
+                left, top, inner_w, inner_h
+            });
+
+    if (client->titlebar != 0) {
+        xcb_configure_window(client->connection, client->titlebar,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                    left, title_y, inner_w, title_h
+                });
+    }
+}
+
+
+/**
  * @brief Create frame and titlebar windows for a decorated client
  *
  * Creates the outer frame window and the titlebar window associated
@@ -252,6 +316,9 @@ static int s_client_create_decorations(client_td *client)
     uint16_t right;
     uint16_t top;
     uint16_t bottom;
+    uint16_t inner_w;
+    uint16_t title_h;
+    uint16_t title_y;
 
     if (client == NULL || !client_is_decorated(client) ||
             client->theme == NULL || client->parent_id == 0) {
@@ -262,6 +329,9 @@ static int s_client_create_decorations(client_td *client)
     right = (uint16_t) client->layout.frame_extents.right;
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
+    inner_w = (uint16_t) client->layout.geometry.cur.dim.w;
+    title_h = client->title_height;
+    title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
 
     frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
     frame_y32 = client->layout.geometry.cur.pos.y - (int32_t) top;
@@ -286,7 +356,7 @@ static int s_client_create_decorations(client_td *client)
 
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = client->theme->window.inactive.background_color;
+    values[0] = client->theme->window.inactive.border_color;
     values[1] = client->theme->window.inactive.border_color;
     values[2] = XCB_EVENT_MASK_EXPOSURE |
                 XCB_EVENT_MASK_BUTTON_PRESS |
@@ -311,9 +381,9 @@ static int s_client_create_decorations(client_td *client)
             XCB_COPY_FROM_PARENT,
             client->titlebar,
             client->frame,
-            0, 0,
-            frame_w,
-            top,
+            (int16_t) left, (int16_t) title_y,
+            inner_w,
+            title_h,
             0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
@@ -356,6 +426,7 @@ static int s_client_create_decorations(client_td *client)
     client->layout.geometry.cur.dim.w = frame_w;
     client->layout.geometry.cur.dim.h = frame_h;
     client->layout.geometry.old = client->layout.geometry.cur;
+    s_client_sync_decoration_layout(client);
 
     return 0;
 }
@@ -1010,6 +1081,7 @@ int client_send_event_resize(client_td *client,
                 : client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             values);
+    s_client_sync_decoration_layout(client);
     xcb_flush(client->connection);
 
     /* Create and queue the event for the action handler */
