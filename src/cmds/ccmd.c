@@ -787,12 +787,47 @@ void wcmd_client_iconify(client_td *client)
     client_geometry_save(client);
 
     if (client->icon_window == 0) {
+        static uint32_t s_icon_slot = 0;
         uint16_t icon_h;
+        uint16_t screen_w;
+        uint16_t screen_h;
+        uint16_t margin;
+        uint16_t step_x;
+        uint16_t step_y;
+        uint16_t cols;
+        uint16_t col;
+        uint16_t row;
+        int16_t  ix;
+        int16_t  iy;
 
         icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
                 ((client->theme->icon.is_captioned)
                  ? WM_ICON_CAPTION_HEIGHT
                  : 0u));
+
+        /* Compute a grid position so that each icon lands in its own
+         * slot at the bottom of the screen rather than stacking at the
+         * same fixed coordinate.  Screen dimensions are queried from
+         * the root window via xcb_get_geometry. */
+        screen_w = 1024u;
+        screen_h = 768u;
+        if (s_wcmd_get_screen_dimensions(client, &screen_w, &screen_h)) {
+            /* dimensions updated */
+        }
+        margin = 8u;
+        step_x = (uint16_t) (WM_ICON_SQUARE_SIZE + margin);
+        step_y = (uint16_t) (icon_h + margin);
+        cols = (screen_w > step_x)
+            ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
+        col = (uint16_t) (s_icon_slot % cols);
+        row = (uint16_t) (s_icon_slot / cols);
+        ix = (int16_t) (margin + col * step_x);
+        iy = (int16_t) ((int32_t) screen_h - margin -
+                ((int32_t) row + 1) * (int32_t) step_y);
+        if (iy < (int16_t) margin) {
+            iy = (int16_t) margin;
+        }
+        s_icon_slot++;
 
         client->icon_window = xcb_generate_id(client->connection);
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
@@ -803,7 +838,7 @@ void wcmd_client_iconify(client_td *client)
                 XCB_COPY_FROM_PARENT,
                 client->icon_window,
                 client->parent_id,
-                8, 8,
+                ix, iy,
                 (uint16_t) WM_ICON_SQUARE_SIZE, icon_h,
                 (uint16_t) client->theme->icon.border_width,
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,

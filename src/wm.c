@@ -260,10 +260,9 @@ static bool s_wm_is_focus_follows_mouse_policy(void)
         return false;
     }
 
-    return strcasecmp(policy, "focus_follows_mouse") == 0 ||
-        strcasecmp(policy, "focus-follows-mouse") == 0 ||
-        strcasecmp(policy, "follow_mouse") == 0 ||
-        strcasecmp(policy, "follow-mouse") == 0;
+    return strcmp(policy, "follow-mouse") == 0 ||
+        strcmp(policy, "click") == 0;
+
 }
 
 
@@ -2365,6 +2364,97 @@ static void s_wm_handle_configure_notify(
 
 
 /**
+ * @brief Apply the configured placement policy to a newly mapped client
+ *
+ * Computes an initial frame position for @p client according to the
+ * window placement policy stored in the configuration and moves the
+ * frame window to that position.  The following policies are handled:
+ *
+ * - @c "cascade": each successive window is offset by a fixed step so
+ *   that windows fan out diagonally.  The sequence wraps when it would
+ *   push the frame off the right or bottom edge of the screen.
+ * - @c "centered": the frame is centred on the screen.
+ *
+ * If @c config->base.windows.placement.is_centered is set it takes
+ * precedence over the policy string.  Any unrecognized policy leaves
+ * the frame at its initial X-server-assigned position.
+ *
+ * @param surface Pointer to the surface (screen) on which @p client
+ *                will be displayed
+ * @param client  Pointer to the newly managed client whose frame is to
+ *                be repositioned
+ *
+ * @note This function must be called after @c client_manage so that
+ *       both @c client->frame and @c client->layout.geometry are valid.
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_apply_placement_policy(surface_td *surface,
+        client_td *client)
+{
+    const char *policy;
+    uint32_t sw;
+    uint32_t sh;
+    uint32_t fw;
+    uint32_t fh;
+    int32_t new_x;
+    int32_t new_y;
+    xcb_window_t target;
+    if (wm == NULL || wm->config == NULL ||
+            surface == NULL || client == NULL) {
+        return;
+    }
+    sw = surface->properties.dim.w;
+    sh = surface->properties.dim.h;
+    fw = client->layout.geometry.cur.dim.w;
+    fh = client->layout.geometry.cur.dim.h;
+    if (wm->config->base.windows.placement.is_centered) {
+        new_x = ((int32_t) sw - (int32_t) fw) / 2;
+        new_y = ((int32_t) sh - (int32_t) fh) / 2;
+        if (new_x < 0) { new_x = 0; }
+        if (new_y < 0) { new_y = 0; }
+    } else {
+        policy = wm->config->base.windows.placement.policy;
+        if (strcmp(policy, "cascade") == 0 ||
+                strcmp(policy, "smart") == 0) {
+            static uint32_t s_cascade_seq = 0;
+            const uint32_t cascade_step = 24u;
+            uint32_t max_steps;
+            max_steps = (sw > fw) ? (sw - fw) / cascade_step : 1u;
+            if (sh > fh) {
+                uint32_t my = (sh - fh) / cascade_step;
+                if (my < max_steps) {
+                    max_steps = my;
+                }
+            }
+            if (max_steps == 0u) {
+                max_steps = 1u;
+            }
+            new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+            new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+            s_cascade_seq++;
+        } else if (strcmp(policy, "centered") == 0) {
+            new_x = ((int32_t) sw - (int32_t) fw) / 2;
+            new_y = ((int32_t) sh - (int32_t) fh) / 2;
+            if (new_x < 0) { new_x = 0; }
+            if (new_y < 0) { new_y = 0; }
+        } else {
+            /* "none" or unknown: keep the X-server-assigned position */
+            return;
+        }
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+    xcb_configure_window(wm->connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+            (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
+    client->layout.geometry.cur.pos.x = new_x;
+    client->layout.geometry.cur.pos.y = new_y;
+}
+
+
+/**
  * @brief Handle @c MAP_REQUEST events from the X server
  *
  * Processes requests to map (display) windows.  This event is sent when
@@ -2442,6 +2532,9 @@ static void s_wm_handle_map_request(
         xcb_flush(wm->connection);
         return;
     }
+
+    /* Apply the placement policy before the window becomes visible */
+    s_wm_apply_placement_policy(surface, client);
 
     /* Show the managed object */
     if (client->titlebar != 0) {
