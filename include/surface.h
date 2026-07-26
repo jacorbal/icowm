@@ -188,8 +188,8 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id);
  * @brief Get a desktop from the list by its ID
  *
  * Retrieves a pointer to a desktop with the specified ID from the
- * surface.  If the desktop is found, its pointer is returned; otherwise,
- * @c NULL is returned.
+ * surface.  If the desktop is found, its pointer is returned;
+ * otherwise, @c NULL is returned.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to retrieve

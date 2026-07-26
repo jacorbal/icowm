@@ -36,12 +36,12 @@
  * @brief Window data to store information when updating the client by
  *        an action
  *
- * This structure serves as a flexible container for passing various
- * types of information.  It can hold integers or geometry values for
- * operations such as resizing and moving, as well as strings.  While
- * typically only one string is needed, there are scenarios where two
- * may be required (e.g., when setting the window role for compatibility
- * purposes).  In cases where only one string is needed, use 'str0'.
+ * Flexible container for passing various types of information.  It can
+ * hold integers or geometry values for operations such as resizing and
+ * moving, as well as strings.  While typically only one string is
+ * needed, there are scenarios where two may be required (e.g., when
+ * setting the window role for compatibility purposes).  In cases where
+ * only one string is needed, use @p str0.
  *
  * @see @c action_client_e
  */

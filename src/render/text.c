@@ -73,17 +73,14 @@ int text_renderer_init(xcb_connection_t *connection,
 
     s_text.gc = xcb_generate_id(connection);
 
-    /* Neutral defaults: white-on-black */
-    /* NOTE: Callers that draw on a themed titlebar should call
-     *       'text_renderer_set_color()' afterwards to use the
-     *       foreground and background colors from theme */
-    gc_values[0] = 0xFFFFFFu;   /* fg: white */
-    gc_values[1] = 0x000000u;   /* bg: black */
+    /* Neutral defaults: white-on-black.  Callers that draw on a themed
+     * titlebar should call 'text_renderer_set_color' afterwards to use
+     * the foreground/background colors from their theme. */
+    gc_values[0] = 0xFFFFFFu;  /* fg: white */
+    gc_values[1] = 0x000000u;  /* bg: black */
     xcb_create_gc(connection, s_text.gc,
             xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root,
-            XCB_GC_FOREGROUND |
-            XCB_GC_BACKGROUND,
-            gc_values);
+            XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
     xcb_change_gc(connection, s_text.gc, XCB_GC_FONT,
             (const uint32_t[]) {s_text.font});
 
@@ -139,9 +136,7 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
     gc_values[0] = fg;
     gc_values[1] = bg;
     xcb_change_gc(s_text.connection, s_text.gc,
-            XCB_GC_FOREGROUND |
-            XCB_GC_BACKGROUND,
-            gc_values);
+            XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
 }
 
 

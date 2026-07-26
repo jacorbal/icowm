@@ -39,6 +39,7 @@
 #include <adt/ohtbl.h>  /* Open-addressed hash table */
 
 /* Utils includes */
+#include <utils/geom.h>
 #include <utils/safestr.h>
 
 /* Default initial values */
@@ -60,6 +61,7 @@
 #include <surface.h>
 
 /* Local includes */
+#include <place.h>
 #include <wm.h>
 
 
@@ -213,30 +215,6 @@ static struct {
 
 
 /**
- * @brief Clamp a dimension to the supported client geometry bounds
- *
- * Ensures that a requested window dimension stays within the minimum
- * supported size and the maximum value representable by @c uint16_t.
- *
- * @param value Dimension value to clamp
- *
- * @return Clamped dimension value
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_wm_clamp_dimension(int32_t value)
-{
-    if (value < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-        return WM_MIN_WINDOW_DIMENSION;
-    }
-    if (value > (int32_t) UINT16_MAX) {
-        return UINT16_MAX;
-    }
-    return (uint16_t) value;
-}
-
-
-/**
  * @brief Determine whether the loaded focus policy follows the pointer
  *
  * @return @c true when focus should follow mouse enter events
@@ -250,209 +228,8 @@ static bool s_wm_is_focus_follows_mouse_policy(void)
     }
 
     return (wm->config->base.windows.focus_policy ==
-        CONFIG_FOCUS_POLICY_FOLLOW_MOUSE);
+            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE);
 }
-
-
-/**
- * @brief Test whether two axis-aligned rectangles overlap
- *
- * Rectangles that only touch at an edge or corner are not considered to
- * overlap.
- *
- * @param ax Left coordinate of the first rectangle
- * @param ay Top coordinate of the first rectangle
- * @param aw Width of the first rectangle
- * @param ah Height of the first rectangle
- * @param bx Left coordinate of the second rectangle
- * @param by Top coordinate of the second rectangle
- * @param bw Width of the second rectangle
- * @param bh Height of the second rectangle
- *
- * @return @c true if the interiors overlap, @c false otherwise
- *
- * @note Complexity: @e O(1)
- */
-static bool s_wm_rectangles_overlap(int32_t ax, int32_t ay,
-        uint32_t aw, uint32_t ah,
-        int32_t bx, int32_t by,
-        uint32_t bw, uint32_t bh)
-{
-    return ax < bx + (int32_t) bw &&
-        bx < ax + (int32_t) aw &&
-        ay < by + (int32_t) bh &&
-        by < ay + (int32_t) ah;
-}
-
-
-/**
- * @brief Test whether a candidate placement overlaps visible clients
- *
- * Only currently visible, non-iconified clients on the target desktop
- * are considered blocking for smart placement.
- *
- * @param desktop     Pointer to the desktop whose clients are inspected
- * @param skip_client Client to ignore during the overlap test
- * @param x           Candidate left coordinate
- * @param y           Candidate top coordinate
- * @param w           Candidate width
- * @param h           Candidate height
- *
- * @return @c true when the candidate intersects a visible client,
- *         @c false otherwise
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
- */
-static bool s_wm_position_overlaps_clients(desktop_td *desktop,
-        const client_td *skip_client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
-{
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        return false;
-    }
-
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return false;
-    }
-
-    initial = node;
-    do {
-        const client_td *other = (const client_td *) cdlist_data(node);
-        if (other != NULL && other != skip_client &&
-                !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                other->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED &&
-                s_wm_rectangles_overlap(x, y, w, h,
-                        other->layout.geometry.cur.pos.x,
-                        other->layout.geometry.cur.pos.y,
-                        other->layout.geometry.cur.dim.w,
-                        other->layout.geometry.cur.dim.h)) {
-            return true;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    return false;
-}
-
-
-/**
- * @brief Return the currently active desktop for a surface
- *
- * @param surface Pointer to the surface
- *
- * @return Pointer to the current desktop, or @c NULL on error
- */
-static desktop_td *s_wm_get_current_desktop(surface_td *surface)
-{
-    if (surface == NULL) {
-        return NULL;
-    }
-
-    return surface_desktop_get(surface, surface->desktop_cur);
-}
-
-
-/**
- * @brief Find a non-overlapping smart position for a newly mapped client
- *
- * Searches the current desktop from top-left to bottom-right using
- * a fixed grid step and returns the first position whose rectangle does
- * not overlap any currently visible client.
- *
- * @param surface Pointer to the surface where the client will appear
- * @param client  Pointer to the client being placed
- * @param out_x   Output pointer for the selected X coordinate
- * @param out_y   Output pointer for the selected Y coordinate
- *
- * @return @c true if a free position was found, @c false otherwise
- *
- * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n is the number of clients on the
- *       current desktop
- */
-static bool s_wm_find_smart_placement(surface_td *surface,
-        client_td *client, int32_t *out_x, int32_t *out_y)
-{
-    desktop_td *desktop;
-    const uint32_t step = 24u;
-    uint32_t sw;
-    uint32_t sh;
-    uint32_t fw;
-    uint32_t fh;
-    int32_t min_x;
-    int32_t min_y;
-    int32_t max_x;
-    int32_t max_y;
-    int32_t y;
-
-    if (surface == NULL || client == NULL || out_x == NULL ||
-            out_y == NULL) {
-        return false;
-    }
-
-    desktop = s_wm_get_current_desktop(surface);
-    if (desktop == NULL) {
-        return false;
-    }
-
-    sw = surface->properties.dim.w;
-    sh = surface->properties.dim.h;
-    fw = client->layout.geometry.cur.dim.w;
-    fh = client->layout.geometry.cur.dim.h;
-
-    min_x = (fw > sw) ? -((int32_t) (fw - sw)) : 0;
-    min_y = (fh > sh) ? -((int32_t) (fh - sh)) : 0;
-    max_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
-    max_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
-
-    for (y = min_y; y <= max_y; y += (int32_t) step) {
-        int32_t x;
-        for (x = min_x; x <= max_x; x += (int32_t) step) {
-            if (!s_wm_position_overlaps_clients(desktop, client,
-                    x, y, fw, fh)) {
-                *out_x = x;
-                *out_y = y;
-                return true;
-            }
-        }
-
-        if (max_x != min_x &&
-                !s_wm_position_overlaps_clients(desktop, client,
-                        max_x, y, fw, fh)) {
-            *out_x = max_x;
-            *out_y = y;
-            return true;
-        }
-    }
-
-    if (max_y != min_y) {
-        int32_t x;
-        for (x = min_x; x <= max_x; x += (int32_t) step) {
-            if (!s_wm_position_overlaps_clients(desktop, client,
-                    x, max_y, fw, fh)) {
-                *out_x = x;
-                *out_y = max_y;
-                return true;
-            }
-        }
-    }
-
-    if (!s_wm_position_overlaps_clients(desktop, client,
-            max_x, max_y, fw, fh)) {
-        *out_x = max_x;
-        *out_y = max_y;
-        return true;
-    }
-
-    return false;
- }
 
 
 /* Key-string parsing helpers */
@@ -476,28 +253,28 @@ static const char *s_resolve_modifier_token(const char *tok)
         return tok;
     }
 
-    if (strcasecmp(tok, "modc") == 0) {
+    if (strcasecmp(tok, "modc") == 0) {     /* Control */
         return wm->config->bindings.modc;
     }
-    if (strcasecmp(tok, "mods") == 0) {
+    if (strcasecmp(tok, "mods") == 0) {     /* Shift */
         return wm->config->bindings.mods;
     }
-    if (strcasecmp(tok, "modl") == 0) {
+    if (strcasecmp(tok, "modl") == 0) {     /* Caps-Lock */
         return wm->config->bindings.modl;
     }
-    if (strcasecmp(tok, "mod1") == 0) {
+    if (strcasecmp(tok, "mod1") == 0) {     /* Alt */
         return wm->config->bindings.mod1;
     }
-    if (strcasecmp(tok, "mod2") == 0) {
+    if (strcasecmp(tok, "mod2") == 0) {     /* Num-Lock */
         return wm->config->bindings.mod2;
     }
-    if (strcasecmp(tok, "mod3") == 0) {
+    if (strcasecmp(tok, "mod3") == 0) {     /* 'nop' */
         return wm->config->bindings.mod3;
     }
-    if (strcasecmp(tok, "mod4") == 0) {
+    if (strcasecmp(tok, "mod4") == 0) {     /* Super */
         return wm->config->bindings.mod4;
     }
-    if (strcasecmp(tok, "mod5") == 0) {
+    if (strcasecmp(tok, "mod5") == 0) {     /* Hyper */
         return wm->config->bindings.mod5;
     }
 
@@ -509,8 +286,8 @@ static const char *s_resolve_modifier_token(const char *tok)
  * @brief Map a single modifier token to an XCB modifier mask
  *
  * Converts a textual modifier name into the corresponding XCB modifier
- * mask.  Supports configured aliases, common modifier names, and some
- * alternative spellings.
+ * mask.  Supports configured aliases, common modifier names, and
+ * some alternative spellings.
  *
  * @param tok Modifier token to parse
  *
@@ -633,7 +410,7 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
 /**
  * @brief Parse a binding string (such as @c Mod1+Shift+F9)
  *
- * Splits on `+` and classifies each token as a modifier or the key
+ * Splits on '+' and classifies each token as a modifier or the key
  * (last token).
  *
  * @param[in]  binding  Binding string from configuration
@@ -693,7 +470,7 @@ static bool s_parse_binding(const char *binding,
  *        button index
  *
  * @param[in] tok Button token from configuration (e.g., "button1"
-                  through "button5")
+ *                through "button5")
  *
  * @return The parsed button index, or @c 0 if @p tok could not be
  *         parsed as a valid button token
@@ -737,6 +514,23 @@ static surface_td *s_wm_get_surface_for_root(xcb_window_t root)
     }
 
     return NULL;
+}
+
+
+/**
+ * @brief Return the currently active desktop for a surface
+ *
+ * @param surface Pointer to the surface
+ *
+ * @return Pointer to the current desktop, or @c NULL on error
+ */
+static desktop_td *s_wm_get_current_desktop(surface_td *surface)
+{
+    if (surface == NULL) {
+        return NULL;
+    }
+
+    return surface_desktop_get(surface, surface->desktop_cur);
 }
 
 
@@ -1051,7 +845,7 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     /* Mark the surface and desktop as outdated so the next update cycle
      * repaints the titlebars of both the newly focused and the
      * previously focused clients with the correct active/inactive theme
-     * colors.  Without this, the 'focus_in' handler skips the update
+     * colors.  Without this the focus_in handler skips the update
      * because it sees the active ID already set. */
     desktop->is_outdated = true;
     if (surface != NULL) {
@@ -1452,9 +1246,9 @@ static void s_wm_grab_buttons(void)
         { wm->config->bindings.mouse.resize, MOUSEBIND_RESIZE, true },
         { wm->config->bindings.mouse.lower, MOUSEBIND_LOWER, true },
         { wm->config->bindings.mouse.desktop.cycle_prev,
-            MOUSEBIND_DESKTOP_PREV, false },
+          MOUSEBIND_DESKTOP_PREV, false },
         { wm->config->bindings.mouse.desktop.cycle_next,
-            MOUSEBIND_DESKTOP_NEXT, false },
+          MOUSEBIND_DESKTOP_NEXT, false },
         { NULL, MOUSEBIND_NONE, false }
     };
 
@@ -1506,7 +1300,7 @@ static void s_wm_grab_buttons(void)
                         XCB_NONE,
                         XCB_NONE,
                         (uint8_t) button,
-                        (uint16_t) (((defs[i].requires_mod1)
+                        (uint16_t) ((defs[i].requires_mod1
                                 ? XCB_MOD_MASK_1
                                 : 0u) | lockmods[k]));
             }
@@ -1616,6 +1410,32 @@ static void s_wm_refresh_client_name(client_td *client)
 
     if (reply != NULL) {
         free(reply);
+    }
+}
+
+
+/**
+ * @brief Dispatch a program launch event on the current desktop
+ *
+ * Retrieves the current desktop for @p surface and, if both the
+ * surface and desktop are non-null, sends a launch event for @p prog.
+ * If @p prog is @c NULL or empty the call is silently ignored.
+ *
+ * @param surface Active surface (screen); may be @c NULL
+ * @param prog    Program command string to launch; may be @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_dispatch_launch(surface_td *surface, const char *prog)
+{
+    desktop_td *desktop;
+
+    if (surface == NULL || prog == NULL || prog[0] == '\0') {
+        return;
+    }
+    desktop = s_wm_get_current_desktop(surface);
+    if (desktop != NULL) {
+        (void) s_wm_send_desktop_launch_event(desktop, prog);
     }
 }
 
@@ -1828,64 +1648,28 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_LAUNCH_TERMINAL:
-                if (surface != NULL) {
-                    desktop_td *desktop =
-                        s_wm_get_current_desktop(surface);
-                    if (desktop != NULL) {
-                        (void) s_wm_send_desktop_launch_event(
-                                desktop,
-                                wm->config->base.programs.terminal);
-                    }
-                }
+                s_dispatch_launch(surface,
+                        wm->config->base.programs.terminal);
                 return;
 
             case KEYBIND_LAUNCH_LAUNCHER:
-                if (surface != NULL) {
-                    desktop_td *desktop =
-                        s_wm_get_current_desktop(surface);
-                    if (desktop != NULL) {
-                        (void) s_wm_send_desktop_launch_event(
-                                desktop,
-                                wm->config->base.programs.launcher);
-                    }
-                }
+                s_dispatch_launch(surface,
+                        wm->config->base.programs.launcher);
                 return;
 
-
             case KEYBIND_LAUNCH_FILE_MANAGER:
-                if (surface != NULL) {
-                    desktop_td *desktop =
-                        s_wm_get_current_desktop(surface);
-                    if (desktop != NULL) {
-                        (void) s_wm_send_desktop_launch_event(
-                                desktop,
-                                wm->config->base.programs.file_manager);
-                    }
-                }
+                s_dispatch_launch(surface,
+                        wm->config->base.programs.file_manager);
                 return;
 
             case KEYBIND_LAUNCH_WEB_BROWSER:
-                if (surface != NULL) {
-                    desktop_td *desktop =
-                        s_wm_get_current_desktop(surface);
-                    if (desktop != NULL) {
-                        (void) s_wm_send_desktop_launch_event(
-                                desktop,
-                                wm->config->base.programs.web_browser);
-                    }
-                }
+                s_dispatch_launch(surface,
+                        wm->config->base.programs.web_browser);
                 return;
 
             case KEYBIND_LAUNCH_EDITOR:
-                if (surface != NULL) {
-                    desktop_td *desktop =
-                        s_wm_get_current_desktop(surface);
-                    if (desktop != NULL) {
-                        (void) s_wm_send_desktop_launch_event(
-                                desktop,
-                                wm->config->base.programs.editor);
-                    }
-                }
+                s_dispatch_launch(surface,
+                        wm->config->base.programs.editor);
                 return;
 
             case KEYBIND_CLIENT_MOVE_LEFT:
@@ -2001,8 +1785,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                             }
 
                             (void) client_send_event_resize(client,
-                                    s_wm_clamp_dimension(new_w),
-                                    s_wm_clamp_dimension(new_h));
+                                    geom_clamp_dim(new_w),
+                                    geom_clamp_dim(new_h));
                         }
                     }
                 }
@@ -2209,10 +1993,9 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         return;
     }
 
-    /* Desktop cycling without 'Alt' was already handled above.  If the
-     * configured wheel binding also happens to be used while 'Alt' is
-     * held, dispatch it here too before touching the drag state
-     * machine */
+    /* Desktop cycling without Alt was already handled above.  If the
+     * configured wheel binding also happens to be used while Alt is held,
+     * dispatch it here too before touching the drag state machine. */
     if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
         surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL) {
@@ -2357,8 +2140,8 @@ static void s_wm_handle_motion_notify(xcb_motion_notify_event_t *event)
         uint16_t height;
         int32_t new_w = (int32_t) s_drag.client_start_w + dx;
         int32_t new_h = (int32_t) s_drag.client_start_h + dy;
-        width = s_wm_clamp_dimension(new_w);
-        height = s_wm_clamp_dimension(new_h);
+        width = geom_clamp_dim(new_w);
+        height = geom_clamp_dim(new_h);
 
         (void) client_send_event_resize(client, width, height);
     }
@@ -2430,7 +2213,7 @@ static void s_wm_handle_configure_request(
          XCB_CONFIG_WINDOW_STACK_MODE);
 
     /* Managed windows update cached geometry; unmanaged windows still
-     * receive the XCB configure request verbatim */
+     * receive the XCB configure request verbatim. */
     client = s_wm_find_client(event->window, &surface, &desktop);
 
     if (mask & XCB_CONFIG_WINDOW_X) {
@@ -2507,25 +2290,24 @@ static void s_wm_handle_configure_notify(
             event->window, event->width, event->height,
             event->x, event->y);
 
-    /* Update the client's cached geometry */
-    /* NOTE: Only trust the event when it comes from the outermost
-     *       window that the WM actually positions on the screen.  For
-     *       decorated clients that outer window is the frame; for
-     *       undecorated clients it is the client window itself.
+    /* Update the client's cached geometry.
+     * Only trust the event when it comes from the outermost window that
+     * the WM actually positions on the screen.  For decorated clients
+     * that outer window is the frame; for undecorated clients it is the
+     * client window itself.
      *
-     *      Ignoring configure_notify from an inner (reparented) client
-     *      window is essential: its x/y are frame-relative, not
-     *      screen-relative, so blindly copying them would corrupt the
-     *      cached position (e.g., replacing the screen coordinates with
-     *      the small frame-inset offsets "left" and "top"), which in
-     *      turn causes the frame to jump to the wrong location on the
-     *      next render pass. */
+     * Ignoring configure_notify from an inner (reparented) client
+     * window is essential: its x/y are frame-relative, not
+     * screen-relative, so blindly copying them would corrupt the cached
+     * position (e.g. replacing the screen coordinates with the small
+     * frame-inset offsets "left" and "top"), which in turn causes the
+     * frame to jump to the wrong location on the next render pass. */
     client = s_wm_find_client(event->window, NULL, NULL);
     if (client != NULL) {
         bool is_frame_event = (client->frame != 0)
             ? (event->window == client->frame)
             : (event->window == client->window ||
-                    event->window == client->id);
+               event->window == client->id);
         if (is_frame_event) {
             client->layout.geometry.cur.pos.x = event->x;
             client->layout.geometry.cur.pos.y = event->y;
@@ -2533,140 +2315,6 @@ static void s_wm_handle_configure_notify(
             client->layout.geometry.cur.dim.h = event->height;
         }
     }
-}
-
-
-/**
- * @brief Apply the configured placement policy to a newly mapped client
- *
- * Computes an initial frame position for @p client according to the
- * window placement policy stored in the configuration and moves the
- * frame window to that position.  The following policies are handled:
- *
- * - @c smart: searches for the first non-overlapping position on the
- *   current desktop using a fixed grid step, then falls back to
- *   @c cascade if no free slot is found;
- * - @c cascade: each successive window is offset by a fixed step so
- *   that windows fan out diagonally; the sequence wraps when it would
- *   push the frame off the right or bottom edge of the screen;
- * - @c centered: the frame is centred on the screen; and
- * - @c under-mouse: the frame appears around current pointer position.
- *
- * If @c config->base.windows.placement.is_centered is set it takes
- * precedence over the policy string.  Any unrecognized policy leaves
- * the frame at its initial X-server-assigned position.
- *
- * @param surface Pointer to the surface (screen) on which @p client
- *                will be displayed
- * @param client  Pointer to the newly managed client whose frame is to
- *                be repositioned
- *
- * @note This function must be called after @c client_manage so that
- *       both @c client->frame and @c client->layout.geometry are valid.
- * @note Complexity: @e O(1)
- */
-static void s_wm_apply_placement_policy(surface_td *surface,
-        client_td *client)
-{
-    uint32_t sw;
-    uint32_t sh;
-    uint32_t fw;
-    uint32_t fh;
-    int32_t new_x;
-    int32_t new_y;
-    xcb_window_t target;
-    enum config_placement_policy_e policy;
-
-    if (wm == NULL || wm->config == NULL ||
-            surface == NULL || client == NULL) {
-        return;
-    }
-
-    sw = surface->properties.dim.w;
-    sh = surface->properties.dim.h;
-    fw = client->layout.geometry.cur.dim.w;
-    fh = client->layout.geometry.cur.dim.h;
-    policy = wm->config->base.windows.placement_policy;
-
-    if (wm->config->base.windows.placement.is_centered) {
-        new_x = ((int32_t) sw - (int32_t) fw) / 2;
-        new_y = ((int32_t) sh - (int32_t) fh) / 2;
-        if (new_x < 0) { new_x = 0; }
-        if (new_y < 0) { new_y = 0; }
-    } else {
-        if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
-                s_wm_find_smart_placement(surface, client,
-                    &new_x, &new_y)) {
-            /* Placement chosen by smart scan */
-        } else if (policy == CONFIG_PLACEMENT_POLICY_CASCADE ||
-                policy == CONFIG_PLACEMENT_POLICY_SMART) {
-            static uint32_t s_cascade_seq = 0;
-            const uint32_t cascade_step = 24u;
-            uint32_t max_steps;
-
-            max_steps = (sw > fw) ? (sw - fw) / cascade_step : 1u;
-            if (sh > fh) {
-                uint32_t my = (sh - fh) / cascade_step;
-                if (my < max_steps) {
-                    max_steps = my;
-                }
-            }
-            if (max_steps == 0u) {
-                max_steps = 1u;
-            }
-
-            new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-            new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-            s_cascade_seq++;
-        } else if (policy == CONFIG_PLACEMENT_POLICY_CENTERED) {
-            new_x = ((int32_t) sw - (int32_t) fw) / 2;
-            new_y = ((int32_t) sh - (int32_t) fh) / 2;
-            if (new_x < 0) { new_x = 0; }
-            if (new_y < 0) { new_y = 0; }
-        } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
-            xcb_query_pointer_cookie_t pointer_cookie;
-            xcb_query_pointer_reply_t *pointer_reply;
-
-            pointer_cookie = xcb_query_pointer(wm->connection,
-                    surface->screen->root);
-            pointer_reply = xcb_query_pointer_reply(wm->connection,
-                    pointer_cookie, NULL);
-            if (pointer_reply == NULL) {
-                LOGGER_NOTICE("Failed to query pointer for"
-                        " 'under-mouse' placement; keeping"
-                        " X-server-assigned position", L_NARG);
-                return;
-            }
-
-            new_x = (int32_t) pointer_reply->root_x - (int32_t) (fw / 2u);
-            new_y = (int32_t) pointer_reply->root_y - (int32_t) (fh / 2u);
-            if (new_x < 0) {
-                new_x = 0;
-            } else if ((uint32_t) new_x + fw > sw) {
-                new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
-            }
-            if (new_y < 0) {
-                new_y = 0;
-            } else if ((uint32_t) new_y + fh > sh) {
-                new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
-            }
-
-            free(pointer_reply);
-        } else {
-            /* "none" or unknown: keep the X-server-assigned position */
-            return;
-        }
-    }
-
-    target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame
-        : client->window;
-
-    xcb_configure_window(wm->connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
-    client->layout.geometry.cur.pos.x = new_x;
-    client->layout.geometry.cur.pos.y = new_y;
 }
 
 
@@ -2750,7 +2398,7 @@ static void s_wm_handle_map_request(
     }
 
     /* Apply the placement policy before the window becomes visible */
-    s_wm_apply_placement_policy(surface, client);
+    place_apply(wm, surface, client);
 
     /* Show the managed object */
     if (client->titlebar != 0) {
@@ -2981,7 +2629,7 @@ static void s_wm_handle_focus_in(xcb_focus_in_event_t *event)
  *
  * Refreshes the cached keyboard-mapping table and re-establishes all
  * passive key grabs with updated keycodes.  Without this, any keyboard
- * layout change (e.g., via @c setxkbmap or an input-method switch) that
+ * layout change (e.g. via @c setxkbmap or an input-method switch) that
  * moves keycodes causes existing grabs to stop firing silently.
  *
  * When the @e modifier mapping changes the button grabs are also
@@ -3063,9 +2711,9 @@ static void s_wm_handle_mapping_notify(xcb_key_symbols_t *keysyms,
  * to avoid redundant draws.
  *
  * Two targets are handled:
- * - info popup window that redraws the cached text lines; and
- * - managed client's titlebar, that repaints the background and title
- *   text in the appropriate active/inactive theme colors.
+ * - Info popup window: redraws the cached text lines.
+ * - Managed client's titlebar: repaints the background and title text
+ *   in the appropriate active/inactive theme colors.
  *
  * @param event Pointer to the expose event
  *
@@ -3116,9 +2764,7 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
                     wm->config->theme.icon.background_color,
                     wm->config->theme.icon.border_color
                 });
-        xcb_clear_area(wm->connection, 0, client->icon_window,
-                0, 0, 0, 0);
-
+        xcb_clear_area(wm->connection, 0, client->icon_window, 0, 0, 0, 0);
         if (wm->config->theme.icon.is_captioned &&
                 client->info.name != NULL) {
             text_renderer_init(wm->connection,
@@ -3173,11 +2819,11 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
                 (is_focused)
-                    ? wm->config->theme.window.active.border_color
-                    : wm->config->theme.window.inactive.border_color,
+                ? wm->config->theme.window.active.border_color
+                : wm->config->theme.window.inactive.border_color,
                 (is_focused)
-                    ? wm->config->theme.window.active.border_color
-                    : wm->config->theme.window.inactive.border_color
+                ? wm->config->theme.window.active.border_color
+                : wm->config->theme.window.inactive.border_color
             });
     xcb_clear_area(wm->connection, 0, client->frame, 0, 0, 0, 0);
     xcb_change_window_attributes(wm->connection, client->titlebar,
@@ -3191,15 +2837,15 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
     text_renderer_init(wm->connection,
             (is_focused)
-                ? wm->config->theme.window.active.font
-                : wm->config->theme.window.inactive.font);
+            ? wm->config->theme.window.active.font
+            : wm->config->theme.window.inactive.font);
     text_renderer_set_color(
             (is_focused)
-                ? wm->config->theme.window.active.foreground_color
-                : wm->config->theme.window.inactive.foreground_color,
+            ? wm->config->theme.window.active.foreground_color
+            : wm->config->theme.window.inactive.foreground_color,
             (is_focused)
-                ? wm->config->theme.window.active.background_color
-                : wm->config->theme.window.inactive.background_color);
+            ? wm->config->theme.window.active.background_color
+            : wm->config->theme.window.inactive.background_color);
     text_draw_string(wm->connection, client->titlebar, XCB_NONE,
             (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                 WM_DECOR_BTN_PAD),
@@ -3309,11 +2955,11 @@ static void s_wm_handle_signal(int signum)
 /**
  * @brief Handle @c XCB_ENTER_NOTIFY events for configurable focus policy
  *
- * When the focus policy is set to @c follow-mouse the window under the
- * pointer is focused automatically as soon as the pointer enters it,
- * without requiring a button click.  The window is focused but not
- * raised, so stacking order is preserved and cascading raise events are
- * avoided.
+ * When the focus policy is set to @c "follow-mouse" the window
+ * under the pointer is focused automatically as soon as the pointer
+ * enters it, without requiring a button click.  The window is focused
+ * but not raised, so stacking order is preserved and cascading raise
+ * events are avoided.
  *
  * Only @c XCB_NOTIFY_MODE_NORMAL events are acted upon; events
  * generated by grab/ungrab transitions (@c XCB_NOTIFY_MODE_GRAB,
@@ -3427,7 +3073,7 @@ static void s_wm_loop(void)
         return;
     }
 
-    /* Install signal handlers so common termination signals (e.g.,
+    /* Install signal handlers so common termination signals (e.g.
      * 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGTERM') trigger a graceful
      * shutdown instead of an abrupt termination that would skip
      * 'wm_stop' */
@@ -3515,7 +3161,7 @@ static void s_wm_loop(void)
         }
 
         /* Defensively verify the X connection is still alive. If it
-         * were ever to break (e.g., X server crash/disconnect), reading
+         * were ever to break (e.g. X server crash/disconnect), reading
          * from a broken connection never blocks and never yields new
          * events, so 'poll()' below would return immediately forever,
          * spinning this loop at 100% CPU without making progress.
@@ -3724,7 +3370,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
         /* Count the number of screens detected by the X server */
         /* NOTE: Yes,... I can use 'xcb_setup_roots_length', but this
-         *       way it's more suitable for *my* purposes.
+         *       way it's more suitable for my purposes.
          *       "bIjatlh 'e' yImev!" */
         it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
         screens_detected = 0;
@@ -3838,7 +3484,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         }
 
         /* Subscribe to root window events (MUST be done before loop) */
-        /* NOTE: Fails with FATAL log if another win. manager is running */
+        /* NOTE: Fails with fatal log if another win. manager is running */
         if (s_wm_subscribe_root_events() != 0) {
             list_destroy(wm->surfaces);
             eventq_stop();
@@ -3876,7 +3522,8 @@ int wm_stop(void)
     /* NOTE: The event thread processes events that hold raw pointers to
      *       client and desktop objects.  Destroying surfaces (and their
      *       clients) while the event thread is still running would
-     *       cause use-after-free errors detected by 'AddressSanitizer' */
+     *       cause use-after-free errors detected by
+     *       'AddressSanitizer'. */
     eventq_stop();
 
     /* Deallocate every surface and its contents */

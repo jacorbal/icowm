@@ -38,7 +38,7 @@
  * @return 0 on success, -1 on failure
  *
  * @note If @p font_name is @c NULL or empty, the default font
- *       @c "fixed" is used
+ *       @c fixed is used
  * @note Reinitialization with the same connection is skipped when the
  *       renderer is already initialized
  * @note Complexity: @e O(1)
@@ -60,7 +60,7 @@ void text_renderer_destroy(void);
  * @brief Update the foreground and background colors of the text GC
  *
  * Changes the @c XCB_GC_FOREGROUND and @c XCB_GC_BACKGROUND attributes
- * of the internal graphics context.  To be called after
+ * of the internal graphics context.  Call this after
  * @a text_renderer_init to select colors appropriate for the drawing
  * context (e.g., theme active/inactive foreground colors for titlebars)
  * before invoking @a text_draw_string.

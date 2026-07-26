@@ -32,29 +32,9 @@
 #include <render/desktop.h>
 
 
-/** Size of square icon window, in pixels */
-#define WM_ICON_SQUARE_SIZE         (48u)
-
-/** Height of caption area below the icon square, in pixels */
-#define WM_ICON_CAPTION_HEIGHT      (14u)
-
-/** Size of a single decoration button square, in pixels */
-#define WM_DECOR_BTN_SIZE           (12u)
-
-/** Gap between adjacent decoration buttons, in pixels */
-#define WM_DECOR_BTN_GAP            (2u)
-
-/** Horizontal padding from the frame edge to the outermost button */
-#define WM_DECOR_BTN_PAD            (4u)
-
-/** Button fill color when active (focused window, normal state) */
-#define WM_DECOR_COLOR_ACTIVE       (0x000000u)
-
-/** Button fill color when inactive (unfocused window) */
-#define WM_DECOR_COLOR_INACTIVE     (0xFFFFFFu)
-
-/** Button fill color when disabled (action not available) */
-#define WM_DECOR_COLOR_DISABLED     (0x808080u)
+/* Decoration and icon constants are defined in <defs/wm.h>, pulled in
+ * via 'render/desktop.h -> desktop.h -> defs/wm.h'.  Button colors come
+ * from the theme passed to 'desktop_draw_titlebar_buttons' */
 
 
 /* Draw the background of a desktop */
@@ -80,10 +60,10 @@ int desktop_render_background(desktop_td *desktop)
      *             to the screen instead getting the id on
      *             'desktop_init' (vid. 'src/desktop.c').
      *
-     *  But, in general terms, the number of screens in any setup tends
-     *  to be low, so this loop has a complexity of O(n), where 'n' is
-     *  the number of screens, in most cases, 'n' approaches 1 or
-     *  a small constant.
+     * But, in general terms, the number of screens in any setup tends
+     * to be low, so this loop has a complexity of O(n), where 'n' is
+     * the number of screens, in most cases, 'n' approaches 1 or a small
+     * constant.
      */
     iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
     screen = NULL;
@@ -120,26 +100,7 @@ int desktop_render_background(desktop_td *desktop)
 }
 
 
-/**
- * @brief Draw the decoration button squares on a titlebar window
- *
- * Renders six right-aligned button squares (Iconify, Hide, Shade,
- * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
- * using filled rectangles.  The fill color for the right-aligned
- * buttons and the pin button is taken from the @p theme:
- * @c window.active.foreground_color when focused, and
- * @c window.inactive.foreground_color when unfocused.
- *
- * @param connection  XCB connection
- * @param titlebar    XCB window id of the titlebar
- * @param frame_w     Total width of the titlebar in pixels
- * @param frame_top   Total height of the titlebar in pixels
- * @param is_focused  Whether the owning client is focused
- * @param is_sticky   Whether the owning client is sticky (pin active)
- * @param theme       Pointer to the theme providing button colors
- *
- * @note Complexity: @e O(1)
- */
+/* Draw the decoration button squares on a titlebar window */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
         bool is_focused, bool is_sticky,
@@ -151,15 +112,15 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
     uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
-    int16_t btn_y;
-    int16_t x;
+    int16_t  btn_y;
+    int16_t  x;
     uint32_t fill;
     uint16_t step;
     int16_t right_edge;
 
     /* Button colors come from the theme: foreground contrasts against
-     * the titlebar background so buttons are always visible */
-    uint32_t color_active = (theme != NULL)
+     * the titlebar background so buttons are always visible. */
+    uint32_t color_active   = (theme != NULL)
         ? theme->window.active.foreground_color
         : 0x000000u;
     uint32_t color_inactive = (theme != NULL)
@@ -173,7 +134,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
 
     gc = xcb_generate_id(connection);
     /* Left-aligned: Pin button */
-    color = (is_sticky) ? color_active: color_inactive;
+    color = is_sticky ? color_active : color_inactive;
     xcb_create_gc(connection, gc, titlebar,
             XCB_GC_FOREGROUND, &color);
     rect = (xcb_rectangle_t) { (int16_t) pad, btn_y, btn, btn };
@@ -186,9 +147,9 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     step = (uint16_t) (btn + gap);
     right_edge = (int16_t) (frame_w - pad);
 
-    /* Button fill: black for focused window (active state),
-     * white for unfocused window (inactive state). */
-    fill = (is_focused) ? color_active : color_inactive;
+    /* Button fill: active foreground for focused, inactive for
+     * unfocused */
+    fill = is_focused ? color_active : color_inactive;
 
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
@@ -231,7 +192,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     }
 
     if (desktop->stacking == NULL) {
-        LOGGER_ERROR("Desktop stacking list is NULL!", L_NARG);
+        LOGGER_ERROR("Desktop stacking list is 'NULL'!", L_NARG);
         return 1;
     }
 
@@ -261,7 +222,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         client = (client_td *) cdlist_data(stacking_node);
 
         if (client == NULL) {
-            LOGGER_ERROR("NULL client found in stacking list at" \
+            LOGGER_ERROR("'NULL' client found in stacking list at" \
                     " position %d", client_count);
             stacking_node = cdlist_next(stacking_node);
             continue;
@@ -352,82 +313,71 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             top = (uint16_t) client->layout.frame_extents.top;
             bottom = (uint16_t) client->layout.frame_extents.bottom;
             title_h = client->title_height;
-            inner_w = (client->layout.geometry.cur.dim.w > left + right)
-                ? (uint16_t)
-                    (client->layout.geometry.cur.dim.w - left - right)
-                : 1;
-            inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
-                ? (uint16_t)
-                    (client->layout.geometry.cur.dim.h - top - bottom)
-                : 1;
+        inner_w = (client->layout.geometry.cur.dim.w > left + right)
+            ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
+            : 1;
+        inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
+            ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
+            : 1;
 
             xcb_configure_window(desktop->connection, client->window,
-                    XCB_CONFIG_WINDOW_X     |
-                    XCB_CONFIG_WINDOW_Y     |
-                    XCB_CONFIG_WINDOW_WIDTH |
-                    XCB_CONFIG_WINDOW_HEIGHT,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
                         left, top, inner_w, inner_h
                     });
-
             xcb_change_window_attributes(desktop->connection, client->frame,
                     XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                     (const uint32_t[]) {
-                (is_focused)
-                    ? desktop->config_theme->window.active.border_color
-                    : desktop->config_theme->window.inactive.border_color,
-                (is_focused)
-                    ? desktop->config_theme->window.active.border_color
-                    : desktop->config_theme->window.inactive.border_color
+                        (is_focused)
+                        ? desktop->config_theme->window.active.border_color
+                        : desktop->config_theme->window.inactive.border_color,
+                        (is_focused)
+                        ? desktop->config_theme->window.active.border_color
+                        : desktop->config_theme->window.inactive.border_color
                     });
             xcb_clear_area(desktop->connection, 0, client->frame,
                     0, 0, 0, 0);
-
             if (client->titlebar != 0) {
                 xcb_configure_window(desktop->connection, client->titlebar,
-                        XCB_CONFIG_WINDOW_X     |
-                        XCB_CONFIG_WINDOW_Y     |
-                        XCB_CONFIG_WINDOW_WIDTH |
-                        XCB_CONFIG_WINDOW_HEIGHT,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                         (const uint32_t[]) {
                             left,
                             (top > title_h) ? top - title_h : 0,
                             inner_w, title_h
                         });
-
                 xcb_change_window_attributes(desktop->connection,
-                        client->titlebar,
-                        XCB_CW_BACK_PIXEL,
+                        client->titlebar, XCB_CW_BACK_PIXEL,
                         (const uint32_t[]) {
                     (is_focused)
                     ? desktop->config_theme->window.active.background_color
                     : desktop->config_theme->window.inactive.background_color
                         });
-
                 xcb_clear_area(desktop->connection, 0,
                         client->titlebar, 0, 0, 0, 0);
                 text_renderer_init(desktop->connection,
                         (is_focused)
                             ? desktop->config_theme->window.active.font
                             : desktop->config_theme->window.inactive.font);
-
                 /* Use theme foreground color so text contrasts against
-                 * the titlebar background (active or inactive) */
+                 * the titlebar background (active or inactive). */
                 text_renderer_set_color(
-                        (is_focused)
-                ? desktop->config_theme->window.active.foreground_color
-                : desktop->config_theme->window.inactive.foreground_color,
-                        (is_focused)
-                ? desktop->config_theme->window.active.background_color
-                : desktop->config_theme->window.inactive.background_color);
-
+                (is_focused)
+                    ? desktop->config_theme->window.active.foreground_color
+                    : desktop->config_theme->window.inactive.foreground_color,
+                (is_focused)
+                    ? desktop->config_theme->window.active.background_color
+                    : desktop->config_theme->window.inactive.background_color);
                 text_draw_string(desktop->connection,
                         client->titlebar, XCB_NONE,
                         (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                             WM_DECOR_BTN_PAD),
-                        (int16_t) ((top > WM_TITLEBAR_TEXT_BOTTOM_PAD)
-                            ? top - WM_TITLEBAR_TEXT_BOTTOM_PAD
-                            : top),
+                        (int16_t) ((title_h >
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                            ? title_h -
+                            (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                            : title_h),
                         client->info.name);
 
                 desktop_draw_titlebar_buttons(desktop->connection,

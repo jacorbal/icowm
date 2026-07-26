@@ -27,7 +27,6 @@
 #include <desktop.h>
 
 
-/* Public interface */
 /**
  * @brief Draw the background of a desktop
  *
@@ -99,6 +98,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current);
  */
 void desktop_render_flush(desktop_td *desktop);
 
+
 /**
  * @brief Draw decoration button squares on a titlebar window
  *
@@ -110,13 +110,13 @@ void desktop_render_flush(desktop_td *desktop);
  * the active foreground when sticky, and the inactive foreground when
  * not sticky.
  *
- * @param connection  Active XCB connection
- * @param titlebar    XCB window identifier of the titlebar
- * @param frame_w     Width of the titlebar in pixels
- * @param frame_top   Height of the titlebar in pixels
- * @param is_focused  Whether the owning client is currently focused
- * @param is_sticky   Whether the owning client has the sticky flag set
- * @param theme       Pointer to the theme providing button colors
+ * @param connection Active XCB connection
+ * @param titlebar   XCB window identifier of the titlebar
+ * @param frame_w    Width of the titlebar in pixels
+ * @param frame_top  Height of the titlebar in pixels
+ * @param is_focused Whether the owning client is currently focused
+ * @param is_sticky  Whether the owning client has the sticky flag set
+ * @param theme      Pointer to the theme providing button colors
  *
  * @note Complexity: @e O(1)
  */

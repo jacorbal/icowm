@@ -1,0 +1,323 @@
+/**
+ * @file utils/json.c
+ *
+ * @brief Low-level JSON helper implementation
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+/* System includes */
+#include <stdbool.h>
+#include <stddef.h>     /* size_t */
+#include <stdint.h>
+#include <stdio.h>      /* FILE, fopen, fseek, ftell, fread, fclose */
+#include <stdlib.h>     /* NULL, free, malloc */
+
+/* JSON includes */
+#include <cjson/cJSON.h>
+
+/* Utils includes */
+#include <utils/safestr.h>
+
+/* Project includes */
+#include <logger.h>
+
+/* Local includes */
+#include <utils/json.h>
+
+
+/* Maximum length for normalized field-name buffers */
+#define JSON_FIELD_MAX (256)
+
+
+/* Convert a hexadecimal color string to an unsigned 32-bit integer */
+uint32_t json_hex2uint32(const char *hex_color)
+{
+    uint32_t color = 0;
+
+    if (hex_color == NULL) {
+        return 0;
+    }
+    if (hex_color[0] == '#') {
+        hex_color++;
+    }
+    if (sscanf(hex_color, "%x", &color) != 1) {
+        LOGGER_NOTICE("Failed to parse hexadecimal color '%s';"
+                " defaulting to '#000000'", hex_color);
+        return 0;
+    }
+
+    return color;
+}
+
+
+/* Normalize a JSON field name to a canonical separator form */
+bool json_field_normalize(const char *field, char *field_norm,
+        size_t size)
+{
+    size_t i;
+
+    if (field == NULL || field_norm == NULL || size == 0) {
+        return false;
+    }
+
+    for (i = 0; field[i] != '\0' && i < size - 1; ++i) {
+        if (field[i] == '_' || field[i] == '-') {
+            field_norm[i] = '-';
+        } else if (field[i] >= 'A' && field[i] <= 'Z') {
+            field_norm[i] = (char) (field[i] - 'A' + 'a');
+        } else {
+            field_norm[i] = field[i];
+        }
+    }
+
+    if (field[i] != '\0') {
+        field_norm[0] = '\0';
+        return false;
+    }
+
+    field_norm[i] = '\0';
+    return true;
+}
+
+
+/* Retrieve a JSON object item by canonicalized field name */
+cJSON *json_get_item(cJSON *json, const char *field)
+{
+    cJSON *item;
+    char field_norm[JSON_FIELD_MAX];
+    char item_norm[JSON_FIELD_MAX];
+
+    if (json == NULL || field == NULL || !cJSON_IsObject(json)) {
+        return NULL;
+    }
+
+    if (!json_field_normalize(field, field_norm, sizeof(field_norm))) {
+        return NULL;
+    }
+
+    cJSON_ArrayForEach(item, json) {
+        if (item->string == NULL) {
+            continue;
+        }
+
+        if (!json_field_normalize(item->string, item_norm,
+                    sizeof(item_norm))) {
+            continue;
+        }
+
+        if (safe_strcmp(field_norm, item_norm) == 0) {
+            return item;
+        }
+    }
+
+    return NULL;
+}
+
+
+/* Load a color value from a JSON object into a 'uint32_t' */
+int json_load_color(cJSON *json, const char *field, uint32_t *dest)
+{
+    cJSON *item;
+
+    item = json_get_item(json, field);
+    if (item && cJSON_IsString(item)) {
+        *dest = json_hex2uint32(item->valuestring);
+        return 0;
+    }
+
+    LOGGER_NOTICE("Failed to load JSON color string: '%s'", field);
+    return 1;
+}
+
+
+/* Load a string value from a JSON object into a buffer */
+int json_load_string(cJSON *json, const char *field,
+        char *dest, size_t size)
+{
+    cJSON *item;
+
+    item = json_get_item(json, field);
+    if (item && cJSON_IsString(item)) {
+        safe_strncpy(dest, item->valuestring, size);
+        return 0;
+    }
+
+    LOGGER_NOTICE("Failed to load JSON string: '%s'", field);
+    return 1;
+}
+
+
+/* Load an unsigned integer value from a JSON object */
+int json_load_uint(cJSON *json, const char *field, unsigned int *dest)
+{
+    cJSON *item;
+
+    item = json_get_item(json, field);
+    if (item && cJSON_IsNumber(item)) {
+        *dest = (unsigned int) item->valueint;
+        return 0;
+    }
+
+    LOGGER_NOTICE("Failed to load JSON unsigned integer: '%s'", field);
+    return 1;
+}
+
+
+/* Load a boolean value from a JSON object */
+int json_load_bool(cJSON *json, const char *field, bool *dest)
+{
+    cJSON *item;
+
+    item = json_get_item(json, field);
+    if (item && cJSON_IsBool(item)) {
+        *dest = cJSON_IsTrue(item);
+        return 0;
+    }
+
+    LOGGER_NOTICE("Failed to load JSON boolean: '%s'", field);
+    return 1;
+}
+
+
+/* Read a JSON file into a dynamically allocated string */
+int json_load_file(const char *filename, char **data)
+{
+    FILE *file;
+    size_t length;
+    size_t nread;
+    long file_length;
+
+    LOGGER_INFO("Parsing data from file '%s'", filename);
+
+    if (data == NULL) {
+        LOGGER_ERROR("Received 'NULL' output pointer for file '%s'",
+                filename);
+        return 1;
+    }
+
+    *data = NULL;
+
+    LOGGER_TRACE("Opening JSON file '%s'", filename);
+    file = fopen(filename, "r");
+    if (!file) {
+        LOGGER_NOTICE("File not found or unable to open:"
+                " '%s'; default values will be used", filename);
+        return 1;
+    }
+
+    if (fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        LOGGER_NOTICE("Unable to seek JSON file '%s'; default values"
+                " will be used", filename);
+        return 1;
+    }
+    file_length = ftell(file);
+
+    if (file_length <= 0) {
+        fclose(file);
+        LOGGER_NOTICE("File '%s' is empty or unreadable; default values"
+                " will be used", filename);
+        return 1;
+    }
+    length = (size_t) file_length;
+    if (fseek(file, 0, SEEK_SET) != 0) {
+        fclose(file);
+        LOGGER_NOTICE("Unable to rewind JSON file '%s'; default values"
+                " will be used", filename);
+        return 1;
+    }
+
+    *data = malloc(length + 1);
+    if (*data == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for file '%s'",
+                filename);
+        fclose(file);
+        return 2;
+    }
+
+    LOGGER_TRACE("Reading JSON file '%s'", filename);
+    nread = fread(*data, 1, length, file);
+    if (nread != length) {
+        LOGGER_NOTICE("Failed to read full JSON file '%s'; default"
+                " values will be used", filename);
+        free(*data);
+        *data = NULL;
+        fclose(file);
+        return 1;
+    }
+
+    (*data)[length] = '\0';
+
+    LOGGER_TRACE("Closing JSON file '%s'", filename);
+    fclose(file);
+
+    return 0;
+}
+
+
+/* Parse a JSON configuration file into a 'cJSON' object */
+int json_load_config(const char *filename, cJSON **json_out)
+{
+    cJSON *json;
+    cJSON *json_root;
+    char *data;
+
+    if (json_load_file(filename, &data) != 0) {
+        return 1;
+    }
+
+    json_root = cJSON_Parse(data);
+    if (json_root == NULL) {
+        LOGGER_WARNING("Failed to parse file '%s';"
+                " default configuration will be used", filename);
+        LOGGER_TRACE("Error parsing JSON file\n%s", cJSON_GetErrorPtr());
+        free(data);
+        return 2;
+    }
+
+    json = json_root;
+    if (!cJSON_IsObject(json_root)) {
+        if (cJSON_IsArray(json_root) &&
+                cJSON_GetArraySize(json_root) >= 1) {
+            cJSON *array_first = cJSON_GetArrayItem(json_root, 0);
+
+            if (array_first && cJSON_IsObject(array_first)) {
+                json = cJSON_Duplicate(array_first, cJSON_True);
+                cJSON_Delete(json_root);
+                if (json == NULL) {
+                    LOGGER_WARNING("Failed to duplicate configuration"
+                            " object from '%s'; default configuration"
+                            " will be used", filename);
+                    free(data);
+                    return 2;
+                }
+                LOGGER_NOTICE("Using first object from top-level array"
+                        " in '%s' as compatibility fallback", filename);
+            } else {
+                LOGGER_WARNING("Invalid top-level JSON in '%s'; expected"
+                        " an object and default configuration will be used",
+                        filename);
+                cJSON_Delete(json_root);
+                free(data);
+                return 2;
+            }
+        } else {
+            LOGGER_WARNING("Invalid top-level JSON in '%s'; expected"
+                    " an object and default configuration will be used",
+                    filename);
+            cJSON_Delete(json_root);
+            free(data);
+            return 2;
+        }
+    }
+
+    free(data);
+    *json_out = json;
+    return 0;
+}

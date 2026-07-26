@@ -43,6 +43,9 @@
 /* Commands includes */
 #include <cmds/ccmd.h>
 #include <cmds/dcmd.h>
+#include <cmds/geom.h>
+#include <cmds/layer.h>
+#include <cmds/meta.h>
 #include <cmds/scmd.h>
 //#include <cmds/wmcmd.h>
 
@@ -779,10 +782,9 @@ int eventq_add(event_td *event)
         pthread_mutex_unlock(&eventq_mutex);
         LOGGER_WARNING("Failed to insert event into event queue",
                 L_NARG);
-
         /* Release the event to prevent a memory leak: ownership of
          * 'event' was transferred to this function, so it must be
-         * freed on failure since it will never be dequeued */
+         * freed on failure since it will never be dequeued. */
         event_destroy(event);
         return 1;
     }

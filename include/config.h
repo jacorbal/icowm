@@ -73,15 +73,12 @@ struct config_base_s {
             CONFIG_PLACEMENT_POLICY_CENTERED,
             CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
         } placement_policy;
-
         uint32_t snap;
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
-            char policy[CONFIG_MAX_LENGTH_OPTION];  /* "click", "follow_mouse */
         } focus;
         struct {
-            char policy[CONFIG_MAX_LENGTH_OPTION];  /* "smart",... */
             bool is_centered;
         } placement;
     } windows;

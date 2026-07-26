@@ -89,6 +89,7 @@ enum action_client_e {
         ACTION_CLIENT_CYCLE_PREV,
 };
 
+
 /**
  * @brief Desktop-related actions
  */
@@ -177,12 +178,12 @@ enum action_wm_e {
  *      action_client_e, action_desktop_e, action_surface_e, action_wm_e
  */
 typedef struct {
-    enum action_type_e type;                    /**< Type of the action */
+    enum action_type_e type;            /**< Type of the action */
     union {
-        enum action_client_e client;            /**< Client actions */
-        enum action_desktop_e desktop;          /**< Desktop actions */
-        enum action_surface_e surface;          /**< Surface actions */
-        enum action_wm_e wm;                    /**< WM actions */
+        enum action_client_e client;    /**< Client actions */
+        enum action_desktop_e desktop;  /**< Desktop actions */
+        enum action_surface_e surface;  /**< Surface actions */
+        enum action_wm_e wm;            /**< WM actions */
     } object;
 } action_td;
 

@@ -51,6 +51,8 @@
  *      | FATAL |<-------------------------N---´
  *      +-------+
  * @endverbatim
+ *
+ * @ingroup logger Logger
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

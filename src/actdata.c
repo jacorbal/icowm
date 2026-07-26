@@ -63,8 +63,8 @@ void action_data_client_destroy(action_data_client_td *action_data_client)
      * its 'str' member own heap-allocated strings that must be freed
      * here.  Actions using 'geometry' (or no extra data at all) must
      * not touch 'str.str0'/'str.str1', since those bytes overlap in
-     * memory with numeric geometry fields and are not valid pointers
-     * in that case; freeing them would corrupt the heap. */
+     * memory with numeric geometry fields and are not valid pointers in
+     * that case; freeing them would corrupt the heap. */
     switch (action_data_client->action_client) {
         case ACTION_CLIENT_RENAME:
         case ACTION_CLIENT_RECLASS:

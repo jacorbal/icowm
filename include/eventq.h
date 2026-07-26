@@ -3,13 +3,12 @@
  *
  * @brief Event priority queue (min-heap) handler function declaration
  *
- * This module provides an interface for handling an event priority
- * queue, implemented as a min-heap.  It allows for asynchronous event
- * processing through a dedicated thread that continuously monitors the
- * queue for events to handle.  The processing occurs independently of
- * the main application flow, enabling concurrent execution and ensuring
- * that the application remains responsive even when handling
- * long-running or complex events.
+ * Interface for handling an event priority queue, implemented as
+ * a min-heap.  It allows for asynchronous event processing through
+ * a dedicated thread that continuously monitors the queue for events to
+ * handle.  The processing occurs independently of the main application
+ * flow, enabling concurrent execution and ensuring that the application
+ * remains responsive even when handling long-running or complex events.
  *
  * @note The event processing thread operates on a separate execution
  *       context and may introduce delays when idle to minimize CPU

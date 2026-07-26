@@ -60,7 +60,7 @@ int surface_render_current_desktop(surface_td *surface)
 
     desktop = (desktop_td *) cdlist_data(desktop_node);
     if (desktop == NULL) {
-        LOGGER_ERROR("NULL desktop pointer", L_NARG);
+        LOGGER_ERROR("'NULL' desktop pointer", L_NARG);
         return 1;
     }
 
@@ -174,7 +174,8 @@ int surface_render_all_desktops(surface_td *surface)
 void surface_render_flush(surface_td *surface)
 {
     if (surface == NULL || surface->connection == NULL) {
-        LOGGER_ERROR("Invalid surface or connection for flushing", L_NARG);
+        LOGGER_ERROR("Invalid surface or connection for flushing",
+                L_NARG);
         return;
     }
 

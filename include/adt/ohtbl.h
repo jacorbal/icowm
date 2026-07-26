@@ -80,13 +80,12 @@ typedef struct {
      *
      * The table will not reduce its capacity below this threshold,
      * ensuring that sufficient space is always available to accommodate
-     * the current and expected load.
-     *
-     * Setting this value too low may restrict the table's ability to
-     * handle the number of elements efficiently, leading to increased
-     * collisions and decreased performance.  If the value is zero or
-     * negative, it would allow the table to become non-functional, as
-     * a hash table requires at least one position to operate.
+     * the current and expected load.  Setting this value too low may
+     * restrict the table's ability to handle the number of elements
+     * efficiently, leading to increased collisions and decreased
+     * performance.  If the value is zero or negative, it would allow
+     * the table to become non-functional, as a hash table requires at
+     * least one position to operate.
      */
     size_t min_positions;
 
@@ -212,11 +211,9 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
  * If the item didn't exist in the table, it'll be inserted normally; if
  * exists, it'll be updated to the new value.  If the size of the table
  * is below the @c OHTBL_MAX_LOAD_FACTOR threshold, the table will be
- * resized doubling its positions.
- *
- * This means that if the item doesn't previously exist in the hash
- * table, it will be inserted only after resizing the table it, only if
- * the size of the table requires it.
+ * resized doubling its positions.  This means that if the item doesn't
+ * previously exist in the hash table, it will be inserted only after
+ * resizing the table it, only if the size of the table requires it.
  *
  * @param htbl Pointer to the open-addressed hash table to update
  * @param data Pointer to the data to be updated
@@ -236,10 +233,9 @@ int ohtbl_update(ohtbl_td *htbl, const void *data);
  * @brief Remove an item from the hash table that matches @p data
  *
  * If @p data is a match, @p data will point to the data stored in the
- * element that was removed.
- *
- * If the size of the table falls below the @c OHTBL_MIN_LOAD_FACTOR
- * threshold, the table will be resized by halving its positions.
+ * element that was removed.  If the size of the table falls below the
+ * @c OHTBL_MIN_LOAD_FACTOR threshold, the table will be resized by
+ * halving its positions.
  *
  * @param htbl Pointer to the open-addressed hash table
  * @param data Pointer to the data to be matched

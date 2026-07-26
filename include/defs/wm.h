@@ -43,10 +43,10 @@
 /** Minimum supported client window dimension */
 #define WM_MIN_WINDOW_DIMENSION (1u)
 
-/** Keyboard move step in pixels */
+/** Keyboard move step (pixels) */
 #define WM_KEYBOARD_MOVE_STEP (20)
 
-/** Keyboard resize step in pixels */
+/** Keyboard resize step (pixels) */
 #define WM_KEYBOARD_RESIZE_STEP (20)
 
 /** Pixels between baseline and the bottom of the titlebar */

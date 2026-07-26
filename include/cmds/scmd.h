@@ -2,6 +2,8 @@
  * @file cmds/scmd.h
  *
  * @brief Declaration of actions related to screen surface management
+ *
+ * @ingroup cmds Client commands subsystem
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

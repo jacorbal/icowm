@@ -23,7 +23,7 @@
 /**
  * @brief Initial values for priority
  *
- * The default priority is 0.  Positive priorities are used for less
+ * Default priority is 0.  Positive priorities are used for less
  * critical events that run when no other higher priority task is ready
  * to run.  Negative priorities cause an event to be handled more
  * frequently.  This is often confusing because the higher the numerical

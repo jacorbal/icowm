@@ -512,8 +512,8 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                 !(client->properties.flags & CLIENT_FLAG_STICKY)) {
             xcb_window_t target =
                 (client_is_decorated(client) && client->frame != 0)
-                    ? client->frame
-                    : client->window;
+                ? client->frame
+                : client->window;
             if (client->titlebar != 0) {
                 xcb_unmap_window(surface->connection, client->titlebar);
             }
@@ -521,12 +521,10 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
             if (target != client->window) {
                 xcb_unmap_window(surface->connection, client->window);
             }
+            if (client->icon_window != 0 && client->is_icon_mapped) {
+                xcb_unmap_window(surface->connection, client->icon_window);
+            }
         }
-
-        if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(surface->connection, client->icon_window);
-        }
-
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
 }
@@ -847,15 +845,14 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     initial = node;
     do {
         client_td *client = (client_td *) cdlist_data(node);
-
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 client->properties.state !=
-                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
             xcb_window_t target =
                 (client_is_decorated(client) && client->frame != 0)
-                    ? client->frame
-                    : client->window;
+                ? client->frame
+                : client->window;
             if (client->titlebar != 0) {
                 xcb_map_window(surface->connection, client->titlebar);
             }
@@ -870,7 +867,6 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
             xcb_map_window(surface->connection, client->icon_window);
             client->is_icon_mapped = true;
         }
-
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
 }

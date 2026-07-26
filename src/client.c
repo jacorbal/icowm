@@ -23,13 +23,13 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
 
-/* Default initial values */
-#include <defs/wm.h>
-
 /* Utils includes */
 #include <utils/safemem.h>
 #include <utils/safestr.h>
 #include <utils/safeflg.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Type includes */
 #include <types/pair.h>
@@ -222,8 +222,7 @@ static void s_client_set_decoration_defaults(client_td *client,
 
 
 /**
- * @brief Reconfigure a decorated client's child windows to match
- *        extents
+ * @brief Reconfigure a decorated client's child windows to match extents
  *
  * Applies the current cached frame extents to the reparented client
  * window and titlebar so the themed border area, titlebar, and client
@@ -244,8 +243,7 @@ static void s_client_sync_decoration_layout(client_td *client)
     uint16_t inner_h;
     uint16_t title_y;
 
-    if (client == NULL || client->frame == 0 ||
-            !client_is_decorated(client)) {
+    if (client == NULL || client->frame == 0 || !client_is_decorated(client)) {
         return;
     }
 
@@ -263,10 +261,8 @@ static void s_client_sync_decoration_layout(client_td *client)
         : WM_MIN_WINDOW_DIMENSION;
 
     xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X     |
-            XCB_CONFIG_WINDOW_Y     |
-            XCB_CONFIG_WINDOW_WIDTH |
-            XCB_CONFIG_WINDOW_HEIGHT,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 left, top, inner_w, inner_h
             });
@@ -290,14 +286,14 @@ static void s_client_sync_decoration_layout(client_td *client)
  * The frame geometry is computed from the current client geometry and
  * the configured frame extents.
  *
- * If the client is not decorated, has no theme, or has no valid parent
- * window, the function returns without creating decoration windows.
- *
  * @param client Pointer to client for which decorations are created
  *
  * @return 0 on success or if decoration creation is skipped, or
  *         otherwise
  *
+ * @note If the client is not decorated, has no theme, or has no valid
+ *       parent window, the function returns without creating decoration
+ *       windows
  * @note On success, the client's stored geometry is updated to match
  *       the newly created frame dimensions and position
  * @note Complexity: @e O(1)
@@ -405,8 +401,9 @@ static int s_client_create_decorations(client_td *client)
      * 'xcb_allow_events', which lets the manager focus the window
      * before deciding whether to replay the click to the application or
      * consume it silently.  'XCB_MOD_MASK_ANY' already covers all
-     * lock-modifier combinations, so no lock-modifier loop is required.
-     * NOTE: root-level 'MOD1+button' grabs are more specific (specific
+     * lock-modifier combinations, so no lock-modifier loop is
+     * required. */
+    /* NOTE: root-level 'MOD1+button' grabs are more specific (specific
      * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
      * priority for move/resize interactions. */
     xcb_grab_button(client->connection,
@@ -1008,17 +1005,15 @@ int client_send_event_move(client_td *client,
 
     /* Configure the XCB window immediately */
     /* NOTE: For decorated clients the outermost positioned window is
-     *       the frame; moving the inner client window (which is
-     *       reparented INSIDE the frame) would place it at
-     *       screen-relative coordinates relative to the frame, making
-     *       the content appear shifted */
+     * the frame; moving the inner client window (which is reparented
+     * INSIDE the frame) would place it at screen-relative coordinates
+     * relative to the frame, making the content appear shifted. */
     values[0] = (uint32_t) new_x;
     values[1] = (uint32_t) new_y;
 
     xcb_configure_window(client->connection,
             (client->frame != 0 && client_is_decorated(client))
-                ? client->frame
-                : client->window,
+                ? client->frame : client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
     xcb_flush(client->connection);
 
@@ -1070,15 +1065,14 @@ int client_send_event_resize(client_td *client,
 
     /* Configure the XCB window immediately */
     /* NOTE: For decorated clients the frame must be resized; resizing
-     *       only the inner window would leave the decoration at the
-     *       wrong size */
+     * only the inner window would leave the decoration at the wrong
+     * size */
     values[0] = new_w;
     values[1] = new_h;
 
     xcb_configure_window(client->connection,
             (client->frame != 0 && client_is_decorated(client))
-                ? client->frame
-                : client->window,
+                ? client->frame : client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             values);
     s_client_sync_decoration_layout(client);

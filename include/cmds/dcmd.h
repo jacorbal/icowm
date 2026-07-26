@@ -3,6 +3,8 @@
  *
  * @brief Functions on executions over desktops using the XCB interface
  *        with needed EWMH and ICCCM updates
+ *
+ * @ingroup cmds Client commands subsystem
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -122,7 +124,7 @@ void dcmd_desktop_client_send_back(desktop_td *desktop,
  *
  * Rearranges the displayed clients according to a layout algorithm
  *
- * @param desktop      Pointer to the desktop
+ * @param desktop Pointer to the desktop
  *
  * @note Complexity: @e O(n) where @e n is the number of clients
  */
@@ -133,7 +135,7 @@ void dcmd_desktop_clients_rearrange(desktop_td *desktop);
  *
  * Minimizes and iconifies all clients on the specified desktop.
  *
- * @param desktop      Pointer to the desktop
+ * @param desktop Pointer to the desktop
  *
  * @note Complexity: @e O(n) where @e n is the number of clients
  */
@@ -142,7 +144,7 @@ void dcmd_desktop_clients_iconify_all(desktop_td *desktop);
 /**
  * @brief Cycles focus between active clients on the desktop
  *
- * @param desktop      Pointer to the desktop
+ * @param desktop Pointer to the desktop
  *
  * @note Complexity: @e O(1)
  */
@@ -151,7 +153,7 @@ void dcmd_desktop_clients_cycle_active(desktop_td *desktop);
 /**
  * @brief Cycle focus between client icons on the desktop
  *
- * @param desktop      Pointer to the desktop
+ * @param desktop Pointer to the desktop
  *
  * @note Complexity: @e O(1)
  */
@@ -160,7 +162,7 @@ void dcmd_desktop_clients_cycle_icons(desktop_td *desktop);
 /**
  * @brief Lock the specified desktop to prevent user interaction
  *
- * @param desktop      Pointer to the desktop
+ * @param desktop Pointer to the desktop
  *
  * @note Complexity: @e O(1)
  */
