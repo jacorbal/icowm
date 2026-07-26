@@ -182,10 +182,6 @@ static xcb_window_t s_info_popup_window = XCB_WINDOW_NONE;
 static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
 
-/* Forward declarations for local helpers used before their definitions */
-static desktop_td *s_wm_get_current_desktop(surface_td *surface);
-
-
 /**
  * @brief Mouse drag state for move and resize interactions
  *
@@ -343,6 +339,23 @@ static bool s_wm_position_overlaps_clients(desktop_td *desktop,
     } while (node != NULL && node != initial);
 
     return false;
+}
+
+
+/**
+ * @brief Return the currently active desktop for a surface
+ *
+ * @param surface Pointer to the surface
+ *
+ * @return Pointer to the current desktop, or @c NULL on error
+ */
+static desktop_td *s_wm_get_current_desktop(surface_td *surface)
+{
+    if (surface == NULL) {
+        return NULL;
+    }
+
+    return surface_desktop_get(surface, surface->desktop_cur);
 }
 
 
@@ -724,23 +737,6 @@ static surface_td *s_wm_get_surface_for_root(xcb_window_t root)
     }
 
     return NULL;
-}
-
-
-/**
- * @brief Return the currently active desktop for a surface
- *
- * @param surface Pointer to the surface
- *
- * @return Pointer to the current desktop, or @c NULL on error
- */
-static desktop_td *s_wm_get_current_desktop(surface_td *surface)
-{
-    if (surface == NULL) {
-        return NULL;
-    }
-
-    return surface_desktop_get(surface, surface->desktop_cur);
 }
 
 
