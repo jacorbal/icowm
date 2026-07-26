@@ -510,7 +510,17 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
         client_td *client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_STICKY)) {
-            xcb_unmap_window(surface->connection, client->window);
+            xcb_window_t target =
+                (client_is_decorated(client) && client->frame != 0)
+                    ? client->frame
+                    : client->window;
+            if (client->titlebar != 0) {
+                xcb_unmap_window(surface->connection, client->titlebar);
+            }
+            xcb_unmap_window(surface->connection, target);
+            if (target != client->window) {
+                xcb_unmap_window(surface->connection, client->window);
+            }
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
@@ -835,8 +845,19 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 client->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
-            xcb_map_window(surface->connection, client->window);
+                (uint16_t) CLIENT_STATE_ICONIFIED) {
+            xcb_window_t target =
+                (client_is_decorated(client) && client->frame != 0)
+                    ? client->frame
+                    : client->window;
+            if (client->titlebar != 0) {
+                xcb_map_window(surface->connection, client->titlebar);
+            }
+            xcb_map_window(surface->connection, target);
+            if (target != client->window) {
+                xcb_map_window(surface->connection, client->window);
+            }
+
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);

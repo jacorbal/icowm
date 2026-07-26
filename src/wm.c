@@ -18,7 +18,7 @@
 #include <errno.h>      /* errno, EINTR */
 #include <limits.h>     /* UINT16_MAX */
 #include <poll.h>       /* poll, struct pollfd, POLLIN */
-#include <signal.h>     /* sigaction, SIGINT, SIGTERM */
+#include <signal.h>     /* sigaction, SIGHUP, SIGINT, SIGQUIT, SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
@@ -3078,10 +3078,11 @@ static int s_wm_install_signal_handlers(void)
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
 
-    if (sigaction(SIGINT, &sa, NULL) != 0 ||
+    if (sigaction(SIGHUP, &sa, NULL) != 0 ||
+            sigaction(SIGINT, &sa, NULL) != 0 ||
+            sigaction(SIGQUIT, &sa, NULL) != 0 ||
             sigaction(SIGTERM, &sa, NULL) != 0) {
-        LOGGER_ERROR("Failed to install SIGINT/SIGTERM handlers",
-                L_NARG);
+        LOGGER_ERROR("Failed to install termination handlers", L_NARG);
         return -1;
     }
 
@@ -3117,11 +3118,12 @@ static void s_wm_loop(void)
         return;
     }
 
-    /* Install signal handlers so 'SIGINT'/'SIGTERM' (e.g. 'Ctrl+C', or
-     * a plain 'kill') trigger a graceful shutdown instead of an
-     * abrupt termination that would skip 'wm_stop' */
+    /* Install signal handlers so common termination signals (e.g.,
+     * 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGTERM') trigger a graceful
+     * shutdown instead of an abrupt termination that would skip
+     * 'wm_stop' */
     if (s_wm_install_signal_handlers() != 0) {
-        LOGGER_WARNING("Continuing without SIGINT/SIGTERM handling",
+        LOGGER_WARNING("Continuing without termination signal handling",
                 L_NARG);
     }
 
@@ -3526,8 +3528,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     " on surface %u", surface->desktop_cur, i);
         }
 
-        /* Subscribe to root window events (MUST be done before loop */
-        /* NOTE: Fails with fatal log if another win. manager is running */
+        /* Subscribe to root window events (MUST be done before loop) */
+        /* NOTE: Fails with FATAL log if another win. manager is running */
         if (s_wm_subscribe_root_events() != 0) {
             list_destroy(wm->surfaces);
             eventq_stop();

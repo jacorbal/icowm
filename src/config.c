@@ -998,13 +998,13 @@ int config_load_base(const char *filename,
         s_json_load_uint(windows, "snap", &config_base->windows.snap);
         focus = cJSON_GetObjectItem(windows, "focus");
         if (focus) {
+            s_json_load_string(focus, "policy",
+                    config_base->windows.focus.policy,
+                    CONFIG_MAX_LENGTH_OPTION);
             s_json_load_bool(focus, "is-new-focused",
                     &config_base->windows.focus.is_new_focused);
             s_json_load_bool(focus, "is-raised-on-focus",
                     &config_base->windows.focus.is_raised_on_focus);
-            s_json_load_string(focus, "focus-policy",
-                    config_base->windows.focus.policy,
-                    CONFIG_MAX_LENGTH_OPTION);
         }
         placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
