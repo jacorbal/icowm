@@ -163,10 +163,12 @@ enum wm_mousebind_type_e {
 /**
  * @brief Mouse binding resolved from configuration
  *
- * Stores a mouse button and the action associated with it.
+ * Stores a mouse button, its required modifier mask, and the action
+ * associated with it.
  */
 typedef struct {
     xcb_button_index_t button;
+    uint16_t           modmask;
     enum wm_mousebind_type_e type;
 } wm_mousebinding_td;
 
@@ -286,8 +288,8 @@ static const char *s_resolve_modifier_token(const char *tok)
  * @brief Map a single modifier token to an XCB modifier mask
  *
  * Converts a textual modifier name into the corresponding XCB modifier
- * mask.  Supports configured aliases, common modifier names, and
- * some alternative spellings.
+ * mask.  Supports configured aliases, common modifier names, and some
+ * alternative spellings.
  *
  * @param tok Modifier token to parse
  *
@@ -383,25 +385,25 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
     }
 
     /* Named keys */
-    if (strcasecmp(tok, "return")    == 0 ||
+    if (strcasecmp(tok, "return") == 0 ||
             strcasecmp(tok, "enter") == 0) { return 0xff0du; }
-    if (strcasecmp(tok, "space")     == 0) { return 0x0020u; }
-    if (strcasecmp(tok, "tab")       == 0) { return 0xff09u; }
-    if (strcasecmp(tok, "escape")    == 0 ||
-            strcasecmp(tok, "esc")   == 0) { return 0xff1bu; }
+    if (strcasecmp(tok, "space") == 0) { return 0x0020u; }
+    if (strcasecmp(tok, "tab") == 0) { return 0xff09u; }
+    if (strcasecmp(tok, "escape") == 0 ||
+            strcasecmp(tok, "esc") == 0) { return 0xff1bu; }
     if (strcasecmp(tok, "backspace") == 0) { return 0xff08u; }
-    if (strcasecmp(tok, "delete")    == 0 ||
-            strcasecmp(tok, "del")   == 0) { return 0xffffu; }
-    if (strcasecmp(tok, "left")      == 0) { return 0xff51u; }
-    if (strcasecmp(tok, "up")        == 0) { return 0xff52u; }
-    if (strcasecmp(tok, "right")     == 0) { return 0xff53u; }
-    if (strcasecmp(tok, "down")      == 0) { return 0xff54u; }
-    if (strcasecmp(tok, "home")      == 0) { return 0xff50u; }
-    if (strcasecmp(tok, "end")       == 0) { return 0xff57u; }
-    if (strcasecmp(tok, "pageup")    == 0 ||
+    if (strcasecmp(tok, "delete") == 0 ||
+            strcasecmp(tok, "del") == 0) { return 0xffffu; }
+    if (strcasecmp(tok, "left") == 0) { return 0xff51u; }
+    if (strcasecmp(tok, "up") == 0) { return 0xff52u; }
+    if (strcasecmp(tok, "right") == 0) { return 0xff53u; }
+    if (strcasecmp(tok, "down") == 0) { return 0xff54u; }
+    if (strcasecmp(tok, "home") == 0) { return 0xff50u; }
+    if (strcasecmp(tok, "end") == 0) { return 0xff57u; }
+    if (strcasecmp(tok, "pageup") == 0 ||
             strcasecmp(tok, "prior") == 0) { return 0xff55u; }
-    if (strcasecmp(tok, "pagedown")  == 0 ||
-            strcasecmp(tok, "next")  == 0) { return 0xff56u; }
+    if (strcasecmp(tok, "pagedown") == 0 ||
+            strcasecmp(tok, "next") == 0) { return 0xff56u; }
 
     return XCB_NO_SYMBOL;
 }
@@ -413,9 +415,9 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
  * Splits on '+' and classifies each token as a modifier or the key
  * (last token).
  *
- * @param[in]  binding  Binding string from configuration
- * @param[out] modmask  Receives the combined modifier mask
- * @param[out] keysym   Receives the main keysym
+ * @param[in]  binding Binding string from configuration
+ * @param[out] modmask Receives the combined modifier mask
+ * @param[out] keysym  Receives the main keysym
  *
  * @return @c true if the binding could be parsed, @c false otherwise
  */
@@ -441,7 +443,7 @@ static bool s_parse_binding(const char *binding,
     buf[len] = '\0';
 
     *modmask = 0;
-    *keysym  = XCB_NO_SYMBOL;
+    *keysym = XCB_NO_SYMBOL;
 
     tok = strtok_r(buf, "+", &save);
     while (tok != NULL) {
@@ -466,11 +468,11 @@ static bool s_parse_binding(const char *binding,
 
 
 /**
- * @brief Parse a mouse button token such as "button1" into an XCB
+ * @brief Parse a mouse button token such as @c button1 into an XCB
  *        button index
  *
- * @param[in] tok Button token from configuration (e.g., "button1"
- *                through "button5")
+ * @param[in] tok Button token from configuration (e.g., @c button1
+ *                through @c button5)
  *
  * @return The parsed button index, or @c 0 if @p tok could not be
  *         parsed as a valid button token
@@ -492,6 +494,64 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
 
     return (xcb_button_index_t) n;
 }
+
+
+/**
+ * @brief Parse a mouse binding string such as @c mod1+button1
+ *
+ * Splits on '+', treating all tokens except the last as modifiers and
+ * the last token as a button name (e.g., @c button1 to @c button5).
+ *
+ * @param[in]  binding Binding string from configuration
+ * @param[out] modmask Receives the combined modifier mask
+ * @param[out] button  Receives the parsed button index
+ *
+ * @return @c true if the binding could be parsed, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p binding
+ */
+static bool s_parse_mouse_binding(const char *binding,
+        uint16_t *modmask, xcb_button_index_t *button)
+{
+    char buf[128];
+    char *tok;
+    char *save;
+    char *prev_tok = NULL;
+    size_t len;
+
+    if (binding == NULL || binding[0] == '\0') {
+        return false;
+    }
+
+    len = safe_strlen(binding);
+    if (len >= sizeof(buf)) {
+        len = sizeof(buf) - 1;
+    }
+    memcpy(buf, binding, len);
+    buf[len] = '\0';
+
+    *modmask = 0;
+    *button = 0;
+
+    tok = strtok_r(buf, "+", &save);
+    while (tok != NULL) {
+        if (prev_tok != NULL) {
+            uint16_t mod = s_parse_modifier_token(prev_tok);
+            if (mod != 0) {
+                *modmask |= mod;
+            }
+        }
+        prev_tok = tok;
+        tok = strtok_r(NULL, "+", &save);
+    }
+
+    if (prev_tok != NULL) {
+        *button = s_parse_button_token(prev_tok);
+    }
+
+    return *button != 0;
+}
+
 
 
 /* Window manager helper functions */
@@ -655,11 +715,12 @@ static client_td *s_wm_find_client(xcb_window_t window,
 
 
 /**
- * @brief Select the next or previous focusable visible client
+ * @brief Select the next or previous focusable client
  *
  * Traverses the desktop stacking list starting from the currently
  * active client and returns the next candidate according to the
- * requested cycling direction.
+ * requested cycling direction.  Hidden clients are included so that
+ * cycling with Alt+Tab can reach and un-hide them.
  *
  * @param desktop Pointer to the desktop where cycling is performed
  * @param is_next When @c true, cycle to next; when @c false, cycle to
@@ -717,7 +778,6 @@ static client_td *s_wm_cycle_target_client(desktop_td *desktop,
         client_td *client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !client_is_iconified(client) &&
-                !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 client_is_focusable(client)) {
             return client;
         }
@@ -850,7 +910,7 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     /* Mark the surface and desktop as outdated so the next update cycle
      * repaints the titlebars of both the newly focused and the
      * previously focused clients with the correct active/inactive theme
-     * colors.  Without this the focus_in handler skips the update
+     * colors.  Without this the 'focus_in' handler skips the update
      * because it sees the active ID already set. */
     desktop->is_outdated = true;
     if (surface != NULL) {
@@ -866,7 +926,7 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
 
     /* Keep focus-related repaint synchronized with the state change so
      * titlebars and themed borders do not update one event later when
-     * focus changes via mouse hover, click, or keyboard cycling. */
+     * focus changes via mouse hover, click, or keyboard cycling */
     if (surface != NULL && surface->is_outdated) {
         if (surface_render_all_desktops(surface) != 0) {
             LOGGER_ERROR("Failed to refresh surface %u after focus" \
@@ -982,7 +1042,8 @@ static int s_wm_send_desktop_launch_event(desktop_td *desktop,
     event_td *event;
 
     if (desktop == NULL || command == NULL || command[0] == '\0') {
-        LOGGER_WARNING("Cannot launch: command is null or empty", L_NARG);
+        LOGGER_WARNING("Cannot launch: command is 'NULL' or empty",
+                L_NARG);
         return -1;
     }
 
@@ -1070,8 +1131,8 @@ static int s_wm_subscribe_root_events(void)
 
 
 /**
- * @brief Register key grabs for the emergency exit and every
- *        configured key binding
+ * @brief Register key grabs for the emergency exit and every configured
+ *        key binding
  *
  * @param keysyms Allocated key-symbols table
  */
@@ -1082,49 +1143,49 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
         const char *binding;
         enum wm_keybind_type_e type;
     } defs[] = {
-        { wm->config->bindings.keyboard.terminal,
+        { wm->config->bindings.keyboard.launch.terminal,
           KEYBIND_LAUNCH_TERMINAL },
-        { wm->config->bindings.keyboard.launcher,
+        { wm->config->bindings.keyboard.launch.launcher,
           KEYBIND_LAUNCH_LAUNCHER },
-        { wm->config->bindings.keyboard.file_manager,
+        { wm->config->bindings.keyboard.launch.file_manager,
           KEYBIND_LAUNCH_FILE_MANAGER },
-        { wm->config->bindings.keyboard.web_browser,
+        { wm->config->bindings.keyboard.launch.web_browser,
           KEYBIND_LAUNCH_WEB_BROWSER },
-        { wm->config->bindings.keyboard.editor,
+        { wm->config->bindings.keyboard.launch.editor,
           KEYBIND_LAUNCH_EDITOR },
-        { wm->config->bindings.keyboard.iconify,
+        { wm->config->bindings.keyboard.window.iconify,
           KEYBIND_CLIENT_ICONIFY },
-        { wm->config->bindings.keyboard.hide,
+        { wm->config->bindings.keyboard.window.hide,
           KEYBIND_CLIENT_HIDE },
-        { wm->config->bindings.keyboard.close,
+        { wm->config->bindings.keyboard.window.close,
           KEYBIND_CLIENT_CLOSE },
-        { wm->config->bindings.keyboard.kill,
+        { wm->config->bindings.keyboard.window.kill,
           KEYBIND_CLIENT_KILL },
-        { wm->config->bindings.keyboard.maximize,
+        { wm->config->bindings.keyboard.window.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
-        { wm->config->bindings.keyboard.center,
+        { wm->config->bindings.keyboard.move.absolute.center,
           KEYBIND_CLIENT_CENTER },
-        { wm->config->bindings.keyboard.shade,
+        { wm->config->bindings.keyboard.window.shade,
           KEYBIND_CLIENT_SHADE },
-        { wm->config->bindings.keyboard.fullscreen,
+        { wm->config->bindings.keyboard.window.fullscreen,
           KEYBIND_CLIENT_FULLSCREEN },
-        { wm->config->bindings.keyboard.pin,
+        { wm->config->bindings.keyboard.window.pin,
           KEYBIND_CLIENT_PIN },
-        { wm->config->bindings.keyboard.info,
+        { wm->config->bindings.keyboard.window.info,
           KEYBIND_CLIENT_INFO },
-        { wm->config->bindings.keyboard.cycle_prev,
+        { wm->config->bindings.keyboard.cycle.window.prev,
           KEYBIND_CLIENT_CYCLE_PREV },
-        { wm->config->bindings.keyboard.cycle_next,
+        { wm->config->bindings.keyboard.cycle.window.next,
           KEYBIND_CLIENT_CYCLE_NEXT },
-        { wm->config->bindings.keyboard.toggle_decoration,
+        { wm->config->bindings.keyboard.window.decorate,
           KEYBIND_CLIENT_TOGGLE_DECORATION },
-        { wm->config->bindings.keyboard.desktop.cycle_prev,
+        { wm->config->bindings.keyboard.cycle.desktop.prev,
           KEYBIND_DESKTOP_PREV },
-        { wm->config->bindings.keyboard.desktop.cycle_next,
+        { wm->config->bindings.keyboard.cycle.desktop.next,
           KEYBIND_DESKTOP_NEXT },
-        { wm->config->bindings.keyboard.desktop.cycle_icon_prev,
+        { wm->config->bindings.keyboard.cycle.icon.prev,
           KEYBIND_DESKTOP_ICON_PREV },
-        { wm->config->bindings.keyboard.desktop.cycle_icon_next,
+        { wm->config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
         { wm->config->bindings.keyboard.move.relative.left,
           KEYBIND_CLIENT_MOVE_LEFT },
@@ -1183,9 +1244,9 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
 
         /* Store in the binding table (avoid overflow) */
         if (s_keybindings_count < WM_MAX_KEYBINDINGS) {
-            s_keybindings[s_keybindings_count].keysym  = keysym;
+            s_keybindings[s_keybindings_count].keysym = keysym;
             s_keybindings[s_keybindings_count].modmask = modmask;
-            s_keybindings[s_keybindings_count].type    = defs[i].type;
+            s_keybindings[s_keybindings_count].type = defs[i].type;
             s_keybindings_count++;
         }
 
@@ -1238,23 +1299,20 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
 static void s_wm_grab_buttons(void)
 {
     /* Binding strings paired with their action type, read from
-     * configuration instead of hardcoding specific button numbers.
-     * All mouse actions are gated behind the same 'mod1' (Alt)
-     * modifier as the rest of the mouse section, for consistency
-     * with the existing move/resize grabs. */
+     * configuration.  The modifier mask is parsed from the binding
+     * string itself (e.g., "mod1+button1"). */
     struct {
         const char *binding;
         enum wm_mousebind_type_e type;
-        bool requires_mod1;
     } defs[] = {
-        { wm->config->bindings.mouse.move, MOUSEBIND_MOVE, true },
-        { wm->config->bindings.mouse.resize, MOUSEBIND_RESIZE, true },
-        { wm->config->bindings.mouse.lower, MOUSEBIND_LOWER, true },
-        { wm->config->bindings.mouse.desktop.cycle_prev,
-          MOUSEBIND_DESKTOP_PREV, false },
-        { wm->config->bindings.mouse.desktop.cycle_next,
-          MOUSEBIND_DESKTOP_NEXT, false },
-        { NULL, MOUSEBIND_NONE, false }
+        { wm->config->bindings.mouse.window.move, MOUSEBIND_MOVE },
+        { wm->config->bindings.mouse.window.resize, MOUSEBIND_RESIZE },
+        { wm->config->bindings.mouse.window.lower, MOUSEBIND_LOWER },
+        { wm->config->bindings.mouse.cycle.desktop.prev,
+            MOUSEBIND_DESKTOP_PREV },
+        { wm->config->bindings.mouse.cycle.desktop.next,
+            MOUSEBIND_DESKTOP_NEXT },
+        { NULL, MOUSEBIND_NONE }
     };
 
     /* Lock-modifier variants: passive grabs match the modifier mask
@@ -1270,9 +1328,10 @@ static void s_wm_grab_buttons(void)
     s_mousebindings_count = 0;
 
     for (int i = 0; defs[i].binding != NULL; ++i) {
-        xcb_button_index_t button = s_parse_button_token(defs[i].binding);
+        xcb_button_index_t button;
+        uint16_t modmask;
 
-        if (button == 0) {
+        if (!s_parse_mouse_binding(defs[i].binding, &modmask, &button)) {
             LOGGER_WARNING("Ignoring unparseable mouse binding '%s'",
                     defs[i].binding);
             continue;
@@ -1280,7 +1339,8 @@ static void s_wm_grab_buttons(void)
 
         if (s_mousebindings_count < WM_MAX_MOUSEBINDINGS) {
             s_mousebindings[s_mousebindings_count].button = button;
-            s_mousebindings[s_mousebindings_count].type   = defs[i].type;
+            s_mousebindings[s_mousebindings_count].modmask = modmask;
+            s_mousebindings[s_mousebindings_count].type = defs[i].type;
             s_mousebindings_count++;
         }
 
@@ -1305,9 +1365,7 @@ static void s_wm_grab_buttons(void)
                         XCB_NONE,
                         XCB_NONE,
                         (uint8_t) button,
-                        (uint16_t) ((defs[i].requires_mod1
-                                ? XCB_MOD_MASK_1
-                                : 0u) | lockmods[k]));
+                        (uint16_t) (modmask | lockmods[k]));
             }
         }
     }
@@ -1318,10 +1376,11 @@ static void s_wm_grab_buttons(void)
 
 
 /**
- * @brief Adopt all pre-existing mapped windows at window manager startup
+ * @brief Adopt all pre-existing mapped windows at window manager
+ *        startup
  *
- * Queries the window tree for each screen and calls
- * @c client_manage on any already-mapped, non-override-redirect child.
+ * Queries the window tree for each screen and calls @c client_manage on
+ * any already-mapped, non-override-redirect child.
  */
 static void s_wm_scan_existing_windows(void)
 {
@@ -1339,13 +1398,13 @@ static void s_wm_scan_existing_windows(void)
 
         qt_cookie = xcb_query_tree(wm->connection,
                 surface->screen->root);
-        qt_reply  = xcb_query_tree_reply(wm->connection,
+        qt_reply = xcb_query_tree_reply(wm->connection,
                 qt_cookie, NULL);
         if (qt_reply == NULL) {
             continue;
         }
 
-        children  = xcb_query_tree_children(qt_reply);
+        children = xcb_query_tree_children(qt_reply);
         nchildren = xcb_query_tree_children_length(qt_reply);
 
         for (int i = 0; i < nchildren; ++i) {
@@ -1366,7 +1425,7 @@ static void s_wm_scan_existing_windows(void)
                             wm->connection, wm->ewmh,
                             children[i], &wm->config->theme);
                     if (client != NULL) {
-                        client->screen_id  = surface->id;
+                        client->screen_id = surface->id;
                         client->desktop_id = desktop->id;
                         desktop_action_client_add(desktop, client);
                         surface->is_outdated = true;
@@ -1400,7 +1459,7 @@ static void s_wm_refresh_client_name(client_td *client)
 
     cookie = xcb_get_property(client->connection, 0, client->window,
             XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 0, 255);
-    reply  = xcb_get_property_reply(client->connection, cookie, NULL);
+    reply = xcb_get_property_reply(client->connection, cookie, NULL);
 
     if (reply != NULL && reply->value_len > 0) {
         size_t len = reply->value_len < 255u
@@ -1422,13 +1481,13 @@ static void s_wm_refresh_client_name(client_td *client)
 /**
  * @brief Dispatch a program launch event on the current desktop
  *
- * Retrieves the current desktop for @p surface and, if both the
- * surface and desktop are non-null, sends a launch event for @p prog.
- * If @p prog is @c NULL or empty the call is silently ignored.
+ * Retrieves the current desktop for @p surface and, if both the surface
+ * and desktop are non-null, sends a launch event for @p prog.
  *
  * @param surface Active surface (screen); may be @c NULL
  * @param prog    Program command string to launch; may be @c NULL
  *
+ * @note If @p prog is @c NULL or empty the call is silently ignored
  * @note Complexity: @e O(1)
  */
 static void s_dispatch_launch(surface_td *surface, const char *prog)
@@ -1486,8 +1545,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
 
-    /* Hardcoded emergency exit: 'Ctrl+Mod1+Shift+BackSpace' (the
-     * classic X11 'panic' combination; 'Shift' is intentionally not
+    /* Hardcoded emergency exit: 'Ctrl+Mod1+BackSpace' (the
+     * classic X11 'panic' combination.  'Shift' is intentionally not
      * required so it matches what users conventionally expect/try) */
     if (keysym == 0xff08 &&     // == XK_BackSpace &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
@@ -1878,14 +1937,17 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     for (int i = 0; i < s_mousebindings_count; ++i) {
         if (s_mousebindings[i].button ==
                 (xcb_button_index_t) event->detail) {
-            type = s_mousebindings[i].type;
-            break;
+            uint16_t req = s_mousebindings[i].modmask;
+            if (req == 0 || (state & req) == req) {
+                type = s_mousebindings[i].type;
+                break;
+            }
         }
     }
 
-    if ((state & XCB_MOD_MASK_1) == 0 &&
-            (type == MOUSEBIND_DESKTOP_NEXT ||
-             type == MOUSEBIND_DESKTOP_PREV)) {
+    if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
+        /* Desktop cycling: the modifier was already matched in the
+         * button lookup, so dispatch unconditionally here. */
         surface = s_wm_get_surface_for_root(event->root);
         if (surface != NULL) {
             event_td *ev;
@@ -1904,128 +1966,102 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         xcb_flush(wm->connection);
-        return;
-    }
-
-    if (client != NULL && (state & XCB_MOD_MASK_1) == 0) {
-        surface = s_wm_get_surface_for_root(event->root);
-        if (surface != NULL && desktop != NULL) {
-            s_wm_focus_client(surface, desktop, client, true);
-        }
-
-        /* Check if click landed on a titlebar decoration button.
-         * Buttons are in the titlebar ('y < frame_extents.top') and we
-         * test event_x against each button's x-extent. */
-        if (event->child == client->titlebar && client->titlebar != 0) {
-            int16_t  ex  = event->event_x;
-            int16_t  ey = event->event_y;
-            uint16_t left = (uint16_t) client->layout.frame_extents.left;
-            uint16_t right = (uint16_t) client->layout.frame_extents.right;
-            uint16_t frame_w = (uint16_t) client->layout.geometry.cur.dim.w;
-            uint16_t fw = (frame_w > left + right)
-                ? (uint16_t) (frame_w - left - right)
-                : 1u;
-            uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
-            uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
-            uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
-            uint16_t step = (uint16_t) (btn + gap);
-            uint16_t title_h = client->title_height;
-            int16_t  btn_y = (title_h > btn)
-                ? (int16_t) ((title_h - btn) / 2u)
-                : 0;
-
-            if (ey >= btn_y && ey < btn_y + (int16_t) btn) {
-                /* Check Pin button (left-aligned) */
-                if (ex >= (int16_t) pad &&
-                        ex < (int16_t) (pad + btn)) {
-                    client_send_event(client,
-                            ACTION_CLIENT_TOGGLE_STICKY,
-                            PRIORITY_NORMAL);
-                }
-
-                /* Check right-aligned buttons (right-to-left):
-                 * Values of 'i':
-                 * 0=Close, 1=Fullscreen, 2=Maximize, 3=Shade, 4=Hide,
-                 * 5=Iconify */
-                else {
-                    int bi;
-                    static const enum action_client_e btn_actions[6] = {
-                        ACTION_CLIENT_CLOSE,
-                        ACTION_CLIENT_TOGGLE_FULLSCREEN,
-                        ACTION_CLIENT_MAXIMIZE,
-                        ACTION_CLIENT_TOGGLE_SHADE,
-                        ACTION_CLIENT_HIDE,
-                        ACTION_CLIENT_ICONIFY
-                    };
-
-                    for (bi = 0; bi < 6; ++bi) {
-                        int16_t bx = (int16_t)(fw - pad - btn -
-                                (int16_t) (bi * step));
-                        if (ex >= bx && ex < bx + (int16_t) btn) {
-                            client_send_event(client, btn_actions[bi],
-                                    PRIORITY_NORMAL);
-                            break;
-                        }
-                    } /* ! for (bi) */
-                }
-            }
-        }
-
-        /* Unfreeze the pointer (frame's SYNC passive grab is active).
-         * Replay the click to the application if it landed on the
-         * client content window; consume it silently for frame or
-         * titlebar clicks (WM-decoration actions only). */
-        if (event->child == client->window) {
-            xcb_allow_events(wm->connection, XCB_ALLOW_REPLAY_POINTER,
-                    event->time);
-        } else {
-            xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
-                    event->time);
-        }
-        xcb_flush(wm->connection);
-        return;
-    }
-
-    if ((state & XCB_MOD_MASK_1) == 0) {
-        /* Click on root background or orphaned frame.  If a SYNC
-         * passive grab is somehow active (orphaned frame), unfreeze; if
-         * not, this is a no-op (silent 'NoCurrentGrab' per spec). */
-        if (event->event != event->root) {
-            xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
-                    event->time);
-            xcb_flush(wm->connection);
-        }
         return;
     }
 
     if (type == MOUSEBIND_NONE) {
-        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
-        xcb_flush(wm->connection);
-        return;
-    }
+        /* No configured binding matched: treat as a plain focus click
+         * when landing on a managed client, or unfreeze for root or
+         * orphaned frames. */
+        if (client != NULL) {
+            surface = s_wm_get_surface_for_root(event->root);
+            if (surface != NULL && desktop != NULL) {
+                s_wm_focus_client(surface, desktop, client, true);
+            }
 
-    /* Desktop cycling without Alt was already handled above.  If the
-     * configured wheel binding also happens to be used while Alt is held,
-     * dispatch it here too before touching the drag state machine. */
-    if (type == MOUSEBIND_DESKTOP_NEXT || type == MOUSEBIND_DESKTOP_PREV) {
-        surface = s_wm_get_surface_for_root(event->root);
-        if (surface != NULL) {
-            event_td *ev;
-            action_td action;
-            action.type = ACTION_TYPE_SURFACE;
-            action.object.surface = (type == MOUSEBIND_DESKTOP_NEXT)
-                ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
-                : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
-            ev = event_init((void *) surface, NULL, action,
-                    PRIORITY_NORMAL);
-            if (ev != NULL) {
-                eventq_add(ev);
+            /* Check if click landed on a titlebar decoration button.
+             * Buttons are in the titlebar ('y < frame_extents.top') and
+             * we test event_x against each button's x-extent. */
+            if (event->child == client->titlebar &&
+                    client->titlebar != 0) {
+                int16_t ex = event->event_x;
+                int16_t ey = event->event_y;
+                uint16_t left = (uint16_t)
+                    client->layout.frame_extents.left;
+                uint16_t right = (uint16_t)
+                    client->layout.frame_extents.right;
+                uint16_t frame_w = (uint16_t)
+                    client->layout.geometry.cur.dim.w;
+                uint16_t fw = (frame_w > left + right)
+                    ? (uint16_t) (frame_w - left - right)
+                    : 1u;
+                uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
+                uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
+                uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
+                uint16_t step = (uint16_t) (btn + gap);
+                uint16_t title_h = client->title_height;
+                int16_t btn_y = (title_h > btn)
+                    ? (int16_t) ((title_h - btn) / 2u)
+                    : 0;
+
+                if (ey >= btn_y && ey < btn_y + (int16_t) btn) {
+                    /* Check Pin button (left-aligned) */
+                    if (ex >= (int16_t) pad &&
+                            ex < (int16_t) (pad + btn)) {
+                        client_send_event(client,
+                                ACTION_CLIENT_TOGGLE_STICKY,
+                                PRIORITY_NORMAL);
+                    }
+
+                    /* Check right-aligned buttons (right-to-left):
+                     * Values of 'i':
+                     *   0=close; 1=fullscreen; 2=maximize; 3=shade;
+                     *   4=hide; 5=iconify */
+                    else {
+                        static const enum action_client_e btn_actions[6] = {
+                            ACTION_CLIENT_CLOSE,
+                            ACTION_CLIENT_TOGGLE_FULLSCREEN,
+                            ACTION_CLIENT_MAXIMIZE,
+                            ACTION_CLIENT_TOGGLE_SHADE,
+                            ACTION_CLIENT_HIDE,
+                            ACTION_CLIENT_ICONIFY
+                        };
+
+                        for (int bi = 0; bi < 6; ++bi) {
+                            int16_t bx = (int16_t)(fw - pad - btn -
+                                    (int16_t) (bi * step));
+                            if (ex >= bx && ex < bx + (int16_t) btn) {
+                                client_send_event(client, btn_actions[bi],
+                                        PRIORITY_NORMAL);
+                                break;
+                            }
+                        } /* ! for (bi) */
+                    }
+                }
+            }
+
+            /* Unfreeze the pointer (frame's SYNC passive grab is
+             * active). Replay the click to the application if it landed
+             * on the client content window; consume it silently for
+             * frame or titlebar clicks (WM-decoration actions only). */
+            if (event->child == client->window) {
+                xcb_allow_events(wm->connection,
+                        XCB_ALLOW_REPLAY_POINTER, event->time);
+            } else {
+                xcb_allow_events(wm->connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
+            }
+        } else {
+            /* Click on root background or orphaned frame.  If a SYNC
+             * passive grab is somehow active (orphaned frame),
+             * unfreeze; if not, this is a no-op ('NoCurrentGrab' per
+             * spec). */
+            if (event->event != event->root) {
+                xcb_allow_events(wm->connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
             }
         }
 
-        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
         xcb_flush(wm->connection);
         return;
     }
@@ -2043,7 +2079,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
                 break;
             }
             qt_parent = qt_r->parent;
-            qt_root   = qt_r->root;
+            qt_root = qt_r->root;
             free(qt_r);
             if (qt_parent == XCB_NONE || qt_parent == qt_root) {
                 break;
@@ -2404,7 +2440,7 @@ static void s_wm_handle_map_request(
     }
 
     /* Bind to the current desktop */
-    client->screen_id  = surface->id;
+    client->screen_id = surface->id;
     client->desktop_id = desktop->id;
 
     if (desktop_action_client_add(desktop, client) != 0) {
@@ -2975,11 +3011,11 @@ static void s_wm_handle_signal(int signum)
 /**
  * @brief Handle @c XCB_ENTER_NOTIFY events for configurable focus policy
  *
- * When the focus policy is set to @c "follow-mouse" the window
- * under the pointer is focused automatically as soon as the pointer
- * enters it, without requiring a button click.  The window is focused
- * but not raised, so stacking order is preserved and cascading raise
- * events are avoided.
+ * When the focus policy is set to @c follow-mouse the window under the
+ * pointer is focused automatically as soon as the pointer enters it,
+ * without requiring a button click.  The window is focused but not
+ * raised, so stacking order is preserved and cascading raise events are
+ * avoided.
  *
  * Only @c XCB_NOTIFY_MODE_NORMAL events are acted upon; events
  * generated by grab/ungrab transitions (@c XCB_NOTIFY_MODE_GRAB,

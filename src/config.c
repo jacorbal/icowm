@@ -283,25 +283,50 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.mod5, "Hyper");
 
     /* Predetermined configuration for keybindings */
+    safe_strcpy(config->bindings.keyboard.launch.terminal,
+            "modc+mod1+Return");
+    safe_strcpy(config->bindings.keyboard.launch.launcher,
+            "modc+mod1+r");
+    safe_strcpy(config->bindings.keyboard.launch.file_manager,
+            "modc+mod1+q");
+    safe_strcpy(config->bindings.keyboard.launch.web_browser,
+            "modc+mod1+w");
+    safe_strcpy(config->bindings.keyboard.launch.editor,
+            "modc+mod1+e");
+    safe_strcpy(config->bindings.keyboard.window.close,
+            "modc+mod1+c");
+    safe_strcpy(config->bindings.keyboard.window.decorate,
+            "modc+mod1+d");
+    safe_strcpy(config->bindings.keyboard.window.fullscreen,
+            "modc+mod1+f");
+    safe_strcpy(config->bindings.keyboard.window.hide,
+            "modc+mod1+mods+h");
+    safe_strcpy(config->bindings.keyboard.window.iconify,
+            "modc+mod1+i");
+    safe_strcpy(config->bindings.keyboard.window.info,
+            "modc+mod1+mods+i");
+    safe_strcpy(config->bindings.keyboard.window.kill,
+            "modc+mod1+mods+Escape");
+    safe_strcpy(config->bindings.keyboard.window.maximize,
+            "modc+mod1+m");
+    safe_strcpy(config->bindings.keyboard.window.pin,
+            "modc+mod1+p");
+    safe_strcpy(config->bindings.keyboard.window.shade,
+            "modc+mod1+s");
+    safe_strcpy(config->bindings.keyboard.cycle.desktop.prev,
+            "modc+mod1+Left");
+    safe_strcpy(config->bindings.keyboard.cycle.desktop.next,
+            "modc+mod1+Right");
+    safe_strcpy(config->bindings.keyboard.cycle.icon.prev,
+            "modc+mod1+mods+Tab");
+    safe_strcpy(config->bindings.keyboard.cycle.icon.next,
+            "modc+mod1+Tab");
+    safe_strcpy(config->bindings.keyboard.cycle.window.prev,
+            "mod1+mods+Tab");
+    safe_strcpy(config->bindings.keyboard.cycle.window.next,
+            "mod1+Tab");
+
     LOGGER_TRACE("Setting default keybindings", L_NARG);
-    safe_strcpy(config->bindings.keyboard.terminal, "modc+mod1+Return");
-    safe_strcpy(config->bindings.keyboard.launcher, "modc+mod1+r");
-    safe_strcpy(config->bindings.keyboard.file_manager, "modc+mod1+q");
-    safe_strcpy(config->bindings.keyboard.web_browser, "modc+mod1+w");
-    safe_strcpy(config->bindings.keyboard.editor, "modc+mod1+e");
-    safe_strcpy(config->bindings.keyboard.center, "modc+mod1+g");
-    safe_strcpy(config->bindings.keyboard.maximize, "modc+mod1+m");
-    safe_strcpy(config->bindings.keyboard.fullscreen, "modc+mod1+f");
-    safe_strcpy(config->bindings.keyboard.shade, "modc+mod1+s");
-    safe_strcpy(config->bindings.keyboard.pin, "modc+mod1+p");
-    safe_strcpy(config->bindings.keyboard.iconify, "modc+mod1+i");
-    safe_strcpy(config->bindings.keyboard.close, "modc+mod1+c");
-    safe_strcpy(config->bindings.keyboard.kill, "modc+mod1+mods+Escape");
-    safe_strcpy(config->bindings.keyboard.info, "modc+mod1+mods+i");
-    safe_strcpy(config->bindings.keyboard.cycle_prev, "mod1+mods+Tab");
-    safe_strcpy(config->bindings.keyboard.cycle_next, "mod1+Tab");
-    safe_strcpy(config->bindings.keyboard.hide, "modc+mod1+mods+h");
-    safe_strcpy(config->bindings.keyboard.toggle_decoration, "modc+mod1+d");
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -314,6 +339,8 @@ void config_set_default_values(config_td *config)
             "modc+mod1+k");
     safe_strcpy(config->bindings.keyboard.move.relative.down,
             "modc+mod1+j");
+    safe_strcpy(config->bindings.keyboard.move.absolute.center,
+            "modc+mod1+g");
     safe_strcpy(config->bindings.keyboard.move.absolute.top_left,
             "modc+mod1+y");
     safe_strcpy(config->bindings.keyboard.move.absolute.top_right,
@@ -330,22 +357,14 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+k");
     safe_strcpy(config->bindings.keyboard.resize.down,
             "modc+mod1+mods+j");
-    safe_strcpy(config->bindings.keyboard.desktop.cycle_prev,
-            "modc+mod1+Left");
-    safe_strcpy(config->bindings.keyboard.desktop.cycle_next,
-            "modc+mod1+Right");
-    safe_strcpy(config->bindings.keyboard.desktop.cycle_icon_prev,
-            "modc+mod1+mods+Left");
-    safe_strcpy(config->bindings.keyboard.desktop.cycle_icon_next,
-            "modc+mod1+mods+Right");
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
-    safe_strcpy(config->bindings.mouse.move, "button1");
-    safe_strcpy(config->bindings.mouse.lower, "button2");
-    safe_strcpy(config->bindings.mouse.resize, "button3");
-    safe_strcpy(config->bindings.mouse.desktop.cycle_prev, "button4");
-    safe_strcpy(config->bindings.mouse.desktop.cycle_next, "button5");
+    safe_strcpy(config->bindings.mouse.window.move, "mod1+button1");
+    safe_strcpy(config->bindings.mouse.window.lower, "mod1+button2");
+    safe_strcpy(config->bindings.mouse.window.resize, "mod1+button3");
+    safe_strcpy(config->bindings.mouse.cycle.desktop.prev, "button4");
+    safe_strcpy(config->bindings.mouse.cycle.desktop.next, "button5");
 
     /* Predetermined values for a default theme */
     LOGGER_TRACE("Setting default theme", L_NARG);
@@ -688,64 +707,102 @@ int config_load_bindings(const char *filename,
     /* Load keybindings */
     keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard != NULL) {
+        cJSON *launch;
+        cJSON *window;
+        cJSON *cycle;
         cJSON *move;
         cJSON *resize;
-        cJSON *desktop;
 
-        json_load_string(keyboard, "terminal",
-                config_bindings->keyboard.terminal,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "launcher",
-                config_bindings->keyboard.launcher,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "file-manager",
-                config_bindings->keyboard.file_manager,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "web-browser",
-                config_bindings->keyboard.web_browser,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "editor",
-                config_bindings->keyboard.editor,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "center",
-                config_bindings->keyboard.center,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "maximize",
-                config_bindings->keyboard.maximize,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "fullscreen",
-                config_bindings->keyboard.fullscreen,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "shade",
-                config_bindings->keyboard.shade,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "pin",
-                config_bindings->keyboard.pin,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "iconify",
-                config_bindings->keyboard.iconify,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "close",
-                config_bindings->keyboard.close,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "kill",
-                config_bindings->keyboard.kill,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "info",
-                config_bindings->keyboard.info,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "cycle-prev",
-                config_bindings->keyboard.cycle_prev,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "cycle-next",
-                config_bindings->keyboard.cycle_next,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "hide",
-                config_bindings->keyboard.hide,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(keyboard, "toggle-decoration",
-                config_bindings->keyboard.toggle_decoration,
-                CONFIG_MAX_LENGTH_BINDING);
+        /* Launch keybidings */
+        launch = cJSON_GetObjectItem(keyboard, "launch");
+        if (launch) {
+            json_load_string(launch, "terminal",
+                    config_bindings->keyboard.launch.terminal,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(launch, "launcher",
+                    config_bindings->keyboard.launch.launcher,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(launch, "file-manager",
+                    config_bindings->keyboard.launch.file_manager,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(launch, "web-browser",
+                    config_bindings->keyboard.launch.web_browser,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(launch, "editor",
+                    config_bindings->keyboard.launch.editor,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        /* Keybindings for window operations */
+        window = cJSON_GetObjectItem(keyboard, "window");
+        if (window) {
+            json_load_string(window, "close",
+                    config_bindings->keyboard.window.close,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "decorate",
+                    config_bindings->keyboard.window.decorate,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "fullscreen",
+                    config_bindings->keyboard.window.fullscreen,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "hide",
+                    config_bindings->keyboard.window.hide,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "iconify",
+                    config_bindings->keyboard.window.iconify,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "info",
+                    config_bindings->keyboard.window.info,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "kill",
+                    config_bindings->keyboard.window.kill,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "maximize",
+                    config_bindings->keyboard.window.maximize,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "pin",
+                    config_bindings->keyboard.window.pin,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "shade",
+                    config_bindings->keyboard.window.shade,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        /* Keybindings for cycling desktops, icons, and windows */
+        cycle = cJSON_GetObjectItem(keyboard, "cycle");
+        if (cycle) {
+            cJSON *cdesktop;
+            cJSON *cicon;
+            cJSON *cwindow;
+
+            cdesktop = cJSON_GetObjectItem(cycle, "desktop");
+            if (cdesktop) {
+                json_load_string(cdesktop, "prev",
+                        config_bindings->keyboard.cycle.desktop.prev,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "next",
+                        config_bindings->keyboard.cycle.desktop.next,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
+            cicon = cJSON_GetObjectItem(cycle, "icon");
+            if (cicon) {
+                json_load_string(cicon, "prev",
+                        config_bindings->keyboard.cycle.icon.prev,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cicon, "next",
+                        config_bindings->keyboard.cycle.icon.next,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
+            cwindow = cJSON_GetObjectItem(cycle, "window");
+            if (cwindow) {
+                json_load_string(cwindow, "prev",
+                        config_bindings->keyboard.cycle.window.prev,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cwindow, "next",
+                        config_bindings->keyboard.cycle.window.next,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
+        }
 
         /* Keybindings for window movement */
         move = cJSON_GetObjectItem(keyboard, "move");
@@ -771,6 +828,9 @@ int config_load_bindings(const char *filename,
 
             absolute = cJSON_GetObjectItem(move, "absolute");
             if (absolute) {
+                json_load_string(absolute, "center",
+                        config_bindings->keyboard.move.absolute.center,
+                        CONFIG_MAX_LENGTH_BINDING);
                 json_load_string(absolute, "top-left",
                         config_bindings->keyboard.move.absolute.top_left,
                         CONFIG_MAX_LENGTH_BINDING);
@@ -802,55 +862,41 @@ int config_load_bindings(const char *filename,
                     config_bindings->keyboard.resize.down,
                     CONFIG_MAX_LENGTH_BINDING);
         }
-
-        /* Keybindings for desktop cycling */
-        desktop = cJSON_GetObjectItem(keyboard, "desktop");
-        if (desktop) {
-            json_load_string(desktop, "cycle-prev",
-                    config_bindings->keyboard.desktop.cycle_prev,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(desktop, "cycle-next",
-                    config_bindings->keyboard.desktop.cycle_next,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(desktop, "cycle-icon-prev",
-                    config_bindings->keyboard.desktop.cycle_icon_prev,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(desktop, "cycle-icon-next",
-                    config_bindings->keyboard.desktop.cycle_icon_next,
-                    CONFIG_MAX_LENGTH_BINDING);
-        }
     }
 
-    /* Load mouse bindings.  Accept the 'mouse' section either at the
-     * top level of the file, or nested inside 'keyboard', both layouts
-     * have been observed in configuration files in the wild, and
-     * silently ignoring one of them would leave the user's mouse
-     * configuration inert without any indication why. */
+    /* Load mouse bindings.  The 'mouse' section must be at the top
+     * level of the file, separate from 'keyboard'. */
     mouse = cJSON_GetObjectItem(json, "mouse");
-    if (mouse == NULL && keyboard != NULL) {
-        mouse = cJSON_GetObjectItem(keyboard, "mouse");
-    }
 
     if (mouse) {
-        cJSON *desktop;
+        cJSON *mwindow;
+        cJSON *mcycle;
 
-        json_load_string(mouse, "move", config_bindings->mouse.move,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(mouse, "resize",
-                config_bindings->mouse.resize,
-                CONFIG_MAX_LENGTH_BINDING);
-        json_load_string(mouse, "lower", config_bindings->mouse.lower,
-                CONFIG_MAX_LENGTH_BINDING);
+        mwindow = cJSON_GetObjectItem(mouse, "window");
+        if (mwindow) {
+            json_load_string(mwindow, "move",
+                    config_bindings->mouse.window.move,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(mwindow, "lower",
+                    config_bindings->mouse.window.lower,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(mwindow, "resize",
+                    config_bindings->mouse.window.resize,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
 
         /* Mouse bindings for desktop cycling */
-        desktop = cJSON_GetObjectItem(mouse, "desktop");
-        if (desktop) {
-            json_load_string(desktop, "cycle-prev",
-                    config_bindings->mouse.desktop.cycle_prev,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(desktop, "cycle-next",
-                    config_bindings->mouse.desktop.cycle_next,
-                    CONFIG_MAX_LENGTH_BINDING);
+        mcycle = cJSON_GetObjectItem(mouse, "cycle");
+        if (mcycle) {
+            cJSON *cdesktop = cJSON_GetObjectItem(mcycle, "desktop");
+            if (cdesktop) {
+                json_load_string(cdesktop, "prev",
+                        config_bindings->mouse.cycle.desktop.prev,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "next",
+                        config_bindings->mouse.cycle.desktop.next,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
         }
     }
 

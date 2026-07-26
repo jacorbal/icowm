@@ -52,7 +52,7 @@ struct config_base_s {
         } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
     } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
-    /* Basic main programs: terminal and program launcher */
+    /* Basic main programs to launch */
     struct {
         char terminal[CONFIG_MAX_LENGTH_COMMAND];
         char launcher[CONFIG_MAX_LENGTH_COMMAND];
@@ -101,24 +101,39 @@ struct config_bindings_s {
 
     /* Keyboard bindings */
     struct keyboard_s {
-        char terminal[CONFIG_MAX_LENGTH_BINDING];
-        char launcher[CONFIG_MAX_LENGTH_BINDING];
-        char file_manager[CONFIG_MAX_LENGTH_BINDING];
-        char web_browser[CONFIG_MAX_LENGTH_BINDING];
-        char editor[CONFIG_MAX_LENGTH_BINDING];
-        char center[CONFIG_MAX_LENGTH_BINDING];
-        char maximize[CONFIG_MAX_LENGTH_BINDING];
-        char fullscreen[CONFIG_MAX_LENGTH_BINDING];
-        char shade[CONFIG_MAX_LENGTH_BINDING];
-        char pin[CONFIG_MAX_LENGTH_BINDING];
-        char iconify[CONFIG_MAX_LENGTH_BINDING];
-        char hide[CONFIG_MAX_LENGTH_BINDING];
-        char close[CONFIG_MAX_LENGTH_BINDING];
-        char kill[CONFIG_MAX_LENGTH_BINDING];
-        char info[CONFIG_MAX_LENGTH_BINDING];
-        char toggle_decoration[CONFIG_MAX_LENGTH_BINDING];
-        char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
-        char cycle_next[CONFIG_MAX_LENGTH_BINDING];
+        struct {
+            char terminal[CONFIG_MAX_LENGTH_BINDING];
+            char launcher[CONFIG_MAX_LENGTH_BINDING];
+            char file_manager[CONFIG_MAX_LENGTH_BINDING];
+            char web_browser[CONFIG_MAX_LENGTH_BINDING];
+            char editor[CONFIG_MAX_LENGTH_BINDING];
+        } launch;
+        struct {
+            char close[CONFIG_MAX_LENGTH_BINDING];
+            char decorate[CONFIG_MAX_LENGTH_BINDING];
+            char fullscreen[CONFIG_MAX_LENGTH_BINDING];
+            char hide[CONFIG_MAX_LENGTH_BINDING];
+            char iconify[CONFIG_MAX_LENGTH_BINDING];
+            char info[CONFIG_MAX_LENGTH_BINDING];
+            char kill[CONFIG_MAX_LENGTH_BINDING];
+            char maximize[CONFIG_MAX_LENGTH_BINDING];
+            char pin[CONFIG_MAX_LENGTH_BINDING];
+            char shade[CONFIG_MAX_LENGTH_BINDING];
+        } window;
+        struct {
+            struct {
+                char prev[CONFIG_MAX_LENGTH_BINDING];
+                char next[CONFIG_MAX_LENGTH_BINDING];
+            } desktop;
+            struct {
+                char prev[CONFIG_MAX_LENGTH_BINDING];
+                char next[CONFIG_MAX_LENGTH_BINDING];
+            } icon;
+            struct {
+                char prev[CONFIG_MAX_LENGTH_BINDING];
+                char next[CONFIG_MAX_LENGTH_BINDING];
+            } window;
+        } cycle;
 
         /* Window movement, absolute and relative positions */
         struct {
@@ -130,6 +145,7 @@ struct config_bindings_s {
             } relative;
 
             struct {
+                char center[CONFIG_MAX_LENGTH_BINDING];
                 char top_left[CONFIG_MAX_LENGTH_BINDING];
                 char top_right[CONFIG_MAX_LENGTH_BINDING];
                 char bottom_left[CONFIG_MAX_LENGTH_BINDING];
@@ -143,24 +159,21 @@ struct config_bindings_s {
             char up[CONFIG_MAX_LENGTH_BINDING];
             char down[CONFIG_MAX_LENGTH_BINDING];
         } resize;
-
-        struct {
-            char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
-            char cycle_next[CONFIG_MAX_LENGTH_BINDING];
-            char cycle_icon_prev[CONFIG_MAX_LENGTH_BINDING];
-            char cycle_icon_next[CONFIG_MAX_LENGTH_BINDING];
-        } desktop;
     } keyboard;
 
     /* Mouse bindings */
     struct {
-        char move[CONFIG_MAX_LENGTH_BINDING];
-        char resize[CONFIG_MAX_LENGTH_BINDING];
-        char lower[CONFIG_MAX_LENGTH_BINDING];
         struct {
-            char cycle_prev[CONFIG_MAX_LENGTH_BINDING];
-            char cycle_next[CONFIG_MAX_LENGTH_BINDING];
-        } desktop;
+            char move[CONFIG_MAX_LENGTH_BINDING];
+            char lower[CONFIG_MAX_LENGTH_BINDING];
+            char resize[CONFIG_MAX_LENGTH_BINDING];
+        } window;
+        struct {
+            struct {
+                char prev[CONFIG_MAX_LENGTH_BINDING];
+                char next[CONFIG_MAX_LENGTH_BINDING];
+            } desktop;
+        } cycle;
     } mouse;
 };
 
