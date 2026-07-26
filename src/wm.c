@@ -818,7 +818,10 @@ static client_td *s_wm_cycle_icon_client(desktop_td *desktop,
  *
  * @note The previous active client is unfocused before the new client
  *       is marked as active
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(1) for focus bookkeeping; up to @e O(n * m)
+ *       when immediate surface redraw is triggered after raising, where
+ *       @e n is the number of desktops and @e m the number of clients
+ *       rendered on the target surface
  */
 static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
         client_td *client, bool raise)
@@ -826,6 +829,7 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     client_td *previous = NULL;
     surface_td *ps = NULL;
     desktop_td *pd = NULL;
+    bool should_raise;
 
     if (surface == NULL || desktop == NULL || client == NULL) {
         return;
@@ -852,9 +856,20 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
         surface->is_outdated = true;
     }
 
-    if (raise || wm->config->base.windows.focus.is_raised_on_focus) {
+    should_raise =
+        (raise || wm->config->base.windows.focus.is_raised_on_focus);
+    if (should_raise) {
         (void) desktop_action_client_send_front(desktop, client);
         (void) client_send_event_raise(client);
+
+        /* Keep focus/raise and repaint closely synchronized to avoid
+         * a perceptibly abrupt switch when cycling windows */
+        if (surface != NULL && surface->is_outdated) {
+            if (surface_render_all_desktops(surface) != 0) {
+                LOGGER_ERROR("Failed to refresh surface %u after focus" \
+                        " switch", surface->id);
+            }
+        }
     }
 
     (void) surface;
