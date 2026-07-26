@@ -700,8 +700,8 @@ static client_td *s_wm_cycle_target_client(desktop_td *desktop,
 
     if (active_node != NULL) {
         node = (is_next)
-            ? cdlist_prev(active_node)
-            : cdlist_next(active_node);
+            ? cdlist_next(active_node)
+            : cdlist_prev(active_node);
     } else {
         node = (is_next)
             ? cdlist_tail(desktop->stacking)
@@ -717,10 +717,13 @@ static client_td *s_wm_cycle_target_client(desktop_td *desktop,
         client_td *client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !client_is_iconified(client) &&
+                !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 client_is_focusable(client)) {
             return client;
         }
-        node = (is_next) ? cdlist_prev(node) : cdlist_next(node);
+        node = (is_next)
+            ? cdlist_next(node)
+            : cdlist_prev(node);
     } while (node != NULL && node != initial);
 
     return NULL;
@@ -773,8 +776,8 @@ static client_td *s_wm_cycle_icon_client(desktop_td *desktop,
 
     if (active_node != NULL) {
         node = (is_next)
-            ? cdlist_prev(active_node)
-            : cdlist_next(active_node);
+            ? cdlist_next(active_node)
+            : cdlist_prev(active_node);
     } else {
         node = (is_next)
             ? cdlist_tail(desktop->stacking)
@@ -794,7 +797,9 @@ static client_td *s_wm_cycle_icon_client(desktop_td *desktop,
             client_send_event_restore(client);
             return client;
         }
-        node = is_next ? cdlist_prev(node) : cdlist_next(node);
+        node = (is_next)
+            ? cdlist_next(node)
+            : cdlist_prev(node);
     } while (node != NULL && node != initial);
 
     return NULL;
@@ -1895,6 +1900,10 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
                 eventq_add(ev);
             }
         }
+
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
@@ -1990,6 +1999,9 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
     }
 
     if (type == MOUSEBIND_NONE) {
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
@@ -2011,6 +2023,10 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
                 eventq_add(ev);
             }
         }
+
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
@@ -2060,6 +2076,10 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
             }
         }
         (void) client_send_event_lower(client);
+
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
         return;
     }
 
