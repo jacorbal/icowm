@@ -779,6 +779,11 @@ int eventq_add(event_td *event)
         pthread_mutex_unlock(&eventq_mutex);
         LOGGER_WARNING("Failed to insert event into event queue",
                 L_NARG);
+
+        /* Release the event to prevent a memory leak: ownership of
+         * 'event' was transferred to this function, so it must be
+         * freed on failure since it will never be dequeued */
+        event_destroy(event);
         return 1;
     }
     pthread_mutex_unlock(&eventq_mutex);

@@ -842,6 +842,16 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     desktop->client_active_id = client->id;
     (void) client_send_event_focus(client);
 
+    /* Mark the surface and desktop as outdated so the next update cycle
+     * repaints the titlebars of both the newly focused and the
+     * previously focused clients with the correct active/inactive theme
+     * colors.  Without this, the 'focus_in' handler skips the update
+     * because it sees the active ID already set. */
+    desktop->is_outdated = true;
+    if (surface != NULL) {
+        surface->is_outdated = true;
+    }
+
     if (raise || wm->config->base.windows.focus.is_raised_on_focus) {
         (void) desktop_action_client_send_front(desktop, client);
         (void) client_send_event_raise(client);
@@ -2174,7 +2184,7 @@ static void s_wm_handle_configure_request(
          XCB_CONFIG_WINDOW_STACK_MODE);
 
     /* Managed windows update cached geometry; unmanaged windows still
-     * receive the XCB configure request verbatim. */
+     * receive the XCB configure request verbatim */
     client = s_wm_find_client(event->window, &surface, &desktop);
 
     if (mask & XCB_CONFIG_WINDOW_X) {
@@ -2252,12 +2262,31 @@ static void s_wm_handle_configure_notify(
             event->x, event->y);
 
     /* Update the client's cached geometry */
+    /* NOTE: Only trust the event when it comes from the outermost
+     *       window that the WM actually positions on the screen.  For
+     *       decorated clients that outer window is the frame; for
+     *       undecorated clients it is the client window itself.
+     *
+     *      Ignoring configure_notify from an inner (reparented) client
+     *      window is essential: its x/y are frame-relative, not
+     *      screen-relative, so blindly copying them would corrupt the
+     *      cached position (e.g., replacing the screen coordinates with
+     *      the small frame-inset offsets "left" and "top"), which in
+     *      turn causes the frame to jump to the wrong location on the
+     *      next render pass. */
     client = s_wm_find_client(event->window, NULL, NULL);
     if (client != NULL) {
-        client->layout.geometry.cur.pos.x = event->x;
-        client->layout.geometry.cur.pos.y = event->y;
-        client->layout.geometry.cur.dim.w = event->width;
-        client->layout.geometry.cur.dim.h = event->height;
+        bool is_frame_event = (client->frame != 0)
+            ? (event->window == client->frame)
+            : (event->window == client->window ||
+                    event->window == client->id);
+
+        if (is_frame_event) {
+            client->layout.geometry.cur.pos.x = event->x;
+            client->layout.geometry.cur.pos.y = event->y;
+            client->layout.geometry.cur.dim.w = event->width;
+            client->layout.geometry.cur.dim.h = event->height;
+        }
     }
 }
 
@@ -2648,13 +2677,13 @@ static void s_wm_handle_mapping_notify(xcb_key_symbols_t *keysyms,
  * @brief Handle @c XCB_EXPOSE events for decoration repaints
  *
  * Repaints decoration windows after an expose sequence completes.
- * Only the final event in a sequence (@c count == 0) triggers a repaint
+ * Only the final event in a sequence @c (count == 0) triggers a repaint
  * to avoid redundant draws.
  *
  * Two targets are handled:
- * - Info popup window: redraws the cached text lines.
- * - Managed client's titlebar: repaints the background and title text
- *   in the appropriate active/inactive theme colours.
+ * - info popup window that redraws the cached text lines; and
+ * - managed client's titlebar, that repaints the background and title
+ *   text in the appropriate active/inactive theme colors.
  *
  * @param event Pointer to the expose event
  *
@@ -2733,8 +2762,17 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
     text_renderer_init(wm->connection,
             (is_focused)
-            ? wm->config->theme.window.active.font
-            : wm->config->theme.window.inactive.font);
+                ? wm->config->theme.window.active.font
+                : wm->config->theme.window.inactive.font);
+
+    text_renderer_set_color(
+            (is_focused)
+                ? wm->config->theme.window.active.foreground_color
+                : wm->config->theme.window.inactive.foreground_color,
+            (is_focused)
+                ? wm->config->theme.window.active.background_color
+                : wm->config->theme.window.inactive.background_color);
+
     text_draw_string(wm->connection, client->titlebar, XCB_NONE,
             (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                 WM_DECOR_BTN_PAD),
@@ -2745,7 +2783,8 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
     desktop_draw_titlebar_buttons(wm->connection, client->titlebar,
             (uint16_t) client->layout.geometry.cur.dim.w, top,
-            is_focused, (bool) client_is_sticky(client));
+            is_focused, (bool) client_is_sticky(client),
+            &wm->config->theme);
 
     xcb_flush(wm->connection);
 }
@@ -3405,6 +3444,13 @@ int wm_stop(void)
         return 1;
     }
 
+    /* Stop event priority queue FIRST */
+    /* NOTE: The event thread processes events that hold raw pointers to
+     *       client and desktop objects.  Destroying surfaces (and their
+     *       clients) while the event thread is still running would
+     *       cause use-after-free errors detected by 'AddressSanitizer' */
+    eventq_stop();
+
     /* Deallocate every surface and its contents */
     LOGGER_TRACE("Deallocating surfaces in window manager", L_NARG);
     list_destroy(wm->surfaces);
@@ -3413,9 +3459,6 @@ int wm_stop(void)
     LOGGER_TRACE("Deallocating EWMH structure", L_NARG);
     xcb_ewmh_connection_wipe(wm->ewmh);
     free(wm->ewmh);
-
-    /* Stop event priority queue */
-    eventq_stop();
 
     /* Destroy configuration structure */
     config_destroy(wm->config);

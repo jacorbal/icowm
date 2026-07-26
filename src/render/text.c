@@ -42,11 +42,6 @@ static struct {
 };
 
 
-// FIXME: rename & should this be in 'defs/config/*.h'?
-#define TEXT_COLOR_WHITE (0xFFFFFFu)
-#define TEXT_COLOR_BLACK (0x000000u)
-
-
 /* Initialize the text renderer using the specified font */
 int text_renderer_init(xcb_connection_t *connection,
         const char *font_name)
@@ -77,11 +72,18 @@ int text_renderer_init(xcb_connection_t *connection,
             (uint16_t) safe_strlen(font), font);
 
     s_text.gc = xcb_generate_id(connection);
-    gc_values[0] = TEXT_COLOR_WHITE;
-    gc_values[1] = TEXT_COLOR_BLACK;
+
+    /* Neutral defaults: white-on-black */
+    /* NOTE: Callers that draw on a themed titlebar should call
+     *       'text_renderer_set_color()' afterwards to use the
+     *       foreground and background colors from theme */
+    gc_values[0] = 0xFFFFFFu;   /* fg: white */
+    gc_values[1] = 0x000000u;   /* bg: black */
     xcb_create_gc(connection, s_text.gc,
             xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root,
-            XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
+            XCB_GC_FOREGROUND |
+            XCB_GC_BACKGROUND,
+            gc_values);
     xcb_change_gc(connection, s_text.gc, XCB_GC_FONT,
             (const uint32_t[]) {s_text.font});
 
@@ -121,6 +123,25 @@ void text_renderer_destroy(void)
     s_text.font_name[0] = '\0';
     s_text.char_width = 8;
     s_text.initialized = false;
+}
+
+
+/* Update the foreground and background colors of the text renderer GC */
+void text_renderer_set_color(uint32_t fg, uint32_t bg)
+{
+    uint32_t gc_values[2];
+
+    if (!s_text.initialized || s_text.gc == XCB_NONE ||
+            s_text.connection == NULL) {
+        return;
+    }
+
+    gc_values[0] = fg;
+    gc_values[1] = bg;
+    xcb_change_gc(s_text.connection, s_text.gc,
+            XCB_GC_FOREGROUND |
+            XCB_GC_BACKGROUND,
+            gc_values);
 }
 
 

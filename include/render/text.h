@@ -57,6 +57,23 @@ int text_renderer_init(xcb_connection_t *connection,
 void text_renderer_destroy(void);
 
 /**
+ * @brief Update the foreground and background colors of the text GC
+ *
+ * Changes the @c XCB_GC_FOREGROUND and @c XCB_GC_BACKGROUND attributes
+ * of the internal graphics context.  To be called after
+ * @a text_renderer_init to select colors appropriate for the drawing
+ * context (e.g., theme active/inactive foreground colors for titlebars)
+ * before invoking @a text_draw_string.
+ *
+ * @param fg Foreground pixel value (text color)
+ * @param bg Background pixel value (used by some drawing operations)
+ *
+ * @note Has no effect when the renderer is not yet initialized
+ * @note Complexity: @e O(1)
+ */
+void text_renderer_set_color(uint32_t fg, uint32_t bg);
+
+/**
  * @brief Draw a string at the specified position
  *
  * Renders the supplied text on the given drawable using either the

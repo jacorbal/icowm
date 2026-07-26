@@ -936,10 +936,18 @@ int client_send_event_move(client_td *client,
     client->layout.geometry.cur.pos.y = new_y;
 
     /* Configure the XCB window immediately */
+    /* NOTE: For decorated clients the outermost positioned window is
+     *       the frame; moving the inner client window (which is
+     *       reparented INSIDE the frame) would place it at
+     *       screen-relative coordinates relative to the frame, making
+     *       the content appear shifted */
     values[0] = (uint32_t) new_x;
     values[1] = (uint32_t) new_y;
 
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection,
+            (client->frame != 0 && client_is_decorated(client))
+                ? client->frame
+                : client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
     xcb_flush(client->connection);
 
@@ -990,10 +998,16 @@ int client_send_event_resize(client_td *client,
     client->layout.geometry.cur.dim.h = new_h;
 
     /* Configure the XCB window immediately */
+    /* NOTE: For decorated clients the frame must be resized; resizing
+     *       only the inner window would leave the decoration at the
+     *       wrong size */
     values[0] = new_w;
     values[1] = new_h;
 
-    xcb_configure_window(client->connection, client->window,
+    xcb_configure_window(client->connection,
+            (client->frame != 0 && client_is_decorated(client))
+                ? client->frame
+                : client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             values);
     xcb_flush(client->connection);

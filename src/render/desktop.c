@@ -32,10 +32,6 @@
 #include <render/desktop.h>
 
 
-// FIXME: should this be in 'defs/config.h'?
-#define TITLE_TEXT_BOTTOM_PADDING (6)   /**< Pixels from text baseline
-                                             to titlebar bottom */
-
 /** Size of square icon window, in pixels */
 #define WM_ICON_SQUARE_SIZE         (48u)
 
@@ -129,10 +125,10 @@ int desktop_render_background(desktop_td *desktop)
  *
  * Renders six right-aligned button squares (Iconify, Hide, Shade,
  * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
- * using filled rectangles.  Right-aligned buttons use black fill when
- * the client is focused (active state) and white fill when unfocused
- * (inactive state).  The pin button uses black fill when the client is
- * sticky and white fill otherwise.
+ * using filled rectangles.  The fill color for the right-aligned
+ * buttons and the pin button is taken from the @p theme:
+ * @c window.active.foreground_color when focused, and
+ * @c window.inactive.foreground_color when unfocused.
  *
  * @param connection  XCB connection
  * @param titlebar    XCB window id of the titlebar
@@ -140,12 +136,14 @@ int desktop_render_background(desktop_td *desktop)
  * @param frame_top   Total height of the titlebar in pixels
  * @param is_focused  Whether the owning client is focused
  * @param is_sticky   Whether the owning client is sticky (pin active)
+ * @param theme       Pointer to the theme providing button colors
  *
  * @note Complexity: @e O(1)
  */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
-        bool is_focused, bool is_sticky)
+        bool is_focused, bool is_sticky,
+        const struct config_theme_s *theme)
 {
     xcb_gcontext_t gc;
     uint32_t color;
@@ -153,11 +151,20 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
     uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
-    int16_t  btn_y;
-    int16_t  x;
-    uint16_t fill;
+    int16_t btn_y;
+    int16_t x;
+    uint32_t fill;
     uint16_t step;
     int16_t right_edge;
+
+    /* Button colors come from the theme: foreground contrasts against
+     * the titlebar background so buttons are always visible */
+    uint32_t color_active = (theme != NULL)
+        ? theme->window.active.foreground_color
+        : 0x000000u;
+    uint32_t color_inactive = (theme != NULL)
+        ? theme->window.inactive.foreground_color
+        : 0xFFFFFFu;
 
     /* Vertically center buttons in the titlebar */
     btn_y = (frame_top > btn)
@@ -166,7 +173,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
 
     gc = xcb_generate_id(connection);
     /* Left-aligned: Pin button */
-    color = is_sticky ? WM_DECOR_COLOR_ACTIVE : WM_DECOR_COLOR_INACTIVE;
+    color = (is_sticky) ? color_active: color_inactive;
     xcb_create_gc(connection, gc, titlebar,
             XCB_GC_FOREGROUND, &color);
     rect = (xcb_rectangle_t) { (int16_t) pad, btn_y, btn, btn };
@@ -181,9 +188,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
 
     /* Button fill: black for focused window (active state),
      * white for unfocused window (inactive state). */
-    fill = (uint16_t) ((is_focused)
-            ? WM_DECOR_COLOR_ACTIVE
-            : WM_DECOR_COLOR_INACTIVE);
+    fill = (is_focused) ? color_active : color_inactive;
 
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
@@ -343,36 +348,57 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 : 1;
 
             xcb_configure_window(desktop->connection, client->window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    XCB_CONFIG_WINDOW_X     |
+                    XCB_CONFIG_WINDOW_Y     |
+                    XCB_CONFIG_WINDOW_WIDTH |
+                    XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
                         left, top, inner_w, inner_h
                     });
+
             if (client->titlebar != 0) {
                 xcb_configure_window(desktop->connection, client->titlebar,
-                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                        XCB_CONFIG_WINDOW_X     |
+                        XCB_CONFIG_WINDOW_Y     |
+                        XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT,
                         (const uint32_t[]) {
                             0, 0,
                             client->layout.geometry.cur.dim.w, top
                         });
+
                 xcb_change_window_attributes(desktop->connection,
-                        client->titlebar, XCB_CW_BACK_PIXEL,
+                        client->titlebar,
+                        XCB_CW_BACK_PIXEL,
                         (const uint32_t[]) {
                     (is_focused)
                     ? desktop->config_theme->window.active.background_color
                     : desktop->config_theme->window.inactive.background_color
                         });
+
+                xcb_clear_area(desktop->connection, 0,
+                        client->titlebar, 0, 0, 0, 0);
                 text_renderer_init(desktop->connection,
                         (is_focused)
                             ? desktop->config_theme->window.active.font
                             : desktop->config_theme->window.inactive.font);
+
+                /* Use theme foreground colour so text contrasts against
+                 * the titlebar background (active or inactive) */
+                text_renderer_set_color(
+                        (is_focused)
+                ? desktop->config_theme->window.active.foreground_color
+                : desktop->config_theme->window.inactive.foreground_color,
+                        (is_focused)
+                ? desktop->config_theme->window.active.background_color
+                : desktop->config_theme->window.inactive.background_color);
+
                 text_draw_string(desktop->connection,
                         client->titlebar, XCB_NONE,
                         (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                             WM_DECOR_BTN_PAD),
-                        (int16_t) ((top > TITLE_TEXT_BOTTOM_PADDING)
-                            ? top - TITLE_TEXT_BOTTOM_PADDING
+                        (int16_t) ((top > WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                            ? top - WM_TITLEBAR_TEXT_BOTTOM_PAD
                             : top),
                         client->info.name);
 
@@ -381,7 +407,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         (uint16_t) client->layout.geometry.cur.dim.w,
                         top,
                         is_focused,
-                        (bool) client_is_sticky(client));
+                        (bool) client_is_sticky(client),
+                        desktop->config_theme);
             }
         }
 

@@ -19,10 +19,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* XCB includes */
+#include <xcb/xcb.h>
+
 /* Project includes */
+#include <config.h>
 #include <desktop.h>
 
 
+/* Public interface */
 /**
  * @brief Draw the background of a desktop
  *
@@ -94,28 +99,31 @@ int desktop_render_full(desktop_td *desktop, bool is_current);
  */
 void desktop_render_flush(desktop_td *desktop);
 
-
 /**
- * @brief Draw decoration button squares on a titlebar window	
+ * @brief Draw decoration button squares on a titlebar window
  *
  * Renders six right-aligned button squares (Iconify, Hide, Shade,
  * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
- * as filled rectangles.  Right-aligned buttons use black fill when
- * @p is_focused is @c true and white fill otherwise.  The pin uses
- * black when sticky, white otherwise	
+ * as filled rectangles.  The fill color is taken from @p theme:
+ * @c window.active.foreground_color when @p is_focused is @c true,
+ * @c window.inactive.foreground_color otherwise.  The pin button uses
+ * the active foreground when sticky, and the inactive foreground when
+ * not sticky.
  *
  * @param connection  Active XCB connection
  * @param titlebar    XCB window identifier of the titlebar
  * @param frame_w     Width of the titlebar in pixels
  * @param frame_top   Height of the titlebar in pixels
  * @param is_focused  Whether the owning client is currently focused
- * @param is_sticky   Whether the owning client has the sticky flag set	
+ * @param is_sticky   Whether the owning client has the sticky flag set
+ * @param theme       Pointer to the theme providing button colors
  *
- * @note Complexity: @e O(1)	
+ * @note Complexity: @e O(1)
  */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
-        xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,	
-        bool is_focused, bool is_sticky);
+        xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
+        bool is_focused, bool is_sticky,
+        const struct config_theme_s *theme);
 
 
 #endif  /* ! RENDER_DESKTOP_H */
