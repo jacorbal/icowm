@@ -129,18 +129,19 @@ static bool s_json_field_normalize(const char *field, char *field_norm,
     return true;
 }
 
+
 /**
  * @brief Parse focus policy text into configuration enumeration
  *
  * Normalizes the input text and maps it to one of the supported focus
- * modes.
+ * modes.  If none is seleced, it defaults to @c click to focus.
  *
  * @param value Focus policy string from configuration
  *
  * @return Parsed focus policy enumeration value
  *
- * @note Supported values are @c "click" and @c "follow-mouse" (also
- *       accepting @c '_' instead of @c '-').
+ * @note Default value is always @c click unless setting @c follow-mouse
+ * @note Supported values are @c click and @c follow-mouse
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 static enum config_focus_policy_e s_config_parse_focus_policy(
@@ -159,23 +160,35 @@ static enum config_focus_policy_e s_config_parse_focus_policy(
     return CONFIG_FOCUS_POLICY_CLICK;
 }
 
+
 /**
  * @brief Parse placement policy text into configuration enumeration
  *
  * Normalizes the input text and maps it to one of the supported
- * placement modes.
+ * placement modes.  Supported values are:
+ * - @c cascade: places the window in a stepped "cascade" pattern by
+ *   offsetting its position relative to the previously placed
+ *   window(s), so multiple windows appear staggered;
+ * - @c centered: places the window centered within the current virtual
+ *   desktop or work area;
+ * - @c under-mouse: places the window anchored at the mouse cursor
+ *   position (i.e., the window appears under the pointer based on the
+ *   configured anchor point); and
+ * - @c smart: attempts to find the first available free slot in the
+ *   current desktop/work area that does not overlap any visible
+ *   windows.  If no suitable free slot is found, it falls back to
+ *   @c cascade.  If the window is larger than the screen, it may be
+ *   positioned partially outside the screen edges if that helps produce
+ *   a valid placement.
  *
  * @param value Placement policy string from configuration
  *
  * @return Parsed placement policy enumeration value
  *
- * @note Supported values are @c "smart", @c "cascade",
- *       @c "centered", and @c "under-mouse" (also accepting @c '_'
- *       instead of @c '-').
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-static enum config_placement_policy_e s_config_parse_placement_policy(
-        const char *value)
+static enum config_placement_policy_e
+    s_config_parse_placement_policy(const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
@@ -202,7 +215,8 @@ static enum config_placement_policy_e s_config_parse_placement_policy(
  *
  * Searches a JSON object for a field whose normalized name matches the
  * normalized version of @p field.  Both '_' and '-' are treated as the
- * same separator and normalized to '-'.
+ * same separator and normalized to '-', and all capital letters are
+ * taken as lowercase.
  *
  * @param json  JSON object to search
  * @param field Requested field name

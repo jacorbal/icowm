@@ -182,6 +182,10 @@ static xcb_window_t s_info_popup_window = XCB_WINDOW_NONE;
 static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
 
+/* Forward declarations for local helpers used before their definitions */
+static desktop_td *s_wm_get_current_desktop(surface_td *surface);
+
+
 /**
  * @brief Mouse drag state for move and resize interactions
  *
@@ -249,9 +253,193 @@ static bool s_wm_is_focus_follows_mouse_policy(void)
         return false;
     }
 
-    return wm->config->base.windows.focus_policy ==
-        CONFIG_FOCUS_POLICY_FOLLOW_MOUSE;
+    return (wm->config->base.windows.focus_policy ==
+        CONFIG_FOCUS_POLICY_FOLLOW_MOUSE);
 }
+
+
+/**
+ * @brief Test whether two axis-aligned rectangles overlap
+ *
+ * Rectangles that only touch at an edge or corner are not considered to
+ * overlap.
+ *
+ * @param ax Left coordinate of the first rectangle
+ * @param ay Top coordinate of the first rectangle
+ * @param aw Width of the first rectangle
+ * @param ah Height of the first rectangle
+ * @param bx Left coordinate of the second rectangle
+ * @param by Top coordinate of the second rectangle
+ * @param bw Width of the second rectangle
+ * @param bh Height of the second rectangle
+ *
+ * @return @c true if the interiors overlap, @c false otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_wm_rectangles_overlap(int32_t ax, int32_t ay,
+        uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by,
+        uint32_t bw, uint32_t bh)
+{
+    return ax < bx + (int32_t) bw &&
+        bx < ax + (int32_t) aw &&
+        ay < by + (int32_t) bh &&
+        by < ay + (int32_t) ah;
+}
+
+
+/**
+ * @brief Test whether a candidate placement overlaps visible clients
+ *
+ * Only currently visible, non-iconified clients on the target desktop
+ * are considered blocking for smart placement.
+ *
+ * @param desktop     Pointer to the desktop whose clients are inspected
+ * @param skip_client Client to ignore during the overlap test
+ * @param x           Candidate left coordinate
+ * @param y           Candidate top coordinate
+ * @param w           Candidate width
+ * @param h           Candidate height
+ *
+ * @return @c true when the candidate intersects a visible client,
+ *         @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static bool s_wm_position_overlaps_clients(desktop_td *desktop,
+        const client_td *skip_client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+
+    if (desktop == NULL || desktop->stacking == NULL ||
+            cdlist_size(desktop->stacking) == 0) {
+        return false;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return false;
+    }
+
+    initial = node;
+    do {
+        const client_td *other = (const client_td *) cdlist_data(node);
+        if (other != NULL && other != skip_client &&
+                !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                other->properties.state !=
+                    (uint16_t) CLIENT_STATE_ICONIFIED &&
+                s_wm_rectangles_overlap(x, y, w, h,
+                        other->layout.geometry.cur.pos.x,
+                        other->layout.geometry.cur.pos.y,
+                        other->layout.geometry.cur.dim.w,
+                        other->layout.geometry.cur.dim.h)) {
+            return true;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return false;
+}
+
+
+/**
+ * @brief Find a non-overlapping smart position for a newly mapped client
+ *
+ * Searches the current desktop from top-left to bottom-right using
+ * a fixed grid step and returns the first position whose rectangle does
+ * not overlap any currently visible client.
+ *
+ * @param surface Pointer to the surface where the client will appear
+ * @param client  Pointer to the client being placed
+ * @param out_x   Output pointer for the selected X coordinate
+ * @param out_y   Output pointer for the selected Y coordinate
+ *
+ * @return @c true if a free position was found, @c false otherwise
+ *
+ * @note Complexity: @e O(g * n), where @e g is the number of grid
+ *       positions tested and @e n is the number of clients on the
+ *       current desktop
+ */
+static bool s_wm_find_smart_placement(surface_td *surface,
+        client_td *client, int32_t *out_x, int32_t *out_y)
+{
+    desktop_td *desktop;
+    const uint32_t step = 24u;
+    uint32_t sw;
+    uint32_t sh;
+    uint32_t fw;
+    uint32_t fh;
+    int32_t min_x;
+    int32_t min_y;
+    int32_t max_x;
+    int32_t max_y;
+    int32_t y;
+
+    if (surface == NULL || client == NULL || out_x == NULL ||
+            out_y == NULL) {
+        return false;
+    }
+
+    desktop = s_wm_get_current_desktop(surface);
+    if (desktop == NULL) {
+        return false;
+    }
+
+    sw = surface->properties.dim.w;
+    sh = surface->properties.dim.h;
+    fw = client->layout.geometry.cur.dim.w;
+    fh = client->layout.geometry.cur.dim.h;
+
+    min_x = (fw > sw) ? -((int32_t) (fw - sw)) : 0;
+    min_y = (fh > sh) ? -((int32_t) (fh - sh)) : 0;
+    max_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
+    max_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+
+    for (y = min_y; y <= max_y; y += (int32_t) step) {
+        int32_t x;
+        for (x = min_x; x <= max_x; x += (int32_t) step) {
+            if (!s_wm_position_overlaps_clients(desktop, client,
+                    x, y, fw, fh)) {
+                *out_x = x;
+                *out_y = y;
+                return true;
+            }
+        }
+
+        if (max_x != min_x &&
+                !s_wm_position_overlaps_clients(desktop, client,
+                        max_x, y, fw, fh)) {
+            *out_x = max_x;
+            *out_y = y;
+            return true;
+        }
+    }
+
+    if (max_y != min_y) {
+        int32_t x;
+        for (x = min_x; x <= max_x; x += (int32_t) step) {
+            if (!s_wm_position_overlaps_clients(desktop, client,
+                    x, max_y, fw, fh)) {
+                *out_x = x;
+                *out_y = max_y;
+                return true;
+            }
+        }
+    }
+
+    if (!s_wm_position_overlaps_clients(desktop, client,
+            max_x, max_y, fw, fh)) {
+        *out_x = max_x;
+        *out_y = max_y;
+        return true;
+    }
+
+    return false;
+ }
 
 
 /* Key-string parsing helpers */
@@ -308,8 +496,8 @@ static const char *s_resolve_modifier_token(const char *tok)
  * @brief Map a single modifier token to an XCB modifier mask
  *
  * Converts a textual modifier name into the corresponding XCB modifier
- * mask.  Supports configured aliases, common modifier names, and
- * some alternative spellings.
+ * mask.  Supports configured aliases, common modifier names, and some
+ * alternative spellings.
  *
  * @param tok Modifier token to parse
  *
@@ -491,8 +679,8 @@ static bool s_parse_binding(const char *binding,
  * @brief Parse a mouse button token such as "button1" into an XCB
  *        button index
  *
- * @param[in] tok Button token from configuration (e.g. "button1"
- *                 through "button5")
+ * @param[in] tok Button token from configuration (e.g., "button1"
+                  through "button5")
  *
  * @return The parsed button index, or @c 0 if @p tok could not be
  *         parsed as a valid button token
@@ -2359,11 +2547,14 @@ static void s_wm_handle_configure_notify(
  * window placement policy stored in the configuration and moves the
  * frame window to that position.  The following policies are handled:
  *
- * - @c "cascade": each successive window is offset by a fixed step so
- *   that windows fan out diagonally.  The sequence wraps when it would
- *   push the frame off the right or bottom edge of the screen.
- * - @c "centered": the frame is centred on the screen;
- * - @c "under-mouse": the frame appears around current pointer position.
+ * - @c smart: searches for the first non-overlapping position on the
+ *   current desktop using a fixed grid step, then falls back to
+ *   @c cascade if no free slot is found;
+ * - @c cascade: each successive window is offset by a fixed step so
+ *   that windows fan out diagonally; the sequence wraps when it would
+ *   push the frame off the right or bottom edge of the screen;
+ * - @c centered: the frame is centred on the screen; and
+ * - @c under-mouse: the frame appears around current pointer position.
  *
  * If @c config->base.windows.placement.is_centered is set it takes
  * precedence over the policy string.  Any unrecognized policy leaves
@@ -2388,6 +2579,7 @@ static void s_wm_apply_placement_policy(surface_td *surface,
     int32_t new_x;
     int32_t new_y;
     xcb_window_t target;
+    enum config_placement_policy_e policy;
 
     if (wm == NULL || wm->config == NULL ||
             surface == NULL || client == NULL) {
@@ -2398,6 +2590,7 @@ static void s_wm_apply_placement_policy(surface_td *surface,
     sh = surface->properties.dim.h;
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
+    policy = wm->config->base.windows.placement_policy;
 
     if (wm->config->base.windows.placement.is_centered) {
         new_x = ((int32_t) sw - (int32_t) fw) / 2;
@@ -2405,10 +2598,12 @@ static void s_wm_apply_placement_policy(surface_td *surface,
         if (new_x < 0) { new_x = 0; }
         if (new_y < 0) { new_y = 0; }
     } else {
-        if (wm->config->base.windows.placement_policy ==
-                CONFIG_PLACEMENT_POLICY_CASCADE ||
-                wm->config->base.windows.placement_policy ==
-                CONFIG_PLACEMENT_POLICY_SMART) {
+        if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
+                s_wm_find_smart_placement(surface, client,
+                    &new_x, &new_y)) {
+            /* Placement chosen by smart scan */
+        } else if (policy == CONFIG_PLACEMENT_POLICY_CASCADE ||
+                policy == CONFIG_PLACEMENT_POLICY_SMART) {
             static uint32_t s_cascade_seq = 0;
             const uint32_t cascade_step = 24u;
             uint32_t max_steps;
@@ -2427,14 +2622,12 @@ static void s_wm_apply_placement_policy(surface_td *surface,
             new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
             new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
             s_cascade_seq++;
-        } else if (wm->config->base.windows.placement_policy ==
-                CONFIG_PLACEMENT_POLICY_CENTERED) {
+        } else if (policy == CONFIG_PLACEMENT_POLICY_CENTERED) {
             new_x = ((int32_t) sw - (int32_t) fw) / 2;
             new_y = ((int32_t) sh - (int32_t) fh) / 2;
             if (new_x < 0) { new_x = 0; }
             if (new_y < 0) { new_y = 0; }
-        } else if (wm->config->base.windows.placement_policy ==
-                CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
+        } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
             xcb_query_pointer_cookie_t pointer_cookie;
             xcb_query_pointer_reply_t *pointer_reply;
 
@@ -2792,7 +2985,7 @@ static void s_wm_handle_focus_in(xcb_focus_in_event_t *event)
  *
  * Refreshes the cached keyboard-mapping table and re-establishes all
  * passive key grabs with updated keycodes.  Without this, any keyboard
- * layout change (e.g. via @c setxkbmap or an input-method switch) that
+ * layout change (e.g., via @c setxkbmap or an input-method switch) that
  * moves keycodes causes existing grabs to stop firing silently.
  *
  * When the @e modifier mapping changes the button grabs are also
@@ -3326,7 +3519,7 @@ static void s_wm_loop(void)
         }
 
         /* Defensively verify the X connection is still alive. If it
-         * were ever to break (e.g. X server crash/disconnect), reading
+         * were ever to break (e.g., X server crash/disconnect), reading
          * from a broken connection never blocks and never yields new
          * events, so 'poll()' below would return immediately forever,
          * spinning this loop at 100% CPU without making progress.
