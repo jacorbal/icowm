@@ -88,7 +88,8 @@ static uint32_t s_hex2uint32(const char *hex_color)
  * @brief Normalize a JSON field name into a canonical separator form
  *
  * Builds in @p field_norm a canonical version of @p field where every
- * separator '_' or '-' is replaced with the canonical separator '-'.
+ * separator '_' or '-' is replaced with the canonical separator '-',
+ * and ASCII uppercase letters are converted to lowercase.
  *
  * @param field      Original field name
  * @param field_norm Destination buffer for canonical field name
@@ -112,6 +113,8 @@ static bool s_json_field_normalize(const char *field, char *field_norm,
     for (i = 0; field[i] != '\0' && i < size - 1; ++i) {
         if (field[i] == '_' || field[i] == '-') {
             field_norm[i] = '-';
+        } else if (field[i] >= 'A' && field[i] <= 'Z') {
+            field_norm[i] = (char) (field[i] - 'A' + 'a');  
         } else {
             field_norm[i] = field[i];
         }
@@ -124,6 +127,73 @@ static bool s_json_field_normalize(const char *field, char *field_norm,
 
     field_norm[i] = '\0';
     return true;
+}
+
+/**
+ * @brief Parse focus policy text into configuration enumeration
+ *
+ * Normalizes the input text and maps it to one of the supported focus
+ * modes.
+ *
+ * @param value Focus policy string from configuration
+ *
+ * @return Parsed focus policy enumeration value
+ *
+ * @note Supported values are @c "click" and @c "follow-mouse" (also
+ *       accepting @c '_' instead of @c '-').
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_focus_policy_e s_config_parse_focus_policy(
+        const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!s_json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_FOCUS_POLICY_CLICK;
+    }
+
+    if (safe_strcmp(value_norm, "follow-mouse") == 0) {
+        return CONFIG_FOCUS_POLICY_FOLLOW_MOUSE;
+    }
+
+    return CONFIG_FOCUS_POLICY_CLICK;
+}
+
+/**
+ * @brief Parse placement policy text into configuration enumeration
+ *
+ * Normalizes the input text and maps it to one of the supported
+ * placement modes.
+ *
+ * @param value Placement policy string from configuration
+ *
+ * @return Parsed placement policy enumeration value
+ *
+ * @note Supported values are @c "smart", @c "cascade",
+ *       @c "centered", and @c "under-mouse" (also accepting @c '_'
+ *       instead of @c '-').
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_placement_policy_e s_config_parse_placement_policy(
+        const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!s_json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_PLACEMENT_POLICY_SMART;
+    }
+
+    if (safe_strcmp(value_norm, "cascade") == 0) {
+        return CONFIG_PLACEMENT_POLICY_CASCADE;
+    }
+    if (safe_strcmp(value_norm, "centered") == 0) {
+        return CONFIG_PLACEMENT_POLICY_CENTERED;
+    }
+    if (safe_strcmp(value_norm, "under-mouse") == 0) {
+        return CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
+    }
+
+    return CONFIG_PLACEMENT_POLICY_SMART;
 }
 
 
@@ -654,10 +724,10 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.web_browser, "firefox");
     safe_strcpy(config->base.programs.editor, "gvim");
     config->base.windows.snap = 4;
+    config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
+    config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
-    safe_strcpy(config->base.windows.focus.policy, "click");
-    safe_strcpy(config->base.windows.placement.policy, "smart");
     config->base.windows.placement.is_centered = false;
 
     /* Assign predetermined values for bindings modifiers */
@@ -998,19 +1068,33 @@ int config_load_base(const char *filename,
         s_json_load_uint(windows, "snap", &config_base->windows.snap);
         focus = cJSON_GetObjectItem(windows, "focus");
         if (focus) {
-            s_json_load_string(focus, "policy",
-                    config_base->windows.focus.policy,
-                    CONFIG_MAX_LENGTH_OPTION);
+            cJSON *focus_policy_item;
+
             s_json_load_bool(focus, "is-new-focused",
                     &config_base->windows.focus.is_new_focused);
             s_json_load_bool(focus, "is-raised-on-focus",
                     &config_base->windows.focus.is_raised_on_focus);
+            focus_policy_item = s_json_get_object_item_normalized(focus,
+                    "policy");
+            if (focus_policy_item != NULL &&
+                    cJSON_IsString(focus_policy_item)) {
+                config_base->windows.focus_policy =
+                    s_config_parse_focus_policy(
+                            focus_policy_item->valuestring);
+            }
         }
         placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
-            s_json_load_string(placement, "policy",
-                    config_base->windows.placement.policy,
-                    CONFIG_MAX_LENGTH_OPTION);
+            cJSON *placement_policy_item;
+
+            placement_policy_item = s_json_get_object_item_normalized(
+                    placement, "policy");
+            if (placement_policy_item != NULL &&
+                    cJSON_IsString(placement_policy_item)) {
+                config_base->windows.placement_policy =
+                    s_config_parse_placement_policy(
+                            placement_policy_item->valuestring);
+            }
             s_json_load_bool(placement, "is-centered",
                     &config_base->windows.placement.is_centered);
         }

@@ -63,6 +63,17 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
+        enum config_focus_policy_e {
+            CONFIG_FOCUS_POLICY_CLICK = 0,
+            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE
+        } focus_policy;
+        enum config_placement_policy_e {
+            CONFIG_PLACEMENT_POLICY_SMART = 0,
+            CONFIG_PLACEMENT_POLICY_CASCADE,
+            CONFIG_PLACEMENT_POLICY_CENTERED,
+            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
+        } placement_policy;
+
         uint32_t snap;
         struct {
             bool is_new_focused;

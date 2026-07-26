@@ -239,30 +239,18 @@ static uint16_t s_wm_clamp_dimension(int32_t value)
 /**
  * @brief Determine whether the loaded focus policy follows the pointer
  *
- * Accepts the historical policy spellings used by the configuration,
- * including both prefixed and unprefixed variants, as well as '_' and
- * '-' separators.
- *
  * @return @c true when focus should follow mouse enter events
  *
  * @note Complexity: @e O(1)
  */
 static bool s_wm_is_focus_follows_mouse_policy(void)
 {
-    const char *policy;
-
     if (wm == NULL || wm->config == NULL) {
         return false;
     }
 
-    policy = wm->config->base.windows.focus.policy;
-    if (policy == NULL) {
-        return false;
-    }
-
-    return strcmp(policy, "follow-mouse") == 0 ||
-        strcmp(policy, "click") == 0;
-
+    return wm->config->base.windows.focus_policy ==
+        CONFIG_FOCUS_POLICY_FOLLOW_MOUSE;
 }
 
 
@@ -891,14 +879,15 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     if (should_raise) {
         (void) desktop_action_client_send_front(desktop, client);
         (void) client_send_event_raise(client);
+    }
 
-        /* Keep focus/raise and repaint closely synchronized to avoid
-         * a perceptibly abrupt switch when cycling windows */
-        if (surface != NULL && surface->is_outdated) {
-            if (surface_render_all_desktops(surface) != 0) {
-                LOGGER_ERROR("Failed to refresh surface %u after focus" \
-                        " switch", surface->id);
-            }
+    /* Keep focus-related repaint synchronized with the state change so
+     * titlebars and themed borders do not update one event later when
+     * focus changes via mouse hover, click, or keyboard cycling. */
+    if (surface != NULL && surface->is_outdated) {
+        if (surface_render_all_desktops(surface) != 0) {
+            LOGGER_ERROR("Failed to refresh surface %u after focus" \
+                    " switch", surface->id);
         }
     }
 
@@ -2373,7 +2362,8 @@ static void s_wm_handle_configure_notify(
  * - @c "cascade": each successive window is offset by a fixed step so
  *   that windows fan out diagonally.  The sequence wraps when it would
  *   push the frame off the right or bottom edge of the screen.
- * - @c "centered": the frame is centred on the screen.
+ * - @c "centered": the frame is centred on the screen;
+ * - @c "under-mouse": the frame appears around current pointer position.
  *
  * If @c config->base.windows.placement.is_centered is set it takes
  * precedence over the policy string.  Any unrecognized policy leaves
@@ -2391,7 +2381,6 @@ static void s_wm_handle_configure_notify(
 static void s_wm_apply_placement_policy(surface_td *surface,
         client_td *client)
 {
-    const char *policy;
     uint32_t sw;
     uint32_t sh;
     uint32_t fw;
@@ -2399,26 +2388,31 @@ static void s_wm_apply_placement_policy(surface_td *surface,
     int32_t new_x;
     int32_t new_y;
     xcb_window_t target;
+
     if (wm == NULL || wm->config == NULL ||
             surface == NULL || client == NULL) {
         return;
     }
+
     sw = surface->properties.dim.w;
     sh = surface->properties.dim.h;
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
+
     if (wm->config->base.windows.placement.is_centered) {
         new_x = ((int32_t) sw - (int32_t) fw) / 2;
         new_y = ((int32_t) sh - (int32_t) fh) / 2;
         if (new_x < 0) { new_x = 0; }
         if (new_y < 0) { new_y = 0; }
     } else {
-        policy = wm->config->base.windows.placement.policy;
-        if (strcmp(policy, "cascade") == 0 ||
-                strcmp(policy, "smart") == 0) {
+        if (wm->config->base.windows.placement_policy ==
+                CONFIG_PLACEMENT_POLICY_CASCADE ||
+                wm->config->base.windows.placement_policy ==
+                CONFIG_PLACEMENT_POLICY_SMART) {
             static uint32_t s_cascade_seq = 0;
             const uint32_t cascade_step = 24u;
             uint32_t max_steps;
+
             max_steps = (sw > fw) ? (sw - fw) / cascade_step : 1u;
             if (sh > fh) {
                 uint32_t my = (sh - fh) / cascade_step;
@@ -2429,14 +2423,46 @@ static void s_wm_apply_placement_policy(surface_td *surface,
             if (max_steps == 0u) {
                 max_steps = 1u;
             }
+
             new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
             new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
             s_cascade_seq++;
-        } else if (strcmp(policy, "centered") == 0) {
+        } else if (wm->config->base.windows.placement_policy ==
+                CONFIG_PLACEMENT_POLICY_CENTERED) {
             new_x = ((int32_t) sw - (int32_t) fw) / 2;
             new_y = ((int32_t) sh - (int32_t) fh) / 2;
             if (new_x < 0) { new_x = 0; }
             if (new_y < 0) { new_y = 0; }
+        } else if (wm->config->base.windows.placement_policy ==
+                CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
+            xcb_query_pointer_cookie_t pointer_cookie;
+            xcb_query_pointer_reply_t *pointer_reply;
+
+            pointer_cookie = xcb_query_pointer(wm->connection,
+                    surface->screen->root);
+            pointer_reply = xcb_query_pointer_reply(wm->connection,
+                    pointer_cookie, NULL);
+            if (pointer_reply == NULL) {
+                LOGGER_NOTICE("Failed to query pointer for"
+                        " 'under-mouse' placement; keeping"
+                        " X-server-assigned position", L_NARG);
+                return;
+            }
+
+            new_x = (int32_t) pointer_reply->root_x - (int32_t) (fw / 2u);
+            new_y = (int32_t) pointer_reply->root_y - (int32_t) (fh / 2u);
+            if (new_x < 0) {
+                new_x = 0;
+            } else if ((uint32_t) new_x + fw > sw) {
+                new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
+            }
+            if (new_y < 0) {
+                new_y = 0;
+            } else if ((uint32_t) new_y + fh > sh) {
+                new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+            }
+
+            free(pointer_reply);
         } else {
             /* "none" or unknown: keep the X-server-assigned position */
             return;
@@ -2446,6 +2472,7 @@ static void s_wm_apply_placement_policy(surface_td *surface,
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame
         : client->window;
+
     xcb_configure_window(wm->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
@@ -2931,16 +2958,16 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
     is_focused = (desktop != NULL &&
                   desktop->client_active_id == client->id);
 
-        if (client->frame == event->window) {
+    if (client->frame == event->window) {
         xcb_change_window_attributes(wm->connection, client->frame,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
                     (is_focused)
-                        ? wm->config->theme.window.active.border_color
-                        : wm->config->theme.window.inactive.border_color,
+                    ? wm->config->theme.window.active.border_color
+                    : wm->config->theme.window.inactive.border_color,
                     (is_focused)
-                        ? wm->config->theme.window.active.border_color
-                        : wm->config->theme.window.inactive.border_color
+                    ? wm->config->theme.window.active.border_color
+                    : wm->config->theme.window.inactive.border_color
                 });
         xcb_clear_area(wm->connection, 0, client->frame, 0, 0, 0, 0);
         xcb_flush(wm->connection);
@@ -2964,7 +2991,6 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
                     : wm->config->theme.window.inactive.border_color
             });
     xcb_clear_area(wm->connection, 0, client->frame, 0, 0, 0, 0);
-
     xcb_change_window_attributes(wm->connection, client->titlebar,
             XCB_CW_BACK_PIXEL,
             (const uint32_t[]) {
@@ -3064,8 +3090,8 @@ static void s_wm_update_full(void)
 
 
 /**
- * @brief Flag set (in an async-signal-safe manner) when @c SIGINT or
- *        @c SIGTERM has been received
+ * @brief Flag set (in an async-signal-safe manner) when a termination
+ *        signal has been received
  *
  * Holds the number of the received signal, or 0 if none has been
  * received yet.  It is only ever written from @a s_wm_handle_signal and
@@ -3077,7 +3103,7 @@ static volatile sig_atomic_t s_stop_signal_received = 0;
 
 
 /**
- * @brief Signal handler for @c SIGINT and @c SIGTERM
+ * @brief Signal handler for termination signals
  *
  * Only records the signal number; the actual shutdown request is
  * performed later, from normal execution context inside @a s_wm_loop,
@@ -3094,11 +3120,11 @@ static void s_wm_handle_signal(int signum)
 /**
  * @brief Handle @c XCB_ENTER_NOTIFY events for configurable focus policy
  *
- * When the focus policy is set to @c "focus_follows_mouse" the window
- * under the pointer is focused automatically as soon as the pointer
- * enters it, without requiring a button click.  The window is focused
- * but not raised, so stacking order is preserved and cascading raise
- * events are avoided.
+ * When the focus policy is set to @c follow-mouse the window under the
+ * pointer is focused automatically as soon as the pointer enters it,
+ * without requiring a button click.  The window is focused but not
+ * raised, so stacking order is preserved and cascading raise events are
+ * avoided.
  *
  * Only @c XCB_NOTIFY_MODE_NORMAL events are acted upon; events
  * generated by grab/ungrab transitions (@c XCB_NOTIFY_MODE_GRAB,
@@ -3155,7 +3181,7 @@ static void s_wm_handle_enter_notify(xcb_enter_notify_event_t *event)
 
 
 /**
- * @brief Install handlers for @c SIGINT and @c SIGTERM so the window
+ * @brief Install handlers for common termination signals so the window
  *        manager shuts down gracefully instead of being killed abruptly
  *
  * @return Status of the operation
@@ -3175,7 +3201,8 @@ static int s_wm_install_signal_handlers(void)
             sigaction(SIGINT, &sa, NULL) != 0 ||
             sigaction(SIGQUIT, &sa, NULL) != 0 ||
             sigaction(SIGTERM, &sa, NULL) != 0) {
-        LOGGER_ERROR("Failed to install termination handlers", L_NARG);
+        LOGGER_ERROR("Failed to install termination signal handlers",
+                L_NARG);
         return -1;
     }
 

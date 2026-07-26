@@ -402,7 +402,7 @@ void wcmd_client_restore(client_td *client)
         xcb_map_window(client->connection, client->window);
     }
 
-    client_toggle_hidden(client);
+    client_unset_hidden(client);
     client->properties.state = CLIENT_STATE_NORMAL;
 
     client_geometry_save(client);
