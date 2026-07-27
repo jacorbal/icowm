@@ -177,6 +177,23 @@ int wm_action_surface_rem(void);
 int wm_action_exit(void);
 
 /**
+ * @brief Return the desktop that currently contains @p client
+ *
+ * Searches all surfaces and desktops managed by the singleton window
+ * manager instance.
+ *
+ * @param client Client whose desktop is requested
+ *
+ * @return Pointer to the containing @c desktop_td, or @c NULL when the
+ *         client is not found or the window manager is not initialised
+ *
+ * @note @e Complexity: O(S * D * C), where @e S is the number of
+ *       surfaces, @e D is the number of desktops, and @e C is the
+ *       amount of clients
+ */
+desktop_td *wm_get_client_desktop(const client_td *client);
+
+/**
  * @brief Macro that evaluates to the number of surfaces handled by the
  *        window manager
  *

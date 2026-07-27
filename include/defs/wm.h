@@ -85,5 +85,8 @@
 /** Padding from frame edge */
 #define WM_DECOR_BTN_PAD (4u)
 
+/** Squared-pixel threshold below which an icon drag is treated as click */
+#define WM_ICON_DRAG_THRESHOLD (16) /*  (4 px)*(4 px)= 16 px */
+
 
 #endif  /* ! DEFS_WM_H */

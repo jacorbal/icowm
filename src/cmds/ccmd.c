@@ -197,7 +197,7 @@ void wcmd_client_iconify(client_td *client)
             ix = client->icon_x;
             iy = client->icon_y;
         } else {
-            place_icon(client, NULL, policy,
+            place_icon(client, wm_get_client_desktop(client), policy,
                     WM_ICON_SQUARE_SIZE, icon_h,
                     screen_w, screen_h,
                     &ix, &iy);

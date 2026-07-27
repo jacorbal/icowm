@@ -133,7 +133,7 @@ enum wm_keybind_type_e {
  */
 typedef struct {
     xcb_keysym_t keysym;
-    uint16_t     modmask;
+    uint16_t modmask;
     enum wm_keybind_type_e type;
 } wm_keybinding_td;
 
@@ -168,7 +168,7 @@ enum wm_mousebind_type_e {
  */
 typedef struct {
     xcb_button_index_t button;
-    uint16_t           modmask;
+    uint16_t modmask;
     enum wm_mousebind_type_e type;
 } wm_mousebinding_td;
 
@@ -191,24 +191,32 @@ static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
  *
  * Stores the XCB window, the list of client pointers and display
  * labels, the currently highlighted entry, and whether the menu is
- * showing iconified or normal clients.
+ * showing iconified or normal clients.  The @p modifier holds the
+ * mask of the key binding that opened the menu so that releasing the
+ * modifier key confirms the selection automatically.  @p prev_focus is
+ * the window that held input focus before the menu was shown, allowing
+ * focus to be restored when the menu is dismissed without confirming.
  */
 static struct {
     xcb_window_t window;
-    client_td   *clients[WM_CYCLE_MENU_MAX_ENTRIES];
-    char         labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LEN];
-    int          count;
-    int          selected;
-    bool         is_icon_menu;
-    surface_td  *surface;
-    desktop_td  *desktop;
+    client_td *clients[WM_CYCLE_MENU_MAX_ENTRIES];
+    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LEN];
+    int count;
+    int selected;
+    bool is_icon_menu;
+    surface_td *surface;
+    desktop_td *desktop;
+    uint16_t modifier;      /**< Modifier mask used to open the menu */
+    xcb_window_t prev_focus;    /**< Focused window before menu opened */
 } s_cycle_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
     .selected = 0,
     .is_icon_menu = false,
     .surface = NULL,
-    .desktop = NULL
+    .desktop = NULL,
+    .modifier = 0,
+    .prev_focus = XCB_WINDOW_NONE,
 };
 
 
@@ -223,7 +231,9 @@ static struct {
     bool active;
     enum window_operation_e operation;
     client_td *client;
-    xcb_window_t drag_window;   /**< Window actually being moved */
+    xcb_window_t drag_window;   /**< Icon window being moved, or
+                                 *   @c XCB_WINDOW_NONE for normal
+                                 *   client drags */
     int16_t pointer_start_x;
     int16_t pointer_start_y;
     int32_t client_start_x;
@@ -240,7 +250,7 @@ static struct {
     .client_start_x = 0,
     .client_start_y = 0,
     .client_start_w = 0,
-    .client_start_h = 0
+    .client_start_h = 0,
 };
 
 
@@ -675,20 +685,38 @@ static void s_wm_close_info_popup(void)
 /**
  * @brief Close the cycle menu window and reset its state
  *
+ * Destroys the cycle menu window and returns input focus to the window
+ * that held it before the menu was opened.
+ *
  * @note Complexity: @e O(1)
  */
 static void s_wm_close_cycle_menu(void)
 {
+    xcb_window_t restore_focus;
+
     if (wm == NULL || wm->connection == NULL ||
             s_cycle_menu.window == XCB_WINDOW_NONE) {
         return;
     }
+
+    restore_focus = s_cycle_menu.prev_focus;
+
     xcb_destroy_window(wm->connection, s_cycle_menu.window);
     s_cycle_menu.window = XCB_WINDOW_NONE;
     s_cycle_menu.count = 0;
     s_cycle_menu.selected = 0;
     s_cycle_menu.surface = NULL;
     s_cycle_menu.desktop = NULL;
+    s_cycle_menu.modifier = 0;
+    s_cycle_menu.prev_focus = XCB_WINDOW_NONE;
+
+    if (restore_focus != XCB_WINDOW_NONE) {
+        xcb_set_input_focus(wm->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                restore_focus,
+                XCB_CURRENT_TIME);
+        xcb_flush(wm->connection);
+    }
 }
 
 
@@ -762,23 +790,29 @@ static void s_wm_draw_cycle_menu(void)
  * focusable clients from @p desktop, creates a floating XCB window
  * listing them, and preselects the entry @p preselect positions away
  * from the currently active client (positive=forward,
- * negative=backward).
+ * negative=backward).  The @p modifier is the key-binding modifier mask
+ * used to open the menu; when the corresponding modifier key is
+ * released the menu confirms automatically.
  *
  * @param surface   Surface on which to center the menu
  * @param desktop   Desktop whose client list will be shown
  * @param is_icon   When @c true, list iconified clients; otherwise
  *                  list normal (non-iconified) clients
  * @param preselect Offset from the active client to preselect
- *                  (+1 = next, -1 = prev)
+ *                  (+1=next, -1=prev)
+ * @param modifier  Modifier mask of the opening key binding; 0 if none
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop
  */
 static void s_wm_open_cycle_menu(surface_td *surface,
-        desktop_td *desktop, bool is_icon, int preselect)
+        desktop_td *desktop, bool is_icon, int preselect,
+        uint16_t modifier)
 {
     cdlist_item_td *node;
     cdlist_item_td *initial;
+    xcb_get_input_focus_cookie_t foc;
+    xcb_get_input_focus_reply_t *foc_r;
     uint32_t mask;
     uint32_t values[3];
     uint16_t menu_w;
@@ -794,12 +828,29 @@ static void s_wm_open_cycle_menu(surface_td *surface,
         return;
     }
 
+    /* Save current input focus so we can restore it on close */
+    foc = xcb_get_input_focus(wm->connection);
+    foc_r = xcb_get_input_focus_reply(wm->connection, foc, NULL);
+
     s_wm_close_cycle_menu();
+
     /* Collect matching clients */
     s_cycle_menu.count = 0;
     s_cycle_menu.surface = surface;
     s_cycle_menu.desktop = desktop;
     s_cycle_menu.is_icon_menu = is_icon;
+    s_cycle_menu.modifier = (uint16_t) ((unsigned int) modifier &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
+    s_cycle_menu.prev_focus = (foc_r != NULL &&
+            foc_r->focus != XCB_WINDOW_NONE &&
+            foc_r->focus != XCB_INPUT_FOCUS_POINTER_ROOT &&
+            foc_r->focus != XCB_INPUT_FOCUS_NONE)
+        ? foc_r->focus : XCB_WINDOW_NONE;
+    if (foc_r != NULL) {
+        free(foc_r);
+    }
+
     node = cdlist_head(desktop->stacking);
     initial = node;
     if (node != NULL) {
@@ -815,6 +866,7 @@ static void s_wm_open_cycle_menu(surface_td *surface,
                     const char *name = (c->info.name != NULL &&
                             c->info.name[0] != '\0')
                         ? c->info.name : "(unnamed)";
+
                     s_cycle_menu.clients[idx] = c;
                     snprintf(s_cycle_menu.labels[idx],
                             WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
@@ -860,12 +912,15 @@ static void s_wm_open_cycle_menu(surface_td *surface,
     if (menu_x < 0) { menu_x = 0; }
     if (menu_y < 0) { menu_y = 0; }
 
-    /* Create the popup window */
+    /* Create the popup window with key press AND release events so that
+     * releasing the modifier key can auto-confirm the selection */
     s_cycle_menu.window = xcb_generate_id(wm->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = wm->config->theme.window.inactive.background_color;
     values[1] = wm->config->theme.window.active.border_color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS |
+    values[2] = XCB_EVENT_MASK_EXPOSURE     |
+                XCB_EVENT_MASK_KEY_PRESS    |
+                XCB_EVENT_MASK_KEY_RELEASE  |
                 XCB_EVENT_MASK_BUTTON_PRESS;
     xcb_create_window(wm->connection,
             XCB_COPY_FROM_PARENT,
@@ -879,6 +934,14 @@ static void s_wm_open_cycle_menu(surface_td *surface,
             mask, values);
 
     xcb_map_window(wm->connection, s_cycle_menu.window);
+
+    /* Give the menu keyboard focus so that ungrabbed keys (arrows,
+     * 'Enter', 'Esc') are delivered via the event mask */
+    xcb_set_input_focus(wm->connection,
+            XCB_INPUT_FOCUS_POINTER_ROOT,
+            s_cycle_menu.window,
+            XCB_CURRENT_TIME);
+
     xcb_flush(wm->connection);
 }
 
@@ -1220,6 +1283,7 @@ static int s_wm_subscribe_root_events(void)
     values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
                 XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY   |
                 XCB_EVENT_MASK_KEY_PRESS             |
+                XCB_EVENT_MASK_KEY_RELEASE           |
                 XCB_EVENT_MASK_BUTTON_PRESS          |
                 XCB_EVENT_MASK_BUTTON_RELEASE        |
                 XCB_EVENT_MASK_PROPERTY_CHANGE;
@@ -1632,6 +1696,85 @@ static void s_dispatch_launch(surface_td *surface, const char *prog)
 
 
 /**
+ * @brief Test whether a keysym corresponds to a modifier covered by the
+ *        given modifier mask
+ *
+ * Used by the key-release handler to detect when the user has released
+ * the modifier that was used to open the cycle menu, so the selection
+ * can be confirmed automatically.
+ *
+ * @param keysym Keysym of the released key
+ * @param mask   Modifier mask to test against (locking modifiers already
+ *               stripped)
+ *
+ * @return @c true when @p keysym maps to a modifier bit present in
+ *         @p mask, @c false otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_is_modifier_keysym_for_mask(xcb_keysym_t keysym,
+        uint16_t mask)
+{
+    /* Shift_L (0xffe1), Shift_R (0xffe2) */
+    if ((mask & XCB_MOD_MASK_SHIFT) &&
+            (keysym == 0xffe1u || keysym == 0xffe2u)) {
+        return true;
+    }
+    /* Control_L (0xffe3), Control_R (0xffe4) */
+    if ((mask & XCB_MOD_MASK_CONTROL) &&
+            (keysym == 0xffe3u || keysym == 0xffe4u)) {
+        return true;
+    }
+    /* Meta_L (0xffe7), Meta_R (0xffe8), Alt_L (0xffe9), Alt_R (0xffea) */
+    if ((mask & XCB_MOD_MASK_1) &&
+            keysym >= 0xffe7u && keysym <= 0xffeau) {
+        return true;
+    }
+    /* Super_L (0xffeb), Super_R (0xffec), Hyper_L (0xffed),
+     * Hyper_R (0xffee) */
+    if ((mask & XCB_MOD_MASK_4) &&
+            keysym >= 0xffebu && keysym <= 0xffeeu) {
+        return true;
+    }
+    /* Mod2..Mod5 cover the remaining XCB_MOD_MASK_* bits */
+    if ((mask & XCB_MOD_MASK_2) && keysym == 0xff7fu) { /* Num_Lock */
+        return true;
+    }
+    return false;
+}
+
+
+/**
+ * @brief Handle key release events from the X server
+ *
+ * When the cycle menu is open and a modifier key that was used to open
+ * it is released, the currently selected entry is confirmed
+ * automatically, mimicking the classic @c Alt+Tab behaviour.
+ *
+ * @param keysyms Pointer to XCB key symbols structure
+ * @param event   Pointer to the key release event
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_handle_key_release(xcb_key_symbols_t *keysyms,
+        xcb_key_release_event_t *event)
+{
+    xcb_keysym_t keysym;
+    if (keysyms == NULL || event == NULL) {
+        return;
+    }
+    if (s_cycle_menu.window == XCB_WINDOW_NONE ||
+            s_cycle_menu.modifier == 0) {
+        return;
+    }
+    keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
+    if (s_is_modifier_keysym_for_mask(keysym, s_cycle_menu.modifier)) {
+        s_wm_confirm_cycle_menu();
+    }
+}
+
+
+/**
  * @brief Handle key press events from the X server
  *
  * Processes keyboard input events by converting XCB keycodes to
@@ -1707,10 +1850,19 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             return;
         }
 
-        /* Tab: advance selection (same as Down) */
+        /* 'Tab': advance or retreat based on 'Shift' */
         if (keysym == 0xff09) {
-            s_cycle_menu.selected =
-                (s_cycle_menu.selected + 1) % s_cycle_menu.count;
+            if (state & XCB_MOD_MASK_SHIFT) {
+                if (s_cycle_menu.selected > 0) {
+                    s_cycle_menu.selected--;
+                } else {
+                    s_cycle_menu.selected = s_cycle_menu.count - 1;
+                }
+            } else {
+                s_cycle_menu.selected =
+                    (s_cycle_menu.selected + 1) % s_cycle_menu.count;
+            }
+
             s_wm_draw_cycle_menu();
             return;
         }
@@ -1788,7 +1940,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                         int dir = (s_keybindings[i].type ==
                                 KEYBIND_CLIENT_CYCLE_NEXT) ? 1 : -1;
                         s_wm_open_cycle_menu(surface, desktop,
-                                false, dir);
+                                false, dir,
+                                s_keybindings[i].modmask);
                         s_wm_draw_cycle_menu();
                     }
                 }
@@ -1803,7 +1956,8 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                         int dir = (s_keybindings[i].type ==
                                 KEYBIND_DESKTOP_ICON_NEXT) ? 1 : -1;
                         s_wm_open_cycle_menu(surface, desktop,
-                                true, dir);
+                                true, dir,
+                                s_keybindings[i].modmask);
                         s_wm_draw_cycle_menu();
                     }
                 }
@@ -2106,73 +2260,55 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
 
     window = (event->child != XCB_NONE) ? event->child : event->event;
     client = s_wm_find_client(window, NULL, &desktop);
+
     if (client != NULL && window == client->icon_window) {
-        bool is_drag = false;
+        /* Left-click on an icon always starts a drag.  The actual
+         * decision to restore (if the pointer barely moved) or keep the
+         * new position is deferred to the button-release handler.
+         * Other buttons restore the client immediately. */
+        if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
+            xcb_get_geometry_cookie_t gc;
+            xcb_get_geometry_reply_t *gr;
 
-        /* Check whether the configured 'move' mouse binding matches.
-         * If it does, start dragging the icon; otherwise restore. */
-        state = (uint16_t) ((unsigned int) event->state &
-                ~((unsigned int) XCB_MOD_MASK_LOCK |
-                    (unsigned int) XCB_MOD_MASK_2));
+            gc = xcb_get_geometry(wm->connection, client->icon_window);
+            gr = xcb_get_geometry_reply(wm->connection, gc, NULL);
 
-        for (int mi = 0; mi < s_mousebindings_count; ++mi) {
-            if (s_mousebindings[mi].type == MOUSEBIND_MOVE &&
-                    s_mousebindings[mi].button ==
-                    (xcb_button_index_t) event->detail) {
-                uint16_t req = s_mousebindings[mi].modmask;
-                if (req == 0 || (state & req) == req) {
-                    is_drag = true;
-                    break;
-                }
-            }
+            s_drag.active = true;
+            s_drag.client = client;
+            s_drag.drag_window = client->icon_window;
+            s_drag.operation = CLIENT_OPERATION_MOVING;
+            s_drag.pointer_start_x = event->root_x;
+            s_drag.pointer_start_y = event->root_y;
+            s_drag.client_start_x = (gr != NULL)
+                ? (int32_t) gr->x
+                : (int32_t) client->icon_x;
+            s_drag.client_start_y = (gr != NULL)
+                ? (int32_t) gr->y
+                : (int32_t) client->icon_y;
+            s_drag.client_start_w = 0;
+            s_drag.client_start_h = 0;
+            if (gr != NULL) { free(gr); }
 
-            if (is_drag) {
-                /* Start a drag on the icon window */
-                xcb_get_geometry_cookie_t gc;
-                xcb_get_geometry_reply_t *gr;
+            client->properties.operation = CLIENT_OPERATION_MOVING;
 
-                gc = xcb_get_geometry(wm->connection, client->icon_window);
-                gr = xcb_get_geometry_reply(wm->connection, gc, NULL);
+            xcb_grab_pointer(wm->connection,
+                    0,
+                    event->root,
+                    XCB_EVENT_MASK_BUTTON_RELEASE |
+                    XCB_EVENT_MASK_POINTER_MOTION,
+                    XCB_GRAB_MODE_ASYNC,
+                    XCB_GRAB_MODE_ASYNC,
+                    XCB_NONE,
+                    XCB_NONE,
+                    event->time);
 
-                s_drag.active = true;
-                s_drag.client = client;
-                s_drag.drag_window = client->icon_window;
-                s_drag.operation = CLIENT_OPERATION_MOVING;
-                s_drag.pointer_start_x = event->root_x;
-                s_drag.pointer_start_y = event->root_y;
-                s_drag.client_start_x = (gr != NULL)
-                    ? (int32_t) gr->x
-                    : (int32_t) client->icon_x;
-                s_drag.client_start_y = (gr != NULL)
-                    ? (int32_t) gr->y
-                    : (int32_t) client->icon_y;
-                s_drag.client_start_w = 0;
-                s_drag.client_start_h = 0;
-                if (gr != NULL) {
-                    free(gr);
-                }
+            xcb_allow_events(wm->connection,
+                    XCB_ALLOW_ASYNC_POINTER, event->time);
+            xcb_flush(wm->connection);
+            return;
+        }   /* ← cierre de if (XCB_BUTTON_INDEX_1) */
 
-                client->properties.operation = CLIENT_OPERATION_MOVING;
-
-                xcb_grab_pointer(wm->connection,
-                        0,
-                        event->root,
-                        XCB_EVENT_MASK_BUTTON_RELEASE |
-                        XCB_EVENT_MASK_POINTER_MOTION,
-                        XCB_GRAB_MODE_ASYNC,
-                        XCB_GRAB_MODE_ASYNC,
-                        XCB_NONE,
-                        XCB_NONE,
-                        event->time);
-
-                xcb_allow_events(wm->connection,
-                        XCB_ALLOW_ASYNC_POINTER, event->time);
-                xcb_flush(wm->connection);
-                return;
-            }
-        }
-
-        /* No drag modifier: restore the client */
+        /* Non-left-click on icon: restore immediately */
         (void) client_send_event_restore(client);
         if (desktop != NULL) {
             surface = s_wm_get_surface_for_root(event->root);
@@ -2240,7 +2376,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
 
             /* Check if click landed on a titlebar decoration button.
              * Buttons are in the titlebar ('y < frame_extents.top') and
-             * we test event_x against each button's x-extent. */
+             * we test 'event_x' against each button's x-extent. */
             if (event->child == client->titlebar &&
                     client->titlebar != 0) {
                 int16_t ex = event->event_x;
@@ -2448,6 +2584,7 @@ static void s_wm_handle_motion_notify(xcb_motion_notify_event_t *event)
     dy = (int32_t) event->root_y - (int32_t) s_drag.pointer_start_y;
 
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
+                s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window == client->icon_window) {
         /* Move the icon window directly and update the saved position */
         int32_t new_x = s_drag.client_start_x + dx;
@@ -2490,7 +2627,11 @@ static void s_wm_handle_button_release(xcb_button_release_event_t *event)
     }
 
     if (s_drag.client != NULL) {
-        /* If we were dragging an icon window, persist the final position */
+        /* If we were dragging an icon window, decide whether to keep the new
+         * position or restore the client.  A movement smaller than
+         * 'WM_ICON_DRAG_THRESHOLD' pixels (squared distance) is treated as a
+         * plain click and restores the window; otherwise the icon stays at the
+         * position it was dragged to. */
         if (s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window == s_drag.client->icon_window &&
                 event != NULL) {
@@ -2498,10 +2639,24 @@ static void s_wm_handle_button_release(xcb_button_release_event_t *event)
                 - (int32_t) s_drag.pointer_start_x;
             int32_t dy = (int32_t) event->root_y
                 - (int32_t) s_drag.pointer_start_y;
-            s_drag.client->icon_x =
-                (int16_t) (s_drag.client_start_x + dx);
-            s_drag.client->icon_y =
-                (int16_t) (s_drag.client_start_y + dy);
+
+            if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD) {
+                /* Treat as a click: restore and focus the client */
+                client_td *ic = s_drag.client;
+                surface_td *ic_surf = NULL;
+                desktop_td *ic_desk = NULL;
+                (void) client_send_event_restore(ic);
+                (void) s_wm_find_client(ic->id, &ic_surf, &ic_desk);
+                if (ic_surf != NULL && ic_desk != NULL) {
+                    s_wm_focus_client(ic_surf, ic_desk, ic, true);
+                }
+            } else {
+                /* Real drag: persist the final position */
+                s_drag.client->icon_x =
+                    (int16_t) (s_drag.client_start_x + dx);
+                s_drag.client->icon_y =
+                    (int16_t) (s_drag.client_start_y + dy);
+            }
         }
 
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
@@ -3553,6 +3708,12 @@ static void s_wm_loop(void)
                             (xcb_key_press_event_t *) event);
                     break;
 
+                case XCB_KEY_RELEASE:
+                    s_wm_handle_key_release(
+                            keysyms,
+                            (xcb_key_release_event_t *) event);
+                    break;
+
                 case XCB_BUTTON_PRESS:
                     s_wm_handle_button_press(
                             (xcb_button_press_event_t *) event);
@@ -4042,3 +4203,18 @@ int wm_action_exit(void)
 
     return 0;
 }
+
+
+/* Retrieve the desktop that currently contains the given client */
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    desktop_td *desktop = NULL;
+
+    if (client == NULL || wm == NULL) {
+        return NULL;
+    }
+
+    (void) s_wm_find_client(client->id, NULL, &desktop);
+    return desktop;
+}
+
