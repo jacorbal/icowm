@@ -196,6 +196,10 @@ static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
  * modifier key confirms the selection automatically.  @p prev_focus is
  * the window that held input focus before the menu was shown, allowing
  * focus to be restored when the menu is dismissed without confirming.
+ * Members @p next_keysym / @p next_modmask and @p prev_keysym /
+ * @p prev_modmask are the configured cycle-next and cycle-prev bindings
+ * (lock modifiers already stripped) so that the key-press handler can
+ * navigate without any hardcoded keysym or modifier.
  */
 static struct {
     xcb_window_t window;
@@ -206,8 +210,12 @@ static struct {
     bool is_icon_menu;
     surface_td *surface;
     desktop_td *desktop;
-    uint16_t modifier;      /**< Modifier mask used to open the menu */
+    uint16_t modifier;          /**< Modifier mask used to open the menu */
     xcb_window_t prev_focus;    /**< Focused window before menu opened */
+    xcb_keysym_t next_keysym;   /**< Keysym for configured cycle-next */
+    uint16_t next_modmask;      /**< Modifier for cycle-next (lock-stripped) */
+    xcb_keysym_t prev_keysym;   /**< Keysym for configured cycle-prev */
+    uint16_t prev_modmask;      /**< Modifier for cycle-prev (lock-stripped) */
 } s_cycle_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
@@ -217,6 +225,10 @@ static struct {
     .desktop = NULL,
     .modifier = 0,
     .prev_focus = XCB_WINDOW_NONE,
+    .next_keysym = XCB_NO_SYMBOL,
+    .next_modmask = 0,
+    .prev_keysym = XCB_NO_SYMBOL,
+    .prev_modmask = 0,
 };
 
 
@@ -709,6 +721,10 @@ static void s_wm_close_cycle_menu(void)
     s_cycle_menu.desktop = NULL;
     s_cycle_menu.modifier = 0;
     s_cycle_menu.prev_focus = XCB_WINDOW_NONE;
+    s_cycle_menu.next_keysym = XCB_NO_SYMBOL;
+    s_cycle_menu.next_modmask = 0;
+    s_cycle_menu.prev_keysym = XCB_NO_SYMBOL;
+    s_cycle_menu.prev_modmask = 0;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(wm->connection,
@@ -784,6 +800,45 @@ static void s_wm_draw_cycle_menu(void)
 
 
 /**
+ * @brief Find the first keybinding registered for a given action type
+ *
+ * Searches the @c s_keybindings table for the first entry whose type
+ * field matches @p type.  On success the matching keysym and modifier
+ * mask are written to @p keysym_out and @p modmask_out.
+ *
+ * @param type        Action type to search for
+ * @param keysym_out  Receives the matching keysym; set to
+ *                    @c XCB_NO_SYMBOL on failure
+ * @param modmask_out Receives the matching modifier mask; set to 0 on
+ *                    failure
+ *
+ * @return @c true when a matching binding is found, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of registered
+ *       bindings
+ */
+static bool s_find_keybinding(enum wm_keybind_type_e type,
+        xcb_keysym_t *keysym_out, uint16_t *modmask_out)
+{
+    if (keysym_out == NULL || modmask_out == NULL) {
+        return false;
+    }
+
+    *keysym_out = XCB_NO_SYMBOL;
+    *modmask_out = 0;
+    for (int i = 0; i < s_keybindings_count; ++i) {
+        if (s_keybindings[i].type == type) {
+            *keysym_out = s_keybindings[i].keysym;
+            *modmask_out = s_keybindings[i].modmask;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/**
  * @brief Open the cycle menu for window or icon cycling
  *
  * Collects either the non-iconified focusable clients or the iconified
@@ -822,6 +877,12 @@ static void s_wm_open_cycle_menu(surface_td *surface,
     int active_idx = -1;
     int i;
     uint16_t max_w = 200u;
+    xcb_keysym_t nks;
+    xcb_keysym_t pks;
+    uint16_t nmm;
+    uint16_t pmm;
+    enum wm_keybind_type_e nt;
+    enum wm_keybind_type_e pt;
 
     if (wm == NULL || surface == NULL || desktop == NULL ||
             desktop->stacking == NULL) {
@@ -850,6 +911,24 @@ static void s_wm_open_cycle_menu(surface_td *surface,
     if (foc_r != NULL) {
         free(foc_r);
     }
+
+    /* Store cycle-navigation bindings (lock modifiers stripped) so the
+     * key-press handler can advance or retreat without any hardcoded
+     * keysym or modifier */
+    nt = (is_icon) ? KEYBIND_DESKTOP_ICON_NEXT : KEYBIND_CLIENT_CYCLE_NEXT;
+    pt = (is_icon) ? KEYBIND_DESKTOP_ICON_PREV : KEYBIND_CLIENT_CYCLE_PREV;
+
+    (void) s_find_keybinding(nt, &nks, &nmm);
+    (void) s_find_keybinding(pt, &pks, &pmm);
+
+    s_cycle_menu.next_keysym = nks;
+    s_cycle_menu.next_modmask = (uint16_t) ((unsigned int) nmm &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
+    s_cycle_menu.prev_keysym = pks;
+    s_cycle_menu.prev_modmask = (uint16_t) ((unsigned int) pmm &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
 
     node = cdlist_head(desktop->stacking);
     initial = node;
@@ -1109,7 +1188,7 @@ static void s_wm_confirm_cycle_menu(void)
         return;
     }
 
-    target  = s_cycle_menu.clients[s_cycle_menu.selected];
+    target = s_cycle_menu.clients[s_cycle_menu.selected];
     surface = s_cycle_menu.surface;
     desktop = s_cycle_menu.desktop;
     is_icon = s_cycle_menu.is_icon_menu;
@@ -1415,12 +1494,17 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
         XCB_MOD_MASK_2,
         XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
     };
-
-    s_keybindings_count = 0;
+    static const struct {
+        enum wm_keybind_type_e a;
+        enum wm_keybind_type_e b;
+    } pairs[] = {
+        { KEYBIND_CLIENT_CYCLE_NEXT, KEYBIND_CLIENT_CYCLE_PREV },
+        { KEYBIND_DESKTOP_ICON_NEXT, KEYBIND_DESKTOP_ICON_PREV }
+    };
 
     for (int i = 0; defs[i].binding != NULL; ++i) {
-        xcb_keysym_t  keysym;
-        uint16_t      modmask;
+        xcb_keysym_t keysym;
+        uint16_t modmask;
         xcb_keycode_t *keycodes;
 
         if (!s_parse_binding(defs[i].binding, &modmask, &keysym)) {
@@ -1464,7 +1548,7 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
 
                     err = xcb_request_check(wm->connection, ck);
                     if (err != NULL) {
-                        LOGGER_WARNING("xcb_grab_key failed for "
+                        LOGGER_WARNING("xcb_grab_key failed for " \
                                 "keycode=%u modmask=0x%x error=%d",
                                 keycodes[j],
                                 (unsigned) (modmask | lockmods[k]),
@@ -1476,6 +1560,26 @@ static void s_wm_grab_keys(xcb_key_symbols_t *keysyms)
         }
 
         free(keycodes);
+    }
+
+    /* Warn if any 'cycle-next'/'cycle-prev' pair shares the same
+     * 'keysym+modmask'; in that case 'prev' would never fire */
+    for (int pi = 0;
+            pi < (int) (sizeof(pairs) / sizeof(pairs[0]));
+            ++pi) {
+        xcb_keysym_t aks = XCB_NO_SYMBOL;
+        xcb_keysym_t bks = XCB_NO_SYMBOL;
+        uint16_t amm = 0;
+        uint16_t bmm = 0;
+        if (s_find_keybinding(pairs[pi].a, &aks, &amm) &&
+                s_find_keybinding(pairs[pi].b, &bks, &bmm)) {
+            if (aks == bks && amm == bmm) {
+                LOGGER_WARNING("Cycle next/prev bindings are" \
+                        " identical (next type %u);" \
+                        " 'prev' will never fire",
+                        (unsigned int) pairs[pi].a);
+            }
+        }
     }
 
     xcb_flush(wm->connection);
@@ -1688,6 +1792,7 @@ static void s_dispatch_launch(surface_td *surface, const char *prog)
     if (surface == NULL || prog == NULL || prog[0] == '\0') {
         return;
     }
+
     desktop = s_wm_get_current_desktop(surface);
     if (desktop != NULL) {
         (void) s_wm_send_desktop_launch_event(desktop, prog);
@@ -1850,17 +1955,23 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
             return;
         }
 
-        /* 'Tab': advance or retreat based on 'Shift' */
-        if (keysym == 0xff09) {
-            if (state & XCB_MOD_MASK_SHIFT) {
-                if (s_cycle_menu.selected > 0) {
-                    s_cycle_menu.selected--;
-                } else {
-                    s_cycle_menu.selected = s_cycle_menu.count - 1;
-                }
+        /* Configured cycle-next binding */
+        if (s_cycle_menu.next_keysym != XCB_NO_SYMBOL &&
+                keysym == s_cycle_menu.next_keysym &&
+                state == s_cycle_menu.next_modmask) {
+            s_cycle_menu.selected =
+                (s_cycle_menu.selected + 1) % s_cycle_menu.count;
+            s_wm_draw_cycle_menu();
+            return;
+        }
+        /* Configured cycle-prev binding */
+        if (s_cycle_menu.prev_keysym != XCB_NO_SYMBOL &&
+                keysym == s_cycle_menu.prev_keysym &&
+                state == s_cycle_menu.prev_modmask) {
+            if (s_cycle_menu.selected > 0) {
+                s_cycle_menu.selected--;
             } else {
-                s_cycle_menu.selected =
-                    (s_cycle_menu.selected + 1) % s_cycle_menu.count;
+                s_cycle_menu.selected = s_cycle_menu.count - 1;
             }
 
             s_wm_draw_cycle_menu();
