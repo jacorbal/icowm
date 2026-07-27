@@ -117,6 +117,42 @@ static enum config_placement_policy_e s_config_parse_placement_policy(
 
 
 /**
+ * @brief Parse icon placement policy text into configuration enumeration
+ *
+ * @param value Icon placement string from configuration
+ *
+ * @return Parsed icon placement policy enumeration value
+ *
+ * @note Supported values are @c bottom, @c top, @c left, @c right,
+ *       and @c smart
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_icon_placement_e s_config_parse_icon_placement(
+        const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_ICON_PLACEMENT_BOTTOM;
+    }
+    if (safe_strcmp(value_norm, "top") == 0) {
+        return CONFIG_ICON_PLACEMENT_TOP;
+    }
+    if (safe_strcmp(value_norm, "left") == 0) {
+        return CONFIG_ICON_PLACEMENT_LEFT;
+    }
+    if (safe_strcmp(value_norm, "right") == 0) {
+        return CONFIG_ICON_PLACEMENT_RIGHT;
+    }
+    if (safe_strcmp(value_norm, "smart") == 0) {
+        return CONFIG_ICON_PLACEMENT_SMART;
+    }
+
+    return CONFIG_ICON_PLACEMENT_BOTTOM;
+}
+
+
+/**
  * @brief Load a desktop entry from a JSON object
  *
  * Loads the desktop name and its background color from a JSON object
@@ -269,7 +305,7 @@ void config_set_default_values(config_td *config)
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
-    config->base.windows.placement.is_centered = false;
+    config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
 
     /* Assign predetermined values for bindings modifiers */
     LOGGER_TRACE("Setting default bindings modifiers", L_NARG);
@@ -454,6 +490,7 @@ int config_load_base(const char *filename,
     cJSON *json;
     cJSON *programs;
     cJSON *windows;
+    cJSON *icons;
     cJSON *screen_settings;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
@@ -655,8 +692,21 @@ int config_load_base(const char *filename,
                     s_config_parse_placement_policy(
                             placement_policy_item->valuestring);
             }
-            json_load_bool(placement, "is-centered",
-                    &config_base->windows.placement.is_centered);
+        }
+    }
+
+    /* Load icon policy configuration */
+    icons = cJSON_GetObjectItem(json, "icons");
+    if (icons) {
+        cJSON *placement = cJSON_GetObjectItem(icons, "placement");
+        if (placement && cJSON_IsObject(placement)) {
+            cJSON *icon_policy_item = json_get_item(placement, "policy");
+            if (icon_policy_item != NULL &&
+                    cJSON_IsString(icon_policy_item)) {
+                config_base->icons.placement_policy =
+                    s_config_parse_icon_placement(
+                            icon_policy_item->valuestring);
+            }
         }
     }
 

@@ -3,6 +3,10 @@
  *
  * @brief Declaration for different variations on MurmurHash algorithm
  *
+ * MurmurHash is a family of fast, non-cryptographic hash functions
+ * designed for general-purpose hashing with good distribution and low
+ * collision rates.
+ *
  * Hash function purpose:
  *
  * All MurmurHash algorithms are designed for producing a fixed-size

@@ -312,7 +312,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
             bottom = (uint16_t) client->layout.frame_extents.bottom;
-            title_h = client->title_height;
+            title_h = (uint16_t) client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w > left + right)
             ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
             : 1;

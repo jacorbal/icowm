@@ -35,6 +35,8 @@
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
+#include <desktop.h>
+#include <place.h>
 
 /* Local includes */
 #include <cmds/ccmd.h>
@@ -166,52 +168,49 @@ void wcmd_client_iconify(client_td *client)
     client_geometry_save(client);
 
     if (client->icon_window == 0) {
-        static uint32_t s_icon_slot = 0;
         uint16_t icon_h;
         uint16_t screen_w;
         uint16_t screen_h;
-        uint16_t margin;
-        uint16_t step_x;
-        uint16_t step_y;
-        uint16_t cols;
-        uint16_t col;
-        uint16_t row;
         int16_t ix;
         int16_t iy;
+        enum config_icon_placement_e policy =
+            CONFIG_ICON_PLACEMENT_BOTTOM;
 
         icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
                 ((client->theme->icon.is_captioned)
                  ? WM_ICON_CAPTION_HEIGHT
                  : 0u));
 
-        /* Compute a grid position so that each icon lands in its own
-         * slot at the bottom of the screen rather than stacking at the
-         * same fixed coordinate.  Screen dimensions are queried from
-         * the root window via xcb_get_geometry. */
         screen_w = 1024u;
         screen_h = 768u;
         if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
             /* dimensions updated */
         }
-        margin = 8u;
-        step_x = (uint16_t) (WM_ICON_SQUARE_SIZE + margin);
-        step_y = (uint16_t) (icon_h + margin);
-        cols = (screen_w > step_x) ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
-        col = (uint16_t) (s_icon_slot % cols);
-        row = (uint16_t) (s_icon_slot / cols);
-        ix = (int16_t) (margin + col * step_x);
-        iy = (int16_t) ((int32_t) screen_h - margin -
-                ((int32_t) row + 1) * (int32_t) step_y);
-        if (iy < (int16_t) margin) {
-            iy = (int16_t) margin;
+
+        if (client->config_base != NULL) {
+            policy = client->config_base->icons.placement_policy;
         }
-        s_icon_slot++;
+
+        /* Re-use saved position when the client was already iconified
+         * once and manually repositioned by the user */
+        if (client->icon_x >= 0 && client->icon_y >= 0) {
+            ix = client->icon_x;
+            iy = client->icon_y;
+        } else {
+            place_icon(client, NULL, policy,
+                    WM_ICON_SQUARE_SIZE, icon_h,
+                    screen_w, screen_h,
+                    &ix, &iy);
+            client->icon_x = ix;
+            client->icon_y = iy;
+        }
 
         client->icon_window = xcb_generate_id(client->connection);
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
         values[0] = client->theme->icon.background_color;
         values[1] = client->theme->icon.border_color;
-        values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
+        values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
+                    XCB_EVENT_MASK_BUTTON_MOTION;
         xcb_create_window(client->connection,
                 XCB_COPY_FROM_PARENT,
                 client->icon_window,
@@ -222,6 +221,14 @@ void wcmd_client_iconify(client_td *client)
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,
                 XCB_COPY_FROM_PARENT,
                 mask, values);
+    } else {
+        /* Re-map at the saved position (may have been dragged) */
+        xcb_configure_window(client->connection, client->icon_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                (const uint32_t[]) {
+                    (uint32_t) client->icon_x,
+                    (uint32_t) client->icon_y
+                });
     }
 
     if (client->titlebar != 0) {

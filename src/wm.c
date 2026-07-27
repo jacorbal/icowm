@@ -187,6 +187,32 @@ static char s_info_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
 
 /**
+ * @brief State for the keyboard cycle menu (window list or icon list)
+ *
+ * Stores the XCB window, the list of client pointers and display
+ * labels, the currently highlighted entry, and whether the menu is
+ * showing iconified or normal clients.
+ */
+static struct {
+    xcb_window_t window;
+    client_td   *clients[WM_CYCLE_MENU_MAX_ENTRIES];
+    char         labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LEN];
+    int          count;
+    int          selected;
+    bool         is_icon_menu;
+    surface_td  *surface;
+    desktop_td  *desktop;
+} s_cycle_menu = {
+    .window = XCB_WINDOW_NONE,
+    .count = 0,
+    .selected = 0,
+    .is_icon_menu = false,
+    .surface = NULL,
+    .desktop = NULL
+};
+
+
+/**
  * @brief Mouse drag state for move and resize interactions
  *
  * Stores the current drag status, the active client, the pointer
@@ -197,6 +223,7 @@ static struct {
     bool active;
     enum window_operation_e operation;
     client_td *client;
+    xcb_window_t drag_window;   /**< Window actually being moved */
     int16_t pointer_start_x;
     int16_t pointer_start_y;
     int32_t client_start_x;
@@ -207,6 +234,7 @@ static struct {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
     .client = NULL,
+    .drag_window = XCB_WINDOW_NONE,
     .pointer_start_x = 0,
     .pointer_start_y = 0,
     .client_start_x = 0,
@@ -645,6 +673,217 @@ static void s_wm_close_info_popup(void)
 
 
 /**
+ * @brief Close the cycle menu window and reset its state
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_close_cycle_menu(void)
+{
+    if (wm == NULL || wm->connection == NULL ||
+            s_cycle_menu.window == XCB_WINDOW_NONE) {
+        return;
+    }
+    xcb_destroy_window(wm->connection, s_cycle_menu.window);
+    s_cycle_menu.window = XCB_WINDOW_NONE;
+    s_cycle_menu.count = 0;
+    s_cycle_menu.selected = 0;
+    s_cycle_menu.surface = NULL;
+    s_cycle_menu.desktop = NULL;
+}
+
+
+/**
+ * @brief Repaint the cycle menu window
+ *
+ * Renders all menu entries, highlighting the currently selected row
+ * with the active titlebar colors.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of menu entries
+ */
+static void s_wm_draw_cycle_menu(void)
+{
+    int i;
+    uint32_t fg_sel;
+    uint32_t bg_sel;
+    uint32_t fg_nor;
+
+    if (wm == NULL || wm->connection == NULL ||
+            s_cycle_menu.window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    fg_sel = wm->config->theme.window.active.foreground_color;
+    bg_sel = wm->config->theme.window.active.background_color;
+    fg_nor = wm->config->theme.window.inactive.foreground_color;
+    text_renderer_init(wm->connection,
+            wm->config->theme.window.active.font);
+
+    for (i = 0; i < s_cycle_menu.count; ++i) {
+        int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+                i * WM_CYCLE_MENU_ROW_HEIGHT);
+        if (i == s_cycle_menu.selected) {
+            /* Highlight selected row */
+            xcb_rectangle_t rect;
+            xcb_gcontext_t gc_fill;
+            uint32_t gc_vals[1];
+            gc_fill = xcb_generate_id(wm->connection);
+            gc_vals[0] = bg_sel;
+            xcb_create_gc(wm->connection, gc_fill,
+                    s_cycle_menu.window,
+                    XCB_GC_FOREGROUND, gc_vals);
+            rect.x = 0;
+            rect.y = row_y;
+            rect.width = (uint16_t) (WM_CYCLE_MENU_PAD_X * 2 +
+                        text_measure_string(
+                            s_cycle_menu.labels[i]));
+            rect.height = (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT;
+            xcb_poly_fill_rectangle(wm->connection,
+                    s_cycle_menu.window, gc_fill, 1, &rect);
+            xcb_free_gc(wm->connection, gc_fill);
+            text_renderer_set_color(fg_sel, bg_sel);
+        } else {
+            text_renderer_set_color(fg_nor,
+                    wm->config->theme.window.inactive.background_color);
+        }
+
+        text_draw_string(wm->connection, s_cycle_menu.window, XCB_NONE,
+                (int16_t) WM_CYCLE_MENU_PAD_X,
+                (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
+                s_cycle_menu.labels[i]);
+    }
+    xcb_flush(wm->connection);
+}
+
+
+/**
+ * @brief Open the cycle menu for window or icon cycling
+ *
+ * Collects either the non-iconified focusable clients or the iconified
+ * focusable clients from @p desktop, creates a floating XCB window
+ * listing them, and preselects the entry @p preselect positions away
+ * from the currently active client (positive=forward,
+ * negative=backward).
+ *
+ * @param surface   Surface on which to center the menu
+ * @param desktop   Desktop whose client list will be shown
+ * @param is_icon   When @c true, list iconified clients; otherwise
+ *                  list normal (non-iconified) clients
+ * @param preselect Offset from the active client to preselect
+ *                  (+1 = next, -1 = prev)
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
+ */
+static void s_wm_open_cycle_menu(surface_td *surface,
+        desktop_td *desktop, bool is_icon, int preselect)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    uint32_t mask;
+    uint32_t values[3];
+    uint16_t menu_w;
+    uint16_t menu_h;
+    int16_t menu_x;
+    int16_t menu_y;
+    int active_idx = -1;
+    int i;
+    uint16_t max_w = 200u;
+
+    if (wm == NULL || surface == NULL || desktop == NULL ||
+            desktop->stacking == NULL) {
+        return;
+    }
+
+    s_wm_close_cycle_menu();
+    /* Collect matching clients */
+    s_cycle_menu.count = 0;
+    s_cycle_menu.surface = surface;
+    s_cycle_menu.desktop = desktop;
+    s_cycle_menu.is_icon_menu = is_icon;
+    node = cdlist_head(desktop->stacking);
+    initial = node;
+    if (node != NULL) {
+        do {
+            client_td *c = (client_td *) cdlist_data(node);
+            if (c != NULL && client_is_focusable(c)) {
+                bool want = is_icon
+                    ? client_is_iconified(c)
+                    : !client_is_iconified(c);
+                if (want &&
+                        s_cycle_menu.count < WM_CYCLE_MENU_MAX_ENTRIES) {
+                    int idx = s_cycle_menu.count;
+                    const char *name = (c->info.name != NULL &&
+                            c->info.name[0] != '\0')
+                        ? c->info.name : "(unnamed)";
+                    s_cycle_menu.clients[idx] = c;
+                    snprintf(s_cycle_menu.labels[idx],
+                            WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
+                    if (c->id == desktop->client_active_id) {
+                        active_idx = idx;
+                    }
+                    s_cycle_menu.count++;
+                }
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    if (s_cycle_menu.count == 0) {
+        return;
+    }
+
+    /* Preselect: start from active_idx, step by preselect */
+    if (active_idx >= 0) {
+        s_cycle_menu.selected = (active_idx + preselect +
+                s_cycle_menu.count) % s_cycle_menu.count;
+    } else {
+        s_cycle_menu.selected = (preselect > 0) ? 0
+            : s_cycle_menu.count - 1;
+    }
+
+    /* Compute menu dimensions */
+    for (i = 0; i < s_cycle_menu.count; ++i) {
+        uint16_t w = text_measure_string(s_cycle_menu.labels[i]);
+        if (w > max_w) {
+            max_w = w;
+        }
+    }
+    menu_w = (uint16_t) (max_w + (uint16_t) (WM_CYCLE_MENU_PAD_X * 2));
+    menu_h = (uint16_t) (WM_CYCLE_MENU_PAD_Y * 2 +
+            s_cycle_menu.count * WM_CYCLE_MENU_ROW_HEIGHT);
+
+    /* Center on screen */
+    menu_x = (int16_t) (((int32_t) surface->properties.dim.w -
+                (int32_t) menu_w) / 2);
+    menu_y = (int16_t) (((int32_t) surface->properties.dim.h -
+                (int32_t) menu_h) / 2);
+    if (menu_x < 0) { menu_x = 0; }
+    if (menu_y < 0) { menu_y = 0; }
+
+    /* Create the popup window */
+    s_cycle_menu.window = xcb_generate_id(wm->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = wm->config->theme.window.inactive.background_color;
+    values[1] = wm->config->theme.window.active.border_color;
+    values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS |
+                XCB_EVENT_MASK_BUTTON_PRESS;
+    xcb_create_window(wm->connection,
+            XCB_COPY_FROM_PARENT,
+            s_cycle_menu.window,
+            surface->screen->root,
+            menu_x, menu_y,
+            menu_w, menu_h,
+            1,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    xcb_map_window(wm->connection, s_cycle_menu.window);
+    xcb_flush(wm->connection);
+}
+
+
+/**
  * @brief Search all surfaces and desktops for a client by window ID
  *
  * @param window      X window ID to search for
@@ -709,158 +948,6 @@ static client_td *s_wm_find_client(xcb_window_t window,
             dnode = cdlist_next(dnode);
         } while (dnode != NULL && dnode != dinitial);
     }
-
-    return NULL;
-}
-
-
-/**
- * @brief Select the next or previous focusable client
- *
- * Traverses the desktop stacking list starting from the currently
- * active client and returns the next candidate according to the
- * requested cycling direction.  Hidden clients are included so that
- * cycling with Alt+Tab can reach and un-hide them.
- *
- * @param desktop Pointer to the desktop where cycling is performed
- * @param is_next When @c true, cycle to next; when @c false, cycle to
- *                previous
- *
- * @return Pointer to the selected client, or @c NULL if no suitable
- *         client exists
- *
- * @note Complexity: @e O(n), where @e n is the number of clients in the
- *       desktop stacking list
- */
-static client_td *s_wm_cycle_target_client(desktop_td *desktop,
-        bool is_next)
-{
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    cdlist_item_td *active_node = NULL;
-
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        return NULL;
-    }
-
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return NULL;
-    }
-
-    initial = node;
-    do {
-        client_td *client = (client_td *) cdlist_data(node);
-        if (client != NULL && client->id == desktop->client_active_id) {
-            active_node = node;
-            break;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    if (active_node != NULL) {
-        node = (is_next)
-            ? cdlist_next(active_node)
-            : cdlist_prev(active_node);
-    } else {
-        node = (is_next)
-            ? cdlist_tail(desktop->stacking)
-            : cdlist_head(desktop->stacking);
-    }
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    initial = node;
-    do {
-        client_td *client = (client_td *) cdlist_data(node);
-        if (client != NULL &&
-                !client_is_iconified(client) &&
-                client_is_focusable(client)) {
-            return client;
-        }
-        node = (is_next)
-            ? cdlist_next(node)
-            : cdlist_prev(node);
-    } while (node != NULL && node != initial);
-
-    return NULL;
-}
-
-
-/**
- * @brief Select the next or previous iconified client
- *
- * Traverses the desktop stacking list and returns the next iconified
- * client according to the requested cycling direction.  When found, the
- * client is restored from iconification.
- *
- * @param desktop Pointer to the desktop where cycling is performed
- * @param is_next When @c true, cycle to next; when @c false, cycle to
- *                previous
- *
- * @return Pointer to the selected (and now restored) client, or @c NULL
- *         if no iconified client exists
- *
- * @note Complexity: @e O(n), where @e n is the number of clients in the
- *       desktop stacking list
- */
-static client_td *s_wm_cycle_icon_client(desktop_td *desktop,
-        bool is_next)
-{
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    cdlist_item_td *active_node = NULL;
-
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        return NULL;
-    }
-
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return NULL;
-    }
-
-    initial = node;
-    do {
-        client_td *client = (client_td *) cdlist_data(node);
-        if (client != NULL && client->id == desktop->client_active_id) {
-            active_node = node;
-            break;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    if (active_node != NULL) {
-        node = (is_next)
-            ? cdlist_next(active_node)
-            : cdlist_prev(active_node);
-    } else {
-        node = (is_next)
-            ? cdlist_tail(desktop->stacking)
-            : cdlist_head(desktop->stacking);
-    }
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    initial = node;
-    do {
-        client_td *client = (client_td *) cdlist_data(node);
-        if (client != NULL &&
-                client_is_iconified(client) &&
-                client_is_focusable(client)) {
-            client_send_event_restore(client);
-            return client;
-        }
-        node = (is_next)
-            ? cdlist_next(node)
-            : cdlist_prev(node);
-    } while (node != NULL && node != initial);
 
     return NULL;
 }
@@ -935,6 +1022,45 @@ static void s_wm_focus_client(surface_td *surface, desktop_td *desktop,
     }
 
     (void) surface;
+}
+
+
+/**
+ * @brief Confirm the currently selected cycle menu entry
+ *
+ * For icon menus, restores the selected iconified client. For window
+ * menus, focuses the selected client.  The menu is then closed.
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_confirm_cycle_menu(void)
+{
+    client_td  *target;
+    surface_td *surface;
+    desktop_td *desktop;
+    bool        is_icon;
+
+    if (s_cycle_menu.window == XCB_WINDOW_NONE ||
+            s_cycle_menu.selected < 0 ||
+            s_cycle_menu.selected >= s_cycle_menu.count) {
+        return;
+    }
+
+    target  = s_cycle_menu.clients[s_cycle_menu.selected];
+    surface = s_cycle_menu.surface;
+    desktop = s_cycle_menu.desktop;
+    is_icon = s_cycle_menu.is_icon_menu;
+
+    s_wm_close_cycle_menu();
+
+    if (target == NULL || surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    if (is_icon) {
+        (void) client_send_event_restore(target);
+    }
+    s_wm_focus_client(surface, desktop, target, true);
 }
 
 
@@ -1423,7 +1549,8 @@ static void s_wm_scan_existing_windows(void)
                 if (desktop != NULL) {
                     client_td *client = client_manage(
                             wm->connection, wm->ewmh,
-                            children[i], &wm->config->theme);
+                            children[i], &(wm->config->theme),
+                            &(wm->config->base));
                     if (client != NULL) {
                         client->screen_id = surface->id;
                         client->desktop_id = desktop->id;
@@ -1545,6 +1672,54 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
 
+    /* Cycle menu navigation: intercept keys before normal dispatch */
+    if (s_cycle_menu.window != XCB_WINDOW_NONE) {
+        /* Up arrow  */
+        if (keysym == 0xff52) {
+            if (s_cycle_menu.selected > 0) {
+                s_cycle_menu.selected--;
+            } else {
+                s_cycle_menu.selected = s_cycle_menu.count - 1;
+            }
+            s_wm_draw_cycle_menu();
+            return;
+        }
+
+        /* Down arrow */
+        if (keysym == 0xff54) {
+            s_cycle_menu.selected++;
+            if (s_cycle_menu.selected >= s_cycle_menu.count) {
+                s_cycle_menu.selected = 0;
+            }
+            s_wm_draw_cycle_menu();
+            return;
+        }
+
+        /* Enter/Return */
+        if (keysym == 0xff0d || keysym == 0xff8d) {
+            s_wm_confirm_cycle_menu();
+            return;
+        }
+
+        /* Escape */
+        if (keysym == 0xff1b) {
+            s_wm_close_cycle_menu();
+            return;
+        }
+
+        /* Tab: advance selection (same as Down) */
+        if (keysym == 0xff09) {
+            s_cycle_menu.selected =
+                (s_cycle_menu.selected + 1) % s_cycle_menu.count;
+            s_wm_draw_cycle_menu();
+            return;
+        }
+
+        /* Any other key while menu open, close menu without action */
+        s_wm_close_cycle_menu();
+        return;
+    }
+
     /* Hardcoded emergency exit: 'Ctrl+Mod1+BackSpace' (the
      * classic X11 'panic' combination.  'Shift' is intentionally not
      * required so it matches what users conventionally expect/try) */
@@ -1610,15 +1785,11 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                     desktop_td *desktop =
                         s_wm_get_current_desktop(surface);
                     if (desktop != NULL) {
-                        const bool is_next =
-                            (s_keybindings[i].type ==
-                                KEYBIND_CLIENT_CYCLE_NEXT);
-                        client_td *target =
-                            s_wm_cycle_target_client(desktop, is_next);
-                        if (target != NULL) {
-                            s_wm_focus_client(surface, desktop, target,
-                                    true);
-                        }
+                        int dir = (s_keybindings[i].type ==
+                                KEYBIND_CLIENT_CYCLE_NEXT) ? 1 : -1;
+                        s_wm_open_cycle_menu(surface, desktop,
+                                false, dir);
+                        s_wm_draw_cycle_menu();
                     }
                 }
                 return;
@@ -1629,15 +1800,11 @@ static void s_wm_handle_key_press(xcb_key_symbols_t *keysyms,
                     desktop_td *desktop =
                         s_wm_get_current_desktop(surface);
                     if (desktop != NULL) {
-                        const bool is_next =
-                            (s_keybindings[i].type ==
-                                KEYBIND_DESKTOP_ICON_NEXT);
-                        client_td *target =
-                            s_wm_cycle_icon_client(desktop, is_next);
-                        if (target != NULL) {
-                            s_wm_focus_client(surface, desktop, target,
-                                    true);
-                        }
+                        int dir = (s_keybindings[i].type ==
+                                KEYBIND_DESKTOP_ICON_NEXT) ? 1 : -1;
+                        s_wm_open_cycle_menu(surface, desktop,
+                                true, dir);
+                        s_wm_draw_cycle_menu();
                     }
                 }
                 return;
@@ -1911,9 +2078,101 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
         s_wm_close_info_popup();
     }
 
+    /* Cycle menu: click to select entry or dismiss */
+    if (s_cycle_menu.window != XCB_WINDOW_NONE) {
+        if (event->event == s_cycle_menu.window ||
+                event->child == s_cycle_menu.window) {
+            /* Determine which row was clicked */
+            if ((int) event->event_y >= WM_CYCLE_MENU_PAD_Y) {
+                int row = ((int) event->event_y - WM_CYCLE_MENU_PAD_Y)
+                    / WM_CYCLE_MENU_ROW_HEIGHT;
+                if (row < s_cycle_menu.count) {
+                    s_cycle_menu.selected = row;
+                    s_wm_confirm_cycle_menu();
+                } else {
+                    s_wm_close_cycle_menu();
+                }
+            } else {
+                s_wm_close_cycle_menu();
+            }
+        } else {
+            s_wm_close_cycle_menu();
+        }
+        xcb_allow_events(wm->connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(wm->connection);
+        return;
+    }
+
     window = (event->child != XCB_NONE) ? event->child : event->event;
     client = s_wm_find_client(window, NULL, &desktop);
     if (client != NULL && window == client->icon_window) {
+        bool is_drag = false;
+
+        /* Check whether the configured 'move' mouse binding matches.
+         * If it does, start dragging the icon; otherwise restore. */
+        state = (uint16_t) ((unsigned int) event->state &
+                ~((unsigned int) XCB_MOD_MASK_LOCK |
+                    (unsigned int) XCB_MOD_MASK_2));
+
+        for (int mi = 0; mi < s_mousebindings_count; ++mi) {
+            if (s_mousebindings[mi].type == MOUSEBIND_MOVE &&
+                    s_mousebindings[mi].button ==
+                    (xcb_button_index_t) event->detail) {
+                uint16_t req = s_mousebindings[mi].modmask;
+                if (req == 0 || (state & req) == req) {
+                    is_drag = true;
+                    break;
+                }
+            }
+
+            if (is_drag) {
+                /* Start a drag on the icon window */
+                xcb_get_geometry_cookie_t gc;
+                xcb_get_geometry_reply_t *gr;
+
+                gc = xcb_get_geometry(wm->connection, client->icon_window);
+                gr = xcb_get_geometry_reply(wm->connection, gc, NULL);
+
+                s_drag.active = true;
+                s_drag.client = client;
+                s_drag.drag_window = client->icon_window;
+                s_drag.operation = CLIENT_OPERATION_MOVING;
+                s_drag.pointer_start_x = event->root_x;
+                s_drag.pointer_start_y = event->root_y;
+                s_drag.client_start_x = (gr != NULL)
+                    ? (int32_t) gr->x
+                    : (int32_t) client->icon_x;
+                s_drag.client_start_y = (gr != NULL)
+                    ? (int32_t) gr->y
+                    : (int32_t) client->icon_y;
+                s_drag.client_start_w = 0;
+                s_drag.client_start_h = 0;
+                if (gr != NULL) {
+                    free(gr);
+                }
+
+                client->properties.operation = CLIENT_OPERATION_MOVING;
+
+                xcb_grab_pointer(wm->connection,
+                        0,
+                        event->root,
+                        XCB_EVENT_MASK_BUTTON_RELEASE |
+                        XCB_EVENT_MASK_POINTER_MOTION,
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_NONE,
+                        XCB_NONE,
+                        event->time);
+
+                xcb_allow_events(wm->connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
+                xcb_flush(wm->connection);
+                return;
+            }
+        }
+
+        /* No drag modifier: restore the client */
         (void) client_send_event_restore(client);
         if (desktop != NULL) {
             surface = s_wm_get_surface_for_root(event->root);
@@ -1999,7 +2258,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
                 uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
                 uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
                 uint16_t step = (uint16_t) (btn + gap);
-                uint16_t title_h = client->title_height;
+                uint16_t title_h = (uint16_t) client->title_height;
                 int16_t btn_y = (title_h > btn)
                     ? (int16_t) ((title_h - btn) / 2u)
                     : 0;
@@ -2121,6 +2380,7 @@ static void s_wm_handle_button_press(xcb_button_press_event_t *event)
 
     s_drag.active = true;
     s_drag.client = client;
+    s_drag.drag_window = XCB_WINDOW_NONE;  /* normal win.: use client events */
     s_drag.pointer_start_x = event->root_x;
     s_drag.pointer_start_y = event->root_y;
     s_drag.client_start_x = client->layout.geometry.cur.pos.x;
@@ -2187,7 +2447,19 @@ static void s_wm_handle_motion_notify(xcb_motion_notify_event_t *event)
     dx = (int32_t) event->root_x - (int32_t) s_drag.pointer_start_x;
     dy = (int32_t) event->root_y - (int32_t) s_drag.pointer_start_y;
 
-    if (s_drag.operation == CLIENT_OPERATION_MOVING) {
+    if (s_drag.operation == CLIENT_OPERATION_MOVING &&
+                s_drag.drag_window == client->icon_window) {
+        /* Move the icon window directly and update the saved position */
+        int32_t new_x = s_drag.client_start_x + dx;
+        int32_t new_y = s_drag.client_start_y + dy;
+        xcb_configure_window(wm->connection, client->icon_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                (const uint32_t[]) {
+                    (uint32_t) new_x,
+                    (uint32_t) new_y
+                });
+        xcb_flush(wm->connection);
+    } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
         (void) client_send_event_move(client,
                 s_drag.client_start_x + dx,
                 s_drag.client_start_y + dy);
@@ -2218,12 +2490,27 @@ static void s_wm_handle_button_release(xcb_button_release_event_t *event)
     }
 
     if (s_drag.client != NULL) {
+        /* If we were dragging an icon window, persist the final position */
+        if (s_drag.drag_window != XCB_WINDOW_NONE &&
+                s_drag.drag_window == s_drag.client->icon_window &&
+                event != NULL) {
+            int32_t dx = (int32_t) event->root_x
+                - (int32_t) s_drag.pointer_start_x;
+            int32_t dy = (int32_t) event->root_y
+                - (int32_t) s_drag.pointer_start_y;
+            s_drag.client->icon_x =
+                (int16_t) (s_drag.client_start_x + dx);
+            s_drag.client->icon_y =
+                (int16_t) (s_drag.client_start_y + dy);
+        }
+
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
     }
 
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
+    s_drag.drag_window = XCB_WINDOW_NONE;
 
     xcb_ungrab_pointer(wm->connection, XCB_CURRENT_TIME);
     xcb_flush(wm->connection);
@@ -2431,7 +2718,8 @@ static void s_wm_handle_map_request(
 
     /* Adopt the window */
     client = client_manage(wm->connection, wm->ewmh,
-            event->window, &wm->config->theme);
+            event->window, &(wm->config->theme),
+            &(wm->config->base));
     if (client == NULL) {
         /* Override-redirect or allocation failure; just map it */
         xcb_map_window(wm->connection, event->window);
@@ -2807,6 +3095,13 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
         return;
     }
 
+    /* Cycle menu: repaint all entries */
+    if (s_cycle_menu.window != XCB_WINDOW_NONE &&
+            event->window == s_cycle_menu.window) {
+        s_wm_draw_cycle_menu();
+        return;
+    }
+
     client = s_wm_find_client(event->window, NULL, &desktop);
     if (client == NULL) {
         return;
@@ -2867,7 +3162,7 @@ static void s_wm_handle_expose(xcb_expose_event_t *event)
 
     left = (uint16_t) client->layout.frame_extents.left;
     right = (uint16_t) client->layout.frame_extents.right;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     inner_w = (client->layout.geometry.cur.dim.w > left + right)
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
         : 1u;
@@ -3185,7 +3480,8 @@ static void s_wm_loop(void)
                                 surface->screen->root,  /* parent window */
                                 100, 100,               /* width, height */
                                 50, 50,                 /* x, y */
-                                &(wm->config->theme));
+                                &(wm->config->theme),
+                                &(wm->config->base));
 
                         if (test_client != NULL) {
                             /* Remove 'HIDDEN' flag to show the window */

@@ -55,6 +55,21 @@
 /** Maximum length of each info popup text line */
 #define WM_INFO_POPUP_LINE_MAX_LEN (256)
 
+/** Maximum number of entries in the cycle menu */
+#define WM_CYCLE_MENU_MAX_ENTRIES (64)
+
+/** Maximum label length for a cycle menu entry */
+#define WM_CYCLE_MENU_ENTRY_LEN (128)
+
+/** Height of each row in the cycle menu, in pixels */
+#define WM_CYCLE_MENU_ROW_HEIGHT (20)
+
+/** Horizontal padding inside the cycle menu window */
+#define WM_CYCLE_MENU_PAD_X (10)
+
+/** Vertical padding (top/bottom) inside the cycle menu window */
+#define WM_CYCLE_MENU_PAD_Y (6)
+
 /** Width/height of icon square in pixels */
 #define WM_ICON_SQUARE_SIZE (48u)
 

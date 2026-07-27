@@ -251,7 +251,7 @@ static void s_client_sync_decoration_layout(client_td *client)
     right = (uint16_t) client->layout.frame_extents.right;
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
     inner_w = (client->layout.geometry.cur.dim.w > left + right)
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
@@ -326,7 +326,7 @@ static int s_client_create_decorations(client_td *client)
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
     inner_w = (uint16_t) client->layout.geometry.cur.dim.w;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
 
     frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
@@ -434,7 +434,8 @@ client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t parent_id,
         uint32_t w, uint32_t h, int32_t x, int32_t y,
-        struct config_theme_s *theme)
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base)
 {
     client_td *client;
     xcb_void_cookie_t create_cookie;
@@ -462,6 +463,7 @@ client_td *client_init(xcb_connection_t *connection,
     client->parent_id = parent_id;
     client->user_time = 0;
     client->theme = theme;
+    client->config_base = config_base;
     client->process.pid = -1;
     client->process.command = NULL;
 
@@ -469,6 +471,8 @@ client_td *client_init(xcb_connection_t *connection,
     client->titlebar = 0;
     client->icon_window = 0;
     client->is_icon_mapped = false;
+    client->icon_x = -1;
+    client->icon_y = -1;
 
     /* Set the current geometry, and the "old" as the current one.
      * This allows for saved state when resizing or maximizing */
@@ -702,7 +706,8 @@ void client_destroy(client_td *client)
 client_td *client_manage(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
-        struct config_theme_s *theme)
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base)
 {
     client_td *client;
     xcb_get_geometry_cookie_t geom_cookie;
@@ -744,10 +749,13 @@ client_td *client_manage(xcb_connection_t *connection,
     client->connection = connection;
     client->ewmh = ewmh;
     client->theme = theme;
+    client->config_base = config_base;
     client->frame = 0;
     client->titlebar = 0;
     client->icon_window = 0;
     client->is_icon_mapped = false;
+    client->icon_x = -1;
+    client->icon_y = -1;
     client->process.pid = -1;
 
     /* Use the X window ID as both window handle and hash/lookup key */

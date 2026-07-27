@@ -3,10 +3,6 @@
  *
  * @brief Provide safe memory handling functions
  *
- * Functions:
- *  - @c 'void safe_free(void **ptr)'
- *  - @c 'int safe_free_var(void **first, ...)'
- *
  * @ingroup mem Safe memory management utils
  */
 /*

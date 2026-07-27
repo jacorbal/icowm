@@ -3,9 +3,6 @@
  *
  * @brief Declarations of path handling functions
  *
- * Functions:
- *   - @c 'void path_simplify(char *restricted path)'
- *
  * @ingroup path Path management utils
  */
 /*

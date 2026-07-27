@@ -233,7 +233,9 @@ typedef struct client_s {
     xcb_window_t titlebar;          /**< Optional titlebar window */
     xcb_window_t icon_window;       /**< Optional iconified placeholder */
     bool is_icon_mapped;            /**< Whether icon window is mapped */
-    uint16_t title_height;          /**< Cached titlebar height */
+    int16_t icon_x;                 /**< Saved icon X (−1 = unset) */
+    int16_t icon_y;                 /**< Saved icon Y (−1 = unset) */
+    int16_t title_height;           /**< Cached titlebar height */
 
     uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */
     uint32_t screen_id;             /**< Screen index */
@@ -251,7 +253,8 @@ typedef struct client_s {
         char **icons;
     } icon_info;
 
-    struct config_theme_s *theme;   /**< User defined theme */
+    struct config_theme_s *theme;               /**< User defined theme */
+    const struct config_base_s *config_base;    /**< Base configuration */
 
     uint32_t user_time;             /**< Time since last used */
 
@@ -303,13 +306,14 @@ static inline void client_unfocus(client_td *client)
  * and creating an XCB window with the given dimensions and position.
  * The client is initialized in a hidden state.
  *
- * @param connection Pointer to the XCB connection
- * @param parent_id  Pointer to the parent client index
- * @param w          Width of the client in pixels
- * @param h          Height of the client in pixels
- * @param x          X-coordinate of the client position
- * @param y          Y-coordinate of the client position
- * @param theme      Pointer to the theme configuration
+ * @param connection  Pointer to the XCB connection
+ * @param parent_id   Pointer to the parent client index
+ * @param w           Width of the client in pixels
+ * @param h           Height of the client in pixels
+ * @param x           X-coordinate of the client position
+ * @param y           Y-coordinate of the client position
+ * @param theme       Pointer to the theme configuration
+ * @param config_base Pointer to the base configuration
  *
  * @return A pointer to the newly created client structure, or @c NULL
  *         on failure
@@ -321,7 +325,8 @@ client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t parent_id,
         uint32_t w, uint32_t h, int32_t x, int32_t y,
-        struct config_theme_s *theme);
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base);
 
 /**
  * @brief Destroy the specified client and free associated resources
@@ -343,10 +348,11 @@ void client_destroy(client_td *client);
  * current window geometry, and subscribes to property and structure
  * events on the window.
  *
- * @param connection Pointer to the XCB connection
- * @param ewmh       Pointer to EWMH connection
- * @param window     ID of the existing X window to adopt
- * @param theme      Pointer to the theme configuration
+ * @param connection  Pointer to the XCB connection
+ * @param ewmh        Pointer to EWMH connection
+ * @param window      ID of the existing X window to adopt
+ * @param theme       Pointer to the theme configuration
+ * @param config_base Pointer to the base configuration
  *
  * @return A pointer to the client structure wrapping the window, or
  *         @c NULL if the window should not be managed (e.g.,
@@ -358,7 +364,9 @@ void client_destroy(client_td *client);
  */
 client_td *client_manage(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        struct config_theme_s *theme);
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base);
+
 
 /**
  * @brief Update the content of the specified client

@@ -59,9 +59,7 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
  * @brief Apply the configured placement policy to a newly mapped client
  *
  * Selects and applies the placement algorithm configured in @p wm:
- * @c smart, @c cascade, @c centered, or @c under-mouse.  A fixed
- * override flag in the configuration causes centered placement
- * regardless of the policy.
+ * @c smart, @c cascade, @c centered, or @c under-mouse.
  *
  * @param wm      Pointer to the window manager singleton
  * @param surface Pointer to the surface that will host the client
@@ -72,6 +70,34 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
  *       the number of clients on the desktop
  */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client);
+
+/**
+ * @brief Compute the icon window position for a newly iconified client
+ *
+ * Chooses an X/Y coordinate for @p client's icon window according to
+ * @p policy, the current screen dimensions, and the positions of
+ * already-placed icon windows on @p desktop.
+ *
+ * @param client   Pointer to the client being iconified (must not be
+ *                 @c NULL)
+ * @param desktop  Desktop to inspect for existing icon positions;
+ *                 may be @c NULL (treated as empty desktop)
+ * @param policy   Icon placement policy from configuration
+ * @param icon_w   Width of the icon window in pixels
+ * @param icon_h   Height of the icon window in pixels
+ * @param screen_w Screen width in pixels
+ * @param screen_h Screen height in pixels
+ * @param out_x    Output X coordinate
+ * @param out_y    Output Y coordinate
+ *
+ * @note Complexity: @e O(n), where @e n is the number of iconified
+ *       clients already placed on @p desktop
+ */
+void place_icon(const client_td *client, desktop_td *desktop,
+        enum config_icon_placement_e policy,
+        uint16_t icon_w, uint16_t icon_h,
+        uint16_t screen_w, uint16_t screen_h,
+        int16_t *out_x, int16_t *out_y);
 
 
 #endif  /* ! PLACE_H */

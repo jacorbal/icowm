@@ -3,13 +3,6 @@
  *
  * @brief Pure geometry utility declarations
  *
- * Functions:
- *  - @c 'uint16_t geom_clamp_dim(int32_t value)'
- *  - @c 'bool geom_rect_overlap(int32_t ax, int32_t ay,
- *                                uint32_t aw, uint32_t ah,
- *                                int32_t bx, int32_t by,
- *                                uint32_t bw, uint32_t bh)'
- *
  * @ingroup geom Geometry utils
  */
 /*
