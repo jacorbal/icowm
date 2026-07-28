@@ -82,92 +82,11 @@ static struct {
 };
 
 
-void cycle_close(xcb_connection_t *connection)
-{
-    xcb_window_t restore_focus;
-
-    if (connection == NULL || s_menu.window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    restore_focus = s_menu.prev_focus;
-
-    xcb_destroy_window(connection, s_menu.window);
-    s_menu.window = XCB_WINDOW_NONE;
-    s_menu.count = 0;
-    s_menu.selected = 0;
-    s_menu.width = 0;
-    s_menu.surface = NULL;
-    s_menu.desktop = NULL;
-    s_menu.modifier = 0;
-    s_menu.prev_focus = XCB_WINDOW_NONE;
-    s_menu.next_keysym = XCB_NO_SYMBOL;
-    s_menu.next_modmask = 0;
-    s_menu.prev_keysym = XCB_NO_SYMBOL;
-    s_menu.prev_modmask = 0;
-
-    if (restore_focus != XCB_WINDOW_NONE) {
-        xcb_set_input_focus(connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                restore_focus,
-                XCB_CURRENT_TIME);
-        xcb_flush(connection);
-    }
-}
-
-
-void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
-{
-    uint32_t fg_sel;
-    uint32_t bg_sel;
-    uint32_t fg_nor;
-    uint32_t bg_nor;
-
-    if (connection == NULL || cfg == NULL ||
-            s_menu.window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    fg_sel = cfg->theme.window.active.foreground_color;
-    bg_sel = cfg->theme.window.active.background_color;
-    fg_nor = cfg->theme.window.inactive.foreground_color;
-    bg_nor = cfg->theme.window.inactive.background_color;
-
-    text_renderer_init(connection, cfg->theme.window.active.font);
-
-    for (int i = 0; i < s_menu.count; ++i) {
-        int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
-                i * WM_CYCLE_MENU_ROW_HEIGHT);
-
-        if (i == s_menu.selected) {
-            menu_draw_row_bg(connection, s_menu.window, bg_sel,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    s_menu.width);
-            text_renderer_set_color(fg_sel, bg_sel);
-        } else {
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    s_menu.width);
-            text_renderer_set_color(fg_nor, bg_nor);
-        }
-
-        menu_draw_label(connection, s_menu.window,
-                (int16_t) WM_CYCLE_MENU_PAD_X,
-                (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
-                s_menu.labels[i]);
-    }
-
-    xcb_flush(connection);
-}
-
-
+/* Open the cycle menu for window or icon cycling */
 void cycle_open(list_td *surfaces,
         xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        bool is_icon,
-        int preselect,
-        uint16_t modifier,
+        surface_td *surface, desktop_td *desktop,
+        bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg)
 {
     cdlist_item_td *node;
@@ -323,8 +242,89 @@ void cycle_open(list_td *surfaces,
 }
 
 
-void cycle_confirm(xcb_connection_t *connection,
-        list_td *surfaces,
+/* Close the cycle menu and restore previous focus */
+void cycle_close(xcb_connection_t *connection)
+{
+    xcb_window_t restore_focus;
+
+    if (connection == NULL || s_menu.window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    restore_focus = s_menu.prev_focus;
+
+    xcb_destroy_window(connection, s_menu.window);
+    s_menu.window = XCB_WINDOW_NONE;
+    s_menu.count = 0;
+    s_menu.selected = 0;
+    s_menu.width = 0;
+    s_menu.surface = NULL;
+    s_menu.desktop = NULL;
+    s_menu.modifier = 0;
+    s_menu.prev_focus = XCB_WINDOW_NONE;
+    s_menu.next_keysym = XCB_NO_SYMBOL;
+    s_menu.next_modmask = 0;
+    s_menu.prev_keysym = XCB_NO_SYMBOL;
+    s_menu.prev_modmask = 0;
+
+    if (restore_focus != XCB_WINDOW_NONE) {
+        xcb_set_input_focus(connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                restore_focus,
+                XCB_CURRENT_TIME);
+        xcb_flush(connection);
+    }
+}
+
+
+/* Repaint all menu entries */
+void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
+{
+    uint32_t fg_sel;
+    uint32_t bg_sel;
+    uint32_t fg_nor;
+    uint32_t bg_nor;
+
+    if (connection == NULL || cfg == NULL ||
+            s_menu.window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    fg_sel = cfg->theme.window.active.foreground_color;
+    bg_sel = cfg->theme.window.active.background_color;
+    fg_nor = cfg->theme.window.inactive.foreground_color;
+    bg_nor = cfg->theme.window.inactive.background_color;
+
+    text_renderer_init(connection, cfg->theme.window.active.font);
+
+    for (int i = 0; i < s_menu.count; ++i) {
+        int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+                i * WM_CYCLE_MENU_ROW_HEIGHT);
+
+        if (i == s_menu.selected) {
+            menu_draw_row_bg(connection, s_menu.window, bg_sel,
+                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                    s_menu.width);
+            text_renderer_set_color(fg_sel, bg_sel);
+        } else {
+            menu_draw_row_bg(connection, s_menu.window, bg_nor,
+                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                    s_menu.width);
+            text_renderer_set_color(fg_nor, bg_nor);
+        }
+
+        menu_draw_label(connection, s_menu.window,
+                (int16_t) WM_CYCLE_MENU_PAD_X,
+                (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
+                s_menu.labels[i]);
+    }
+
+    xcb_flush(connection);
+}
+
+
+/* Confirm the currently selected cycle menu entry */
+void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
         const config_td *cfg)
 {
     client_td  *target;
@@ -360,6 +360,7 @@ void cycle_confirm(xcb_connection_t *connection,
 }
 
 
+/* Set the selection directly to a given index */
 void cycle_navigate_to(unsigned int idx)
 {
     if (s_menu.count <= 0) {
@@ -373,6 +374,7 @@ void cycle_navigate_to(unsigned int idx)
 }
 
 
+/* Advance the selection by one entry */
 void cycle_navigate_next(void)
 {
     if (s_menu.count <= 0) {
@@ -383,6 +385,7 @@ void cycle_navigate_next(void)
 }
 
 
+/* Retreat the selection by one entry */
 void cycle_navigate_prev(void)
 {
     if (s_menu.count <= 0) {
@@ -393,42 +396,49 @@ void cycle_navigate_prev(void)
 }
 
 
+/* Query whether the cycle menu is currently open */
 bool cycle_is_open(void)
 {
     return s_menu.window != XCB_WINDOW_NONE;
 }
 
 
+/* Return the cycle menu window identifier */
 xcb_window_t cycle_window(void)
 {
     return s_menu.window;
 }
 
 
+/* Return the modifier mask that opened the cycle menu */
 uint16_t cycle_modifier(void)
 {
     return s_menu.modifier;
 }
 
 
+/* Return the keysym configured for cycle-next navigation */
 xcb_keysym_t cycle_next_keysym(void)
 {
     return s_menu.next_keysym;
 }
 
 
+/* Return the modifier mask for the cycle-next binding */
 uint16_t cycle_next_modmask(void)
 {
     return s_menu.next_modmask;
 }
 
 
+/* Return the keysym configured for cycle-prev navigation */
 xcb_keysym_t cycle_prev_keysym(void)
 {
     return s_menu.prev_keysym;
 }
 
 
+/* Return the modifier mask for the cycle-prev binding */
 uint16_t cycle_prev_modmask(void)
 {
     return s_menu.prev_modmask;

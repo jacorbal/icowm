@@ -59,11 +59,8 @@
  */
 void cycle_open(list_td *surfaces,
         xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        bool is_icon,
-        int preselect,
-        uint16_t modifier,
+        surface_td *surface, desktop_td *desktop,
+        bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg);
 
 /**
