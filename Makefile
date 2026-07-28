@@ -34,10 +34,10 @@ JOBS ?= $(shell nproc)
 
 
 ## Compiler & linker options
-CCSTD       = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
-CCOPT       = 3    # 0:debug; 1:optimize; 2:optimize more; 3:even more
-CCOPTS      = -pedantic -pedantic-errors
-CCEXTRA     = -fdiagnostics-color=always -fdiagnostics-show-location=once
+CCSTD   = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
+CCOPT   = 3    # 0:debug; 1:optimize; 2:optimize more; 3:even more
+CCOPTS  = -pedantic -pedantic-errors
+CCEXTRA = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
 CCWARN_POSIX = -D _POSIX_C_SOURCE=200112L  #-D __STRICT_ANSI__
 
@@ -60,11 +60,11 @@ CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
 				-Wno-fortify-source -Wno-cast-align -Wno-cast-qual \
 				-Wdocumentation
 
-CCWARN      = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
+CCWARN = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
 
-CCDEPS      = -MMD -MP
+CCDEPS = -MMD -MP
 
-CCFLAGS     = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) ${CCDEPS}
+CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) ${CCDEPS}
 
 XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh)
 JSON_LFLAGS = -lcjson
@@ -136,14 +136,12 @@ TARGET = $(B_DIR)/$(PROJECT_NAME_PROG)
 DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
-# Sources and objects
+# Sources, objects and auto-generated dependencies
 SRCS = $(wildcard $(S_DIR)/*.c) \
 		$(wildcard $(S_DIR)/*/*.c) \
 		$(wildcard $(S_DIR)/*/*/*.c)
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
-
--include $(DEPS)
 
 
 ## Options
@@ -153,7 +151,7 @@ DEPS = $(OBJS:.o=.d)
 all: mkdirs $(TARGET) ctags
 	@echo "Build $(BUILD_NUMBER)"
 
-parallel:
+parallel: clean
 	$(MAKE) -j$(JOBS) all
 
 mkdirs:
@@ -234,6 +232,9 @@ help:
 	@echo
 	@echo "Binary will be placed in '$(TARGET)'"
 
+
+## Auto-generated header dependecies
+-include $(DEPS)
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
