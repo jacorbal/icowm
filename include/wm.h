@@ -177,17 +177,7 @@ int wm_action_surface_rem(void);
 int wm_action_exit(void);
 
 /**
- * @brief Macro that evaluates to the number of surfaces handled by the
- *        window manager
- *
- * @note Complexity: @e O(1)
- */
-#define wm_surface_count(wm) \
-  (((wm) == NULL) || (((wm)->surfaces) == NULL) ? 0 : ((wm)->surfaces)->size)
-
-
-/**
- * @brief Return the desktop that currently contains @p client
+ * @brief Return the desktop that currently contains a specific client
  *
  * Searches all surfaces and desktops managed by the singleton window
  * manager instance.
@@ -201,6 +191,39 @@ int wm_action_exit(void);
  *       clients across all desktops
  */
 desktop_td *wm_get_client_desktop(const client_td *client);
+
+/**
+ * @brief Mark the client owner desktop and surface as outdated
+ *
+ * Locates the desktop currently owning @p client and marks that desktop
+ * and its surface for redraw on the next update cycle.
+ *
+ * @param client Client whose owner context should be redrawn
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces and desktops
+ */
+void wm_request_client_redraw(const client_td *client);
+
+/**
+ * @brief Mark all surfaces and desktops as outdated
+ *
+ * Requests a full redraw on demand by setting the outdated flags across
+ * every managed surface and desktop.
+ *
+ * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ *       and @e m is the number of desktops per surface
+ */
+void wm_request_full_redraw(void);
+
+/**
+ * @brief Macro that evaluates to the number of surfaces handled by the
+ *        window manager
+ *
+ * @note Complexity: @e O(1)
+ */
+#define wm_surface_count(wm) \
+  (((wm) == NULL) || (((wm)->surfaces) == NULL) ? 0 : ((wm)->surfaces)->size)
 
 
 #endif  /* ! WM_H */

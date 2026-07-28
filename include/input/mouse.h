@@ -151,6 +151,9 @@ void mouse_handle_release(xcb_connection_t *connection,
  * Focuses the client under the pointer when the configured focus policy
  * is @c follow-mouse.  Normal events on managed client frames raise no
  * stacking change; grab/inferior transitions are silently ignored.
+ * The window manager @c client_active_id is preserved so that keyboard
+ * shortcuts continue to target the explicitly-focused window, not the
+ * hovered one.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
@@ -162,6 +165,32 @@ void mouse_handle_release(xcb_connection_t *connection,
 void mouse_handle_enter(xcb_connection_t *connection,
         list_td *surfaces, xcb_enter_notify_event_t *event,
         const config_td *cfg);
+
+/**
+ * @brief Test whether a hover-triggered focus transfer is in progress
+ *
+ * Returns @c true when @c mouse_handle_enter has initiated
+ * a focus-follows-mouse transfer but the corresponding @c FocusIn event
+ * has not yet been processed.  Used by the focus-in handler to skip
+ * updating @c client_active_id for hover-driven focus changes.
+ *
+ * @return @c true if a hover-triggered transfer is pending, @c false
+ *         otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+bool mouse_enter_focus_is_active(void);
+
+/**
+ * @brief Clear the hover-triggered focus flag
+ *
+ * Resets the internal flag set by @c mouse_handle_enter.  Must be
+ * called by the focus-in handler once it has decided to skip the
+ * @c client_active_id update for a hover-triggered focus change.
+ *
+ * @note Complexity: @e O(1)
+ */
+void mouse_enter_focus_clear(void);
 
 
 #endif  /* ! INPUT_MOUSE_H */

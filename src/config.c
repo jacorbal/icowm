@@ -364,6 +364,8 @@ void config_set_default_values(config_td *config)
             "mod1+mods+Tab");
     safe_strcpy(config->bindings.keyboard.cycle.window.next,
             "mod1+Tab");
+    safe_strcpy(config->bindings.keyboard.wm.redraw,
+            "modc+mod1+mods+r");
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -781,6 +783,7 @@ int config_load_bindings(const char *filename,
     /* Load keybindings */
     keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard != NULL) {
+        cJSON *wm;
         cJSON *programs;
         cJSON *window;
         cJSON *cycle;
@@ -837,6 +840,13 @@ int config_load_bindings(const char *filename,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "shade",
                     config_bindings->keyboard.window.shade,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        wm = cJSON_GetObjectItem(keyboard, "wm");
+        if (wm) {
+            json_load_string(wm, "redraw",
+                    config_bindings->keyboard.wm.redraw,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 

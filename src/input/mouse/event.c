@@ -52,6 +52,14 @@
 #include <input/mouse.h>
 
 
+/* Flag set while a hover-triggered focus transfer is in flight.  Set in
+ * 'mouse_handle_enter' before calling focus_apply, cleared in
+ * 'handler_focus_in' so that the 'FocusIn' event from the hover does
+ * not move 'client_active_id' away from the explicitly-focused
+ * window. */
+static bool s_enter_focus_active = false;
+
+
 /* Dispatch a button-press event */
 void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
@@ -169,6 +177,14 @@ void mouse_handle_press(xcb_connection_t *connection,
 
     if (type == MOUSEBIND_DESKTOP_NEXT ||
             type == MOUSEBIND_DESKTOP_PREV) {
+        if (client != NULL) {
+            /* Cursor is over a managed window; ignore desktop scroll */
+            xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                    event->time);
+            xcb_flush(connection);
+            return;
+        }
+
         surface = lookup_surface_for_root(surfaces, event->root);
         if (surface != NULL) {
             event_td *ev;
@@ -236,9 +252,9 @@ void mouse_handle_press(xcb_connection_t *connection,
                                         PRIORITY_NORMAL);
                                 break;
                             }
-                        }
+                        } /* ! for (bi) */
                     }
-                }
+                } /* ! if (ey) */
             }
 
             if (event->child == client->window) {
@@ -363,6 +379,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
     client_td *client;
     desktop_td *desktop;
     surface_td *surface;
+    xcb_window_t prev_active;
 
     if (connection == NULL || event == NULL || cfg == NULL) {
         return;
@@ -390,6 +407,24 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
+    prev_active = desktop->client_active_id;
+    s_enter_focus_active = true;
     focus_apply(surfaces, surface, desktop, client, false, cfg);
+    desktop->client_active_id = prev_active;
+
     xcb_flush(connection);
+}
+
+
+/* Query whether a hover-triggered focus transfer is in progress */
+bool mouse_enter_focus_is_active(void)
+{
+    return s_enter_focus_active;
+}
+
+
+/* Clear the hover-triggered focus flag */
+void mouse_enter_focus_clear(void)
+{
+    s_enter_focus_active = false;
 }

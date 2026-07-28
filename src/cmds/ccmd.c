@@ -39,6 +39,7 @@
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
+#include <wm.h>
 
 /* Local includes */
 #include <cmds/ccmd.h>
@@ -46,6 +47,125 @@
 #include <cmds/geom.h>
 #include <cmds/layer.h>
 #include <cmds/meta.h>
+
+
+/**
+ * @brief Create frame and titlebar windows for a previously undecorated
+ *        client
+ *
+ * Reparents the client window into a newly created frame, creates the
+ * titlebar child window, and updates the client layout fields so
+ * rendering and geometry operations use the decorated extents.
+ *
+ * @param client Pointer to the client
+ * @param bw     Border width to apply
+ * @param th     Titlebar height to apply
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_enable_decoration(client_td *client,
+        int32_t bw, int32_t th)
+{
+    uint32_t mask;
+    uint32_t values[3];
+    int32_t frame_x;
+    int32_t frame_y;
+    int32_t frame_w;
+    int32_t frame_h;
+    uint32_t border_color;
+    uint32_t bg_color;
+
+    if (client == NULL || client->parent_id == 0) {
+        return;
+    }
+
+    border_color = (client->theme != NULL)
+        ? client->theme->window.inactive.border_color
+        : 0x999999U;
+    bg_color = (client->theme != NULL)
+        ? client->theme->window.inactive.background_color
+        : 0x000000U;
+
+    frame_x = client->layout.geometry.cur.pos.x - bw;
+    frame_y = client->layout.geometry.cur.pos.y - (bw + th);
+    frame_w = (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
+    frame_h = (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
+
+    if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+        frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+    }
+    if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+        frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+    }
+
+    client->frame = xcb_generate_id(client->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = border_color;
+    values[1] = border_color;
+    values[2] = XCB_EVENT_MASK_EXPOSURE |
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    xcb_create_window(client->connection,
+            XCB_COPY_FROM_PARENT,
+            client->frame,
+            client->parent_id,
+            (int16_t) frame_x, (int16_t) frame_y,
+            (uint16_t) frame_w, (uint16_t) frame_h,
+            0,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    client->titlebar = xcb_generate_id(client->connection);
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    values[0] = bg_color;
+    values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
+    xcb_create_window(client->connection,
+            XCB_COPY_FROM_PARENT,
+            client->titlebar,
+            client->frame,
+            (int16_t) bw, (int16_t) bw,
+            (uint16_t) client->layout.geometry.cur.dim.w,
+            (uint16_t) th,
+            0,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT,
+            mask, values);
+
+    xcb_reparent_window(client->connection,
+            client->window,
+            client->frame,
+            (int16_t) bw, (int16_t) (bw + th));
+
+    xcb_configure_window(client->connection, client->window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0u});
+
+    xcb_grab_button(client->connection,
+            0,
+            client->frame,
+            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
+            XCB_GRAB_MODE_SYNC,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_NONE,
+            XCB_NONE,
+            XCB_BUTTON_INDEX_ANY,
+            XCB_MOD_MASK_ANY);
+
+    xcb_map_window(client->connection, client->frame);
+    xcb_map_window(client->connection, client->titlebar);
+    xcb_map_window(client->connection, client->window);
+
+    client->layout.geometry.cur.pos.x = frame_x;
+    client->layout.geometry.cur.pos.y = frame_y;
+    client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
+    client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
+    client->layout.frame_extents.left = bw;
+    client->layout.frame_extents.right = bw;
+    client->layout.frame_extents.top = bw + th;
+    client->layout.frame_extents.bottom = bw;
+    client_set_decoration(client);
+}
 
 
 /* Perform the action to close the client */
@@ -369,6 +489,7 @@ void wcmd_client_sticky(client_td *client)
 
     client_set_sticky(client);
     wcmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
+    wm_request_client_redraw(client);
 }
 
 /* Remove client sticky mode */
@@ -380,6 +501,7 @@ void wcmd_client_unsticky(client_td *client)
 
     client_unset_sticky(client);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
+    wm_request_client_redraw(client);
 }
 
 
@@ -533,127 +655,143 @@ void wcmd_client_toggle_decoration(client_td *client)
     int32_t bw;
     int32_t th;
 
-    if (client == NULL || client->frame == 0) {
+    if (client == NULL) {
         return;
     }
 
-    bw = (int32_t) client->theme->window.general.border_width;
+    bw = (client->theme != NULL)
+        ? (int32_t) client->theme->window.general.border_width
+        : 0;
     th = (int32_t) client->title_height;
 
     if (client_is_decorated(client)) {  /* Remove decoration */
-         /* Compute inner client geometry from current frame geometry */
-        int32_t inner_x = client->layout.geometry.cur.pos.x +
-                          client->layout.frame_extents.left;
-        int32_t inner_y = client->layout.geometry.cur.pos.y +
-                          client->layout.frame_extents.top;
-        int32_t inner_w = (int32_t) client->layout.geometry.cur.dim.w -
-                          client->layout.frame_extents.left -
-                          client->layout.frame_extents.right;
-        int32_t inner_h = (int32_t) client->layout.geometry.cur.dim.h -
-                          client->layout.frame_extents.top -
-                          client->layout.frame_extents.bottom;
+        if (client->frame != 0) {
+            int32_t inner_x = client->layout.geometry.cur.pos.x +
+                client->layout.frame_extents.left;
+            int32_t inner_y = client->layout.geometry.cur.pos.y +
+                client->layout.frame_extents.top;
+            int32_t inner_w = (int32_t) client->layout.geometry.cur.dim.w -
+                client->layout.frame_extents.left -
+                client->layout.frame_extents.right;
+            int32_t inner_h = (int32_t) client->layout.geometry.cur.dim.h -
+                client->layout.frame_extents.top -
+                client->layout.frame_extents.bottom;
 
-        if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+            if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+                inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+            }
+            if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+                inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+            }
+
+            if (client->titlebar != 0) {
+                xcb_destroy_window(client->connection, client->titlebar);
+                client->titlebar = 0;
+            }
+
+            xcb_reparent_window(client->connection,
+                    client->window,
+                    client->parent_id,
+                    (int16_t) inner_x, (int16_t) inner_y);
+
+            xcb_configure_window(client->connection, client->window,
+                    XCB_CONFIG_WINDOW_X     |
+                    XCB_CONFIG_WINDOW_Y     |
+                    XCB_CONFIG_WINDOW_WIDTH |
+                    XCB_CONFIG_WINDOW_HEIGHT |
+                    XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                    (const uint32_t[]) {
+                        (uint32_t) inner_x, (uint32_t) inner_y,
+                        (uint32_t) inner_w, (uint32_t) inner_h,
+                        (uint32_t) bw
+                    });
+
+            xcb_destroy_window(client->connection, client->frame);
+            client->frame = 0;
+
+            client->layout.geometry.cur.pos.x = inner_x;
+            client->layout.geometry.cur.pos.y = inner_y;
+            client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
+            client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
+        } else {
+            xcb_configure_window(client->connection, client->window,
+                    XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                    (const uint32_t[]) { (uint32_t) bw });
         }
-        if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-        }
-
-        /* Reposition frame to cover only the client content area */
-        xcb_configure_window(client->connection, client->frame,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    (uint32_t) inner_x, (uint32_t) inner_y,
-                    (uint32_t) inner_w, (uint32_t) inner_h
-                });
-
-        /* Place client window at (0, 0) within the now-borderless frame */
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    0u, 0u,
-                    (uint32_t) inner_w, (uint32_t) inner_h
-                });
-
-        if (client->titlebar != 0) {
-            xcb_unmap_window(client->connection, client->titlebar);
-        }
-
-        client->layout.geometry.cur.pos.x = inner_x;
-        client->layout.geometry.cur.pos.y = inner_y;
-        client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
-        client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
         client->layout.frame_extents.left   = 0;
         client->layout.frame_extents.right  = 0;
         client->layout.frame_extents.top    = 0;
         client->layout.frame_extents.bottom = 0;
         client_unset_decoration(client);
     } else {                            /* Restore decoration */
-        /* The frame currently wraps the bare client content; expand it
-         * to include the titlebar above and borders on all sides */
-        int32_t frame_x = client->layout.geometry.cur.pos.x - bw;
-        int32_t frame_y = client->layout.geometry.cur.pos.y - (bw + th);
-        int32_t frame_w = (int32_t) client->layout.geometry.cur.dim.w +
-                          2 * bw;
-        int32_t frame_h = (int32_t) client->layout.geometry.cur.dim.h +
-                          2 * bw + th;
+        if (client->frame == 0) {
+            s_client_enable_decoration(client, bw, th);
+        } else {
+            int32_t frame_x = client->layout.geometry.cur.pos.x - bw;
+            int32_t frame_y = client->layout.geometry.cur.pos.y - (bw + th);
+            int32_t frame_w =
+                (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
+            int32_t frame_h =
+                (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
 
-        if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-        }
-        if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-        }
+            if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+                frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+            }
+            if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+                frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+            }
 
-        /* Expand frame to include borders and titlebar */
-        xcb_configure_window(client->connection, client->frame,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    (uint32_t) frame_x, (uint32_t) frame_y,
-                    (uint32_t) frame_w, (uint32_t) frame_h
-                });
-
-        /* Reposition client window inside frame at '(bw, bw+th)' */
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                (const uint32_t[]) {
-                    (uint32_t) bw, (uint32_t) (bw + th)
-                });
-
-        /* Configure and map titlebar */
-        if (client->titlebar != 0) {
-            xcb_configure_window(client->connection, client->titlebar,
+            xcb_configure_window(client->connection, client->frame,
                     XCB_CONFIG_WINDOW_X     |
                     XCB_CONFIG_WINDOW_Y     |
                     XCB_CONFIG_WINDOW_WIDTH |
                     XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
-                        0u, 0u,
-                        (uint32_t) frame_w, (uint32_t) (bw + th)
+                        (uint32_t) frame_x, (uint32_t) frame_y,
+                        (uint32_t) frame_w, (uint32_t) frame_h
                     });
-            xcb_map_window(client->connection, client->titlebar);
-        }
 
-        client->layout.geometry.cur.pos.x = frame_x;
-        client->layout.geometry.cur.pos.y = frame_y;
-        client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
-        client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
-        client->layout.frame_extents.left = bw;
-        client->layout.frame_extents.right = bw;
-        client->layout.frame_extents.top = bw + th;
-        client->layout.frame_extents.bottom = bw;
-        client_set_decoration(client);
+            xcb_configure_window(client->connection, client->window,
+                    XCB_CONFIG_WINDOW_X |
+                    XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH |
+                    XCB_CONFIG_WINDOW_HEIGHT |
+                    XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                    (const uint32_t[]) {
+                        (uint32_t) bw, (uint32_t) (bw + th),
+                        (uint32_t) client->layout.geometry.cur.dim.w,
+                        (uint32_t) client->layout.geometry.cur.dim.h,
+                        0u
+                    });
+
+            if (client->titlebar != 0) {
+                xcb_configure_window(client->connection, client->titlebar,
+                        XCB_CONFIG_WINDOW_X     |
+                        XCB_CONFIG_WINDOW_Y     |
+                        XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                            (uint32_t) bw, (uint32_t) bw,
+                            (uint32_t) client->layout.geometry.cur.dim.w,
+                            (uint32_t) th
+                        });
+                xcb_map_window(client->connection, client->titlebar);
+            }
+            xcb_map_window(client->connection, client->frame);
+            xcb_map_window(client->connection, client->window);
+
+            client->layout.geometry.cur.pos.x = frame_x;
+            client->layout.geometry.cur.pos.y = frame_y;
+            client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
+            client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
+            client->layout.frame_extents.left = bw;
+            client->layout.frame_extents.right = bw;
+            client->layout.frame_extents.top = bw + th;
+            client->layout.frame_extents.bottom = bw;
+            client_set_decoration(client);
+        }
     }
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }

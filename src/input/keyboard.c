@@ -275,6 +275,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const char *binding;
         enum wm_keybind_type_e type;
     } defs[] = {
+        { cfg->bindings.keyboard.wm.redraw,
+          KEYBIND_WM_REDRAW },
         { cfg->bindings.keyboard.programs.terminal,
           KEYBIND_LAUNCH_TERMINAL },
         { cfg->bindings.keyboard.programs.launcher,
@@ -311,14 +313,6 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_CYCLE_NEXT },
         { cfg->bindings.keyboard.window.decorate,
           KEYBIND_CLIENT_TOGGLE_DECORATION },
-        { cfg->bindings.keyboard.cycle.desktop.prev,
-          KEYBIND_DESKTOP_PREV },
-        { cfg->bindings.keyboard.cycle.desktop.next,
-          KEYBIND_DESKTOP_NEXT },
-        { cfg->bindings.keyboard.cycle.icon.prev,
-          KEYBIND_DESKTOP_ICON_PREV },
-        { cfg->bindings.keyboard.cycle.icon.next,
-          KEYBIND_DESKTOP_ICON_NEXT },
         { cfg->bindings.keyboard.move.relative.left,
           KEYBIND_CLIENT_MOVE_LEFT },
         { cfg->bindings.keyboard.move.relative.right,
@@ -343,6 +337,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_RESIZE_UP },
         { cfg->bindings.keyboard.resize.down,
           KEYBIND_CLIENT_RESIZE_DOWN },
+        { cfg->bindings.keyboard.cycle.desktop.prev,
+          KEYBIND_DESKTOP_PREV },
+        { cfg->bindings.keyboard.cycle.desktop.next,
+          KEYBIND_DESKTOP_NEXT },
+        { cfg->bindings.keyboard.cycle.icon.prev,
+          KEYBIND_DESKTOP_ICON_PREV },
+        { cfg->bindings.keyboard.cycle.icon.next,
+          KEYBIND_DESKTOP_ICON_NEXT },
         /* Hardcoded emergency exit */
         { "Ctrl+Mod1+BackSpace", KEYBIND_NONE },
         { NULL, KEYBIND_NONE }
@@ -451,6 +453,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             xcb_flush(s0->connection);
         }
     }
+
     LOGGER_DEBUG("Grabbed %d key binding(s)", s_keybindings_count);
 }
 
@@ -473,6 +476,7 @@ bool keyboard_find(enum wm_keybind_type_e type,
             return true;
         }
     }
+
     return false;
 }
 
@@ -505,6 +509,7 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
             return true;
         }
     }
+
     return false;
 }
 
@@ -517,25 +522,30 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
             (keysym == 0xffe1u || keysym == 0xffe2u)) {
         return true;
     }
+
     /* Control_L (0xffe3), Control_R (0xffe4) */
     if ((mask & XCB_MOD_MASK_CONTROL) &&
             (keysym == 0xffe3u || keysym == 0xffe4u)) {
         return true;
     }
+
     /* Meta/Alt: 0xffe7 to 0xffea */
     if ((mask & XCB_MOD_MASK_1) &&
             keysym >= 0xffe7u && keysym <= 0xffeau) {
         return true;
     }
+
     /* Super/Hyper: 0xffeb to 0xffee */
     if ((mask & XCB_MOD_MASK_4) &&
             keysym >= 0xffebu && keysym <= 0xffeeu) {
         return true;
     }
+
     /* Num_Lock (0xff7f) -- Mod2 */
     if ((mask & XCB_MOD_MASK_2) && keysym == 0xff7fu) {
         return true;
     }
+
     return false;
 }
 
@@ -557,7 +567,12 @@ enum wm_keybind_type_e keyboard_binding_at(int idx,
         return KEYBIND_NONE;
     }
 
-    if (keysym_out != NULL) { *keysym_out = s_keybindings[idx].keysym; }
-    if (modmask_out != NULL) { *modmask_out = s_keybindings[idx].modmask; }
+    if (keysym_out != NULL) {
+        *keysym_out = s_keybindings[idx].keysym;
+    }
+    if (modmask_out != NULL) {
+        *modmask_out = s_keybindings[idx].modmask;
+    }
+
     return s_keybindings[idx].type;
 }

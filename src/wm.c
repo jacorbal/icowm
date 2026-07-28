@@ -412,3 +412,59 @@ desktop_td *wm_get_client_desktop(const client_td *client)
     (void) lookup_find_client(wm->surfaces, client->id, NULL, &desktop);
     return desktop;
 }
+
+
+/* Mark the client owner desktop and surface as outdated */
+void wm_request_client_redraw(const client_td *client)
+{
+    desktop_td *desktop;
+
+    if (client == NULL || wm == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop != NULL) {
+        desktop->is_outdated = true;
+    }
+
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+
+        if (surface == NULL) {
+            continue;
+        }
+        if (surface->id == client->screen_id) {
+            surface->is_outdated = true;
+            break;
+        }
+    }
+}
+
+
+/* Mark all surfaces and desktops as outdated */
+void wm_request_full_redraw(void)
+{
+    if (wm == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+
+        if (surface == NULL) {
+            continue;
+        }
+
+        surface->is_outdated = true;
+
+        for (uint32_t did = 0; did < surface->desktop_count; ++did) {
+            desktop_td *desktop = surface_desktop_get(surface, did);
+            if (desktop != NULL) {
+                desktop->is_outdated = true;
+            }
+        }
+    }
+}

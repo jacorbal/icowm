@@ -393,6 +393,11 @@ void handler_focus_in(xcb_connection_t *connection,
         return;
     }
 
+    if (mouse_enter_focus_is_active()) {
+        mouse_enter_focus_clear();
+        return;
+    }
+
     client = lookup_find_client(surfaces, event->event,
             &surface, &desktop);
     if (client == NULL || desktop == NULL) {

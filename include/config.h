@@ -113,6 +113,10 @@ struct config_bindings_s {
     /* Keyboard bindings */
     struct keyboard_s {
         struct {
+            char redraw[CONFIG_MAX_LENGTH_BINDING];
+        } wm;
+
+        struct {
             char terminal[CONFIG_MAX_LENGTH_BINDING];
             char launcher[CONFIG_MAX_LENGTH_BINDING];
             char file_manager[CONFIG_MAX_LENGTH_BINDING];

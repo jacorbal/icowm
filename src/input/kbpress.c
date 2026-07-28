@@ -109,12 +109,12 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 if (s != NULL) {
                     popup_close(s->connection);
                 }
-            } /* ! if (!head) */
-        } /* ! if (!surfaces) */
+            }
+        }
     }
 
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
-    state  = (uint16_t) ((unsigned int) event->state &
+    state = (uint16_t) ((unsigned int) event->state &
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
 
@@ -153,7 +153,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             return;
         }
 
-        /* Enter / Return */
+        /* Enter/Return */
         if (keysym == 0xff0du || keysym == 0xff8du) {
             if (surfaces != NULL) {
                 list_item_td *head = list_head(surfaces);
@@ -228,7 +228,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /* Emergency exit as 'Ctrl+Mod1+BackSpace' */
+    /* Emergency exit 'Ctrl+Mod1+BackSpace' */
     if (keysym == 0xff08u &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
@@ -285,7 +285,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_CLIENT_CYCLE_NEXT:
-            case KEYBIND_CLIENT_CYCLE_PREV: {
+            case KEYBIND_CLIENT_CYCLE_PREV:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     xcb_connection_t *conn = surface->connection;
@@ -298,10 +298,9 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     }
                 }
                 return;
-            }
 
             case KEYBIND_DESKTOP_ICON_NEXT:
-            case KEYBIND_DESKTOP_ICON_PREV: {
+            case KEYBIND_DESKTOP_ICON_PREV:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     xcb_connection_t *conn = surface->connection;
@@ -314,7 +313,10 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     }
                 }
                 return;
-            }
+
+            case KEYBIND_WM_REDRAW:
+                wm_request_full_redraw();
+                return;
 
             case KEYBIND_CLIENT_ICONIFY:
             case KEYBIND_CLIENT_HIDE:
@@ -326,7 +328,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:
             case KEYBIND_CLIENT_INFO:
-            case KEYBIND_CLIENT_TOGGLE_DECORATION: {
+            case KEYBIND_CLIENT_TOGGLE_DECORATION:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     if (desktop != NULL && desktop->client_active_id != 0) {
@@ -364,7 +366,6 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     }
                 }
                 return;
-            }
 
             case KEYBIND_LAUNCH_TERMINAL:
                 lifecycle_dispatch_launch(surface,
@@ -398,7 +399,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_MOVE_TOP_LEFT:
             case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
             case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-            case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT: {
+            case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     if (desktop != NULL && desktop->client_active_id != 0) {
@@ -441,12 +442,11 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     }
                 }
                 return;
-            }
 
             case KEYBIND_CLIENT_RESIZE_LEFT:
             case KEYBIND_CLIENT_RESIZE_RIGHT:
             case KEYBIND_CLIENT_RESIZE_UP:
-            case KEYBIND_CLIENT_RESIZE_DOWN: {
+            case KEYBIND_CLIENT_RESIZE_DOWN:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     if (desktop != NULL && desktop->client_active_id != 0) {
@@ -476,7 +476,6 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     }
                 }
                 return;
-            }
 
             case KEYBIND_NONE:
                 LOGGER_TRACE("Ignoring 'KEYBIND_NONE' entry", L_NARG);
