@@ -382,11 +382,8 @@ void handler_focus_in(xcb_connection_t *connection,
         list_td *surfaces,
         xcb_focus_in_event_t *event)
 {
-    client_td *client;
-    surface_td *surface;
-    desktop_td *desktop;
-
     (void) connection;
+    (void) surfaces;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in focus handler", L_NARG);
@@ -395,21 +392,6 @@ void handler_focus_in(xcb_connection_t *connection,
 
     if (mouse_enter_focus_is_active()) {
         mouse_enter_focus_clear();
-        return;
-    }
-
-    client = lookup_find_client(surfaces, event->event,
-            &surface, &desktop);
-    if (client == NULL || desktop == NULL) {
-        return;
-    }
-
-    if (desktop->client_active_id != client->id) {
-        desktop->client_active_id = client->id;
-        desktop->is_outdated = true;
-        if (surface != NULL) {
-            surface->is_outdated = true;
-        }
     }
 }
 

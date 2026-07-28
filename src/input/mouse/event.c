@@ -60,6 +60,32 @@
 static bool s_enter_focus_active = false;
 
 
+/* Mirror sticky focus on the currently shown desktop of a surface */
+static void s_mouse_sync_sticky_active(surface_td *surface,
+        desktop_td *owner_desktop, client_td *client)
+{
+    desktop_td *current_desktop;
+
+    if (surface == NULL || owner_desktop == NULL || client == NULL) {
+        return;
+    }
+
+    if (!client_is_sticky(client)) {
+        return;
+    }
+
+    current_desktop = lookup_current_desktop(surface);
+    if (current_desktop == NULL ||
+            current_desktop->id == owner_desktop->id) {
+        return;
+    }
+
+    current_desktop->client_active_id = client->id;
+    current_desktop->is_outdated = true;
+    surface->is_outdated = true;
+}
+
+
 /* Dispatch a button-press event */
 void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
@@ -148,6 +174,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         if (surface != NULL && desktop != NULL) {
             focus_apply(surfaces, surface, desktop, client,
                     true, cfg);
+            s_mouse_sync_sticky_active(surface, desktop, client);
         }
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
@@ -314,6 +341,7 @@ void mouse_handle_press(xcb_connection_t *connection,
             if (surface != NULL) {
                 focus_apply(surfaces, surface, desktop, client,
                         true, cfg);
+                s_mouse_sync_sticky_active(surface, desktop, client);
             } else {
                 desktop->client_active_id = client->id;
             }
@@ -328,6 +356,8 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (desktop != NULL) {
         desktop->client_active_id = client->id;
         (void) desktop_action_client_send_front(desktop, client);
+        surface = lookup_surface_for_root(surfaces, event->root);
+        s_mouse_sync_sticky_active(surface, desktop, client);
     }
 
     drag_start(connection, event->root, client,

@@ -193,6 +193,22 @@ int wm_action_exit(void);
 desktop_td *wm_get_client_desktop(const client_td *client);
 
 /**
+ * @brief Return the managed surface with the given identifier
+ *
+ * Scans all surfaces handled by the singleton window manager instance
+ * and returns the one whose @c id matches @p surface_id.
+ *
+ * @param surface_id Surface identifier
+ *
+ * @return Pointer to the matching @c surface_td, or @c NULL when no
+ *         surface matches or the window manager is not initialised
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+surface_td *wm_get_surface_by_id(uint32_t surface_id);
+
+/**
  * @brief Mark the client owner desktop and surface as outdated
  *
  * Locates the desktop currently owning @p client and marks that desktop

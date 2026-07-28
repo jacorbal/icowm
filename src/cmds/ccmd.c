@@ -39,6 +39,7 @@
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
+#include <lookup.h>
 #include <wm.h>
 
 /* Local includes */
@@ -495,12 +496,43 @@ void wcmd_client_sticky(client_td *client)
 /* Remove client sticky mode */
 void wcmd_client_unsticky(client_td *client)
 {
+    desktop_td *owner_desktop;
+    desktop_td *current_desktop;
+    surface_td *surface;
+    xcb_window_t target;
+
     if (client == NULL) {
         return;
     }
 
     client_unset_sticky(client);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
+    owner_desktop = wm_get_client_desktop(client);
+    surface = wm_get_surface_by_id(client->screen_id);
+    current_desktop = (surface != NULL)
+        ? lookup_current_desktop(surface)
+        : NULL;
+    if (owner_desktop != NULL && current_desktop != NULL &&
+            owner_desktop->id != current_desktop->id) {
+        target = wcmd_target_win(client);
+        if (client->titlebar != 0) {
+            xcb_unmap_window(client->connection, client->titlebar);
+        }
+        xcb_unmap_window(client->connection, target);
+        if (target != client->window) {
+            xcb_unmap_window(client->connection, client->window);
+        }
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(client->connection, client->icon_window);
+            client->is_icon_mapped = false;
+        }
+        if (current_desktop->client_active_id == client->id) {
+            current_desktop->client_active_id = 0;
+        }
+        current_desktop->is_outdated = true;
+        surface->is_outdated = true;
+    }
+
     wm_request_client_redraw(client);
 }
 

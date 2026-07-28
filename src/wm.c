@@ -414,6 +414,24 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 }
 
 
+/* Return the managed surface with the given identifier */
+surface_td *wm_get_surface_by_id(uint32_t surface_id)
+{
+    list_item_td *snode;
+    if (wm == NULL || wm->surfaces == NULL) {
+        return NULL;
+    }
+    for (snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        if (surface != NULL && surface->id == surface_id) {
+            return surface;
+        }
+    }
+    return NULL;
+}
+
+
 /* Mark the client owner desktop and surface as outdated */
 void wm_request_client_redraw(const client_td *client)
 {
