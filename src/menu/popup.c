@@ -42,6 +42,9 @@ static xcb_window_t s_popup_window = XCB_WINDOW_NONE;
 /** Modifier mask that opened the popup (locking bits stripped) */
 static uint16_t s_popup_modifier = 0;
 
+/** Keycode that opened the popup */
+static xcb_keycode_t s_popup_keycode = 0;
+
 /** Cached text lines; reused when the popup receives an expose event */
 static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
@@ -49,7 +52,7 @@ static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 /* Show a popup near the client window with focused-client information */
 void popup_show(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop, client_td *client,
-        uint16_t modifier, const config_td *cfg)
+        uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg)
 {
     const char *name;
     const char *class_name;
@@ -92,7 +95,9 @@ void popup_show(xcb_connection_t *connection,
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
 
+    s_popup_keycode = keycode;
     s_popup_window = xcb_generate_id(connection);
+
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = cfg->theme.window.active.background_color;
     values[1] = cfg->theme.window.active.border_color;
@@ -141,8 +146,10 @@ void popup_close(xcb_connection_t *connection)
     }
 
     xcb_destroy_window(connection, s_popup_window);
+    xcb_flush(connection);
     s_popup_window = XCB_WINDOW_NONE;
     s_popup_modifier = 0;
+    s_popup_keycode = 0;
 }
 
 
@@ -183,4 +190,11 @@ xcb_window_t popup_window(void)
 uint16_t popup_modifier(void)
 {
     return s_popup_modifier;
+}
+
+
+/* Return the keycode that opened the info popup */
+xcb_keycode_t popup_keycode(void)
+{
+    return s_popup_keycode;
 }

@@ -69,12 +69,11 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    if (surfaces != NULL) {
-        list_item_td *head = list_head(surfaces);
-        if (head != NULL) {
-            s = (surface_td *) list_data(head);
-        }
+    s = lookup_surface_for_root(surfaces, event->root);
+    if (s == NULL && surfaces != NULL && !list_is_empty(surfaces)) {
+        s = (surface_td *) list_data(list_head(surfaces));
     }
+
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
@@ -86,8 +85,10 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     }
 
     /* Auto-close info popup when its modifier is released */
-    if (popup_is_open() && popup_modifier() != 0 &&
-            keyboard_is_modifier_for_mask(keysym, popup_modifier())) {
+    if (popup_is_open() &&
+            (event->detail == popup_keycode() ||
+             (popup_modifier() != 0 &&
+              keyboard_is_modifier_for_mask(keysym, popup_modifier())))) {
         if (s != NULL) {
             popup_close(s->connection);
         }
@@ -338,7 +339,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                             if (btype == KEYBIND_CLIENT_INFO) {
                                 popup_show(surface->connection,
                                         surface, desktop, client,
-                                        bmm, cfg);
+                                        bmm, event->detail, cfg);
                                 return;
                             }
                             if (btype == KEYBIND_CLIENT_HIDE)

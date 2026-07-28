@@ -49,13 +49,14 @@
  * @param desktop    Desktop associated with the client
  * @param client     Client to describe
  * @param modifier   Modifier mask of the opening key binding (0 if none)
+ * @param keycode    Keycode of the opening key binding
  * @param cfg        Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
 void popup_show(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop, client_td *client,
-        uint16_t modifier, const config_td *cfg);
+        uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg);
 
 /**
  * @brief Destroy the currently visible info popup
@@ -113,6 +114,18 @@ xcb_window_t popup_window(void);
  * @note Complexity: @e O(1)
  */
 uint16_t popup_modifier(void);
+
+/**
+ * @brief Return the keycode that opened the info popup
+ *
+ * Used by the key-release handler to detect when to auto-close on
+ * release of the binding key itself.
+ *
+ * @return Opening keycode, or 0 if no popup is open
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_keycode_t popup_keycode(void);
 
 
 #endif  /* ! MENU_POPUP_H */

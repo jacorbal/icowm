@@ -299,9 +299,9 @@ void config_set_default_values(config_td *config)
     LOGGER_TRACE("Setting default base programs", L_NARG);
     safe_strcpy(config->base.programs.terminal, "xterm");
     safe_strcpy(config->base.programs.launcher, "gmrun");
-    safe_strcpy(config->base.programs.file_manager, "spacefm");
-    safe_strcpy(config->base.programs.web_browser, "firefox");
+    safe_strcpy(config->base.programs.file_manager, "pcmanfm");
     safe_strcpy(config->base.programs.editor, "gvim");
+    safe_strcpy(config->base.programs.web_browser, "firefox");
     config->base.windows.snap = 4;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
