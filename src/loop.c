@@ -246,6 +246,17 @@ void loop_run(wm_td *wm)
                             wm->config);
                     break;
 
+                case XCB_LEAVE_NOTIFY:
+                case XCB_FOCUS_OUT:
+                case XCB_MAP_NOTIFY:
+                case XCB_REPARENT_NOTIFY:
+                case XCB_CREATE_NOTIFY:
+                case XCB_GRAVITY_NOTIFY:
+                case XCB_CIRCULATE_NOTIFY:
+                case XCB_CIRCULATE_REQUEST:
+                    /* Expected events; no action required (currently) */
+                    break;
+
                 default:
                     LOGGER_TRACE("Unhandled X event type: %d",
                             event->response_type & ~0x80u);
