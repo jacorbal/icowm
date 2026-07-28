@@ -266,19 +266,21 @@ void handler_unmap_notify(xcb_connection_t *connection,
         xcb_unmap_notify_event_t *event)
 {
     client_td *client;
+    client_td *c;
     desktop_td *desktop;
-
-    (void) connection;
+    surface_td *surface;
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
+        LOGGER_ERROR("Received 'NULL' pointer in unmap handler", L_NARG);
         return;
     }
 
     LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
 
     client = lookup_find_client(surfaces, event->window,
-            NULL, &desktop);
+            &surface, &desktop);
     if (client != NULL) {
         if (event->window != client->window &&
                 event->window != client->frame) {
@@ -287,6 +289,43 @@ void handler_unmap_notify(xcb_connection_t *connection,
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
+            /* Restore focus to the most recently used visible client */
+            if (desktop->stacking != NULL) {
+                node = cdlist_tail(desktop->stacking);
+                initial = node;
+                if (node != NULL) {
+                    do {
+                        c = (client_td *) cdlist_data(node);
+                        if (c != NULL && c != client &&
+                                !(c->properties.flags &
+                                CLIENT_FLAG_HIDDEN) &&
+                                (c->properties.flags &
+                                CLIENT_FLAG_FOCUSABLE)) {
+                            desktop->client_active_id = c->id;
+                            xcb_set_input_focus(connection,
+                                    XCB_INPUT_FOCUS_PARENT,
+                                    c->window, XCB_CURRENT_TIME);
+                            desktop->is_outdated = true;
+                            if (surface != NULL) {
+                                surface->is_outdated = true;
+                            }
+                            break;
+                        }
+                        node = cdlist_prev(node);
+                    } while (node != NULL && node != initial);
+                }
+            }
+        }
+
+        /* Unmap decoration windows so they do not float without content */
+        if (client->frame != 0) {
+            xcb_unmap_window(client->connection, client->frame);
+        }
+        if (client->titlebar != 0) {
+            xcb_unmap_window(client->connection, client->titlebar);
+        }
+        if (connection != NULL) {
+            xcb_flush(connection);
         }
     }
 }

@@ -591,8 +591,8 @@ int desktop_action_client_send_back(desktop_td *desktop,
                             L_NARG);
                     return -1;
                 }
-                if (cdlist_ins_next(desktop->stacking,
-                            cdlist_head(desktop->stacking),
+                if (cdlist_ins_next(desktop->stacking, NULL,
+//                            cdlist_head(desktop->stacking),
                             (void *) client) != 0) {
                     LOGGER_ALERT("Failed to insert client to stacking",
                             L_NARG);
