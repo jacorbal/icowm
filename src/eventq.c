@@ -12,14 +12,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* nanosleep (199309L would suffice) */
-
-
 /* System includes */
 #include <stdbool.h>
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <pthread.h>    /* pthread_t, pthread_create, pthread_join */
-#include <time.h>       /* nanosleep */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -65,103 +60,6 @@
  */
 static pqueue_td *eventq = NULL;        /* Event priority queue
                                           (min-heap; heavy-bottom) */
-
-/**
- * @brief Holds the identifier of the thread that is responsible for
- *        processing events from the event queue
- *
- * @note Its value is assigned when the thread is created
- */
-static pthread_t event_thread;          /* Thread identifier for the
-                                           event processing thread */
-
-/**
- * @brief Manage the running state of the event processing thread
- *
- * @note It should be set to @c true to start processing events
- *       (@a eventq_start) and @c false to stop it (@a eventq_stop)
- */
-static bool eventq_is_running = false;  /* Running state of the event
-                                           processing thread */
-
-/**
- * @brief Mutex used to synchronize access to the event queue
- *
- * Protects operations on @a eventq to prevent race conditions when
- * multiple threads access or modify the queue concurrently.
- *
- * @note It must be locked before accessing the queue and unlocked
- *       immediately after the operation
- */
-static pthread_mutex_t eventq_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-/**
- * @brief Retrieve current size of the event queue in a thread-safe way
- *
- * Accesses @a eventq while holding @a eventq_mutex to ensure
- * consistency when other threads may be modifying the queue.
- *
- * @return Number of events currently in the queue, or 0 if the queue is
- *         not initialized, (@c NULL)
- *
- * @note This function is thread-safe due to the use of a mutex
- * @note Complexity depends on @a pqueue_size implementation, typically
- *       @e O(1)
- */
-static size_t s_eventq_size(void)
-{
-    size_t size = 0;
-
-    pthread_mutex_lock(&eventq_mutex);
-    if (eventq != NULL) {
-        size = pqueue_size(eventq);
-    }
-    pthread_mutex_unlock(&eventq_mutex);
-
-    return size;
-}
-
-
-/**
- * @brief Thread function to process events from the event queue
- *
- * Checks continuously if the event queue is running.  If there are
- * events in the queue, it processes them using the @a eventq_process
- * function.  If the queue is empty, it will suspend the thread for
- * a specified amount of time to avoid wasting CPU cycles.
- *
- * @param arg Unused argument, can be used to pass data to the thread
- *
- * @return @c NULL, since this is intended to be run as a thread
- *
- * @note The function assumes that @p eventq_is_running is managed
- *       externally to safely start and stop the processing loop.
- * @note Complexity: @e O(n), where @e n is number of events being
- *       processed in @a eventq_process, however, it depends on the size
- *       of the event queue when events are presented for processings
- *
- * @see @a eventq_process
- */
-static void *eventq_process_thread(void *arg)
-{
-    (void) arg;
-
-    while (eventq_is_running) {
-        if (s_eventq_size() > 0) {
-            eventq_process();   /* Process events from the queue */
-        } else {
-            /* Sleep to prevent busy-waiting and reduce CPU usage when
-             * there are no events to process */
-            struct timespec req;
-            req.tv_sec = 0;
-            req.tv_nsec = EVENTQ_PROCESSING_SLEEP_NANOSECONDS;
-            nanosleep(&req, NULL);
-        }
-    }
-
-    return NULL;
-}
 
 
 /**
@@ -720,20 +618,6 @@ int eventq_start(void)
             return 1;
         }
 
-        LOGGER_TRACE("Starting event thread", L_NARG);
-        pthread_mutex_lock(&eventq_mutex);
-        eventq_is_running = true;
-        pthread_mutex_unlock(&eventq_mutex);
-        if (pthread_create(&event_thread, NULL,
-                    eventq_process_thread, NULL) != 0) {
-            LOGGER_FATAL("Failed to create event thread", L_NARG);
-            pqueue_destroy(eventq);
-            eventq = NULL;
-            pthread_mutex_lock(&eventq_mutex);
-            eventq_is_running = false;
-            pthread_mutex_unlock(&eventq_mutex);
-            return 1;
-        }
         return 0;
     }
 
@@ -748,21 +632,8 @@ int eventq_stop(void)
     if (eventq == NULL) {
         return 1;
     }
-
-    eventq_is_running = false;
-    if (pthread_equal(pthread_self(), event_thread)) {
-        LOGGER_WARNING("Skipping self-join in event thread; defer stop"
-                " to main thread", L_NARG);
-        return 0;
-    }
-
-    LOGGER_TRACE("Waiting for the event thread to finish", L_NARG);
-    pthread_join(event_thread, NULL);
-
-    pthread_mutex_lock(&eventq_mutex);
     pqueue_destroy(eventq);
     eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
-    pthread_mutex_unlock(&eventq_mutex);
 
     return 0;
 }
@@ -776,10 +647,8 @@ int eventq_add(event_td *event)
         return 1;
     }
 
-    pthread_mutex_lock(&eventq_mutex);
     LOGGER_TRACE("Inserting event into event queue", L_NARG);
     if (eventq == NULL || pqueue_insert(eventq, (void *) event) != 0) {
-        pthread_mutex_unlock(&eventq_mutex);
         LOGGER_WARNING("Failed to insert event into event queue",
                 L_NARG);
         /* Release the event to prevent a memory leak: ownership of
@@ -788,7 +657,6 @@ int eventq_add(event_td *event)
         event_destroy(event);
         return 1;
     }
-    pthread_mutex_unlock(&eventq_mutex);
 
     return 0;
 }
@@ -799,14 +667,11 @@ event_td *eventq_extract(void)
 {
     event_td *event;
 
-    pthread_mutex_lock(&eventq_mutex);
     LOGGER_TRACE("Extracting event from event queue", L_NARG);
     if (eventq == NULL || pqueue_size(eventq) == 0 ||
             pqueue_extract(eventq, (void **) &event) != 0) {
-        pthread_mutex_unlock(&eventq_mutex);
         return NULL;
     }
-    pthread_mutex_unlock(&eventq_mutex);
 
     return event;
 }

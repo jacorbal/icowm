@@ -4,11 +4,10 @@
  * @brief Event priority queue (min-heap) handler function declaration
  *
  * Interface for handling an event priority queue, implemented as
- * a min-heap.  It allows for asynchronous event processing through
- * a dedicated thread that continuously monitors the queue for events to
- * handle.  The processing occurs independently of the main application
- * flow, enabling concurrent execution and ensuring that the application
- * remains responsive even when handling long-running or complex events.
+ * a min-heap.  Events are ordered by priority and drained synchronously
+ * from the main event loop after each batch of X11 events is processed.
+ * This model eliminates data races and potential deadlocks, and
+ * achieves lower event latency than a background-thread design.
  *
  * @note The event processing thread operates on a separate execution
  *       context and may introduce delays when idle to minimize CPU
@@ -30,22 +29,13 @@
 #include <event.h>
 
 
-/**
- * @brief Duration (in nanoseconds) for which the event processing
- *        thread sleeps when there are no events to process
- *
- * This helps avoid busy-waiting and reduces CPU usage by introducing
- * a small delay during idle periods.
- */
-#define EVENTQ_PROCESSING_SLEEP_NANOSECONDS (100000000) /* 100 ms */
-
-
 /* Public interface */
 /**
- * @brief Start priority queue (min-heap) for events
+ * @brief Initialize the event priority queue
  *
- * Initializes the event priority queue and starts the event processing
- * thread that will continuously process events from the queue.
+ * Allocates and initializes the singleton min-heap used to hold pending
+ * events.  Events are drained synchronously by calling
+ * @a eventq_process from the main event loop.
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -57,14 +47,14 @@
 int eventq_start(void);
 
 /**
- * @brief Deallocates memory used by this event priority queue
+ * @brief Deallocate memory used by the event priority queue
  *
- * Stops the event processing thread and deallocates all memory used by
- * the evnt priority queue.
+ * Destroys all remaining events and releases the queue.  Must be called
+ * only from the main thread after the event loop has exited.
  *
  * @return Status of the operation
  * @return  0 Success
- * @return  1 No operation has been performed
+ * @return  1 Queue was not initialized; no action taken
  *
  * @note Complexity: @e O(n), where @e n is the number of events
  *       remaining in the queue

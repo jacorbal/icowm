@@ -39,6 +39,7 @@
 #include <input/mouse.h>
 
 /* Project includes */
+#include <eventq.h>
 #include <handler.h>
 #include <lifecycle.h>
 #include <logger.h>
@@ -266,6 +267,7 @@ void loop_run(wm_td *wm)
             free(event);
         }
 
+        eventq_process();
         loop_update(wm);
     }
 
