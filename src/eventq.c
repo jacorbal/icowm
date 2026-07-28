@@ -84,9 +84,8 @@ static pthread_t event_thread;                  /* Thread identifier for
  * @note It should be set to @c true to start processing events
  *       (@a eventq_start) and @c false to stop it (@a eventq_stop)
  */
-static volatile bool eventq_is_running = false;  /* Running state of the
-                                                    event processing
-                                                    thread */
+static bool eventq_is_running = false;  /* Running state of the event
+                                           processing thread */
 
 /**
  * @brief Mutex used to synchronize access to the event queue
@@ -725,13 +724,17 @@ int eventq_start(void)
         }
 
         LOGGER_TRACE("Starting event thread", L_NARG);
+        pthread_mutex_lock(&eventq_mutex);
         eventq_is_running = true;
+        pthread_mutex_unlock(&eventq_mutex);
         if (pthread_create(&event_thread, NULL,
                     eventq_process_thread, NULL) != 0) {
             LOGGER_FATAL("Failed to create event thread", L_NARG);
             pqueue_destroy(eventq);
             eventq = NULL;
+            pthread_mutex_lock(&eventq_mutex);
             eventq_is_running = false;
+            pthread_mutex_unlock(&eventq_mutex);
             return 1;
         }
         return 0;

@@ -80,7 +80,7 @@ typedef struct {
  * @retval  1 Failed to allocate memory
  * @retval  2 Cannot open X connection
  * @retval  3 Cannot open load configuration
- * @retval  4-7 Failed to initialize data structures
+ * @retval  4-9 Failed to initialize data structures
  * @retval -1 Singleton was already initialized; no action taken
  *
  * @note If @p display_name is @c NULL, the initialization attempts to

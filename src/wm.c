@@ -164,7 +164,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         free(wm->ewmh);
         free(wm);
         wm = NULL;
-        return 5;
+        return 6;
     }
 
     LOGGER_TRACE("Initializing surface structures", L_NARG);
@@ -199,7 +199,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             free(wm->ewmh);
             free(wm);
             wm = NULL;
-            return 6;
+            return 7;
         }
 
         LOGGER_TRACE("Inserting surface %u into surface list", i);
@@ -216,7 +216,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             free(wm->ewmh);
             free(wm);
             wm = NULL;
-            return 7;
+            return 8;
         }
 
         surface->desktop_count =
@@ -237,7 +237,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         free(wm->ewmh);
         free(wm);
         wm = NULL;
-        return 8;
+        return 9;
     }
 
     LOGGER_TRACE("Setting running status flag to 'true'", L_NARG);

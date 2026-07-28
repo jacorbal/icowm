@@ -162,6 +162,7 @@ surface_td *surface_init(xcb_connection_t *connection,
             LOGGER_FATAL("Failed to initialize desktop %u on" \
                     " surface %u", i, surface_id);
             cdlist_destroy(surface->desktops);
+            free(surface);
             return NULL;
         }
 
@@ -175,6 +176,7 @@ surface_td *surface_init(xcb_connection_t *connection,
                     i, desktop->name, surface_id);
             desktop_destroy(desktop);
             cdlist_destroy(surface->desktops);
+            free(surface);
             return NULL;
         }
     }
