@@ -11,9 +11,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* localtime_r */
+
+
 /* System includes */
 #include <stdarg.h>     /* va_list, va_start, va_end */
 #include <stdbool.h>
+#include <pthread.h>    /* pthread_mutex_t, pthread_mutex_lock */
 #include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
 #include <stdlib.h>     /* NULL, free, malloc, size_t */
 #include <sys/time.h>   /* gettimeofday */
@@ -28,6 +32,9 @@
 
 static logger_td *logger = NULL;    /**< Pointer to the singleton
                                          instance of the logger */
+
+/** Synchronize logger shared state */
+static pthread_mutex_t logger_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /**
@@ -180,18 +187,21 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
 int logger_start(const char *filename,
         const enum logger_level_e level_min, bool is_tracking)
 {
+    pthread_mutex_lock(&logger_mutex);
+
     if (logger == NULL) {
         logger = malloc(sizeof(logger_td));
         if (logger == NULL) {
             fprintf(stderr, "Failed to allocate memory for logger\n");
+            pthread_mutex_unlock(&logger_mutex);
             return 1;
         }
 
         /* Validate and correct the minimum log level value */
         logger->level_min =
-            (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
-                (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
-                    level_min;
+            (level_min < LOG_MIN_LEVEL) ?  LOG_MIN_LEVEL :
+            (level_min > LOG_MAX_LEVEL) ?  LOG_MAX_LEVEL :
+            level_min;
 
         /* Tracking: always or only on 'LOG_TRACE' level */
         logger->is_tracking = is_tracking;
@@ -227,6 +237,7 @@ int logger_start(const char *filename,
                 fprintf(stderr, "Failed to open file to log: '%s'\n",
                         filename);
                 free(logger);
+                pthread_mutex_unlock(&logger_mutex);
                 return 2;
             }
             logger->file.is_open = true;
@@ -235,6 +246,7 @@ int logger_start(const char *filename,
             logger->buffer = malloc(sizeof(struct logger_buffer_s));
             if (logger->buffer == NULL) {
                 free(logger);
+                pthread_mutex_unlock(&logger_mutex);
                 return 1;
             }
 
@@ -243,15 +255,18 @@ int logger_start(const char *filename,
             if (logger->buffer->messages == NULL) {
                 free(logger->buffer);
                 free(logger);
+                pthread_mutex_unlock(&logger_mutex);
                 return 1;
             }
 
             logger->buffer->count = 0;
         }
 
+        pthread_mutex_unlock(&logger_mutex);
         return 0;
     }
 
+    pthread_mutex_unlock(&logger_mutex);
     return -1;
 }
 
@@ -259,7 +274,10 @@ int logger_start(const char *filename,
 /* Free allocated memory */
 int logger_stop(void)
 {
+    pthread_mutex_lock(&logger_mutex);
+
     if (logger == NULL) {
+        pthread_mutex_unlock(&logger_mutex);
         return 1;
     }
 
@@ -286,6 +304,7 @@ int logger_stop(void)
     free(logger);
     logger = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 
+    pthread_mutex_unlock(&logger_mutex);
     return 0;
 }
 
@@ -299,135 +318,158 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     char msg[LOGGER_MAX_LENGTH_MSG];
     va_list args;
     int len, len_fmt;
+    int retval = 0;
 
-    /* If the logger is not set, do nothing */
-    if (logger == NULL || logger->file.fp_out == NULL) {
-        return -1;
-    }
+    pthread_mutex_lock(&logger_mutex);
+    do {
+        /* If the logger is not set, do nothing */
+        if (logger == NULL || logger->file.fp_out == NULL) {
+            retval = -1;
+            break;
+        }
 
-    /* Ignore logging if the level is not high enough */
-    if (level < logger->level_min) {
-        return 0;
-    }
+        /* Ignore logging if the level is not high enough */
+        if (level < logger->level_min) {
+            retval = 0;
+            break;
+        }
 
-    /* Get the timestamp */
-    s_timestamp_fmt(timestamp, sizeof(timestamp),
-        LOGGER_TIMESTAMP_USEC | LOGGER_TIMESTAMP_TZ);
+        /* Get the timestamp */
+        s_timestamp_fmt(timestamp, sizeof(timestamp),
+            LOGGER_TIMESTAMP_USEC | LOGGER_TIMESTAMP_TZ);
 
-    /* Set the level string to output */
-    switch (level) {
-        case LOG_TRACE:     level_str = "TRACE";    break;  /* debugs */
-        case LOG_DEBUG:     level_str = "DEBUG";    break;
-        case LOG_INFO:      level_str = "INFO";     break;  /* infos. */
-        case LOG_NOTICE:    level_str = "NOTICE";   break;
-        case LOG_WARNING:   level_str = "WARNING";  break;  /* warns. */
-        case LOG_ERROR:     level_str = "ERROR";    break;  /* errors */
-        case LOG_CRITICAL:  level_str = "CRITICAL"; break;
-        case LOG_ALERT:     level_str = "ALERT";    break;
-        case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
-    }
+        /* Set the level string to output */
+        switch (level) {
+            case LOG_TRACE:     level_str = "TRACE";    break;  /* debugs */
+            case LOG_DEBUG:     level_str = "DEBUG";    break;
+            case LOG_INFO:      level_str = "INFO";     break;  /* infos. */
+            case LOG_NOTICE:    level_str = "NOTICE";   break;
+            case LOG_WARNING:   level_str = "WARNING";  break;  /* warns. */
+            case LOG_ERROR:     level_str = "ERROR";    break;  /* errors */
+            case LOG_CRITICAL:  level_str = "CRITICAL"; break;
+            case LOG_ALERT:     level_str = "ALERT";    break;
+            case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
+        }
 
 
-    /* Format first part message */
-    if (logger->level_min == LOG_TRACE || logger->is_tracking) {
-        len = snprintf(msg, sizeof(msg), "[%s] (%s) <%s>: ",
-                timestamp, level_str, prefix);
-    } else {
-        len = snprintf(msg, sizeof(msg), "[%s] (%s): ",
-                timestamp, level_str);
-    }
-
-    /* Handle possible errors */
-    if (len < 0 || (size_t) len >= sizeof(msg)) {
-        return -1;
-    }
-
-    /* Format additional message */
-    va_start(args, fmt);
-    len_fmt = vsnprintf(msg + len, sizeof(msg) - (size_t) len, fmt, args);
-    va_end(args);
-    if (len_fmt < 0) {
-        /* Fail if 'vsnprintf' did not complete successfully */
-        return -1;
-    }
-
-    /* Calculate final length, accounting for potential truncation.
-     * Note that 'vsnprintf' reports the length the string *would* have
-     * had if 'msg' were large enough, so 'len' must be checked against
-     * 'sizeof(msg)' *before* it is used to index 'msg'; otherwise the
-     * null-termination write below could land past the end of the
-     * buffer */
-    len += len_fmt;     /* Update total length */
-
-    /* Truncate the message if necessary */
-    if ((size_t) len >= sizeof(msg)) {
-        len = sizeof(msg) - 4;
-        msg[len] = '\0';
-        safe_strcat(msg, "..."); /* Append "..." if truncation */
-    } else {
-        msg[len] = '\0';    /* Ensure null termination */
-    }
-
-    /* If no buffer is used, just print it */
-    if (logger->buffer == NULL) {
-        if (level < LOG_WARNING) {
-            fprintf(logger->file.fp_out, "%s\n", msg);
+        /* Format first part message */
+        if (logger->level_min == LOG_TRACE || logger->is_tracking) {
+            len = snprintf(msg, sizeof(msg), "[%s] (%s) <%s>: ",
+                    timestamp, level_str, prefix);
         } else {
-            fprintf(logger->file.fp_err, "%s\n", msg);
+            len = snprintf(msg, sizeof(msg), "[%s] (%s): ",
+                    timestamp, level_str);
         }
-        return len;
-    }
 
-    /* Check if there's enough space in buffer, or flush it */
-    if (logger->buffer->count >= LOGGER_FLUSH_THRESHOLD) {
-        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
-        if (logger->file.fp_out != logger->file.fp_err) {
-            s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
+        /* Handle possible errors */
+        if (len < 0 || (size_t) len >= sizeof(msg)) {
+            retval = -1;
+            break;
         }
-    }
 
-    /* Allocate memory for the message */
-    logger->buffer->messages[logger->buffer->count] =
-            malloc(safe_strlen(msg) + 1);
-    if (logger->buffer->messages[logger->buffer->count] == NULL) {
-        /* Failure to allocate memory */
-        return -2;
-    }
-
-    /* Copy message to buffer */
-    safe_strcpy(logger->buffer->messages[logger->buffer->count], msg);
-    logger->buffer->count++;
-
-    /* Flush the buffer on error to make sure it's on the logfile */
-    if (level > LOG_WARNING) {
-        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
-        if (logger->file.fp_out != logger->file.fp_err) {
-            s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
+        /* Format additional message */
+        va_start(args, fmt);
+        len_fmt = vsnprintf(msg + len, sizeof(msg) - (size_t) len,
+                fmt, args);
+        va_end(args);
+        if (len_fmt < 0) {
+            /* Fail if 'vsnprintf' did not complete successfully */
+            retval = -1;
+            break;
         }
-    }
+
+        /* Calculate final length, accounting for potential truncation.
+         * Note that 'vsnprintf' reports the length the string *would*
+         * have had if 'msg' were large enough, so 'len' must be checked
+         * against 'sizeof(msg)' *before* it is used to index 'msg';
+         * otherwise the null-termination write below could land past
+         * the end of the buffer */
+        len += len_fmt;     /* Update total length */
+
+        /* Truncate the message if necessary */
+        if ((size_t) len >= sizeof(msg)) {
+            len = sizeof(msg) - 4;
+            msg[len] = '\0';
+            safe_strcat(msg, "...");    /* Append "..." if truncation */
+        } else {
+            msg[len] = '\0';    /* Ensure null termination */
+        }
+
+        /* If no buffer is used, just print it */
+        if (logger->buffer == NULL) {
+            if (level < LOG_WARNING) {
+                fprintf(logger->file.fp_out, "%s\n", msg);
+            } else {
+                fprintf(logger->file.fp_err, "%s\n", msg);
+            }
+            retval = len;
+            break;
+        }
+
+        /* Check if there's enough space in buffer, or flush it */
+        if (logger->buffer->count >= LOGGER_FLUSH_THRESHOLD) {
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
+            if (logger->file.fp_out != logger->file.fp_err) {
+                s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
+            }
+        }
+
+        /* Allocate memory for the message */
+        logger->buffer->messages[logger->buffer->count] =
+                malloc(safe_strlen(msg) + 1);
+        if (logger->buffer->messages[logger->buffer->count] == NULL) {
+            /* Failure to allocate memory */
+            retval = -2;
+            break;
+        }
+
+        /* Copy message to buffer */
+        safe_strcpy(logger->buffer->messages[logger->buffer->count],
+                msg);
+        logger->buffer->count++;
+
+        /* Flush the buffer on error to make sure it's on the logfile */
+        if (level > LOG_WARNING) {
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
+            if (logger->file.fp_out != logger->file.fp_err) {
+                s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
+            }
+        }
 
 /*
     if (level == LOG_FATAL) {
     }
 */
 
-    return len;
+        retval = len;
+    } while (false);
+
+    pthread_mutex_unlock(&logger_mutex);
+    return retval;
 }
 
 
 /* Set the logger to always track */
 void logger_tracking_on(void)
 {
+    pthread_mutex_lock(&logger_mutex);
+
     if (logger != NULL && !logger->is_tracking) {
         logger->is_tracking = true;
     }
+
+    pthread_mutex_unlock(&logger_mutex);
 }
 
 
 /* Set the logger to never track except in 'LOG_TRACE' level */
 void logger_tracking_off(void)
 {
+    pthread_mutex_lock(&logger_mutex);
+
     if (logger != NULL && logger->is_tracking) {
         logger->is_tracking = false;
     }
+
+    pthread_mutex_unlock(&logger_mutex);
 }

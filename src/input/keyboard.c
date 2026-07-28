@@ -535,6 +535,11 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
         return true;
     }
 
+    /* Num_Lock (0xff7f) */
+    if ((mask & XCB_MOD_MASK_2) && keysym == 0xff7fu) {
+        return true;
+    }
+
     /* Super_L (0xffeb), Super_R (0xffec) */
     if ((mask & XCB_MOD_MASK_4) &&
             (keysym == 0xffebu || keysym == 0xffecu)) {
@@ -544,11 +549,6 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
     /* Hyper_L (0xffed), Hyper_R (0xffee) */
     if ((mask & XCB_MOD_MASK_5) &&
             (keysym == 0xffedu || keysym == 0xffeeu)) {
-        return true;
-    }
-
-    /* Num_Lock (0xff7f), Mod2 */
-    if ((mask & XCB_MOD_MASK_2) && keysym == 0xff7fu) {
         return true;
     }
 
