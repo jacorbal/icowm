@@ -135,6 +135,31 @@ struct config_bindings_s {
             char maximize[CONFIG_MAX_LENGTH_BINDING];
             char pin[CONFIG_MAX_LENGTH_BINDING];
             char shade[CONFIG_MAX_LENGTH_BINDING];
+
+            /* Window movement, absolute and relative positions */
+            struct {
+                struct relative_s {
+                    char right[CONFIG_MAX_LENGTH_BINDING];
+                    char left[CONFIG_MAX_LENGTH_BINDING];
+                    char up[CONFIG_MAX_LENGTH_BINDING];
+                    char down[CONFIG_MAX_LENGTH_BINDING];
+                } relative;
+
+                struct {
+                    char center[CONFIG_MAX_LENGTH_BINDING];
+                    char top_left[CONFIG_MAX_LENGTH_BINDING];
+                    char top_right[CONFIG_MAX_LENGTH_BINDING];
+                    char bottom_left[CONFIG_MAX_LENGTH_BINDING];
+                    char bottom_right[CONFIG_MAX_LENGTH_BINDING];
+                } absolute;
+            } move;
+
+            struct {
+                char right[CONFIG_MAX_LENGTH_BINDING];
+                char left[CONFIG_MAX_LENGTH_BINDING];
+                char up[CONFIG_MAX_LENGTH_BINDING];
+                char down[CONFIG_MAX_LENGTH_BINDING];
+            } resize;
         } window;
 
         struct {
@@ -151,31 +176,6 @@ struct config_bindings_s {
                 char next[CONFIG_MAX_LENGTH_BINDING];
             } window;
         } cycle;
-
-        /* Window movement, absolute and relative positions */
-        struct {
-            struct relative_s {
-                char right[CONFIG_MAX_LENGTH_BINDING];
-                char left[CONFIG_MAX_LENGTH_BINDING];
-                char up[CONFIG_MAX_LENGTH_BINDING];
-                char down[CONFIG_MAX_LENGTH_BINDING];
-            } relative;
-
-            struct {
-                char center[CONFIG_MAX_LENGTH_BINDING];
-                char top_left[CONFIG_MAX_LENGTH_BINDING];
-                char top_right[CONFIG_MAX_LENGTH_BINDING];
-                char bottom_left[CONFIG_MAX_LENGTH_BINDING];
-                char bottom_right[CONFIG_MAX_LENGTH_BINDING];
-            } absolute;
-        } move;
-
-        struct {
-            char right[CONFIG_MAX_LENGTH_BINDING];
-            char left[CONFIG_MAX_LENGTH_BINDING];
-            char up[CONFIG_MAX_LENGTH_BINDING];
-            char down[CONFIG_MAX_LENGTH_BINDING];
-        } resize;
     } keyboard;
 
     /* Mouse bindings */

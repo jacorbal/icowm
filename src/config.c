@@ -370,31 +370,31 @@ void config_set_default_values(config_td *config)
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
             L_NARG);
-    safe_strcpy(config->bindings.keyboard.move.relative.right,
+    safe_strcpy(config->bindings.keyboard.window.move.relative.right,
             "modc+mod1+l");
-    safe_strcpy(config->bindings.keyboard.move.relative.left,
+    safe_strcpy(config->bindings.keyboard.window.move.relative.left,
             "modc+mod1+h");
-    safe_strcpy(config->bindings.keyboard.move.relative.up,
+    safe_strcpy(config->bindings.keyboard.window.move.relative.up,
             "modc+mod1+k");
-    safe_strcpy(config->bindings.keyboard.move.relative.down,
+    safe_strcpy(config->bindings.keyboard.window.move.relative.down,
             "modc+mod1+j");
-    safe_strcpy(config->bindings.keyboard.move.absolute.center,
+    safe_strcpy(config->bindings.keyboard.window.move.absolute.center,
             "modc+mod1+g");
-    safe_strcpy(config->bindings.keyboard.move.absolute.top_left,
+    safe_strcpy(config->bindings.keyboard.window.move.absolute.top_left,
             "modc+mod1+y");
-    safe_strcpy(config->bindings.keyboard.move.absolute.top_right,
+    safe_strcpy(config->bindings.keyboard.window.move.absolute.top_right,
             "modc+mod1+u");
-    safe_strcpy(config->bindings.keyboard.move.absolute.bottom_left,
+    safe_strcpy(config->bindings.keyboard.window.move.absolute.bottom_left,
             "modc+mod1+b");
-    safe_strcpy(config->bindings.keyboard.move.absolute.bottom_right,
+    safe_strcpy(config->bindings.keyboard.window.move.absolute.bottom_right,
             "modc+mod1+n");
-    safe_strcpy(config->bindings.keyboard.resize.right,
+    safe_strcpy(config->bindings.keyboard.window.resize.right,
             "modc+mod1+mods+l");
-    safe_strcpy(config->bindings.keyboard.resize.left,
+    safe_strcpy(config->bindings.keyboard.window.resize.left,
             "modc+mod1+mods+h");
-    safe_strcpy(config->bindings.keyboard.resize.up,
+    safe_strcpy(config->bindings.keyboard.window.resize.up,
             "modc+mod1+mods+k");
-    safe_strcpy(config->bindings.keyboard.resize.down,
+    safe_strcpy(config->bindings.keyboard.window.resize.down,
             "modc+mod1+mods+j");
 
     /* Predetermined configuration for mouse bindings */
@@ -787,8 +787,6 @@ int config_load_bindings(const char *filename,
         cJSON *programs;
         cJSON *window;
         cJSON *cycle;
-        cJSON *move;
-        cJSON *resize;
 
         programs = cJSON_GetObjectItem(keyboard, "programs");
         if (programs) {
@@ -811,6 +809,9 @@ int config_load_bindings(const char *filename,
 
         window = cJSON_GetObjectItem(keyboard, "window");
         if (window) {
+            cJSON *window_move;
+            cJSON *window_resize;
+
             json_load_string(window, "close",
                     config_bindings->keyboard.window.close,
                     CONFIG_MAX_LENGTH_BINDING);
@@ -841,6 +842,61 @@ int config_load_bindings(const char *filename,
             json_load_string(window, "shade",
                     config_bindings->keyboard.window.shade,
                     CONFIG_MAX_LENGTH_BINDING);
+
+            window_move = cJSON_GetObjectItem(window, "move");
+            if (window_move != NULL) {
+                cJSON *relative;
+                cJSON *absolute;
+                relative = cJSON_GetObjectItem(window_move, "relative");
+                if (relative) {
+                    json_load_string(relative, "right",
+                config_bindings->keyboard.window.move.relative.right,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(relative, "left",
+                config_bindings->keyboard.window.move.relative.left,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(relative, "up",
+                config_bindings->keyboard.window.move.relative.up,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(relative, "down",
+                config_bindings->keyboard.window.move.relative.down,
+                            CONFIG_MAX_LENGTH_BINDING);
+                }
+                absolute = cJSON_GetObjectItem(window_move, "absolute");
+                if (absolute) {
+                    json_load_string(absolute, "center",
+                config_bindings->keyboard.window.move.absolute.center,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(absolute, "top-left",
+                config_bindings->keyboard.window.move.absolute.top_left,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(absolute, "top-right",
+                config_bindings->keyboard.window.move.absolute.top_right,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(absolute, "bottom-left",
+                config_bindings->keyboard.window.move.absolute.bottom_left,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(absolute, "bottom-right",
+                config_bindings->keyboard.window.move.absolute.bottom_right,
+                            CONFIG_MAX_LENGTH_BINDING);
+                }
+            }
+
+            window_resize = cJSON_GetObjectItem(window, "resize");
+            if (window_resize != NULL) {
+                json_load_string(window_resize, "right",
+                        config_bindings->keyboard.window.resize.right,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(window_resize, "left",
+                        config_bindings->keyboard.window.resize.left,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(window_resize, "up",
+                        config_bindings->keyboard.window.resize.up,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(window_resize, "down",
+                        config_bindings->keyboard.window.resize.down,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
         }
 
         wm = cJSON_GetObjectItem(keyboard, "wm");
@@ -886,65 +942,6 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.cycle.window.next,
                         CONFIG_MAX_LENGTH_BINDING);
             }
-        }
-
-        /* Keybindings for window movement */
-        move = cJSON_GetObjectItem(keyboard, "move");
-        if (move) {
-            cJSON *relative;
-            cJSON *absolute;
-
-            relative = cJSON_GetObjectItem(move, "relative");
-            if (relative) {
-                json_load_string(relative, "right",
-                        config_bindings->keyboard.move.relative.right,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(relative, "left",
-                        config_bindings->keyboard.move.relative.left,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(relative, "up",
-                        config_bindings->keyboard.move.relative.up,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(relative, "down",
-                        config_bindings->keyboard.move.relative.down,
-                        CONFIG_MAX_LENGTH_BINDING);
-            }
-
-            absolute = cJSON_GetObjectItem(move, "absolute");
-            if (absolute) {
-                json_load_string(absolute, "center",
-                        config_bindings->keyboard.move.absolute.center,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(absolute, "top-left",
-                        config_bindings->keyboard.move.absolute.top_left,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(absolute, "top-right",
-                        config_bindings->keyboard.move.absolute.top_right,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(absolute, "bottom-left",
-                        config_bindings->keyboard.move.absolute.bottom_left,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(absolute, "bottom-right",
-                        config_bindings->keyboard.move.absolute.bottom_right,
-                        CONFIG_MAX_LENGTH_BINDING);
-            }
-        }
-
-        /* Keybindings for window resizing */
-        resize = cJSON_GetObjectItem(keyboard, "resize");
-        if (resize) {
-            json_load_string(resize, "right",
-                    config_bindings->keyboard.resize.right,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(resize, "left",
-                    config_bindings->keyboard.resize.left,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(resize, "up",
-                    config_bindings->keyboard.resize.up,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(resize, "down",
-                    config_bindings->keyboard.resize.down,
-                    CONFIG_MAX_LENGTH_BINDING);
         }
     }
 
