@@ -122,7 +122,7 @@ struct config_bindings_s {
             char file_manager[CONFIG_MAX_LENGTH_BINDING];
             char web_browser[CONFIG_MAX_LENGTH_BINDING];
             char editor[CONFIG_MAX_LENGTH_BINDING];
-        } programs;
+        } launch;
 
         struct {
             char close[CONFIG_MAX_LENGTH_BINDING];

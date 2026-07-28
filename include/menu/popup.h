@@ -21,6 +21,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -34,25 +35,27 @@
 
 /* Public interface */
 /**
- * @brief Show a small centered popup with focused-client information
+ * @brief Show a popup near the client window with focused-client
+ *        information
  *
- * Creates a popup window centered on @p surface and displays name,
- * class, instance, window identifiers, geometry, and state flags for
- * @p client.  Any previously visible popup is closed first.
+ * Creates a popup window at the client's own screen coordinates and
+ * displays name, class, instance, window identifiers, geometry, and
+ * state flags for @p client.  Any previously visible popup is closed
+ * first.  The @p modifier is the modifier mask of the key binding that
+ * triggered the popup; releasing it will auto-close the popup.
  *
  * @param connection XCB connection
  * @param surface    Surface where the popup should appear
  * @param desktop    Desktop associated with the client
  * @param client     Client to describe
+ * @param modifier   Modifier mask of the opening key binding (0 if none)
  * @param cfg        Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        client_td *client,
-        const config_td *cfg);
+        surface_td *surface, desktop_td *desktop, client_td *client,
+        uint16_t modifier, const config_td *cfg);
 
 /**
  * @brief Destroy the currently visible info popup
@@ -97,6 +100,19 @@ bool popup_is_open(void);
  * @note Complexity: @e O(1)
  */
 xcb_window_t popup_window(void);
+
+/**
+ * @brief Return the modifier mask that opened the info popup
+ *
+ * Used by the key-release handler to detect when to auto-close.
+ *
+ * @return The modifier mask, with locking bits already stripped, or
+ *         0 if the popup was opened without a modifier (never
+ *         auto-closes)
+ *
+ * @note Complexity: @e O(1)
+ */
+uint16_t popup_modifier(void);
 
 
 #endif  /* ! MENU_POPUP_H */

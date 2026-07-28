@@ -322,15 +322,15 @@ void config_set_default_values(config_td *config)
 
     /* Predetermined configuration for keybindings */
     LOGGER_TRACE("Setting default keybindings", L_NARG);
-    safe_strcpy(config->bindings.keyboard.programs.terminal,
+    safe_strcpy(config->bindings.keyboard.launch.terminal,
             "modc+mod1+Return");
-    safe_strcpy(config->bindings.keyboard.programs.launcher,
+    safe_strcpy(config->bindings.keyboard.launch.launcher,
             "modc+mod1+r");
-    safe_strcpy(config->bindings.keyboard.programs.file_manager,
+    safe_strcpy(config->bindings.keyboard.launch.file_manager,
             "modc+mod1+q");
-    safe_strcpy(config->bindings.keyboard.programs.web_browser,
+    safe_strcpy(config->bindings.keyboard.launch.web_browser,
             "modc+mod1+w");
-    safe_strcpy(config->bindings.keyboard.programs.editor,
+    safe_strcpy(config->bindings.keyboard.launch.editor,
             "modc+mod1+e");
     safe_strcpy(config->bindings.keyboard.window.close,
             "modc+mod1+c");
@@ -784,26 +784,26 @@ int config_load_bindings(const char *filename,
     keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard != NULL) {
         cJSON *wm;
-        cJSON *programs;
+        cJSON *launch;
         cJSON *window;
         cJSON *cycle;
 
-        programs = cJSON_GetObjectItem(keyboard, "programs");
-        if (programs) {
-            json_load_string(programs, "terminal",
-                    config_bindings->keyboard.programs.terminal,
+        launch = cJSON_GetObjectItem(keyboard, "launch");
+        if (launch) {
+            json_load_string(launch, "terminal",
+                    config_bindings->keyboard.launch.terminal,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(programs, "launcher",
-                    config_bindings->keyboard.programs.launcher,
+            json_load_string(launch, "launcher",
+                    config_bindings->keyboard.launch.launcher,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(programs, "file-manager",
-                    config_bindings->keyboard.programs.file_manager,
+            json_load_string(launch, "file-manager",
+                    config_bindings->keyboard.launch.file_manager,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(programs, "web-browser",
-                    config_bindings->keyboard.programs.web_browser,
+            json_load_string(launch, "web-browser",
+                    config_bindings->keyboard.launch.web_browser,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(programs, "editor",
-                    config_bindings->keyboard.programs.editor,
+            json_load_string(launch, "editor",
+                    config_bindings->keyboard.launch.editor,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 

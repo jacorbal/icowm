@@ -56,32 +56,41 @@
 #include <input/kbpress.h>
 
 
-/* Handle a key-release event to auto-confirm the cycle menu */
+/* Handle a key-release event to auto-confirm the cycle menu or close
+ * the popup */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         xcb_key_release_event_t *event, list_td *surfaces,
         const config_td *cfg)
 {
     xcb_keysym_t keysym;
+    surface_td *s = NULL;
 
     if (keysyms == NULL || event == NULL) {
         return;
     }
 
-    if (!cycle_is_open() || cycle_modifier() == 0) {
+    if (surfaces != NULL) {
+        list_item_td *head = list_head(surfaces);
+        if (head != NULL) {
+            s = (surface_td *) list_data(head);
+        }
+    }
+    keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
+    /* Auto-confirm cycle menu when its modifier is released */
+    if (cycle_is_open() && cycle_modifier() != 0 &&
+            keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
+        if (s != NULL) {
+            cycle_confirm(s->connection, surfaces, cfg);
+        }
         return;
     }
 
-    keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
-    if (keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
-        if (surfaces != NULL) {
-            list_item_td *head = list_head(surfaces);
-            if (head != NULL) {
-                surface_td *s = (surface_td *) list_data(head);
-                if (s != NULL) {
-                    cycle_confirm(s->connection, surfaces, cfg);
-                }
-            } /* ! if (!head) */
-        } /* ! if (!surfaces) */
+    /* Auto-close info popup when its modifier is released */
+    if (popup_is_open() && popup_modifier() != 0 &&
+            keyboard_is_modifier_for_mask(keysym, popup_modifier())) {
+        if (s != NULL) {
+            popup_close(s->connection);
+        }
     }
 }
 
@@ -99,18 +108,6 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         LOGGER_ERROR("Received null pointer in key press handler",
                 L_NARG);
         return;
-    }
-
-    if (popup_is_open()) {
-        if (surfaces != NULL) {
-            list_item_td *head = list_head(surfaces);
-            if (head != NULL) {
-                surface_td *s = (surface_td *) list_data(head);
-                if (s != NULL) {
-                    popup_close(s->connection);
-                }
-            }
-        }
     }
 
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
@@ -340,7 +337,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                             enum action_client_e act = ACTION_CLIENT_ICONIFY;
                             if (btype == KEYBIND_CLIENT_INFO) {
                                 popup_show(surface->connection,
-                                        surface, desktop, client, cfg);
+                                        surface, desktop, client,
+                                        bmm, cfg);
                                 return;
                             }
                             if (btype == KEYBIND_CLIENT_HIDE)

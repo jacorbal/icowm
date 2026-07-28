@@ -39,15 +39,17 @@
 /** XCB window of the currently visible info popup */
 static xcb_window_t s_popup_window = XCB_WINDOW_NONE;
 
-/** Cached text lines — reused when the popup receives an expose event */
+/** Modifier mask that opened the popup (locking bits stripped) */
+static uint16_t s_popup_modifier = 0;
+
+/** Cached text lines; reused when the popup receives an expose event */
 static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
 
 
+/* Show a popup near the client window with focused-client information */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        client_td *client,
-        const config_td *cfg)
+        surface_td *surface, desktop_td *desktop, client_td *client,
+        uint16_t modifier, const config_td *cfg)
 {
     const char *name;
     const char *class_name;
@@ -56,6 +58,8 @@ void popup_show(xcb_connection_t *connection,
     const int16_t height = 96;
     int16_t x;
     int16_t y;
+    int32_t max_x;
+    int32_t max_y;
     uint32_t mask;
     uint32_t values[3];
 
@@ -73,10 +77,20 @@ void popup_show(xcb_connection_t *connection,
 
     popup_close(connection);
 
-    x = (int16_t) (((int32_t) surface->properties.dim.w - width) / 2);
-    y = (int16_t) (((int32_t) surface->properties.dim.h - height) / 2);
+    /* Position at the client window's own coordinates, clamped to
+     * screen */
+    x = (int16_t) client->layout.geometry.cur.pos.x;
+    y = (int16_t) client->layout.geometry.cur.pos.y;
+    max_x = (int32_t) surface->properties.dim.w - (int32_t) width;
+    max_y = (int32_t) surface->properties.dim.h - (int32_t) height;
+    if ((int32_t) x > max_x) { x = (int16_t) max_x; }
+    if ((int32_t) y > max_y) { y = (int16_t) max_y; }
     if (x < 0) { x = 0; }
     if (y < 0) { y = 0; }
+
+    s_popup_modifier = (uint16_t) ((unsigned int) modifier &
+            ~((unsigned int) XCB_MOD_MASK_LOCK |
+                (unsigned int) XCB_MOD_MASK_2));
 
     s_popup_window = xcb_generate_id(connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
@@ -119,6 +133,7 @@ void popup_show(xcb_connection_t *connection,
 }
 
 
+/* Destroy the currently visible info popup */
 void popup_close(xcb_connection_t *connection)
 {
     if (connection == NULL || s_popup_window == XCB_WINDOW_NONE) {
@@ -127,9 +142,11 @@ void popup_close(xcb_connection_t *connection)
 
     xcb_destroy_window(connection, s_popup_window);
     s_popup_window = XCB_WINDOW_NONE;
+    s_popup_modifier = 0;
 }
 
 
+/* Repaint the info popup from its cached text lines */
 void popup_repaint(xcb_connection_t *connection,
         const config_td *cfg)
 {
@@ -148,13 +165,22 @@ void popup_repaint(xcb_connection_t *connection,
 }
 
 
+/* Query whether the info popup is currently visible */
 bool popup_is_open(void)
 {
     return s_popup_window != XCB_WINDOW_NONE;
 }
 
 
+/* Return the info popup window identifier */
 xcb_window_t popup_window(void)
 {
     return s_popup_window;
+}
+
+
+/* Return the modifier mask that opened the info popup */
+uint16_t popup_modifier(void)
+{
+    return s_popup_modifier;
 }

@@ -47,7 +47,6 @@
 #include <cmds/layer.h>
 #include <cmds/meta.h>
 #include <cmds/scmd.h>
-//#include <cmds/wmcmd.h>
 
 /* Local includes */
 #include <eventq.h>
@@ -64,9 +63,8 @@
  * by priority, where the highest priority corresponds to the smallest
  * value.
  */
-static pqueue_td *eventq = NULL;                /* Event priority queue
-                                                   (min-heap;
-                                                   heavy-bottom) */
+static pqueue_td *eventq = NULL;        /* Event priority queue
+                                          (min-heap; heavy-bottom) */
 
 /**
  * @brief Holds the identifier of the thread that is responsible for
@@ -74,9 +72,8 @@ static pqueue_td *eventq = NULL;                /* Event priority queue
  *
  * @note Its value is assigned when the thread is created
  */
-static pthread_t event_thread;                  /* Thread identifier for
-                                                   the event processing
-                                                   thread */
+static pthread_t event_thread;          /* Thread identifier for the
+                                           event processing thread */
 
 /**
  * @brief Manage the running state of the event processing thread
@@ -177,7 +174,7 @@ static void *eventq_process_thread(void *arg)
  * @param e1 Pointer to the first event
  * @param e2 Pointer to the second event
  *
- * @retval -1 @p event1 has greater priority (lower value) than @p event2
+ * @retval -1 @p event1 has higher priority (lower value) than @p event2
  * @retval  1 @p event1 has lower priority (higher value) than @p event2
  * @retval  0 Both events have equal priority
  *
@@ -191,11 +188,11 @@ static int s_event_compare(const void *e1, const void *e2)
     const event_td *event2 = (const event_td *) e2;
 
     if (event1->priority < event2->priority) {
-        return -1;  /* pri(evt_1) > pri(evt_2) */
+        return -1;  /* 'event1' before 'event2' (HIGHER priority) */
     } else if (event1->priority > event2->priority) {
-        return 1;   /* pri(evt_2) < pri(evt_1) */
+        return 1;   /* 'event1' after 'event2' (LOWER priority) */
     } else {
-        return 0;   /* pri(evt_1) == pri(evt_2) */
+        return 0;   /* 'event1' and 'event2' have EQUAL priority */
     }
 }
 
