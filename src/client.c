@@ -471,6 +471,7 @@ client_td *client_init(xcb_connection_t *connection,
     client->titlebar = 0;
     client->icon_window = 0;
     client->is_icon_mapped = false;
+    client->ignore_unmap = 0;
     client->icon_x = -1;
     client->icon_y = -1;
 
@@ -754,6 +755,7 @@ client_td *client_manage(xcb_connection_t *connection,
     client->titlebar = 0;
     client->icon_window = 0;
     client->is_icon_mapped = false;
+    client->ignore_unmap = 0;
     client->icon_x = -1;
     client->icon_y = -1;
     client->process.pid = -1;

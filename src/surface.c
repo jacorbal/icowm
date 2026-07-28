@@ -516,13 +516,23 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                 (client_is_decorated(client) && client->frame != 0)
                 ? client->frame
                 : client->window;
+
+            /* Track WM-initiated unmaps so handler_unmap_notify skips
+             * them */
+            client->ignore_unmap += 1u;
+            if (target != client->window) {
+                client->ignore_unmap += 1u;
+            }
+
             if (client->titlebar != 0) {
                 xcb_unmap_window(surface->connection, client->titlebar);
             }
+
             xcb_unmap_window(surface->connection, target);
             if (target != client->window) {
                 xcb_unmap_window(surface->connection, client->window);
             }
+
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(surface->connection, client->icon_window);
             }
@@ -871,4 +881,51 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
+
+    /* Restore Z-order: iterate from head (bottom) to tail (top),
+     * raising each window to the top so the tail (topmost client) ends
+     * up at the top of the X11 stacking order when all windows are
+     * shown. */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        initial = node;
+        do {
+            client_td *c = (client_td *) cdlist_data(node);
+            if (c != NULL &&
+                    !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    c->properties.state !=
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                xcb_window_t tgt =
+                    (client_is_decorated(c) && c->frame != 0)
+                    ? c->frame : c->window;
+                xcb_configure_window(surface->connection, tgt,
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    /* Restore input focus to the previously active client */
+    if (desktop->client_active_id != 0) {
+        node = cdlist_head(desktop->stacking);
+        if (node != NULL) {
+            initial = node;
+            do {
+                client_td *c = (client_td *) cdlist_data(node);
+                if (c != NULL && c->id == desktop->client_active_id &&
+                        c->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    xcb_set_input_focus(surface->connection,
+                            XCB_INPUT_FOCUS_PARENT,
+                            c->window, XCB_CURRENT_TIME);
+                    break;
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
+        }
+    }
+
+    desktop->is_outdated = true;
+
 }

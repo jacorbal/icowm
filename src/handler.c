@@ -20,6 +20,7 @@
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 
 /* Defs includes */
@@ -273,7 +274,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
     cdlist_item_td *initial;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' pointer in unmap handler", L_NARG);
+        LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
         return;
     }
 
@@ -286,6 +287,12 @@ void handler_unmap_notify(xcb_connection_t *connection,
                 event->window != client->frame) {
             return;
         }
+
+        if (client->ignore_unmap > 0) {
+            client->ignore_unmap--;
+            return;
+        }
+
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
@@ -298,9 +305,9 @@ void handler_unmap_notify(xcb_connection_t *connection,
                         c = (client_td *) cdlist_data(node);
                         if (c != NULL && c != client &&
                                 !(c->properties.flags &
-                                CLIENT_FLAG_HIDDEN) &&
+                                    CLIENT_FLAG_HIDDEN) &&
                                 (c->properties.flags &
-                                CLIENT_FLAG_FOCUSABLE)) {
+                                 CLIENT_FLAG_FOCUSABLE)) {
                             desktop->client_active_id = c->id;
                             xcb_set_input_focus(connection,
                                     XCB_INPUT_FOCUS_PARENT,

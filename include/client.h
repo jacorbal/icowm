@@ -234,6 +234,7 @@ typedef struct client_s {
     xcb_window_t titlebar;          /**< Optional titlebar window */
     xcb_window_t icon_window;       /**< Optional iconified placeholder */
     bool is_icon_mapped;            /**< Whether icon window is mapped */
+    uint8_t ignore_unmap;           /**< WM-initiated unmaps to suppress */
     int16_t icon_x;                 /**< Saved icon X (−1 = unset) */
     int16_t icon_y;                 /**< Saved icon Y (−1 = unset) */
     uint16_t title_height;          /**< Cached titlebar height */
