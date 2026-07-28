@@ -233,6 +233,9 @@ void wcmd_client_restore(client_td *client)
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
+
+    wm_request_client_redraw(client);
+    xcb_flush(client->connection);
 }
 
 

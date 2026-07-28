@@ -190,7 +190,7 @@ void cycle_open(list_td *surfaces,
         s_menu.selected = (active_idx + preselect + s_menu.count) %
             s_menu.count;
     } else {
-        s_menu.selected = (preselect > 0) ? 0 : s_menu.count - 1;
+        s_menu.selected = s_menu.count - 1;
     }
 
     /* Compute dimensions */

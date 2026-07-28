@@ -294,6 +294,10 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             if (target != client->window) {
                 xcb_map_window(desktop->connection, client->window);
             }
+
+            xcb_configure_window(desktop->connection, target,
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
         }
 
         /* Configure position and size */

@@ -629,9 +629,11 @@ int eventq_start(void)
 int eventq_stop(void)
 {
     LOGGER_DEBUG("Deallocating priority queue for events", L_NARG);
+
     if (eventq == NULL) {
         return 1;
     }
+
     pqueue_destroy(eventq);
     eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 

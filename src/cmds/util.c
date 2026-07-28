@@ -115,7 +115,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...)
     xcb_atom_t *states;
     va_list args;
 
-    if (client == NULL || num_states == 0) {
+    if (client == NULL || client->ewmh == NULL || num_states == 0) {
         return;
     }
 
@@ -154,7 +154,7 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     bool should_remove;
     uint8_t success;
 
-    if (client == NULL || num_states == 0) {
+    if (client == NULL || client->ewmh == NULL || num_states == 0) {
         return;
     }
 

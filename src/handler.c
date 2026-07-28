@@ -11,7 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -278,7 +277,8 @@ void handler_unmap_notify(xcb_connection_t *connection,
 
     LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
 
-    client = lookup_find_client(surfaces, event->window, NULL, &desktop);
+    client = lookup_find_client(surfaces, event->window,
+            NULL, &desktop);
     if (client != NULL) {
         if (event->window != client->window &&
                 event->window != client->frame) {
@@ -545,10 +545,10 @@ void handler_expose(xcb_connection_t *connection,
         xcb_change_window_attributes(connection, client->frame,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                    is_focused ? cfg->theme.window.active.border_color
-                               : cfg->theme.window.inactive.border_color,
-                    is_focused ? cfg->theme.window.active.border_color
-                               : cfg->theme.window.inactive.border_color
+                    (is_focused) ? cfg->theme.window.active.border_color
+                                 : cfg->theme.window.inactive.border_color,
+                    (is_focused) ? cfg->theme.window.active.border_color
+                                 : cfg->theme.window.inactive.border_color
                 });
         xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
         xcb_flush(connection);
@@ -565,18 +565,18 @@ void handler_expose(xcb_connection_t *connection,
     xcb_change_window_attributes(connection, client->frame,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
-                is_focused ? cfg->theme.window.active.border_color
-                           : cfg->theme.window.inactive.border_color,
-                is_focused ? cfg->theme.window.active.border_color
-                           : cfg->theme.window.inactive.border_color
+                (is_focused) ? cfg->theme.window.active.border_color
+                             : cfg->theme.window.inactive.border_color,
+                (is_focused) ? cfg->theme.window.active.border_color
+                             : cfg->theme.window.inactive.border_color
             });
     xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
 
     xcb_change_window_attributes(connection, client->titlebar,
             XCB_CW_BACK_PIXEL,
             (const uint32_t[]) {
-                is_focused ? cfg->theme.window.active.background_color
-                           : cfg->theme.window.inactive.background_color
+                (is_focused) ? cfg->theme.window.active.background_color
+                             : cfg->theme.window.inactive.background_color
             });
     xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
 
@@ -584,10 +584,10 @@ void handler_expose(xcb_connection_t *connection,
             is_focused ? cfg->theme.window.active.font
                        : cfg->theme.window.inactive.font);
     text_renderer_set_color(
-            is_focused ? cfg->theme.window.active.foreground_color
-                       : cfg->theme.window.inactive.foreground_color,
-            is_focused ? cfg->theme.window.active.background_color
-                       : cfg->theme.window.inactive.background_color);
+            (is_focused) ? cfg->theme.window.active.foreground_color
+                         : cfg->theme.window.inactive.foreground_color,
+            (is_focused) ? cfg->theme.window.active.background_color
+                         : cfg->theme.window.inactive.background_color);
     text_draw_string(connection, client->titlebar, XCB_NONE,
             (int16_t) (WM_DECOR_BTN_PAD +
                 WM_DECOR_BTN_SIZE +

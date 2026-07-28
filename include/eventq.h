@@ -8,10 +8,6 @@
  * from the main event loop after each batch of X11 events is processed.
  * This model eliminates data races and potential deadlocks, and
  * achieves lower event latency than a background-thread design.
- *
- * @note The event processing thread operates on a separate execution
- *       context and may introduce delays when idle to minimize CPU
- *       usage
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
