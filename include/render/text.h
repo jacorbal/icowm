@@ -11,7 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-
 #ifndef RENDER_TEXT_H
 #define RENDER_TEXT_H
 

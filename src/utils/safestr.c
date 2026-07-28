@@ -216,17 +216,17 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
         return 0;
     }
 
-     /* Both strings are equal if both are 'NULL' */
+     /* Both strings are equal if both are null */
     if (s1 == NULL && s2 == NULL) {
         return 0;
     }
 
-    /* 'NULL' is less than any non-'NULL' string */
+    /* Null is less than any non-null string */
     if (s1 == NULL) {
         return -1;
     }
 
-    /* Any non-'NULL' string is greater than 'NULL' */
+    /* Any non-null string is greater than null */
     if (s2 == NULL) {
         return 1;
     }
@@ -245,17 +245,17 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
 /* Safely compares two strings */
 int safe_strcmp(const char *s1, const char *s2)
 {
-    /* Both strings are equal if both are 'NULL' */
+    /* Both strings are equal if both are null */
     if (s1 == NULL && s2 == NULL) {
         return 0;
     }
 
-    /* 'NULL' is less than any non-'NULL' string */
+    /* Null is less than any non-null string */
     if (s1 == NULL) {
         return -1;
     }
 
-    /* Any non-'NULL' string is greater than 'NULL' */
+    /* Any non-null string is greater than null */
     if (s2 == NULL) {
         return 1;
     }

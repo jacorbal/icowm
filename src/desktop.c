@@ -353,7 +353,7 @@ void desktop_clear(desktop_td *desktop)
                         (void **) &client) != 0) {
                 break;
             }
-            /* The list may legitimately contain 'NULL' data pointers;
+            /* The list may legitimately contain null data pointers;
              * destroy only valid clients. */
             if (client != NULL) {
                 client_destroy(client);
@@ -837,7 +837,7 @@ int desktop_action_application_launch(desktop_td *desktop,
         return -1;
     }
 
-    LOGGER_TRACE("Launching application '%s' on desktop %u ('%s')",
+    LOGGER_DEBUG("Launching application '%s' on desktop %u ('%s')",
             application_path, desktop->id, desktop->name);
 
     pid = fork();
@@ -884,7 +884,7 @@ int desktop_action_application_launch(desktop_td *desktop,
         _exit(127);
     }
 
-    LOGGER_DEBUG("Launched application '%s' with PID %d",
+    LOGGER_INFO("Launched application '%s' with PID %d",
             application_path, (int) pid);
 
     return 0;

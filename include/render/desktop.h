@@ -48,9 +48,9 @@ int desktop_render_background(desktop_td *desktop);
  * when @p is_current is @c true; for a desktop that is not the one
  * currently displayed on its surface, only geometry/stacking is updated
  * so that a stale full-render pass (triggered by an unrelated
- * 'is_outdated' flag, e.g., after moving/resizing a client) cannot undo
- * an explicit 'surface_clients_hide()' and make a client reappear on
- * top of the desktop the user actually switched to.
+ * @p is_outdated flag, e.g., after moving/resizing a client) cannot
+ * undo an explicit @a surface_clients_hide and make a client reappear
+ * on top of the desktop the user actually switched to.
  *
  * @param desktop    Pointer to the desktop to draw
  * @param is_current Whether @p desktop is the surface's currently
@@ -74,7 +74,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current);
  * @param desktop    Pointer to the desktop to render
  * @param is_current Whether @p desktop is the surface's currently
  *                   displayed desktop; forwarded to
- *                   'desktop_render_clients()' so that clients on
+ *                   @a desktop_render_clients so that clients on
  *                   a desktop that is not currently shown are never
  *                   (re-)mapped by this general refresh path
  *
@@ -102,8 +102,8 @@ void desktop_render_flush(desktop_td *desktop);
 /**
  * @brief Draw decoration button squares on a titlebar window
  *
- * Renders six right-aligned button squares (Iconify, Hide, Shade,
- * Maximize, Fullscreen, Close) and one left-aligned button (Pin/Sticky)
+ * Renders six right-aligned button squares (iconify, hide, shade,
+ * maximize, fullscreen, close) and one left-aligned button (pin/sticky)
  * as filled rectangles.  The fill color is taken from @p theme:
  * @c window.active.foreground_color when @p is_focused is @c true,
  * @c window.inactive.foreground_color otherwise.  The pin button uses

@@ -189,9 +189,9 @@ int logger_start(const char *filename,
 
         /* Validate and correct the minimum log level value */
         logger->level_min =
-            (level_min < LOG_MIN_LEVEL) ?  LOG_MIN_LEVEL :
-            (level_min > LOG_MAX_LEVEL) ?  LOG_MAX_LEVEL :
-            level_min;
+            (level_min < LOG_MIN_LEVEL) ? LOG_MIN_LEVEL :
+                (level_min > LOG_MAX_LEVEL) ? LOG_MAX_LEVEL :
+                    level_min;
 
         /* Tracking: always or only on 'LOG_TRACE' level */
         logger->is_tracking = is_tracking;

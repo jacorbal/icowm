@@ -214,7 +214,7 @@ void surface_update(surface_td *surface)
 /* Full surface update */
 void surface_update_full(surface_td *surface)
 {
-    cdlist_item_td *desktop_node  = cdlist_head(surface->desktops);
+    cdlist_item_td *desktop_node = cdlist_head(surface->desktops);
 
     LOGGER_TRACE("Fully updating surface %u", surface->id);
 

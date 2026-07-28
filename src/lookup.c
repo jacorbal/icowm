@@ -1,0 +1,147 @@
+/**
+ * @file lookup.c
+ *
+ * @brief Window, client, surface, and desktop lookup implementation
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+
+/* ADT includes */
+#include <adt/cdlist.h>
+#include <adt/list.h>
+#include <adt/ohtbl.h>
+
+/* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <surface.h>
+
+/* Local includes */
+#include <lookup.h>
+
+
+/* Find the surface whose root window matches 'root' */
+surface_td *lookup_surface_for_root(list_td *surfaces,
+        xcb_window_t root)
+{
+    list_item_td *node;
+
+    if (surfaces == NULL) {
+        return NULL;
+    }
+
+    for (node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        if (surface != NULL && surface->screen != NULL &&
+                surface->screen->root == root) {
+            return surface;
+        }
+    }
+
+    return NULL;
+}
+
+
+/* Return the currently active desktop for a surface */
+desktop_td *lookup_current_desktop(surface_td *surface)
+{
+    if (surface == NULL) {
+        return NULL;
+    }
+
+    return surface_desktop_get(surface, surface->desktop_cur);
+}
+
+
+/* Test whether an X window belongs to a managed client */
+bool lookup_client_matches_window(const client_td *client,
+        xcb_window_t window)
+{
+    if (client == NULL || window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    return client->id == window ||
+           client->window == window ||
+           client->frame == window ||
+           client->titlebar == window ||
+           client->icon_window == window;
+}
+
+
+/* Search all surfaces and desktops for a client by window ID */
+client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
+        surface_td **out_surface, desktop_td **out_desktop)
+{
+    list_item_td *snode;
+
+    if (out_surface != NULL) {
+        *out_surface = NULL;
+    }
+    if (out_desktop != NULL) {
+        *out_desktop = NULL;
+    }
+
+    if (surfaces == NULL || window == XCB_WINDOW_NONE) {
+        return NULL;
+    }
+
+    for (snode = list_head(surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        cdlist_item_td *dinitial;
+
+        if (surface == NULL || surface->desktops == NULL ||
+                cdlist_size(surface->desktops) == 0) {
+            continue;
+        }
+
+        dnode = cdlist_head(surface->desktops);
+        dinitial = dnode;
+        if (dnode == NULL) {
+            continue;
+        }
+
+        do {
+            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+
+            if (desktop != NULL && desktop->clients != NULL) {
+                for (size_t i = 0;
+                        i < desktop->clients->positions;
+                        ++i) {
+                    client_td *client;
+
+                    if (desktop->clients->table[i] == NULL ||
+                            desktop->clients->table[i] ==
+                                desktop->clients->vacated) {
+                        continue;
+                    }
+                    client = (client_td *) desktop->clients->table[i];
+
+                    if (!lookup_client_matches_window(client, window)) {
+                        continue;
+                    }
+
+                    if (out_surface != NULL) {
+                        *out_surface = surface;
+                    }
+                    if (out_desktop != NULL) {
+                        *out_desktop = desktop;
+                    }
+                    return client;
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    }
+
+    return NULL;
+}

@@ -1,7 +1,8 @@
 /**
  * @file actdata.c
  *
- * @brief Allocation and deallocation functions for object data structures
+ * @brief Allocation and deallocation functions for object data
+ *        structures
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

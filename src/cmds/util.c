@@ -1,7 +1,8 @@
 /**
  * @file cmds/util.c
  *
- * @brief Internal utility implementation shared across the cmds subsystem
+ * @brief Internal utility implementation shared across the @c cmds
+          subsystem
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

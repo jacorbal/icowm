@@ -32,11 +32,13 @@
 /* Default initial values */
 #include <defs/wm.h>
 
+/* Windows & icons policy includes */
+#include <policy/placement.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
-#include <place.h>
 
 /* Local includes */
 #include <cmds/ccmd.h>

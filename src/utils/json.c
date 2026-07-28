@@ -47,7 +47,7 @@ uint32_t json_hex2uint32(const char *hex_color)
         hex_color++;
     }
     if (sscanf(hex_color, "%x", &color) != 1) {
-        LOGGER_NOTICE("Failed to parse hexadecimal color '%s';"
+        LOGGER_NOTICE("Failed to parse hexadecimal color '%s';" \
                 " defaulting to '#000000'", hex_color);
         return 0;
     }
@@ -196,7 +196,7 @@ int json_load_file(const char *filename, char **data)
     LOGGER_INFO("Parsing data from file '%s'", filename);
 
     if (data == NULL) {
-        LOGGER_ERROR("Received 'NULL' output pointer for file '%s'",
+        LOGGER_ERROR("Received null output pointer for file '%s'",
                 filename);
         return 1;
     }
@@ -206,30 +206,30 @@ int json_load_file(const char *filename, char **data)
     LOGGER_TRACE("Opening JSON file '%s'", filename);
     file = fopen(filename, "r");
     if (!file) {
-        LOGGER_NOTICE("File not found or unable to open:"
+        LOGGER_NOTICE("File not found or unable to open:" \
                 " '%s'; default values will be used", filename);
         return 1;
     }
 
     if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to seek JSON file '%s'; default values"
-                " will be used", filename);
+        LOGGER_NOTICE("Unable to seek JSON file '%s';" \
+                " default values will be used", filename);
         return 1;
     }
     file_length = ftell(file);
 
     if (file_length <= 0) {
         fclose(file);
-        LOGGER_NOTICE("File '%s' is empty or unreadable; default values"
-                " will be used", filename);
+        LOGGER_NOTICE("File '%s' is empty or unreadable;" \
+                " default values will be used", filename);
         return 1;
     }
     length = (size_t) file_length;
     if (fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to rewind JSON file '%s'; default values"
-                " will be used", filename);
+        LOGGER_NOTICE("Unable to rewind JSON file '%s';" \
+                " default values will be used", filename);
         return 1;
     }
 
@@ -244,8 +244,8 @@ int json_load_file(const char *filename, char **data)
     LOGGER_TRACE("Reading JSON file '%s'", filename);
     nread = fread(*data, 1, length, file);
     if (nread != length) {
-        LOGGER_NOTICE("Failed to read full JSON file '%s'; default"
-                " values will be used", filename);
+        LOGGER_NOTICE("Failed to read full JSON file '%s';" \
+                " default values will be used", filename);
         free(*data);
         *data = NULL;
         fclose(file);
@@ -274,7 +274,7 @@ int json_load_config(const char *filename, cJSON **json_out)
 
     json_root = cJSON_Parse(data);
     if (json_root == NULL) {
-        LOGGER_WARNING("Failed to parse file '%s';"
+        LOGGER_WARNING("Failed to parse file '%s';" \
                 " default configuration will be used", filename);
         LOGGER_TRACE("Error parsing JSON file\n%s", cJSON_GetErrorPtr());
         free(data);
@@ -291,24 +291,24 @@ int json_load_config(const char *filename, cJSON **json_out)
                 json = cJSON_Duplicate(array_first, cJSON_True);
                 cJSON_Delete(json_root);
                 if (json == NULL) {
-                    LOGGER_WARNING("Failed to duplicate configuration"
-                            " object from '%s'; default configuration"
+                    LOGGER_WARNING("Failed to duplicate object from" \
+                            " '%s'; default configuration" \
                             " will be used", filename);
                     free(data);
                     return 2;
                 }
-                LOGGER_NOTICE("Using first object from top-level array"
+                LOGGER_NOTICE("Using first object from top-level array" \
                         " in '%s' as compatibility fallback", filename);
             } else {
-                LOGGER_WARNING("Invalid top-level JSON in '%s'; expected"
-                        " an object and default configuration will be used",
-                        filename);
+                LOGGER_WARNING("Invalid top-level JSON in '%s';" \
+                        " expected an object and default" \
+                        " configuration will be used", filename);
                 cJSON_Delete(json_root);
                 free(data);
                 return 2;
             }
         } else {
-            LOGGER_WARNING("Invalid top-level JSON in '%s'; expected"
+            LOGGER_WARNING("Invalid top-level JSON in '%s'; expected" \
                     " an object and default configuration will be used",
                     filename);
             cJSON_Delete(json_root);

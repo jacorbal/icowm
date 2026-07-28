@@ -1,5 +1,5 @@
 /**
- * @file place.c
+ * @file policy/placement.c
  *
  * @brief Window placement policy implementation
  */
@@ -34,7 +34,7 @@
 #include <wm.h>
 
 /* Local includes */
-#include <place.h>
+#include <policy/placement.h>
 
 
 /**
@@ -129,8 +129,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
 
     min_x = (fw > sw) ? -((int32_t) (fw - sw)) : 0;
     min_y = (fh > sh) ? -((int32_t) (fh - sh)) : 0;
-    max_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
-    max_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+    max_x = (sw > fw) ?   (int32_t) (sw - fw)  : 0;
+    max_y = (sh > fh) ?   (int32_t) (sh - fh)  : 0;
 
     for (int32_t y = min_y; y <= max_y; y += (int32_t) step) {
         for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
@@ -178,15 +178,9 @@ void place_icon(const client_td *client, desktop_td *desktop,
         int16_t *out_x, int16_t *out_y)
 {
     const uint16_t margin = 8u;
-    const uint16_t step_x = (uint16_t) (icon_w  + margin);
-    const uint16_t step_y = (uint16_t) (icon_h  + margin);
+    const uint16_t step_x = (uint16_t) (icon_w + margin);
+    const uint16_t step_y = (uint16_t) (icon_h + margin);
     bool vertical;
-    uint16_t max_slots;
-    bool occupied[256];
-    uint16_t chosen;
-    uint16_t slot;
-    uint64_t border_twice_u64;
-    int32_t border_twice;
 
     if (client == NULL || client->theme == NULL ||
             out_x == NULL || out_y == NULL) {
@@ -208,70 +202,79 @@ void place_icon(const client_td *client, desktop_td *desktop,
     }
 
     /* Maximum slots along the relevant axis */
-    if (vertical) {
-        max_slots = (screen_h > step_y)
-            ? (uint16_t) ((screen_h - margin) / step_y)
-            : 1u;
-    } else {
-        max_slots = (screen_w > step_x)
-            ? (uint16_t) ((screen_w - margin) / step_x)
-            : 1u;
-    }
+    {
+        uint16_t max_slots;
+        bool occupied[256];
+        uint16_t chosen;
+        uint16_t slot;
+        uint64_t border_twice_u64;
+        int32_t border_twice;
 
-    /* Collect occupied slots from already-placed icon windows */
-    for (uint16_t i = 0u; i < 256u; ++i) {
-        occupied[i] = false;
-    }
+        if (vertical) {
+            max_slots = (screen_h > step_y)
+                ? (uint16_t) ((screen_h - margin) / step_y)
+                : 1u;
+        } else {
+            max_slots = (screen_w > step_x)
+                ? (uint16_t) ((screen_w - margin) / step_x)
+                : 1u;
+        }
 
-    if (desktop != NULL && desktop->stacking != NULL) {
-        cdlist_item_td *node = cdlist_head(desktop->stacking);
-        cdlist_item_td *initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-                if (other != NULL && other != client &&
-                        other->icon_window != 0 &&
-                        other->is_icon_mapped) {
-                    /* Determine which slot this icon occupies */
-                    slot = 0u;
-                    if (vertical) {
-                        int32_t rel = (int32_t) other->icon_y
-                            - (int32_t) margin;
-                        if (rel >= 0) {
-                            slot = (uint16_t) (rel / (int32_t) step_y);
-                            if (slot < 256u) {
-                                occupied[slot] = true;
+        /* Collect occupied slots from already-placed icon windows */
+        for (uint16_t i = 0u; i < 256u; ++i) {
+            occupied[i] = false;
+        }
+
+        if (desktop != NULL && desktop->stacking != NULL) {
+            cdlist_item_td *node = cdlist_head(desktop->stacking);
+            cdlist_item_td *initial = node;
+
+            if (node != NULL) {
+                do {
+                    const client_td *other =
+                        (const client_td *) cdlist_data(node);
+                    if (other != NULL && other != client &&
+                            other->icon_window != 0 &&
+                            other->is_icon_mapped) {
+                        /* Determine which slot this icon occupies */
+                        slot = 0u;
+                        if (vertical) {
+                            int32_t rel = (int32_t) other->icon_y -
+                                (int32_t) margin;
+                            if (rel >= 0) {
+                                slot = (uint16_t) (rel / (int32_t) step_y);
+                                if (slot < 256u) {
+                                    occupied[slot] = true;
+                                }
                             }
-                        }
-                    } else {
-                        int32_t rel = (int32_t) other->icon_x
-                            - (int32_t) margin;
-                        if (rel >= 0) {
-                            slot = (uint16_t) (rel / (int32_t) step_x);
-                            if (slot < 256u) {
-                                occupied[slot] = true;
+                        } else {
+                            int32_t rel = (int32_t) other->icon_x -
+                                (int32_t) margin;
+                            if (rel >= 0) {
+                                slot = (uint16_t) (rel / (int32_t) step_x);
+                                if (slot < 256u) {
+                                    occupied[slot] = true;
+                                }
                             }
                         }
                     }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        } /* ! if (node) */
-    }
-
-    /* Find the first unoccupied slot */
-    chosen = 0u;
-    for (uint32_t i = 0u; i < max_slots && i < 256u; ++i) {
-        if (!occupied[i]) {
-            chosen = (uint16_t) i;
-            break;
+                    node = cdlist_next(node);
+                } while (node != NULL && node != initial);
+            }
         }
-        chosen = (uint16_t) i + 1u;
-    }
-    if (chosen >= max_slots) {
-        chosen = (uint16_t) (max_slots - 1u);
-    }
+
+        /* Find the first unoccupied slot */
+        chosen = 0u;
+        for (uint16_t i = 0u; i < max_slots && i < 256u; ++i) {
+            if (!occupied[i]) {
+                chosen = i;
+                break;
+            }
+            chosen = i + 1u;
+        }
+        if (chosen >= max_slots) {
+            chosen = (uint16_t) (max_slots - 1u);
+        }
 
         border_twice_u64 =
             (uint64_t) client->theme->icon.border_width * 2u;
@@ -279,45 +282,42 @@ void place_icon(const client_td *client, desktop_td *desktop,
             ? INT32_MAX
             : (int32_t) border_twice_u64;
 
-    /* Convert slot to pixel coordinates */
-    switch (policy) {
-        case CONFIG_ICON_PLACEMENT_TOP:
-            *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
-            *out_y = (int16_t) margin;
-            break;
+        /* Convert slot to pixel coordinates */
+        switch (policy) {
+            case CONFIG_ICON_PLACEMENT_TOP:
+                *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
+                *out_y = (int16_t) margin;
+                break;
+            case CONFIG_ICON_PLACEMENT_LEFT:
+                *out_x = (int16_t) margin;
+                *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
+                break;
+            case CONFIG_ICON_PLACEMENT_RIGHT:
+                *out_x = (int16_t) ((int32_t) screen_w -
+                        (int32_t) icon_w -
+                        (int32_t) margin -
+                        (int32_t) border_twice);
+                *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
+                break;
+            case CONFIG_ICON_PLACEMENT_BOTTOM:
+            case CONFIG_ICON_PLACEMENT_SMART:
+                *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
+                *out_y = (int16_t) ((int32_t) screen_h -
+                        (int32_t) margin -
+                        (int32_t) icon_h -
+                        (int32_t) border_twice);
+                break;
+        }
 
-        case CONFIG_ICON_PLACEMENT_LEFT:
+        /* Clamp to screen */
+        if (*out_x < (int16_t) margin) {
             *out_x = (int16_t) margin;
-            *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
-            break;
-
-        case CONFIG_ICON_PLACEMENT_RIGHT:
-            *out_x = (int16_t) ((int32_t) screen_w
-                    - (int32_t) icon_w
-                    - (int32_t) margin
-                    - (int32_t) border_twice);
-            *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
-            break;
-
-        case CONFIG_ICON_PLACEMENT_BOTTOM:
-        case CONFIG_ICON_PLACEMENT_SMART:
-            *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
-            *out_y = (int16_t) ((int32_t) screen_h
-                        - (int32_t) margin
-                        - (int32_t) icon_h
-                        - (int32_t) border_twice);
-            break;
-    }
-
-    /* Clamp to screen */
-    if (*out_x < (int16_t) margin) {
-        *out_x = (int16_t) margin;
-    }
-    if (*out_y < (int16_t) margin) {
-        *out_y = (int16_t) margin;
+        }
+        if (*out_y < (int16_t) margin) {
+            *out_y = (int16_t) margin;
+        }
     }
 }
-
 
 /* Apply the configured placement policy to a newly mapped client */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client)
@@ -326,16 +326,16 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     const uint32_t cascade_step = 24u;
     uint32_t max_steps;
     uint32_t my;
+    xcb_query_pointer_cookie_t pointer_cookie;
+    xcb_query_pointer_reply_t *pointer_reply;
     uint32_t sw;
     uint32_t sh;
     uint32_t fw;
     uint32_t fh;
     int32_t new_x;
     int32_t new_y;
-    enum config_placement_policy_e policy;
-    xcb_query_pointer_cookie_t pointer_cookie;
-    xcb_query_pointer_reply_t *pointer_reply;
     xcb_window_t target;
+    enum config_placement_policy_e policy;
 
     if (wm == NULL || wm->config == NULL ||
             surface == NULL || client == NULL) {
@@ -363,6 +363,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         if (max_steps == 0u) {
             max_steps = 1u;
         }
+
         new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
         new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
         s_cascade_seq++;
@@ -377,8 +378,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         pointer_reply = xcb_query_pointer_reply(wm->connection,
                 pointer_cookie, NULL);
         if (pointer_reply == NULL) {
-            LOGGER_NOTICE("Failed to query pointer for"
-                    " 'under-mouse' placement; keeping"
+            LOGGER_NOTICE("Failed to query pointer for" \
+                    " 'under-mouse' placement; keeping" \
                     " X-server-assigned position", L_NARG);
             return;
         }
@@ -395,6 +396,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         } else if ((uint32_t) new_y + fh > sh) {
             new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
         }
+
         free(pointer_reply);
     } else {
         /* "none" or unknown: keep the X-server-assigned position */

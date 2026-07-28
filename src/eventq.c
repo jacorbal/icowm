@@ -219,7 +219,7 @@ static void s_event_handle_client(event_td *event)
 
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' client event to process" \
+        LOGGER_ERROR("Received null client event to process" \
                 " in event queue", L_NARG);
         return;
     }
@@ -242,7 +242,7 @@ static void s_event_handle_client(event_td *event)
     client_data = (action_data_client_td *) event->data;
 
     if (client == NULL) {
-        LOGGER_ERROR("Received 'NULL' client object in event", L_NARG);
+        LOGGER_ERROR("Received null client object in event", L_NARG);
         event_destroy(event);
         return;
     }
@@ -438,7 +438,7 @@ static void s_event_handle_desktop(event_td *event)
     action_data_desktop_td *desktop_data;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop event to process" \
+        LOGGER_ERROR("Received null desktop event to process" \
                 " in event queue", L_NARG);
         return;
     }
@@ -461,7 +461,7 @@ static void s_event_handle_desktop(event_td *event)
     desktop_data = (action_data_desktop_td *) event->data;
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop object in event", L_NARG);
+        LOGGER_ERROR("Received null desktop object in event", L_NARG);
         event_destroy(event);
         return;
     }
@@ -566,7 +566,7 @@ static void s_event_handle_surface(event_td *event)
     action_data_surface_td *surface_data;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' screen event to process in" \
+        LOGGER_ERROR("Received null screen event to process in" \
                 " event queue", L_NARG);
         return;
     }
@@ -589,7 +589,7 @@ static void s_event_handle_surface(event_td *event)
     surface_data = (action_data_surface_td *) event->data;
 
     if (surface == NULL) {
-        LOGGER_ERROR("Received 'NULL' surface object in event", L_NARG);
+        LOGGER_ERROR("Received null surface object in event", L_NARG);
         event_destroy(event);
         return;
     }
@@ -661,7 +661,7 @@ static void s_event_handle_surface(event_td *event)
 static void s_event_handle_wm(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Received 'NULL' window manager event to process" \
+        LOGGER_ERROR("Received null window manager event to process" \
                 " in event queue", L_NARG);
         return;
     }
@@ -772,7 +772,7 @@ int eventq_stop(void)
 int eventq_add(event_td *event)
 {
     if (event == NULL) {
-        LOGGER_ERROR("Attempted to add 'NULL' event to queue", L_NARG);
+        LOGGER_ERROR("Attempted to add null event to queue", L_NARG);
         return 1;
     }
 

@@ -44,6 +44,7 @@
 #include <priority.h>
 
 
+/* Default priority on client creation */
 #define CLIENT_PRIORITY_DEFAULT (PRIORITY_NORMAL)
 
 
@@ -114,8 +115,8 @@ enum window_flags_e {
  * @brief Mutual exclusive status about the client focus
  */
 enum client_focusing_e {
-    CLIENT_FOCUSING_UNFOCUSED,  /* No focus state */
-    CLIENT_FOCUSING_FOCUSED,    /* Window has focus */
+    CLIENT_FOCUSING_UNFOCUSED,  /**< No focus state */
+    CLIENT_FOCUSING_FOCUSED,    /**< Window has focus */
 };
 
 
@@ -200,9 +201,9 @@ struct client_layout_s {
     struct {
         struct sides_s sides;      /* [left, right, top, bottom] */
         struct sides_s start;      /* [left_start_y, right_start_y,
-                                      top_start_x, bottom_start_x] */
+                                       top_start_x, bottom_start_x] */
         struct sides_s end;        /* [left_end_y, right_end_y,
-                                      top_end_x, bottom_end_x] */
+                                       top_end_x, bottom_end_x] */
     } strut_partial;
 
     struct sides_s frame_extents;  /* [left, right, top, bottom] */
@@ -235,7 +236,7 @@ typedef struct client_s {
     bool is_icon_mapped;            /**< Whether icon window is mapped */
     int16_t icon_x;                 /**< Saved icon X (−1 = unset) */
     int16_t icon_y;                 /**< Saved icon Y (−1 = unset) */
-    int16_t title_height;           /**< Cached titlebar height */
+    uint16_t title_height;          /**< Cached titlebar height */
 
     uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */
     uint32_t screen_id;             /**< Screen index */
@@ -282,6 +283,7 @@ static inline void client_geometry_restore(client_td *client)
     client->layout.geometry.cur = client->layout.geometry.old;
 }
 
+
 /* Set the focus on client, if focusable, but take no action */
 static inline void client_focus(client_td *client)
 {
@@ -289,6 +291,7 @@ static inline void client_focus(client_td *client)
         client->properties.focusing = CLIENT_FOCUSING_FOCUSED;
     }
 }
+
 
 /* Remove the focus from the client, but take no action */
 static inline void client_unfocus(client_td *client)
@@ -306,13 +309,13 @@ static inline void client_unfocus(client_td *client)
  * and creating an XCB window with the given dimensions and position.
  * The client is initialized in a hidden state.
  *
- * @param connection  Pointer to the XCB connection
- * @param parent_id   Pointer to the parent client index
- * @param w           Width of the client in pixels
- * @param h           Height of the client in pixels
- * @param x           X-coordinate of the client position
- * @param y           Y-coordinate of the client position
- * @param theme       Pointer to the theme configuration
+ * @param connection Pointer to the XCB connection
+ * @param parent_id  Pointer to the parent client index
+ * @param w          Width of the client in pixels
+ * @param h          Height of the client in pixels
+ * @param x          X-coordinate of the client position
+ * @param y          Y-coordinate of the client position
+ * @param theme      Pointer to the theme configuration
  * @param config_base Pointer to the base configuration
  *
  * @return A pointer to the newly created client structure, or @c NULL
@@ -367,7 +370,6 @@ client_td *client_manage(xcb_connection_t *connection,
         struct config_theme_s *theme,
         const struct config_base_s *config_base);
 
-
 /**
  * @brief Update the content of the specified client
  *
@@ -397,8 +399,8 @@ void client_update(client_td *client);
  * @note Complexity: @e O(log n), where @e n is the number of events
  *       in the priority queue
  */
-int client_send_event(client_td *client, enum action_client_e action_client,
-        enum priority_e priority);
+int client_send_event(client_td *client,
+        enum action_client_e action_client, enum priority_e priority);
 
 /**
  * @brief Send an event to rename a specified client

@@ -1,13 +1,11 @@
 /**
- * @file place.h
+ * @file policy/placement.h
  *
  * @brief Window placement policy declarations
  *
  * Smart-placement search and the policy dispatcher used when a new
  * client is mapped.  Both functions receive the window manager context
  * explicitly so they remain independent compilation units.
- *
- * @ingroup place Placement
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -17,8 +15,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef PLACE_H
-#define PLACE_H
+#ifndef POLICY_PLACEMENT_H
+#define POLICY_PLACEMENT_H
 
 
 /* System includes */
@@ -78,10 +76,9 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client);
  * @p policy, the current screen dimensions, and the positions of
  * already-placed icon windows on @p desktop.
  *
- * @param client   Pointer to the client being iconified (must not be
- *                 @c NULL)
+ * @param client   Pointer to the client being iconified (must not be null)
  * @param desktop  Desktop to inspect for existing icon positions;
- *                 may be @c NULL (treated as empty desktop)
+ *                 may be null (treated as empty desktop)
  * @param policy   Icon placement policy from configuration
  * @param icon_w   Width of the icon window in pixels
  * @param icon_h   Height of the icon window in pixels
@@ -100,4 +97,4 @@ void place_icon(const client_td *client, desktop_td *desktop,
         int16_t *out_x, int16_t *out_y);
 
 
-#endif  /* ! PLACE_H */
+#endif  /* ! POLICY_PLACEMENT_H */

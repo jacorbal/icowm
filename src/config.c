@@ -65,8 +65,8 @@
  * @note Supported values are @c click and @c follow-mouse
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-static enum config_focus_policy_e s_config_parse_focus_policy(
-        const char *value)
+static enum config_focus_policy_e
+    s_config_parse_focus_policy(const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
@@ -93,8 +93,8 @@ static enum config_focus_policy_e s_config_parse_focus_policy(
  *       @c centered, and @c under-mouse
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-static enum config_placement_policy_e s_config_parse_placement_policy(
-        const char *value)
+static enum config_placement_policy_e
+    s_config_parse_placement_policy(const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
@@ -135,6 +135,7 @@ static enum config_icon_placement_e s_config_parse_icon_placement(
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
         return CONFIG_ICON_PLACEMENT_BOTTOM;
     }
+
     if (safe_strcmp(value_norm, "top") == 0) {
         return CONFIG_ICON_PLACEMENT_TOP;
     }
@@ -226,7 +227,8 @@ static void s_config_dir_set(const char *config_dir_prefix,
     }
 
     path_simplify(temp_path);
-    safe_strncpy(config_dir_base, temp_path, CONFIG_MAX_LENGTH_PATH_BASE);
+    safe_strncpy(config_dir_base, temp_path,
+            CONFIG_MAX_LENGTH_PATH_BASE);
 
     /* Use generated path in case of error */
     snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
@@ -319,15 +321,16 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.mod5, "Hyper");
 
     /* Predetermined configuration for keybindings */
-    safe_strcpy(config->bindings.keyboard.launch.terminal,
+    LOGGER_TRACE("Setting default keybindings", L_NARG);
+    safe_strcpy(config->bindings.keyboard.programs.terminal,
             "modc+mod1+Return");
-    safe_strcpy(config->bindings.keyboard.launch.launcher,
+    safe_strcpy(config->bindings.keyboard.programs.launcher,
             "modc+mod1+r");
-    safe_strcpy(config->bindings.keyboard.launch.file_manager,
+    safe_strcpy(config->bindings.keyboard.programs.file_manager,
             "modc+mod1+q");
-    safe_strcpy(config->bindings.keyboard.launch.web_browser,
+    safe_strcpy(config->bindings.keyboard.programs.web_browser,
             "modc+mod1+w");
-    safe_strcpy(config->bindings.keyboard.launch.editor,
+    safe_strcpy(config->bindings.keyboard.programs.editor,
             "modc+mod1+e");
     safe_strcpy(config->bindings.keyboard.window.close,
             "modc+mod1+c");
@@ -361,8 +364,6 @@ void config_set_default_values(config_td *config)
             "mod1+mods+Tab");
     safe_strcpy(config->bindings.keyboard.cycle.window.next,
             "mod1+Tab");
-
-    LOGGER_TRACE("Setting default keybindings", L_NARG);
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -407,13 +408,19 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->theme.name, "Default (builtin)");
     config->theme.window.general.border_width = 2;
     config->theme.window.general.is_decorated = true;
-    config->theme.window.active.background_color = json_hex2uint32("FFFFFF");
-    config->theme.window.active.foreground_color = json_hex2uint32("000000");
-    config->theme.window.active.border_color = json_hex2uint32("222222");
+    config->theme.window.active.background_color =
+        json_hex2uint32("FFFFFF");
+    config->theme.window.active.foreground_color =
+        json_hex2uint32("000000");
+    config->theme.window.active.border_color =
+        json_hex2uint32("222222");
     safe_strcpy(config->theme.window.active.font, "monospace bold 9");
-    config->theme.window.inactive.background_color = json_hex2uint32("000000");
-    config->theme.window.inactive.foreground_color = json_hex2uint32("FFFFFF");
-    config->theme.window.inactive.border_color = json_hex2uint32("999999");
+    config->theme.window.inactive.background_color =
+        json_hex2uint32("000000");
+    config->theme.window.inactive.foreground_color =
+        json_hex2uint32("FFFFFF");
+    config->theme.window.inactive.border_color =
+        json_hex2uint32("999999");
     safe_strcpy(config->theme.window.inactive.font, "monospace 9");
     config->theme.icon.background_color = json_hex2uint32("FFFFFF");
     config->theme.icon.foreground_color = json_hex2uint32("000000");
@@ -490,8 +497,8 @@ int config_load_base(const char *filename,
     cJSON *json;
     cJSON *programs;
     cJSON *windows;
-    cJSON *icons;
     cJSON *screen_settings;
+    cJSON *icons;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
@@ -543,7 +550,8 @@ int config_load_base(const char *filename,
                 ? CONFIG_MAX_DESKTOPS
                 : desktop_count;
             first_desktop_item = cJSON_GetArrayItem(desktops_array, 0);
-            if (first_desktop_item && cJSON_IsObject(first_desktop_item)) {
+            if (first_desktop_item &&
+                    cJSON_IsObject(first_desktop_item)) {
                 if (cJSON_GetObjectItem(first_desktop_item, "settings") ||
                         cJSON_GetObjectItem(first_desktop_item, "count") ||
                         cJSON_GetObjectItem(first_desktop_item,
@@ -590,10 +598,10 @@ int config_load_base(const char *filename,
                         json_load_uint(desktop_item, "inaugural",
                                 &config_base->screens[i].desktop_inaugural);
 
-                        /* Desktops, as screens, are zero-based indexed, so
-                         * if the inaugural desktop is a number bigger than
-                         * the desktop, it reverts to the first desktop of
-                         * all: the 0th */
+                        /* Desktops, as screens, are zero-based indexed,
+                         * so if the inaugural desktop is a number
+                         * bigger than the desktop, it reverts to the
+                         * first desktop of all: the 0th */
                         if (config_base->screens[i].desktop_inaugural >
                                 config_base->screens[i].desktop_count - 1) {
                             config_base->screens[i].desktop_inaugural = 0;
@@ -693,6 +701,7 @@ int config_load_base(const char *filename,
                             placement_policy_item->valuestring);
             }
         }
+
     }
 
     /* Load icon policy configuration */
@@ -704,8 +713,23 @@ int config_load_base(const char *filename,
             if (icon_policy_item != NULL &&
                     cJSON_IsString(icon_policy_item)) {
                 config_base->icons.placement_policy =
-                    s_config_parse_icon_placement(
-                            icon_policy_item->valuestring);
+                    s_config_parse_icon_placement(icon_policy_item->valuestring);
+            }
+        } else {
+            cJSON *ip = json_get_item(icons, "placement");
+            if (ip != NULL && cJSON_IsString(ip)) {
+                config_base->icons.placement_policy =
+                    s_config_parse_icon_placement(ip->valuestring);
+            }
+        }
+    } else if (windows) {
+        /* Backward compatibility: legacy location in 'windows.icons' */
+        cJSON *icons_item = cJSON_GetObjectItem(windows, "icons");
+        if (icons_item) {
+            cJSON *ip = json_get_item(icons_item, "placement");
+            if (ip != NULL && cJSON_IsString(ip)) {
+                config_base->icons.placement_policy =
+                    s_config_parse_icon_placement(ip->valuestring);
             }
         }
     }
@@ -757,33 +781,31 @@ int config_load_bindings(const char *filename,
     /* Load keybindings */
     keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard != NULL) {
-        cJSON *launch;
+        cJSON *programs;
         cJSON *window;
         cJSON *cycle;
         cJSON *move;
         cJSON *resize;
 
-        /* Launch keybidings */
-        launch = cJSON_GetObjectItem(keyboard, "launch");
-        if (launch) {
-            json_load_string(launch, "terminal",
-                    config_bindings->keyboard.launch.terminal,
+        programs = cJSON_GetObjectItem(keyboard, "programs");
+        if (programs) {
+            json_load_string(programs, "terminal",
+                    config_bindings->keyboard.programs.terminal,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(launch, "launcher",
-                    config_bindings->keyboard.launch.launcher,
+            json_load_string(programs, "launcher",
+                    config_bindings->keyboard.programs.launcher,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(launch, "file-manager",
-                    config_bindings->keyboard.launch.file_manager,
+            json_load_string(programs, "file-manager",
+                    config_bindings->keyboard.programs.file_manager,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(launch, "web-browser",
-                    config_bindings->keyboard.launch.web_browser,
+            json_load_string(programs, "web-browser",
+                    config_bindings->keyboard.programs.web_browser,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(launch, "editor",
-                    config_bindings->keyboard.launch.editor,
+            json_load_string(programs, "editor",
+                    config_bindings->keyboard.programs.editor,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 
-        /* Keybindings for window operations */
         window = cJSON_GetObjectItem(keyboard, "window");
         if (window) {
             json_load_string(window, "close",
@@ -818,7 +840,7 @@ int config_load_bindings(const char *filename,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 
-        /* Keybindings for cycling desktops, icons, and windows */
+        /* Keybindings for cycling: desktop, icon, and window */
         cycle = cJSON_GetObjectItem(keyboard, "cycle");
         if (cycle) {
             cJSON *cdesktop;
@@ -834,6 +856,7 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.cycle.desktop.next,
                         CONFIG_MAX_LENGTH_BINDING);
             }
+
             cicon = cJSON_GetObjectItem(cycle, "icon");
             if (cicon) {
                 json_load_string(cicon, "prev",
@@ -843,6 +866,7 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.cycle.icon.next,
                         CONFIG_MAX_LENGTH_BINDING);
             }
+
             cwindow = cJSON_GetObjectItem(cycle, "window");
             if (cwindow) {
                 json_load_string(cwindow, "prev",

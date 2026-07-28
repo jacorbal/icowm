@@ -103,9 +103,9 @@ static size_t s_client_get_wm_name(xcb_connection_t *connection,
  * @param window     Window ID to query
  * @param class_buf  Destination buffer for class name
  * @param class_sz   Size of class buffer
- * @param inst_buf   Destination buffer for instance name (may be @c NULL)
+ * @param inst_buf   Destination buffer for instance name (may be null)
  * @param inst_sz    Size of instance buffer (ignored when @p inst_buf
- *                   is @c NULL)
+ *                   is null)
  *
  * @return 0 on success, -1 otherwise
  *
@@ -251,7 +251,7 @@ static void s_client_sync_decoration_layout(client_td *client)
     right = (uint16_t) client->layout.frame_extents.right;
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
-    title_h = (uint16_t) client->title_height;
+    title_h = client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
     inner_w = (client->layout.geometry.cur.dim.w > left + right)
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
@@ -326,7 +326,7 @@ static int s_client_create_decorations(client_td *client)
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
     inner_w = (uint16_t) client->layout.geometry.cur.dim.w;
-    title_h = (uint16_t) client->title_height;
+    title_h = client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
 
     frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
@@ -723,7 +723,7 @@ client_td *client_manage(xcb_connection_t *connection,
 
     /* Reject override-redirect windows — they manage themselves */
     attr_cookie = xcb_get_window_attributes(connection, window);
-    attr_reply  = xcb_get_window_attributes_reply(connection,
+    attr_reply = xcb_get_window_attributes_reply(connection,
             attr_cookie, NULL);
     if (attr_reply != NULL) {
         bool skip = attr_reply->override_redirect;
@@ -764,7 +764,7 @@ client_td *client_manage(xcb_connection_t *connection,
 
     /* Query existing geometry */
     geom_cookie = xcb_get_geometry(connection, window);
-    geom_reply  = xcb_get_geometry_reply(connection, geom_cookie, NULL);
+    geom_reply = xcb_get_geometry_reply(connection, geom_cookie, NULL);
     if (geom_reply != NULL) {
         client->parent_id = geom_reply->root;
         client->layout.geometry.cur.pos.x = geom_reply->x;
@@ -894,7 +894,7 @@ int client_send_event(client_td *client,
     action_td action;
 
     if (client == NULL) {
-        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
+        LOGGER_ERROR("Received null client pointer", L_NARG);
         return -1;
     }
 
@@ -922,7 +922,7 @@ int client_send_event_rename(client_td *client, const char *new_name)
     action_data_client_td *data;
 
     if (client == NULL || new_name == NULL) {
-        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
+        LOGGER_ERROR("Received null pointer", L_NARG);
         return -1;
     }
 
@@ -960,7 +960,7 @@ int client_send_event_reclass(client_td *client, const char *new_class)
     action_data_client_td *data;
 
     if (client == NULL || new_class == NULL) {
-        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
+        LOGGER_ERROR("Received null pointer", L_NARG);
         return -1;
     }
 
@@ -1000,7 +1000,7 @@ int client_send_event_move(client_td *client,
     uint32_t values[2];
 
     if (client == NULL) {
-        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
+        LOGGER_ERROR("Received null client pointer", L_NARG);
         return -1;
     }
 
@@ -1060,7 +1060,7 @@ int client_send_event_resize(client_td *client,
     uint32_t values[2];
 
     if (client == NULL) {
-        LOGGER_ERROR("Received 'NULL' client pointer", L_NARG);
+        LOGGER_ERROR("Received null client pointer", L_NARG);
         return -1;
     }
 
@@ -1119,7 +1119,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name)
     action_data_client_td *data;
 
     if (client == NULL || icon_name == NULL) {
-        LOGGER_ERROR("Received 'NULL' pointer", L_NARG);
+        LOGGER_ERROR("Received null pointer", L_NARG);
         return -1;
     }
 

@@ -1,11 +1,11 @@
 /**
  * @file cmds/util.h
  *
- * @brief Internal utility declarations shared across the cmds subsystem
+ * @brief Internal utility declarations shared across the @c cmds
+          subsystem
  *
- * These helpers provide low-level XCB and EWMH plumbing used by the
- * client-command modules (@c ccmd, @c geom, @c layer, @c meta).  They
- * are not part of the public window manager API.
+ * Helpers that provide low-level XCB and EWMH plumbing used by the
+ * client-command modules (@c ccmd, @c geom, @c layer, @c meta).
  *
  * @ingroup cmds Client commands subsystem
  */
@@ -76,11 +76,11 @@ xcb_window_t wcmd_target_win(client_td *client);
 /**
  * @brief Retrieve the pixel dimensions of the client's current screen
  *
- * Either @p out_w or @p out_h may be @c NULL but not both.
+ * Either @p out_w or @p out_h may be null but not both.
  *
  * @param client Pointer to the client whose screen is queried
- * @param out_w  Destination for the screen width in pixels, or @c NULL
- * @param out_h  Destination for the screen height in pixels, or @c NULL
+ * @param out_w  Destination for the screen width in pixels, or null
+ * @param out_h  Destination for the screen height in pixels, or null
  *
  * @return @c true on success, @c false on failure
  *
@@ -94,7 +94,7 @@ bool wcmd_screen_dim(client_td *client,
  *
  * @param client     Pointer to the client
  * @param num_states Number of state name strings that follow
- * @param ...        @c num_states @c const @c char* state name arguments
+ * @param ...        @c (const char*) state name arguments
  *
  * @note Complexity: @e O(n), where @e n is @p num_states
  */
@@ -105,7 +105,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...);
  *
  * @param client     Pointer to the client
  * @param num_states Number of state name strings that follow
- * @param ...        @c num_states @c const @c char* state name arguments
+ * @param ...        @c (const char*) state name arguments
  *
  * @note Complexity: @e O(n * m), where @e n is @p num_states and @e m
  *       is the current number of window states

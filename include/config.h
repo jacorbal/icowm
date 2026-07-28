@@ -52,7 +52,7 @@ struct config_base_s {
         } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
     } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
-    /* Basic main programs to launch */
+    /* Basic main programs: terminal and program launcher */
     struct {
         char terminal[CONFIG_MAX_LENGTH_COMMAND];
         char launcher[CONFIG_MAX_LENGTH_COMMAND];
@@ -61,37 +61,36 @@ struct config_base_s {
         char editor[CONFIG_MAX_LENGTH_COMMAND];
     } programs;
 
-    /* General behavior of windows */
+    /* General behavior of environment towards windows */
     struct {
         enum config_focus_policy_e {
             CONFIG_FOCUS_POLICY_CLICK = 0,
-            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE,
+            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE
         } focus_policy;
-
-        /* Window placement policy settings */
         enum config_placement_policy_e {
             CONFIG_PLACEMENT_POLICY_SMART = 0,
             CONFIG_PLACEMENT_POLICY_CASCADE,
             CONFIG_PLACEMENT_POLICY_CENTERED,
-            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE,
+            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
         } placement_policy;
+        uint32_t snap;
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
         } focus;
-        uint32_t snap;
+
     } windows;
 
-    /* General behavior of icons */
+    /* Icon placement policy settings */
     struct {
         enum config_icon_placement_e {
-            CONFIG_ICON_PLACEMENT_BOTTOM = 0, /**< Bottom row (default) */
+            CONFIG_ICON_PLACEMENT_BOTTOM = 0, /**< Bottom rpw (default) */
             CONFIG_ICON_PLACEMENT_TOP,        /**< Top row */
             CONFIG_ICON_PLACEMENT_LEFT,       /**< Left column */
             CONFIG_ICON_PLACEMENT_RIGHT,      /**< Right column */
-            CONFIG_ICON_PLACEMENT_SMART,      /**< First free slot; falls
-                                                back to bottom when none
-                                                available */
+            CONFIG_ICON_PLACEMENT_SMART       /**< First free slot;
+                                                   falls back to bottom
+                                                   when none available */
         } placement_policy;
     } icons;
 };
@@ -119,7 +118,8 @@ struct config_bindings_s {
             char file_manager[CONFIG_MAX_LENGTH_BINDING];
             char web_browser[CONFIG_MAX_LENGTH_BINDING];
             char editor[CONFIG_MAX_LENGTH_BINDING];
-        } launch;
+        } programs;
+
         struct {
             char close[CONFIG_MAX_LENGTH_BINDING];
             char decorate[CONFIG_MAX_LENGTH_BINDING];
@@ -132,6 +132,7 @@ struct config_bindings_s {
             char pin[CONFIG_MAX_LENGTH_BINDING];
             char shade[CONFIG_MAX_LENGTH_BINDING];
         } window;
+
         struct {
             struct {
                 char prev[CONFIG_MAX_LENGTH_BINDING];
@@ -180,6 +181,7 @@ struct config_bindings_s {
             char lower[CONFIG_MAX_LENGTH_BINDING];
             char resize[CONFIG_MAX_LENGTH_BINDING];
         } window;
+
         struct {
             struct {
                 char prev[CONFIG_MAX_LENGTH_BINDING];

@@ -87,7 +87,7 @@ typedef struct surface_s {
     /* Properties */
     struct surface_properties_s properties;
 
-    uint32_t desktop_count;         /**< Number of desktops for this surface */
+    uint32_t desktop_count;         /**< No. of desktops for this surface */
     uint32_t desktop_cur;           /**< Index of current desktop */
     cdlist_td *desktops;            /**< Circular list of desktops */
 
@@ -360,7 +360,8 @@ int surface_action_desktop_switch_next(surface_td *surface);
 int surface_action_desktop_switch_prev(surface_td *surface);
 
 /**
- * @brief Toggle the current application into or out of full surface mode
+ * @brief Toggle the current application into or out of full surface
+ *        mode
  *
  * @param surface Pointer to the surface to receive the action
  *

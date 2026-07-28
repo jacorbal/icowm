@@ -60,7 +60,7 @@ int surface_render_current_desktop(surface_td *surface)
 
     desktop = (desktop_td *) cdlist_data(desktop_node);
     if (desktop == NULL) {
-        LOGGER_ERROR("'NULL' desktop pointer", L_NARG);
+        LOGGER_ERROR("Null desktop pointer", L_NARG);
         return 1;
     }
 

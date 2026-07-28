@@ -23,18 +23,22 @@
 #include <utils/geom.h>
 
 
+/* Clamp a signed dimension value to the supported client bounds */
 uint16_t geom_clamp_dim(int32_t value)
 {
     if (value < (int32_t) WM_MIN_WINDOW_DIMENSION) {
         return WM_MIN_WINDOW_DIMENSION;
     }
+
     if (value > (int32_t) UINT16_MAX) {
         return UINT16_MAX;
     }
+
     return (uint16_t) value;
 }
 
 
+/* Test whether two axis-aligned rectangles overlap */
 bool geom_rect_overlap(int32_t ax, int32_t ay,
         uint32_t aw, uint32_t ah,
         int32_t bx, int32_t by,

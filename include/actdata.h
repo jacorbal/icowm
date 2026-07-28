@@ -59,7 +59,7 @@ typedef struct action_data_client_s {
             char *str0;
             char *str1;
        } str;
-    } new_data;                         /** New values to update */
+    } new_data;         /**< New values to update */
 } action_data_client_td;
 
 

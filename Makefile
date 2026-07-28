@@ -158,8 +158,9 @@ parallel:
 
 mkdirs:
 	@mkdir -p $(B_DIR) $(O_DIR)
-	@for dir in $$(find $(S_DIR) -mindepth 1 -maxdepth 1 -type d | \
-    	sed 's|$(S_DIR)/||'); do \
+	@find $(S_DIR) -mindepth 1 -type d | \
+		sed 's|$(S_DIR)/||' | \
+		while read dir; do \
 			mkdir -p "$(O_DIR)/$$dir"; \
 		done
 

@@ -86,9 +86,9 @@ typedef struct {
  * @note If @p display_name is @c NULL, the initialization attempts to
  *       get the "DISPLAY" environment variable, if set.
  * @note This function uses a singleton pattern
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces to
- *       initialize, and @e m the number of desktops per window, as for
- *       the initialization requires iterate over a list of lists
+ * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ *       to initialize, and @e m the number of desktops per window, as
+ *       for the initialization requires iterate over a list of lists
  */
 int wm_start(const char *display_name, const char *config_dir_prefix);
 
@@ -177,6 +177,16 @@ int wm_action_surface_rem(void);
 int wm_action_exit(void);
 
 /**
+ * @brief Macro that evaluates to the number of surfaces handled by the
+ *        window manager
+ *
+ * @note Complexity: @e O(1)
+ */
+#define wm_surface_count(wm) \
+  (((wm) == NULL) || (((wm)->surfaces) == NULL) ? 0 : ((wm)->surfaces)->size)
+
+
+/**
  * @brief Return the desktop that currently contains @p client
  *
  * Searches all surfaces and desktops managed by the singleton window
@@ -187,20 +197,10 @@ int wm_action_exit(void);
  * @return Pointer to the containing @c desktop_td, or @c NULL when the
  *         client is not found or the window manager is not initialised
  *
- * @note @e Complexity: O(S * D * C), where @e S is the number of
- *       surfaces, @e D is the number of desktops, and @e C is the
- *       amount of clients
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across all desktops
  */
 desktop_td *wm_get_client_desktop(const client_td *client);
-
-/**
- * @brief Macro that evaluates to the number of surfaces handled by the
- *        window manager
- *
- * @note Complexity: @e O(1)
- */
-#define wm_surface_count(wm) \
-  (((wm) == NULL) || (((wm)->surfaces) == NULL) ? 0 : ((wm)->surfaces)->size)
 
 
 #endif  /* ! WM_H */

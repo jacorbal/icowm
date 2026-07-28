@@ -45,7 +45,7 @@ int desktop_render_background(desktop_td *desktop)
     uint32_t values[2];
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return 1;
     }
 
@@ -187,12 +187,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     uint16_t inner_h;
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return 1;
     }
 
     if (desktop->stacking == NULL) {
-        LOGGER_ERROR("Desktop stacking list is 'NULL'!", L_NARG);
+        LOGGER_ERROR("Desktop stacking list is null!", L_NARG);
         return 1;
     }
 
@@ -210,7 +210,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 
     stacking_node = cdlist_head(desktop->stacking);
     if (stacking_node == NULL) {
-        LOGGER_ERROR("Stacking list head is 'NULL' despite size > 0",
+        LOGGER_ERROR("Stacking list head is null despite size > 0",
                 L_NARG);
         return 1;
     }
@@ -222,7 +222,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         client = (client_td *) cdlist_data(stacking_node);
 
         if (client == NULL) {
-            LOGGER_ERROR("'NULL' client found in stacking list at" \
+            LOGGER_ERROR("Null client found in stacking list at" \
                     " position %d", client_count);
             stacking_node = cdlist_next(stacking_node);
             continue;
@@ -312,7 +312,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
             bottom = (uint16_t) client->layout.frame_extents.bottom;
-            title_h = (uint16_t) client->title_height;
+            title_h = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w > left + right)
             ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
             : 1;
@@ -415,7 +415,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 int desktop_render_full(desktop_td *desktop, bool is_current)
 {
     if (desktop == NULL) {
-        LOGGER_ERROR("Received 'NULL' desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return 1;
     }
 

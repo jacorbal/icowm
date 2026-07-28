@@ -3,6 +3,10 @@
  *
  * @brief Provide safe memory handling functions
  *
+ * Functions:
+ *  - @c 'void safe_free(void **ptr)'
+ *  - @c 'int safe_free_var(void **first, ...)'
+ *
  * @ingroup mem Safe memory management utils
  */
 /*
@@ -19,11 +23,11 @@
 
 /**
  * @brief Free a dynamically allocated memory block if the pointer is
- *        not @c NULL
+ *        non-null
  *
- * This function checks if the provided pointer is not @c NULL and, if
- * so, it frees the memory it points to. After freeing, the pointer is
- * set to @c NULL to prevent accidental access to freed memory.
+ * This function checks if the provided pointer is non-null and, if so,
+ * it frees the memory it points to. After freeing, the pointer is set
+ * to @c NULL to prevent accidental access to freed memory.
  *
  * @param ptr A pointer to the pointer to be freed
  *
@@ -35,8 +39,8 @@ void safe_free(void **ptr);
  * @brief Free multiple dynamically allocated pointers
  *
  * Frees the memory of provided pointers as a variable list arguments.
- * The list of pointers must be terminated with a @c NULL pointer, as
- * this function stops when it encounters the first null value, and it
+ * The list of pointers must be terminated with a null pointer, as this
+ * function stops when it encounters the first null value, and it
  * requires at least one null argument.
  *
  * @param first A pointer to the first pointer to free
@@ -44,7 +48,7 @@ void safe_free(void **ptr);
  *
  * @return 0 if all pointers were freed successfully, the index
  *         (0-based) of the first pointer that could not be freed, or -1
- *         if the first pointer was @c NULL or if no valid pointers were
+ *         if the first pointer was null or if no valid pointers were
  *         provided up to the first @c NULL
  *
  * @note This function does not take a counter argument, and uses
@@ -56,7 +60,7 @@ void safe_free(void **ptr);
  *       provided up to the first @c NULL
  *
  * This example demonstrates how to call the @a safe_free_var
- * function with a mixture of valid and @c NULL pointers:
+ * function with a mixture of valid and null pointers:
  *
  * @code
  *  char *ptr1 = malloc(64);
