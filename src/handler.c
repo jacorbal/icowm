@@ -11,6 +11,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -23,15 +24,20 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
-/* Defs includes */
-#include <defs/wm.h>
+/* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Render includes */
 #include <render/desktop.h>
 #include <render/surface.h>
 #include <render/text.h>
 
-/* Windows & icons policy includes */
+/* Policy includes */
 #include <policy/focus.h>
 #include <policy/placement.h>
 
@@ -44,15 +50,12 @@
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
+/* Defs includes */
+#include <defs/wm.h>
+
 /* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
 #include <lifecycle.h>
-#include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <wm.h>
 
 /* Local includes */
 #include <handler.h>
@@ -71,8 +74,8 @@ void handler_configure_request(xcb_connection_t *connection,
     int i = 0;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received null pointer in configure request" \
-                " handler", L_NARG);
+        LOGGER_ERROR("Received null pointer in configure request handler",
+                L_NARG);
         return;
     }
 
@@ -173,9 +176,9 @@ void handler_configure_notify(xcb_connection_t *connection,
 /* Handle a 'MAP_REQUEST' event */
 void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 {
-    client_td *client;
-    desktop_td *desktop;
     surface_td *surface;
+    desktop_td *desktop;
+    client_td *client;
 
     if (wm == NULL || event == NULL) {
         LOGGER_ERROR("Received null pointer in map request handler",
@@ -287,12 +290,10 @@ void handler_unmap_notify(xcb_connection_t *connection,
                 event->window != client->frame) {
             return;
         }
-
         if (client->ignore_unmap > 0) {
             client->ignore_unmap--;
             return;
         }
-
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
@@ -323,7 +324,6 @@ void handler_unmap_notify(xcb_connection_t *connection,
                 }
             }
         }
-
         /* Unmap decoration windows so they do not float without content */
         if (client->frame != 0) {
             xcb_unmap_window(client->connection, client->frame);
@@ -344,11 +344,15 @@ void handler_destroy_notify(xcb_connection_t *connection,
         xcb_destroy_notify_event_t *event)
 {
     client_td *client;
+    client_td *c;
     surface_td *surface;
     desktop_td *desktop;
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received null pointer in destroy handler", L_NARG);
+        LOGGER_ERROR("Received null pointer in destroy handler",
+                L_NARG);
         return;
     }
 
@@ -360,7 +364,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
         return;
     }
 
-    if (event->window != client->window) {
+    if (event->window != client->window &&
+            event->window != client->frame) {
         return;
     }
 
@@ -371,13 +376,64 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     if (desktop != NULL && desktop->client_active_id == client->id) {
         desktop->client_active_id = 0;
+        /* Restore focus to the most recently used visible client.
+         * Must happen before 'desktop_action_client_rem' removes the
+         * client from the stacking list so we can skip it by
+         * pointer. */
+        if (desktop->stacking != NULL) {
+            node = cdlist_tail(desktop->stacking);
+            initial = node;
+            if (node != NULL) {
+                do {
+                    c = (client_td *) cdlist_data(node);
+                    if (c != NULL && c != client &&
+                            !(c->properties.flags &
+                                CLIENT_FLAG_HIDDEN) &&
+                            (c->properties.flags &
+                             CLIENT_FLAG_FOCUSABLE)) {
+                        desktop->client_active_id = c->id;
+                        xcb_set_input_focus(connection,
+                                XCB_INPUT_FOCUS_PARENT,
+                                c->window, XCB_CURRENT_TIME);
+                        desktop->is_outdated = true;
+                        if (surface != NULL) {
+                            surface->is_outdated = true;
+                        }
+                        break;
+                    }
+                    node = cdlist_prev(node);
+                } while (node != NULL && node != initial);
+            }
+        }
     }
 
     if (desktop != NULL) {
         desktop_action_client_rem(desktop, client);
     }
 
-    client->window = 0;
+    /* When the frame is destroyed the X server also destroys all its
+     * children ('client->window', 'client->titlebar').  Zero them all
+     * out so client_destroy does not issue redundant
+     * 'xcb_destroy_window' calls. */
+    if (event->window == client->frame) {
+        client->frame = 0;
+        client->titlebar = 0;
+        client->window = 0;
+    } else {
+        /* The content window was destroyed (e.g., the client process
+         * exited or the app closed without a prior 'UnmapNotify').
+         * Immediately destroy the WM-created frame (which takes its
+         * titlebar child with it) so no ghost frame is left on screen.
+         * Zero both pointers to prevent client_destroy from issuing
+         * redundant destroy calls. */
+        if (connection != NULL && client->frame != 0) {
+            xcb_destroy_window(connection, client->frame);
+            xcb_flush(connection);
+        }
+        client->frame = 0;
+        client->titlebar = 0;
+        client->window = 0;
+    }
     client_destroy(client);
 
     if (surface != NULL) { surface->is_outdated = true; }
@@ -399,7 +455,7 @@ void handler_property_notify(xcb_connection_t *connection,
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in property handler",
-        L_NARG);
+                L_NARG);
         return;
     }
 
@@ -449,7 +505,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
         const config_td *cfg)
 {
     list_item_td *node;
-    surface_td   *surface;
+    surface_td *surface;
     xcb_connection_t *connection = NULL;
 
     if (keysyms == NULL || event == NULL || cfg == NULL) {
@@ -520,7 +576,7 @@ void handler_expose(xcb_connection_t *connection,
         xcb_expose_event_t *event,
         const config_td *cfg)
 {
-    client_td  *client;
+    client_td *client;
     desktop_td *desktop;
     bool is_focused;
     uint16_t left;
@@ -568,8 +624,7 @@ void handler_expose(xcb_connection_t *connection,
             text_renderer_set_color(
                     cfg->theme.icon.foreground_color,
                     cfg->theme.icon.background_color);
-            text_draw_string(connection, client->icon_window,
-                    XCB_NONE,
+            text_draw_string(connection, client->icon_window, XCB_NONE,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +
                         WM_ICON_CAPTION_HEIGHT - 2u),
@@ -579,15 +634,11 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    if (client->titlebar != event->window ||
-            client->info.name == NULL) {
-        return;
-    }
-
     is_focused = (desktop != NULL &&
                   desktop->client_active_id == client->id);
 
-    if (client->frame == event->window) {
+    /* Frame-only expose: repaint border and background */
+    if (client->frame != 0 && client->frame == event->window) {
         xcb_change_window_attributes(connection, client->frame,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
@@ -598,6 +649,10 @@ void handler_expose(xcb_connection_t *connection,
                 });
         xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
         xcb_flush(connection);
+        return;
+    }
+
+    if (client->titlebar != event->window || client->info.name == NULL) {
         return;
     }
 
@@ -627,16 +682,15 @@ void handler_expose(xcb_connection_t *connection,
     xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
 
     text_renderer_init(connection,
-            is_focused ? cfg->theme.window.active.font
-                       : cfg->theme.window.inactive.font);
+            (is_focused) ? cfg->theme.window.active.font
+                         : cfg->theme.window.inactive.font);
     text_renderer_set_color(
             (is_focused) ? cfg->theme.window.active.foreground_color
                          : cfg->theme.window.inactive.foreground_color,
             (is_focused) ? cfg->theme.window.active.background_color
                          : cfg->theme.window.inactive.background_color);
     text_draw_string(connection, client->titlebar, XCB_NONE,
-            (int16_t) (WM_DECOR_BTN_PAD +
-                WM_DECOR_BTN_SIZE +
+            (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                 WM_DECOR_BTN_PAD),
             (int16_t) ((title_h > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                     ? title_h - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD

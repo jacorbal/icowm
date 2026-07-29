@@ -142,8 +142,8 @@ void cycle_open(list_td *surfaces,
         free(foc_reply);
     }
 
-    nt = is_icon ? KEYBIND_DESKTOP_ICON_NEXT : KEYBIND_CLIENT_CYCLE_NEXT;
-    pt = is_icon ? KEYBIND_DESKTOP_ICON_PREV : KEYBIND_CLIENT_CYCLE_PREV;
+    nt = (is_icon) ? KEYBIND_DESKTOP_ICON_NEXT : KEYBIND_CLIENT_CYCLE_NEXT;
+    pt = (is_icon) ? KEYBIND_DESKTOP_ICON_PREV : KEYBIND_CLIENT_CYCLE_PREV;
     nks = XCB_NO_SYMBOL; nmm = 0;
     pks = XCB_NO_SYMBOL; pmm = 0;
     (void) keyboard_find(nt, &nks, &nmm);
@@ -181,7 +181,7 @@ void cycle_open(list_td *surfaces,
                      * out visually in the cycle menu. */
                     if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
                         snprintf(s_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LEN, "[%s]", name);
+                                WM_CYCLE_MENU_ENTRY_LEN, "(%s)", name);
                     } else {
                         snprintf(s_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
@@ -291,8 +291,13 @@ void cycle_close(xcb_connection_t *connection)
                 restore_focus,
                 XCB_CURRENT_TIME);
     }
+
     if (surface != NULL) {
-        surface->is_outdated = true;
+        desktop_td *cur = surface_desktop_get(surface,
+                surface->desktop_cur);
+        if (cur != NULL) {
+            cur->is_outdated = true;
+        }
         (void) surface_render_all_desktops(surface);
     } else {
         xcb_flush(connection);
@@ -350,7 +355,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
 void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
         const config_td *cfg)
 {
-    client_td  *target;
+    client_td *target;
     surface_td *surface;
     desktop_td *desktop;
     bool is_icon;

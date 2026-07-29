@@ -116,7 +116,11 @@ void mouse_handle_press(xcb_connection_t *connection,
                 event->child == popup_window()) {
             popup_close(connection);
             if (surface != NULL) {
-                surface->is_outdated = true;
+                desktop_td *cur = surface_desktop_get(surface,
+                        surface->desktop_cur);
+                if (cur != NULL) {
+                    cur->is_outdated = true;
+                }
                 (void) surface_render_all_desktops(surface);
             }
             xcb_flush(connection);
@@ -124,7 +128,11 @@ void mouse_handle_press(xcb_connection_t *connection,
         }
         popup_close(connection);
         if (surface != NULL) {
-            surface->is_outdated = true;
+            desktop_td *cur = surface_desktop_get(surface,
+                    surface->desktop_cur);
+            if (cur != NULL) {
+                cur->is_outdated = true;
+            }
             (void) surface_render_all_desktops(surface);
         }
     }
