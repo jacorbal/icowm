@@ -66,11 +66,16 @@ void focus_apply(list_td *surfaces,
     desktop->is_outdated = true;
     surface->is_outdated = true;
 
+    /* Always move the newly focused client to the tail of the stacking
+     * list (MRU head) so that the cycle menu, the Z-order restoration
+     * on desktop switch, and focus recovery all track the last focused
+     * window, regardless of whether the window is being raised. */
+    (void) desktop_action_client_send_front(desktop, client);
+
     should_raise = (raise ||
             (cfg != NULL &&
              cfg->base.windows.focus.is_raised_on_focus));
     if (should_raise) {
-        (void) desktop_action_client_send_front(desktop, client);
         (void) client_send_event_raise(client);
     }
 

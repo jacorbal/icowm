@@ -886,7 +886,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* Restore Z-order: iterate from head (bottom) to tail (top),
      * raising each window to the top so the tail (topmost client) ends
      * up at the top of the X11 stacking order when all windows are
-     * shown. */
+     * shown */
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
         initial = node;
