@@ -97,7 +97,7 @@ void cycle_open(list_td *surfaces,
     xcb_get_input_focus_cookie_t foc_cookie;
     xcb_get_input_focus_reply_t *foc_reply;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
     uint16_t menu_w;
     uint16_t menu_h;
     int16_t menu_x;
@@ -204,7 +204,7 @@ void cycle_open(list_td *surfaces,
         s_menu.selected = (active_idx + preselect + s_menu.count) %
             s_menu.count;
     } else {
-        s_menu.selected = s_menu.count - 1;
+        s_menu.selected = (preselect >= 0) ? 0 : s_menu.count - 1;
     }
 
     /* Compute dimensions */
@@ -229,13 +229,17 @@ void cycle_open(list_td *surfaces,
     if (menu_y < 0) { menu_y = 0; }
 
     s_menu.window = xcb_generate_id(connection);
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
+        XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
     values[0] = cfg->theme.window.inactive.background_color;
     values[1] = cfg->theme.window.active.border_color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE    |
-                XCB_EVENT_MASK_KEY_PRESS    |
-                XCB_EVENT_MASK_KEY_RELEASE  |
-                XCB_EVENT_MASK_BUTTON_PRESS;
+    values[2] = 1;  /* override_redirect = true */
+    values[3] = XCB_EVENT_MASK_EXPOSURE    |
+        XCB_EVENT_MASK_KEY_PRESS    |
+        XCB_EVENT_MASK_KEY_RELEASE  |
+        XCB_EVENT_MASK_BUTTON_PRESS;
+
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_menu.window,
