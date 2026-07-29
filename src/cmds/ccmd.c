@@ -176,11 +176,37 @@ void wcmd_client_close(client_td *client)
         return;
     }
 
-    /* This destroys the client in 'client->window', but does not
-     * deallocates the memory of the client object.  This is intended to
-     * be called by the desktop, therefore, it's responsibility of the
-     * desktop to execute this action, and then invoke 'client_destroy' */
-    xcb_destroy_window(client->connection, client->window);
+    /* ICCCM §4.2.8: send a 'WM_DELETE_WINDOW' 'ClientMessage' when the
+     * client advertises support in 'WM_PROTOCOLS'; fall back to
+     * 'xcb_destroy_window' only when it does not */
+    if (client->has_wm_delete_window && client->ewmh != NULL) {
+        xcb_intern_atom_reply_t *ia;
+        xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
+        xcb_client_message_event_t ev;
+
+        ia = xcb_intern_atom_reply(client->connection,
+                xcb_intern_atom(client->connection, 1, 16,
+                    "WM_DELETE_WINDOW"),
+                NULL);
+        if (ia != NULL) {
+            wm_delete_atom = ia->atom;
+            free(ia);
+        }
+
+        memset(&ev, 0, sizeof(ev));
+        ev.response_type = XCB_CLIENT_MESSAGE;
+        ev.format = 32;
+        ev.window = client->window;
+        ev.type = client->ewmh->WM_PROTOCOLS;
+        ev.data.data32[0] = wm_delete_atom;
+        ev.data.data32[1] = XCB_CURRENT_TIME;
+        xcb_send_event(client->connection, 0, client->window,
+                XCB_EVENT_MASK_NO_EVENT,
+                (const char *) &ev);
+    } else {
+        /* Client does not support WM_DELETE_WINDOW; destroy directly */
+        xcb_destroy_window(client->connection, client->window);
+    }
 }
 
 

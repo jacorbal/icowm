@@ -890,3 +890,64 @@ int desktop_action_application_launch(desktop_td *desktop,
     return 0;
 
 }
+
+
+/* Recompute work area from client struts */
+void desktop_update_workarea(desktop_td *desktop,
+        uint32_t screen_w, uint32_t screen_h)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    int32_t left = 0;
+    int32_t right = 0;
+    int32_t top = 0;
+    int32_t bottom = 0;
+    int32_t new_w;
+    int32_t new_h;
+
+    if (desktop == NULL || desktop->stacking == NULL ||
+            cdlist_size(desktop->stacking) == 0) {
+        if (desktop != NULL) {
+            desktop->workarea.pos.x = 0;
+            desktop->workarea.pos.y = 0;
+            desktop->workarea.dim.w = screen_w;
+            desktop->workarea.dim.h = screen_h;
+        }
+        return;
+    }
+
+    /* Aggregate maximum strut on each edge across all stacked clients */
+    initial = cdlist_head(desktop->stacking);
+    node = initial;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL) {
+            if (c->layout.strut_partial.sides.left > left) {
+                left = c->layout.strut_partial.sides.left;
+            }
+            if (c->layout.strut_partial.sides.right > right) {
+                right = c->layout.strut_partial.sides.right;
+            }
+            if (c->layout.strut_partial.sides.top > top) {
+                top = c->layout.strut_partial.sides.top;
+            }
+            if (c->layout.strut_partial.sides.bottom > bottom) {
+                bottom = c->layout.strut_partial.sides.bottom;
+            }
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    new_w = (int32_t) screen_w - left - right;
+    new_h = (int32_t) screen_h - top  - bottom;
+
+    desktop->workarea.pos.x = left;
+    desktop->workarea.pos.y = top;
+    desktop->workarea.dim.w = (new_w > 0) ? (uint32_t) new_w : 0U;
+    desktop->workarea.dim.h = (new_h > 0) ? (uint32_t) new_h : 0U;
+
+    LOGGER_TRACE("Desktop %u workarea: %ux%u+%d+%d",
+            desktop->id,
+            desktop->workarea.dim.w, desktop->workarea.dim.h,
+            desktop->workarea.pos.x, desktop->workarea.pos.y);
+}

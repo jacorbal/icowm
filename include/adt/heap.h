@@ -42,8 +42,9 @@ typedef struct {
      */
     void (*destroy)(void *data);
 
-    size_t size;    /**< Size of the heap */
-    void **tree;    /**< Array of nodes in the heap */
+    size_t size;        /**< Size of the heap */
+    size_t capacity;    /**< Allocated array capacity (slots) */
+    void **tree;        /**< Array of nodes in the heap */
 } heap_td;
 
 

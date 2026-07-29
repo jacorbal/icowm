@@ -1,8 +1,7 @@
 /**
  * @file eventq.c
  *
- * @brief Event priority queue (min-heap) handler function
- *        implementation
+ * @brief Event queue (FIFO) handler function implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -20,7 +19,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/pqueue.h> /* Priority queue (as a heap) */
+#include <adt/queue.h> /* FIFO queue (as a linked list) */
 
 /* Utils includes */
 #include <utils/safemem.h>
@@ -48,51 +47,14 @@
 
 
 /**
- * @brief Pointer to the singleton instance of the event priority queue
+ * @brief Pointer to the singleton FIFO event queue
  *
- * Event priority queue defined over a heap data structure and organized
- * as a min-heap, using it as a tree where the value of the root node
- * must be the smallest among all its descendant nodes and the same
- * thing must be done for its left and right sub-tree also.  In other
- * words, it's a bottom-heavy heap, where in this case, it's distributed
- * by priority, where the highest priority corresponds to the smallest
- * value.
+ * Events are enqueued at the tail and dequeued from the head, giving
+ * strict arrival-order (FIFO) processing.  All events in practice carry
+ * 'PRIORITY_NORMAL'; a simple queue therefore provides the same
+ * scheduling as the former min-heap at lower overhead.
  */
-static pqueue_td *eventq = NULL;        /* Event priority queue
-                                          (min-heap; heavy-bottom) */
-
-
-/**
- * @brief Compare data of two events based on their priority
- *
- * Determines the order of events in a priority queue, allowing events
- * with lower priority values (more negative) to be considered of higher
- * priority.
- *
- * @param e1 Pointer to the first event
- * @param e2 Pointer to the second event
- *
- * @retval -1 @p event1 has higher priority (lower value) than @p event2
- * @retval  1 @p event1 has lower priority (higher value) than @p event2
- * @retval  0 Both events have equal priority
- *
- * @note A negative priority value indicates a higher importance
- * @note Complexity: @e O(1), as it performs a constant number of
- *       comparisons between the two priority values
- */
-static int s_event_compare(const void *e1, const void *e2)
-{
-    const event_td *event1 = (const event_td *) e1;
-    const event_td *event2 = (const event_td *) e2;
-
-    if (event1->priority < event2->priority) {
-        return -1;  /* 'event1' before 'event2' (HIGHER priority) */
-    } else if (event1->priority > event2->priority) {
-        return 1;   /* 'event1' after 'event2' (LOWER priority) */
-    } else {
-        return 0;   /* 'event1' and 'event2' have EQUAL priority */
-    }
-}
+static queue_td *eventq = NULL;     /* FIFO event queue */
 
 
 /**
@@ -295,15 +257,17 @@ static void s_event_handle_client(event_td *event)
             break;
 
         case ACTION_CLIENT_CYCLE_NEXT:
-            /* Find the desktop owning this client */
-
-            /* NOTE: We traverse surfaces/desktops to find the owner */
-            /* For now dispatch via desktop action */
-            (void) desktop;
-            /* Cycle is dispatched as a desktop event from 'wm.c' */
+            desktop = wm_get_client_desktop(client);
+            if (desktop != NULL) {
+                dcmd_desktop_clients_cycle_active(desktop);
+            }
             break;
 
         case ACTION_CLIENT_CYCLE_PREV:
+            desktop = wm_get_client_desktop(client);
+            if (desktop != NULL) {
+                dcmd_desktop_clients_cycle_active(desktop);
+            }
             break;
 
         case ACTION_CLIENT_TOGGLE_DECORATION:
@@ -605,15 +569,14 @@ static void s_event_handle_wm(event_td *event)
 }
 
 
-/* Start the priority queue (as min-heap) to handle events */
+/* Start the FIFO queue to handle events */
 int eventq_start(void)
 {
-    LOGGER_DEBUG("Initializing priority queue for events", L_NARG);
+    LOGGER_DEBUG("Initializing FIFO queue for events", L_NARG);
     if (eventq == NULL) {
-        eventq = pqueue_init(s_event_compare,
-                (void (*)(void *)) event_destroy);
+        eventq = queue_init((void (*)(void *)) event_destroy);
         if (eventq == NULL) {
-            LOGGER_FATAL("Failed to initialize event priority queue",
+            LOGGER_FATAL("Failed to initialize event queue",
                     L_NARG);
             return 1;
         }
@@ -625,23 +588,23 @@ int eventq_start(void)
 }
 
 
-/* Deallocate memory used by the event priority queue */
+/* Deallocate memory used by the event queue */
 int eventq_stop(void)
 {
-    LOGGER_DEBUG("Deallocating priority queue for events", L_NARG);
+    LOGGER_DEBUG("Deallocating FIFO queue for events", L_NARG);
 
     if (eventq == NULL) {
         return 1;
     }
 
-    pqueue_destroy(eventq);
+    queue_destroy(eventq);
     eventq = NULL;  /* Reset the singleton instance pointer to 'NULL' */
 
     return 0;
 }
 
 
-/* Add a event to the event priority queue */
+/* Add a event to the event FIFO queue */
 int eventq_add(event_td *event)
 {
     if (event == NULL) {
@@ -649,9 +612,9 @@ int eventq_add(event_td *event)
         return 1;
     }
 
-    LOGGER_TRACE("Inserting event into event queue", L_NARG);
-    if (eventq == NULL || pqueue_insert(eventq, (void *) event) != 0) {
-        LOGGER_WARNING("Failed to insert event into event queue",
+    LOGGER_TRACE("Enqueuing event into event queue", L_NARG);
+    if (eventq == NULL || queue_enqueue(eventq, (void *) event) != 0) {
+        LOGGER_WARNING("Failed to enqueue event into event queue",
                 L_NARG);
         /* Release the event to prevent a memory leak: ownership of
          * 'event' was transferred to this function, so it must be
@@ -670,8 +633,8 @@ event_td *eventq_extract(void)
     event_td *event;
 
     LOGGER_TRACE("Extracting event from event queue", L_NARG);
-    if (eventq == NULL || pqueue_size(eventq) == 0 ||
-            pqueue_extract(eventq, (void **) &event) != 0) {
+    if (eventq == NULL || queue_size(eventq) == 0 ||
+            queue_dequeue(eventq, (void **) &event) != 0) {
         return NULL;
     }
 

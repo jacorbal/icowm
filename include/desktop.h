@@ -395,6 +395,28 @@ int desktop_action_application_kill(desktop_td *desktop,
         pid_t process_id);
 
 /**
+ * @brief Recompute the desktop work area from active client struts
+ *
+ * Scans all clients in the stacking list for non-zero @c _NET_WM_STRUT
+ * / @c _NET_WM_STRUT_PARTIAL values and subtracts the maximum
+ * reservation on each edge from the full screen dimensions.  The result
+ * is stored in @p desktop->workarea and broadcast to the X server as
+ * @c _NET_WORKAREA.
+ *
+ * Call this after a panel (strut client) is mapped or unmapped so that
+ * maximize and smart-placement work on the correct available area.
+ *
+ * @param desktop  Desktop whose work area should be refreshed
+ * @param screen_w Full screen width in pixels
+ * @param screen_h Full screen height in pixels
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop
+ */
+void desktop_update_workarea(desktop_td *desktop,
+        uint32_t screen_w, uint32_t screen_h);
+
+/**
  * @brief Macro that evaluates to the active client of the desktop
  *
  * @note Complexity: @e O(1)

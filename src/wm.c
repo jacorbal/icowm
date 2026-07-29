@@ -54,6 +54,40 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
                                  the window manager */
 
 
+/* Internal cleanup helper: tears down whatever parts of 'wm' have been
+ * initialized so far.  Each pointer is checked before use, so this is
+ * safe to call after a partial initialization. */
+static void s_wm_cleanup(void)
+{
+    if (wm == NULL) {
+        return;
+    }
+    if (wm->surfaces != NULL) {
+        list_destroy(wm->surfaces);
+        wm->surfaces = NULL;
+    }
+
+    eventq_stop();  /* Safe even if 'eventq' was never started */
+
+    if (wm->config != NULL) {
+        config_destroy(wm->config);
+        wm->config = NULL;
+    }
+    if (wm->ewmh != NULL) {
+        xcb_ewmh_connection_wipe(wm->ewmh);
+        free(wm->ewmh);
+        wm->ewmh = NULL;
+    }
+    if (wm->connection != NULL) {
+        xcb_disconnect(wm->connection);
+        wm->connection = NULL;
+    }
+
+    free(wm);
+    wm = NULL;
+}
+
+
 /* Initialize a window manager instance */
 int wm_start(const char *display_name, const char *config_dir_prefix)
 {
@@ -73,6 +107,13 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         return 1;
     }
 
+    /* Zero-initialize all pointer fields so s_wm_cleanup can check each
+     * one safely during any subsequent error path. */
+    wm->connection = NULL;
+    wm->ewmh = NULL;
+    wm->config = NULL;
+    wm->surfaces = NULL;
+
     LOGGER_DEBUG("Opening X display", L_NARG);
     wm->connection = xcb_connect(display_name,
             (int *) &(wm->screenp));
@@ -84,8 +125,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             LOGGER_FATAL("Failed to open X display '%s'",
                     display_name);
         }
-        free(wm);
-        wm = NULL;
+        wm->connection = NULL;   /* 'xcb_disconnect' not needed on error */
+        s_wm_cleanup();
         return 2;
     }
 
@@ -94,9 +135,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     if (wm->ewmh == NULL) {
         LOGGER_FATAL("Error allocating memory for EWMH connection",
                 L_NARG);
-        xcb_disconnect(wm->connection);
-        free(wm);
-        wm = NULL;
+        s_wm_cleanup();
         return 1;
     }
 
@@ -108,11 +147,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     wm->config = config_init();
     if (wm->config == NULL) {
-        xcb_disconnect(wm->connection);
-        xcb_ewmh_connection_wipe(wm->ewmh);
-        free(wm->ewmh);
-        free(wm);
-        wm = NULL;
+        s_wm_cleanup();
         return 3;
     }
 
@@ -121,14 +156,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     config_load(wm->config, wm->config_dir_prefix);
 
     if (eventq_start() != 0) {
-        LOGGER_FATAL("Failed to initialize event priority queue",
-                L_NARG);
-        config_destroy(wm->config);
-        xcb_disconnect(wm->connection);
-        xcb_ewmh_connection_wipe(wm->ewmh);
-        free(wm->ewmh);
-        free(wm);
-        wm = NULL;
+        LOGGER_FATAL("Failed to initialize event queue", L_NARG);
+        s_wm_cleanup();
         return 4;
     }
 
@@ -140,13 +169,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     if (screens_detected == 0) {
         LOGGER_FATAL("No screens detected", L_NARG);
-        config_destroy(wm->config);
-        eventq_stop();
-        xcb_disconnect(wm->connection);
-        xcb_ewmh_connection_wipe(wm->ewmh);
-        free(wm->ewmh);
-        free(wm);
-        wm = NULL;
+        s_wm_cleanup();
         return 5;
     } else {
         LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
@@ -157,13 +180,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     if (wm->surfaces == NULL) {
         LOGGER_FATAL("Failed to allocate memory for surfaces array",
                 L_NARG);
-        eventq_stop();
-        config_destroy(wm->config);
-        xcb_disconnect(wm->connection);
-        xcb_ewmh_connection_wipe(wm->ewmh);
-        free(wm->ewmh);
-        free(wm);
-        wm = NULL;
+        s_wm_cleanup();
         return 6;
     }
 
@@ -191,14 +208,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                     (uint32_t) i, desktops_count, wm->config);
         if (surface == NULL) {
             LOGGER_FATAL("Failed to initialize surface %u", i);
-            list_destroy(wm->surfaces);
-            eventq_stop();
-            config_destroy(wm->config);
-            xcb_disconnect(wm->connection);
-            xcb_ewmh_connection_wipe(wm->ewmh);
-            free(wm->ewmh);
-            free(wm);
-            wm = NULL;
+            s_wm_cleanup();
             return 7;
         }
 
@@ -208,14 +218,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             LOGGER_FATAL("Failed to insert surface %u" \
                     " into surface list", i);
             surface_destroy(surface);
-            list_destroy(wm->surfaces);
-            eventq_stop();
-            config_destroy(wm->config);
-            xcb_disconnect(wm->connection);
-            xcb_ewmh_connection_wipe(wm->ewmh);
-            free(wm->ewmh);
-            free(wm);
-            wm = NULL;
+            s_wm_cleanup();
             return 8;
         }
 
@@ -229,14 +232,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     }
 
     if (startup_subscribe_root_events(wm) != 0) {
-        list_destroy(wm->surfaces);
-        eventq_stop();
-        config_destroy(wm->config);
-        xcb_disconnect(wm->connection);
-        xcb_ewmh_connection_wipe(wm->ewmh);
-        free(wm->ewmh);
-        free(wm);
-        wm = NULL;
+        s_wm_cleanup();
         return 9;
     }
 

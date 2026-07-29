@@ -267,6 +267,25 @@ typedef struct client_s {
 
     struct client_layout_s layout;
     struct client_properties_s properties;
+
+    bool has_wm_delete_window;      /**< Supports WM_DELETE_WINDOW */
+    xcb_window_t transient_for;     /**< Parent window for dialogs
+                                         (0 or XCB_WINDOW_NONE if none) */
+    /**
+     * @brief ICCCM WM_NORMAL_HINTS size constraints
+     */
+    struct {
+        bool valid;         /**< True when hints were read from server */
+        int32_t min_w;      /**< Minimum width  (0 = unset) */
+        int32_t min_h;      /**< Minimum height (0 = unset) */
+        int32_t max_w;      /**< Maximum width  (0 = unset) */
+        int32_t max_h;      /**< Maximum height (0 = unset) */
+        int32_t base_w;     /**< Base width for increment arithmetic */
+        int32_t base_h;     /**< Base height for increment arithmetic */
+        int32_t inc_w;      /**< Width increment  (0 or 1 = no grid) */
+        int32_t inc_h;      /**< Height increment (0 or 1 = no grid) */
+    } size_hints;
+
 } client_td;
 
 

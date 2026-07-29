@@ -348,6 +348,39 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     fh = client->layout.geometry.cur.dim.h;
     policy = wm->config->base.windows.placement_policy;
 
+    /* ICCCM §4.1.2.6: center transient dialogs over their parent */
+    if (client->transient_for != XCB_WINDOW_NONE) {
+        xcb_get_geometry_cookie_t pgc;
+        xcb_get_geometry_reply_t *pgr;
+        pgc = xcb_get_geometry(wm->connection, client->transient_for);
+        pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+        if (pgr != NULL) {
+            new_x = (int32_t) pgr->x +
+                    ((int32_t) pgr->width - (int32_t) fw) / 2;
+            new_y = (int32_t) pgr->y +
+                    ((int32_t) pgr->height - (int32_t) fh) / 2;
+            free(pgr);
+            if (new_x < 0) { new_x = 0; }
+            if (new_y < 0) { new_y = 0; }
+            if ((uint32_t) new_x + fw > sw) {
+                new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
+            }
+            if ((uint32_t) new_y + fh > sh) {
+                new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+            }
+            target = (client_is_decorated(client) && client->frame != 0)
+                ? client->frame : client->window;
+            xcb_configure_window(wm->connection, target,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                    (const uint32_t[]) {
+                        (uint32_t) new_x, (uint32_t) new_y});
+            client->layout.geometry.cur.pos.x = new_x;
+            client->layout.geometry.cur.pos.y = new_y;
+            return;
+        }
+        /* Parent geometry unavailable; fall through to normal policy */
+    }
+
     if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
             place_smart(wm, surface, client, &new_x, &new_y)) {
         /* Placement chosen by smart scan */

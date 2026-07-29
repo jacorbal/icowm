@@ -28,7 +28,7 @@
 #include <render/text.h>
 #include <surface.h>
 
-/* Defs includes */
+/* Default initial values */
 #include <defs/wm.h>
 
 /* Local includes */

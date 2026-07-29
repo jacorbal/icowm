@@ -11,6 +11,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+/* System includes */
+#include <string.h>     /* memset */
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -114,6 +116,33 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
             desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
+                /* Fast path: O(1) hash lookup by 'client->id'.
+                 * Works for all managed clients because 'client->id'
+                 * equals the X window ID for managed clients */
+                client_td temp_key;
+                client_td *found = NULL;
+
+                memset(&temp_key, 0, sizeof(temp_key));
+                temp_key.id = window;
+                found = &temp_key;
+                if (ohtbl_lookup(desktop->clients,
+                            (void **) &found) == 0 &&
+                        found != NULL &&
+                        lookup_client_matches_window(found, window)) {
+
+                    if (out_surface != NULL) {
+                        *out_surface = surface;
+                    }
+
+                    if (out_desktop != NULL) {
+                        *out_desktop = desktop;
+                    }
+
+                    return found;
+                }
+
+                /* Slow path: linear scan for frame, titlebar, icon
+                 * window IDs that differ from 'client->id' */
                 for (size_t i = 0;
                         i < desktop->clients->positions;
                         ++i) {
@@ -121,11 +150,12 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 
                     if (desktop->clients->table[i] == NULL ||
                             desktop->clients->table[i] ==
-                                desktop->clients->vacated) {
+                            desktop->clients->vacated) {
                         continue;
                     }
-                    client = (client_td *) desktop->clients->table[i];
 
+                    client = (client_td *)
+                        desktop->clients->table[i];
                     if (!lookup_client_matches_window(client, window)) {
                         continue;
                     }
@@ -133,9 +163,11 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                     if (out_surface != NULL) {
                         *out_surface = surface;
                     }
+
                     if (out_desktop != NULL) {
                         *out_desktop = desktop;
                     }
+
                     return client;
                 }
             }

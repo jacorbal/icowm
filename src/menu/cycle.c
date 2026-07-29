@@ -28,9 +28,6 @@
 /* Render includes */
 #include <render/surface.h>
 
-/* Defs includes */
-#include <defs/wm.h>
-
 /* Render includes */
 #include <render/text.h>
 
@@ -39,6 +36,9 @@
 
 /* Focus includes */
 #include <policy/focus.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Project includes */
 #include <client.h>

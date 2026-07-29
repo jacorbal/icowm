@@ -38,8 +38,9 @@
  * @brief Begin a drag operation for a managed client window
  *
  * Records the drag start state (client pointer, operation type, initial
- * pointer position, and initial client geometry) and installs a pointer
- * grab so that motion and release events are delivered reliably.
+ * pointer position, initial client geometry, and screen bounds for edge
+ * snap) and installs a pointer grab so that motion and release events
+ * are delivered reliably.
  *
  * @param connection XCB connection
  * @param root       Root window on which to grab the pointer
@@ -49,16 +50,19 @@
  * @param event_time Timestamp from the triggering button-press event
  * @param root_x     Root-relative X of the pointer at press time
  * @param root_y     Root-relative Y of the pointer at press time
+ * @param screen_w   Screen width in pixels (0 to disable snap)
+ * @param screen_h   Screen height in pixels (0 to disable snap)
+ * @param snap       Snap distance in pixels (0 to disable snap)
  *
  * @note Complexity: @e O(1)
  */
 void drag_start(xcb_connection_t *connection,
-        xcb_window_t root,
-        client_td *client,
+        xcb_window_t root, client_td *client,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
-        int16_t root_x,
-        int16_t root_y);
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap);
 
 /**
  * @brief Begin a drag operation for an icon window

@@ -26,11 +26,11 @@
 /* Utils includes */
 #include <utils/geom.h>
 
-/* Defs includes */
-#include <defs/wm.h>
-
 /* Windows & icons policy includes */
 #include <policy/focus.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Project includes */
 #include <client.h>
@@ -57,6 +57,9 @@ static struct {
     int32_t client_start_y;
     uint16_t client_start_w;
     uint16_t client_start_h;
+    uint32_t screen_w;          /**< Screen width for edge snap */
+    uint32_t screen_h;          /**< Screen height for edge snap */
+    uint32_t snap;              /**< Snap distance in pixels */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -67,18 +70,21 @@ static struct {
     .client_start_x = 0,
     .client_start_y = 0,
     .client_start_w = 0,
-    .client_start_h = 0
+    .client_start_h = 0,
+    .screen_w = 0,
+    .screen_h = 0,
+    .snap = 0
 };
 
 
 /* Begin a drag operation for a managed client window */
 void drag_start(xcb_connection_t *connection,
-        xcb_window_t root,
-        client_td *client,
+        xcb_window_t root, client_td *client,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
-        int16_t root_x,
-        int16_t root_y)
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap)
 {
     if (connection == NULL || client == NULL) {
         return;
@@ -96,6 +102,9 @@ void drag_start(xcb_connection_t *connection,
         (uint16_t) client->layout.geometry.cur.dim.w;
     s_drag.client_start_h =
         (uint16_t) client->layout.geometry.cur.dim.h;
+    s_drag.screen_w = screen_w;
+    s_drag.screen_h = screen_h;
+    s_drag.snap = snap;
 
     client->properties.operation = (uint16_t) operation;
 
@@ -183,9 +192,45 @@ void drag_update(xcb_connection_t *connection,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
-        (void) client_send_event_move(client,
-                s_drag.client_start_x + dx,
-                s_drag.client_start_y + dy);
+        int32_t new_x = s_drag.client_start_x + dx;
+        int32_t new_y = s_drag.client_start_y + dy;
+
+        /* Snap to screen edges when within snap distance */
+        if (s_drag.snap > 0 &&
+                s_drag.screen_w > 0 && s_drag.screen_h > 0) {
+            uint32_t snap = s_drag.snap;
+            uint32_t fw   = (uint32_t) s_drag.client_start_w;
+            uint32_t fh   = (uint32_t) s_drag.client_start_h;
+
+            /* Left edge */
+            if (new_x >= 0 && (uint32_t) new_x <= snap) {
+                new_x = 0;
+            }
+
+            /* Top edge */
+            if (new_y >= 0 && (uint32_t) new_y <= snap) {
+                new_y = 0;
+            }
+
+            /* Right edge */
+            if (new_x >= 0 &&
+                    (uint32_t) new_x + fw <= s_drag.screen_w &&
+                    (uint32_t) new_x + fw >=
+                    s_drag.screen_w - snap) {
+                new_x = (int32_t) (s_drag.screen_w - fw);
+            }
+
+            /* Bottom edge */
+            if (new_y >= 0 &&
+                    (uint32_t) new_y + fh <= s_drag.screen_h &&
+                    (uint32_t) new_y + fh >=
+                    s_drag.screen_h - snap) {
+                new_y = (int32_t) (s_drag.screen_h - fh);
+            }
+        }
+
+        (void) client_send_event_move(client, new_x, new_y);
+
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         int32_t new_w = (int32_t) s_drag.client_start_w + dx;
         int32_t new_h = (int32_t) s_drag.client_start_h + dy;

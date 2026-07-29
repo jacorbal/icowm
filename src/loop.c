@@ -32,6 +32,9 @@
 /* Render includes */
 #include <render/surface.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Input includes */
 #include <input/drag.h>
 #include <input/kbpress.h>
@@ -42,6 +45,7 @@
 #include <eventq.h>
 #include <handler.h>
 #include <lifecycle.h>
+#include <lookup.h>
 #include <logger.h>
 #include <startup.h>
 #include <surface.h>
@@ -199,8 +203,52 @@ void loop_run(wm_td *wm)
                             wm->config);
                     break;
 
-                case XCB_LEAVE_NOTIFY:
-                case XCB_FOCUS_OUT:
+                case XCB_LEAVE_NOTIFY: {
+                    xcb_leave_notify_event_t *le =
+                        (xcb_leave_notify_event_t *) event;
+                    surface_td *lsurface;
+                    desktop_td *ldesktop;
+                    if (focus_is_follow_mouse(wm->config) &&
+                            le->mode == XCB_NOTIFY_MODE_NORMAL &&
+                            le->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
+                            lookup_find_client(wm->surfaces, le->event,
+                                    &lsurface, &ldesktop) != NULL) {
+                        /* Pointer left a managed window; release focus
+                         * so the cursor resting on the root background
+                         * leaves all clients visually unfocused. */
+                        xcb_set_input_focus(wm->connection,
+                                XCB_INPUT_FOCUS_POINTER_ROOT,
+                                XCB_INPUT_FOCUS_POINTER_ROOT,
+                                le->time);
+                        if (ldesktop != NULL) {
+                            ldesktop->client_active_id = 0;
+                            ldesktop->is_outdated = true;
+                        }
+                        if (lsurface != NULL) {
+                            lsurface->is_outdated = true;
+                        }
+                        xcb_flush(wm->connection);
+                    }
+                    break;
+                }
+
+                case XCB_FOCUS_OUT: {
+                    xcb_focus_out_event_t *fe =
+                        (xcb_focus_out_event_t *) event;
+                    if (fe->mode == XCB_NOTIFY_MODE_NORMAL ||
+                            fe->mode ==
+                                XCB_NOTIFY_MODE_WHILE_GRABBED) {
+                        surface_td *fsurface = NULL;
+                        if (lookup_find_client(wm->surfaces,
+                                    fe->event, &fsurface,
+                                    NULL) != NULL &&
+                                fsurface != NULL) {
+                            fsurface->is_outdated = true;
+                        }
+                    }
+                    break;
+                }
+
                 case XCB_MAP_NOTIFY:
                 case XCB_REPARENT_NOTIFY:
                 case XCB_CREATE_NOTIFY:

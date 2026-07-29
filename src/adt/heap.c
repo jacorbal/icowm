@@ -44,6 +44,7 @@ heap_td *heap_init(int (*compare)(const void *key1, const void *key2),
 
     /* Initialize the heap */
     heap->size = 0;
+    heap->capacity = 0;
     heap->compare = compare;
     heap->destroy = destroy;
     heap->tree = NULL;
@@ -75,13 +76,16 @@ int heap_insert(heap_td *heap, const void *data)
 {
     void *temp;
     size_t ipos, ppos;
+    size_t new_cap;
 
-    /* Allocate storage for the node */
-    if ((temp = (void **) realloc(heap->tree,
-                    (heap_size(heap) + 1) * sizeof(void *))) == NULL) {
-        return -1;
-    } else {
+    /* Grow the backing array only when full */
+    if (heap->size == heap->capacity) {
+        new_cap = (heap->capacity == 0) ? 4u : heap->capacity * 2u;
+        if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) == NULL) {
+            return -1;
+        }
         heap->tree = temp;
+        heap->capacity = new_cap;
     }
 
     /* Insert the node after the last node */
@@ -115,6 +119,7 @@ int heap_extract(heap_td *heap, void **data)
 {
     void *save, *temp;
     size_t ipos, lpos, rpos, mpos;
+    size_t new_cap;
 
     /* Do not allow extraction from an empty heap */
     if (heap_size(heap) == 0) {
@@ -124,34 +129,34 @@ int heap_extract(heap_td *heap, void **data)
     /* Extract the node at the top of the heap */
     *data = heap->tree[0];
 
-    /* Adjust the storage used by the heap */
-    save = heap->tree[heap_size(heap) - 1];
+    /* Decrement size; the last slot is now "free" */
+    heap->size--;
 
-    if (heap_size(heap) - 1 > 0) {
-        if ((temp = (void **) realloc(heap->tree,
-                        (heap_size(heap) - 1) * sizeof(void *))) == NULL) {
-            return -1;
-        } else {
-            heap->tree = temp;
-        }
-        /* Adjust the size of the heap to account for the extracted node */
-        heap->size--;
-    } else {
-        /* Manage the heap when extracting the last node */
+    if (heap->size == 0) {
+        /* Shrink to zero without losing the allocation */
         free(heap->tree);
         heap->tree = NULL;
-        heap->size = 0;
+        heap->capacity = 0;
 
         return 0;
     }
 
     /* Copy the last node to the top */
+    save = heap->tree[heap->size];
     heap->tree[0] = save;
+
+    /* Shrink backing array when occupancy falls to <= 1/4 of capacity */
+    if (heap->capacity > 4u && heap->size <= heap->capacity / 4u) {
+        new_cap = heap->capacity / 2u;
+        if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) != NULL) {
+            heap->tree = temp;
+            heap->capacity = new_cap;
+        }
+        /* 'realloc' failure is non-fatal, for the tree is still valid */
+    }
 
     /* Heapify the tree by pushing the contents of the new top downward */
     ipos = 0;
-    lpos = s_heap_left(ipos);
-    rpos = s_heap_right(ipos);
 
     while (true) {
         /* Select the child to swap with the current node */

@@ -11,9 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-/* Render includes */
-#include <render/surface.h>
-
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -77,13 +74,5 @@ void focus_apply(list_td *surfaces,
              cfg->base.windows.focus.is_raised_on_focus));
     if (should_raise) {
         (void) client_send_event_raise(client);
-    }
-
-    /* Immediate repaint to keep titlebars in sync */
-    if (surface->is_outdated) {
-        if (surface_render_all_desktops(surface) != 0) {
-            LOGGER_ERROR("Failed to refresh surface %u after focus"
-                    " switch", surface->id);
-        }
     }
 }

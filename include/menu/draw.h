@@ -45,10 +45,7 @@
  */
 void menu_draw_row_bg(xcb_connection_t *connection,
         xcb_window_t window,
-        uint32_t color,
-        int16_t row_y,
-        uint16_t row_h,
-        uint16_t w);
+        uint32_t color, int16_t row_y, uint16_t row_h, uint16_t w);
 
 /**
  * @brief Draw a text label at the given position
@@ -68,10 +65,7 @@ void menu_draw_row_bg(xcb_connection_t *connection,
  *       @p text
  */
 void menu_draw_label(xcb_connection_t *connection,
-        xcb_window_t window,
-        int16_t x,
-        int16_t y,
-        const char *text);
+        xcb_window_t window, int16_t x, int16_t y, const char *text);
 
 /**
  * @brief Measure the pixel width of a text string

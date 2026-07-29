@@ -50,7 +50,7 @@
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
-/* Defs includes */
+/* Default initial values */
 #include <defs/wm.h>
 
 /* Project includes */
@@ -238,6 +238,9 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         return;
     }
 
+    /* Refresh work area in case the new client declares struts */
+    desktop_update_workarea(desktop,
+            surface->properties.dim.w, surface->properties.dim.h);
     place_apply(wm, surface, client);
 
     if (client->titlebar != 0) {
@@ -409,6 +412,12 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     if (desktop != NULL) {
         desktop_action_client_rem(desktop, client);
+        /* Refresh work area in case the removed client had struts */
+        if (surface != NULL) {
+            desktop_update_workarea(desktop,
+                    surface->properties.dim.w,
+                    surface->properties.dim.h);
+        }
     }
 
     /* When the frame is destroyed the X server also destroys all its
@@ -466,14 +475,16 @@ void handler_property_notify(xcb_connection_t *connection,
         return;
     }
 
-    if (event->atom == XCB_ATOM_WM_NAME) {
-        client = lookup_find_client(surfaces, event->window,
-                &surface, NULL);
-        if (client != NULL) {
-            lifecycle_refresh_name(client);
-            if (surface != NULL) {
-                surface->is_outdated = true;
-            }
+    client = lookup_find_client(surfaces, event->window, &surface, NULL);
+    if (client == NULL) {
+        return;
+    }
+    if (event->atom == XCB_ATOM_WM_NAME ||
+            (client->ewmh != NULL &&
+             event->atom == client->ewmh->_NET_WM_NAME)) {
+        lifecycle_refresh_name(client);
+        if (surface != NULL) {
+            surface->is_outdated = true;
         }
     }
 }

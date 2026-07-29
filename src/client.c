@@ -93,6 +93,48 @@ static size_t s_client_get_wm_name(xcb_connection_t *connection,
 
 
 /**
+ * @brief Retrieve the @c _NET_WM_NAME property of a window (UTF-8)
+ *
+ * Attempts to fetch the @c _NET_WM_NAME EWMH atom from the specified
+ * window.  Falls back silently (returns 0) when the property is absent.
+ *
+ * @param ewmh      Pointer to the EWMH connection
+ * @param window    Window ID to query
+ * @param buffer    Destination buffer for the name
+ * @param buffer_sz Size of the destination buffer
+ *
+ * @return Length of name retrieved on success, 0 otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+static size_t s_client_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
+        xcb_window_t window, char *buffer, size_t buffer_sz)
+{
+    xcb_ewmh_get_utf8_strings_reply_t reply;
+    size_t len = 0;
+
+    if (ewmh == NULL || buffer == NULL || buffer_sz == 0) {
+        return 0;
+    }
+
+    memset(&reply, 0, sizeof(reply));
+    if (xcb_ewmh_get_wm_name_reply(ewmh,
+                xcb_ewmh_get_wm_name(ewmh, window),
+                &reply, NULL) && reply.strings_len > 0) {
+        len = (reply.strings_len < buffer_sz - 1u)
+            ? reply.strings_len : buffer_sz - 1u;
+        memcpy(buffer, reply.strings, len);
+        buffer[len] = '\0';
+        xcb_ewmh_get_utf8_strings_reply_wipe(&reply);
+    } else {
+        buffer[0] = '\0';
+    }
+
+    return len;
+}
+
+
+/**
  * @brief Retrieve the @c WM_CLASS property of a window
  *
  * Fetches the @c WM_CLASS atom from the window.  The @c WM_CLASS
@@ -719,6 +761,14 @@ client_td *client_manage(xcb_connection_t *connection,
     char wm_name[256];
     char wm_class[256];
     char wm_instance[256];
+    char net_wm_name[256];
+    xcb_window_t transient = XCB_WINDOW_NONE;
+    xcb_size_hints_t hints;
+    xcb_ewmh_get_extents_reply_t strut;
+    xcb_ewmh_wm_strut_partial_t partial;
+    xcb_intern_atom_reply_t *ia;
+    xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
+    xcb_icccm_get_wm_protocols_reply_t proto;
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
@@ -832,11 +882,19 @@ client_td *client_manage(xcb_connection_t *connection,
     client->icon_info.icon_name[0] = '\0';
     client->icon_info.visible_icon_name[0] = '\0';
 
-    /* Read WM_NAME */
-    s_client_get_wm_name(connection, window, wm_name, sizeof(wm_name));
-    if (wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, wm_name, 255);
-        safe_strncpy(client->info.visible_name, wm_name, 255);
+    /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
+    s_client_get_net_wm_name(ewmh, window,
+            net_wm_name, sizeof(net_wm_name));
+    if (net_wm_name[0] != '\0') {
+        safe_strncpy(client->info.name, net_wm_name, 255);
+        safe_strncpy(client->info.visible_name, net_wm_name, 255);
+    } else {
+        s_client_get_wm_name(connection, window,
+                wm_name, sizeof(wm_name));
+        if (wm_name[0] != '\0') {
+            safe_strncpy(client->info.name, wm_name, 255);
+            safe_strncpy(client->info.visible_name, wm_name, 255);
+        }
     }
 
     /* Read WM_CLASS */
@@ -848,6 +906,115 @@ client_td *client_manage(xcb_connection_t *connection,
     }
     if (wm_instance[0] != '\0') {
         safe_strncpy(client->info.class_name[0], wm_instance, 255);
+    }
+
+    /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW' support */
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1, 16, "WM_DELETE_WINDOW"),
+            NULL);
+    if (ia != NULL) {
+        wm_delete_atom = ia->atom;
+        free(ia);
+    }
+
+    client->has_wm_delete_window = false;
+    memset(&proto, 0, sizeof(proto));
+    if (xcb_icccm_get_wm_protocols_reply(connection,
+                xcb_icccm_get_wm_protocols(connection, window,
+                    ewmh->WM_PROTOCOLS),
+                &proto, NULL)) {
+        for (uint32_t pi = 0; pi < proto.atoms_len; ++pi) {
+            if (proto.atoms[pi] == wm_delete_atom) {
+                client->has_wm_delete_window = true;
+                break;
+            }
+        }
+        xcb_icccm_get_wm_protocols_reply_wipe(&proto);
+    }
+
+    /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent */
+    client->transient_for = XCB_WINDOW_NONE;
+    if (xcb_icccm_get_wm_transient_for_reply(connection,
+                xcb_icccm_get_wm_transient_for(connection, window),
+                &transient, NULL)) {
+        client->transient_for = transient;
+    }
+
+    /* Read 'WM_NORMAL_HINTS': size constraints and increment grid */
+    memset(&hints, 0, sizeof(hints));
+    memset(&client->size_hints, 0, sizeof(client->size_hints));
+    if (xcb_icccm_get_wm_normal_hints_reply(connection,
+                xcb_icccm_get_wm_normal_hints(connection, window),
+                &hints, NULL)) {
+        client->size_hints.valid = true;
+        if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
+            client->size_hints.min_w = (int32_t) hints.min_width;
+            client->size_hints.min_h = (int32_t) hints.min_height;
+        }
+        if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+            client->size_hints.max_w = (int32_t) hints.max_width;
+            client->size_hints.max_h = (int32_t) hints.max_height;
+        }
+        if (hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
+            client->size_hints.base_w = (int32_t) hints.base_width;
+            client->size_hints.base_h = (int32_t) hints.base_height;
+        }
+        if (hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
+            client->size_hints.inc_w = (int32_t) hints.width_inc;
+            client->size_hints.inc_h = (int32_t) hints.height_inc;
+        }
+        if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
+            client->properties.gravity =
+                (uint16_t) hints.win_gravity;
+        }
+    }
+
+    /* Read '_NET_WM_STRUT_PARTIAL' for dock/panel windows */
+    memset(&strut, 0, sizeof(strut));
+    memset(&partial, 0, sizeof(partial));
+    if (xcb_ewmh_get_wm_strut_partial_reply(ewmh,
+                xcb_ewmh_get_wm_strut_partial(ewmh, window),
+                &partial, NULL)) {
+        client->layout.strut_partial.sides.left =
+            (int32_t) partial.left;
+        client->layout.strut_partial.sides.right =
+            (int32_t) partial.right;
+        client->layout.strut_partial.sides.top =
+            (int32_t) partial.top;
+        client->layout.strut_partial.sides.bottom =
+            (int32_t) partial.bottom;
+        /* start: maps {left→left_start_y, right→right_start_y,
+         *              top→top_start_x,   bottom→bottom_start_x} */
+        client->layout.strut_partial.start.left =
+            (int32_t) partial.left_start_y;
+        client->layout.strut_partial.start.right =
+            (int32_t) partial.right_start_y;
+        client->layout.strut_partial.start.top =
+            (int32_t) partial.top_start_x;
+        client->layout.strut_partial.start.bottom =
+            (int32_t) partial.bottom_start_x;
+        /* end: maps {left→left_end_y, right→right_end_y,
+         *            top→top_end_x,   bottom→bottom_end_x} */
+        client->layout.strut_partial.end.left =
+            (int32_t) partial.left_end_y;
+        client->layout.strut_partial.end.right =
+            (int32_t) partial.right_end_y;
+        client->layout.strut_partial.end.top =
+            (int32_t) partial.top_end_x;
+        client->layout.strut_partial.end.bottom =
+            (int32_t) partial.bottom_end_x;
+    } else if (xcb_ewmh_get_wm_strut_reply(ewmh,
+                xcb_ewmh_get_wm_strut(ewmh, window),
+                &strut, NULL)) {
+        /* Legacy '_NET_WM_STRUT': no start/end coordinates */
+        client->layout.strut_partial.sides.left =
+            (int32_t) strut.left;
+        client->layout.strut_partial.sides.right =
+            (int32_t) strut.right;
+        client->layout.strut_partial.sides.top =
+            (int32_t) strut.top;
+        client->layout.strut_partial.sides.bottom =
+            (int32_t) strut.bottom;
     }
 
     /* Subscribe to events on the adopted window */

@@ -19,19 +19,17 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Render includes */
 #include <render/text.h>
 
 /* Local includes */
 #include <menu/draw.h>
 
 
+/* Fill a horizontal row rectangle with a solid color */
 void menu_draw_row_bg(xcb_connection_t *connection,
         xcb_window_t window,
-        uint32_t color,
-        int16_t row_y,
-        uint16_t row_h,
-        uint16_t w)
+        uint32_t color, int16_t row_y, uint16_t row_h, uint16_t w)
 {
     xcb_gcontext_t gc;
     xcb_rectangle_t rect;
@@ -45,20 +43,18 @@ void menu_draw_row_bg(xcb_connection_t *connection,
     gc_vals[0] = color;
     xcb_create_gc(connection, gc, window, XCB_GC_FOREGROUND, gc_vals);
 
-    rect.x      = 0;
-    rect.y      = row_y;
-    rect.width  = w;
+    rect.x = 0;
+    rect.y = row_y;
+    rect.width = w;
     rect.height = row_h;
     xcb_poly_fill_rectangle(connection, window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 }
 
 
+/* Draw a text label at the given position */
 void menu_draw_label(xcb_connection_t *connection,
-        xcb_window_t window,
-        int16_t x,
-        int16_t y,
-        const char *text)
+        xcb_window_t window, int16_t x, int16_t y, const char *text)
 {
     if (connection == NULL || text == NULL) {
         return;
@@ -68,6 +64,7 @@ void menu_draw_label(xcb_connection_t *connection,
 }
 
 
+/* Measure the pixel width of a text string */
 uint16_t menu_draw_measure(const char *text)
 {
     if (text == NULL) {

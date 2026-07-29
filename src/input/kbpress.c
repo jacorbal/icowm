@@ -43,12 +43,12 @@
 /* Windows & icons policy includes */
 #include <policy/focus.h>
 
-/* Defs includes */
-#include <defs/wm.h>
-
 /* Menu includes */
 #include <menu/cycle.h>
 #include <menu/popup.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Project includes */
 #include <lifecycle.h>

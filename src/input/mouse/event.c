@@ -30,6 +30,16 @@
 /* Render includes */
 #include <render/surface.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
+/* Menu includes */
+#include <menu/cycle.h>
+#include <menu/popup.h>
+
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <action.h>
 #include <client.h>
@@ -39,16 +49,6 @@
 #include <eventq.h>
 #include <lookup.h>
 #include <surface.h>
-
-/* Defs includes */
-#include <defs/wm.h>
-
-/* Policy includes */
-#include <policy/focus.h>
-
-/* Menu includes */
-#include <menu/cycle.h>
-#include <menu/popup.h>
 
 /* Local includes */
 #include <input/drag.h>
@@ -105,6 +105,9 @@ void mouse_handle_press(xcb_connection_t *connection,
     xcb_query_tree_reply_t *qt_r;
     xcb_window_t qt_parent;
     xcb_window_t qt_root;
+    uint32_t screen_w = 0;
+    uint32_t screen_h = 0;
+    surface_td *snap_surface;
 
     if (connection == NULL || event == NULL || cfg == NULL) {
         return;
@@ -370,12 +373,20 @@ void mouse_handle_press(xcb_connection_t *connection,
         s_mouse_sync_sticky_active(surface, desktop, client);
     }
 
+    snap_surface =
+        lookup_surface_for_root(surfaces, event->root);
+    if (snap_surface != NULL) {
+        screen_w = snap_surface->properties.dim.w;
+        screen_h = snap_surface->properties.dim.h;
+    }
     drag_start(connection, event->root, client,
             (type == MOUSEBIND_MOVE)
-                ? CLIENT_OPERATION_MOVING
-                : CLIENT_OPERATION_RESIZING,
+            ? CLIENT_OPERATION_MOVING
+            : CLIENT_OPERATION_RESIZING,
             event->time,
-            event->root_x, event->root_y);
+            event->root_x, event->root_y,
+            screen_w, screen_h,
+            cfg->base.windows.snap);
 }
 
 
