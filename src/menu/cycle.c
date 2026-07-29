@@ -210,9 +210,7 @@ void cycle_open(list_td *surfaces,
     /* Compute dimensions */
     for (int i = 0; i < s_menu.count; ++i) {
         uint16_t w = menu_draw_measure(s_menu.labels[i]);
-        if (w > max_w) {
-            max_w = w;
-        }
+        if (w > max_w) { max_w = w; }
     }
 
     menu_w = (uint16_t) (max_w + (uint16_t) (WM_CYCLE_MENU_PAD_X * 2));
@@ -381,6 +379,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
         (void) client_send_event(target, ACTION_CLIENT_UNHIDE,
                 CLIENT_PRIORITY_DEFAULT);
     }
+
     focus_apply(surfaces, surface, desktop, target, true, cfg);
 }
 
@@ -395,6 +394,7 @@ void cycle_navigate_to(unsigned int idx)
     if ((int) idx >= s_menu.count) {
         idx = (unsigned int)(s_menu.count - 1);
     }
+
     s_menu.selected = (int) idx;
 }
 

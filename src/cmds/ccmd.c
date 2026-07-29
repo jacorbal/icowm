@@ -237,7 +237,6 @@ void wcmd_client_restore(client_td *client)
     target = wcmd_target_win(client);
     client_geometry_restore(client);
 
-    xcb_map_window(client->connection, client->window);
     if (client->icon_window != 0 && client->is_icon_mapped) {
         xcb_unmap_window(client->connection, client->icon_window);
         client->is_icon_mapped = false;
@@ -617,12 +616,6 @@ void wcmd_client_fullscreen(client_td *client)
 
     client->properties.state = CLIENT_STATE_FULLSCREEN;
 
-    /* Hide client decorations if decorated (EWMH recommendation) */
-    if (client_is_decorated(client)) {
-        /* Mark that decorations should be hidden.  This would typically
-         * be handled by the theme/decoration system */
-    }
-
     /* Update EWMH states */
     wcmd_rem_states(client, 2,
             "_NET_WM_STATE_MAXIMIZED_HORZ",
@@ -659,11 +652,6 @@ void wcmd_client_unfullscreen(client_td *client)
 
     /* Update internal client state */
     client->properties.state = CLIENT_STATE_NORMAL;
-
-    /* Restore client decorations if previously decorated */
-    if (client_is_decorated(client)) {
-        /* Mark that decorations should be shown again */
-    }
 
     /* Update EWMH states */
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
