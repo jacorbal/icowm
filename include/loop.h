@@ -24,7 +24,7 @@
 
 /* Public interface */
 /**
- * @brief Run the main event loop until the window manageris stopped
+ * @brief Run the main event loop until the window manager is stopped
  *
  * Installs signal handlers, allocates key symbols, grabs configured
  * bindings, scans pre-existing windows, performs an initial full

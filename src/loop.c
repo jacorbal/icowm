@@ -51,55 +51,7 @@
 #include <loop.h>
 
 
-/* Run the main event loop until the window manageris stopped */
-void loop_update(wm_td *wm)
-{
-    list_item_td *node;
-
-    if (wm == NULL || wm->surfaces == NULL) {
-        return;
-    }
-
-    for (node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-        if (surface == NULL) {
-            continue;
-        }
-        if (surface->is_outdated) {
-            if (surface_render_all_desktops(surface) != 0) {
-                LOGGER_ERROR("Failed to render surface %u",
-                        surface->id);
-            }
-        }
-    }
-}
-
-
-/* Perform a partial (outdated-only) surface update */
-void loop_update_full(wm_td *wm)
-{
-    list_item_td *node;
-
-    if (wm == NULL || wm->surfaces == NULL) {
-        return;
-    }
-
-    LOGGER_TRACE("Fully updating window manager", L_NARG);
-
-    for (node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-        if (surface != NULL) {
-            surface->is_outdated = true;
-        }
-    }
-
-    loop_update(wm);
-}
-
-
-/* Force a full re-render of all surfaces */
+/* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
     xcb_key_symbols_t *keysyms;
@@ -273,4 +225,52 @@ void loop_run(wm_td *wm)
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
     xcb_key_symbols_free(keysyms);
+}
+
+
+/* Perform a partial (outdated-only) surface update */
+void loop_update(wm_td *wm)
+{
+    list_item_td *node;
+
+    if (wm == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    for (node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        if (surface == NULL) {
+            continue;
+        }
+        if (surface->is_outdated) {
+            if (surface_render_all_desktops(surface) != 0) {
+                LOGGER_ERROR("Failed to render surface %u",
+                        surface->id);
+            }
+        }
+    }
+}
+
+
+/* Force a full re-render of all surfaces */
+void loop_update_full(wm_td *wm)
+{
+    list_item_td *node;
+
+    if (wm == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    LOGGER_TRACE("Fully updating window manager", L_NARG);
+
+    for (node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        if (surface != NULL) {
+            surface->is_outdated = true;
+        }
+    }
+
+    loop_update(wm);
 }

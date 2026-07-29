@@ -174,8 +174,6 @@ void cycle_open(list_td *surfaces,
                         ? c->info.name : "(unnamed)";
 
                     s_menu.clients[idx] = c;
-                    snprintf(s_menu.labels[idx],
-                            WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
 
                     /* Mark hidden windows with brackets so they stand
                      * out visually in the cycle menu. */
