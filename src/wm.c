@@ -54,9 +54,16 @@ static wm_td *wm = NULL;    /**< Pointer to the singleton instance of
                                  the window manager */
 
 
-/* Internal cleanup helper: tears down whatever parts of 'wm' have been
- * initialized so far.  Each pointer is checked before use, so this is
- * safe to call after a partial initialization. */
+/**
+ * @brief Release every initialized window-manager subsystem
+ *
+ * Frees only the members that were successfully initialized so it can
+ * be used from partial startup failure paths as well as normal
+ * teardown.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces currently stored in @c wm->surfaces
+ */
 static void s_wm_cleanup(void)
 {
     if (wm == NULL) {

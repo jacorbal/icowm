@@ -80,7 +80,10 @@ int heap_insert(heap_td *heap, const void *data)
 
     /* Grow the backing array only when full */
     if (heap->size == heap->capacity) {
-        new_cap = (heap->capacity == 0) ? 4u : heap->capacity * 2u;
+        new_cap = (heap->capacity == 0)
+            ? HEAP_MIN_CAPACITY
+            : heap->capacity * 2u;
+
         if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) == NULL) {
             return -1;
         }
@@ -145,8 +148,10 @@ int heap_extract(heap_td *heap, void **data)
     save = heap->tree[heap->size];
     heap->tree[0] = save;
 
-    /* Shrink backing array when occupancy falls to <= 1/4 of capacity */
-    if (heap->capacity > 4u && heap->size <= heap->capacity / 4u) {
+    /* Shrink backing array when occupancy falls below the threshold */
+    if (heap->capacity > HEAP_MIN_CAPACITY &&
+            heap->size <= (size_t) ((float) heap->capacity *
+                HEAP_SHRINK_LOAD_FACTOR)) {
         new_cap = heap->capacity / 2u;
         if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) != NULL) {
             heap->tree = temp;

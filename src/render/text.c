@@ -22,6 +22,9 @@
 /* Utils includes */
 #include <utils/safestr.h>
 
+/* Project includes */
+#include <logger.h>
+
 /* Local includes */
 #include <render/text.h>
 
@@ -146,6 +149,8 @@ void text_draw_string(xcb_connection_t *connection,
         int16_t x, int16_t y, const char *text)
 {
     size_t len;
+    xcb_void_cookie_t draw_cookie;
+    xcb_generic_error_t *draw_error;
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL) {
         return;
@@ -164,8 +169,15 @@ void text_draw_string(xcb_connection_t *connection,
         len = 255;
     }
 
-    xcb_image_text_8(connection, (uint8_t) len, drawable,
-            (gc == XCB_NONE) ? s_text.gc : gc, x, y, text);
+    draw_cookie = xcb_image_text_8_checked(connection, (uint8_t) len,
+            drawable, (gc == XCB_NONE) ? s_text.gc : gc, x, y, text);
+    draw_error = xcb_request_check(connection, draw_cookie);
+    if (draw_error != NULL) {
+        LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
+                " (error=%u)",
+                drawable, (unsigned) draw_error->error_code);
+        free(draw_error);
+    }
 }
 
 

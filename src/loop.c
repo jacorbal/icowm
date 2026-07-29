@@ -55,6 +55,77 @@
 #include <loop.h>
 
 
+/**
+ * @brief Handle pointer-leave notifications for focus-follow-mouse
+ *
+ * @param wm    Window-manager singleton
+ * @param event Leave-notify event to process
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients inspected by @c lookup_find_client
+ */
+static void s_loop_handle_leave_notify(wm_td *wm,
+        xcb_leave_notify_event_t *event)
+{
+    surface_td *surface = NULL;
+    desktop_td *desktop = NULL;
+
+    if (wm == NULL || event == NULL) {
+        return;
+    }
+
+    if (focus_is_follow_mouse(wm->config) &&
+            event->mode == XCB_NOTIFY_MODE_NORMAL &&
+            event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
+            lookup_find_client(wm->surfaces, event->event,
+                    &surface, &desktop) != NULL) {
+        /* Pointer left a managed window; release focus so the cursor
+         * resting on the root background leaves all clients visually
+         * unfocused. */
+        xcb_set_input_focus(wm->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                event->time);
+        if (desktop != NULL) {
+            desktop->client_active_id = 0;
+            desktop->is_outdated = true;
+        }
+        if (surface != NULL) {
+            surface->is_outdated = true;
+        }
+        xcb_flush(wm->connection);
+    }
+}
+
+
+/**
+ * @brief Mark a client dirty after losing X input focus
+ *
+ * @param wm    Window-manager singleton
+ * @param event Focus-out event to process
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients inspected by @c lookup_find_client
+ */
+static void s_loop_handle_focus_out(wm_td *wm,
+        xcb_focus_out_event_t *event)
+{
+    surface_td *surface = NULL;
+
+    if (wm == NULL || event == NULL) {
+        return;
+    }
+
+    if ((event->mode == XCB_NOTIFY_MODE_NORMAL ||
+                event->mode == XCB_NOTIFY_MODE_WHILE_GRABBED) &&
+            lookup_find_client(wm->surfaces, event->event,
+                    &surface, NULL) != NULL &&
+            surface != NULL) {
+        surface->is_outdated = true;
+    }
+}
+
+
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
@@ -203,51 +274,15 @@ void loop_run(wm_td *wm)
                             wm->config);
                     break;
 
-                case XCB_LEAVE_NOTIFY: {
-                    xcb_leave_notify_event_t *le =
-                        (xcb_leave_notify_event_t *) event;
-                    surface_td *lsurface;
-                    desktop_td *ldesktop;
-                    if (focus_is_follow_mouse(wm->config) &&
-                            le->mode == XCB_NOTIFY_MODE_NORMAL &&
-                            le->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
-                            lookup_find_client(wm->surfaces, le->event,
-                                    &lsurface, &ldesktop) != NULL) {
-                        /* Pointer left a managed window; release focus
-                         * so the cursor resting on the root background
-                         * leaves all clients visually unfocused. */
-                        xcb_set_input_focus(wm->connection,
-                                XCB_INPUT_FOCUS_POINTER_ROOT,
-                                XCB_INPUT_FOCUS_POINTER_ROOT,
-                                le->time);
-                        if (ldesktop != NULL) {
-                            ldesktop->client_active_id = 0;
-                            ldesktop->is_outdated = true;
-                        }
-                        if (lsurface != NULL) {
-                            lsurface->is_outdated = true;
-                        }
-                        xcb_flush(wm->connection);
-                    }
+                case XCB_LEAVE_NOTIFY:
+                    s_loop_handle_leave_notify(wm,
+                            (xcb_leave_notify_event_t *) event);
                     break;
-                }
 
-                case XCB_FOCUS_OUT: {
-                    xcb_focus_out_event_t *fe =
-                        (xcb_focus_out_event_t *) event;
-                    if (fe->mode == XCB_NOTIFY_MODE_NORMAL ||
-                            fe->mode ==
-                                XCB_NOTIFY_MODE_WHILE_GRABBED) {
-                        surface_td *fsurface = NULL;
-                        if (lookup_find_client(wm->surfaces,
-                                    fe->event, &fsurface,
-                                    NULL) != NULL &&
-                                fsurface != NULL) {
-                            fsurface->is_outdated = true;
-                        }
-                    }
+                case XCB_FOCUS_OUT:
+                    s_loop_handle_focus_out(wm,
+                            (xcb_focus_out_event_t *) event);
                     break;
-                }
 
                 case XCB_MAP_NOTIFY:
                 case XCB_REPARENT_NOTIFY:

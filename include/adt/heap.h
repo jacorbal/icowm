@@ -16,6 +16,26 @@
 
 
 /**
+ * @brief Heap occupancy threshold for shrinking the backing array
+ *
+ * When the number of stored nodes falls below this load factor, the heap
+ * backing array may be resized down to reduce memory usage.
+ *
+ * @note This value must be in the domain [0.0f, 1.0f]
+ * @note A suggested value is 0.25f
+ */
+#define HEAP_SHRINK_LOAD_FACTOR (0.25f)
+
+/**
+ * @brief Minimum backing-array capacity kept by the heap allocator
+ *
+ * The heap starts with this capacity and never shrinks below it while
+ * non-empty.
+ */
+#define HEAP_MIN_CAPACITY ((size_t) 4u)
+
+
+/**
  * @brief Heap structure implemented as a rustic binary tree
  */
 typedef struct {
