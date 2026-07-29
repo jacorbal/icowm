@@ -23,6 +23,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Render includes */
+#include <render/surface.h>
+
 /* Project includes */
 #include <action.h>
 #include <client.h>
@@ -91,6 +94,8 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
               keyboard_is_modifier_for_mask(keysym, popup_modifier())))) {
         if (s != NULL) {
             popup_close(s->connection);
+            s->is_outdated = true;
+            (void) surface_render_all_desktops(s);
         }
     }
 }

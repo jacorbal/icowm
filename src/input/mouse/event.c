@@ -27,6 +27,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Render includes */
+#include <render/surface.h>
+
 /* Project includes */
 #include <action.h>
 #include <client.h>
@@ -108,13 +111,22 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     if (popup_is_open()) {
+        surface = lookup_surface_for_root(surfaces, event->root);
         if (event->event == popup_window() ||
                 event->child == popup_window()) {
             popup_close(connection);
+            if (surface != NULL) {
+                surface->is_outdated = true;
+                (void) surface_render_all_desktops(surface);
+            }
             xcb_flush(connection);
             return;
         }
         popup_close(connection);
+        if (surface != NULL) {
+            surface->is_outdated = true;
+            (void) surface_render_all_desktops(surface);
+        }
     }
 
     if (cycle_is_open()) {

@@ -25,6 +25,9 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
+/* Render includes */
+#include <render/surface.h>
+
 /* Defs includes */
 #include <defs/wm.h>
 
@@ -259,12 +262,14 @@ void cycle_open(list_td *surfaces,
 void cycle_close(xcb_connection_t *connection)
 {
     xcb_window_t restore_focus;
+    surface_td *surface;
 
     if (connection == NULL || s_menu.window == XCB_WINDOW_NONE) {
         return;
     }
 
     restore_focus = s_menu.prev_focus;
+    surface = s_menu.surface;
 
     xcb_destroy_window(connection, s_menu.window);
     s_menu.window = XCB_WINDOW_NONE;
@@ -285,6 +290,11 @@ void cycle_close(xcb_connection_t *connection)
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 restore_focus,
                 XCB_CURRENT_TIME);
+    }
+    if (surface != NULL) {
+        surface->is_outdated = true;
+        (void) surface_render_all_desktops(surface);
+    } else {
         xcb_flush(connection);
     }
 }

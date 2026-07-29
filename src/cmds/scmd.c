@@ -18,34 +18,12 @@
 
 /* Project includes */
 #include <actdata.h>
+#include <client.h>
 #include <logger.h>
 #include <surface.h>
 
 /* Local includes */
 #include <cmds/scmd.h>
-
-
-/* Find a client by id inside a desktop hash table */
-static client_td *s_desktop_find_client(desktop_td *desktop,
-        xcb_window_t id)
-{
-    size_t i;
-    if (desktop == NULL || desktop->clients == NULL || id == XCB_NONE) {
-        return NULL;
-    }
-    for (i = 0; i < desktop->clients->positions; ++i) {
-        client_td *client;
-        if (desktop->clients->table[i] == NULL ||
-                desktop->clients->table[i] == desktop->clients->vacated) {
-            continue;
-        }
-        client = (client_td *) desktop->clients->table[i];
-        if (client != NULL && client->id == id) {
-            return client;
-        }
-    }
-    return NULL;
-}
 
 
 /* Add a new desktop */
@@ -76,10 +54,6 @@ void scmd_surface_desktop_rem(surface_td *surface,
 void scmd_surface_desktop_switch(surface_td *surface,
         action_data_surface_td *surface_data)
 {
-    desktop_td *old_desktop;
-    desktop_td *new_desktop;
-    client_td *old_active_client;
-    xcb_window_t old_active_id;
     uint32_t old_id;
     uint32_t new_id;
 
@@ -89,9 +63,6 @@ void scmd_surface_desktop_switch(surface_td *surface,
 
     new_id = surface_data->new_data.uvalue;
     old_id = surface->desktop_cur;
-    old_desktop = surface_desktop_get(surface, old_id);
-    old_active_id = (old_desktop != NULL)
-        ? old_desktop->client_active_id : 0;
     if (new_id == old_id) {
         return;     /* Already on this desktop */
     }
@@ -101,18 +72,8 @@ void scmd_surface_desktop_switch(surface_td *surface,
 
     surface_clients_hide(surface, old_id);
     surface_desktop_select(surface, new_id);
-
-    /* Apply sticky active client to new desktop BEFORE showing windows
-     * so that surface_clients_show restores focus to the right client */
-    new_desktop = surface_desktop_get(surface, new_id);
-    old_active_client = s_desktop_find_client(old_desktop, old_active_id);
-    if (new_desktop != NULL && old_active_client != NULL &&
-            client_is_sticky(old_active_client)) {
-        new_desktop->client_active_id = old_active_client->id;
-        new_desktop->is_outdated = true;
-    }
-
     surface_clients_show(surface, new_id);
+
     surface->is_outdated = true;
     xcb_flush(surface->connection);
 }
@@ -121,10 +82,6 @@ void scmd_surface_desktop_switch(surface_td *surface,
 /* Switch to the next desktop */
 void scmd_surface_desktop_switch_next(surface_td *surface)
 {
-    desktop_td *old_desktop;
-    desktop_td *new_desktop;
-    client_td *old_active_client;
-    xcb_window_t old_active_id;
     uint32_t old_id;
 
     if (surface == NULL) {
@@ -137,19 +94,8 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
 
     surface_clients_hide(surface, old_id);
     surface_desktop_select_next(surface, true);
-    old_desktop = surface_desktop_get(surface, old_id);
-    old_active_id = (old_desktop != NULL)
-        ? old_desktop->client_active_id : 0;
 
     if (surface->desktop_cur != old_id) {
-        new_desktop = surface_desktop_get(surface, surface->desktop_cur);
-        old_active_client = s_desktop_find_client(old_desktop,
-                old_active_id);
-        if (new_desktop != NULL && old_active_client != NULL &&
-                client_is_sticky(old_active_client)) {
-            new_desktop->client_active_id = old_active_client->id;
-            new_desktop->is_outdated = true;
-        }
         surface_clients_show(surface, surface->desktop_cur);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
@@ -163,10 +109,6 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
 /* Switch to the previous desktop */
 void scmd_surface_desktop_switch_prev(surface_td *surface)
 {
-    desktop_td *old_desktop;
-    desktop_td *new_desktop;
-    client_td *old_active_client;
-    xcb_window_t old_active_id;
     uint32_t old_id;
 
     if (surface == NULL) {
@@ -174,9 +116,6 @@ void scmd_surface_desktop_switch_prev(surface_td *surface)
     }
 
     old_id = surface->desktop_cur;
-    old_desktop = surface_desktop_get(surface, old_id);
-    old_active_id = (old_desktop != NULL)
-        ? old_desktop->client_active_id : 0;
 
     LOGGER_DEBUG("Switching to previous desktop on surface %u",
             surface->id);
@@ -185,14 +124,6 @@ void scmd_surface_desktop_switch_prev(surface_td *surface)
     surface_desktop_select_prev(surface, true);
 
     if (surface->desktop_cur != old_id) {
-        new_desktop = surface_desktop_get(surface, surface->desktop_cur);
-        old_active_client = s_desktop_find_client(old_desktop,
-                old_active_id);
-        if (new_desktop != NULL && old_active_client != NULL &&
-                client_is_sticky(old_active_client)) {
-            new_desktop->client_active_id = old_active_client->id;
-            new_desktop->is_outdated = true;
-        }
         surface_clients_show(surface, surface->desktop_cur);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
