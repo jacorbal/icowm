@@ -528,10 +528,12 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                 xcb_unmap_window(surface->connection, client->titlebar);
             }
 
+            /* For decorated clients, unmapping the frame also unmaps
+             * its child client window; issuing an extra unmap on the
+             * child would duplicate UnmapNotify handling and may
+             * overwrite the remembered active client during desktop
+             * switches. */
             xcb_unmap_window(surface->connection, target);
-            if (target != client->window) {
-                xcb_unmap_window(surface->connection, client->window);
-            }
 
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(surface->connection, client->icon_window);
