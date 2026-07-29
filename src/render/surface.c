@@ -60,7 +60,7 @@ int surface_render_current_desktop(surface_td *surface)
 
     desktop = (desktop_td *) cdlist_data(desktop_node);
     if (desktop == NULL) {
-        LOGGER_ERROR("Null desktop pointer", L_NARG);
+        LOGGER_ERROR("'NULL' desktop pointer", L_NARG);
         return 1;
     }
 
@@ -77,6 +77,7 @@ int surface_render_current_desktop(surface_td *surface)
     surface_render_flush(surface);
 
     return 0;
+
 }
 
 
@@ -167,6 +168,24 @@ int surface_render_all_desktops(surface_td *surface)
     surface->is_outdated = false;
 
     return 0;
+}
+
+
+/* Mark current desktop outdated and repaint the surface */
+void surface_render_current_desktop_repaint(surface_td *surface)
+{
+    desktop_td *cur;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    cur = surface_desktop_get(surface, surface->desktop_cur);
+    if (cur != NULL) {
+        cur->is_outdated = true;
+    }
+
+    (void) surface_render_all_desktops(surface);
 }
 
 

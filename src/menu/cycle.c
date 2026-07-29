@@ -291,12 +291,7 @@ void cycle_close(xcb_connection_t *connection)
     }
 
     if (surface != NULL) {
-        desktop_td *cur = surface_desktop_get(surface,
-                surface->desktop_cur);
-        if (cur != NULL) {
-            cur->is_outdated = true;
-        }
-        (void) surface_render_all_desktops(surface);
+        surface_render_current_desktop_repaint(surface);        
     } else {
         xcb_flush(connection);
     }

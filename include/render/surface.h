@@ -55,6 +55,20 @@ int surface_render_current_desktop(surface_td *surface);
 int surface_render_all_desktops(surface_td *surface);
 
 /**
+ * @brief Mark current desktop outdated and repaint the surface
+ *
+ * Marks the surface's currently selected desktop as outdated and then
+ * triggers @c surface_render_all_desktops so the update is applied
+ * immediately.
+ *
+ * @param surface Pointer to the surface
+ *
+ * @note Complexity: @e O(n * m), where @e n is the number of desktops
+ *       and @e m is the number of clients per desktop
+ */
+void surface_render_current_desktop_repaint(surface_td *surface);
+
+/**
  * @brief Flush all rendering operations for the surface
  *
  * @param surface Pointer to the surface

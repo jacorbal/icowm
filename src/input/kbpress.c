@@ -93,12 +93,8 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
              (popup_modifier() != 0 &&
               keyboard_is_modifier_for_mask(keysym, popup_modifier())))) {
         if (s != NULL) {
-            desktop_td *cur = surface_desktop_get(s, s->desktop_cur);
             popup_close(s->connection);
-            if (cur != NULL) {
-                cur->is_outdated = true;
-            }
-            (void) surface_render_all_desktops(s);
+            surface_render_current_desktop_repaint(s);
         }
     }
 }
