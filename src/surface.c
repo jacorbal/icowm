@@ -537,6 +537,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(surface->connection, client->icon_window);
+                client->is_icon_mapped = false;
             }
         }
         node = cdlist_next(node);

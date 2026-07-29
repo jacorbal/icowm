@@ -623,6 +623,9 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Icon window: repaint caption */
     if (client->icon_window == event->window) {
+        if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
+            return;
+        }
         xcb_change_window_attributes(connection, client->icon_window,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {

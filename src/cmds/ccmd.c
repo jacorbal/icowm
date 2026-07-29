@@ -237,8 +237,9 @@ void wcmd_client_restore(client_td *client)
     target = wcmd_target_win(client);
     client_geometry_restore(client);
 
-    if (client->icon_window != 0 && client->is_icon_mapped) {
-        xcb_unmap_window(client->connection, client->icon_window);
+    if (client->icon_window != 0) {
+        xcb_destroy_window(client->connection, client->icon_window);
+        client->icon_window = 0;
         client->is_icon_mapped = false;
     }
     if (client->titlebar != 0) {
