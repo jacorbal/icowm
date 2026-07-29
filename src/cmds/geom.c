@@ -20,6 +20,7 @@
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
+#include <wm.h>
 
 /* Local includes */
 #include <cmds/geom.h>
@@ -131,6 +132,7 @@ void wcmd_client_maximize_horz(client_td *client)
     wcmd_rem_states(client, 2,
             "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_VERT");
     wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+    wm_request_client_redraw(client);
 }
 
 
@@ -164,6 +166,7 @@ void wcmd_client_maximize_vert(client_td *client)
     wcmd_rem_states(client, 2,
             "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_HORZ");
     wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+    wm_request_client_redraw(client);
 }
 
 
@@ -197,4 +200,5 @@ void wcmd_client_maximize(client_td *client)
     wcmd_add_states(client, 2,
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
+    wm_request_client_redraw(client);
 }

@@ -152,8 +152,10 @@ void cycle_open(list_td *surfaces,
     s_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
 
-    /* Collect matching clients */
-    node = cdlist_head(desktop->stacking);
+    /* Collect matching clients — iterate from tail (top of stack, most
+     * recently raised) to head (bottom), so the list order matches the
+     * MRU ordering used by openbox and evilwm. */
+    node = cdlist_tail(desktop->stacking);
     initial = node;
     if (node != NULL) {
         do {
@@ -171,13 +173,24 @@ void cycle_open(list_td *surfaces,
                     s_menu.clients[idx] = c;
                     snprintf(s_menu.labels[idx],
                             WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
+
+                    /* Mark hidden windows with brackets so they stand
+                     * out visually in the cycle menu. */
+                    if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
+                        snprintf(s_menu.labels[idx],
+                                WM_CYCLE_MENU_ENTRY_LEN, "[%s]", name);
+                    } else {
+                        snprintf(s_menu.labels[idx],
+                                WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
+                    }
+
                     if (c->id == desktop->client_active_id) {
                         active_idx = idx;
                     }
                     s_menu.count++;
                 }
             }
-            node = cdlist_next(node);
+            node = cdlist_prev(node);
         } while (node != NULL && node != initial);
     }
 
@@ -407,6 +420,19 @@ bool cycle_is_open(void)
 xcb_window_t cycle_window(void)
 {
     return s_menu.window;
+}
+
+
+/* Return the currently highlighted client in the cycle menu */
+client_td *cycle_get_selected_client(void)
+{
+    if (s_menu.count <= 0 ||
+            s_menu.selected < 0 ||
+            s_menu.selected >= s_menu.count) {
+        return NULL;
+    }
+
+    return s_menu.clients[s_menu.selected];
 }
 
 

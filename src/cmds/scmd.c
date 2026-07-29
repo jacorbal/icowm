@@ -101,7 +101,9 @@ void scmd_surface_desktop_switch(surface_td *surface,
 
     surface_clients_hide(surface, old_id);
     surface_desktop_select(surface, new_id);
-    surface_clients_show(surface, new_id);
+
+    /* Apply sticky active client to new desktop BEFORE showing windows
+     * so that surface_clients_show restores focus to the right client */
     new_desktop = surface_desktop_get(surface, new_id);
     old_active_client = s_desktop_find_client(old_desktop, old_active_id);
     if (new_desktop != NULL && old_active_client != NULL &&
@@ -110,6 +112,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
         new_desktop->is_outdated = true;
     }
 
+    surface_clients_show(surface, new_id);
     surface->is_outdated = true;
     xcb_flush(surface->connection);
 }

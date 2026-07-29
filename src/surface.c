@@ -838,6 +838,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     desktop_td *desktop;
     cdlist_item_td *node;
     cdlist_item_td *initial;
+    bool focus_restored;
 
     if (surface == NULL) {
         return;
@@ -906,7 +907,10 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
         } while (node != NULL && node != initial);
     }
 
-    /* Restore input focus to the previously active client */
+    /* Restore input focus to the previously active client.
+     * If no suitable client is found, relinquish focus to PointerRoot
+     * so the previous desktop's windows do not retain keyboard input. */
+    focus_restored = false;
     if (desktop->client_active_id != 0) {
         node = cdlist_head(desktop->stacking);
         if (node != NULL) {
@@ -919,11 +923,19 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                     xcb_set_input_focus(surface->connection,
                             XCB_INPUT_FOCUS_PARENT,
                             c->window, XCB_CURRENT_TIME);
+                    focus_restored = true;
                     break;
                 }
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
         }
+    }
+    if (!focus_restored) {
+        xcb_set_input_focus(surface->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
+
     }
 
     desktop->is_outdated = true;

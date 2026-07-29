@@ -123,12 +123,17 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         /* Up arrow */
         if (keysym == 0xff52u) {
             cycle_navigate_prev();
-            /* find connection for redraw */
             if (surfaces != NULL) {
                 list_item_td *head = list_head(surfaces);
                 if (head != NULL) {
                     surface_td *s = (surface_td *) list_data(head);
                     if (s != NULL) {
+                        client_td *sel = cycle_get_selected_client();
+                        if (sel != NULL) {
+                            xcb_set_input_focus(s->connection,
+                                    XCB_INPUT_FOCUS_PARENT,
+                                    sel->window, XCB_CURRENT_TIME);
+                        }
                         cycle_draw(s->connection, cfg);
                     }
                 }

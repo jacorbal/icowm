@@ -603,6 +603,7 @@ void wcmd_client_fullscreen(client_td *client)
             "_NET_WM_STATE_MAXIMIZED_VERT");
     wcmd_add_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
@@ -641,6 +642,7 @@ void wcmd_client_unfullscreen(client_td *client)
     /* Update EWMH states */
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 

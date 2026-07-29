@@ -152,6 +152,20 @@ bool cycle_is_open(void);
 xcb_window_t cycle_window(void);
 
 /**
+ * @brief Return the currently highlighted client in the cycle menu
+ *
+ * Returns a pointer to the @c client_td that corresponds to the
+ * currently selected row in the open cycle menu.  Useful for applying
+ * a live focus preview while the user navigates without confirming.
+ *
+ * @return Pointer to the selected @c client_td, or @c NULL when the
+ *         menu is closed or the selection index is out of range
+ *
+ * @note Complexity: @e O(1)
+ */
+client_td *cycle_get_selected_client(void);
+
+/**
  * @brief Return the modifier mask that opened the cycle menu
  *
  * Used by the key-release handler to detect when to auto-confirm.
