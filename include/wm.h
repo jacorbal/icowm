@@ -51,6 +51,7 @@
 typedef struct {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
+    xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
     list_td *surfaces;              /**< List of surfaces */
     uint32_t screenp;               /**< Preferred screen */
     config_td *config;              /**< Window manager configuration */
@@ -231,6 +232,30 @@ void wm_request_client_redraw(const client_td *client);
  *       and @e m is the number of desktops per surface
  */
 void wm_request_full_redraw(void);
+
+/**
+ * @brief Recompute and publish EWMH root properties
+ *
+ * Synchronizes core EWMH metadata for each managed screen, including
+ * desktop counts, current desktop, workarea, client lists, and active
+ * window.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients across all desktops
+ */
+void wm_ewmh_sync(void);
+
+/**
+ * @brief Initialize EWMH root support metadata
+ *
+ * Creates the supporting window and publishes @c _NET_SUPPORTED and
+ * @c _NET_SUPPORTING_WM_CHECK properties.
+ *
+ * @return 0 on success, or non-zero on failure
+ *
+ * @note Complexity: @e O(1)
+ */
+int wm_ewmh_init(void);
 
 /**
  * @brief Macro that evaluates to the number of surfaces handled by the

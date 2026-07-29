@@ -304,6 +304,7 @@ void loop_run(wm_td *wm)
 
         eventq_process();
         loop_update(wm);
+        wm_ewmh_sync();
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
