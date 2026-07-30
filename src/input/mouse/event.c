@@ -138,14 +138,32 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (confirm_is_open()) {
         if (event->event == confirm_window() ||
                 event->child == confirm_window()) {
-            if (confirm_handle_click(connection,
-                        (int) event->event_x,
-                        (int) event->event_y)) {
-                xcb_allow_events(connection,
-                        XCB_ALLOW_ASYNC_POINTER, event->time);
-                xcb_flush(connection);
-                return;
+            /* The dialog has width=400 height=90; buttons sit in the
+             * bottom strip (btn_y = 56, btn_h = 26, btn_w = 100):
+             *   "Cancel": x in [ 12, 112)
+             *   "Exit":   x in [288, 388) */
+            int cx = (int) event->event_x;
+            int cy = (int) event->event_y;
+            if (cy >= 56 && cy < 82) {
+                if (cx >= 12 && cx < 112) {
+                    /* Clicked Cancel */
+                    confirm_close(connection);
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                }
+                if (cx >= 288 && cx < 388) {
+                    /* Clicked Exit */
+                    confirm_close(connection);
+                    (void) wm_request_stop();
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                }
             }
+        }
 
         /* Click outside dialog: close without action */
         confirm_close(connection);
@@ -243,7 +261,16 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (type == MOUSEBIND_DESKTOP_NEXT ||
             type == MOUSEBIND_DESKTOP_PREV) {
         if (client != NULL) {
-            /* Cursor is over a managed window; ignore desktop scroll */
+            /* Scroll on titlebar: shade (up) or unshade (down) */
+            if (client->titlebar != 0 &&
+                    event->child == client->titlebar) {
+                client_send_event(client,
+                        (type == MOUSEBIND_DESKTOP_PREV)
+                            ? ACTION_CLIENT_SHADE
+                            : ACTION_CLIENT_UNSHADE,
+                        PRIORITY_NORMAL);
+            }
+
             xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
                     event->time);
             xcb_flush(connection);
@@ -324,6 +351,24 @@ void mouse_handle_press(xcb_connection_t *connection,
                         } /* ! for (bi) */
                     }
                 } /* ! if (ey) */
+
+                /* Scroll wheel on titlebar shades or unshades the
+                 * client; don't start a drag for these events */
+                if (!hit_btn) {
+                    if ((xcb_button_index_t) event->detail ==
+                            XCB_BUTTON_INDEX_4) {
+                        hit_btn = true;
+                        client_send_event(client,
+                                ACTION_CLIENT_SHADE,
+                                PRIORITY_NORMAL);
+                    } else if ((xcb_button_index_t) event->detail ==
+                            XCB_BUTTON_INDEX_5) {
+                        hit_btn = true;
+                        client_send_event(client,
+                                ACTION_CLIENT_UNSHADE,
+                                PRIORITY_NORMAL);
+                    }
+                }
 
                 /* Clicks that land on the titlebar but miss all buttons
                  * start a window-move drag, making the titlebar serve
@@ -432,7 +477,6 @@ void mouse_handle_press(xcb_connection_t *connection,
             event->root_x, event->root_y,
             screen_w, screen_h,
             cfg->base.windows.snap);
-    }
 }
 
 

@@ -242,9 +242,11 @@ void wcmd_client_restore(client_td *client)
         client->icon_window = 0;
         client->is_icon_mapped = false;
     }
+
     if (client->titlebar != 0) {
         xcb_map_window(client->connection, client->titlebar);
     }
+
     xcb_map_window(client->connection, target);
     if (target != client->window) {
         xcb_map_window(client->connection, client->window);
@@ -386,10 +388,12 @@ void wcmd_client_iconify(client_td *client)
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
     }
+
     xcb_unmap_window(client->connection, target);
     if (target != client->window) {
         xcb_unmap_window(client->connection, client->window);
     }
+
     xcb_map_window(client->connection, client->icon_window);
     client->is_icon_mapped = true;
 
@@ -421,6 +425,7 @@ void wcmd_client_hide(client_td *client)
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
     }
+
     xcb_unmap_window(client->connection, target);
     if (target != client->window) {
         xcb_unmap_window(client->connection, client->window);
@@ -448,6 +453,7 @@ void wcmd_client_unhide(client_td *client)
     if (client->titlebar != 0) {
         xcb_map_window(client->connection, client->titlebar);
     }
+
     xcb_map_window(client->connection, target);
     if (target != client->window) {
         xcb_map_window(client->connection, client->window);
@@ -462,16 +468,35 @@ void wcmd_client_unhide(client_td *client)
 /* Shade client (roll-up), if decorated */
 void wcmd_client_shade(client_td *client)
 {
+    xcb_window_t target;
+    uint32_t shaded_h;
+
     if (client == NULL || !client_is_decorated(client)) {
         return;
     }
 
+    target = wcmd_target_win(client);
     client_geometry_save(client);
+
+    shaded_h = (uint32_t) (client->layout.frame_extents.top +
+            client->layout.frame_extents.bottom);
+    if (shaded_h < WM_MIN_WINDOW_DIMENSION) {
+        shaded_h = WM_MIN_WINDOW_DIMENSION;
+    }
+
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) { shaded_h });
+    client->ignore_unmap++;
+    xcb_unmap_window(client->connection, client->window);
+    client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
+
     client_set_shade(client);
 
     wcmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
@@ -479,11 +504,22 @@ void wcmd_client_shade(client_td *client)
 /* Unshade client (roll-down), if decorated */
 void wcmd_client_unshade(client_td *client)
 {
+    xcb_window_t target;
+
     if (client == NULL || !client_is_decorated(client)) {
         return;
     }
 
+    target = wcmd_target_win(client);
     client_geometry_restore(client);
+
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_HEIGHT,
+            (const uint32_t[]) {
+                (uint32_t) client->layout.geometry.cur.dim.h
+            });
+    xcb_map_window(client->connection, client->window);
+
     client_unset_shade(client);
     client_unset_hidden(client);
 
@@ -491,6 +527,7 @@ void wcmd_client_unshade(client_td *client)
             "_NET_WM_STATE_SHADED",
             "_NET_WM_STATE_HIDDEN");
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
