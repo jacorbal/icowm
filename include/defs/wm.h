@@ -24,13 +24,13 @@
  * metadata injection.
  */
 #ifdef PROJECT_NAME_SHORT
-#define ICOWM_EWMH_NAME PROJECT_NAME_SHORT
+#define WM_EWMH_NAME PROJECT_NAME_SHORT
 #else
-#define ICOWM_EWMH_NAME "IcoWM"
+#define WM_EWMH_NAME "IcoWM"
 #endif  /* ! PROJECT_NAME_SHORT */
 
 /** Length of @c WM_EWMH_NAME excluding the null terminator */
-//#define ICOWM_EWMH_NAME_LEN (sizeof(ICOWM_EWMH_NAME) - 1u)
+//#define WM_EWMH_NAME_LEN (sizeof(WM_EWMH_NAME) - 1u)
 
 /**
  * @brief Initial capacity of windows for a desktop
@@ -39,16 +39,16 @@
  * initial capacity may reduce the need for resizing the underlying data
  * structure as windows are added to the open-addressed hash table.
  */
-#define DESKTOP_INITIAL_CAPACITY (256)  /* (512) ? */
+#define WM_DESKTOP_INITIAL_CAPACITY (256)  /* (512) ? */
 
 /**
  * @brief Maximum number of characters allowed in the name of the
  *        desktop, including the null terminator
  */
-#define DESKTOP_MAX_LENGTH_NAME (64)
+#define WM_DESKTOP_MAX_LENGTH_NAME (64)
 
 /** Desktop identifier when the client is pinned to all desktops */
-#define DESKTOP_ID_ALL (0xFFFFFFFFu)
+#define WM_DESKTOP_ID_ALL (0xFFFFFFFFu)
 
 /** Maximum number of supported key bindings */
 #define WM_MAX_KEYBINDINGS (128)
@@ -103,6 +103,10 @@
 
 /** Threshold below which an icon drag is treated as a click */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) × 4 (px) = 16 (px^2) */
+
+/** Maximum interval in milliseconds between two presses on the same
+ *  titlebar that is recognised as a double-click. */
+#define WM_DOUBLE_CLICK_MS (400u)
 
 
 #endif  /* ! DEFS_WM_H */

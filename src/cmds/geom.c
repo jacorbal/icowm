@@ -92,6 +92,16 @@ void wcmd_client_resize(client_td *client,
         return;
     }
 
+    /* Resizing is forbidden while the client is maximized or
+     * fullscreen; it must be restored to a normal state first. */
+    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
+        return;
+    }
+
     req_w = client_data->new_data.geometry.dim.w;
     req_h = client_data->new_data.geometry.dim.h;
     /* Apply ICCCM WM_NORMAL_HINTS constraints if available */

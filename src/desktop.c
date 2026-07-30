@@ -166,12 +166,12 @@ desktop_td *desktop_init(xcb_connection_t *connection,
      * truncates, and truncating a name that does not fit is the
      * desired, harmless behavior here anyway. */
     if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
-        snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME,
+        snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
     } else {
         safe_strncpy(desktop->name,
                 config_base->screens[screen_id].desktops[desktop_id].name,
-                DESKTOP_MAX_LENGTH_NAME);
+                WM_DESKTOP_MAX_LENGTH_NAME);
     }
 
     /* Set background color */
@@ -185,7 +185,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     /* Initialize hash table for quick client lookup */
     desktop->clients =
-        ohtbl_init(DESKTOP_INITIAL_CAPACITY, 0,
+        ohtbl_init(WM_DESKTOP_INITIAL_CAPACITY, 0,
                 s_h1, s_h2, s_client_match,
                 (void(*)(void *)) client_destroy);
     if (desktop->clients == NULL) {
@@ -251,6 +251,67 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             desktop->geometry.dim.w, desktop->geometry.dim.h);
 
     return desktop;
+}
+
+
+/* Recompute work area from client struts */
+void desktop_update_workarea(desktop_td *desktop,
+        uint32_t screen_w, uint32_t screen_h)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    int32_t left = 0;
+    int32_t right = 0;
+    int32_t top = 0;
+    int32_t bottom = 0;
+    int32_t new_w;
+    int32_t new_h;
+
+    if (desktop == NULL || desktop->stacking == NULL ||
+            cdlist_size(desktop->stacking) == 0) {
+        if (desktop != NULL) {
+            desktop->workarea.pos.x = 0;
+            desktop->workarea.pos.y = 0;
+            desktop->workarea.dim.w = screen_w;
+            desktop->workarea.dim.h = screen_h;
+        }
+        return;
+    }
+
+    /* Aggregate maximum strut on each edge across all stacked clients */
+    initial = cdlist_head(desktop->stacking);
+    node = initial;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL) {
+            if (c->layout.strut_partial.sides.left > left) {
+                left = c->layout.strut_partial.sides.left;
+            }
+            if (c->layout.strut_partial.sides.right > right) {
+                right = c->layout.strut_partial.sides.right;
+            }
+            if (c->layout.strut_partial.sides.top > top) {
+                top = c->layout.strut_partial.sides.top;
+            }
+            if (c->layout.strut_partial.sides.bottom > bottom) {
+                bottom = c->layout.strut_partial.sides.bottom;
+            }
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    new_w = (int32_t) screen_w - left - right;
+    new_h = (int32_t) screen_h - top  - bottom;
+
+    desktop->workarea.pos.x = left;
+    desktop->workarea.pos.y = top;
+    desktop->workarea.dim.w = (new_w > 0) ? (uint32_t) new_w : 0U;
+    desktop->workarea.dim.h = (new_h > 0) ? (uint32_t) new_h : 0U;
+
+    LOGGER_TRACE("Desktop %u workarea: %ux%u+%d+%d",
+            desktop->id,
+            desktop->workarea.dim.w, desktop->workarea.dim.h,
+            desktop->workarea.pos.x, desktop->workarea.pos.y);
 }
 
 
@@ -371,8 +432,8 @@ int desktop_action_rename(desktop_td *desktop, const char *name)
         return -1;
     }
 
-    snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME, "%s", name);
-    desktop->name[DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
+    snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME, "%s", name);
+    desktop->name[WM_DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
     desktop->is_outdated = true;
 
     return 0;
@@ -709,16 +770,20 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
     cdlist_item_td *node;
     cdlist_item_td *initial;
     cdlist_item_td *active_node = NULL;
+
     LOGGER_DEBUG("Cycling to previous active client on desktop %u ('%s')",
             desktop->id, desktop->name);
+
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
     }
+
     node = cdlist_head(desktop->stacking);
     if (node == NULL) {
         return 0;
     }
+
     /* Find the node holding the currently active client */
     initial = node;
     active_node = NULL;
@@ -730,6 +795,7 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
+
     /* Start searching from the node before the active one.
      * Since the list is circular, cdlist_prev(head) == tail. */
     node = (active_node != NULL)
@@ -738,6 +804,7 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
     if (node == NULL) {
         node = cdlist_tail(desktop->stacking);
     }
+
     /* Find previous non-iconified client */
     initial = node;
     do {
@@ -748,13 +815,13 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
         }
         node = cdlist_prev(node);
     } while (node != NULL && node != initial);
+
     return 0;
 }
 
 
 /* Cycle through iconified clients on the desktop */
-int desktop_action_cycle_clients_icons(desktop_td *desktop)
-{
+int desktop_action_cycle_clients_icons(desktop_td *desktop){
     cdlist_item_td *node;
     cdlist_item_td *target = NULL;
 
@@ -930,65 +997,4 @@ int desktop_action_application_launch(desktop_td *desktop,
 
     return 0;
 
-}
-
-
-/* Recompute work area from client struts */
-void desktop_update_workarea(desktop_td *desktop,
-        uint32_t screen_w, uint32_t screen_h)
-{
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    int32_t left = 0;
-    int32_t right = 0;
-    int32_t top = 0;
-    int32_t bottom = 0;
-    int32_t new_w;
-    int32_t new_h;
-
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        if (desktop != NULL) {
-            desktop->workarea.pos.x = 0;
-            desktop->workarea.pos.y = 0;
-            desktop->workarea.dim.w = screen_w;
-            desktop->workarea.dim.h = screen_h;
-        }
-        return;
-    }
-
-    /* Aggregate maximum strut on each edge across all stacked clients */
-    initial = cdlist_head(desktop->stacking);
-    node = initial;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL) {
-            if (c->layout.strut_partial.sides.left > left) {
-                left = c->layout.strut_partial.sides.left;
-            }
-            if (c->layout.strut_partial.sides.right > right) {
-                right = c->layout.strut_partial.sides.right;
-            }
-            if (c->layout.strut_partial.sides.top > top) {
-                top = c->layout.strut_partial.sides.top;
-            }
-            if (c->layout.strut_partial.sides.bottom > bottom) {
-                bottom = c->layout.strut_partial.sides.bottom;
-            }
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    new_w = (int32_t) screen_w - left - right;
-    new_h = (int32_t) screen_h - top  - bottom;
-
-    desktop->workarea.pos.x = left;
-    desktop->workarea.pos.y = top;
-    desktop->workarea.dim.w = (new_w > 0) ? (uint32_t) new_w : 0U;
-    desktop->workarea.dim.h = (new_h > 0) ? (uint32_t) new_h : 0U;
-
-    LOGGER_TRACE("Desktop %u workarea: %ux%u+%d+%d",
-            desktop->id,
-            desktop->workarea.dim.w, desktop->workarea.dim.h,
-            desktop->workarea.pos.x, desktop->workarea.pos.y);
 }

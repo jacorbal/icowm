@@ -48,7 +48,7 @@ void dcmd_desktop_rename(desktop_td *desktop,
         return;
     }
 
-    snprintf(desktop->name, DESKTOP_MAX_LENGTH_NAME - 1, "%s",
+    snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME - 1, "%s",
             desktop_data->new_data.str);
 
     xcb_ewmh_set_desktop_names(desktop->ewmh, (int) desktop->screen_id,

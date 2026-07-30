@@ -1,3 +1,4 @@
+
 /**
  * @file render/desktop.c
  *
@@ -23,9 +24,6 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Hash table for clients */
 
-/* Default initial values */
-#include <defs/wm.h>
-
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -33,6 +31,11 @@
 
 /* Local includes */
 #include <render/desktop.h>
+
+
+/* Decoration and icon constants are defined in <defs/wm.h>, pulled in
+ * via 'render/desktop.h -> desktop.h -> defs/wm.h'.  Button colors come
+ * from the theme passed to 'desktop_draw_titlebar_buttons' */
 
 
 /* Draw the background of a desktop */
@@ -110,15 +113,15 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
     uint16_t pad = (uint16_t) WM_DECOR_BTN_PAD;
-    int16_t  btn_y;
-    int16_t  x;
+    int16_t btn_y;
+    int16_t x;
     uint32_t fill;
     uint16_t step;
     int16_t right_edge;
 
     /* Button colors come from the theme: foreground contrasts against
      * the titlebar background so buttons are always visible. */
-    uint32_t color_active   = (theme != NULL)
+    uint32_t color_active = (theme != NULL)
         ? theme->window.active.foreground_color
         : 0x000000u;
     uint32_t color_inactive = (theme != NULL)
@@ -289,7 +292,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 xcb_map_window(desktop->connection, client->titlebar);
             }
             xcb_map_window(desktop->connection, target);
-            if (target != client->window) {
+            /* Do not re-map the content window for shaded clients: the
+             * shade operation explicitly unmaps it, and mapping it here
+             * would undo the shade and prevent the titlebar-only view
+             * from being painted correctly, especially for inactive
+             * windows that receive no FocusOut-triggered repaint. */
+            if (target != client->window && !client_is_shaded(client)) {
                 xcb_map_window(desktop->connection, client->window);
             }
 
@@ -378,7 +386,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         (int16_t) ((title_h >
                                 (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                             ? title_h -
-                            (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
                             : title_h),
                         client->info.name);
 

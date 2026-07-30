@@ -108,7 +108,7 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
     }
 
     (void) snprintf(layout->prompt, sizeof(layout->prompt),
-            CONFIRM_PROMPT_FMT, ICOWM_EWMH_NAME);
+            CONFIRM_PROMPT_FMT, WM_EWMH_NAME);
 
     prompt_w = menu_draw_measure(layout->prompt);
     cancel_label_w = menu_draw_measure(CONFIRM_LABEL_CANCEL);

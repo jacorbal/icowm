@@ -62,7 +62,7 @@ typedef struct desktop_s {
     uint32_t screen_id;                     /**< Screen index */
     xcb_window_t id;                        /**< Desktop index */
 
-    char name[DESKTOP_MAX_LENGTH_NAME];     /**< Desktop name */
+    char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */
 
     struct background_s {
         bool is_image;                      /**< BG color or image? */

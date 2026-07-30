@@ -67,6 +67,11 @@
  */
 static bool s_enter_focus_active = false;
 
+/* State for double-click detection on titlebars.  A double-click on the
+ * titlebar drag area (i.e. not on a button) toggles shade/unshade. */
+static xcb_timestamp_t s_last_titlebar_press_time = 0;
+static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
+
 
 /* Mirror sticky focus on the currently shown desktop of a surface */
 static void s_mouse_sync_sticky_active(surface_td *surface,
@@ -369,17 +374,34 @@ void mouse_handle_press(xcb_connection_t *connection,
 
                 /* Clicks that land on the titlebar but miss all buttons
                  * start a window-move drag, making the titlebar serve as
-                 * a drag handle (as in Openbox / evilwm). */
+                 * a drag handle.  A double-click on the same titlebar
+                 * within the threshold, toggles shade instead. */
                 if (!hit_btn) {
-                    drag_start(connection, event->root, client,
-                            CLIENT_OPERATION_MOVING,
-                            event->time,
-                            event->root_x, event->root_y,
-                            (surface != NULL)
+                    xcb_timestamp_t dt = event->time -
+                        s_last_titlebar_press_time;
+                    xcb_window_t prev_win = s_last_titlebar_press_win;
+                    s_last_titlebar_press_time = event->time;
+                    s_last_titlebar_press_win  = client->titlebar;
+                    if (prev_win == client->titlebar &&
+                            dt <= (xcb_timestamp_t) WM_DOUBLE_CLICK_MS) {
+                        /* Double-click: reset state and toggle shade */
+                        s_last_titlebar_press_time = 0;
+                        s_last_titlebar_press_win  = XCB_NONE;
+                        client_send_event(client,
+                                ACTION_CLIENT_TOGGLE_SHADE,
+                                PRIORITY_NORMAL);
+                    } else {
+                        drag_start(connection, event->root, client,
+                                CLIENT_OPERATION_MOVING,
+                                event->time,
+                                event->root_x, event->root_y,
+                                (surface != NULL)
                                 ? surface->properties.dim.w : 0u,
-                            (surface != NULL)
+                                (surface != NULL)
                                 ? surface->properties.dim.h : 0u,
-                            (cfg != NULL) ? cfg->base.windows.snap : 0u);
+                                (cfg != NULL)
+                                ? cfg->base.windows.snap : 0u);
+                    }
                 }
             }
 
@@ -430,7 +452,13 @@ void mouse_handle_press(xcb_connection_t *connection,
         return;
     }
 
-    if (type == MOUSEBIND_RESIZE && !client_is_resizable(client)) {
+    if (type == MOUSEBIND_RESIZE && (!client_is_resizable(client) ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_FULLSCREEN ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ)) {
         return;
     }
 

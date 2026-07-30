@@ -809,7 +809,7 @@ int surface_action_set_contrast(surface_td *surface, uint16_t contrast)
         return -1;
     }
 
-    /* Contrast control requires display driver interface; not implemented */
+    /* TODO: Contrast control requires display driver interface */
     (void) contrast;
 
     return 0;

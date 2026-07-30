@@ -266,7 +266,7 @@ int wm_ewmh_init(void)
     wm->ewmh_support_win = support;
 
     xcb_ewmh_set_wm_name(wm->ewmh, support,
-            sizeof(ICOWM_EWMH_NAME) - 1u, ICOWM_EWMH_NAME);
+            sizeof(WM_EWMH_NAME) - 1u, WM_EWMH_NAME);
     xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
             support, wm->ewmh->_NET_SUPPORTING_WM_CHECK,
             XCB_ATOM_WINDOW, 32, 1, &support);
