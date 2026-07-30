@@ -218,16 +218,44 @@ void wcmd_client_maximize_vert(client_td *client)
 }
 
 
-/* Maximize the client entirely */
+/* Maximize the client entirely, or restore it if already maximized */
 void wcmd_client_maximize(client_td *client)
 {
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
 
-    if (client == NULL || !wcmd_screen_dim(client, &sw, &sh)) {
+    if (client == NULL) {
         return;
     }
+
+    /* Toggle: if already maximized, restore saved geometry */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+        target = wcmd_target_win(client);
+        client_geometry_restore(client);
+        xcb_configure_window(client->connection, target,
+                XCB_CONFIG_WINDOW_X     |
+                XCB_CONFIG_WINDOW_Y     |
+                XCB_CONFIG_WINDOW_WIDTH |
+                XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                (uint32_t) client->layout.geometry.cur.pos.x,
+                (uint32_t) client->layout.geometry.cur.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h
+                });
+        client->properties.state = CLIENT_STATE_NORMAL;
+        wcmd_rem_states(client, 2,
+                "_NET_WM_STATE_MAXIMIZED_HORZ",
+                "_NET_WM_STATE_MAXIMIZED_VERT");
+        wm_request_client_redraw(client);
+        return;
+    }
+
+    if (!wcmd_screen_dim(client, &sw, &sh)) {
+        return;
+    }
+
 
     target = wcmd_target_win(client);
     client_geometry_save(client);
@@ -240,8 +268,8 @@ void wcmd_client_maximize(client_td *client)
             (const uint32_t[]) {0, 0, (uint32_t) sw, (uint32_t) sh});
     client->layout.geometry.cur.pos.x = 0;
     client->layout.geometry.cur.pos.y = 0;
-    client->layout.geometry.cur.dim.w = sw;
-    client->layout.geometry.cur.dim.h = sh;
+    client->layout.geometry.cur.dim.w = (uint32_t) sw;
+    client->layout.geometry.cur.dim.h = (uint32_t) sh;
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");

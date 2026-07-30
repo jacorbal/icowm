@@ -30,7 +30,7 @@
 #endif  /* ! PROJECT_NAME_SHORT */
 
 /** Length of @c WM_EWMH_NAME excluding the null terminator */
-//#define WM_EWMH_NAME_LEN (sizeof(WM_EWMH_NAME) - 1u)
+//#define ICOWM_EWMH_NAME_LEN (sizeof(ICOWM_EWMH_NAME) - 1u)
 
 /**
  * @brief Initial capacity of windows for a desktop
@@ -101,9 +101,8 @@
 /** Padding from frame edge */
 #define WM_DECOR_BTN_PAD (4u)
 
-/** Squared-pixel threshold below which an icon drag is treated as a click.
- *  Equals 4 px × 4 px = 16. */
-#define WM_ICON_DRAG_THRESHOLD (16)
+/** Threshold below which an icon drag is treated as a click */
+#define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) × 4 (px) = 16 (px^2) */
 
 
 #endif  /* ! DEFS_WM_H */

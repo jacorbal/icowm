@@ -261,14 +261,25 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (type == MOUSEBIND_DESKTOP_NEXT ||
             type == MOUSEBIND_DESKTOP_PREV) {
         if (client != NULL) {
-            /* Scroll on titlebar: shade (up) or unshade (down) */
+            /* Scroll on titlebar: shade (up) or unshade (down).
+             * For root-grabbed buttons event->child is the frame, not
+             * the titlebar, so verify the Y coordinate instead. */
             if (client->titlebar != 0 &&
-                    event->child == client->titlebar) {
-                client_send_event(client,
-                        (type == MOUSEBIND_DESKTOP_PREV)
+                    (event->child == client->frame ||
+                     event->child == client->titlebar)) {
+                int32_t bw  = client->layout.frame_extents.left;
+                int32_t fy  = client->layout.geometry.cur.pos.y;
+                int32_t ty0 = fy + bw;
+                int32_t ty1 = fy + client->layout.frame_extents.top;
+                int32_t ry  = (int32_t) event->root_y;
+
+                if (ry >= ty0 && ry < ty1) {
+                    client_send_event(client,
+                            (type == MOUSEBIND_DESKTOP_PREV)
                             ? ACTION_CLIENT_SHADE
                             : ACTION_CLIENT_UNSHADE,
-                        PRIORITY_NORMAL);
+                            PRIORITY_NORMAL);
+                }
             }
 
             xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
