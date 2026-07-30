@@ -116,6 +116,8 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
             desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
+                void *elem;
+
                 /* Fast path: O(1) hash lookup by 'client->id'.
                  * Works for all managed clients because 'client->id'
                  * equals the X window ID for managed clients */
@@ -143,19 +145,9 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 
                 /* Slow path: linear scan for frame, titlebar, icon
                  * window IDs that differ from 'client->id' */
-                for (size_t i = 0;
-                        i < desktop->clients->positions;
-                        ++i) {
-                    client_td *client;
+                ohtbl_foreach(desktop->clients, elem) {
+                    client_td *client = (client_td *) elem;
 
-                    if (desktop->clients->table[i] == NULL ||
-                            desktop->clients->table[i] ==
-                            desktop->clients->vacated) {
-                        continue;
-                    }
-
-                    client = (client_td *)
-                        desktop->clients->table[i];
                     if (!lookup_client_matches_window(client, window)) {
                         continue;
                     }

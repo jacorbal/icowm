@@ -96,6 +96,24 @@ void dcmd_desktop_client_send(desktop_td *desktop,
         action_data_desktop_td *desktop_data);
 
 /**
+ * @brief Clone a client to a target desktop without removing it from
+ *        the source desktop
+ *
+ * Adds the client to the target desktop's stacking order and client
+ * table while leaving the original in place.
+ *
+ * @param desktop      Pointer to the source desktop
+ * @param desktop_data Data containing the client pointer and target
+ *                     desktop pointer
+ *
+ * @note The client pointer is shared between two desktops; lifecycle
+ *       management (destruction) is the responsibility of the caller
+ * @note Complexity: @e O(1)
+ */
+void dcmd_desktop_client_clone(desktop_td *desktop,
+        action_data_desktop_td *desktop_data);
+
+/**
  * @brief Send a client to the front of the desktop's window stack (top)
  *
  * @param desktop      Pointer to the desktop
@@ -149,6 +167,15 @@ void dcmd_desktop_clients_iconify_all(desktop_td *desktop);
  * @note Complexity: @e O(1)
  */
 void dcmd_desktop_clients_cycle_active(desktop_td *desktop);
+
+/**
+ * @brief Cycles focus to the previous active client on the desktop
+ *
+ * @param desktop Pointer to the desktop
+ *
+ * @note Complexity: @e O(n), where @e n is the number of active clients
+ */
+void dcmd_desktop_clients_cycle_prev(desktop_td *desktop);
 
 /**
  * @brief Cycle focus between client icons on the desktop

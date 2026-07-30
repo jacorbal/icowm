@@ -360,5 +360,29 @@ int ohtbl_resize_halve(ohtbl_td *htbl);
 #define ohtbl_init_quick(p, h1, h2, m, d) \
     ohtbl_init(p, p, h1, h2, m, d)
 
+/**
+ * @brief Iterate over every valid (non-NULL, non-vacated) entry in an
+ *        open-addressed hash table
+ *
+ * Expands to a @c for statement; @c break and @c continue work as
+ * expected inside the loop body.  @p _var_ must be declared as a
+ * @c void* before invoking the macro and receives a pointer to each
+ * stored element in turn.
+ *
+ * @param htbl  Pointer to the hash table to iterate over
+ * @param _var_ A @c void* variable that receives each valid element
+ *
+ * @note Iteration order reflects the internal slot layout and is not
+ *       defined in terms of insertion order
+ * @note Complexity: @e O(m), where @e m is the number of positions
+ */
+#define ohtbl_foreach(htbl, _var_) \
+    for (size_t _ohtbl_i_ = 0; \
+         _ohtbl_i_ < (htbl)->positions; \
+         ++_ohtbl_i_) \
+        if ((htbl)->table[_ohtbl_i_] != NULL && \
+            (htbl)->table[_ohtbl_i_] != (htbl)->vacated && \
+            ((_var_) = (htbl)->table[_ohtbl_i_], 1))
+
 
 #endif  /* ! OHTBL_H */

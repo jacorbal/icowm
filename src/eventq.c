@@ -266,7 +266,7 @@ static void s_event_handle_client(event_td *event)
         case ACTION_CLIENT_CYCLE_PREV:
             desktop = wm_get_client_desktop(client);
             if (desktop != NULL) {
-                dcmd_desktop_clients_cycle_active(desktop);
+                dcmd_desktop_clients_cycle_prev(desktop);
             }
             break;
 
@@ -353,7 +353,7 @@ static void s_event_handle_desktop(event_td *event)
             break;
 
         case ACTION_DESKTOP_CLIENT_CLONE:
-            dcmd_desktop_client_send(desktop, desktop_data);
+            dcmd_desktop_client_clone(desktop, desktop_data);
             break;
 
         case ACTION_DESKTOP_CLIENT_SEND_FRONT:
@@ -373,6 +373,7 @@ static void s_event_handle_desktop(event_td *event)
             break;
 
         case ACTION_DESKTOP_CYCLE_CLIENTS_PREV:
+            dcmd_desktop_clients_cycle_prev(desktop);
             break;
 
         case ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE:

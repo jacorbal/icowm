@@ -161,7 +161,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     for (did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop != NULL && desktop->clients != NULL) {
-            total_clients += desktop->clients->size;
+            total_clients += ohtbl_size(desktop->clients);
         }
     }
 
@@ -182,22 +182,16 @@ static void s_wm_sync_client_lists(surface_td *surface)
     }
 
     for (did = 0; did < surface->desktop_count; ++did) {
+        void *elem;
+
         desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop == NULL || desktop->clients == NULL) {
             continue;
         }
 
-        for (size_t i = 0; i < desktop->clients->positions; ++i) {
-            client_td *client;
-            if (desktop->clients->table[i] == NULL ||
-                    desktop->clients->table[i] == desktop->clients->vacated) {
-                continue;
-            }
-            client = (client_td *) desktop->clients->table[i];
-            if (client == NULL || client->window == XCB_NONE) {
-                continue;
-            }
-            if (idx < total_clients) {
+        ohtbl_foreach(desktop->clients, elem) {
+            client_td *client = (client_td *) elem;
+            if (client->window != XCB_NONE && idx < total_clients) {
                 client_list[idx++] = client->window;
             }
         }

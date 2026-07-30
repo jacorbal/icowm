@@ -307,6 +307,22 @@ int desktop_action_clients_iconify_all(desktop_td *desktop);
 int desktop_action_cycle_clients_active(desktop_td *desktop);
 
 /**
+ * @brief Cycle through active clients in reverse order on the desktop
+ *
+ * Focuses the nearest non-iconified client that comes before the
+ * currently active client in the stacking order.
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval -1 Invalid desktop pointer
+ *
+ * @note Complexity: @e O(n), where @e n is the number of active clients
+ */
+int desktop_action_cycle_clients_prev(desktop_td *desktop);
+
+/**
  * @brief Cycle through iconified clients on the current desktop
  *
  * @param desktop Pointer to the desktop to receive the action

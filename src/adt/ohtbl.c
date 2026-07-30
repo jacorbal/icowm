@@ -101,8 +101,9 @@ void ohtbl_reset(ohtbl_td *htbl)
 /* Insert a new item in the hash table */
 int ohtbl_insert(ohtbl_td *htbl, const void *data)
 {
-    void *temp;
     size_t position;
+    size_t insert_pos = 0;
+    bool has_insert_pos = false;
 
     /* Re-dimension the table if size is bigger than
      * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions */
@@ -113,25 +114,45 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
         }
     }
 
-    /* Do nothing if the data is already in the table */
-    temp = (void *) data;
-    if (ohtbl_lookup(htbl, &temp) == 0) {
-        return 1;
-    }
-
-    /* Use double hashing to hash the key */
+    /* Single-pass probe: detect duplicates and locate the first
+     * available slot simultaneously using double hashing.
+     * The first vacated slot is recorded as a candidate insertion
+     * position; a null slot ends the probe chain (no duplicate can lie
+     * beyond it), so we commit there immediately. */
     for (size_t i = 0; i < htbl->positions; ++i) {
         position = (htbl->h1(data) +
                 (i * htbl->h2(data))) % htbl->positions;
 
-        if (htbl->table[position] == NULL ||
-                htbl->table[position] == htbl->vacated) {
-            /* Insert the data into the table */
-            htbl->table[position] = (void *) data;
+        if (htbl->table[position] == NULL) {
+            /* Empty slot ends the probe; prefer any earlier vacated
+             * slot so deleted tombstones are reused first. */
+            if (!has_insert_pos) {
+                insert_pos = position;
+            }
+
+            htbl->table[insert_pos] = (void *) data;
             htbl->size++;
             return 0;
+        } else if (htbl->table[position] == htbl->vacated) {
+            /* Vacated slot: record as candidate but keep probing for
+             * a possible duplicate further in the chain. */
+            if (!has_insert_pos) {
+                insert_pos = position;
+                has_insert_pos = true;
+            }
+        } else if (htbl->match(htbl->table[position], data)) {
+            /* Duplicate found: do nothing */
+            return 1;
         }
     } /* ! for */
+
+    /* All positions probed; insert at the first vacated slot if one was
+     * found (table is full of vacated/occupied but non-null) */
+    if (has_insert_pos) {
+        htbl->table[insert_pos] = (void *) data;
+        htbl->size++;
+        return 0;
+    }
 
     /* Return that the hash functions were selected incorrectly */
     return -1;
@@ -210,12 +231,12 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
              * ('OHTBL_MIN_LOAD_FACTOR' * 100)% of its positions */
             if (htbl->size < (size_t)
                     ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
-                /* NOTE: A return of '1' from 'ohtbl_resize_halve()' means the
-                 *       table is already at its minimum size and was
-                 *       intentionally left untouched, which is not an error;
-                 *       only a negative return (allocation failure) must turn
-                 *       this already-successful removal into an error,
-                 *       hence the '<0' and not '!=0'. */
+                /* A return of '1' from 'ohtbl_resize_halve()' means the
+                 * table is already at its minimum size and was
+                 * intentionally left untouched, which is not an error;
+                 * only a negative return (allocation failure) must turn
+                 * this already-successful removal into an error, hence
+                 * the '<0' and not '!=0'. */
                 if (ohtbl_resize_halve(htbl) < 0) {
                     return -2;
                 }

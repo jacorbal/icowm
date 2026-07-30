@@ -86,21 +86,20 @@ static bool s_client_match(const void *key1, const void *key2)
 static int s_desktop_set_clients_enabled(desktop_td *desktop,
         bool enabled)
 {
+    void *elem;
+
     if (desktop == NULL || desktop->clients == NULL) {
         return 1;
     }
 
-    for (size_t i = 0; i < desktop->clients->positions; ++i) {
-        if (desktop->clients->table[i] != NULL &&
-                desktop->clients->table[i] != desktop->clients->vacated) {
-            client_td *client = (client_td *) desktop->clients->table[i];
-            if (enabled) {
-                client_unset_disable(client);
-                client_set_focusable(client);
-            } else {
-                client_set_disable(client);
-                client_unset_focusable(client);
-            }
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *client = (client_td *) elem;
+        if (enabled) {
+            client_unset_disable(client);
+            client_set_focusable(client);
+        } else {
+            client_set_disable(client);
+            client_unset_focusable(client);
         }
     }
 
@@ -311,6 +310,8 @@ void desktop_update(desktop_td *desktop)
 /* Full desktop update */
 void desktop_update_full(desktop_td *desktop)
 {
+    void *elem;
+
     LOGGER_TRACE("Fully updating desktop %u ('%s')",
             desktop->id, desktop->name);
 
@@ -318,15 +319,8 @@ void desktop_update_full(desktop_td *desktop)
     desktop_update(desktop);
 
     /* Update all clients on the hash table */
-    for (size_t i = 0; i < desktop->clients->positions; ++i) {
-        /* Check if the position has an element */
-        if (desktop->clients->table[i] != NULL &&
-            desktop->clients->table[i] != desktop->clients->vacated) {
-            /* Get the client and update it */
-            client_td *client =
-                (client_td *) desktop->clients->table[i];
-            client_update(client);
-        }
+    ohtbl_foreach(desktop->clients, elem) {
+        client_update((client_td *) elem);
     }
 
     LOGGER_TRACE("Updated desktop %u ('%s')",
@@ -635,6 +629,8 @@ int desktop_action_clients_rearrange(desktop_td *desktop)
 /* Iconify all clients on the desktop */
 int desktop_action_clients_iconify_all(desktop_td *desktop)
 {
+    void *elem;
+
     LOGGER_DEBUG("Iconifying all clients on desktop %u ('%s')",
             desktop->id, desktop->name);
 
@@ -644,12 +640,8 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
     }
 
     /* Iterate through all clients in hash table and iconify them */
-    for (size_t i = 0; i < desktop->clients->positions; ++i) {
-        if (desktop->clients->table[i] != NULL &&
-            desktop->clients->table[i] != desktop->clients->vacated) {
-            client_td *client = (client_td *) desktop->clients->table[i];
-            client_send_event_iconify(client);
-        }
+    ohtbl_foreach(desktop->clients, elem) {
+        client_send_event_iconify((client_td *) elem);
     }
 
     return 0;
@@ -707,6 +699,55 @@ int desktop_action_cycle_clients_active(desktop_td *desktop)
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
 
+    return 0;
+}
+
+
+/* Cycle through active clients in reverse order on the desktop */
+int desktop_action_cycle_clients_prev(desktop_td *desktop)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    cdlist_item_td *active_node = NULL;
+    LOGGER_DEBUG("Cycling to previous active client on desktop %u ('%s')",
+            desktop->id, desktop->name);
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return 0;
+    }
+    /* Find the node holding the currently active client */
+    initial = node;
+    active_node = NULL;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && c->id == desktop->client_active_id) {
+            active_node = node;
+            break;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+    /* Start searching from the node before the active one.
+     * Since the list is circular, cdlist_prev(head) == tail. */
+    node = (active_node != NULL)
+        ? cdlist_prev(active_node)
+        : cdlist_tail(desktop->stacking);
+    if (node == NULL) {
+        node = cdlist_tail(desktop->stacking);
+    }
+    /* Find previous non-iconified client */
+    initial = node;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && !client_is_iconified(c)) {
+            client_send_event_focus(c);
+            return 0;
+        }
+        node = cdlist_prev(node);
+    } while (node != NULL && node != initial);
     return 0;
 }
 
