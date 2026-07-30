@@ -361,14 +361,6 @@ void handler_configure_notify(xcb_connection_t *connection,
             client->layout.geometry.cur.pos.y = event->y;
             client->layout.geometry.cur.dim.w = event->width;
             client->layout.geometry.cur.dim.h = event->height;
-
-            s_handler_sync_decorated_layout(client);
-            if (surface != NULL) {
-                surface->is_outdated = true;
-            }
-            if (desktop != NULL) {
-                desktop->is_outdated = true;
-            }
         }
     }
 }
@@ -737,8 +729,6 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
         xcb_mapping_notify_event_t *event,
         const config_td *cfg)
 {
-    list_item_td *node;
-    surface_td *surface;
     xcb_connection_t *connection = NULL;
 
     if (keysyms == NULL || event == NULL || cfg == NULL) {
@@ -768,9 +758,9 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
     xcb_refresh_keyboard_mapping(keysyms, event);
 
     if (connection != NULL && surfaces != NULL) {
-        for (node = list_head(surfaces); node != NULL;
+        for (list_item_td *node = list_head(surfaces); node != NULL;
                 node = list_next(node)) {
-            surface = (surface_td *) list_data(node);
+            surface_td *surface = (surface_td *) list_data(node);
             if (surface == NULL || surface->screen == NULL) {
                 continue;
             }
@@ -787,9 +777,9 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
 
     if (event->request == XCB_MAPPING_MODIFIER &&
             connection != NULL && surfaces != NULL) {
-        for (node = list_head(surfaces); node != NULL;
+        for (list_item_td *node = list_head(surfaces); node != NULL;
                 node = list_next(node)) {
-            surface = (surface_td *) list_data(node);
+            surface_td *surface = (surface_td *) list_data(node); 
             if (surface == NULL || surface->screen == NULL) {
                 continue;
             }
