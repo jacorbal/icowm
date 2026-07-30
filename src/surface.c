@@ -772,7 +772,7 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
         return -1;
     }
 
-    /* Orientation changes require XRandR; not implemented */
+    /* TODO: Orientation changes require XRandR */
     (void) orientation;
 
     return 0;
@@ -791,7 +791,7 @@ int surface_action_set_brightness(surface_td *surface,
         return -1;
     }
 
-    /* Brightness control requires backlight interface; not implemented */
+    /* TODO: Brightness control requires backlight interface */
     (void) brightness;
 
     return 0;
@@ -943,4 +943,69 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
     desktop->is_outdated = true;
 
+}
+
+
+/* Move all sticky clients from every other desktop to the target
+ * desktop */
+void surface_clients_sticky_transfer_all(surface_td *surface,
+        uint32_t to_id)
+{
+    cdlist_item_td *dnode;
+    cdlist_item_td *dinitial;
+    cdlist_item_td *cnode;
+    cdlist_item_td *cinitial;
+    desktop_td *to_desktop;
+    desktop_td *from_desktop;
+    client_td *sticky[32];
+
+    if (surface == NULL || surface->desktops == NULL ||
+            surface->desktop_count == 0) {
+        return;
+    }
+
+    to_desktop = surface_desktop_get(surface, to_id);
+    if (to_desktop == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        from_desktop = (desktop_td *) cdlist_data(dnode);
+        if (from_desktop != NULL && from_desktop != to_desktop &&
+                from_desktop->stacking != NULL &&
+                cdlist_size(from_desktop->stacking) > 0) {
+            /* Collect sticky clients first to avoid modifying the
+             * stacking list while iterating it. */
+            int n = 0;
+
+            cnode = cdlist_head(from_desktop->stacking);
+            cinitial = cnode;
+            do {
+                client_td *c = (client_td *) cdlist_data(cnode);
+
+                if (c != NULL && client_is_sticky(c) &&
+                        n < (int) (sizeof(sticky) / sizeof(sticky[0]))) {
+                    sticky[n++] = c;
+                }
+                cnode = cdlist_next(cnode);
+            } while (cnode != NULL && cnode != cinitial);
+            for (int i = 0; i < n; i++) {
+                if (from_desktop->client_active_id == sticky[i]->id) {
+                    from_desktop->client_active_id = 0;
+                }
+
+                desktop_action_client_rem(from_desktop, sticky[i]);
+                desktop_action_client_add(to_desktop, sticky[i]);
+                sticky[i]->desktop_id = to_id;
+            }
+        }
+
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
 }

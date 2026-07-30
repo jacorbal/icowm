@@ -336,6 +336,7 @@ void handler_configure_notify(xcb_connection_t *connection,
     client_td *client;
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
+    bool geom_changed;
 
     (void) connection;
 
@@ -356,13 +357,39 @@ void handler_configure_notify(xcb_connection_t *connection,
             ? (event->window == client->frame)
             : (event->window == client->window ||
                event->window == client->id);
+
         if (is_frame) {
+            geom_changed =
+                client->layout.geometry.cur.pos.x !=
+                    (int32_t) event->x ||
+                client->layout.geometry.cur.pos.y !=
+                    (int32_t) event->y ||
+                client->layout.geometry.cur.dim.w !=
+                    (uint32_t) event->width ||
+                client->layout.geometry.cur.dim.h !=
+                    (uint32_t) event->height;
+
             client->layout.geometry.cur.pos.x = event->x;
             client->layout.geometry.cur.pos.y = event->y;
             client->layout.geometry.cur.dim.w = event->width;
             client->layout.geometry.cur.dim.h = event->height;
-        }
-    }
+
+            /* Trigger a re-render only when the frame geometry actually
+             * changed.  Guarding with 'geom_changed' prevents the
+             * feedback loop where the render itself configures the
+             * frame to the same dimensions and the resulting
+             * 'ConfigureNotify' would re-mark the desktop as
+             * outdated. */
+            if (geom_changed) {
+                if (surface != NULL) {
+                    surface->is_outdated = true;
+                }
+                if (desktop != NULL) {
+                    desktop->is_outdated = true;
+                }
+            } /* ! if (geom_changed) */
+        } /* ! if (is_frame) */
+    } /* ! if (client) */
 }
 
 
@@ -474,6 +501,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
     surface_td *surface;
     cdlist_item_td *node;
     cdlist_item_td *initial;
+    bool focus_set;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
@@ -497,6 +525,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
 
+            focus_set = false;
             /* Restore focus to the most recently used visible client */
             if (desktop->stacking != NULL) {
                 node = cdlist_tail(desktop->stacking);
@@ -514,13 +543,30 @@ void handler_unmap_notify(xcb_connection_t *connection,
                                     XCB_INPUT_FOCUS_PARENT,
                                     c->window, XCB_CURRENT_TIME);
                             desktop->is_outdated = true;
+
                             if (surface != NULL) {
                                 surface->is_outdated = true;
                             }
+
+                            focus_set = true;
                             break;
                         }
                         node = cdlist_prev(node);
                     } while (node != NULL && node != initial);
+                }
+            }
+
+            /* No suitable client found; release focus so keyboard grabs
+             * on the root window keep firing after the last window
+             * closes */
+            if (!focus_set && connection != NULL) {
+                xcb_set_input_focus(connection,
+                        XCB_INPUT_FOCUS_POINTER_ROOT,
+                        XCB_INPUT_FOCUS_POINTER_ROOT,
+                        XCB_CURRENT_TIME);
+                desktop->is_outdated = true;
+                if (surface != NULL) {
+                    surface->is_outdated = true;
                 }
             }
         }
@@ -554,6 +600,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
     desktop_td *desktop;
     cdlist_item_td *node;
     cdlist_item_td *initial;
+    bool focus_set;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in destroy handler",
@@ -581,6 +628,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     if (desktop != NULL && desktop->client_active_id == client->id) {
         desktop->client_active_id = 0;
+        focus_set = false;
+
         /* Restore focus to the most recently used visible client.
          * Must happen before 'desktop_action_client_rem' removes the
          * client from the stacking list so it can be skipped by
@@ -600,14 +649,30 @@ void handler_destroy_notify(xcb_connection_t *connection,
                         xcb_set_input_focus(connection,
                                 XCB_INPUT_FOCUS_PARENT,
                                 c->window, XCB_CURRENT_TIME);
+
                         desktop->is_outdated = true;
                         if (surface != NULL) {
                             surface->is_outdated = true;
                         }
+                        focus_set = true;
                         break;
                     }
                     node = cdlist_prev(node);
                 } while (node != NULL && node != initial);
+            }
+        }
+
+        /* No suitable client found; release focus so keyboard grabs on
+         * the root window keep firing after the last window closes */
+        if (!focus_set && connection != NULL) {
+            xcb_set_input_focus(connection,
+                    XCB_INPUT_FOCUS_POINTER_ROOT,
+                    XCB_INPUT_FOCUS_POINTER_ROOT,
+                    XCB_CURRENT_TIME);
+            xcb_flush(connection);
+            desktop->is_outdated = true;
+            if (surface != NULL) {
+                surface->is_outdated = true;
             }
         }
     }

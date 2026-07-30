@@ -513,12 +513,23 @@ void wcmd_client_toggle_shade(client_td *client)
 /* Set client sticky mode */
 void wcmd_client_sticky(client_td *client)
 {
+    uint32_t all_desktops;
+
     if (client == NULL) {
         return;
     }
 
     client_set_sticky(client);
     wcmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
+
+    if (client->ewmh != NULL) {
+        all_desktops = DESKTOP_ID_ALL;
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &all_desktops);
+    }
+
+
     wm_request_client_redraw(client);
 }
 
@@ -538,11 +549,19 @@ void wcmd_client_unsticky(client_td *client)
 
     client_unset_sticky(client);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
+
+    if (client->ewmh != NULL) {
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &client->desktop_id);
+    }
+
     owner_desktop = wm_get_client_desktop(client);
     surface = wm_get_surface_by_id(client->screen_id);
     current_desktop = (surface != NULL)
         ? lookup_current_desktop(surface)
         : NULL;
+
     if (owner_desktop != NULL && current_desktop != NULL &&
             owner_desktop->id != current_desktop->id) {
         target = wcmd_target_win(client);

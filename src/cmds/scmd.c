@@ -72,6 +72,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
 
     surface_clients_hide(surface, old_id);
     surface_desktop_select(surface, new_id);
+    surface_clients_sticky_transfer_all(surface, new_id);
     surface_clients_show(surface, new_id);
 
     surface->is_outdated = true;
@@ -90,12 +91,15 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
 
     old_id = surface->desktop_cur;
 
-    LOGGER_DEBUG("Switching to next desktop on surface %u", surface->id);
+    LOGGER_DEBUG("Switching to next desktop on surface %u",
+            surface->id);
 
     surface_clients_hide(surface, old_id);
     surface_desktop_select_next(surface, true);
 
     if (surface->desktop_cur != old_id) {
+        surface_clients_sticky_transfer_all(surface,
+                surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
         surface->is_outdated = true;
         xcb_flush(surface->connection);

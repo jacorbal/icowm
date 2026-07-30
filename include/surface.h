@@ -481,6 +481,24 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id);
 void surface_clients_show(surface_td *surface, uint32_t desktop_id);
 
 /**
+ * @brief Move all sticky clients from every other desktop to @p to_id
+ *
+ * Iterates all desktops on the surface and relocates any client that
+ * carries the @c CLIENT_FLAG_STICKY flag to the desktop identified by
+ * @p to_id.  Called during desktop switches so that pinned windows are
+ * present in the new desktop's stacking list and therefore respond to
+ * keyboard shortcuts and focus management on the destination desktop.
+ *
+ * @param surface Pointer to the surface that owns all desktops
+ * @param to_id   ID of the desktop to which sticky clients are moved
+ *
+ * @note Complexity: @e O(d * n), where @e d is the number of desktops
+ *       and @e n is the average number of clients per desktop
+ */
+void surface_clients_sticky_transfer_all(surface_td *surface,
+        uint32_t to_id);
+
+/**
  * @brief Macro that evaluates to the surface width
  *
  * @note Complexity: @e O(1)

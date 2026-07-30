@@ -32,7 +32,7 @@
 #define DESKTOP_MAX_LENGTH_NAME (64)
 
 /** Desktop identifier when the client is pinned to all desktops */
-#define DESKTOP_ID_ALL (0xFFFFFFFF)
+#define DESKTOP_ID_ALL (0xFFFFFFFFu)
 
 /** Maximum number of supported key bindings */
 #define WM_MAX_KEYBINDINGS (128)
