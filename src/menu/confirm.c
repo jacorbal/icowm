@@ -49,9 +49,9 @@ static void s_confirm_draw(xcb_connection_t *connection,
     uint32_t bg_sel;
     uint32_t fg_nor;
     uint32_t bg_nor;
-    const uint16_t w = 400;
+    const uint16_t w = 300;
     const uint16_t h = 90;
-    const uint16_t btn_w = 100;
+    const uint16_t btn_w = 80;
     const uint16_t btn_h = 26;
     const int16_t btn_y = (int16_t) (h - btn_h - 8);
     const int16_t cancel_x = 12;
@@ -105,7 +105,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
     /* Prompt text */
     text_renderer_set_color(fg_nor, bg_win);
     menu_draw_label(connection, s_confirm_window, 12, 22,
-            "Are you sure you want to exit IcoWM?");
+            "Are you sure you want to log out?");
 
     /* Cancel button label */
     text_renderer_set_color(
@@ -134,7 +134,7 @@ void confirm_show(xcb_connection_t *connection,
         surface_td *surface,
         const config_td *cfg)
 {
-    const uint16_t w = 400;
+    const uint16_t w = 300;
     const uint16_t h = 90;
     int16_t x;
     int16_t y;

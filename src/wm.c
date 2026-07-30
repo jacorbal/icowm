@@ -240,7 +240,6 @@ static void s_wm_sync_client_lists(surface_td *surface)
 /* Create and publish root EWMH metadata required by compliant clients */
 int wm_ewmh_init(void)
 {
-    static const char wm_name[] = "IcoWM";
     xcb_atom_t supported_atoms[24];
     uint32_t n_supported = 0u;
     list_item_td *snode;
@@ -264,7 +263,7 @@ int wm_ewmh_init(void)
     wm->ewmh_support_win = support;
 
     xcb_ewmh_set_wm_name(wm->ewmh, support,
-            sizeof(wm_name) - 1u, wm_name);
+            sizeof(PROJECT_NAME_SHORT) - 1u, PROJECT_NAME_SHORT);
     xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
             support, wm->ewmh->_NET_SUPPORTING_WM_CHECK,
             XCB_ATOM_WINDOW, 32, 1, &support);
