@@ -67,5 +67,32 @@ event_td *event_init(void *object, void *object_data,
  */
 void event_destroy(event_td *event);
 
+/**
+ * @brief Deep-copy an event structure
+ *
+ * Allocates a new @c event_td and duplicates all heap-allocated data
+ * inside it.  The @c object pointer (@c client*, @c desktop*, …) is
+ * shallow-copied; the caller is responsible for ensuring the referenced
+ * object outlives both the original and the clone.
+ *
+ * For @c ACTION_TYPE_CLIENT events whose action is one of
+ * @c ACTION_CLIENT_RENAME, @c ACTION_CLIENT_RECLASS,
+ * @c ACTION_CLIENT_REROLE, or @c ACTION_CLIENT_SET_ICON the
+ * @c new_data.str strings are duplicated with @a safe_strdup.  All
+ * other @c data payloads are shallow-copied by value.
+ *
+ * @param src Source event to clone
+ *
+ * @return Pointer to the new allocated clone, or @c NULL if @p src is
+ *         a null pointer or memory allocation fails.  On failure no
+ *         partial clone is left alive.
+ *
+ * @note Complexity: @e O(1) for most actions; @e O(k) when duplicating
+ *       strings of total length @e k
+ *
+ * @see @c event_destroy
+ */
+event_td *event_clone(const event_td *src);
+
 
 #endif  /* ! EVENT_H */

@@ -160,6 +160,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
     for (did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
+
         if (desktop != NULL && desktop->clients != NULL) {
             total_clients += ohtbl_size(desktop->clients);
         }
@@ -191,6 +192,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
         ohtbl_foreach(desktop->clients, elem) {
             client_td *client = (client_td *) elem;
+
             if (client->window != XCB_NONE && idx < total_clients) {
                 client_list[idx++] = client->window;
             }
