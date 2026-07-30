@@ -264,6 +264,17 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
             cdlist->tail = item;
             cdlist->head->prev = item;
         }
+
+        /* If the removed item was the head (reached via
+         * 'cdlist_prev(head) = tail'), update the head pointer and fix
+         * the tail's forward link.  The size guard excludes the
+         * degenerate single-element circular case where
+         * 'item == old_item' and the subsequent
+         * 'cdlist_ins_next(size==0)' resets head/tail. */
+        if (old_item == cdlist->head && cdlist->size > 1) {
+            cdlist->head = old_item->next;
+            cdlist->tail->next = cdlist->head;
+        }
     }
 
     /* Free the storage allocated by the abstract data type */

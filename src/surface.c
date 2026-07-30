@@ -995,14 +995,25 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 }
                 cnode = cdlist_next(cnode);
             } while (cnode != NULL && cnode != cinitial);
+
             for (int i = 0; i < n; i++) {
-                if (from_desktop->client_active_id == sticky[i]->id) {
+                bool was_active =
+                    (from_desktop->client_active_id == sticky[i]->id);
+                if (was_active) {
                     from_desktop->client_active_id = 0;
                 }
 
                 desktop_action_client_rem(from_desktop, sticky[i]);
                 desktop_action_client_add(to_desktop, sticky[i]);
                 sticky[i]->desktop_id = to_id;
+
+                /* Preserve focus: if this sticky client was the active
+                 * window on the source desktop, make it active on the
+                 * destination desktop so 'surface_clients_show'
+                 * restores input focus to it */
+                if (was_active) {
+                    to_desktop->client_active_id = sticky[i]->id;
+                }
             }
         }
 

@@ -147,12 +147,13 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
 {
     xcb_atom_t *remove_states;
     xcb_atom_t *new_states;
+    xcb_atom_t *current_atoms;
     xcb_get_property_cookie_t cookie;
-    xcb_ewmh_get_atoms_reply_t current_states_reply;
+    xcb_get_property_reply_t *reply;
+    uint32_t current_len;
     uint32_t new_count;
     va_list args;
     bool should_remove;
-    uint8_t success;
 
     if (client == NULL || client->ewmh == NULL || num_states == 0) {
         return;
@@ -166,7 +167,8 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     va_start(args, num_states);
     for (uint32_t i = 0; i < num_states; ++i) {
         const char *state_name = va_arg(args, const char *);
-        remove_states[i] = wcmd_intern_atom(client->connection, state_name);
+        remove_states[i] = wcmd_intern_atom(client->connection,
+                state_name);
         if (remove_states[i] == XCB_ATOM_NONE) {
             free(remove_states);
             va_end(args);
@@ -175,39 +177,46 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     }
     va_end(args);
 
+    /* Use 'xcb_get_property_reply' directly so we hold the full reply
+     * object and can free it with a single 'free'(reply) call.  The
+     * 'xcb_ewmh' atoms pointer would point into the middle of the same
+     * allocation and must never be passed to 'free' individually. */
     cookie = xcb_ewmh_get_wm_state(client->ewmh, client->window);
-    success = xcb_ewmh_get_wm_state_reply(client->ewmh, cookie,
-            &current_states_reply, NULL);
+    reply = xcb_get_property_reply(client->ewmh->connection,
+            cookie, NULL);
 
-    if (!success || current_states_reply.atoms_len == 0) {
+    if (reply == NULL ||
+            xcb_get_property_value_length(reply) == 0) {
         free(remove_states);
-        if (success) {
-            free(current_states_reply.atoms);
+        if (reply != NULL) {
+            free(reply);
         }
         return;
     }
 
-    new_states =
-        malloc(current_states_reply.atoms_len * sizeof(xcb_atom_t));
+    current_len = (uint32_t) xcb_get_property_value_length(reply) /
+        sizeof(xcb_atom_t);
+    current_atoms = (xcb_atom_t *) xcb_get_property_value(reply);
+    new_states = malloc(current_len * sizeof(xcb_atom_t));
     if (new_states == NULL) {
         free(remove_states);
-        free(current_states_reply.atoms);
+        free(reply);
         return;
     }
 
     new_count = 0;
-    for (uint32_t i = 0; i < current_states_reply.atoms_len; ++i) {
+    for (uint32_t i = 0; i < current_len; ++i) {
         should_remove = false;
 
         for (uint32_t j = 0; j < num_states; ++j) {
-            if (current_states_reply.atoms[i] == remove_states[j]) {
+            if (current_atoms[i] == remove_states[j]) {
                 should_remove = true;
                 break;
             }
         }
 
         if (!should_remove) {
-            new_states[new_count++] = current_states_reply.atoms[i];
+            new_states[new_count++] = current_atoms[i];
         }
     }
 
@@ -220,5 +229,5 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
 
     free(remove_states);
     free(new_states);
-    free(current_states_reply.atoms);
+    free(reply);
 }
