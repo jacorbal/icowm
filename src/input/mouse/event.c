@@ -34,6 +34,7 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/confirm.h>
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
@@ -49,17 +50,21 @@
 #include <eventq.h>
 #include <lookup.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <input/drag.h>
 #include <input/mouse.h>
 
 
-/* Flag set while a hover-triggered focus transfer is in flight.  Set in
- * 'mouse_handle_enter' before calling focus_apply, cleared in
- * 'handler_focus_in' so that the 'FocusIn' event from the hover does
- * not move 'client_active_id' away from the explicitly-focused
- * window. */
+/**
+ * @brief Flag set while a hover-triggered focus transfer is in flight
+ *
+ * Set in @a mouse_handle_enter before calling @a focus_apply, cleared
+ * in @a handler_focus_in so that the @c FocusIn event from the hover
+ * does not move @p client_active_id away from the explicitly-focused
+ * window.
+ */
 static bool s_enter_focus_active = false;
 
 
@@ -128,6 +133,44 @@ void mouse_handle_press(xcb_connection_t *connection,
         if (surface != NULL) {
             surface_render_current_desktop_repaint(surface);   
         }
+    }
+
+    if (confirm_is_open()) {
+        if (event->event == confirm_window() ||
+                event->child == confirm_window()) {
+            /* The dialog has width=400 height=90; buttons sit in the
+             * bottom strip (btn_y = 56, btn_h = 26, btn_w = 100):
+             *   "Cancel": x in [12, 112)
+             *   "Exit":   x in [288, 388) */
+            int cx = (int) event->event_x;
+            int cy = (int) event->event_y;
+            if (cy >= 56 && cy < 82) {
+                if (cx >= 12 && cx < 112) {
+                    /* Clicked Cancel */
+                    confirm_close(connection);
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                }
+                if (cx >= 288 && cx < 388) {
+                    /* Clicked Exit */
+                    confirm_close(connection);
+                    (void) wm_request_stop();
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                }
+            }
+        }
+
+        /* Click outside dialog: close without action */
+        confirm_close(connection);
+        xcb_allow_events(connection,
+                XCB_ALLOW_ASYNC_POINTER, event->time);
+        xcb_flush(connection);
+        return;
     }
 
     if (cycle_is_open()) {
@@ -269,9 +312,11 @@ void mouse_handle_press(xcb_connection_t *connection,
                 int step = btn + gap;
                 int title_h = (int) client->title_height;
                 int btn_y = (title_h > btn) ? (title_h - btn) / 2 : 0;
+                bool hit_btn = false;
 
                 if (ey >= btn_y && ey < btn_y + btn) {
                     if (ex >= pad && ex < pad + btn) {
+                        hit_btn = true;
                         client_send_event(client,
                                 ACTION_CLIENT_TOGGLE_STICKY,
                                 PRIORITY_NORMAL);
@@ -284,9 +329,11 @@ void mouse_handle_press(xcb_connection_t *connection,
                             ACTION_CLIENT_HIDE,
                             ACTION_CLIENT_ICONIFY
                         };
+
                         for (int bi = 0; bi < 6; ++bi) {
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
+                                hit_btn = true;
                                 client_send_event(client,
                                         btn_actions[bi],
                                         PRIORITY_NORMAL);
@@ -295,6 +342,21 @@ void mouse_handle_press(xcb_connection_t *connection,
                         } /* ! for (bi) */
                     }
                 } /* ! if (ey) */
+
+                /* Clicks that land on the titlebar but miss all buttons
+                 * start a window-move drag, making the titlebar serve
+                 * as a drag handle */
+                if (!hit_btn) {
+                    drag_start(connection, event->root, client,
+                            CLIENT_OPERATION_MOVING,
+                            event->time,
+                            event->root_x, event->root_y,
+                            (surface != NULL)
+                                ? surface->properties.dim.w : 0u,
+                            (surface != NULL)
+                                ? surface->properties.dim.h : 0u,
+                            (cfg != NULL) ? cfg->base.windows.snap : 0u);
+                }
             }
 
             if (event->child == client->window) {
@@ -310,6 +372,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         event->time);
             }
         }
+
         xcb_flush(connection);
         return;
     }

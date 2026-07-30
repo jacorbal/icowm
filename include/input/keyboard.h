@@ -95,8 +95,10 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_RESIZE_UP,           /**< Shrink focused client height */
     KEYBIND_CLIENT_RESIZE_DOWN,         /**< Grow focused client height */
 
-    /* Window manager drawing */
+    /* Window manager lifecycle */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
+    KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
+    KEYBIND_WM_QUIT,                    /**< Quit w/ confirmation dialog */
 };
 
 

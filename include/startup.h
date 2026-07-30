@@ -1,7 +1,7 @@
 /**
  * @file startup.h
  *
- * @brief WM startup helpers: root event subscription, signal handling
+ * @brief Window manager startup helpers declaration
  *
  * Declares the three startup functions for subscribing to root window
  * events, installing signal handlers, and querying whether a stop
@@ -68,6 +68,19 @@ int startup_install_signals(void);
  * @note Complexity: @e O(1)
  */
 bool startup_stop_requested(void);
+
+/**
+ * @brief Query whether a @c SIGHUP configuration-reload was requested
+ *
+ * Returns @c true and clears the internal flag on the first call after
+ * a @c SIGHUP is received; subsequent calls return @c false until the
+ * next signal.
+ *
+ * @return @c true if a reload was requested since the last call
+ *
+ * @note Complexity: @e O(1)
+ */
+bool startup_reload_requested(void);
 
 
 #endif  /* ! STARTUP_H */

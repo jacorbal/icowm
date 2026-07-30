@@ -529,6 +529,8 @@ void wcmd_client_unsticky(client_td *client)
     desktop_td *current_desktop;
     surface_td *surface;
     xcb_window_t target;
+    cdlist_item_td *snode;
+    client_td *next_focus;
 
     if (client == NULL) {
         return;
@@ -544,20 +546,59 @@ void wcmd_client_unsticky(client_td *client)
     if (owner_desktop != NULL && current_desktop != NULL &&
             owner_desktop->id != current_desktop->id) {
         target = wcmd_target_win(client);
+
+        /* Increment 'ignore_unmap' to prevent 'handler_unmap_notify'
+         * from treating the WM-initiated unmaps as client self-closes.
+         * The frame unmap implicitly unmaps its child, so only one
+         * extra increment is needed when target is the frame. */
+        client->ignore_unmap += 1u;
+        if (target != client->window) {
+            client->ignore_unmap += 1u;
+        }
+
         if (client->titlebar != 0) {
             xcb_unmap_window(client->connection, client->titlebar);
         }
         xcb_unmap_window(client->connection, target);
-        if (target != client->window) {
-            xcb_unmap_window(client->connection, client->window);
-        }
+
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_unmap_window(client->connection, client->icon_window);
             client->is_icon_mapped = false;
         }
+
+        /* If the unstickied client held focus on the current desktop,
+         * transfer focus to the MRU client still on that desktop */
         if (current_desktop->client_active_id == client->id) {
             current_desktop->client_active_id = 0;
+            next_focus = NULL;
+            if (current_desktop->stacking != NULL &&
+                    cdlist_size(current_desktop->stacking) > 0) {
+                snode = cdlist_tail(current_desktop->stacking);
+                while (snode != NULL) {
+                    client_td *c = (client_td *) cdlist_data(snode);
+                    if (c != NULL && c->id != client->id) {
+                        next_focus = c;
+                        break;
+                    }
+                    snode = cdlist_prev(snode);
+                    if (snode ==
+                            cdlist_tail(current_desktop->stacking)) {
+                        break;
+                    }
+                }
+            }
+
+            if (next_focus != NULL) {
+                current_desktop->client_active_id = next_focus->id;
+                wcmd_client_focus(next_focus);
+            } else {
+                xcb_set_input_focus(client->connection,
+                        XCB_INPUT_FOCUS_POINTER_ROOT,
+                        XCB_INPUT_FOCUS_POINTER_ROOT,
+                        XCB_CURRENT_TIME);
+            }
         }
+
         current_desktop->is_outdated = true;
         surface->is_outdated = true;
     }

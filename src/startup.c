@@ -1,7 +1,7 @@
 /**
  * @file startup.c
  *
- * @brief WM startup helpers: root event subscription, signal handling
+ * @brief Window manager startup helpers implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -36,8 +36,18 @@
 #include <startup.h>
 
 
-/** Flag written by the signal handler to request a graceful shutdown */
+/**
+ * @brief Flag written by the signal handler to request a graceful
+ *        shutdown
+ */
 static volatile sig_atomic_t s_stop_signal_received = 0;
+
+
+/**
+ * @brief Flag written by the @c SIGHUP handler to request
+ *        a configuration reload
+ */
+static volatile sig_atomic_t s_reload_signal_received = 0;
 
 
 /**
@@ -52,6 +62,22 @@ static volatile sig_atomic_t s_stop_signal_received = 0;
 static void s_startup_handle_signal(int signum)
 {
     s_stop_signal_received = signum;
+}
+
+
+/**
+ * @brief Signal handler for @c SIGHUP (configuration reload)
+ *
+ * Sets a flag consumed by @c startup_reload_requested.  The actual
+ * reload is deferred to the main loop so that it runs in a safe context
+ * without async-signal-safety constraints.
+ *
+ * @param signum Number of the received signal (always @c SIGHUP)
+ */
+static void s_startup_handle_reload(int signum)
+{
+    (void) signum;
+    s_reload_signal_received = 1;
 }
 
 
@@ -108,14 +134,19 @@ int startup_subscribe_root_events(wm_td *wm)
 int startup_install_signals(void)
 {
     struct sigaction sa;
+    struct sigaction sa_hup;
 
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = s_startup_handle_signal;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
 
-    if (sigaction(SIGHUP,  &sa, NULL) != 0 ||
-            sigaction(SIGINT,  &sa, NULL) != 0 ||
+    memset(&sa_hup, 0, sizeof(sa_hup));
+    sa_hup.sa_handler = s_startup_handle_reload;
+    sa_hup.sa_flags = 0;
+    sigemptyset(&sa_hup.sa_mask);
+    if (sigaction(SIGHUP, &sa_hup, NULL) != 0 ||
+            sigaction(SIGINT, &sa, NULL) != 0 ||
             sigaction(SIGQUIT, &sa, NULL) != 0 ||
             sigaction(SIGTERM, &sa, NULL) != 0) {
         LOGGER_ERROR("Failed to install termination signal handlers",
@@ -132,3 +163,16 @@ bool startup_stop_requested(void)
 {
     return s_stop_signal_received != 0;
 }
+
+
+/* Query whether a 'SIGHUP' configuration-reload request was received */
+bool startup_reload_requested(void)
+{
+    if (s_reload_signal_received != 0) {
+        s_reload_signal_received = 0;
+        return true;
+    }
+
+    return false;
+}
+

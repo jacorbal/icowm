@@ -23,6 +23,9 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Hash table for clients */
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -30,11 +33,6 @@
 
 /* Local includes */
 #include <render/desktop.h>
-
-
-/* Decoration and icon constants are defined in <defs/wm.h>, pulled in
- * via 'render/desktop.h -> desktop.h -> defs/wm.h'.  Button colors come
- * from the theme passed to 'desktop_draw_titlebar_buttons' */
 
 
 /* Draw the background of a desktop */

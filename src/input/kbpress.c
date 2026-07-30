@@ -44,6 +44,7 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/confirm.h>
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
@@ -235,6 +236,54 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
+    /* Confirmation dialog key handling */
+    if (confirm_is_open()) {
+        /* Tab, Left, Right arrows: toggle selected button */
+        if (keysym == 0xff09u || keysym == 0xff51u ||
+                keysym == 0xff53u) {
+            confirm_toggle_selection();
+            if (surfaces != NULL) {
+                list_item_td *head = list_head(surfaces);
+                if (head != NULL) {
+                    surface_td *s = (surface_td *) list_data(head);
+                    if (s != NULL) {
+                        confirm_repaint(s->connection, cfg);
+                    }
+                }
+            }
+            return;
+        }
+
+        /* Enter/Return: activate selected button */
+        if (keysym == 0xff0du || keysym == 0xff8du) {
+            if (surfaces != NULL) {
+                list_item_td *head = list_head(surfaces);
+                if (head != NULL) {
+                    surface_td *s = (surface_td *) list_data(head);
+                    if (s != NULL) {
+                        confirm_accept(s->connection);
+                    }
+                }
+            }
+            return;
+        }
+
+        /* Escape: close without action */
+        if (keysym == 0xff1bu) {
+            if (surfaces != NULL) {
+                list_item_td *head = list_head(surfaces);
+                if (head != NULL) {
+                    surface_td *s = (surface_td *) list_data(head);
+                    if (s != NULL) {
+                        confirm_close(s->connection);
+                    }
+                }
+            }
+            return;
+        }
+        return;
+    }
+
     /* Emergency exit 'Ctrl+Mod1+BackSpace' */
     if (keysym == 0xff08u &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
@@ -323,6 +372,15 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_REDRAW:
                 wm_request_full_redraw();
+                return;
+
+            case KEYBIND_WM_QUIT:
+                if (surface != NULL && surface->connection != NULL) {
+                    confirm_show(surface->connection, surface, cfg);
+                }
+                return;
+            case KEYBIND_WM_RELOAD:
+                (void) wm_action_config_reload();
                 return;
 
             case KEYBIND_CLIENT_ICONIFY:

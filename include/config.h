@@ -114,6 +114,8 @@ struct config_bindings_s {
     struct keyboard_s {
         struct {
             char redraw[CONFIG_MAX_LENGTH_BINDING];
+            char reload[CONFIG_MAX_LENGTH_BINDING];
+            char quit[CONFIG_MAX_LENGTH_BINDING];
         } wm;
 
         struct {

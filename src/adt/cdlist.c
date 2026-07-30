@@ -257,8 +257,12 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
             /* Link next item back to current item */
             old_item->next->prev = item;
         } else {
-            /* If removing last item, update tail */
+            /* Removing the tail: update tail and fix the circular
+             * back-link so 'head->prev' points to the new tail.
+             * Without this, 'cdlist_prev(cdlist_head())' would return
+             * a dangling pointer to the freed node */
             cdlist->tail = item;
+            cdlist->head->prev = item;
         }
     }
 

@@ -46,6 +46,7 @@
 #include <input/mouse.h>
 
 /* Menu includes */
+#include <menu/confirm.h>
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
@@ -60,7 +61,17 @@
 #include <handler.h>
 
 
-/* Apply cached frame extents to child and titlebar geometry */
+/**
+ * @brief Apply cached frame extents to child and titlebar geometry
+ *
+ * Reads the stored @c frame_extents from @p client and repositions and
+ * resizes the child content window and the titlebar window to fill the
+ * interior of the decoration frame correctly.
+ *
+ * @param client Client whose decoration layout should be synchronised
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_handler_sync_decorated_layout(client_td *client)
 {
     uint16_t left;
@@ -273,6 +284,7 @@ void handler_configure_request(xcb_connection_t *connection,
                             client);
                 }
             }
+
             xcb_flush(connection);
         }
     } else {
@@ -371,6 +383,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
                 event->window, NULL, NULL) != NULL) {
         LOGGER_TRACE("Window %#x already managed; mapping directly",
                 event->window);
+
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
         return;
@@ -390,6 +403,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     if (desktop == NULL) {
         LOGGER_ERROR("No current desktop on surface %u; mapping without"
                 " management", surface->id);
+
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
         return;
@@ -562,7 +576,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
         desktop->client_active_id = 0;
         /* Restore focus to the most recently used visible client.
          * Must happen before 'desktop_action_client_rem' removes the
-         * client from the stacking list so we can skip it by
+         * client from the stacking list so it can be skipped by
          * pointer. */
         if (desktop->stacking != NULL) {
             node = cdlist_tail(desktop->stacking);
@@ -640,6 +654,7 @@ void handler_property_notify(xcb_connection_t *connection,
 {
     client_td *client;
     surface_td *surface;
+    desktop_td *desktop;
 
     (void) connection;
 
@@ -656,7 +671,9 @@ void handler_property_notify(xcb_connection_t *connection,
         return;
     }
 
-    client = lookup_find_client(surfaces, event->window, &surface, NULL);
+    desktop = NULL;
+    client = lookup_find_client(surfaces, event->window,
+            &surface, &desktop);
     if (client == NULL) {
         return;
     }
@@ -665,8 +682,13 @@ void handler_property_notify(xcb_connection_t *connection,
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_NAME)) {
         lifecycle_refresh_name(client);
+
         if (surface != NULL) {
             surface->is_outdated = true;
+        }
+
+        if (desktop != NULL) {
+            desktop->is_outdated = true;
         }
     }
 }
@@ -739,6 +761,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
                     surface->screen->root,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
+
         xcb_flush(connection);
     }
 
@@ -757,6 +780,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
                     surface->screen->root,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
+
         xcb_flush(connection);
         mouse_load(surfaces, cfg);
     }
@@ -797,6 +821,12 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
+    /* Confirmation dialog repaint */
+    if (confirm_is_open() && event->window == confirm_window()) {
+        confirm_repaint(connection, cfg);
+        return;
+    }
+
     client = lookup_find_client(surfaces, event->window,
             NULL, &desktop);
     if (client == NULL) {
@@ -826,6 +856,7 @@ void handler_expose(xcb_connection_t *connection,
                         WM_ICON_CAPTION_HEIGHT - 2u),
                     client->info.name);
         }
+
         xcb_flush(connection);
         return;
     }
@@ -843,6 +874,7 @@ void handler_expose(xcb_connection_t *connection,
                     (is_focused) ? cfg->theme.window.active.border_color
                                  : cfg->theme.window.inactive.border_color
                 });
+
         xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
         xcb_flush(connection);
         return;

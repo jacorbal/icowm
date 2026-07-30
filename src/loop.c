@@ -133,6 +133,8 @@ void loop_run(wm_td *wm)
     xcb_generic_event_t *event;
     struct pollfd pfd;
     int poll_status;
+    list_item_td *sync_node;
+    bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
         LOGGER_TRACE("Window manager is not initialised or" \
@@ -165,6 +167,12 @@ void loop_run(wm_td *wm)
                     " requesting shutdown", L_NARG);
             wm_request_stop();
             break;
+        }
+
+        if (startup_reload_requested()) {
+            LOGGER_INFO("'SIGHUP' received; reloading configuration",
+                    L_NARG);
+            (void) wm_action_config_reload();
         }
 
         if (xcb_connection_has_error(wm->connection) != 0) {
@@ -303,8 +311,29 @@ void loop_run(wm_td *wm)
         }
 
         eventq_process();
+
+        /* Only sync EWMH root properties when state actually changed.
+         * Calling 'wm_ewmh_sync' unconditionally writes root window
+         * properties every iteration; the X server then sends
+         * 'PropertyNotify' events back (root has 'PROPERTY_CHANGE'
+         * selected), keeping 'poll' permanently readable and spinning
+         * the CPU more than it should.  Checking 'is_outdated' before
+         * 'loop_update' (which clears the flag) gates the sync to
+         * iterations where real work happened. */
+        any_outdated = false;
+        for (sync_node = list_head(wm->surfaces);
+                sync_node != NULL; sync_node = list_next(sync_node)) {
+            surface_td *s = (surface_td *) list_data(sync_node);
+            if (s != NULL && s->is_outdated) {
+                any_outdated = true;
+                break;
+            }
+        }
+
         loop_update(wm);
-        wm_ewmh_sync();
+        if (any_outdated) {
+            wm_ewmh_sync();
+        }
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);

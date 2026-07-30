@@ -366,6 +366,10 @@ void config_set_default_values(config_td *config)
             "mod1+Tab");
     safe_strcpy(config->bindings.keyboard.wm.redraw,
             "modc+mod1+mods+r");
+    safe_strcpy(config->bindings.keyboard.wm.reload,
+            "modc+mod1+mods+c");
+    safe_strcpy(config->bindings.keyboard.wm.quit,
+            "modc+mod1+mods+x");
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -903,6 +907,12 @@ int config_load_bindings(const char *filename,
         if (wm) {
             json_load_string(wm, "redraw",
                     config_bindings->keyboard.wm.redraw,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "reload",
+                    config_bindings->keyboard.wm.reload,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "quit",
+                    config_bindings->keyboard.wm.quit,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 
