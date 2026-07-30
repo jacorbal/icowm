@@ -100,6 +100,7 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
     uint16_t exit_label_w;
     uint16_t btn_label_w;
     uint16_t btns_span_w;
+    uint16_t btns_group_w;
     uint16_t prompt_span_w;
 
     if (layout == NULL) {
@@ -118,8 +119,8 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
             (uint16_t) (btn_label_w + (CONFIRM_BTN_LABEL_PAD_X * 2u)));
     layout->btn_h = CONFIRM_BTN_H;
 
-    btns_span_w = (uint16_t) ((layout->btn_w * 2u) + CONFIRM_BTN_GAP +
-            (CONFIRM_PAD_X * 2u));
+    btns_group_w = (uint16_t) ((layout->btn_w * 2u) + CONFIRM_BTN_GAP);
+    btns_span_w = (uint16_t) (btns_group_w + (CONFIRM_PAD_X * 2u));
     prompt_span_w = (uint16_t) (prompt_w + (CONFIRM_PAD_X * 2u));
 
     layout->w = s_u16_max(CONFIRM_MIN_W, s_u16_max(btns_span_w,
@@ -127,9 +128,10 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
     layout->h = s_u16_max(CONFIRM_MIN_H, (uint16_t)
             (CONFIRM_PROMPT_BASELINE_Y + CONFIRM_PROMPT_TO_BTN_GAP +
              layout->btn_h + CONFIRM_PAD_BOTTOM));
-    layout->cancel_x = (int16_t) CONFIRM_PAD_X;
-    layout->exit_x = (int16_t) (layout->w - CONFIRM_PAD_X -
-            layout->btn_w);
+    layout->cancel_x = (int16_t) ((layout->w - btns_group_w) / 2u);
+    layout->exit_x = (int16_t) (layout->cancel_x +
+            (int16_t) layout->btn_w +
+            (int16_t) CONFIRM_BTN_GAP);
     layout->btn_y = (int16_t) (layout->h - CONFIRM_PAD_BOTTOM -
             layout->btn_h);
 
@@ -325,6 +327,54 @@ void confirm_repaint(xcb_connection_t *connection,
     s_confirm_draw(connection, cfg);
 }
 
+
+/* Handle a mouse click inside the confirmation dialog */
+bool confirm_handle_click(xcb_connection_t *connection,
+        int x, int y)
+{
+    if (connection == NULL || s_confirm_window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    if (y >= s_confirm_layout.btn_y &&
+            y < (s_confirm_layout.btn_y + (int) s_confirm_layout.btn_h)) {
+        if (x >= s_confirm_layout.cancel_x &&
+                x < (s_confirm_layout.cancel_x +
+                    (int) s_confirm_layout.btn_w)) {
+            s_confirm_selected = 0;
+            confirm_close(connection);
+            return true;
+        }
+        if (x >= s_confirm_layout.exit_x &&
+                x < (s_confirm_layout.exit_x +
+                    (int) s_confirm_layout.btn_w)) {
+            s_confirm_selected = 1;
+            confirm_accept(connection);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @brief Handle a mouse click inside the confirmation dialog
+ *
+ * Activates the clicked button when the pointer lands inside either the
+ * "Cancel" or "Exit" button rectangle.  Clicks outside both buttons are
+ * not handled and should be processed by the caller as
+ * background/outside clicks.
+ *
+ * @param connection XCB connection
+ * @param x          Pointer X coordinate relative to the dialog
+ * @param y          Pointer Y coordinate relative to the dialog
+ *
+ * @return @c true if a button was activated, @c false otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+bool confirm_handle_click(xcb_connection_t *connection,
+        int x, int y);
 
 /* Move selection to the next button (wraps around) */
 void confirm_toggle_selection(void)

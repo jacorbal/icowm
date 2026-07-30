@@ -43,7 +43,7 @@
 #define CONFIRM_LABEL_CANCEL ("[ Cancel ]")
 
 /** Exit button label text */
-#define CONFIRM_LABEL_EXIT ("[ Exit ]")
+#define CONFIRM_LABEL_EXIT ("[  Exit ]")
 
 /** Maximum prompt buffer length */
 #define CONFIRM_PROMPT_MAX_LEN (128u)
@@ -55,19 +55,19 @@
 #define CONFIRM_PAD_BOTTOM (8u)
 
 /** Minimum dialog width (pixels) */
-#define CONFIRM_MIN_W (300u)
+#define CONFIRM_MIN_W (220u)
 
 /** Minimum dialog height (pixels) */
 #define CONFIRM_MIN_H (90u)
 
 /** Minimum button width (pixels) */
-#define CONFIRM_BTN_MIN_W (80u)
+#define CONFIRM_BTN_MIN_W (60u)
 
 /** Button height (pixels) */
-#define CONFIRM_BTN_H (26u)
+#define CONFIRM_BTN_H (24u)
 
 /** Gap between the two buttons (pixels) */
-#define CONFIRM_BTN_GAP (8u)
+#define CONFIRM_BTN_GAP (12u)
 
 /** Horizontal padding between button border and label (pixels) */
 #define CONFIRM_BTN_LABEL_PAD_X (6u)
@@ -124,6 +124,25 @@ void confirm_close(xcb_connection_t *connection);
  */
 void confirm_repaint(xcb_connection_t *connection,
         const config_td *cfg);
+
+/**
+ * @brief Handle a mouse click inside the confirmation dialog
+ *
+ * Activates the clicked button when the pointer lands inside either the
+ * Cancel or Exit button rectangle. Clicks outside both buttons are not
+ * handled and should be processed by the caller as background/outside
+ * clicks.
+ *
+ * @param connection XCB connection
+ * @param x          Pointer X coordinate relative to the dialog
+ * @param y          Pointer Y coordinate relative to the dialog
+ *
+ * @return @c true if a button was activated, @c false otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+bool confirm_handle_click(xcb_connection_t *connection,
+        int x, int y);
 
 /**
  * @brief Move selection to the next button (wraps around)
