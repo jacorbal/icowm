@@ -169,6 +169,82 @@ static void s_client_enable_decoration(client_td *client,
 }
 
 
+/**
+ * @brief Transfer focus away from a client that is leaving the current
+ *        visible focus chain
+ *
+ * Picks the most recently used visible focusable client on the current
+ * desktop and focuses it.  If no such client exists, focus is released
+ * to the pointer root so global grabs continue working.
+ *
+ * @param client Client that is being hidden or iconified
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       current desktop
+ */
+static void s_client_focus_fallback(client_td *client)
+{
+    surface_td *surface;
+    desktop_td *desktop;
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    client_td *next_focus;
+
+    if (client == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL || desktop->client_active_id != client->id) {
+        return;
+    }
+
+    desktop->client_active_id = 0;
+    next_focus = NULL;
+
+    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+        node = cdlist_tail(desktop->stacking);
+        initial = node;
+        if (node != NULL) {
+            do {
+                client_td *candidate = (client_td *) cdlist_data(node);
+                if (candidate != NULL && candidate != client &&
+                        !(candidate->properties.flags &
+                            CLIENT_FLAG_HIDDEN) &&
+                        !client_is_shaded(candidate) &&
+                        candidate->properties.state !=
+                            (uint16_t) CLIENT_STATE_ICONIFIED &&
+                        (candidate->properties.flags &
+                         CLIENT_FLAG_FOCUSABLE)) {
+                    next_focus = candidate;
+                    break;
+                }
+                node = cdlist_prev(node);
+            } while (node != NULL && node != initial);
+        }
+    }
+
+    if (next_focus != NULL) {
+        desktop->client_active_id = next_focus->id;
+        (void) desktop_action_client_send_front(desktop, next_focus);
+        wcmd_client_focus(next_focus);
+    } else {
+        xcb_set_input_focus(client->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
+    }
+
+    desktop->is_outdated = true;
+    surface->is_outdated = true;
+}
+
+
 /* Perform the action to close the client */
 void wcmd_client_close(client_td *client)
 {
@@ -318,6 +394,12 @@ void wcmd_client_iconify(client_td *client)
         return;
     }
 
+    /* If shaded, unshade before iconify, so when it's restored, it will
+     * show as it should */
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+
     target = wcmd_target_win(client);
     client_geometry_save(client);
 
@@ -332,8 +414,8 @@ void wcmd_client_iconify(client_td *client)
 
         icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
                 ((client->theme->icon.is_captioned)
-                 ? WM_ICON_CAPTION_HEIGHT
-                 : 0u));
+                     ? WM_ICON_CAPTION_HEIGHT
+                     : 0u));
 
         screen_w = 1024u;
         screen_h = 768u;
@@ -406,6 +488,7 @@ void wcmd_client_iconify(client_td *client)
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
+    s_client_focus_fallback(client);
     xcb_flush(client->connection);
 }
 
@@ -435,6 +518,8 @@ void wcmd_client_hide(client_td *client)
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+
+    s_client_focus_fallback(client);
 }
 
 
@@ -636,7 +721,13 @@ void wcmd_client_unsticky(client_td *client)
                 snode = cdlist_tail(current_desktop->stacking);
                 while (snode != NULL) {
                     client_td *c = (client_td *) cdlist_data(snode);
-                    if (c != NULL && c->id != client->id) {
+                    if (c != NULL && c->id != client->id &&
+                            !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                            !client_is_shaded(c) &&
+                            c->properties.state !=
+                                (uint16_t) CLIENT_STATE_ICONIFIED &&
+                                (c->properties.flags &
+                                 CLIENT_FLAG_FOCUSABLE)) {
                         next_focus = c;
                         break;
                     }

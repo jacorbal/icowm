@@ -110,6 +110,8 @@ void mouse_handle_press(xcb_connection_t *connection,
     xcb_query_tree_reply_t *qt_r;
     xcb_window_t qt_parent;
     xcb_window_t qt_root;
+    uint32_t screen_w;
+    uint32_t screen_h;
 
     if (connection == NULL || event == NULL || cfg == NULL) {
         return;
@@ -433,16 +435,6 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     if (type == MOUSEBIND_LOWER) {
-        if (desktop != NULL) {
-            surface = lookup_surface_for_root(surfaces, event->root);
-            if (surface != NULL) {
-                focus_apply(surfaces, surface, desktop, client,
-                        true, cfg);
-                s_mouse_sync_sticky_active(surface, desktop, client);
-            } else {
-                desktop->client_active_id = client->id;
-            }
-        }
         (void) client_send_event_lower(client);
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
@@ -457,24 +449,22 @@ void mouse_handle_press(xcb_connection_t *connection,
         s_mouse_sync_sticky_active(surface, desktop, client);
     }
 
-    {
-        uint32_t screen_w = 0;
-        uint32_t screen_h = 0;
-        surface_td *snap_surface =
-            lookup_surface_for_root(surfaces, event->root);
-        if (snap_surface != NULL) {
-            screen_w = snap_surface->properties.dim.w;
-            screen_h = snap_surface->properties.dim.h;
-        }
-        drag_start(connection, event->root, client,
-                (type == MOUSEBIND_MOVE)
-                    ? CLIENT_OPERATION_MOVING
-                    : CLIENT_OPERATION_RESIZING,
-                event->time,
-                event->root_x, event->root_y,
-                screen_w, screen_h,
-                cfg->base.windows.snap);
+    screen_w = 0;
+    screen_h = 0;
+    surface = lookup_surface_for_root(surfaces, event->root);
+    if (surface != NULL) {
+        screen_w = surface->properties.dim.w;
+        screen_h = surface->properties.dim.h;
     }
+
+    drag_start(connection, event->root, client,
+            (type == MOUSEBIND_MOVE)
+                ? CLIENT_OPERATION_MOVING
+                : CLIENT_OPERATION_RESIZING,
+            event->time,
+            event->root_x, event->root_y,
+            screen_w, screen_h,
+            cfg->base.windows.snap);
 }
 
 

@@ -842,6 +842,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     cdlist_item_td *node;
     cdlist_item_td *initial;
     bool focus_restored;
+    client_td *focus_target;
 
     if (surface == NULL) {
         return;
@@ -914,6 +915,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * If no suitable client is found, relinquish focus to PointerRoot
      * so the previous desktop's windows do not retain keyboard input. */
     focus_restored = false;
+    focus_target = NULL;
     if (desktop->client_active_id != 0) {
         node = cdlist_head(desktop->stacking);
         if (node != NULL) {
@@ -921,19 +923,53 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
             do {
                 client_td *c = (client_td *) cdlist_data(node);
                 if (c != NULL && c->id == desktop->client_active_id &&
+                        !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                        !client_is_shaded(c) &&
                         c->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
-                    xcb_set_input_focus(surface->connection,
-                            XCB_INPUT_FOCUS_PARENT,
-                            c->window, XCB_CURRENT_TIME);
-                    focus_restored = true;
+                            (uint16_t) CLIENT_STATE_ICONIFIED &&
+                        (c->properties.flags &
+                             CLIENT_FLAG_FOCUSABLE)) {
+                    focus_target = c;
                     break;
                 }
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
         }
     }
+
+
+    if (focus_target == NULL && desktop->stacking != NULL) {
+        node = cdlist_tail(desktop->stacking);
+        initial = node;
+        if (node != NULL) {
+            do {
+                client_td *c = (client_td *) cdlist_data(node);
+                if (c != NULL &&
+                        !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                        !client_is_shaded(c) &&
+                        c->properties.state !=
+                            (uint16_t) CLIENT_STATE_ICONIFIED &&
+                        (c->properties.flags &
+                             CLIENT_FLAG_FOCUSABLE)) {
+                    focus_target = c;
+                    break;
+                }
+                node = cdlist_prev(node);
+            } while (node != NULL && node != initial);
+        }
+    }
+
+    if (focus_target != NULL) {
+        desktop->client_active_id = focus_target->id;
+        xcb_set_input_focus(surface->connection,
+                XCB_INPUT_FOCUS_PARENT,
+                focus_target->window, XCB_CURRENT_TIME);
+        (void) desktop_action_client_send_front(desktop, focus_target);
+        focus_restored = true;
+    }
+
     if (!focus_restored) {
+        desktop->client_active_id = 0;
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,

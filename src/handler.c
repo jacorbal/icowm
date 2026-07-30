@@ -536,7 +536,10 @@ void handler_unmap_notify(xcb_connection_t *connection,
                         if (c != NULL && c != client &&
                                 !(c->properties.flags &
                                     CLIENT_FLAG_HIDDEN) &&
-                                (c->properties.flags &
+                                !client_is_shaded(c) &&
+                                c->properties.state !=
+                                    (uint16_t) CLIENT_STATE_ICONIFIED &&
+                                    (c->properties.flags &
                                  CLIENT_FLAG_FOCUSABLE)) {
                             desktop->client_active_id = c->id;
                             xcb_set_input_focus(connection,
@@ -643,8 +646,11 @@ void handler_destroy_notify(xcb_connection_t *connection,
                     if (c != NULL && c != client &&
                             !(c->properties.flags &
                                 CLIENT_FLAG_HIDDEN) &&
+                            !client_is_shaded(c) &&
+                            c->properties.state !=
+                            (uint16_t) CLIENT_STATE_ICONIFIED &&
                             (c->properties.flags &
-                             CLIENT_FLAG_FOCUSABLE)) {
+                                 CLIENT_FLAG_FOCUSABLE)) {
                         desktop->client_active_id = c->id;
                         xcb_set_input_focus(connection,
                                 XCB_INPUT_FOCUS_PARENT,
