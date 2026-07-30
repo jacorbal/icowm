@@ -62,11 +62,12 @@ static void s_confirm_draw(xcb_connection_t *connection,
         return;
     }
 
-    bg_win = cfg->theme.window.active.background_color;
+    /* Set colors */
+    bg_win = cfg->theme.window.inactive.background_color;
     fg_sel = cfg->theme.window.active.foreground_color;
-    bg_sel = cfg->theme.window.active.border_color;
+    bg_sel = cfg->theme.window.active.background_color;
     fg_nor = cfg->theme.window.inactive.foreground_color;
-    bg_nor = cfg->theme.window.active.background_color;
+    bg_nor = cfg->theme.window.inactive.background_color;
 
     gc = xcb_generate_id(connection);
 
@@ -145,7 +146,10 @@ void confirm_show(xcb_connection_t *connection,
         return;
     }
 
-    confirm_close(connection);
+    /* Only one instance at a time */
+    if (s_confirm_window != XCB_WINDOW_NONE) {
+        return;
+    }
 
     s_confirm_selected = 0;
     x = (int16_t) ((surface->properties.dim.w > w)
@@ -154,7 +158,7 @@ void confirm_show(xcb_connection_t *connection,
         ? (surface->properties.dim.h - h) / 2u : 0u);
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.active.background_color;
+    values[0] = cfg->theme.window.inactive.background_color;
     values[1] = cfg->theme.window.active.border_color;
     values[2] = XCB_EVENT_MASK_EXPOSURE    |
         XCB_EVENT_MASK_BUTTON_PRESS |
@@ -174,6 +178,20 @@ void confirm_show(xcb_connection_t *connection,
 
     xcb_map_window(connection, s_confirm_window);
     xcb_flush(connection);
+
+    /* Grab the keyboard so all key events reach the window manager
+     * regardless of which application window currently holds focus */
+    xcb_grab_keyboard(connection,
+            0,
+            s_confirm_window,
+            XCB_CURRENT_TIME,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_GRAB_MODE_ASYNC);
+    xcb_set_input_focus(connection,
+            XCB_INPUT_FOCUS_POINTER_ROOT,
+            s_confirm_window,
+            XCB_CURRENT_TIME);
+    xcb_flush(connection);
 }
 
 
@@ -183,6 +201,8 @@ void confirm_close(xcb_connection_t *connection)
     if (connection == NULL || s_confirm_window == XCB_WINDOW_NONE) {
         return;
     }
+
+    xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
     xcb_destroy_window(connection, s_confirm_window);
     xcb_flush(connection);
     s_confirm_window = XCB_WINDOW_NONE;

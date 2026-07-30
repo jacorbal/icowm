@@ -82,5 +82,19 @@ bool startup_stop_requested(void);
  */
 bool startup_reload_requested(void);
 
+/**
+ * @brief Query whether a @c SIGCONT (VT resume) was received
+ *
+ * Returns @c true and clears the internal flag on the first call after
+ * @c SIGCONT is received; subsequent calls return @c false until the
+ * next signal.  The main loop uses this to re-establish keyboard and
+ * mouse grabs after a virtual-terminal switch.
+ *
+ * @return @c true if a VT resume was requested since the last call
+ *
+ * @note Complexity: @e O(1)
+ */
+bool startup_resume_requested(void);
+
 
 #endif  /* ! STARTUP_H */

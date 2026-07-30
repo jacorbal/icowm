@@ -175,6 +175,13 @@ void loop_run(wm_td *wm)
             (void) wm_action_config_reload();
         }
 
+        if (startup_resume_requested()) {
+            LOGGER_INFO("'SIGCONT' received; re-establishing" \
+                    " input grabs", L_NARG);
+            keyboard_load(wm->surfaces, keysyms, wm->config);
+            mouse_load(wm->surfaces, wm->config);
+        }
+
         if (xcb_connection_has_error(wm->connection) != 0) {
             LOGGER_ERROR("X connection error detected;" \
                     " requesting shutdown", L_NARG);

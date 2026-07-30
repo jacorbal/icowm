@@ -782,6 +782,11 @@ void wcmd_client_toggle_decoration(client_td *client)
                 client->titlebar = 0;
             }
 
+            /* Reparenting generates a synthetic 'UnmapNotify' for the
+             * content window.  Absorb it so 'handler_unmap_notify' does
+             * not mistake the event for a voluntary hide and does not
+             * steal focus from the window. */
+            client->ignore_unmap++;
             xcb_reparent_window(client->connection,
                     client->window,
                     client->parent_id,
@@ -806,6 +811,13 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.geometry.cur.pos.y = inner_y;
             client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
             client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
+
+            /* Ensure the now-undecorated window remains mapped and
+             * retains input focus */
+            xcb_map_window(client->connection, client->window);
+            xcb_set_input_focus(client->connection,
+                    XCB_INPUT_FOCUS_POINTER_ROOT,
+                    client->window, XCB_CURRENT_TIME);
         } else {
             xcb_configure_window(client->connection, client->window,
                     XCB_CONFIG_WINDOW_BORDER_WIDTH,

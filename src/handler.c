@@ -334,6 +334,8 @@ void handler_configure_notify(xcb_connection_t *connection,
         xcb_configure_notify_event_t *event)
 {
     client_td *client;
+    surface_td *surface = NULL;
+    desktop_td *desktop = NULL;
 
     (void) connection;
 
@@ -347,7 +349,8 @@ void handler_configure_notify(xcb_connection_t *connection,
             event->window, event->width, event->height,
             event->x, event->y);
 
-    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    client = lookup_find_client(surfaces, event->window,
+            &surface, &desktop);
     if (client != NULL) {
         bool is_frame = (client->frame != 0)
             ? (event->window == client->frame)
@@ -358,6 +361,14 @@ void handler_configure_notify(xcb_connection_t *connection,
             client->layout.geometry.cur.pos.y = event->y;
             client->layout.geometry.cur.dim.w = event->width;
             client->layout.geometry.cur.dim.h = event->height;
+
+            s_handler_sync_decorated_layout(client);
+            if (surface != NULL) {
+                surface->is_outdated = true;
+            }
+            if (desktop != NULL) {
+                desktop->is_outdated = true;
+            }
         }
     }
 }
@@ -522,11 +533,15 @@ void handler_unmap_notify(xcb_connection_t *connection,
             }
         }
 
-        /* Unmap decoration windows so they do not float without content */
+        /* Unmap decoration windows so they do not float without content.
+         * Increment ignore_unmap for each WM-initiated unmap so the
+         * resulting 'UnmapNotify' events do not re-enter this handler. */
         if (client->frame != 0) {
+            client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->frame);
         }
         if (client->titlebar != 0) {
+            client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->titlebar);
         }
         if (connection != NULL) {
@@ -628,9 +643,12 @@ void handler_destroy_notify(xcb_connection_t *connection,
          * exited or the app closed without a prior 'UnmapNotify').
          * Immediately destroy the WM-created frame (which takes its
          * titlebar child with it) so no ghost frame is left on screen.
-         * Zero both pointers to prevent client_destroy from issuing
-         * redundant destroy calls. */
+         * Increment 'ignore_unmap' so the 'UnmapNotify' the X server
+         * generates for the mapped frame is swallowed and does not
+         * re-enter the unmap handler.  Zero both pointers to prevent
+         * client_destroy from issuing redundant destroy calls. */
         if (connection != NULL && client->frame != 0) {
+            client->ignore_unmap++;
             xcb_destroy_window(connection, client->frame);
             xcb_flush(connection);
         }

@@ -109,6 +109,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     int32_t min_y;
     int32_t max_x;
     int32_t max_y;
+    int32_t cx;
+    int32_t cy;
 
     (void) wm; /* reserved for future use */
 
@@ -131,6 +133,18 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     min_y = (fh > sh) ? -((int32_t) (fh - sh)) : 0;
     max_x = (sw > fw) ?   (int32_t) (sw - fw)  : 0;
     max_y = (sh > fh) ?   (int32_t) (sh - fh)  : 0;
+
+    /* Try the centre first a window on an otherwise empty desktop lands
+     * in the middle of the screen */
+    cx = ((int32_t) sw - (int32_t) fw) / 2;
+    cy = ((int32_t) sh - (int32_t) fh) / 2;
+    if (cx < min_x) { cx = min_x; }
+    if (cy < min_y) { cy = min_y; }
+    if (!s_overlaps_clients(desktop, client, cx, cy, fw, fh)) {
+        *out_x = cx;
+        *out_y = cy;
+        return true;
+    }
 
     for (int32_t y = min_y; y <= max_y; y += (int32_t) step) {
         for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
@@ -180,142 +194,210 @@ void place_icon(const client_td *client, desktop_td *desktop,
     const uint16_t margin = 8u;
     const uint16_t step_x = (uint16_t) (icon_w + margin);
     const uint16_t step_y = (uint16_t) (icon_h + margin);
-    bool vertical;
+    uint64_t border_twice_u64;
+    int32_t border_twice;
+    uint16_t max_primary;
+    bool occupied[256];
+    uint16_t chosen;
 
     if (client == NULL || client->theme == NULL ||
             out_x == NULL || out_y == NULL) {
         return;
     }
 
-    /* Default safe values */
     *out_x = (int16_t) margin;
     *out_y = (int16_t) margin;
 
-    /* Determine orientation */
-    vertical = (policy == CONFIG_ICON_PLACEMENT_LEFT ||
-                policy == CONFIG_ICON_PLACEMENT_RIGHT);
+    border_twice_u64 =
+        (uint64_t) client->theme->icon.border_width * 2u;
+    border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
+        ? INT32_MAX : (int32_t) border_twice_u64;
 
-    /* For smart placement, try to find the first free slot along the
-     * bottom edge; fall through to bottom if none is available */
+    /* SMART: use BOTTOM as the default smart strategy */
     if (policy == CONFIG_ICON_PLACEMENT_SMART) {
         policy = CONFIG_ICON_PLACEMENT_BOTTOM;
     }
 
-    /* Maximum slots along the relevant axis */
-    {
-        uint16_t max_slots;
-        bool occupied[256];
-        uint16_t chosen;
-        uint16_t slot;
-        uint64_t border_twice_u64;
-        int32_t border_twice;
+    /* Number of slots along the primary axis: columns for TOP/BOTTOM,
+     * rows for LEFT/RIGHT.  Secondary axis (overflow) is unlimited. */
+    if (policy == CONFIG_ICON_PLACEMENT_LEFT ||
+            policy == CONFIG_ICON_PLACEMENT_RIGHT) {
+        max_primary = (screen_h > step_y)
+            ? (uint16_t) ((screen_h - margin) / step_y) : 1u;
+    } else {
+        max_primary = (screen_w > step_x)
+            ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
+    }
+    if (max_primary == 0u) {
+        max_primary = 1u;
+    }
+    /* Mark occupied slots.  slot = sec * max_primary + pri where pri
+     * indexes along the edge and sec counts overflow rows/columns. */
+    for (uint16_t i = 0u; i < 256u; ++i) {
+        occupied[i] = false;
+    }
 
-        if (vertical) {
-            max_slots = (screen_h > step_y)
-                ? (uint16_t) ((screen_h - margin) / step_y)
-                : 1u;
-        } else {
-            max_slots = (screen_w > step_x)
-                ? (uint16_t) ((screen_w - margin) / step_x)
-                : 1u;
-        }
+    if (desktop != NULL && desktop->stacking != NULL) {
+        cdlist_item_td *node = cdlist_head(desktop->stacking);
+        cdlist_item_td *initial = node;
+        if (node != NULL) {
+            do {
+                const client_td *other =
+                    (const client_td *) cdlist_data(node);
+                if (other != NULL && other != client &&
+                        other->icon_window != 0 &&
+                        other->is_icon_mapped) {
+                    int32_t rel_pri;
+                    int32_t rel_sec;
+                    uint16_t pri;
+                    uint16_t sec;
+                    uint16_t slot;
+                    rel_pri = 0;
+                    rel_sec = 0;
 
-        /* Collect occupied slots from already-placed icon windows */
-        for (uint16_t i = 0u; i < 256u; ++i) {
-            occupied[i] = false;
-        }
-
-        if (desktop != NULL && desktop->stacking != NULL) {
-            cdlist_item_td *node = cdlist_head(desktop->stacking);
-            cdlist_item_td *initial = node;
-
-            if (node != NULL) {
-                do {
-                    const client_td *other =
-                        (const client_td *) cdlist_data(node);
-                    if (other != NULL && other != client &&
-                            other->icon_window != 0 &&
-                            other->is_icon_mapped) {
-                        /* Determine which slot this icon occupies */
-                        slot = 0u;
-                        if (vertical) {
-                            int32_t rel = (int32_t) other->icon_y -
+                    switch (policy) {
+                        case CONFIG_ICON_PLACEMENT_TOP:
+                            rel_pri = (int32_t) other->icon_x -
                                 (int32_t) margin;
-                            if (rel >= 0) {
-                                slot = (uint16_t) (rel / (int32_t) step_y);
+                            rel_sec = (int32_t) other->icon_y -
+                                (int32_t) margin;
+                            if (rel_pri >= 0 && rel_sec >= 0) {
+                                pri = (uint16_t) (rel_pri /
+                                        (int32_t) step_x);
+                                sec = (uint16_t) (rel_sec /
+                                        (int32_t) step_y);
+                                slot = (uint16_t) (sec * max_primary
+                                        + pri);
                                 if (slot < 256u) {
                                     occupied[slot] = true;
                                 }
                             }
-                        } else {
-                            int32_t rel = (int32_t) other->icon_x -
+                            break;
+
+                        case CONFIG_ICON_PLACEMENT_BOTTOM:
+                        case CONFIG_ICON_PLACEMENT_SMART:
+                            rel_pri = (int32_t) other->icon_x -
                                 (int32_t) margin;
-                            if (rel >= 0) {
-                                slot = (uint16_t) (rel / (int32_t) step_x);
+                            rel_sec = (int32_t) screen_h -
+                                (int32_t) margin -
+                                (int32_t) icon_h -
+                                (int32_t) border_twice -
+                                (int32_t) other->icon_y;
+                            if (rel_pri >= 0 && rel_sec >= 0) {
+                                pri = (uint16_t) (rel_pri /
+                                        (int32_t) step_x);
+                                sec = (uint16_t) (rel_sec /
+                                        (int32_t) step_y);
+                                slot = (uint16_t) (sec * max_primary
+                                        + pri);
                                 if (slot < 256u) {
                                     occupied[slot] = true;
                                 }
                             }
-                        }
+                            break;
+
+                        case CONFIG_ICON_PLACEMENT_LEFT:
+                            rel_pri = (int32_t) other->icon_y -
+                                (int32_t) margin;
+                            rel_sec = (int32_t) other->icon_x -
+                                (int32_t) margin;
+                            if (rel_pri >= 0 && rel_sec >= 0) {
+                                pri = (uint16_t) (rel_pri /
+                                        (int32_t) step_y);
+                                sec = (uint16_t) (rel_sec /
+                                        (int32_t) step_x);
+                                slot = (uint16_t) (sec * max_primary
+                                        + pri);
+                                if (slot < 256u) {
+                                    occupied[slot] = true;
+                                }
+                            }
+                            break;
+
+                        case CONFIG_ICON_PLACEMENT_RIGHT:
+                            rel_pri = (int32_t) other->icon_y -
+                                (int32_t) margin;
+                            rel_sec = (int32_t) screen_w -
+                                (int32_t) margin -
+                                (int32_t) icon_w -
+                                (int32_t) border_twice -
+                                (int32_t) other->icon_x;
+                            if (rel_pri >= 0 && rel_sec >= 0) {
+                                pri = (uint16_t) (rel_pri /
+                                        (int32_t) step_y);
+                                sec = (uint16_t) (rel_sec /
+                                        (int32_t) step_x);
+                                slot = (uint16_t) (sec * max_primary
+                                        + pri);
+                                if (slot < 256u) {
+                                    occupied[slot] = true;
+                                }
+                            }
+                            break;
                     }
-                    node = cdlist_next(node);
-                } while (node != NULL && node != initial);
-            }
-        }
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
+        } /* ! if (node) */
+    }
 
-        /* Find the first unoccupied slot */
+    /* Find the first unoccupied slot */
+    chosen = 0u;
+    for (uint16_t i = 0u; i < 256u; ++i) {
+        if (!occupied[i]) {
+            chosen = i;
+            break;
+        }
+        chosen = i + 1u;
+    }
+    if (chosen >= 256u) {
         chosen = 0u;
-        for (uint16_t i = 0u; i < max_slots && i < 256u; ++i) {
-            if (!occupied[i]) {
-                chosen = i;
-                break;
-            }
-            chosen = i + 1u;
-        }
-        if (chosen >= max_slots) {
-            chosen = (uint16_t) (max_slots - 1u);
-        }
+    }
 
-        border_twice_u64 =
-            (uint64_t) client->theme->icon.border_width * 2u;
-        border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
-            ? INT32_MAX
-            : (int32_t) border_twice_u64;
+    /* Convert slot index to pixel coordinates.
+     * pri = chosen % max_primary  (position along the screen edge)
+     * sec = chosen / max_primary  (overflow row/col away from edge) */
+    {
+        uint16_t pri = (uint16_t) (chosen % max_primary);
+        uint16_t sec = (uint16_t) (chosen / max_primary);
 
-        /* Convert slot to pixel coordinates */
         switch (policy) {
             case CONFIG_ICON_PLACEMENT_TOP:
-                *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
-                *out_y = (int16_t) margin;
+                *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
+                *out_y = (int16_t) (margin + (uint32_t) sec * step_y);
                 break;
+
             case CONFIG_ICON_PLACEMENT_LEFT:
-                *out_x = (int16_t) margin;
-                *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
+                *out_x = (int16_t) (margin + (uint32_t) sec * step_x);
+                *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
                 break;
+
             case CONFIG_ICON_PLACEMENT_RIGHT:
                 *out_x = (int16_t) ((int32_t) screen_w -
                         (int32_t) icon_w -
                         (int32_t) margin -
-                        (int32_t) border_twice);
-                *out_y = (int16_t) (margin + (uint32_t) chosen * step_y);
+                        (int32_t) border_twice -
+                        (int32_t) sec * (int32_t) step_x);
+                *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
                 break;
+
             case CONFIG_ICON_PLACEMENT_BOTTOM:
             case CONFIG_ICON_PLACEMENT_SMART:
-                *out_x = (int16_t) (margin + (uint32_t) chosen * step_x);
+                *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
                 *out_y = (int16_t) ((int32_t) screen_h -
                         (int32_t) margin -
                         (int32_t) icon_h -
-                        (int32_t) border_twice);
+                        (int32_t) border_twice -
+                        (int32_t) sec * (int32_t) step_y);
                 break;
         }
+    }
 
-        /* Clamp to screen */
-        if (*out_x < (int16_t) margin) {
-            *out_x = (int16_t) margin;
-        }
-        if (*out_y < (int16_t) margin) {
-            *out_y = (int16_t) margin;
-        }
+    if (*out_x < (int16_t) margin) {
+        *out_x = (int16_t) margin;
+    }
+    if (*out_y < (int16_t) margin) {
+        *out_y = (int16_t) margin;
     }
 }
 

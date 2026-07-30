@@ -42,6 +42,11 @@
  */
 static volatile sig_atomic_t s_stop_signal_received = 0;
 
+/**
+ * @brief Flag written by @c SIGCONT (VT resume) to re-establish input
+ * grabs
+ */
+static volatile sig_atomic_t s_resume_signal_received = 0;
 
 /**
  * @brief Flag written by the @c SIGHUP handler to request
@@ -81,10 +86,29 @@ static void s_startup_handle_reload(int signum)
 }
 
 
+/**
+ * @brief Signal handler for @c SIGCONT (VT resume)
+ *
+ * Sets a flag consumed by @c startup_resume_requested so that the main
+ * loop can re-establish keyboard and mouse grabs after returning from
+ * a virtual-terminal switch.
+ *
+ * @param signum Number of the received signal (always @c SIGCONT)
+ */
+static void s_startup_handle_resume(int signum)
+{
+    (void) signum;
+    s_resume_signal_received = 1;
+}
+
+
 /* Subscribe to root window events on all managed surfaces */
 int startup_subscribe_root_events(wm_td *wm)
 {
     uint32_t values[1];
+    xcb_font_t fnt;
+    xcb_cursor_t cur;
+    uint32_t cur_val[1];
 
     if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
         return -1;
@@ -125,6 +149,30 @@ int startup_subscribe_root_events(wm_td *wm)
                 " (root %#x)", surface->id, surface->screen->root);
     }
 
+    /* Set a default left-pointer cursor on every root window so the
+     * cursor is visible even when no client window is under the pointer.
+     * 'XC_left_ptr' = glyph 68, mask 69 in the cursor font. */
+    fnt = xcb_generate_id(wm->connection);
+    cur = xcb_generate_id(wm->connection);
+    xcb_open_font(wm->connection, fnt,
+            (uint16_t) strlen("cursor"), "cursor");
+    xcb_create_glyph_cursor(wm->connection, cur, fnt, fnt,
+            68u, 69u,
+            0u, 0u, 0u,
+            0xffffu, 0xffffu, 0xffffu);
+    cur_val[0] = (uint32_t) cur;
+    for (list_item_td *cn = list_head(wm->surfaces);
+            cn != NULL; cn = list_next(cn)) {
+        surface_td *sv = (surface_td *) list_data(cn);
+        if (sv == NULL || sv->screen == NULL) {
+            continue;
+        }
+        xcb_change_window_attributes(wm->connection,
+                sv->screen->root, XCB_CW_CURSOR, cur_val);
+    }
+    xcb_free_cursor(wm->connection, cur);
+    xcb_close_font(wm->connection, fnt);
+
     xcb_flush(wm->connection);
     return 0;
 }
@@ -135,6 +183,7 @@ int startup_install_signals(void)
 {
     struct sigaction sa;
     struct sigaction sa_hup;
+    struct sigaction sa_cont;
 
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = s_startup_handle_signal;
@@ -145,10 +194,17 @@ int startup_install_signals(void)
     sa_hup.sa_handler = s_startup_handle_reload;
     sa_hup.sa_flags = 0;
     sigemptyset(&sa_hup.sa_mask);
+
+    memset(&sa_cont, 0, sizeof(sa_cont));
+    sa_cont.sa_handler = s_startup_handle_resume;
+    sa_cont.sa_flags = 0;
+    sigemptyset(&sa_cont.sa_mask);
+
     if (sigaction(SIGHUP, &sa_hup, NULL) != 0 ||
             sigaction(SIGINT, &sa, NULL) != 0 ||
             sigaction(SIGQUIT, &sa, NULL) != 0 ||
-            sigaction(SIGTERM, &sa, NULL) != 0) {
+            sigaction(SIGTERM, &sa, NULL) != 0 ||
+            sigaction(SIGCONT, &sa, NULL) != 0) {
         LOGGER_ERROR("Failed to install termination signal handlers",
                 L_NARG);
         return -1;
@@ -176,3 +232,14 @@ bool startup_reload_requested(void)
     return false;
 }
 
+
+/* Query whether a 'SIGCONT' (VT resume) was received */
+bool startup_resume_requested(void)
+{
+    if (s_resume_signal_received != 0) {
+        s_resume_signal_received = 0;
+        return true;
+    }
+
+    return false;
+}
