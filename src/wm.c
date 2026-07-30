@@ -31,6 +31,9 @@
 /* Render includes */
 #include <render/text.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
@@ -263,7 +266,7 @@ int wm_ewmh_init(void)
     wm->ewmh_support_win = support;
 
     xcb_ewmh_set_wm_name(wm->ewmh, support,
-            sizeof(PROJECT_NAME_SHORT) - 1u, PROJECT_NAME_SHORT);
+            sizeof(ICOWM_EWMH_NAME) - 1u, ICOWM_EWMH_NAME);
     xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
             support, wm->ewmh->_NET_SUPPORTING_WM_CHECK,
             XCB_ATOM_WINDOW, 32, 1, &support);

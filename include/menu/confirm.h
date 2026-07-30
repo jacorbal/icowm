@@ -5,11 +5,12 @@
  *
  * Declares the functions for opening, closing, repainting, and
  * interacting with the modal confirmation dialog that is shown before
- * the WM exits.  The dialog presents the message "Are you sure you want
- * to exit IcoWM?" and two choices: "Cancel" (default, confirmed with
- * 'Enter') and "Exit" (triggers a clean shutdown).  Pressing 'Escape'
- * or activating "Cancel" closes the dialog without exiting.  All dialog
- * state is private to the implementation.
+ * the window manager exits.  The dialog presents an exit-confirmation
+ * message using the configured WM name and two choices: "Cancel"
+ * (default, confirmed with 'Enter') and "Exit" (triggers a clean
+ * shutdown).  Pressing 'Escape' or activating "Cancel" closes the
+ * dialog without exiting.  All dialog state is private to the
+ * implementation.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -32,6 +33,53 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+
+
+/* Confirm dialog values */
+/** Quit prompt rendered in the confirmation dialog */
+#define CONFIRM_PROMPT_FMT ("Are you sure you want to exit %s?")
+
+/** Cancel button label text */
+#define CONFIRM_LABEL_CANCEL ("[ Cancel ]")
+
+/** Exit button label text */
+#define CONFIRM_LABEL_EXIT ("[ Exit ]")
+
+/** Maximum prompt buffer length */
+#define CONFIRM_PROMPT_MAX_LEN (128u)
+
+/** Horizontal dialog padding (pixels) */
+#define CONFIRM_PAD_X (12u)
+
+/** Bottom padding below buttons (pixels) */
+#define CONFIRM_PAD_BOTTOM (8u)
+
+/** Minimum dialog width (pixels) */
+#define CONFIRM_MIN_W (300u)
+
+/** Minimum dialog height (pixels) */
+#define CONFIRM_MIN_H (90u)
+
+/** Minimum button width (pixels) */
+#define CONFIRM_BTN_MIN_W (80u)
+
+/** Button height (pixels) */
+#define CONFIRM_BTN_H (26u)
+
+/** Gap between the two buttons (pixels) */
+#define CONFIRM_BTN_GAP (8u)
+
+/** Horizontal padding between button border and label (pixels) */
+#define CONFIRM_BTN_LABEL_PAD_X (6u)
+
+/** Prompt baseline position from top (pixels) */
+#define CONFIRM_PROMPT_BASELINE_Y (22u)
+
+/** Vertical gap between prompt baseline and button top (pixels) */
+#define CONFIRM_PROMPT_TO_BTN_GAP (34u)
+
+/** Baseline offset for button labels from button top (pixels) */
+#define CONFIRM_BTN_LABEL_BASELINE_OFFSET (17u)
 
 
 /* Public interface */

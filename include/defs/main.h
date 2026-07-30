@@ -18,7 +18,6 @@
 /* Project includes */
 #include <logger.h>     /* 'logger_level_e' values */
 
-
 /* Use 'notice' as default log level unless 'DEBUG' is on, in that case
  * use 'trace' log level */
 #ifdef DEBUG

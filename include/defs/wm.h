@@ -17,6 +17,22 @@
 
 
 /**
+ * @brief Window-manager name exposed through EWMH
+ *
+ * Uses the build-time @c PROJECT_NAME_SHORT macro when available.
+ * Falls back to a portable default when building without project
+ * metadata injection.
+ */
+#ifdef PROJECT_NAME_SHORT
+#define ICOWM_EWMH_NAME PROJECT_NAME_SHORT
+#else
+#define ICOWM_EWMH_NAME "IcoWM"
+#endif  /* ! PROJECT_NAME_SHORT */
+
+/** Length of @c WM_EWMH_NAME excluding the null terminator */
+//#define WM_EWMH_NAME_LEN (sizeof(WM_EWMH_NAME) - 1u)
+
+/**
  * @brief Initial capacity of windows for a desktop
  *
  * Number of windows that the desktop is initialized with.  A higher

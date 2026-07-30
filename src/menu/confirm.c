@@ -14,9 +14,13 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Project includes */
 #include <config.h>
@@ -37,6 +41,116 @@ static xcb_window_t s_confirm_window = XCB_WINDOW_NONE;
 static int s_confirm_selected = 0;
 
 
+/**
+ * @brief Resolved geometry and text for the confirmation dialog
+ */
+typedef struct {
+    uint16_t w;
+    uint16_t h;
+    uint16_t btn_w;
+    uint16_t btn_h;
+    int16_t prompt_x;
+    int16_t prompt_y;
+    int16_t btn_y;
+    int16_t cancel_x;
+    int16_t exit_x;
+    int16_t cancel_label_x;
+    int16_t cancel_label_y;
+    int16_t exit_label_x;
+    int16_t exit_label_y;
+    char prompt[CONFIRM_PROMPT_MAX_LEN];
+} s_confirm_layout_td;
+
+
+/** Cached layout used both for creation and repaint */
+static s_confirm_layout_td s_confirm_layout;
+
+
+/**
+ * @brief Return the greater of two @c uint16_t values
+ *
+ * @param a First value
+ * @param b Second value
+ *
+ * @return Maximum value between @p a and @p b
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_u16_max(uint16_t a, uint16_t b)
+{
+    return (a > b) ? a : b;
+}
+
+
+/**
+ * @brief Compute dialog geometry from current text metrics
+ *
+ * Builds the prompt string using @c WM_EWMH_NAME, measures prompt and
+ * button labels, enforces minimum dimensions, and stores all final
+ * positions used both by window creation and repaint.
+ *
+ * @param layout Output layout descriptor to fill
+ *
+ * @note Complexity: @e O(n), where @e n is the prompt/label text size
+ */
+static void s_confirm_compute_layout(s_confirm_layout_td *layout)
+{
+    uint16_t prompt_w;
+    uint16_t cancel_label_w;
+    uint16_t exit_label_w;
+    uint16_t btn_label_w;
+    uint16_t btns_span_w;
+    uint16_t prompt_span_w;
+
+    if (layout == NULL) {
+        return;
+    }
+
+    (void) snprintf(layout->prompt, sizeof(layout->prompt),
+            CONFIRM_PROMPT_FMT, ICOWM_EWMH_NAME);
+
+    prompt_w = menu_draw_measure(layout->prompt);
+    cancel_label_w = menu_draw_measure(CONFIRM_LABEL_CANCEL);
+    exit_label_w = menu_draw_measure(CONFIRM_LABEL_EXIT);
+
+    btn_label_w = s_u16_max(cancel_label_w, exit_label_w);
+    layout->btn_w = s_u16_max(CONFIRM_BTN_MIN_W,
+            (uint16_t) (btn_label_w + (CONFIRM_BTN_LABEL_PAD_X * 2u)));
+    layout->btn_h = CONFIRM_BTN_H;
+
+    btns_span_w = (uint16_t) ((layout->btn_w * 2u) + CONFIRM_BTN_GAP +
+            (CONFIRM_PAD_X * 2u));
+    prompt_span_w = (uint16_t) (prompt_w + (CONFIRM_PAD_X * 2u));
+
+    layout->w = s_u16_max(CONFIRM_MIN_W, s_u16_max(btns_span_w,
+                prompt_span_w));
+    layout->h = s_u16_max(CONFIRM_MIN_H, (uint16_t)
+            (CONFIRM_PROMPT_BASELINE_Y + CONFIRM_PROMPT_TO_BTN_GAP +
+             layout->btn_h + CONFIRM_PAD_BOTTOM));
+    layout->cancel_x = (int16_t) CONFIRM_PAD_X;
+    layout->exit_x = (int16_t) (layout->w - CONFIRM_PAD_X -
+            layout->btn_w);
+    layout->btn_y = (int16_t) (layout->h - CONFIRM_PAD_BOTTOM -
+            layout->btn_h);
+
+    layout->prompt_x = (int16_t) ((layout->w > prompt_w)
+            ? (layout->w - prompt_w) / 2u : CONFIRM_PAD_X);
+    if (layout->prompt_x < (int16_t) CONFIRM_PAD_X) {
+        layout->prompt_x = (int16_t) CONFIRM_PAD_X;
+    }
+    layout->prompt_y = (int16_t) CONFIRM_PROMPT_BASELINE_Y;
+
+    layout->cancel_label_x = (int16_t) (layout->cancel_x +
+            (int16_t) ((layout->btn_w - cancel_label_w) / 2u));
+    layout->cancel_label_y = (int16_t) (layout->btn_y +
+            (int16_t) CONFIRM_BTN_LABEL_BASELINE_OFFSET);
+    layout->exit_label_x = (int16_t) (layout->exit_x +
+            (int16_t) ((layout->btn_w - exit_label_w) / 2u));
+    layout->exit_label_y = (int16_t) (layout->btn_y +
+            (int16_t) CONFIRM_BTN_LABEL_BASELINE_OFFSET);
+}
+
+
 /* Draw the dialog contents (prompt + two buttons) */
 static void s_confirm_draw(xcb_connection_t *connection,
         const config_td *cfg)
@@ -49,13 +163,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
     uint32_t bg_sel;
     uint32_t fg_nor;
     uint32_t bg_nor;
-    const uint16_t w = 300;
-    const uint16_t h = 90;
-    const uint16_t btn_w = 80;
-    const uint16_t btn_h = 26;
-    const int16_t btn_y = (int16_t) (h - btn_h - 8);
-    const int16_t cancel_x = 12;
-    const int16_t exit_x = (int16_t) (w - btn_w - 12);
+    const s_confirm_layout_td *layout = &s_confirm_layout;
 
     if (connection == NULL || cfg == NULL ||
             s_confirm_window == XCB_WINDOW_NONE) {
@@ -77,53 +185,52 @@ static void s_confirm_draw(xcb_connection_t *connection,
             XCB_GC_FOREGROUND, gc_vals);
     rect.x = 0;
     rect.y = 0;
-    rect.width = w;
-    rect.height = h;
+    rect.width = layout->w;
+    rect.height = layout->h;
     xcb_poly_fill_rectangle(connection, s_confirm_window, gc, 1, &rect);
 
     /* Cancel button background */
     gc_vals[0] = (s_confirm_selected == 0) ? bg_sel : bg_nor;
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, gc_vals);
-    rect.x = cancel_x;
-    rect.y = btn_y;
-    rect.width = btn_w;
-    rect.height = btn_h;
+    rect.x = layout->cancel_x;
+    rect.y = layout->btn_y;
+    rect.width = layout->btn_w;
+    rect.height = layout->btn_h;
     xcb_poly_fill_rectangle(connection, s_confirm_window, gc, 1, &rect);
 
     /* Exit button background */
     gc_vals[0] = (s_confirm_selected == 1) ? bg_sel : bg_nor;
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, gc_vals);
-    rect.x = exit_x;
-    rect.y = btn_y;
-    rect.width = btn_w;
-    rect.height = btn_h;
+    rect.x = layout->exit_x;
+    rect.y = layout->btn_y;
+    rect.width = layout->btn_w;
+    rect.height = layout->btn_h;
     xcb_poly_fill_rectangle(connection, s_confirm_window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 
-    text_renderer_init(connection, cfg->theme.window.active.font);
-
     /* Prompt text */
     text_renderer_set_color(fg_nor, bg_win);
-    menu_draw_label(connection, s_confirm_window, 12, 22,
-            "Are you sure you want to log out?");
+    menu_draw_label(connection, s_confirm_window,
+            layout->prompt_x, layout->prompt_y,
+            layout->prompt);
 
     /* Cancel button label */
     text_renderer_set_color(
             (s_confirm_selected == 0) ? fg_sel : fg_nor,
             (s_confirm_selected == 0) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            (int16_t) (cancel_x + 6),
-            (int16_t) (btn_y + 17),
-            "[ Cancel ]");
+            (int16_t) layout->cancel_label_x,
+            (int16_t) layout->cancel_label_y,
+            CONFIRM_LABEL_CANCEL);
 
     /* Exit button label */
     text_renderer_set_color(
             (s_confirm_selected == 1) ? fg_sel : fg_nor,
             (s_confirm_selected == 1) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            (int16_t) (exit_x + 14),
-            (int16_t) (btn_y + 17),
-            "[ Exit ]");
+            (int16_t) layout->exit_label_x,
+            (int16_t) layout->exit_label_y,
+            CONFIRM_LABEL_EXIT);
 
     xcb_flush(connection);
 }
@@ -134,8 +241,6 @@ void confirm_show(xcb_connection_t *connection,
         surface_td *surface,
         const config_td *cfg)
 {
-    const uint16_t w = 300;
-    const uint16_t h = 90;
     int16_t x;
     int16_t y;
     uint32_t mask;
@@ -151,11 +256,14 @@ void confirm_show(xcb_connection_t *connection,
         return;
     }
 
+    text_renderer_init(connection, cfg->theme.window.active.font);
+    s_confirm_compute_layout(&s_confirm_layout);
+
     s_confirm_selected = 0;
-    x = (int16_t) ((surface->properties.dim.w > w)
-        ? (surface->properties.dim.w - w) / 2u : 0u);
-    y = (int16_t) ((surface->properties.dim.h > h)
-        ? (surface->properties.dim.h - h) / 2u : 0u);
+    x = (int16_t) ((surface->properties.dim.w > s_confirm_layout.w)
+        ? (surface->properties.dim.w - s_confirm_layout.w) / 2u : 0u);
+    y = (int16_t) ((surface->properties.dim.h > s_confirm_layout.h)
+        ? (surface->properties.dim.h - s_confirm_layout.h) / 2u : 0u);
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = cfg->theme.window.inactive.background_color;
@@ -170,7 +278,7 @@ void confirm_show(xcb_connection_t *connection,
             s_confirm_window,
             surface->screen->root,
             x, y,
-            w, h,
+            s_confirm_layout.w, s_confirm_layout.h,
             1,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
