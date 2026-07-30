@@ -99,7 +99,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *cfg)
 {
-    xcb_window_t window;
+        xcb_window_t window;
     client_td *client;
     desktop_td *desktop;
     surface_td *surface;
@@ -110,9 +110,6 @@ void mouse_handle_press(xcb_connection_t *connection,
     xcb_query_tree_reply_t *qt_r;
     xcb_window_t qt_parent;
     xcb_window_t qt_root;
-    uint32_t screen_w = 0;
-    uint32_t screen_h = 0;
-    surface_td *snap_surface;
 
     if (connection == NULL || event == NULL || cfg == NULL) {
         return;
@@ -138,33 +135,15 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (confirm_is_open()) {
         if (event->event == confirm_window() ||
                 event->child == confirm_window()) {
-            /* The dialog has width=400 height=90; buttons sit in the
-             * bottom strip (btn_y = 56, btn_h = 26, btn_w = 100):
-             *   "Cancel": x in [ 12, 112)
-             *   "Exit":   x in [288, 388) */
-            int cx = (int) event->event_x;
-            int cy = (int) event->event_y;
-            if (cy >= 56 && cy < 82) {
-                if (cx >= 12 && cx < 112) {
-                    /* Clicked Cancel */
-                    confirm_close(connection);
-                    xcb_allow_events(connection,
-                            XCB_ALLOW_ASYNC_POINTER, event->time);
-                    xcb_flush(connection);
-                    return;
-                }
-                if (cx >= 288 && cx < 388) {
-                    /* Clicked Exit */
-                    confirm_close(connection);
-                    (void) wm_request_stop();
-                    xcb_allow_events(connection,
-                            XCB_ALLOW_ASYNC_POINTER, event->time);
-                    xcb_flush(connection);
-                    return;
-                }
+            if (confirm_handle_click(connection,
+                        (int) event->event_x,
+                        (int) event->event_y)) {
+                xcb_allow_events(connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
+                xcb_flush(connection);
+                return;
             }
         }
-
         /* Click outside dialog: close without action */
         confirm_close(connection);
         xcb_allow_events(connection,
@@ -272,16 +251,18 @@ void mouse_handle_press(xcb_connection_t *connection,
                 int32_t ty0 = fy + bw;
                 int32_t ty1 = fy + client->layout.frame_extents.top;
                 int32_t ry  = (int32_t) event->root_y;
-
                 if (ry >= ty0 && ry < ty1) {
-                    client_send_event(client,
-                            (type == MOUSEBIND_DESKTOP_PREV)
-                            ? ACTION_CLIENT_SHADE
-                            : ACTION_CLIENT_UNSHADE,
-                            PRIORITY_NORMAL);
+                    if (type == MOUSEBIND_DESKTOP_PREV) {
+                        if (!client_is_shaded(client)) {
+                            client_send_event(client, ACTION_CLIENT_SHADE,
+                                    PRIORITY_NORMAL);
+                        }
+                    } else if (client_is_shaded(client)) {
+                        client_send_event(client, ACTION_CLIENT_UNSHADE,
+                                PRIORITY_NORMAL);
+                    }
                 }
             }
-
             xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
                     event->time);
             xcb_flush(connection);
@@ -349,7 +330,6 @@ void mouse_handle_press(xcb_connection_t *connection,
                             ACTION_CLIENT_HIDE,
                             ACTION_CLIENT_ICONIFY
                         };
-
                         for (int bi = 0; bi < 6; ++bi) {
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
@@ -364,26 +344,30 @@ void mouse_handle_press(xcb_connection_t *connection,
                 } /* ! if (ey) */
 
                 /* Scroll wheel on titlebar shades or unshades the
-                 * client; don't start a drag for these events */
+                 * client; don't start a drag for these events. */
                 if (!hit_btn) {
                     if ((xcb_button_index_t) event->detail ==
                             XCB_BUTTON_INDEX_4) {
                         hit_btn = true;
-                        client_send_event(client,
-                                ACTION_CLIENT_SHADE,
-                                PRIORITY_NORMAL);
+                        if (!client_is_shaded(client)) {
+                            client_send_event(client,
+                                    ACTION_CLIENT_SHADE,
+                                    PRIORITY_NORMAL);
+                        }
                     } else if ((xcb_button_index_t) event->detail ==
                             XCB_BUTTON_INDEX_5) {
                         hit_btn = true;
-                        client_send_event(client,
-                                ACTION_CLIENT_UNSHADE,
-                                PRIORITY_NORMAL);
+                        if (client_is_shaded(client)) {
+                            client_send_event(client,
+                                    ACTION_CLIENT_UNSHADE,
+                                    PRIORITY_NORMAL);
+                        }
                     }
                 }
 
                 /* Clicks that land on the titlebar but miss all buttons
-                 * start a window-move drag, making the titlebar serve
-                 * as a drag handle */
+                 * start a window-move drag, making the titlebar serve as
+                 * a drag handle (as in Openbox / evilwm). */
                 if (!hit_btn) {
                     drag_start(connection, event->root, client,
                             CLIENT_OPERATION_MOVING,
@@ -410,7 +394,6 @@ void mouse_handle_press(xcb_connection_t *connection,
                         event->time);
             }
         }
-
         xcb_flush(connection);
         return;
     }
@@ -474,20 +457,24 @@ void mouse_handle_press(xcb_connection_t *connection,
         s_mouse_sync_sticky_active(surface, desktop, client);
     }
 
-    snap_surface =
-        lookup_surface_for_root(surfaces, event->root);
-    if (snap_surface != NULL) {
-        screen_w = snap_surface->properties.dim.w;
-        screen_h = snap_surface->properties.dim.h;
+    {
+        uint32_t screen_w = 0;
+        uint32_t screen_h = 0;
+        surface_td *snap_surface =
+            lookup_surface_for_root(surfaces, event->root);
+        if (snap_surface != NULL) {
+            screen_w = snap_surface->properties.dim.w;
+            screen_h = snap_surface->properties.dim.h;
+        }
+        drag_start(connection, event->root, client,
+                (type == MOUSEBIND_MOVE)
+                    ? CLIENT_OPERATION_MOVING
+                    : CLIENT_OPERATION_RESIZING,
+                event->time,
+                event->root_x, event->root_y,
+                screen_w, screen_h,
+                cfg->base.windows.snap);
     }
-    drag_start(connection, event->root, client,
-            (type == MOUSEBIND_MOVE)
-            ? CLIENT_OPERATION_MOVING
-            : CLIENT_OPERATION_RESIZING,
-            event->time,
-            event->root_x, event->root_y,
-            screen_w, screen_h,
-            cfg->base.windows.snap);
 }
 
 

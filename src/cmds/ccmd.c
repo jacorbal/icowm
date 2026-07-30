@@ -688,6 +688,7 @@ void wcmd_client_fullscreen(client_td *client)
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
+    bool was_decorated;
 
     if (client == NULL) {
         return;
@@ -697,38 +698,24 @@ void wcmd_client_fullscreen(client_td *client)
         return;
     }
 
+    was_decorated = client_is_decorated(client);
+    client->was_decorated_fullscreen = was_decorated;
+    if (was_decorated) {
+        wcmd_client_toggle_decoration(client);
+    }
+
     target = wcmd_target_win(client);
     client_geometry_save(client);
 
-    /* Configure window to fill entire screen */
-    if (client_is_decorated(client)) {
-        /* Unmap the titlebar and stretch the content window to cover
-         * the entire frame so nothing is hidden under borders. */
-        if (client->titlebar != 0) {
-            xcb_unmap_window(client->connection, client->titlebar);
-        }
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT |
-                XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                (const uint32_t[]) {
-                    0u, 0u,
-                    (uint32_t) sw, (uint32_t) sh,
-                    0u
-                });
-    }
 
-    /* Resize frame (decorated) or window (undecorated) to fill screen */
+    /* Resize the visible target to fill screen */
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
-                0u,                 /* X: top-left corner */
-                0u,                 /* Y: top-left corner */
-                (uint32_t) sw,      /* Width: full screen width */
-                (uint32_t) sh       /* Height: full screen height */
+                0u, 0u,
+                (uint32_t) sw,
+                (uint32_t) sh
             });
 
     client->layout.geometry.cur.pos.x = 0;
@@ -770,38 +757,10 @@ void wcmd_client_unfullscreen(client_td *client)
                 client->layout.geometry.cur.dim.h
             });
 
-    if (client_is_decorated(client)) {
-        /* Restore the content window to its position within the frame
-         * and remap the titlebar. */
-        int32_t win_x = client->layout.frame_extents.left;
-        int32_t win_y = client->layout.frame_extents.top;
-        int32_t fw = (int32_t) client->layout.geometry.cur.dim.w;
-        int32_t fh = (int32_t) client->layout.geometry.cur.dim.h;
-        int32_t win_w = fw - win_x - client->layout.frame_extents.right;
-        int32_t win_h = fh - win_y - client->layout.frame_extents.bottom;
-
-        if (win_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            win_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-        }
-        if (win_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-            win_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-        }
-
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT |
-                XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                (const uint32_t[]) {
-                    (uint32_t) win_x, (uint32_t) win_y,
-                    (uint32_t) win_w, (uint32_t) win_h,
-                    0u
-                });
-        if (client->titlebar != 0) {
-            xcb_map_window(client->connection, client->titlebar);
-        }
+    if (client->was_decorated_fullscreen && !client_is_decorated(client)) {
+        wcmd_client_toggle_decoration(client);
     }
+    client->was_decorated_fullscreen = false;
 
     client->properties.state = CLIENT_STATE_NORMAL;
 
