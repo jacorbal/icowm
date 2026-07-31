@@ -513,8 +513,10 @@ void handler_unmap_notify(xcb_connection_t *connection,
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
     if (client != NULL) {
-        if (event->window != client->window &&
-                event->window != client->frame) {
+        if (event->window != client->window) {
+            if (client->ignore_unmap > 0) {
+                client->ignore_unmap--;
+            }
             return;
         }
         if (client->ignore_unmap > 0) {
@@ -619,8 +621,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
         return;
     }
 
-    if (event->window != client->window &&
-            event->window != client->frame) {
+    if (event->window != client->window) {
         return;
     }
 

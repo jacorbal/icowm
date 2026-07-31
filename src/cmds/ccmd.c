@@ -769,6 +769,10 @@ void wcmd_client_fullscreen(client_td *client)
         return;
     }
 
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+
     if (!wcmd_screen_dim(client, &sw, &sh)) {
         return;
     }

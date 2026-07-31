@@ -52,6 +52,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* CMD includes */
+#include <cmds/ccmd.h>
+
 /* Local includes */
 #include <input/drag.h>
 #include <input/mouse.h>
@@ -263,10 +266,26 @@ void mouse_handle_press(xcb_connection_t *connection,
                         if (!client_is_shaded(client)) {
                             client_send_event(client, ACTION_CLIENT_SHADE,
                                     PRIORITY_NORMAL);
+                            if (desktop != NULL) {
+                                desktop->is_outdated = true;
+                            }
+                            surface = lookup_surface_for_root(surfaces,
+                                    event->root);
+                            if (surface != NULL) {
+                                surface->is_outdated = true;
+                            }
                         }
                     } else if (client_is_shaded(client)) {
                         client_send_event(client, ACTION_CLIENT_UNSHADE,
                                 PRIORITY_NORMAL);
+                        if (desktop != NULL) {
+                            desktop->is_outdated = true;
+                        }
+                        surface = lookup_surface_for_root(surfaces,
+                                event->root);
+                        if (surface != NULL) {
+                            surface->is_outdated = true;
+                        }
                     }
                 }
             }
@@ -344,6 +363,12 @@ void mouse_handle_press(xcb_connection_t *connection,
                                 client_send_event(client,
                                         btn_actions[bi],
                                         PRIORITY_NORMAL);
+                                if (desktop != NULL) {
+                                    desktop->is_outdated = true;
+                                }
+                                if (surface != NULL) {
+                                    surface->is_outdated = true;
+                                }
                                 break;
                             }
                         } /* ! for (bi) */
@@ -360,6 +385,12 @@ void mouse_handle_press(xcb_connection_t *connection,
                             client_send_event(client,
                                     ACTION_CLIENT_SHADE,
                                     PRIORITY_NORMAL);
+                            if (desktop != NULL) {
+                                desktop->is_outdated = true;
+                            }
+                            if (surface != NULL) {
+                                surface->is_outdated = true;
+                            }
                         }
                     } else if ((xcb_button_index_t) event->detail ==
                             XCB_BUTTON_INDEX_5) {
@@ -368,6 +399,12 @@ void mouse_handle_press(xcb_connection_t *connection,
                             client_send_event(client,
                                     ACTION_CLIENT_UNSHADE,
                                     PRIORITY_NORMAL);
+                            if (desktop != NULL) {
+                                desktop->is_outdated = true;
+                            }
+                            if (surface != NULL) {
+                                surface->is_outdated = true;
+                            }
                         }
                     }
                 }
@@ -390,6 +427,12 @@ void mouse_handle_press(xcb_connection_t *connection,
                         client_send_event(client,
                                 ACTION_CLIENT_TOGGLE_SHADE,
                                 PRIORITY_NORMAL);
+                        if (desktop != NULL) {
+                            desktop->is_outdated = true;
+                        }
+                        if (surface != NULL) {
+                            surface->is_outdated = true;
+                        }
                     } else {
                         drag_start(connection, event->root, client,
                                 CLIENT_OPERATION_MOVING,
@@ -459,7 +502,14 @@ void mouse_handle_press(xcb_connection_t *connection,
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ)) {
+        xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(connection);
         return;
+    }
+
+    if (type == MOUSEBIND_RESIZE && client_is_shaded(client)) {
+        wcmd_client_unshade(client);
     }
 
     if (type == MOUSEBIND_LOWER) {

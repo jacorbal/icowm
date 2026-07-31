@@ -709,7 +709,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_iconified(w) \
-    ((w)->properties.state & CLIENT_STATE_ICONIFIED)
+    ((w)->properties.state & (uint16_t) CLIENT_STATE_ICONIFIED)
 
 /**
  * @brief Macro that evaluates to the client maximization state

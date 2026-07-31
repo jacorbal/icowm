@@ -23,6 +23,7 @@
 #include <wm.h>
 
 /* Local includes */
+#include <cmds/ccmd.h>
 #include <cmds/geom.h>
 #include <cmds/util.h>
 
@@ -93,13 +94,19 @@ void wcmd_client_resize(client_td *client,
     }
 
     /* Resizing is forbidden while the client is maximized or
-     * fullscreen; it must be restored to a normal state first. */
+     * fullscreen; shaded clients are first restored so the requested
+     * size applies to the normal window geometry instead of the
+     * rolled-up titlebar */
     if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
         return;
+    }
+
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
     }
 
     req_w = client_data->new_data.geometry.dim.w;
@@ -171,8 +178,6 @@ void wcmd_client_maximize_horz(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
-
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X |
             XCB_CONFIG_WINDOW_Y |
@@ -202,6 +207,10 @@ void wcmd_client_maximize_vert(client_td *client)
 
     if (client == NULL || !wcmd_screen_dim(client, NULL, &sh)) {
         return;
+    }
+
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
     }
 
     target = wcmd_target_win(client);
@@ -237,6 +246,10 @@ void wcmd_client_maximize(client_td *client)
 
     if (client == NULL) {
         return;
+    }
+
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
     }
 
     /* Toggle: if already maximized, restore saved geometry */
