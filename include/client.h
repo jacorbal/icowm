@@ -709,7 +709,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_iconified(w) \
-    ((w)->properties.state & (uint16_t) CLIENT_STATE_ICONIFIED)
+    ((w)->properties.state == (uint16_t) CLIENT_STATE_ICONIFIED)
 
 /**
  * @brief Macro that evaluates to the client maximization state
@@ -717,7 +717,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized(w) \
-    ((w)->properties.state & CLIENT_STATE_MAXIMIZED)
+    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED)
 
 /**
  * @brief Macro that evaluates to the client horizontal maximization
@@ -726,7 +726,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized_horz(w) \
-    ((w)->properties.state & CLIENT_STATE_MAXIMIZED_HORZ)
+    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ)
 
 /**
  * @brief Macro that evaluates to the client vertical maximization
@@ -735,7 +735,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized_vert(w) \
-    ((w)->properties.state & CLIENT_STATE_MAXIMIZED_VERT)
+    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED_VERT)
 
 /**
  * @brief Macro that evaluates to the client full screen state
@@ -743,7 +743,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_fullscreen(w) \
-    ((w)->properties.state & (uint16_t) CLIENT_STATE_FULLSCREEN)
+    ((w)->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN)
 
 /**
  * @brief Macro that evaluates to the client visibility flag

@@ -449,11 +449,11 @@ static int s_client_create_decorations(client_td *client)
      * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
      * priority for move/resize interactions. */
     xcb_grab_button(client->connection,
-            0,                                  /* owner_events */
+            0,                              /* 'owner_events' */
             client->frame,
             XCB_EVENT_MASK_BUTTON_PRESS |
             XCB_EVENT_MASK_BUTTON_RELEASE,
-            XCB_GRAB_MODE_SYNC,                 /* freeze until allow_events */
+            XCB_GRAB_MODE_SYNC,             /* freeze until 'allow_events' */
             XCB_GRAB_MODE_ASYNC,
             XCB_NONE,
             XCB_NONE,
