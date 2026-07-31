@@ -762,6 +762,7 @@ void wcmd_client_fullscreen(client_td *client)
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
+    uint32_t border_width;
     bool was_decorated;
     desktop_td *desktop;
 
@@ -777,13 +778,34 @@ void wcmd_client_fullscreen(client_td *client)
         return;
     }
 
+    client_geometry_save(client);
     was_decorated = client_is_decorated(client);
     client->was_decorated_fullscreen = was_decorated;
-    if (was_decorated) {
-        wcmd_client_toggle_decoration(client);
-    }
     target = wcmd_target_win(client);
-    client_geometry_save(client);
+
+    if (was_decorated && client->frame != 0) {
+        border_width = 0u;
+        if (client->titlebar != 0) {
+            xcb_unmap_window(client->connection, client->titlebar);
+        }
+        xcb_configure_window(client->connection, client->frame,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+        xcb_configure_window(client->connection, client->window,
+                XCB_CONFIG_WINDOW_X |
+                XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH |
+                XCB_CONFIG_WINDOW_HEIGHT |
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                (const uint32_t[]) {
+                0u, 0u,
+                (uint32_t) sw, (uint32_t) sh,
+                0u
+                });
+        client->layout.frame_extents.left = 0;
+        client->layout.frame_extents.right = 0;
+        client->layout.frame_extents.top = 0;
+        client->layout.frame_extents.bottom = 0;
+    }
 
     /* Resize the visible target to fill screen */
     xcb_configure_window(client->connection, target,
@@ -808,6 +830,7 @@ void wcmd_client_fullscreen(client_td *client)
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         desktop->client_active_id = client->id;
+        (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
     }
     wcmd_client_focus(client);
@@ -826,6 +849,10 @@ void wcmd_client_fullscreen(client_td *client)
 void wcmd_client_unfullscreen(client_td *client)
 {
     xcb_window_t target;
+    uint16_t border_width;
+    uint16_t title_height;
+    uint16_t inner_w;
+    uint16_t inner_h;
 
     if (client == NULL) {
         return;
@@ -844,8 +871,59 @@ void wcmd_client_unfullscreen(client_td *client)
                 client->layout.geometry.cur.dim.h
             });
 
-    if (client->was_decorated_fullscreen && !client_is_decorated(client)) {
-        wcmd_client_toggle_decoration(client);
+    if (client->was_decorated_fullscreen && client->frame != 0) {
+        border_width = (client->theme != NULL)
+            ? (uint16_t) client->theme->window.general.border_width
+            : 0u;
+        title_height = client->title_height;
+        inner_w = (client->layout.geometry.cur.dim.w >
+                (uint16_t) (border_width * 2u))
+            ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                    (uint16_t) (border_width * 2u))
+            : (uint16_t) WM_MIN_WINDOW_DIMENSION;
+        inner_h = (client->layout.geometry.cur.dim.h >
+                (uint16_t) (border_width * 2u + title_height))
+            ? (uint16_t) (client->layout.geometry.cur.dim.h -
+                    (uint16_t) (border_width * 2u + title_height))
+            : (uint16_t) WM_MIN_WINDOW_DIMENSION;
+
+        client->layout.frame_extents.left = border_width;
+        client->layout.frame_extents.right = border_width;
+        client->layout.frame_extents.top =
+            (uint16_t) (border_width + title_height);
+        client->layout.frame_extents.bottom = border_width;
+
+        xcb_configure_window(client->connection, client->frame,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                (const uint32_t[]) { (uint32_t) border_width });
+        xcb_configure_window(client->connection, client->window,
+                XCB_CONFIG_WINDOW_X |
+                XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH |
+                XCB_CONFIG_WINDOW_HEIGHT |
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                (const uint32_t[]) {
+                    (uint32_t) border_width,
+                    (uint32_t) (border_width + title_height),
+                    (uint32_t) inner_w,
+                    (uint32_t) inner_h,
+                0u
+                });
+        if (client->titlebar != 0) {
+            xcb_configure_window(client->connection, client->titlebar,
+                    XCB_CONFIG_WINDOW_X |
+                    XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH |
+                    XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                        (uint32_t) border_width,
+                        (uint32_t) border_width,
+                        (uint32_t) inner_w,
+                        (uint32_t) title_height
+                    });
+            xcb_map_window(client->connection, client->titlebar);
+        }
+
     }
     client->was_decorated_fullscreen = false;
 

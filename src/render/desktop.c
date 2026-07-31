@@ -186,6 +186,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     uint16_t title_h;
     uint16_t inner_w;
     uint16_t inner_h;
+    bool hide_decoration;
+
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received null desktop pointer", L_NARG);
@@ -265,6 +267,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         }
 
         is_focused = (desktop->client_active_id == client->id);
+
+        hide_decoration =
+            (client->properties.state ==
+                 (uint16_t) CLIENT_STATE_FULLSCREEN &&
+             client->was_decorated_fullscreen);
+
         target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame
             : client->window;
@@ -288,8 +296,10 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 xcb_unmap_window(desktop->connection, client->icon_window);
                 client->is_icon_mapped = false;
             }
-            if (client->titlebar != 0) {
+            if (client->titlebar != 0 && !hide_decoration) {
                 xcb_map_window(desktop->connection, client->titlebar);
+            } else if (client->titlebar != 0) {
+                xcb_unmap_window(desktop->connection, client->titlebar);
             }
             xcb_map_window(desktop->connection, target);
             /* Do not re-map the content window for shaded clients: the
@@ -344,7 +354,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     });
             xcb_clear_area(desktop->connection, 0, client->frame,
                     0, 0, 0, 0);
-            if (client->titlebar != 0) {
+            if (client->titlebar != 0 && !hide_decoration) {
                 xcb_configure_window(desktop->connection, client->titlebar,
                         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                         XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
@@ -393,6 +403,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         is_focused,
                         (bool) client_is_sticky(client),
                         desktop->config_theme);
+            } else if (client->titlebar != 0) {
+                xcb_unmap_window(desktop->connection, client->titlebar);
             }
         }
 
