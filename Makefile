@@ -31,6 +31,7 @@ B_DIR = $(PWD)/bin
 
 SHELL=/bin/sh
 JOBS ?= $(shell nproc)
+PKGCONF ?= pkgconf
 
 
 ## Compiler & linker options
@@ -64,10 +65,17 @@ CCWARN = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
 
 CCDEPS = -MMD -MP
 
-CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) ${CCDEPS}
-
-XCB_LFLAGS  = $(shell pkgconf --libs xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh)
-JSON_LFLAGS = -lcjson
+XCB_CFLAGS = $(shell $(PKGCONF) --cflags \
+		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh 2>/dev/null)
+JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
+		$(PKGCONF) --cflags cjson 2>/dev/null)
+CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
+		$(XCB_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
+XCB_LFLAGS  = $(shell $(PKGCONF) --libs \
+		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh 2>/dev/null || \
+		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh')
+JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
+		$(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
 OTHR_LFLAGS = -lpthread
 LDFLAGS     = -L $(L_DIR) $(XCB_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
 
@@ -174,11 +182,11 @@ $(O_DIR)/%.o: $(S_DIR)/%.c
 
 # Other options
 ctags:
-ifeq (,$(wildcard "/usr/bin/ctags"))
+ifneq (,$(shell command -v ctags 2>/dev/null))
 	@echo "Generating tags..."
 	@ctags -R --exclude='doc' --exclude='obj' --exclude='tmp' .
 else
-	$(error Cannot find '/usr/bin/ctags')
+	@echo "Skipping tags: 'ctags' not found"
 endif
 
 ccflags:
