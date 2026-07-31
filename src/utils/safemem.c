@@ -29,41 +29,24 @@ void safe_free(void **ptr)
 }
 
 
-/* Free var dynamically allocated pointers */
+/* Free multiple dynamically allocated pointers */
 int safe_free_var(void **first, ...)
 {
     va_list args;
-    void **ptr = first; /* The first argument is the first pointer */
-    int index = 0;      /* Index to track the position */
+    void **ptr;
 
     /* Return a negative error if the first pointer is null */
-    if (ptr == NULL) {
+    if (first == NULL) {
         return -1;
     }
 
-    /* Start the argument list */
     va_start(args, first);
-
-    /* Iterate until a null pointer is found */
-    while (ptr != NULL) {
-        if (*ptr) {
-            free(*ptr);
-            *ptr = NULL;
-        } else {
-            /* Return the index of the first pointer that could not be
-             * freed (null pointer) */
-            va_end(args);
-            return index;
-        }
-
-        /* Get the next pointer */
-        ptr = va_arg(args, void **);
-        index++;
+    for (ptr = first;
+            ptr != SAFE_FREE_VAR_END;
+            ptr = va_arg(args, void **)) {
+        safe_free(ptr);
     }
-
-    /* End the argument list */
     va_end(args);
 
-    /* All pointers were freed successfully */
     return 0;
 }

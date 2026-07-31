@@ -22,6 +22,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Default initial values */
+#include <defs/config.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <action.h>
@@ -132,8 +135,8 @@ void lifecycle_refresh_name(client_td *client)
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
 
-        size_t len = (net_reply.strings_len < 255u)
-            ? net_reply.strings_len : 254u;
+        size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
+            ? net_reply.strings_len : (CONFIG_MAX_LENGTH_NAME - 2u);
         memcpy(client->info.name, net_reply.strings, len);
         memcpy(client->info.visible_name, net_reply.strings, len);
         client->info.name[len] = '\0';

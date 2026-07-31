@@ -49,12 +49,43 @@
  * the hash values.
  */
 
-#ifndef MURMURHASH
-#define MURMURHASH
+#ifndef UTILS_MURMURHASH_H
+#define UTILS_MURMURHASH_H
 
 
 /* System includes */
 #include <stdint.h>     /* uint8_t, uint32_t */
+
+
+/**
+ * @name MurmurHash1 constants
+ * @{
+ */
+/** Mixing and block constant for MurmurHash1 */
+#define MH1_C (0xc6a4a793u)
+
+/** @} */
+/**
+ * @name MurmurHash2 / MurmurHash3 mixing constants
+ *
+ * MurmurHash3 reuses the same @c c1 / @c c2 pair as MurmurHash2.
+ * @{
+ */
+#define MH2_C1 (0xcc9e2d51u)    /**< First mixing constant */
+#define MH2_C2 (0x1b873593u)    /**< Second mixing constant */
+#define MH2_MIX (0xe6546b64u)   /**< Avalanche-mix addend */
+/** @} */
+
+/**
+ * @name Shared finalization constants
+ *
+ * These two constants appear in the finalization (avalanche) step of
+ * all three MurmurHash variants.
+ * @{
+ */
+#define MH_FIN_C1 (0x85ebca6bu) /**< First finalization constant */
+#define MH_FIN_C2 (0xc2b2ae35u) /**< Second finalization constant */
+/** @} */
 
 
 /**
@@ -128,4 +159,4 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed);
 uint32_t murmurhash3_32(const void *key, int len, uint32_t seed);
 
 
-#endif  /* ! MURMURHASH */
+#endif  /* ! UTILS_MURMURHASH_H */

@@ -16,11 +16,13 @@
 
 
 /* System includes */
+#include <signal.h>     /* kill */
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>  /* pid_t */
-#include <signal.h>     /* kill */
 #include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* calloc, free */
+#include <string.h>     /* memcpy, strlen */
+#include <sys/types.h>  /* pid_t */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -39,20 +41,103 @@
 #include <cmds/dcmd.h>
 
 
+/**
+ * @brief Publish full @c _NET_DESKTOP_NAMES for the desktop screen
+ *
+ * Rebuilds the NUL-separated list from the base configuration and
+ * updates the root EWMH property for the corresponding screen.
+ *
+ * @note Complexity: @e O(n), where @e n is screen desktop count
+ */
+static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
+{
+    uint32_t desktop_count;
+    uint32_t i;
+    size_t names_len;
+    size_t offset;
+    char *names;
+
+    if (desktop == NULL || desktop->ewmh == NULL ||
+            desktop->config_base == NULL ||
+            desktop->screen_id >= desktop->config_base->screen_count) {
+        return;
+    }
+
+    desktop_count = desktop->config_base->screens[desktop->screen_id]
+        .desktop_count;
+    if (desktop_count == 0u) {
+        return;
+    }
+
+    names_len = 0u;
+    for (i = 0u; i < desktop_count; ++i) {
+        const char *name = desktop->config_base
+            ->screens[desktop->screen_id].desktops[i].name;
+        names_len += strlen(name) + 1u;
+    }
+
+    if (names_len == 0u || names_len > UINT32_MAX) {
+        return;
+    }
+
+    names = calloc(names_len, sizeof(char));
+    if (names == NULL) {
+        return;
+    }
+
+    offset = 0u;
+    for (i = 0u; i < desktop_count; ++i) {
+        const char *name = desktop->config_base
+            ->screens[desktop->screen_id].desktops[i].name;
+        size_t name_len = strlen(name);
+        if (offset + name_len + 1u > names_len) {
+            break;
+        }
+        memcpy(names + offset, name, name_len + 1u);
+        offset += name_len + 1u;
+    }
+
+if (offset > 0u) {
+        xcb_ewmh_set_desktop_names(desktop->ewmh,
+                (int) desktop->screen_id, (uint32_t) offset, names);
+    }
+
+free(names);
+}
+
+
 /* Rename the desktop */
 void dcmd_desktop_rename(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
+    uint32_t screen_id;
+    uint32_t desktop_id;
+
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->new_data.str == NULL) {
         return;
     }
 
-    snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME - 1, "%s",
-            desktop_data->new_data.str);
+    if (desktop_action_rename(desktop, desktop_data->new_data.str) != 0) {
+        return;
+    }
 
-    xcb_ewmh_set_desktop_names(desktop->ewmh, (int) desktop->screen_id,
-            1, desktop->name);
+    if (desktop->config_base == NULL) {
+        return;
+    }
+
+    screen_id = desktop->screen_id;
+    desktop_id = desktop->id;
+    if (screen_id >= desktop->config_base->screen_count ||
+            desktop_id >= desktop->config_base
+            ->screens[screen_id].desktop_count) {
+        return;
+    }
+
+    safe_strncpy(desktop->config_base->screens[screen_id]
+            .desktops[desktop_id].name, desktop->name,
+            CONFIG_MAX_LENGTH_NAME);
+    s_dcmd_sync_desktop_names(desktop);
 }
 
 

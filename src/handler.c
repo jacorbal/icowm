@@ -61,64 +61,6 @@
 #include <handler.h>
 
 
-/**
- * @brief Apply cached frame extents to child and titlebar geometry
- *
- * Reads the stored @c frame_extents from @p client and repositions and
- * resizes the child content window and the titlebar window to fill the
- * interior of the decoration frame correctly.
- *
- * @param client Client whose decoration layout should be synchronised
- *
- * @note Complexity: @e O(1)
- */
-static void s_handler_sync_decorated_layout(client_td *client)
-{
-    uint16_t left;
-    uint16_t right;
-    uint16_t top;
-    uint16_t bottom;
-    uint16_t title_h;
-    uint16_t inner_w;
-    uint16_t inner_h;
-    uint16_t title_y;
-
-    if (client == NULL || client->frame == 0 ||
-            !client_is_decorated(client)) {
-        return;
-    }
-
-    left = (uint16_t) client->layout.frame_extents.left;
-    right = (uint16_t) client->layout.frame_extents.right;
-    top = (uint16_t) client->layout.frame_extents.top;
-    bottom = (uint16_t) client->layout.frame_extents.bottom;
-    title_h = client->title_height;
-    title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
-    inner_w = (client->layout.geometry.cur.dim.w > left + right)
-        ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
-        : WM_MIN_WINDOW_DIMENSION;
-    inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
-        ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
-        : WM_MIN_WINDOW_DIMENSION;
-
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            (const uint32_t[]) {
-                left, top, inner_w, inner_h
-            });
-
-    if (client->titlebar != 0) {
-        xcb_configure_window(client->connection, client->titlebar,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    left, title_y, inner_w, title_h
-                });
-    }
-}
-
-
 /* Emit ICCCM synthetic ConfigureNotify for reparented clients */
 static void s_handler_send_synthetic_configure_notify(
         xcb_connection_t *connection, client_td *client)
@@ -278,7 +220,7 @@ void handler_configure_request(xcb_connection_t *connection,
             xcb_configure_window(connection, target,
                     target_mask, target_values);
             if (is_reparented) {
-                s_handler_sync_decorated_layout(client);
+                client_sync_decoration_layout(client);
                 if (send_synth) {
                     s_handler_send_synthetic_configure_notify(connection,
                             client);

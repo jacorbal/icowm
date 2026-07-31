@@ -20,6 +20,7 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <defs/ewmh.h>
 #include <defs/wm.h>
 
 /* Project includes */
@@ -357,24 +358,6 @@ bool confirm_handle_click(xcb_connection_t *connection,
     return false;
 }
 
-/**
- * @brief Handle a mouse click inside the confirmation dialog
- *
- * Activates the clicked button when the pointer lands inside either the
- * "Cancel" or "Exit" button rectangle.  Clicks outside both buttons are
- * not handled and should be processed by the caller as
- * background/outside clicks.
- *
- * @param connection XCB connection
- * @param x          Pointer X coordinate relative to the dialog
- * @param y          Pointer Y coordinate relative to the dialog
- *
- * @return @c true if a button was activated, @c false otherwise
- *
- * @note Complexity: @e O(1)
- */
-bool confirm_handle_click(xcb_connection_t *connection,
-        int x, int y);
 
 /* Move selection to the next button (wraps around) */
 void confirm_toggle_selection(void)

@@ -27,6 +27,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <logger.h>
 #include <surface.h>
@@ -151,13 +154,14 @@ int startup_subscribe_root_events(wm_td *wm)
 
     /* Set a default left-pointer cursor on every root window so the
      * cursor is visible even when no client window is under the pointer.
-     * 'XC_left_ptr' = glyph 68, mask 69 in the cursor font. */
+     * The cursor font stores glyphs in pairs; see 'defs/wm.h' for the
+     * named constants. */
     fnt = xcb_generate_id(wm->connection);
     cur = xcb_generate_id(wm->connection);
     xcb_open_font(wm->connection, fnt,
             (uint16_t) strlen("cursor"), "cursor");
     xcb_create_glyph_cursor(wm->connection, cur, fnt, fnt,
-            68u, 69u,
+            WM_CURSOR_LEFT_PTR_GLYPH, WM_CURSOR_LEFT_PTR_MASK_GLYPH,
             0u, 0u, 0u,
             0xffffu, 0xffffu, 0xffffu);
     cur_val[0] = (uint32_t) cur;
@@ -204,7 +208,7 @@ int startup_install_signals(void)
             sigaction(SIGINT, &sa, NULL) != 0 ||
             sigaction(SIGQUIT, &sa, NULL) != 0 ||
             sigaction(SIGTERM, &sa, NULL) != 0 ||
-            sigaction(SIGCONT, &sa, NULL) != 0) {
+            sigaction(SIGCONT, &sa_cont, NULL) != 0) {
         LOGGER_ERROR("Failed to install termination signal handlers",
                 L_NARG);
         return -1;

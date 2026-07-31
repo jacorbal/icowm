@@ -365,6 +365,21 @@ client_td *client_init(xcb_connection_t *connection,
 void client_destroy(client_td *client);
 
 /**
+ * @brief Synchronise the inner client and titlebar windows with the
+ *        frame extents stored in @p client
+ *
+ * After the outer frame is repositioned or resized, this function
+ * repositions and resizes the reparented client content window and the
+ * titlebar so that they stay correctly aligned inside the frame.  The
+ * function is a no-op when the client is not decorated or has no frame.
+ *
+ * @param client Pointer to the decorated client to synchronise
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_sync_decoration_layout(client_td *client);
+
+/**
  * @brief Adopt an existing X window under window manager control
  *
  * Wraps an existing X window in a client structure without creating a

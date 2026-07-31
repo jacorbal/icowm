@@ -36,6 +36,9 @@
 #include <utils/murmurhash.h>
 #include <utils/safestr.h>
 
+/* Default initial values */
+#include <defs/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -53,7 +56,8 @@ static size_t s_h1(const void *data)
     /* Stable primary hash using a fixed seed (0x9E3779B9, 32-bit golden
      * ratio, 2^32/phi) to ensure good dispersion and reproducible
      * results across runs. */
-    return (size_t) murmurhash3_32(&key, sizeof(key), 0x9E3779B9u);
+    return (size_t) murmurhash3_32(&key, sizeof(key),
+            DESKTOP_HASH_SEED_PRIMARY);
 }
 
 
@@ -62,7 +66,8 @@ static size_t s_h2(const void *data)
 {
     const client_td *client = (const client_td *) data;
     const uint32_t key = (client == NULL) ? 0u : client->id;
-    size_t hash2 = (size_t) murmurhash3_32(&key, sizeof(key), 0x85EBCA6Bu);
+    size_t hash2 = (size_t) murmurhash3_32(&key, sizeof(key),
+            DESKTOP_HASH_SEED_SECONDARY);
 
     /* Stable secondary hash using a different fixed seed (0x85EBCA6B)
      * to reduce correlation with 'h1'.  The result is forced to be

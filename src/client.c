@@ -29,6 +29,7 @@
 #include <utils/safeflg.h>
 
 /* Default initial values */
+#include <defs/config.h>
 #include <defs/wm.h>
 
 /* Type includes */
@@ -223,6 +224,62 @@ static int s_client_get_wm_class(xcb_connection_t *connection,
 }
 
 
+
+/**
+ * @brief Allocate and zero all string buffers for a client
+ *
+ * Allocates every heap string in the @c info and @c icon_info
+ * sub-structs using @c CONFIG_MAX_LENGTH_NAME bytes each.  On success
+ * all string fields are set to empty strings and @c icon_info.icons is
+ * set to @c NULL.  On any allocation failure every buffer that was
+ * already allocated is freed and the function returns non-zero.
+ *
+ * @param client Pointer to the client structure to populate
+ *
+ * @return 0 on success, -1 on allocation failure
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_client_alloc_strings(client_td *client)
+{
+    client->info.name = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->info.visible_name = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->info.role_name = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->info.class_name[0] = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->info.class_name[1] = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->icon_info.icon_name = malloc(CONFIG_MAX_LENGTH_NAME);
+    client->icon_info.visible_icon_name = malloc(CONFIG_MAX_LENGTH_NAME);
+
+    if (client->info.name == NULL ||
+            client->info.visible_name == NULL ||
+            client->info.role_name == NULL ||
+            client->info.class_name[0] == NULL ||
+            client->info.class_name[1] == NULL ||
+            client->icon_info.icon_name == NULL ||
+            client->icon_info.visible_icon_name == NULL) {
+        safe_free((void **) &client->info.name);
+        safe_free((void **) &client->info.visible_name);
+        safe_free((void **) &client->info.role_name);
+        safe_free((void **) &client->info.class_name[0]);
+        safe_free((void **) &client->info.class_name[1]);
+        safe_free((void **) &client->icon_info.icon_name);
+        safe_free((void **) &client->icon_info.visible_icon_name);
+        return -1;
+    }
+
+    client->info.name[0] = '\0';
+    client->info.visible_name[0] = '\0';
+    client->info.role_name[0] = '\0';
+    client->info.class_name[0][0] = '\0';
+    client->info.class_name[1][0] = '\0';
+    client->icon_info.icon_name[0] = '\0';
+    client->icon_info.visible_icon_name[0] = '\0';
+
+    client->icon_info.icons = NULL;
+    return 0;
+}
+
+
 /**
  * @brief Apply decoration defaults from the loaded theme
  *
@@ -244,7 +301,7 @@ static void s_client_set_decoration_defaults(client_td *client,
         return;
     }
 
-    client->title_height = 22;
+    client->title_height = WM_TITLEBAR_DEFAULT_HEIGHT;
     if (theme != NULL) {
         border_width = (uint16_t) theme->window.general.border_width;
     }
@@ -263,18 +320,10 @@ static void s_client_set_decoration_defaults(client_td *client,
 }
 
 
-/**
- * @brief Reconfigure a decorated client's child windows to match extents
- *
- * Applies the current cached frame extents to the reparented client
- * window and titlebar so the themed border area, titlebar, and client
- * content stay aligned after geometry changes.
- *
- * @param client Pointer to the decorated client to synchronize
- *
- * @note Complexity: @e O(1)
- */
-static void s_client_sync_decoration_layout(client_td *client)
+
+/* Synchronise the inner and titlebar geometry with the current frame
+ * extents */
+void client_sync_decoration_layout(client_td *client)
 {
     uint16_t left;
     uint16_t right;
@@ -285,7 +334,8 @@ static void s_client_sync_decoration_layout(client_td *client)
     uint16_t inner_h;
     uint16_t title_y;
 
-    if (client == NULL || client->frame == 0 || !client_is_decorated(client)) {
+    if (client == NULL || client->frame == 0 ||
+            !client_is_decorated(client)) {
         return;
     }
 
@@ -465,7 +515,7 @@ static int s_client_create_decorations(client_td *client)
     client->layout.geometry.cur.dim.w = frame_w;
     client->layout.geometry.cur.dim.h = frame_h;
     client->layout.geometry.old = client->layout.geometry.cur;
-    s_client_sync_decoration_layout(client);
+    client_sync_decoration_layout(client);
 
     return 0;
 }
@@ -548,74 +598,19 @@ client_td *client_init(xcb_connection_t *connection,
     client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
     s_client_set_decoration_defaults(client, theme);
 
-    /* Allocate buffers for client information strings.
-     * Each buffer is separately allocated for independent management */
-    client->info.name = malloc(256);
-    if (client->info.name == NULL) {
-        LOGGER_ERROR("Failed to allocate 'name' buffer", L_NARG);
+    /* Allocate string buffers for client information */
+    if (s_client_alloc_strings(client) != 0) {
+        LOGGER_ERROR("Failed to allocate string buffers for client",
+                L_NARG);
         free(client);
         return NULL;
     }
 
-    client->info.visible_name = malloc(256);
-    if (client->info.visible_name == NULL) {
-        LOGGER_ERROR("Failed to allocate 'visible_name' buffer", L_NARG);
-        free(client->info.name);
-        free(client);
-        return NULL;
-    }
-
-    client->info.role_name = malloc(256);
-    if (client->info.role_name == NULL) {
-        LOGGER_ERROR("Failed to allocate 'role_name' buffer", L_NARG);
-        free(client->info.visible_name);
-        free(client->info.name);
-        free(client);
-        return NULL;
-    }
-
-    /* Allocate buffers for window class information */
-    client->info.class_name[0] = malloc(256);
-    client->info.class_name[1] = malloc(256);
-    if (client->info.class_name[0] == NULL ||
-            client->info.class_name[1] == NULL) {
-        LOGGER_ERROR("Failed to allocate 'class_name' buffers", L_NARG);
-        safe_free((void **) &client->info.name);
-        safe_free((void **) &client->info.visible_name);
-        safe_free((void **) &client->info.role_name);
-        safe_free((void **) &client->info.class_name[0]);
-        safe_free((void **) &client->info.class_name[1]);
-        free(client);
-        return NULL;
-    }
-
-    /* Allocate buffers for icon information */
-    client->icon_info.icon_name = malloc(256);
-    client->icon_info.visible_icon_name = malloc(256);
-    if (client->icon_info.icon_name == NULL ||
-            client->icon_info.visible_icon_name == NULL) {
-        LOGGER_ERROR("Failed to allocate icon buffers", L_NARG);
-        safe_free((void **) &client->info.name);
-        safe_free((void **) &client->info.visible_name);
-        safe_free((void **) &client->info.role_name);
-        safe_free((void **) &client->info.class_name[0]);
-        safe_free((void **) &client->info.class_name[1]);
-        safe_free((void **) &client->icon_info.icon_name);
-        safe_free((void **) &client->icon_info.visible_icon_name);
-        free(client);
-        return NULL;
-    }
-
-    client->icon_info.icons = NULL;
-
-    /* Initialize all strings with default empty values */
-    snprintf(client->info.name, 255, "Client %p", (void *) client);
-    snprintf(client->info.visible_name, 255, "Client %p", (void *) client);
-    client->info.role_name[0] = '\0';
-    client->info.class_name[0][0] = '\0';
-    client->info.class_name[1][0] = '\0';
-    client->icon_info.icon_name[0] = '\0';
-    client->icon_info.visible_icon_name[0] = '\0';
+    /* Initialize default name strings */
+    snprintf(client->info.name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Client %p", (void *) client);
+    snprintf(client->info.visible_name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Client %p", (void *) client);
 
     /* Create the XCB window that represents this client */
     client->window = xcb_generate_id(connection);
@@ -671,8 +666,10 @@ client_td *client_init(xcb_connection_t *connection,
     s_client_get_wm_name(connection, parent_id, wm_name,
             sizeof(wm_name));
     if (wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, wm_name, 255);
-        safe_strncpy(client->info.visible_name, wm_name, 255);
+        safe_strncpy(client->info.name, wm_name,
+                CONFIG_MAX_LENGTH_NAME - 1);
+        safe_strncpy(client->info.visible_name, wm_name,
+                CONFIG_MAX_LENGTH_NAME - 1);
     }
 
     /* Attempt to retrieve 'WM_CLASS' property from the X server to
@@ -681,10 +678,12 @@ client_td *client_init(xcb_connection_t *connection,
             wm_class, sizeof(wm_class),
             wm_instance, sizeof(wm_instance));
     if (wm_class[0] != '\0') {
-        safe_strncpy(client->info.class_name[1], wm_class, 255);
+        safe_strncpy(client->info.class_name[1], wm_class,
+                CONFIG_MAX_LENGTH_NAME - 1);
     }
     if (wm_instance[0] != '\0') {
-        safe_strncpy(client->info.class_name[0], wm_instance, 255);
+        safe_strncpy(client->info.class_name[0], wm_instance,
+                CONFIG_MAX_LENGTH_NAME - 1);
     }
 
     /*
@@ -829,8 +828,8 @@ client_td *client_manage(xcb_connection_t *connection,
     } else {
         client->layout.geometry.cur.pos.x = 0;
         client->layout.geometry.cur.pos.y = 0;
-        client->layout.geometry.cur.dim.w = 100;
-        client->layout.geometry.cur.dim.h = 100;
+        client->layout.geometry.cur.dim.w = WM_CLIENT_DEFAULT_DIM;
+        client->layout.geometry.cur.dim.h = WM_CLIENT_DEFAULT_DIM;
     }
     client->layout.geometry.old = client->layout.geometry.cur;
 
@@ -845,30 +844,9 @@ client_td *client_manage(xcb_connection_t *connection,
     s_client_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers */
-    client->info.name = malloc(256);
-    client->info.visible_name = malloc(256);
-    client->info.role_name = malloc(256);
-    client->info.class_name[0] = malloc(256);
-    client->info.class_name[1] = malloc(256);
-    client->icon_info.icon_name = malloc(256);
-    client->icon_info.visible_icon_name = malloc(256);
-
-    if (client->info.name == NULL ||
-            client->info.visible_name == NULL ||
-            client->info.role_name == NULL ||
-            client->info.class_name[0] == NULL ||
-            client->info.class_name[1] == NULL ||
-            client->icon_info.icon_name == NULL ||
-            client->icon_info.visible_icon_name == NULL) {
+    if (s_client_alloc_strings(client) != 0) {
         LOGGER_ERROR("Failed to allocate string buffers" \
                 " for managed client", L_NARG);
-        safe_free((void **) &client->info.name);
-        safe_free((void **) &client->info.visible_name);
-        safe_free((void **) &client->info.role_name);
-        safe_free((void **) &client->info.class_name[0]);
-        safe_free((void **) &client->info.class_name[1]);
-        safe_free((void **) &client->icon_info.icon_name);
-        safe_free((void **) &client->icon_info.visible_icon_name);
         free(client);
         return NULL;
     }
@@ -876,26 +854,27 @@ client_td *client_manage(xcb_connection_t *connection,
     client->icon_info.icons = NULL;
 
     /* Default string values */
-    snprintf(client->info.name, 255, "Window %#x", window);
-    snprintf(client->info.visible_name, 255, "Window %#x", window);
-    client->info.role_name[0] = '\0';
-    client->info.class_name[0][0] = '\0';
-    client->info.class_name[1][0] = '\0';
-    client->icon_info.icon_name[0] = '\0';
-    client->icon_info.visible_icon_name[0] = '\0';
+    snprintf(client->info.name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
+    snprintf(client->info.visible_name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
 
     /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
     s_client_get_net_wm_name(ewmh, window,
             net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, net_wm_name, 255);
-        safe_strncpy(client->info.visible_name, net_wm_name, 255);
+        safe_strncpy(client->info.name, net_wm_name,
+                CONFIG_MAX_LENGTH_NAME - 1);
+        safe_strncpy(client->info.visible_name, net_wm_name,
+                CONFIG_MAX_LENGTH_NAME - 1);
     } else {
         s_client_get_wm_name(connection, window,
                 wm_name, sizeof(wm_name));
         if (wm_name[0] != '\0') {
-            safe_strncpy(client->info.name, wm_name, 255);
-            safe_strncpy(client->info.visible_name, wm_name, 255);
+            safe_strncpy(client->info.name, wm_name,
+                    CONFIG_MAX_LENGTH_NAME - 1);
+            safe_strncpy(client->info.visible_name, wm_name,
+                    CONFIG_MAX_LENGTH_NAME - 1);
         }
     }
 
@@ -904,10 +883,12 @@ client_td *client_manage(xcb_connection_t *connection,
             wm_class, sizeof(wm_class),
             wm_instance, sizeof(wm_instance));
     if (wm_class[0] != '\0') {
-        safe_strncpy(client->info.class_name[1], wm_class, 255);
+        safe_strncpy(client->info.class_name[1], wm_class,
+                CONFIG_MAX_LENGTH_NAME - 1);
     }
     if (wm_instance[0] != '\0') {
-        safe_strncpy(client->info.class_name[0], wm_instance, 255);
+        safe_strncpy(client->info.class_name[0], wm_instance,
+                CONFIG_MAX_LENGTH_NAME - 1);
     }
 
     /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW' support */
@@ -1254,7 +1235,7 @@ int client_send_event_resize(client_td *client,
                 ? client->frame : client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             values);
-    s_client_sync_decoration_layout(client);
+    client_sync_decoration_layout(client);
     xcb_flush(client->connection);
 
     /* Create and queue the event for the action handler */

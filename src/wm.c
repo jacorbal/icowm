@@ -19,7 +19,9 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* memcpy, strlen */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -32,6 +34,7 @@
 #include <render/text.h>
 
 /* Default initial values */
+#include <defs/ewmh.h>
 #include <defs/wm.h>
 
 /* Project includes */
@@ -71,6 +74,8 @@ static void s_wm_cleanup(void)
     if (wm == NULL) {
         return;
     }
+
+    text_renderer_destroy();
 
     if (wm->surfaces != NULL) {
         list_destroy(wm->surfaces);
@@ -240,12 +245,92 @@ static void s_wm_sync_client_lists(surface_td *surface)
 }
 
 
+/**
+ * @brief Compute and publish @c _NET_DESKTOP_NAMES for one surface
+ *
+ * Builds a NUL-separated UTF-8 list with every desktop name of the
+ * target surface and writes it to the root-window EWMH property.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops
+ */
+static void s_wm_sync_desktop_names(surface_td *surface)
+{
+    uint32_t did;
+    size_t names_len;
+    size_t offset;
+    char *names;
+
+    if (surface == NULL || surface->ewmh == NULL ||
+            surface->desktop_count == 0u) {
+        return;
+    }
+
+    names_len = 0u;
+    for (did = 0u; did < surface->desktop_count; ++did) {
+        desktop_td *desktop = surface_desktop_get(surface, did);
+        if (desktop != NULL && desktop->name[0] != '\0') {
+            names_len += strlen(desktop->name) + 1u;
+        } else {
+            char fallback_name[32];
+            int written = snprintf(fallback_name, sizeof(fallback_name),
+                    "Desktop %u", did + 1u);
+            if (written <= 0) {
+                continue;
+            }
+            names_len += (size_t) written + 1u;
+        }
+    }
+
+    if (names_len == 0u || names_len > UINT32_MAX) {
+        return;
+    }
+
+    names = calloc(names_len, sizeof(char));
+    if (names == NULL) {
+        return;
+    }
+
+    offset = 0u;
+    for (did = 0u; did < surface->desktop_count; ++did) {
+        const char *name;
+        size_t name_len;
+        desktop_td *desktop = surface_desktop_get(surface, did);
+        char fallback_name[32];
+
+        if (desktop != NULL && desktop->name[0] != '\0') {
+            name = desktop->name;
+        } else {
+            int written = snprintf(fallback_name, sizeof(fallback_name),
+                    "Desktop %u", did + 1u);
+            if (written <= 0) {
+                continue;
+            }
+            fallback_name[sizeof(fallback_name) - 1u] = '\0';
+            name = fallback_name;
+        }
+
+        name_len = strlen(name);
+        if (offset + name_len + 1u > names_len) {
+            break;
+        }
+
+        memcpy(names + offset, name, name_len + 1u);
+        offset += name_len + 1u;
+    }
+
+    if (offset > 0u) {
+        xcb_ewmh_set_desktop_names(surface->ewmh, (int) surface->id,
+                (uint32_t) offset, names);
+    }
+    free(names);
+}
+
+
 /* Create and publish root EWMH metadata required by compliant clients */
 int wm_ewmh_init(void)
 {
-    xcb_atom_t supported_atoms[24];
+    xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
-    list_item_td *snode;
     xcb_window_t support;
 
     if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL) {
@@ -280,6 +365,9 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_GEOMETRY;
     supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_VIEWPORT;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WORKAREA;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_NAMES;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STRUT_PARTIAL;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STRUT;
     supported_atoms[n_supported++] = wm->ewmh->_NET_ACTIVE_WINDOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_NAME;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ICON_NAME;
@@ -293,10 +381,11 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_BELOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_STICKY;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SHADED;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
+    supported_atoms[n_supported++] =
+        wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
     supported_atoms[n_supported++] = wm->ewmh->_NET_CLOSE_WINDOW;
 
-    for (snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         if (surface == NULL || surface->screen == NULL) {
@@ -316,13 +405,11 @@ int wm_ewmh_init(void)
 /* Synchronize EWMH root properties for all managed surfaces */
 void wm_ewmh_sync(void)
 {
-    list_item_td *snode;
-
     if (wm == NULL || wm->surfaces == NULL || wm->ewmh == NULL) {
         return;
     }
 
-    for (snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         desktop_td *current;
@@ -359,6 +446,7 @@ void wm_ewmh_sync(void)
 
         xcb_ewmh_set_active_window(surface->ewmh, (int) surface->id,
                 active);
+        s_wm_sync_desktop_names(surface);
         s_wm_sync_workarea(surface);
         s_wm_sync_client_lists(surface);
     }
@@ -405,7 +493,6 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
             LOGGER_FATAL("Failed to open X display '%s'",
                     display_name);
         }
-        wm->connection = NULL;  /* 'xcb_disconnect' not needed on error */
         s_wm_cleanup();
         return 2;
     }
@@ -422,7 +509,9 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     if (!xcb_ewmh_init_atoms_replies(wm->ewmh,
                 xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
                 NULL)) {
-        LOGGER_ERROR("Error initializating EWMH atoms", L_NARG);
+        LOGGER_FATAL("Error initializating EWMH atoms", L_NARG);
+        s_wm_cleanup();
+        return 10;
     }
 
     wm->config = config_init();
@@ -539,28 +628,8 @@ int wm_stop(void)
         return 1;
     }
 
-    eventq_stop();
-
-    LOGGER_TRACE("Deallocating surfaces in window manager", L_NARG);
-    list_destroy(wm->surfaces);
-
-    LOGGER_TRACE("Deallocating EWMH structure", L_NARG);
-    xcb_ewmh_connection_wipe(wm->ewmh);
-    free(wm->ewmh);
-
-    config_destroy(wm->config);
-    text_renderer_destroy();
-
-    LOGGER_TRACE("Closing X display", L_NARG);
-    if (wm->ewmh_support_win != XCB_NONE) {
-        xcb_destroy_window(wm->connection, wm->ewmh_support_win);
-        wm->ewmh_support_win = XCB_NONE;
-    }
-    xcb_disconnect(wm->connection);
-
-    LOGGER_TRACE("Destroying window manager", L_NARG);
-    free(wm);
-    wm = NULL;
+    LOGGER_TRACE("Running window manager cleanup", L_NARG);
+    s_wm_cleanup();
 
     LOGGER_DEBUG("Window manager has been destroyed", L_NARG);
 
@@ -703,17 +772,18 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 /* Return the managed surface with the given identifier */
 surface_td *wm_get_surface_by_id(uint32_t surface_id)
 {
-    list_item_td *snode;
     if (wm == NULL || wm->surfaces == NULL) {
         return NULL;
     }
-    for (snode = list_head(wm->surfaces);
+
+    for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         if (surface != NULL && surface->id == surface_id) {
             return surface;
         }
     }
+
     return NULL;
 }
 

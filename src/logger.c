@@ -69,12 +69,11 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
  *
  * Retrieves the current time, including microseconds, and formats it
  * into the provided buffer as a human-readable timestamp with timezone
- * offset.
+ * offset in the form `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`.
  *
  * @param buffer    Pointer to the character array where the formatted
  *                  timestamp will be stored
  * @param buffer_sz Size of the buffer in bytes
- * @param flags     Flags to modify the final format
  *
  * @note Format: `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`
  * @note Uses POSIX global variable @p timezone to determine timezone
@@ -84,7 +83,7 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
  *
  * @see @a LOGGER_TIMESTAMP_USEC, @a LOGGER_TIMESTAMP_TZ
  */
-static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
+static void s_timestamp_fmt(char *buffer, size_t buffer_sz)
 {
     struct timeval tv;
     struct tm tm_info;
@@ -124,62 +123,26 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz, int flags)
 #endif  /* ! LOGGER_OS_HAS_TM_GMTOFF */
 
     /* Determine timezone sign offset and convert to "HHMM" format */
-    if (flags & LOGGER_TIMESTAMP_TZ) {
-        tz_sign = '+';
-        if (tz_offset_seconds < 0) {
-            tz_sign = '-';
-            tz_offset_seconds = -tz_offset_seconds;
-        }
-        tz_hours = (int) tz_offset_seconds / 3600;
-        tz_minutes = ((int) tz_offset_seconds % 3600) / 60;
+    tz_sign = '+';
+    if (tz_offset_seconds < 0) {
+        tz_sign = '-';
+        tz_offset_seconds = -tz_offset_seconds;
     }
+    tz_hours = (int) tz_offset_seconds / 3600;
+    tz_minutes = ((int) tz_offset_seconds % 3600) / 60;
 
-    /* Format the buffer */
-    if ((flags & LOGGER_TIMESTAMP_USEC) && (flags & LOGGER_TIMESTAMP_TZ)) {
-        snprintf(buffer, buffer_sz,
-                "%04d-%02d-%02d %02d:%02d:%02d.%06ld %c%02d%02d",
-                tm_info.tm_year + 1900,
-                tm_info.tm_mon + 1,
-                tm_info.tm_mday,
-                tm_info.tm_hour,
-                tm_info.tm_min,
-                tm_info.tm_sec,
-                tv.tv_usec,
-                tz_sign,
-                tz_hours,
-                tz_minutes);
-    } else if (flags & LOGGER_TIMESTAMP_USEC) {
-        snprintf(buffer, buffer_sz,
-                "%04d-%02d-%02d %02d:%02d:%02d.%06ld",
-                tm_info.tm_year + 1900,
-                tm_info.tm_mon + 1,
-                tm_info.tm_mday,
-                tm_info.tm_hour,
-                tm_info.tm_min,
-                tm_info.tm_sec,
-                tv.tv_usec);
-    } else if (flags & LOGGER_TIMESTAMP_TZ) {
-        snprintf(buffer, buffer_sz,
-                "%04d-%02d-%02d %02d:%02d:%02d %c%02d%02d",
-                tm_info.tm_year + 1900,
-                tm_info.tm_mon + 1,
-                tm_info.tm_mday,
-                tm_info.tm_hour,
-                tm_info.tm_min,
-                tm_info.tm_sec,
-                tz_sign,
-                tz_hours,
-                tz_minutes);
-    } else {
-        snprintf(buffer, buffer_sz,
-                "%04d-%02d-%02d %02d:%02d:%02d",
-                tm_info.tm_year + 1900,
-                tm_info.tm_mon + 1,
-                tm_info.tm_mday,
-                tm_info.tm_hour,
-                tm_info.tm_min,
-                tm_info.tm_sec);
-    }
+    snprintf(buffer, buffer_sz,
+            "%04d-%02d-%02d %02d:%02d:%02d.%06ld %c%02d%02d",
+            tm_info.tm_year + 1900,
+            tm_info.tm_mon + 1,
+            tm_info.tm_mday,
+            tm_info.tm_hour,
+            tm_info.tm_min,
+            tm_info.tm_sec,
+            tv.tv_usec,
+            tz_sign,
+            tz_hours,
+            tz_minutes);
 }
 
 
@@ -335,8 +298,7 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         }
 
         /* Get the timestamp */
-        s_timestamp_fmt(timestamp, sizeof(timestamp),
-            LOGGER_TIMESTAMP_USEC | LOGGER_TIMESTAMP_TZ);
+        s_timestamp_fmt(timestamp, sizeof(timestamp));
 
         /* Set the level string to output */
         switch (level) {

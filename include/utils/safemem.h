@@ -21,6 +21,10 @@
 #define SAFEMEM_H
 
 
+/** Terminator for @c safe_free_var argument lists */
+#define SAFE_FREE_VAR_END ((void **) NULL)
+
+
 /**
  * @brief Free a dynamically allocated memory block if the pointer is
  *        non-null
@@ -38,53 +42,23 @@ void safe_free(void **ptr);
 /**
  * @brief Free multiple dynamically allocated pointers
  *
- * Frees the memory of provided pointers as a variable list arguments.
- * The list of pointers must be terminated with a null pointer, as this
- * function stops when it encounters the first null value, and it
- * requires at least one null argument.
+ * Iterates through a null-terminated list of @c void** arguments,
+ * freeing each pointed-to block that is non-null and setting the
+ * pointer to @c NULL afterwards.  Pointers whose target is already null
+ * are silently skipped, so the function is safe to call on partially
+ * initialised pointer sets.
  *
- * @param first A pointer to the first pointer to free
- * @param ...   Additional pointers to free, terminated with @c NULL
+ * @param first The first @c void** in the list
+ * @param ...   Additional @c void** pointers to free, terminated with
+ *              a @c NULL sentinel
  *
- * @return 0 if all pointers were freed successfully, the index
- *         (0-based) of the first pointer that could not be freed, or -1
- *         if the first pointer was null or if no valid pointers were
- *         provided up to the first @c NULL
+ * @return  0 on success
+ * @return -1 if @p first is @c NULL
  *
- * @note This function does not take a counter argument, and uses
- *       @c NULL to determine the end of the list
- * @note Each pointer is set to @c NULL after freeing to prevent
- *       accidental access to freed memory
- * @note Each pointer is evaluated once
+ * @note The list terminator must be @c SAFE_FREE_VAR_END:
+ *       @c safe_free_var((void**)&p1, (void**)&p2, SAFE_FREE_VAR_END)
  * @note Complexity: @e O(n), where @e n is the number of pointers
- *       provided up to the first @c NULL
- *
- * This example demonstrates how to call the @a safe_free_var
- * function with a mixture of valid and null pointers:
- *
- * @code
- *  char *ptr1 = malloc(64);
- *  char *ptr2 = NULL;
- *  char *ptr3 = malloc(64);
- *
- *  int result = safe_free_var((void **) &ptr1,
- *                             (void **) &ptr2,
- *                             (void **) &ptr3,
- *                             NULL);
- *
- *  if (result == 0) {
- *      printf("All pointers were freed successfully\n");
- *  } else if (result == -1) {
- *      printf("First pointer could not be freed or was NULL\n");
- *  } else {
- *      printf("Could not free pointer at index %d\n", result);
- *  }
- * @endcode
- *
- * In this case, @p ptr1 will be freed and set to @c NULL, but the
- * function encounters @p ptr2, which is @c NULL.  Thus, it will return
- * the index 1, indicating that the second pointer could not be
- * processed.
+ *       provided up to the @c NULL terminator
  */
 int safe_free_var(void **first, ...);
 

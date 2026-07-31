@@ -17,22 +17,6 @@
 
 
 /**
- * @brief Window-manager name exposed through EWMH
- *
- * Uses the build-time @c PROJECT_NAME_SHORT macro when available.
- * Falls back to a portable default when building without project
- * metadata injection.
- */
-#ifdef PROJECT_NAME_SHORT
-#define WM_EWMH_NAME PROJECT_NAME_SHORT
-#else
-#define WM_EWMH_NAME "IcoWM"
-#endif  /* ! PROJECT_NAME_SHORT */
-
-/** Length of @c WM_EWMH_NAME excluding the null terminator */
-//#define WM_EWMH_NAME_LEN (sizeof(WM_EWMH_NAME) - 1u)
-
-/**
  * @brief Initial capacity of windows for a desktop
  *
  * Number of windows that the desktop is initialized with.  A higher
@@ -58,6 +42,27 @@
 
 /** Minimum supported client window dimension */
 #define WM_MIN_WINDOW_DIMENSION (1u)
+
+/** Default titlebar height in pixels */
+#define WM_TITLEBAR_DEFAULT_HEIGHT (22u)
+
+/**
+ * @brief Fallback client width and height when geometry cannot be
+ *        queried from the X server
+ */
+#define WM_CLIENT_DEFAULT_DIM (100u)
+
+/**
+ * @brief Glyph index of @c XC_left_ptr (source) in the X cursor font
+ *
+ * The X cursor font stores source and mask glyphs in pairs.  The left
+ * pointer cursor uses glyph 68 as the source shape and glyph 69 as its
+ * transparency mask.
+ */
+#define WM_CURSOR_LEFT_PTR_GLYPH      (68u)
+
+/** Glyph index of the mask for @c XC_left_ptr in the X cursor font */
+#define WM_CURSOR_LEFT_PTR_MASK_GLYPH (69u)
 
 /** Keyboard move step (pixels) */
 #define WM_KEYBOARD_MOVE_STEP (20)
