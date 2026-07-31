@@ -299,6 +299,7 @@ void handler_configure_notify(xcb_connection_t *connection,
             ? (event->window == client->frame)
             : (event->window == client->window ||
                event->window == client->id);
+        bool is_inner = (event->window == client->window);        
 
         if (is_frame) {
             geom_changed =
@@ -330,6 +331,51 @@ void handler_configure_notify(xcb_connection_t *connection,
                     desktop->is_outdated = true;
                 }
             } /* ! if (geom_changed) */
+
+        } else if (is_inner &&
+                client->frame != 0 &&
+                client_is_decorated(client) &&
+                !client_is_fullscreen(client)) {
+            int32_t frame_x;
+            int32_t frame_y;
+            uint32_t frame_w;
+            uint32_t frame_h;
+            uint16_t left;
+            uint16_t right;
+            uint16_t top;
+            uint16_t bottom;
+
+            left = (uint16_t) client->layout.frame_extents.left;
+            right = (uint16_t) client->layout.frame_extents.right;
+            top = (uint16_t) client->layout.frame_extents.top;
+            bottom = (uint16_t) client->layout.frame_extents.bottom;
+
+            frame_x = client->layout.geometry.cur.pos.x +
+                (int32_t) event->x - (int32_t) left;
+            frame_y = client->layout.geometry.cur.pos.y +
+                (int32_t) event->y - (int32_t) top;
+            frame_w = (uint32_t) event->width + left + right;
+            frame_h = (uint32_t) event->height + top + bottom;
+
+            geom_changed =
+                client->layout.geometry.cur.pos.x != frame_x ||
+                client->layout.geometry.cur.pos.y != frame_y ||
+                client->layout.geometry.cur.dim.w != frame_w ||
+                client->layout.geometry.cur.dim.h != frame_h;
+
+            if (geom_changed) {
+                client->layout.geometry.cur.pos.x = frame_x;
+                client->layout.geometry.cur.pos.y = frame_y;
+                client->layout.geometry.cur.dim.w = frame_w;
+                client->layout.geometry.cur.dim.h = frame_h;
+                client_sync_decoration_layout(client);
+                if (surface != NULL) {
+                    surface->is_outdated = true;
+                }
+                if (desktop != NULL) {
+                    desktop->is_outdated = true;
+                }
+            } /* ! if (geom_changed)  */
         } /* ! if (is_frame) */
     } /* ! if (client) */
 }

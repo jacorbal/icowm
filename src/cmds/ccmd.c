@@ -549,7 +549,7 @@ void wcmd_client_shade(client_td *client)
     uint32_t shaded_h;
 
     if (client == NULL || !client_is_decorated(client) ||
-            client_is_shaded(client)) {
+            client_is_shaded(client) || client_is_fullscreen(client)) {
         return;
     }
 
@@ -565,11 +565,13 @@ void wcmd_client_shade(client_td *client)
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) { shaded_h });
+    xcb_map_window(client->connection, target);
     client->ignore_unmap++;
     xcb_unmap_window(client->connection, client->window);
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
     client_set_shade(client);
+    client_sync_decoration_layout(client);    
 
     wcmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");

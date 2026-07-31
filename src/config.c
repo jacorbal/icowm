@@ -339,7 +339,7 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.keyboard.window.fullscreen,
             "modc+mod1+f");
     safe_strcpy(config->bindings.keyboard.window.hide,
-            "modc+mod1+mods+h");
+            "modc+mod1+mods+u");
     safe_strcpy(config->bindings.keyboard.window.iconify,
             "modc+mod1+i");
     safe_strcpy(config->bindings.keyboard.window.info,
