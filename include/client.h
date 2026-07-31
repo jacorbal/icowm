@@ -743,7 +743,7 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(1)
  */
 #define client_is_fullscreen(w) \
-    ((w)->properties.state & CLIENT_STATE_FULLSCREEN)
+    ((w)->properties.state & (uint16_t) CLIENT_STATE_FULLSCREEN)
 
 /**
  * @brief Macro that evaluates to the client visibility flag

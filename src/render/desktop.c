@@ -104,7 +104,7 @@ int desktop_render_background(desktop_td *desktop)
 /* Draw the decoration button squares on a titlebar window */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
-        bool is_focused, bool is_sticky,
+        bool is_focused, bool is_sticky, bool can_maximize,
         const struct config_theme_s *theme)
 {
     xcb_gcontext_t gc;
@@ -116,6 +116,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     int16_t btn_y;
     int16_t x;
     uint32_t fill;
+    uint32_t bg_fill;
     uint16_t step;
     int16_t right_edge;
 
@@ -151,11 +152,16 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     /* Button fill: active foreground for focused, inactive for
      * unfocused */
     fill = is_focused ? color_active : color_inactive;
+    bg_fill = (theme != NULL)
+        ? ((is_focused)
+            ? theme->window.active.background_color
+            : theme->window.inactive.background_color)
+        : fill;
 
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
                 (int16_t) ((uint16_t) bi * step));
-        color = fill;
+        color = (!can_maximize && bi == 2) ? bg_fill : fill;
         gc = xcb_generate_id(connection);
 
         xcb_create_gc(connection, gc, titlebar,
@@ -402,6 +408,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         title_h,
                         is_focused,
                         (bool) client_is_sticky(client),
+                        !client_is_fullscreen(client),
                         desktop->config_theme);
             } else if (client->titlebar != 0) {
                 xcb_unmap_window(desktop->connection, client->titlebar);

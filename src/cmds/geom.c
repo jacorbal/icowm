@@ -250,6 +250,10 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
+    if (client_is_fullscreen(client)) {
+        return;
+    }
+
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
     }

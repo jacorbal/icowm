@@ -110,19 +110,20 @@ void desktop_render_flush(desktop_td *desktop);
  * the active foreground when sticky, and the inactive foreground when
  * not sticky.
  *
- * @param connection Active XCB connection
- * @param titlebar   XCB window identifier of the titlebar
- * @param frame_w    Width of the titlebar in pixels
- * @param frame_top  Height of the titlebar in pixels
- * @param is_focused Whether the owning client is currently focused
- * @param is_sticky  Whether the owning client has the sticky flag set
- * @param theme      Pointer to the theme providing button colors
+ * @param connection   Active XCB connection
+ * @param titlebar     XCB window identifier of the titlebar
+ * @param frame_w      Width of the titlebar in pixels
+ * @param frame_top    Height of the titlebar in pixels
+ * @param is_focused   Whether the owning client is currently focused
+ * @param is_sticky    Whether the owning client has the sticky flag set
+ * @param can_maximize Whether the maximize button is enabled
+ * @param theme        Pointer to the theme providing button colors
  *
  * @note Complexity: @e O(1)
  */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
-        bool is_focused, bool is_sticky,
+        bool is_focused, bool is_sticky, bool can_maximize,
         const struct config_theme_s *theme);
 
 

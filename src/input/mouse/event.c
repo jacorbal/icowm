@@ -338,8 +338,11 @@ void mouse_handle_press(xcb_connection_t *connection,
                 int pad = (int) WM_DECOR_BTN_PAD;
                 int step = btn + gap;
                 int title_h = (int) client->title_height;
+                bool can_maximize;
                 int btn_y = (title_h > btn) ? (title_h - btn) / 2 : 0;
                 bool hit_btn = false;
+
+                can_maximize = !client_is_fullscreen(client);                
 
                 if (ey >= btn_y && ey < btn_y + btn) {
                     if (ex >= pad && ex < pad + btn) {
@@ -359,6 +362,10 @@ void mouse_handle_press(xcb_connection_t *connection,
                         for (int bi = 0; bi < 6; ++bi) {
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
+                                if (!can_maximize && bi == 2) {
+                                    hit_btn = true;
+                                    break;
+                                }
                                 hit_btn = true;
                                 client_send_event(client,
                                         btn_actions[bi],

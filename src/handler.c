@@ -1008,6 +1008,7 @@ void handler_expose(xcb_connection_t *connection,
     desktop_draw_titlebar_buttons(connection, client->titlebar,
             inner_w, title_h,
             is_focused, (bool) client_is_sticky(client),
+            !client_is_fullscreen(client),
             &cfg->theme);
 
     xcb_flush(connection);
