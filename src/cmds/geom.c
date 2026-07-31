@@ -99,6 +99,8 @@ void wcmd_client_resize(client_td *client,
      * rolled-up titlebar */
     if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
             client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED ||
+            client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {

@@ -521,9 +521,23 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         client_td *client = lookup_find_client(surfaces,
                                 desktop->client_active_id, &cs, &cd);
                         if (client != NULL && client_is_resizable(client)) {
-                            int32_t new_w = (int32_t)
+                            int32_t new_w;
+                            int32_t new_h; 
+                            if (client->properties.state ==
+                                        (uint16_t) CLIENT_STATE_FULLSCREEN ||
+                                    client->properties.state ==
+                                        (uint16_t) CLIENT_STATE_MAXIMIZED ||
+                                    client->properties.state ==
+                                        (uint16_t)
+                                            CLIENT_STATE_MAXIMIZED_HORZ ||
+                                    client->properties.state ==
+                                        (uint16_t)
+                                            CLIENT_STATE_MAXIMIZED_VERT) {
+                                return;
+                            }
+                            new_w = (int32_t)
                                 client->layout.geometry.cur.dim.w;
-                            int32_t new_h = client_is_shaded(client)
+                            new_h = client_is_shaded(client)
                                 ? (int32_t)
                                     client->layout.geometry.old.dim.h
                                 : (int32_t)
