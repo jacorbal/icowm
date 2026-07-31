@@ -22,7 +22,7 @@ RELEASE_DATE = "20261221 (intended)"
 
 
 ## Directories
-PWD   = $(CURDIR)
+PWD = $(CURDIR)
 I_DIR = $(PWD)/include
 S_DIR = $(PWD)/src
 L_DIR = $(PWD)/lib
@@ -35,9 +35,9 @@ PKGCONF ?= pkgconf
 
 
 ## Compiler & linker options
-CCSTD   = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
-CCOPT   = 3    # 0:debug; 1:optimize; 2:optimize more; 3:even more
-CCOPTS  = -pedantic -pedantic-errors
+CCSTD = c99  # c89 | c90, c99, c11, c17, gnu11, gnu17,...
+CCOPT = 3    # 0:debug; 1:optimize; 2:optimize more; 3:even more
+CCOPTS = -pedantic -pedantic-errors
 CCEXTRA = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
 CCWARN_POSIX = -D _POSIX_C_SOURCE=200112L  #-D __STRICT_ANSI__
@@ -51,7 +51,7 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
 				-Wunreachable-code -Wmissing-format-attribute \
 				-Wdeprecated \
 				-Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
-CCWARN_GCC  = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
+CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 				-Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
 				-Wno-suggest-attribute=format
 
@@ -71,13 +71,13 @@ JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
 		$(PKGCONF) --cflags cjson 2>/dev/null)
 CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
 		$(XCB_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
-XCB_LFLAGS  = $(shell $(PKGCONF) --libs \
+XCB_LFLAGS = $(shell $(PKGCONF) --libs \
 		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh 2>/dev/null || \
 		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh')
 JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
 		$(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
 OTHR_LFLAGS = -lpthread
-LDFLAGS     = -L $(L_DIR) $(XCB_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
+LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
 
 
 ## Data & build information
