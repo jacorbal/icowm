@@ -227,7 +227,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     }
 
     if (iter.rem == 0 || iter.data == NULL) {
-        LOGGER_ERROR("Invalid screen ID %u, could not retrieve" \
+        LOGGER_ERROR("Invalid screen ID %u; could not retrieve" \
                 " screen information", screen_id);
         cdlist_destroy(desktop->stacking);
         ohtbl_destroy(desktop->clients);
@@ -433,7 +433,7 @@ int desktop_action_rename(desktop_td *desktop, const char *name)
     LOGGER_DEBUG("Renaming desktop %u ('%s') to '%s'",
             desktop->id, desktop->name, name);
     if (desktop == NULL || name == NULL) {
-        LOGGER_ERROR("Invalid desktop or name pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or name pointer", L_NARG);
         return -1;
     }
 
@@ -455,7 +455,7 @@ int desktop_action_send_client(desktop_td *desktop, client_td *client,
             desktop->id, desktop->name, desktop_id);
 
     if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or client pointer", L_NARG);
         return -1;
     }
 
@@ -496,7 +496,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     void *removed_client;
 
     if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or client pointer", L_NARG);
         return -1;
     }
 
@@ -535,7 +535,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
     void *removed_client;
 
     if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or client pointer", L_NARG);
         return -1;
     }
 
@@ -587,7 +587,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or client pointer", L_NARG);
         return -1;
     }
 
@@ -634,7 +634,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
             client->id, client->info.name, desktop->id, desktop->name);
 
     if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or client pointer", L_NARG);
         return -1;
     }
 
@@ -677,7 +677,7 @@ int desktop_action_clients_rearrange(desktop_td *desktop)
             desktop->id, desktop->name);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -701,7 +701,7 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
             desktop->id, desktop->name);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -725,7 +725,7 @@ int desktop_action_cycle_clients_active(desktop_td *desktop)
             desktop->id, desktop->name);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -780,7 +780,7 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
             desktop->id, desktop->name);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -834,7 +834,7 @@ int desktop_action_cycle_clients_icons(desktop_td *desktop){
             " on desktop %u ('%s')", desktop->id, desktop->name);
 
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -868,7 +868,7 @@ int desktop_action_cycle_clients_icons(desktop_td *desktop){
 int desktop_action_lock(desktop_td *desktop)
 {
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -889,7 +889,7 @@ int desktop_action_lock(desktop_td *desktop)
 int desktop_action_unlock(desktop_td *desktop)
 {
     if (desktop == NULL) {
-        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return -1;
     }
 
@@ -909,7 +909,7 @@ int desktop_action_unlock(desktop_td *desktop)
 int desktop_action_set_layout(desktop_td *desktop, const char *layout)
 {
     if (desktop == NULL || layout == NULL) {
-        LOGGER_ERROR("Invalid desktop or layout pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop or layout pointer", L_NARG);
         return -1;
     }
 
@@ -945,7 +945,7 @@ int desktop_action_application_launch(desktop_td *desktop,
 
     if (desktop == NULL || application_path == NULL ||
             application_path[0] == '\0') {
-        LOGGER_ERROR("Invalid desktop or application path pointer",
+        LOGGER_ERROR("Received null desktop or application path pointer",
                 L_NARG);
         return -1;
     }

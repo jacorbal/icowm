@@ -553,7 +553,7 @@ int surface_action_desktop_add(surface_td *surface)
     LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -590,7 +590,7 @@ int surface_action_desktop_remove(surface_td *surface)
     LOGGER_DEBUG("Removing desktop from surface %u", surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -640,7 +640,7 @@ int surface_action_desktop_switch(surface_td *surface,
             desktop_id, surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -674,7 +674,7 @@ int surface_action_desktop_switch_next(surface_td *surface)
     LOGGER_DEBUG("Switching to next desktop on surface %u", surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -703,7 +703,7 @@ int surface_action_desktop_switch_prev(surface_td *surface)
             surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -730,7 +730,7 @@ int surface_action_toggle_fullsurface(surface_td *surface)
             surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -750,7 +750,7 @@ int surface_action_set_resolution(surface_td *surface,
             resolution.w, resolution.h, surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -768,7 +768,7 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
             orientation, surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -787,7 +787,7 @@ int surface_action_set_brightness(surface_td *surface,
             (unsigned int) brightness, surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -805,7 +805,7 @@ int surface_action_set_contrast(surface_td *surface, uint16_t contrast)
             (unsigned int) contrast, surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
@@ -823,7 +823,7 @@ int surface_action_configure_settings(surface_td *surface)
             surface->id);
 
     if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        LOGGER_ERROR("Received null surface pointer", L_NARG);
         return -1;
     }
 
