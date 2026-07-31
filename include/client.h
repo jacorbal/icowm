@@ -523,6 +523,19 @@ int client_send_event_resize(client_td *client,
 int client_send_event_set_icon(client_td *client, const char *icon_name);
 
 /**
+ * @brief Refresh the managed client's name from X11 properties
+ *
+ * Queries @c _NET_WM_NAME (UTF-8) first, then falls back to
+ * @c WM_NAME, and writes the result into @p client->info.
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the name
+ */
+void client_props_refresh_name(client_td *client);
+
+
+/**
  * @brief Macro that sends an event to close the specified client
  *
  * @see @a client_send_event

@@ -3,10 +3,10 @@
  *
  * @brief EWMH-related constants for the window manager
  *
- * Centralises every constant that relates to the Extended Window Manager
- * Hints protocol, keeping them separate from the generic WM constants in
- * @c defs/wm.h so that EWMH compliance can be audited and maintained
- * in one place.
+ * Centralizes every constant that relates to the Extended Window Manager
+ * Hints protocol, keeping them separate from the generic window manager
+ * constants in @c defs/wm.h so that EWMH compliance can be audited and
+ * maintained in one place.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -38,7 +38,7 @@
 /**
  * @brief Number of atoms listed in @c _NET_SUPPORTED
  *
- * Must equal the number of @c supported_atoms[n_supported++] lines in
+ * Must equal the number of @c (supported_atoms[n_supported++]) lines in
  * @c wm_ewmh_init.  Update this constant whenever atoms are added to or
  * removed from the supported set.
  *

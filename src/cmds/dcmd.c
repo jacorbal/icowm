@@ -97,12 +97,12 @@ static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
         offset += name_len + 1u;
     }
 
-if (offset > 0u) {
+    if (offset > 0u) {
         xcb_ewmh_set_desktop_names(desktop->ewmh,
                 (int) desktop->screen_id, (uint32_t) offset, names);
     }
 
-free(names);
+    free(names);
 }
 
 
@@ -118,7 +118,8 @@ void dcmd_desktop_rename(desktop_td *desktop,
         return;
     }
 
-    if (desktop_action_rename(desktop, desktop_data->new_data.str) != 0) {
+    if (desktop_action_rename(desktop,
+                desktop_data->new_data.str) != 0) {
         return;
     }
 

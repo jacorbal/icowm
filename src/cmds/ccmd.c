@@ -176,9 +176,9 @@ void wcmd_client_close(client_td *client)
         return;
     }
 
-    /* ICCCM §4.2.8: send a WM_DELETE_WINDOW ClientMessage when the
-     * client advertises support in WM_PROTOCOLS; fall back to
-     * xcb_destroy_window only when it does not. */
+    /* ICCCM §4.2.8: send a 'WM_DELETE_WINDOW' 'ClientMessage' when the
+     * client advertises support in 'WM_PROTOCOLS'; fall back to
+     * 'xcb_destroy_window' only when it does not */
     if (client->has_wm_delete_window && client->ewmh != NULL) {
         xcb_intern_atom_reply_t *ia;
         xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
@@ -194,17 +194,16 @@ void wcmd_client_close(client_td *client)
         }
 
         memset(&ev, 0, sizeof(ev));
-        ev.response_type  = XCB_CLIENT_MESSAGE;
-        ev.format         = 32;
-        ev.window         = client->window;
-        ev.type           = client->ewmh->WM_PROTOCOLS;
+        ev.response_type = XCB_CLIENT_MESSAGE;
+        ev.format = 32;
+        ev.window = client->window;
+        ev.type = client->ewmh->WM_PROTOCOLS;
         ev.data.data32[0] = wm_delete_atom;
         ev.data.data32[1] = XCB_CURRENT_TIME;
         xcb_send_event(client->connection, 0, client->window,
-                XCB_EVENT_MASK_NO_EVENT,
-                (const char *) &ev);
+                XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     } else {
-        /* Client does not support WM_DELETE_WINDOW; destroy directly */
+        /* Client does not support 'WM_DELETE_WINDOW'; destroy directly */
         xcb_destroy_window(client->connection, client->window);
     }
 }
@@ -353,7 +352,8 @@ static void s_client_focus_fallback(client_td *client)
             do {
                 client_td *candidate = (client_td *) cdlist_data(node);
                 if (candidate != NULL && candidate != client &&
-                        !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                        !(candidate->properties.flags &
+                            CLIENT_FLAG_HIDDEN) &&
                         !client_is_shaded(candidate) &&
                         candidate->properties.state !=
                             (uint16_t) CLIENT_STATE_ICONIFIED &&
@@ -681,10 +681,10 @@ void wcmd_client_unsticky(client_td *client)
             owner_desktop->id != current_desktop->id) {
         target = wcmd_target_win(client);
 
-        /* Increment ignore_unmap to prevent handler_unmap_notify from
-         * treating the WM-initiated unmaps as client self-closes.  The
-         * frame unmap implicitly unmaps its child, so only one extra
-         * increment is needed when target is the frame. */
+        /* Increment 'ignore_unmap' to prevent 'handler_unmap_notify'
+         * from treating the WM-initiated unmaps as client self-closes.
+         * The frame 'unmap' implicitly unmaps its child, so only one
+         * extra increment is needed when target is the frame. */
         client->ignore_unmap += 1u;
         if (target != client->window) {
             client->ignore_unmap += 1u;
@@ -701,7 +701,7 @@ void wcmd_client_unsticky(client_td *client)
         }
 
         /* If the unstickied client held focus on the current desktop,
-         * transfer focus to the MRU client still on that desktop. */
+         * transfer focus to the MRU client still on that desktop */
         if (current_desktop->client_active_id == client->id) {
             current_desktop->client_active_id = 0;
             next_focus = NULL;
@@ -1019,8 +1019,8 @@ void wcmd_client_toggle_decoration(client_td *client)
                 client->titlebar = 0;
             }
 
-            /* Reparenting generates a synthetic UnmapNotify for the
-             * content window.  Absorb it so handler_unmap_notify does
+            /* Reparenting generates a synthetic 'UnmapNotify' for the
+             * content window.  Absorb it so 'handler_unmap_notify' does
              * not mistake the event for a voluntary hide and does not
              * steal focus from the window. */
             client->ignore_unmap++;
@@ -1050,7 +1050,7 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
 
             /* Ensure the now-undecorated window remains mapped and
-             * retains input focus. */
+             * retains input focus */
             xcb_map_window(client->connection, client->window);
             xcb_set_input_focus(client->connection,
                     XCB_INPUT_FOCUS_POINTER_ROOT,

@@ -130,7 +130,7 @@ void mouse_handle_press(xcb_connection_t *connection,
 /**
  * @brief Handle a button-release event to end a drag
  *
- * Finalises a move or resize drag, decides whether an icon drag was
+ * Finalizes a move or resize drag, decides whether an icon drag was
  * a click or a real drag, ungrab the pointer, and resets drag state.
  *
  * @param connection XCB connection

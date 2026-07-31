@@ -235,9 +235,20 @@ static inline void s_show_farewell(FILE *fp)
 }
 
 
-/* Just a subroutine to free three pointers, for it's repeated through
- * the main code when there's a need to exit */
-static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
+/**
+ * @brief Free up to three dynamically allocated buffers
+ *
+ * Convenience helper to release multiple pointers using @c safe_free,
+ * commonly used on early exits to avoid code duplication.
+ *
+ * @param s1 First buffer pointer (may be null)
+ * @param s2 Second buffer pointer (may be null)
+ * @param s3 Third buffer pointer (may be null)
+ *
+ * @note Each pointer is passed by address to @c safe_free and is
+ *       expected to be set to @c NULL after deallocation.
+ * @note Complexity: @e O(1)
+ */static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
 {
     safe_free((void **) &s1);
     safe_free((void **) &s2);

@@ -43,18 +43,6 @@
 void lifecycle_scan_existing(wm_td *wm);
 
 /**
- * @brief Update a managed client's name from the X server
- *
- * Re-reads @c WM_NAME from the X server and stores the result in the
- * client's @c info.name and @c info.visible_name fields.
- *
- * @param client Client whose name should be refreshed; may be null
- *
- * @note Complexity: @e O(1)
- */
-void lifecycle_refresh_name(client_td *client);
-
-/**
  * @brief Dispatch a program-launch event on the active desktop
  *
  * Locates the currently active desktop for @p surface and enqueues

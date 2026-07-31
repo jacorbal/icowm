@@ -38,7 +38,22 @@
 #include <handler.h>
 
 
-/* Emit ICCCM synthetic 'ConfigureNotify' for reparented clients */
+/**
+ * @brief Send a synthetic @c ConfigureNotify event to a client window
+ *
+ * Emits an ICCCM-compliant synthetic @c ConfigureNotify event for
+ * reparented clients so they can track their geometry relative to the
+ * root window.
+ *
+ * @param connection XCB connection handle
+ * @param client     Target client containing window and geometry data
+ *
+ * @note No action is taken if @p connection or @p client is null or if
+ *       the client window is invalid
+ * @note Geometry accounts for frame extents and enforces a minimum
+ *       window size (@c WM_MIN_WINDOW_DIMENSION)
+ * @note Complexity: @e O(1)
+ */
 static void s_handler_send_synthetic_configure_notify(
         xcb_connection_t *connection, client_td *client)
 {

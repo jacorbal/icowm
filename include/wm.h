@@ -81,7 +81,7 @@ typedef struct {
  * @retval  1 Failed to allocate memory
  * @retval  2 Cannot open X connection
  * @retval  3 Cannot open load configuration
- * @retval  4-10 Failed to initialize data structures
+ * @retval >3 Failed to initialize data structures
  * @retval -1 Singleton was already initialized; no action taken
  *
  * @note If @p display_name is @c NULL, the initialization attempts to
@@ -104,7 +104,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix);
  * @return  1 No operation has been performed
  *
  * @note Passing a @c NULL pointer has no effect
- * @note Complexity: @e O(n^2 + m * n^2), where @e n is the number of
+ * @note Complexity: @e O(m * (1 + n^2)), where @e n is the number of
  *       surfaces, and @e m is the number of desktops per surface, as it
  *       iterates through the array of windows to free each one of them
  */

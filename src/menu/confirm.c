@@ -154,7 +154,25 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
 }
 
 
-/* Draw the dialog contents (prompt + two buttons) */
+/**
+ * @brief Render the confirmation dialog (prompt and action buttons)
+ *
+ * Draws the dialog window contents, including the background, prompt
+ * text, and two buttons ("Cancel" and "Exit").  Button appearance is
+ * updated based on the currently selected option.
+ *
+ * @param connection XCB connection handle
+ * @param cfg        Configuration containing theme colors
+ *
+ * @note No rendering is performed if @p connection, @p cfg, or the
+ *       dialog window handle is invalid
+ * @note Uses theme colors for active/inactive states to highlight the
+ *       selected button (@c s_confirm_selected)
+ * @note Geometry and positions are derived from the global layout
+ *       descriptor (@c s_confirm_layout)
+ * @note This function creates and frees a temporary graphics context
+ * @note Complexity: @e O(1)
+ */
 static void s_confirm_draw(xcb_connection_t *connection,
         const config_td *cfg)
 {

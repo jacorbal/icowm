@@ -5,7 +5,7 @@
  *
  * Implements the three public event-dispatch functions: button-press
  * (handles popup/cycle dismissal, icon drag, titlebar buttons, and
- * configured move/resize/lower bindings), button-release (finalises
+ * configured move/resize/lower bindings), button-release (finalizes
  * drags), and enter-notify (focus-follows-mouse).
  */
 /*

@@ -3,6 +3,11 @@
  * @file render/desktop.c
  *
  * @brief Desktop rendering implementation
+ *
+ * @note Decoration and icon constants are defined in @c defs/wm.h,
+ *       pulled in via @c (render/desktop.h -> desktop.h -> defs/wm.h);
+ *       button colors come from the theme passed to
+ *       @c desktop_draw_titlebar_buttons
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,11 +36,6 @@
 
 /* Local includes */
 #include <render/desktop.h>
-
-
-/* Decoration and icon constants are defined in <defs/wm.h>, pulled in
- * via 'render/desktop.h -> desktop.h -> defs/wm.h'.  Button colors come
- * from the theme passed to 'desktop_draw_titlebar_buttons' */
 
 
 /* Draw the background of a desktop */

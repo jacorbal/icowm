@@ -1,12 +1,12 @@
 /**
  * @file client.c
  *
- * @brief Client lifecycle
+ * @brief Client structure management
  *
- * Owns the creation, adoption, and teardown of @c client_td instances.
- * X11 property reading is in @c client_props.c; geometry/decoration
- * helpers are in @c client_geom.c; event senders are in
- * @c client_event.c.
+ * Owns allocation, initialisation, adoption (manage), update and
+ * destruction of @c client_td instances.  X11 property reading lives in
+ * @c client/props.c; geometry and decoration helpers in
+ * @c client/geom.c; outgoing event senders in @c client/event.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -491,8 +491,8 @@ client_td *client_manage(xcb_connection_t *connection,
             (int32_t) partial.top;
         client->layout.strut_partial.sides.bottom =
             (int32_t) partial.bottom;
-        /* start: maps {left→left_start_y, right→right_start_y,
-         *              top→top_start_x,   bottom→bottom_start_x} */
+        /* start: maps {left->left_start_y, right->right_start_y,
+         *              top->top_start_x,   bottom->bottom_start_x} */
         client->layout.strut_partial.start.left =
             (int32_t) partial.left_start_y;
         client->layout.strut_partial.start.right =
@@ -501,8 +501,8 @@ client_td *client_manage(xcb_connection_t *connection,
             (int32_t) partial.top_start_x;
         client->layout.strut_partial.start.bottom =
             (int32_t) partial.bottom_start_x;
-        /* end: maps {left→left_end_y, right→right_end_y,
-         *            top→top_end_x,   bottom→bottom_end_x} */
+        /* end: maps {left->left_end_y, right->right_end_y,
+         *            top->top_end_x,   bottom->bottom_end_x} */
         client->layout.strut_partial.end.left =
             (int32_t) partial.left_end_y;
         client->layout.strut_partial.end.right =

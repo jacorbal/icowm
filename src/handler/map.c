@@ -38,7 +38,6 @@
 #include <input/drag.h>
 
 /* Project includes */
-#include <lifecycle.h>
 #include <lookup.h>
 
 /* Local includes */

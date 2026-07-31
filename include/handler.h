@@ -133,7 +133,7 @@ void handler_property_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c FOCUS_IN event
  *
- * Synchronises the desktop active-client identifier with the real X11
+ * Synchronizes the desktop active-client identifier with the real X11
  * input focus when a managed client receives focus.
  *
  * @param connection XCB connection
