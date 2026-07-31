@@ -63,12 +63,12 @@
  */
 /** Mixing and block constant for MurmurHash1 */
 #define MH1_C (0xc6a4a793u)
-
 /** @} */
+
 /**
- * @name MurmurHash2 / MurmurHash3 mixing constants
+ * @name MurmurHash2 and MurmurHash3 mixing constants
  *
- * MurmurHash3 reuses the same @c c1 / @c c2 pair as MurmurHash2.
+ * @note MurmurHash3 reuses the same @c c1 / @c c2 pair as MurmurHash2
  * @{
  */
 #define MH2_C1 (0xcc9e2d51u)    /**< First mixing constant */

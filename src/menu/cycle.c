@@ -153,9 +153,9 @@ void cycle_open(list_td *surfaces,
     s_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
 
-    /* Collect matching clients — iterate from tail (top of stack, most
-     * recently raised) to head (bottom), so the list order matches the
-     * MRU ordering used by openbox and evilwm. */
+    /* Collect matching clients, i.e., iterate from tail (top of stack,
+     * most recently raised) to head (bottom), so the list order matches
+     * the MRU ordering used by openbox and evilwm. */
     node = cdlist_tail(desktop->stacking);
     initial = node;
     if (node != NULL) {
