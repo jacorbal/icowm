@@ -179,7 +179,31 @@ void wcmd_client_maximize_horz(client_td *client)
         return;
     }
 
+    if (client_is_fullscreen(client)) {
+        return;
+    }
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+    /* Toggle: if already maximized horizontally, restore saved geometry */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ) {
+        target = wcmd_target_win(client);
+        client_geometry_restore(client);
+        xcb_configure_window(client->connection, target,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH,
+                (const uint32_t[]) {
+                    (uint32_t) client->layout.geometry.cur.pos.x,
+                    client->layout.geometry.cur.dim.w
+                });
+        client->properties.state = CLIENT_STATE_NORMAL;
+        wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+        wm_request_client_redraw(client);
+        return;
+    }
+
     target = wcmd_target_win(client);
+    client_geometry_save(client);
+
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X |
             XCB_CONFIG_WINDOW_Y |
@@ -258,8 +282,9 @@ void wcmd_client_maximize(client_td *client)
         wcmd_client_unshade(client);
     }
 
-    /* Toggle: if already maximized, restore saved geometry */
-    if (client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+    /* Toggle: if already maximized (fully or vertically), restore */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
+            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
         target = wcmd_target_win(client);
         client_geometry_restore(client);
         xcb_configure_window(client->connection, target,
@@ -299,7 +324,7 @@ void wcmd_client_maximize(client_td *client)
     client->layout.geometry.cur.pos.y = 0;
     client->layout.geometry.cur.dim.w = (uint32_t) sw;
     client->layout.geometry.cur.dim.h = (uint32_t) sh;
-    client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
+    client->properties.state = CLIENT_STATE_MAXIMIZED;
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 2,

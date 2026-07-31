@@ -746,11 +746,11 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
     ((w)->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN)
 
 /**
- * @brief Macro that evaluates to the client visibility flag
+ * @brief Macro that evaluates to the client hidden flag
  *
  * @note Complexity: @e O(1)
  */
-#define client_is_visible(w) \
+#define client_is_hidden(w) \
     ((w)->properties.flags & CLIENT_FLAG_HIDDEN)
 
 /**

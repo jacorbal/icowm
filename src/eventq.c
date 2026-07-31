@@ -677,11 +677,11 @@ static void s_event_handle_wm(event_td *event)
                     L_NARG);
             break;
 
-        case ACTION_SURFACE_ADD:
+        case ACTION_WM_SURFACE_ADD:
             LOGGER_TRACE("Surface addition requested", L_NARG);
             break;
 
-        case ACTION_SURFACE_REMOVE:
+        case ACTION_WM_SURFACE_REMOVE:
             LOGGER_TRACE("Surface removal requested", L_NARG);
             break;
 

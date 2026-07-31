@@ -234,6 +234,13 @@ void wcmd_client_restore(client_td *client)
         return;
     }
 
+    /* Fullscreen clients must be un-fullscreened first so the
+     * decoration and EWMH atom are cleaned up properly */
+    if (client_is_fullscreen(client)) {
+        wcmd_client_unfullscreen(client);
+        return;
+    }
+
     target = wcmd_target_win(client);
     client_geometry_restore(client);
 
@@ -253,15 +260,12 @@ void wcmd_client_restore(client_td *client)
     client_unset_hidden(client);
     client->properties.state = CLIENT_STATE_NORMAL;
 
-    client_geometry_save(client);
-
     wcmd_rem_states(client, 3,
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
 }
 
 
@@ -495,7 +499,6 @@ void wcmd_client_hide(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
 
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
@@ -524,7 +527,6 @@ void wcmd_client_unhide(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
 
     if (client->titlebar != 0) {
         xcb_map_window(client->connection, client->titlebar);

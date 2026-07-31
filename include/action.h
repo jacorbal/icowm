@@ -160,8 +160,8 @@ enum action_wm_e {
     ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
         ACTION_WM_MIN,
     ACTION_WM_CONFIGURATION_SAVE,       /**< Save current configuration */
-    ACTION_SURFACE_ADD,                 /**< Add new surface */
-    ACTION_SURFACE_REMOVE,              /**< Remove surface */
+    ACTION_WM_SURFACE_ADD,              /**< Add new surface */
+    ACTION_WM_SURFACE_REMOVE,           /**< Remove surface */
 //    ACTION_WM_SURFACE_SWITCH,           /**< Switch active surface */
     ACTION_WM_EXIT,                     /**< Exit the window manager */
 
