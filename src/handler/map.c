@@ -117,7 +117,9 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     /* Advertise the desktop this client belongs to per EWMH */
     if (wm->ewmh != NULL) {
-        uint32_t did = desktop->id;
+        uint32_t did = (client->properties.flags & CLIENT_FLAG_STICKY)
+            ? WM_DESKTOP_ID_ALL : desktop->id;
+
         xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
                 client->window, wm->ewmh->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &did);

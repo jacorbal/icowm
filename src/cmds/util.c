@@ -82,6 +82,89 @@ xcb_window_t wcmd_target_win(client_td *client)
 }
 
 
+/*  */
+void wcmd_client_grab_buttons(client_td *client)
+{
+    if (client == NULL || client->connection == NULL ||
+            client->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_grab_button(client->connection,
+            0,
+            client->window,
+            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
+            XCB_GRAB_MODE_SYNC,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_NONE,
+            XCB_NONE,
+            XCB_BUTTON_INDEX_ANY,
+            XCB_MOD_MASK_ANY);
+    xcb_flush(client->connection);
+}
+
+
+/*  */
+void wcmd_client_ungrab_buttons(client_td *client)
+{
+    if (client == NULL || client->connection == NULL ||
+            client->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_ungrab_button(client->connection,
+            (uint8_t) XCB_BUTTON_INDEX_ANY,
+            client->window,
+            (uint16_t) XCB_MOD_MASK_ANY);
+    xcb_flush(client->connection);
+}
+
+
+/*  */
+void wcmd_set_wm_state(client_td *client,
+        uint32_t state, xcb_window_t icon_window)
+{
+    xcb_atom_t wm_state;
+    uint32_t values[2];
+
+    if (client == NULL || client->connection == NULL ||
+            client->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    wm_state = wcmd_intern_atom(client->connection, "WM_STATE");
+    if (wm_state == XCB_ATOM_NONE) {
+        return;
+    }
+
+    values[0] = state;
+    values[1] = icon_window;
+    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+            client->window, wm_state, wm_state, 32, 2, values);
+    xcb_flush(client->connection);
+}
+
+
+/*  */
+void wcmd_clear_wm_state(client_td *client)
+{
+    xcb_atom_t wm_state;
+
+    if (client == NULL || client->connection == NULL ||
+            client->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    wm_state = wcmd_intern_atom(client->connection, "WM_STATE");
+    if (wm_state == XCB_ATOM_NONE) {
+        return;
+    }
+
+    xcb_delete_property(client->connection, client->window, wm_state);
+    xcb_flush(client->connection);
+}
+
+
 /* Retrieve the pixel dimensions of the client's current screen */
 bool wcmd_screen_dim(client_td *client, uint16_t *out_w, uint16_t *out_h)
 {
@@ -186,6 +269,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...)
 
     xcb_ewmh_set_wm_state(client->ewmh, client->window,
             merged_count, merged);
+    xcb_flush(client->connection);
 
     free(merged);
     free(add_atoms);
@@ -280,6 +364,7 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     } else {
         xcb_ewmh_set_wm_state(client->ewmh, client->window, 0, NULL);
     }
+    xcb_flush(client->connection);
 
     free(remove_states);
     free(new_states);

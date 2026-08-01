@@ -128,6 +128,8 @@ void scmd_surface_desktop_switch_prev(surface_td *surface)
     surface_desktop_select_prev(surface, true);
 
     if (surface->desktop_cur != old_id) {
+        surface_clients_sticky_transfer_all(surface,
+                surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
         surface->is_outdated = true;
         xcb_flush(surface->connection);

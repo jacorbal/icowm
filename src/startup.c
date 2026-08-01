@@ -11,7 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _XOPEN_SOURCE 700       /* SA_RESTART */    
 #define _POSIX_C_SOURCE 200112L /* sigaction, sigemptyset */
 
 
@@ -228,7 +227,7 @@ int startup_install_signals(void)
 
     memset(&sa_chld, 0, sizeof(sa_chld));
     sa_chld.sa_handler = s_startup_handle_child;
-    sa_chld.sa_flags = SA_RESTART;
+    sa_chld.sa_flags = 0;
     sigemptyset(&sa_chld.sa_mask);
 
     if (sigaction(SIGHUP, &sa_hup, NULL) != 0 ||

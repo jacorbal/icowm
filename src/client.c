@@ -33,12 +33,15 @@
 #include <utils/safestr.h>
 #include <utils/safeflg.h>
 
+/* Type includes */
+#include <types/pair.h>
+
+/* Command includes */
+#include <cmds/util.h>
+
 /* Default initial values */
 #include <defs/config.h>
 #include <defs/wm.h>
-
-/* Type includes */
-#include <types/pair.h>
 
 /* Project includes */
 #include <actdata.h>
@@ -565,6 +568,9 @@ client_td *client_manage(xcb_connection_t *connection,
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DOCK) {
                 client->properties.type = CLIENT_TYPE_DOCK;
                 client_unset_decoration(client);
+                client_set_sticky(client);
+                client_set_skip_taskbar(client);
+                client_set_skip_pager(client);
                 client->layout.frame_extents.left = 0;
                 client->layout.frame_extents.right = 0;
                 client->layout.frame_extents.top = 0;
@@ -617,6 +623,15 @@ client_td *client_manage(xcb_connection_t *connection,
         xcb_ewmh_get_atoms_reply_wipe(&type_reply);
     }
 
+
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
+            client->ewmh != NULL) {
+        wcmd_add_states(client, 3,
+                "_NET_WM_STATE_STICKY",
+                "_NET_WM_STATE_SKIP_TASKBAR",
+                "_NET_WM_STATE_SKIP_PAGER");
+    }
+
     /* Subscribe to events on the adopted window */
     values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
                 XCB_EVENT_MASK_LEAVE_WINDOW     |
@@ -635,6 +650,11 @@ client_td *client_manage(xcb_connection_t *connection,
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);
+
+    if (client->frame == 0) {
+        wcmd_client_grab_buttons(client);
+    }
+    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
 
     LOGGER_TRACE("Now managing window %#x ('%s')",
             window, client->info.name);

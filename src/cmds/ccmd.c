@@ -99,6 +99,8 @@ static void s_client_enable_decoration(client_td *client,
         frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
     }
 
+    wcmd_client_ungrab_buttons(client);
+
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = border_color;
@@ -270,6 +272,7 @@ void wcmd_client_restore(client_td *client)
     client_unset_hidden(client);
     client->properties.state = CLIENT_STATE_NORMAL;
 
+    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
     wcmd_rem_states(client, 3,
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
@@ -507,6 +510,7 @@ void wcmd_client_iconify(client_td *client)
     /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
      * Icon display handled by pager/desktop */
 
+    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, client->icon_window);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
@@ -536,6 +540,7 @@ void wcmd_client_hide(client_td *client)
 
     client_set_hidden(client);
 
+    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, XCB_NONE);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
@@ -564,6 +569,7 @@ void wcmd_client_unhide(client_td *client)
 
     client_unset_hidden(client);
 
+    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
 }
 
@@ -1112,11 +1118,13 @@ void wcmd_client_toggle_decoration(client_td *client)
                     XCB_CONFIG_WINDOW_BORDER_WIDTH,
                     (const uint32_t[]) { (uint32_t) bw });
         }
+
         client->layout.frame_extents.left = 0;
         client->layout.frame_extents.right = 0;
         client->layout.frame_extents.top = 0;
         client->layout.frame_extents.bottom = 0;
         client_unset_decoration(client);
+        wcmd_client_grab_buttons(client);
 
         if (client->ewmh != NULL) {
             uint32_t extents[4] = {0u, 0u, 0u, 0u};

@@ -497,7 +497,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                 }
             }
 
-            if (event->child == client->window) {
+            if (window == client->window) {
                 xcb_allow_events(connection, XCB_ALLOW_REPLAY_POINTER,
                         event->time);
             } else {

@@ -99,7 +99,10 @@ void lifecycle_scan_existing(wm_td *wm)
                         client->desktop_id = desktop->id;
                         desktop_action_client_add(desktop, client);
                         if (wm->ewmh != NULL) {
-                            uint32_t did = desktop->id;
+                            uint32_t did =
+                                (client->properties.flags &
+                                 CLIENT_FLAG_STICKY)
+                                ? WM_DESKTOP_ID_ALL : desktop->id;
                             xcb_change_property(wm->connection,
                                     XCB_PROP_MODE_REPLACE,
                                     client->window,

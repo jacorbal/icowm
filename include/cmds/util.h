@@ -33,6 +33,11 @@
 #include <client.h>
 
 
+#define WCMD_WM_STATE_WITHDRAWN (0u)
+#define WCMD_WM_STATE_NORMAL    (1u)
+#define WCMD_WM_STATE_ICONIC    (3u)
+
+
 /* Internal interface */
 /**
  * @brief Retrieve the ID of the currently active window for a screen
@@ -88,6 +93,15 @@ xcb_window_t wcmd_target_win(client_td *client);
  */
 bool wcmd_screen_dim(client_td *client,
         uint16_t *out_w, uint16_t *out_h);
+
+void wcmd_client_grab_buttons(client_td *client);
+
+void wcmd_client_ungrab_buttons(client_td *client);
+
+void wcmd_set_wm_state(client_td *client,
+        uint32_t state, xcb_window_t icon_window);
+
+void wcmd_clear_wm_state(client_td *client);
 
 /**
  * @brief Add multiple EWMH window states to a client

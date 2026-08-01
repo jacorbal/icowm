@@ -11,7 +11,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L  /* poll, strerror */
+#define _POSIX_C_SOURCE 200112L /* poll, strerror */
 
 
 /* System includes */

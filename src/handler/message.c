@@ -30,6 +30,9 @@
 #include <cmds/layer.h>
 #include <cmds/scmd.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Default initial values */
 #include <defs/wm.h>
 
@@ -554,9 +557,29 @@ void handler_client_message(wm_td *wm,
     if (event->type == wm->ewmh->_NET_ACTIVE_WINDOW) {
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
-        if (client != NULL && desktop != NULL) {
-            wcmd_client_focus(client);
-            desktop->client_active_id = client->id;
+        if (client != NULL && surface != NULL && desktop != NULL) {
+            if (!(client->properties.flags & CLIENT_FLAG_STICKY) &&
+                    surface->desktop_cur != desktop->id) {
+                action_data_surface_td surface_data;
+
+                surface_data.surface = surface;
+                surface_data.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
+                surface_data.new_data.uvalue = desktop->id;
+                scmd_surface_desktop_switch(surface, &surface_data);
+                desktop = lookup_current_desktop(surface);
+            }
+
+            if (client->properties.state ==
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                wcmd_client_restore(client);
+            } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+                wcmd_client_unhide(client);
+            }
+
+            if (desktop != NULL) {
+                focus_apply(wm->surfaces, surface, desktop, client,
+                        true, wm->config);
+            }
             wm_invalidate_surface(surface);
             wm_invalidate_desktop(desktop);
         }
