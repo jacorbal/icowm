@@ -547,6 +547,40 @@ static void s_handle_net_moveresize_window(wm_td *wm,
 }
 
 
+/* Apply '_NET_SHOWING_DESKTOP' request to one surface */
+static void s_handle_net_showing_desktop(surface_td *surface, bool show)
+{
+    desktop_td *desktop;
+
+    if (surface == NULL || surface->connection == NULL) {
+        return;
+    }
+
+    if (surface->showing_desktop == show) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    if (show) {
+        surface_clients_hide(surface, surface->desktop_cur);
+        xcb_set_input_focus(surface->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
+    } else {
+        surface_clients_show(surface, surface->desktop_cur);
+    }
+
+    surface->showing_desktop = show;
+    wm_invalidate_surface(surface);
+    wm_invalidate_desktop(desktop);
+}
+
+
 /* Handle a 'CLIENT_MESSAGE' event */
 void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event)
@@ -662,7 +696,7 @@ void handler_client_message(wm_td *wm,
 
     /* EWMH §5.13: show/hide all desktop windows */
     if (event->type == wm->ewmh->_NET_SHOWING_DESKTOP) {
-        uint32_t show = event->data.data32[0];
+        bool show = event->data.data32[0] != 0u;
         surface_td *surf;
 
         for (list_item_td *snode = list_head(wm->surfaces);
@@ -672,8 +706,9 @@ void handler_client_message(wm_td *wm,
             if (surf == NULL) {
                 continue;
             }
+            s_handle_net_showing_desktop(surf, show);
             xcb_ewmh_set_showing_desktop(wm->ewmh,
-                    (int) surf->id, show);
+                    (int) surf->id, (show) ? 1u : 0u);
         }
 
         xcb_flush(wm->connection);

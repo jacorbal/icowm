@@ -16,6 +16,7 @@
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, calloc, free, malloc */
 #include <string.h>     /* memcpy, strlen */
+#include <time.h>       /* time */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -42,7 +43,18 @@
 #include <wm/internal.h>
 
 
-/* Compute and publish '_NET_WORKAREA' for one managed surface */
+/**
+ * @brief Compute and publish @c _NET_WORKAREA for one managed surface
+ *
+ * Builds an array of workarea rectangles, one per desktop on the given
+ * surface, and writes it to the @c _NET_WORKAREA root property.
+ *
+ * @param surface Pointer to the target surface
+ *
+ * @note Desktops without a valid work area fall back to the full
+ *       surface geometry
+ * @note Complexity: @e O(n), where @e n is the number of desktops
+ */
 static void s_wm_sync_workarea(surface_td *surface)
 {
     xcb_ewmh_geometry_t *workareas;
@@ -85,7 +97,53 @@ static void s_wm_sync_workarea(surface_td *surface)
 }
 
 
-/* Compute and publish '_NET_CLIENT_LIST*' for one managed surface */
+/**
+ * @brief Compute and publish @c _NET_DESKTOP_LAYOUT for one surface
+ *
+ * Builds a fixed 4-element layout descriptor (orientation, columns,
+ * rows, starting corner) describing the desktops as a single horizontal
+ * row, and writes it to the @c _NET_DESKTOP_LAYOUT root property.
+ *
+ * @param surface Pointer to the target surface
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_sync_desktop_layout(surface_td *surface)
+{
+    uint32_t layout[4];
+
+    if (surface == NULL || surface->connection == NULL ||
+            surface->screen == NULL || surface->ewmh == NULL) {
+        return;
+    }
+
+    /* Orientation=0(horizontal), columns=n, rows=1, corner=0(top-left) */
+    layout[0] = 0u;
+    layout[1] = (surface->desktop_count > 0u) ? surface->desktop_count : 1u;
+    layout[2] = 1u;
+    layout[3] = 0u;
+
+    xcb_change_property(surface->connection, XCB_PROP_MODE_REPLACE,
+            surface->screen->root, surface->ewmh->_NET_DESKTOP_LAYOUT,
+            XCB_ATOM_CARDINAL, 32, 4, layout);
+}
+
+
+/**
+ * @brief Compute and publish @c _NET_CLIENT_LIST and its stacking
+ *        variant
+ *
+ * Collects the windows of every managed client across all desktops of
+ * the surface, publishing them via @c _NET_CLIENT_LIST in insertion
+ * order and via @c _NET_CLIENT_LIST_STACKING in bottom-to-top stacking
+ * order.  Also updates each client's @c _NET_WM_DESKTOP property, using
+ * the special "all desktops" value for sticky clients.
+ *
+ * @param surface Pointer to the target surface
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across all desktops
+ */
 static void s_wm_sync_client_lists(surface_td *surface)
 {
     size_t total_clients = 0u;
@@ -190,7 +248,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
 /**
  * @brief Compute and publish @c _NET_DESKTOP_NAMES for one surface
  *
- * Builds a NUL-separated UTF-8 list with every desktop name of the
+ * Builds a null-separated UTF-8 list with every desktop name of the
  * target surface and writes it to the root-window EWMH property.
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops
@@ -427,9 +485,105 @@ void wm_ewmh_sync(void)
 
         xcb_ewmh_set_active_window(surface->ewmh, (int) surface->id,
                 active);
+        xcb_ewmh_set_showing_desktop(surface->ewmh, (int) surface->id,
+                (surface->showing_desktop) ? 1u : 0u);
         s_wm_sync_desktop_names(surface);
+        s_wm_sync_desktop_layout(surface);
         s_wm_sync_workarea(surface);
         s_wm_sync_client_lists(surface);
+    }
+
+    xcb_flush(wm->connection);
+}
+
+
+/**
+ * @brief Send an @c _NET_WM_PING probe to a client and update its state
+ *
+ * Checks whether a previously sent ping has timed out without a reply,
+ * marking the client as unresponsive if so. Otherwise, sends a new
+ * @c _NET_WM_PING client message if enough time has elapsed since the
+ * last ping, and records the timestamp of the sent probe.
+ *
+ * @param client  Pointer to the client to ping
+ * @param ewmh    EWMH connection used to build the ping message
+ * @param now     Current timestamp
+ * @param timeout Maximum allowed time without a ping reply before the
+ *                client is considered unresponsive
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_ping_client(client_td *client,
+        xcb_ewmh_connection_t *ewmh, uint32_t now, uint32_t timeout)
+{
+    xcb_client_message_event_t ev;
+
+    if (client == NULL || client->connection == NULL || ewmh == NULL ||
+            client->window == XCB_NONE || !client->has_net_wm_ping) {
+        return;
+    }
+
+    if (client->last_ping_sent != 0u &&
+            client->last_ping_reply != client->last_ping_sent &&
+            now >= client->last_ping_sent &&
+            now - client->last_ping_sent >= timeout) {
+        client_set_unresponsive(client);
+    }
+
+    if (client->last_ping_sent != 0u &&
+            now >= client->last_ping_sent &&
+            now - client->last_ping_sent < (uint32_t) WM_EWMH_PING_INTERVAL) {
+        return;
+    }
+
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format = 32;
+    ev.window = client->window;
+    ev.type = ewmh->WM_PROTOCOLS;
+    ev.data.data32[0] = (uint32_t) ewmh->_NET_WM_PING;
+    ev.data.data32[1] = now;
+    ev.data.data32[2] = (uint32_t) client->window;
+
+    xcb_send_event(client->connection, 0, client->window,
+            XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
+    client->last_ping_sent = now;
+}
+
+
+/* Perform periodic EWMH maintenance: ping and timeout handling */
+void wm_ewmh_tick(void)
+{
+    uint32_t now;
+    uint32_t timeout;
+
+    if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL ||
+            wm->surfaces == NULL) {
+        return;
+    }
+
+    now = (uint32_t) time(NULL);
+    timeout = (uint32_t) WM_EWMH_PING_TIMEOUT;
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        if (surface == NULL) {
+            continue;
+        }
+
+        for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
+            desktop_td *desktop = surface_desktop_get(surface, did);
+            void *elem;
+
+            if (desktop == NULL || desktop->clients == NULL) {
+                continue;
+            }
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *client = (client_td *) elem;
+                s_wm_ping_client(client, wm->ewmh, now, timeout);
+            }
+        }
     }
 
     xcb_flush(wm->connection);

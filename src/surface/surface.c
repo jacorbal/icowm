@@ -135,6 +135,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     surface->connection = connection;
     surface->ewmh = ewmh;
     surface->config = config;
+    surface->showing_desktop = false;
 
     /* Update surface properties */
     s_update_properties(surface, surface->screen);

@@ -94,6 +94,7 @@ typedef struct surface_s {
     config_td *config;              /**< Configuration */
 
     bool fullsurface;               /**< Full surface or not */
+    bool showing_desktop;           /**< EWMH '_NET_SHOWING_DESKTOP' state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 } surface_td;
 

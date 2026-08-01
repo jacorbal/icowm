@@ -207,7 +207,7 @@ void loop_run(wm_td *wm)
         pfd.events = POLLIN;
         pfd.revents = 0;
 
-        poll_status = poll(&pfd, 1, -1);
+        poll_status = poll(&pfd, 1, 1000);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
                     strerror(errno));

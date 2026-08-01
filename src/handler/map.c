@@ -40,6 +40,7 @@
 
 /* Command includes */
 #include <cmds/layer.h>
+#include <cmds/util.h>
 
 /* Project includes */
 #include <lookup.h>
@@ -355,6 +356,9 @@ void handler_destroy_notify(xcb_connection_t *connection,
                     surface->properties.dim.h);
         }
     }
+
+    /* ICCCM withdrawn state: remove WM_STATE on unmanage */
+    wcmd_clear_wm_state(client);
 
     /* When the frame is destroyed the X server also destroys all its
      * children ('client->window', 'client->titlebar').  Zero them all

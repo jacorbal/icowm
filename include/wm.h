@@ -258,6 +258,15 @@ void wm_ewmh_sync(void);
 int wm_ewmh_init(void);
 
 /**
+ * @brief Run periodic EWMH maintenance tasks
+ *
+ * Sends @c _NET_WM_PING probes to responsive clients, marks timed out
+ * clients as unresponsive, and refreshes EWMH metadata that depends on
+ * runtime state.
+ */
+void wm_ewmh_tick(void);
+
+/**
  * @brief Macro that evaluates to the number of surfaces handled by the
  *        window manager
  *
