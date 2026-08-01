@@ -55,6 +55,9 @@ void handler_expose(xcb_connection_t *connection,
     client_td *client;
     desktop_td *desktop;
     bool is_focused;
+    bool is_cycle_preview;
+    bool use_active_style;
+    client_td *cycle_client;
     uint16_t left;
     uint16_t right;
     uint16_t title_h;
@@ -94,6 +97,9 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Icon window: repaint caption */
     if (client->icon_window == event->window) {
+        cycle_client = cycle_get_selected_client();
+        is_cycle_preview = cycle_is_open() && cycle_client == client;
+
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
             return;
         }
@@ -101,7 +107,9 @@ void handler_expose(xcb_connection_t *connection,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
                     cfg->theme.icon.background_color,
-                    cfg->theme.icon.border_color
+                    is_cycle_preview
+                        ? cfg->theme.window.active.border_color
+                        : cfg->theme.icon.border_color
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
         if (cfg->theme.icon.is_captioned && client->info.name != NULL) {
@@ -122,16 +130,21 @@ void handler_expose(xcb_connection_t *connection,
 
     is_focused = (desktop != NULL &&
                   desktop->client_active_id == client->id);
+    cycle_client = cycle_get_selected_client();
+    is_cycle_preview = cycle_is_open() && cycle_client == client;
+    use_active_style = is_focused || is_cycle_preview;
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
         xcb_change_window_attributes(connection, client->frame,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                    (is_focused) ? cfg->theme.window.active.border_color
-                                 : cfg->theme.window.inactive.border_color,
-                    (is_focused) ? cfg->theme.window.active.border_color
-                                 : cfg->theme.window.inactive.border_color
+                    (use_active_style)
+                        ? cfg->theme.window.active.border_color
+                        : cfg->theme.window.inactive.border_color,
+                    (use_active_style)
+                        ? cfg->theme.window.active.border_color
+                        : cfg->theme.window.inactive.border_color
                 });
 
         xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
@@ -153,29 +166,35 @@ void handler_expose(xcb_connection_t *connection,
     xcb_change_window_attributes(connection, client->frame,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
-                (is_focused) ? cfg->theme.window.active.border_color
-                             : cfg->theme.window.inactive.border_color,
-                (is_focused) ? cfg->theme.window.active.border_color
-                             : cfg->theme.window.inactive.border_color
+            (use_active_style)
+                ? cfg->theme.window.active.border_color
+                : cfg->theme.window.inactive.border_color,
+            (use_active_style)
+                ? cfg->theme.window.active.border_color
+                : cfg->theme.window.inactive.border_color
             });
     xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
 
     xcb_change_window_attributes(connection, client->titlebar,
             XCB_CW_BACK_PIXEL,
             (const uint32_t[]) {
-                (is_focused) ? cfg->theme.window.active.background_color
-                             : cfg->theme.window.inactive.background_color
+            (use_active_style)
+                    ? cfg->theme.window.active.background_color
+                    : cfg->theme.window.inactive.background_color
             });
     xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
 
     text_renderer_init(connection,
-            (is_focused) ? cfg->theme.window.active.font
-                         : cfg->theme.window.inactive.font);
+            (use_active_style)
+                ? cfg->theme.window.active.font
+                : cfg->theme.window.inactive.font);
     text_renderer_set_color(
-            (is_focused) ? cfg->theme.window.active.foreground_color
-                         : cfg->theme.window.inactive.foreground_color,
-            (is_focused) ? cfg->theme.window.active.background_color
-                         : cfg->theme.window.inactive.background_color);
+            (use_active_style)
+                ? cfg->theme.window.active.foreground_color
+                : cfg->theme.window.inactive.foreground_color,
+            (use_active_style)
+                ? cfg->theme.window.active.background_color
+                : cfg->theme.window.inactive.background_color);
     text_draw_string(connection, client->titlebar, XCB_NONE,
             (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
                 WM_DECOR_BTN_PAD),
@@ -186,7 +205,7 @@ void handler_expose(xcb_connection_t *connection,
 
     desktop_draw_titlebar_buttons(connection, client->titlebar,
             inner_w, title_h,
-            is_focused, (bool) client_is_sticky(client),
+            use_active_style, (bool) client_is_sticky(client),
             !client_is_fullscreen(client),
             &cfg->theme);
 
