@@ -98,8 +98,7 @@ static void s_handler_send_synthetic_configure_notify(
 
 /* Handle a 'CONFIGURE_REQUEST' event */
 void handler_configure_request(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_configure_request_event_t *event)
+        list_td *surfaces, xcb_configure_request_event_t *event)
 {
     client_td *client;
     surface_td *surface;
@@ -280,8 +279,7 @@ void handler_configure_request(xcb_connection_t *connection,
 
 /* Handle a 'CONFIGURE_NOTIFY' event */
 void handler_configure_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_configure_notify_event_t *event)
+        list_td *surfaces, xcb_configure_notify_event_t *event)
 {
     client_td *client;
     surface_td *surface = NULL;

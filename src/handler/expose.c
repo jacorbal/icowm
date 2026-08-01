@@ -49,8 +49,7 @@
 
 /* Handle an 'EXPOSE' event for decoration repaints */
 void handler_expose(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_expose_event_t *event,
+        list_td *surfaces, xcb_expose_event_t *event,
         const config_td *cfg)
 {
     client_td *client;

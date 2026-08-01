@@ -98,8 +98,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event);
  *       surfaces
  */
 void handler_unmap_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_unmap_notify_event_t *event);
+        list_td *surfaces, xcb_unmap_notify_event_t *event);
 
 /**
  * @brief Handle a @c DESTROY_NOTIFY event
@@ -115,8 +114,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
  *       surfaces
  */
 void handler_destroy_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_destroy_notify_event_t *event);
+        list_td *surfaces, xcb_destroy_notify_event_t *event);
 
 /**
  * @brief Handle a @c PROPERTY_NOTIFY event
@@ -131,8 +129,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
  *       surfaces
  */
 void handler_property_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_property_notify_event_t *event);
+        list_td *surfaces, xcb_property_notify_event_t *event);
 
 /**
  * @brief Handle a @c FOCUS_IN event
@@ -148,8 +145,7 @@ void handler_property_notify(xcb_connection_t *connection,
  *       surfaces
  */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_focus_in_event_t *event);
+        list_td *surfaces, xcb_focus_in_event_t *event);
 
 /**
  * @brief Handle a @c MAPPING_NOTIFY event
@@ -166,8 +162,7 @@ void handler_focus_in(xcb_connection_t *connection,
  *       and @e s is the number of surfaces
  */
 void handler_mapping_notify(xcb_key_symbols_t *keysyms,
-        list_td *surfaces,
-        xcb_mapping_notify_event_t *event,
+        list_td *surfaces, xcb_mapping_notify_event_t *event,
         const config_td *cfg);
 
 /**
@@ -186,8 +181,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
  *       surfaces
  */
 void handler_expose(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_expose_event_t *event,
+        list_td *surfaces, xcb_expose_event_t *event,
         const config_td *cfg);
 
 /**

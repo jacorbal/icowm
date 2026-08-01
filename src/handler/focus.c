@@ -45,8 +45,7 @@
 
 /* Handle a 'PROPERTY_NOTIFY' event */
 void handler_property_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_property_notify_event_t *event)
+        list_td *surfaces, xcb_property_notify_event_t *event)
 {
     client_td *client;
     surface_td *surface;
@@ -84,6 +83,7 @@ void handler_property_notify(xcb_connection_t *connection,
         wm_invalidate_desktop(desktop);
                 return;
     }
+
     if (client->ewmh != NULL &&
             (event->atom == client->ewmh->_NET_WM_STRUT_PARTIAL ||
              event->atom == client->ewmh->_NET_WM_STRUT)) {
@@ -144,8 +144,7 @@ void handler_property_notify(xcb_connection_t *connection,
 
 /* Handle a 'FOCUS_IN' event */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_focus_in_event_t *event)
+        list_td *surfaces, xcb_focus_in_event_t *event)
 {
     (void) connection;
     (void) surfaces;
@@ -163,8 +162,7 @@ void handler_focus_in(xcb_connection_t *connection,
 
 /* Handle a 'MAPPING_NOTIFY' event */
 void handler_mapping_notify(xcb_key_symbols_t *keysyms,
-        list_td *surfaces,
-        xcb_mapping_notify_event_t *event,
+        list_td *surfaces, xcb_mapping_notify_event_t *event,
         const config_td *cfg)
 {
     xcb_connection_t *connection = NULL;

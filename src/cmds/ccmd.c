@@ -280,12 +280,9 @@ void wcmd_client_focus(client_td *client)
     xcb_map_window(client->connection, client->window);
 
     if (client->ewmh != NULL) {
-        xcb_ewmh_request_change_active_window(client->ewmh,
+        xcb_ewmh_set_active_window(client->ewmh,
                 (int) client->screen_id,
-                client->window, 0,
-                XCB_CURRENT_TIME,
-                wcmd_active_win(client->ewmh,
-                    client->screen_id));
+                client->window);
     }
 }
 
@@ -300,10 +297,9 @@ void wcmd_client_unfocus(client_td *client)
     client_unfocus(client);
 
     if (client->ewmh != NULL) {
-        xcb_ewmh_request_change_active_window(client->ewmh,
+        xcb_ewmh_set_active_window(client->ewmh,
                 (int) client->screen_id,
-                XCB_NONE, 0,
-                XCB_CURRENT_TIME, 0);
+                XCB_NONE);
     }
 }
 

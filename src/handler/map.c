@@ -143,8 +143,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
 /* Handle an 'UNMAP_NOTIFY' event */
 void handler_unmap_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_unmap_notify_event_t *event)
+        list_td *surfaces, xcb_unmap_notify_event_t *event)
 {
     client_td *client;
     client_td *c;
@@ -241,8 +240,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
 
 /* Handle a 'DESTROY_NOTIFY' event */
 void handler_destroy_notify(xcb_connection_t *connection,
-        list_td *surfaces,
-        xcb_destroy_notify_event_t *event)
+        list_td *surfaces, xcb_destroy_notify_event_t *event)
 {
     client_td *client;
     client_td *c;

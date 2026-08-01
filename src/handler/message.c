@@ -404,7 +404,7 @@ void handler_client_message(wm_td *wm,
     if (event->type == wm->ewmh->_NET_ACTIVE_WINDOW) {
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
-        if (client != NULL) {
+        if (client != NULL && desktop != NULL) {
             wcmd_client_focus(client);
             desktop->client_active_id = client->id;
             wm_invalidate_surface(surface);
