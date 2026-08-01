@@ -161,7 +161,7 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
     client_td *previous;
     xcb_window_t selected_target;
     xcb_window_t previous_target;
-    uint32_t values[1];
+    uint32_t values[2];
     uint32_t frame_values[2];
     uint32_t selected_border;
     uint32_t previous_border;
@@ -225,12 +225,12 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
                 XCB_CW_BORDER_PIXEL, &selected_border);
     }
 
-    values[0] = XCB_STACK_MODE_ABOVE;
+    values[0] = s_menu.window;
+    values[1] = XCB_STACK_MODE_BELOW;
     xcb_configure_window(connection, selected_target,
-            XCB_CONFIG_WINDOW_STACK_MODE, values);
-    values[0] = XCB_STACK_MODE_ABOVE;
-    xcb_configure_window(connection, s_menu.window,
-            XCB_CONFIG_WINDOW_STACK_MODE, values);
+            XCB_CONFIG_WINDOW_SIBLING |
+            XCB_CONFIG_WINDOW_STACK_MODE,
+            values);
 
     s_menu.preview_client = selected;
     xcb_flush(connection);

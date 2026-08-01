@@ -1003,6 +1003,9 @@ void wcmd_client_toggle_decoration(client_td *client)
     int32_t th;
     desktop_td *desktop;
     bool keep_focus;
+    xcb_get_input_focus_cookie_t foc_cookie;
+    xcb_get_input_focus_reply_t *foc_reply;
+    xcb_window_t focused_window;
 
     if (client == NULL) {
         return;
@@ -1013,8 +1016,20 @@ void wcmd_client_toggle_decoration(client_td *client)
         : 0;
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
+    foc_cookie = xcb_get_input_focus(client->connection);
+    foc_reply = xcb_get_input_focus_reply(client->connection,
+            foc_cookie, NULL);
+    focused_window = (foc_reply != NULL)
+        ? foc_reply->focus
+        : XCB_WINDOW_NONE;
     keep_focus = (desktop != NULL &&
-            desktop->client_active_id == client->id);
+            desktop->client_active_id == client->id) ||
+        focused_window == client->window ||
+        focused_window == client->frame ||
+        focused_window == client->titlebar;
+    if (foc_reply != NULL) {
+        free(foc_reply);
+    }
 
     if (client_is_decorated(client)) {  /* Remove decoration */
         if (client->frame != 0) {
