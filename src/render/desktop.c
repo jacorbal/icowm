@@ -452,7 +452,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 text_draw_string(desktop->connection,
                         client->titlebar, XCB_NONE,
                         (int16_t) (WM_DECOR_BTN_PAD +
-                            2u * (WM_DECOR_BTN_SIZE + WM_DECOR_BTN_GAP)),
+                            2u * (WM_DECOR_BTN_SIZE + WM_DECOR_BTN_GAP) +
+                            WM_DECOR_BTN_GAP),
                         (int16_t) ((title_h >
                                 (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                             ? title_h -

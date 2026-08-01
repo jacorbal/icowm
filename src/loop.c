@@ -319,7 +319,6 @@ void loop_run(wm_td *wm)
             }
 
             free(event);
-            event = xcb_poll_for_event(wm->connection);
         }
 
         eventq_process();
