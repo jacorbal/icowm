@@ -115,7 +115,10 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     desktop_update_workarea(desktop,
             surface->properties.dim.w, surface->properties.dim.h);
 
-    place_apply(wm, surface, client);
+    /* Dock/panel windows self-position; do not override their geometry */
+    if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {
+        place_apply(wm, surface, client);
+    }
 
     if (client->titlebar != 0) {
         xcb_map_window(wm->connection, client->titlebar);

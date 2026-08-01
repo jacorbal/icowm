@@ -25,6 +25,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -43,12 +46,18 @@
 
 
 /* '_NET_WM_STATE' action values (EWMH section 5.8) */
-#define WM_STATE_ACTION_REMOVE 0
-#define WM_STATE_ACTION_ADD    1
-#define WM_STATE_ACTION_TOGGLE 2
+#define WM_STATE_ACTION_REMOVE (0)
+#define WM_STATE_ACTION_ADD    (1)
+#define WM_STATE_ACTION_TOGGLE (2)
 
-/* ICCCM '¡WM_CHANGE_STATE' 'IconicState' value */
-#define ICCCM_ICONIC_STATE 3
+/* ICCCM 'WM_CHANGE_STATE' 'IconicState' value */
+#define ICCCM_ICONIC_STATE (3)
+
+/* '_NET_MOVERESIZE_WINDOW' flag bits (EWMH § 5.11) */
+#define MOVERESIZE_FLAG_X      (1u << 8)
+#define MOVERESIZE_FLAG_Y      (1u << 9)
+#define MOVERESIZE_FLAG_WIDTH  (1u << 10)
+#define MOVERESIZE_FLAG_HEIGHT (1u << 11)
 
 
 /**
@@ -84,6 +93,8 @@ static void s_handle_wm_state_atom(client_td *client,
     bool is_shaded;
     bool is_hidden;
     bool is_urgent;
+    bool is_skip_taskbar;
+    bool is_skip_pager;
 
     if (client == NULL || ewmh == NULL) {
         return;
@@ -98,6 +109,8 @@ static void s_handle_wm_state_atom(client_td *client,
     is_shaded = (state_atom == ewmh->_NET_WM_STATE_SHADED);
     is_hidden = (state_atom == ewmh->_NET_WM_STATE_HIDDEN);
     is_urgent = (state_atom == ewmh->_NET_WM_STATE_DEMANDS_ATTENTION);
+    is_skip_taskbar = (state_atom == ewmh->_NET_WM_STATE_SKIP_TASKBAR);
+    is_skip_pager = (state_atom == ewmh->_NET_WM_STATE_SKIP_PAGER);
 
     if (is_fullscreen) {
         if (action == WM_STATE_ACTION_ADD) {
@@ -202,6 +215,30 @@ static void s_handle_wm_state_atom(client_td *client,
             wcmd_client_set_urgent(client);
         } else {
             wcmd_client_clear_urgent(client);
+        }
+        return;
+    }
+
+    if (is_skip_taskbar) {
+        is_add = (action == WM_STATE_ACTION_ADD) ||
+            (action == WM_STATE_ACTION_TOGGLE &&
+             !(client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR));
+        if (is_add) {
+            client_set_skip_taskbar(client);
+        } else {
+            client_unset_skip_taskbar(client);
+        }
+        return;
+    }
+
+    if (is_skip_pager) {
+        is_add = (action == WM_STATE_ACTION_ADD) ||
+            (action == WM_STATE_ACTION_TOGGLE &&
+             !(client->properties.flags & CLIENT_FLAG_SKIP_PAGER));
+        if (is_add) {
+            client_set_skip_pager(client);
+        } else {
+            client_unset_skip_pager(client);
         }
         return;
     }
@@ -374,6 +411,102 @@ static void s_handle_net_wm_desktop(wm_td *wm,
 }
 
 
+/* Handle a '_NET_MOVERESIZE_WINDOW' client message */
+static void s_handle_net_moveresize_window(wm_td *wm,
+        xcb_client_message_event_t *event,
+        client_td *client, surface_td *surface, desktop_td *desktop)
+{
+    uint32_t flags;
+    int32_t req_x;
+    int32_t req_y;
+    uint32_t req_w;
+    uint32_t req_h;
+    uint16_t target_mask;
+    uint32_t target_values[4];
+    xcb_window_t target;
+    bool size_changed;
+    int i;
+
+    if (wm == NULL || event == NULL || client == NULL) {
+        return;
+    }
+
+    flags = (uint32_t) event->data.data32[0];
+    req_x = (int32_t) event->data.data32[1];
+    req_y = (int32_t) event->data.data32[2];
+    req_w = (uint32_t) event->data.data32[3];
+    req_h = (uint32_t) event->data.data32[4];
+
+    /* Per EWMH, width/height are inner client dimensions.  Add frame
+     * extents to get the outer frame size when the client is
+     * decorated */
+    if ((flags & MOVERESIZE_FLAG_WIDTH) &&
+            client_is_decorated(client) && client->frame != 0) {
+        req_w += (uint32_t) client->layout.frame_extents.left
+               + (uint32_t) client->layout.frame_extents.right;
+    }
+
+    if ((flags & MOVERESIZE_FLAG_HEIGHT) &&
+            client_is_decorated(client) && client->frame != 0) {
+        req_h += (uint32_t) client->layout.frame_extents.top
+               + (uint32_t) client->layout.frame_extents.bottom;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame : client->window;
+    target_mask = 0;
+    size_changed = false;
+    i = 0;
+
+    if (flags & MOVERESIZE_FLAG_X) {
+        target_values[i++] = (uint32_t) req_x;
+        target_mask |= XCB_CONFIG_WINDOW_X;
+        client->layout.geometry.cur.pos.x = req_x;
+    }
+
+    if (flags & MOVERESIZE_FLAG_Y) {
+        if (req_y < 0) {
+            req_y = 0;
+        }
+        target_values[i++] = (uint32_t) req_y;
+        target_mask |= XCB_CONFIG_WINDOW_Y;
+        client->layout.geometry.cur.pos.y = req_y;
+    }
+
+    if (flags & MOVERESIZE_FLAG_WIDTH) {
+        if (req_w < WM_MIN_WINDOW_DIMENSION) {
+            req_w = WM_MIN_WINDOW_DIMENSION;
+        }
+        target_values[i++] = req_w;
+        target_mask |= XCB_CONFIG_WINDOW_WIDTH;
+        client->layout.geometry.cur.dim.w = req_w;
+        size_changed = true;
+    }
+
+    if (flags & MOVERESIZE_FLAG_HEIGHT) {
+        if (req_h < WM_MIN_WINDOW_DIMENSION) {
+            req_h = WM_MIN_WINDOW_DIMENSION;
+        }
+        target_values[i++] = req_h;
+        target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+        client->layout.geometry.cur.dim.h = req_h;
+        size_changed = true;
+    }
+
+    if (target_mask != 0) {
+        xcb_configure_window(wm->connection, target,
+                target_mask, target_values);
+        if (size_changed &&
+                client_is_decorated(client) && client->frame != 0) {
+            client_sync_decoration_layout(client);
+        }
+        xcb_flush(wm->connection);
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+    }
+}
+
+
 /* Handle a 'CLIENT_MESSAGE' event */
 void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event)
@@ -433,6 +566,16 @@ void handler_client_message(wm_td *wm,
 
     if (event->type == wm->ewmh->_NET_CURRENT_DESKTOP) {
         s_handle_net_current_desktop(wm, event);
+        return;
+    }
+
+    if (event->type == wm->ewmh->_NET_MOVERESIZE_WINDOW) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+        if (client != NULL) {
+            s_handle_net_moveresize_window(wm, event, client,
+                    surface, desktop);
+        }
         return;
     }
 

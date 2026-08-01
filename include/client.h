@@ -1174,5 +1174,49 @@ void client_props_refresh_name(client_td *client);
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_DISABLED, (1 << CLIENT_FLAG_MAX))
 
+/**
+ * @brief Macro that sets the skip-taskbar flag of a client
+ *
+ * @param w Pointer to the client structure
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_set_skip_taskbar(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_SKIP_TASKBAR, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the skip-taskbar flag of a client
+ *
+ * @param w Pointer to the client structure
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unset_skip_taskbar(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_SKIP_TASKBAR, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that sets the skip-pager flag of a client
+ *
+ * @param w Pointer to the client structure
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_set_skip_pager(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_SKIP_PAGER, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the skip-pager flag of a client
+ *
+ * @param w Pointer to the client structure
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unset_skip_pager(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_SKIP_PAGER, (1 << CLIENT_FLAG_MAX))
+
 
 #endif  /* ! CLIENT_H */

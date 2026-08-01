@@ -300,6 +300,7 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_intern_atom_reply_t *ia;
     xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
     xcb_icccm_get_wm_protocols_reply_t proto;
+    uint32_t bw[1];
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
@@ -582,12 +583,12 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_change_window_attributes(connection, window,
             XCB_CW_EVENT_MASK, values);
 
-    /* Apply border width from theme */
-    if (theme != NULL) {
-        uint32_t bw[1] = { theme->window.general.border_width };
-        xcb_configure_window(connection, window,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
-    }
+    /* Apply border width from theme; dock windows always get 0 */
+    bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
+        ? 0u
+        : (theme != NULL ? theme->window.general.border_width : 0u);
+    xcb_configure_window(connection, window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

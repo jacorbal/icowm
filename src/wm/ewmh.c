@@ -314,6 +314,8 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_STICKY;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SHADED;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_TASKBAR;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_PAGER;
     supported_atoms[n_supported++] = wm->ewmh->_NET_CLOSE_WINDOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DOCK;
