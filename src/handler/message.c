@@ -1,5 +1,4 @@
 /**
-
  *
  * @brief X @c CLIENT_MESSAGE event handler
  *
@@ -404,6 +403,12 @@ static void s_handle_net_wm_desktop(wm_td *wm,
     }
 
     client->desktop_id = target_id;
+
+    if (wm->ewmh != NULL) {
+        xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+                client->window, wm->ewmh->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &target_id);
+    }
 
     wm_invalidate_surface(surface);
     wm_invalidate_desktop(src_desktop);

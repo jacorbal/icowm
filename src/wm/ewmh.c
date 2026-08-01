@@ -28,6 +28,7 @@
 
 /* Default initial values */
 #include <defs/ewmh.h>
+#include <defs/wm.h>
 
 /* Project includes */
 #include <client.h>
@@ -44,7 +45,6 @@
 /* Compute and publish '_NET_WORKAREA' for one managed surface */
 static void s_wm_sync_workarea(surface_td *surface)
 {
-    uint32_t did;
     xcb_ewmh_geometry_t *workareas;
 
     if (surface == NULL || surface->ewmh == NULL ||
@@ -58,7 +58,7 @@ static void s_wm_sync_workarea(surface_td *surface)
         return;
     }
 
-    for (did = 0; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
 
         if (desktop == NULL) {
@@ -88,7 +88,6 @@ static void s_wm_sync_workarea(surface_td *surface)
 /* Compute and publish '_NET_CLIENT_LIST*' for one managed surface */
 static void s_wm_sync_client_lists(surface_td *surface)
 {
-    uint32_t did;
     size_t total_clients = 0u;
     size_t idx = 0u;
     xcb_window_t *client_list;
@@ -98,7 +97,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
         return;
     }
 
-    for (did = 0; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
 
         if (desktop != NULL && desktop->clients != NULL) {
@@ -122,8 +121,9 @@ static void s_wm_sync_client_lists(surface_td *surface)
         return;
     }
 
-    for (did = 0; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
         void *elem;
+        uint32_t did_prop;
 
         desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop == NULL || desktop->clients == NULL) {
@@ -135,6 +135,16 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
             if (client->window != XCB_NONE && idx < total_clients) {
                 client_list[idx++] = client->window;
+
+                /* Publish '_NET_WM_DESKTOP' so taskbars and pagers can
+                 * associate each window with the correct desktop */
+                did_prop = (client->properties.flags & CLIENT_FLAG_STICKY)
+                    ? WM_DESKTOP_ID_ALL : desktop->id;
+                xcb_change_property(surface->connection,
+                        XCB_PROP_MODE_REPLACE,
+                        client->window,
+                        surface->ewmh->_NET_WM_DESKTOP,
+                        XCB_ATOM_CARDINAL, 32, 1, &did_prop);
             }
         }
     }
@@ -143,7 +153,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
             (uint32_t) idx, client_list);
 
     idx = 0u;
-    for (did = 0; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
         cdlist_item_td *node;
         cdlist_item_td *initial;
@@ -187,7 +197,6 @@ static void s_wm_sync_client_lists(surface_td *surface)
  */
 static void s_wm_sync_desktop_names(surface_td *surface)
 {
-    uint32_t did;
     size_t names_len;
     size_t offset;
     char *names;
@@ -198,7 +207,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     names_len = 0u;
-    for (did = 0u; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop != NULL && desktop->name[0] != '\0') {
             names_len += strlen(desktop->name) + 1u;
@@ -223,7 +232,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     offset = 0u;
-    for (did = 0u; did < surface->desktop_count; ++did) {
+    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
         const char *name;
         size_t name_len;
         desktop_td *desktop = surface_desktop_get(surface, did);
@@ -322,6 +331,7 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_NORMAL;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DIALOG;
     supported_atoms[n_supported++] = wm->ewmh->_NET_MOVERESIZE_WINDOW;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_FRAME_EXTENTS;
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {

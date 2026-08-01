@@ -112,33 +112,87 @@ bool wcmd_screen_dim(client_td *client, uint16_t *out_w, uint16_t *out_h)
 /* Add multiple EWMH window states to a client */
 void wcmd_add_states(client_td *client, uint32_t num_states, ...)
 {
-    xcb_atom_t *states;
+    xcb_atom_t *add_atoms;
+    xcb_atom_t *merged;
+    xcb_atom_t *cur_atoms;
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+    uint32_t cur_len;
+    uint32_t merged_count;
+    bool already_set;
     va_list args;
 
     if (client == NULL || client->ewmh == NULL || num_states == 0) {
         return;
     }
 
-    states = malloc(num_states * sizeof(xcb_atom_t));
-    if (states == NULL) {
+    add_atoms = malloc(num_states * sizeof(xcb_atom_t));
+    if (add_atoms == NULL) {
         return;
     }
 
     va_start(args, num_states);
     for (uint32_t i = 0; i < num_states; ++i) {
         const char *state_name = va_arg(args, const char *);
-        states[i] = wcmd_intern_atom(client->connection, state_name);
-        if (states[i] == XCB_ATOM_NONE) {
-            free(states);
+        add_atoms[i] = wcmd_intern_atom(client->connection, state_name);
+        if (add_atoms[i] == XCB_ATOM_NONE) {
+            free(add_atoms);
             va_end(args);
             return;
         }
     }
     va_end(args);
 
-    xcb_ewmh_set_wm_state(client->ewmh, client->window, num_states, states);
+    /* Read existing '_NET_WM_STATE' to merge rather than replace */
+    cookie = xcb_ewmh_get_wm_state(client->ewmh, client->window);
+    reply = xcb_get_property_reply(client->ewmh->connection,
+            cookie, NULL);
 
-    free(states);
+    cur_len = 0;
+    cur_atoms = NULL;
+    if (reply != NULL && xcb_get_property_value_length(reply) > 0) {
+        cur_len = (uint32_t) xcb_get_property_value_length(reply) /
+            sizeof(xcb_atom_t);
+        cur_atoms = (xcb_atom_t *) xcb_get_property_value(reply);
+    }
+
+    merged = malloc((cur_len + num_states) * sizeof(xcb_atom_t));
+    if (merged == NULL) {
+        free(add_atoms);
+        if (reply != NULL) {
+            free(reply);
+        }
+        return;
+    }
+
+    for (uint32_t i = 0; i < cur_len; ++i) {
+        merged[i] = cur_atoms[i];
+    }
+    merged_count = cur_len;
+
+
+    for (uint32_t i = 0; i < num_states; ++i) {
+        already_set = false;
+        for (uint32_t j = 0; j < cur_len; ++j) {
+            if (cur_atoms[j] == add_atoms[i]) {
+                already_set = true;
+                break;
+            }
+        }
+        if (!already_set) {
+            merged[merged_count++] = add_atoms[i];
+        }
+    }
+
+    xcb_ewmh_set_wm_state(client->ewmh, client->window,
+            merged_count, merged);
+
+    free(merged);
+    free(add_atoms);
+    if (reply != NULL) {
+        free(reply);
+    }
+
 }
 
 

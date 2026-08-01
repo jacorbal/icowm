@@ -17,6 +17,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -100,6 +101,14 @@ void lifecycle_scan_existing(wm_td *wm)
                         client->screen_id = surface->id;
                         client->desktop_id = desktop->id;
                         desktop_action_client_add(desktop, client);
+                        if (wm->ewmh != NULL) {
+                            uint32_t did = desktop->id;
+                            xcb_change_property(wm->connection,
+                                    XCB_PROP_MODE_REPLACE,
+                                    client->window,
+                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    XCB_ATOM_CARDINAL, 32, 1, &did);
+                        }
                         surface->is_outdated = true;
                     }
                 }

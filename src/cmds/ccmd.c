@@ -177,6 +177,17 @@ static void s_client_enable_decoration(client_td *client,
     client->layout.frame_extents.top = bw + th;
     client->layout.frame_extents.bottom = bw;
     client_set_decoration(client);
+
+    if (client->ewmh != NULL) {
+        uint32_t extents[4];
+        extents[0] = (uint32_t) bw;
+        extents[1] = (uint32_t) bw;
+        extents[2] = (uint32_t) (bw + th);
+        extents[3] = (uint32_t) bw;
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_FRAME_EXTENTS,
+                XCB_ATOM_CARDINAL, 32, 4, extents);
+    }
 }
 
 
@@ -843,6 +854,13 @@ void wcmd_client_fullscreen(client_td *client)
 
     client->properties.state = CLIENT_STATE_FULLSCREEN;
 
+    if (client->ewmh != NULL) {
+        uint32_t extents[4] = {0u, 0u, 0u, 0u};
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_FRAME_EXTENTS,
+                XCB_ATOM_CARDINAL, 32, 4, extents);
+    }
+
     /* Retain focus: keep this client active on its desktop and give it
      * input focus so the window is not lost from the active window
      * tracking when going fullscreen. */
@@ -947,6 +965,18 @@ void wcmd_client_unfullscreen(client_td *client)
     client->was_decorated_fullscreen = false;
 
     client->properties.state = CLIENT_STATE_NORMAL;
+
+    if (client->ewmh != NULL) {
+        uint32_t extents[4];
+        extents[0] = (uint32_t) client->layout.frame_extents.left;
+        extents[1] = (uint32_t) client->layout.frame_extents.right;
+        extents[2] = (uint32_t) client->layout.frame_extents.top;
+        extents[3] = (uint32_t) client->layout.frame_extents.bottom;
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_FRAME_EXTENTS,
+                XCB_ATOM_CARDINAL, 32, 4, extents);
+    }
+
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
@@ -1078,6 +1108,13 @@ void wcmd_client_toggle_decoration(client_td *client)
         client->layout.frame_extents.top    = 0;
         client->layout.frame_extents.bottom = 0;
         client_unset_decoration(client);
+
+        if (client->ewmh != NULL) {
+            uint32_t extents[4] = {0u, 0u, 0u, 0u};
+            xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                    client->window, client->ewmh->_NET_FRAME_EXTENTS,
+                    XCB_ATOM_CARDINAL, 32, 4, extents);
+        }
     } else {                            /* Restore decoration */
         if (client->frame == 0) {
             s_client_enable_decoration(client, bw, th);
@@ -1144,6 +1181,19 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.frame_extents.top = bw + th;
             client->layout.frame_extents.bottom = bw;
             client_set_decoration(client);
+
+            if (client->ewmh != NULL) {
+                uint32_t extents[4];
+                extents[0] = (uint32_t) bw;
+                extents[1] = (uint32_t) bw;
+                extents[2] = (uint32_t) (bw + th);
+                extents[3] = (uint32_t) bw;
+                xcb_change_property(client->connection,
+                        XCB_PROP_MODE_REPLACE,
+                        client->window,
+                        client->ewmh->_NET_FRAME_EXTENTS,
+                        XCB_ATOM_CARDINAL, 32, 4, extents);
+            }
         }
     }
 

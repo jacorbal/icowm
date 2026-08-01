@@ -17,6 +17,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -109,6 +110,14 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
         return;
+    }
+
+    /* Advertise the desktop this client belongs to per EWMH */
+    if (wm->ewmh != NULL) {
+        uint32_t did = desktop->id;
+        xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+                client->window, wm->ewmh->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &did);
     }
 
     /* Refresh work area in case the new client declares struts */

@@ -21,6 +21,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* Utils includes */
 #include <utils/safemem.h>
@@ -357,6 +358,20 @@ int ci_create_decorations(client_td *client)
     client->layout.geometry.cur.dim.h = frame_h;
     client->layout.geometry.old = client->layout.geometry.cur;
     client_sync_decoration_layout(client);
+
+    /* Publish '_NET_FRAME_EXTENTS' so clients and taskbars know the
+     * size of the WM-added decoration around the content window */
+    if (client->ewmh != NULL) {
+        uint32_t extents[4];
+        extents[0] = (uint32_t) client->layout.frame_extents.left;
+        extents[1] = (uint32_t) client->layout.frame_extents.right;
+        extents[2] = (uint32_t) client->layout.frame_extents.top;
+        extents[3] = (uint32_t) client->layout.frame_extents.bottom;
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_FRAME_EXTENTS,
+                XCB_ATOM_CARDINAL, 32, 4, extents);
+    }
+
 
     return 0;
 }

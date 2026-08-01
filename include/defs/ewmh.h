@@ -42,7 +42,7 @@
  * @c wm_ewmh_init.  Update this constant whenever atoms are added to or
  * removed from the supported set.
  *
- * Current set (34 atoms):
+ * Current set (35 atoms):
  *   @c _NET_SUPPORTED, @c _NET_SUPPORTING_WM_CHECK,
  *   @c _NET_CLIENT_LIST, @c _NET_CLIENT_LIST_STACKING,
  *   @c _NET_NUMBER_OF_DESKTOPS, @c _NET_CURRENT_DESKTOP,
@@ -62,9 +62,10 @@
  *   @c _NET_CLOSE_WINDOW,
  *   @c _NET_WM_WINDOW_TYPE, @c _NET_WM_WINDOW_TYPE_DOCK,
  *   @c _NET_WM_WINDOW_TYPE_NORMAL, @c _NET_WM_WINDOW_TYPE_DIALOG,
- *   @c _NET_MOVERESIZE_WINDOW
+ *   @c _NET_MOVERESIZE_WINDOW,
+ *   @c _NET_FRAME_EXTENTS
  */
-#define WM_EWMH_SUPPORTED_COUNT (34)
+#define WM_EWMH_SUPPORTED_COUNT (35)
 
 
 #endif  /* ! DEFS_EWMH_H */
