@@ -134,10 +134,16 @@ static void s_client_enable_decoration(client_td *client,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* Reparenting emits a synthetic 'UnmapNotify' for the client window;
-     * absorb it so focus is not stolen from the active window during
-     * decoration restore. */
-    client->ignore_unmap++;
+    /* Reparenting to an unmapped frame makes the content window
+     * non-viewable, which emits two synthetic 'UnmapNotify' events:
+     *
+     *  1. From root's' SubstructureNotify' (event=root, window=content)
+     *  2. From the content window's own 'StructureNotify' (event=window,
+     *  window=content)
+     *
+     * Absorb both so focus is not stolen from the active window. */
+    client->ignore_unmap += 2u;
+    client->ignore_focus_unmap++;
 
     xcb_reparent_window(client->connection,
             client->window,
@@ -1006,9 +1012,6 @@ void wcmd_client_toggle_decoration(client_td *client)
     int32_t th;
     desktop_td *desktop;
     bool keep_focus;
-    xcb_get_input_focus_cookie_t foc_cookie;
-    xcb_get_input_focus_reply_t *foc_reply;
-    xcb_window_t focused_window;
 
     if (client == NULL) {
         return;
@@ -1019,20 +1022,7 @@ void wcmd_client_toggle_decoration(client_td *client)
         : 0;
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
-    foc_cookie = xcb_get_input_focus(client->connection);
-    foc_reply = xcb_get_input_focus_reply(client->connection,
-            foc_cookie, NULL);
-    focused_window = (foc_reply != NULL)
-        ? foc_reply->focus
-        : XCB_WINDOW_NONE;
-    keep_focus = (desktop != NULL &&
-            desktop->client_active_id == client->id) ||
-        focused_window == client->window ||
-        focused_window == client->frame ||
-        focused_window == client->titlebar;
-    if (foc_reply != NULL) {
-        free(foc_reply);
-    }
+    keep_focus = true;
 
     if (client_is_decorated(client)) {  /* Remove decoration */
         if (client->frame != 0) {
@@ -1063,7 +1053,8 @@ void wcmd_client_toggle_decoration(client_td *client)
              * content window.  Absorb it so 'handler_unmap_notify' does
              * not mistake the event for a voluntary hide and does not
              * steal focus from the window. */
-            client->ignore_unmap++;
+            client->ignore_unmap+=2;
+            client->ignore_focus_unmap++;
             xcb_reparent_window(client->connection,
                     client->window,
                     client->parent_id,
@@ -1088,13 +1079,6 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.geometry.cur.pos.y = inner_y;
             client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
             client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
-
-            /* Ensure the now-undecorated window remains mapped and
-             * retains input focus */
-            xcb_map_window(client->connection, client->window);
-            xcb_set_input_focus(client->connection,
-                    XCB_INPUT_FOCUS_POINTER_ROOT,
-                    client->window, XCB_CURRENT_TIME);
         } else {
             xcb_configure_window(client->connection, client->window,
                     XCB_CONFIG_WINDOW_BORDER_WIDTH,
@@ -1175,6 +1159,13 @@ void wcmd_client_toggle_decoration(client_td *client)
     }
 
     if (keep_focus) {
+        if (desktop != NULL) {
+            desktop->client_active_id = client->id;
+            (void) desktop_action_client_send_front(desktop, client);
+            desktop->is_outdated = true;
+        }
+
+        wcmd_client_raise(client);
         wcmd_client_focus(client);
     }
 

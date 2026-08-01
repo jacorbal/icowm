@@ -177,6 +177,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         } else {
             cycle_close(connection);
         }
+
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(connection);
@@ -527,10 +528,9 @@ void mouse_handle_press(xcb_connection_t *connection,
         return;
     }
 
-    if (desktop != NULL) {
-        desktop->client_active_id = client->id;
-        (void) desktop_action_client_send_front(desktop, client);
-        surface = lookup_surface_for_root(surfaces, event->root);
+    surface = lookup_surface_for_root(surfaces, event->root);
+    if (surface != NULL && desktop != NULL) {
+        focus_apply(surfaces, surface, desktop, client, true, cfg);
         s_mouse_sync_sticky_active(surface, desktop, client);
     }
 

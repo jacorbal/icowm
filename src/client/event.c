@@ -176,6 +176,10 @@ int client_send_event_move(client_td *client,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
     xcb_flush(client->connection);
 
+    if (client->properties.operation == CLIENT_OPERATION_MOVING) {
+        return 0;
+    }
+
     /* Create and queue the event for the action handler */
     action.type = ACTION_TYPE_CLIENT;
     action.object.client = ACTION_CLIENT_MOVE;
@@ -236,6 +240,10 @@ int client_send_event_resize(client_td *client,
             values);
     client_sync_decoration_layout(client);
     xcb_flush(client->connection);
+
+    if (client->properties.operation == CLIENT_OPERATION_RESIZING) {
+        return 0;
+    }
 
     /* Create and queue the event for the action handler */
     action.type = ACTION_TYPE_CLIENT;

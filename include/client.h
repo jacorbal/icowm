@@ -236,6 +236,7 @@ typedef struct client_s {
     bool is_icon_mapped;            /**< Whether icon window is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full screen */
     uint8_t ignore_unmap;           /**< WM-initiated unmaps to suppress */
+    uint8_t ignore_focus_unmap;     /**< Synthetic unmaps; mustn't move focus */
     int16_t icon_x;                 /**< Saved icon X (−1 = unset) */
     int16_t icon_y;                 /**< Saved icon Y (−1 = unset) */
     uint16_t title_height;          /**< Cached titlebar height */
@@ -365,7 +366,7 @@ client_td *client_init(xcb_connection_t *connection,
 void client_destroy(client_td *client);
 
 /**
- * @brief Synchronise the inner client and titlebar windows with the
+ * @brief Synchronize the inner client and titlebar windows with the
  *        frame extents stored in @p client
  *
  * After the outer frame is repositioned or resized, this function
@@ -373,7 +374,7 @@ void client_destroy(client_td *client);
  * titlebar so that they stay correctly aligned inside the frame.  The
  * function is a no-op when the client is not decorated or has no frame.
  *
- * @param client Pointer to the decorated client to synchronise
+ * @param client Pointer to the decorated client to synchronize
  *
  * @note Complexity: @e O(1)
  */

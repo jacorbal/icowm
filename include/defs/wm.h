@@ -113,7 +113,7 @@
 #define WM_ICON_CYCLE_SEL_BORDER_EXTRA (2u)
 
 /** Maximum interval in milliseconds between two presses on the same
- *  titlebar that is recognised as a double-click */
+ *  titlebar that is recognized as a double-click */
 #define WM_DOUBLE_CLICK_MS (400u)
 
 

@@ -98,6 +98,7 @@ client_td *client_init(xcb_connection_t *connection,
     client->is_icon_mapped = false;
     client->was_decorated_fullscreen = false;
     client->ignore_unmap = 0;
+    client->ignore_focus_unmap = 0;
     client->icon_x = -1;
     client->icon_y = -1;
 
@@ -323,7 +324,7 @@ client_td *client_manage(xcb_connection_t *connection,
         return NULL;
     }
 
-    /* Zero-initialise to prevent uninitialised reads */
+    /* Zero-initialized to prevent uninitialized reads */
     memset(client, 0, sizeof(client_td));
 
     /* Basic connections */
@@ -335,6 +336,7 @@ client_td *client_manage(xcb_connection_t *connection,
     client->titlebar = 0;
     client->icon_window = 0;
     client->is_icon_mapped = false;
+    client->ignore_focus_unmap = 0;
     client->was_decorated_fullscreen = false;
     client->ignore_unmap = 0;
     client->icon_x = -1;
