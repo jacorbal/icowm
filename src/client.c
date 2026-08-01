@@ -490,6 +490,10 @@ client_td *client_manage(xcb_connection_t *connection,
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
             client->wm_input_hint = (wm_hints.input != 0);
         }
+        if (wm_hints.flags & XCB_ICCCM_WM_HINT_STATE &&
+                wm_hints.initial_state == XCB_ICCCM_WM_STATE_ICONIC) {
+            client->initial_iconic = true;
+        }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP) {
             client->group_leader = wm_hints.window_group;
         }

@@ -4,7 +4,7 @@
  *
  * Processes EWMH and ICCCM client-message events so that applications
  * can request state changes (fullscreen, maximize, close, desktop
- * switch, &c.) and have them honoured by the window manager.
+ * switch, &c.) and have them honored by the window manager.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

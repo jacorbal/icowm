@@ -15,8 +15,8 @@
 
 
 /* System includes */
-#include <errno.h>
-#include <poll.h>
+#include <errno.h>      /* EINTR */
+#include <poll.h>       /* poll */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free */

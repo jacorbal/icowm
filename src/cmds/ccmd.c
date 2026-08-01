@@ -241,6 +241,7 @@ void wcmd_client_kill(client_td *client)
 void wcmd_client_restore(client_td *client)
 {
     xcb_window_t target;
+    xcb_atom_t icon_geom_atom;
 
     if (client == NULL) {
         return;
@@ -273,6 +274,13 @@ void wcmd_client_restore(client_td *client)
     client->properties.state = CLIENT_STATE_NORMAL;
 
     wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
+
+    /* EWMH §5.9: remove icon geometry hint when restoring to normal */
+    icon_geom_atom = wcmd_intern_atom(client->connection,
+            "_NET_WM_ICON_GEOMETRY");
+    xcb_delete_property(client->connection, client->window,
+            icon_geom_atom);
+
     wcmd_rem_states(client, 3,
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
@@ -444,6 +452,16 @@ void wcmd_client_iconify(client_td *client)
     xcb_window_t target;
     uint32_t mask;
     uint32_t values[3];
+    xcb_get_property_reply_t *handled_reply;
+    xcb_atom_t handled_atom;
+    xcb_atom_t wm_state_atom;
+    xcb_atom_t net_wm_state_atom;
+    xcb_atom_t icon_geom_atom;
+    xcb_atom_t skip_atoms[2];
+    uint32_t wm_state_vals[2];
+    uint32_t icon_geom[4];
+    uint16_t icon_h_out;
+    bool skip_icon_win;
 
     if (client == NULL) {
         return;
@@ -456,68 +474,88 @@ void wcmd_client_iconify(client_td *client)
     target = wcmd_target_win(client);
     client_geometry_save(client);
 
-    if (client->icon_window == 0) {
-        uint16_t icon_h;
-        uint16_t screen_w;
-        uint16_t screen_h;
-        int16_t ix;
-        int16_t iy;
-        enum config_icon_placement_e policy =
-            CONFIG_ICON_PLACEMENT_BOTTOM;
+    /* EWMH: if a pager sets '_NET_WM_HANDLED_ICONS' on the root window,
+     * it manages icon display itself; the window manager must not
+     * create icon windows */
+    handled_atom = wcmd_intern_atom(client->connection,
+            "_NET_WM_HANDLED_ICONS");
+    handled_reply = xcb_get_property_reply(client->connection,
+            xcb_get_property(client->connection, 0, client->parent_id,
+                handled_atom, XCB_ATOM_CARDINAL, 0, 1), NULL);
+    skip_icon_win = (handled_reply != NULL &&
+            xcb_get_property_value_length(handled_reply) > 0);
 
-        icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
-                ((client->theme->icon.general.is_captioned)
-                 ? WM_ICON_CAPTION_HEIGHT
-                 : 0u));
+    free(handled_reply);
 
-        screen_w = 1024u;
-        screen_h = 768u;
-        if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
-            /* dimensions updated */
-        }
+    /* Compute icon height once for use in both branches */
+    icon_h_out = (uint16_t) (WM_ICON_SQUARE_SIZE +
+            ((client->theme->icon.general.is_captioned)
+             ? WM_ICON_CAPTION_HEIGHT
+             : 0u));
 
-        if (client->config_base != NULL) {
-            policy = client->config_base->icons.placement_policy;
-        }
+    if (!skip_icon_win) {
+        if (client->icon_window == 0) {
+            uint16_t screen_w;
+            uint16_t screen_h;
+            int16_t ix;
+            int16_t iy;
+            enum config_icon_placement_e policy =
+                CONFIG_ICON_PLACEMENT_BOTTOM;
 
-        /* Re-use saved position when the client was already iconified
-         * once and manually repositioned by the user */
-        if (client->icon_x >= 0 && client->icon_y >= 0) {
-            ix = client->icon_x;
-            iy = client->icon_y;
+            screen_w = 1024u;
+            screen_h = 768u;
+
+            if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
+                /* dimensions updated */
+            }
+
+            if (client->config_base != NULL) {
+                policy = client->config_base->icons.placement_policy;
+            }
+
+            /* Re-use saved position when the client was already iconified
+             * once and manually repositioned by the user */
+            if (client->icon_x >= 0 && client->icon_y >= 0) {
+                ix = client->icon_x;
+                iy = client->icon_y;
+            } else {
+                place_icon(client, wm_get_client_desktop(client), policy,
+                        WM_ICON_SQUARE_SIZE, icon_h_out,
+                        screen_w, screen_h,
+                        &ix, &iy);
+                client->icon_x = ix;
+                client->icon_y = iy;
+            }
+
+            client->icon_window = xcb_generate_id(client->connection);
+            mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
+                XCB_CW_EVENT_MASK;
+ 
+            values[0] = client->theme->icon.inactive.background_color;
+            values[1] = client->theme->icon.inactive.border_color;
+            values[2] = XCB_EVENT_MASK_EXPOSURE |
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_MOTION;
+
+            xcb_create_window(client->connection,
+                    XCB_COPY_FROM_PARENT,
+                    client->icon_window,
+                    client->parent_id,
+                    ix, iy,
+                    (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
+                    (uint16_t) client->theme->icon.general.border_width,
+                    XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                    XCB_COPY_FROM_PARENT,
+                    mask, values);
         } else {
-            place_icon(client, wm_get_client_desktop(client), policy,
-                    WM_ICON_SQUARE_SIZE, icon_h,
-                    screen_w, screen_h,
-                    &ix, &iy);
-            client->icon_x = ix;
-            client->icon_y = iy;
-        }
-
-        client->icon_window = xcb_generate_id(client->connection);
-        mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-        values[0] = client->theme->icon.inactive.background_color;
-        values[1] = client->theme->icon.inactive.border_color;
-        values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-                    XCB_EVENT_MASK_BUTTON_MOTION;
-        xcb_create_window(client->connection,
-                XCB_COPY_FROM_PARENT,
-                client->icon_window,
-                client->parent_id,
-                ix, iy,
-                (uint16_t) WM_ICON_SQUARE_SIZE, icon_h,
-                (uint16_t) client->theme->icon.general.border_width,
-                XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                XCB_COPY_FROM_PARENT,
-                mask, values);
-    } else {
-        /* Re-map at the saved position (may have been dragged) */
-        xcb_configure_window(client->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                (const uint32_t[]) {
+            /* Re-map at the saved position (may have been dragged) */
+            xcb_configure_window(client->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                    (const uint32_t[]) {
                     (uint32_t) client->icon_x,
                     (uint32_t) client->icon_y
-                });
+                    });
+        }
     }
 
     if (client->titlebar != 0) {
@@ -529,18 +567,55 @@ void wcmd_client_iconify(client_td *client)
         xcb_unmap_window(client->connection, client->window);
     }
 
-    xcb_map_window(client->connection, client->icon_window);
-    xcb_configure_window(client->connection, client->icon_window,
-            XCB_CONFIG_WINDOW_STACK_MODE,
-            (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-    client->is_icon_mapped = true;
+    if (!skip_icon_win) {
+        xcb_map_window(client->connection, client->icon_window);
+        xcb_configure_window(client->connection, client->icon_window,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        client->is_icon_mapped = true;
+
+        /* ICCCM §4.1.3: mark the WM icon window as Withdrawn so pagers
+         * that scan window trees treat it as unmanaged */
+        wm_state_atom = wcmd_intern_atom(client->connection, "WM_STATE");
+        wm_state_vals[0] = WCMD_WM_STATE_WITHDRAWN;
+        wm_state_vals[1] = XCB_NONE;
+
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->icon_window, wm_state_atom, wm_state_atom,
+                32, 2, wm_state_vals);
+
+        /* EWMH: tell pagers and taskbars to skip the WM icon window */
+        net_wm_state_atom = wcmd_intern_atom(client->connection,
+                "_NET_WM_STATE");
+        skip_atoms[0] = wcmd_intern_atom(client->connection,
+                "_NET_WM_STATE_SKIP_PAGER");
+        skip_atoms[1] = wcmd_intern_atom(client->connection,
+                "_NET_WM_STATE_SKIP_TASKBAR");
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->icon_window, net_wm_state_atom,
+                XCB_ATOM_ATOM, 32, 2, skip_atoms);
+
+        /* EWMH §5.9: publish icon geometry on the client window so
+         * taskbars can animate the iconify transition */
+        icon_geom[0] = (uint32_t) client->icon_x;
+        icon_geom[1] = (uint32_t) client->icon_y;
+        icon_geom[2] = WM_ICON_SQUARE_SIZE;
+        icon_geom[3] = icon_h_out;
+        icon_geom_atom = wcmd_intern_atom(client->connection,
+                "_NET_WM_ICON_GEOMETRY");
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, icon_geom_atom,
+                XCB_ATOM_CARDINAL, 32, 4, icon_geom);
+    }
 
     client_set_hidden(client);
     client->properties.state = CLIENT_STATE_ICONIFIED;
 
+    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
+            (skip_icon_win) ? XCB_NONE : client->icon_window);
+
     /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
      * Icon display handled by pager/desktop */
-    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, client->icon_window);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
@@ -669,7 +744,7 @@ void wcmd_client_unshade(client_td *client)
     target = wcmd_target_win(client);
 
     /* Restore only the height from the saved geometry; keep the current
-     * position so that moving the shaded window is honoured */
+     * position so that moving the shaded window is honored */
     restored_h = client->layout.geometry.old.dim.h;
     client->layout.geometry.cur.dim.h = restored_h;
 

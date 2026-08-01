@@ -333,6 +333,10 @@ int wm_ewmh_init(void)
     xcb_window_t support;
     xcb_intern_atom_reply_t *ia;
     xcb_atom_t net_wm_state_focused = XCB_ATOM_NONE;
+    xcb_atom_t net_wm_win_type_notif = XCB_ATOM_NONE;
+    xcb_atom_t net_wm_icon_geometry = XCB_ATOM_NONE;
+    xcb_atom_t wm_icon_size_atom = XCB_ATOM_NONE;
+    uint32_t icon_size_hints[6];
 
     if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL) {
         return 1;
@@ -347,6 +351,43 @@ int wm_ewmh_init(void)
         net_wm_state_focused = ia->atom;
         free(ia);
     }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_WM_WINDOW_TYPE_NOTIFICATION") - 1u,
+                "_NET_WM_WINDOW_TYPE_NOTIFICATION"), NULL);
+
+    if (ia != NULL) {
+        net_wm_win_type_notif = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_WM_ICON_GEOMETRY") - 1u,
+                "_NET_WM_ICON_GEOMETRY"), NULL);
+
+    if (ia != NULL) {
+        net_wm_icon_geometry = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("WM_ICON_SIZE") - 1u, "WM_ICON_SIZE"), NULL);
+
+    if (ia != NULL) {
+        wm_icon_size_atom = ia->atom;
+        free(ia);
+    }
+
+    /* ICCCM §4.1.3: announce the fixed icon dimensions to clients */
+    icon_size_hints[0] = WM_ICON_SQUARE_SIZE;   /* min_width */
+    icon_size_hints[1] = WM_ICON_SQUARE_SIZE;   /* min_height */
+    icon_size_hints[2] = WM_ICON_SQUARE_SIZE;   /* max_width */
+    icon_size_hints[3] = WM_ICON_SQUARE_SIZE;   /* max_height */
+    icon_size_hints[4] = 1u;                    /* width_inc */
+    icon_size_hints[5] = 1u;                    /* height_inc */
 
     support = xcb_generate_id(wm->connection);
     xcb_create_window(wm->connection,
@@ -423,17 +464,34 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_PING;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_USER_TIME;
     supported_atoms[n_supported++] = wm->ewmh->_NET_SHOWING_DESKTOP;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DESKTOP;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_MENU;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_UTILITY;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_SPLASH;
+    supported_atoms[n_supported++] = net_wm_win_type_notif;
+    supported_atoms[n_supported++] = net_wm_icon_geometry;
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
+
         if (surface == NULL || surface->screen == NULL) {
             continue;
         }
+
         xcb_ewmh_set_supporting_wm_check(wm->ewmh,
                 surface->screen->root, support);
         xcb_ewmh_set_supported(wm->ewmh, (int) surface->id,
                 n_supported, supported_atoms);
+
+        /* ICCCM §4.1.3: announce fixed icon dimensions on the root
+         * window */
+        if (wm_icon_size_atom != XCB_ATOM_NONE) {
+            xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+                    surface->screen->root, wm_icon_size_atom,
+                    wm_icon_size_atom, 32, 6, icon_size_hints);
+        }
     }
 
     xcb_flush(wm->connection);

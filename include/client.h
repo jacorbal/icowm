@@ -301,6 +301,7 @@ typedef struct client_s {
      * @brief ICCCM 'WM_HINTS' fields
      */
     bool wm_input_hint;         /**< Client accepts input (default true) */
+    bool initial_iconic;        /**< Map iconic for 'WM_HINTS' initial state */
     xcb_window_t group_leader;  /**< Window group leader, or 'XCB_NONE' */
 
     /**

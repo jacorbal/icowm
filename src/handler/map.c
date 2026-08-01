@@ -40,6 +40,7 @@
 #include <input/drag.h>
 
 /* Command includes */
+#include <cmds/ccmd.h>
 #include <cmds/layer.h>
 #include <cmds/util.h>
 
@@ -136,20 +137,26 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         place_apply(wm, surface, client);
     }
 
-    if (client->titlebar != 0) {
-        xcb_map_window(wm->connection, client->titlebar);
-    }
-    if (client->frame != 0) {
-        xcb_map_window(wm->connection, client->frame);
-        xcb_map_window(wm->connection, client->window);
+    /* ICCCM §4.1.2.4: honor 'WM_HINTS' initial_state when 'IconicState' */
+    if (client->initial_iconic) {
+        wcmd_client_iconify(client);
     } else {
-        xcb_map_window(wm->connection, event->window);
-    }
+        if (client->titlebar != 0) {
+            xcb_map_window(wm->connection, client->titlebar);
+        }
 
-    if (wm->config->base.windows.focus.is_new_focused &&
-            client_is_focusable(client)) {
-        focus_apply(wm->surfaces, surface, desktop, client, true,
-                wm->config);
+        if (client->frame != 0) {
+            xcb_map_window(wm->connection, client->frame);
+            xcb_map_window(wm->connection, client->window);
+        } else {
+            xcb_map_window(wm->connection, event->window);
+        }
+
+        if (wm->config->base.windows.focus.is_new_focused &&
+                client_is_focusable(client)) {
+            focus_apply(wm->surfaces, surface, desktop, client, true,
+                    wm->config);
+        }
     }
 
     /* Re-apply layer stacking so newly mapped windows do not obscure

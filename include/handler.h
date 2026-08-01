@@ -189,7 +189,7 @@ void handler_expose(xcb_connection_t *connection,
  *
  * Dispatches EWMH and ICCCM client-message requests from applications
  * (fullscreen, maximize, close, desktop switch, iconify, etc.) to the
- * appropriate command functions so that they are honoured by the window
+ * appropriate command functions so that they are honored by the window
  * manager.
  *
  * @param wm    Window manager state
