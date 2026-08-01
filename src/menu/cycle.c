@@ -68,6 +68,7 @@ static struct {
     uint16_t next_modmask;
     xcb_keysym_t prev_keysym;
     uint16_t prev_modmask;
+    client_td *preview_client;
 } s_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
@@ -81,8 +82,122 @@ static struct {
     .next_keysym = XCB_NO_SYMBOL,
     .next_modmask = 0,
     .prev_keysym = XCB_NO_SYMBOL,
-    .prev_modmask = 0
+    .prev_modmask = 0,
+    .preview_client = NULL
 };
+
+
+/**
+ * @brief Resolve the X window used as the visual target for cycle
+ *        preview
+ *
+ * Determines which X window should be used to represent a client during
+ * cycle preview operations.  The function accounts for icon menu mode,
+ * hidden clients, and window decorations to select the appropriate
+ * drawable target.
+ *
+ * @param client       Pointer to the client to evaluate
+ * @param is_icon_menu Whether the cycle preview is operating in icon
+ *                     menu mode
+ *
+ * @return The X window ID to use as preview target, or
+ *         @c XCB_WINDOW_NONE if no valid target is available
+ *
+ * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
+ *       lacks a valid drawable target
+ * @note Prefers @c client->icon_window in icon menu mode when available
+ * @note Uses the frame window when the client is decorated
+ * @note Complexity: @e O(1)
+ */
+static xcb_window_t s_cycle_preview_target(const client_td *client,
+        bool is_icon_menu)
+{
+    if (client == NULL) {
+        return XCB_WINDOW_NONE;
+    }
+    if (is_icon_menu) {
+        return (client->icon_window != 0)
+            ? client->icon_window
+            : XCB_WINDOW_NONE;
+    }
+    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        return XCB_WINDOW_NONE;
+    }
+    if (client_is_decorated(client) && client->frame != 0) {
+        return client->frame;
+    }
+    return client->window;
+}
+
+
+/**
+ * @brief Apply cycle preview highlighting and stacking for the selected
+ *        client
+ *
+ * Updates the visual state of the currently selected client in the
+ * cycle preview by adjusting its border color and ensuring it is
+ * stacked above its peers.  Also restores the previous preview client's
+ * border color according to its active or inactive state.
+ *
+ * @param connection Pointer to the XCB connection
+ * @param cfg        Pointer to the configuration containing theme data
+ *
+ * @note No-op if required state (connection, config, menu, or
+ *       selection) is invalid or incomplete
+ * @note Restores the previous preview client's border color before
+ *       applying the new selection highlight
+ * @note Ensures the selected target window is raised above others
+ * @note Updates @c s_menu.preview_client to track the current preview
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_preview_apply(xcb_connection_t *connection,
+        const config_td *cfg)
+{
+    client_td *selected;
+    client_td *previous;
+    xcb_window_t selected_target;
+    xcb_window_t previous_target;
+    uint32_t values[1];
+    uint32_t selected_border;
+    uint32_t previous_border;
+    bool prev_is_active;
+    if (connection == NULL || cfg == NULL ||
+            s_menu.window == XCB_WINDOW_NONE ||
+            s_menu.surface == NULL || s_menu.desktop == NULL ||
+            s_menu.selected < 0 || s_menu.selected >= s_menu.count) {
+        return;
+    }
+    selected = s_menu.clients[s_menu.selected];
+    selected_target = s_cycle_preview_target(selected, s_menu.is_icon_menu);
+    if (selected == NULL || selected_target == XCB_WINDOW_NONE) {
+        return;
+    }
+    previous = s_menu.preview_client;
+    if (previous != NULL && previous != selected) {
+        previous_target = s_cycle_preview_target(previous, s_menu.is_icon_menu);
+        if (previous_target != XCB_WINDOW_NONE) {
+            prev_is_active = (s_menu.desktop->client_active_id == previous->id);
+            if (s_menu.is_icon_menu) {
+                previous_border = cfg->theme.icon.border_color;
+            } else if (prev_is_active) {
+                previous_border = cfg->theme.window.active.border_color;
+            } else {
+                previous_border = cfg->theme.window.inactive.border_color;
+            }
+            xcb_change_window_attributes(connection, previous_target,
+                    XCB_CW_BORDER_PIXEL, &previous_border);
+        }
+    }
+    selected_border = cfg->theme.window.active.border_color;
+    xcb_change_window_attributes(connection, selected_target,
+            XCB_CW_BORDER_PIXEL, &selected_border);
+    values[0] = XCB_STACK_MODE_ABOVE;
+    xcb_configure_window(connection, selected_target,
+            XCB_CONFIG_WINDOW_STACK_MODE, values);
+    s_menu.preview_client = selected;
+    xcb_flush(connection);
+}
+
 
 
 /* Open the cycle menu for window or icon cycling */
@@ -152,6 +267,7 @@ void cycle_open(list_td *surfaces,
     s_menu.prev_keysym = pks;
     s_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
+    s_menu.preview_client = NULL;
 
     /* Collect matching clients, i.e., iterate from tail (top of stack,
      * most recently raised) to head (bottom), so the list order matches
@@ -323,6 +439,8 @@ void cycle_open(list_td *surfaces,
             XCB_INPUT_FOCUS_POINTER_ROOT,
             s_menu.window,
             XCB_CURRENT_TIME);
+
+    s_cycle_preview_apply(connection, cfg);
     xcb_flush(connection);
 }
 
@@ -353,6 +471,7 @@ void cycle_close(xcb_connection_t *connection)
     s_menu.next_modmask = 0;
     s_menu.prev_keysym = XCB_NO_SYMBOL;
     s_menu.prev_modmask = 0;
+    s_menu.preview_client = NULL;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection,
@@ -411,6 +530,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
                 s_menu.labels[i]);
     }
 
+    s_cycle_preview_apply(connection, cfg);
     xcb_flush(connection);
 }
 

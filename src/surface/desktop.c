@@ -539,10 +539,12 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
         return -1;
     }
 
-    /* TODO: Orientation changes require XRandR */
+    /* Orientation control is currently unsupported in this backend */
+    LOGGER_WARNING("Surface orientation change is unsupported",
+            L_NARG);
     (void) orientation;
 
-    return 0;
+    return -1;
 }
 
 
@@ -558,10 +560,12 @@ int surface_action_set_brightness(surface_td *surface,
         return -1;
     }
 
-    /* TODO: Brightness control requires backlight interface */
+    /* Brightness control is currently unsupported in this backend */
+    LOGGER_WARNING("Surface brightness control is unsupported",
+            L_NARG);
     (void) brightness;
 
-    return 0;
+    return -1;
 }
 
 
@@ -576,10 +580,12 @@ int surface_action_set_contrast(surface_td *surface, uint16_t contrast)
         return -1;
     }
 
-    /* TODO: Contrast control requires display driver interface */
+    /* Contrast control is currently unsupported in this backend */
+    LOGGER_WARNING("Surface contrast control is unsupported",
+            L_NARG);
     (void) contrast;
 
-    return 0;
+    return -1;
 }
 
 

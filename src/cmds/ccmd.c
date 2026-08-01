@@ -271,6 +271,8 @@ void wcmd_client_restore(client_td *client)
 /* Focus a client */
 void wcmd_client_focus(client_td *client)
 {
+    uint32_t border_color;
+
     if (client == NULL) {
         return;
     }
@@ -278,6 +280,12 @@ void wcmd_client_focus(client_td *client)
     xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
                         client->window, XCB_CURRENT_TIME);
     xcb_map_window(client->connection, client->window);
+    if ((!client_is_decorated(client) || client->frame == 0) &&
+            client->theme != NULL) {
+        border_color = client->theme->window.active.border_color;
+        xcb_change_window_attributes(client->connection, client->window,
+                XCB_CW_BORDER_PIXEL, &border_color);
+    }
 
     if (client->ewmh != NULL) {
         xcb_ewmh_set_active_window(client->ewmh,
@@ -290,11 +298,19 @@ void wcmd_client_focus(client_td *client)
 /* Unfocus the client */
 void wcmd_client_unfocus(client_td *client)
 {
+    uint32_t border_color;
+
     if (client == NULL) {
         return;
     }
 
     client_unfocus(client);
+    if ((!client_is_decorated(client) || client->frame == 0) &&
+            client->theme != NULL) {
+        border_color = client->theme->window.inactive.border_color;
+        xcb_change_window_attributes(client->connection, client->window,
+                XCB_CW_BORDER_PIXEL, &border_color);
+    }
 
     if (client->ewmh != NULL) {
         xcb_ewmh_set_active_window(client->ewmh,
@@ -980,6 +996,8 @@ void wcmd_client_toggle_decoration(client_td *client)
 {
     int32_t bw;
     int32_t th;
+    desktop_td *desktop;
+    bool keep_focus;
 
     if (client == NULL) {
         return;
@@ -989,6 +1007,9 @@ void wcmd_client_toggle_decoration(client_td *client)
         ? (int32_t) client->theme->window.general.border_width
         : 0;
     th = (int32_t) client->title_height;
+    desktop = wm_get_client_desktop(client);
+    keep_focus = (desktop != NULL &&
+            desktop->client_active_id == client->id);
 
     if (client_is_decorated(client)) {  /* Remove decoration */
         if (client->frame != 0) {
@@ -1128,6 +1149,10 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.frame_extents.bottom = bw;
             client_set_decoration(client);
         }
+    }
+
+    if (keep_focus) {
+        wcmd_client_focus(client);
     }
 
     wm_request_client_redraw(client);
