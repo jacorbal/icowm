@@ -99,6 +99,56 @@ static void s_handler_send_synthetic_configure_notify(
 }
 
 
+/**
+ * @brief Adjust frame position to keep the gravity anchor fixed on
+ *        resize
+ *
+ * Computes the displacement that preserves the anchor point defined by
+ * @p gravity after the frame changes from (@p old_w x @p old_h) to
+ * (@p new_w x @p new_h) and adds it to @p *out_x and @p *out_y.
+ * No-op for @c CLIENT_GRAVITY_NORTH_WEST and @c CLIENT_GRAVITY_STATIC.
+ * See ICCCM §4.1.2.3 and §4.1.5.
+ *
+ * @param out_x   Frame x to adjust in place
+ * @param out_y   Frame y to adjust in place
+ * @param old_w   Frame width before resize
+ * @param old_h   Frame height before resize
+ * @param new_w   Frame width after resize
+ * @param new_h   Frame height after resize
+ * @param gravity Client win_gravity value
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_gravity_adjust_pos(int32_t *out_x, int32_t *out_y,
+        uint32_t old_w, uint32_t old_h,
+        uint32_t new_w, uint32_t new_h,
+        uint16_t gravity)
+{
+    int32_t dw = (int32_t) old_w - (int32_t) new_w;
+    int32_t dh = (int32_t) old_h - (int32_t) new_h;
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
+        *out_x += dw;
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
+        *out_x += dw / 2;
+    }
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
+        *out_y += dh;
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
+        *out_y += dh / 2;
+    }
+}
+
+
 /* Handle a 'CONFIGURE_REQUEST' event */
 void handler_configure_request(xcb_connection_t *connection,
         list_td *surfaces, xcb_configure_request_event_t *event)
@@ -147,6 +197,10 @@ void handler_configure_request(xcb_connection_t *connection,
         int32_t req_y = client->layout.geometry.cur.pos.y;
         uint32_t req_w = client->layout.geometry.cur.dim.w;
         uint32_t req_h = client->layout.geometry.cur.dim.h;
+        uint32_t old_w = client->layout.geometry.cur.dim.w;
+        uint32_t old_h = client->layout.geometry.cur.dim.h;
+        int32_t adj_x = 0;
+        int32_t adj_y = 0;
         uint16_t left = (uint16_t) client->layout.frame_extents.left;
         uint16_t right = (uint16_t) client->layout.frame_extents.right;
         uint16_t top = (uint16_t) client->layout.frame_extents.top;
@@ -170,7 +224,7 @@ void handler_configure_request(xcb_connection_t *connection,
                 return;
             }
         }
-
+        
         if (is_reparented) {
             target = client->frame;
         }
@@ -262,6 +316,39 @@ void handler_configure_request(xcb_connection_t *connection,
             target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         }
 
+        /* Honor win_gravity (ICCCM §4.1.2.3 and §4.1.5): when only the
+         * size changes without an explicit new position, keep the
+         * gravity anchor point fixed by adjusting the frame position.
+         * X/Y have lower mask bits than W/H, so the values array must
+         * be prepended and any higher-bit values shifted up by two. */
+        if ((target_mask & (XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT)) &&
+                !(mask & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y)) &&
+                client->layout.gravity != 0u &&
+                client->layout.gravity !=
+                    (uint16_t) CLIENT_GRAVITY_NORTH_WEST &&
+                client->layout.gravity !=
+                    (uint16_t) CLIENT_GRAVITY_STATIC) {
+            adj_x = client->layout.geometry.cur.pos.x;
+            adj_y = client->layout.geometry.cur.pos.y;
+            s_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
+                    req_w, req_h, client->layout.gravity);
+            if (adj_x != client->layout.geometry.cur.pos.x ||
+                    adj_y != client->layout.geometry.cur.pos.y) {
+                for (int j = i - 1; j >= 0; --j) {
+                    target_values[j + 2] = target_values[j];
+                }
+                target_values[0] = (uint32_t) adj_x;
+                target_values[1] = (uint32_t) adj_y;
+                i += 2;
+                target_mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+                client->layout.geometry.cur.pos.x = adj_x;
+                client->layout.geometry.cur.pos.y = adj_y;
+                send_synth = is_reparented;
+                geom_changed = true;
+            }
+        }
+
         if (target_mask != 0 && connection != NULL) {
             xcb_configure_window(connection, target,
                     target_mask, target_values);
@@ -324,7 +411,7 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_invalidate_desktop(desktop);    
     }
 }
 

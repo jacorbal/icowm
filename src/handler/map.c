@@ -448,7 +448,7 @@ void handler_gravity_notify(xcb_connection_t *connection,
 
     /* The X server repositioned a frame window ('event->window') within
      * root because the screen was resized and the client's win_gravity
-     * ('client->properties.gravity') placed it at a non-NW anchor.
+     * ('client->layout.gravity') placed it at a non-NW anchor.
      * Update the cached frame position and re-sync decorations. */
     client = lookup_find_client(surfaces, event->window, NULL, NULL);
     if (client != NULL) {

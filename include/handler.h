@@ -104,7 +104,7 @@ void handler_map_notify(xcb_connection_t *connection,
  *
  * Updates the cached frame position when the X server repositions
  * a frame window following a screen resize, according to the client's
- * @c win_gravity (stored as @c client->properties.gravity).  Re-syncs
+ * @c win_gravity (stored as @c client->layout.gravity).  Re-syncs
  * decoration layout and schedules a repaint.
  *
  * @param connection XCB connection
@@ -188,7 +188,12 @@ void handler_destroy_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c PROPERTY_NOTIFY event
  *
- * Refreshes the client name when @c WM_NAME changes.
+  * Refreshes the client name when @c WM_NAME or @c _NET_WM_NAME
+  * changes.  When @c _NET_WM_STRUT_PARTIAL or @c _NET_WM_STRUT changes,
+  * re-reads the strut values into @c client->layout.strut_partial and
+  * calls @c desktop_update_workarea on all desktops of the owning
+  * surface so that maximize and placement policies use the updated work
+  * area.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces

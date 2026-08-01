@@ -123,6 +123,7 @@ client_td *client_init(xcb_connection_t *connection,
         (struct sides_s) {0, 0, 0, 0};
     client->layout.frame_extents =
         (struct sides_s) {0, 0, 0, 0};
+    client->layout.gravity = CLIENT_GRAVITY_NORTH_WEST;
 
     /* Initialize client properties with sensible defaults */
     client->properties.flags =
@@ -133,7 +134,6 @@ client_td *client_init(xcb_connection_t *connection,
     client->properties.layer = CLIENT_LAYER_NORMAL;
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
-    client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
     ci_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers for client information */
@@ -378,6 +378,7 @@ client_td *client_manage(xcb_connection_t *connection,
         client->layout.geometry.cur.dim.h = WM_CLIENT_DEFAULT_DIM;
     }
     client->layout.geometry.old = client->layout.geometry.cur;
+    client->layout.gravity = CLIENT_GRAVITY_NORTH_WEST;
 
     /* Default properties: visible, focusable, resizable */
     client->properties.flags = CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
@@ -386,7 +387,6 @@ client_td *client_manage(xcb_connection_t *connection,
     client->properties.layer = CLIENT_LAYER_NORMAL;
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
-    client->properties.gravity = CLIENT_GRAVITY_NORTH_WEST;
     ci_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers */
@@ -539,7 +539,7 @@ client_td *client_manage(xcb_connection_t *connection,
         }
 
         if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
-            client->properties.gravity =
+            client->layout.gravity =
                 (uint16_t) hints.win_gravity;
         }
 

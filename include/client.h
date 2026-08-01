@@ -139,24 +139,23 @@ enum client_layer_e {
  * @brief Anchor point used to determine how a client's position is
  *        adjusted relative to its size when resized
  *
- * @note EWMH: "Window Managers MUST honor the @c win_gravity field of
- *             @c WM_NORMAL_HINTS for both @c MapRequest @e and
- *             @c ConfigureRequest events (ICCCM Version 2.0,
- *                §4.1.2.3 and §4.1.5)"
+ * @note ICCCM: "Window Managers MUST honor the @c win_gravity field of
+ *              @c WM_NORMAL_HINTS for both @c MapRequest @e and
+ *              @c ConfigureRequest events (ICCCM Version 2.0, §4.1.2.3
+ *              and §4.1.5)"
  */
-enum client_gravity_e {     /* Placed at the reference point: */
-    CLIENT_GRAVITY_STATIC,      /* 0: left top corner of client client */
-    CLIENT_GRAVITY_NORTH_WEST,  /* 1: left top corner of client */
-    CLIENT_GRAVITY_NORTH,       /* 2: center of the client's top side */
-    CLIENT_GRAVITY_NORTH_EAST,  /* 3: right top corner of client */
-    CLIENT_GRAVITY_EAST,        /* 4: center of the client's right side */
-    CLIENT_GRAVITY_SOUTH_EAST,  /* 5: right bottom corner of client */
-    CLIENT_GRAVITY_SOUTH,       /* 6: center of the client's bottom side */
-    CLIENT_GRAVITY_SOUTH_WEST,  /* 7: left bottom corner of client */
-    CLIENT_GRAVITY_WEST,        /* 8: center of the client's left side */
-    CLIENT_GRAVITY_CENTER,      /* 9: center of the client */
+enum client_gravity_e {         /* Reference point fixed on resize: */
+    CLIENT_GRAVITY_NORTH_WEST = 1,  /*  1: top-left corner of frame */
+    CLIENT_GRAVITY_NORTH      = 2,  /*  2: center of top edge */
+    CLIENT_GRAVITY_NORTH_EAST = 3,  /*  3: top-right corner of frame */
+    CLIENT_GRAVITY_EAST       = 4,  /*  4: center of right edge */
+    CLIENT_GRAVITY_SOUTH_EAST = 5,  /*  5: bottom-right corner of frame */
+    CLIENT_GRAVITY_SOUTH      = 6,  /*  6: center of bottom edge */
+    CLIENT_GRAVITY_SOUTH_WEST = 7,  /*  7: bottom-left corner of frame */
+    CLIENT_GRAVITY_WEST       = 8,  /*  8: center of left edge */
+    CLIENT_GRAVITY_CENTER     = 9,  /*  9: center of frame */
+    CLIENT_GRAVITY_STATIC     = 10, /* 10: top-left corner of client area */
 };
-
 
 /**
  * @brief Window properties
@@ -171,9 +170,6 @@ struct client_properties_s {
     uint16_t type;       /**< Type (normal, notification...) */
     uint16_t operation;  /**< Operation (moving, resizing...) */
     uint16_t focusing;   /**< Focusing (focused, unfocused) */
-
-    // TODO: Does this go on the client, or on the WM itself?
-    uint16_t gravity;    /**< Window gravity */
 };
 
 
@@ -201,14 +197,14 @@ struct client_layout_s {
      *       when @p .start and @p .end are zero
      */
     struct {
-        struct sides_s sides;      /* [left, right, top, bottom] */
-        struct sides_s start;      /* [left_start_y, right_start_y,
-                                       top_start_x, bottom_start_x] */
-        struct sides_s end;        /* [left_end_y, right_end_y,
-                                       top_end_x, bottom_end_x] */
+        struct sides_s sides;       /* [left, right, top, bottom] */
+        struct sides_s start;       /* [left_start_y, right_start_y,
+                                        top_start_x, bottom_start_x] */
+        struct sides_s end;         /* [left_end_y, right_end_y,
+                                        top_end_x, bottom_end_x] */
     } strut_partial;
-
-    struct sides_s frame_extents;  /* [left, right, top, bottom] */
+    uint16_t gravity;               /* Window gravity */
+    struct sides_s frame_extents;   /* [left, right, top, bottom] */
 };
 
 

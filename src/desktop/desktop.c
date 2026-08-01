@@ -284,7 +284,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
                 .h = screen->height_in_pixels}
     };
 
-    /* TODO: Work area is the same as geometry for now (panels/struts) */
+    /* Initialize workarea to full screen; updated once clients with
+     * struts are adopted via 'desktop_update_workarea' */
     desktop->workarea = desktop->geometry;
 
     /* Mark desktop as outdated to trigger initial render */
