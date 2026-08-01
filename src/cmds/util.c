@@ -82,7 +82,7 @@ xcb_window_t wcmd_target_win(client_td *client)
 }
 
 
-/*  */
+/* Passively grab all mouse buttons on an undecorated client */
 void wcmd_client_grab_buttons(client_td *client)
 {
     if (client == NULL || client->connection == NULL ||
@@ -104,7 +104,7 @@ void wcmd_client_grab_buttons(client_td *client)
 }
 
 
-/*  */
+/* Remove passive button grabs from an undecorated client */
 void wcmd_client_ungrab_buttons(client_td *client)
 {
     if (client == NULL || client->connection == NULL ||
@@ -120,7 +120,7 @@ void wcmd_client_ungrab_buttons(client_td *client)
 }
 
 
-/*  */
+/* Write the ICCCM 'WM_STATE' property for a client */
 void wcmd_set_wm_state(client_td *client,
         uint32_t state, xcb_window_t icon_window)
 {
@@ -145,7 +145,7 @@ void wcmd_set_wm_state(client_td *client,
 }
 
 
-/*  */
+/*  Remove the ICCCM 'WM_STATE' property from a client */
 void wcmd_clear_wm_state(client_td *client)
 {
     xcb_atom_t wm_state;

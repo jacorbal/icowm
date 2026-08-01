@@ -102,22 +102,93 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
 }
 
 
+/**
+ * @brief Resolve an event window to its associated managed client
+ *
+ * Attempts to find the client corresponding to a button event by first
+ * checking the given event or child window directly.  If the event
+ * occurred on a child window that is not explicitly managed, the
+ * function walks up the X11 window hierarchy using @a xcb_query_tree
+ * until it finds a parent window associated with a known client or
+ * reaches the root.
+ *
+ * @param connection   Active XCB connection, or @c NULL to disable
+ *                     hierarchy traversal
+ * @param surfaces     List of managed client surfaces
+ * @param event_window The window where the event was reported
+ * @param child_window The child window under the pointer, or @c XCB_NONE
+ * @param out_desktop  Output pointer for the client's desktop, or @c NULL
+ *
+ * @return Pointer to the resolved client, or @c NULL if no matching
+ *         client is found
+ *
+ * @note Optionally returns the desktop containing the resolved client
+ * @note Complexity: @e O(h), where @e h is the height of the window
+ *       hierarchy
+ */
+static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t event_window,
+        xcb_window_t child_window, desktop_td **out_desktop)
+{
+    client_td *client;
+    xcb_window_t window;
+
+    if (out_desktop != NULL) {
+        *out_desktop = NULL;
+    }
+
+    if (surfaces == NULL) {
+        return NULL;
+    }
+
+    window = (child_window != XCB_NONE) ? child_window : event_window;
+    client = lookup_find_client(surfaces, window, NULL, out_desktop);
+    if (client != NULL || connection == NULL ||
+            child_window == XCB_NONE) {
+        return client;
+    }
+
+    window = child_window;
+    while (client == NULL) {
+        xcb_query_tree_cookie_t qt_c = xcb_query_tree(connection,
+                window);
+        xcb_query_tree_reply_t *qt_r =
+            xcb_query_tree_reply(connection, qt_c, NULL);
+        xcb_window_t parent;
+        xcb_window_t root;
+
+        if (qt_r == NULL) {
+            break;
+        }
+
+        parent = qt_r->parent;
+        root = qt_r->root;
+        free(qt_r);
+
+        if (parent == XCB_NONE || parent == root) {
+            break;
+        }
+
+        window = parent;
+        client = lookup_find_client(surfaces, window, NULL,
+                out_desktop);
+    }
+
+    return client;
+}
+
+
 /* Dispatch a button-press event */
 void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *cfg)
 {
-        xcb_window_t window;
+    xcb_window_t window;
     client_td *client;
     desktop_td *desktop;
     surface_td *surface;
     uint16_t state;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
-    xcb_window_t w;
-    xcb_query_tree_cookie_t qt_c;
-    xcb_query_tree_reply_t *qt_r;
-    xcb_window_t qt_parent;
-    xcb_window_t qt_root;
     uint32_t screen_w;
     uint32_t screen_h;
 
@@ -185,7 +256,8 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     window = (event->child != XCB_NONE) ? event->child : event->event;
-    client = lookup_find_client(surfaces, window, NULL, &desktop);
+    client = s_mouse_find_event_client(connection, surfaces,
+            event->event, event->child, &desktop);
 
     if (client != NULL && window == client->icon_window) {
         if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
@@ -517,25 +589,8 @@ void mouse_handle_press(xcb_connection_t *connection,
     /* Re-lookup after determining the binding type: walk up tree if
      * needed to find the managed ancestor */
     window = (event->child != XCB_NONE) ? event->child : event->event;
-    client = lookup_find_client(surfaces, window, NULL, &desktop);
-    if (client == NULL && event->child != XCB_NONE) {
-        w = event->child;
-        while (client == NULL) {
-            qt_c = xcb_query_tree(connection, w);
-            qt_r = xcb_query_tree_reply(connection, qt_c, NULL);
-            if (qt_r == NULL) {
-                break;
-            }
-            qt_parent = qt_r->parent;
-            qt_root = qt_r->root;
-            free(qt_r);
-            if (qt_parent == XCB_NONE || qt_parent == qt_root) {
-                break;
-            }
-            w = qt_parent;
-            client = lookup_find_client(surfaces, w, NULL, &desktop);
-        }
-    }
+    client = s_mouse_find_event_client(connection, surfaces,
+            event->event, event->child, &desktop);
 
     if (client == NULL) {
         xcb_allow_events(connection,

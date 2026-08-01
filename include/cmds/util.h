@@ -94,13 +94,58 @@ xcb_window_t wcmd_target_win(client_td *client);
 bool wcmd_screen_dim(client_td *client,
         uint16_t *out_w, uint16_t *out_h);
 
+/**
+ * @brief Passively grab all mouse buttons on an undecorated client
+ *
+ * Installs a synchronous passive grab on the client window so the
+ * window manager can focus the client on click before replaying or
+ * consuming the button event.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Complexity: @e O(1)
+ */
 void wcmd_client_grab_buttons(client_td *client);
 
+/**
+ * @brief Remove passive button grabs from an undecorated client
+ *
+ * Releases the passive grab installed by @c wcmd_client_grab_buttons so
+ * mouse input flows directly to the client again.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Complexity: @e O(1)
+ */
 void wcmd_client_ungrab_buttons(client_td *client);
 
+/**
+ * @brief Write the ICCCM @c WM_STATE property for a client
+ *
+ * Stores the client state and optional icon window in the legacy
+ * @c WM_STATE property expected by pagers, taskbars, and older X11
+ * clients.
+ *
+ * @param client      Pointer to the client
+ * @param state       ICCCM window-manager state value
+ * @param icon_window Icon window associated with @p state, or
+ *                    @c XCB_NONE
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
+ */
 void wcmd_set_wm_state(client_td *client,
         uint32_t state, xcb_window_t icon_window);
 
+/**
+ * @brief Remove the ICCCM @c WM_STATE property from a client
+ *
+ * Deletes the legacy @c WM_STATE property, typically when the client is
+ * being withdrawn from window-manager control.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
+ */
 void wcmd_clear_wm_state(client_td *client);
 
 /**
