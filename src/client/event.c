@@ -213,6 +213,8 @@ int client_send_event_resize(client_td *client,
     action_td action;
     action_data_client_td *data;
     uint32_t values[2];
+    uint32_t req_w;
+    uint32_t req_h;
 
     if (client == NULL) {
         LOGGER_ERROR("Received null client pointer", L_NARG);
@@ -222,16 +224,74 @@ int client_send_event_resize(client_td *client,
     LOGGER_TRACE("Resizing client %p to %ux%u",
             (void *) client, new_w, new_h);
 
+    req_w = new_w;
+    req_h = new_h;
+    if (client->size_hints.valid) {
+        if (client->size_hints.min_w > 0 &&
+                req_w < (uint32_t) client->size_hints.min_w) {
+            req_w = (uint32_t) client->size_hints.min_w;
+        }
+
+        if (client->size_hints.max_w > 0 &&
+                req_w > (uint32_t) client->size_hints.max_w) {
+            req_w = (uint32_t) client->size_hints.max_w;
+        }
+
+        if (client->size_hints.min_h > 0 &&
+                req_h < (uint32_t) client->size_hints.min_h) {
+            req_h = (uint32_t) client->size_hints.min_h;
+        }
+
+        if (client->size_hints.max_h > 0 &&
+                req_h > (uint32_t) client->size_hints.max_h) {
+            req_h = (uint32_t) client->size_hints.max_h;
+        }
+
+        if (client->size_hints.inc_w > 1) {
+            uint32_t base;
+            uint32_t inc;
+            uint32_t over;
+            base = (client->size_hints.base_w > 0)
+                ? (uint32_t) client->size_hints.base_w
+                : 0u;
+            inc = (uint32_t) client->size_hints.inc_w;
+            over = (req_w > base) ? (req_w - base) : 0u;
+            req_w = base + (over / inc) * inc;
+        }
+
+        if (client->size_hints.inc_h > 1) {
+            uint32_t base;
+            uint32_t inc;
+            uint32_t over;
+            base = (client->size_hints.base_h > 0)
+                ? (uint32_t) client->size_hints.base_h
+                : 0u;
+            inc = (uint32_t) client->size_hints.inc_h;
+            over = (req_h > base) ? (req_h - base) : 0u;
+            req_h = base + (over / inc) * inc;
+        }
+
+        if (client->size_hints.min_w > 0 &&
+                req_w < (uint32_t) client->size_hints.min_w) {
+            req_w = (uint32_t) client->size_hints.min_w;
+        }
+
+        if (client->size_hints.min_h > 0 &&
+                req_h < (uint32_t) client->size_hints.min_h) {
+            req_h = (uint32_t) client->size_hints.min_h;
+        }
+    }
+
     /* Update client's internal geometry */
-    client->layout.geometry.cur.dim.w = new_w;
-    client->layout.geometry.cur.dim.h = new_h;
+    client->layout.geometry.cur.dim.w = req_w;
+    client->layout.geometry.cur.dim.h = req_h;
 
     /* Configure the XCB window immediately */
     /* NOTE: For decorated clients the frame must be resized; resizing
      *       only the inner window would leave the decoration at the
      *       wrong size */
-    values[0] = new_w;
-    values[1] = new_h;
+    values[0] = req_w;
+    values[1] = req_h;
 
     xcb_configure_window(client->connection,
             (client->frame != 0 && client_is_decorated(client))
@@ -255,8 +315,8 @@ int client_send_event_resize(client_td *client,
         return -1;
     }
 
-    data->new_data.geometry.dim.w = new_w;
-    data->new_data.geometry.dim.h = new_h;
+    data->new_data.geometry.dim.w = req_w;
+    data->new_data.geometry.dim.h = req_h;
 
     event = event_init((void *) client, (void *) data,
             action, CLIENT_PRIORITY_DEFAULT);

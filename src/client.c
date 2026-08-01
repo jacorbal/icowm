@@ -428,6 +428,7 @@ client_td *client_manage(xcb_connection_t *connection,
         free(ia);
     }
 
+    client->wm_delete_atom = wm_delete_atom;
     client->has_wm_delete_window = false;
     memset(&proto, 0, sizeof(proto));
     if (xcb_icccm_get_wm_protocols_reply(connection,

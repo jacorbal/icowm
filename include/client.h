@@ -270,9 +270,10 @@ typedef struct client_s {
     struct client_layout_s layout;
     struct client_properties_s properties;
 
-    bool has_wm_delete_window;      /**< Supports WM_DELETE_WINDOW */
+    bool has_wm_delete_window;      /**< Supports 'WM_DELETE_WINDOW' */
+    xcb_atom_t wm_delete_atom;      /**< Cached 'WM_DELETE_WINDOW' atom */
     xcb_window_t transient_for;     /**< Parent window for dialogs
-                                         (0 or XCB_WINDOW_NONE if none) */
+                                         (0 or 'XCB_WINDOW_NONE' if none) */
     /**
      * @brief ICCCM WM_NORMAL_HINTS size constraints
      */

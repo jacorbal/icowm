@@ -514,7 +514,24 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 
         free(pointer_reply);
     } else {
-        /* "none" or unknown: keep the X-server-assigned position */
+        /* "none" or unknown: keep X-server position unless the frame
+         * would start outside the visible top-left screen corner */
+        new_x = client->layout.geometry.cur.pos.x;
+        new_y = client->layout.geometry.cur.pos.y;
+
+        if (new_x < 0) {
+            new_x = 0;
+        }
+
+        if (new_y < 0) {
+            new_y = 0;
+        }
+
+        if (new_x == client->layout.geometry.cur.pos.x &&
+                new_y == client->layout.geometry.cur.pos.y) {
+            return;
+        }
+
         return;
     }
 
