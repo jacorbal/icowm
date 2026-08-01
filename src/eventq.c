@@ -531,7 +531,6 @@ int eventq_macro_play(const char *name)
 int eventq_macro_clear(const char *name)
 {
     list_item_td *prev;
-    list_item_td *node;
     void *data;
 
     if (name == NULL) {

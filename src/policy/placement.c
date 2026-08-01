@@ -233,8 +233,9 @@ void place_icon(const client_td *client, desktop_td *desktop,
     if (max_primary == 0u) {
         max_primary = 1u;
     }
-    /* Mark occupied slots.  slot = sec * max_primary + pri where pri
-     * indexes along the edge and sec counts overflow rows/columns. */
+    /* Mark occupied slots.  `slot = sec * max_primary + pri` where
+     * `pri` indexes along the edge and `sec` counts overflow
+     * rows/columns */
     for (uint16_t i = 0u; i < 256u; ++i) {
         occupied[i] = false;
     }
@@ -251,8 +252,6 @@ void place_icon(const client_td *client, desktop_td *desktop,
                         other->is_icon_mapped) {
                     int32_t rel_pri;
                     int32_t rel_sec;
-                    uint16_t pri;
-                    uint16_t sec;
                     uint16_t slot;
                     rel_pri = 0;
                     rel_sec = 0;
