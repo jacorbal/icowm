@@ -115,7 +115,7 @@ static void s_handler_send_synthetic_configure_notify(
  * @param old_h   Frame height before resize
  * @param new_w   Frame width after resize
  * @param new_h   Frame height after resize
- * @param gravity Client win_gravity value
+ * @param gravity Client @a win_gravity value
  *
  * @note Complexity: @e O(1)
  */

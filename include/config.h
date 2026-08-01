@@ -63,6 +63,23 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
+        uint32_t snap;
+        struct {
+            bool is_new_focused;
+            bool is_raised_on_focus;
+        } focus;
+        enum config_gravity_e {
+            CONFIG_GRAVITY_NORTH_WEST = 1,
+            CONFIG_GRAVITY_NORTH = 2,
+            CONFIG_GRAVITY_NORTH_EAST = 3,
+            CONFIG_GRAVITY_EAST = 4,
+            CONFIG_GRAVITY_SOUTH_EAST = 5,
+            CONFIG_GRAVITY_SOUTH = 6,
+            CONFIG_GRAVITY_SOUTH_WEST = 7,
+            CONFIG_GRAVITY_WEST = 8,
+            CONFIG_GRAVITY_CENTER = 9,
+            CONFIG_GRAVITY_STATIC = 10
+        } gravity;
         enum config_focus_policy_e {
             CONFIG_FOCUS_POLICY_CLICK = 0,
             CONFIG_FOCUS_POLICY_FOLLOW_MOUSE
@@ -73,12 +90,6 @@ struct config_base_s {
             CONFIG_PLACEMENT_POLICY_CENTERED,
             CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
         } placement_policy;
-        uint32_t snap;
-        struct {
-            bool is_new_focused;
-            bool is_raised_on_focus;
-        } focus;
-
     } windows;
 
     /* Icon placement policy settings */

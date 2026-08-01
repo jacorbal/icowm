@@ -95,6 +95,98 @@ static bool s_overlaps_clients(desktop_td *desktop,
 }
 
 
+/**
+ * @brief Offset placement coordinates according to client gravity and
+ *        clamp
+ *
+ * Adjusts the requested top-left placement coordinates so the client's
+ * frame is positioned relative to its configured gravity point (e.g.,
+ * centering or anchoring the frame by its edge or corner instead of its
+ * top-left corner).  After applying the gravity offset, the resulting
+ * position is clamped so the frame stays fully within the surface
+ * bounds, preferring to keep it at the near edge when it does not fit.
+ *
+ * @param surface Pointer to the surface providing the placement bounds
+ *
+ * @param client  Pointer to the client whose gravity and frame size are
+ *                 used
+ *
+ * @param x       Pointer to the X coordinate to adjust and clamp in
+ *                place
+ * @param y       Pointer to the Y coordinate to adjust and clamp in
+ *                place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_place_apply_gravity(const surface_td *surface,
+        const client_td *client, int32_t *x, int32_t *y)
+{
+    int32_t nx;
+    int32_t ny;
+    uint32_t sw;
+    uint32_t sh;
+    uint32_t fw;
+    uint32_t fh;
+
+    if (surface == NULL || client == NULL || x == NULL || y == NULL) {
+        return;
+    }
+
+    nx = *x;
+    ny = *y;
+    sw = surface->properties.dim.w;
+    sh = surface->properties.dim.h;
+    fw = client->layout.geometry.cur.dim.w;
+    fh = client->layout.geometry.cur.dim.h;
+
+    if (client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_EAST ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
+        nx -= (int32_t) fw;
+    } else if (client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_NORTH ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_CENTER ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_SOUTH) {
+        nx -= (int32_t) (fw / 2u);
+    }
+
+    if (client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_SOUTH ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
+        ny -= (int32_t) fh;
+    } else if (client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_EAST ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_CENTER ||
+            client->layout.gravity ==
+            (uint16_t) CLIENT_GRAVITY_WEST) {
+        ny -= (int32_t) (fh / 2u);
+    }
+
+    if (nx < 0) {
+        nx = 0;
+    } else if ((uint32_t) nx + fw > sw) {
+        nx = (sw > fw) ? (int32_t) (sw - fw) : 0;
+    }
+    if (ny < 0) {
+        ny = 0;
+    } else if ((uint32_t) ny + fh > sh) {
+        ny = (sh > fh) ? (int32_t) (sh - fh) : 0;
+    }
+
+    *x = nx;
+    *y = ny;
+}
+
+
 /* Find a non-overlapping smart position for a newly mapped client */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         int32_t *out_x, int32_t *out_y)
@@ -531,6 +623,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             return;
         }
     }
+
+    s_place_apply_gravity(surface, client, &new_x, &new_y);
 
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame

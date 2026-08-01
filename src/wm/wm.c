@@ -109,6 +109,7 @@ static void s_wm_cleanup(void)
 int wm_start(const char *display_name, const char *config_dir_prefix)
 {
     uint32_t screens_detected;
+    uint32_t screens_managed;
     xcb_screen_iterator_t it;
 
     LOGGER_DEBUG("Initializing window manager", L_NARG);
@@ -219,7 +220,15 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 wm->config->base.screen_count);
     }
 
-    for (unsigned int i = 0; i < screens_detected; ++i) {
+    if (wm->config->base.screen_count > CONFIG_MAX_SCREENS) {
+        LOGGER_NOTICE("Configured %u screen(s), but this build supports" \
+                " up to %u; clamping",
+                wm->config->base.screen_count, CONFIG_MAX_SCREENS);
+        wm->config->base.screen_count = CONFIG_MAX_SCREENS;
+    }
+    screens_managed = wm->config->base.screen_count;
+
+    for (unsigned int i = 0; i < screens_managed; ++i) {
         uint32_t desktops_count =
             wm->config->base.screens[i].desktop_count;
         surface_td *surface =

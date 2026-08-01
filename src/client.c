@@ -123,7 +123,6 @@ client_td *client_init(xcb_connection_t *connection,
         (struct sides_s) {0, 0, 0, 0};
     client->layout.frame_extents =
         (struct sides_s) {0, 0, 0, 0};
-    client->layout.gravity = CLIENT_GRAVITY_NORTH_WEST;
 
     /* Initialize client properties with sensible defaults */
     client->properties.flags =
@@ -134,6 +133,10 @@ client_td *client_init(xcb_connection_t *connection,
     client->properties.layer = CLIENT_LAYER_NORMAL;
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+    client->layout.gravity = (uint16_t)
+        (config_base != NULL
+         ? config_base->windows.gravity
+         : CONFIG_GRAVITY_NORTH_WEST);
     ci_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers for client information */
@@ -387,6 +390,10 @@ client_td *client_manage(xcb_connection_t *connection,
     client->properties.layer = CLIENT_LAYER_NORMAL;
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+    client->layout.gravity = (uint16_t)
+        (config_base != NULL
+         ? config_base->windows.gravity
+         : CONFIG_GRAVITY_NORTH_WEST);
     ci_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers */

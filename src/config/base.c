@@ -90,6 +90,60 @@ static enum config_placement_policy_e
 
 
 /**
+ * @brief Parse default window gravity text into configuration
+ *        enumeration
+ *
+ * @param value Gravity string from configuration
+ *
+ * @return Parsed gravity enumeration value
+ *
+ * @note Supported values are @c north-west, @c north, @c north-east,
+ *       @c east, @c south-east, @c south, @c south-west, @c west,
+ *       @c center, and @c static
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_gravity_e
+    s_config_parse_gravity(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_GRAVITY_NORTH_WEST;
+    }
+
+    if (safe_strcmp(value_norm, "north") == 0) {
+        return CONFIG_GRAVITY_NORTH;
+    }
+    if (safe_strcmp(value_norm, "north-east") == 0) {
+        return CONFIG_GRAVITY_NORTH_EAST;
+    }
+    if (safe_strcmp(value_norm, "east") == 0) {
+        return CONFIG_GRAVITY_EAST;
+    }
+    if (safe_strcmp(value_norm, "south-east") == 0) {
+        return CONFIG_GRAVITY_SOUTH_EAST;
+    }
+    if (safe_strcmp(value_norm, "south") == 0) {
+        return CONFIG_GRAVITY_SOUTH;
+    }
+    if (safe_strcmp(value_norm, "south-west") == 0) {
+        return CONFIG_GRAVITY_SOUTH_WEST;
+    }
+    if (safe_strcmp(value_norm, "west") == 0) {
+        return CONFIG_GRAVITY_WEST;
+    }
+    if (safe_strcmp(value_norm, "center") == 0) {
+        return CONFIG_GRAVITY_CENTER;
+    }
+    if (safe_strcmp(value_norm, "static") == 0) {
+        return CONFIG_GRAVITY_STATIC;
+    }
+
+    return CONFIG_GRAVITY_NORTH_WEST;
+}
+
+
+/**
  * @brief Parse icon placement policy text into configuration enumeration
  *
  * @param value Icon placement string from configuration
@@ -337,9 +391,15 @@ int config_load_base(const char *filename,
     windows = cJSON_GetObjectItem(json, "windows");
     if (windows) {
         cJSON *focus;
+        cJSON *gravity;
         cJSON *placement;
 
         json_load_uint(windows, "snap", &config_base->windows.snap);
+        gravity = json_get_item(windows, "gravity");
+        if (gravity != NULL && cJSON_IsString(gravity)) {
+            config_base->windows.gravity =
+                s_config_parse_gravity(gravity->valuestring);
+        }
         focus = cJSON_GetObjectItem(windows, "focus");
         if (focus) {
             cJSON *focus_policy_item;

@@ -38,8 +38,8 @@
 #define CONFIG_FILENAME_BINDINGS "bindings.json"
 
 /* Default values when no value is given */
-#define CONFIG_MAX_SCREENS (2)      /**< Initial number of screens */
-#define CONFIG_MAX_DESKTOPS (10)    /**< Initial desktops per screen */
+#define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */
+#define CONFIG_MAX_DESKTOPS (10)    /**< Initial max. desktops per screen */
 
 
 #endif  /* ! DEFS_CONFIG_H */
