@@ -63,10 +63,9 @@
 /**
  * @brief Flag set while a hover-triggered focus transfer is in flight
  *
- * Set in @a mouse_handle_enter before calling @a focus_apply, cleared
- * in @a handler_focus_in so that the @c FocusIn event from the hover
- * does not move @p client_active_id away from the explicitly-focused
- * window.
+ * Set in @a mouse_handle_enter before calling @a focus_apply and
+ * cleared in @a handler_focus_in when the corresponding @c FocusIn
+ * event arrives.
  */
 static bool s_enter_focus_active = false;
 
@@ -689,7 +688,6 @@ void mouse_handle_enter(xcb_connection_t *connection,
     client_td *client;
     desktop_td *desktop;
     surface_td *surface;
-    xcb_window_t prev_active;
 
     if (connection == NULL || event == NULL || cfg == NULL) {
         return;
@@ -717,10 +715,8 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    prev_active = desktop->client_active_id;
     s_enter_focus_active = true;
     focus_apply(surfaces, surface, desktop, client, false, cfg);
-    desktop->client_active_id = prev_active;
 
     xcb_flush(connection);
 }
