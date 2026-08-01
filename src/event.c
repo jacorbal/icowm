@@ -96,7 +96,7 @@ event_td *event_clone(const event_td *src)
     }
 
     clone = malloc(sizeof(event_td));
-        if (clone == NULL) {
+    if (clone == NULL) {
         LOGGER_WARNING("Failed to allocate memory for event clone",
                 L_NARG);
         return NULL;
@@ -211,6 +211,6 @@ event_td *event_clone(const event_td *src)
             clone->data = wdata;
             break;
     }
- 
- return clone;
+
+    return clone;
 }

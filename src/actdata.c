@@ -157,7 +157,7 @@ action_data_surface_td *action_data_surface_init(surface_td *surface,
         return NULL;
     }
 
-    action_data_surface->surface= surface;
+    action_data_surface->surface = surface;
     action_data_surface->action_surface = action_surface;
 
     return action_data_surface;

@@ -208,7 +208,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         }
         popup_close(connection);
         if (surface != NULL) {
-            surface_render_current_desktop_repaint(surface);   
+            surface_render_current_desktop_repaint(surface);
         }
     }
 

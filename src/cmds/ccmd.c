@@ -637,7 +637,7 @@ void wcmd_client_shade(client_td *client)
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
     client_set_shade(client);
-    client_sync_decoration_layout(client);    
+    client_sync_decoration_layout(client);
 
     wcmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -714,7 +714,7 @@ void wcmd_client_sticky(client_td *client)
                 client->window, client->ewmh->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &all_desktops);
     }
-    
+
     wm_request_client_redraw(client);
 }
 

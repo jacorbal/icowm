@@ -248,7 +248,8 @@ static inline void s_show_farewell(FILE *fp)
  * @note Each pointer is passed by address to @c safe_free and is
  *       expected to be set to @c NULL after deallocation.
  * @note Complexity: @e O(1)
- */static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
+ */
+static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
 {
     safe_free((void **) &s1);
     safe_free((void **) &s2);

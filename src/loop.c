@@ -137,7 +137,7 @@ void loop_run(wm_td *wm)
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
-        LOGGER_TRACE("Window manager is not initialised or" \
+        LOGGER_TRACE("Window manager is not initialized or" \
                 " set to not run", L_NARG);
         return;
     }

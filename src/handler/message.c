@@ -334,6 +334,7 @@ static void s_handle_net_wm_state(client_td *client,
                 wcmd_client_maximize(client);
             }
         }
+
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
         return;
@@ -659,7 +660,7 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    /* EWMH sec.5.13: show/hide all desktop windows */
+    /* EWMH §5.13: show/hide all desktop windows */
     if (event->type == wm->ewmh->_NET_SHOWING_DESKTOP) {
         uint32_t show = event->data.data32[0];
         surface_td *surf;
@@ -679,7 +680,7 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    /* EWMH §4.6 / ICCCM §4.2.8: intercept '_NET_WM_PING' pong replies
+    /* EWMH §4.6 & ICCCM §4.2.8: intercept '_NET_WM_PING' pong replies
      * sent from clients back to the root window.  The client echoes the
      * original ping 'ClientMessage' unchanged; matching the window
      * field with a managed client identifies the pong and clears

@@ -12,7 +12,7 @@
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
- 
+
 #ifndef CMDS_SCMD_H
 #define CMDS_SCMD_H
 

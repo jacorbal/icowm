@@ -657,7 +657,7 @@ void cycle_close(xcb_connection_t *connection)
     }
 
     if (surface != NULL) {
-        surface_render_current_desktop_repaint(surface);        
+        surface_render_current_desktop_repaint(surface);
     } else {
         xcb_flush(connection);
     }
