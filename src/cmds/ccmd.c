@@ -134,6 +134,11 @@ static void s_client_enable_decoration(client_td *client,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
+    /* Reparenting emits a synthetic 'UnmapNotify' for the client window;
+     * absorb it so focus is not stolen from the active window during
+     * decoration restore. */
+    client->ignore_unmap++;
+
     xcb_reparent_window(client->connection,
             client->window,
             client->frame,

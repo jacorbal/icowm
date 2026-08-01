@@ -115,17 +115,21 @@ static xcb_window_t s_cycle_preview_target(const client_td *client,
     if (client == NULL) {
         return XCB_WINDOW_NONE;
     }
+
     if (is_icon_menu) {
         return (client->icon_window != 0)
             ? client->icon_window
             : XCB_WINDOW_NONE;
     }
+
     if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
         return XCB_WINDOW_NONE;
     }
+
     if (client_is_decorated(client) && client->frame != 0) {
         return client->frame;
     }
+
     return client->window;
 }
 
@@ -158,25 +162,31 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
     xcb_window_t selected_target;
     xcb_window_t previous_target;
     uint32_t values[1];
+    uint32_t frame_values[2];
     uint32_t selected_border;
     uint32_t previous_border;
     bool prev_is_active;
+
     if (connection == NULL || cfg == NULL ||
             s_menu.window == XCB_WINDOW_NONE ||
             s_menu.surface == NULL || s_menu.desktop == NULL ||
             s_menu.selected < 0 || s_menu.selected >= s_menu.count) {
         return;
     }
+
     selected = s_menu.clients[s_menu.selected];
     selected_target = s_cycle_preview_target(selected, s_menu.is_icon_menu);
     if (selected == NULL || selected_target == XCB_WINDOW_NONE) {
         return;
     }
+
     previous = s_menu.preview_client;
     if (previous != NULL && previous != selected) {
-        previous_target = s_cycle_preview_target(previous, s_menu.is_icon_menu);
+        previous_target = s_cycle_preview_target(previous,
+                s_menu.is_icon_menu);
         if (previous_target != XCB_WINDOW_NONE) {
-            prev_is_active = (s_menu.desktop->client_active_id == previous->id);
+            prev_is_active =
+                (s_menu.desktop->client_active_id == previous->id);
             if (s_menu.is_icon_menu) {
                 previous_border = cfg->theme.icon.border_color;
             } else if (prev_is_active) {
@@ -184,16 +194,44 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
             } else {
                 previous_border = cfg->theme.window.inactive.border_color;
             }
-            xcb_change_window_attributes(connection, previous_target,
-                    XCB_CW_BORDER_PIXEL, &previous_border);
+            if (!s_menu.is_icon_menu &&
+                    client_is_decorated(previous) &&
+                    previous->frame == previous_target) {
+                frame_values[0] = previous_border;
+                frame_values[1] = previous_border;
+                xcb_change_window_attributes(connection, previous_target,
+                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                        frame_values);
+                xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
+            } else {
+                xcb_change_window_attributes(connection, previous_target,
+                        XCB_CW_BORDER_PIXEL, &previous_border);
+            }
         }
     }
+
     selected_border = cfg->theme.window.active.border_color;
-    xcb_change_window_attributes(connection, selected_target,
-            XCB_CW_BORDER_PIXEL, &selected_border);
+    if (!s_menu.is_icon_menu &&
+            client_is_decorated(selected) &&
+            selected->frame == selected_target) {
+        frame_values[0] = selected_border;
+        frame_values[1] = selected_border;
+        xcb_change_window_attributes(connection, selected_target,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                frame_values);
+        xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
+    } else {
+        xcb_change_window_attributes(connection, selected_target,
+                XCB_CW_BORDER_PIXEL, &selected_border);
+    }
+
     values[0] = XCB_STACK_MODE_ABOVE;
     xcb_configure_window(connection, selected_target,
             XCB_CONFIG_WINDOW_STACK_MODE, values);
+    values[0] = XCB_STACK_MODE_ABOVE;
+    xcb_configure_window(connection, s_menu.window,
+            XCB_CONFIG_WINDOW_STACK_MODE, values);
+
     s_menu.preview_client = selected;
     xcb_flush(connection);
 }
