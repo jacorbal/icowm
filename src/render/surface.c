@@ -31,7 +31,6 @@ int surface_render_current_desktop(surface_td *surface)
 {
     desktop_td *desktop;
     cdlist_item_td *desktop_node;
-    uint32_t counter = 0;
 
     if (surface == NULL || surface->desktops == NULL) {
         LOGGER_ERROR("Invalid surface or desktops list", L_NARG);
@@ -49,7 +48,9 @@ int surface_render_current_desktop(surface_td *surface)
     }
 
     /* Iterate to the current desktop index */
-    for (counter = 0; counter < surface->desktop_cur; ++counter) {
+    for (uint32_t counter = 0;
+            counter < surface->desktop_cur;
+            ++counter) {
         desktop_node = cdlist_next(desktop_node);
         if (desktop_node == NULL) {
             LOGGER_ERROR("Could not find desktop at index %u",

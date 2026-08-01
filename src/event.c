@@ -105,7 +105,7 @@ event_td *event_clone(const event_td *src)
     clone->object = src->object;    /* Shared reference */
     clone->action = src->action;    /* Value copy (no pointers) */
     clone->priority = src->priority;
-    clone->data  = NULL;
+    clone->data = NULL;
     if (src->data == NULL) {
         return clone;
     }

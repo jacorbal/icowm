@@ -52,7 +52,6 @@
 static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
 {
     uint32_t desktop_count;
-    uint32_t i;
     size_t names_len;
     size_t offset;
     char *names;
@@ -70,7 +69,7 @@ static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
     }
 
     names_len = 0u;
-    for (i = 0u; i < desktop_count; ++i) {
+    for (uint32_t i = 0u; i < desktop_count; ++i) {
         const char *name = desktop->config_base
             ->screens[desktop->screen_id].desktops[i].name;
         names_len += strlen(name) + 1u;
@@ -86,7 +85,7 @@ static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
     }
 
     offset = 0u;
-    for (i = 0u; i < desktop_count; ++i) {
+    for (uint32_t i = 0u; i < desktop_count; ++i) {
         const char *name = desktop->config_base
             ->screens[desktop->screen_id].desktops[i].name;
         size_t name_len = strlen(name);

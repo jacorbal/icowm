@@ -244,7 +244,7 @@ static bool s_parse_binding(const config_td *cfg, const char *binding,
     buf[len] = '\0';
 
     *modmask = 0;
-    *keysym  = XCB_NO_SYMBOL;
+    *keysym = XCB_NO_SYMBOL;
 
     tok = strtok_r(buf, "+", &save);
     while (tok != NULL) {
@@ -472,12 +472,12 @@ bool keyboard_find(enum wm_keybind_type_e type,
         return false;
     }
 
-    *keysym_out  = XCB_NO_SYMBOL;
+    *keysym_out = XCB_NO_SYMBOL;
     *modmask_out = 0;
 
     for (int i = 0; i < s_keybindings_count; ++i) {
         if (s_keybindings[i].type == type) {
-            *keysym_out  = s_keybindings[i].keysym;
+            *keysym_out = s_keybindings[i].keysym;
             *modmask_out = s_keybindings[i].modmask;
             return true;
         }
@@ -502,7 +502,7 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
     }
 
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
-    state  = INPUT_STRIP_LOCK_MASK(event->state);
+    state = INPUT_STRIP_LOCK_MASK(event->state);
 
     for (int i = 0; i < s_keybindings_count; ++i) {
         uint16_t bind_state = INPUT_STRIP_LOCK_MASK(

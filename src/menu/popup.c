@@ -57,7 +57,7 @@ void popup_show(xcb_connection_t *connection,
     const char *name;
     const char *class_name;
     const char *instance_name;
-    const int16_t width  = 520;
+    const int16_t width = 520;
     const int16_t height = 96;
     int16_t x;
     int16_t y;

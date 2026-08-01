@@ -616,7 +616,7 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Apply border width from theme; dock windows always get 0 */
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
         ? 0u
-        : (theme != NULL ? theme->window.general.border_width : 0u);
+        : ((theme != NULL) ? theme->window.general.border_width : 0u);
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 

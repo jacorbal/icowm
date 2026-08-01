@@ -67,7 +67,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
         return;     /* Already on this desktop */
     }
 
-    LOGGER_DEBUG("Switching desktop: %u → %u on surface %u",
+    LOGGER_DEBUG("Switching desktop: %u to %u on surface %u",
             old_id, new_id, surface->id);
 
     surface_clients_hide(surface, old_id);

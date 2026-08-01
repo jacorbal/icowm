@@ -30,7 +30,7 @@
  *      +-------+           /  \  log states of <-devs.--\  /   writing
  *      | DEBUG |<--------N-\  /  variables?              \/    the log
  *      +-------+            \/                            |    line?
- *                                  .-------system ops.----´
+ *                                  .-------system ops.----'
  *                                  |
  *                                  v
  *                                 /\        Do I log because
@@ -48,7 +48,7 @@
  *      +-------+                            \  /   unwanted state?
  *                                            \/
  *      +-------+                              |
- *      | FATAL |<-------------------------N---´
+ *      | FATAL |<-------------------------N---'
  *      +-------+
  * @endverbatim
  *

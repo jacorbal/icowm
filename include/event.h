@@ -71,7 +71,7 @@ void event_destroy(event_td *event);
  * @brief Deep-copy an event structure
  *
  * Allocates a new @c event_td and duplicates all heap-allocated data
- * inside it.  The @c object pointer (@c client*, @c desktop*, …) is
+ * inside it.  The @c object pointer (@c client*, @c desktop*, ...) is
  * shallow-copied; the caller is responsible for ensuring the referenced
  * object outlives both the original and the clone.
  *

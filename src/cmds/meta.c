@@ -79,7 +79,7 @@ void wcmd_client_reclass(client_td *client,
         safe_strdup(client_data->new_data.str.str1);
 
     /* The 'WM_CLASS' property contains two consecutive null-terminated
-     * strings (ICCCM v 2.0, § 4.1.2.5).  A single buffer is built
+     * strings (ICCCM v 2.0, §4.1.2.5).  A single buffer is built
      * manually so that both null terminators land in the buffer passed
      * to 'xcb_icccm_set_wm_class'. */
     len0 = safe_strlen(client->info.class_name[0]);

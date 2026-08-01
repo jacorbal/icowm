@@ -151,13 +151,11 @@ static void s_macro_destroy(void *data)
  */
 static s_macro_td *s_macro_find(const char *name)
 {
-    list_item_td *node;
-
     if (name == NULL || s_macros == NULL) {
         return NULL;
     }
 
-    for (node = list_head(s_macros); node != NULL;
+    for (list_item_td *node = list_head(s_macros); node != NULL;
             node = list_next(node)) {
         s_macro_td *m = (s_macro_td *) list_data(node);
         if (m != NULL && safe_strcmp(m->name, name) == 0) {
@@ -343,7 +341,6 @@ int eventq_record_stop(void)
 /* Re-enqueue all captured events */
 int eventq_replay(void)
 {
-    list_item_td *node;
     event_td *stored;
     event_td *clone;
     bool saved_recording;
@@ -360,7 +357,7 @@ int eventq_replay(void)
     saved_recording = s_recording;
     s_recording = false;
 
-    for (node = list_head(s_record_queue); node != NULL;
+    for (list_item_td *node = list_head(s_record_queue); node != NULL;
             node = list_next(node)) {
         stored = (event_td *) list_data(node);
         clone = event_clone(stored);
@@ -441,7 +438,6 @@ int eventq_macro_begin(const char *name)
 int eventq_macro_end(void)
 {
     list_item_td *prev;
-    list_item_td *node;
     void *old;
 
     if (s_macro_active == NULL) {
@@ -451,7 +447,7 @@ int eventq_macro_end(void)
 
     /* Remove any existing macro with the same name */
     prev = NULL;
-    for (node = list_head(s_macros); node != NULL;
+    for (list_item_td *node = list_head(s_macros); node != NULL;
             node = list_next(node)) {
         s_macro_td *m = (s_macro_td *) list_data(node);
         if (m != NULL && safe_strcmp(m->name, s_macro_active->name) == 0) {
@@ -485,7 +481,6 @@ int eventq_macro_end(void)
 int eventq_macro_play(const char *name)
 {
     s_macro_td *macro;
-    list_item_td *node;
     event_td *stored;
     event_td *clone;
     s_macro_td *saved_active;
@@ -512,7 +507,7 @@ int eventq_macro_play(const char *name)
     saved_active = s_macro_active;
     s_macro_active = NULL;
 
-    for (node = list_head(macro->events); node != NULL;
+    for (list_item_td *node = list_head(macro->events); node != NULL;
             node = list_next(node)) {
         stored = (event_td *) list_data(node);
         clone = event_clone(stored);
@@ -549,7 +544,7 @@ int eventq_macro_clear(const char *name)
     }
 
     prev = NULL;
-    for (node = list_head(s_macros); node != NULL;
+    for (list_item_td *node = list_head(s_macros); node != NULL;
             node = list_next(node)) {
         s_macro_td *m = (s_macro_td *) list_data(node);
         if (m != NULL && safe_strcmp(m->name, name) == 0) {

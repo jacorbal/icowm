@@ -199,6 +199,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
     uint16_t max_primary;
     bool occupied[256];
     uint16_t chosen;
+    uint16_t pri;
+    uint16_t sec;
 
     if (client == NULL || client->theme == NULL ||
             out_x == NULL || out_y == NULL) {
@@ -357,40 +359,38 @@ void place_icon(const client_td *client, desktop_td *desktop,
     /* Convert slot index to pixel coordinates.
      * pri = chosen % max_primary  (position along the screen edge)
      * sec = chosen / max_primary  (overflow row/col away from edge) */
-    {
-        uint16_t pri = (uint16_t) (chosen % max_primary);
-        uint16_t sec = (uint16_t) (chosen / max_primary);
+    pri = (uint16_t) (chosen % max_primary);
+    sec = (uint16_t) (chosen / max_primary);
 
-        switch (policy) {
-            case CONFIG_ICON_PLACEMENT_TOP:
-                *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
-                *out_y = (int16_t) (margin + (uint32_t) sec * step_y);
-                break;
+    switch (policy) {
+        case CONFIG_ICON_PLACEMENT_TOP:
+            *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
+            *out_y = (int16_t) (margin + (uint32_t) sec * step_y);
+            break;
 
-            case CONFIG_ICON_PLACEMENT_LEFT:
-                *out_x = (int16_t) (margin + (uint32_t) sec * step_x);
-                *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
-                break;
+        case CONFIG_ICON_PLACEMENT_LEFT:
+            *out_x = (int16_t) (margin + (uint32_t) sec * step_x);
+            *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
+            break;
 
-            case CONFIG_ICON_PLACEMENT_RIGHT:
-                *out_x = (int16_t) ((int32_t) screen_w -
-                        (int32_t) icon_w -
-                        (int32_t) margin -
-                        (int32_t) border_twice -
-                        (int32_t) sec * (int32_t) step_x);
-                *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
-                break;
+        case CONFIG_ICON_PLACEMENT_RIGHT:
+            *out_x = (int16_t) ((int32_t) screen_w -
+                    (int32_t) icon_w -
+                    (int32_t) margin -
+                    (int32_t) border_twice -
+                    (int32_t) sec * (int32_t) step_x);
+            *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
+            break;
 
-            case CONFIG_ICON_PLACEMENT_BOTTOM:
-            case CONFIG_ICON_PLACEMENT_SMART:
-                *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
-                *out_y = (int16_t) ((int32_t) screen_h -
-                        (int32_t) margin -
-                        (int32_t) icon_h -
-                        (int32_t) border_twice -
-                        (int32_t) sec * (int32_t) step_y);
-                break;
-        }
+        case CONFIG_ICON_PLACEMENT_BOTTOM:
+        case CONFIG_ICON_PLACEMENT_SMART:
+            *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
+            *out_y = (int16_t) ((int32_t) screen_h -
+                    (int32_t) margin -
+                    (int32_t) icon_h -
+                    (int32_t) border_twice -
+                    (int32_t) sec * (int32_t) step_y);
+            break;
     }
 
     if (*out_x < (int16_t) margin) {

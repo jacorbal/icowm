@@ -257,11 +257,11 @@ void mouse_handle_press(xcb_connection_t *connection,
             if (client->titlebar != 0 &&
                     (event->child == client->frame ||
                      event->child == client->titlebar)) {
-                int32_t bw  = client->layout.frame_extents.left;
-                int32_t fy  = client->layout.geometry.cur.pos.y;
+                int32_t bw = client->layout.frame_extents.left;
+                int32_t fy = client->layout.geometry.cur.pos.y;
                 int32_t ty0 = fy + bw;
                 int32_t ty1 = fy + client->layout.frame_extents.top;
-                int32_t ry  = (int32_t) event->root_y;
+                int32_t ry = (int32_t) event->root_y;
                 if (ry >= ty0 && ry < ty1) {
                     if (type == MOUSEBIND_DESKTOP_PREV) {
                         if (!client_is_shaded(client)) {
@@ -466,12 +466,12 @@ void mouse_handle_press(xcb_connection_t *connection,
                         s_last_titlebar_press_time;
                     xcb_window_t prev_win = s_last_titlebar_press_win;
                     s_last_titlebar_press_time = event->time;
-                    s_last_titlebar_press_win  = client->titlebar;
+                    s_last_titlebar_press_win = client->titlebar;
                     if (prev_win == client->titlebar &&
                             dt <= (xcb_timestamp_t) WM_DOUBLE_CLICK_MS) {
                         /* Double-click: reset state and toggle shade */
                         s_last_titlebar_press_time = 0;
-                        s_last_titlebar_press_win  = XCB_NONE;
+                        s_last_titlebar_press_win = XCB_NONE;
                         client_send_event(client,
                                 ACTION_CLIENT_TOGGLE_SHADE,
                                 PRIORITY_NORMAL);

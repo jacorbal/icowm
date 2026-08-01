@@ -237,8 +237,8 @@ typedef struct client_s {
     bool was_decorated_fullscreen;  /**< Save decor. state for full screen */
     uint8_t ignore_unmap;           /**< WM-initiated unmaps to suppress */
     uint8_t ignore_focus_unmap;     /**< Synthetic unmaps; mustn't move focus */
-    int16_t icon_x;                 /**< Saved icon X (−1 = unset) */
-    int16_t icon_y;                 /**< Saved icon Y (−1 = unset) */
+    int16_t icon_x;                 /**< Saved icon X (-1 = unset) */
+    int16_t icon_y;                 /**< Saved icon Y (-1 = unset) */
     uint16_t title_height;          /**< Cached titlebar height */
 
     uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */

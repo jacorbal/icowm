@@ -363,7 +363,7 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
             border_color = s_menu.config->theme.icon.inactive.border_color;
         } else {
             is_active = (s_menu.desktop->client_active_id == client->id);
-            border_color = is_active
+            border_color = (is_active)
                 ? s_menu.config->theme.window.active.border_color
                 : s_menu.config->theme.window.inactive.border_color;
         }
@@ -453,7 +453,7 @@ void cycle_open(list_td *surfaces,
         do {
             client_td *c = (client_td *) cdlist_data(node);
             if (c != NULL && client_is_focusable(c)) {
-                bool want = is_icon
+                bool want = (is_icon)
                     ? (bool) client_is_iconified(c)
                     : !client_is_iconified(c);
                 if (want && s_menu.count < WM_CYCLE_MENU_MAX_ENTRIES) {
@@ -490,8 +490,7 @@ void cycle_open(list_td *surfaces,
      * surfaces is needed; duplicates are avoided by checking whether
      * the client pointer is already in 's_menu.clients[]'. */
     if (!is_icon && surfaces != NULL) {
-        list_item_td *snode;
-        for (snode = list_head(surfaces);
+        for (list_item_td *snode = list_head(surfaces);
                 snode != NULL; snode = list_next(snode)) {
             surface_td *sv = (surface_td *) list_data(snode);
             cdlist_item_td *dnode;

@@ -33,7 +33,6 @@ void safe_free(void **ptr)
 int safe_free_var(void **first, ...)
 {
     va_list args;
-    void **ptr;
 
     /* Return a negative error if the first pointer is null */
     if (first == NULL) {
@@ -41,7 +40,7 @@ int safe_free_var(void **first, ...)
     }
 
     va_start(args, first);
-    for (ptr = first;
+    for (void **ptr = first;
             ptr != SAFE_FREE_VAR_END;
             ptr = va_arg(args, void **)) {
         safe_free(ptr);

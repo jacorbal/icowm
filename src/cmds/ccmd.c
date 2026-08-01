@@ -1103,9 +1103,9 @@ void wcmd_client_toggle_decoration(client_td *client)
                     XCB_CONFIG_WINDOW_BORDER_WIDTH,
                     (const uint32_t[]) { (uint32_t) bw });
         }
-        client->layout.frame_extents.left   = 0;
-        client->layout.frame_extents.right  = 0;
-        client->layout.frame_extents.top    = 0;
+        client->layout.frame_extents.left = 0;
+        client->layout.frame_extents.right = 0;
+        client->layout.frame_extents.top = 0;
         client->layout.frame_extents.bottom = 0;
         client_unset_decoration(client);
 

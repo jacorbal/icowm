@@ -32,13 +32,11 @@
 surface_td *lookup_surface_for_root(list_td *surfaces,
         xcb_window_t root)
 {
-    list_item_td *node;
-
     if (surfaces == NULL) {
         return NULL;
     }
 
-    for (node = list_head(surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         if (surface != NULL && surface->screen != NULL &&
@@ -82,8 +80,6 @@ bool lookup_client_matches_window(const client_td *client,
 client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
         surface_td **out_surface, desktop_td **out_desktop)
 {
-    list_item_td *snode;
-
     if (out_surface != NULL) {
         *out_surface = NULL;
     }
@@ -95,7 +91,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
         return NULL;
     }
 
-    for (snode = list_head(surfaces);
+    for (list_item_td *snode = list_head(surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;

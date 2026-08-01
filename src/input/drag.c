@@ -199,8 +199,8 @@ void drag_update(xcb_connection_t *connection,
         if (s_drag.snap > 0 &&
                 s_drag.screen_w > 0 && s_drag.screen_h > 0) {
             uint32_t snap = s_drag.snap;
-            uint32_t fw   = (uint32_t) s_drag.client_start_w;
-            uint32_t fh   = (uint32_t) s_drag.client_start_h;
+            uint32_t fw = (uint32_t) s_drag.client_start_w;
+            uint32_t fh = (uint32_t) s_drag.client_start_h;
 
             /* Left edge */
             if (new_x >= 0 && (uint32_t) new_x <= snap) {

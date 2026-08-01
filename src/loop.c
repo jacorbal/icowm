@@ -133,7 +133,6 @@ void loop_run(wm_td *wm)
     xcb_generic_event_t *event;
     struct pollfd pfd;
     int poll_status;
-    list_item_td *sync_node;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -334,7 +333,7 @@ void loop_run(wm_td *wm)
          * 'loop_update' (which clears the flag) gates the sync to
          * iterations where real work happened. */
         any_outdated = false;
-        for (sync_node = list_head(wm->surfaces);
+        for (list_item_td *sync_node = list_head(wm->surfaces);
                 sync_node != NULL; sync_node = list_next(sync_node)) {
             surface_td *s = (surface_td *) list_data(sync_node);
             if (s != NULL && s->is_outdated) {
@@ -357,18 +356,17 @@ void loop_run(wm_td *wm)
 /* Perform a partial (outdated-only) surface update */
 void loop_update(wm_td *wm)
 {
-    list_item_td *node;
-
     if (wm == NULL || wm->surfaces == NULL) {
         return;
     }
 
-    for (node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         if (surface == NULL) {
             continue;
         }
+
         if (surface->is_outdated) {
             if (surface_render_all_desktops(surface) != 0) {
                 LOGGER_ERROR("Failed to render surface %u",
@@ -382,15 +380,13 @@ void loop_update(wm_td *wm)
 /* Force a full re-render of all surfaces */
 void loop_update_full(wm_td *wm)
 {
-    list_item_td *node;
-
     if (wm == NULL || wm->surfaces == NULL) {
         return;
     }
 
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
-    for (node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         if (surface != NULL) {

@@ -52,7 +52,7 @@
 /* ICCCM 'WM_CHANGE_STATE' 'IconicState' value */
 #define ICCCM_ICONIC_STATE (3)
 
-/* '_NET_MOVERESIZE_WINDOW' flag bits (EWMH § 5.11) */
+/* '_NET_MOVERESIZE_WINDOW' flag bits (EWMH §5.11) */
 #define MOVERESIZE_FLAG_X      (1u << 8)
 #define MOVERESIZE_FLAG_Y      (1u << 9)
 #define MOVERESIZE_FLAG_WIDTH  (1u << 10)

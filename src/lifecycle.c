@@ -46,20 +46,17 @@
 /* Adopt all pre-existing mapped windows at window manager startup */
 void lifecycle_scan_existing(wm_td *wm)
 {
-    list_item_td *node;
-
     if (wm == NULL) {
         return;
     }
 
-    for (node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         xcb_query_tree_cookie_t qt_cookie;
         xcb_query_tree_reply_t *qt_reply;
         xcb_window_t *children;
         int nchildren;
-        int i;
 
         if (surface == NULL || surface->screen == NULL) {
             continue;
@@ -76,7 +73,7 @@ void lifecycle_scan_existing(wm_td *wm)
         children = xcb_query_tree_children(qt_reply);
         nchildren = xcb_query_tree_children_length(qt_reply);
 
-        for (i = 0; i < nchildren; ++i) {
+        for (int i = 0; i < nchildren; ++i) {
             xcb_get_window_attributes_cookie_t ac;
             xcb_get_window_attributes_reply_t *ar;
 
