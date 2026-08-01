@@ -381,6 +381,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                 eventq_add(ev);
             }
         }
+
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(connection);
@@ -502,6 +503,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                     if ((xcb_button_index_t) event->detail ==
                             XCB_BUTTON_INDEX_4) {
                         hit_btn = true;
+
                         if (!client_is_shaded(client)) {
                             client_send_event(client,
                                     ACTION_CLIENT_SHADE,
@@ -516,6 +518,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                     } else if ((xcb_button_index_t) event->detail ==
                             XCB_BUTTON_INDEX_5) {
                         hit_btn = true;
+
                         if (client_is_shaded(client)) {
                             client_send_event(client,
                                     ACTION_CLIENT_UNSHADE,
@@ -540,6 +543,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                     xcb_window_t prev_win = s_last_titlebar_press_win;
                     s_last_titlebar_press_time = event->time;
                     s_last_titlebar_press_win = client->titlebar;
+
                     if (prev_win == client->titlebar &&
                             dt <= (xcb_timestamp_t) WM_DOUBLE_CLICK_MS) {
                         /* Double-click: reset state and toggle shade */
@@ -552,6 +556,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         if (desktop != NULL) {
                             desktop->is_outdated = true;
                         }
+
                         if (surface != NULL) {
                             surface->is_outdated = true;
                         }
@@ -589,6 +594,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         event->time);
             }
         }
+
         xcb_flush(connection);
         return;
     }

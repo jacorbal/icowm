@@ -500,6 +500,21 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
         uint32_t to_id);
 
 /**
+ * @brief Recompute the work area for every desktop on a surface
+ *
+ * Iterates over all desktops belonging to the given surface and updates
+ * each desktop work area using the surface's current width and height.
+ * This keeps per-desktop usable geometry in sync after changes such as
+ * screen resizing or strut updates.
+ *
+ * @param surface Pointer to the surface whose desktops will be
+ *                refreshed
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops
+ */
+void surface_refresh_workareas(surface_td *surface);
+
+/**
  * @brief Macro that evaluates to the surface width
  *
  * @note Complexity: @e O(1)

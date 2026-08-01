@@ -116,5 +116,8 @@
  *  titlebar that is recognized as a double-click */
 #define WM_DOUBLE_CLICK_MS (400u)
 
+/** Poll timeout (ms) for one main-loop iteration */
+#define WM_EVENT_POLL_TIMEOUT_MS (1000)
+
 
 #endif  /* ! DEFS_WM_H */

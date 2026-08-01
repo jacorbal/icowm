@@ -13,6 +13,7 @@
  */
 
 /* System includes */
+#include <stdint.h>
 #include <stdlib.h>     /* free */
 
 /* XCB includes */
@@ -125,6 +126,7 @@ void lifecycle_scan_existing(wm_td *wm)
             free(ar);
         }
 
+        surface_refresh_workareas(surface);
         free(qt_reply);
     }
 

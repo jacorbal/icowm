@@ -14,6 +14,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -44,6 +45,7 @@
 
 /* Project includes */
 #include <lookup.h>
+#include <surface.h>
 
 /* Local includes */
 #include <handler.h>
@@ -127,8 +129,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     }
 
     /* Refresh work area in case the new client declares struts */
-    desktop_update_workarea(desktop,
-            surface->properties.dim.w, surface->properties.dim.h);
+    surface_refresh_workareas(surface);
 
     /* Dock/panel windows self-position; do not override their geometry */
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {
@@ -350,11 +351,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
     if (desktop != NULL) {
         desktop_action_client_rem(desktop, client);
         /* Refresh work area in case the removed client had struts */
-        if (surface != NULL) {
-            desktop_update_workarea(desktop,
-                    surface->properties.dim.w,
-                    surface->properties.dim.h);
-        }
+        surface_refresh_workareas(surface);
     }
 
     /* ICCCM withdrawn state: remove WM_STATE on unmanage */

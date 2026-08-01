@@ -46,6 +46,51 @@
 
 
 /**
+ * @brief Check whether two inclusive integer ranges overlap
+ *
+ * Tests whether the range defined by @p a_start and @p a_end intersects
+ * the range defined by @p b_start and @p b_end, treating both endpoints
+ * as inclusive. If the first range is given as @c 0..0, it is treated as
+ * unbounded so legacy @c _NET_WM_STRUT values without explicit start/end
+ * coordinates still match any target range. Invalid second ranges, where
+ * @p b_end is less than @p b_start, are rejected.
+ *
+ * @param a_start Start of the first range
+ * @param a_end   End of the first range
+ * @param b_start Start of the second range
+ * @param b_end   End of the second range
+ *
+ * @return @c true if the ranges overlap, otherwise @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+/* Check if two inclusive integer ranges overlap */
+static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
+        int32_t b_start, int32_t b_end)
+{
+    int32_t tmp;
+
+    if (b_end < b_start) {
+        return false;
+    }
+
+    /* Legacy '_NET_WM_STRUT' has no start/end fields; treat 0..0 as
+     * unbounded so those struts still reserve space. */
+    if (a_start == 0 && a_end == 0) {
+        return true;
+    }
+
+    if (a_start > a_end) {
+        tmp = a_start;
+        a_start = a_end;
+        a_end = tmp;
+    }
+
+    return !(a_end < b_start || a_start > b_end);
+}
+
+
+/**
  * @brief Primary stable hash function for client entries
  *
  * Computes a reproducible 32-bit MurmurHash3 value using the client's
@@ -266,6 +311,8 @@ void desktop_update_workarea(desktop_td *desktop,
     int32_t bottom = 0;
     int32_t new_w;
     int32_t new_h;
+    int32_t screen_max_x;
+    int32_t screen_max_y;
 
     if (desktop == NULL || desktop->stacking == NULL ||
             cdlist_size(desktop->stacking) == 0) {
@@ -275,25 +322,49 @@ void desktop_update_workarea(desktop_td *desktop,
             desktop->workarea.dim.w = screen_w;
             desktop->workarea.dim.h = screen_h;
         }
+
         return;
     }
+
+    screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
+    screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
 
     /* Aggregate maximum strut on each edge across all stacked clients */
     initial = cdlist_head(desktop->stacking);
     node = initial;
     do {
         client_td *c = (client_td *) cdlist_data(node);
+
         if (c != NULL) {
-            if (c->layout.strut_partial.sides.left > left) {
+            if (c->layout.strut_partial.sides.left > left &&
+                    s_ranges_overlap(
+                        c->layout.strut_partial.start.left,
+                        c->layout.strut_partial.end.left,
+                        0, screen_max_y)) {
                 left = c->layout.strut_partial.sides.left;
             }
-            if (c->layout.strut_partial.sides.right > right) {
+
+            if (c->layout.strut_partial.sides.right > right &&
+                    s_ranges_overlap(
+                        c->layout.strut_partial.start.right,
+                        c->layout.strut_partial.end.right,
+                        0, screen_max_y)) {
                 right = c->layout.strut_partial.sides.right;
             }
-            if (c->layout.strut_partial.sides.top > top) {
+
+            if (c->layout.strut_partial.sides.top > top &&
+                    s_ranges_overlap(
+                        c->layout.strut_partial.start.top,
+                        c->layout.strut_partial.end.top,
+                        0, screen_max_x)) {
                 top = c->layout.strut_partial.sides.top;
             }
-            if (c->layout.strut_partial.sides.bottom > bottom) {
+
+            if (c->layout.strut_partial.sides.bottom > bottom &&
+                    s_ranges_overlap(
+                        c->layout.strut_partial.start.bottom,
+                        c->layout.strut_partial.end.bottom,
+                        0, screen_max_x)) {
                 bottom = c->layout.strut_partial.sides.bottom;
             }
         }

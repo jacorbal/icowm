@@ -33,7 +33,22 @@
 #include <surface.h>
 
 
-/* Update the properties of the surface */
+/**
+ * @brief Update the cached properties of a surface from its X screen
+ *
+ * Refreshes the surface dimensions in pixels and millimeters, computes
+ * horizontal and vertical DPI from those values, and updates visual
+ * information using the first available screen depth and visual.  The
+ * default colormap is copied from the screen when visual data is found.
+ *
+ * @param surface Pointer to the surface to update
+ * @param screen  Pointer to the XCB screen providing the source
+ *                properties
+ *
+ * @note DPI is set to @c 0 on an axis whose physical size is
+ *       unavailable
+ * @note Complexity: @e O(1)
+ */
 static void s_update_properties(surface_td *surface,
         xcb_screen_t *screen)
 {
@@ -484,4 +499,23 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
 
     /* Desktop ID not found */
     return 1;
+}
+
+
+/* Recompute the work area for every desktop on a surface */
+void surface_refresh_workareas(surface_td *surface)
+{
+    if (surface == NULL) {
+        return;
+    }
+
+    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
+        desktop_td *d = surface_desktop_get(surface, did);
+
+        if (d != NULL) {
+            desktop_update_workarea(d,
+                    surface->properties.dim.w,
+                    surface->properties.dim.h);
+        }
+    }
 }

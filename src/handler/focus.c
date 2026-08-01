@@ -14,6 +14,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -41,6 +42,35 @@
 
 /* Local includes */
 #include <handler.h>
+
+
+/**
+ * @brief Recompute the work area for every desktop on a surface
+ *
+ * Iterates over all desktops belonging to the given surface and updates
+ * each one's work area based on the surface's current dimensions,
+ * accounting for reserved space such as docks or panels.
+ *
+ * @param surface Pointer to the target surface
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops
+ */
+static void s_handler_refresh_workareas(surface_td *surface)
+{
+    if (surface == NULL) {
+        return;
+    }
+
+    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
+        desktop_td *d = surface_desktop_get(surface, did);
+
+        if (d != NULL) {
+            desktop_update_workarea(d,
+                    surface->properties.dim.w,
+                    surface->properties.dim.h);
+        }
+    }
+}
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
@@ -130,11 +160,7 @@ void handler_property_notify(xcb_connection_t *connection,
                 (int32_t) strut.bottom;
         }
 
-        if (desktop != NULL && surface != NULL) {
-            desktop_update_workarea(desktop,
-                    surface->properties.dim.w,
-                    surface->properties.dim.h);
-        }
+        s_handler_refresh_workareas(surface);
 
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);

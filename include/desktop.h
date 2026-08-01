@@ -415,9 +415,11 @@ int desktop_action_application_kill(desktop_td *desktop,
  *
  * Scans all clients in the stacking list for non-zero @c _NET_WM_STRUT
  * / @c _NET_WM_STRUT_PARTIAL values and subtracts the maximum
- * reservation on each edge from the full screen dimensions.  The result
- * is stored in @p desktop->workarea and broadcast to the X server as
- * @c _NET_WORKAREA.
+ * reservation on each edge from the full screen dimensions.  For
+ * partial struts, the corresponding start/end range is honored so
+ * reservations that do not overlap the screen edge span are ignored.
+ * The result is stored in @p desktop->workarea and broadcast to the
+ * X server as @c _NET_WORKAREA.
  *
  * Call this after a panel (strut client) is mapped or unmapped so that
  * maximize and smart-placement work on the correct available area.
