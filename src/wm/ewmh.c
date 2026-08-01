@@ -315,6 +315,11 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SHADED;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
     supported_atoms[n_supported++] = wm->ewmh->_NET_CLOSE_WINDOW;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DOCK;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_NORMAL;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DIALOG;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_MOVERESIZE_WINDOW;
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {

@@ -23,6 +23,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
@@ -93,7 +94,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event);
  * @param surfaces   All managed surfaces
  * @param event      Unmap notify event
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
  */
 void handler_unmap_notify(xcb_connection_t *connection,
         list_td *surfaces,
@@ -109,7 +111,8 @@ void handler_unmap_notify(xcb_connection_t *connection,
  * @param surfaces   All managed surfaces
  * @param event      Destroy notify event
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
  */
 void handler_destroy_notify(xcb_connection_t *connection,
         list_td *surfaces,
@@ -124,7 +127,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
  * @param surfaces   All managed surfaces
  * @param event      Property notify event
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
  */
 void handler_property_notify(xcb_connection_t *connection,
         list_td *surfaces,
@@ -140,7 +144,8 @@ void handler_property_notify(xcb_connection_t *connection,
  * @param surfaces   All managed surfaces
  * @param event      Focus-in event
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
  */
 void handler_focus_in(xcb_connection_t *connection,
         list_td *surfaces,
@@ -177,12 +182,30 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
  * @param event      Expose event
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
  */
 void handler_expose(xcb_connection_t *connection,
         list_td *surfaces,
         xcb_expose_event_t *event,
         const config_td *cfg);
+
+/**
+ * @brief Handle a @c CLIENT_MESSAGE event
+ *
+ * Dispatches EWMH and ICCCM client-message requests from applications
+ * (fullscreen, maximize, close, desktop switch, iconify, etc.) to the
+ * appropriate command functions so that they are honoured by the window
+ * manager.
+ *
+ * @param wm    Window manager state
+ * @param event Client message event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void handler_client_message(wm_td *wm,
+        xcb_client_message_event_t *event);
 
 
 #endif  /* ! HANDLER_H */

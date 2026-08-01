@@ -295,6 +295,7 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_size_hints_t hints;
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
+    xcb_ewmh_get_atoms_reply_t type_reply;
     xcb_intern_atom_reply_t *ia;
     xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
     xcb_icccm_get_wm_protocols_reply_t proto;
@@ -523,6 +524,50 @@ client_td *client_manage(xcb_connection_t *connection,
             (int32_t) strut.top;
         client->layout.strut_partial.sides.bottom =
             (int32_t) strut.bottom;
+    }
+
+    /* Read '_NET_WM_WINDOW_TYPE' to determine client type and
+     * decoration */
+    memset(&type_reply, 0, sizeof(type_reply));
+    if (xcb_ewmh_get_wm_window_type_reply(ewmh,
+                xcb_ewmh_get_wm_window_type(ewmh, window),
+                &type_reply, NULL)) {
+        for (uint32_t ti = 0; ti < type_reply.atoms_len; ++ti) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DOCK) {
+                client->properties.type = CLIENT_TYPE_DOCK;
+                client_unset_decoration(client);
+                client->layout.frame_extents.left = 0;
+                client->layout.frame_extents.right = 0;
+                client->layout.frame_extents.top = 0;
+                client->layout.frame_extents.bottom = 0;
+                client->properties.layer = CLIENT_LAYER_ABOVE;
+                client_unset_focusable(client);
+                break;
+            }
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
+                client->properties.type = CLIENT_TYPE_DIALOG;
+                break;
+            }
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
+                client->properties.type = CLIENT_TYPE_TOOLBAR;
+                break;
+            }
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_MENU) {
+                client->properties.type = CLIENT_TYPE_MENU;
+                client_unset_decoration(client);
+                break;
+            }
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
+                client->properties.type = CLIENT_TYPE_SPLASH;
+                client_unset_decoration(client);
+                break;
+            }
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
+                client->properties.type = CLIENT_TYPE_UTILITY;
+                break;
+            }
+        }
+        xcb_ewmh_get_atoms_reply_wipe(&type_reply);
     }
 
     /* Subscribe to events on the adopted window */

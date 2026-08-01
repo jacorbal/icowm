@@ -14,9 +14,11 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
@@ -49,6 +51,8 @@ void handler_property_notify(xcb_connection_t *connection,
     client_td *client;
     surface_td *surface;
     desktop_td *desktop;
+    xcb_ewmh_get_extents_reply_t strut;
+    xcb_ewmh_wm_strut_partial_t partial;
 
     (void) connection;
 
@@ -76,6 +80,62 @@ void handler_property_notify(xcb_connection_t *connection,
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_NAME)) {
         client_props_refresh_name(client);
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+                return;
+    }
+    if (client->ewmh != NULL &&
+            (event->atom == client->ewmh->_NET_WM_STRUT_PARTIAL ||
+             event->atom == client->ewmh->_NET_WM_STRUT)) {
+        memset(&strut, 0, sizeof(strut));
+        memset(&partial, 0, sizeof(partial));
+        if (xcb_ewmh_get_wm_strut_partial_reply(client->ewmh,
+                    xcb_ewmh_get_wm_strut_partial(client->ewmh,
+                            client->window),
+                    &partial, NULL)) {
+            client->layout.strut_partial.sides.left =
+                (int32_t) partial.left;
+            client->layout.strut_partial.sides.right =
+                (int32_t) partial.right;
+            client->layout.strut_partial.sides.top =
+                (int32_t) partial.top;
+            client->layout.strut_partial.sides.bottom =
+                (int32_t) partial.bottom;
+            client->layout.strut_partial.start.left =
+                (int32_t) partial.left_start_y;
+            client->layout.strut_partial.start.right =
+                (int32_t) partial.right_start_y;
+            client->layout.strut_partial.start.top =
+                (int32_t) partial.top_start_x;
+            client->layout.strut_partial.start.bottom =
+                (int32_t) partial.bottom_start_x;
+            client->layout.strut_partial.end.left =
+                (int32_t) partial.left_end_y;
+            client->layout.strut_partial.end.right =
+                (int32_t) partial.right_end_y;
+            client->layout.strut_partial.end.top =
+                (int32_t) partial.top_end_x;
+            client->layout.strut_partial.end.bottom =
+                (int32_t) partial.bottom_end_x;
+        } else if (xcb_ewmh_get_wm_strut_reply(client->ewmh,
+                    xcb_ewmh_get_wm_strut(client->ewmh, client->window),
+                    &strut, NULL)) {
+            client->layout.strut_partial.sides.left =
+                (int32_t) strut.left;
+            client->layout.strut_partial.sides.right =
+                (int32_t) strut.right;
+            client->layout.strut_partial.sides.top =
+                (int32_t) strut.top;
+            client->layout.strut_partial.sides.bottom =
+                (int32_t) strut.bottom;
+        }
+
+        if (desktop != NULL && surface != NULL) {
+            desktop_update_workarea(desktop,
+                    surface->properties.dim.w,
+                    surface->properties.dim.h);
+        }
+
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
     }

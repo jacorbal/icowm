@@ -107,6 +107,7 @@ void handler_configure_request(xcb_connection_t *connection,
     uint16_t mask;
     uint16_t target_mask;
     uint32_t target_values[7];
+    bool geom_changed;
     int i;
 
     if (event == NULL) {
@@ -130,6 +131,7 @@ void handler_configure_request(xcb_connection_t *connection,
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
 
+    geom_changed = false;
     target_mask = 0;
     i = 0;
     if (client != NULL) {
@@ -157,6 +159,9 @@ void handler_configure_request(xcb_connection_t *connection,
             } else {
                 req_x = event->x;
             }
+            if (req_x != client->layout.geometry.cur.pos.x) {
+                geom_changed = true;
+            }
             target_values[i++] = (uint32_t) req_x;
             target_mask |= XCB_CONFIG_WINDOW_X;
             client->layout.geometry.cur.pos.x = req_x;
@@ -167,6 +172,9 @@ void handler_configure_request(xcb_connection_t *connection,
                 req_y = event->y - (int16_t) top;
             } else {
                 req_y = event->y;
+            }
+            if (req_y != client->layout.geometry.cur.pos.y) {
+                geom_changed = true;
             }
             target_values[i++] = (uint32_t) req_y;
             target_mask |= XCB_CONFIG_WINDOW_Y;
@@ -179,6 +187,9 @@ void handler_configure_request(xcb_connection_t *connection,
             } else {
                 req_w = (uint32_t) event->width;
             }
+            if (req_w != client->layout.geometry.cur.dim.w) {
+                geom_changed = true;
+            }
             target_values[i++] = req_w;
             target_mask |= XCB_CONFIG_WINDOW_WIDTH;
             client->layout.geometry.cur.dim.w = req_w;
@@ -189,6 +200,9 @@ void handler_configure_request(xcb_connection_t *connection,
                 req_h = (uint32_t) event->height + top + bottom;
             } else {
                 req_h = (uint32_t) event->height;
+            }
+            if (req_h != client->layout.geometry.cur.dim.h) {
+                geom_changed = true;
             }
             target_values[i++] = req_h;
             target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
@@ -257,8 +271,9 @@ void handler_configure_request(xcb_connection_t *connection,
         }
     }
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    if (geom_changed || (mask & XCB_CONFIG_WINDOW_STACK_MODE)) {
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);    
 }
 
 
