@@ -11,7 +11,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L  /* sigaction, sigemptyset */
+#define _XOPEN_SOURCE 700       /* SA_RESTART */    
+#define _POSIX_C_SOURCE 200112L /* sigaction, sigemptyset */
 
 
 /* System includes */
@@ -56,6 +57,11 @@ static volatile sig_atomic_t s_resume_signal_received = 0;
  *        a configuration reload
  */
 static volatile sig_atomic_t s_reload_signal_received = 0;
+
+/**
+ * @brief Flag written by @c SIGCHLD so the main loop can reap children
+ */
+static volatile sig_atomic_t s_child_reap_requested = 0;
 
 
 /**
@@ -102,6 +108,21 @@ static void s_startup_handle_resume(int signum)
 {
     (void) signum;
     s_resume_signal_received = 1;
+}
+
+
+/**
+ * @brief Signal handler for @c SIGCHLD
+ *
+ * Defers child reaping to the main loop so @c waitpid is only called in
+ * normal execution context.
+ *
+ * @param signum Number of the received signal (always @c SIGCHLD)
+ */
+static void s_startup_handle_child(int signum)
+{
+    (void) signum;
+    s_child_reap_requested = 1;
 }
 
 
@@ -188,6 +209,7 @@ int startup_install_signals(void)
     struct sigaction sa;
     struct sigaction sa_hup;
     struct sigaction sa_cont;
+    struct sigaction sa_chld;
 
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = s_startup_handle_signal;
@@ -203,6 +225,11 @@ int startup_install_signals(void)
     sa_cont.sa_handler = s_startup_handle_resume;
     sa_cont.sa_flags = 0;
     sigemptyset(&sa_cont.sa_mask);
+
+    memset(&sa_chld, 0, sizeof(sa_chld));
+    sa_chld.sa_handler = s_startup_handle_child;
+    sa_chld.sa_flags = SA_RESTART;
+    sigemptyset(&sa_chld.sa_mask);
 
     if (sigaction(SIGHUP, &sa_hup, NULL) != 0 ||
             sigaction(SIGINT, &sa, NULL) != 0 ||
@@ -242,6 +269,18 @@ bool startup_resume_requested(void)
 {
     if (s_resume_signal_received != 0) {
         s_resume_signal_received = 0;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* Query whether a pending child-reap request was received */
+bool startup_child_reap_requested(void)
+{
+    if (s_child_reap_requested != 0) {
+        s_child_reap_requested = 0;
         return true;
     }
 

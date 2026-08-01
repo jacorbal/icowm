@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* strerror */
+#include <sys/wait.h>   /* waitpid */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -179,6 +180,11 @@ void loop_run(wm_td *wm)
                     " input grabs", L_NARG);
             keyboard_load(wm->surfaces, keysyms, wm->config);
             mouse_load(wm->surfaces, wm->config);
+        }
+
+        if (startup_child_reap_requested()) {
+            while (waitpid(-1, NULL, WNOHANG) > 0) {
+            }
         }
 
         if (xcb_connection_has_error(wm->connection) != 0) {

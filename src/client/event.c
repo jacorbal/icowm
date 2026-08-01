@@ -215,6 +215,7 @@ int client_send_event_resize(client_td *client,
     uint32_t values[2];
     uint32_t req_w;
     uint32_t req_h;
+    bool interactive_resize;
 
     if (client == NULL) {
         LOGGER_ERROR("Received null client pointer", L_NARG);
@@ -236,6 +237,8 @@ int client_send_event_resize(client_td *client,
     /* NOTE: For decorated clients the frame must be resized; resizing
      *       only the inner window would leave the decoration at the
      *       wrong size */
+    interactive_resize =
+        client->properties.operation == CLIENT_OPERATION_RESIZING;
     values[0] = req_w;
     values[1] = req_h;
 
@@ -244,10 +247,32 @@ int client_send_event_resize(client_td *client,
                 ? client->frame : client->window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             values);
-    client_sync_decoration_layout(client);
+
+    if (interactive_resize &&
+            client->titlebar != 0 &&
+            client_is_decorated(client) &&
+            client->frame != 0) {
+        uint16_t left = (uint16_t) client->layout.frame_extents.left;
+        uint16_t right = (uint16_t) client->layout.frame_extents.right;
+        uint16_t top = (uint16_t) client->layout.frame_extents.top;
+        uint16_t title_h = client->title_height;
+        uint16_t inner_w = (req_w > left + right)
+            ? (uint16_t) (req_w - left - right)
+            : 1u;
+        uint16_t title_y = (top > title_h)
+            ? (uint16_t) (top - title_h)
+            : 0u;
+        xcb_configure_window(client->connection, client->titlebar,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) { left, title_y, inner_w, title_h });
+    } else {
+        client_sync_decoration_layout(client);
+    }
+
     xcb_flush(client->connection);
 
-    if (client->properties.operation == CLIENT_OPERATION_RESIZING) {
+    if (interactive_resize) {
         return 0;
     }
 

@@ -112,6 +112,10 @@ static void s_handle_wm_state_atom(client_td *client,
     is_skip_pager = (state_atom == ewmh->_NET_WM_STATE_SKIP_PAGER);
 
     if (is_fullscreen) {
+        if (!client_is_resizable(client)) {
+            return;
+        }
+
         if (action == WM_STATE_ACTION_ADD) {
             wcmd_client_fullscreen(client);
         } else if (action == WM_STATE_ACTION_REMOVE) {
@@ -123,6 +127,10 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_max_h) {
+        if (!client_is_resizable(client)) {
+            return;
+        }
+
         is_add = (action == WM_STATE_ACTION_ADD) ||
             (action == WM_STATE_ACTION_TOGGLE &&
              client->properties.state != CLIENT_STATE_MAXIMIZED_HORZ);
@@ -135,6 +143,10 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_max_v) {
+        if (!client_is_resizable(client)) {
+            return;
+        }
+
         is_add = (action == WM_STATE_ACTION_ADD) ||
             (action == WM_STATE_ACTION_TOGGLE &&
              client->properties.state != CLIENT_STATE_MAXIMIZED_VERT);

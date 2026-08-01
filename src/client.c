@@ -460,25 +460,38 @@ client_td *client_manage(xcb_connection_t *connection,
                 xcb_icccm_get_wm_normal_hints(connection, window),
                 &hints, NULL)) {
         client->size_hints.valid = true;
+
         if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
             client->size_hints.min_w = (int32_t) hints.min_width;
             client->size_hints.min_h = (int32_t) hints.min_height;
         }
+
         if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
             client->size_hints.max_w = (int32_t) hints.max_width;
             client->size_hints.max_h = (int32_t) hints.max_height;
         }
+
         if (hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
             client->size_hints.base_w = (int32_t) hints.base_width;
             client->size_hints.base_h = (int32_t) hints.base_height;
         }
+
         if (hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
             client->size_hints.inc_w = (int32_t) hints.width_inc;
             client->size_hints.inc_h = (int32_t) hints.height_inc;
         }
+
         if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
             client->properties.gravity =
                 (uint16_t) hints.win_gravity;
+        }
+
+        if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
+                (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) &&
+                hints.min_width > 0 && hints.min_height > 0 &&
+                hints.min_width == hints.max_width &&
+                hints.min_height == hints.max_height) {
+            client_unset_resizable(client);
         }
     }
 

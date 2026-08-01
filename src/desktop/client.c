@@ -31,6 +31,9 @@
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>
 
+/* Command includes */
+#include <cmds/layer.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -256,6 +259,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
                             L_NARG);
                     return -1;
                 }
+
                 if (cdlist_ins_next(desktop->stacking,
                             cdlist_tail(desktop->stacking),
                             (void *) client) != 0) {
@@ -263,6 +267,8 @@ int desktop_action_client_send_front(desktop_td *desktop,
                             L_NARG);
                     return -1;
                 }
+
+                wcmd_desktop_enforce_layers(desktop);
                 desktop->is_outdated = true;
                 return 0;
             }
@@ -303,6 +309,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
                             L_NARG);
                     return -1;
                 }
+
                 if (cdlist_ins_next(desktop->stacking, NULL,
 //                            cdlist_head(desktop->stacking),
                             (void *) client) != 0) {
@@ -310,6 +317,8 @@ int desktop_action_client_send_back(desktop_td *desktop,
                             L_NARG);
                     return -1;
                 }
+
+                wcmd_desktop_enforce_layers(desktop);
                 desktop->is_outdated = true;
                 return 0;
             }

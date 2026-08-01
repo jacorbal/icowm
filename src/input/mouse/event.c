@@ -377,7 +377,8 @@ void mouse_handle_press(xcb_connection_t *connection,
                         for (int bi = 0; bi < 6; ++bi) {
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
-                                if (!can_maximize && bi == 2) {
+                                if (!can_maximize &&
+                                        (bi == 1 || bi ==2)) {
                                     hit_btn = true;
                                     break;
                                 }

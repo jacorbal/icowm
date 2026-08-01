@@ -135,7 +135,7 @@ void wcmd_client_maximize_horz(client_td *client)
         return;
     }
 
-    if (client_is_fullscreen(client)) {
+    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
         return;
     }
     if (client_is_shaded(client)) {
@@ -193,7 +193,7 @@ void wcmd_client_maximize_vert(client_td *client)
         return;
     }
 
-    if (client_is_fullscreen(client)) {
+    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
         return;
     }
 
@@ -256,7 +256,7 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
-    if (client_is_fullscreen(client)) {
+    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
         return;
     }
 

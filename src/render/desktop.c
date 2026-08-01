@@ -174,7 +174,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
                 (int16_t) ((uint16_t) bi * step));
-        color = ((!can_maximize) && bi == 2) ? bg_fill : fill;
+        color = ((!can_maximize) && (bi == 1 || bi == 2)) ? bg_fill : fill;
         gc = xcb_generate_id(connection);
 
         xcb_create_gc(connection, gc, titlebar,

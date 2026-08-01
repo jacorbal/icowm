@@ -253,6 +253,11 @@ void drag_end(xcb_connection_t *connection,
     }
 
     if (s_drag.client != NULL) {
+        uint32_t final_w = s_drag.client->layout.geometry.cur.dim.w;
+        uint32_t final_h = s_drag.client->layout.geometry.cur.dim.h;
+        bool finalize_resize =
+            s_drag.operation == CLIENT_OPERATION_RESIZING;
+
         if (s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window == s_drag.client->icon_window) {
             int32_t dx = (int32_t) root_x -
@@ -275,6 +280,10 @@ void drag_end(xcb_connection_t *connection,
             }
         }
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
+        if (finalize_resize) {
+            (void) client_send_event_resize(s_drag.client,
+                    final_w, final_h);
+        }
     }
 
     s_drag.active = false;

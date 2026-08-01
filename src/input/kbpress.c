@@ -399,6 +399,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
                         if (client != NULL) {
                             enum action_client_e act = ACTION_CLIENT_ICONIFY;
+                            bool needs_resize_capability = false;
+
                             if (btype == KEYBIND_CLIENT_INFO) {
                                 popup_show(surface->connection,
                                         surface, desktop, client,
@@ -412,20 +414,29 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 act = ACTION_CLIENT_CLOSE;
                             else if (btype == KEYBIND_CLIENT_KILL)
                                 act = ACTION_CLIENT_KILL;
-                            else if (btype == KEYBIND_CLIENT_MAXIMIZE)
+                            else if (btype == KEYBIND_CLIENT_MAXIMIZE) {
+                                needs_resize_capability = true;
                                 act = ACTION_CLIENT_MAXIMIZE;
+                            }
                             else if (btype == KEYBIND_CLIENT_CENTER)
                                 act = ACTION_CLIENT_CENTER;
                             else if (btype == KEYBIND_CLIENT_SHADE)
                                 act = ACTION_CLIENT_TOGGLE_SHADE;
-                            else if (btype == KEYBIND_CLIENT_FULLSCREEN)
+                            else if (btype == KEYBIND_CLIENT_FULLSCREEN) {
+                                needs_resize_capability = true;
                                 act = ACTION_CLIENT_TOGGLE_FULLSCREEN;
+                                }
                             else if (btype == KEYBIND_CLIENT_PIN)
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
                             else if (btype == KEYBIND_CLIENT_TOGGLE_DECORATION)
                                 act = ACTION_CLIENT_TOGGLE_DECORATION;
                             else if (btype == KEYBIND_CLIENT_CYCLE_LAYER)
                                 act = ACTION_CLIENT_CYCLE_LAYER;
+
+                            if (needs_resize_capability &&
+                                    !client_is_resizable(client)) {
+                                return;
+                            }
                             client_send_event(client, act, PRIORITY_NORMAL);
                         }
                     }

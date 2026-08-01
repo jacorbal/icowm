@@ -3,10 +3,9 @@
  *
  * @brief Window manager startup helpers declaration
  *
- * Declares the three startup functions for subscribing to root window
- * events, installing signal handlers, and querying whether a stop
- * signal has been received.  All signal state is private to the
- * implementation.
+ * Declares helpers for subscribing to root-window events, installing
+ * signal handlers, and querying deferred signal work that the main loop
+ * must process in normal execution context.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -95,6 +94,19 @@ bool startup_reload_requested(void);
  * @note Complexity: @e O(1)
  */
 bool startup_resume_requested(void);
+
+/**
+ * @brief Query whether terminated children should be reaped
+ *
+ * Returns @c true and clears the internal flag on the first call after
+ * a @c SIGCHLD is received; subsequent calls return @c false until the
+ * next child-termination signal.
+ *
+ * @return @c true if child reaping is pending
+ *
+ * @note Complexity: @e O(1)
+ */
+bool startup_child_reap_requested(void);
 
 
 #endif  /* ! STARTUP_H */

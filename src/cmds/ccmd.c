@@ -800,6 +800,10 @@ void wcmd_client_fullscreen(client_td *client)
         return;
     }
 
+    if (!client_is_resizable(client)) {
+        return;
+    }
+
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
     }
@@ -989,6 +993,11 @@ void wcmd_client_unfullscreen(client_td *client)
 void wcmd_client_toggle_fullscreen(client_td *client)
 {
     if (client == NULL) {
+        return;
+    }
+
+    if (!client_is_resizable(client) &&
+            client->properties.state != CLIENT_STATE_FULLSCREEN) {
         return;
     }
 
