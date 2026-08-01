@@ -490,6 +490,9 @@ void wcmd_client_iconify(client_td *client)
         xcb_unmap_window(client->connection, client->window);
     }
     xcb_map_window(client->connection, client->icon_window);
+    xcb_configure_window(client->connection, client->icon_window,
+            XCB_CONFIG_WINDOW_STACK_MODE,
+            (const uint32_t[]) { XCB_STACK_MODE_BELOW });
     client->is_icon_mapped = true;
 
     client_set_hidden(client);

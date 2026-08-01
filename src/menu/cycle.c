@@ -155,7 +155,7 @@ static uint32_t s_cycle_preview_border_width(const client_td *client,
     }
 
     if (is_highlighted) {
-        border_width += 1u;
+        border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
     }
 
     return border_width;
@@ -265,6 +265,10 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
                     previous_border, false);
 
             if (s_menu.is_icon_menu) {
+                xcb_configure_window(connection, previous_target,
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+
                 values[0] = cfg->theme.icon.inactive.background_color;
                 values[1] = cfg->theme.icon.inactive.border_color;
 

@@ -109,6 +109,9 @@
 /** Threshold below which an icon drag is treated as a click */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) × 4 (px) = 16 (px^2) */
 
+/** Extra border pixels added to the selected icon in the cycle menu */
+#define WM_ICON_CYCLE_SEL_BORDER_EXTRA (10u)
+
 /** Maximum interval in milliseconds between two presses on the same
  *  titlebar that is recognised as a double-click. */
 #define WM_DOUBLE_CLICK_MS (400u)

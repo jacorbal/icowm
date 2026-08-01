@@ -133,9 +133,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         : 0xFFFFFFu;
 
     /* Vertically center buttons in the titlebar */
-    btn_y = (frame_top > btn)
-        ? (int16_t) ((frame_top - btn) / 2u)
-        : 0;
+    btn_y = (frame_top > btn) ? (int16_t) ((frame_top - btn) / 2u) : 0;
 
     gc = xcb_generate_id(connection);
     /* Left-aligned: Pin button */
@@ -262,6 +260,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 xcb_clear_area(desktop->connection, 0,
                         client->icon_window, 0, 0, 0, 0);
                 xcb_map_window(desktop->connection, client->icon_window);
+                xcb_configure_window(desktop->connection, client->icon_window,
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
 
                 if (desktop->config_theme->icon.general.is_captioned &&
                         client->info.name != NULL) {

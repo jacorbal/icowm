@@ -136,6 +136,9 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                     (uint16_t) CLIENT_STATE_ICONIFIED &&
                 client->icon_window != 0) {
             xcb_map_window(surface->connection, client->icon_window);
+            xcb_configure_window(surface->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) { XCB_STACK_MODE_BELOW });
             client->is_icon_mapped = true;
         }
         node = cdlist_next(node);
