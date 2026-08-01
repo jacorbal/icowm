@@ -700,6 +700,34 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Publish initial '_NET_WM_ALLOWED_ACTIONS' */
     wcmd_client_update_allowed_actions(client);
 
+    /* Subscribe to events on the adopted window.
+     * For dock and notification windows, preserve the application's
+     * event mask (which includes 'ButtonPress'/'ButtonRelease' needed
+     * for systray interaction) and OR in only the WM's required events.
+     * Replacing the mask wholesale would strip 'ButtonPress', making
+     * systray icons non-interactive after a 'PassiveGrab replay. */
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
+            client->properties.type ==
+                (uint16_t) CLIENT_TYPE_NOTIFICATION) {
+        xcb_get_window_attributes_cookie_t wac =
+            xcb_get_window_attributes(connection, window);
+        xcb_get_window_attributes_reply_t *war =
+            xcb_get_window_attributes_reply(connection, wac, NULL);
+        uint32_t existing_mask = (war != NULL)
+            ? (uint32_t) war->your_event_mask : 0u;
+        if (war != NULL) {
+            free(war);
+        }
+        values[0] = existing_mask            |
+                    XCB_EVENT_MASK_PROPERTY_CHANGE  |
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    } else {
+        values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
+                    XCB_EVENT_MASK_LEAVE_WINDOW     |
+                    XCB_EVENT_MASK_FOCUS_CHANGE     |
+                    XCB_EVENT_MASK_PROPERTY_CHANGE  |
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    }
 
     /* Subscribe to events on the adopted window */
     values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
@@ -720,8 +748,29 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);
 
-    if (client->frame == 0) {
+
+    /* Only grab buttons on client windows that the window manager
+     * decorates or that could receive focus.  Dock and notification
+     * windows manage their own pointer events; grabbing buttons on them
+     * intercepts systray icon clicks and breaks context-menu
+     * interaction. */
+    if (client->frame == 0 &&
+            client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
+            client->properties.type !=
+                (uint16_t) CLIENT_TYPE_NOTIFICATION) {
         wcmd_client_grab_buttons(client);
+    }
+
+    /* Initialize '_NET_WM_STATE' to an empty list for newly adopted
+     * windows so taskbars and pagers always see a clean state even if
+     * the application left a stale property from a previous session. */
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_NORMAL ||
+            client->properties.type == (uint16_t) CLIENT_TYPE_DIALOG ||
+            client->properties.type == (uint16_t) CLIENT_TYPE_TOOLBAR ||
+            client->properties.type == (uint16_t) CLIENT_TYPE_UTILITY) {
+        if (client->ewmh != NULL) {
+            xcb_ewmh_set_wm_state(client->ewmh, client->window, 0, NULL);
+        }
     }
 
     wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);

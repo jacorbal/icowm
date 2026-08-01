@@ -388,7 +388,8 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     if (type == MOUSEBIND_NONE) {
-        if (client != NULL) {
+        if (surface != NULL && desktop != NULL &&
+                client_is_focusable(client)) {
             surface = lookup_surface_for_root(surfaces, event->root);
             if (surface != NULL && desktop != NULL) {
                 focus_apply(surfaces, surface, desktop, client,
