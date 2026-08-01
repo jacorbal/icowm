@@ -555,15 +555,16 @@ void mouse_handle_press(xcb_connection_t *connection,
                         }
                     } else {
                         drag_start(connection, event->root, client,
+                                desktop,
                                 CLIENT_OPERATION_MOVING,
                                 event->time,
                                 event->root_x, event->root_y,
                                 (surface != NULL)
-                                ? surface->properties.dim.w : 0u,
+                                    ? surface->properties.dim.w : 0u,
                                 (surface != NULL)
-                                ? surface->properties.dim.h : 0u,
+                                    ? surface->properties.dim.h : 0u,
                                 (cfg != NULL)
-                                ? cfg->base.windows.snap : 0u);
+                                    ? cfg->base.windows.snap : 0u);
                     }
                 }
             }
@@ -637,7 +638,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         screen_h = surface->properties.dim.h;
     }
 
-    drag_start(connection, event->root, client,
+    drag_start(connection, event->root, client, desktop,
             (type == MOUSEBIND_MOVE)
                 ? CLIENT_OPERATION_MOVING
                 : CLIENT_OPERATION_RESIZING,

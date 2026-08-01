@@ -23,6 +23,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* ADT includes */
+#include <adt/cdlist.h>
+
 /* Utils includes */
 #include <utils/geom.h>
 
@@ -49,6 +52,7 @@ static struct {
     bool active;
     enum window_operation_e operation;
     client_td *client;
+    desktop_td *desktop;
     xcb_window_t drag_window;   /**< Icon window moved, or
                                  *   'XCB_WINDOW_NONE' for normal drag */
     int16_t pointer_start_x;
@@ -64,6 +68,7 @@ static struct {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
     .client = NULL,
+    .desktop = NULL,
     .drag_window = XCB_WINDOW_NONE,
     .pointer_start_x = 0,
     .pointer_start_y = 0,
@@ -77,9 +82,192 @@ static struct {
 };
 
 
+/**
+ * @brief Compute the absolute value of a 32-bit signed integer
+ *
+ * Returns the non-negative magnitude of the given value.
+ *
+ * @param value Input integer
+ *
+ * @return Absolute value of @p value
+ *
+ * @note Complexity: @e O(1)
+ */
+static int32_t s_drag_abs_i32(int32_t value)
+{
+    return (value < 0) ? -value : value;
+}
+
+
+/**
+ * @brief Select the delta with the smaller absolute magnitude
+ *
+ * Compares two deltas and returns the one whose absolute value
+ * is smaller, preserving its original sign.
+ *
+ * @param current   Current best delta
+ * @param candidate Candidate delta to compare
+ *
+ * @return The delta with the smaller absolute value
+ *
+ * @note Complexity: @e O(1)
+ */
+static int32_t s_drag_closer_delta(int32_t current, int32_t candidate)
+{
+    if (s_drag_abs_i32(candidate) < s_drag_abs_i32(current)) {
+        return candidate;
+    }
+
+    return current;
+}
+
+
+/**
+ * @brief Check whether two 1-D ranges overlap or are within snap
+ *        distance
+ *
+ * Determines if two intervals either overlap or are closer than a given
+ * snapping threshold, allowing near-alignment behavior.
+ *
+ * @param start_a Start of first range
+ * @param end_a   End of first range
+ * @param start_b Start of second range
+ * @param end_b   End of second range
+ * @param snap    Maximum allowed gap for ranges to be considered
+ *                "close"
+ *
+ * @return @c true if ranges overlap or are within @p snap distance,
+ *         otherwise @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
+        int32_t start_b, int32_t end_b, int32_t snap)
+{
+    return !(end_a < start_b - snap || end_b < start_a - snap);
+}
+
+
+/**
+ * @brief Apply snapping behavior during client movement
+ *
+ * Adjusts the proposed position of a moving client so it "snaps" to
+ * nearby window edges or screen boundaries when within a configurable
+ * threshold.  It compares the moving window against other visible,
+ * non-iconified clients on the same desktop and computes the smallest
+ * adjustment needed to align edges.
+ *
+ * Snapping is applied independently along both axes and also considers
+ * screen edges if available.
+ *
+ * @param x      Pointer to the proposed X coordinate (updated in place)
+ * @param y      Pointer to the proposed Y coordinate (updated in place)
+ * @param width  Width of the moving client
+ * @param height Height of the moving client
+ *
+ * @note Requires a valid global @c s_drag context
+ * @note Complexity: @e O(n), where @e n is the number of clients in the
+ *       stacking list
+ */
+static void s_drag_snap_move(int32_t *x, int32_t *y,
+        uint32_t width, uint32_t height)
+{
+    int32_t snap;
+    int32_t right;
+    int32_t bottom;
+
+    if (x == NULL || y == NULL || s_drag.snap == 0) {
+        return;
+    }
+
+    snap = (int32_t) s_drag.snap;
+    right = *x + (int32_t) width;
+    bottom = *y + (int32_t) height;
+
+    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
+            cdlist_size(s_drag.desktop->stacking) > 0) {
+        cdlist_item_td *node;
+        cdlist_item_td *initial;
+        int32_t dx = snap;
+        int32_t dy = snap;
+
+        node = cdlist_head(s_drag.desktop->stacking);
+        initial = node;
+        if (node != NULL) {
+            do {
+                const client_td *other =
+                    (const client_td *) cdlist_data(node);
+
+                if (other != NULL && other != s_drag.client &&
+                        !client_is_hidden(other) &&
+                        !client_is_iconified(other)) {
+                    int32_t ox = other->layout.geometry.cur.pos.x;
+                    int32_t oy = other->layout.geometry.cur.pos.y;
+                    int32_t oright = ox +
+                        (int32_t) other->layout.geometry.cur.dim.w;
+                    int32_t obottom = oy +
+                        (int32_t) other->layout.geometry.cur.dim.h;
+
+                    if (s_drag_ranges_close(*y, bottom, oy,
+                                obottom, snap)) {
+                        dx = s_drag_closer_delta(dx, oright - *x);
+                        dx = s_drag_closer_delta(dx, oright - right);
+                        dx = s_drag_closer_delta(dx, ox - right);
+                        dx = s_drag_closer_delta(dx, ox - *x);
+                    }
+
+                    if (s_drag_ranges_close(*x, right, ox,
+                                oright, snap)) {
+                        dy = s_drag_closer_delta(dy, obottom - *y);
+                        dy = s_drag_closer_delta(dy, obottom - bottom);
+                        dy = s_drag_closer_delta(dy, oy - bottom);
+                        dy = s_drag_closer_delta(dy, oy - *y);
+                    }
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
+        }
+
+        if (s_drag_abs_i32(dx) <= snap) {
+            *x += dx;
+            right += dx;
+        }
+
+        if (s_drag_abs_i32(dy) <= snap) {
+            *y += dy;
+            bottom += dy;
+        }
+    }
+
+    if (s_drag.screen_w > 0 &&
+            s_drag_abs_i32(*x) <= snap) {
+        right -= *x;
+        *x = 0;
+    }
+
+    if (s_drag.screen_h > 0 &&
+            s_drag_abs_i32(*y) <= snap) {
+        bottom -= *y;
+        *y = 0;
+    }
+
+    if (s_drag.screen_w > 0 &&
+            s_drag_abs_i32(right -
+                (int32_t) s_drag.screen_w) <= snap) {
+        *x = (int32_t) s_drag.screen_w - (int32_t) width;
+    }
+
+    if (s_drag.screen_h > 0 &&
+            s_drag_abs_i32(bottom -
+                (int32_t) s_drag.screen_h) <= snap) {
+        *y = (int32_t) s_drag.screen_h - (int32_t) height;
+    }
+}
+
+
 /* Begin a drag operation for a managed client window */
-void drag_start(xcb_connection_t *connection,
-        xcb_window_t root, client_td *client,
+void drag_start(xcb_connection_t *connection, xcb_window_t root,
+        client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
         int16_t root_x, int16_t root_y,
@@ -92,6 +280,7 @@ void drag_start(xcb_connection_t *connection,
 
     s_drag.active = true;
     s_drag.client = client;
+    s_drag.desktop = desktop;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.operation = operation;
     s_drag.pointer_start_x = root_x;
@@ -123,8 +312,7 @@ void drag_start(xcb_connection_t *connection,
 
 
 /* Begin a drag operation for an icon window */
-void drag_start_icon(xcb_connection_t *connection,
-        xcb_window_t root,
+void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
         client_td *client,
         int32_t icon_x,
         int32_t icon_y,
@@ -138,6 +326,7 @@ void drag_start_icon(xcb_connection_t *connection,
 
     s_drag.active = true;
     s_drag.client = client;
+    s_drag.desktop = NULL;
     s_drag.drag_window = client->icon_window;
     s_drag.operation = CLIENT_OPERATION_MOVING;
     s_drag.pointer_start_x = root_x;
@@ -160,6 +349,85 @@ void drag_start_icon(xcb_connection_t *connection,
             XCB_NONE,
             event_time);
     xcb_flush(connection);
+}
+
+
+/* Snap a resized client against peer windows and screen edges */
+static void s_drag_snap_resize(int32_t x, int32_t y,
+        uint32_t *width, uint32_t *height)
+{
+    int32_t snap;
+    int32_t right;
+    int32_t bottom;
+
+    if (width == NULL || height == NULL || s_drag.snap == 0) {
+        return;
+    }
+
+    snap = (int32_t) s_drag.snap;
+    right = x + (int32_t) *width;
+    bottom = y + (int32_t) *height;
+
+    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
+            cdlist_size(s_drag.desktop->stacking) > 0) {
+        cdlist_item_td *node;
+        cdlist_item_td *initial;
+        int32_t dw = snap;
+        int32_t dh = snap;
+
+        node = cdlist_head(s_drag.desktop->stacking);
+        initial = node;
+        if (node != NULL) {
+            do {
+                const client_td *other =
+                    (const client_td *) cdlist_data(node);
+
+                if (other != NULL && other != s_drag.client &&
+                        !client_is_hidden(other) &&
+                        !client_is_iconified(other)) {
+                    int32_t ox = other->layout.geometry.cur.pos.x;
+                    int32_t oy = other->layout.geometry.cur.pos.y;
+                    int32_t oright = ox +
+                        (int32_t) other->layout.geometry.cur.dim.w;
+                    int32_t obottom = oy +
+                        (int32_t) other->layout.geometry.cur.dim.h;
+
+                    if (s_drag_ranges_close(y, bottom,
+                                oy, obottom, snap)) {
+                        dw = s_drag_closer_delta(dw, oright - right);
+                        dw = s_drag_closer_delta(dw, ox - right);
+                    }
+
+                    if (s_drag_ranges_close(x, right,
+                                ox, oright, snap)) {
+                        dh = s_drag_closer_delta(dh, obottom - bottom);
+                        dh = s_drag_closer_delta(dh, oy - bottom);
+                    }
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
+        }
+
+        if (s_drag_abs_i32(dw) <= snap) {
+            *width = geom_clamp_dim((int32_t) *width + dw);
+            right = x + (int32_t) *width;
+        }
+
+        if (s_drag_abs_i32(dh) <= snap) {
+            *height = geom_clamp_dim((int32_t) *height + dh);
+            bottom = y + (int32_t) *height;
+        }
+    }
+
+    if (s_drag.screen_w > 0 &&
+            s_drag_abs_i32(right - (int32_t) s_drag.screen_w) <= snap) {
+        *width = geom_clamp_dim((int32_t) s_drag.screen_w - x);
+    }
+
+    if (s_drag.screen_h > 0 &&
+            s_drag_abs_i32(bottom - (int32_t) s_drag.screen_h) <= snap) {
+        *height = geom_clamp_dim((int32_t) s_drag.screen_h - y);
+    }
 }
 
 
@@ -186,6 +454,7 @@ void drag_update(xcb_connection_t *connection,
         int32_t new_x = s_drag.client_start_x + dx;
         int32_t new_y = s_drag.client_start_y + dy;
         uint32_t vals[2];
+
         vals[0] = (uint32_t) new_x;
         vals[1] = (uint32_t) new_y;
         xcb_configure_window(connection, client->icon_window,
@@ -195,48 +464,21 @@ void drag_update(xcb_connection_t *connection,
         int32_t new_x = s_drag.client_start_x + dx;
         int32_t new_y = s_drag.client_start_y + dy;
 
-        /* Snap to screen edges when within snap distance */
-        if (s_drag.snap > 0 &&
-                s_drag.screen_w > 0 && s_drag.screen_h > 0) {
-            uint32_t snap = s_drag.snap;
-            uint32_t fw = (uint32_t) s_drag.client_start_w;
-            uint32_t fh = (uint32_t) s_drag.client_start_h;
-
-            /* Left edge */
-            if (new_x >= 0 && (uint32_t) new_x <= snap) {
-                new_x = 0;
-            }
-
-            /* Top edge */
-            if (new_y >= 0 && (uint32_t) new_y <= snap) {
-                new_y = 0;
-            }
-
-            /* Right edge */
-            if (new_x >= 0 &&
-                    (uint32_t) new_x + fw <= s_drag.screen_w &&
-                    (uint32_t) new_x + fw >=
-                    s_drag.screen_w - snap) {
-                new_x = (int32_t) (s_drag.screen_w - fw);
-            }
-
-            /* Bottom edge */
-            if (new_y >= 0 &&
-                    (uint32_t) new_y + fh <= s_drag.screen_h &&
-                    (uint32_t) new_y + fh >=
-                    s_drag.screen_h - snap) {
-                new_y = (int32_t) (s_drag.screen_h - fh);
-            }
-        }
+        s_drag_snap_move(&new_x, &new_y,
+                s_drag.client_start_w, s_drag.client_start_h);
 
         (void) client_send_event_move(client, new_x, new_y);
 
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
-        int32_t new_w = (int32_t) s_drag.client_start_w + dx;
-        int32_t new_h = (int32_t) s_drag.client_start_h + dy;
-        (void) client_send_event_resize(client,
-                geom_clamp_dim(new_w),
-                geom_clamp_dim(new_h));
+        uint32_t new_w =
+            geom_clamp_dim((int32_t) s_drag.client_start_w + dx);
+        uint32_t new_h =
+            geom_clamp_dim((int32_t) s_drag.client_start_h + dy);
+
+        s_drag_snap_resize(s_drag.client_start_x, s_drag.client_start_y,
+                &new_w, &new_h);
+
+        (void) client_send_event_resize(client, new_w, new_h);
     }
 }
 
@@ -279,6 +521,7 @@ void drag_end(xcb_connection_t *connection,
                     (int16_t) (s_drag.client_start_y + dy);
             }
         }
+
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
         if (finalize_resize) {
             (void) client_send_event_resize(s_drag.client,
@@ -289,6 +532,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
+    s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
 
     if (connection != NULL) {
@@ -308,6 +552,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
+    s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
 
     if (connection != NULL) {

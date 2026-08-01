@@ -45,6 +45,7 @@
  * @param connection XCB connection
  * @param root       Root window on which to grab the pointer
  * @param client     Client being moved or resized
+ * @param desktop    Desktop that owns @p client (may be null)
  * @param operation  @c CLIENT_OPERATION_MOVING or
  *                   @c CLIENT_OPERATION_RESIZING
  * @param event_time Timestamp from the triggering button-press event
@@ -56,8 +57,8 @@
  *
  * @note Complexity: @e O(1)
  */
-void drag_start(xcb_connection_t *connection,
-        xcb_window_t root, client_td *client,
+void drag_start(xcb_connection_t *connection, xcb_window_t root,
+        client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
         int16_t root_x, int16_t root_y,
