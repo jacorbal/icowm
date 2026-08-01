@@ -189,10 +189,12 @@ void handler_unmap_notify(xcb_connection_t *connection,
             }
             return;
         }
+
         if (client->ignore_unmap > 0) {
             client->ignore_unmap--;
             return;
         }
+
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;

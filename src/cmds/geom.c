@@ -124,7 +124,8 @@ void wcmd_client_resize(client_td *client,
 }
 
 
-/* Maximize the client horizontally */
+/* Maximize the client horizontally, or restore if already
+ * horizontally maximized */
 void wcmd_client_maximize_horz(client_td *client)
 {
     uint16_t sw;
@@ -180,7 +181,8 @@ void wcmd_client_maximize_horz(client_td *client)
 }
 
 
-/* Maximize the client vertically */
+/* Maximize the client vertically, or restore if already vertically
+ * maximized */
 void wcmd_client_maximize_vert(client_td *client)
 {
     uint16_t sh;
