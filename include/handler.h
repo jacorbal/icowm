@@ -3,11 +3,10 @@
  *
  * @brief X event handler functions for the window manager core
  *
- * Declares the nine event handler functions for the X events that the
- * window manager processes after the input and menu events have been
- * filtered out.  Each handler receives the XCB connection, the managed
- * surfaces list, the active configuration, and the specific event
- * pointer.
+ * Declares the event handler functions for the X events that the window
+ * manager processes after the input and menu events have been filtered
+ * out.  Each handler receives the XCB connection, the managed surfaces
+ * list, the active configuration, and the specific event pointer.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -82,6 +81,76 @@ void handler_configure_notify(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void handler_map_request(wm_td *wm, xcb_map_request_event_t *event);
+
+/**
+ * @brief Handle a @c MAP_NOTIFY event
+ *
+ * Triggers an EWMH resync for the affected managed client when a
+ * non-override-redirect window is mapped.  Override-redirect windows
+ * (tooltips, pop-up menus) are silently ignored.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces
+ * @param event      Map notify event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+void handler_map_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_map_notify_event_t *event);
+
+/**
+ * @brief Handle a @c GRAVITY_NOTIFY event
+ *
+ * Updates the cached frame position when the X server repositions
+ * a frame window following a screen resize, according to the client's
+ * @c win_gravity (stored as @c client->properties.gravity).  Re-syncs
+ * decoration layout and schedules a repaint.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces
+ * @param event      Gravity notify event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+void handler_gravity_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_gravity_notify_event_t *event);
+
+/**
+ * @brief Handle a @c CIRCULATE_NOTIFY event
+ *
+ * Marks the affected surface as outdated so that @c wm_ewmh_sync
+ * updates @c _NET_CLIENT_LIST_STACKING to reflect the new stacking
+ * order on the next main-loop iteration.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces
+ * @param event      Circulate notify event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+void handler_circulate_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_circulate_notify_event_t *event);
+
+/**
+ * @brief Handle a @c CIRCULATE_REQUEST event (ICCCM §4.1.7)
+ *
+ * Raises or lowers the target window as directed by the @c place field:
+ * @c XCB_PLACE_ON_TOP maps to @c XCB_STACK_MODE_ABOVE and
+ * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The WM must
+ * honor this request to remain ICCCM-compliant.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces
+ * @param event      Circulate request event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+void handler_circulate_request(xcb_connection_t *connection,
+        list_td *surfaces, xcb_circulate_request_event_t *event);
 
 /**
  * @brief Handle an @c UNMAP_NOTIFY event

@@ -397,3 +397,122 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     LOGGER_DEBUG("Removed destroyed window %#x", event->window);
 }
+
+
+/* Handle a 'MAP_NOTIFY' event */
+void handler_map_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_map_notify_event_t *event)
+{
+    client_td *client;
+
+    (void) connection;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received null pointer in map notify handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Map notify event: window=0x%x, override_redirect=%u",
+            event->window, event->override_redirect);
+
+    /* Unmanaged override-redirect windows (tooltips, menus) are
+     * intentionally ignored; only managed clients need a EWMH resync */
+    if (event->override_redirect != 0) {
+        return;
+    }
+
+    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    if (client != NULL) {
+        wm_request_client_redraw(client);
+    }
+}
+
+
+/* Handle a 'GRAVITY_NOTIFY' event */
+void handler_gravity_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_gravity_notify_event_t *event)
+{
+    client_td *client;
+
+    (void) connection;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received null pointer in gravity notify handler",
+                L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Gravity notify event: window=0x%x, pos=%d+%d",
+            event->window, event->x, event->y);
+
+    /* The X server repositioned a frame window ('event->window') within
+     * root because the screen was resized and the client's win_gravity
+     * ('client->properties.gravity') placed it at a non-NW anchor.
+     * Update the cached frame position and re-sync decorations. */
+    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    if (client != NULL) {
+        client->layout.geometry.cur.pos.x = event->x;
+        client->layout.geometry.cur.pos.y = event->y;
+        client_sync_decoration_layout(client);
+        wm_request_client_redraw(client);
+    }
+}
+
+
+/* Handle a 'CIRCULATE_NOTIFY' event */
+void handler_circulate_notify(xcb_connection_t *connection,
+        list_td *surfaces, xcb_circulate_notify_event_t *event)
+{
+    surface_td *surface;
+
+    (void) connection;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received null pointer in circulate notify",
+                " handler", L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Circulate notify event: window=0x%x, place=%u",
+            event->window, event->place);
+
+    /* The stacking order changed; mark the surface so 'wm_ewmh_sync'
+     * updates '_NET_CLIENT_LIST_STACKING' on the next iteration */
+    surface = lookup_surface_for_root(surfaces, event->event);
+    wm_invalidate_surface(surface);
+}
+
+
+/* Handle a 'CIRCULATE_REQUEST' event (ICCCM §4.1.7) */
+void handler_circulate_request(xcb_connection_t *connection,
+        list_td *surfaces, xcb_circulate_request_event_t *event)
+{
+    client_td *client;
+    xcb_window_t target;
+    uint32_t stack_mode;
+
+    if (event == NULL) {
+        LOGGER_ERROR("Received null pointer in circulate request" \
+                " handler", L_NARG);
+        return;
+    }
+
+    LOGGER_TRACE("Circulate request event: window=0x%x, place=%u",
+            event->window, event->place);
+
+    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    if (client == NULL) {
+        return;
+    }
+
+    target = wcmd_target_win(client);
+    stack_mode = (event->place == XCB_PLACE_ON_TOP)
+        ? (uint32_t) XCB_STACK_MODE_ABOVE
+        : (uint32_t) XCB_STACK_MODE_BELOW;
+
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_STACK_MODE, &stack_mode);
+    xcb_flush(connection);
+    wm_request_client_redraw(client);
+}

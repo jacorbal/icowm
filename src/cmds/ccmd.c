@@ -530,7 +530,7 @@ void wcmd_client_iconify(client_td *client)
             client->icon_window = xcb_generate_id(client->connection);
             mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
                 XCB_CW_EVENT_MASK;
- 
+
             values[0] = client->theme->icon.inactive.background_color;
             values[1] = client->theme->icon.inactive.border_color;
             values[2] = XCB_EVENT_MASK_EXPOSURE |

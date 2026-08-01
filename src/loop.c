@@ -322,12 +322,39 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MAP_NOTIFY:
+                    handler_map_notify(wm->connection,
+                            wm->surfaces,
+                            (xcb_map_notify_event_t *) event);
+                    break;
+
+                case XCB_GRAVITY_NOTIFY:
+                    handler_gravity_notify(wm->connection,
+                            wm->surfaces,
+                            (xcb_gravity_notify_event_t *) event);
+                    break;
+
+                case XCB_CIRCULATE_NOTIFY:
+                    handler_circulate_notify(wm->connection,
+                            wm->surfaces,
+                            (xcb_circulate_notify_event_t *) event);
+                    break;
+
+                case XCB_CIRCULATE_REQUEST:
+                    handler_circulate_request(wm->connection,
+                            wm->surfaces,
+                            (xcb_circulate_request_event_t *) event);
+                    break;
+
                 case XCB_REPARENT_NOTIFY:
                 case XCB_CREATE_NOTIFY:
-                case XCB_GRAVITY_NOTIFY:
-                case XCB_CIRCULATE_NOTIFY:
-                case XCB_CIRCULATE_REQUEST:
-                    /* Expected events; no action required (currently) */
+                    /* - 'XCB_REPARENT_NOTIFY': icowm does its own
+                     *   reparenting and absorbs the spurious
+                     *   'UnmapNotify' via 'ignore_unmap'; no action
+                     *   needed here.
+                     *
+                     * - 'XCB_CREATE_NOTIFY': windows are adopted on
+                     *   'MAP_REQUEST', not on creation; a created
+                     *   window may never be mapped. */
                     break;
 
                 default:
