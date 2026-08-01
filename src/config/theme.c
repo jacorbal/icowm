@@ -85,18 +85,43 @@ int config_load_theme(const char *filename,
 
     icon = cJSON_GetObjectItem(json, "icon");
     if (icon) {
-        json_load_color(icon, "background-color",
-                &config_theme->icon.background_color);
-        json_load_color(icon, "foreground-color",
-                &config_theme->icon.foreground_color);
-        json_load_color(icon, "border-color",
-                &config_theme->icon.border_color);
-        json_load_uint(icon, "border-width",
-                &config_theme->icon.border_width);
-        json_load_bool(icon, "is-captioned",
-                &config_theme->icon.is_captioned);
-        json_load_string(icon, "font", config_theme->icon.font,
-                CONFIG_MAX_LENGTH_FONTNAME);
+        cJSON *general;
+        cJSON *active;
+        cJSON *inactive;
+
+        general = cJSON_GetObjectItem(icon, "general");
+        if (general) {
+            json_load_uint(general, "border-width",
+                    &config_theme->icon.general.border_width);
+            json_load_bool(general, "is-captioned",
+                    &config_theme->icon.general.is_captioned);
+        }
+
+        active = cJSON_GetObjectItem(icon, "active");
+        if (active) {
+            json_load_color(active, "background-color",
+                    &config_theme->icon.active.background_color);
+            json_load_color(active, "foreground-color",
+                    &config_theme->icon.active.foreground_color);
+            json_load_color(active, "border-color",
+                    &config_theme->icon.active.border_color);
+            json_load_string(active, "font",
+                    config_theme->icon.active.font,
+                    CONFIG_MAX_LENGTH_FONTNAME);
+        }
+
+        inactive = cJSON_GetObjectItem(icon, "inactive");
+        if (inactive) {
+            json_load_color(inactive, "background-color",
+                    &config_theme->icon.inactive.background_color);
+            json_load_color(inactive, "foreground-color",
+                    &config_theme->icon.inactive.foreground_color);
+            json_load_color(inactive, "border-color",
+                    &config_theme->icon.inactive.border_color);
+            json_load_string(inactive, "font",
+                    config_theme->icon.inactive.font,
+                    CONFIG_MAX_LENGTH_FONTNAME);
+        }
     }
 
     cJSON_Delete(json);

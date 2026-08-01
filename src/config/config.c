@@ -292,12 +292,16 @@ void config_set_default_values(config_td *config)
     config->theme.window.inactive.border_color =
         json_hex2uint32("999999");
     safe_strcpy(config->theme.window.inactive.font, "monospace 9");
-    config->theme.icon.background_color = json_hex2uint32("FFFFFF");
-    config->theme.icon.foreground_color = json_hex2uint32("000000");
-    config->theme.icon.border_color = json_hex2uint32("000000");
-    config->theme.icon.border_width = 1;
-    config->theme.icon.is_captioned = true;
-    safe_strcpy(config->theme.icon.font, "monospace 8");
+    config->theme.icon.general.border_width = 1;
+    config->theme.icon.general.is_captioned = true;
+    config->theme.icon.active.background_color = json_hex2uint32("FFFFFF");
+    config->theme.icon.active.foreground_color = json_hex2uint32("000000");
+    config->theme.icon.active.border_color = json_hex2uint32("000000");
+    safe_strcpy(config->theme.icon.active.font, "monospace 8");
+    config->theme.icon.inactive.background_color = json_hex2uint32("FFFFFF");
+    config->theme.icon.inactive.foreground_color = json_hex2uint32("000000");
+    config->theme.icon.inactive.border_color = json_hex2uint32("000000");
+    safe_strcpy(config->theme.icon.inactive.font, "monospace 8");
 }
 
 

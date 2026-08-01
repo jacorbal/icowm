@@ -106,17 +106,27 @@ void handler_expose(xcb_connection_t *connection,
         xcb_change_window_attributes(connection, client->icon_window,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                    cfg->theme.icon.background_color,
-                    is_cycle_preview
-                        ? cfg->theme.window.active.border_color
-                        : cfg->theme.icon.border_color
+                    (is_cycle_preview)
+                        ? cfg->theme.icon.active.background_color
+                        : cfg->theme.icon.inactive.background_color,
+                    (is_cycle_preview)
+                        ? cfg->theme.icon.active.border_color
+                        : cfg->theme.icon.inactive.border_color
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
-        if (cfg->theme.icon.is_captioned && client->info.name != NULL) {
-            text_renderer_init(connection, cfg->theme.icon.font);
+        if (cfg->theme.icon.general.is_captioned &&
+                client->info.name != NULL) {
+            text_renderer_init(connection,
+                (is_cycle_preview)
+                    ? cfg->theme.icon.active.font
+                    : cfg->theme.icon.inactive.font);
             text_renderer_set_color(
-                    cfg->theme.icon.foreground_color,
-                    cfg->theme.icon.background_color);
+                    (is_cycle_preview)
+                        ? cfg->theme.icon.active.foreground_color
+                        : cfg->theme.icon.inactive.foreground_color,
+                    (is_cycle_preview)
+                        ? cfg->theme.icon.active.background_color
+                        : cfg->theme.icon.inactive.background_color);
             text_draw_string(connection, client->icon_window, XCB_NONE,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +

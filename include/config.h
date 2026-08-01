@@ -229,12 +229,24 @@ struct config_theme_s {
 
     /* Icons theme when windows are iconified */
     struct {
-        uint32_t background_color;
-        uint32_t foreground_color;
-        uint32_t border_color;
-        uint32_t border_width;
-        bool is_captioned;
-        char font[CONFIG_MAX_LENGTH_FONTNAME];
+        struct {
+            uint32_t border_width;
+            bool is_captioned;
+        } general;
+
+        struct {
+            uint32_t background_color;
+            uint32_t foreground_color;
+            uint32_t border_color;
+            char font[CONFIG_MAX_LENGTH_FONTNAME];
+        } active;
+
+        struct {
+            uint32_t background_color;
+            uint32_t foreground_color;
+            uint32_t border_color;
+            char font[CONFIG_MAX_LENGTH_FONTNAME];
+        } inactive;
     } icon;
 };
 

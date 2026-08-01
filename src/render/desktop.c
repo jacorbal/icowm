@@ -246,20 +246,20 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         client->icon_window,
                         XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                         (const uint32_t[]) {
-                            desktop->config_theme->icon.background_color,
-                            desktop->config_theme->icon.border_color
+                        desktop->config_theme->icon.inactive.background_color,
+                        desktop->config_theme->icon.inactive.border_color
                         });
                 xcb_clear_area(desktop->connection, 0,
                         client->icon_window, 0, 0, 0, 0);
                 xcb_map_window(desktop->connection, client->icon_window);
 
-                if (desktop->config_theme->icon.is_captioned &&
+                if (desktop->config_theme->icon.general.is_captioned &&
                         client->info.name != NULL) {
                     text_renderer_init(desktop->connection,
-                            desktop->config_theme->icon.font);
+                            desktop->config_theme->icon.inactive.font);
                     text_renderer_set_color(
-                            desktop->config_theme->icon.foreground_color,
-                            desktop->config_theme->icon.background_color);
+                            desktop->config_theme->icon.inactive.foreground_color,
+                            desktop->config_theme->icon.inactive.background_color);
                     text_draw_string(desktop->connection,
                             client->icon_window, XCB_NONE,
                             2,

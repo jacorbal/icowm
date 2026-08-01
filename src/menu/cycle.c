@@ -145,7 +145,7 @@ static uint32_t s_cycle_preview_border_width(const client_td *client,
     }
 
     if (is_icon_menu) {
-        border_width = cfg->theme.icon.border_width;
+        border_width = cfg->theme.icon.general.border_width;
     } else if (client != NULL &&
             client_is_decorated(client) &&
             client->frame != 0) {
@@ -247,12 +247,13 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
     if (previous != NULL && previous != selected) {
         previous_target = s_cycle_preview_target(previous,
                 s_menu.is_icon_menu);
+
         if (previous_target != XCB_WINDOW_NONE) {
             prev_is_active =
                 (s_menu.desktop->client_active_id == previous->id);
 
             if (s_menu.is_icon_menu) {
-                previous_border = cfg->theme.icon.border_color;
+                previous_border = cfg->theme.icon.inactive.border_color;
             } else if (prev_is_active) {
                 previous_border = cfg->theme.window.active.border_color;
             } else {
@@ -265,7 +266,9 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
         }
     }
 
-    selected_border = cfg->theme.window.active.border_color;
+    selected_border = (s_menu.is_icon_menu)
+        ? cfg->theme.icon.active.border_color
+        : cfg->theme.window.active.border_color;
     s_cycle_preview_style_target(connection, selected_target,
             selected, cfg, s_menu.is_icon_menu,
             selected_border, true);

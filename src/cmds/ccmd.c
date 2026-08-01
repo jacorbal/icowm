@@ -428,7 +428,7 @@ void wcmd_client_iconify(client_td *client)
             CONFIG_ICON_PLACEMENT_BOTTOM;
 
         icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
-                ((client->theme->icon.is_captioned)
+                ((client->theme->icon.general.is_captioned)
                  ? WM_ICON_CAPTION_HEIGHT
                  : 0u));
 
@@ -458,8 +458,8 @@ void wcmd_client_iconify(client_td *client)
 
         client->icon_window = xcb_generate_id(client->connection);
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-        values[0] = client->theme->icon.background_color;
-        values[1] = client->theme->icon.border_color;
+        values[0] = client->theme->icon.inactive.background_color;
+        values[1] = client->theme->icon.inactive.border_color;
         values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
                     XCB_EVENT_MASK_BUTTON_MOTION;
         xcb_create_window(client->connection,
@@ -468,7 +468,7 @@ void wcmd_client_iconify(client_td *client)
                 client->parent_id,
                 ix, iy,
                 (uint16_t) WM_ICON_SQUARE_SIZE, icon_h,
-                (uint16_t) client->theme->icon.border_width,
+                (uint16_t) client->theme->icon.general.border_width,
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,
                 XCB_COPY_FROM_PARENT,
                 mask, values);
