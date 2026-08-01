@@ -141,6 +141,7 @@ void wcmd_client_maximize_horz(client_td *client)
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
     }
+
     /* Toggle: if already maximized horizontally, restore saved geometry */
     if (client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ) {
         target = wcmd_target_win(client);
@@ -192,8 +193,32 @@ void wcmd_client_maximize_vert(client_td *client)
         return;
     }
 
+    if (client_is_fullscreen(client)) {
+        return;
+    }
+
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
+    }
+
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+        target = wcmd_target_win(client);
+        client_geometry_restore(client);
+        xcb_configure_window(client->connection, target,
+                XCB_CONFIG_WINDOW_X     |
+                XCB_CONFIG_WINDOW_Y     |
+                XCB_CONFIG_WINDOW_WIDTH |
+                XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                    (uint32_t) client->layout.geometry.cur.pos.x,
+                    (uint32_t) client->layout.geometry.cur.pos.y,
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h
+                });
+        client->properties.state = CLIENT_STATE_NORMAL;
+        wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+        wm_request_client_redraw(client);
+        return;
     }
 
     target = wcmd_target_win(client);
