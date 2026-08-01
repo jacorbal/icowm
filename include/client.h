@@ -382,6 +382,24 @@ void client_destroy(client_td *client);
 void client_sync_decoration_layout(client_td *client);
 
 /**
+ * @brief Apply ICCCM size hints to a requested client size
+ *
+ * Clamps and rounds @p width and @p height according to the client's
+ * cached @c WM_NORMAL_HINTS constraints (minimum, maximum, and resize
+ * increments).  If no valid hints are available, the requested size is
+ * left unchanged.
+ *
+ * @param client Pointer to the client owning the size hints
+ * @param width  In/out requested width
+ * @param height In/out requested height
+ *
+ * @note No-op if any pointer argument is null
+ * @note Complexity: @e O(1)
+ */
+void client_constrain_size(const client_td *client,
+        uint32_t *width, uint32_t *height);
+
+/**
  * @brief Adopt an existing X window under window manager control
  *
  * Wraps an existing X window in a client structure without creating a

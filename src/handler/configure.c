@@ -107,6 +107,7 @@ void handler_configure_request(xcb_connection_t *connection,
     uint16_t target_mask;
     uint32_t target_values[7];
     bool geom_changed;
+    bool interactive_geom;
     int i;
 
     if (event == NULL) {
@@ -147,7 +148,26 @@ void handler_configure_request(xcb_connection_t *connection,
         uint16_t right = (uint16_t) client->layout.frame_extents.right;
         uint16_t top = (uint16_t) client->layout.frame_extents.top;
         uint16_t bottom = (uint16_t) client->layout.frame_extents.bottom;
+        uint16_t geom_mask = XCB_CONFIG_WINDOW_X |
+            XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH |
+            XCB_CONFIG_WINDOW_HEIGHT;
 
+        interactive_geom =
+            client->properties.operation == CLIENT_OPERATION_MOVING ||
+            client->properties.operation == CLIENT_OPERATION_RESIZING;
+        if (interactive_geom && (mask & geom_mask)) {
+            mask = (uint16_t) (mask & ~geom_mask);
+            if (mask == 0) {
+                if (connection != NULL && is_reparented) {
+                    s_handler_send_synthetic_configure_notify(connection,
+                            client);
+                    xcb_flush(connection);
+                }
+                return;
+            }
+        }
+        
         if (is_reparented) {
             target = client->frame;
         }
@@ -158,64 +178,82 @@ void handler_configure_request(xcb_connection_t *connection,
             } else {
                 req_x = event->x;
             }
+
             if (req_x != client->layout.geometry.cur.pos.x) {
                 geom_changed = true;
             }
+
             target_values[i++] = (uint32_t) req_x;
             target_mask |= XCB_CONFIG_WINDOW_X;
             client->layout.geometry.cur.pos.x = req_x;
             send_synth = is_reparented;
         }
+
         if (mask & XCB_CONFIG_WINDOW_Y) {
             if (is_reparented && on_inner) {
                 req_y = event->y - (int16_t) top;
             } else {
                 req_y = event->y;
             }
+
+            if (req_y < 0) {
+                req_y = 0;
+            }
+
             if (req_y != client->layout.geometry.cur.pos.y) {
                 geom_changed = true;
             }
+
             target_values[i++] = (uint32_t) req_y;
             target_mask |= XCB_CONFIG_WINDOW_Y;
             client->layout.geometry.cur.pos.y = req_y;
             send_synth = is_reparented;
         }
+
         if (mask & XCB_CONFIG_WINDOW_WIDTH) {
             if (is_reparented && on_inner) {
                 req_w = (uint32_t) event->width + left + right;
             } else {
                 req_w = (uint32_t) event->width;
             }
+
             if (req_w != client->layout.geometry.cur.dim.w) {
                 geom_changed = true;
             }
+
             target_values[i++] = req_w;
             target_mask |= XCB_CONFIG_WINDOW_WIDTH;
             client->layout.geometry.cur.dim.w = req_w;
             send_synth = is_reparented;
         }
+
         if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
             if (is_reparented && on_inner) {
                 req_h = (uint32_t) event->height + top + bottom;
             } else {
                 req_h = (uint32_t) event->height;
             }
+
             if (req_h != client->layout.geometry.cur.dim.h) {
                 geom_changed = true;
             }
+
             target_values[i++] = req_h;
             target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
             client->layout.geometry.cur.dim.h = req_h;
             send_synth = is_reparented;
         }
+
         if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
             target_values[i++] = (uint32_t) event->border_width;
             target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
         }
+
         if (mask & XCB_CONFIG_WINDOW_SIBLING) {
             target_values[i++] = event->sibling;
             target_mask |= XCB_CONFIG_WINDOW_SIBLING;
         }
+
         if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
             target_values[i++] = (uint32_t) event->stack_mode;
             target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
@@ -239,30 +277,37 @@ void handler_configure_request(xcb_connection_t *connection,
             target_values[i++] = (uint32_t) event->x;
             target_mask |= XCB_CONFIG_WINDOW_X;
         }
+
         if (mask & XCB_CONFIG_WINDOW_Y) {
             target_values[i++] = (uint32_t) event->y;
             target_mask |= XCB_CONFIG_WINDOW_Y;
         }
+
         if (mask & XCB_CONFIG_WINDOW_WIDTH) {
             target_values[i++] = (uint32_t) event->width;
             target_mask |= XCB_CONFIG_WINDOW_WIDTH;
         }
+
         if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
             target_values[i++] = (uint32_t) event->height;
             target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
         }
+
         if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
             target_values[i++] = (uint32_t) event->border_width;
             target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
         }
+
         if (mask & XCB_CONFIG_WINDOW_SIBLING) {
             target_values[i++] = event->sibling;
             target_mask |= XCB_CONFIG_WINDOW_SIBLING;
         }
+
         if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
             target_values[i++] = (uint32_t) event->stack_mode;
             target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         }
+
         if (target_mask != 0 && connection != NULL) {
             xcb_configure_window(connection, event->window,
                     target_mask, target_values);
