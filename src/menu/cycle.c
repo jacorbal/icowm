@@ -263,7 +263,29 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
             s_cycle_preview_style_target(connection, previous_target,
                     previous, cfg, s_menu.is_icon_menu,
                     previous_border, false);
-        }
+
+            if (s_menu.is_icon_menu) {
+                values[0] = cfg->theme.icon.inactive.background_color;
+                values[1] = cfg->theme.icon.inactive.border_color;
+
+                xcb_change_window_attributes(connection, previous_target,
+                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
+                xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
+                if (cfg->theme.icon.general.is_captioned &&
+                        previous->info.name != NULL) {
+                    text_renderer_init(connection,
+                            cfg->theme.icon.inactive.font);
+                    text_renderer_set_color(
+                            cfg->theme.icon.inactive.foreground_color,
+                            cfg->theme.icon.inactive.background_color);
+                    text_draw_string(connection, previous_target, XCB_NONE,
+                            2,
+                            (int16_t) (WM_ICON_SQUARE_SIZE +
+                                WM_ICON_CAPTION_HEIGHT - 2u),
+                            previous->info.name);
+                }
+            } /* ! if (s_menu.is_icon_menu) */
+        } /* ! if (previous_target) */
     }
 
     selected_border = (s_menu.is_icon_menu)
@@ -272,6 +294,28 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
     s_cycle_preview_style_target(connection, selected_target,
             selected, cfg, s_menu.is_icon_menu,
             selected_border, true);
+
+    if (s_menu.is_icon_menu) {
+        values[0] = cfg->theme.icon.active.background_color;
+        values[1] = cfg->theme.icon.active.border_color;
+
+        xcb_change_window_attributes(connection, selected_target,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
+        xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
+        if (cfg->theme.icon.general.is_captioned &&
+                selected->info.name != NULL) {
+            text_renderer_init(connection,
+                    cfg->theme.icon.active.font);
+            text_renderer_set_color(
+                    cfg->theme.icon.active.foreground_color,
+                    cfg->theme.icon.active.background_color);
+            text_draw_string(connection, selected_target, XCB_NONE,
+                    2,
+                    (int16_t) (WM_ICON_SQUARE_SIZE +
+                        WM_ICON_CAPTION_HEIGHT - 2u),
+                    selected->info.name);
+        }
+    }
 
     values[0] = s_menu.window;
     values[1] = XCB_STACK_MODE_BELOW;

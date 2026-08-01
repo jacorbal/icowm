@@ -29,6 +29,9 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Hash table for clients */
 
+/* Menu includes */
+#include <menu/cycle.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -242,12 +245,19 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
             if (is_current && client->is_icon_mapped &&
                     client->icon_window != 0) {
+                bool is_cycle_sel = cycle_is_open() &&
+                    cycle_get_selected_client() == client;
+
                 xcb_change_window_attributes(desktop->connection,
                         client->icon_window,
                         XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                         (const uint32_t[]) {
-                        desktop->config_theme->icon.inactive.background_color,
-                        desktop->config_theme->icon.inactive.border_color
+                        (is_cycle_sel)
+                        ? desktop->config_theme->icon.active.background_color
+                        : desktop->config_theme->icon.inactive.background_color,
+                        (is_cycle_sel)
+                        ? desktop->config_theme->icon.active.border_color
+                        : desktop->config_theme->icon.inactive.border_color
                         });
                 xcb_clear_area(desktop->connection, 0,
                         client->icon_window, 0, 0, 0, 0);
@@ -258,8 +268,13 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     text_renderer_init(desktop->connection,
                             desktop->config_theme->icon.inactive.font);
                     text_renderer_set_color(
-                            desktop->config_theme->icon.inactive.foreground_color,
-                            desktop->config_theme->icon.inactive.background_color);
+                    (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.foreground_color
+                    : desktop->config_theme->icon.inactive.foreground_color,
+                    (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.background_color
+                    : desktop->config_theme->icon.inactive.background_color);
+
                     text_draw_string(desktop->connection,
                             client->icon_window, XCB_NONE,
                             2,
