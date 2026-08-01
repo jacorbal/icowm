@@ -274,6 +274,7 @@ void handler_configure_request(xcb_connection_t *connection,
     if (geom_changed || (mask & XCB_CONFIG_WINDOW_STACK_MODE)) {
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);    
+    }
 }
 
 
