@@ -71,6 +71,7 @@ enum action_client_e {
     ACTION_CLIENT_LAYER_ABOVE,          /**< Window always on top */
     ACTION_CLIENT_LAYER_NORMAL,         /**< Window normal layer */
     ACTION_CLIENT_LAYER_BELOW,          /**< Window always on bottom */
+    ACTION_CLIENT_CYCLE_LAYER,          /**< Cycle layer: normal/above/below */
     ACTION_CLIENT_SET_URGENT,           /**< Mark window as urgent */
     ACTION_CLIENT_CLEAR_URGENT,         /**< Clear urgency level */
     ACTION_CLIENT_SET_ICON,             /**< Set window icon */

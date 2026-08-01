@@ -107,8 +107,8 @@ int desktop_render_background(desktop_td *desktop)
 /* Draw the decoration button squares on a titlebar window */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
-        bool is_focused, bool is_sticky, bool can_maximize,
-        const struct config_theme_s *theme)
+        bool is_focused, bool is_sticky, bool is_layered,
+        bool can_maximize, const struct config_theme_s *theme)
 {
     xcb_gcontext_t gc;
     uint32_t color;
@@ -135,12 +135,24 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     /* Vertically center buttons in the titlebar */
     btn_y = (frame_top > btn) ? (int16_t) ((frame_top - btn) / 2u) : 0;
 
+    step = (uint16_t) (btn + gap);
     gc = xcb_generate_id(connection);
-    /* Left-aligned: Pin button */
-    color = is_sticky ? color_active : color_inactive;
+
+    /* Left-aligned: pin/sticky */
+    color = (is_sticky) ? color_active : color_inactive;
     xcb_create_gc(connection, gc, titlebar,
             XCB_GC_FOREGROUND, &color);
     rect = (xcb_rectangle_t) { (int16_t) pad, btn_y, btn, btn };
+    xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
+    xcb_free_gc(connection, gc);
+
+    /* Left-aligned button 1: Layer cycle (to the right of pin) */
+    gc = xcb_generate_id(connection);
+    color = (is_layered) ? color_active : color_inactive;
+    xcb_create_gc(connection, gc, titlebar,
+            XCB_GC_FOREGROUND, &color);
+    x = (int16_t) ((int16_t) pad + (int16_t) step);
+    rect = (xcb_rectangle_t) { x, btn_y, btn, btn };
     xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 
@@ -152,7 +164,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
 
     /* Button fill: active foreground for focused, inactive for
      * unfocused */
-    fill = is_focused ? color_active : color_inactive;
+    fill = (is_focused) ? color_active : color_inactive;
     bg_fill = (theme != NULL)
         ? ((is_focused)
             ? theme->window.active.background_color
@@ -162,7 +174,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
                 (int16_t) ((uint16_t) bi * step));
-        color = (!can_maximize && bi == 2) ? bg_fill : fill;
+        color = ((!can_maximize) && bi == 2) ? bg_fill : fill;
         gc = xcb_generate_id(connection);
 
         xcb_create_gc(connection, gc, titlebar,
@@ -439,8 +451,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     : desktop->config_theme->window.inactive.background_color);
                 text_draw_string(desktop->connection,
                         client->titlebar, XCB_NONE,
-                        (int16_t) (WM_DECOR_BTN_PAD + WM_DECOR_BTN_SIZE +
-                            WM_DECOR_BTN_PAD),
+                        (int16_t) (WM_DECOR_BTN_PAD +
+                            2u * (WM_DECOR_BTN_SIZE + WM_DECOR_BTN_GAP)),
                         (int16_t) ((title_h >
                                 (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                             ? title_h -
@@ -454,7 +466,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         title_h,
                         is_focused,
                         (bool) client_is_sticky(client),
-                        !client_is_fullscreen(client),
+                        (client->properties.layer != CLIENT_LAYER_NORMAL),
+                        (!client_is_fullscreen(client) &&
+                         (bool) client_is_resizable(client)),
                         desktop->config_theme);
             } else if (client->titlebar != 0) {
                 xcb_unmap_window(desktop->connection, client->titlebar);

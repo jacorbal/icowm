@@ -38,6 +38,9 @@
 /* Input includes */
 #include <input/drag.h>
 
+/* Command includes */
+#include <cmds/layer.h>
+
 /* Project includes */
 #include <lookup.h>
 
@@ -139,10 +142,15 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         xcb_map_window(wm->connection, event->window);
     }
 
-    if (wm->config->base.windows.focus.is_new_focused) {
+    if (wm->config->base.windows.focus.is_new_focused &&
+            client_is_focusable(client)) {
         focus_apply(wm->surfaces, surface, desktop, client, true,
                 wm->config);
     }
+
+    /* Re-apply layer stacking so newly mapped windows do not obscure
+     * clients already assigned to the above layer */
+    wcmd_desktop_enforce_layers(desktop);
 
     wm_invalidate_surface(surface);
     wm_invalidate_desktop(desktop);

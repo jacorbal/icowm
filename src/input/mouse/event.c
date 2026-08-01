@@ -326,6 +326,14 @@ void mouse_handle_press(xcb_connection_t *connection,
 
             if (event->child == client->titlebar &&
                     client->titlebar != 0) {
+                static const enum action_client_e btn_actions[6] = {
+                    ACTION_CLIENT_CLOSE,
+                    ACTION_CLIENT_TOGGLE_FULLSCREEN,
+                    ACTION_CLIENT_MAXIMIZE,
+                    ACTION_CLIENT_TOGGLE_SHADE,
+                    ACTION_CLIENT_HIDE,
+                    ACTION_CLIENT_ICONIFY
+                };
                 int ex = (int) event->event_x;
                 int ey = (int) event->event_y;
                 int left = (int) client->layout.frame_extents.left;
@@ -343,23 +351,29 @@ void mouse_handle_press(xcb_connection_t *connection,
                 int btn_y = (title_h > btn) ? (title_h - btn) / 2 : 0;
                 bool hit_btn = false;
 
-                can_maximize = !client_is_fullscreen(client);                
+                can_maximize = !client_is_fullscreen(client) &&
+                    (bool) client_is_resizable(client);
 
                 if (ey >= btn_y && ey < btn_y + btn) {
                     if (ex >= pad && ex < pad + btn) {
+                        /* Left-aligned button 0: pin/sticky */
                         hit_btn = true;
                         client_send_event(client,
                                 ACTION_CLIENT_TOGGLE_STICKY,
                                 PRIORITY_NORMAL);
+                    } else if (ex >= pad + step && ex < pad + step + btn) {
+                        /* Left-aligned button 1: layer cycle */
+                        hit_btn = true;
+                        client_send_event(client,
+                                ACTION_CLIENT_CYCLE_LAYER,
+                                PRIORITY_NORMAL);
+                        if (desktop != NULL) {
+                            desktop->is_outdated = true;
+                        }
+                        if (surface != NULL) {
+                            surface->is_outdated = true;
+                        }
                     } else {
-                        static const enum action_client_e btn_actions[6] = {
-                            ACTION_CLIENT_CLOSE,
-                            ACTION_CLIENT_TOGGLE_FULLSCREEN,
-                            ACTION_CLIENT_MAXIMIZE,
-                            ACTION_CLIENT_TOGGLE_SHADE,
-                            ACTION_CLIENT_HIDE,
-                            ACTION_CLIENT_ICONIFY
-                        };
                         for (int bi = 0; bi < 6; ++bi) {
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
@@ -368,9 +382,35 @@ void mouse_handle_press(xcb_connection_t *connection,
                                     break;
                                 }
                                 hit_btn = true;
-                                client_send_event(client,
-                                        btn_actions[bi],
-                                        PRIORITY_NORMAL);
+
+                                if (bi == 2) {
+                                    /* Maximize button:
+                                     * - button 1: full maximization;
+                                     * - button 2: vert. maximiz.;
+                                     * - button 3: horz. maximiz. */
+                                    if ((xcb_button_index_t)
+                                            event->detail ==
+                                            XCB_BUTTON_INDEX_2) {
+                                        client_send_event(client,
+                                                ACTION_CLIENT_MAXIMIZE_VERT,
+                                                PRIORITY_NORMAL);
+                                    } else if ((xcb_button_index_t)
+                                            event->detail ==
+                                            XCB_BUTTON_INDEX_3) {
+                                        client_send_event(client,
+                                                ACTION_CLIENT_MAXIMIZE_HORZ,
+                                                PRIORITY_NORMAL);
+                                    } else {
+                                        client_send_event(client,
+                                                ACTION_CLIENT_MAXIMIZE,
+                                                PRIORITY_NORMAL);
+                                    }
+                                } else {
+                                    client_send_event(client,
+                                            btn_actions[bi],
+                                            PRIORITY_NORMAL);
+                                }
+
                                 if (desktop != NULL) {
                                     desktop->is_outdated = true;
                                 }

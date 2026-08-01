@@ -69,7 +69,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current);
  * @brief Full desktop render
  *
  * Clears the desktop and redraws everything: background and clients.
- * This is called when the desktop needs a complete refresh.
+ * Called when the desktop needs a complete refresh.
  *
  * @param desktop    Pointer to the desktop to render
  * @param is_current Whether @p desktop is the surface's currently
@@ -103,12 +103,14 @@ void desktop_render_flush(desktop_td *desktop);
  * @brief Draw decoration button squares on a titlebar window
  *
  * Renders six right-aligned button squares (iconify, hide, shade,
- * maximize, fullscreen, close) and one left-aligned button (pin/sticky)
- * as filled rectangles.  The fill color is taken from @p theme:
- * @c window.active.foreground_color when @p is_focused is @c true,
- * @c window.inactive.foreground_color otherwise.  The pin button uses
- * the active foreground when sticky, and the inactive foreground when
- * not sticky.
+ * maximize, fullscreen, close), one left-aligned button (pin/sticky)
+ * and one left-aligned button (layer cycle) as filled rectangles.  The
+ * fill color is taken from @p theme: @c window.active.foreground_color
+ * when @p is_focused is @c true, @c window.inactive.foreground_color
+ * otherwise.  The pin button uses the active foreground when sticky,
+ * and the inactive foreground when not sticky.  The layer button uses
+ * the active foreground when the layer is above or below, and the
+ * inactive foreground when the layer is normal.
  *
  * @param connection   Active XCB connection
  * @param titlebar     XCB window identifier of the titlebar
@@ -116,6 +118,7 @@ void desktop_render_flush(desktop_td *desktop);
  * @param frame_top    Height of the titlebar in pixels
  * @param is_focused   Whether the owning client is currently focused
  * @param is_sticky    Whether the owning client has the sticky flag set
+ * @param is_layered   Whether the client layer is above or below normal
  * @param can_maximize Whether the maximize button is enabled
  * @param theme        Pointer to the theme providing button colors
  *
@@ -123,8 +126,8 @@ void desktop_render_flush(desktop_td *desktop);
  */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
-        bool is_focused, bool is_sticky, bool can_maximize,
-        const struct config_theme_s *theme);
+        bool is_focused, bool is_sticky, bool is_layered,
+        bool can_maximize, const struct config_theme_s *theme);
 
 
 #endif  /* ! RENDER_DESKTOP_H */

@@ -19,6 +19,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <desktop.h>
 
 
 /* Public interface */
@@ -66,6 +67,33 @@ void wcmd_client_layer_normal(client_td *client);
  * @note Complexity: @e O(1)
  */
 void wcmd_client_layer_below(client_td *client);
+
+/**
+ * @brief Cycle the client's layer:
+ *        @c (normal -> above -> below -> normal -> above -> ...)
+ *
+ * @param client Window whose layer is to be cycled
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_cycle_layer(client_td *client);
+
+/**
+ * @brief Enforce layer stacking order for all clients in a desktop
+ *
+ * Raises every client marked @c CLIENT_LAYER_ABOVE to the top of the
+ * X stacking order and lowers every client marked @c CLIENT_LAYER_BELOW
+ * to the bottom, ensuring the WM-layer semantics are preserved after
+ * any stacking operation performed by a client or by the window manager
+ * itself.
+ *
+ * @param desktop Desktop whose clients are to be restacked
+ *
+ * @note No-op when @p desktop is null or has no stacking list
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ */
+void wcmd_desktop_enforce_layers(desktop_td *desktop);
+
 
 
 #endif  /* ! CMDS_LAYER_H */

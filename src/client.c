@@ -536,6 +536,18 @@ client_td *client_manage(xcb_connection_t *connection,
     if (xcb_ewmh_get_wm_window_type_reply(ewmh,
                 xcb_ewmh_get_wm_window_type(ewmh, window),
                 &type_reply, NULL)) {
+        xcb_atom_t atom_notification = XCB_ATOM_NONE;
+        xcb_intern_atom_reply_t *notif_ia;
+
+        notif_ia = xcb_intern_atom_reply(connection,
+                xcb_intern_atom(connection, 1,
+                    sizeof("_NET_WM_WINDOW_TYPE_NOTIFICATION") - 1u,
+                    "_NET_WM_WINDOW_TYPE_NOTIFICATION"), NULL);
+        if (notif_ia != NULL) {
+            atom_notification = notif_ia->atom;
+            free(notif_ia);
+        }
+
         for (uint32_t ti = 0; ti < type_reply.atoms_len; ++ti) {
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DOCK) {
                 client->properties.type = CLIENT_TYPE_DOCK;
@@ -548,24 +560,42 @@ client_td *client_manage(xcb_connection_t *connection,
                 client_unset_focusable(client);
                 break;
             }
+
+            if (atom_notification != XCB_ATOM_NONE &&
+                    type_reply.atoms[ti] == atom_notification) {
+                client->properties.type = CLIENT_TYPE_NOTIFICATION;
+                client_unset_decoration(client);
+                client->layout.frame_extents.left = 0;
+                client->layout.frame_extents.right = 0;
+                client->layout.frame_extents.top = 0;
+                client->layout.frame_extents.bottom = 0;
+                client->properties.layer = CLIENT_LAYER_ABOVE;
+                client_unset_focusable(client);
+                break;
+            }
+
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
                 client->properties.type = CLIENT_TYPE_DIALOG;
                 break;
             }
+
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
                 client->properties.type = CLIENT_TYPE_TOOLBAR;
                 break;
             }
+
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_MENU) {
                 client->properties.type = CLIENT_TYPE_MENU;
                 client_unset_decoration(client);
                 break;
             }
+
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
                 client_unset_decoration(client);
                 break;
             }
+
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
                 client->properties.type = CLIENT_TYPE_UTILITY;
                 break;

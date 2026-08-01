@@ -67,6 +67,7 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */
     KEYBIND_CLIENT_INFO,                /**< Show focused client info */
     KEYBIND_CLIENT_TOGGLE_DECORATION,   /**< Toggle decoration on client */
+    KEYBIND_CLIENT_CYCLE_LAYER,         /**< Cycle layer: normal/above/below */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
     KEYBIND_DESKTOP_ICON_NEXT,          /**< Cycle to next iconified client */

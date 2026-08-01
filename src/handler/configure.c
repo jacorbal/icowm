@@ -34,6 +34,9 @@
 /* Project includes */
 #include <lookup.h>
 
+/* Commandincludes */
+#include <cmds/layer.h>
+
 /* Local includes */
 #include <handler.h>
 
@@ -316,6 +319,10 @@ void handler_configure_request(xcb_connection_t *connection,
     }
 
     if (geom_changed || (mask & XCB_CONFIG_WINDOW_STACK_MODE)) {
+        if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+            wcmd_desktop_enforce_layers(desktop);
+        }
+
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);    
     }

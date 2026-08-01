@@ -388,6 +388,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_PIN:
             case KEYBIND_CLIENT_INFO:
             case KEYBIND_CLIENT_TOGGLE_DECORATION:
+            case KEYBIND_CLIENT_CYCLE_LAYER:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
                     if (desktop != NULL && desktop->client_active_id != 0) {
@@ -395,6 +396,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         desktop_td *cd = NULL;
                         client_td *client = lookup_find_client(surfaces,
                                 desktop->client_active_id, &cs, &cd);
+
                         if (client != NULL) {
                             enum action_client_e act = ACTION_CLIENT_ICONIFY;
                             if (btype == KEYBIND_CLIENT_INFO) {
@@ -403,6 +405,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                         bmm, event->detail, cfg);
                                 return;
                             }
+
                             if (btype == KEYBIND_CLIENT_HIDE)
                                 act = ACTION_CLIENT_HIDE;
                             else if (btype == KEYBIND_CLIENT_CLOSE)
@@ -421,6 +424,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
                             else if (btype == KEYBIND_CLIENT_TOGGLE_DECORATION)
                                 act = ACTION_CLIENT_TOGGLE_DECORATION;
+                            else if (btype == KEYBIND_CLIENT_CYCLE_LAYER)
+                                act = ACTION_CLIENT_CYCLE_LAYER;
                             client_send_event(client, act, PRIORITY_NORMAL);
                         }
                     }

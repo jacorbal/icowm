@@ -214,7 +214,9 @@ void handler_expose(xcb_connection_t *connection,
     desktop_draw_titlebar_buttons(connection, client->titlebar,
             inner_w, title_h,
             use_active_style, (bool) client_is_sticky(client),
-            !client_is_fullscreen(client),
+            (client->properties.layer != CLIENT_LAYER_NORMAL),
+            (!client_is_fullscreen(client) &&
+                (bool) client_is_resizable(client)),
             &cfg->theme);
 
     xcb_flush(connection);

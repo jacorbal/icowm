@@ -116,6 +116,9 @@ int config_load_bindings(const char *filename,
             json_load_string(window, "kill",
                     config_bindings->keyboard.window.kill,
                     CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "layer",
+                    config_bindings->keyboard.window.layer,
+                    CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "maximize",
                     config_bindings->keyboard.window.maximize,
                     CONFIG_MAX_LENGTH_BINDING);

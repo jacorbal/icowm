@@ -286,7 +286,7 @@ void loop_run(wm_td *wm)
                 case XCB_CLIENT_MESSAGE:
                     handler_client_message(wm,
                             (xcb_client_message_event_t *) event);
-                    break;                
+                    break;
 
                 case XCB_MAPPING_NOTIFY:
                     handler_mapping_notify(keysyms, wm->surfaces,
@@ -320,6 +320,7 @@ void loop_run(wm_td *wm)
             }
 
             free(event);
+            event = xcb_poll_for_event(wm->connection);
         }
 
         eventq_process();

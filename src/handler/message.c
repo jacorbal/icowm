@@ -24,6 +24,12 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Command includes */
+#include <cmds/ccmd.h>
+#include <cmds/geom.h>
+#include <cmds/layer.h>
+#include <cmds/scmd.h>
+
 /* Default initial values */
 #include <defs/wm.h>
 
@@ -36,12 +42,6 @@
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/geom.h>
-#include <cmds/layer.h>
-#include <cmds/scmd.h>
 
 
 /* '_NET_WM_STATE' action values (EWMH section 5.8) */

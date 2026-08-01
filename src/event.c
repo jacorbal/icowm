@@ -169,6 +169,7 @@ event_td *event_clone(const event_td *src)
                 case ACTION_CLIENT_LAYER_NORMAL:
                 case ACTION_CLIENT_LAYER_BELOW:
                 case ACTION_CLIENT_SET_URGENT:
+                case ACTION_CLIENT_CYCLE_LAYER:
                 case ACTION_CLIENT_CLEAR_URGENT:
                 case ACTION_CLIENT_TOGGLE_DECORATION:
                 case ACTION_CLIENT_CYCLE_NEXT:

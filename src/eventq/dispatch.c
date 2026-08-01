@@ -223,6 +223,10 @@ static void s_event_handle_client(event_td *event)
             wcmd_client_layer_below(client);
             break;
 
+        case ACTION_CLIENT_CYCLE_LAYER:
+            wcmd_client_cycle_layer(client);
+            break;
+
         case ACTION_CLIENT_SET_URGENT:
             wcmd_client_set_urgent(client);
             break;
