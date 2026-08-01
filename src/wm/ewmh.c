@@ -273,9 +273,21 @@ int wm_ewmh_init(void)
     xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
     xcb_window_t support;
+    xcb_intern_atom_reply_t *ia;
+    xcb_atom_t net_wm_state_focused = XCB_ATOM_NONE;
 
     if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL) {
         return 1;
+    }
+
+    /* Intern atoms not exposed directly by 'xcb_ewmh_connection_t' */
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0, 20,
+                "_NET_WM_STATE_FOCUSED"),
+            NULL);
+    if (ia != NULL) {
+        net_wm_state_focused = ia->atom;
+        free(ia);
     }
 
     support = xcb_generate_id(wm->connection);
@@ -322,7 +334,8 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_BELOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_STICKY;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SHADED;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
+    supported_atoms[n_supported++] =
+        wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_TASKBAR;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_PAGER;
     supported_atoms[n_supported++] = wm->ewmh->_NET_CLOSE_WINDOW;
@@ -332,6 +345,26 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DIALOG;
     supported_atoms[n_supported++] = wm->ewmh->_NET_MOVERESIZE_WINDOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_FRAME_EXTENTS;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_REQUEST_FRAME_EXTENTS;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_LAYOUT;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MODAL;
+    supported_atoms[n_supported++] = net_wm_state_focused;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ALLOWED_ACTIONS;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MOVE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_RESIZE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MINIMIZE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_SHADE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_STICK;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_FULLSCREEN;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_CLOSE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_ABOVE;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_BELOW;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_PING;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_USER_TIME;
+    supported_atoms[n_supported++] = wm->ewmh->_NET_SHOWING_DESKTOP;
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {

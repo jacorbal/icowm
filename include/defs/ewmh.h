@@ -42,12 +42,12 @@
  * @c wm_ewmh_init.  Update this constant whenever atoms are added to or
  * removed from the supported set.
  *
- * Current set (35 atoms):
+ * Current set (55 atoms):
  *   @c _NET_SUPPORTED, @c _NET_SUPPORTING_WM_CHECK,
  *   @c _NET_CLIENT_LIST, @c _NET_CLIENT_LIST_STACKING,
  *   @c _NET_NUMBER_OF_DESKTOPS, @c _NET_CURRENT_DESKTOP,
  *   @c _NET_DESKTOP_GEOMETRY, @c _NET_DESKTOP_VIEWPORT,
- *   @c _NET_DESKTOP_NAMES,
+ *   @c _NET_DESKTOP_NAMES, @c _NET_DESKTOP_LAYOUT,
  *   @c _NET_WORKAREA, @c _NET_ACTIVE_WINDOW,
  *   @c _NET_WM_NAME, @c _NET_WM_ICON_NAME,
  *   @c _NET_WM_DESKTOP,
@@ -59,13 +59,38 @@
  *   @c _NET_WM_STATE_STICKY, @c _NET_WM_STATE_SHADED,
  *   @c _NET_WM_STATE_DEMANDS_ATTENTION,
  *   @c _NET_WM_STATE_SKIP_TASKBAR, @c _NET_WM_STATE_SKIP_PAGER,
+ *   @c _NET_WM_STATE_FOCUSED, @c _NET_WM_STATE_MODAL,
  *   @c _NET_CLOSE_WINDOW,
  *   @c _NET_WM_WINDOW_TYPE, @c _NET_WM_WINDOW_TYPE_DOCK,
  *   @c _NET_WM_WINDOW_TYPE_NORMAL, @c _NET_WM_WINDOW_TYPE_DIALOG,
- *   @c _NET_MOVERESIZE_WINDOW,
- *   @c _NET_FRAME_EXTENTS
+ *   @c _NET_MOVERESIZE_WINDOW, @c _NET_FRAME_EXTENTS
+ *   @c _NET_REQUEST_FRAME_EXTENTS,
+ *   @c _NET_WM_ALLOWED_ACTIONS,
+ *   @c _NET_WM_ACTION_MOVE, @c _NET_WM_ACTION_RESIZE,
+ *   @c _NET_WM_ACTION_MINIMIZE, @c _NET_WM_ACTION_SHADE,
+ *   @c _NET_WM_ACTION_STICK,
+ *   @c _NET_WM_ACTION_MAXIMIZE_HORZ, @c _NET_WM_ACTION_MAXIMIZE_VERT,
+ *   @c _NET_WM_ACTION_FULLSCREEN, @c _NET_WM_ACTION_CHANGE_DESKTOP,
+ *   @c _NET_WM_ACTION_CLOSE,
+ *   @c _NET_WM_ACTION_ABOVE, @c _NET_WM_ACTION_BELOW,
+ *   @c _NET_WM_PING, @c _NET_WM_USER_TIME,
+ *   @c _NET_SHOWING_DESKTOP
  */
-#define WM_EWMH_SUPPORTED_COUNT (35)
+#define WM_EWMH_SUPPORTED_COUNT (55)
+
+/**
+ * @brief Interval between successive @c _NET_WM_PING probes (seconds)
+ */
+#define WM_EWMH_PING_INTERVAL (5)
+
+/**
+ * @brief Seconds without a ping reply before marking a client as
+ *        unresponsive
+ *
+ * Set to three times the probe interval so a single missed reply does
+ * not immediately flag the client.
+ */
+#define WM_EWMH_PING_TIMEOUT (15)
 
 
 #endif  /* ! DEFS_EWMH_H */

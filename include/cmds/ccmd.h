@@ -204,6 +204,21 @@ void wcmd_client_set_urgent(client_td *client);
 void wcmd_client_clear_urgent(client_td *client);
 
 /**
+ * @brief Publish @c _NET_WM_ALLOWED_ACTIONS for a client
+ *
+ * Computes the set of EWMH actions currently permitted for @p client
+ * based on its resizable, focusable, and decoration properties, and
+ * writes the result to the @c _NET_WM_ALLOWED_ACTIONS window property.
+ * Must be called whenever the client's capabilities change (e.g., after
+ * toggling resizability or decoration).
+ *
+ * @param client Client whose allowed-actions property should be updated
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_update_allowed_actions(client_td *client);
+
+/**
  * @brief Toggle window decoration on or off for the client
  *
  * If the client is currently decorated, removes the titlebar (unmaps

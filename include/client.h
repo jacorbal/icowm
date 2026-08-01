@@ -107,7 +107,9 @@ enum window_flags_e {
     CLIENT_FLAG_DISABLED     = 1 << 7,
     CLIENT_FLAG_SKIP_TASKBAR = 1 << 8,
     CLIENT_FLAG_SKIP_PAGER   = 1 << 9,
-    CLIENT_FLAG_MAX = 10,
+    CLIENT_FLAG_MODAL        = 1 << 10, /**< Window is modal (EWMH) */
+    CLIENT_FLAG_UNRESPONSIVE = 1 << 11, /**< No ping reply received */
+    CLIENT_FLAG_MAX = 12,
 };
 
 
@@ -288,6 +290,26 @@ typedef struct client_s {
         int32_t inc_w;      /**< Width increment  (0 or 1 = no grid) */
         int32_t inc_h;      /**< Height increment (0 or 1 = no grid) */
     } size_hints;
+
+    /**
+     * @brief ICCCM 'WM_PROTOCOLS' state
+     */
+    bool has_wm_take_focus;         /**< Supports 'WM_TAKE_FOCUS' */
+    xcb_atom_t wm_take_focus_atom;  /**< Cached 'WM_TAKE_FOCUS' atom */
+
+    /**
+     * @brief ICCCM 'WM_HINTS' fields
+     */
+    bool wm_input_hint;         /**< Client accepts input (default true) */
+    xcb_window_t group_leader;  /**< Window group leader, or 'XCB_NONE' */
+
+    /**
+     * @brief EWMH '_NET_WM_PING' state
+     */
+    bool has_net_wm_ping;       /**< Supports '_NET_WM_PING' protocol */
+    uint32_t last_ping_sent;    /**< X timestamp of last ping sent */
+    uint32_t last_ping_reply;   /**< X timestamp of last ping reply */
+
 
 } client_td;
 
@@ -553,6 +575,18 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
  * @note Complexity: @e O(n), where @e n is the length of the name
  */
 void client_props_refresh_name(client_td *client);
+
+/**
+ * @brief Refresh @c WM_HINTS fields from X11 properties
+ *
+ * Re-reads @c WM_HINTS from the X server and updates @p client with the
+ * current input model, urgency flag, and window group.
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_props_refresh_wm_hints(client_td *client);
 
 
 /**
@@ -856,6 +890,58 @@ void client_props_refresh_name(client_td *client);
  */
 #define client_is_resizable(w) \
     ((w)->properties.flags & CLIENT_FLAG_RESIZABLE)
+
+/**
+ * @brief Macro that evaluates to the client modal flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_modal(w) \
+    ((w)->properties.flags & CLIENT_FLAG_MODAL)
+
+/**
+ * @brief Macro that evaluates to the client unresponsive flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_unresponsive(w) \
+    ((w)->properties.flags & CLIENT_FLAG_UNRESPONSIVE)
+
+/**
+ * @brief Macro that sets the modal flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_set_modal(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_MODAL, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the modal flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unset_modal(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_MODAL, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that sets the unresponsive flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_set_unresponsive(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_UNRESPONSIVE, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the unresponsive flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unset_unresponsive(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_UNRESPONSIVE, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that sets the hidden flag of a client

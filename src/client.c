@@ -37,6 +37,7 @@
 #include <types/pair.h>
 
 /* Command includes */
+#include <cmds/ccmd.h>
 #include <cmds/util.h>
 
 /* Default initial values */
@@ -302,8 +303,13 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_ewmh_get_atoms_reply_t type_reply;
     xcb_intern_atom_reply_t *ia;
     xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
+    xcb_atom_t wm_take_focus_atom = XCB_ATOM_NONE;
+    xcb_atom_t net_wm_ping_atom = XCB_ATOM_NONE;
     xcb_icccm_get_wm_protocols_reply_t proto;
+    xcb_icccm_wm_hints_t wm_hints;
     uint32_t bw[1];
+    uint32_t ewmh_pid;
+    uint32_t utime;
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
@@ -330,6 +336,10 @@ client_td *client_manage(xcb_connection_t *connection,
 
     /* Zero-initialized to prevent uninitialized reads */
     memset(client, 0, sizeof(client_td));
+
+    /* 'ICCCM WM_HINTS': input defaults to 'true' when the hint is
+     * absent */
+    client->wm_input_hint = true;
 
     /* Basic connections */
     client->connection = connection;
@@ -423,7 +433,8 @@ client_td *client_manage(xcb_connection_t *connection,
                 CONFIG_MAX_LENGTH_NAME - 1);
     }
 
-    /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW' support */
+    /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS',
+     * and '_NET_WM_PING' support */
     ia = xcb_intern_atom_reply(connection,
             xcb_intern_atom(connection, 1, 16, "WM_DELETE_WINDOW"),
             NULL);
@@ -432,8 +443,27 @@ client_td *client_manage(xcb_connection_t *connection,
         free(ia);
     }
 
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1, 14, "WM_TAKE_FOCUS"),
+            NULL);
+    if (ia != NULL) {
+        wm_take_focus_atom = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1, 12, "_NET_WM_PING"),
+            NULL);
+    if (ia != NULL) {
+        net_wm_ping_atom = ia->atom;
+        free(ia);
+    }
+
     client->wm_delete_atom = wm_delete_atom;
     client->has_wm_delete_window = false;
+    client->wm_take_focus_atom = wm_take_focus_atom;
+    client->has_wm_take_focus = false;
+    client->has_net_wm_ping = false;
     memset(&proto, 0, sizeof(proto));
     if (xcb_icccm_get_wm_protocols_reply(connection,
                 xcb_icccm_get_wm_protocols(connection, window,
@@ -443,9 +473,29 @@ client_td *client_manage(xcb_connection_t *connection,
             if (proto.atoms[pi] == wm_delete_atom) {
                 client->has_wm_delete_window = true;
                 break;
+            } else if (proto.atoms[pi] == wm_take_focus_atom) {
+                client->has_wm_take_focus = true;
+            } else if (proto.atoms[pi] == net_wm_ping_atom) {
+                client->has_net_wm_ping = true;
             }
         }
         xcb_icccm_get_wm_protocols_reply_wipe(&proto);
+    }
+
+    /* Read 'WM_HINTS': input model and window group */
+    memset(&wm_hints, 0, sizeof(wm_hints));
+    if (xcb_icccm_get_wm_hints_reply(connection,
+                xcb_icccm_get_wm_hints(connection, window),
+                &wm_hints, NULL)) {
+        if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
+            client->wm_input_hint = (wm_hints.input != 0);
+        }
+        if (wm_hints.flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP) {
+            client->group_leader = wm_hints.window_group;
+        }
+        if (wm_hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
+            client_set_urgent(client);
+        }
     }
 
     /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent */
@@ -623,7 +673,6 @@ client_td *client_manage(xcb_connection_t *connection,
         xcb_ewmh_get_atoms_reply_wipe(&type_reply);
     }
 
-
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
             client->ewmh != NULL) {
         wcmd_add_states(client, 3,
@@ -631,6 +680,26 @@ client_td *client_manage(xcb_connection_t *connection,
                 "_NET_WM_STATE_SKIP_TASKBAR",
                 "_NET_WM_STATE_SKIP_PAGER");
     }
+
+    /* Read '_NET_WM_PID': associate X window with its owning process */
+    ewmh_pid = 0u;
+    if (xcb_ewmh_get_wm_pid_reply(ewmh,
+                xcb_ewmh_get_wm_pid(ewmh, window),
+                &ewmh_pid, NULL)) {
+        client->process.pid = (int) ewmh_pid;
+    }
+
+    /* Read '_NET_WM_USER_TIME': used for initial focus policy */
+    utime = 0u;
+    if (xcb_ewmh_get_wm_user_time_reply(ewmh,
+                xcb_ewmh_get_wm_user_time(ewmh, window),
+                &utime, NULL)) {
+        client->user_time = utime;
+    }
+
+    /* Publish initial '_NET_WM_ALLOWED_ACTIONS' */
+    wcmd_client_update_allowed_actions(client);
+
 
     /* Subscribe to events on the adopted window */
     values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
@@ -654,6 +723,7 @@ client_td *client_manage(xcb_connection_t *connection,
     if (client->frame == 0) {
         wcmd_client_grab_buttons(client);
     }
+
     wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
 
     LOGGER_TRACE("Now managing window %#x ('%s')",

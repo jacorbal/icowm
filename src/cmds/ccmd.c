@@ -291,8 +291,34 @@ void wcmd_client_focus(client_td *client)
         return;
     }
 
-    xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
-                        client->window, XCB_CURRENT_TIME);
+    /* ICCCM §4.2.7: only call 'SetInputFocus' when the client's input
+     * model accepts it ('WM_HINTS' input field, default 'true').
+     * Clients that set 'input=false' rely solely on the 'WM_TAKE_FOCUS'
+     * message to direct keyboard focus to themselves. */
+    if (client->wm_input_hint) {
+        xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
+                            client->window, XCB_CURRENT_TIME);
+    }
+
+    /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
+     * client has registered that protocol.  This covers both the
+     * Locally Active and Globally Active input models. */
+    if (client->has_wm_take_focus && client->ewmh != NULL) {
+        xcb_client_message_event_t ev;
+        memset(&ev, 0, sizeof(ev));
+        ev.response_type = XCB_CLIENT_MESSAGE;
+        ev.format = 32;
+        ev.window = client->window;
+        ev.type = client->ewmh->WM_PROTOCOLS;
+        ev.data.data32[0] = client->wm_take_focus_atom;
+        ev.data.data32[1] = XCB_CURRENT_TIME;
+        xcb_send_event(client->connection, 0, client->window,
+                XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
+    }
+
+    /* EWMH: advertise keyboard focus via '_NET_WM_STATE_FOCUSED' */
+    wcmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
+
     xcb_map_window(client->connection, client->window);
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL) {
@@ -317,6 +343,9 @@ void wcmd_client_unfocus(client_td *client)
     if (client == NULL) {
         return;
     }
+
+    /* EWMH: clear '_NET_WM_STATE_FOCUSED' when the window loses focus */
+    wcmd_rem_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     client_unfocus(client);
     if ((!client_is_decorated(client) || client->frame == 0) &&
@@ -390,7 +419,7 @@ static void s_client_focus_fallback(client_td *client)
                 }
                 node = cdlist_prev(node);
             } while (node != NULL && node != initial);
-        }
+        } /* ! if (node) */
     }
 
     if (next_focus != NULL) {
@@ -494,10 +523,12 @@ void wcmd_client_iconify(client_td *client)
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
     }
+
     xcb_unmap_window(client->connection, target);
     if (target != client->window) {
         xcb_unmap_window(client->connection, client->window);
     }
+
     xcb_map_window(client->connection, client->icon_window);
     xcb_configure_window(client->connection, client->icon_window,
             XCB_CONFIG_WINDOW_STACK_MODE,
@@ -509,7 +540,6 @@ void wcmd_client_iconify(client_td *client)
 
     /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
      * Icon display handled by pager/desktop */
-
     wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, client->icon_window);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
     wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -533,7 +563,9 @@ void wcmd_client_hide(client_td *client)
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
     }
+
     xcb_unmap_window(client->connection, target);
+
     if (target != client->window) {
         xcb_unmap_window(client->connection, client->window);
     }
@@ -562,7 +594,9 @@ void wcmd_client_unhide(client_td *client)
     if (client->titlebar != 0) {
         xcb_map_window(client->connection, client->titlebar);
     }
+
     xcb_map_window(client->connection, target);
+
     if (target != client->window) {
         xcb_map_window(client->connection, client->window);
     }
@@ -627,7 +661,7 @@ void wcmd_client_unshade(client_td *client)
     target = wcmd_target_win(client);
 
     /* Restore only the height from the saved geometry; keep the current
-     * position so that moving the shaded window is honoured. */
+     * position so that moving the shaded window is honoured */
     restored_h = client->layout.geometry.old.dim.h;
     client->layout.geometry.cur.dim.h = restored_h;
 
@@ -680,6 +714,7 @@ void wcmd_client_sticky(client_td *client)
                 client->window, client->ewmh->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &all_desktops);
     }
+    
     wm_request_client_redraw(client);
 }
 
@@ -704,6 +739,7 @@ void wcmd_client_unsticky(client_td *client)
                 client->window, client->ewmh->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &client->desktop_id);
     }
+
     owner_desktop = wm_get_client_desktop(client);
     surface = wm_get_surface_by_id(client->screen_id);
     current_desktop = (surface != NULL)
@@ -718,6 +754,7 @@ void wcmd_client_unsticky(client_td *client)
          * The frame 'unmap' implicitly unmaps its child, so only one
          * extra increment is needed when target is the frame. */
         client->ignore_unmap += 1u;
+
         if (target != client->window) {
             client->ignore_unmap += 1u;
         }
@@ -725,6 +762,7 @@ void wcmd_client_unsticky(client_td *client)
         if (client->titlebar != 0) {
             xcb_unmap_window(client->connection, client->titlebar);
         }
+
         xcb_unmap_window(client->connection, target);
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
@@ -752,12 +790,14 @@ void wcmd_client_unsticky(client_td *client)
                         next_focus = c;
                         break;
                     }
+
                     snode = cdlist_prev(snode);
                     if (snode == cdlist_tail(current_desktop->stacking)) {
                         break;
                     }
                 }
             }
+
             if (next_focus != NULL) {
                 current_desktop->client_active_id = next_focus->id;
                 wcmd_client_focus(next_focus);
@@ -866,6 +906,7 @@ void wcmd_client_fullscreen(client_td *client)
 
     if (client->ewmh != NULL) {
         uint32_t extents[4] = {0u, 0u, 0u, 0u};
+
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
                 client->window, client->ewmh->_NET_FRAME_EXTENTS,
                 XCB_ATOM_CARDINAL, 32, 4, extents);
@@ -1039,6 +1080,43 @@ void wcmd_client_clear_urgent(client_td *client)
 }
 
 
+/* Publish '_NET_WM_ALLOWED_ACTIONS' based on the client's current
+ * properties */
+void wcmd_client_update_allowed_actions(client_td *client)
+{
+    xcb_atom_t actions[12];
+    uint32_t n = 0u;
+
+    if (client == NULL || client->ewmh == NULL) {
+        return;
+    }
+
+    /* Actions available to all managed, visible clients */
+    actions[n++] = client->ewmh->_NET_WM_ACTION_CLOSE;
+    actions[n++] = client->ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
+    if (client_is_resizable(client)) {
+        actions[n++] = client->ewmh->_NET_WM_ACTION_MOVE;
+        actions[n++] = client->ewmh->_NET_WM_ACTION_RESIZE;
+        actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
+        actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
+        actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
+    }
+
+    if (client_is_focusable(client)) {
+        actions[n++] = client->ewmh->_NET_WM_ACTION_MINIMIZE;
+    }
+
+    /* All clients may be shaded, sticked, and re-stacked */
+    actions[n++] = client->ewmh->_NET_WM_ACTION_SHADE;
+    actions[n++] = client->ewmh->_NET_WM_ACTION_STICK;
+    actions[n++] = client->ewmh->_NET_WM_ACTION_ABOVE;
+    actions[n++] = client->ewmh->_NET_WM_ACTION_BELOW;
+    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+            client->window, client->ewmh->_NET_WM_ALLOWED_ACTIONS,
+            XCB_ATOM_ATOM, 32, n, actions);
+}
+
+
 /* Set icon for the client */
 void wcmd_client_toggle_decoration(client_td *client)
 {
@@ -1064,10 +1142,12 @@ void wcmd_client_toggle_decoration(client_td *client)
                 client->layout.frame_extents.left;
             int32_t inner_y = client->layout.geometry.cur.pos.y +
                 client->layout.frame_extents.top;
-            int32_t inner_w = (int32_t) client->layout.geometry.cur.dim.w -
+            int32_t inner_w =
+                (int32_t) client->layout.geometry.cur.dim.w -
                 client->layout.frame_extents.left -
                 client->layout.frame_extents.right;
-            int32_t inner_h = (int32_t) client->layout.geometry.cur.dim.h -
+            int32_t inner_h =
+                (int32_t) client->layout.geometry.cur.dim.h -
                 client->layout.frame_extents.top -
                 client->layout.frame_extents.bottom;
 
@@ -1136,8 +1216,10 @@ void wcmd_client_toggle_decoration(client_td *client)
         if (client->frame == 0) {
             s_client_enable_decoration(client, bw, th);
         } else {
-            int32_t frame_x = client->layout.geometry.cur.pos.x - bw;
-            int32_t frame_y = client->layout.geometry.cur.pos.y - (bw + th);
+            int32_t frame_x =
+                client->layout.geometry.cur.pos.x - bw;
+            int32_t frame_y =
+                client->layout.geometry.cur.pos.y - (bw + th);
             int32_t frame_w =
                 (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
             int32_t frame_h =
@@ -1146,6 +1228,7 @@ void wcmd_client_toggle_decoration(client_td *client)
             if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
+
             if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
@@ -1201,6 +1284,7 @@ void wcmd_client_toggle_decoration(client_td *client)
 
             if (client->ewmh != NULL) {
                 uint32_t extents[4];
+
                 extents[0] = (uint32_t) bw;
                 extents[1] = (uint32_t) bw;
                 extents[2] = (uint32_t) (bw + th);

@@ -19,14 +19,18 @@
 /* System includes */
 #include <stddef.h>
 #include <stdlib.h>     /* free */
-#include <string.h>     /* memcpy */
+#include <string.h>     /* memcpy, memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+#include <xcb/xcb_icccm.h>
+
+/* Command includes */
+#include <cmds/ccmd.h>
 
 /* Local includes */
-#include "client/internal.h"
+#include <client/internal.h>
 
 
 /* Retrieve the 'WM_NAME' property of a window */
@@ -204,5 +208,38 @@ void client_props_refresh_name(client_td *client)
 
     if (reply != NULL) {
         free(reply);
+    }
+}
+
+
+/* Re-read 'WM_HINTS' and update the client's input model, urgency, and
+ * group */
+void client_props_refresh_wm_hints(client_td *client)
+{
+    xcb_icccm_wm_hints_t hints;
+    xcb_get_property_cookie_t cookie;
+    int ok;
+
+    memset(&hints, 0, sizeof(hints));
+    cookie = xcb_icccm_get_wm_hints(client->connection, client->window);
+    ok = xcb_icccm_get_wm_hints_reply(client->connection, cookie,
+            &hints, NULL);
+
+    if (!ok) {
+        return;
+    }
+
+    if (hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
+        client->wm_input_hint = (hints.input != 0);
+    }
+
+    if (hints.flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP) {
+        client->group_leader = hints.window_group;
+    }
+
+    if (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
+        wcmd_client_set_urgent(client);
+    } else {
+        wcmd_client_clear_urgent(client);
     }
 }

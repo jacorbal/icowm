@@ -16,6 +16,8 @@
 
 /* System includes */
 #include <stdint.h>
+#include <stdlib.h>     /* free */
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -29,6 +31,7 @@
 #include <cmds/geom.h>
 #include <cmds/layer.h>
 #include <cmds/scmd.h>
+#include <cmds/util.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -97,6 +100,7 @@ static void s_handle_wm_state_atom(client_td *client,
     bool is_urgent;
     bool is_skip_taskbar;
     bool is_skip_pager;
+    bool is_modal;
 
     if (client == NULL || ewmh == NULL) {
         return;
@@ -113,6 +117,7 @@ static void s_handle_wm_state_atom(client_td *client,
     is_urgent = (state_atom == ewmh->_NET_WM_STATE_DEMANDS_ATTENTION);
     is_skip_taskbar = (state_atom == ewmh->_NET_WM_STATE_SKIP_TASKBAR);
     is_skip_pager = (state_atom == ewmh->_NET_WM_STATE_SKIP_PAGER);
+    is_modal = (state_atom == ewmh->_NET_WM_STATE_MODAL);
 
     if (is_fullscreen) {
         if (!client_is_resizable(client)) {
@@ -253,6 +258,20 @@ static void s_handle_wm_state_atom(client_td *client,
             client_set_skip_pager(client);
         } else {
             client_unset_skip_pager(client);
+        }
+        return;
+    }
+
+    if (is_modal) {
+        is_add = (action == WM_STATE_ACTION_ADD) ||
+            (action == WM_STATE_ACTION_TOGGLE &&
+             !client_is_modal(client));
+        if (is_add) {
+            client_set_modal(client);
+            wcmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
+        } else {
+            client_unset_modal(client);
+            wcmd_rem_states(client, 1, "_NET_WM_STATE_MODAL");
         }
         return;
     }
@@ -615,6 +634,66 @@ void handler_client_message(wm_td *wm,
         if (client != NULL) {
             s_handle_net_moveresize_window(wm, event, client,
                     surface, desktop);
+        }
+        return;
+    }
+
+    /* EWMH §5.3: pre-map frame-extents request; reply immediately
+     * so the application can size itself before mapping */
+    if (event->type == wm->ewmh->_NET_REQUEST_FRAME_EXTENTS) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+
+        if (client != NULL && client->ewmh != NULL) {
+            uint32_t extents[4];
+
+            extents[0] = (uint32_t) client->layout.frame_extents.left;
+            extents[1] = (uint32_t) client->layout.frame_extents.right;
+            extents[2] = (uint32_t) client->layout.frame_extents.top;
+            extents[3] = (uint32_t) client->layout.frame_extents.bottom;
+            xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+                    event->window, wm->ewmh->_NET_FRAME_EXTENTS,
+                    XCB_ATOM_CARDINAL, 32, 4, extents);
+            xcb_flush(wm->connection);
+        }
+        return;
+    }
+
+    /* EWMH sec.5.13: show/hide all desktop windows */
+    if (event->type == wm->ewmh->_NET_SHOWING_DESKTOP) {
+        uint32_t show = event->data.data32[0];
+        surface_td *surf;
+
+        for (list_item_td *snode = list_head(wm->surfaces);
+                snode != NULL; snode = list_next(snode)) {
+            surf = (surface_td *) list_data(snode);
+
+            if (surf == NULL) {
+                continue;
+            }
+            xcb_ewmh_set_showing_desktop(wm->ewmh,
+                    (int) surf->id, show);
+        }
+
+        xcb_flush(wm->connection);
+        return;
+    }
+
+    /* EWMH §4.6 / ICCCM §4.2.8: intercept '_NET_WM_PING' pong replies
+     * sent from clients back to the root window.  The client echoes the
+     * original ping 'ClientMessage' unchanged; matching the window
+     * field with a managed client identifies the pong and clears
+     * unresponsive. */
+    if (event->type == wm->ewmh->WM_PROTOCOLS &&
+            event->data.data32[0] == (uint32_t) wm->ewmh->_NET_WM_PING) {
+        xcb_window_t ping_window = (xcb_window_t) event->data.data32[2];
+        client = lookup_find_client(wm->surfaces, ping_window,
+                &surface, &desktop);
+        if (client != NULL) {
+            client->last_ping_reply = event->data.data32[1];
+            client_unset_unresponsive(client);
+            wm_invalidate_surface(surface);
+            wm_invalidate_desktop(desktop);
         }
         return;
     }
