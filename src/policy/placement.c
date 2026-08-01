@@ -530,8 +530,6 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
                 new_y == client->layout.geometry.cur.pos.y) {
             return;
         }
-
-        return;
     }
 
     target = (client_is_decorated(client) && client->frame != 0)

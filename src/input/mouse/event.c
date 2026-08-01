@@ -547,6 +547,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         client_send_event(client,
                                 ACTION_CLIENT_TOGGLE_SHADE,
                                 PRIORITY_NORMAL);
+
                         if (desktop != NULL) {
                             desktop->is_outdated = true;
                         }
@@ -566,10 +567,15 @@ void mouse_handle_press(xcb_connection_t *connection,
                                 (cfg != NULL)
                                     ? cfg->base.windows.snap : 0u);
                     }
-                }
+                } /* ! if (!hit_btn) */
             }
 
-            if (window == client->window) {
+            /* Replay to the application when the click landed on the
+             * client content window or any of its descendants.  Only
+             * consume clicks that hit the WM-owned frame border or
+             * titlebar directly.  This ensures systray icon sub-windows
+             * embedded in dock clients receive their button events. */
+            if (window != client->frame && window != client->titlebar) {
                 xcb_allow_events(connection, XCB_ALLOW_REPLAY_POINTER,
                         event->time);
             } else {

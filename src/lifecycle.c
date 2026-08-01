@@ -95,6 +95,14 @@ void lifecycle_scan_existing(wm_td *wm)
                             children[i], &wm->config->theme,
                             &wm->config->base);
                     if (client != NULL) {
+                        /* ReparentWindow on an already-mapped window
+                         * generates an 'UnmapNotify'.  Absorb it so
+                         * handler_unmap_notify does not wrongly unmap
+                         * the new frame. */
+                        if (client->frame != 0) {
+                            client->ignore_unmap++;
+                        }
+
                         client->screen_id = surface->id;
                         client->desktop_id = desktop->id;
                         desktop_action_client_add(desktop, client);
