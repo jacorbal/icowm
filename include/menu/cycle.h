@@ -213,5 +213,18 @@ xcb_keysym_t cycle_prev_keysym(void);
  */
 uint16_t cycle_prev_modmask(void);
 
+/**
+ * @brief Return whether a client has cycle extra border
+ *
+ * @param client       Target client
+ * @param is_icon_menu @c true for icon border, @c false for window
+ *                     border
+ *
+ * @return @c true when the client must use the cycle-selected extra
+ *         border while cycle menu is open
+ */
+bool cycle_client_has_extra_border(const client_td *client,
+        bool is_icon_menu);
+
 
 #endif  /* ! MENU_CYCLE_H */

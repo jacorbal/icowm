@@ -194,7 +194,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     uint16_t inner_w;
     uint16_t inner_h;
     bool hide_decoration;
-
+    bool has_extra_icon_border;
+    bool has_extra_window_border;
+    uint32_t border_width;
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received null desktop pointer", L_NARG);
@@ -246,17 +248,29 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 bool is_cycle_sel = cycle_is_open() &&
                     cycle_get_selected_client() == client;
 
+                has_extra_icon_border =
+                    cycle_client_has_extra_border(client, true);
                 xcb_change_window_attributes(desktop->connection,
                         client->icon_window,
                         XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                         (const uint32_t[]) {
-                        (is_cycle_sel)
-                        ? desktop->config_theme->icon.active.background_color
-                        : desktop->config_theme->icon.inactive.background_color,
-                        (is_cycle_sel)
-                        ? desktop->config_theme->icon.active.border_color
-                        : desktop->config_theme->icon.inactive.border_color
+                    (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.background_color
+                    : desktop->config_theme->icon.inactive.background_color,
+                    (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.border_color
+                    : desktop->config_theme->icon.inactive.border_color
                         });
+
+                border_width = client->theme->icon.general.border_width;
+                if (has_extra_icon_border) {
+                    border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
+                }
+                xcb_configure_window(desktop->connection,
+                        client->icon_window,
+                        XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                        &border_width);
+
                 xcb_clear_area(desktop->connection, 0,
                         client->icon_window, 0, 0, 0, 0);
                 xcb_map_window(desktop->connection, client->icon_window);
@@ -284,6 +298,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             client->info.name);
                 }
             }
+
             stacking_node = cdlist_next(stacking_node);
             continue;
         }
@@ -298,6 +313,21 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame
             : client->window;
+
+        has_extra_window_border =
+            cycle_client_has_extra_border(client, false);
+        if (client_is_decorated(client) && client->frame != 0) {
+            border_width = has_extra_window_border
+                ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
+        } else {
+            border_width = client->theme->window.general.border_width;
+            if (has_extra_window_border) {
+                border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
+            }
+        }
+
+        xcb_configure_window(desktop->connection, target,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
 
         /* Map the window to make it visible */
         /* NOTE: Only do this when 'desktop' is the surface's currently

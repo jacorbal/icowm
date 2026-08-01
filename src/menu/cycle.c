@@ -69,6 +69,7 @@ static struct {
     xcb_keysym_t prev_keysym;
     uint16_t prev_modmask;
     client_td *preview_client;
+    const config_td *config;
 } s_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
@@ -83,7 +84,8 @@ static struct {
     .next_modmask = 0,
     .prev_keysym = XCB_NO_SYMBOL,
     .prev_modmask = 0,
-    .preview_client = NULL
+    .preview_client = NULL,
+    .config = NULL
 };
 
 
@@ -333,6 +335,44 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
 }
 
 
+/* Restore preview border style for all cycle entries */
+static void s_cycle_preview_restore(xcb_connection_t *connection)
+{
+    client_td *client;
+    xcb_window_t target;
+    uint32_t border_color;
+    bool is_active;
+
+    if (connection == NULL || s_menu.config == NULL ||
+            s_menu.desktop == NULL || s_menu.count <= 0) {
+        return;
+    }
+
+    for (int i = 0; i < s_menu.count; ++i) {
+        client = s_menu.clients[i];
+        if (client == NULL) {
+            continue;
+        }
+
+        target = s_cycle_preview_target(client, s_menu.is_icon_menu);
+        if (target == XCB_WINDOW_NONE) {
+            continue;
+        }
+
+        if (s_menu.is_icon_menu) {
+            border_color = s_menu.config->theme.icon.inactive.border_color;
+        } else {
+            is_active = (s_menu.desktop->client_active_id == client->id);
+            border_color = is_active
+                ? s_menu.config->theme.window.active.border_color
+                : s_menu.config->theme.window.inactive.border_color;
+        }
+        s_cycle_preview_style_target(connection, target,
+                client, s_menu.config, s_menu.is_icon_menu,
+                border_color, false);
+    }
+}
+
 
 /* Open the cycle menu for window or icon cycling */
 void cycle_open(list_td *surfaces,
@@ -402,6 +442,7 @@ void cycle_open(list_td *surfaces,
     s_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
     s_menu.preview_client = NULL;
+    s_menu.config = cfg;
 
     /* Collect matching clients, i.e., iterate from tail (top of stack,
      * most recently raised) to head (bottom), so the list order matches
@@ -591,6 +632,7 @@ void cycle_close(xcb_connection_t *connection)
 
     restore_focus = s_menu.prev_focus;
     surface = s_menu.surface;
+    s_cycle_preview_restore(connection);
 
     xcb_destroy_window(connection, s_menu.window);
     s_menu.window = XCB_WINDOW_NONE;
@@ -606,6 +648,7 @@ void cycle_close(xcb_connection_t *connection)
     s_menu.prev_keysym = XCB_NO_SYMBOL;
     s_menu.prev_modmask = 0;
     s_menu.preview_client = NULL;
+    s_menu.config = NULL;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection,
@@ -700,6 +743,11 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     } else if (target->properties.flags & CLIENT_FLAG_HIDDEN) {
         /* Hidden (non-iconified) window: unhide before focusing */
         (void) client_send_event(target, ACTION_CLIENT_UNHIDE,
+                CLIENT_PRIORITY_DEFAULT);
+    }
+
+    if (!is_icon && client_is_shaded(target)) {
+        (void) client_send_event(target, ACTION_CLIENT_UNSHADE,
                 CLIENT_PRIORITY_DEFAULT);
     }
 
@@ -803,4 +851,23 @@ xcb_keysym_t cycle_prev_keysym(void)
 uint16_t cycle_prev_modmask(void)
 {
     return s_menu.prev_modmask;
+}
+
+
+/* Return whether a client must keep cycle extra border */
+bool cycle_client_has_extra_border(const client_td *client,
+        bool is_icon_menu)
+{
+    if (client == NULL) {
+        return false;
+    }
+
+    if (cycle_is_open()) {
+        return cycle_get_selected_client() == client &&
+            s_menu.is_icon_menu == is_icon_menu;
+    }
+
+    return cycle_is_open() &&
+        cycle_get_selected_client() == client &&
+        s_menu.is_icon_menu == is_icon_menu;
 }
