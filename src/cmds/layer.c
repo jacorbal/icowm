@@ -93,6 +93,7 @@ void wcmd_client_layer_above(client_td *client)
         wcmd_desktop_enforce_layers(desktop);
     }
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
@@ -117,6 +118,7 @@ void wcmd_client_layer_normal(client_td *client)
         wcmd_desktop_enforce_layers(desktop);
     }
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
@@ -140,6 +142,7 @@ void wcmd_client_layer_below(client_td *client)
         wcmd_desktop_enforce_layers(desktop);
     }
 
+    wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
 
