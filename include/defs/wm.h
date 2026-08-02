@@ -77,7 +77,7 @@
 #define WM_INFO_POPUP_LINE_MAX_LEN (256)
 
 /** Maximum number of entries in the cycle menu */
-#define WM_CYCLE_MENU_MAX_ENTRIES (64)
+#define WM_CYCLE_MENU_MAX_ENTRIES (256)
 
 /** Maximum label length for a cycle menu entry */
 #define WM_CYCLE_MENU_ENTRY_LEN (128)
@@ -90,6 +90,16 @@
 
 /** Vertical padding (top/bottom) inside the cycle menu window */
 #define WM_CYCLE_MENU_PAD_Y (6)
+
+/**
+ * @brief Maximum height of the cycle menu as a percentage of screen
+ *        height
+ *
+ * When the full entry list would exceed this fraction of the screen,
+ * the menu window is capped at this height and a scroll viewport is
+ * used so the user can reach every entry with the cycle keys.
+ */
+#define WM_CYCLE_MENU_MAX_HEIGHT_PERC (80)
 
 /** Width/height of icon square in pixels */
 #define WM_ICON_SQUARE_SIZE (48u)

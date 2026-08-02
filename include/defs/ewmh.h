@@ -39,8 +39,7 @@
  * @brief Number of atoms listed in @c _NET_SUPPORTED
  *
  * Must equal the number of @c (supported_atoms[n_supported++]) lines in
- * @c wm_ewmh_init.  Update this constant whenever atoms are added to or
- * removed from the supported set.
+ * @c wm_ewmh_init.
  *
  * Current set (62 atoms):
  *   @c _NET_SUPPORTED, @c _NET_SUPPORTING_WM_CHECK,

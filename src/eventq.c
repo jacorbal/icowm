@@ -60,7 +60,7 @@ static pqueue_td *eventq = NULL;
 /**
  * @brief Mutex protecting @c eventq_add and @c eventq_extract
  *
- * Statically initialised so it is ready before @c eventq_start.  Allows
+ * Statically initialized so it is ready before @c eventq_start.  Allows
  * external threads to post events to the queue safely while the main
  * loop is processing X11 events.
  */

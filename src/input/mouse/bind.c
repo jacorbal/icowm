@@ -85,7 +85,7 @@ static const char *s_resolve_modifier_token(const config_td *cfg,
  * @param cfg Configuration holding the alias strings
  * @param tok Modifier token to parse
  *
- * @return XCB modifier mask, or 0 if not recognised
+ * @return XCB modifier mask, or 0 if not recognized
  *
  * @note Complexity: @e O(1)
  */

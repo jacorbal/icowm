@@ -46,7 +46,7 @@ void safe_free(void **ptr);
  * freeing each pointed-to block that is non-null and setting the
  * pointer to @c NULL afterwards.  Pointers whose target is already null
  * are silently skipped, so the function is safe to call on partially
- * initialised pointer sets.
+ * initialized pointer sets.
  *
  * @param first The first @c void** in the list
  * @param ...   Additional @c void** pointers to free, terminated with

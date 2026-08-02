@@ -38,7 +38,7 @@
  * @brief Handle a @c CONFIGURE_REQUEST event
  *
  * Applies geometry and stacking requests directly through XCB, keeping
- * the managed client's cached geometry synchronised when applicable.
+ * the managed client's cached geometry synchronized when applicable.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces

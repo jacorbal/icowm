@@ -186,7 +186,7 @@ int wm_action_exit(void);
  * @param client Client whose desktop is requested
  *
  * @return Pointer to the containing @c desktop_td, or @c NULL when the
- *         client is not found or the window manager is not initialised
+ *         client is not found or the window manager is not initialized
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across all desktops
@@ -202,7 +202,7 @@ desktop_td *wm_get_client_desktop(const client_td *client);
  * @param surface_id Surface identifier
  *
  * @return Pointer to the matching @c surface_td, or @c NULL when no
- *         surface matches or the window manager is not initialised
+ *         surface matches or the window manager is not initialized
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       surfaces

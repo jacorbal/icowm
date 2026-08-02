@@ -70,6 +70,8 @@ static struct {
     uint16_t prev_modmask;
     client_td *preview_client;
     const config_td *config;
+    int scroll_offset;
+    int viewport_rows;
 } s_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
@@ -85,7 +87,9 @@ static struct {
     .prev_keysym = XCB_NO_SYMBOL,
     .prev_modmask = 0,
     .preview_client = NULL,
-    .config = NULL
+    .config = NULL,
+    .scroll_offset = 0,
+    .viewport_rows = 0
 };
 
 
@@ -136,7 +140,24 @@ static xcb_window_t s_cycle_preview_target(const client_td *client,
 }
 
 
-/* Return the border width for a cycle-preview target */
+/**
+ * @brief Return the border width for a cycle-preview target
+ *
+ * Computes the border width to use for a preview target in the cycle
+ * interface, selecting the icon border width for icon previews, no
+ * border for decorated client frames, and the normal window border
+ * width for undecorated window targets. When the target is highlighted,
+ * an extra selection width is added.
+ *
+ * @param client         Pointer to the client associated with the target
+ * @param cfg            Pointer to the active configuration
+ * @param is_icon_menu   Whether the cycle menu is showing icon previews
+ * @param is_highlighted Whether the target is currently highlighted
+ *
+ * @return Border width to apply to the preview target
+ *
+ * @note Complexity: @e O(1)
+ */
 static uint32_t s_cycle_preview_border_width(const client_td *client,
         const config_td *cfg, bool is_icon_menu, bool is_highlighted)
 {
@@ -164,7 +185,24 @@ static uint32_t s_cycle_preview_border_width(const client_td *client,
 }
 
 
-/* Apply preview border color and width to the target window */
+/**
+ * @brief Apply preview border color and width to a target window
+ *
+ * Updates the border width and border color of the given cycle-preview
+ * target.  For decorated client frames in window mode, the frame
+ * background is also updated and cleared so the visual highlight is
+ * redrawn consistently; otherwise only the border pixel is changed.
+ *
+ * @param connection     Active XCB connection used to update the window
+ * @param target         Target window receiving the preview styling
+ * @param client         Pointer to the client associated with @p target
+ * @param cfg            Pointer to the active configuration
+ * @param is_icon_menu   Whether the cycle menu is showing icon previews
+ * @param border_color   Border color to apply
+ * @param is_highlighted Whether the target is currently highlighted
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_cycle_preview_style_target(xcb_connection_t *connection,
         xcb_window_t target, const client_td *client,
         const config_td *cfg, bool is_icon_menu,
@@ -335,7 +373,21 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
 }
 
 
-/* Restore preview border style for all cycle entries */
+/**
+ * @brief Restore preview border style for all cycle entries
+ *
+ * Iterates over every client currently listed in the cycle menu and
+ * restores its preview border to the appropriate non-highlighted color,
+ * based on whether the menu is showing icons or windows and, for
+ * windows, whether the client is the active one on its desktop.
+ *
+ * @param connection Active XCB connection used to apply the border
+ *                   style
+ *
+ * @note Operates on the global @c s_menu state
+ * @note Complexity: @e O(n), where @e n is the number of entries in the
+ *       cycle menu
+ */
 static void s_cycle_preview_restore(xcb_connection_t *connection)
 {
     client_td *client;
@@ -367,11 +419,42 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
                 ? s_menu.config->theme.window.active.border_color
                 : s_menu.config->theme.window.inactive.border_color;
         }
+
         s_cycle_preview_style_target(connection, target,
                 client, s_menu.config, s_menu.is_icon_menu,
                 border_color, false);
     }
 }
+
+
+/**
+ * @brief Adjust scroll offset so the selected row stays in the viewport
+ *
+ * Ensures the currently selected row remains visible within the menu's
+ * viewport by scrolling up when the selection is above the visible
+ * range, or scrolling down when it falls below it.  If the viewport can
+ * display every row, scrolling is disabled and the offset is reset to
+ * zero.
+ *
+ * @note Operates on the global @c s_menu state
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_scroll_to_selection(void)
+{
+    if (s_menu.viewport_rows >= s_menu.count) {
+        s_menu.scroll_offset = 0;
+        return;
+    }
+
+    if (s_menu.selected < s_menu.scroll_offset) {
+        s_menu.scroll_offset = s_menu.selected;
+    } else if (s_menu.selected >=
+            s_menu.scroll_offset + s_menu.viewport_rows) {
+        s_menu.scroll_offset =
+            s_menu.selected - s_menu.viewport_rows + 1;
+    }
+}
+
 
 
 /* Open the cycle menu for window or icon cycling */
@@ -392,6 +475,7 @@ void cycle_open(list_td *surfaces,
     int16_t menu_x;
     int16_t menu_y;
     int active_idx = -1;
+    int vp_rows;
     uint16_t max_w = 200u;
     xcb_keysym_t nks;
     xcb_keysym_t pks;
@@ -573,8 +657,23 @@ void cycle_open(list_td *surfaces,
     }
 
     menu_w = (uint16_t) (max_w + (uint16_t) (WM_CYCLE_MENU_PAD_X * 2));
+
+    /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERC' of screen */
+    vp_rows = ((int) (surface->properties.dim.h *
+                (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERC / 100u) -
+            WM_CYCLE_MENU_PAD_Y * 2) / WM_CYCLE_MENU_ROW_HEIGHT;
+    if (vp_rows < 1) {
+        vp_rows = 1;
+    }
+    if (vp_rows > s_menu.count) {
+        vp_rows = s_menu.count;
+    }
+    s_menu.viewport_rows = vp_rows;
+    s_menu.scroll_offset = 0;
+    s_cycle_scroll_to_selection();
+
     menu_h = (uint16_t) (WM_CYCLE_MENU_PAD_Y * 2 +
-            s_menu.count * WM_CYCLE_MENU_ROW_HEIGHT);
+            s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
 
     s_menu.width = menu_w;
 
@@ -648,6 +747,8 @@ void cycle_close(xcb_connection_t *connection)
     s_menu.prev_modmask = 0;
     s_menu.preview_client = NULL;
     s_menu.config = NULL;
+    s_menu.scroll_offset = 0;
+    s_menu.viewport_rows = 0;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection,
@@ -684,9 +785,11 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
 
     text_renderer_init(connection, cfg->theme.window.active.font);
 
-    for (int i = 0; i < s_menu.count; ++i) {
+    for (int i = s_menu.scroll_offset;
+            i < s_menu.scroll_offset + s_menu.viewport_rows;
+            ++i) {
         int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
-                i * WM_CYCLE_MENU_ROW_HEIGHT);
+                (i - s_menu.scroll_offset) * WM_CYCLE_MENU_ROW_HEIGHT);
 
         if (i == s_menu.selected) {
             menu_draw_row_bg(connection, s_menu.window, bg_sel,
@@ -766,6 +869,7 @@ void cycle_navigate_to(unsigned int idx)
     }
 
     s_menu.selected = (int) idx;
+    s_cycle_scroll_to_selection();
 }
 
 
@@ -777,6 +881,7 @@ void cycle_navigate_next(void)
     }
 
     s_menu.selected = (s_menu.selected + 1) % s_menu.count;
+    s_cycle_scroll_to_selection();
 }
 
 
@@ -788,6 +893,7 @@ void cycle_navigate_prev(void)
     }
 
     s_menu.selected = (s_menu.selected - 1 + s_menu.count) % s_menu.count;
+    s_cycle_scroll_to_selection();
 }
 
 
