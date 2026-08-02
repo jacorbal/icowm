@@ -148,10 +148,10 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         return 2;
     }
 
-    LOGGER_TRACE("Allocating memory for EWMH connection", L_NARG);
+    LOGGER_DEBUG("Allocating memory for EWMH connection", L_NARG);
     wm->ewmh = malloc(sizeof(xcb_ewmh_connection_t));
     if (wm->ewmh == NULL) {
-        LOGGER_FATAL("Error allocating memory for EWMH connection",
+        LOGGER_FATAL("Failed to allocate memory for EWMH connection",
                 L_NARG);
         s_wm_cleanup();
         return 1;
@@ -160,7 +160,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     if (!xcb_ewmh_init_atoms_replies(wm->ewmh,
                 xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
                 NULL)) {
-        LOGGER_FATAL("Error initializating EWMH atoms", L_NARG);
+        LOGGER_FATAL("Failed to initialize EWMH atoms", L_NARG);
         s_wm_cleanup();
         return 10;
     }
@@ -171,7 +171,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         return 3;
     }
 
-    LOGGER_TRACE("Loading configuration into window manager", L_NARG);
+    LOGGER_DEBUG("Loading configuration into window manager", L_NARG);
     wm->config_dir_prefix = config_dir_prefix;
     config_load(wm->config, wm->config_dir_prefix);
 
@@ -195,7 +195,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
     }
 
-    LOGGER_TRACE("Allocating memory for surface structures", L_NARG);
+    LOGGER_DEBUG("Allocating memory for surface structures", L_NARG);
     wm->surfaces = list_init((void(*)(void *)) surface_destroy);
     if (wm->surfaces == NULL) {
         LOGGER_FATAL("Failed to allocate memory for surfaces array",
@@ -204,7 +204,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         return 6;
     }
 
-    LOGGER_TRACE("Initializing surface structures", L_NARG);
+    LOGGER_DEBUG("Initializing surface structures", L_NARG);
     if (wm->config->base.screen_count != screens_detected) {
         LOGGER_NOTICE("Detected %u screen(s); %u" \
                 " specified in the configuration file",
@@ -213,7 +213,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 wm->config->base.screen_count == 0) {
             wm->config->base.screen_count = screens_detected;
         }
-        LOGGER_INFO("Setting number of screens to %u",
+        LOGGER_DEBUG("Setting number of screens to %u",
                 wm->config->base.screen_count);
     } else {
         LOGGER_DEBUG("Setting number of screens to %u",
@@ -270,7 +270,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     }
     wm_ewmh_sync();
 
-    LOGGER_TRACE("Setting running status flag to 'true'", L_NARG);
+    LOGGER_DEBUG("Setting running status flag to 'true'", L_NARG);
     wm->is_running = true;
     loop_run(wm);
 
@@ -287,7 +287,7 @@ int wm_stop(void)
         return 1;
     }
 
-    LOGGER_TRACE("Running window manager cleanup", L_NARG);
+    LOGGER_DEBUG("Running window manager cleanup", L_NARG);
     s_wm_cleanup();
 
     LOGGER_DEBUG("Window manager has been destroyed", L_NARG);

@@ -47,7 +47,7 @@ uint32_t json_hex2uint32(const char *hex_color)
         hex_color++;
     }
     if (sscanf(hex_color, "%x", &color) != 1) {
-        LOGGER_NOTICE("Failed to parse hexadecimal color '%s';" \
+        LOGGER_WARNING("Failed to parse hexadecimal color '%s';" \
                 " defaulting to '#000000'", hex_color);
         return 0;
     }
@@ -131,7 +131,7 @@ int json_load_color(cJSON *json, const char *field, uint32_t *dest)
         return 0;
     }
 
-    LOGGER_NOTICE("Failed to load JSON color string: '%s'", field);
+    LOGGER_WARNING("Failed to load JSON color string: '%s'", field);
     return 1;
 }
 
@@ -148,7 +148,7 @@ int json_load_string(cJSON *json, const char *field,
         return 0;
     }
 
-    LOGGER_NOTICE("Failed to load JSON string: '%s'", field);
+    LOGGER_WARNING("Failed to load JSON string: '%s'", field);
     return 1;
 }
 
@@ -164,7 +164,7 @@ int json_load_uint(cJSON *json, const char *field, unsigned int *dest)
         return 0;
     }
 
-    LOGGER_NOTICE("Failed to load JSON unsigned integer: '%s'", field);
+    LOGGER_WARNING("Failed to load JSON unsigned integer: '%s'", field);
     return 1;
 }
 
@@ -180,7 +180,7 @@ int json_load_bool(cJSON *json, const char *field, bool *dest)
         return 0;
     }
 
-    LOGGER_NOTICE("Failed to load JSON boolean: '%s'", field);
+    LOGGER_WARNING("Failed to load JSON boolean: '%s'", field);
     return 1;
 }
 
@@ -193,7 +193,7 @@ int json_load_file(const char *filename, char **data)
     size_t nread;
     long file_length;
 
-    LOGGER_INFO("Parsing data from file '%s'", filename);
+    LOGGER_DEBUG("Parsing data from file '%s'", filename);
 
     if (data == NULL) {
         LOGGER_ERROR("Received null output pointer for file '%s'",
@@ -206,14 +206,14 @@ int json_load_file(const char *filename, char **data)
     LOGGER_TRACE("Opening JSON file '%s'", filename);
     file = fopen(filename, "r");
     if (!file) {
-        LOGGER_NOTICE("File not found or unable to open:" \
+        LOGGER_WARNING("File not found or unable to open:" \
                 " '%s'; default values will be used", filename);
         return 1;
     }
 
     if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to seek JSON file '%s';" \
+        LOGGER_WARNING("Unable to seek JSON file '%s';" \
                 " default values will be used", filename);
         return 1;
     }
@@ -221,14 +221,14 @@ int json_load_file(const char *filename, char **data)
 
     if (file_length <= 0) {
         fclose(file);
-        LOGGER_NOTICE("File '%s' is empty or unreadable;" \
+        LOGGER_WARNING("File '%s' is empty or unreadable;" \
                 " default values will be used", filename);
         return 1;
     }
     length = (size_t) file_length;
     if (fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
-        LOGGER_NOTICE("Unable to rewind JSON file '%s';" \
+        LOGGER_WARNING("Unable to rewind JSON file '%s';" \
                 " default values will be used", filename);
         return 1;
     }
@@ -244,7 +244,7 @@ int json_load_file(const char *filename, char **data)
     LOGGER_TRACE("Reading JSON file '%s'", filename);
     nread = fread(*data, 1, length, file);
     if (nread != length) {
-        LOGGER_NOTICE("Failed to read full JSON file '%s';" \
+        LOGGER_WARNING("Failed to read full JSON file '%s';" \
                 " default values will be used", filename);
         free(*data);
         *data = NULL;
@@ -276,7 +276,7 @@ int json_load_config(const char *filename, cJSON **json_out)
     if (json_root == NULL) {
         LOGGER_WARNING("Failed to parse file '%s';" \
                 " default configuration will be used", filename);
-        LOGGER_TRACE("Error parsing JSON file\n%s", cJSON_GetErrorPtr());
+        LOGGER_TRACE("JSON parse error: %s", cJSON_GetErrorPtr());
         free(data);
         return 2;
     }

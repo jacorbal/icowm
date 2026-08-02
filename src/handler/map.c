@@ -185,7 +185,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
     bool focus_set;
 
     if (event == NULL) {
-        LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
+        LOGGER_INFO("Received null pointer in unmap handler", L_NARG);
         return;
     }
 

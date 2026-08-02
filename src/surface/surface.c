@@ -134,7 +134,7 @@ surface_td *surface_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    LOGGER_TRACE("Retrieving surface information from X server", L_NARG);
+    LOGGER_DEBUG("Retrieving surface information from X server", L_NARG);
     iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
     for (uint32_t i = 0; i < surface_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
@@ -156,7 +156,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     s_update_properties(surface, surface->screen);
 
     /* Handle desktops */
-    LOGGER_TRACE("Setting up all %d desktops", desktop_count);
+    LOGGER_DEBUG("Setting up all %d desktops", desktop_count);
 
     LOGGER_TRACE("Initializing desktop list structure for surface %u",
             surface_id);

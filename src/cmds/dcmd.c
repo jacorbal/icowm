@@ -352,7 +352,7 @@ pid_t dcmd_desktop_process_launch(desktop_td *desktop,
         return -1;
     }
 
-    return (pid_t) desktop_action_application_launch(desktop,
+    return (pid_t) desktop_action_process_launch(desktop,
             desktop_data->new_data.str);
 }
 

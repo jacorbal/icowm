@@ -160,7 +160,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 
     /* Add to hash table for quick lookup */
     if (ohtbl_insert(desktop->clients, (void *) client) != 0) {
-        LOGGER_ALERT("Failed to add client to hash table", L_NARG);
+        LOGGER_ERROR("Failed to add client to hash table", L_NARG);
         return -1;
     }
 
@@ -168,7 +168,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     if (cdlist_ins_next(desktop->stacking,
                 cdlist_tail(desktop->stacking),
                 (void *) client) != 0) {
-        LOGGER_ALERT("Failed to add client to stacking list", L_NARG);
+        LOGGER_ERROR("Failed to add client to stacking list", L_NARG);
         /* Remove from hash table on failure */
         removed_client = (void *) client;
         ohtbl_remove(desktop->clients, &removed_client);
@@ -213,7 +213,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
                 /* Found it, remove it */
                 if (cdlist_rem_next(desktop->stacking,
                             cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ALERT("Failed to remove client from" \
+                    LOGGER_ERROR("Failed to remove client from" \
                             " stacking list", L_NARG);
                     return -1;
                 }
@@ -255,7 +255,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
                 /* Found it, move to tail (front/top of stack) */
                 if (cdlist_rem_next(desktop->stacking,
                             cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ALERT("Failed to remove client from stacking",
+                    LOGGER_ERROR("Failed to remove client from stacking",
                             L_NARG);
                     return -1;
                 }
@@ -263,7 +263,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
                 if (cdlist_ins_next(desktop->stacking,
                             cdlist_tail(desktop->stacking),
                             (void *) client) != 0) {
-                    LOGGER_ALERT("Failed to insert client to stacking",
+                    LOGGER_ERROR("Failed to insert client to stacking",
                             L_NARG);
                     return -1;
                 }
@@ -276,7 +276,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
         } while (node != NULL && node != initial);
     }
 
-    LOGGER_ALERT("Client not found in desktop stacking", L_NARG);
+    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
     return -1;
 }
 
@@ -305,7 +305,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
                 /* Found it, move to head (back/bottom of stack) */
                 if (cdlist_rem_next(desktop->stacking,
                             cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ALERT("Failed to remove client from stacking",
+                    LOGGER_ERROR("Failed to remove client from stacking",
                             L_NARG);
                     return -1;
                 }
@@ -313,7 +313,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
                 if (cdlist_ins_next(desktop->stacking, NULL,
 //                            cdlist_head(desktop->stacking),
                             (void *) client) != 0) {
-                    LOGGER_ALERT("Failed to insert client to stacking",
+                    LOGGER_ERROR("Failed to insert client to stacking",
                             L_NARG);
                     return -1;
                 }
@@ -326,7 +326,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
         } while (node != NULL && node != initial);
     }
 
-    LOGGER_ALERT("Client not found in desktop stacking", L_NARG);
+    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
     return -1;
 }
 
@@ -598,27 +598,27 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout)
 }
 
 
-/* Launch an application on the desktop */
-int desktop_action_application_launch(desktop_td *desktop,
-        const char *application_path)
+/* Launch a process on the desktop */
+int desktop_action_process_launch(desktop_td *desktop,
+        const char *executable_path)
 {
     pid_t pid;
 
 
-    if (desktop == NULL || application_path == NULL ||
-            application_path[0] == '\0') {
-        LOGGER_ERROR("Invalid desktop or application path pointer",
+    if (desktop == NULL || executable_path == NULL ||
+            executable_path[0] == '\0') {
+        LOGGER_ERROR("Invalid desktop or executable path pointer",
                 L_NARG);
         return -1;
     }
 
-    LOGGER_DEBUG("Launching application '%s' on desktop %u ('%s')",
-            application_path, desktop->id, desktop->name);
+    LOGGER_TRACE("Launching process for '%s' on desktop %u ('%s')",
+            executable_path, desktop->id, desktop->name);
 
     pid = fork();
     if (pid < 0) {
-        LOGGER_ERROR("Failed to fork process for application '%s'",
-                application_path);
+        LOGGER_ERROR("Failed to fork process for executable '%s'",
+                executable_path);
         return 1;
     }
     if (pid == 0) {
@@ -644,10 +644,10 @@ int desktop_action_application_launch(desktop_td *desktop,
 #ifdef WRDE_NOENV
         wordexp_flags |= WRDE_NOENV;
 #endif
-        wr = wordexp(application_path, &words, wordexp_flags);
+        wr = wordexp(executable_path, &words, wordexp_flags);
         if (wr != 0 || words.we_wordc == 0u) {
             LOGGER_ERROR("Failed to parse launch command '%s'",
-                    application_path);
+                    executable_path);
             if (words.we_wordv != NULL) {
                 wordfree(&words);
             }
@@ -659,8 +659,8 @@ int desktop_action_application_launch(desktop_td *desktop,
         _exit(127);
     }
 
-    LOGGER_INFO("Launched application '%s' with PID %d",
-            application_path, (int) pid);
+    LOGGER_DEBUG("Process for '%s' running with PID %d",
+            executable_path, (int) pid);
 
     return 0;
 

@@ -61,7 +61,7 @@ int surface_render_current_desktop(surface_td *surface)
 
     desktop = (desktop_td *) cdlist_data(desktop_node);
     if (desktop == NULL) {
-        LOGGER_ERROR("'NULL' desktop pointer", L_NARG);
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
         return 1;
     }
 
@@ -118,7 +118,7 @@ int surface_render_all_desktops(surface_td *surface)
         desktop = (desktop_td *) cdlist_data(desktop_node);
 
         if (desktop == NULL) {
-            LOGGER_WARNING("NULL desktop in list at position %u",
+            LOGGER_WARNING("Desktop in list at position %u is null",
                     rendered_count);
             desktop_node = cdlist_next(desktop_node);
             rendered_count++;

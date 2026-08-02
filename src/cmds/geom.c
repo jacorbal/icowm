@@ -315,7 +315,6 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
-
     target = wcmd_target_win(client);
     client_geometry_save(client);
 

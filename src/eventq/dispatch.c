@@ -525,25 +525,25 @@ static void s_event_handle_wm(event_td *event)
 
     switch (event->action.object.wm) {
         case ACTION_WM_CONFIGURATION_RELOAD:
-            LOGGER_TRACE("Window manager configuration reload requested",
+            LOGGER_DEBUG("Window manager configuration reload requested",
                     L_NARG);
             break;
 
         case ACTION_WM_CONFIGURATION_SAVE:
-            LOGGER_TRACE("Window manager configuration save requested",
+            LOGGER_DEBUG("Window manager configuration save requested",
                     L_NARG);
             break;
 
         case ACTION_WM_SURFACE_ADD:
-            LOGGER_TRACE("Surface addition requested", L_NARG);
+            LOGGER_DEBUG("Surface addition requested", L_NARG);
             break;
 
         case ACTION_WM_SURFACE_REMOVE:
-            LOGGER_TRACE("Surface removal requested", L_NARG);
+            LOGGER_DEBUG("Surface removal requested", L_NARG);
             break;
 
         case ACTION_WM_EXIT:
-            LOGGER_TRACE("Window manager exit action requested", L_NARG);
+            LOGGER_DEBUG("Window manager exit action requested", L_NARG);
             wm_request_stop();
             break;
     }

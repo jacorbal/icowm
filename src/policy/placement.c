@@ -591,7 +591,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
                 pointer_cookie, NULL);
 
         if (pointer_reply == NULL) {
-            LOGGER_NOTICE("Failed to query pointer for" \
+            LOGGER_WARNING("Failed to query pointer for" \
                     " 'under-mouse' placement; keeping" \
                     " X-server-assigned position", L_NARG);
             return;

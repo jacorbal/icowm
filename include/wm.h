@@ -36,8 +36,8 @@
  * @brief Window manager structure
  *
  * Core components of a window manager, maintaining the state of the
- * application as well as the relationships between different screens
- * and their respective windows.  It includes functionality for managing
+ * program as well as the relationships between different screens and
+ * their respective windows.  It includes functionality for managing
  * configurations and handling events that affect window behavior and
  * user interactions.
  *

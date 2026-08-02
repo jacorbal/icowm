@@ -399,7 +399,7 @@ int eventq_macro_begin(const char *name)
     s_macro_td *macro;
 
     if (name == NULL) {
-        LOGGER_WARNING("Macro name must not be NULL", L_NARG);
+        LOGGER_WARNING("Macro name must not be null", L_NARG);
         return 1;
     }
 
@@ -486,7 +486,7 @@ int eventq_macro_play(const char *name)
     s_macro_td *saved_active;
 
     if (name == NULL) {
-        LOGGER_WARNING("Macro name must be non-null", L_NARG);
+        LOGGER_WARNING("Macro name must not be null", L_NARG);
         return 1;
     }
 
@@ -534,7 +534,7 @@ int eventq_macro_clear(const char *name)
     void *data;
 
     if (name == NULL) {
-        LOGGER_WARNING("Macro name must be non-null", L_NARG);
+        LOGGER_WARNING("Macro name must not be null", L_NARG);
         return 1;
     }
 

@@ -75,7 +75,7 @@ enum wm_keybind_type_e {
 
     /* Program launcher */
     KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
-    KEYBIND_LAUNCH_LAUNCHER,            /**< Launch application launcher */
+    KEYBIND_LAUNCH_LAUNCHER,            /**< Launch process launcher */
     KEYBIND_LAUNCH_FILE_MANAGER,        /**< Launch file manager */
     KEYBIND_LAUNCH_WEB_BROWSER,         /**< Launch web browser */
     KEYBIND_LAUNCH_EDITOR,              /**< Launch editor */

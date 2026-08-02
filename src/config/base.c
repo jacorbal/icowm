@@ -206,7 +206,7 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
 
     if (json_load_color(desktop_json, "background-color",
                 &settings_out->background.color) != 0) {
-        LOGGER_NOTICE("Failed to load JSON string:"
+        LOGGER_WARNING("Failed to load JSON string:"
                 " 'background-color'; desktop '%s' keeps its"
                 " default background color", name_out);
     }
@@ -242,7 +242,7 @@ int config_load_base(const char *filename,
 
     screen_settings = cJSON_GetObjectItem(json, "screens");
     if (screen_settings == NULL) {
-        LOGGER_NOTICE("No 'screens' object found in '%s';" \
+        LOGGER_WARNING("No 'screens' object found in '%s';" \
                 " desktop settings, including background colors," \
                 " will keep their default values", filename);
     } else {
@@ -360,7 +360,7 @@ int config_load_base(const char *filename,
                 } /* ! for (i in 0..desktop_count) */
             } /* ! if (!uses_nested_screen_layout) */
         } else {
-            LOGGER_NOTICE("No 'desktops' array found under" \
+            LOGGER_WARNING("No 'desktops' array found under" \
                     " 'screens.settings' in '%s'; desktop" \
                     " settings, including background colors, will" \
                     " keep their default values", filename);

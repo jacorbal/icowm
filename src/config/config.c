@@ -325,7 +325,7 @@ int config_load(config_td *config, const char *config_prefix)
 
     /* Load base configuration */
     if (config_load_base(config_base_file, &(config->base)) != 0) {
-        LOGGER_NOTICE("Base configuration could not be loaded;" \
+        LOGGER_WARNING("Base configuration could not be loaded;" \
                 " default values will be used", L_NARG);
         return 1;
     }
@@ -355,7 +355,7 @@ int config_load(config_td *config, const char *config_prefix)
     } else {
         if (config_load_theme(config_theme_file,
                     &(config->theme)) != 0) {
-            LOGGER_NOTICE("Failed to load theme from:" \
+            LOGGER_WARNING("Failed to load theme from:" \
                     " '%s'; default theme will be used",
                     config_theme_file);
         }

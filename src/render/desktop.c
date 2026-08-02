@@ -216,7 +216,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     }
 
     if (desktop->stacking == NULL) {
-        LOGGER_ERROR("Desktop stacking list is null!", L_NARG);
+        LOGGER_ERROR("Desktop stacking list is null", L_NARG);
         return 1;
     }
 

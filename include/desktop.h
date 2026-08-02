@@ -378,10 +378,10 @@ int desktop_action_unlock(desktop_td *desktop);
 int desktop_action_set_layout(desktop_td *desktop, const char *layout);
 
 /**
- * @brief Launch a new application
+ * @brief Launch a new process
  *
- * @param desktop          Pointer to the desktop to receive the action
- * @param application_path Path to the executable of the application
+ * @param desktop         Pointer to the desktop to receive the action
+ * @param executable_path Path to the binary file
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -389,17 +389,17 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout);
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_application_launch(desktop_td *desktop,
-        const char *application_path);
+int desktop_action_process_launch(desktop_td *desktop,
+        const char *executable_path);
 
 /**
- * @brief Terminate an application
+ * @brief Terminate a process
  *
  * Stops the specified process that is running in the desktop session by
  * killing it.
  *
  * @param desktop    Pointer to the desktop to receive the action
- * @param process_id Identifier of the application to be terminated
+ * @param process_id Identifier of the process to be terminated
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -407,8 +407,7 @@ int desktop_action_application_launch(desktop_td *desktop,
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_application_kill(desktop_td *desktop,
-        pid_t process_id);
+int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
 
 /**
  * @brief Recompute the desktop work area from active client struts
