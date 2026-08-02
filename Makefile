@@ -114,15 +114,15 @@ else
 endif
 
 # Use `make clean && make DEBUG=1` to add debugging information
-# Use `make clean && make DEBUG=2` to also link with the address sanitizer
+# Use `make clean && make DEBUG=2` to compile & link with address sanitizer
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
 	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
-	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
-	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer -fPIC
+	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 -fsanitize=address -fno-omit-frame-pointer
+	LDFLAGS += -fsanitize=address -fPIE
 	ifeq ($(CC), gcc)
-	    CCGFLAGS += -fanalyzer
+	    CCFLAGS += -fanalyzer
 	endif
 else
 	CCFLAGS += -DNDEBUG -O$(CCOPT)
