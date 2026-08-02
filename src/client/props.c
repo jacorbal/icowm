@@ -30,6 +30,7 @@
 #include <cmds/ccmd.h>
 
 /* Local includes */
+#include <client.h>
 #include <client/internal.h>
 
 

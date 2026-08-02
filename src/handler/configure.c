@@ -335,8 +335,8 @@ void handler_configure_request(xcb_connection_t *connection,
                     req_w, req_h, client->layout.gravity);
             if (adj_x != client->layout.geometry.cur.pos.x ||
                     adj_y != client->layout.geometry.cur.pos.y) {
-                for (int j = i - 1; j >= 0; --j) {
-                    target_values[j + 2] = target_values[j];
+                for (int j = i; j > 0; j--) {
+                    target_values[j + 2] = target_values[j - 1];
                 }
                 target_values[0] = (uint32_t) adj_x;
                 target_values[1] = (uint32_t) adj_y;

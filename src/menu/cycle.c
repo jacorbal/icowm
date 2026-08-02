@@ -495,6 +495,9 @@ void cycle_open(list_td *surfaces,
     uint16_t pmm;
     enum wm_keybind_type_e nt;
     enum wm_keybind_type_e pt;
+    uint32_t screen_h_pct;
+    uint32_t pad2;
+    uint32_t avail;
     const uint16_t lock_mask = (uint16_t) (
             (unsigned int) XCB_MOD_MASK_LOCK |
             (unsigned int) XCB_MOD_MASK_2);
@@ -671,9 +674,12 @@ void cycle_open(list_td *surfaces,
     menu_w = (uint16_t) (max_w + (uint16_t) (WM_CYCLE_MENU_PAD_X * 2));
 
     /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERC' of screen */
-    vp_rows = ((int) (surface->properties.dim.h *
-                (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERC / 100u) -
-            WM_CYCLE_MENU_PAD_Y * 2) / WM_CYCLE_MENU_ROW_HEIGHT;
+    screen_h_pct = surface->properties.dim.h *
+        (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERC / 100u;
+    pad2 = (uint32_t) (WM_CYCLE_MENU_PAD_Y * 2);
+    avail = (screen_h_pct > pad2) ? (screen_h_pct - pad2) : 0u;
+    vp_rows = (int) (avail / (uint32_t) WM_CYCLE_MENU_ROW_HEIGHT);
+
     if (vp_rows < 1) {
         vp_rows = 1;
     }
