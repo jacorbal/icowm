@@ -292,6 +292,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 
                 if (desktop->config_theme->icon.general.is_captioned &&
                         client->info.name != NULL) {
+                    const char *caption =
+                        (client->icon_info.visible_icon_name != NULL &&
+                         client->icon_info.visible_icon_name[0] != '\0')
+                            ? client->icon_info.visible_icon_name
+                            : client->info.name;
+
                     text_renderer_init(desktop->connection,
                             desktop->config_theme->icon.inactive.font);
                     text_renderer_set_color(
@@ -307,7 +313,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             2,
                             (int16_t) (WM_ICON_SQUARE_SIZE +
                                 WM_ICON_CAPTION_HEIGHT - 2u),
-                            client->info.name);
+                            caption);
                 }
             }
 

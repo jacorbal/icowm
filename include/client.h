@@ -574,6 +574,19 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
 void client_props_refresh_name(client_td *client);
 
 /**
+ * @brief Refresh the managed client's icon name from X11 properties
+ *
+ * Queries @c _NET_WM_ICON_NAME (UTF-8) first, then falls back to
+ * @c WM_ICON_NAME, and writes the result into
+ * @p client->icon_info.visible_icon_name.
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the name
+ */
+void client_props_refresh_icon_name(client_td *client);
+
+/**
  * @brief Refresh @c WM_HINTS fields from X11 properties
  *
  * Re-reads @c WM_HINTS from the X server and updates @p client with the
@@ -584,7 +597,6 @@ void client_props_refresh_name(client_td *client);
  * @note Complexity: @e O(1)
  */
 void client_props_refresh_wm_hints(client_td *client);
-
 
 /**
  * @brief Macro that sends an event to close the specified client

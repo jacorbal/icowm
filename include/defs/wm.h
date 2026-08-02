@@ -77,7 +77,7 @@
 #define WM_INFO_POPUP_LINE_MAX_LEN (256)
 
 /** Maximum number of entries in the cycle menu */
-#define WM_CYCLE_MENU_MAX_ENTRIES (256)
+#define WM_CYCLE_MENU_MAX_ENTRIES (128)
 
 /** Maximum label length for a cycle menu entry */
 #define WM_CYCLE_MENU_ENTRY_LEN (128)

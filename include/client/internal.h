@@ -31,7 +31,7 @@
 #include <config.h>
 
 
-/* X11 property readers (implemented in 'client_props.c') */
+/* X11 property readers (implemented in 'client/props.c') */
 /**
  * @brief Retrieve the @c WM_NAME property of a window
  *
@@ -74,7 +74,6 @@ int ci_get_wm_class(xcb_connection_t *connection,
         xcb_window_t window,
         char *class_buf, size_t class_sz,
         char *inst_buf, size_t inst_sz);
-
 
 /* String/decoration helpers (implemented in 'client_geom.c') */
 /**

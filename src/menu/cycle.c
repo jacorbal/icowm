@@ -317,6 +317,12 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
                 xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
                 if (cfg->theme.icon.general.is_captioned &&
                         previous->info.name != NULL) {
+                    const char *caption =
+                        (previous->icon_info.visible_icon_name != NULL &&
+                         previous->icon_info.visible_icon_name[0] != '\0')
+                            ? previous->icon_info.visible_icon_name
+                            : previous->info.name;
+
                     text_renderer_init(connection,
                             cfg->theme.icon.inactive.font);
                     text_renderer_set_color(
@@ -326,7 +332,7 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
                             2,
                             (int16_t) (WM_ICON_SQUARE_SIZE +
                                 WM_ICON_CAPTION_HEIGHT - 2u),
-                            previous->info.name);
+                            caption);
                 }
             } /* ! if (s_menu.is_icon_menu) */
         } /* ! if (previous_target) */
@@ -348,6 +354,12 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
         xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
         if (cfg->theme.icon.general.is_captioned &&
                 selected->info.name != NULL) {
+            const char *caption =
+                (selected->icon_info.visible_icon_name != NULL &&
+                 selected->icon_info.visible_icon_name[0] != '\0')
+                    ? selected->icon_info.visible_icon_name
+                    : selected->info.name;
+
             text_renderer_init(connection,
                     cfg->theme.icon.active.font);
             text_renderer_set_color(
@@ -357,7 +369,7 @@ static void s_cycle_preview_apply(xcb_connection_t *connection,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +
                         WM_ICON_CAPTION_HEIGHT - 2u),
-                    selected->info.name);
+                    caption);
         }
     }
 

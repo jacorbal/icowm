@@ -111,7 +111,16 @@ void handler_property_notify(xcb_connection_t *connection,
         client_props_refresh_name(client);
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
-                return;
+        return;
+    }
+
+    if (event->atom == XCB_ATOM_WM_ICON_NAME ||
+            (client->ewmh != NULL &&
+             event->atom == client->ewmh->_NET_WM_ICON_NAME)) {
+        client_props_refresh_icon_name(client);
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+        return;
     }
 
     if (client->ewmh != NULL &&

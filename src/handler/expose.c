@@ -118,6 +118,12 @@ void handler_expose(xcb_connection_t *connection,
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
         if (cfg->theme.icon.general.is_captioned &&
                 client->info.name != NULL) {
+            const char *caption =
+                (client->icon_info.visible_icon_name != NULL &&
+                 client->icon_info.visible_icon_name[0] != '\0')
+                    ? client->icon_info.visible_icon_name
+                    : client->info.name;
+
             text_renderer_init(connection,
                 (is_cycle_preview)
                     ? cfg->theme.icon.active.font
@@ -133,7 +139,7 @@ void handler_expose(xcb_connection_t *connection,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +
                         WM_ICON_CAPTION_HEIGHT - 2u),
-                    client->info.name);
+                    caption);
         }
 
         xcb_flush(connection);

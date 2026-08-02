@@ -427,7 +427,10 @@ client_td *client_manage(xcb_connection_t *connection,
         }
     }
 
-    /* Read WM_CLASS */
+    /* Read '_NET_WM_ICON_NAME'/'WM_ICON_NAME' for iconified caption */
+    client_props_refresh_icon_name(client);
+
+    /* Read 'WM_CLASS' */
     ci_get_wm_class(connection, window,
             wm_class, sizeof(wm_class),
             wm_instance, sizeof(wm_instance));
