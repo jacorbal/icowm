@@ -25,6 +25,9 @@
 /* Utils includes */
 #include <utils/geom.h>
 
+/* Default initial values */
+#include <defs/wm.h>     /* WM_ICON_SQUARE_SIZE */
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -38,60 +41,116 @@
 
 
 /**
- * @brief Test whether a candidate rectangle overlaps any visible client
+ * @brief Cost weights for the smart window placement scorer
  *
- * Only currently visible, non-iconified clients on @p desktop are
- * considered blocking.
+ * These constants define the relative penalty of overlapping a visible
+ * window vs. overlapping an icon vs. being far from the workarea centre.
+ * Overlap penalties are multiplied by the intersection area (pixels),
+ * so even a 1-pixel overlap with a visible window is worth thousands of
+ * distance units, ensuring non-overlapping positions are always strongly
+ * preferred.
+ */
+#define SMART_WIN_COST_PER_WIN_PIXEL  (8192u)
+#define SMART_WIN_COST_PER_ICON_PIXEL (1024u)
+
+/**
+ * @brief Fallback icon dimension used by the window scorer when the
+ *        exact icon size is not tracked in the client structure
+ */
+#define SMART_WIN_ICON_SIZE (WM_ICON_SQUARE_SIZE)
+
+/**
+ * @brief Cost weights for the smart icon placement scorer
  *
- * @param desktop     Desktop whose clients are inspected
- * @param skip_client Client to ignore during the test
- * @param x           Candidate left coordinate
- * @param y           Candidate top coordinate
- * @param w           Candidate width
- * @param h           Candidate height
+ * Overlap with any visible (non-iconified) window is penalised heavily.
+ * The overflow-row penalty keeps icons compact near the preferred edge:
+ * each row away from the edge adds a small, predictable cost.
+ */
+#define SMART_ICON_COST_PER_WIN_PIXEL     (256u)
+#define SMART_ICON_COST_PER_OVERFLOW_ROW  (1u)
+
+
+/**
+ * @brief Score a candidate window position against existing clients
  *
- * @return @c true when the candidate intersects a visible client,
- *         @c false otherwise
+ * Iterates visible clients on @p desktop and accumulates an overlap
+ * penalty weighted by intersection area.  A small distance-to-centre
+ * penalty breaks ties in favour of the workarea centre.
+ *
+ * @param desktop      Desktop whose clients are inspected
+ * @param skip_client  Client to ignore (the one being placed)
+ * @param x            Candidate left coordinate
+ * @param y            Candidate top coordinate
+ * @param fw           Candidate width
+ * @param fh           Candidate height
+ * @param center_x     X coordinate of the workarea centre
+ * @param center_y     Y coordinate of the workarea centre
+ *
+ * @return Aggregate cost; lower is better; 0 means a perfect position
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
-static bool s_overlaps_clients(desktop_td *desktop,
+static uint64_t s_score_window_pos(const desktop_td *desktop,
         const client_td *skip_client,
-        int32_t x, int32_t y, uint32_t w, uint32_t h)
+        int32_t x, int32_t y, uint32_t fw, uint32_t fh,
+        int32_t center_x, int32_t center_y)
 {
     cdlist_item_td *node;
     cdlist_item_td *initial;
+    uint64_t cost;
+    int32_t dx;
+    int32_t dy;
 
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        return false;
-    }
+    cost = 0u;
 
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return false;
-    }
-
-    initial = node;
-    do {
-        const client_td *other =
-            (const client_td *) cdlist_data(node);
-        if (other != NULL && other != skip_client &&
-                !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                other->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED &&
-                geom_rect_overlap(x, y, w, h,
-                        other->layout.geometry.cur.pos.x,
-                        other->layout.geometry.cur.pos.y,
-                        other->layout.geometry.cur.dim.w,
-                        other->layout.geometry.cur.dim.h)) {
-            return true;
+    if (desktop != NULL && desktop->stacking != NULL &&
+            cdlist_size(desktop->stacking) != 0u) {
+        node = cdlist_head(desktop->stacking);
+        if (node != NULL) {
+            initial = node;
+            do {
+                const client_td *other =
+                    (const client_td *) cdlist_data(node);
+                if (other != NULL && other != skip_client &&
+                        !(other->properties.flags & CLIENT_FLAG_HIDDEN)) {
+                    if (other->properties.state !=
+                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                        /* Visible window: high overlap penalty */
+                        uint32_t area = geom_intersection_area(x, y, fw, fh,
+                                other->layout.geometry.cur.pos.x,
+                                other->layout.geometry.cur.pos.y,
+                                other->layout.geometry.cur.dim.w,
+                                other->layout.geometry.cur.dim.h);
+                        cost += (uint64_t) SMART_WIN_COST_PER_WIN_PIXEL *
+                            (uint64_t) area;
+                    } else if (other->icon_window != 0u &&
+                            other->is_icon_mapped &&
+                            other->icon_x >= 0 && other->icon_y >= 0) {
+                        /* Visible icon: lower overlap penalty */
+                        uint32_t area = geom_intersection_area(x, y, fw, fh,
+                                (int32_t) other->icon_x,
+                                (int32_t) other->icon_y,
+                                (uint32_t) SMART_WIN_ICON_SIZE,
+                                (uint32_t) SMART_WIN_ICON_SIZE);
+                        cost += (uint64_t) SMART_WIN_COST_PER_ICON_PIXEL *
+                            (uint64_t) area;
+                    }
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
         }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    }
 
-    return false;
+    /* Secondary tie-breaker: Manhattan distance from workarea centre.
+     * Stays much smaller than any window-overlap penalty, so it only
+     * matters when two positions have equal overlap cost. */
+    dx = (x + (int32_t) (fw / 2u)) - center_x;
+    dy = (y + (int32_t) (fh / 2u)) - center_y;
+    cost += (uint64_t) ((dx < 0) ? -dx : dx) +
+        (uint64_t) ((dy < 0) ? -dy : dy);
+
+    return cost;
 }
 
 
@@ -187,22 +246,30 @@ static void s_place_apply_gravity(const surface_td *surface,
 }
 
 
-/* Find a non-overlapping smart position for a newly mapped client */
+/* Find the best-scoring smart position for a newly mapped client */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         int32_t *out_x, int32_t *out_y)
 {
     desktop_td *desktop;
     const uint32_t step = 24u;
-    uint32_t sw;
-    uint32_t sh;
+    int32_t wa_x;
+    int32_t wa_y;
+    uint32_t wa_w;
+    uint32_t wa_h;
     uint32_t fw;
     uint32_t fh;
     int32_t min_x;
     int32_t min_y;
     int32_t max_x;
     int32_t max_y;
+    int32_t center_x;
+    int32_t center_y;
+    int32_t best_x;
+    int32_t best_y;
+    uint64_t best_cost;
     int32_t cx;
     int32_t cy;
+    uint64_t cost;
 
     (void) wm; /* reserved for future use */
 
@@ -216,63 +283,114 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         return false;
     }
 
-    sw = surface->properties.dim.w;
-    sh = surface->properties.dim.h;
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
 
-    min_x = (fw > sw) ? -((int32_t) (fw - sw)) : 0;
-    min_y = (fh > sh) ? -((int32_t) (fh - sh)) : 0;
-    max_x = (sw > fw) ?   (int32_t) (sw - fw)  : 0;
-    max_y = (sh > fh) ?   (int32_t) (sh - fh)  : 0;
+    /* Use workarea when available; fall back to full surface dimensions.
+     * The workarea respects strut reservations from panels and docks. */
+    if (desktop->workarea.dim.w > 0u && desktop->workarea.dim.h > 0u) {
+        wa_x = desktop->workarea.pos.x;
+        wa_y = desktop->workarea.pos.y;
+        wa_w = desktop->workarea.dim.w;
+        wa_h = desktop->workarea.dim.h;
+    } else {
+        wa_x = 0;
+        wa_y = 0;
+        wa_w = surface->properties.dim.w;
+        wa_h = surface->properties.dim.h;
+    }
 
-    /* Try the centre first a window on an otherwise empty desktop lands
-     * in the middle of the screen */
-    cx = ((int32_t) sw - (int32_t) fw) / 2;
-    cy = ((int32_t) sh - (int32_t) fh) / 2;
+    /* Candidate range keeps the window fully inside the workarea */
+    min_x = wa_x;
+    min_y = wa_y;
+    max_x = (wa_w > fw) ? wa_x + (int32_t) (wa_w - fw) : wa_x;
+    max_y = (wa_h > fh) ? wa_y + (int32_t) (wa_h - fh) : wa_y;
+
+    /* Workarea centre used as the distance tie-breaker reference */
+    center_x = wa_x + (int32_t) (wa_w / 2u);
+    center_y = wa_y + (int32_t) (wa_h / 2u);
+
+    /* Seed with the centred position so an empty desktop still lands the
+     * first window in the middle of the screen */
+    cx = center_x - (int32_t) (fw / 2u);
+    cy = center_y - (int32_t) (fh / 2u);
     if (cx < min_x) { cx = min_x; }
     if (cy < min_y) { cy = min_y; }
-    if (!s_overlaps_clients(desktop, client, cx, cy, fw, fh)) {
-        *out_x = cx;
-        *out_y = cy;
-        return true;
+    if (cx > max_x) { cx = max_x; }
+    if (cy > max_y) { cy = max_y; }
+
+    best_x    = cx;
+    best_y    = cy;
+    best_cost = s_score_window_pos(desktop, client, cx, cy, fw, fh,
+            center_x, center_y);
+
+    if (best_cost == 0u) {
+        goto done;
     }
 
+    /* Grid sweep: score every candidate and keep the minimum-cost one.
+     * The first zero-cost candidate found terminates the search early. */
     for (int32_t y = min_y; y <= max_y; y += (int32_t) step) {
         for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
-            if (!s_overlaps_clients(desktop, client, x, y, fw, fh)) {
-                *out_x = x;
-                *out_y = y;
-                return true;
+            cost = s_score_window_pos(desktop, client, x, y, fw, fh,
+                    center_x, center_y);
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_x    = x;
+                best_y    = y;
+                if (cost == 0u) {
+                    goto done;
+                }
             }
         }
 
-        if (max_x != min_x &&
-                !s_overlaps_clients(desktop, client, max_x, y, fw, fh)) {
-            *out_x = max_x;
-            *out_y = y;
-            return true;
+        /* Right-column guard: ensure max_x is always evaluated */
+        if (max_x != min_x) {
+            cost = s_score_window_pos(desktop, client, max_x, y, fw, fh,
+                    center_x, center_y);
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_x    = max_x;
+                best_y    = y;
+                if (cost == 0u) {
+                    goto done;
+                }
+            }
         }
     }
 
+    /* Bottom-row guard: ensure max_y is always evaluated */
     if (max_y != min_y) {
         for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
-            if (!s_overlaps_clients(desktop, client,
-                    x, max_y, fw, fh)) {
-                *out_x = x;
-                *out_y = max_y;
-                return true;
+            cost = s_score_window_pos(desktop, client, x, max_y, fw, fh,
+                    center_x, center_y);
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_x    = x;
+                best_y    = max_y;
+                if (cost == 0u) {
+                    goto done;
+                }
             }
+        }
+
+        cost = s_score_window_pos(desktop, client, max_x, max_y, fw, fh,
+                center_x, center_y);
+        if (cost < best_cost) {
+            best_cost = cost;
+            best_x    = max_x;
+            best_y    = max_y;
         }
     }
 
-    if (!s_overlaps_clients(desktop, client, max_x, max_y, fw, fh)) {
-        *out_x = max_x;
-        *out_y = max_y;
-        return true;
-    }
+done:
+    LOGGER_DEBUG("smart-place win: pos=(%d,%d) cost=%lu wa=(%d,%d %ux%u)",
+            best_x, best_y, (unsigned long) best_cost,
+            wa_x, wa_y, wa_w, wa_h);
 
-    return false;
+    *out_x = best_x;
+    *out_y = best_y;
+    return true;
 }
 
 
@@ -307,10 +425,166 @@ void place_icon(const client_td *client, desktop_td *desktop,
     border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
         ? INT32_MAX : (int32_t) border_twice_u64;
 
-    /* SMART: use BOTTOM as the default smart strategy */
+    /* SMART uses BOTTOM layout for slot indexing: slots are numbered
+     * from the bottom-left corner, growing right then up.  We score
+     * every free slot by its overlap with visible windows and pick the
+     * one with the lowest cost instead of blindly taking the first
+     * available slot. */
     if (policy == CONFIG_ICON_PLACEMENT_SMART) {
-        policy = CONFIG_ICON_PLACEMENT_BOTTOM;
+        /* Compute max_primary for BOTTOM layout */
+        max_primary = (screen_w > step_x)
+            ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
+        if (max_primary == 0u) {
+            max_primary = 1u;
+        }
+
+        /* Mark occupied slots using BOTTOM reverse-mapping */
+        for (uint16_t i = 0u; i < 256u; ++i) {
+            occupied[i] = false;
+        }
+
+        if (desktop != NULL && desktop->stacking != NULL) {
+            cdlist_item_td *node = cdlist_head(desktop->stacking);
+            cdlist_item_td *initial = node;
+            if (node != NULL) {
+                do {
+                    const client_td *other =
+                        (const client_td *) cdlist_data(node);
+                    if (other != NULL && other != client &&
+                            other->icon_window != 0u &&
+                            other->is_icon_mapped) {
+                        int32_t rel_pri = (int32_t) other->icon_x -
+                            (int32_t) margin;
+                        int32_t rel_sec = (int32_t) screen_h -
+                            (int32_t) margin -
+                            (int32_t) icon_h -
+                            border_twice -
+                            (int32_t) other->icon_y;
+                        if (rel_pri >= 0 && rel_sec >= 0) {
+                            uint16_t p = (uint16_t) (rel_pri /
+                                    (int32_t) step_x);
+                            uint16_t s = (uint16_t) (rel_sec /
+                                    (int32_t) step_y);
+                            uint16_t slot = (uint16_t) (s * max_primary + p);
+                            if (slot < 256u) {
+                                occupied[slot] = true;
+                            }
+                        }
+                    }
+                    node = cdlist_next(node);
+                } while (node != NULL && node != initial);
+            }
+        }
+
+        /* Score every free slot by window overlap + compactness.
+         * 'sec' (overflow row) is used as a compactness tie-breaker:
+         * lower sec means closer to the screen edge. */
+        chosen = 0u;
+        {
+            uint64_t best_cost = UINT64_MAX;
+            uint64_t cost;
+            uint16_t p;
+            uint16_t s;
+            int32_t ix;
+            int32_t iy;
+            uint32_t iw_full;
+            uint32_t ih_full;
+            uint16_t i;
+
+            iw_full = (border_twice > 0)
+                ? (uint32_t) icon_w + (uint32_t) border_twice
+                : (uint32_t) icon_w;
+            ih_full = (border_twice > 0)
+                ? (uint32_t) icon_h + (uint32_t) border_twice
+                : (uint32_t) icon_h;
+
+            for (i = 0u; i < 256u; ++i) {
+                if (occupied[i]) {
+                    continue;
+                }
+
+                p  = (uint16_t) (i % max_primary);
+                s  = (uint16_t) (i / max_primary);
+                ix = (int32_t) margin +
+                    (int32_t) p * (int32_t) step_x;
+                iy = (int32_t) screen_h -
+                    (int32_t) margin -
+                    (int32_t) icon_h -
+                    border_twice -
+                    (int32_t) s * (int32_t) step_y;
+
+                if (iy < (int32_t) margin) {
+                    /* Slot is off the top of the screen; skip */
+                    continue;
+                }
+
+                /* Compactness: prefer slots near the screen edge */
+                cost = (uint64_t) s *
+                    (uint64_t) SMART_ICON_COST_PER_OVERFLOW_ROW;
+
+                /* Penalty for overlap with visible windows */
+                if (desktop != NULL && desktop->stacking != NULL) {
+                    cdlist_item_td *node = cdlist_head(desktop->stacking);
+                    cdlist_item_td *initial = node;
+                    if (node != NULL) {
+                        do {
+                            const client_td *other =
+                                (const client_td *) cdlist_data(node);
+                            if (other != NULL && other != client &&
+                                    !(other->properties.flags &
+                                        CLIENT_FLAG_HIDDEN) &&
+                                    other->properties.state !=
+                                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                                uint32_t area = geom_intersection_area(
+                                        ix, iy, iw_full, ih_full,
+                                        other->layout.geometry.cur.pos.x,
+                                        other->layout.geometry.cur.pos.y,
+                                        other->layout.geometry.cur.dim.w,
+                                        other->layout.geometry.cur.dim.h);
+                                cost += (uint64_t)
+                                    SMART_ICON_COST_PER_WIN_PIXEL *
+                                    (uint64_t) area;
+                            }
+                            node = cdlist_next(node);
+                        } while (node != NULL && node != initial);
+                    }
+                }
+
+                if (cost < best_cost) {
+                    best_cost = cost;
+                    chosen = i;
+                    if (cost == 0u) {
+                        break; /* perfect slot found */
+                    }
+                }
+            }
+        }
+
+        /* Convert chosen slot to pixel coordinates (BOTTOM layout) */
+        pri = (uint16_t) (chosen % max_primary);
+        sec = (uint16_t) (chosen / max_primary);
+        *out_x = (int16_t) ((int32_t) margin +
+                (int32_t) pri * (int32_t) step_x);
+        *out_y = (int16_t) ((int32_t) screen_h -
+                (int32_t) margin -
+                (int32_t) icon_h -
+                border_twice -
+                (int32_t) sec * (int32_t) step_y);
+
+        if (*out_x < (int16_t) margin) {
+            *out_x = (int16_t) margin;
+        }
+        if (*out_y < (int16_t) margin) {
+            *out_y = (int16_t) margin;
+        }
+
+        LOGGER_DEBUG("smart-place icon: slot=%u pri=%u sec=%u pos=(%d,%d)",
+                (unsigned) chosen, (unsigned) pri, (unsigned) sec,
+                (int) *out_x, (int) *out_y);
+        return;
     }
+
+    /* Non-smart policies: original slot-based placement */
 
     /* Number of slots along the primary axis: columns for TOP/BOTTOM,
      * rows for LEFT/RIGHT.  Secondary axis (overflow) is unlimited. */
@@ -369,13 +643,12 @@ void place_icon(const client_td *client, desktop_td *desktop,
                             break;
 
                         case CONFIG_ICON_PLACEMENT_BOTTOM:
-                        case CONFIG_ICON_PLACEMENT_SMART:
                             rel_pri = (int32_t) other->icon_x -
                                 (int32_t) margin;
                             rel_sec = (int32_t) screen_h -
                                 (int32_t) margin -
                                 (int32_t) icon_h -
-                                (int32_t) border_twice -
+                                border_twice -
                                 (int32_t) other->icon_y;
                             if (rel_pri >= 0 && rel_sec >= 0) {
                                 pri = (uint16_t) (rel_pri /
@@ -414,7 +687,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
                             rel_sec = (int32_t) screen_w -
                                 (int32_t) margin -
                                 (int32_t) icon_w -
-                                (int32_t) border_twice -
+                                border_twice -
                                 (int32_t) other->icon_x;
                             if (rel_pri >= 0 && rel_sec >= 0) {
                                 pri = (uint16_t) (rel_pri /
@@ -427,6 +700,10 @@ void place_icon(const client_td *client, desktop_td *desktop,
                                     occupied[slot] = true;
                                 }
                             }
+                            break;
+
+                        case CONFIG_ICON_PLACEMENT_SMART:
+                            /* handled above; unreachable here */
                             break;
                     }
                 }
@@ -469,19 +746,22 @@ void place_icon(const client_td *client, desktop_td *desktop,
             *out_x = (int16_t) ((int32_t) screen_w -
                     (int32_t) icon_w -
                     (int32_t) margin -
-                    (int32_t) border_twice -
+                    border_twice -
                     (int32_t) sec * (int32_t) step_x);
             *out_y = (int16_t) (margin + (uint32_t) pri * step_y);
             break;
 
         case CONFIG_ICON_PLACEMENT_BOTTOM:
-        case CONFIG_ICON_PLACEMENT_SMART:
             *out_x = (int16_t) (margin + (uint32_t) pri * step_x);
             *out_y = (int16_t) ((int32_t) screen_h -
                     (int32_t) margin -
                     (int32_t) icon_h -
-                    (int32_t) border_twice -
+                    border_twice -
                     (int32_t) sec * (int32_t) step_y);
+            break;
+
+        case CONFIG_ICON_PLACEMENT_SMART:
+            /* handled above; unreachable here */
             break;
     }
 

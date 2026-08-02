@@ -62,5 +62,31 @@ bool geom_rect_overlap(int32_t ax, int32_t ay,
         int32_t bx, int32_t by,
         uint32_t bw, uint32_t bh);
 
+/**
+ * @brief Compute the intersection area of two axis-aligned rectangles
+ *
+ * Returns the number of pixels in the intersection of two rectangles.
+ * Rectangles that only touch at an edge or corner have an intersection
+ * area of zero.
+ *
+ * @param ax Left coordinate of the first rectangle
+ * @param ay Top coordinate of the first rectangle
+ * @param aw Width of the first rectangle
+ * @param ah Height of the first rectangle
+ * @param bx Left coordinate of the second rectangle
+ * @param by Top coordinate of the second rectangle
+ * @param bw Width of the second rectangle
+ * @param bh Height of the second rectangle
+ *
+ * @return Area of the intersection in pixels, or @c 0 if the rectangles
+ *         do not overlap
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t geom_intersection_area(int32_t ax, int32_t ay,
+        uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by,
+        uint32_t bw, uint32_t bh);
+
 
 #endif  /* ! UTILS_GEOM_H */
