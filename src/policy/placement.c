@@ -325,8 +325,9 @@ void place_icon(const client_td *client, desktop_td *desktop,
     if (max_primary == 0u) {
         max_primary = 1u;
     }
-    /* Mark occupied slots.  `slot = sec * max_primary + pri` where
-     * `pri` indexes along the edge and `sec` counts overflow
+
+    /* Mark occupied slots.  'slot = sec * max_primary + pri' where
+     * 'pri' indexes along the edge and 'sec' counts overflow
      * rows/columns */
     for (uint16_t i = 0u; i < 256u; ++i) {
         occupied[i] = false;
@@ -447,9 +448,9 @@ void place_icon(const client_td *client, desktop_td *desktop,
         chosen = 0u;
     }
 
-    /* Convert slot index to pixel coordinates.
-     * pri = chosen % max_primary  (position along the screen edge)
-     * sec = chosen / max_primary  (overflow row/col away from edge) */
+    /* Convert slot index to pixel coordinates:
+     * - 'pri = chosen % max_primary'  (position along the screen edge)
+     * - 'sec = chosen / max_primary'  (overflow row/col away from edge) */
     pri = (uint16_t) (chosen % max_primary);
     sec = (uint16_t) (chosen / max_primary);
 
@@ -492,6 +493,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
     }
 }
 
+
 /* Apply the configured placement policy to a newly mapped client */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 {
@@ -527,6 +529,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         xcb_get_geometry_reply_t *pgr;
         pgc = xcb_get_geometry(wm->connection, client->transient_for);
         pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+
         if (pgr != NULL) {
             new_x = (int32_t) pgr->x +
                     ((int32_t) pgr->width - (int32_t) fw) / 2;
@@ -541,12 +544,14 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             if ((uint32_t) new_y + fh > sh) {
                 new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
             }
+
             target = (client_is_decorated(client) && client->frame != 0)
                 ? client->frame : client->window;
             xcb_configure_window(wm->connection, target,
                     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
                     (const uint32_t[]) {
                         (uint32_t) new_x, (uint32_t) new_y});
+
             client->layout.geometry.cur.pos.x = new_x;
             client->layout.geometry.cur.pos.y = new_y;
             return;
@@ -566,6 +571,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
                 max_steps = my;
             }
         }
+
         if (max_steps == 0u) {
             max_steps = 1u;
         }
@@ -583,6 +589,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
                 surface->screen->root);
         pointer_reply = xcb_query_pointer_reply(wm->connection,
                 pointer_cookie, NULL);
+
         if (pointer_reply == NULL) {
             LOGGER_NOTICE("Failed to query pointer for" \
                     " 'under-mouse' placement; keeping" \

@@ -36,6 +36,77 @@
 #include <priority.h>
 
 
+/**
+ * @brief Keep the gravity anchor fixed while resizing a client frame
+ *
+ * Adjusts the output position so resizing preserves the anchor implied
+ * by the client's configured window-manager gravity.  Depending on the
+ * active gravity, the function shifts the frame horizontally,
+ * vertically, or both so the anchored edge, corner, or center remains
+ * visually fixed as the old size changes to the new one.
+ *
+ * The gravity is taken from the client's base configuration when
+ * available; otherwise the current layout gravity is used. No
+ * adjustment is performed for @c CLIENT_GRAVITY_NORTH_WEST,
+ * @c CLIENT_GRAVITY_STATIC, or an unspecified gravity.
+ *
+ * @param client Pointer to the client whose gravity defines the anchor
+ * @param old_w  Previous frame width
+ * @param old_h  Previous frame height
+ * @param new_w  New frame width
+ * @param new_h  New frame height
+ * @param out_x  Pointer to the X position to adjust in place
+ * @param out_y  Pointer to the Y position to adjust in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_resize_adjust_pos(const client_td *client,
+        uint32_t old_w, uint32_t old_h,
+        uint32_t new_w, uint32_t new_h,
+        int32_t *out_x, int32_t *out_y)
+{
+    int32_t dw;
+    int32_t dh;
+    uint16_t gravity;
+
+    if (client == NULL || out_x == NULL || out_y == NULL) {
+        return;
+    }
+
+    gravity = (uint16_t) ((client->config_base != NULL)
+            ? client->config_base->windows.gravity
+            : client->layout.gravity);
+    if (gravity == 0u ||
+            gravity == (uint16_t) CLIENT_GRAVITY_NORTH_WEST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_STATIC) {
+        return;
+    }
+
+    dw = (int32_t) old_w - (int32_t) new_w;
+    dh = (int32_t) old_h - (int32_t) new_h;
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
+        *out_x += dw;
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
+        *out_x += dw / 2;
+    }
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
+        *out_y += dh;
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
+        *out_y += dh / 2;
+    }
+}
+
+
 /* Generic event sender for a client */
 int client_send_event(client_td *client,
         enum action_client_e action_client, enum priority_e priority)
@@ -166,7 +237,7 @@ int client_send_event_move(client_td *client,
      *       the frame; moving the inner client window (which is
      *       reparented INSIDE the frame) would place it at
      *       screen-relative coordinates relative to the frame, making
-     *       the content appear shifted. */
+     *       the content appear shifted */
     values[0] = (uint32_t) new_x;
     values[1] = (uint32_t) new_y;
 
@@ -212,9 +283,16 @@ int client_send_event_resize(client_td *client,
     event_td *event;
     action_td action;
     action_data_client_td *data;
-    uint32_t values[2];
+    uint32_t values[4];
     uint32_t req_w;
     uint32_t req_h;
+    uint16_t mask;
+    int32_t req_x;
+    int32_t req_y;
+    int32_t old_x;
+    int32_t old_y;
+    uint32_t old_w;
+    uint32_t old_h;
     bool interactive_resize;
 
     if (client == NULL) {
@@ -225,11 +303,21 @@ int client_send_event_resize(client_td *client,
     LOGGER_TRACE("Resizing client %p to %ux%u",
             (void *) client, new_w, new_h);
 
+    old_w = client->layout.geometry.cur.dim.w;
+    old_h = client->layout.geometry.cur.dim.h;
+    old_x = client->layout.geometry.cur.pos.x;
+    old_y = client->layout.geometry.cur.pos.y;
     req_w = new_w;
     req_h = new_h;
+    req_x = old_x;
+    req_y = old_y;
     client_constrain_size(client, &req_w, &req_h);
+    s_resize_adjust_pos(client,
+            old_w, old_h, req_w, req_h, &req_x, &req_y);
 
     /* Update client's internal geometry */
+    client->layout.geometry.cur.pos.x = req_x;
+    client->layout.geometry.cur.pos.y = req_y;
     client->layout.geometry.cur.dim.w = req_w;
     client->layout.geometry.cur.dim.h = req_h;
 
@@ -239,37 +327,24 @@ int client_send_event_resize(client_td *client,
      *       wrong size */
     interactive_resize =
         client->properties.operation == CLIENT_OPERATION_RESIZING;
+    mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     values[0] = req_w;
     values[1] = req_h;
+    if (req_x != old_x || req_y != old_y) {
+        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = (uint32_t) req_x;
+        values[1] = (uint32_t) req_y;
+        values[2] = req_w;
+        values[3] = req_h;
+    }
 
     xcb_configure_window(client->connection,
             (client->frame != 0 && client_is_decorated(client))
                 ? client->frame : client->window,
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            mask,
             values);
-
-    if (interactive_resize &&
-            client->titlebar != 0 &&
-            client_is_decorated(client) &&
-            client->frame != 0) {
-        uint16_t left = (uint16_t) client->layout.frame_extents.left;
-        uint16_t right = (uint16_t) client->layout.frame_extents.right;
-        uint16_t top = (uint16_t) client->layout.frame_extents.top;
-        uint16_t title_h = client->title_height;
-        uint16_t inner_w = (req_w > left + right)
-            ? (uint16_t) (req_w - left - right)
-            : 1u;
-        uint16_t title_y = (top > title_h)
-            ? (uint16_t) (top - title_h)
-            : 0u;
-        xcb_configure_window(client->connection, client->titlebar,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) { left, title_y, inner_w, title_h });
-    } else {
-        client_sync_decoration_layout(client);
-    }
-
+    client_sync_decoration_layout(client);
     xcb_flush(client->connection);
 
     if (interactive_resize) {
@@ -286,6 +361,8 @@ int client_send_event_resize(client_td *client,
         return -1;
     }
 
+    data->new_data.geometry.pos.x = req_x;
+    data->new_data.geometry.pos.y = req_y;
     data->new_data.geometry.dim.w = req_w;
     data->new_data.geometry.dim.h = req_h;
 

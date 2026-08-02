@@ -224,7 +224,7 @@ void handler_configure_request(xcb_connection_t *connection,
                 return;
             }
         }
-        
+
         if (is_reparented) {
             target = client->frame;
         }
@@ -411,7 +411,7 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);    
+        wm_invalidate_desktop(desktop);
     }
 }
 

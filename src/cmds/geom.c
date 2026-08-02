@@ -86,8 +86,11 @@ void wcmd_client_resize(client_td *client,
         action_data_client_td *client_data)
 {
     xcb_window_t target;
+    int32_t req_x;
+    int32_t req_y;
     uint32_t req_w;
     uint32_t req_h;
+    uint16_t mask;
 
     if (client == NULL || client_data == NULL) {
         return;
@@ -111,14 +114,33 @@ void wcmd_client_resize(client_td *client,
         wcmd_client_unshade(client);
     }
 
+    req_x = client_data->new_data.geometry.pos.x;
+    req_y = client_data->new_data.geometry.pos.y;
     req_w = client_data->new_data.geometry.dim.w;
     req_h = client_data->new_data.geometry.dim.h;
     client_constrain_size(client, &req_w, &req_h);
 
     target = wcmd_target_win(client);
+    mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    if (req_x != client->layout.geometry.cur.pos.x ||
+            req_y != client->layout.geometry.cur.pos.y) {
+        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    }
+
     xcb_configure_window(client->connection, target,
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            (const uint32_t[]) {req_w, req_h});
+            mask,
+            (mask == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))
+                ? (const uint32_t[]) {req_w, req_h}
+                : (const uint32_t[]) {
+                    (uint32_t) req_x,
+                    (uint32_t) req_y,
+                    req_w,
+                    req_h
+                });
+
+    client->layout.geometry.cur.pos.x = req_x;
+    client->layout.geometry.cur.pos.y = req_y;
     client->layout.geometry.cur.dim.w = req_w;
     client->layout.geometry.cur.dim.h = req_h;
 }
@@ -138,6 +160,7 @@ void wcmd_client_maximize_horz(client_td *client)
     if (!client_is_resizable(client) || client_is_fullscreen(client)) {
         return;
     }
+
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
     }
