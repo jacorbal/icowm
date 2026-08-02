@@ -51,6 +51,8 @@ void lifecycle_scan_existing(wm_td *wm)
         return;
     }
 
+    LOGGER_DEBUG("Scanning for pre-existing mapped windows", L_NARG);
+
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
@@ -63,16 +65,24 @@ void lifecycle_scan_existing(wm_td *wm)
             continue;
         }
 
+        LOGGER_TRACE("Querying window tree for surface %u" \
+                " (root %#x)", surface->id, surface->screen->root);
+
         qt_cookie = xcb_query_tree(wm->connection,
                 surface->screen->root);
         qt_reply = xcb_query_tree_reply(wm->connection,
                 qt_cookie, NULL);
         if (qt_reply == NULL) {
+            LOGGER_WARNING("Failed to query window tree for surface %u",
+                    surface->id);
             continue;
         }
 
         children = xcb_query_tree_children(qt_reply);
         nchildren = xcb_query_tree_children_length(qt_reply);
+
+        LOGGER_TRACE("Found %d child window(s) on surface %u",
+                nchildren, surface->id);
 
         for (int i = 0; i < nchildren; ++i) {
             xcb_get_window_attributes_cookie_t ac;
@@ -83,6 +93,8 @@ void lifecycle_scan_existing(wm_td *wm)
                     wm->connection, ac, NULL);
 
             if (ar == NULL) {
+                LOGGER_TRACE("Failed to get attributes for window %#x;" \
+                        " skipping", children[i]);
                 continue;
             }
 
@@ -119,6 +131,9 @@ void lifecycle_scan_existing(wm_td *wm)
                                     XCB_ATOM_CARDINAL, 32, 1, &did);
                         }
                         surface->is_outdated = true;
+                        LOGGER_DEBUG("Adopted pre-existing window %#x" \
+                                " on surface %u desktop %u",
+                                children[i], surface->id, desktop->id);
                     }
                 }
             }
@@ -131,6 +146,7 @@ void lifecycle_scan_existing(wm_td *wm)
     }
 
     xcb_flush(wm->connection);
+    LOGGER_DEBUG("Finished scanning for pre-existing windows", L_NARG);
 }
 
 

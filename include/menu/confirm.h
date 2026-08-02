@@ -6,10 +6,10 @@
  * Declares the functions for opening, closing, repainting, and
  * interacting with the modal confirmation dialog that is shown before
  * the window manager exits.  The dialog presents an exit-confirmation
- * message using the configured WM name and two choices: "Cancel"
- * (default, confirmed with 'Enter') and "Exit" (triggers a clean
- * shutdown).  Pressing 'Escape' or activating "Cancel" closes the
- * dialog without exiting.  All dialog state is private to the
+ * message using the configured window manager name and two choices:
+ * "Cancel" (default, confirmed with 'Enter') and "Exit" (triggers
+ * a clean shutdown).  Pressing 'Escape' or activating "Cancel" closes
+ * the dialog without exiting.  All dialog state is private to the
  * implementation.
  */
 /*

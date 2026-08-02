@@ -171,5 +171,24 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...);
  */
 void wcmd_rem_states(client_td *client, uint32_t num_states, ...);
 
+/**
+ * @brief Publish @c _NET_FRAME_EXTENTS on the client window
+ *
+ * Writes the EWMH @c _NET_FRAME_EXTENTS cardinal property so that
+ * taskbars and other clients know the exact size of the decoration
+ * added around the content window.  No-op when @p client or its
+ * @c ewmh connection is null.
+ *
+ * @param client Pointer to the client
+ * @param left   Left frame extent in pixels
+ * @param right  Right frame extent in pixels
+ * @param top    Top frame extent in pixels (includes titlebar height)
+ * @param bottom Bottom frame extent in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_publish_frame_extents(client_td *client,
+        uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
+
 
 #endif  /* ! CMDS_UTIL_H */

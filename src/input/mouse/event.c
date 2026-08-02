@@ -581,6 +581,43 @@ void mouse_handle_press(xcb_connection_t *connection,
                 } /* ! if (!hit_btn) */
             }
 
+            /* Clicks that land directly on the frame window (not on the
+             * titlebar or the embedded client window) initiate a resize
+             * drag.  The resize direction is determined automatically
+             * in drag_start from the pointer position relative to the
+             * window centre, so any part of the frame border acts as
+             * a resize handle.  Only applies to resizable,
+             * non-maximized/fullscreen windows. */
+            if (window == client->frame && client->frame != 0 &&
+                    client_is_resizable(client) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_FULLSCREEN &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED_VERT &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
+                if (client_is_shaded(client)) {
+                    wcmd_client_unshade(client);
+                }
+                surface = lookup_surface_for_root(surfaces, event->root);
+                screen_w = (surface != NULL)
+                    ? surface->properties.dim.w : 0u;
+                screen_h = (surface != NULL)
+                    ? surface->properties.dim.h : 0u;
+                drag_start(connection, event->root, client, desktop,
+                        CLIENT_OPERATION_RESIZING,
+                        event->time,
+                        event->root_x, event->root_y,
+                        screen_w, screen_h,
+                        cfg->base.windows.snap);
+                xcb_allow_events(connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
+                xcb_flush(connection);
+                return;
+            }
+
             /* Replay to the application when the click landed on the
              * client content window or any of its descendants.  Only
              * consume clicks that hit the WM-owned frame border or

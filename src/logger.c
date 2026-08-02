@@ -59,6 +59,7 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         fprintf(fp, "%s\n", logger_buffer->messages[i]);
         free(logger_buffer->messages[i]);
     }
+    fflush(fp);
 
     logger_buffer->count = 0;
 }
@@ -208,6 +209,7 @@ int logger_start(const char *filename,
             /* Initialize the log message buffer */
             logger->buffer = malloc(sizeof(struct logger_buffer_s));
             if (logger->buffer == NULL) {
+                fclose(logger->file.fp_out);
                 free(logger);
                 pthread_mutex_unlock(&logger_mutex);
                 return 1;
@@ -216,6 +218,7 @@ int logger_start(const char *filename,
             logger->buffer->messages = malloc(LOGGER_FLUSH_THRESHOLD *
                     sizeof(char *));
             if (logger->buffer->messages == NULL) {
+                fclose(logger->file.fp_out);
                 free(logger->buffer);
                 free(logger);
                 pthread_mutex_unlock(&logger_mutex);

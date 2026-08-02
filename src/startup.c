@@ -125,6 +125,29 @@ static void s_startup_handle_child(int signum)
 }
 
 
+/**
+ * @brief Install a single POSIX signal handler
+ *
+ * @param signum Signal number to configure
+ * @param handler Function to invoke when the signal arrives
+ * @param flags   Extra @c sigaction flags for the registration
+ *
+ * @return 0 on success, -1 if @c sigaction fails
+ */
+static int s_startup_install_handler(int signum,
+        void (*handler)(int), int flags)
+{
+    struct sigaction sa;
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handler;
+    sa.sa_flags = flags;
+    sigemptyset(&sa.sa_mask);
+
+    return sigaction(signum, &sa, NULL);
+}
+
+
 /* Subscribe to root window events on all managed surfaces */
 int startup_subscribe_root_events(wm_td *wm)
 {
@@ -205,37 +228,19 @@ int startup_subscribe_root_events(wm_td *wm)
 /* Install POSIX signal handlers for graceful termination */
 int startup_install_signals(void)
 {
-    struct sigaction sa;
-    struct sigaction sa_hup;
-    struct sigaction sa_cont;
-    struct sigaction sa_chld;
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = s_startup_handle_signal;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-
-    memset(&sa_hup, 0, sizeof(sa_hup));
-    sa_hup.sa_handler = s_startup_handle_reload;
-    sa_hup.sa_flags = 0;
-    sigemptyset(&sa_hup.sa_mask);
-
-    memset(&sa_cont, 0, sizeof(sa_cont));
-    sa_cont.sa_handler = s_startup_handle_resume;
-    sa_cont.sa_flags = 0;
-    sigemptyset(&sa_cont.sa_mask);
-
-    memset(&sa_chld, 0, sizeof(sa_chld));
-    sa_chld.sa_handler = s_startup_handle_child;
-    sa_chld.sa_flags = 0;
-    sigemptyset(&sa_chld.sa_mask);
-
-    if (sigaction(SIGHUP, &sa_hup, NULL) != 0 ||
-            sigaction(SIGINT, &sa, NULL) != 0 ||
-            sigaction(SIGQUIT, &sa, NULL) != 0 ||
-            sigaction(SIGTERM, &sa, NULL) != 0 ||
-            sigaction(SIGCONT, &sa_cont, NULL) != 0) {
-        LOGGER_ERROR("Failed to install termination signal handlers",
+    if (s_startup_install_handler(SIGHUP,
+                s_startup_handle_reload, 0) != 0 ||
+            s_startup_install_handler(SIGINT,
+                s_startup_handle_signal, 0) != 0 ||
+            s_startup_install_handler(SIGQUIT,
+                s_startup_handle_signal, 0) != 0 ||
+            s_startup_install_handler(SIGTERM,
+                s_startup_handle_signal, 0) != 0 ||
+            s_startup_install_handler(SIGCONT,
+                s_startup_handle_resume, 0) != 0 ||
+            s_startup_install_handler(SIGCHLD,
+                s_startup_handle_child, SA_NOCLDSTOP) != 0) {
+        LOGGER_ERROR("Failed to install startup signal handlers",
                 L_NARG);
         return -1;
     }

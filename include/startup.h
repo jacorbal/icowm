@@ -49,9 +49,11 @@ int startup_subscribe_root_events(wm_td *wm);
 /**
  * @brief Install POSIX signal handlers for graceful termination
  *
- * Registers @c s_startup_handle_signal for @c SIGHUP, @c SIGINT,
- * @c SIGQUIT, and @c SIGTERM so that any of these signals trigger
- * a graceful shutdown rather than an abrupt kill.
+ * Registers deferred handlers for graceful shutdown, configuration
+ * reload, VT resume, and child reaping.  @c SIGHUP requests a config
+ * reload, @c SIGINT/@c SIGQUIT/@c SIGTERM request shutdown, @c SIGCONT
+ * requests input-grab restoration, and @c SIGCHLD schedules zombie
+ * reaping in the main loop.
  *
  * @return 0 on success, -1 if @c sigaction fails
  *

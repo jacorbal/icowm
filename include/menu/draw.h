@@ -1,7 +1,7 @@
 /**
  * @file menu/draw.h
  *
- * @brief Shared drawing primitives for WM menu windows
+ * @brief Shared drawing primitives for window manager menu windows
  *
  * Low-level helpers used by the cycle menu and the info popup to
  * paint row backgrounds and text inside an XCB window.  This module

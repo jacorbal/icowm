@@ -20,7 +20,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc */
+#include <stdlib.h>     /* NULL, free, calloc */
 #include <string.h>     /* memcpy, memset, snprintf */
 
 /* XCB includes */
@@ -58,6 +58,90 @@
 #include <client/internal.h>
 
 
+/**
+ * @brief Free every heap-owned client field
+ *
+ * @param client Client whose owned buffers should be released
+ */
+static void s_client_release_heap_fields(client_td *client)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    safe_free_var((void **) &client->info.name,
+            (void **) &client->info.visible_name,
+            (void **) &client->info.role_name,
+            (void **) &client->info.class_name[0],
+            (void **) &client->info.class_name[1],
+            (void **) &client->icon_info.icon_name,
+            (void **) &client->icon_info.visible_icon_name,
+            (void **) &client->icon_info.icons,
+            (void **) &client->process.command,
+            SAFE_FREE_VAR_END);
+}
+
+
+/**
+ * @brief Initialize the common non-zero client defaults
+ *
+ * @param client      Client structure to initialize
+ * @param connection  XCB connection
+ * @param ewmh        EWMH connection
+ * @param theme       Theme configuration
+ * @param config_base Base configuration
+ */
+static void s_client_init_common(client_td *client,
+        xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    client->connection = connection;
+    client->ewmh = ewmh;
+    client->theme = theme;
+    client->config_base = config_base;
+    client->process.pid = -1;
+    client->wm_input_hint = true;
+    client->icon_x = -1;
+    client->icon_y = -1;
+    client->layout.gravity =
+        (uint16_t) (config_base != NULL
+                ? config_base->windows.gravity
+                : CONFIG_GRAVITY_NORTH_WEST);
+    client->properties.flags =
+        CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
+    client->properties.type = CLIENT_TYPE_NORMAL;
+    client->properties.state = CLIENT_STATE_NORMAL;
+    client->properties.layer = CLIENT_LAYER_NORMAL;
+    client->properties.operation = CLIENT_OPERATION_IDLE;
+    client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+    ci_set_decoration_defaults(client, theme);
+}
+
+
+/**
+ * @brief Duplicate a client title into both visible-name buffers
+ *
+ * @param client Client to update
+ * @param name   Source title string
+ */
+static void s_client_set_display_name(client_td *client, const char *name)
+{
+    if (client == NULL || name == NULL || name[0] == '\0') {
+        return;
+    }
+
+    safe_strncpy(client->info.name, name, CONFIG_MAX_LENGTH_NAME - 1);
+    safe_strncpy(client->info.visible_name, name,
+            CONFIG_MAX_LENGTH_NAME - 1);
+}
+
+
 /* Initialize a new client with the specified parameters */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
@@ -80,31 +164,15 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Allocate memory for the client structure and verify the
      * allocation was successful before proceeding */
-    client = malloc(sizeof(client_td));
+    client = calloc(1, sizeof(client_td));
     if (client == NULL) {
         LOGGER_ERROR("Failed to allocate memory for client", L_NARG);
         return NULL;
     }
 
-    /* Initialize basic client properties and connections */
-    client->connection = connection;
-    client->ewmh = ewmh;
+    s_client_init_common(client, connection, ewmh, theme, config_base);
     client->parent_id = parent_id;
     client->user_time = 0;
-    client->theme = theme;
-    client->config_base = config_base;
-    client->process.pid = -1;
-    client->process.command = NULL;
-
-    client->frame = 0;
-    client->titlebar = 0;
-    client->icon_window = 0;
-    client->is_icon_mapped = false;
-    client->was_decorated_fullscreen = false;
-    client->ignore_unmap = 0;
-    client->ignore_focus_unmap = 0;
-    client->icon_x = -1;
-    client->icon_y = -1;
 
     /* Set the current geometry, and the "old" as the current one.
      * This allows for saved state when resizing or maximizing */
@@ -125,19 +193,7 @@ client_td *client_init(xcb_connection_t *connection,
         (struct sides_s) {0, 0, 0, 0};
 
     /* Initialize client properties with sensible defaults */
-    client->properties.flags =
-        CLIENT_FLAG_HIDDEN | CLIENT_FLAG_FOCUSABLE |
-        CLIENT_FLAG_RESIZABLE;
-    client->properties.type = CLIENT_TYPE_NORMAL;
-    client->properties.state = CLIENT_STATE_NORMAL;
-    client->properties.layer = CLIENT_LAYER_NORMAL;
-    client->properties.operation = CLIENT_OPERATION_IDLE;
-    client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
-    client->layout.gravity = (uint16_t)
-        (config_base != NULL
-         ? config_base->windows.gravity
-         : CONFIG_GRAVITY_NORTH_WEST);
-    ci_set_decoration_defaults(client, theme);
+    client->properties.flags |= CLIENT_FLAG_HIDDEN;
 
     /* Allocate string buffers for client information */
     if (ci_alloc_strings(client) != 0) {
@@ -186,13 +242,7 @@ client_td *client_init(xcb_connection_t *connection,
     err = xcb_request_check(connection, create_cookie);
     if (err != NULL) {
         LOGGER_ERROR("Failed to create X client window", L_NARG);
-        safe_free((void **) &client->info.name);
-        safe_free((void **) &client->info.visible_name);
-        safe_free((void **) &client->info.role_name);
-        safe_free((void **) &client->info.class_name[0]);
-        safe_free((void **) &client->info.class_name[1]);
-        safe_free((void **) &client->icon_info.icon_name);
-        safe_free((void **) &client->icon_info.visible_icon_name);
+        s_client_release_heap_fields(client);
         free(err);
         free(client);
         return NULL;
@@ -205,12 +255,7 @@ client_td *client_init(xcb_connection_t *connection,
     /* Attempt to retrieve 'WM_NAME' property from the X server to
      * populate the client's name field instead of using a default */
     ci_get_wm_name(connection, parent_id, wm_name, sizeof(wm_name));
-    if (wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, wm_name,
-                CONFIG_MAX_LENGTH_NAME - 1);
-        safe_strncpy(client->info.visible_name, wm_name,
-                CONFIG_MAX_LENGTH_NAME - 1);
-    }
+    s_client_set_display_name(client, wm_name);
 
     /* Attempt to retrieve 'WM_CLASS' property from the X server to
      * populate the client's class and instance names */
@@ -268,15 +313,7 @@ void client_destroy(client_td *client)
     }
 
     /* Free all allocated string buffers */
-    safe_free((void **) &client->info.name);
-    safe_free((void **) &client->info.visible_name);
-    safe_free((void **) &client->info.role_name);
-    safe_free((void **) &client->info.class_name[0]);
-    safe_free((void **) &client->info.class_name[1]);
-    safe_free((void **) &client->icon_info.icon_name);
-    safe_free((void **) &client->icon_info.visible_icon_name);
-    safe_free((void **) &client->icon_info.icons);
-    safe_free((void **) &client->process.command);
+    s_client_release_heap_fields(client);
 
     /* Free the client structure itself */
     free(client);
@@ -331,35 +368,14 @@ client_td *client_manage(xcb_connection_t *connection,
         }
     }
 
-    client = malloc(sizeof(client_td));
+    client = calloc(1, sizeof(client_td));
     if (client == NULL) {
         LOGGER_ERROR("Failed to allocate memory for managed client",
                 L_NARG);
         return NULL;
     }
 
-    /* Zero-initialized to prevent uninitialized reads */
-    memset(client, 0, sizeof(client_td));
-
-    /* 'ICCCM WM_HINTS': input defaults to 'true' when the hint is
-     * absent */
-    client->wm_input_hint = true;
-
-    /* Basic connections */
-    client->connection = connection;
-    client->ewmh = ewmh;
-    client->theme = theme;
-    client->config_base = config_base;
-    client->frame = 0;
-    client->titlebar = 0;
-    client->icon_window = 0;
-    client->is_icon_mapped = false;
-    client->ignore_focus_unmap = 0;
-    client->was_decorated_fullscreen = false;
-    client->ignore_unmap = 0;
-    client->icon_x = -1;
-    client->icon_y = -1;
-    client->process.pid = -1;
+    s_client_init_common(client, connection, ewmh, theme, config_base);
 
     /* Use the X window ID as both window handle and hash/lookup key */
     client->window = window;
@@ -382,20 +398,6 @@ client_td *client_manage(xcb_connection_t *connection,
         client->layout.geometry.cur.dim.h = WM_CLIENT_DEFAULT_DIM;
     }
     client->layout.geometry.old = client->layout.geometry.cur;
-    client->layout.gravity = CLIENT_GRAVITY_NORTH_WEST;
-
-    /* Default properties: visible, focusable, resizable */
-    client->properties.flags = CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
-    client->properties.type = CLIENT_TYPE_NORMAL;
-    client->properties.state = CLIENT_STATE_NORMAL;
-    client->properties.layer = CLIENT_LAYER_NORMAL;
-    client->properties.operation = CLIENT_OPERATION_IDLE;
-    client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
-    client->layout.gravity = (uint16_t)
-        (config_base != NULL
-         ? config_base->windows.gravity
-         : CONFIG_GRAVITY_NORTH_WEST);
-    ci_set_decoration_defaults(client, theme);
 
     /* Allocate string buffers */
     if (ci_alloc_strings(client) != 0) {
@@ -414,18 +416,10 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
     ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, net_wm_name,
-                CONFIG_MAX_LENGTH_NAME - 1);
-        safe_strncpy(client->info.visible_name, net_wm_name,
-                CONFIG_MAX_LENGTH_NAME - 1);
+        s_client_set_display_name(client, net_wm_name);
     } else {
         ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
-        if (wm_name[0] != '\0') {
-            safe_strncpy(client->info.name, wm_name,
-                    CONFIG_MAX_LENGTH_NAME - 1);
-            safe_strncpy(client->info.visible_name, wm_name,
-                    CONFIG_MAX_LENGTH_NAME - 1);
-        }
+        s_client_set_display_name(client, wm_name);
     }
 
     /* Read '_NET_WM_ICON_NAME'/'WM_ICON_NAME' for iconified caption */
@@ -447,24 +441,24 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS',
      * and '_NET_WM_PING' support */
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 16,
-                "WM_DELETE_WINDOW"), NULL);
+            xcb_intern_atom(connection, 1, 16, "WM_DELETE_WINDOW"),
+            NULL);
     if (ia != NULL) {
         wm_delete_atom = ia->atom;
         free(ia);
     }
 
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 14,
-                "WM_TAKE_FOCUS"), NULL);
+            xcb_intern_atom(connection, 1, 14, "WM_TAKE_FOCUS"),
+            NULL);
     if (ia != NULL) {
         wm_take_focus_atom = ia->atom;
         free(ia);
     }
 
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 12,
-                "_NET_WM_PING"), NULL);
+            xcb_intern_atom(connection, 1, 12, "_NET_WM_PING"),
+            NULL);
     if (ia != NULL) {
         net_wm_ping_atom = ia->atom;
         free(ia);
@@ -483,7 +477,6 @@ client_td *client_manage(xcb_connection_t *connection,
         for (uint32_t pi = 0; pi < proto.atoms_len; ++pi) {
             if (proto.atoms[pi] == wm_delete_atom) {
                 client->has_wm_delete_window = true;
-                break;
             } else if (proto.atoms[pi] == wm_take_focus_atom) {
                 client->has_wm_take_focus = true;
             } else if (proto.atoms[pi] == net_wm_ping_atom) {
@@ -658,34 +651,29 @@ client_td *client_manage(xcb_connection_t *connection,
                 break;
             }
 
-            if (type_reply.atoms[ti] ==
-                    ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
                 client->properties.type = CLIENT_TYPE_DIALOG;
                 break;
             }
 
-            if (type_reply.atoms[ti] ==
-                    ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
                 client->properties.type = CLIENT_TYPE_TOOLBAR;
                 break;
             }
 
-            if (type_reply.atoms[ti] ==
-                    ewmh->_NET_WM_WINDOW_TYPE_MENU) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_MENU) {
                 client->properties.type = CLIENT_TYPE_MENU;
                 client_unset_decoration(client);
                 break;
             }
 
-            if (type_reply.atoms[ti] ==
-                    ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
                 client_unset_decoration(client);
                 break;
             }
 
-            if (type_reply.atoms[ti] ==
-                    ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
+            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
                 client->properties.type = CLIENT_TYPE_UTILITY;
                 break;
             }
@@ -723,9 +711,10 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Subscribe to events on the adopted window.
      * For dock and notification windows, preserve the application's
      * event mask (which includes 'ButtonPress'/'ButtonRelease' needed
-     * for systray interaction) and OR in only the WM's required events.
-     * Replacing the mask wholesale would strip 'ButtonPress', making
-     * systray icons non-interactive after a 'PassiveGrab replay. */
+     * for systray interaction) and OR in only the window manager's
+     * required events.  Replacing the mask wholesale would strip
+     * 'ButtonPress', making systray icons non-interactive after
+     * a 'PassiveGrab replay. */
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
             client->properties.type ==
                 (uint16_t) CLIENT_TYPE_NOTIFICATION) {

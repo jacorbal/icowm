@@ -42,6 +42,9 @@
 #include <input/keyboard.h>
 #include <input/mouse.h>
 
+/* Menu includes */
+#include <menu/popup.h>
+
 /* Default initial values */
 #include <defs/wm.h>
 
@@ -85,7 +88,7 @@ static void s_loop_handle_leave_notify(wm_td *wm,
                     &surface, &desktop) != NULL) {
         /* Pointer left a managed window; release focus so the cursor
          * resting on the root background leaves all clients visually
-         * unfocused. */
+         * unfocused */
         xcb_set_input_focus(wm->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
@@ -137,6 +140,7 @@ void loop_run(wm_td *wm)
     xcb_generic_event_t *event;
     struct pollfd pfd;
     int poll_status;
+    int poll_timeout_ms;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -210,7 +214,17 @@ void loop_run(wm_td *wm)
         pfd.events = POLLIN;
         pfd.revents = 0;
 
-        poll_status = poll(&pfd, 1, WM_EVENT_POLL_TIMEOUT_MS);
+        /* Use a shorter poll timeout when the info popup is visible so
+         * it closes promptly at the configured expiry time */
+        poll_timeout_ms = WM_EVENT_POLL_TIMEOUT_MS;
+        if (popup_is_open()) {
+            int ms = popup_ms_remaining();
+            if (ms >= 0 && ms < poll_timeout_ms) {
+                poll_timeout_ms = ms;
+            }
+        }
+
+        poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
                     strerror(errno));
@@ -367,6 +381,28 @@ void loop_run(wm_td *wm)
         }
 
         eventq_process();
+
+        /* Auto-close the info popup when its display timeout has
+         * elapsed.  Close before the 'loop_update' call so any visual
+         * update triggered by the close is handled in the same
+         * iteration. */
+        if (popup_is_open() && popup_ms_remaining() == 0) {
+            surface_td *popup_surface = NULL;
+
+            for (list_item_td *ps_node = list_head(wm->surfaces);
+                    ps_node != NULL; ps_node = list_next(ps_node)) {
+                surface_td *s = (surface_td *) list_data(ps_node);
+                if (s != NULL) {
+                    popup_surface = s;
+                    break;
+                }
+            }
+
+            popup_close(wm->connection);
+            if (popup_surface != NULL) {
+                surface_render_current_desktop_repaint(popup_surface);
+            }
+        }
 
         /* Only sync EWMH root properties when state actually changed.
          * Calling 'wm_ewmh_sync' unconditionally writes root window

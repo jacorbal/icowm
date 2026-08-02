@@ -82,34 +82,21 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         const config_td *cfg)
 {
     xcb_keysym_t keysym;
-    surface_td *s = NULL;
 
     if (keysyms == NULL || event == NULL) {
         return;
     }
 
-    s = s_lookup_surface_fallback(surfaces, event->root);
-
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
             keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
-        if (s != NULL) {
-            cycle_confirm(s->connection, surfaces, cfg);
+        surface_td *surface = s_lookup_surface_fallback(surfaces,
+                event->root);
+        if (surface != NULL) {
+            cycle_confirm(surface->connection, surfaces, cfg);
         }
         return;
-    }
-
-    /* Auto-close info popup when its modifier is released */
-    if (popup_is_open() &&
-            (event->detail == popup_keycode() ||
-             (popup_modifier() != 0 &&
-              keyboard_is_modifier_for_mask(keysym,
-                  popup_modifier())))) {
-        if (s != NULL) {
-            popup_close(s->connection);
-            surface_render_current_desktop_repaint(s);
-        }
     }
 }
 

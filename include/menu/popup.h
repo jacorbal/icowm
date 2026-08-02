@@ -127,5 +127,19 @@ uint16_t popup_modifier(void);
  */
 xcb_keycode_t popup_keycode(void);
 
+/**
+ * @brief Return the milliseconds remaining before the popup auto-closes
+ *
+ * Computes the remaining time until @c WM_INFO_POPUP_TIMEOUT_MS has
+ * elapsed since the popup was shown.  Returns 0 when the popup has
+ * already expired, and -1 when no popup is currently open or the open
+ * time was not recorded.
+ *
+ * @return Milliseconds until auto-close, 0 if expired, -1 if no popup
+ *
+ * @note Complexity: @e O(1)
+ */
+int popup_ms_remaining(void);
+
 
 #endif  /* ! MENU_POPUP_H */

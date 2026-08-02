@@ -66,6 +66,10 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
 /* Destroy the open-addressed hash table */
 void ohtbl_destroy(ohtbl_td *htbl)
 {
+    if (htbl == NULL) {
+        return;
+    }
+
     if (htbl->destroy != NULL) {
         /* Free dynamically allocated data */
         for (size_t i = 0; i < htbl->positions; ++i) {
@@ -87,6 +91,10 @@ void ohtbl_destroy(ohtbl_td *htbl)
 /* Resets the open-addressed hash table */
 void ohtbl_reset(ohtbl_td *htbl)
 {
+    if (htbl == NULL) {
+        return;
+    }
+
     /* Free dynamically allocated data */
     for (size_t i = 0; i < htbl->positions; ++i) {
         if (htbl->table[i] != NULL &&

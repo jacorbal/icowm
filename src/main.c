@@ -249,11 +249,39 @@ static inline void s_show_farewell(FILE *fp)
  *       expected to be set to @c NULL after deallocation.
  * @note Complexity: @e O(1)
  */
-static inline void s_deallocate_buffers(char *s1, char *s2, char *s3)
+static inline void s_deallocate_buffers(char **s1, char **s2, char **s3)
 {
-    safe_free((void **) &s1);
-    safe_free((void **) &s2);
-    safe_free((void **) &s3);
+    safe_free_var((void **) s1,
+            (void **) s2,
+            (void **) s3,
+            SAFE_FREE_VAR_END);
+}
+
+
+/**
+ * @brief Replace an option-owned string without leaking the previous one
+ *
+ * @param dst Pointer to the owned string slot
+ * @param src Replacement string
+ *
+ * @return 0 on success, 1 if duplication fails
+ */
+static int s_replace_option_string(char **dst, const char *src)
+{
+    char *copy;
+
+    if (dst == NULL || src == NULL) {
+        return 1;
+    }
+
+    copy = safe_strdup(src);
+    if (copy == NULL) {
+        return 1;
+    }
+
+    safe_free((void **) dst);
+    *dst = copy;
+    return 0;
 }
 
 
@@ -291,29 +319,49 @@ int main(int argc, char *const argv[])
         switch (opt) {
             case 'h':
                 s_show_help(stdout);
-                s_deallocate_buffers(log_filename,
-                                     display_name,
-                                     config_dir);
+                s_deallocate_buffers(&log_filename,
+                                     &display_name,
+                                     &config_dir);
                 return 0;
 
             case 'v':
                 s_show_version(stdout);
-                s_deallocate_buffers(log_filename,
-                                     display_name,
-                                     config_dir);
+                s_deallocate_buffers(&log_filename,
+                                     &display_name,
+                                     &config_dir);
                 return 0;
 
             case 'd':
-                display_name = safe_strdup(optarg);
+                if (s_replace_option_string(&display_name, optarg) != 0) {
+                    fprintf(stderr,
+                            "Failed to store display option value\n");
+                    s_deallocate_buffers(&log_filename,
+                                         &display_name,
+                                         &config_dir);
+                    return 1;
+                }
                 break;
 
             case 'c':
-                config_dir = safe_strdup(optarg);
+                if (s_replace_option_string(&config_dir, optarg) != 0) {
+                    fprintf(stderr,
+                            "Failed to store configuration directory\n");
+                    s_deallocate_buffers(&log_filename,
+                                         &display_name,
+                                         &config_dir);
+                    return 1;
+                }
                 break;
 
             case 'l':
-                free(log_filename);
-                log_filename = safe_strdup(optarg);
+                if (s_replace_option_string(&log_filename, optarg) != 0) {
+                    fprintf(stderr,
+                            "Failed to store log destination\n");
+                    s_deallocate_buffers(&log_filename,
+                                         &display_name,
+                                         &config_dir);
+                    return 2;
+                }
                 break;
 
             case 'L':
@@ -339,9 +387,9 @@ int main(int argc, char *const argv[])
 
             default:
                 s_show_help(stderr);
-                s_deallocate_buffers(log_filename,
-                                     display_name,
-                                     config_dir);
+                s_deallocate_buffers(&log_filename,
+                                     &display_name,
+                                     &config_dir);
                 return -1;
         }
     }
@@ -352,7 +400,7 @@ int main(int argc, char *const argv[])
     /* Start logging */
     if (logger_start(log_filename,
                 log_level_min, log_is_tracking) != 0) {
-        s_deallocate_buffers(log_filename, display_name, config_dir);
+        s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 2;
     }
     if (verbose) {
@@ -363,7 +411,7 @@ int main(int argc, char *const argv[])
     LOGGER_INFO("Starting up window manager", L_NARG);
     if (wm_start(display_name, config_dir) != 0) {
         logger_stop();
-        s_deallocate_buffers(log_filename, display_name, config_dir);
+        s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 1;
     }
 
@@ -373,7 +421,7 @@ int main(int argc, char *const argv[])
     logger_stop();
 
     /* Deallocate last things... */
-    s_deallocate_buffers(log_filename, display_name, config_dir);
+    s_deallocate_buffers(&log_filename, &display_name, &config_dir);
 
     /* Depart: be polite, say goodbye */
     s_show_farewell(stdout);

@@ -63,7 +63,7 @@
  * @param config_dir_base   Pointer to a character array where the
  *                          configuration directory path will be stored
  *
- * @note The buffer should be at least @c CONFIG_MAX_LENGTH_PATH_BASE
+ * @note Buffer should be at least @c CONFIG_MAX_LENGTH_PATH_BASE
  */
 static void s_config_dir_set(const char *config_dir_prefix,
         char *config_dir_base)
@@ -93,10 +93,6 @@ static void s_config_dir_set(const char *config_dir_prefix,
     path_simplify(temp_path);
     safe_strncpy(config_dir_base, temp_path,
             CONFIG_MAX_LENGTH_PATH_BASE);
-
-    /* Use generated path in case of error */
-    snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
-            "%s", temp_path);
 }
 
 
@@ -299,8 +295,8 @@ void config_set_default_values(config_td *config)
     config->theme.icon.active.foreground_color = json_hex2uint32("000000");
     config->theme.icon.active.border_color = json_hex2uint32("000000");
     safe_strcpy(config->theme.icon.active.font, "monospace 8");
-    config->theme.icon.inactive.background_color = json_hex2uint32("FFFFFF");
-    config->theme.icon.inactive.foreground_color = json_hex2uint32("000000");
+    config->theme.icon.inactive.background_color = json_hex2uint32("000000");
+    config->theme.icon.inactive.foreground_color = json_hex2uint32("FFFFFF");
     config->theme.icon.inactive.border_color = json_hex2uint32("000000");
     safe_strcpy(config->theme.icon.inactive.font, "monospace 8");
 }

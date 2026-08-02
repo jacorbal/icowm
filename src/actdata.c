@@ -19,6 +19,7 @@
 #include <action.h>
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <surface.h>
 
 /* Utils includes */
@@ -37,6 +38,8 @@ action_data_client_td *action_data_client_init(client_td *client,
 
     action_data_client = malloc(sizeof(action_data_client_td));
     if (action_data_client == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for client action data",
+                L_NARG);
         return NULL;
     }
 
@@ -44,8 +47,8 @@ action_data_client_td *action_data_client_init(client_td *client,
         (action_data_client_td) { .client = client,
                                   .action_client = action_client,
                                   .new_data = {
-                                      .str = { .str0 = NULL,
-                                               .str1 = NULL }
+                                    .str = { .str0 = NULL,
+                                             .str1 = NULL }
                                   }
                                 };
 
@@ -126,6 +129,8 @@ action_data_desktop_td *action_data_desktop_init(desktop_td *desktop,
 
     action_data_desktop = malloc(sizeof(action_data_desktop_td));
     if (action_data_desktop == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for desktop action data",
+                L_NARG);
         return NULL;
     }
 
@@ -154,6 +159,8 @@ action_data_surface_td *action_data_surface_init(surface_td *surface,
 
     action_data_surface = malloc(sizeof(action_data_surface_td));
     if (action_data_surface == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for surface action data",
+                L_NARG);
         return NULL;
     }
 
@@ -179,6 +186,8 @@ action_data_wm_td *action_data_wm_init(wm_td *wm,
 
     action_data_wm = malloc(sizeof(action_data_wm_td));
     if (action_data_wm == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for window manager" \
+                " action data", L_NARG);
         return NULL;
     }
 

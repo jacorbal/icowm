@@ -1,7 +1,7 @@
 /**
  * @file menu/draw.c
  *
- * @brief Shared drawing primitives for WM menu windows
+ * @brief Shared drawing primitives for window manager menu windows
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

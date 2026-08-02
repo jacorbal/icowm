@@ -23,6 +23,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
+#include <client.h>
 #include <config.h>
 #include <desktop.h>
 
@@ -128,6 +129,24 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
         bool is_focused, bool is_sticky, bool is_layered,
         bool can_maximize, const struct config_theme_s *theme);
+
+/**
+ * @brief Repaint the frame window decoration for a client
+ *
+ * Refreshes the frame background/border and redraws the corner resize
+ * handles when they are supposed to be visible for the current client
+ * state.
+ *
+ * @param connection       Active XCB connection
+ * @param client           Client whose frame decoration will be repainted
+ * @param use_active_style Whether to use the active theme colors
+ * @param theme            Theme providing frame and handle colors
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_repaint_frame_decoration(xcb_connection_t *connection,
+        const client_td *client, bool use_active_style,
+        const struct config_theme_s *theme);
 
 
 #endif  /* ! RENDER_DESKTOP_H */

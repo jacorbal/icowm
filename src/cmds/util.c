@@ -370,3 +370,23 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     free(new_states);
     free(reply);
 }
+
+
+/* Publish '_NET_FRAME_EXTENTS' on the client window */
+void wcmd_publish_frame_extents(client_td *client,
+        uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+{
+    uint32_t extents[4];
+
+    if (client == NULL || client->ewmh == NULL) {
+        return;
+    }
+
+    extents[0] = left;
+    extents[1] = right;
+    extents[2] = top;
+    extents[3] = bottom;
+    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+            client->window, client->ewmh->_NET_FRAME_EXTENTS,
+            XCB_ATOM_CARDINAL, 32, 4, extents);
+}

@@ -827,6 +827,50 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
                 s_menu.labels[i]);
     }
 
+    /* Draw scroll-indicator arrows in the top/bottom padding areas
+     * when there are hidden entries above or below the viewport */
+    if (s_menu.count > s_menu.viewport_rows) {
+        /* Up arrow: entries exist above the viewport */
+        if (s_menu.scroll_offset > 0) {
+            menu_draw_row_bg(connection, s_menu.window, bg_nor,
+                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    s_menu.width);
+            text_renderer_set_color(fg_sel, bg_nor);
+            menu_draw_label(connection, s_menu.window,
+                    (int16_t) (s_menu.width / 2u - 4u),
+                    (int16_t) (WM_CYCLE_MENU_PAD_Y - 2),
+                    "---");
+                    //"\xe2\x96\xb2");    /* UTF-8: ▲ U+25B2 */
+        } else {
+            /* Clear the top padding area when no arrow is needed */
+            menu_draw_row_bg(connection, s_menu.window, bg_nor,
+                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    s_menu.width);
+        }
+
+        /* Down arrow: entries exist below the viewport */
+        if (s_menu.scroll_offset + s_menu.viewport_rows < s_menu.count) {
+            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+                    s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
+            menu_draw_row_bg(connection, s_menu.window, bg_nor,
+                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    s_menu.width);
+            text_renderer_set_color(fg_sel, bg_nor);
+            menu_draw_label(connection, s_menu.window,
+                    (int16_t) (s_menu.width / 2u - 4u),
+                    (int16_t) (bot_y + WM_CYCLE_MENU_PAD_Y - 2),
+                    "---");
+                    //"\xe2\x96\xbc");    /* UTF-8: ▼ U+25BC */
+        } else {
+            /* Clear the bottom padding area when no arrow is needed */
+            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+                    s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
+            menu_draw_row_bg(connection, s_menu.window, bg_nor,
+                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    s_menu.width);
+        }
+    }
+
     s_cycle_preview_apply(connection, cfg);
     xcb_flush(connection);
 }

@@ -1,4 +1,3 @@
-
 /**
  * @file render/desktop.c
  *
@@ -87,9 +86,9 @@ int desktop_render_background(desktop_td *desktop)
      *       background pixel and repaint the root window.  Values are
      *       ordered by ascending bit position: 'XCB_CW_BACK_PIXMAP'
      *       (bit 0) comes before 'XCB_CW_BACK_PIXEL' (bit 1).
-     *       Unsetting the background pixmap ensures that xcb_clear_area
-     *       fills with the pixel color rather than the previous
-     *       pixmap. */
+     *       Unsetting the background pixmap ensures that
+     *       'xcb_clear_area' fills with the pixel color rather than the
+     *       previous pixmap. */
     values[0] = XCB_BACK_PIXMAP_NONE;
     values[1] = desktop->background.bg.color;
     xcb_change_window_attributes(desktop->connection, screen->root,
@@ -174,7 +173,8 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     for (int bi = 0; bi < 6; ++bi) {
         x = (int16_t) (right_edge - (int16_t) btn -
                 (int16_t) ((uint16_t) bi * step));
-        color = ((!can_maximize) && (bi == 1 || bi == 2)) ? bg_fill : fill;
+        color = ((!can_maximize) && (bi == 1 || bi == 2))
+            ? bg_fill : fill;
         gc = xcb_generate_id(connection);
 
         xcb_create_gc(connection, gc, titlebar,
@@ -182,6 +182,108 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
         rect = (xcb_rectangle_t) { x, btn_y, btn, btn };
         xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
         xcb_free_gc(connection, gc);
+    }
+}
+
+
+/**
+ * @brief Draw corner-resize handles on a decorated frame window
+ *
+ * Paints small L-shaped marks at the four corners of the frame using
+ * solid-color rectangles so that users can see that the window edges
+ * are interactive resize handles.  The marks are drawn only for
+ * resizable, decorated clients and use the active or inactive border
+ * accent color.
+ *
+ * @param connection Active XCB connection
+ * @param frame      Frame window to draw on
+ * @param frame_w    Total frame width in pixels
+ * @param frame_h    Total frame height in pixels
+ * @param color      Fill color for the corner marks
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_draw_corner_handles(xcb_connection_t *connection,
+        xcb_window_t frame, uint16_t frame_w, uint16_t frame_h,
+        uint32_t color)
+{
+    xcb_gcontext_t gc;
+    xcb_rectangle_t rects[8];
+    uint32_t gc_vals[1];
+    uint16_t arm = (uint16_t) WM_RESIZE_CORNER_SIZE;
+    uint16_t thickness = 2u;
+
+    if (connection == NULL || frame == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    if (frame_w < arm * 2u || frame_h < arm * 2u) {
+        return;
+    }
+
+    gc = xcb_generate_id(connection);
+    gc_vals[0] = color;
+    xcb_create_gc(connection, gc, frame, XCB_GC_FOREGROUND, gc_vals);
+
+    /* Top-left: horizontal arm */
+    rects[0] = (xcb_rectangle_t) { 0, 0, arm, thickness };
+    /* Top-left: vertical arm */
+    rects[1] = (xcb_rectangle_t) { 0, 0, thickness, arm };
+    /* Top-right: horizontal arm */
+    rects[2] = (xcb_rectangle_t) {
+        (int16_t)(frame_w - arm), 0, arm, thickness };
+    /* Top-right: vertical arm */
+    rects[3] = (xcb_rectangle_t) {
+        (int16_t)(frame_w - thickness), 0, thickness, arm };
+    /* Bottom-left: horizontal arm */
+    rects[4] = (xcb_rectangle_t) {
+        0, (int16_t)(frame_h - thickness), arm, thickness };
+    /* Bottom-left: vertical arm */
+    rects[5] = (xcb_rectangle_t) {
+        0, (int16_t)(frame_h - arm), thickness, arm };
+    /* Bottom-right: horizontal arm */
+    rects[6] = (xcb_rectangle_t) {
+        (int16_t)(frame_w - arm), (int16_t)(frame_h - thickness),
+        arm, thickness };
+    /* Bottom-right: vertical arm */
+    rects[7] = (xcb_rectangle_t) {
+        (int16_t)(frame_w - thickness), (int16_t)(frame_h - arm),
+        thickness, arm };
+
+    xcb_poly_fill_rectangle(connection, frame, gc, 8, rects);
+    xcb_free_gc(connection, gc);
+}
+
+
+/* Repaint the frame background, border, and corner resize handles */
+void desktop_repaint_frame_decoration(xcb_connection_t *connection,
+        const client_td *client, bool use_active_style,
+        const struct config_theme_s *theme)
+{
+    if (connection == NULL || client == NULL || client->frame == 0 ||
+            theme == NULL || !client_is_decorated(client)) {
+        return;
+    }
+    xcb_change_window_attributes(connection, client->frame,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                (use_active_style)
+                    ? theme->window.active.border_color
+                    : theme->window.inactive.border_color,
+                (use_active_style)
+                    ? theme->window.active.border_color
+                    : theme->window.inactive.border_color
+            });
+    xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
+    if (client_is_resizable(client) &&
+            !client_is_fullscreen(client) &&
+            !client_is_maximized(client)) {
+        s_draw_corner_handles(connection, client->frame,
+                (uint16_t) client->layout.geometry.cur.dim.w,
+                (uint16_t) client->layout.geometry.cur.dim.h,
+                (use_active_style)
+                    ? theme->window.active.foreground_color
+                    : theme->window.inactive.foreground_color);
     }
 }
 
@@ -363,7 +465,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
          *       'surface_clients_hide()'/'surface_clients_show()'. */
         if (is_current) {
             if (client->icon_window != 0 && client->is_icon_mapped) {
-                xcb_unmap_window(desktop->connection, client->icon_window);
+                xcb_unmap_window(desktop->connection,
+                        client->icon_window);
                 client->is_icon_mapped = false;
             }
             if (client->titlebar != 0 && !hide_decoration) {
@@ -412,18 +515,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     (const uint32_t[]) {
                         left, top, inner_w, inner_h
                     });
-            xcb_change_window_attributes(desktop->connection, client->frame,
-                    XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                    (const uint32_t[]) {
-                        (is_focused)
-                        ? desktop->config_theme->window.active.border_color
-                        : desktop->config_theme->window.inactive.border_color,
-                        (is_focused)
-                        ? desktop->config_theme->window.active.border_color
-                        : desktop->config_theme->window.inactive.border_color
-                    });
-            xcb_clear_area(desktop->connection, 0, client->frame,
-                    0, 0, 0, 0);
+            desktop_repaint_frame_decoration(desktop->connection, client,
+                    is_focused, desktop->config_theme);
+
             if (client->titlebar != 0 && !hide_decoration) {
                 xcb_configure_window(desktop->connection, client->titlebar,
                         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
@@ -446,6 +540,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                         (is_focused)
                             ? desktop->config_theme->window.active.font
                             : desktop->config_theme->window.inactive.font);
+
                 /* Use theme foreground color so text contrasts against
                  * the titlebar background (active or inactive). */
                 text_renderer_set_color(

@@ -60,8 +60,6 @@ void handler_expose(xcb_connection_t *connection,
     client_td *cycle_client;
     uint16_t left;
     uint16_t right;
-    int16_t expose_x;
-    int16_t expose_y;
     uint16_t title_h;
     uint16_t inner_w;
 
@@ -72,6 +70,10 @@ void handler_expose(xcb_connection_t *connection,
     if (connection == NULL || cfg == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Expose event: window=0x%x, region=%ux%u+%d+%d",
+            event->window, event->width, event->height,
+            event->x, event->y);
 
     /* Info popup repaint */
     if (popup_is_open() && event->window == popup_window()) {
@@ -154,26 +156,8 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
-        expose_x = (event->x > (uint16_t) INT16_MAX)
-            ? INT16_MAX
-            : (int16_t) event->x;
-        expose_y = (event->y > (uint16_t) INT16_MAX)
-            ? INT16_MAX
-            : (int16_t) event->y;
-
-        xcb_change_window_attributes(connection, client->frame,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                (const uint32_t[]) {
-                    (use_active_style)
-                        ? cfg->theme.window.active.border_color
-                        : cfg->theme.window.inactive.border_color,
-                    (use_active_style)
-                        ? cfg->theme.window.active.border_color
-                        : cfg->theme.window.inactive.border_color
-                });
-
-        xcb_clear_area(connection, 0, client->frame,
-                expose_x, expose_y, event->width, event->height);
+        desktop_repaint_frame_decoration(connection, client,
+                use_active_style, &cfg->theme);
         xcb_flush(connection);
         return;
     }

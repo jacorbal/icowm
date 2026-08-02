@@ -33,7 +33,8 @@
 
 /* Public interface */
 /**
- * @brief Dispatch a key-press event to the appropriate WM action
+ * @brief Dispatch a key-press event to the appropriate window manager
+ *        action
  *
  * Translates the keycode in @p event to a keysym, checks for cycle menu
  * navigation, the emergency exit shortcut, and configured key bindings.
@@ -53,7 +54,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         const config_td *cfg);
 
 /**
- * @brief Dispatch a key-release event to the appropriate WM action
+ * @brief Dispatch a key-release event to the appropriate window manager
+ *        action
  *
  * Checks whether the released key is the modifier used to open the
  * cycle menu; if so, confirms the current selection automatically.

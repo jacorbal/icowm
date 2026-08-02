@@ -86,10 +86,10 @@
 #define WM_CYCLE_MENU_ROW_HEIGHT (20)
 
 /** Horizontal padding inside the cycle menu window */
-#define WM_CYCLE_MENU_PAD_X (10)
+#define WM_CYCLE_MENU_PAD_X (14)
 
 /** Vertical padding (top/bottom) inside the cycle menu window */
-#define WM_CYCLE_MENU_PAD_Y (6)
+#define WM_CYCLE_MENU_PAD_Y (14)
 
 /**
  * @brief Maximum height of the cycle menu as a percentage of screen
@@ -118,6 +118,22 @@
 
 /** Threshold below which an icon drag is treated as a click */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) × 4 (px) = 16 (px^2) */
+
+/**
+ * @brief Size in pixels of the corner zone used for edge/corner resize
+ *
+ * Clicks on the frame border within this many pixels of a frame corner
+ * are treated as corner-resize initiation events rather than plain
+ * border clicks.
+ */
+#define WM_RESIZE_CORNER_SIZE (12)
+/**
+ * @brief Duration in milliseconds before the info popup auto-closes
+ *
+ * The popup opened by the client-info key binding stays visible for
+ * this long after being shown and then closes automatically.
+ */
+#define WM_INFO_POPUP_TIMEOUT_MS (1000)
 
 /** Extra border pixels added to the selected icon in the cycle menu */
 #define WM_ICON_CYCLE_SEL_BORDER_EXTRA (1u)

@@ -139,8 +139,8 @@ void handler_circulate_notify(xcb_connection_t *connection,
  *
  * Raises or lowers the target window as directed by the @c place field:
  * @c XCB_PLACE_ON_TOP maps to @c XCB_STACK_MODE_ABOVE and
- * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The WM must
- * honor this request to remain ICCCM-compliant.
+ * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The window
+ * manager must honor this request to remain ICCCM-compliant.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces

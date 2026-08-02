@@ -11,11 +11,11 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>      /* snprintf */
 #include <stdint.h>
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -47,6 +47,9 @@ static xcb_keycode_t s_popup_keycode = 0;
 
 /** Cached text lines; reused when the popup receives an expose event */
 static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
+
+/** Monotonic timestamp when the popup was last shown */
+static struct timespec s_popup_open_time = { 0, 0 };
 
 
 /* Show a popup near the client window with focused-client information */
@@ -134,6 +137,10 @@ void popup_show(xcb_connection_t *connection,
     xcb_map_window(connection, s_popup_window);
     xcb_flush(connection);
 
+    /* Record the time the popup was shown so the main loop can close
+     * it automatically after 'WM_INFO_POPUP_TIMEOUT_MS'. */
+    (void) clock_gettime(CLOCK_MONOTONIC, &s_popup_open_time);
+
     LOGGER_TRACE("Popup shown for client %#x", client->id);
 }
 
@@ -150,6 +157,37 @@ void popup_close(xcb_connection_t *connection)
     s_popup_window = XCB_WINDOW_NONE;
     s_popup_modifier = 0;
     s_popup_keycode = 0;
+    s_popup_open_time.tv_sec  = 0;
+    s_popup_open_time.tv_nsec = 0;
+}
+
+
+/* Return milliseconds until the popup should be auto-closed */
+int popup_ms_remaining(void)
+{
+    struct timespec now;
+    long elapsed_ms;
+
+    if (s_popup_window == XCB_WINDOW_NONE) {
+        return -1;
+    }
+
+    if (s_popup_open_time.tv_sec == 0 && s_popup_open_time.tv_nsec == 0) {
+        return -1;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return -1;
+    }
+
+    elapsed_ms = (long) ((now.tv_sec - s_popup_open_time.tv_sec) * 1000L +
+            (now.tv_nsec - s_popup_open_time.tv_nsec) / 1000000L);
+
+    if (elapsed_ms >= (long) WM_INFO_POPUP_TIMEOUT_MS) {
+        return 0;
+    }
+
+    return (int) ((long) WM_INFO_POPUP_TIMEOUT_MS - elapsed_ms);
 }
 
 

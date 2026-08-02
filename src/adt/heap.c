@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 /* System includes */
-#include <stdlib.h>     /* malloc, free, NULL */
+#include <stdlib.h>     /* malloc, realloc, free, NULL */
 
 /* Local includes */
 #include <adt/heap.h>
@@ -19,10 +19,12 @@ static size_t s_heap_parent(size_t npos)
     return (size_t) ((npos - 1) / 2);
 }
 
+
 static size_t s_heap_left(size_t npos)
 {
     return (npos * 2) + 1;
 }
+
 
 static size_t s_heap_right(size_t npos)
 {
@@ -56,6 +58,10 @@ heap_td *heap_init(int (*compare)(const void *key1, const void *key2),
 /* Destroy a heap freeing its allocated memory */
 void heap_destroy(heap_td *heap)
 {
+    if (heap == NULL) {
+        return;
+    }
+
     /* Remove all the nodes from the heap */
     if (heap->destroy != NULL) {
         for (size_t i = 0; i < heap_size(heap); ++i) {

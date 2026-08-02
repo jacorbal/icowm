@@ -21,21 +21,22 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Command includes */
+#include <cmds/layer.h>
+
+/* Render includes */
+#include <render/desktop.h>
+
+/* Default initial values */
+#include <defs/wm.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <invalidate.h>
 #include <logger.h>
 #include <surface.h>
-
-/* Default initial values */
-#include <defs/wm.h>
-
-/* Project includes */
 #include <lookup.h>
-
-/* Commandincludes */
-#include <cmds/layer.h>
 
 /* Local includes */
 #include <handler.h>
@@ -335,8 +336,8 @@ void handler_configure_request(xcb_connection_t *connection,
                     req_w, req_h, client->layout.gravity);
             if (adj_x != client->layout.geometry.cur.pos.x ||
                     adj_y != client->layout.geometry.cur.pos.y) {
-                for (int j = i; j > 0; j--) {
-                    target_values[j + 2] = target_values[j - 1];
+                for (int j = i - 1; j >= 0; --j) {
+                    target_values[j + 2] = target_values[j];
                 }
                 target_values[0] = (uint32_t) adj_x;
                 target_values[1] = (uint32_t) adj_y;
@@ -447,6 +448,9 @@ void handler_configure_notify(xcb_connection_t *connection,
         bool is_inner = (event->window == client->window);
 
         if (is_frame) {
+            bool is_focused = (desktop != NULL) &&
+                (desktop->client_active_id == client->id);
+
             geom_changed =
                 client->layout.geometry.cur.pos.x !=
                     (int32_t) event->x ||
@@ -469,6 +473,13 @@ void handler_configure_notify(xcb_connection_t *connection,
              * 'ConfigureNotify' would re-mark the desktop as
              * outdated. */
             if (geom_changed) {
+                desktop_repaint_frame_decoration(connection, client,
+                        is_focused,
+                        (desktop != NULL) ? desktop->config_theme
+                                          : client->theme);
+                if (connection != NULL) {
+                    xcb_flush(connection);
+                }
                 wm_invalidate_surface(surface);
                 wm_invalidate_desktop(desktop);
             } /* ! if (geom_changed) */

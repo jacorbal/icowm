@@ -64,6 +64,10 @@ static struct {
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap;              /**< Snap distance in pixels */
+    bool anchor_right;          /**< Resize: right edge is fixed (resize
+                                 *   from left) */
+    bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
+                                 *   from top) */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -78,7 +82,9 @@ static struct {
     .client_start_h = 0,
     .screen_w = 0,
     .screen_h = 0,
-    .snap = 0
+    .snap = 0,
+    .anchor_right = false,
+    .anchor_bottom = false
 };
 
 
@@ -295,6 +301,41 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.screen_h = screen_h;
     s_drag.snap = snap;
 
+    /* For resize operations, make the visible corner handles define the
+     * corner hit zones.  Outside those 12 px corner zones, keep the
+     * existing center-based fallback so the rest of the border still
+     * behaves as a resize handle. */
+    if (operation == CLIENT_OPERATION_RESIZING) {
+        int32_t left = s_drag.client_start_x;
+        int32_t top = s_drag.client_start_y;
+        int32_t right = left + (int32_t) s_drag.client_start_w;
+        int32_t bottom = top + (int32_t) s_drag.client_start_h;
+        int32_t cx = s_drag.client_start_x +
+            (int32_t) (s_drag.client_start_w / 2u);
+        int32_t cy = s_drag.client_start_y +
+            (int32_t) (s_drag.client_start_h / 2u);
+        int32_t corner = WM_RESIZE_CORNER_SIZE;
+
+        if ((int32_t) root_x < left + corner) {
+            s_drag.anchor_right = true;
+        } else if ((int32_t) root_x >= right - corner) {
+            s_drag.anchor_right = false;
+        } else {
+            s_drag.anchor_right = ((int32_t) root_x < cx);
+        }
+
+        if ((int32_t) root_y < top + corner) {
+            s_drag.anchor_bottom = true;
+        } else if ((int32_t) root_y >= bottom - corner) {
+            s_drag.anchor_bottom = false;
+        } else {
+            s_drag.anchor_bottom = ((int32_t) root_y < cy);
+        }
+    } else {
+        s_drag.anchor_right  = false;
+        s_drag.anchor_bottom = false;
+    }
+
     client->properties.operation = (uint16_t) operation;
 
     xcb_grab_pointer(connection,
@@ -335,6 +376,8 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_y = icon_y;
     s_drag.client_start_w = 0;
     s_drag.client_start_h = 0;
+    s_drag.anchor_right  = false;
+    s_drag.anchor_bottom = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
 
@@ -470,14 +513,52 @@ void drag_update(xcb_connection_t *connection,
         (void) client_send_event_move(client, new_x, new_y);
 
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
-        uint32_t new_w =
-            geom_clamp_dim((int32_t) s_drag.client_start_w + dx);
-        uint32_t new_h =
-            geom_clamp_dim((int32_t) s_drag.client_start_h + dy);
+        int32_t new_x = s_drag.client_start_x;
+        int32_t new_y = s_drag.client_start_y;
+        uint32_t new_w;
+        uint32_t new_h;
 
-        s_drag_snap_resize(s_drag.client_start_x, s_drag.client_start_y,
-                &new_w, &new_h);
+        /* Determine resize direction from the anchor computed at drag
+         * start.  When anchor_right is set the right edge is fixed and
+         * we resize from the left: the window moves and shrinks/grows
+         * as the pointer moves right/left.  Similarly for anchor_bottom
+         * and the top edge. */
+        if (s_drag.anchor_right) {
+            int32_t clamped_dx = dx;
+            int32_t min_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
 
+            if ((int32_t) s_drag.client_start_w - clamped_dx < min_w) {
+                clamped_dx = (int32_t) s_drag.client_start_w - min_w;
+            }
+            new_x = s_drag.client_start_x + clamped_dx;
+            new_w = geom_clamp_dim(
+                    (int32_t) s_drag.client_start_w - clamped_dx);
+        } else {
+            new_w = geom_clamp_dim(
+                    (int32_t) s_drag.client_start_w + dx);
+        }
+
+        if (s_drag.anchor_bottom) {
+            int32_t clamped_dy = dy;
+            int32_t min_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+
+            if ((int32_t) s_drag.client_start_h - clamped_dy < min_h) {
+                clamped_dy = (int32_t) s_drag.client_start_h - min_h;
+            }
+            new_y = s_drag.client_start_y + clamped_dy;
+            new_h = geom_clamp_dim(
+                    (int32_t) s_drag.client_start_h - clamped_dy);
+        } else {
+            new_h = geom_clamp_dim(
+                    (int32_t) s_drag.client_start_h + dy);
+        }
+
+        s_drag_snap_resize(new_x, new_y, &new_w, &new_h);
+
+        if (new_x != s_drag.client_start_x ||
+                new_y != s_drag.client_start_y) {
+            (void) client_send_event_move(client, new_x, new_y);
+        }
         (void) client_send_event_resize(client, new_w, new_h);
     }
 }
