@@ -126,12 +126,14 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     }
 
     /* Zero-initialize all pointer fields so s_wm_cleanup can check
-     * each one safely during any subsequent error path. */
+     * each one safely during any subsequent error path */
     wm->connection = NULL;
     wm->ewmh = NULL;
     wm->ewmh_support_win = XCB_NONE;
     wm->config = NULL;
     wm->surfaces = NULL;
+    wm->randr_available = false;
+    wm->randr_base_event = 0u;
 
     LOGGER_DEBUG("Opening X display", L_NARG);
     wm->connection = xcb_connect(display_name,
@@ -263,6 +265,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         s_wm_cleanup();
         return 9;
     }
+    (void) startup_randr_init(wm);
+    (void) startup_subscribe_randr_events(wm);
 
     if (wm_ewmh_init() != 0) {
         LOGGER_WARNING("Failed to initialize EWMH root metadata",

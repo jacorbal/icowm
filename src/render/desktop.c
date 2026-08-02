@@ -450,19 +450,22 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
 
         /* Map the window to make it visible */
-        /* NOTE: Only do this when 'desktop' is the surface's currently
-         *       displayed desktop.  This function is also invoked as
-         *       part of a general 'surface_render_all_desktops()'
-         *       refresh pass whenever ANY desktop's 'is_outdated' flag
-         *       is set (e.g., after moving or resizing a client, which
-         *       marks its own desktop outdated).  If that pass
-         *       unconditionally mapped clients on a desktop that is not
-         *       currently shown, it could race with (and undo) an
-         *       explicit 'surface_clients_hide()' issued by a desktop
-         *       switch, making a client reappear on top of the desktop
-         *       the user just switched to.  Visibility of non-current
-         *       desktops must be governed solely by
-         *       'surface_clients_hide()'/'surface_clients_show()'. */
+        /* Only do this when 'desktop' is the surface's currently
+         * displayed desktop.
+         *
+         * Its also invoked as part of a general
+         * 'surface_render_all_desktops()' refresh pass whenever ANY
+         * desktop's 'is_outdated' flag is set (e.g., after moving or
+         * resizing a client, which marks its own desktop outdated).
+         *
+         * If that pass unconditionally mapped clients on a desktop that
+         * is not currently shown, it could race with (and undo) an
+         * explicit 'surface_clients_hide()' issued by a desktop switch,
+         * making a client reappear on top of the desktop the user just
+         * switched to.
+         *
+         * Visibility of non-current desktops must be governed solely by
+         * 'surface_clients_hide()'/'surface_clients_show()'. */
         if (is_current) {
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(desktop->connection,

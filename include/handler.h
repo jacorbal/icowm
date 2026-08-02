@@ -139,8 +139,8 @@ void handler_circulate_notify(xcb_connection_t *connection,
  *
  * Raises or lowers the target window as directed by the @c place field:
  * @c XCB_PLACE_ON_TOP maps to @c XCB_STACK_MODE_ABOVE and
- * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The window
- * manager must honor this request to remain ICCCM-compliant.
+ * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The WM must
+ * honor this request to remain ICCCM-compliant.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces
@@ -274,6 +274,17 @@ void handler_expose(xcb_connection_t *connection,
  */
 void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event);
+
+/**
+ * @brief Handle XRandR extension events
+ *
+ * Processes monitor/screen-change notifications and schedules geometry
+ * and repaint refresh work for affected surfaces.
+ *
+ * @param wm    Window manager state
+ * @param event Raw XCB event from the main loop
+ */
+void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
 
 
 #endif  /* ! HANDLER_H */

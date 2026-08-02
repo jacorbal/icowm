@@ -25,6 +25,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/config.h>
 
@@ -264,6 +267,35 @@ struct config_theme_s {
 
 
 /**
+ * @brief Per-output RandR profile configuration
+ *
+ * Stores the user-defined settings for a single physical output.
+ * When @p enabled is @c true the output profile is applied at startup
+ * and whenever the output is reconnected.
+ */
+struct config_randr_output_s {
+    char name[CONFIG_RANDR_OUTPUT_NAME_LEN];/**< Output name, ("HDMI-1"...) */
+    bool is_enabled;           /**< Whether this profile is active */
+    bool is_primary;        /**< Mark output as primary */
+    struct dimensions_s preferred_res;  /**< Preferred resolution */
+    struct position_s position;         /**< Output position (x, y) */
+    uint16_t rotation;      /**< Preferred rotation (XRandR mask) */
+};
+
+
+/**
+ * @brief XRandR layout configuration
+ *
+ * Holds a list of per-output profiles and a global on/off switch.
+ */
+struct config_randr_s {
+    bool is_enabled;        /**< Enable RandR profile management */
+    uint32_t output_count;  /**< Number of populated output profiles */
+    struct config_randr_output_s outputs[CONFIG_RANDR_MAX_OUTPUTS];
+};
+
+
+/**
  * @brief Main configuration structure
  *
  * Encapsulates the main configuration, including base settings,
@@ -273,6 +305,7 @@ typedef struct {
     struct config_base_s base;
     struct config_bindings_s bindings;
     struct config_theme_s theme;
+    struct config_randr_s randr;
 } config_td;
 
 
@@ -407,6 +440,26 @@ int config_load_bindings(const char *filename,
  */
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme);
+
+/**
+ * @brief Load XRandR output profiles from a JSON file
+ *
+ * Loads per-output profile settings into the provided
+ * @c config_randr_s structure from the specified file.
+ *
+ * @param filename     Path to the RandR configuration file
+ * @param config_randr Pointer to the RandR configuration structure to
+ *                     populate
+ *
+ * @return 0 on success, or otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of output entries
+ *       in the file
+ *
+ * @see @c config_randr_s
+ */
+int config_load_randr(const char *filename,
+        struct config_randr_s *config_randr);
 
 
 #endif  /* ! CONFIG_H */

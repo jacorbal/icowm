@@ -66,17 +66,6 @@ struct dpi_s {
 
 
 /**
- * @brief Resolution structure
- *
- * @note Resolution is always positive
- */
-struct resolution_s {
-    uint32_t x;
-    uint32_t y;
-};
-
-
-/**
  * @brief Dimensions structure
  *
  * @note Dimensions are always non-negative

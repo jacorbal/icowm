@@ -23,6 +23,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/randr.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -148,6 +149,165 @@ static int s_startup_install_handler(int signum,
 }
 
 
+/* Probe XRandR support and cache extension metadata in 'wm' */
+int startup_randr_init(wm_td *wm)
+{
+    const xcb_query_extension_reply_t *ext;
+    xcb_randr_query_version_reply_t *ver_reply;
+    xcb_randr_query_version_cookie_t ver_cookie;
+
+    if (wm == NULL || wm->connection == NULL) {
+        return -1;
+    }
+
+    wm->randr_available = false;
+    wm->randr_base_event = 0u;
+
+    ext = xcb_get_extension_data(wm->connection, &xcb_randr_id);
+    if (ext == NULL || !ext->present) {
+        LOGGER_NOTICE("XRandR extension is unavailable on this X server",
+                L_NARG);
+        return 0;
+    }
+
+    ver_cookie = xcb_randr_query_version(wm->connection, 1u, 5u);
+    ver_reply = xcb_randr_query_version_reply(wm->connection,
+            ver_cookie, NULL);
+    if (ver_reply == NULL) {
+        LOGGER_WARNING("Failed to query XRandR version;" \
+                " disabling XRandR", L_NARG);
+        return 0;
+    }
+
+    wm->randr_available = true;
+    wm->randr_base_event = ext->first_event;
+    LOGGER_INFO("XRandR enabled (server version %u.%u, base event=%u)",
+            (unsigned int) ver_reply->major_version,
+            (unsigned int) ver_reply->minor_version,
+            (unsigned int) wm->randr_base_event);
+    free(ver_reply);
+
+    /* Query initial CRTC/output state for each managed surface so that
+     * 'surface->randr' fields are populated before the first RandR
+     * event arrives (needed by set_orientation/set_resolution) */
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        xcb_randr_get_screen_resources_current_cookie_t res_cookie;
+        xcb_randr_get_screen_resources_current_reply_t *res_reply;
+        xcb_randr_crtc_t *crtcs;
+        int crtc_count;
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        res_cookie = xcb_randr_get_screen_resources_current(
+                wm->connection, surface->screen->root);
+        res_reply = xcb_randr_get_screen_resources_current_reply(
+                wm->connection, res_cookie, NULL);
+        if (res_reply == NULL) {
+            continue;
+        }
+
+        crtc_count =
+            xcb_randr_get_screen_resources_current_crtcs_length(
+                    res_reply);
+        crtcs =
+            xcb_randr_get_screen_resources_current_crtcs(res_reply);
+
+        for (int ci = 0; ci < crtc_count; ci++) {
+            xcb_randr_get_crtc_info_cookie_t ci_cookie;
+            xcb_randr_get_crtc_info_reply_t *crtc_info;
+
+            ci_cookie = xcb_randr_get_crtc_info(wm->connection,
+                    crtcs[ci], res_reply->config_timestamp);
+            crtc_info = xcb_randr_get_crtc_info_reply(
+                    wm->connection, ci_cookie, NULL);
+
+            if (crtc_info == NULL) {
+                continue;
+            }
+
+            if (crtc_info->mode != XCB_NONE &&
+                    crtc_info->num_outputs > 0) {
+                xcb_randr_output_t *out_ids =
+                    xcb_randr_get_crtc_info_outputs(crtc_info);
+
+                surface->randr.is_known = true;
+                surface->randr.crtc_id = (uint32_t) crtcs[ci];
+                surface->randr.mode_id = (uint32_t) crtc_info->mode;
+                surface->randr.rotation = crtc_info->rotation;
+                surface->randr.output_id = (uint32_t) out_ids[0];
+
+                LOGGER_DEBUG("Surface %u: initial CRTC %u, mode %u,"
+                        " output %u, rotation %u",
+                        surface->id,
+                        surface->randr.crtc_id,
+                        surface->randr.mode_id,
+                        surface->randr.output_id,
+                        (unsigned int) surface->randr.rotation);
+
+                free(crtc_info);
+                break;  /* Take the first active CRTC */
+            }
+            free(crtc_info);
+        }
+
+        free(res_reply);
+    }
+
+    return 0;
+}
+
+
+/* Subscribe to XRandR notifications on each managed root window */
+int startup_subscribe_randr_events(wm_td *wm)
+{
+    if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
+        return -1;
+    }
+
+    if (!wm->randr_available) {
+        return 0;
+    }
+
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+        xcb_void_cookie_t cookie;
+        xcb_generic_error_t *err;
+        uint16_t mask;
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        mask = XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
+               XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE   |
+               XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
+               XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY;
+
+        cookie = xcb_randr_select_input_checked(wm->connection,
+                surface->screen->root, mask);
+        err = xcb_request_check(wm->connection, cookie);
+        if (err != NULL) {
+            LOGGER_WARNING("Failed to subscribe XRandR events on"
+                    " surface %u (XCB error code %u)",
+                    surface->id, (unsigned int) err->error_code);
+            free(err);
+            continue;
+        }
+
+        LOGGER_DEBUG("Subscribed XRandR events on surface %u"
+                " (root %#x)", surface->id, surface->screen->root);
+    }
+
+    xcb_flush(wm->connection);
+    return 0;
+}
+
+
 /* Subscribe to root window events on all managed surfaces */
 int startup_subscribe_root_events(wm_td *wm)
 {
@@ -196,9 +356,9 @@ int startup_subscribe_root_events(wm_td *wm)
     }
 
     /* Set a default left-pointer cursor on every root window so the
-     * cursor is visible even when no client window is under the pointer.
-     * The cursor font stores glyphs in pairs; see 'defs/wm.h' for the
-     * named constants. */
+     * cursor is visible even when no client window is under the
+     * pointer.  The cursor font stores glyphs in pairs; see 'defs/wm.h'
+     * for the named constants. */
     fnt = xcb_generate_id(wm->connection);
     cur = xcb_generate_id(wm->connection);
     xcb_open_font(wm->connection, fnt,

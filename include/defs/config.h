@@ -36,10 +36,15 @@
 #define CONFIG_DIR_THEMES "themes"
 #define CONFIG_FILENAME_BASE "config.json"
 #define CONFIG_FILENAME_BINDINGS "bindings.json"
+#define CONFIG_FILENAME_RANDR "randr.json"
 
 /* Default values when no value is given */
 #define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */
 #define CONFIG_MAX_DESKTOPS (10)    /**< Initial max. desktops per screen */
+
+/* XRandR output profile configuration limits */
+#define CONFIG_RANDR_MAX_OUTPUTS (8)      /**< Max. per-output profiles */
+#define CONFIG_RANDR_OUTPUT_NAME_LEN (64) /**< Max. output name length */
 
 
 #endif  /* ! DEFS_CONFIG_H */

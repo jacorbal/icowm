@@ -47,6 +47,30 @@
 int startup_subscribe_root_events(wm_td *wm);
 
 /**
+ * @brief Initialize optional XRandR support
+ *
+ * Probes the XRandR extension, stores extension metadata in @p wm, and
+ * negotiates a compatible protocol version when available.
+ *
+ * @param wm Window manager state
+ *
+ * @return 0 on success or when XRandR is unavailable, -1 on fatal input
+ */
+int startup_randr_init(wm_td *wm);
+
+/**
+ * @brief Subscribe XRandR change notifications on every managed root
+ *
+ * Registers interest in monitor/output/screen-change notifications for
+ * each managed surface root when XRandR is available.
+ *
+ * @param wm Window manager state
+ *
+ * @return 0 on success, -1 on invalid input
+ */
+int startup_subscribe_randr_events(wm_td *wm);
+
+/**
  * @brief Install POSIX signal handlers for graceful termination
  *
  * Registers deferred handlers for graceful shutdown, configuration

@@ -26,6 +26,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/randr.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -215,7 +216,7 @@ void loop_run(wm_td *wm)
         pfd.revents = 0;
 
         /* Use a shorter poll timeout when the info popup is visible so
-         * it closes promptly at the configured expiry time */
+         * it closes promptly at the configured expiry time. */
         poll_timeout_ms = WM_EVENT_POLL_TIMEOUT_MS;
         if (popup_is_open()) {
             int ms = popup_ms_remaining();
@@ -232,6 +233,19 @@ void loop_run(wm_td *wm)
         }
 
         while ((event = xcb_poll_for_event(wm->connection)) != NULL) {
+            uint8_t event_type =
+                (uint8_t) (event->response_type & ~0x80u);
+
+            if (wm->randr_available &&
+                    (event_type == (uint8_t) (wm->randr_base_event +
+                            XCB_RANDR_SCREEN_CHANGE_NOTIFY) ||
+                     event_type == (uint8_t) (wm->randr_base_event +
+                            XCB_RANDR_NOTIFY))) {
+                handler_randr_event(wm, event);
+                free(event);
+                continue;
+            }
+
             switch (event->response_type & ~0x80u) {
                 case XCB_KEY_PRESS:
                     keyboard_handle_press(keysyms,
@@ -360,15 +374,12 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_REPARENT_NOTIFY:
+                    /* The WM does its own reparenting and absorbs the
+                     * spurious 'UnmapNotify' via 'ignore_unmap'; no
+                     * action needed here */
                 case XCB_CREATE_NOTIFY:
-                    /* - 'XCB_REPARENT_NOTIFY': icowm does its own
-                     *   reparenting and absorbs the spurious
-                     *   'UnmapNotify' via 'ignore_unmap'; no action
-                     *   needed here.
-                     *
-                     * - 'XCB_CREATE_NOTIFY': windows are adopted on
-                     *   'MAP_REQUEST', not on creation; a created
-                     *   window may never be mapped. */
+                    /* Windows are adopted on 'MAP_REQUEST', not on
+                     * creation; a created window may never be mapped */
                     break;
 
                 default:
@@ -383,7 +394,7 @@ void loop_run(wm_td *wm)
         eventq_process();
 
         /* Auto-close the info popup when its display timeout has
-         * elapsed.  Close before the 'loop_update' call so any visual
+         * elapsed.  Close before the loop_update call so any visual
          * update triggered by the close is handled in the same
          * iteration. */
         if (popup_is_open() && popup_ms_remaining() == 0) {

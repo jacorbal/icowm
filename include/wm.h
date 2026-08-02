@@ -54,6 +54,8 @@ typedef struct {
     xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
     list_td *surfaces;              /**< List of surfaces */
     uint32_t screenp;               /**< Preferred screen */
+    bool randr_available;           /**< XRandR extension availability */
+    uint8_t randr_base_event;       /**< XRandR base event code */
     config_td *config;              /**< Window manager configuration */
     const char *config_dir_prefix;  /**< Config dir. passed at startup,
                                          for @c NULL if the default

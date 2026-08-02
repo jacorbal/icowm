@@ -86,6 +86,13 @@ typedef struct surface_s {
 
     /* Properties */
     struct surface_properties_s properties;
+    struct {
+        bool is_known;              /**< Whether output metadata is known */
+        uint32_t output_id;         /**< Active output identifier */
+        uint32_t crtc_id;           /**< Active CRTC identifier */
+        uint32_t mode_id;           /**< Active mode identifier */
+        uint16_t rotation;          /**< Effective rotation mask */
+    } randr;
 
     uint32_t desktop_count;         /**< No. of desktops for this surface */
     uint32_t desktop_cur;           /**< Index of current desktop */
@@ -513,6 +520,22 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
  * @note Complexity: @e O(n), where @e n is the number of desktops
  */
 void surface_refresh_workareas(surface_td *surface);
+
+/**
+ * @brief Reposition clients that fall outside the surface bounds
+ *
+ * Iterates all desktops and their stacking lists.  Any client whose
+ * frame (or client window when undecorated) lies outside the current
+ * surface dimensions is clamped back so that at least a minimum strip
+ * of the window remains visible.  Both the X server geometry and the
+ * cached @c client->layout.geometry.cur are updated.
+ *
+ * @param surface Pointer to the surface whose clients will be reflowed
+ *
+ * @note Complexity: @e O(d * n), where @e d is the number of desktops
+ *       and @e n is the average number of clients per desktop
+ */
+void surface_reflow_clients(surface_td *surface);
 
 /**
  * @brief Macro that evaluates to the surface width

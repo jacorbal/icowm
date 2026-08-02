@@ -170,6 +170,10 @@ void config_set_default_values(config_td *config)
     config->base.windows.focus.is_raised_on_focus = false;
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
 
+    /* Predetermined values for RandR output profile management */
+    config->randr.is_enabled = false;
+    config->randr.output_count = 0u;
+
     /* Assign predetermined values for bindings modifiers */
     LOGGER_TRACE("Setting default bindings modifiers", L_NARG);
     safe_strcpy(config->bindings.modc, "Control");

@@ -17,9 +17,13 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/randr.h>
 
 /* ADT includes */
 #include <adt/cdlist.h>
+
+/* Default initial values */
+#include <defs/wm.h>
 
 /* Project includes */
 #include <client.h>
@@ -73,9 +77,9 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 
             /* For decorated clients, unmapping the frame also unmaps
              * its child client window; issuing an extra unmap on the
-             * child would duplicate UnmapNotify handling and may
+             * child would duplicate 'UnmapNotify' handling and may
              * overwrite the remembered active client during desktop
-             * switches. */
+             * switches */
             xcb_unmap_window(surface->connection, target);
 
             if (client->icon_window != 0 && client->is_icon_mapped) {
@@ -169,7 +173,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     }
 
     /* Restore input focus to the previously active client.
-     * If no suitable client is found, relinquish focus to PointerRoot
+     * If no suitable client is found, relinquish focus to 'PointerRoot'
      * so the previous desktop's windows do not retain keyboard input. */
     focus_restored = false;
     focus_target = NULL;
@@ -309,6 +313,103 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 }
             }
         }
+
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
+/* Reposition clients that fall outside the surface bounds */
+void surface_reflow_clients(surface_td *surface)
+{
+    cdlist_item_td *dnode;
+    cdlist_item_td *dinitial;
+
+    if (surface == NULL || surface->desktops == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+        cdlist_item_td *cnode;
+        cdlist_item_td *cinitial;
+
+        if (desktop == NULL || desktop->stacking == NULL ||
+                cdlist_size(desktop->stacking) == 0) {
+            dnode = cdlist_next(dnode);
+            continue;
+        }
+
+        cnode = cdlist_head(desktop->stacking);
+        if (cnode == NULL) {
+            dnode = cdlist_next(dnode);
+            continue;
+        }
+
+        cinitial = cnode;
+        do {
+            client_td *client = (client_td *) cdlist_data(cnode);
+
+            if (client != NULL) {
+                /* Use the frame for decorated windows, the client window
+                 * otherwise */
+                xcb_window_t target =
+                    (client_is_decorated(client) && client->frame != 0)
+                    ? client->frame : client->window;
+
+                int32_t cx = client->layout.geometry.cur.pos.x;
+                int32_t cy = client->layout.geometry.cur.pos.y;
+                uint32_t cw = client->layout.geometry.cur.dim.w;
+                uint32_t ch = client->layout.geometry.cur.dim.h;
+
+                int32_t sw = (int32_t) surface->properties.dim.w;
+                int32_t sh = (int32_t) surface->properties.dim.h;
+
+                /* Minimum visible strip to keep on screen. */
+                int32_t margin = (int32_t) WM_KEYBOARD_MOVE_STEP;
+
+                int32_t new_x = cx;
+                int32_t new_y = cy;
+
+                /* Clamp horizontally */
+                if (new_x + (int32_t) cw < margin) {
+                    new_x = margin - (int32_t) cw;
+                }
+                if (new_x > sw - margin) {
+                    new_x = sw - margin;
+                }
+
+                /* Clamp vertically */
+                if (new_y + (int32_t) ch < margin) {
+                    new_y = margin - (int32_t) ch;
+                }
+                if (new_y > sh - margin) {
+                    new_y = sh - margin;
+                }
+
+                if (new_x != cx || new_y != cy) {
+                    uint32_t vals[2];
+                    vals[0] = (uint32_t) new_x;
+                    vals[1] = (uint32_t) new_y;
+
+                    xcb_configure_window(surface->connection, target,
+                            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                            vals);
+
+                    client->layout.geometry.cur.pos.x = new_x;
+                    client->layout.geometry.cur.pos.y = new_y;
+                    desktop->is_outdated = true;
+                }
+            }
+
+            cnode = cdlist_next(cnode);
+        } while (cnode != NULL && cnode != cinitial);
 
         dnode = cdlist_next(dnode);
     } while (dnode != NULL && dnode != dinitial);
@@ -516,14 +617,102 @@ int surface_action_toggle_fullsurface(surface_td *surface)
 int surface_action_set_resolution(surface_td *surface,
         struct dimensions_s resolution)
 {
+    xcb_randr_get_screen_resources_current_cookie_t res_cookie;
+    xcb_randr_get_screen_resources_current_reply_t *res_reply;
+    xcb_randr_mode_t target_mode;
+    int nmodes;
+    xcb_randr_mode_info_t *modes;
+    xcb_randr_set_crtc_config_cookie_t cfg_cookie;
+    xcb_randr_set_crtc_config_reply_t *cfg_reply;
+    xcb_randr_output_t out_id;
+
     LOGGER_DEBUG("Setting resolution to %ux%u on surface %u",
-            resolution.w, resolution.h, surface->id);
+                 resolution.w, resolution.h, surface->id);
 
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
 
+    if (!surface->randr.is_known) {
+        LOGGER_WARNING("XRandR CRTC info not yet populated for" \
+                       " surface %u; cannot set resolution", surface->id);
+        return 1;
+    }
+
+    if (resolution.w == 0 || resolution.h == 0) {
+        LOGGER_ERROR("Invalid resolution %ux%u for surface %u",
+                     resolution.w, resolution.h, surface->id);
+        return 1;
+    }
+
+    target_mode = XCB_NONE;
+
+    res_cookie = xcb_randr_get_screen_resources_current(
+        surface->connection, surface->screen->root);
+
+    res_reply = xcb_randr_get_screen_resources_current_reply(
+        surface->connection, res_cookie, NULL);
+
+    if (res_reply == NULL) {
+        LOGGER_WARNING("Failed to query screen resources on" \
+                       " surface %u", surface->id);
+        return 1;
+    }
+
+    nmodes =
+        xcb_randr_get_screen_resources_current_modes_length(res_reply);
+    modes = xcb_randr_get_screen_resources_current_modes(res_reply);
+
+    for (int mi = 0; mi < nmodes; mi++) {
+        if (modes[mi].width == (uint16_t)resolution.w &&
+            modes[mi].height == (uint16_t)resolution.h) {
+            target_mode = modes[mi].id;
+            break;
+        }
+    }
+
+    if (target_mode == XCB_NONE) {
+        LOGGER_WARNING("No RandR mode found matching %ux%u on" \
+                       " surface %u",
+                       resolution.w, resolution.h, surface->id);
+        free(res_reply);
+        return 1;
+    }
+
+    out_id = (xcb_randr_output_t)surface->randr.output_id;
+
+    cfg_cookie = xcb_randr_set_crtc_config(
+        surface->connection,
+        (xcb_randr_crtc_t)surface->randr.crtc_id,
+        XCB_CURRENT_TIME,
+        res_reply->config_timestamp,
+        0, 0,
+        target_mode,
+        surface->randr.rotation,
+        1u, &out_id);
+
+    cfg_reply = xcb_randr_set_crtc_config_reply(
+        surface->connection, cfg_cookie, NULL);
+
+    if (cfg_reply == NULL ||
+        cfg_reply->status != XCB_RANDR_SET_CONFIG_SUCCESS) {
+        LOGGER_WARNING("XRandR set-resolution request failed" \
+                       " on surface %u (mode %u)",
+                       surface->id, (unsigned int)target_mode);
+        free(cfg_reply);
+        free(res_reply);
+        return 1;
+    }
+
+    surface->randr.mode_id = (uint32_t)target_mode;
+
+    free(cfg_reply);
+    free(res_reply);
+
+    /* The resulting 'XCB_RANDR_SCREEN_CHANGE_NOTIFY' event will trigger
+     * surface_resize and 'surface_refresh_workareas' via the event
+     * loop; mark outdated proactively to keep the frame rate smooth */
     surface_resize(surface, resolution.w, resolution.h);
     surface->is_outdated = true;
 
@@ -534,6 +723,13 @@ int surface_action_set_resolution(surface_td *surface,
 /* Set the surface orientation */
 int surface_action_set_orientation(surface_td *surface, int orientation)
 {
+    uint16_t rotation;
+    xcb_randr_get_screen_resources_current_cookie_t res_cookie;
+    xcb_randr_get_screen_resources_current_reply_t *res_reply;
+    xcb_randr_set_crtc_config_cookie_t cfg_cookie;
+    xcb_randr_set_crtc_config_reply_t *cfg_reply;
+    xcb_randr_output_t out_id;
+
     LOGGER_DEBUG("Setting orientation %d on surface %u",
             orientation, surface->id);
 
@@ -542,12 +738,65 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
         return -1;
     }
 
-    /* Orientation control is currently unsupported in this backend */
-    LOGGER_WARNING("Surface orientation change is unsupported",
-            L_NARG);
-    (void) orientation;
+    if (!surface->randr.is_known) {
+        LOGGER_WARNING("XRandR CRTC info not yet populated for"
+                " surface %u; cannot set orientation", surface->id);
+        return 1;
+    }
 
-    return -1;
+    switch (orientation) {
+        case 0:  rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_0;   break;
+        case 1:  rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_90;  break;
+        case 2:  rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_180; break;
+        case 3:  rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_270; break;
+        default:
+            LOGGER_WARNING("Unknown orientation value %d for surface %u",
+                    orientation, surface->id);
+            return 1;
+    }
+
+    out_id = (xcb_randr_output_t) surface->randr.output_id;
+
+    res_cookie = xcb_randr_get_screen_resources_current(
+            surface->connection, surface->screen->root);
+    res_reply = xcb_randr_get_screen_resources_current_reply(
+            surface->connection, res_cookie, NULL);
+
+    if (res_reply == NULL) {
+        LOGGER_WARNING("Failed to query screen resources on"
+                " surface %u", surface->id);
+        return 1;
+    }
+
+    cfg_cookie = xcb_randr_set_crtc_config(
+            surface->connection,
+            (xcb_randr_crtc_t) surface->randr.crtc_id,
+            XCB_CURRENT_TIME,
+            res_reply->config_timestamp,
+            0, 0,
+            (xcb_randr_mode_t) surface->randr.mode_id,
+            rotation,
+            1u, &out_id);
+    cfg_reply = xcb_randr_set_crtc_config_reply(
+            surface->connection, cfg_cookie, NULL);
+
+    free(res_reply);
+
+    if (cfg_reply == NULL ||
+            cfg_reply->status != XCB_RANDR_SET_CONFIG_SUCCESS) {
+        LOGGER_WARNING("XRandR set-orientation request failed" \
+                " on surface %u (rotation %u)",
+                surface->id, (unsigned int) rotation);
+        free(cfg_reply);
+        return 1;
+    }
+
+    surface->randr.rotation = rotation;
+    free(cfg_reply);
+
+    surface->is_outdated = true;
+
+    return 0;
 }
 
 
