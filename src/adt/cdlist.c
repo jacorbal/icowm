@@ -232,6 +232,10 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
     /* Remove the item from the list */
     if (item == NULL) {
         /* Handle removal from the head of the list */
+        if (cdlist->head == NULL) {
+            return -1;
+        }
+
         old_data = cdlist->head->data;
         old_item = cdlist->head;
 

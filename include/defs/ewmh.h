@@ -42,7 +42,7 @@
  * @c wm_ewmh_init.  Update this constant whenever atoms are added to or
  * removed from the supported set.
  *
- * Current set (55 atoms):
+ * Current set (62 atoms):
  *   @c _NET_SUPPORTED, @c _NET_SUPPORTING_WM_CHECK,
  *   @c _NET_CLIENT_LIST, @c _NET_CLIENT_LIST_STACKING,
  *   @c _NET_NUMBER_OF_DESKTOPS, @c _NET_CURRENT_DESKTOP,
@@ -63,6 +63,10 @@
  *   @c _NET_CLOSE_WINDOW,
  *   @c _NET_WM_WINDOW_TYPE, @c _NET_WM_WINDOW_TYPE_DOCK,
  *   @c _NET_WM_WINDOW_TYPE_NORMAL, @c _NET_WM_WINDOW_TYPE_DIALOG,
+ *   @c _NET_WM_WINDOW_TYPE_DESKTOP, @c _NET_WM_WINDOW_TYPE_TOOLBAR,
+ *   @c _NET_WM_WINDOW_TYPE_MENU, @c _NET_WM_WINDOW_TYPE_UTILITY,
+ *   @c _NET_WM_WINDOW_TYPE_SPLASH,
+ *   @c _NET_WM_WINDOW_TYPE_NOTIFICATION,
  *   @c _NET_MOVERESIZE_WINDOW, @c _NET_FRAME_EXTENTS
  *   @c _NET_REQUEST_FRAME_EXTENTS,
  *   @c _NET_WM_ALLOWED_ACTIONS,
@@ -74,9 +78,10 @@
  *   @c _NET_WM_ACTION_CLOSE,
  *   @c _NET_WM_ACTION_ABOVE, @c _NET_WM_ACTION_BELOW,
  *   @c _NET_WM_PING, @c _NET_WM_USER_TIME,
- *   @c _NET_SHOWING_DESKTOP
+ *   @c _NET_SHOWING_DESKTOP,
+ *   @c _NET_WM_ICON_GEOMETRY
  */
-#define WM_EWMH_SUPPORTED_COUNT (55)
+#define WM_EWMH_SUPPORTED_COUNT (62)
 
 /**
  * @brief Interval between successive @c _NET_WM_PING probes (seconds)

@@ -184,8 +184,8 @@ void mouse_handle_press(xcb_connection_t *connection,
 {
     xcb_window_t window;
     client_td *client;
-    desktop_td *desktop;
-    surface_td *surface;
+    desktop_td *desktop = NULL;
+    surface_td *surface = NULL;
     uint16_t state;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
     uint32_t screen_w;
@@ -200,13 +200,16 @@ void mouse_handle_press(xcb_connection_t *connection,
         if (event->event == popup_window() ||
                 event->child == popup_window()) {
             popup_close(connection);
+
             if (surface != NULL) {
                 surface_render_current_desktop_repaint(surface);
             }
             xcb_flush(connection);
             return;
         }
+
         popup_close(connection);
+
         if (surface != NULL) {
             surface_render_current_desktop_repaint(surface);
         }
@@ -224,6 +227,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                 return;
             }
         }
+
         /* Click outside dialog: close without action */
         confirm_close(connection);
         xcb_allow_events(connection,
@@ -311,6 +315,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         if (t == MOUSEBIND_NONE) {
             continue;
         }
+
         if ((xcb_button_index_t) event->detail == btn) {
             if (req == 0 || (state & req) == req) {
                 type = t;
@@ -389,10 +394,10 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     if (type == MOUSEBIND_NONE) {
-        if (surface != NULL && desktop != NULL &&
-                client_is_focusable(client)) {
+        if (client != NULL) {
             surface = lookup_surface_for_root(surfaces, event->root);
-            if (surface != NULL && desktop != NULL) {
+            if (client != NULL && surface != NULL && desktop != NULL &&
+                    client_is_focusable(client)) {
                 focus_apply(surfaces, surface, desktop, client,
                         true, cfg);
             }
@@ -451,7 +456,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                             int bx = fw - pad - btn - bi * step;
                             if (ex >= bx && ex < bx + btn) {
                                 if (!can_maximize &&
-                                        (bi == 1 || bi ==2)) {
+                                        (bi == 1 || bi == 2)) {
                                     hit_btn = true;
                                     break;
                                 }

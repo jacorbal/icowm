@@ -498,8 +498,8 @@ void handler_configure_notify(xcb_connection_t *connection,
             frame_h = (uint32_t) event->height + top + bottom;
 
             geom_changed =
-                client->layout.geometry.cur.pos.x != frame_x ||
-                client->layout.geometry.cur.pos.y != frame_y ||
+                (int32_t) event->x != (int32_t) left ||
+                (int32_t) event->y != (int32_t) top ||
                 client->layout.geometry.cur.dim.w != frame_w ||
                 client->layout.geometry.cur.dim.h != frame_h;
 
