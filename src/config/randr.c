@@ -101,6 +101,8 @@ int config_load_randr(const char *filename,
     }
 
     json_load_bool(json, "enabled", &config_randr->is_enabled);
+    LOGGER_DEBUG("RandR configuration: enabled=%d",
+            (int) config_randr->is_enabled);
 
     outputs_arr = cJSON_GetObjectItem(json, "outputs");
     if (outputs_arr == NULL || !cJSON_IsArray(outputs_arr)) {

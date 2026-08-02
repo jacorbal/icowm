@@ -171,6 +171,7 @@ void config_set_default_values(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
 
     /* Predetermined values for RandR output profile management */
+    LOGGER_TRACE("Setting default RandR configuration", L_NARG);
     config->randr.is_enabled = false;
     config->randr.output_count = 0u;
 
@@ -313,6 +314,7 @@ int config_load(config_td *config, const char *config_prefix)
     char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_theme_file[CONFIG_MAX_LENGTH_PATH_THEME];
+    char config_randr_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
 
     s_config_dir_set(config_prefix, config_dir);
 
@@ -359,6 +361,21 @@ int config_load(config_td *config, const char *config_prefix)
                     " '%s'; default theme will be used",
                     config_theme_file);
         }
+    }
+
+    /* Set RandR config file path and load (optional) */
+    snprintf(config_randr_file, sizeof(config_randr_file),
+            "%s/%s", config_dir, CONFIG_FILENAME_RANDR);
+    if (config_load_randr(config_randr_file, &(config->randr)) != 0) {
+        LOGGER_DEBUG("RandR configuration not found or could not be" \
+                " loaded from '%s'; output profiles disabled",
+                config_randr_file);
+    } else {
+        LOGGER_DEBUG("RandR configuration loaded from '%s'" \
+                " (enabled=%d, outputs=%u)",
+                config_randr_file,
+                (int) config->randr.is_enabled,
+                config->randr.output_count);
     }
 
     return 0;
