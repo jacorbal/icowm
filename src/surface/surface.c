@@ -56,7 +56,7 @@ static void s_update_properties(surface_td *surface,
     int xx, yy;
 
     /* Update surface dimensions */
-    xx = screen->width_in_pixels;  // XCB allows direct access to these
+    xx = screen->width_in_pixels;   /* XCB allows direct access to these */
     yy = screen->height_in_pixels;
 
     surface->properties.dim.w = (xx > 0) ? (uint32_t) xx : 0;
@@ -143,6 +143,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     if (surface->screen == NULL) {
         LOGGER_FATAL("Failed to retrieve information for surface %u",
                 surface_id);
+        free(surface);
         return NULL;
     }
 
@@ -156,7 +157,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     s_update_properties(surface, surface->screen);
 
     /* Handle desktops */
-    LOGGER_DEBUG("Setting up all %d desktops", desktop_count);
+    LOGGER_DEBUG("Setting up all %u desktops", desktop_count);
 
     LOGGER_TRACE("Initializing desktop list structure for surface %u",
             surface_id);
@@ -169,7 +170,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     }
 
     /* Initialize desktops */
-    surface->desktop_count = desktop_count;
+    surface->desktop_count = 0;
     for (uint32_t i = 0; i < desktop_count; ++i) {
         desktop_td *desktop = desktop_init(surface->connection,
                 surface->ewmh,
@@ -223,8 +224,6 @@ void surface_destroy(surface_td *surface)
 /* Soft surface update */
 void surface_update(surface_td *surface)
 {
-//    LOGGER_TRACE("Updating surface %u", surface->id);
-
     /* Establish that this surface is already updated */
     surface->is_outdated = false;
 }
@@ -271,7 +270,7 @@ void surface_resize(surface_td *surface,
         surface->properties.dim.h = height;
     }
 
-    /* TODO: More logic here to update connection, desktops, &c. */
+    /* Dimensions are updated lazily by render/update paths. */
 }
 
 
@@ -299,28 +298,34 @@ int surface_desktop_add(surface_td *surface, desktop_td *desktop)
 /* Remove a desktop from the list by its ID */
 int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
 {
-    if (surface == NULL || surface->desktop_count == 0) {
+    cdlist_item_td *current_item;
+
+    if (surface == NULL || surface->desktops == NULL ||
+            surface->desktop_count == 0) {
         return -1;
     }
 
-    /* Iterate over each desktop in the circular list */
-    for (cdlist_item_td *current_item = cdlist_head(surface->desktops);
-         current_item != NULL;
-         current_item = cdlist_next(current_item)) {
+    current_item = cdlist_head(surface->desktops);
+    for (size_t i = 0; i < surface->desktop_count && current_item != NULL;
+            ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
+            void *removed_desktop = NULL;
             /* Remove the desktop */
             if (cdlist_rem_next(surface->desktops,
-                        current_item, NULL) != 0) {
+                        cdlist_prev(current_item),
+                        &removed_desktop) != 0) {
                 /* Failed to remove from list */
                 return 1;
             }
-            desktop_destroy(desktop);
+            desktop_destroy((desktop_td *) ((removed_desktop != NULL)
+                        ? removed_desktop : (void *) desktop));
 
             /* Update the count of desktops */
             surface->desktop_count--;
             return 0;
         }
+        current_item = cdlist_next(current_item);
     }
 
     /* Desktop not found */
@@ -332,18 +337,21 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
 desktop_td *surface_desktop_get(surface_td *surface,
         uint32_t desktop_id)
 {
-    if (surface == NULL) {
+    cdlist_item_td *current_item;
+
+    if (surface == NULL || surface->desktops == NULL ||
+            surface->desktop_count == 0) {
         return NULL;
     }
 
-    /* Iterate over each desktop in the circular list */
-    for (cdlist_item_td *current_item = cdlist_head(surface->desktops);
-            current_item != NULL;
-            current_item = cdlist_next(current_item)) {
+    current_item = cdlist_head(surface->desktops);
+    for (size_t i = 0; i < surface->desktop_count && current_item != NULL;
+            ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             return desktop;
         }
+        current_item = cdlist_next(current_item);
     }
 
     /* Desktop ID not found */

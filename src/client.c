@@ -206,7 +206,8 @@ client_td *client_init(xcb_connection_t *connection,
      * populate the client's name field instead of using a default */
     ci_get_wm_name(connection, parent_id, wm_name, sizeof(wm_name));
     if (wm_name[0] != '\0') {
-        safe_strncpy(client->info.name, wm_name, CONFIG_MAX_LENGTH_NAME - 1);
+        safe_strncpy(client->info.name, wm_name,
+                CONFIG_MAX_LENGTH_NAME - 1);
         safe_strncpy(client->info.visible_name, wm_name,
                 CONFIG_MAX_LENGTH_NAME - 1);
     }
@@ -446,24 +447,24 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS',
      * and '_NET_WM_PING' support */
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 16, "WM_DELETE_WINDOW"),
-            NULL);
+            xcb_intern_atom(connection, 1, 16,
+                "WM_DELETE_WINDOW"), NULL);
     if (ia != NULL) {
         wm_delete_atom = ia->atom;
         free(ia);
     }
 
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 14, "WM_TAKE_FOCUS"),
-            NULL);
+            xcb_intern_atom(connection, 1, 14,
+                "WM_TAKE_FOCUS"), NULL);
     if (ia != NULL) {
         wm_take_focus_atom = ia->atom;
         free(ia);
     }
 
     ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 12, "_NET_WM_PING"),
-            NULL);
+            xcb_intern_atom(connection, 1, 12,
+                "_NET_WM_PING"), NULL);
     if (ia != NULL) {
         net_wm_ping_atom = ia->atom;
         free(ia);
@@ -657,29 +658,34 @@ client_td *client_manage(xcb_connection_t *connection,
                 break;
             }
 
-            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
+            if (type_reply.atoms[ti] ==
+                    ewmh->_NET_WM_WINDOW_TYPE_DIALOG) {
                 client->properties.type = CLIENT_TYPE_DIALOG;
                 break;
             }
 
-            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
+            if (type_reply.atoms[ti] ==
+                    ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR) {
                 client->properties.type = CLIENT_TYPE_TOOLBAR;
                 break;
             }
 
-            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_MENU) {
+            if (type_reply.atoms[ti] ==
+                    ewmh->_NET_WM_WINDOW_TYPE_MENU) {
                 client->properties.type = CLIENT_TYPE_MENU;
                 client_unset_decoration(client);
                 break;
             }
 
-            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
+            if (type_reply.atoms[ti] ==
+                    ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
                 client_unset_decoration(client);
                 break;
             }
 
-            if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
+            if (type_reply.atoms[ti] ==
+                    ewmh->_NET_WM_WINDOW_TYPE_UTILITY) {
                 client->properties.type = CLIENT_TYPE_UTILITY;
                 break;
             }
@@ -743,12 +749,6 @@ client_td *client_manage(xcb_connection_t *connection,
                     XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     }
 
-    /* Subscribe to events on the adopted window */
-    values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
-                XCB_EVENT_MASK_LEAVE_WINDOW     |
-                XCB_EVENT_MASK_FOCUS_CHANGE     |
-                XCB_EVENT_MASK_PROPERTY_CHANGE  |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     xcb_change_window_attributes(connection, window,
             XCB_CW_EVENT_MASK, values);
 

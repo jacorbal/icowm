@@ -87,7 +87,7 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
 }
 
 
-/* Copies a string from 'src' to 'dst' without exceeding buffer size */
+/* Legacy unsized copy helper (prefer 'safe_strncpy' for bounded writes) */
 char *safe_strcpy(char *restrict dst, const char *restrict src)
 {
     char *dst_s;
@@ -153,7 +153,8 @@ char *safe_strdup(const char *s)
 
 
 /* Concatenates at most 'n' characters from one string to another */
-char *safe_strncat(char *restrict dst, const char *restrict src, size_t sz)
+char *safe_strncat(char *restrict dst, const char *restrict src,
+        size_t sz)
 {
     size_t dst_len;
     size_t remaining_space;
@@ -177,14 +178,14 @@ char *safe_strncat(char *restrict dst, const char *restrict src, size_t sz)
         dst[dst_len + i] = src[i];  /* Copy the character */
     }
 
-    /* Ensure that 'dst' is null terminated */
+    /* Ensure that 'dst' is null-terminated */
     dst[dst_len + i] = '\0';
 
     return dst;
 }
 
 
-/* Concatenate two strings */
+/* Legacy unsized concatenation helper (prefer 'safe_strncat') */
 char *safe_strcat(char *restrict dst, const char *restrict src)
 {
     size_t dst_len;
@@ -201,7 +202,7 @@ char *safe_strcat(char *restrict dst, const char *restrict src)
         dst[dst_len + i] = src[i];  /* Copy every character */
     }
 
-    /* Ensure that 'dst' is null terminated */
+    /* Ensure that 'dst' is null-terminated */
     dst[dst_len + i] = '\0';
 
     return dst;

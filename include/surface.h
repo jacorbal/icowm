@@ -55,7 +55,7 @@ struct visual_properties_s {
 struct surface_properties_s {
     struct dimensions_s dim;    /**< Screen dimensions (px) */
     struct dimensions_s dim_mm; /**< Screen dimensions (mm) */
-    struct dpi_s dpi;           /**< Dots per pixel */
+    struct dpi_s dpi;           /**< Dots per inch */
 
     struct {
         xcb_visualid_t visual_id;               /**< Associated visual */
@@ -250,7 +250,7 @@ desktop_td *surface_desktop_next(surface_td *surface,
  *                current is the first
  *
  * @return Status of the selection
- * @retval  0 Sucess
+ * @retval  0 Success
  * @retval  1 No previous desktop found
  * @retval -1 Invalid surface or no desktops
  */
@@ -268,7 +268,7 @@ int surface_desktop_select_prev(surface_td *surface, bool cycle);
  *                current is the last
  *
  * @return Status of the selection
- * @retval  0 Sucess
+ * @retval  0 Success
  * @retval  1 No next desktop found
  * @retval -1 Invalid surface or no desktops
  */
@@ -286,7 +286,7 @@ int surface_desktop_select_next(surface_td *surface, bool cycle);
  * @param desktop_id ID of the desktop to select
  *
  * @return Status of the selection
- * @retval  0 Sucess
+ * @retval  0 Success
  * @retval  1 No next desktop found
  * @retval -1 Invalid surface or no desktops
  */
@@ -519,14 +519,14 @@ void surface_refresh_workareas(surface_td *surface);
  *
  * @note Complexity: @e O(1)
  */
-#define surface_width(s) ((s) ? (s).properties.dim.w : 0)
+#define surface_width(s) ((s) ? (s)->properties.dim.w : 0)
 
 /**
  * @brief Macro that evaluates to the surface height
  *
  * @note Complexity: @e O(1)
  */
-#define surface_height(s) ((s) ? (s).properties.dim.h : 0)
+#define surface_height(s) ((s) ? (s)->properties.dim.h : 0)
 
 /**
  * @brief Macro that evaluates to the desktop count of the surface

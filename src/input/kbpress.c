@@ -11,7 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -60,6 +59,22 @@
 #include <input/kbpress.h>
 
 
+/* Get a surface from event root, falling back to first surface */
+static surface_td *s_lookup_surface_fallback(list_td *surfaces,
+        xcb_window_t root)
+{
+    surface_td *surface;
+
+    surface = lookup_surface_for_root(surfaces, root);
+    if (surface == NULL && surfaces != NULL &&
+            !list_is_empty(surfaces)) {
+        surface = (surface_td *) list_data(list_head(surfaces));
+    }
+
+    return surface;
+}
+
+
 /* Handle a key-release event to auto-confirm the cycle menu or close
  * the popup */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
@@ -73,10 +88,7 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    s = lookup_surface_for_root(surfaces, event->root);
-    if (s == NULL && surfaces != NULL && !list_is_empty(surfaces)) {
-        s = (surface_td *) list_data(list_head(surfaces));
-    }
+    s = s_lookup_surface_fallback(surfaces, event->root);
 
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
     /* Auto-confirm cycle menu when its modifier is released */
@@ -92,7 +104,8 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     if (popup_is_open() &&
             (event->detail == popup_keycode() ||
              (popup_modifier() != 0 &&
-              keyboard_is_modifier_for_mask(keysym, popup_modifier())))) {
+              keyboard_is_modifier_for_mask(keysym,
+                  popup_modifier())))) {
         if (s != NULL) {
             popup_close(s->connection);
             surface_render_current_desktop_repaint(s);
@@ -124,18 +137,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
             keysym, state);
 
+    surface = s_lookup_surface_fallback(surfaces, event->root);
+
     if (cycle_is_open()) {
         /* Up arrow */
         if (keysym == 0xff52u) {
             cycle_navigate_prev();
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_draw(s->connection, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_draw(surface->connection, cfg);
             }
             return;
         }
@@ -143,42 +152,24 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         /* Down arrow */
         if (keysym == 0xff54u) {
             cycle_navigate_next();
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_draw(s->connection, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_draw(surface->connection, cfg);
             }
             return;
         }
 
         /* Enter/Return */
         if (keysym == 0xff0du || keysym == 0xff8du) {
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_confirm(s->connection, surfaces, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_confirm(surface->connection, surfaces, cfg);
             }
             return;
         }
 
         /* Escape */
         if (keysym == 0xff1bu) {
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_close(s->connection);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_close(surface->connection);
             }
             return;
         }
@@ -188,14 +179,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 keysym == cycle_next_keysym() &&
                 state == cycle_next_modmask()) {
             cycle_navigate_next();
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_draw(s->connection, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_draw(surface->connection, cfg);
             }
             return;
         }
@@ -205,27 +190,15 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 keysym == cycle_prev_keysym() &&
                 state == cycle_prev_modmask()) {
             cycle_navigate_prev();
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        cycle_draw(s->connection, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                cycle_draw(surface->connection, cfg);
             }
             return;
         }
 
         /* Any other key while menu is open: close without action */
-        if (surfaces != NULL) {
-            list_item_td *head = list_head(surfaces);
-            if (head != NULL) {
-                surface_td *s = (surface_td *) list_data(head);
-                if (s != NULL) {
-                    cycle_close(s->connection);
-                }
-            }
+        if (surface != NULL && surface->connection != NULL) {
+            cycle_close(surface->connection);
         }
         return;
     }
@@ -236,42 +209,24 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         if (keysym == 0xff09u || keysym == 0xff51u ||
                 keysym == 0xff53u) {
             confirm_toggle_selection();
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        confirm_repaint(s->connection, cfg);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                confirm_repaint(surface->connection, cfg);
             }
             return;
         }
 
         /* Enter/Return: activate selected button */
         if (keysym == 0xff0du || keysym == 0xff8du) {
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        confirm_accept(s->connection);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                confirm_accept(surface->connection);
             }
             return;
         }
 
         /* Escape: close without action */
         if (keysym == 0xff1bu) {
-            if (surfaces != NULL) {
-                list_item_td *head = list_head(surfaces);
-                if (head != NULL) {
-                    surface_td *s = (surface_td *) list_data(head);
-                    if (s != NULL) {
-                        confirm_close(s->connection);
-                    }
-                }
+            if (surface != NULL && surface->connection != NULL) {
+                confirm_close(surface->connection);
             }
             return;
         }
@@ -282,14 +237,10 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     if (keysym == 0xff08u &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
-        LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
+        LOGGER_NOTICE("Emergency exit key combination detected",
+                L_NARG);
         (void) wm_request_stop();
         return;
-    }
-
-    surface = lookup_surface_for_root(surfaces, event->root);
-    if (surface == NULL && surfaces != NULL && !list_is_empty(surfaces)) {
-        surface = (surface_td *) list_data(list_head(surfaces));
     }
 
     for (int i = 0; i < keyboard_binding_count(); ++i) {
@@ -337,7 +288,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_CYCLE_NEXT:
             case KEYBIND_CLIENT_CYCLE_PREV:
                 if (surface != NULL) {
-                    desktop_td *desktop = lookup_current_desktop(surface);
+                    desktop_td *desktop =
+                        lookup_current_desktop(surface);
                     xcb_connection_t *conn = surface->connection;
                     if (desktop != NULL && conn != NULL) {
                         int dir = (btype == KEYBIND_CLIENT_CYCLE_NEXT)
@@ -352,7 +304,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_DESKTOP_ICON_NEXT:
             case KEYBIND_DESKTOP_ICON_PREV:
                 if (surface != NULL) {
-                    desktop_td *desktop = lookup_current_desktop(surface);
+                    desktop_td *desktop =
+                        lookup_current_desktop(surface);
                     xcb_connection_t *conn = surface->connection;
                     if (desktop != NULL && conn != NULL) {
                         int dir = (btype == KEYBIND_DESKTOP_ICON_NEXT)

@@ -52,6 +52,62 @@
 #include <handler.h>
 
 
+/**
+ * @brief Restore focus after the active client disappears from a desktop
+ *
+ * Selects the most recent visible focusable client in reverse stacking
+ * order and focuses it.  If none is found, focus is released to pointer
+ * root so keyboard grabs continue to work.
+ */
+static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop, client_td *lost_client)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    bool focus_set = false;
+
+    if (desktop == NULL || desktop->stacking == NULL) {
+        return;
+    }
+
+    node = cdlist_tail(desktop->stacking);
+    initial = node;
+    if (node != NULL) {
+        do {
+            client_td *c = (client_td *) cdlist_data(node);
+            if (c != NULL && c != lost_client &&
+                    !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    !client_is_shaded(c) &&
+                    c->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED &&
+                    (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {
+                desktop->client_active_id = c->id;
+
+                if (connection != NULL) {
+                    xcb_set_input_focus(connection,
+                            XCB_INPUT_FOCUS_PARENT,
+                            c->window, XCB_CURRENT_TIME);
+                }
+                wm_invalidate_desktop(desktop);
+                wm_invalidate_surface(surface);
+                focus_set = true;
+                break;
+            }
+            node = cdlist_prev(node);
+        } while (node != NULL && node != initial);
+    }
+
+    if (!focus_set && connection != NULL) {
+        xcb_set_input_focus(connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
+        wm_invalidate_desktop(desktop);
+        wm_invalidate_surface(surface);
+    }
+}
+
+
 /* Handle a 'MAP_REQUEST' event */
 void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 {
@@ -137,7 +193,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         place_apply(wm, surface, client);
     }
 
-    /* ICCCM §4.1.2.4: honor 'WM_HINTS' initial_state when 'IconicState' */
+    /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
+     * 'IconicState' */
     if (client->initial_iconic) {
         wcmd_client_iconify(client);
     } else {
@@ -177,15 +234,11 @@ void handler_unmap_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_unmap_notify_event_t *event)
 {
     client_td *client;
-    client_td *c;
     desktop_td *desktop;
     surface_td *surface;
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    bool focus_set;
 
     if (event == NULL) {
-        LOGGER_INFO("Received null pointer in unmap handler", L_NARG);
+        LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
         return;
     }
 
@@ -209,53 +262,14 @@ void handler_unmap_notify(xcb_connection_t *connection,
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
-
-            focus_set = false;
-            /* Restore focus to the most recently used visible client */
-            if (desktop->stacking != NULL) {
-                node = cdlist_tail(desktop->stacking);
-                initial = node;
-                if (node != NULL) {
-                    do {
-                        c = (client_td *) cdlist_data(node);
-                        if (c != NULL && c != client &&
-                                !(c->properties.flags &
-                                    CLIENT_FLAG_HIDDEN) &&
-                                !client_is_shaded(c) &&
-                                c->properties.state !=
-                                    (uint16_t) CLIENT_STATE_ICONIFIED &&
-                                    (c->properties.flags &
-                                 CLIENT_FLAG_FOCUSABLE)) {
-                            desktop->client_active_id = c->id;
-                            xcb_set_input_focus(connection,
-                                    XCB_INPUT_FOCUS_PARENT,
-                                    c->window, XCB_CURRENT_TIME);
-                            wm_invalidate_desktop(desktop);
-                            wm_invalidate_surface(surface);
-                            focus_set = true;
-                            break;
-                        }
-                        node = cdlist_prev(node);
-                    } while (node != NULL && node != initial);
-                }
-            }
-
-            /* No suitable client found; release focus so keyboard grabs
-             * on the root window keep firing after the last window
-             * closes */
-            if (!focus_set && connection != NULL) {
-                xcb_set_input_focus(connection,
-                        XCB_INPUT_FOCUS_POINTER_ROOT,
-                        XCB_INPUT_FOCUS_POINTER_ROOT,
-                        XCB_CURRENT_TIME);
-                wm_invalidate_desktop(desktop);
-                wm_invalidate_surface(surface);
-            }
+            s_restore_focus_after_client_loss(connection, surface,
+                    desktop, client);
         }
 
-        /* Unmap decoration windows so they do not float without content.
-         * Increment ignore_unmap for each WM-initiated unmap so the
-         * resulting 'UnmapNotify' events do not re-enter this handler. */
+        /* Unmap decoration windows so they do not float without
+         * content.  Increment ignore_unmap for each WM-initiated unmap
+         * so the resulting 'UnmapNotify' events do not re-enter this
+         * handler. */
         if (client->frame != 0) {
             client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->frame);
@@ -276,12 +290,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_destroy_notify_event_t *event)
 {
     client_td *client;
-    client_td *c;
     surface_td *surface;
     desktop_td *desktop;
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    bool focus_set;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in destroy handler",
@@ -308,50 +318,10 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     if (desktop != NULL && desktop->client_active_id == client->id) {
         desktop->client_active_id = 0;
-        focus_set = false;
-
-        /* Restore focus to the most recently used visible client.
-         * Must happen before 'desktop_action_client_rem' removes the
-         * client from the stacking list so it can be skipped by
-         * pointer. */
-        if (desktop->stacking != NULL) {
-            node = cdlist_tail(desktop->stacking);
-            initial = node;
-            if (node != NULL) {
-                do {
-                    c = (client_td *) cdlist_data(node);
-                    if (c != NULL && c != client &&
-                            !(c->properties.flags &
-                                CLIENT_FLAG_HIDDEN) &&
-                            !client_is_shaded(c) &&
-                            c->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED &&
-                            (c->properties.flags &
-                                 CLIENT_FLAG_FOCUSABLE)) {
-                        desktop->client_active_id = c->id;
-                        xcb_set_input_focus(connection,
-                                XCB_INPUT_FOCUS_PARENT,
-                                c->window, XCB_CURRENT_TIME);
-                        wm_invalidate_desktop(desktop);
-                        wm_invalidate_surface(surface);
-                        focus_set = true;
-                        break;
-                    }
-                    node = cdlist_prev(node);
-                } while (node != NULL && node != initial);
-            }
-        }
-
-        /* No suitable client found; release focus so keyboard grabs on
-         * the root window keep firing after the last window closes */
-        if (!focus_set && connection != NULL) {
-            xcb_set_input_focus(connection,
-                    XCB_INPUT_FOCUS_POINTER_ROOT,
-                    XCB_INPUT_FOCUS_POINTER_ROOT,
-                    XCB_CURRENT_TIME);
+        s_restore_focus_after_client_loss(connection, surface,
+                desktop, client);
+        if (connection != NULL) {
             xcb_flush(connection);
-            wm_invalidate_desktop(desktop);
-            wm_invalidate_surface(surface);
         }
     }
 

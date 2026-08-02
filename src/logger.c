@@ -69,13 +69,13 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
  *
  * Retrieves the current time, including microseconds, and formats it
  * into the provided buffer as a human-readable timestamp with timezone
- * offset in the form `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`.
+ * offset in the form `YYYY-MM-DD HH:MM:SS.UUUUUU +/-HHMM`.
  *
  * @param buffer    Pointer to the character array where the formatted
  *                  timestamp will be stored
  * @param buffer_sz Size of the buffer in bytes
  *
- * @note Format: `YYYY-MM-DD HH:MM:SS.UUUUUU ±HHMM`
+ * @note Format: `YYYY-MM-DD HH:MM:SS.UUUUUU +/-HHMM`
  * @note Uses POSIX global variable @p timezone to determine timezone
  *       offset adjusting for daylight saving time using @e tm_isdst
  *       from @a localtime
@@ -341,9 +341,9 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         }
 
         /* Calculate final length, accounting for potential truncation.
-         * Note that 'vsnprintf' reports the length the string *would*
+         * Note that 'vsnprintf' reports the length the string WOULD
          * have had if 'msg' were large enough, so 'len' must be checked
-         * against 'sizeof(msg)' *before* it is used to index 'msg';
+         * against 'sizeof(msg)' BEFORE it is used to index 'msg';
          * otherwise the null-termination write below could land past
          * the end of the buffer */
         len += len_fmt;     /* Update total length */
@@ -352,7 +352,7 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         if ((size_t) len >= sizeof(msg)) {
             len = sizeof(msg) - 4;
             msg[len] = '\0';
-            safe_strcat(msg, "...");    /* Append "..." if truncation */
+            safe_strncat(msg, "...", sizeof(msg));
         } else {
             msg[len] = '\0';    /* Ensure null termination */
         }
@@ -386,8 +386,8 @@ int logger_msg(enum logger_level_e level, const char *prefix,
         }
 
         /* Copy message to buffer */
-        safe_strcpy(logger->buffer->messages[logger->buffer->count],
-                msg);
+        safe_strncpy(logger->buffer->messages[logger->buffer->count],
+                msg, safe_strlen(msg) + 1);
         logger->buffer->count++;
 
         /* Flush the buffer on error to make sure it's on the logfile */
@@ -397,11 +397,6 @@ int logger_msg(enum logger_level_e level, const char *prefix,
                 s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
             }
         }
-
-/*
-    if (level == LOG_FATAL) {
-    }
-*/
 
         retval = len;
     } while (false);

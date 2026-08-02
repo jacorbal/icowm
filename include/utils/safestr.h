@@ -6,6 +6,10 @@
  * Contains various safe string manipulation functions to ensure no
  * buffer overflows occur and that strings are properly null-terminated.
  *
+ * @note Prefer sized variants (@c safe_strncpy and @c safe_strncat).
+ *       Unsized variants (@c safe_strcpy and @c safe_strcat) are kept
+ *       for compatibility and should not be used in new code.
+ *
  * Functions:
  *  - @c 'size_t safe_strnlen(const char *str, size_t maxlen)'
  *  - @c 'size_t safe_strlen(const char *str)'
@@ -99,8 +103,8 @@ size_t safe_strlen(const char *str);
  * Copies up to @p sz - 1 characters from @p src to @p dst and
  * null-terminates the destination string.
  *
- * @param dst  Pointer to the destination buffer where the string is
- *             copied
+ * @param dst Pointer to the destination buffer where the string is
+ *            copied
  * @param src Pointer to the source string to be copied
  * @param sz  The size of the destination buffer
  *
@@ -118,20 +122,19 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
         size_t sz);
 
 /**
- * @brief Safely copies a string from @p src to @p dst without
- *        exceeding buffer size
+ * @brief Copies a string from @p src to @p dst
  *
- * Copies up to @p size - 1 characters from @p src to @p dst and
- * null-terminates the destination string.
+ * Copies all bytes from @p src to @p dst until the source null
+ * terminator is reached.
  *
- * @param dst  Pointer to the destination buffer where string is copied
- * @param src  Pointer to the source string to be copied
+ * @param dst Pointer to the destination buffer where string is copied
+ * @param src Pointer to the source string to be copied
  *
  * @return A pointer to @p dst
  *
- * @note If @p size is 0, the function will not perform any copying and
- *       will return @p dst
- * @note Destination string will always be null-terminated
+ * @warning This function does not receive destination size and cannot
+ *          enforce bounds on @p dst
+ * @note Use @a safe_strncpy in new code.
  * @note This could have been donde referencing @a safe_strncpty with
  *       @c "return safe_strncpy(dst, src, safe_strlen(src) + 1);", but
  *       it was done otherwise to reduce coupling
@@ -141,7 +144,8 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
 char *safe_strcpy(char *restrict dst, const char *restrict src);
 
 /**
- * @brief Creates a duplicate of a string with a specified maximum length
+ * @brief Creates a duplicate of a string with a specified maximum
+ *        length
  *
  * Allocates memory for a copy of the string @p s, copies up to
  * @p n characters, and returns a pointer to the newly allocated string.
@@ -190,8 +194,11 @@ char *safe_strdup(const char *s);
  *
  * @return A pointer to the resulting string @p dst.
  *
- * @note If @p sz is greater than the length of @p src, the entire @p src
- *       string will be appended
+ * @note If @p sz is greater than the length of @p src, the entire
+ *       @p src string will be appended
+ * @warning This function does not receive destination size and cannot
+ *          enforce bounds on @p dst
+ * @note Use @a safe_strncat in new code.
  * @note It is the caller's responsibility to ensure that @p dst has
  *       enough space to accommodate the concatenated result, including
  *       the null terminator
@@ -200,7 +207,8 @@ char *safe_strdup(const char *s);
  * @note Complexity: @e O(n), where @e n is the number of characters
  *       appended from @p src
  */
-char *safe_strncat(char *restrict dst, const char *restrict src, size_t sz);
+char *safe_strncat(char *restrict dst, const char *restrict src,
+        size_t sz);
 
 /**
  * @brief Concatenate two strings
