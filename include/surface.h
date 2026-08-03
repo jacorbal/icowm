@@ -414,35 +414,6 @@ int surface_action_set_resolution(surface_td *surface,
 int surface_action_set_orientation(surface_td *surface, int orientation);
 
 /**
- * @brief Updates the brightness level of the surface
- *
- * @param surface    Pointer to the surface to receive the action
- * @param brightness New brightness level [0-100]
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int surface_action_set_brightness(surface_td *surface,
-        uint16_t brightness);
-
-/**
- * @brief Update the contrast level of the surface
- *
- * @param surface  Pointer to the surface to receive the action
- * @param contrast New contrast level [0-100]
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int surface_action_set_contrast(surface_td *surface, uint16_t contrast);
-
-/**
  * @brief Apply the current surface configuration settings
  *
  * @param surface Pointer to the surface to receive the action

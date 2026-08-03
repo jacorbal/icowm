@@ -472,14 +472,6 @@ static void s_event_handle_surface(event_td *event)
             scmd_surface_set_orientation(surface, surface_data);
             break;
 
-        case ACTION_SURFACE_SET_BRIGHTNESS:
-            scmd_surface_set_brightness(surface, surface_data);
-            break;
-
-        case ACTION_SURFACE_SET_CONTRAST:
-            scmd_surface_set_contrast(surface, surface_data);
-            break;
-
         case ACTION_SURFACE_CONFIGURE_SETTINGS:
             scmd_surface_configure_settings(surface, surface_data);
             break;
@@ -527,19 +519,6 @@ static void s_event_handle_wm(event_td *event)
         case ACTION_WM_CONFIGURATION_RELOAD:
             LOGGER_DEBUG("Window manager configuration reload requested",
                     L_NARG);
-            break;
-
-        case ACTION_WM_CONFIGURATION_SAVE:
-            LOGGER_DEBUG("Window manager configuration save requested",
-                    L_NARG);
-            break;
-
-        case ACTION_WM_SURFACE_ADD:
-            LOGGER_DEBUG("Surface addition requested", L_NARG);
-            break;
-
-        case ACTION_WM_SURFACE_REMOVE:
-            LOGGER_DEBUG("Surface removal requested", L_NARG);
             break;
 
         case ACTION_WM_EXIT:

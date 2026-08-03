@@ -30,7 +30,7 @@ values, and built-in default value.
 5. [`randr.json` -- XRandR output profiles](#5-randrjson--xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
-6. [Full annotated examples](#6-full-annotated-examples)
+6. [Full examples](#6-full-examples)
 
 ---
 
@@ -65,8 +65,6 @@ Inside that directory the expected file tree is:
 - `randr.json` is completely optional; XRandR hot-plug event handling
   is always active regardless of this file.
 
----
-
 ## 2. `config.json` -- Base configuration
 
 Controls the fundamental behavior of the window manager: screens,
@@ -87,8 +85,6 @@ be used.
 ```json
 "theme": "default"
 ```
-
----
 
 ### 2.2 `screens`
 
@@ -159,8 +155,6 @@ Per-screen layout fields:
 | `settings[].name` | string | `"Desktop N"` | Display name of desktop N. |
 | `settings[].background-color` | string | `"#C0CCD8"` | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
 
----
-
 ### 2.3 `programs`
 
 Associates application categories with the executables IcoWM will
@@ -183,8 +177,6 @@ launch for the corresponding keyboard shortcuts.
     "web-browser":  "firefox"
 }
 ```
-
----
 
 ### 2.4 `windows`
 
@@ -263,8 +255,6 @@ window, regardless of this setting.
 }
 ```
 
----
-
 ### 2.5 `icons`
 
 Controls how iconified windows are laid out on the desktop.
@@ -290,8 +280,6 @@ Accepted icon placement values:
     }
 }
 ```
-
----
 
 ## 3. `bindings.json` -- Keyboard and mouse bindings
 
@@ -319,8 +307,6 @@ modifier1+modifier2+KeyName
 
 Example:  `"modc+mod1+Return"` with the default modifiers resolves to
 `Control+Alt+Return`.
-
----
 
 ### 3.2 `modifiers`
 
@@ -351,8 +337,6 @@ modifier uses one of these aliases.
 }
 ```
 
----
-
 ### 3.3 `keyboard.launch`
 
 Shortcuts for launching external applications.  The executables are
@@ -365,8 +349,6 @@ taken from the `programs` section of `config.json`.
 | `file-manager` | `modc+mod1+q` | Launch the file manager. |
 | `web-browser` | `modc+mod1+w` | Launch the web browser. |
 | `editor` | `modc+mod1+e` | Launch the text editor. |
-
----
 
 ### 3.4 `keyboard.window`
 
@@ -422,8 +404,6 @@ Resize the focused window by a fixed step in the given direction.
 | `up` | `modc+mod1+mods+k` |
 | `down` | `modc+mod1+mods+j` |
 
----
-
 ### 3.5 `keyboard.wm`
 
 Window manager control shortcuts.
@@ -433,8 +413,6 @@ Window manager control shortcuts.
 | `redraw` | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload` | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit` | `modc+mod1+mods+x` | Exit IcoWM. |
-
----
 
 ### 3.6 `keyboard.cycle`
 
@@ -466,8 +444,6 @@ Cycle through iconified (minimized) windows only.
 | `prev` | `modc+mod1+mods+Tab` | Focus the previous icon. |
 | `next` | `modc+mod1+Tab` | Focus the next icon. |
 
----
-
 ### 3.7 `mouse.window`
 
 Mouse button bindings for window management.
@@ -478,8 +454,6 @@ Mouse button bindings for window management.
 | `lower` | `mod1+button2` | Lower the window to the bottom of the stack. |
 | `resize` | `mod1+button3` | Click and drag to resize the window. |
 
----
-
 ### 3.8 `mouse.cycle`
 
 Mouse button bindings for switching virtual desktops.
@@ -488,8 +462,6 @@ Mouse button bindings for switching virtual desktops.
 |---|---|---|
 | `cycle.desktop.prev` | `button4` | Scroll up to go to the previous desktop. |
 | `cycle.desktop.next` | `button5` | Scroll down to go to the next desktop. |
-
----
 
 ## 4. `themes/<name>.json` -- Theme configuration
 
@@ -509,7 +481,7 @@ Appearance settings for managed windows.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `border-width` | integer | `2` | Border thickness in pixels. |
-| `is-decorated` | boolean | `true` | When `false`, windows start without any decoration (title bar are hidden). |
+| `is-decorated` | boolean | `true` | When `false`, windows start without any decoration (title bar is hidden). |
 
 #### `window.active`
 
@@ -534,8 +506,6 @@ Appearance of windows that do not have focus.
 | `border-color` | string | `"#7F9AB6"` | Border color. |
 | `grip-color` | string | `"#4A5566"` | Resize grip color. |
 | `font` | string | `"fixed"` | Title bar font. |
-
----
 
 ### 4.2 `icon`
 
@@ -570,6 +540,7 @@ Appearance of icons that do not have focus.
 | `border-color` | string | `"#7F9AB6"` | Icon border color. |
 | `font` | string | `"fixed"` | Icon caption font. |
 
+---
 
 > **Font format note:**  IcoWM uses the X server's built-in *X core
 > font* system (accessed via XCB), which is completely separate from
@@ -670,9 +641,7 @@ Each entry in the `outputs` array describes one physical display output.
 }
 ```
 
----
-
-## 6. Full annotated examples
+## 6. Full examples
 
 ### `config.json`
 

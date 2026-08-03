@@ -80,7 +80,6 @@ typedef struct {
         int32_t svalue;
         uint32_t uvalue;
     } new_data;
-    /* TODO */
 } action_data_desktop_td;
 
 
@@ -110,8 +109,6 @@ typedef struct {
 typedef struct {
     wm_td *wm;                  /**< Pointer to the window manager */
     enum action_wm_e action_wm; /**< Action for this surface */
-
-    /* TODO */
 } action_data_wm_td;
 
 

@@ -636,7 +636,8 @@ int surface_action_set_resolution(surface_td *surface,
 
     if (!surface->randr.is_known) {
         LOGGER_WARNING("XRandR CRTC info not yet populated for" \
-                       " surface %u; cannot set resolution", surface->id);
+                       " surface %u; cannot set resolution",
+                       surface->id);
         return 1;
     }
 
@@ -797,47 +798,6 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
     surface->is_outdated = true;
 
     return 0;
-}
-
-
-/* Set the surface brightness */
-int surface_action_set_brightness(surface_td *surface,
-        uint16_t brightness)
-{
-    LOGGER_DEBUG("Setting brightness %u on surface %u",
-            (unsigned int) brightness, surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    /* Brightness control is currently unsupported in this backend */
-    LOGGER_WARNING("Surface brightness control is unsupported",
-            L_NARG);
-    (void) brightness;
-
-    return -1;
-}
-
-
-/* Set the surface contrast */
-int surface_action_set_contrast(surface_td *surface, uint16_t contrast)
-{
-    LOGGER_DEBUG("Setting contrast %u on surface %u",
-            (unsigned int) contrast, surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    /* Contrast control is currently unsupported in this backend */
-    LOGGER_WARNING("Surface contrast control is unsupported",
-            L_NARG);
-    (void) contrast;
-
-    return -1;
 }
 
 

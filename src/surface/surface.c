@@ -109,8 +109,8 @@ static void s_update_properties(surface_td *surface,
                 visual_iter.data->visual_id;
         }
 
-        /* NOTE: It may be needed to get the default colormap from the
-         *       root window's configuration */
+        /* It may be needed to get the default colormap from the root
+         * window's configuration */
         surface->properties.visual_info.properties.colormap =
             screen->default_colormap;
     }

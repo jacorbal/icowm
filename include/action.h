@@ -141,12 +141,9 @@ enum action_surface_e {
     ACTION_SURFACE_TOGGLE_FULLSCREEN,    /**< Toggle full surface mode */
     ACTION_SURFACE_SET_RESOLUTION,       /**< Change resolution */
     ACTION_SURFACE_SET_ORIENTATION,      /**< Change orientation */
-    ACTION_SURFACE_SET_BRIGHTNESS,       /**< Change surface brightness */
-    ACTION_SURFACE_SET_CONTRAST,         /**< Change surface contrast */
     ACTION_SURFACE_CONFIGURE_SETTINGS,   /**< Screen configuration */
 
     /* Add more as needed */
-//    ACTION_SURFACE_SWITCH,               /**< Switch active surface */
 
     ACTION_SURFACE_MAX =
         ACTION_SURFACE_CONFIGURE_SETTINGS,
@@ -160,10 +157,6 @@ enum action_wm_e {
     ACTION_WM_MIN,
     ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
         ACTION_WM_MIN,
-    ACTION_WM_CONFIGURATION_SAVE,       /**< Save current configuration */
-    ACTION_WM_SURFACE_ADD,              /**< Add new surface */
-    ACTION_WM_SURFACE_REMOVE,           /**< Remove surface */
-//    ACTION_WM_SURFACE_SWITCH,           /**< Switch active surface */
     ACTION_WM_EXIT,                     /**< Exit the window manager */
 
     /* Add more as needed */

@@ -57,11 +57,10 @@ int desktop_render_background(desktop_td *desktop)
             desktop->id, desktop->name, desktop->background.bg.color);
 
     /* Get the screen */
-    /* TODO/FIXME: The 'screen_id' is taken by iterating all screens
-     *             with the current 'desktop->screen_id', and this
-     *             should be by direct access.  Maybe passing a pointer
-     *             to the screen instead getting the id on
-     *             'desktop_init' (vid. 'src/desktop.c').
+    /* The 'screen_id' is taken by iterating all screens with the
+     * current 'desktop->screen_id', and this should be by direct
+     * access.  Maybe passing a pointer to the screen instead getting
+     * the id on 'desktop_init' (vid. 'src/desktop.c').
      *
      * But, in general terms, the number of screens in any setup tends
      * to be low, so this loop has a complexity of O(n), where 'n' is
@@ -82,13 +81,12 @@ int desktop_render_background(desktop_td *desktop)
 
     screen = iter.data;
 
-    /* NOTE: Clear any existing background pixmap, then set the
-     *       background pixel and repaint the root window.  Values are
-     *       ordered by ascending bit position: 'XCB_CW_BACK_PIXMAP'
-     *       (bit 0) comes before 'XCB_CW_BACK_PIXEL' (bit 1).
-     *       Unsetting the background pixmap ensures that
-     *       'xcb_clear_area' fills with the pixel color rather than the
-     *       previous pixmap. */
+    /* Clear any existing background pixmap, then set the background
+     * pixel and repaint the root window.  Values are ordered by
+     * ascending bit position: 'XCB_CW_BACK_PIXMAP' (bit 0) comes before
+     * 'XCB_CW_BACK_PIXEL' (bit 1).  Unsetting the background pixmap
+     * ensures that 'xcb_clear_area' fills with the pixel color rather
+     * than the previous pixmap. */
     values[0] = XCB_BACK_PIXMAP_NONE;
     values[1] = desktop->background.bg.color;
     xcb_change_window_attributes(desktop->connection, screen->root,

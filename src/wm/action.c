@@ -73,53 +73,6 @@ int wm_action_config_reload(void)
 }
 
 
-/* Save the current configuration */
-int wm_action_config_save(void)
-{
-    LOGGER_DEBUG("Saving configuration", L_NARG);
-
-    if (wm == NULL || wm->config == NULL) {
-        LOGGER_ERROR("Window manager is not initialized", L_NARG);
-        return 1;
-    }
-
-    LOGGER_NOTICE("Configuration saving is not yet implemented", L_NARG);
-    return 1;
-}
-
-
-/* Insert a surface into the surface list */
-int wm_action_surface_ins(void)
-{
-    LOGGER_DEBUG("Inserting new surface", L_NARG);
-
-    if (wm == NULL) {
-        LOGGER_ERROR("Window manager is not initialized", L_NARG);
-        return 1;
-    }
-
-    LOGGER_NOTICE("Dynamic surface insertion is not yet implemented",
-            L_NARG);
-    return 1;
-}
-
-
-/* Remove a surface from the surface list */
-int wm_action_surface_rem(void)
-{
-    LOGGER_DEBUG("Removing surface", L_NARG);
-
-    if (wm == NULL) {
-        LOGGER_ERROR("Window manager is not initialized", L_NARG);
-        return 1;
-    }
-
-    LOGGER_NOTICE("Dynamic surface removal is not yet implemented",
-            L_NARG);
-    return 1;
-}
-
-
 /* Perform exit actions before stopping the window manager */
 int wm_action_exit(void)
 {

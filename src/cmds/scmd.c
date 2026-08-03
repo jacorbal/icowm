@@ -182,34 +182,6 @@ void scmd_surface_set_orientation(surface_td *surface,
 }
 
 
-/* Set surface brightness */
-void scmd_surface_set_brightness(surface_td *surface,
-        action_data_surface_td *surface_data)
-{
-    /* Check if the surface and data are valid */
-    if (surface == NULL || surface_data == NULL) {
-        return;
-    }
-
-    surface_action_set_brightness(surface,
-            (uint16_t) surface_data->new_data.uvalue);
-}
-
-
-/* Set surface contrast */
-void scmd_surface_set_contrast(surface_td *surface,
-        action_data_surface_td *surface_data)
-{
-    /* Check if the surface and data are valid */
-    if (surface == NULL || surface_data == NULL) {
-        return;
-    }
-
-    surface_action_set_contrast(surface,
-            (uint16_t) surface_data->new_data.uvalue);
-}
-
-
 /* Configure screen settings */
 void scmd_surface_configure_settings(surface_td *surface,
         action_data_surface_td *surface_data)

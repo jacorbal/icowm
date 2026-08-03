@@ -628,14 +628,14 @@ int desktop_action_process_launch(desktop_td *desktop,
 
         /* Child must close its inherited copy of the X connection's
          * file descriptor before continuing */
-        /* NOTE: 'desktop->connection' is the SAME 'xcb_connection_t'
-         *       pointer shared with the parent (it is not duplicated by
-         *       'fork()'), so calling 'xcb_disconnect()' here would
-         *       tear down the connection's internal state and break it
-         *       for the parent process too, since the underlying socket
-         *       is shared.  A plain 'close()' on the raw descriptor
-         *       only affects the child's own file descriptor table
-         *       entry and leaves the parent's connection intact. */
+        /* Here, 'desktop->connection' is the SAME 'xcb_connection_t'
+         * pointer shared with the parent (it is not duplicated by
+         * 'fork()'), so calling 'xcb_disconnect()' here would tear down
+         * the connection's internal state and break it for the parent
+         * process too, since the underlying socket is shared.  A plain
+         * 'close()' on the raw descriptor only affects the child's own
+         * file descriptor table entry and leaves the parent's
+         * connection intact. */
         if (desktop->connection != NULL) {
             close(xcb_get_file_descriptor(desktop->connection));
         }

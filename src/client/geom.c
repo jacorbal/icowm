@@ -347,9 +347,9 @@ int ci_create_decorations(client_td *client)
      * consume it silently.  'XCB_MOD_MASK_ANY' already covers all
      * lock-modifier combinations, so no lock-modifier loop is
      * required. */
-    /* NOTE: root-level 'MOD1+button' grabs are more specific (specific
-     *       modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
-     *       priority for move/resize interactions. */
+    /* Root-level 'MOD1+button' grabs are more specific (specific
+     * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
+     * priority for move/resize interactions. */
     xcb_grab_button(client->connection,
             0,                              /* owner_events */
             client->frame,

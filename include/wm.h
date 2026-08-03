@@ -137,36 +137,6 @@ int wm_request_stop(void);
 int wm_action_config_reload(void);
 
 /**
- * @brief Save the configuration, overwriting the existing one
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the operation
- *
- * @note Complexity: @e O(n), where @e n is the number of parameters
- *       saved because it involves writing to the configuration file
- */
-int wm_action_config_save(void);
-
-/**
- * @brief Insert a surface into the window manager's surface list
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the operation
- */
-int wm_action_surface_ins(void);
-
-/**
- * @brief Remove a surface from the window manager's surface list
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the operation
- */
-int wm_action_surface_rem(void);
-
-/**
  * @brief Perform actions required before destroying the window manager
  *
  * Executes necessary actions required before invoking @a wm_stop, such
