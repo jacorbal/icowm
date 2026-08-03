@@ -1,0 +1,87 @@
+{
+    "modifiers": {
+        "modc": "Control",
+        "mods": "Shift",
+        "modl": "Caps_Lock",
+        "mod1": "Alt",
+        "mod2": "Num_Lock",
+        "mod3": "",
+        "mod4": "Super",
+        "mod5": "Hyper"
+    },
+    "keyboard": {
+        "wm": {
+            "redraw": "modc+mod1+mods+r",
+            "reload": "modc+mod1+mods+c",
+            "quit": "modc+mod1+mods+x"
+        },
+        "launch": {
+            "terminal": "modc+mod1+Enter",
+            "launcher": "modc+mod1+r",
+            "file-manager": "modc+mod1+q",
+            "web-browser": "modc+mod1+w",
+            "editor": "modc+mod1+e"
+        },
+        "window": {
+            "close": "modc+mod1+c",
+            "decorate": "modc+mod1+d",
+            "fullscreen": "modc+mod1+f",
+            "hide": "modc+mod1+mods+u",
+            "iconify": "modc+mod1+i",
+            "info": "modc+mod1+mods+i",
+            "layer": "modc+mod1+mods+y",
+            "kill": "modc+mod1+mods+Escape",
+            "maximize": "modc+mod1+m",
+            "pin": "modc+mod1+p",
+            "shade": "modc+mod1+s",
+            "move": {
+                "relative": {
+                    "left": "modc+mod1+h",
+                    "down": "modc+mod1+j",
+                    "up": "modc+mod1+k",
+                    "right": "modc+mod1+l"
+                },
+                "absolute": {
+                    "center": "modc+mod1+g",
+                    "top-left": "modc+mod1+y",
+                    "top-right": "modc+mod1+u",
+                    "bottom-left": "modc+mod1+b",
+                    "bottom-right": "modc+mod1+n"
+                }
+            },
+            "resize": {
+                "left": "modc+mod1+mods+h",
+                "down": "modc+mod1+mods+j",
+                "up": "modc+mod1+mods+k",
+                "right": "modc+mod1+mods+l"
+            }
+        },
+        "cycle": {
+            "desktop": {
+                "prev": "modc+mod1+Left",
+                "next": "modc+mod1+Right"
+            },
+            "icon": {
+                "prev": "modc+mod1+mods+Tab",
+                "next": "modc+mod1+Tab"
+            },
+            "window": {
+                "prev": "mod1+mods+Tab",
+                "next": "mod1+Tab"
+            }
+        }
+    },
+    "mouse": {
+        "window": {
+            "move": "mod1+button1",
+            "lower": "mod1+button2",
+            "resize": "mod1+button3"
+        },
+        "cycle": {
+            "desktop": {
+                "prev": "button4",
+                "next": "button5"
+            }
+        }
+    }
+}

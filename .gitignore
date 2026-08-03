@@ -1,7 +1,7 @@
 # Project-related
 Build
 Doxyfile
-doc
+doc/doxygen
 tags
 tmp
 _tmp*_

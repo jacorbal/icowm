@@ -1,0 +1,44 @@
+{
+    "name": "Default theme",
+    "author": "J. A.Corbal",
+    "date": "Sat Aug  1 03:57:54 UTC 2026",
+
+    "window": {
+        "general": {
+            "border-width": 2,
+            "is-decorated": true
+        },
+        "active": {
+            "background-color": "#454f5b",
+            "foreground-color": "#eceff2",
+            "border-color": "#6c93b8",
+            "grip-color": "#5c83a8",
+            "font": "fixed 9"
+        },
+        "inactive": {
+            "background-color": "#22262b",
+            "foreground-color": "#7a8087",
+            "border-color": "#33383e",
+            "grip-color": "#33383e",
+            "font": "fixed 9"
+        }
+    },
+    "icon": {
+        "general": {
+            "border-width": 2,
+            "is-captioned": true
+        },
+        "active": {
+            "background-color": "#454f5b",
+            "foreground-color": "#eceff2",
+            "border-color": "#6c93b8",
+            "font": "fixed 8"
+        },
+        "inactive": {
+            "background-color": "#282c31",
+            "foreground-color": "#7a8087",
+            "border-color": "#33383e",
+            "font": "fixed 8"
+        }
+    }
+}
