@@ -580,18 +580,27 @@ Appearance of icons that do not have focus.
 >
 > The `font` field accepts two formats:
 >
-> 1. **Short description:** `"[family] [bold] [italic|oblique] [size]"`
+> 1. **Short description:**
+>   `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
 >
 >    IcoWM parses this and constructs the appropriate XLFD wildcard
->    pattern internally.  Examples:
+>    pattern internally. All fields after `family` are optional and can
+>    appear in any order, except that `registry-encoding` (if given)
+>    must come last.  `registry-encoding` is any token that contains
+>    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
+>    two XLFD fields (`charset_registry` and `charset_encoding`).
+>
+>   Examples:
 >    - `"fixed"` -- the `fixed` alias (available on every X server)
->    - `"fixed 12"` -- `fixed` family at 9 pixels
->    - `"fixed bold 12"` -- `fixed` family, bold weight, 9 pixels
->    - `"courier bold italic 12"` -- Courier, bold italic, 12 pixels
+>    - `"fixed 12"` -- `fixed` family at 12 pixels
+>    - `"fixed bold 12"` -- `fixed` family, bold weight, 12 pixels
+>    - `"fixed bold 12 iso8859-15"` -- `fixed`, bold, 12 pixels,
+>       ISO 8859-15 charset
+>    - `"courier bold italic 17"` -- Courier, bold italic, 17 pixels
 >
 > 2. **Full XLFD:** a string starting with "`-`", e.g.,
->    `"-*-fixed-bold-r-*-*-9-*-*-*-*-*-*-*"`.  Passed verbatim to the
->    X server.
+>    `"-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"`, is passed verbatim
+>    to the X server.
 >
 > To list all X core fonts available on your system, run:
 >

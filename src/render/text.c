@@ -15,7 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <stdlib.h>     /* atoi, free */
+#include <stdlib.h>     /* strtol, free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -52,14 +52,14 @@ static struct {
  * IcoWM uses a simple font description syntax in its theme files:
  *
  * @code
- *   [family] [bold] [italic|oblique] [size]
+ *   [family] [bold] [italic|oblique] [size] [registry-encoding]
  * @endcode
  *
  * Examples:
  * @code
- *   "fixed"              -> "fixed"            (simple alias, pass through)
- *   "fixed 9"            -> "-*-fixed-medium-r-*-*-9-*-*-*-*-*-*-*"
- *   "fixed bold 9"       -> "-*-fixed-bold-r-*-*-9-*-*-*-*-*-*-*"
+ *   "fixed"              -> "fixed"
+ *   "fixed 12"           -> "-*-fixed-medium-r-*-*-12-*-*-*-*-*-*-*"
+ *   "fixed bold 12"      -> "-*-fixed-bold-r-*-*-12-*-*-*-*-*-*-*"
  *   "fixed bold oblique" -> "-*-fixed-bold-o-*-*-*-*-*-*-*-*-*-*"
  * @endcode
  *
@@ -75,18 +75,41 @@ static void font_config_to_xlfd(const char *input, char *output,
 {
     char tokens[8][64];     /* Maximum tokens we ever need:
                              *  family + bold + italic/oblique + size */
-    size_t ntok = 0u;
-    const char *p;
-    int size = 0;
-    bool is_bold = false;
-    bool is_italic = false;
-    bool is_oblique = false;
     char family[128];
-    size_t fi = 0u;
-    const char *last;
-    bool is_num;
+    char registry[64];
+    char encoding[64];
+    char charset_tok[64];
+    const char *p;
     const char *weight_str;
     const char *slant_str;
+    char *endptr;
+    long lval;
+    size_t ntok;
+    size_t fi;
+    size_t last_hyphen;
+    int size;
+    bool is_bold;
+    bool is_italic;
+    bool is_oblique;
+    bool has_hyphen;
+    bool is_num;
+    ntok = 0u;
+    fi = 0u;
+    last_hyphen = 0u;
+    size = 0;
+    is_bold = false;
+    is_italic = false;
+    is_oblique = false;
+    has_hyphen = false;
+    is_num = false;
+    lval = 0L;
+    endptr = NULL;
+    weight_str = NULL;
+    slant_str = NULL;
+    family[0] = '\0';
+    registry[0] = '\0';
+    encoding[0] = '\0';
+    charset_tok[0] = '\0';
 
     if (input == NULL || input[0] == '\0') {
         safe_strncpy(output, "fixed", outsize);
@@ -126,18 +149,52 @@ static void font_config_to_xlfd(const char *input, char *output,
         return;
     }
 
-    /* If the last token is an all-digit string, treat it as the pixel
-     * size */
-    last = tokens[ntok - 1u];
-    is_num = (last[0] != '\0');
-    for (size_t j = 0u; last[j] != '\0'; ++j) {
-        if (last[j] < '0' || last[j] > '9') {
-            is_num = false;
+
+    /* Check if the last token is a charset spec (contains a hyphen and
+     * is not a style keyword).  Split it into registry and encoding
+     * parts. */
+    for (size_t j = 0u; tokens[ntok - 1u][j] != '\0'; ++j) {
+        if (tokens[ntok - 1u][j] == '-') {
+            has_hyphen = true;
             break;
         }
     }
+
+    if (has_hyphen &&
+            safe_strcmp(tokens[ntok - 1u], "bold") != 0 &&
+            safe_strcmp(tokens[ntok - 1u], "italic") != 0 &&
+            safe_strcmp(tokens[ntok - 1u], "oblique") != 0) {
+        safe_strncpy(charset_tok, tokens[ntok - 1u], sizeof(charset_tok));
+        ntok--;
+
+        /* Find the last hyphen so we can split registry and encoding */
+        for (size_t j = 0u; charset_tok[j] != '\0'; ++j) {
+            if (charset_tok[j] == '-') {
+                last_hyphen = j;
+            }
+        }
+
+        /* 'safe_strncpy' with 'sz=last_hyphen+1' copies exactly
+         * 'last_hyphen' chars */
+        safe_strncpy(registry, charset_tok, last_hyphen + 1u);
+        safe_strncpy(encoding, charset_tok + last_hyphen + 1u,
+                sizeof(encoding));
+    }
+
+    /* Check if the last remaining token is an all-digit pixel size */
+    is_num = (ntok > 0u && tokens[ntok - 1u][0] != '\0');
+    for (size_t j = 0u; is_num && tokens[ntok - 1u][j] != '\0'; ++j) {
+        if (tokens[ntok - 1u][j] < '0' || tokens[ntok - 1u][j] > '9') {
+            is_num = false;
+        }
+    }
+
     if (is_num) {
-        size = atoi(last);
+        lval = strtol(tokens[ntok - 1u], &endptr, 10);
+        if (endptr != tokens[ntok - 1u] && *endptr == '\0' &&
+                lval > 0L && lval <= 999L) {
+            size = (int) lval;
+        }
         ntok--;
     }
 
@@ -179,21 +236,28 @@ static void font_config_to_xlfd(const char *input, char *output,
         return;
     }
 
-    /* A bare family name with no size or weight modifiers is a valid
-     * X font alias (e.g., "fixed"); pass it straight through */
-    if (size == 0 && !is_bold && !is_italic && !is_oblique) {
+    /* A bare family name with no modifiers is a valid X font alias */
+    if (size == 0 && !is_bold && !is_italic && !is_oblique &&
+            registry[0] == '\0') {
         safe_strncpy(output, family, outsize);
         return;
     }
 
     /* Build an XLFD wildcard pattern */
-    weight_str = (is_bold) ? "bold" : "medium";
-    slant_str = (is_italic) ? "i" : (is_oblique ? "o" : "r");
-
-    if (size > 0) {
+        weight_str = is_bold ? "bold" : "medium";
+    slant_str = is_italic ? "i" : (is_oblique ? "o" : "r");
+    if (size > 0 && registry[0] != '\0') {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-%s-%s",
+                family, weight_str, slant_str, size, registry, encoding);
+    } else if (size > 0) {
         (void) snprintf(output, outsize,
                 "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-*-*",
                 family, weight_str, slant_str, size);
+    } else if (registry[0] != '\0') {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-%s-%s",
+                family, weight_str, slant_str, registry, encoding);
     } else {
         (void) snprintf(output, outsize,
                 "-*-%s-%s-%s-*-*-*-*-*-*-*-*-*-*",
