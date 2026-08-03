@@ -32,7 +32,7 @@
 #include <render/text.h>
 
 /* Input includes */
-#include <input/keyboard.h>
+#include <input/kbd/bind.h>
 
 /* Focus includes */
 #include <policy/focus.h>

@@ -37,7 +37,7 @@
 #include <policy/placement.h>
 
 /* Input includes */
-#include <input/drag.h>
+#include <input/mouse/drag.h>
 
 /* Command includes */
 #include <cmds/ccmd.h>

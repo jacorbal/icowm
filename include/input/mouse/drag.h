@@ -1,5 +1,5 @@
 /**
- * @file input/drag.h
+ * @file input/mouse/drag.h
  *
  * @brief Mouse drag-operation state and interface
  *
@@ -16,8 +16,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INPUT_DRAG_H
-#define INPUT_DRAG_H
+#ifndef INPUT_MOUSE_DRAG_H
+#define INPUT_MOUSE_DRAG_H
 
 
 /* System includes */
@@ -164,4 +164,4 @@ bool drag_is_active(void);
 client_td *drag_client(void);
 
 
-#endif  /* ! INPUT_DRAG_H */
+#endif  /* ! INPUT_MOUSE_DRAG_H */

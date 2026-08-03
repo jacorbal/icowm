@@ -38,10 +38,10 @@
 #include <policy/focus.h>
 
 /* Input includes */
-#include <input/drag.h>
-#include <input/kbpress.h>
-#include <input/keyboard.h>
+#include <input/kbd/bind.h>
+#include <input/kbd/event.h>
 #include <input/mouse.h>
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/popup.h>

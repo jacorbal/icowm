@@ -69,8 +69,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current);
 /**
  * @brief Full desktop render
  *
- * Clears the desktop and redraws everything: background and clients.
- * Called when the desktop needs a complete refresh.
+ * Clears the desktop and redraws everything, i.e., background and
+ * clients.  Called when the desktop needs a complete refresh.
  *
  * @param desktop    Pointer to the desktop to render
  * @param is_current Whether @p desktop is the surface's currently
@@ -105,13 +105,14 @@ void desktop_render_flush(desktop_td *desktop);
  *
  * Renders six right-aligned button squares (iconify, hide, shade,
  * maximize, fullscreen, close), one left-aligned button (pin/sticky)
- * and one left-aligned button (layer cycle) as filled rectangles.  The
- * fill color is taken from @p theme: @c window.active.foreground_color
- * when @p is_focused is @c true, @c window.inactive.foreground_color
- * otherwise.  The pin button uses the active foreground when sticky,
- * and the inactive foreground when not sticky.  The layer button uses
- * the active foreground when the layer is above or below, and the
- * inactive foreground when the layer is normal.
+ * and another left-aligned button (layer cycle) as filled rectangles.
+ * The fill color is taken from @p theme:
+ * @c window.active.foreground_color when @p is_focused is @c true,
+ * @c window.inactive.foreground_color otherwise.  The pin button uses
+ * the active foreground when sticky, and the inactive foreground when
+ * not sticky.  The layer button uses the active foreground when the
+ * layer is above or below, and the inactive foreground when the layer
+ * is normal.
  *
  * @param connection   Active XCB connection
  * @param titlebar     XCB window identifier of the titlebar

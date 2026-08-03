@@ -65,20 +65,20 @@ typedef struct {
 /**
  * @brief Parse mouse bindings from configuration and grab buttons
  *
- * Reads mouse binding strings from @p cfg, parses each one, registers
- * it in the internal binding table, and grabs the corresponding button
- * on all roots in @p surfaces (with lock-modifier variants so that
- * @c Caps_Lock and @c Num_Lock do not interfere).  Replaces any
- * previously loaded bindings.
+ * Reads mouse binding strings from @p config, parses each one,
+ * registers it in the internal binding table, and grabs the
+ * corresponding button on all roots in @p surfaces (with lock-modifier
+ * variants so that @c Caps_Lock and @c Num_Lock do not interfere).
  *
  * @param surfaces All managed surfaces
- * @param cfg      Active configuration
+ * @param config   Active configuration
  *
+ * @note Replaces any * previously loaded bindings.
  * @note Complexity: @e O(s * b * L), where @e s is the number of
  *       surfaces, @e b the number of configured bindings, and @e L is
  *       the number of lock-modifier variants (4)
  */
-void mouse_load(list_td *surfaces, const config_td *cfg);
+void mouse_load(list_td *surfaces, const config_td *config);
 
 /**
  * @brief Return the number of loaded mouse bindings
@@ -119,13 +119,13 @@ enum wm_mousebind_type_e mousebind_at(int idx,
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
  * @param event      Button-press event
- * @param cfg        Active configuration
+ * @param config     Active configuration
  *
  * @note Complexity: @e O(n) for binding lookup; @e O(1) otherwise
  */
 void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
-        const config_td *cfg);
+        const config_td *config);
 
 /**
  * @brief Handle a button-release event to end a drag
@@ -137,13 +137,13 @@ void mouse_handle_press(xcb_connection_t *connection,
  * @param surfaces   All managed surfaces (for lookup and focus on
  *                   icon-click restore)
  * @param event      Button-release event
- * @param cfg        Active configuration
+ * @param config     Active configuration
  *
  * @note Complexity: @e O(1)
  */
 void mouse_handle_release(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_release_event_t *event,
-        const config_td *cfg);
+        const config_td *config);
 
 /**
  * @brief Apply focus-follows-mouse on an enter-notify event
@@ -155,13 +155,13 @@ void mouse_handle_release(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
  * @param event      Enter-notify event
- * @param cfg        Active configuration
+ * @param config     Active configuration
  *
  * @note Complexity: @e O(n)
  */
 void mouse_handle_enter(xcb_connection_t *connection,
         list_td *surfaces, xcb_enter_notify_event_t *event,
-        const config_td *cfg);
+        const config_td *config);
 
 /**
  * @brief Test whether a hover-triggered focus transfer is in progress

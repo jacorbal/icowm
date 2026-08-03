@@ -33,8 +33,8 @@
 #include <render/text.h>
 
 /* Menu includes */
-#include <menu/confirm.h>
 #include <menu/cycle.h>
+#include <menu/dialog/quit.h>
 #include <menu/popup.h>
 
 /* Default initial values */
@@ -88,8 +88,8 @@ void handler_expose(xcb_connection_t *connection,
     }
 
     /* Confirmation dialog repaint */
-    if (confirm_is_open() && event->window == confirm_window()) {
-        confirm_repaint(connection, cfg);
+    if (dialog_quit_is_open() && event->window == dialog_quit_window()) {
+        dialog_quit_repaint(connection, cfg);
         return;
     }
 

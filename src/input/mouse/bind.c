@@ -52,28 +52,28 @@ static int s_mousebindings_count = 0;
 /**
  * @brief Resolve configured modifier aliases
  *
- * @param cfg Configuration holding the alias strings
+ * @param config Configuration holding the alias strings
  * @param tok Token to resolve
  *
  * @return Resolved string, or @p tok unchanged if no alias matches
  *
  * @note Complexity: @e O(1)
  */
-static const char *s_resolve_modifier_token(const config_td *cfg,
+static const char *s_resolve_modifier_token(const config_td *config,
         const char *tok)
 {
-    if (tok == NULL || cfg == NULL) {
+    if (tok == NULL || config == NULL) {
         return tok;
     }
 
-    if (strcasecmp(tok, "modc") == 0) { return cfg->bindings.modc; }
-    if (strcasecmp(tok, "mods") == 0) { return cfg->bindings.mods; }
-    if (strcasecmp(tok, "modl") == 0) { return cfg->bindings.modl; }
-    if (strcasecmp(tok, "mod1") == 0) { return cfg->bindings.mod1; }
-    if (strcasecmp(tok, "mod2") == 0) { return cfg->bindings.mod2; }
-    if (strcasecmp(tok, "mod3") == 0) { return cfg->bindings.mod3; }
-    if (strcasecmp(tok, "mod4") == 0) { return cfg->bindings.mod4; }
-    if (strcasecmp(tok, "mod5") == 0) { return cfg->bindings.mod5; }
+    if (strcasecmp(tok, "modc") == 0) { return config->bindings.modc; }
+    if (strcasecmp(tok, "mods") == 0) { return config->bindings.mods; }
+    if (strcasecmp(tok, "modl") == 0) { return config->bindings.modl; }
+    if (strcasecmp(tok, "mod1") == 0) { return config->bindings.mod1; }
+    if (strcasecmp(tok, "mod2") == 0) { return config->bindings.mod2; }
+    if (strcasecmp(tok, "mod3") == 0) { return config->bindings.mod3; }
+    if (strcasecmp(tok, "mod4") == 0) { return config->bindings.mod4; }
+    if (strcasecmp(tok, "mod5") == 0) { return config->bindings.mod5; }
 
     return tok;
 }
@@ -82,17 +82,17 @@ static const char *s_resolve_modifier_token(const config_td *cfg,
 /**
  * @brief Map a single modifier token to an XCB modifier mask
  *
- * @param cfg Configuration holding the alias strings
+ * @param config Configuration holding the alias strings
  * @param tok Modifier token to parse
  *
  * @return XCB modifier mask, or 0 if not recognized
  *
  * @note Complexity: @e O(1)
  */
-static uint16_t s_parse_modifier_token(const config_td *cfg,
+static uint16_t s_parse_modifier_token(const config_td *config,
         const char *tok)
 {
-    const char *resolved = s_resolve_modifier_token(cfg, tok);
+    const char *resolved = s_resolve_modifier_token(config, tok);
 
     if (resolved == NULL || resolved[0] == '\0') {
         return 0;
@@ -170,7 +170,7 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
  * Splits on '+', treating all tokens except the last as modifiers and
  * the last token as a button name.
  *
- * @param cfg     Configuration (for modifier alias resolution)
+ * @param config     Configuration (for modifier alias resolution)
  * @param binding Binding string from configuration
  * @param modmask Receives the combined modifier mask
  * @param button  Receives the parsed button index
@@ -179,7 +179,7 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
  *
  * @note Complexity: @e O(n), where @e n is the length of @p binding
  */
-static bool s_parse_mouse_binding(const config_td *cfg,
+static bool s_parse_mouse_binding(const config_td *config,
         const char *binding,
         uint16_t *modmask,
         xcb_button_index_t *button)
@@ -207,7 +207,7 @@ static bool s_parse_mouse_binding(const config_td *cfg,
     tok = strtok_r(buf, "+", &save);
     while (tok != NULL) {
         if (prev_tok != NULL) {
-            uint16_t mod = s_parse_modifier_token(cfg, prev_tok);
+            uint16_t mod = s_parse_modifier_token(config, prev_tok);
             if (mod != 0) {
                 *modmask |= mod;
             }
@@ -225,17 +225,17 @@ static bool s_parse_mouse_binding(const config_td *cfg,
 
 
 /* Parse mouse bindings from configuration and grab buttons */
-void mouse_load(list_td *surfaces, const config_td *cfg)
+void mouse_load(list_td *surfaces, const config_td *config)
 {
     struct {
         const char *binding;
         enum wm_mousebind_type_e type;
     } defs[] = {
-        { cfg->bindings.mouse.window.move,        MOUSEBIND_MOVE },
-        { cfg->bindings.mouse.window.resize,      MOUSEBIND_RESIZE },
-        { cfg->bindings.mouse.window.lower,       MOUSEBIND_LOWER },
-        { cfg->bindings.mouse.cycle.desktop.prev, MOUSEBIND_DESKTOP_PREV },
-        { cfg->bindings.mouse.cycle.desktop.next, MOUSEBIND_DESKTOP_NEXT },
+        { config->bindings.mouse.window.move,        MOUSEBIND_MOVE },
+        { config->bindings.mouse.window.resize,      MOUSEBIND_RESIZE },
+        { config->bindings.mouse.window.lower,       MOUSEBIND_LOWER },
+        { config->bindings.mouse.cycle.desktop.prev, MOUSEBIND_DESKTOP_PREV },
+        { config->bindings.mouse.cycle.desktop.next, MOUSEBIND_DESKTOP_NEXT },
         { NULL,                                   MOUSEBIND_NONE }
     };
 
@@ -248,7 +248,7 @@ void mouse_load(list_td *surfaces, const config_td *cfg)
 
     xcb_connection_t *connection = NULL;
 
-    if (cfg == NULL) {
+    if (config == NULL) {
         return;
     }
 
@@ -268,7 +268,7 @@ void mouse_load(list_td *surfaces, const config_td *cfg)
         xcb_button_index_t button;
         uint16_t modmask;
 
-        if (!s_parse_mouse_binding(cfg, defs[i].binding,
+        if (!s_parse_mouse_binding(config, defs[i].binding,
                 &modmask, &button)) {
             LOGGER_WARNING("Ignoring unparseable mouse binding '%s'",
                     defs[i].binding);

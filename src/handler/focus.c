@@ -34,7 +34,7 @@
 #include <surface.h>
 
 /* Input includes */
-#include <input/keyboard.h>
+#include <input/kbd/bind.h>
 #include <input/mouse.h>
 
 /* Project includes */

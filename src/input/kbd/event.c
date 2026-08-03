@@ -1,5 +1,5 @@
 /**
- * @file input/kbpress.c
+ * @file input/kbd/event.c
  *
  * @brief Key-press and key-release event dispatch
  */
@@ -43,7 +43,7 @@
 #include <policy/focus.h>
 
 /* Menu includes */
-#include <menu/confirm.h>
+#include <menu/dialog/quit.h>
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
@@ -55,8 +55,8 @@
 #include <lookup.h>
 
 /* Local includes */
-#include <input/keyboard.h>
-#include <input/kbpress.h>
+#include <input/kbd/bind.h>
+#include <input/kbd/event.h>
 
 
 /**
@@ -198,7 +198,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
  * the popup */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         xcb_key_release_event_t *event, list_td *surfaces,
-        const config_td *cfg)
+        const config_td *config)
 {
     xcb_keysym_t keysym;
 
@@ -207,13 +207,14 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     }
 
     keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
+
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
             keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
         surface_td *surface = s_lookup_surface_fallback(surfaces,
                 event->root);
         if (surface != NULL) {
-            cycle_confirm(surface->connection, surfaces, cfg);
+            cycle_confirm(surface->connection, surfaces, config);
         }
         return;
     }
@@ -223,13 +224,13 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
 /* Translate a key-press event into an action and dispatch it */
 void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event, list_td *surfaces,
-        const config_td *cfg)
+        const config_td *config)
 {
     xcb_keysym_t keysym;
     uint16_t state;
     surface_td *surface;
 
-    if (keysyms == NULL || event == NULL || cfg == NULL) {
+    if (keysyms == NULL || event == NULL || config == NULL) {
         LOGGER_ERROR("Received null pointer in key press handler",
                 L_NARG);
         return;
@@ -250,7 +251,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         if (keysym == 0xff52u) {
             cycle_navigate_prev();
             if (surface != NULL && surface->connection != NULL) {
-                cycle_draw(surface->connection, cfg);
+                cycle_draw(surface->connection, config);
             }
             return;
         }
@@ -259,7 +260,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         if (keysym == 0xff54u) {
             cycle_navigate_next();
             if (surface != NULL && surface->connection != NULL) {
-                cycle_draw(surface->connection, cfg);
+                cycle_draw(surface->connection, config);
             }
             return;
         }
@@ -267,7 +268,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         /* Enter/Return */
         if (keysym == 0xff0du || keysym == 0xff8du) {
             if (surface != NULL && surface->connection != NULL) {
-                cycle_confirm(surface->connection, surfaces, cfg);
+                cycle_confirm(surface->connection, surfaces, config);
             }
             return;
         }
@@ -286,7 +287,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 state == cycle_next_modmask()) {
             cycle_navigate_next();
             if (surface != NULL && surface->connection != NULL) {
-                cycle_draw(surface->connection, cfg);
+                cycle_draw(surface->connection, config);
             }
             return;
         }
@@ -297,7 +298,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 state == cycle_prev_modmask()) {
             cycle_navigate_prev();
             if (surface != NULL && surface->connection != NULL) {
-                cycle_draw(surface->connection, cfg);
+                cycle_draw(surface->connection, config);
             }
             return;
         }
@@ -310,13 +311,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     }
 
     /* Confirmation dialog key handling */
-    if (confirm_is_open()) {
+    if (dialog_quit_is_open()) {
         /* Tab, Left, Right arrows: toggle selected button */
         if (keysym == 0xff09u || keysym == 0xff51u ||
                 keysym == 0xff53u) {
-            confirm_toggle_selection();
+            dialog_quit_toggle_selection();
             if (surface != NULL && surface->connection != NULL) {
-                confirm_repaint(surface->connection, cfg);
+                dialog_quit_repaint(surface->connection, config);
             }
             return;
         }
@@ -324,7 +325,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         /* Enter/Return: activate selected button */
         if (keysym == 0xff0du || keysym == 0xff8du) {
             if (surface != NULL && surface->connection != NULL) {
-                confirm_accept(surface->connection);
+                dialog_quit_accept(surface->connection);
             }
             return;
         }
@@ -332,7 +333,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         /* Escape: close without action */
         if (keysym == 0xff1bu) {
             if (surface != NULL && surface->connection != NULL) {
-                confirm_close(surface->connection);
+                dialog_quit_close(surface->connection);
             }
             return;
         }
@@ -401,8 +402,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         int dir = (btype == KEYBIND_CLIENT_CYCLE_NEXT)
                             ? 1 : -1;
                         cycle_open(surfaces, conn, surface, desktop,
-                                false, dir, bmm, cfg);
-                        cycle_draw(conn, cfg);
+                                false, dir, bmm, config);
+                        cycle_draw(conn, config);
                     }
                 }
                 return;
@@ -417,8 +418,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         int dir = (btype == KEYBIND_DESKTOP_ICON_NEXT)
                             ? 1 : -1;
                         cycle_open(surfaces, conn, surface, desktop,
-                                true, dir, bmm, cfg);
-                        cycle_draw(conn, cfg);
+                                true, dir, bmm, config);
+                        cycle_draw(conn, config);
                     }
                 }
                 return;
@@ -429,7 +430,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_QUIT:
                 if (surface != NULL && surface->connection != NULL) {
-                    confirm_show(surface->connection, surface, cfg);
+                    dialog_quit_show(surface->connection, surface, config);
                 }
                 return;
             case KEYBIND_WM_RELOAD:
@@ -463,7 +464,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                             if (btype == KEYBIND_CLIENT_INFO) {
                                 popup_show(surface->connection,
                                         surface, desktop, client,
-                                        bmm, event->detail, cfg);
+                                        bmm, event->detail, config);
                                 return;
                             }
 
@@ -504,27 +505,27 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_LAUNCH_TERMINAL:
                 lifecycle_dispatch_launch(surface,
-                        cfg->base.programs.terminal);
+                        config->base.programs.terminal);
                 return;
 
             case KEYBIND_LAUNCH_LAUNCHER:
                 lifecycle_dispatch_launch(surface,
-                        cfg->base.programs.launcher);
+                        config->base.programs.launcher);
                 return;
 
             case KEYBIND_LAUNCH_FILE_MANAGER:
                 lifecycle_dispatch_launch(surface,
-                        cfg->base.programs.file_manager);
+                        config->base.programs.file_manager);
                 return;
 
             case KEYBIND_LAUNCH_WEB_BROWSER:
                 lifecycle_dispatch_launch(surface,
-                        cfg->base.programs.web_browser);
+                        config->base.programs.web_browser);
                 return;
 
             case KEYBIND_LAUNCH_EDITOR:
                 lifecycle_dispatch_launch(surface,
-                        cfg->base.programs.editor);
+                        config->base.programs.editor);
                 return;
 
             case KEYBIND_CLIENT_MOVE_LEFT:
@@ -537,7 +538,9 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
                 if (surface != NULL) {
                     desktop_td *desktop = lookup_current_desktop(surface);
-                    if (desktop != NULL && desktop->client_active_id != 0) {
+
+                    if (desktop != NULL &&
+                            desktop->client_active_id != 0) {
                         surface_td *cs = NULL;
                         desktop_td *cd = NULL;
                         client_td *client = lookup_find_client(surfaces,
@@ -547,13 +550,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                             int32_t new_x = client->layout.geometry.cur.pos.x;
                             int32_t new_y = client->layout.geometry.cur.pos.y;
                             int32_t max_x = (cs != NULL)
-                                ? (int32_t) cs->properties.dim.w -
-                                    (int32_t) client->layout.geometry.cur.dim.w
-                                : new_x;
+                            ? (int32_t) cs->properties.dim.w -
+                                (int32_t) client->layout.geometry.cur.dim.w
+                            : new_x;
                             int32_t max_y = (cs != NULL)
-                                ? (int32_t) cs->properties.dim.h -
-                                    (int32_t) client->layout.geometry.cur.dim.h
-                                : new_y;
+                            ? (int32_t) cs->properties.dim.h -
+                                (int32_t) client->layout.geometry.cur.dim.h
+                            : new_y;
 
                             if (btype == KEYBIND_CLIENT_MOVE_LEFT)
                                 new_x -= WM_KEYBOARD_MOVE_STEP;

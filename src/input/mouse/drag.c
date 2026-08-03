@@ -1,5 +1,5 @@
 /**
- * @file input/drag.c
+ * @file input/mouse/drag.c
  *
  * @brief Mouse drag-operation state and implementation
  *
@@ -42,7 +42,7 @@
 #include <surface.h>
 
 /* Local includes */
-#include <input/drag.h>
+#include <input/mouse/drag.h>
 
 
 /**

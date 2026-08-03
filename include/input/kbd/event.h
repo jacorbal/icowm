@@ -1,5 +1,5 @@
 /**
- * @file input/kbpress.h
+ * @file input/kbd/event.h
  *
  * @brief Key-press and key-release event dispatch
  *
@@ -16,8 +16,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INPUT_KBPRESS_H
-#define INPUT_KBPRESS_H
+#ifndef INPUT_KBD_EVENT_H
+#define INPUT_KBD_EVENT_H
 
 
 /* XCB includes */
@@ -73,4 +73,4 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         const config_td *cfg);
 
 
-#endif  /* ! INPUT_KBPRESS_H */
+#endif  /* ! INPUT_KBD_EVENT_H */

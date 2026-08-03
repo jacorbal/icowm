@@ -1,5 +1,5 @@
 /**
- * @file surface/desktop.c
+ * @file surface/actions.c
  *
  * @brief Surface-level desktop and client operations implementation
  */

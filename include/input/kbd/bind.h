@@ -1,5 +1,5 @@
 /**
- * @file input/keyboard.h
+ * @file input/kbd/bind.h
  *
  * @brief Keyboard binding and event translation API
  *
@@ -8,7 +8,7 @@
  * translating raw key-press events into action identifiers, and querying
  * the active binding table.
  *
- * This module has no knowledge of the window-manager singleton; every
+ * This module has no knowledge of the window manager singleton; every
  * function receives explicit parameters for the XCB connection,
  * surface list, and configuration pointer.
  */
@@ -20,8 +20,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INPUT_KEYBOARD_H
-#define INPUT_KEYBOARD_H
+#ifndef INPUT_KBD_BIND_H
+#define INPUT_KBD_BIND_H
 
 
 /* System includes */
@@ -39,7 +39,7 @@
 #include <config.h>
 
 /* Local includes */
-#include <input/keycodes.h>
+#include <input/kbd/keycodes.h>
 
 
 /**
@@ -110,9 +110,9 @@ enum wm_keybind_type_e {
  * the configuration file.
  */
 typedef struct {
-    xcb_keysym_t            keysym;   /**< X keysym for this binding */
-    uint16_t                modmask;  /**< Required modifier mask */
-    enum wm_keybind_type_e  type;     /**< Action triggered by this binding */
+    xcb_keysym_t keysym;            /**< X keysym for this binding */
+    uint16_t modmask;               /**< Required modifier mask */
+    enum wm_keybind_type_e type;    /**< Action triggered by this binding */
 } wm_keybinding_td;
 
 
@@ -120,21 +120,21 @@ typedef struct {
 /**
  * @brief Parse configured key bindings and install passive grabs
  *
- * Reads every keyboard binding from @p cfg, resolves each one to a
- * keysym and modifier mask, stores it in the internal binding table, and
- * calls @c xcb_grab_key on every root window in @p surfaces (including
- * all lock-modifier variants).
+ * Reads every keyboard binding from @p config, resolves each one to
+ * a keysym and modifier mask, stores it in the internal binding table,
+ * and calls @c xcb_grab_key on every root window in @p surfaces
+ * (including all lock-modifier variants).
  *
  * @param surfaces Singly-linked list of @c surface_td pointers
  * @param keysyms  Allocated XCB key-symbols table
- * @param cfg      Configuration from which to read binding strings
+ * @param config   Configuration from which to read binding strings
  *
  * @note Complexity: @e O(b * s * k), where @e b is the number of
  *       bindings, @e s is the number of surfaces, and @e k is the
  *       number of keycodes per keysym
  */
 void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
-        const config_td *cfg);
+        const config_td *config);
 
 /**
  * @brief Look up the first binding registered for a given action type
@@ -161,15 +161,16 @@ bool keyboard_find(enum wm_keybind_type_e type,
  * (unstripped) modifier mask of the binding are written to the output
  * parameters.
  *
- * @param keysyms       Allocated XCB key-symbols table
- * @param event         Incoming key-press event
- * @param type_out      Receives the matched action type
+ * @param keysyms         Allocated XCB key-symbols table
+ * @param event           Incoming key-press event
+ * @param type_out        Receives the matched action type
  * @param raw_modmask_out Receives the raw modifier mask of the matched
- *                      binding (useful for passing to the cycle menu)
+ *                        binding (useful for passing to the cycle menu)
  *
  * @return @c true when a binding is matched, @c false otherwise
  *
- * @note Complexity: @e O(n), where @e n is the number of loaded bindings
+ * @note Complexity: @e O(n), where @e n is the number of loaded
+ *       bindings
  */
 bool keyboard_find_action(xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event,
@@ -185,8 +186,8 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
  * automatically.
  *
  * @param keysym Keysym of the released key
- * @param mask   Modifier mask to test against (locking modifiers already
- *               stripped)
+ * @param mask   Modifier mask to test against (locking modifiers
+ *               already stripped)
  *
  * @return @c true when @p keysym maps to a modifier bit present in
  *         @p mask, @c false otherwise
@@ -220,8 +221,7 @@ int keyboard_binding_count(void);
  * @note Complexity: @e O(1)
  */
 enum wm_keybind_type_e keyboard_binding_at(int idx,
-        xcb_keysym_t *keysym_out,
-        uint16_t *modmask_out);
+        xcb_keysym_t *keysym_out, uint16_t *modmask_out);
 
 
-#endif  /* ! INPUT_KEYBOARD_H */
+#endif  /* ! INPUT_KBD_BIND_H */

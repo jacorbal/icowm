@@ -42,8 +42,8 @@
 #include <surface.h>
 
 /* Local includes */
-#include <input/keyboard.h>
-#include <input/keycodes.h>
+#include <input/kbd/bind.h>
+#include <input/kbd/keycodes.h>
 
 
 /** Resolved key bindings loaded from configuration */
@@ -60,31 +60,31 @@ static int s_keybindings_count = 0;
  * actual configured string values.  If the token does not match a known
  * alias, the original token is returned unchanged.
  *
- * @param cfg Configuration holding the alias strings
- * @param tok Modifier token to resolve
+ * @param config Configuration holding the alias strings
+ * @param token  Modifier token to resolve
  *
  * @return Resolved modifier string, or the original token if no alias
  *         matches
  *
  * @note Complexity: @e O(1)
  */
-static const char *s_resolve_modifier_token(const config_td *cfg,
-        const char *tok)
+static const char *s_resolve_modifier_token(const config_td *config,
+        const char *token)
 {
-    if (tok == NULL || cfg == NULL) {
-        return tok;
+    if (token == NULL || config == NULL) {
+        return token;
     }
 
-    if (strcasecmp(tok, "modc") == 0) { return cfg->bindings.modc; }
-    if (strcasecmp(tok, "mods") == 0) { return cfg->bindings.mods; }
-    if (strcasecmp(tok, "modl") == 0) { return cfg->bindings.modl; }
-    if (strcasecmp(tok, "mod1") == 0) { return cfg->bindings.mod1; }
-    if (strcasecmp(tok, "mod2") == 0) { return cfg->bindings.mod2; }
-    if (strcasecmp(tok, "mod3") == 0) { return cfg->bindings.mod3; }
-    if (strcasecmp(tok, "mod4") == 0) { return cfg->bindings.mod4; }
-    if (strcasecmp(tok, "mod5") == 0) { return cfg->bindings.mod5; }
+    if (strcasecmp(token, "modc") == 0) { return config->bindings.modc; }
+    if (strcasecmp(token, "mods") == 0) { return config->bindings.mods; }
+    if (strcasecmp(token, "modl") == 0) { return config->bindings.modl; }
+    if (strcasecmp(token, "mod1") == 0) { return config->bindings.mod1; }
+    if (strcasecmp(token, "mod2") == 0) { return config->bindings.mod2; }
+    if (strcasecmp(token, "mod3") == 0) { return config->bindings.mod3; }
+    if (strcasecmp(token, "mod4") == 0) { return config->bindings.mod4; }
+    if (strcasecmp(token, "mod5") == 0) { return config->bindings.mod5; }
 
-    return tok;
+    return token;
 }
 
 
@@ -95,17 +95,17 @@ static const char *s_resolve_modifier_token(const config_td *cfg,
  * mask.  Supports configured aliases, common modifier names, and some
  * alternative spellings.
  *
- * @param cfg Configuration holding the alias strings
- * @param tok Modifier token to parse
+ * @param config Configuration holding the alias strings
+ * @param token  Modifier token to parse
  *
  * @return Matching XCB modifier mask, or 0 if not recognized
  *
  * @note Complexity: @e O(1)
  */
-static uint16_t s_parse_modifier_token(const config_td *cfg,
-        const char *tok)
+static uint16_t s_parse_modifier_token(const config_td *config,
+        const char *token)
 {
-    const char *resolved = s_resolve_modifier_token(cfg, tok);
+    const char *resolved = s_resolve_modifier_token(config, token);
 
     if (resolved == NULL || resolved[0] == '\0') {
         return 0;
@@ -156,53 +156,53 @@ static uint16_t s_parse_modifier_token(const config_td *cfg,
  * Supports printable single-character keys, function keys, and common
  * named keys such as arrows, navigation keys, and editing keys.
  *
- * @param tok Key token to parse
+ * @param token Key token to parse
  *
  * @return Matching keysym, or @c XCB_NO_SYMBOL if the token is not
  *         recognized
  *
  * @note Complexity: @e O(1)
  */
-static xcb_keysym_t s_parse_keysym_token(const char *tok)
+static xcb_keysym_t s_parse_keysym_token(const char *token)
 {
     /* Single printable character */
-    if (tok[1] == '\0') {
-        char c = tok[0];
+    if (token[1] == '\0') {
+        char c = token[0];
         if (c >= 'a' && c <= 'z') { return (xcb_keysym_t) c; }
         if (c >= 'A' && c <= 'Z') { return (xcb_keysym_t) (c + 32); }
         if (c >= '0' && c <= '9') { return (xcb_keysym_t) c; }
     }
 
     /* Function keys F1-F12 */
-    if ((tok[0] == 'F' || tok[0] == 'f') &&
-            tok[1] >= '1' && tok[1] <= '9') {
+    if ((token[0] == 'F' || token[0] == 'f') &&
+            token[1] >= '1' && token[1] <= '9') {
         char *end = NULL;
-        long n = strtol(tok + 1, &end, 10);
+        long n = strtol(token + 1, &end, 10);
         if (end != NULL && *end == '\0' && n >= 1 && n <= 12) {
             return (xcb_keysym_t) (0xffbdu + (unsigned long) n);
         }
     }
 
     /* Named keys */
-    if (strcasecmp(tok, "return") == 0 ||
-            strcasecmp(tok, "enter") == 0)  { return 0xff0du; }
-    if (strcasecmp(tok, "space") == 0)      { return 0x0020u; }
-    if (strcasecmp(tok, "tab") == 0)        { return 0xff09u; }
-    if (strcasecmp(tok, "escape") == 0 ||
-            strcasecmp(tok, "esc") == 0)    { return 0xff1bu; }
-    if (strcasecmp(tok, "backspace") == 0)  { return 0xff08u; }
-    if (strcasecmp(tok, "delete") == 0 ||
-            strcasecmp(tok, "del") == 0)    { return 0xffffu; }
-    if (strcasecmp(tok, "left") == 0)       { return 0xff51u; }
-    if (strcasecmp(tok, "up") == 0)         { return 0xff52u; }
-    if (strcasecmp(tok, "right") == 0)      { return 0xff53u; }
-    if (strcasecmp(tok, "down") == 0)       { return 0xff54u; }
-    if (strcasecmp(tok, "home") == 0)       { return 0xff50u; }
-    if (strcasecmp(tok, "end") == 0)        { return 0xff57u; }
-    if (strcasecmp(tok, "pageup") == 0 ||
-            strcasecmp(tok, "prior") == 0)  { return 0xff55u; }
-    if (strcasecmp(tok, "pagedown") == 0 ||
-            strcasecmp(tok, "next") == 0)   { return 0xff56u; }
+    if (strcasecmp(token, "return") == 0 ||
+            strcasecmp(token, "enter") == 0)  { return 0xff0du; }
+    if (strcasecmp(token, "space") == 0)      { return 0x0020u; }
+    if (strcasecmp(token, "tab") == 0)        { return 0xff09u; }
+    if (strcasecmp(token, "escape") == 0 ||
+            strcasecmp(token, "esc") == 0)    { return 0xff1bu; }
+    if (strcasecmp(token, "backspace") == 0)  { return 0xff08u; }
+    if (strcasecmp(token, "delete") == 0 ||
+            strcasecmp(token, "del") == 0)    { return 0xffffu; }
+    if (strcasecmp(token, "left") == 0)       { return 0xff51u; }
+    if (strcasecmp(token, "up") == 0)         { return 0xff52u; }
+    if (strcasecmp(token, "right") == 0)      { return 0xff53u; }
+    if (strcasecmp(token, "down") == 0)       { return 0xff54u; }
+    if (strcasecmp(token, "home") == 0)       { return 0xff50u; }
+    if (strcasecmp(token, "end") == 0)        { return 0xff57u; }
+    if (strcasecmp(token, "pageup") == 0 ||
+            strcasecmp(token, "prior") == 0)  { return 0xff55u; }
+    if (strcasecmp(token, "pagedown") == 0 ||
+            strcasecmp(token, "next") == 0)   { return 0xff56u; }
 
     return XCB_NO_SYMBOL;
 }
@@ -214,7 +214,7 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
  * Splits on '+' and classifies each token as a modifier (all but the
  * last) or the key (last token).
  *
- * @param cfg     Configuration for alias resolution
+ * @param config  Configuration for alias resolution
  * @param binding Binding string from configuration
  * @param modmask Receives the combined modifier mask
  * @param keysym  Receives the main keysym
@@ -223,11 +223,11 @@ static xcb_keysym_t s_parse_keysym_token(const char *tok)
  *
  * @note Complexity: @e O(n), where @e n is the length of @p binding
  */
-static bool s_parse_binding(const config_td *cfg, const char *binding,
-        uint16_t *modmask, xcb_keysym_t *keysym)
+static bool s_parse_binding(const config_td *config,
+        const char *binding, uint16_t *modmask, xcb_keysym_t *keysym)
 {
     char buf[128];
-    char *tok;
+    char *token;
     char *save;
     char *prev_tok = NULL;
     size_t len;
@@ -246,16 +246,16 @@ static bool s_parse_binding(const config_td *cfg, const char *binding,
     *modmask = 0;
     *keysym = XCB_NO_SYMBOL;
 
-    tok = strtok_r(buf, "+", &save);
-    while (tok != NULL) {
+    token = strtok_r(buf, "+", &save);
+    while (token != NULL) {
         if (prev_tok != NULL) {
-            uint16_t mod = s_parse_modifier_token(cfg, prev_tok);
+            uint16_t mod = s_parse_modifier_token(config, prev_tok);
             if (mod != 0) {
                 *modmask |= mod;
             }
         }
-        prev_tok = tok;
-        tok = strtok_r(NULL, "+", &save);
+        prev_tok = token;
+        token = strtok_r(NULL, "+", &save);
     }
 
     if (prev_tok != NULL) {
@@ -268,88 +268,88 @@ static bool s_parse_binding(const config_td *cfg, const char *binding,
 
 /* Parse configured key bindings and install passive grabs */
 void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
-        const config_td *cfg)
+        const config_td *config)
 {
     /* Binding definitions: string from config paired with action type */
     struct {
         const char *binding;
         enum wm_keybind_type_e type;
     } defs[] = {
-        { cfg->bindings.keyboard.wm.redraw,
+        { config->bindings.keyboard.wm.redraw,
           KEYBIND_WM_REDRAW },
-        { cfg->bindings.keyboard.wm.reload,
+        { config->bindings.keyboard.wm.reload,
           KEYBIND_WM_RELOAD },
-        { cfg->bindings.keyboard.wm.quit,
+        { config->bindings.keyboard.wm.quit,
           KEYBIND_WM_QUIT },
-        { cfg->bindings.keyboard.launch.terminal,
+        { config->bindings.keyboard.launch.terminal,
           KEYBIND_LAUNCH_TERMINAL },
-        { cfg->bindings.keyboard.launch.launcher,
+        { config->bindings.keyboard.launch.launcher,
           KEYBIND_LAUNCH_LAUNCHER },
-        { cfg->bindings.keyboard.launch.file_manager,
+        { config->bindings.keyboard.launch.file_manager,
           KEYBIND_LAUNCH_FILE_MANAGER },
-        { cfg->bindings.keyboard.launch.web_browser,
+        { config->bindings.keyboard.launch.web_browser,
           KEYBIND_LAUNCH_WEB_BROWSER },
-        { cfg->bindings.keyboard.launch.editor,
+        { config->bindings.keyboard.launch.editor,
           KEYBIND_LAUNCH_EDITOR },
-        { cfg->bindings.keyboard.window.iconify,
+        { config->bindings.keyboard.window.iconify,
           KEYBIND_CLIENT_ICONIFY },
-        { cfg->bindings.keyboard.window.hide,
+        { config->bindings.keyboard.window.hide,
           KEYBIND_CLIENT_HIDE },
-        { cfg->bindings.keyboard.window.close,
+        { config->bindings.keyboard.window.close,
           KEYBIND_CLIENT_CLOSE },
-        { cfg->bindings.keyboard.window.kill,
+        { config->bindings.keyboard.window.kill,
           KEYBIND_CLIENT_KILL },
-        { cfg->bindings.keyboard.window.maximize,
+        { config->bindings.keyboard.window.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
-        { cfg->bindings.keyboard.window.shade,
+        { config->bindings.keyboard.window.shade,
           KEYBIND_CLIENT_SHADE },
-        { cfg->bindings.keyboard.window.fullscreen,
+        { config->bindings.keyboard.window.fullscreen,
           KEYBIND_CLIENT_FULLSCREEN },
-        { cfg->bindings.keyboard.window.pin,
+        { config->bindings.keyboard.window.pin,
           KEYBIND_CLIENT_PIN },
-        { cfg->bindings.keyboard.window.layer,
+        { config->bindings.keyboard.window.layer,
           KEYBIND_CLIENT_CYCLE_LAYER },
-        { cfg->bindings.keyboard.window.info,
+        { config->bindings.keyboard.window.info,
           KEYBIND_CLIENT_INFO },
-        { cfg->bindings.keyboard.window.decorate,
+        { config->bindings.keyboard.window.decorate,
           KEYBIND_CLIENT_TOGGLE_DECORATION },
-        { cfg->bindings.keyboard.window.move.absolute.center,
+        { config->bindings.keyboard.window.move.absolute.center,
           KEYBIND_CLIENT_CENTER },
-        { cfg->bindings.keyboard.window.move.relative.left,
+        { config->bindings.keyboard.window.move.relative.left,
           KEYBIND_CLIENT_MOVE_LEFT },
-        { cfg->bindings.keyboard.window.move.relative.right,
+        { config->bindings.keyboard.window.move.relative.right,
           KEYBIND_CLIENT_MOVE_RIGHT },
-        { cfg->bindings.keyboard.window.move.relative.up,
+        { config->bindings.keyboard.window.move.relative.up,
           KEYBIND_CLIENT_MOVE_UP },
-        { cfg->bindings.keyboard.window.move.relative.down,
+        { config->bindings.keyboard.window.move.relative.down,
           KEYBIND_CLIENT_MOVE_DOWN },
-        { cfg->bindings.keyboard.window.move.absolute.top_left,
+        { config->bindings.keyboard.window.move.absolute.top_left,
           KEYBIND_CLIENT_MOVE_TOP_LEFT },
-        { cfg->bindings.keyboard.window.move.absolute.top_right,
+        { config->bindings.keyboard.window.move.absolute.top_right,
           KEYBIND_CLIENT_MOVE_TOP_RIGHT },
-        { cfg->bindings.keyboard.window.move.absolute.bottom_left,
+        { config->bindings.keyboard.window.move.absolute.bottom_left,
           KEYBIND_CLIENT_MOVE_BOTTOM_LEFT },
-        { cfg->bindings.keyboard.window.move.absolute.bottom_right,
+        { config->bindings.keyboard.window.move.absolute.bottom_right,
           KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT },
-        { cfg->bindings.keyboard.window.resize.left,
+        { config->bindings.keyboard.window.resize.left,
           KEYBIND_CLIENT_RESIZE_LEFT },
-        { cfg->bindings.keyboard.window.resize.right,
+        { config->bindings.keyboard.window.resize.right,
           KEYBIND_CLIENT_RESIZE_RIGHT },
-        { cfg->bindings.keyboard.window.resize.up,
+        { config->bindings.keyboard.window.resize.up,
           KEYBIND_CLIENT_RESIZE_UP },
-        { cfg->bindings.keyboard.window.resize.down,
+        { config->bindings.keyboard.window.resize.down,
           KEYBIND_CLIENT_RESIZE_DOWN },
-        { cfg->bindings.keyboard.cycle.window.prev,
+        { config->bindings.keyboard.cycle.window.prev,
           KEYBIND_CLIENT_CYCLE_PREV },
-        { cfg->bindings.keyboard.cycle.window.next,
+        { config->bindings.keyboard.cycle.window.next,
           KEYBIND_CLIENT_CYCLE_NEXT },
-        { cfg->bindings.keyboard.cycle.desktop.prev,
+        { config->bindings.keyboard.cycle.desktop.prev,
           KEYBIND_DESKTOP_PREV },
-        { cfg->bindings.keyboard.cycle.desktop.next,
+        { config->bindings.keyboard.cycle.desktop.next,
           KEYBIND_DESKTOP_NEXT },
-        { cfg->bindings.keyboard.cycle.icon.prev,
+        { config->bindings.keyboard.cycle.icon.prev,
           KEYBIND_DESKTOP_ICON_PREV },
-        { cfg->bindings.keyboard.cycle.icon.next,
+        { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
         /* Hardcoded emergency exit */
         { "Ctrl+Mod1+BackSpace", KEYBIND_NONE },
@@ -380,7 +380,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         uint16_t modmask;
         xcb_keycode_t *keycodes;
 
-        if (!s_parse_binding(cfg, defs[i].binding, &modmask, &keysym)) {
+        if (!s_parse_binding(config, defs[i].binding,
+                    &modmask, &keysym)) {
             continue;
         }
 

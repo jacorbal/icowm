@@ -1,5 +1,5 @@
 /**
- * @file input/keycodes.h
+ * @file input/kbd/keycodes.h
  *
  * @brief Common key and modifier constants for input handling
  *
@@ -16,8 +16,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INPUT_KEYCODES_H
-#define INPUT_KEYCODES_H
+#ifndef INPUT_KBD_KEYCODES_H
+#define INPUT_KBD_KEYCODES_H
 
 
 /* System includes */
@@ -43,7 +43,6 @@
         ~((unsigned int) XCB_MOD_MASK_LOCK | \
             (unsigned int) XCB_MOD_MASK_2)))
 
-
 /* Readable aliases for common modifier masks */
 #define MOD_SHIFT    XCB_MOD_MASK_SHIFT    /**< Shift modifier */
 #define MOD_CTRL     XCB_MOD_MASK_CONTROL  /**< Control modifier */
@@ -54,4 +53,4 @@
 #define MOD_CAPSLOCK XCB_MOD_MASK_LOCK     /**< Caps_Lock (locking) */
 
 
-#endif  /* ! INPUT_KEYCODES_H */
+#endif  /* ! INPUT_KBD_KEYCODES_H */

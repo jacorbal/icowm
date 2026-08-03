@@ -1,0 +1,258 @@
+/**
+ * @file menu/dialog.h
+ *
+ * @brief Generic dialog infrastructure for confirm and message dialogs
+ *
+ * Provides two reusable modal dialog types:
+ *
+ * - **Confirm dialog:** presents a prompt and two choices (cancel and
+ *   confirm).  The caller supplies all visible text at show time; no
+ *   compiled-in strings are used.  An optional callback is invoked when
+ *   the user activates the confirm button.
+ *
+ * - **Message dialog:** shows a read-only message with an alert level
+ *   (info, warning, or error) and a single dismiss button.  Intended
+ *   for future use; no callback is needed.
+ *
+ * Both dialog types share the centering helper and the same design.
+ *
+ * @note Only one instance of each type may be visible at a time
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#ifndef MENU_DIALOG_H
+#define MENU_DIALOG_H
+
+
+/* System includes */
+#include <stdbool.h>
+#include <stdint.h>
+
+/* XCB includes */
+#include <xcb/xcb.h>
+
+/* Project includes */
+#include <config.h>
+#include <surface.h>
+
+
+/**
+ * @brief Alert level for the message dialog
+ *
+ * Controls the level prefix shown alongside the message and
+ *
+ * @remark Choose accent colors from the active theme
+ */
+typedef enum {
+    MENU_MSG_LEVEL_INFO,    /**< Informational message */
+    MENU_MSG_LEVEL_WARNING, /**< Non-critical warning */
+    MENU_MSG_LEVEL_ERROR    /**< Error or critical condition */
+} menu_msg_level_e;
+
+
+/* Centering helper */
+/**
+ * @brief Compute centered coordinates for a dialog on a surface
+ *
+ * @param surface Surface where the dialog will be shown
+ * @param width   Dialog width in pixels
+ * @param height  Dialog height in pixels
+ * @param out_x   Receives centered X coordinate
+ * @param out_y   Receives centered Y coordinate
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_dialog_center(const surface_td *surface,
+        uint16_t width, uint16_t height, int16_t *out_x, int16_t *out_y);
+
+/**
+ * @brief Open the confirm dialog centered on the screen
+ *
+ * Creates and maps a modal dialog window with @p prompt, a cancel
+ * button labelled @p cancel_label, and a confirm button labelled
+ * @p confirm_label.  The cancel button is selected by default.  Any
+ * previously open confirm dialog is ignored (only one instance is
+ * allowed at a time).
+ *
+ * @param connection    XCB connection
+ * @param surface       Surface on which to center the dialog
+ * @param config        Active configuration (theme colors and font)
+ * @param prompt        Null-terminated prompt text
+ * @param cancel_label  Null-terminated cancel button label
+ * @param confirm_label Null-terminated confirm button label
+ *
+ * @note Complexity: @e O(n), where @e n is the total text length
+ */
+void menu_confirm_dialog_show(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        const char *prompt,
+        const char *cancel_label, const char *confirm_label);
+
+/**
+ * @brief Destroy the currently visible confirm dialog
+ *
+ * Closes the dialog window if it is open and resets all internal state.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_close(xcb_connection_t *connection);
+
+/**
+ * @brief Repaint the confirm dialog from current state
+ *
+ * Called from the expose handler.  Redraws the prompt and both buttons,
+ * highlighting the currently selected one.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration (theme colors and font)
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_repaint(xcb_connection_t *connection,
+        const config_td *config);
+
+/**
+ * @brief Handle a mouse click inside the confirm dialog
+ *
+ * Activates the clicked button when the pointer lands inside either
+ * button rectangle.  Clicks outside both buttons return @c false.
+ *
+ * @param connection XCB connection
+ * @param x          Pointer X coordinate relative to the dialog
+ * @param y          Pointer Y coordinate relative to the dialog
+ *
+ * @return @c true if a button was activated, @c false otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
+        int x, int y);
+
+/**
+ * @brief Move selection to the next button (wraps around)
+ *
+ * Cycles the highlighted button from cancel to confirm and back.
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_toggle_selection(void);
+
+/**
+ * @brief Activate the currently selected button
+ *
+ * Closes the dialog.  If the confirm button was selected, @p on_confirm
+ * is called after closing, if non-null.
+ *
+ * @param connection XCB connection
+ * @param on_confirm Optional callback invoked when the confirm button
+ *                   is activated; receives the XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_accept(xcb_connection_t *connection,
+        void (*on_confirm)(xcb_connection_t *));
+
+/**
+ * @brief Query whether the confirm dialog is currently visible
+ *
+ * @return @c true when the dialog window exists
+ *
+ * @note Complexity: @e O(1)
+ */
+bool menu_confirm_dialog_is_open(void);
+
+/**
+ * @brief Return the confirm dialog window identifier
+ *
+ * @return The dialog's @c xcb_window_t, or @c XCB_WINDOW_NONE
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t menu_confirm_dialog_window(void);
+
+/* Message dialog (informational, single dismiss button) */
+/**
+ * @brief Open the message dialog centered on the screen
+ *
+ * Creates and maps a modal dialog window showing @p message with an
+ * alert-level prefix.  A single "OK" button dismisses the dialog.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface on which to center the dialog
+ * @param config     Active configuration (theme colors and font)
+ * @param message    Null-terminated message text
+ * @param level      Alert severity level
+ *
+ * @note Complexity: @e O(n), where @e n is the message text length
+ */
+void menu_message_dialog_show(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        const char *message, menu_msg_level_e level);
+/**
+ * @brief Destroy the currently visible message dialog
+ *
+ * Closes the dialog window if it is open and resets all internal state.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_message_dialog_close(xcb_connection_t *connection);
+
+/**
+ * @brief Repaint the message dialog from current state
+ *
+ * Called from the expose handler.  Redraws the message text and the
+ * dismiss button.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration (theme colors and font)
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_message_dialog_repaint(xcb_connection_t *connection,
+        const config_td *config);
+
+/**
+ * @brief Handle a mouse click inside the message dialog
+ *
+ * Closes the dialog when the pointer lands inside the "OK" button.
+ * Clicks outside the button are not handled.
+ *
+ * @param connection XCB connection
+ * @param x          Pointer X coordinate relative to the dialog
+ * @param y          Pointer Y coordinate relative to the dialog
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_message_dialog_handle_click(xcb_connection_t *connection,
+        int x, int y);
+
+/**
+ * @brief Query whether the message dialog is currently visible
+ *
+ * @return @c true when the dialog window exists
+ *
+ * @note Complexity: @e O(1)
+ */
+bool menu_message_dialog_is_open(void);
+
+/**
+ * @brief Return the message dialog window identifier
+ *
+ * @return The dialog's @c xcb_window_t, or @c XCB_WINDOW_NONE
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t menu_message_dialog_window(void);
+
+
+#endif  /* ! MENU_DIALOG_H */

@@ -34,8 +34,8 @@
 #include <policy/focus.h>
 
 /* Menu includes */
-#include <menu/confirm.h>
 #include <menu/cycle.h>
+#include <menu/dialog/quit.h>
 #include <menu/popup.h>
 
 /* Default initial values */
@@ -56,7 +56,7 @@
 #include <cmds/ccmd.h>
 
 /* Local includes */
-#include <input/drag.h>
+#include <input/mouse/drag.h>
 #include <input/mouse.h>
 
 
@@ -180,7 +180,7 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 /* Dispatch a button-press event */
 void mouse_handle_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
-        const config_td *cfg)
+        const config_td *config)
 {
     xcb_window_t window;
     client_td *client;
@@ -191,7 +191,7 @@ void mouse_handle_press(xcb_connection_t *connection,
     uint32_t screen_w;
     uint32_t screen_h;
 
-    if (connection == NULL || event == NULL || cfg == NULL) {
+    if (connection == NULL || event == NULL || config == NULL) {
         return;
     }
 
@@ -215,10 +215,10 @@ void mouse_handle_press(xcb_connection_t *connection,
         }
     }
 
-    if (confirm_is_open()) {
-        if (event->event == confirm_window() ||
-                event->child == confirm_window()) {
-            if (confirm_handle_click(connection,
+    if (dialog_quit_is_open()) {
+        if (event->event == dialog_quit_window() ||
+                event->child == dialog_quit_window()) {
+            if (dialog_quit_handle_click(connection,
                         (int) event->event_x,
                         (int) event->event_y)) {
                 xcb_allow_events(connection,
@@ -229,7 +229,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         }
 
         /* Click outside dialog: close without action */
-        confirm_close(connection);
+        dialog_quit_close(connection);
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(connection);
@@ -244,7 +244,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         ((int) event->event_y - WM_CYCLE_MENU_PAD_Y) /
                         WM_CYCLE_MENU_ROW_HEIGHT);
                 cycle_navigate_to(row);
-                cycle_confirm(connection, surfaces, cfg);
+                cycle_confirm(connection, surfaces, config);
             } else {
                 cycle_close(connection);
             }
@@ -294,7 +294,7 @@ void mouse_handle_press(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         if (surface != NULL && desktop != NULL) {
             focus_apply(surfaces, surface, desktop, client,
-                    true, cfg);
+                    true, config);
             s_mouse_sync_sticky_active(surface, desktop, client);
         }
         xcb_allow_events(connection,
@@ -399,7 +399,7 @@ void mouse_handle_press(xcb_connection_t *connection,
             if (client != NULL && surface != NULL && desktop != NULL &&
                     client_is_focusable(client)) {
                 focus_apply(surfaces, surface, desktop, client,
-                        true, cfg);
+                        true, config);
             }
 
             if (event->child == client->titlebar &&
@@ -575,8 +575,8 @@ void mouse_handle_press(xcb_connection_t *connection,
                                     ? surface->properties.dim.w : 0u,
                                 (surface != NULL)
                                     ? surface->properties.dim.h : 0u,
-                                (cfg != NULL)
-                                    ? cfg->base.windows.snap : 0u);
+                                (config != NULL)
+                                    ? config->base.windows.snap : 0u);
                     }
                 } /* ! if (!hit_btn) */
             }
@@ -611,7 +611,7 @@ void mouse_handle_press(xcb_connection_t *connection,
                         event->time,
                         event->root_x, event->root_y,
                         screen_w, screen_h,
-                        cfg->base.windows.snap);
+                        config->base.windows.snap);
                 xcb_allow_events(connection,
                         XCB_ALLOW_ASYNC_POINTER, event->time);
                 xcb_flush(connection);
@@ -681,7 +681,7 @@ void mouse_handle_press(xcb_connection_t *connection,
 
     surface = lookup_surface_for_root(surfaces, event->root);
     if (surface != NULL && desktop != NULL) {
-        focus_apply(surfaces, surface, desktop, client, true, cfg);
+        focus_apply(surfaces, surface, desktop, client, true, config);
         s_mouse_sync_sticky_active(surface, desktop, client);
     }
 
@@ -700,14 +700,14 @@ void mouse_handle_press(xcb_connection_t *connection,
             event->time,
             event->root_x, event->root_y,
             screen_w, screen_h,
-            cfg->base.windows.snap);
+            config->base.windows.snap);
 }
 
 
 /* Handle a button-release event to end a drag */
 void mouse_handle_release(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_release_event_t *event,
-        const config_td *cfg)
+        const config_td *config)
 {
     client_td *client;
     surface_td *surface = NULL;
@@ -715,7 +715,7 @@ void mouse_handle_release(xcb_connection_t *connection,
     int16_t root_x = 0;
     int16_t root_y = 0;
 
-    (void) cfg;
+    (void) config;
 
     if (!drag_is_active()) {
         return;
@@ -739,13 +739,13 @@ void mouse_handle_release(xcb_connection_t *connection,
 /* Apply focus-follows-mouse on an enter-notify event */
 void mouse_handle_enter(xcb_connection_t *connection,
         list_td *surfaces, xcb_enter_notify_event_t *event,
-        const config_td *cfg)
+        const config_td *config)
 {
     client_td *client;
     desktop_td *desktop;
     surface_td *surface;
 
-    if (connection == NULL || event == NULL || cfg == NULL) {
+    if (connection == NULL || event == NULL || config == NULL) {
         return;
     }
 
@@ -757,7 +757,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    if (!focus_is_follow_mouse(cfg)) {
+    if (!focus_is_follow_mouse(config)) {
         return;
     }
 
@@ -772,7 +772,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
     }
 
     s_enter_focus_active = true;
-    focus_apply(surfaces, surface, desktop, client, false, cfg);
+    focus_apply(surfaces, surface, desktop, client, false, config);
 
     xcb_flush(connection);
 }
