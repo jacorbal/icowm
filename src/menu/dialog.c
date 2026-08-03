@@ -14,10 +14,12 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Util includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <config.h>
@@ -300,18 +302,18 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
         return;
     }
 
-    (void) strncpy(s_confirm_layout.prompt,
+    (void) safe_strncpy(s_confirm_layout.prompt,
             (prompt != NULL) ? prompt : "",
             sizeof(s_confirm_layout.prompt) - 1u);
     s_confirm_layout.prompt[sizeof(s_confirm_layout.prompt) - 1u] = '\0';
 
-    (void) strncpy(s_confirm_layout.cancel_label,
+    (void) safe_strncpy(s_confirm_layout.cancel_label,
             (cancel_label != NULL) ? cancel_label : "",
             sizeof(s_confirm_layout.cancel_label) - 1u);
     s_confirm_layout.cancel_label[
         sizeof(s_confirm_layout.cancel_label) - 1u] = '\0';
 
-    (void) strncpy(s_confirm_layout.confirm_label,
+    (void) safe_strncpy(s_confirm_layout.confirm_label,
             (confirm_label != NULL) ? confirm_label : "",
             sizeof(s_confirm_layout.confirm_label) - 1u);
     s_confirm_layout.confirm_label[
@@ -619,13 +621,13 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             break;
     }
 
-    (void) strncpy(s_message_layout.message, prefix,
+    (void) safe_strncpy(s_message_layout.message, prefix,
             sizeof(s_message_layout.message) - 1u);
     s_message_layout.message[sizeof(s_message_layout.message) - 1u] = '\0';
 
     if (message != NULL) {
-        size_t plen = strlen(s_message_layout.message);
-        (void) strncpy(s_message_layout.message + plen, message,
+        size_t plen = safe_strlen(s_message_layout.message);
+        (void) safe_strncpy(s_message_layout.message + plen, message,
                 sizeof(s_message_layout.message) - 1u - plen);
         s_message_layout.message[
             sizeof(s_message_layout.message) - 1u] = '\0';
