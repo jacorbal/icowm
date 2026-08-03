@@ -130,6 +130,19 @@ void lifecycle_scan_existing(wm_td *wm)
                                     wm->ewmh->_NET_WM_DESKTOP,
                                     XCB_ATOM_CARDINAL, 32, 1, &did);
                         }
+
+                        /* ICCCM §4.2.3: inform the client of its
+                         * screen-relative geometry now that the frame
+                         * has been positioned.  Without this the client
+                         * only knows the coordinates that were set
+                         * before the window manager started, which are
+                         * frame-relative rather than screen-relative. */
+                        if (client->frame != 0 &&
+                                client_is_decorated(client)) {
+                            client_send_synthetic_configure_notify(
+                                    wm->connection, client);
+                        }
+
                         surface->is_outdated = true;
                         LOGGER_DEBUG("Adopted pre-existing window %#x" \
                                 " on surface %u desktop %u",
