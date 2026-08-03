@@ -191,6 +191,13 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     /* Refresh work area in case the new client declares struts */
     surface_refresh_workareas(surface);
 
+    /* Dock/panel windows self-position; do not override their geometry */
+    if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {
+        place_apply(wm, surface, client);
+    }
+
+    /* Apply rules after placement so that rule-specified geometry takes
+     * precedence over the placement policy result */
     if (rules_apply(wm, client, &surface, &desktop, RULES_TRIGGER_MAP)) {
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
@@ -223,8 +230,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
                     wm->config);
         }
 
-        /* ICCCM §4.2.3: immediately after the frame is positioned by
-         * place_apply and the windows are mapped, send a synthetic
+        /* ICCCM §4.2.3: after both place_apply and rules_apply have
+         * settled the final frame position, send a synthetic
          * 'ConfigureNotify' with screen-relative coordinates to the
          * client so it knows its true screen position from the outset.
          * Without this the only 'ConfigureNotify' the client has seen

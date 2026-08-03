@@ -772,13 +772,17 @@ matching rule for each property are applied.
 | `apply.focus`           | boolean | unset   | Whether the matched window should receive focus. |
 | `apply.sticky`          | boolean | unset   | Whether the window should be visible on all desktops. |
 | `apply.decorated`       | boolean | unset   | Whether the window should keep its decorations. |
-| `apply.geometry.x`      | integer | unset   | Absolute X position in pixels. |
-| `apply.geometry.y`      | integer | unset   | Absolute Y position in pixels. |
-| `apply.geometry.width`  | integer | unset   | Window width in pixels; must be greater than `0`. |
-| `apply.geometry.height` | integer | unset   | Window height in pixels; must be greater than `0`. |
+| `apply.position.x`      | integer | unset   | Absolute X position in pixels. |
+| `apply.position.y`      | integer | unset   | Absolute Y position in pixels. |
+| `apply.size.width`      | integer | unset   | Window width in pixels; must be greater than `0`. |
+| `apply.size.height`     | integer | unset   | Window height in pixels; must be greater than `0`. |
 
-The `geometry` action is applied only when all four geometry fields are
-present and the width and height are both positive.
+Position (`position.x`, `position.y`) and size (`size.width`, `size.height`)
+are applied independently via separate JSON objects.  Specifying only
+`position` moves the window without resizing it; specifying only `size` resizes
+it without moving it; both objects may be present to set position and size at
+once.  Both `size.width` and `size.height` are only accepted when are greater
+than `0`.
 
 ## 7. `session.json` -- Session lifecycle hooks
 
@@ -1032,9 +1036,11 @@ ignored.
                 "sticky": true,
                 "decorated": false,
                 "layer": "below",
-                "geometry": {
-                    "x": 1520,
-                    "y": 0,
+                "position": {
+                    "x": 1450,
+                    "y": 0
+                },
+                "size": {
                     "width": 400,
                     "height": 300
                 }

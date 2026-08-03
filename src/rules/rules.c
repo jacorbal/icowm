@@ -46,22 +46,17 @@
 #include <rules/rules.h>
 
 
-#define RULES_MAX (256u)    /**< Maximum number of rule entries stored
-                                 in a single rules table */
+/** Maximum number of rule entries stored in a single rules table */
+#define RULES_MAX (256u)
 
-/**
- * @brief Timing constraint controlling when a rule is evaluated
- */
+/** Timing constraint controlling when a rule is evaluated */
 enum rules_when_e {
     RULES_WHEN_MAP = 0,     /**< Rule applies on @c MAP_REQUEST only */
     RULES_WHEN_PROPERTY,    /**< Rule applies on property change only */
-    RULES_WHEN_BOTH,        /**< Rule applies on both events */
+    RULES_WHEN_BOTH         /**< Rule applies on both events */
 };
 
-
-/**
- * @brief Criteria used to match a client against one rule entry
- */
+/* Criteria used to match a client against one rule entry */
 struct rules_match_s {
     bool has_instance;
     bool has_class;
@@ -78,15 +73,13 @@ struct rules_match_s {
     bool transient;
 };
 
-
-/**
- * @brief Actions to apply to a client when a rule entry matches
- */
+/** Actions to apply to a client when a rule entry matches */
 struct rules_apply_s {
     bool has_desktop;
     bool has_layer;
     bool has_focus;
-    bool has_geometry;
+    bool has_position;  /* 'x' & 'y' set independently of 'size' */
+    bool has_size;      /* 'width' & 'height' independent of 'position' */
     bool has_sticky;
     bool has_decorated;
 
@@ -101,21 +94,14 @@ struct rules_apply_s {
     bool decorated;
 };
 
-
-/**
- * @brief A single rule entry combining match criteria and the action to
- * apply
- */
+/** A single rule entry combining match criteria and the action to apply */
 struct rules_rule_s {
     enum rules_when_e when;
     struct rules_match_s match;
     struct rules_apply_s apply;
 };
 
-
-/**
- * @brief Rules table holding all loaded rule entries and their count
- */
+/** Rules table holding all loaded rule entries and their count */
 struct rules_s {
     uint32_t count;
     struct rules_rule_s rules[RULES_MAX];
@@ -162,7 +148,7 @@ static void s_rules_config_dir_set(const char *config_dir_prefix,
  * @brief Test whether a shell glob pattern matches a string value
  *
  * Wraps @c fnmatch with default flags, returning @c false whenever
- * either argument is @c NULL.
+ * either argument is null.
  *
  * @param pattern Shell glob pattern (may contain @c * and @c ?)
  * @param value   String to test against @p pattern
@@ -186,8 +172,8 @@ static bool s_rules_match_str(const char *pattern, const char *value)
 /**
  * @brief Convert a layer name string to the corresponding client layer
  *
- * Recognized names are @c above, @c below, and anything else (including
- * @c NULL) which maps to @c CLIENT_LAYER_NORMAL.
+ * Recognised names are @c "above", @c "below", and anything else
+ * (including @c NULL) which maps to @c CLIENT_LAYER_NORMAL.
  *
  * @param layer Layer name string from the configuration
  *
@@ -218,7 +204,7 @@ static uint16_t s_rules_parse_layer(const char *layer)
  *
  * Compares the lower-case EWMH type name @p type against @p client_type
  * and returns @c true only when they correspond.  Returns @c false for
- * @c NULL or unrecognized type names.
+ * @c NULL or unrecognised type names.
  *
  * @param type        Lower-case EWMH type name from the configuration
  * @param client_type @c client_type_e value cast to @c uint16_t from
@@ -226,7 +212,7 @@ static uint16_t s_rules_parse_layer(const char *layer)
  *
  * @return Whether @p type names the same window type as @p client_type
  * @retval true  The names are equivalent
- * @retval false @p type is @c NULL, unrecognized, or does not match
+ * @retval false @p type is @c NULL, unrecognised, or does not match
  *
  * @note Complexity: @e O(1)
  */
@@ -446,12 +432,13 @@ static void s_rules_apply_layer(client_td *client,
 /**
  * @brief Apply the geometry rule to a client
  *
- * Constrains the requested dimensions with @a client_constrain_size,
- * updates the client's internal geometry record, and issues an
- * @c xcb_configure_window request.  When the client has a decoration
- * frame, the synchronisation helper is called to keep the inner window
- * aligned.  The function is a no-op when @p apply->has_geometry is
- * @c false.
+ * Position (@p apply->x, @p apply->y) and size (@p apply->w,
+ * @p apply->h) are applied independently: only the fields that are
+ * flagged as present are touched.  When both are set the behaviour is
+ * identical to the previous all-or-nothing mode.  When the client has
+ * a decoration frame, the synchronisation helper is called to keep the
+ * inner window aligned.  The function is a no-op when neither
+ * @p apply->has_position nor @p apply->has_size is @c true.
  *
  * @param connection XCB connection used to send the configure request
  * @param client     Client whose geometry is to be set
@@ -464,35 +451,41 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         client_td *client, const struct rules_apply_s *apply)
 {
     xcb_window_t target;
+    uint16_t mask = 0;
     uint32_t values[4];
+    uint32_t vi = 0;
     uint32_t width;
     uint32_t height;
 
-    if (!apply->has_geometry) {
+    if (!apply->has_position && !apply->has_size) {
         return;
     }
 
-    width = apply->w;
-    height = apply->h;
-    client_constrain_size(client, &width, &height);
+    if (apply->has_position) {
+        client->layout.geometry.cur.pos.x = apply->x;
+        client->layout.geometry.cur.pos.y = (apply->y < 0) ? 0 : apply->y;
+        mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+        values[vi++] = (uint32_t) client->layout.geometry.cur.pos.x;
+        values[vi++] = (uint32_t) client->layout.geometry.cur.pos.y;
+    }
 
-    client->layout.geometry.cur.pos.x = apply->x;
-    client->layout.geometry.cur.pos.y = (apply->y < 0) ? 0 : apply->y;
-    client->layout.geometry.cur.dim.w = width;
-    client->layout.geometry.cur.dim.h = height;
+    if (apply->has_size) {
+        width = apply->w;
+        height = apply->h;
+        client_constrain_size(client, &width, &height);
+        client->layout.geometry.cur.dim.w = width;
+        client->layout.geometry.cur.dim.h = height;
+        mask |= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[vi++] = width;
+        values[vi++] = height;
+    }
+
+    (void) vi;
 
     target = (client->frame != 0 && client_is_decorated(client))
         ? client->frame : client->window;
 
-    values[0] = (uint32_t) client->layout.geometry.cur.pos.x;
-    values[1] = (uint32_t) client->layout.geometry.cur.pos.y;
-    values[2] = (uint32_t) client->layout.geometry.cur.dim.w;
-    values[3] = (uint32_t) client->layout.geometry.cur.dim.h;
-
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            values);
+    xcb_configure_window(connection, target, mask, values);
 
     if (client->frame != 0 && client_is_decorated(client)) {
         client_sync_decoration_layout(client);
@@ -504,8 +497,8 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
  * @brief Apply sticky and decoration flag rules to a client
  *
  * Sets or clears the sticky flag and toggles decoration according to
- * @p apply.  Each flag is only touched when its corresponding @c has_*
- * field is @c true.
+ * @p apply.  Each flag is only touched when its corresponding
+ * @c has_* field is @c true.
  *
  * @param client Client whose flags are to be updated
  * @param apply  Action descriptor
@@ -531,7 +524,7 @@ static void s_rules_apply_flags(client_td *client,
 }
 
 
-/* Allocate and zero-initialize a new rules table */
+/* Allocate and zero-initialise a new rules table */
 rules_td *rules_init(void)
 {
     return calloc(1, sizeof(rules_td));
@@ -554,7 +547,6 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     char rules_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     cJSON *json = NULL;
     cJSON *rules_array;
-    uint32_t loaded = 0u;
     cJSON *rule_json;
     cJSON *match_json;
     cJSON *apply_json;
@@ -564,6 +556,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     cJSON *w;
     cJSON *h;
     struct rules_rule_s *rule;
+    uint32_t loaded = 0u;
 
     if (rules == NULL) {
         return 1;
@@ -576,14 +569,13 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             config_dir, CONFIG_FILENAME_RULES);
 
     if (json_load_config(rules_file, &json) != 0 || json == NULL) {
-        LOGGER_DEBUG("Rules file '%s' not loaded; continuing without rules",
-                rules_file);
+        LOGGER_DEBUG("Rules file '%s' not loaded;" \
+                " continuing without rules", rules_file);
         return 0;
     }
 
     rules_array = (cJSON_IsArray(json))
-        ? json
-        : json_get_item(json, "rules");
+        ? json : json_get_item(json, "rules");
     if (!cJSON_IsArray(rules_array)) {
         cJSON_Delete(json);
         return 0;
@@ -685,19 +677,26 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             rule->apply.decorated = cJSON_IsTrue(item);
         }
 
-        item = json_get_item(apply_json, "geometry");
+        item = json_get_item(apply_json, "position");
         if (cJSON_IsObject(item)) {
             x = json_get_item(item, "x");
             y = json_get_item(item, "y");
+
+            if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
+                rule->apply.has_position = true;
+                rule->apply.x = x->valueint;
+                rule->apply.y = y->valueint;
+            }
+        }
+
+        item = json_get_item(apply_json, "size");
+        if (cJSON_IsObject(item)) {
             w = json_get_item(item, "width");
             h = json_get_item(item, "height");
 
-            if (cJSON_IsNumber(x) && cJSON_IsNumber(y) &&
-                    cJSON_IsNumber(w) && cJSON_IsNumber(h) &&
+            if (cJSON_IsNumber(w) && cJSON_IsNumber(h) &&
                     w->valueint > 0 && h->valueint > 0) {
-                rule->apply.has_geometry = true;
-                rule->apply.x = x->valueint;
-                rule->apply.y = y->valueint;
+                rule->apply.has_size = true;
                 rule->apply.w = (uint32_t) w->valueint;
                 rule->apply.h = (uint32_t) h->valueint;
             }
@@ -761,10 +760,13 @@ bool rules_apply(wm_td *wm, client_td *client,
             merged.has_focus = true;
             merged.focus = rule->apply.focus;
         }
-        if (rule->apply.has_geometry) {
-            merged.has_geometry = true;
+        if (rule->apply.has_position) {
+            merged.has_position = true;
             merged.x = rule->apply.x;
             merged.y = rule->apply.y;
+        }
+        if (rule->apply.has_size) {
+            merged.has_size = true;
             merged.w = rule->apply.w;
             merged.h = rule->apply.h;
         }
@@ -785,7 +787,8 @@ bool rules_apply(wm_td *wm, client_td *client,
     s_rules_apply_desktop(wm, client, *surface_io, desktop_io, &merged);
 
     if (trigger == RULES_TRIGGER_PROPERTY &&
-            merged.has_desktop && client->desktop_id != prev_desktop_id &&
+            merged.has_desktop &&
+            client->desktop_id != prev_desktop_id &&
             *surface_io != NULL) {
         if ((*surface_io)->desktop_cur != client->desktop_id) {
             xcb_unmap_window(wm->connection, client->window);
@@ -809,8 +812,9 @@ bool rules_apply(wm_td *wm, client_td *client,
                 client, true, wm->config);
     }
 
-    changed = merged.has_desktop || merged.has_layer || merged.has_focus ||
-        merged.has_geometry || merged.has_sticky || merged.has_decorated;
+    changed = merged.has_desktop || merged.has_layer ||
+        merged.has_focus || merged.has_position || merged.has_size ||
+        merged.has_sticky || merged.has_decorated;
 
     return changed;
 }
