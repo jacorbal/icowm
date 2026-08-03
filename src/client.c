@@ -738,13 +738,22 @@ client_td *client_manage(xcb_connection_t *connection,
                     XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     }
 
-    xcb_change_window_attributes(connection, window,
-            XCB_CW_EVENT_MASK, values);
+    /* NOTE: Apply border width before subscribing to 'STRUCTURE_NOTIFY'
+     * so the resulting 'ConfigureNotify' is not delivered to the window
+     * manager.  At this point the window has not yet been placed; the
+     * event would carry the X-server-initial position (typically 0,0)
+     * and handler_configure_notify would overwrite the placement
+     * position computed later by place_apply, causing an undecorated
+     * window to flicker back to the origin on every render cycle.
+     * Dock windows always get zero border width. */
 
     /* Apply border width from theme; dock windows always get 0 */
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
         ? 0u
         : ((theme != NULL) ? theme->window.general.border_width : 0u);
+    xcb_configure_window(connection, window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
+
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 

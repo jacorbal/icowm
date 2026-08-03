@@ -294,6 +294,10 @@ int client_send_event_resize(client_td *client,
     uint32_t old_w;
     uint32_t old_h;
     bool interactive_resize;
+    uint32_t fe_l;
+    uint32_t fe_r;
+    uint32_t fe_t;
+    uint32_t fe_b;
 
     if (client == NULL) {
         LOGGER_ERROR("Received null client pointer", L_NARG);
@@ -307,11 +311,24 @@ int client_send_event_resize(client_td *client,
     old_h = client->layout.geometry.cur.dim.h;
     old_x = client->layout.geometry.cur.pos.x;
     old_y = client->layout.geometry.cur.pos.y;
-    req_w = new_w;
-    req_h = new_h;
     req_x = old_x;
     req_y = old_y;
+
+    /* ICCCM §4.1.2.3: size hints (min/max/increment) are defined for
+     * the inner (content) window, not for the WM-added frame.
+     * Convert the incoming frame dimensions to inner dimensions before
+     * applying the constraints, then convert back so the rest of the
+     * function always works in frame space.  For undecorated clients
+     * the frame extents are all zero, so the conversion is a no-op. */
+    fe_l = (uint32_t) client->layout.frame_extents.left;
+    fe_r = (uint32_t) client->layout.frame_extents.right;
+    fe_t = (uint32_t) client->layout.frame_extents.top;
+    fe_b = (uint32_t) client->layout.frame_extents.bottom;
+    req_w = (new_w > fe_l + fe_r) ? new_w - fe_l - fe_r : 0u;
+    req_h = (new_h > fe_t + fe_b) ? new_h - fe_t - fe_b : 0u;
     client_constrain_size(client, &req_w, &req_h);
+    req_w += fe_l + fe_r;
+    req_h += fe_t + fe_b;
     s_resize_adjust_pos(client,
             old_w, old_h, req_w, req_h, &req_x, &req_y);
 
