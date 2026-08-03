@@ -35,9 +35,9 @@
         "web-browser": "firefox"
     },
     "windows": {
+        "has-grips": false,
         "gravity": "north-west",
         "snap": 4,
-        "has-grips": false,
         "focus": {
             "policy": "click",
             "is-new-focused": true,

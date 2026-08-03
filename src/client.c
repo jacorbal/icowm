@@ -328,9 +328,7 @@ client_td *client_manage(xcb_connection_t *connection,
         const struct config_base_s *config_base)
 {
     client_td *client;
-    xcb_get_geometry_cookie_t geom_cookie;
     xcb_get_geometry_reply_t *geom_reply;
-    xcb_get_window_attributes_cookie_t attr_cookie;
     xcb_get_window_attributes_reply_t *attr_reply;
     uint32_t values[1];
     char wm_name[256];
@@ -355,9 +353,8 @@ client_td *client_manage(xcb_connection_t *connection,
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
     /* Reject override-redirect windows, for they manage themselves */
-    attr_cookie = xcb_get_window_attributes(connection, window);
     attr_reply = xcb_get_window_attributes_reply(connection,
-            attr_cookie, NULL);
+            xcb_get_window_attributes(connection, window), NULL);
     if (attr_reply != NULL) {
         bool skip = attr_reply->override_redirect;
         free(attr_reply);
@@ -382,8 +379,8 @@ client_td *client_manage(xcb_connection_t *connection,
     client->id = window;
 
     /* Query existing geometry */
-    geom_cookie = xcb_get_geometry(connection, window);
-    geom_reply = xcb_get_geometry_reply(connection, geom_cookie, NULL);
+    geom_reply = xcb_get_geometry_reply(connection,
+            xcb_get_geometry(connection, window), NULL);
     if (geom_reply != NULL) {
         client->parent_id = geom_reply->root;
         client->layout.geometry.cur.pos.x = geom_reply->x;
@@ -738,8 +735,8 @@ client_td *client_manage(xcb_connection_t *connection,
                     XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     }
 
-    /* NOTE: Apply border width before subscribing to 'STRUCTURE_NOTIFY'
-     * so the resulting 'ConfigureNotify' is not delivered to the window
+    /* Apply border width before subscribing to 'STRUCTURE_NOTIFY' so
+     * the resulting 'ConfigureNotify' is not delivered to the window
      * manager.  At this point the window has not yet been placed; the
      * event would carry the X-server-initial position, typically (0,0),
      * and 'handler_configure_notify' would overwrite the placement
@@ -754,8 +751,8 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 
-    xcb_configure_window(connection, window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
+    xcb_change_window_attributes(connection, window,
+            XCB_CW_EVENT_MASK, values);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

@@ -55,12 +55,19 @@ static struct {
  *   [family] [bold] [italic|oblique] [size] [registry-encoding]
  * @endcode
  *
+ * All fields except @c family are optional.  @c registry-encoding is
+ * recognized as any whitespace-separated token that contains a hyphen
+ * and is not a keyword; it is split at the last hyphen into the XLFD
+ * @c charset_registry and @c charset_encoding fields.
+ *
  * Examples:
  * @code
- *   "fixed"              -> "fixed"
- *   "fixed 12"           -> "-*-fixed-medium-r-*-*-12-*-*-*-*-*-*-*"
- *   "fixed bold 12"      -> "-*-fixed-bold-r-*-*-12-*-*-*-*-*-*-*"
- *   "fixed bold oblique" -> "-*-fixed-bold-o-*-*-*-*-*-*-*-*-*-*"
+ * "fixed"                    -> "fixed"
+ * "fixed 13"                 -> "-*-fixed-medium-r-*-*-13-*-*-*-*-*-*-*"
+ * "fixed bold 13"            -> "-*-fixed-bold-r-*-*-13-*-*-*-*-*-*-*"
+ * "fixed medium oblique"     -> "-*-fixed-medium-o-*-*-*-*-*-*-*-*-*-*"
+ * "fixed bold 13 iso8859-15" -> "-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"
+ * "fixed bold iso8859-15"    -> "-*-fixed-bold-r-*-*-*-*-*-*-*-*-iso8859-15"
  * @endcode
  *
  * If @p input already starts with @c '-' it is treated as a full XLFD
@@ -73,43 +80,21 @@ static struct {
 static void font_config_to_xlfd(const char *input, char *output,
         size_t outsize)
 {
-    char tokens[8][64];     /* Maximum tokens we ever need:
-                             *  family + bold + italic/oblique + size */
+    char tokens[8][64];
     char family[128];
-    char registry[64];
-    char encoding[64];
-    char charset_tok[64];
+    char registry[64] = {'\0'};
+    char encoding[64] = {'\0'};
     const char *p;
     const char *weight_str;
     const char *slant_str;
-    char *endptr;
-    long lval;
-    size_t ntok;
-    size_t fi;
-    size_t last_hyphen;
-    int size;
-    bool is_bold;
-    bool is_italic;
-    bool is_oblique;
-    bool has_hyphen;
-    bool is_num;
-    ntok = 0u;
-    fi = 0u;
-    last_hyphen = 0u;
-    size = 0;
-    is_bold = false;
-    is_italic = false;
-    is_oblique = false;
-    has_hyphen = false;
-    is_num = false;
-    lval = 0L;
-    endptr = NULL;
-    weight_str = NULL;
-    slant_str = NULL;
-    family[0] = '\0';
-    registry[0] = '\0';
-    encoding[0] = '\0';
-    charset_tok[0] = '\0';
+    size_t ntok = 0u;
+    size_t fi = 0u;
+    int size = 0;
+    bool is_bold = false;
+    bool is_italic = false;
+    bool is_oblique = false;
+    bool has_hyphen = false;
+    bool is_num = false;
 
     if (input == NULL || input[0] == '\0') {
         safe_strncpy(output, "fixed", outsize);
@@ -126,17 +111,12 @@ static void font_config_to_xlfd(const char *input, char *output,
     p = input;
     while (*p != '\0' && ntok < 8u) {
         size_t tlen = 0u;
-
-        /* Skip leading whitespace */
         while (*p == ' ' || *p == '\t') {
             p++;
         }
-
         if (*p == '\0') {
             break;
         }
-
-        /* Read one token */
         while (*p != ' ' && *p != '\t' && *p != '\0' && tlen < 63u) {
             tokens[ntok][tlen++] = *p++;
         }
@@ -149,22 +129,25 @@ static void font_config_to_xlfd(const char *input, char *output,
         return;
     }
 
-
     /* Check if the last token is a charset spec (contains a hyphen and
      * is not a style keyword).  Split it into registry and encoding
      * parts. */
+    has_hyphen = false;
     for (size_t j = 0u; tokens[ntok - 1u][j] != '\0'; ++j) {
         if (tokens[ntok - 1u][j] == '-') {
             has_hyphen = true;
             break;
         }
     }
-
     if (has_hyphen &&
             safe_strcmp(tokens[ntok - 1u], "bold") != 0 &&
             safe_strcmp(tokens[ntok - 1u], "italic") != 0 &&
             safe_strcmp(tokens[ntok - 1u], "oblique") != 0) {
-        safe_strncpy(charset_tok, tokens[ntok - 1u], sizeof(charset_tok));
+        char charset_tok[64];
+        size_t last_hyphen = 0u;
+
+        safe_strncpy(charset_tok, tokens[ntok - 1u],
+                sizeof(charset_tok));
         ntok--;
 
         /* Find the last hyphen so we can split registry and encoding */
@@ -188,9 +171,9 @@ static void font_config_to_xlfd(const char *input, char *output,
             is_num = false;
         }
     }
-
     if (is_num) {
-        lval = strtol(tokens[ntok - 1u], &endptr, 10);
+        char *endptr;
+        long lval = strtol(tokens[ntok - 1u], &endptr, 10);
         if (endptr != tokens[ntok - 1u] && *endptr == '\0' &&
                 lval > 0L && lval <= 999L) {
             size = (int) lval;
@@ -229,8 +212,8 @@ static void font_config_to_xlfd(const char *input, char *output,
             family[fi++] = tokens[i][j];
         }
     }
-
     family[fi] = '\0';
+
     if (family[0] == '\0') {
         safe_strncpy(output, "fixed", outsize);
         return;
@@ -244,8 +227,9 @@ static void font_config_to_xlfd(const char *input, char *output,
     }
 
     /* Build an XLFD wildcard pattern */
-        weight_str = is_bold ? "bold" : "medium";
-    slant_str = is_italic ? "i" : (is_oblique ? "o" : "r");
+    weight_str = (is_bold) ? "bold" : "medium";
+    slant_str = (is_italic) ? "i" : ((is_oblique) ? "o" : "r");
+
     if (size > 0 && registry[0] != '\0') {
         (void) snprintf(output, outsize,
                 "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-%s-%s",
@@ -271,14 +255,12 @@ int text_renderer_init(xcb_connection_t *connection,
         const char *font_name)
 {
     char xlfd[256];
-    xcb_query_font_cookie_t qf_cookie;
-    xcb_query_font_reply_t *qf_reply;
     uint32_t gc_values[2];
+    xcb_query_font_reply_t *qf_reply;
 
     if (connection == NULL) {
         return -1;
     }
-
 
     /* Convert the config-style font description (e.g., "fixed bold 9")
      * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
@@ -287,7 +269,6 @@ int text_renderer_init(xcb_connection_t *connection,
     } else {
         font_config_to_xlfd(font_name, xlfd, sizeof(xlfd));
     }
-
 
     if (s_text.initialized &&
             s_text.connection == connection &&
@@ -305,19 +286,19 @@ int text_renderer_init(xcb_connection_t *connection,
 
     s_text.gc = xcb_generate_id(connection);
 
-    /* Neutral defaults: white-on-black.  Callers that draw on a themed
-     * titlebar should call 'text_renderer_set_color' afterwards to use
-     * the foreground/background colors from their theme. */
-    gc_values[0] = 0xFFFFFFu;  /* fg: white */
-    gc_values[1] = 0x000000u;  /* bg: black */
+    /* Neutral defaults: 'white-on-black'.
+     * For themed titlebar, call 'text_renderer_set_color' afterwards to
+     * use the foreground/background colors from theme */
+    gc_values[0] = 0xFFFFFFu;   /* fg: white */
+    gc_values[1] = 0x000000u;   /* bg: black */
     xcb_create_gc(connection, s_text.gc,
             xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root,
             XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
     xcb_change_gc(connection, s_text.gc, XCB_GC_FONT,
             (const uint32_t[]) {s_text.font});
 
-    qf_cookie = xcb_query_font(connection, s_text.font);
-    qf_reply = xcb_query_font_reply(connection, qf_cookie, NULL);
+    qf_reply = xcb_query_font_reply(connection,
+            xcb_query_font(connection, s_text.font), NULL);
     if (qf_reply != NULL) {
         if (qf_reply->max_bounds.character_width > 0) {
             s_text.char_width =
@@ -378,12 +359,12 @@ void text_draw_string(xcb_connection_t *connection,
         int16_t x, int16_t y, const char *text)
 {
     size_t len;
-    xcb_void_cookie_t draw_cookie;
     xcb_generic_error_t *draw_error;
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL) {
         return;
     }
+
     if (!s_text.initialized || s_text.connection != connection) {
         if (text_renderer_init(connection, "fixed") != 0) {
             return;
@@ -398,9 +379,11 @@ void text_draw_string(xcb_connection_t *connection,
         len = 255;
     }
 
-    draw_cookie = xcb_image_text_8_checked(connection, (uint8_t) len,
-            drawable, (gc == XCB_NONE) ? s_text.gc : gc, x, y, text);
-    draw_error = xcb_request_check(connection, draw_cookie);
+    draw_error = xcb_request_check(connection,
+            xcb_image_text_8_checked(connection, (uint8_t) len,
+                drawable, (gc == XCB_NONE)
+                    ? s_text.gc
+                    : gc, x, y, text));
     if (draw_error != NULL) {
         LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
                 " (error=%u)",
