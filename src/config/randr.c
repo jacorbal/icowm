@@ -6,12 +6,12 @@
  * Parses a JSON file of the form:
  * @code
  * {
- *     "enabled": true,
+ *     "is-enabled": true,
  *     "outputs": [
  *     {
  *         "name": "HDMI-1",
- *         "enabled": true,
- *         "primary": true,
+ *         "is-enabled": true,
+ *         "is-primary": true,
  *         "resolution": { "w": 1920, "h": 1080 },
  *         "position": { "x": 0, "y": 0 },
  *         "rotation": "normal"
@@ -100,8 +100,8 @@ int config_load_randr(const char *filename,
         return 1;
     }
 
-    json_load_bool(json, "enabled", &config_randr->is_enabled);
-    LOGGER_DEBUG("RandR configuration: enabled=%d",
+    json_load_bool(json, "is-enabled", &config_randr->is_enabled);
+    LOGGER_DEBUG("RandR configuration: is-enabled=%d",
             (int) config_randr->is_enabled);
 
     outputs_arr = cJSON_GetObjectItem(json, "outputs");
@@ -136,8 +136,8 @@ int config_load_randr(const char *filename,
 
         json_load_string(entry, "name",
                 out->name, CONFIG_RANDR_OUTPUT_NAME_LEN);
-        json_load_bool(entry, "enabled", &out->is_enabled);
-        json_load_bool(entry, "primary",  &out->is_primary);
+        json_load_bool(entry, "is-enabled", &out->is_enabled);
+        json_load_bool(entry, "is-primary",  &out->is_primary);
 
         res_obj = cJSON_GetObjectItem(entry, "resolution");
         if (res_obj != NULL && cJSON_IsObject(res_obj)) {
@@ -166,8 +166,8 @@ int config_load_randr(const char *filename,
             out->rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_0;
         }
 
-        LOGGER_DEBUG("RandR profile[%u]: name='%s' enabled=%d"
-                " primary=%d res=%ux%u pos=(%d,%d) rot=%u",
+        LOGGER_DEBUG("RandR profile[%u]: name='%s' is-enabled=%d"
+                " is-primary=%d res=%ux%u pos=(%d,%d) rot=%u",
                 config_randr->output_count,
                 out->name,
                 (int) out->is_enabled, (int) out->is_primary,

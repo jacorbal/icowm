@@ -374,7 +374,7 @@ int config_load(config_td *config, const char *config_prefix)
                 config_randr_file);
     } else {
         LOGGER_DEBUG("RandR configuration loaded from '%s'" \
-                " (enabled=%d, outputs=%u)",
+                " (is-enabled=%d, outputs=%u)",
                 config_randr_file,
                 (int) config->randr.is_enabled,
                 config->randr.output_count);
