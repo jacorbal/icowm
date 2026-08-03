@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -383,4 +384,49 @@ int ci_create_decorations(client_td *client)
 
 
     return 0;
+}
+
+
+/* Send a synthetic 'ConfigureNotify' to inform the client of its
+ * screen-relative geometry (ICCCM §4.2.3) */
+void client_send_synthetic_configure_notify(xcb_connection_t *connection,
+        const client_td *client)
+{
+    xcb_configure_notify_event_t notify;
+    uint16_t left;
+    uint16_t right;
+    uint16_t top;
+    uint16_t bottom;
+
+    if (connection == NULL || client == NULL || client->window == 0) {
+        return;
+    }
+
+    left = (uint16_t) client->layout.frame_extents.left;
+    right = (uint16_t) client->layout.frame_extents.right;
+    top = (uint16_t) client->layout.frame_extents.top;
+    bottom = (uint16_t) client->layout.frame_extents.bottom;
+
+    memset(&notify, 0, sizeof(notify));
+    notify.response_type = XCB_CONFIGURE_NOTIFY;
+    notify.event = client->window;
+    notify.window = client->window;
+    notify.above_sibling = XCB_NONE;
+    notify.x = (int16_t) (client->layout.geometry.cur.pos.x +
+            (int32_t) left);
+    notify.y = (int16_t) (client->layout.geometry.cur.pos.y +
+            (int32_t) top);
+    notify.width =
+        (uint16_t) ((client->layout.geometry.cur.dim.w > left + right)
+                ? (client->layout.geometry.cur.dim.w - left - right)
+                : WM_MIN_WINDOW_DIMENSION);
+    notify.height =
+        (uint16_t) ((client->layout.geometry.cur.dim.h > top + bottom)
+                ? (client->layout.geometry.cur.dim.h - top - bottom)
+                : WM_MIN_WINDOW_DIMENSION);
+    notify.border_width = 0;
+    notify.override_redirect = 0;
+
+    xcb_send_event(connection, 0, client->window,
+            XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &notify);
 }

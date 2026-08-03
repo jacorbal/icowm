@@ -475,7 +475,7 @@ void wcmd_client_iconify(client_td *client)
     s_client_focus_fallback(client);
 
     /* Ensure taskbars reflect the iconified state even when the client
-     * was not the active one.  Function `s_client_focus_fallback` only
+     * was not the active one.  Function 's_client_focus_fallback' only
      * marks is_outdated when it changes focus, so a non-active
      * iconification would otherwise not trigger wm_ewmh_sync. */
     wm_request_client_redraw(client);

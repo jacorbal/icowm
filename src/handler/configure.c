@@ -61,42 +61,7 @@
 static void s_handler_send_synthetic_configure_notify(
         xcb_connection_t *connection, client_td *client)
 {
-    xcb_configure_notify_event_t notify;
-    uint16_t left;
-    uint16_t top;
-
-    if (connection == NULL || client == NULL || client->window == 0) {
-        return;
-    }
-
-    left = (uint16_t) client->layout.frame_extents.left;
-    top = (uint16_t) client->layout.frame_extents.top;
-
-    notify.response_type = XCB_CONFIGURE_NOTIFY;
-    notify.pad0 = 0;
-    notify.event = client->window;
-    notify.window = client->window;
-    notify.above_sibling = XCB_NONE;
-    notify.x = (int16_t) (client->layout.geometry.cur.pos.x + left);
-    notify.y = (int16_t) (client->layout.geometry.cur.pos.y + top);
-    notify.width =
-        (uint16_t) ((client->layout.geometry.cur.dim.w > left +
-                    (uint16_t) client->layout.frame_extents.right)
-                ? (client->layout.geometry.cur.dim.w - left -
-                    (uint16_t) client->layout.frame_extents.right)
-                : WM_MIN_WINDOW_DIMENSION);
-    notify.height =
-        (uint16_t) ((client->layout.geometry.cur.dim.h > top +
-                    (uint16_t) client->layout.frame_extents.bottom)
-                ? (client->layout.geometry.cur.dim.h - top -
-                    (uint16_t) client->layout.frame_extents.bottom)
-                : WM_MIN_WINDOW_DIMENSION);
-    notify.border_width = 0;
-    notify.override_redirect = 0;
-    notify.pad1 = 0;
-
-    xcb_send_event(connection, 0, client->window,
-            XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &notify);
+    client_send_synthetic_configure_notify(connection, client);
 }
 
 

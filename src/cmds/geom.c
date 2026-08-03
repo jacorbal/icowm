@@ -160,11 +160,37 @@ void wcmd_client_resize(client_td *client,
     client->layout.geometry.cur.pos.y = req_y;
     client->layout.geometry.cur.dim.w = req_w;
     client->layout.geometry.cur.dim.h = req_h;
+
+    /* For decorated (reparented) clients the inner window must be
+     * repositioned and resized to match the new frame dimensions.
+     * Previously this was handled by the immediate
+     * 'xcb_configure_window' path in 'client_send_event_resize', but
+     * non-interactive resizes now go through the event queue
+     * exclusively so 'wcmd_client_resize' is the single configure
+     * point. */
+    client_sync_decoration_layout(client);
+
+    /* Mark the client's desktop as outdated so the frame decoration
+     * (titlebar background, text, border grips) is repainted on the
+     * next render pass to match the new frame size */
+    wm_request_client_redraw(client);
+
+    /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
+     * screen-relative coordinates so the application always knows its
+     * true on-screen position and content-area size.  Without this the
+     * application receives only the X-server-generated
+     * 'ConfigureNotify' from 'client_sync_decoration_layout', which
+     * carries frame-relative coordinates (x=left, y=top) instead of
+     * screen-relative ones, causing drawing artefacts or misaligned
+     * popup windows. */
+    if (client->frame != 0 && client_is_decorated(client)) {
+        client_send_synthetic_configure_notify(client->connection, client);
+    }
 }
 
 
-/* Maximize the client horizontally, or restore if already
- * horizontally maximized */
+/* Maximize the client horizontally, or restore if already horizontally
+ * maximized */
 void wcmd_client_maximize_horz(client_td *client)
 {
     uint16_t sw;
