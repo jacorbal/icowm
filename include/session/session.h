@@ -48,7 +48,7 @@ typedef struct session_s session_td;
 
 
 /**
- * @brief Allocate and zero-initialise a session table
+ * @brief Allocate and zero-initialize a session table
  *
  * Allocates a new @c session_td structure and returns it ready for use
  * with @a session_load.

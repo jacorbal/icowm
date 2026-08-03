@@ -53,7 +53,7 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
 				-Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
 				-Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-				-Wno-suggest-attribute=format
+				-Wno-suggest-attribute=format   -fwrapv
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
 				-Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
