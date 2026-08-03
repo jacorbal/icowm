@@ -13,24 +13,75 @@ Basic features are:
     Integration and management of multiple display devices to extend the
     desktop environment across various screens.
 
+  - **XRandR support.**
+    Dynamic screen configuration via the XRandR extension.  Output
+    profiles (resolution, position, rotation, primary flag) are defined
+    in a dedicated `randr.json` file.  Hot-plug events and screen-change
+    notifications are handled at runtime.
+
   - **Configurable keyboard and mouse controls.**
     Full flexibility to customize input methods tailoring keyboard
-    shortcuts and mouse actions.
+    shortcuts and mouse actions defined in `bindings.json`.
 
-  - **Virtual Desktops.**
-    Organization of open applications into discrete workspaces
-    minimizing visual clutter.
+  - **Virtual desktops.**
+    Organization of open applications into discrete workspaces,
+    minimizing visual clutter.  Each screen can have its own independent
+    set of virtual desktops.
+
+  - **Configurable focus policies.**
+    Both *click-to-focus* and *follow-mouse* (sloppy focus) policies are
+    supported and selectable through the configuration file.
+
+  - **Window placement policies.**
+    Four strategies for placing newly mapped windows: *smart*
+    (minimum-overlap), *cascade*, *centered*, and *under-mouse*.
+    Transient/dialog windows are automatically centered over their
+    parent.
+
+  - **Window edge snapping.**
+    Windows snap to screen edges and to other window borders during
+    interactive movement, with a configurable snap threshold.
+
+  - **Fullscreen support.**
+    Windows can be toggled into and out of fullscreen mode, with the
+    corresponding `_NET_WM_STATE_FULLSCREEN` EWMH state properly
+    advertised and maintained.
+
+  - **Theming.**
+    Visual appearance (colors, border widths, and font settings for
+    both windows and icons) is controlled by a JSON theme file, making
+    it straightforward to create and share custom themes.
 
   - **Extended Window Manager Hints (EWMH) compliance.**
-    As it provides needed compatibility.
+    Provides compatibility with panels, taskbars, and pagers through
+    `_NET_SUPPORTED`, `_NET_ACTIVE_WINDOW`, `_NET_WM_DESKTOP`,
+    `_NET_WM_STATE`, `_NET_WM_STRUT_PARTIAL`, `_NET_WM_PING`, and
+    related atoms.
+
+  - **Inter-Client Communication Conventions Manual (ICCCM) compliance.**
+    Respects `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS`, `WM_TRANSIENT_FOR`,
+    `WM_NORMAL_HINTS`, `WM_HINTS`, and `WM_PROTOCOLS`, ensuring correct
+    behaviour with both modern and legacy X11 applications.
+
+  - **Panel and dock awareness.**
+    `_NET_WM_STRUT_PARTIAL` reservations are read from docks and panels
+    so that window placement and icon layout respect the available work
+    area.
+
+  - **Window cycling.**
+    An interactive window-cycle menu (similar to Alt+Tab) allows quick
+    keyboard-driven navigation across open clients and iconified
+    windows.
 
   - **Dynamic configuration management.**
     Configuration files are read upon initialization and can
-    subsequently be reloaded in response to a `SIGHUP` signal.
+    subsequently be reloaded in response to a `SIGHUP` signal, without
+    restarting the window manager.
 
   - **Iconifying (classical).**
     Instead of classical minimization, the window is iconified on the
-    desktop in TWM-style.
+    desktop in TWM-style.  Icon placement follows a configurable policy
+    (top/bottom row, left/right column, or smart first-free slot).
 
 IcoWM aspires to blend a lightweight design *ethos* with usability.
 
@@ -73,4 +124,4 @@ Contact information
 
   - GitHub repository: <https://github.com/jacorbal/icowm/>
   - Web page: <https://jacorbal.org/icowm/>
-  - E-mail: <jacorbal@protonmail.com>
+  - E-mail: <jacorbal@gmail.com>
