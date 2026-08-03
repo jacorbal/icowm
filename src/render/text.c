@@ -14,7 +14,8 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* atoi, free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -45,13 +46,167 @@ static struct {
 };
 
 
+/**
+ * @brief Convert a font configuration string to an X11 XLFD pattern
+ *
+ * IcoWM uses a simple font description syntax in its theme files:
+ *
+ * @code
+ *   [family] [bold] [italic|oblique] [size]
+ * @endcode
+ *
+ * Examples:
+ * @code
+ *   "fixed"              -> "fixed"            (simple alias, pass through)
+ *   "fixed 9"            -> "-*-fixed-medium-r-*-*-9-*-*-*-*-*-*-*"
+ *   "fixed bold 9"       -> "-*-fixed-bold-r-*-*-9-*-*-*-*-*-*-*"
+ *   "fixed bold oblique" -> "-*-fixed-bold-o-*-*-*-*-*-*-*-*-*-*"
+ * @endcode
+ *
+ * If @p input already starts with @c '-' it is treated as a full XLFD
+ * and copied verbatim into @p output.
+ *
+ * @param input   Null-terminated font description string
+ * @param output  Buffer for the resulting XLFD pattern
+ * @param outsize Size of @p output in bytes
+ */
+static void font_config_to_xlfd(const char *input, char *output,
+        size_t outsize)
+{
+    char tokens[8][64];     /* Maximum tokens we ever need:
+                             *  family + bold + italic/oblique + size */
+    size_t ntok = 0u;
+    const char *p;
+    int size = 0;
+    bool is_bold = false;
+    bool is_italic = false;
+    bool is_oblique = false;
+    char family[128];
+    size_t fi = 0u;
+    const char *last;
+    bool is_num;
+    const char *weight_str;
+    const char *slant_str;
+
+    if (input == NULL || input[0] == '\0') {
+        safe_strncpy(output, "fixed", outsize);
+        return;
+    }
+
+    /* Pass XLFD strings (starting with '-') through unchanged */
+    if (input[0] == '-') {
+        safe_strncpy(output, input, outsize);
+        return;
+    }
+
+    /* Tokenize on whitespace */
+    p = input;
+    while (*p != '\0' && ntok < 8u) {
+        size_t tlen = 0u;
+
+        /* Skip leading whitespace */
+        while (*p == ' ' || *p == '\t') {
+            p++;
+        }
+
+        if (*p == '\0') {
+            break;
+        }
+
+        /* Read one token */
+        while (*p != ' ' && *p != '\t' && *p != '\0' && tlen < 63u) {
+            tokens[ntok][tlen++] = *p++;
+        }
+        tokens[ntok][tlen] = '\0';
+        ntok++;
+    }
+
+    if (ntok == 0u) {
+        safe_strncpy(output, "fixed", outsize);
+        return;
+    }
+
+    /* If the last token is an all-digit string, treat it as the pixel
+     * size */
+    last = tokens[ntok - 1u];
+    is_num = (last[0] != '\0');
+    for (size_t j = 0u; last[j] != '\0'; ++j) {
+        if (last[j] < '0' || last[j] > '9') {
+            is_num = false;
+            break;
+        }
+    }
+    if (is_num) {
+        size = atoi(last);
+        ntok--;
+    }
+
+    /* Scan remaining tokens for weight and slant keywords */
+    for (size_t i = 0u; i < ntok; ++i) {
+        if (safe_strcmp(tokens[i], "bold") == 0) {
+            is_bold = true;
+        } else if (safe_strcmp(tokens[i], "italic") == 0) {
+            is_italic = true;
+        } else if (safe_strcmp(tokens[i], "oblique") == 0) {
+            is_oblique = true;
+        }
+    }
+
+    /* Build family string from non-keyword tokens */
+    family[0] = '\0';
+    fi = 0u;
+    for (size_t i = 0u; i < ntok; ++i) {
+        if (safe_strcmp(tokens[i], "bold") == 0 ||
+                safe_strcmp(tokens[i], "italic") == 0 ||
+                safe_strcmp(tokens[i], "oblique") == 0) {
+            continue;
+        }
+
+        if (fi > 0u && fi < sizeof(family) - 1u) {
+            family[fi++] = ' ';
+        }
+
+        for (size_t j = 0u;
+                tokens[i][j] != '\0' && fi < sizeof(family) - 1u;
+                ++j) {
+            family[fi++] = tokens[i][j];
+        }
+    }
+
+    family[fi] = '\0';
+    if (family[0] == '\0') {
+        safe_strncpy(output, "fixed", outsize);
+        return;
+    }
+
+    /* A bare family name with no size or weight modifiers is a valid
+     * X font alias (e.g., "fixed"); pass it straight through */
+    if (size == 0 && !is_bold && !is_italic && !is_oblique) {
+        safe_strncpy(output, family, outsize);
+        return;
+    }
+
+    /* Build an XLFD wildcard pattern */
+    weight_str = (is_bold) ? "bold" : "medium";
+    slant_str = (is_italic) ? "i" : (is_oblique ? "o" : "r");
+
+    if (size > 0) {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-*-*",
+                family, weight_str, slant_str, size);
+    } else {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-*-*",
+                family, weight_str, slant_str);
+    }
+}
+
+
 /* Initialize the text renderer using the specified font */
 int text_renderer_init(xcb_connection_t *connection,
         const char *font_name)
 {
-    const char *font = (font_name == NULL || font_name[0] == '\0')
-        ? "fixed"
-        : font_name;
+    char xlfd[256];
     xcb_query_font_cookie_t qf_cookie;
     xcb_query_font_reply_t *qf_reply;
     uint32_t gc_values[2];
@@ -60,19 +215,29 @@ int text_renderer_init(xcb_connection_t *connection,
         return -1;
     }
 
+
+    /* Convert the config-style font description (e.g., "fixed bold 9")
+     * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
+    if (font_name == NULL || font_name[0] == '\0') {
+        safe_strncpy(xlfd, "fixed", sizeof(xlfd));
+    } else {
+        font_config_to_xlfd(font_name, xlfd, sizeof(xlfd));
+    }
+
+
     if (s_text.initialized &&
             s_text.connection == connection &&
-            safe_strcmp(s_text.font_name, font) == 0) {
+            safe_strcmp(s_text.font_name, xlfd) == 0) {
         return 0;
     }
 
     text_renderer_destroy();
 
     s_text.connection = connection;
-    safe_strncpy(s_text.font_name, font, sizeof(s_text.font_name));
+    safe_strncpy(s_text.font_name, xlfd, sizeof(s_text.font_name));
     s_text.font = xcb_generate_id(connection);
     xcb_open_font(connection, s_text.font,
-            (uint16_t) safe_strlen(font), font);
+            (uint16_t) safe_strlen(xlfd), xlfd);
 
     s_text.gc = xcb_generate_id(connection);
 

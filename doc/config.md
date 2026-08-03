@@ -521,7 +521,7 @@ Appearance of the currently focused window.
 | `foreground-color` | string | `"#253040"` | Title bar text color. |
 | `border-color` | string | `"#4A5566"` | Border color. |
 | `grip-color` | string | `"#9AAEC8"` | Resize grip color. |
-| `font` | string | `"fixed bold 9"` | Title bar font (Pango font description). |
+| `font` | string | `"fixed"` | Title bar font (X core font description; see note below). |
 
 #### `window.inactive`
 
@@ -533,7 +533,7 @@ Appearance of windows that do not have focus.
 | `foreground-color` | string | `"#4A5566"` | Title bar text color. |
 | `border-color` | string | `"#7F9AB6"` | Border color. |
 | `grip-color` | string | `"#4A5566"` | Resize grip color. |
-| `font` | string | `"fixed 9"` | Title bar font. |
+| `font` | string | `"fixed"` | Title bar font. |
 
 ---
 
@@ -557,7 +557,7 @@ Appearance of the currently focused icon.
 | `background-color` | string | `"#9AAEC8"` | Icon background color. |
 | `foreground-color` | string | `"#253040"` | Icon caption text color. |
 | `border-color` | string | `"#4A5566"` | Icon border color. |
-| `font` | string | `"fixed 8"` | Icon caption font. |
+| `font` | string | `"fixed"` | Icon caption font. |
 
 #### `icon.inactive`
 
@@ -568,7 +568,42 @@ Appearance of icons that do not have focus.
 | `background-color` | string | `"#D0D9E5"` | Icon background color. |
 | `foreground-color` | string | `"#4A5566"` | Icon caption text color. |
 | `border-color` | string | `"#7F9AB6"` | Icon border color. |
-| `font` | string | `"fixed 8"` | Icon caption font. |
+| `font` | string | `"fixed"` | Icon caption font. |
+
+
+> **Font format note:**  IcoWM uses the X server's built-in *X core
+> font* system (accessed via XCB), which is completely separate from
+> client-side font rendering libraries such as FreeType/Fontconfig,
+> Pango, or Cairo.  Only **X11 bitmap fonts** (BDF/PCF) are supported;
+> TrueType (TTF), OpenType (OTF), and other scalable formats are **not**
+> available here.
+>
+> The `font` field accepts two formats:
+>
+> 1. **Short description:** `"[family] [bold] [italic|oblique] [size]"`
+>
+>    IcoWM parses this and constructs the appropriate XLFD wildcard
+>    pattern internally.  Examples:
+>    - `"fixed"` -- the `fixed` alias (available on every X server)
+>    - `"fixed 12"` -- `fixed` family at 9 pixels
+>    - `"fixed bold 12"` -- `fixed` family, bold weight, 9 pixels
+>    - `"courier bold italic 12"` -- Courier, bold italic, 12 pixels
+>
+> 2. **Full XLFD:** a string starting with "`-`", e.g.,
+>    `"-*-fixed-bold-r-*-*-9-*-*-*-*-*-*-*"`.  Passed verbatim to the
+>    X server.
+>
+> To list all X core fonts available on your system, run:
+>
+> ```
+> xlsfonts
+> ```
+>
+> or query a specific pattern:
+>
+> ```
+> xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
+> ```
 
 ---
 
@@ -796,13 +831,13 @@ Each entry in the `outputs` array describes one physical display output.
             "background-color": "#9AAEC8",
             "foreground-color": "#253040",
             "border-color": "#4A5566",
-            "font": "fixed bold 9"
+            "font": "fixed"
         },
         "inactive": {
             "background-color": "#D0D9E5",
             "foreground-color": "#4A5566",
             "border-color": "#7F9AB6",
-            "font": "fixed 9"
+            "font": "fixed"
         }
     },
 
@@ -816,14 +851,14 @@ Each entry in the `outputs` array describes one physical display output.
             "foreground-color": "#253040",
             "border-color": "#4A5566",
             "grip-color": "#9AAEC8",
-            "font": "fixed 8"
+            "font": "fixed"
         },
         "inactive": {
             "background-color": "#D0D9E5",
             "foreground-color": "#4A5566",
             "border-color": "#7F9AB6",
             "grip-color": "#4A5566",
-            "font": "fixed 8"
+            "font": "fixed"
         }
     }
 }

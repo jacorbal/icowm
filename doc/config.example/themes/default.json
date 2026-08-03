@@ -13,14 +13,14 @@
             "foreground-color": "#eceff2",
             "border-color": "#6c93b8",
             "grip-color": "#5c83a8",
-            "font": "fixed 9"
+            "font": "fixed"
         },
         "inactive": {
             "background-color": "#22262b",
             "foreground-color": "#7a8087",
             "border-color": "#33383e",
             "grip-color": "#33383e",
-            "font": "fixed 9"
+            "font": "fixed"
         }
     },
     "icon": {
@@ -32,13 +32,13 @@
             "background-color": "#454f5b",
             "foreground-color": "#eceff2",
             "border-color": "#6c93b8",
-            "font": "fixed 8"
+            "font": "fixed"
         },
         "inactive": {
             "background-color": "#282c31",
             "foreground-color": "#7a8087",
             "border-color": "#33383e",
-            "font": "fixed 8"
+            "font": "fixed"
         }
     }
 }
