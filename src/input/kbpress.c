@@ -59,7 +59,24 @@
 #include <input/kbpress.h>
 
 
-/* Get a surface from event root, falling back to first surface */
+/**
+ * @brief Look up a surface associated to a root window, with fallback
+ *
+ * Attempts to find a @c surface_td that corresponds to the given X11
+ * @c root window by searching the @c surfaces list.  If no matching
+ * surface is found, but the list is non-empty, this function falls back
+ * to returning the first surface in the list.
+ *
+ * @param surfaces List of available surfaces to search in, or @c NULL
+ * @param root     X11 root window identifier used as lookup key
+ *
+ * @return Pointer to the matching @c surface_td, or the first surface
+ *         in the list if no match is found; returns @c NULL if
+ *         @p surfaces is null or empty.
+ *
+ * @note Intended for use when a specific root surface may not exist
+ *       yet, providing a reasonable default for callers.
+ */
 static surface_td *s_lookup_surface_fallback(list_td *surfaces,
         xcb_window_t root)
 {
@@ -72,6 +89,108 @@ static surface_td *s_lookup_surface_fallback(list_td *surfaces,
     }
 
     return surface;
+}
+
+
+/**
+ * @brief Compute a keyboard resize target for one axis
+ *
+ * Calculates the next frame size for either the horizontal or vertical
+ * axis when resizing a @c client_td via keyboard, taking into account
+ * frame extents and WM size hints such as base size, minimum size and
+ * resize increment.  When valid size hints are present, the inner size
+ * is snapped to the nearest increment starting from the base (or
+ * minimum) size; otherwise a fixed keyboard resize step is applied.
+ *
+ * @param client     Pointer to the client whose geometry is being
+ *                   resized; may be null, in which case @p cur_frame is
+ *                   returned
+ * @param horizontal @c true to operate on the horizontal axis (width),
+ *                   @c false for the vertical axis (height)
+ * @param cur_frame  Current outer frame size (including extents) for
+ *                   the selected axis
+ * @param grow       @c true to grow (increase) the size, @c false to
+ *                   shrink (decrease) it
+ *
+ * @return The target outer frame size for the selected axis after
+ *         applying keyboard resize semantics and clamping via
+ *         @c geom_clamp_dim.
+ *
+ * @note With this, it's honored @c WM_NORMAL_HINTS increments when
+ *       available, ensuring that keyboard resizing respects the
+ *       client's preferred resize granularity.
+ */
+static uint32_t s_kb_resize_axis_target(const client_td *client,
+        bool horizontal, uint32_t cur_frame, bool grow)
+{
+    uint32_t ext_a;
+    uint32_t ext_b;
+    uint32_t cur_inner;
+    int32_t base_i;
+    int32_t min_i;
+    int32_t inc_i;
+    int32_t target;
+
+    if (client == NULL) {
+        return cur_frame;
+    }
+
+    if (horizontal) {
+        ext_a = (uint32_t) client->layout.frame_extents.left;
+        ext_b = (uint32_t) client->layout.frame_extents.right;
+    } else {
+        ext_a = (uint32_t) client->layout.frame_extents.top;
+        ext_b = (uint32_t) client->layout.frame_extents.bottom;
+    }
+
+    cur_inner = (cur_frame > ext_a + ext_b)
+        ? cur_frame - ext_a - ext_b : 0u;
+    if (!client->size_hints.valid) {
+        target = grow
+            ? (int32_t) cur_frame + WM_KEYBOARD_RESIZE_STEP
+            : (int32_t) cur_frame - WM_KEYBOARD_RESIZE_STEP;
+        return geom_clamp_dim(target);
+    }
+
+    if (horizontal) {
+        base_i = client->size_hints.base_w;
+        min_i = client->size_hints.min_w;
+        inc_i = client->size_hints.inc_w;
+    } else {
+        base_i = client->size_hints.base_h;
+        min_i = client->size_hints.min_h;
+        inc_i = client->size_hints.inc_h;
+    }
+
+    if (inc_i > 1) {
+        uint32_t base = (base_i > 0)
+            ? (uint32_t) base_i
+            : ((min_i > 0) ? (uint32_t) min_i : 0u);
+        uint32_t inc = (uint32_t) inc_i;
+        uint32_t over;
+        uint32_t snapped;
+        uint32_t target_inner;
+
+        if (cur_inner < base) {
+            cur_inner = base;
+        }
+
+        over = (cur_inner > base) ? (cur_inner - base) : 0u;
+        snapped = base + (over / inc) * inc;
+
+        if (grow) {
+            target_inner = snapped + inc;
+        } else {
+            target_inner = (snapped > base) ? (snapped - inc) : base;
+        }
+
+        return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
+    }
+
+    target = grow
+        ? (int32_t) cur_frame + WM_KEYBOARD_RESIZE_STEP
+        : (int32_t) cur_frame - WM_KEYBOARD_RESIZE_STEP;
+    return geom_clamp_dim(target);
 }
 
 
@@ -423,6 +542,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         desktop_td *cd = NULL;
                         client_td *client = lookup_find_client(surfaces,
                                 desktop->client_active_id, &cs, &cd);
+
                         if (client != NULL) {
                             int32_t new_x = client->layout.geometry.cur.pos.x;
                             int32_t new_y = client->layout.geometry.cur.pos.y;
@@ -470,12 +590,21 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         desktop_td *cd = NULL;
                         client_td *client = lookup_find_client(surfaces,
                                 desktop->client_active_id, &cs, &cd);
+
                         if (client != NULL && client_is_resizable(client)) {
-                            int32_t new_w = (int32_t)
+                            int32_t new_x =
+                                client->layout.geometry.cur.pos.x;
+                            int32_t new_y =
+                                client->layout.geometry.cur.pos.y;
+                            uint32_t old_w =
                                 client->layout.geometry.cur.dim.w;
-                            int32_t new_h = client_is_shaded(client)
-                                ? (int32_t) client->layout.geometry.old.dim.h
-                                : (int32_t) client->layout.geometry.cur.dim.h;
+                            uint32_t old_h = client_is_shaded(client)
+                                ? client->layout.geometry.old.dim.h
+                                : client->layout.geometry.cur.dim.h;
+                            int32_t new_w = (int32_t)
+                                old_w;
+                            int32_t new_h = (int32_t) old_h;
+
                             if (client->properties.state ==
                                         (uint16_t) CLIENT_STATE_FULLSCREEN ||
                                     client->properties.state ==
@@ -489,16 +618,24 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 return;
                             }
 
-                            if (btype == KEYBIND_CLIENT_RESIZE_LEFT)
-                                new_w -= WM_KEYBOARD_RESIZE_STEP;
-                            else if (btype == KEYBIND_CLIENT_RESIZE_RIGHT)
-                                new_w += WM_KEYBOARD_RESIZE_STEP;
-                            else if (btype == KEYBIND_CLIENT_RESIZE_UP)
-                                new_h -= WM_KEYBOARD_RESIZE_STEP;
-                            else if (btype == KEYBIND_CLIENT_RESIZE_DOWN)
-                                new_h += WM_KEYBOARD_RESIZE_STEP;
+                            if (btype == KEYBIND_CLIENT_RESIZE_LEFT) {
+                                new_w = (int32_t) s_kb_resize_axis_target(
+                                        client, true, old_w, false);
+                                new_x += (int32_t) old_w - new_w;
+                            } else if (btype == KEYBIND_CLIENT_RESIZE_RIGHT) {
+                                new_w = (int32_t) s_kb_resize_axis_target(
+                                        client, true, old_w, true);
+                            } else if (btype == KEYBIND_CLIENT_RESIZE_UP) {
+                                new_h = (int32_t) s_kb_resize_axis_target(
+                                        client, false, old_h, false);
+                                new_y += (int32_t) old_h - new_h;
+                            } else if (btype == KEYBIND_CLIENT_RESIZE_DOWN) {
+                                new_h = (int32_t) s_kb_resize_axis_target(
+                                        client, false, old_h, true);
+                            }
 
                             (void) client_send_event_resize(client,
+                                    new_x, new_y,
                                     geom_clamp_dim(new_w),
                                     geom_clamp_dim(new_h));
                         }

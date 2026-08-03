@@ -530,8 +530,9 @@ int client_send_event_move(client_td *client,
 /**
  * @brief Send an event to resize the specified client
  *
- * Creates an event to resize the client to the specified dimensions.
- * The new width and height are passed as part of the event data.
+ * Creates an event to resize the client to the specified frame
+ * geometry.  The new position and dimensions are passed as part of the
+ * event data.
  *
  * @param client Pointer to the client to be resized
  * @param new_w  New width for the client
@@ -543,7 +544,7 @@ int client_send_event_move(client_td *client,
  *       the priority queue
  */
 int client_send_event_resize(client_td *client,
-        uint32_t new_w, uint32_t new_h);
+        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h);
 
 /**
  * @brief Send an event to change the icon of a specified client

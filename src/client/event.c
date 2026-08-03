@@ -175,7 +175,8 @@ int client_send_event_move(client_td *client,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
     xcb_flush(client->connection);
 
-    if (client->properties.operation == CLIENT_OPERATION_MOVING) {
+    if (client->properties.operation == CLIENT_OPERATION_MOVING ||
+            client->properties.operation == CLIENT_OPERATION_RESIZING) {
         return 0;
     }
 
@@ -206,7 +207,7 @@ int client_send_event_move(client_td *client,
 
 /* Send an event to resize the specified client */
 int client_send_event_resize(client_td *client,
-        uint32_t new_w, uint32_t new_h)
+        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h)
 {
     event_td *event;
     action_td action;
@@ -235,8 +236,8 @@ int client_send_event_resize(client_td *client,
 
     old_x = client->layout.geometry.cur.pos.x;
     old_y = client->layout.geometry.cur.pos.y;
-    req_x = old_x;
-    req_y = old_y;
+    req_x = new_x;
+    req_y = new_y;
 
     /* ICCCM §4.1.2.3: size hints (min/max/increment) are defined for
      * the inner (content) window, not for the WM-added frame.

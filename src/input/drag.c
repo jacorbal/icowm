@@ -555,11 +555,8 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag_snap_resize(new_x, new_y, &new_w, &new_h);
 
-        if (new_x != s_drag.client_start_x ||
-                new_y != s_drag.client_start_y) {
-            (void) client_send_event_move(client, new_x, new_y);
-        }
-        (void) client_send_event_resize(client, new_w, new_h);
+        (void) client_send_event_resize(client,
+                new_x, new_y, new_w, new_h);
     }
 }
 
@@ -606,6 +603,8 @@ void drag_end(xcb_connection_t *connection,
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
         if (finalize_resize) {
             (void) client_send_event_resize(s_drag.client,
+                    s_drag.client->layout.geometry.cur.pos.x,
+                    s_drag.client->layout.geometry.cur.pos.y,
                     final_w, final_h);
         }
     }
