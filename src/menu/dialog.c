@@ -195,6 +195,52 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
             (int16_t) DIALOG_BTN_LABEL_BASELINE_Y);
 }
 
+
+/**
+ * @brief Draw a dashed outline around a button area
+ *
+ * Used to visually hint that an inactive (non-selected) button is still
+ * a clickable button even though it does not have the active fill
+ * colour.
+ *
+ * @param connection XCB connection
+ * @param window     Target drawable window
+ * @param color      Foreground colour used for the dashed line
+ * @param x          Left edge of the button fill rectangle
+ * @param y          Top edge of the button fill rectangle
+ * @param w          Width of the button fill rectangle (pixels)
+ * @param h          Height of the button fill rectangle (pixels)
+ */
+static void s_draw_dashed_rect(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t color,
+        int16_t x, int16_t y, uint16_t w, uint16_t h)
+{
+    xcb_gcontext_t gc;
+    xcb_rectangle_t rect;
+    uint32_t gc_vals[2];
+
+    if (connection == NULL || window == XCB_WINDOW_NONE ||
+            w == 0u || h == 0u) {
+        return;
+    }
+
+    gc = xcb_generate_id(connection);
+    gc_vals[0] = color;
+    gc_vals[1] = XCB_LINE_STYLE_ON_OFF_DASH;
+    xcb_create_gc(connection, gc, window,
+            XCB_GC_FOREGROUND | XCB_GC_LINE_STYLE, gc_vals);
+
+    /* 'xcb_poly_rectangle' outline spans '(x,y)..(x+width, y+height)',
+     * so use 'width-1' / 'height-1' to stay within the fill area */
+    rect.x = x;
+    rect.y = y;
+    rect.width = (uint16_t) (w - 1u);
+    rect.height = (uint16_t) (h - 1u);
+    xcb_poly_rectangle(connection, window, gc, 1, &rect);
+    xcb_free_gc(connection, gc);
+}
+
+
 /**
  * @brief Render the confirm dialog (prompt and both buttons)
  *
@@ -255,6 +301,15 @@ static void s_confirm_draw(xcb_connection_t *connection,
     rect.x = lo->confirm_x;
     xcb_poly_fill_rectangle(connection, s_confirm_window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
+
+    /* Dashed border around the unselected button */
+    if (s_confirm_selected == 0) {
+        s_draw_dashed_rect(connection, s_confirm_window, fg_nor,
+                lo->confirm_x, lo->btn_y, lo->btn_w, lo->btn_h);
+    } else {
+        s_draw_dashed_rect(connection, s_confirm_window, fg_nor,
+                lo->cancel_x, lo->btn_y, lo->btn_w, lo->btn_h);
+    }
 
     /* Prompt text */
     text_renderer_set_color(fg_nor, bg_win);

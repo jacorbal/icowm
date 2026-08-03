@@ -35,7 +35,7 @@
 
 /**
  * @brief Callback invoked by the generic confirm dialog when exit is
- * confirmed
+ *        confirmed
  *
  * @param connection XCB connection
  */

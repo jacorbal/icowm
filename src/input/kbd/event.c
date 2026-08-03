@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <signal.h>     /* SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -344,9 +345,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     if (keysym == 0xff08u &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
-        LOGGER_NOTICE("Emergency exit key combination detected",
-                L_NARG);
-        (void) wm_request_stop();
+        LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
+        raise(SIGTERM);
         return;
     }
 
