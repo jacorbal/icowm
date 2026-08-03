@@ -395,6 +395,8 @@ int config_load_base(const char *filename,
         cJSON *placement;
 
         json_load_uint(windows, "snap", &config_base->windows.snap);
+        json_load_bool(windows, "has-grips",
+                &config_base->windows.has_grips);
         gravity = json_get_item(windows, "gravity");
         if (gravity != NULL && cJSON_IsString(gravity)) {
             config_base->windows.gravity =

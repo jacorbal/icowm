@@ -64,6 +64,8 @@ int config_load_theme(const char *filename,
                     &config_theme->window.active.foreground_color);
             json_load_color(active, "border-color",
                     &config_theme->window.active.border_color);
+            json_load_color(active, "grip-color",
+                    &config_theme->window.active.grip_color);
             json_load_string(active, "font",
                     config_theme->window.active.font,
                     CONFIG_MAX_LENGTH_FONTNAME);
@@ -77,6 +79,8 @@ int config_load_theme(const char *filename,
                     &config_theme->window.inactive.foreground_color);
             json_load_color(inactive, "border-color",
                     &config_theme->window.inactive.border_color);
+            json_load_color(inactive, "grip-color",
+                    &config_theme->window.inactive.grip_color);
             json_load_string(inactive, "font",
                     config_theme->window.inactive.font,
                     CONFIG_MAX_LENGTH_FONTNAME);

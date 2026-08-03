@@ -134,13 +134,13 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  * @brief Repaint the frame window decoration for a client
  *
  * Refreshes the frame background/border and redraws the corner resize
- * handles when they are supposed to be visible for the current client
+ * grips when they are supposed to be visible for the current client
  * state.
  *
  * @param connection       Active XCB connection
  * @param client           Client whose frame decoration will be repainted
  * @param use_active_style Whether to use the active theme colors
- * @param theme            Theme providing frame and handle colors
+ * @param theme            Theme providing frame and grip colors
  *
  * @note Complexity: @e O(1)
  */

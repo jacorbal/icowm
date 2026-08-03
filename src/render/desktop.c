@@ -187,11 +187,11 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
 
 
 /**
- * @brief Draw corner-resize handles on a decorated frame window
+ * @brief Draw corner-resize grips on a decorated frame window
  *
  * Paints small L-shaped marks at the four corners of the frame using
  * solid-color rectangles so that users can see that the window edges
- * are interactive resize handles.  The marks are drawn only for
+ * are interactive resize grips.  The marks are drawn only for
  * resizable, decorated clients and use the active or inactive border
  * accent color.
  *
@@ -203,7 +203,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-static void s_draw_corner_handles(xcb_connection_t *connection,
+static void s_draw_corner_grips(xcb_connection_t *connection,
         xcb_window_t frame, uint16_t frame_w, uint16_t frame_h,
         uint32_t color)
 {
@@ -255,7 +255,7 @@ static void s_draw_corner_handles(xcb_connection_t *connection,
 }
 
 
-/* Repaint the frame background, border, and corner resize handles */
+/* Repaint the frame background, border, and corner resize grips */
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
         const client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
@@ -264,6 +264,7 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
             theme == NULL || !client_is_decorated(client)) {
         return;
     }
+
     xcb_change_window_attributes(connection, client->frame,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
@@ -275,15 +276,18 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
                     : theme->window.inactive.border_color
             });
     xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
-    if (client_is_resizable(client) &&
+
+    if (((client->config_base == NULL) ||
+                client->config_base->windows.has_grips) &&
+            client_is_resizable(client) &&
             !client_is_fullscreen(client) &&
             !client_is_maximized(client)) {
-        s_draw_corner_handles(connection, client->frame,
+        s_draw_corner_grips(connection, client->frame,
                 (uint16_t) client->layout.geometry.cur.dim.w,
                 (uint16_t) client->layout.geometry.cur.dim.h,
                 (use_active_style)
-                    ? theme->window.active.foreground_color
-                    : theme->window.inactive.foreground_color);
+                    ? theme->window.active.grip_color
+                    : theme->window.inactive.grip_color);
     }
 }
 

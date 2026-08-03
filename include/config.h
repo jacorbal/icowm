@@ -67,6 +67,7 @@ struct config_base_s {
     /* General behavior of environment towards windows */
     struct {
         uint32_t snap;
+        bool has_grips;
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
@@ -231,6 +232,7 @@ struct config_theme_s {
             uint32_t background_color;
             uint32_t foreground_color;
             uint32_t border_color;
+            uint32_t grip_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } active;
 
@@ -238,6 +240,7 @@ struct config_theme_s {
             uint32_t background_color;
             uint32_t foreground_color;
             uint32_t border_color;
+            uint32_t grip_color;
             char font[CONFIG_MAX_LENGTH_FONTNAME];
         } inactive;
     } window;

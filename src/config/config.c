@@ -163,6 +163,7 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.editor, "gvim");
     safe_strcpy(config->base.programs.web_browser, "firefox");
     config->base.windows.snap = 4;
+    config->base.windows.has_grips = true;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
@@ -288,24 +289,28 @@ void config_set_default_values(config_td *config)
         json_hex2uint32("253040");
     config->theme.window.active.border_color =
         json_hex2uint32("4A5566");
-    safe_strcpy(config->theme.window.active.font, "monospace bold 9");
+    config->theme.window.active.grip_color =
+        json_hex2uint32("9AAEC8");
+    safe_strcpy(config->theme.window.active.font, "fixed bold 9");
     config->theme.window.inactive.background_color =
         json_hex2uint32("D0D9E5");
     config->theme.window.inactive.foreground_color =
         json_hex2uint32("4A5566");
     config->theme.window.inactive.border_color =
         json_hex2uint32("7F9AB6");
-    safe_strcpy(config->theme.window.inactive.font, "monospace 9");
+    config->theme.window.inactive.grip_color =
+        json_hex2uint32("4A5566");
+    safe_strcpy(config->theme.window.inactive.font, "fixed 9");
     config->theme.icon.general.border_width = 2;
     config->theme.icon.general.is_captioned = true;
     config->theme.icon.active.background_color = json_hex2uint32("9AAEC8");
     config->theme.icon.active.foreground_color = json_hex2uint32("253040");
     config->theme.icon.active.border_color = json_hex2uint32("4A5566");
-    safe_strcpy(config->theme.icon.active.font, "monospace 8");
+    safe_strcpy(config->theme.icon.active.font, "fixed 8");
     config->theme.icon.inactive.background_color = json_hex2uint32("D0D9E5");
     config->theme.icon.inactive.foreground_color = json_hex2uint32("4A5566");
     config->theme.icon.inactive.border_color = json_hex2uint32("7F9AB6");
-    safe_strcpy(config->theme.icon.inactive.font, "monospace 8");
+    safe_strcpy(config->theme.icon.inactive.font, "fixed 8");
 }
 
 
