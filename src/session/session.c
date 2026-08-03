@@ -24,6 +24,9 @@
 #include <unistd.h>
 #include <wordexp.h>
 
+/* ADT includes */
+#include <adt/list.h>
+
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -39,9 +42,6 @@
 #include <session/session.h>
 
 
-/** Maximum number of commands stored per session hook list */
-#define SESSION_MAX_COMMANDS (64u)
-
 /** Maximum length of a single command string (shared with path limit) */
 #define SESSION_MAX_CMD_LEN (CONFIG_MAX_LENGTH_PATH_BASE)
 
@@ -49,18 +49,11 @@
 #define SESSION_TRACKED_PIDS_MAX (256u)
 
 
-/** Ordered list of shell commands for one session lifecycle hook */
-struct session_command_list_s {
-    uint32_t count;
-    char items[SESSION_MAX_COMMANDS][SESSION_MAX_CMD_LEN];
-};
-
-
 /** Session table holding the three hook command lists */
 struct session_s {
-    struct session_command_list_s on_start;
-    struct session_command_list_s on_reload;
-    struct session_command_list_s on_exit;
+    list_td *on_start;
+    list_td *on_reload;
+    list_td *on_exit;
 };
 
 
@@ -74,6 +67,19 @@ struct session_tracked_pid_s {
 /** Table of in-flight child processes spawned by session hooks */
 static struct session_tracked_pid_s
     s_session_tracked[SESSION_TRACKED_PIDS_MAX];
+
+
+/**
+ * @brief Destroy a session hook command string
+ *
+ * @param data Dynamically allocated command string, or @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_session_command_destroy(void *data)
+{
+    free(data);
+}
 
 
 /**
@@ -145,13 +151,13 @@ static const char *s_session_hook_name(enum session_hook_e hook)
  * @param session Session table that holds the lists
  * @param hook    Lifecycle hook identifier
  *
- * @return Pointer to the mutable @c session_command_list_s for @p hook;
- *         the @c on_exit list is returned for any unrecognised value
+ * @return Pointer to the mutable @c list_td pointer for @p hook; the
+ *         @c on_exit list is returned for any unrecognised value
  *
  * @note Complexity: @e O(1)
  */
-static struct session_command_list_s
-    *s_session_hook_list(session_td *session, enum session_hook_e hook)
+static list_td **s_session_hook_list(session_td *session,
+        enum session_hook_e hook)
 {
     if (hook == SESSION_HOOK_START) {
         return &session->on_start;
@@ -170,23 +176,22 @@ static struct session_command_list_s
  * @param session Session table that holds the lists
  * @param hook    Lifecycle hook identifier
  *
- * @return Const pointer to the @c session_command_list_s for @p hook;
- *         the @c on_exit list is returned for any unrecognised value
+ * @return Pointer to the read-only @c list_td for @p hook; the
+ *         @c on_exit list is returned for any unrecognised value
  *
  * @note Complexity: @e O(1)
  */
-static const struct session_command_list_s
-    *s_session_hook_list_const(const session_td *session,
-            enum session_hook_e hook)
+static const list_td *s_session_hook_list_const(const session_td *session,
+        enum session_hook_e hook)
 {
     if (hook == SESSION_HOOK_START) {
-        return &session->on_start;
+        return session->on_start;
     }
     if (hook == SESSION_HOOK_RELOAD) {
-        return &session->on_reload;
+        return session->on_reload;
     }
 
-    return &session->on_exit;
+    return session->on_exit;
 }
 
 
@@ -311,7 +316,32 @@ static int s_session_spawn_command(xcb_connection_t *connection,
 /* Allocate and zero-initialise a new session table */
 session_td *session_init(void)
 {
-    return calloc(1, sizeof(session_td));
+    session_td *session = calloc(1, sizeof(session_td));
+
+    if (session == NULL) {
+        return NULL;
+    }
+
+    session->on_start = list_init(s_session_command_destroy);
+    session->on_reload = list_init(s_session_command_destroy);
+    session->on_exit = list_init(s_session_command_destroy);
+
+    if (session->on_start == NULL || session->on_reload == NULL ||
+            session->on_exit == NULL) {
+        if (session->on_start != NULL) {
+            list_destroy(session->on_start);
+        }
+        if (session->on_reload != NULL) {
+            list_destroy(session->on_reload);
+        }
+        if (session->on_exit != NULL) {
+            list_destroy(session->on_exit);
+        }
+        free(session);
+        return NULL;
+    }
+
+    return session;
 }
 
 
@@ -319,6 +349,9 @@ session_td *session_init(void)
 void session_destroy(session_td *session)
 {
     if (session != NULL) {
+        list_destroy(session->on_start);
+        list_destroy(session->on_reload);
+        list_destroy(session->on_exit);
         free(session);
     }
 }
@@ -335,8 +368,6 @@ int session_load(session_td *session, const char *config_dir_prefix)
         return 1;
     }
 
-    memset(session, 0, sizeof(*session));
-
     s_session_config_dir_set(config_dir_prefix, config_dir);
     snprintf(session_file, sizeof(session_file), "%s/%s",
             config_dir, CONFIG_FILENAME_SESSION);
@@ -352,24 +383,31 @@ int session_load(session_td *session, const char *config_dir_prefix)
             ++h) {
         enum session_hook_e hook = (enum session_hook_e) h;
         const char *hook_name = s_session_hook_name(hook);
-        struct session_command_list_s *list =
-            s_session_hook_list(session, hook);
+        list_td **list = s_session_hook_list(session, hook);
         cJSON *arr = json_get_item(json, hook_name);
         cJSON *it;
 
+        list_clear(*list);
         if (!cJSON_IsArray(arr)) {
             continue;
         }
 
         cJSON_ArrayForEach(it, arr) {
-            if (list->count >= SESSION_MAX_COMMANDS) {
-                break;
-            }
             if (cJSON_IsString(it) && it->valuestring != NULL &&
                     it->valuestring[0] != '\0') {
-                safe_strncpy(list->items[list->count], it->valuestring,
-                        sizeof(list->items[list->count]));
-                list->count++;
+                char *command = calloc(SESSION_MAX_CMD_LEN,
+                        sizeof(char));
+
+                if (command == NULL) {
+                    continue;
+                }
+
+                safe_strncpy(command, it->valuestring,
+                        SESSION_MAX_CMD_LEN);
+                if (list_ins_next(*list, list_tail(*list),
+                            command) != 0) {
+                    free(command);
+                }
             }
         }
     }
@@ -379,9 +417,9 @@ int session_load(session_td *session, const char *config_dir_prefix)
     LOGGER_INFO("Loaded session hooks from '%s'" \
             " (start=%u, reload=%u, exit=%u)",
             session_file,
-            session->on_start.count,
-            session->on_reload.count,
-            session->on_exit.count);
+            (unsigned int) list_size(session->on_start),
+            (unsigned int) list_size(session->on_reload),
+            (unsigned int) list_size(session->on_exit));
 
     return 0;
 }
@@ -391,7 +429,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
 void session_run_hook(const session_td *session,
         xcb_connection_t *connection, enum session_hook_e hook)
 {
-    const struct session_command_list_s *list;
+    const list_td *list;
     const char *hook_name;
 
     if (session == NULL) {
@@ -400,9 +438,10 @@ void session_run_hook(const session_td *session,
 
     list = s_session_hook_list_const(session, hook);
     hook_name = s_session_hook_name(hook);
-    for (uint32_t i = 0u; i < list->count; ++i) {
+    for (list_item_td *item = list_head(list);
+            item != NULL; item = list_next(item)) {
         (void) s_session_spawn_command(connection,
-                list->items[i], hook_name);
+                (const char *) list_data(item), hook_name);
     }
 }
 

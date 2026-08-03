@@ -30,7 +30,14 @@ values, and built-in default value.
 5. [`randr.json` -- XRandR output profiles](#5-randrjson--xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
-6. [Full examples](#6-full-examples)
+6. [`rules.json` -- Per-window rules](#6-rulesjson--per-window-rules)
+   - [6.1 Rule file shape](#61-rule-file-shape)
+   - [6.2 Rule entry fields](#62-rule-entry-fields)
+   - [6.3 Match fields](#63-match-fields)
+   - [6.4 Apply fields](#64-apply-fields)
+7. [`session.json` -- Session lifecycle hooks](#7-sessionjson--session-lifecycle-hooks)
+   - [7.1 Hook arrays](#71-hook-arrays)
+8. [Full examples](#8-full-examples)
 
 ---
 
@@ -336,9 +343,9 @@ modifier uses one of these aliases.
 |--------|-----------------|-------------------------------|
 | `modc` | `Control`       | Control key                   |
 | `mods` | `Shift`         | Shift key                     |
-| `modl` | `Caps_Lock`     | Caps Lock                     |
+| `modl` | `Caps\_Lock`    | Caps Lock                     |
 | `mod1` | `Alt`           | Alt / Meta key                |
-| `mod2` | `Num_Lock`      | Num Lock                      |
+| `mod2` | `Num\_Lock`     | Num Lock                      |
 | `mod3` | `""`            | Unassigned (empty by default) |
 | `mod4` | `Super`         | Super / Windows key           |
 | `mod5` | `Hyper`         | Hyper key                     |
@@ -377,7 +384,7 @@ Actions performed on the currently focused window.
 
 | Key          | Default binding         | Action |
 |--------------|-------------------------|--------|
-| `close`      | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
+| `close`      | `modc+mod1+c`           | Send `WM\_DELETE\_WINDOW` to politely close the window. |
 | `kill`       | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
 | `iconify`    | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
 | `hide`       | `modc+mod1+mods+h`      | Hide the window without iconifying it. |
@@ -578,13 +585,13 @@ Appearance of icons that do not have focus.
 >    appear in any order, except that `registry-encoding` (if given)
 >    must come last.  `registry-encoding` is any token that contains
 >    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
->    two XLFD fields (`charset_registry` and `charset_encoding`).
+>    two XLFD fields (`charset\_registry` and `charset\_encoding`).
 >
 >   Examples:
 >    - `"fixed"` -- the `fixed` alias (available on every X server)
->    - `"fixed 12"` -- `fixed` family at 12 pixels
->    - `"fixed bold 12"` -- `fixed` family, bold weight, 12 pixels
->    - `"fixed bold 12 iso8859-15"` -- `fixed`, bold, 12 pixels,
+>    - `"fixed 13"` -- `fixed` family at 13 pixels
+>    - `"fixed bold 13"` -- `fixed` family, bold weight, 13 pixels
+>    - `"fixed bold 13 iso8859-15"` -- `fixed`, bold, 13 pixels,
 >       ISO 8859-15 charset
 >    - `"courier bold italic 17"` -- Courier, bold italic, 17 pixels
 >
@@ -634,7 +641,10 @@ Each entry in the `outputs` array describes one physical display output.
 | `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels. |
 | `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen. |
 | `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen. |
-| `rotation`     | string  | `"normal"` | Screen rotation.  Accepted values: `"normal"`, `"left"` (90°), `"right"` (270°), `"inverted"` (180°). |
+| `rotation`     | string  | `"normal"` | Screen rotation. |
+
+Accepted `rotation` values are: `"normal"`, `"left"` (90°),
+`"right"` (270°), `"inverted"` (180°).
 
 ```json
 {
@@ -660,7 +670,135 @@ Each entry in the `outputs` array describes one physical display output.
 }
 ```
 
-## 6. Full examples
+## 6. `rules.json` -- Per-window rules
+
+Defines optional matching rules that are evaluated when a window is
+first mapped and, optionally, again when relevant ICCCM/EWMH properties
+change.  If the file is absent or malformed, IcoWM continues without any
+rules.
+
+Rules are evaluated in declaration order.  When multiple entries match
+the same window, later entries override earlier ones on a field-by-field
+basis.
+
+The file may be either:
+
+- a top-level JSON array of rule objects, or
+- an object with a `rules` array.
+
+### 6.1 Rule file shape
+
+```json
+[
+    {
+        "when": "map",
+        "match": {
+            "class": "XTerm"
+        },
+        "apply": {
+            "desktop": 1,
+            "focus": true
+        }
+    }
+]
+```
+
+Equivalent wrapper form:
+
+```json
+{
+    "rules": [
+        {
+            "when": "map",
+            "match": {
+                "class": "XTerm"
+            },
+            "apply": {
+                "desktop": 1,
+                "focus": true
+            }
+        }
+    ]
+}
+```
+
+### 6.2 Rule entry fields
+
+Each rule entry is a JSON object with the following keys:
+
+| Key     | Type   | Default | Description |
+|---------|--------|---------|-------------|
+| `when`  | string | `"map"` | When the rule is eligible to run.  Accepted values: `"map"`, `"property"`, `"both"`. |
+| `match` | object | `{}`    | Set of window-property predicates.  Omitted or empty means the rule matches every window. |
+| `apply` | object | none    | Actions to apply when the rule matches.  If absent or not an object, the entry is ignored. |
+
+### 6.3 Match fields
+
+All match fields are optional.  A rule matches only when all specified
+fields match the current window.
+
+| Key               | Type    | Default | Description |
+|-------------------|---------|---------|-------------|
+| `match.instance`  | string  | unset   | Match the first string in `WM\_CLASS` (instance name). |
+| `match.class`     | string  | unset   | Match the second string in `WM\_CLASS` (class name). |
+| `match.role`      | string  | unset   | Match `WM\_WINDOW\_ROLE`. |
+| `match.title`     | string  | unset   | Match the current window title. |
+| `match.type`      | string  | unset   | Match `\_NET\_WM\_WINDOW\_TYPE`. |
+| `match.transient` | boolean | unset   | Match whether the window is transient for another window. |
+
+String matches use shell-style glob patterns, so `\*` matches any
+sequence of characters and `?` matches any single character.
+
+Accepted `match.type` values are: `"normal"`, `"desktop"`, `"dock"`,
+`"toolbar"`, `"menu"`, `"utility"`, `"splash"`, `"dialog"`.
+
+### 6.4 Apply fields
+
+All apply fields are optional.  Only the fields present in the last
+matching rule for each property are applied.
+
+| Key                     | Type    | Default | Description |
+|-------------------------|---------|---------|-------------|
+| `apply.desktop`         | integer | unset   | Zero-based desktop index to move the window to. |
+| `apply.layer`           | string  | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`. |
+| `apply.focus`           | boolean | unset   | Whether the matched window should receive focus. |
+| `apply.sticky`          | boolean | unset   | Whether the window should be visible on all desktops. |
+| `apply.decorated`       | boolean | unset   | Whether the window should keep its decorations. |
+| `apply.geometry.x`      | integer | unset   | Absolute X position in pixels. |
+| `apply.geometry.y`      | integer | unset   | Absolute Y position in pixels. |
+| `apply.geometry.width`  | integer | unset   | Window width in pixels; must be greater than `0`. |
+| `apply.geometry.height` | integer | unset   | Window height in pixels; must be greater than `0`. |
+
+The `geometry` action is applied only when all four geometry fields are
+present and the width and height are both positive.
+
+## 7. `session.json` -- Session lifecycle hooks
+
+Defines optional command lists that IcoWM launches asynchronously at key
+lifecycle points.  If the file is absent or malformed, no hooks run.
+
+Each command is expanded with POSIX `wordexp()` semantics before
+execution, then started via `fork()` and `execvp()`.  Hook commands run
+independently from the window manager; IcoWM only logs their start and
+eventual termination status.
+
+Command substitution is disabled.  Environment-variable expansion may
+also be disabled on platforms that provide `WRDE\_NOENV`.
+
+### 7.1 Hook arrays
+
+| Key         | Type             | Default | Description |
+|-------------|------------------|---------|-------------|
+| `on-start`  | array of strings | `[]`    | Commands launched after IcoWM startup initialization. |
+| `on-reload` | array of strings | `[]`    | Commands launched after a configuration reload (`SIGHUP` or the reload action). |
+| `on-exit`   | array of strings | `[]`    | Commands launched when IcoWM is exiting. |
+
+Only non-empty string entries are used; all other array items are
+ignored.
+
+
+
+## 8. Full examples
 
 ### `config.json`
 
