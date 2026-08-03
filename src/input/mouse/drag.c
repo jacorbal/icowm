@@ -68,6 +68,10 @@ static struct {
                                  *   from left) */
     bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
                                  *   from top) */
+    bool resize_w;              /**< Resize: width is actively being
+                                 *   changed in this drag */
+    bool resize_h;              /**< Resize: height is actively being
+                                 *   changed in this drag */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -84,7 +88,9 @@ static struct {
     .screen_h = 0,
     .snap = 0,
     .anchor_right = false,
-    .anchor_bottom = false
+    .anchor_bottom = false,
+    .resize_w = false,
+    .resize_h = false
 };
 
 
@@ -331,9 +337,27 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         } else {
             s_drag.anchor_bottom = ((int32_t) root_y < cy);
         }
+
+        /* Track which axes are actively resized.
+         * An axis is active only when the grab point is near that edge.
+         * Keeping the other axis fixed at its start value prevents
+         * 'client_constrain_size' from snapping it down by a full
+         * increment due to sub-increment pointer noise on the
+         * orthogonal axis, which for size-hinted clients such as gVim
+         * would produce a 'ConfigureRequest' feedback loop. */
+        s_drag.resize_w = ((int32_t) root_x < left + corner ||
+                (int32_t) root_x >= right - corner);
+        s_drag.resize_h = ((int32_t) root_y < top + corner ||
+                (int32_t) root_y >= bottom - corner);
+        if (!s_drag.resize_w && !s_drag.resize_h) {
+            s_drag.resize_w = true;
+            s_drag.resize_h = true;
+        }
     } else {
-        s_drag.anchor_right  = false;
+        s_drag.anchor_right = false;
         s_drag.anchor_bottom = false;
+        s_drag.resize_w = false;
+        s_drag.resize_h = false;
     }
 
     client->properties.operation = (uint16_t) operation;
@@ -376,8 +400,10 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_y = icon_y;
     s_drag.client_start_w = 0;
     s_drag.client_start_h = 0;
-    s_drag.anchor_right  = false;
+    s_drag.anchor_right = false;
     s_drag.anchor_bottom = false;
+    s_drag.resize_w = false;
+    s_drag.resize_h = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
 
@@ -519,11 +545,18 @@ void drag_update(xcb_connection_t *connection,
         uint32_t new_h;
 
         /* Determine resize direction from the anchor computed at drag
-         * start.  When anchor_right is set the right edge is fixed and
-         * we resize from the left: the window moves and shrinks/grows
-         * as the pointer moves right/left.  Similarly for anchor_bottom
-         * and the top edge. */
-        if (s_drag.anchor_right) {
+         * start.  When 'anchor_right' is set the right edge is fixed
+         * and we resize from the left: the window moves and
+         * shrinks/grows as the pointer moves right/left.  Similarly for
+         * 'anchor_bottom' and the top edge.  When an axis is not
+         * actively resized its dimension is frozen at the start value
+         * so that 'client_constrain_size' cannot floor it due to
+         * sub-increment pointer noise, which would cause size-hinted
+         * clients (vid. gVim) to lose a row or column and enter
+         * a 'ConfigureRequest' loop. */
+        if (!s_drag.resize_w) {
+            new_w = s_drag.client_start_w;
+        } else if (s_drag.anchor_right) {
             int32_t clamped_dx = dx;
             int32_t min_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
 
@@ -538,7 +571,9 @@ void drag_update(xcb_connection_t *connection,
                     (int32_t) s_drag.client_start_w + dx);
         }
 
-        if (s_drag.anchor_bottom) {
+        if (!s_drag.resize_h) {
+            new_h = s_drag.client_start_h;
+        } else if (s_drag.anchor_bottom) {
             int32_t clamped_dy = dy;
             int32_t min_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
 

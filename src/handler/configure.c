@@ -105,7 +105,7 @@ static void s_handler_send_synthetic_configure_notify(
  *        resize
  *
  * Computes the displacement that preserves the anchor point defined by
- * @p gravity after the frame changes from (@p old_w x @p old_h) to
+ * @p gravity after the frame changes from (@p old_w x @p old_h) t
  * (@p new_w x @p new_h) and adds it to @p *out_x and @p *out_y.
  * No-op for @c CLIENT_GRAVITY_NORTH_WEST and @c CLIENT_GRAVITY_STATIC.
  * See ICCCM §4.1.2.3 and §4.1.5.
@@ -125,27 +125,27 @@ static void s_gravity_adjust_pos(int32_t *out_x, int32_t *out_y,
         uint32_t new_w, uint32_t new_h,
         uint16_t gravity)
 {
-    int32_t dw = (int32_t) old_w - (int32_t) new_w;
-    int32_t dh = (int32_t) old_h - (int32_t) new_h;
+    int32_t dw = (int32_t) ((uint32_t) old_w - (uint32_t) new_w);
+    int32_t dh = (int32_t) ((uint32_t) old_h - (uint32_t) new_h);
 
     if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
             gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
             gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
-        *out_x += dw;
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) dw);
     } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
             gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
             gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
-        *out_x += dw / 2;
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) (dw / 2));
     }
 
     if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
             gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
             gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
-        *out_y += dh;
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) dh);
     } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
             gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
             gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
-        *out_y += dh / 2;
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) (dh / 2));
     }
 }
 
@@ -232,12 +232,14 @@ void handler_configure_request(xcb_connection_t *connection,
 
         if (mask & XCB_CONFIG_WINDOW_X) {
             if (is_reparented && on_inner) {
-                req_x = event->x - (int16_t) left;
+                req_x = (int32_t) ((uint32_t) (int32_t) event->x -
+                        (uint32_t) left);
             } else {
                 req_x = event->x;
             }
 
-            if (req_x != client->layout.geometry.cur.pos.x) {
+            if ((uint32_t) req_x !=
+                    (uint32_t) client->layout.geometry.cur.pos.x) {
                 geom_changed = true;
             }
 
@@ -249,16 +251,22 @@ void handler_configure_request(xcb_connection_t *connection,
 
         if (mask & XCB_CONFIG_WINDOW_Y) {
             if (is_reparented && on_inner) {
-                req_y = event->y - (int16_t) top;
+                /* Clamp before subtracting to keep req_y >= 0 and avoid
+                 * the "X - C < 0 => X < C" strict-overflow
+                 * transformation */
+                req_y = ((int32_t) event->y > (int32_t) top)
+                    ? (int32_t) ((uint32_t) (int32_t) event->y -
+                            (uint32_t) top)
+                    : 0;
             } else {
-                req_y = event->y;
+                req_y = (int32_t) event->y;
+                if (req_y < 0) {
+                    req_y = 0;
+                }
             }
 
-            if (req_y < 0) {
-                req_y = 0;
-            }
-
-            if (req_y != client->layout.geometry.cur.pos.y) {
+            if ((uint32_t) req_y !=
+                    (uint32_t) client->layout.geometry.cur.pos.y) {
                 geom_changed = true;
             }
 
@@ -334,8 +342,10 @@ void handler_configure_request(xcb_connection_t *connection,
             adj_y = client->layout.geometry.cur.pos.y;
             s_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
                     req_w, req_h, client->layout.gravity);
-            if (adj_x != client->layout.geometry.cur.pos.x ||
-                    adj_y != client->layout.geometry.cur.pos.y) {
+            if ((uint32_t) adj_x
+                    != (uint32_t) client->layout.geometry.cur.pos.x ||
+                    (uint32_t) adj_y
+                    != (uint32_t) client->layout.geometry.cur.pos.y) {
                 for (int j = i - 1; j >= 0; --j) {
                     target_values[j + 2] = target_values[j];
                 }
@@ -456,8 +466,8 @@ void handler_configure_notify(xcb_connection_t *connection,
              * 'ConfigureNotify' events via two routes:
              *
              *  - 'StructureNotify' ('event->event == window'):
-             *     reliable, reflects the position the window manager
-             *     last configured.
+             *    reliable, reflects the position the window manager
+             *    last configured.
              *  - 'SubStructureNotify' on root ('event->event !=
              *    window'): also generated for every 'ConfigureWindow'
              *    the window manager issued on the client, including the
@@ -518,41 +528,31 @@ void handler_configure_notify(xcb_connection_t *connection,
                 client->frame != 0 &&
                 client_is_decorated(client) &&
                 !client_is_fullscreen(client)) {
-            int32_t frame_x;
-            int32_t frame_y;
-            uint32_t frame_w;
-            uint32_t frame_h;
             uint16_t left;
-            uint16_t right;
             uint16_t top;
-            uint16_t bottom;
 
             left = (uint16_t) client->layout.frame_extents.left;
-            right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
-            bottom = (uint16_t) client->layout.frame_extents.bottom;
 
-            frame_x = client->layout.geometry.cur.pos.x +
-                (int32_t) event->x - (int32_t) left;
-            frame_y = client->layout.geometry.cur.pos.y +
-                (int32_t) event->y - (int32_t) top;
-            frame_w = (uint32_t) event->width + left + right;
-            frame_h = (uint32_t) event->height + top + bottom;
-
-            geom_changed =
-                (int32_t) event->x != (int32_t) left ||
-                (int32_t) event->y != (int32_t) top ||
-                client->layout.geometry.cur.dim.w != frame_w ||
-                client->layout.geometry.cur.dim.h != frame_h;
-
-            if (geom_changed) {
-                client->layout.geometry.cur.pos.x = frame_x;
-                client->layout.geometry.cur.pos.y = frame_y;
-                client->layout.geometry.cur.dim.w = frame_w;
-                client->layout.geometry.cur.dim.h = frame_h;
+            /* The inner window's position within the frame must always
+             * be (left, top).  If something moved it (rare), put it
+             * back.
+             *
+             * Size changes are intentionally NOT reacted to here.  The
+             * window manager controls the inner window size exclusively
+             * through 'client_sync_decoration_layout'; reacting to a
+             * stale 'ConfigureNotify' with a different size would:
+             *
+             *   1. Overwrite the stored geometry with the pre-snap value
+             *   2. Call client_sync_decoration_layout again, generating
+             *      another ConfigureNotify with the old size
+             *   3. Create a feedback loop visible as gVim (or any
+             *      size-hint-constrained app) flickering and collapsing
+             *      during mouse resize, or losing one character row on
+             *      every keyboard resize keypress. */
+            if ((int32_t) event->x != (int32_t) left ||
+                    (int32_t) event->y != (int32_t) top) {
                 client_sync_decoration_layout(client);
-                wm_invalidate_surface(surface);
-                wm_invalidate_desktop(desktop);
             }
         } /* ! if (is_frame) */
     } /* ! if (client) */

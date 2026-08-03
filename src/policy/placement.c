@@ -33,6 +33,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
+#include <lookup.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -44,13 +45,13 @@
  * @brief Cost weights for the smart window placement scorer
  *
  * These constants define the relative penalty of overlapping a visible
- * window vs. overlapping an icon vs. being far from the workarea centre.
- * Overlap penalties are multiplied by the intersection area (pixels),
- * so even a 1-pixel overlap with a visible window is worth thousands of
- * distance units, ensuring non-overlapping positions are always strongly
- * preferred.
+ * window vs. overlapping an icon vs. being far from the workarea
+ * center.  Overlap penalties are multiplied by the intersection area
+ * (pixels), so even a 1-pixel overlap with a visible window is worth
+ * thousands of distance units, ensuring non-overlapping positions are
+ * always strongly preferred.
  */
-#define SMART_WIN_COST_PER_WIN_PIXEL  (8192u)
+#define SMART_WIN_COST_PER_WIN_PIXEL (8192u)
 #define SMART_WIN_COST_PER_ICON_PIXEL (1024u)
 
 /**
@@ -62,12 +63,12 @@
 /**
  * @brief Cost weights for the smart icon placement scorer
  *
- * Overlap with any visible (non-iconified) window is penalised heavily.
- * The overflow-row penalty keeps icons compact near the preferred edge:
- * each row away from the edge adds a small, predictable cost.
+ * Overlap with any visible (non-iconified) window is penalized heavily.
+ * The overflow-row penalty keeps icons compact near the preferred edge,
+ * i.e., each row away from the edge adds a small, predictable cost.
  */
-#define SMART_ICON_COST_PER_WIN_PIXEL     (256u)
-#define SMART_ICON_COST_PER_OVERFLOW_ROW  (1u)
+#define SMART_ICON_COST_PER_WIN_PIXEL (256u)
+#define SMART_ICON_COST_PER_OVERFLOW_ROW (1u)
 
 
 /**
@@ -77,14 +78,14 @@
  * penalty weighted by intersection area.  A small distance-to-centre
  * penalty breaks ties in favour of the workarea centre.
  *
- * @param desktop      Desktop whose clients are inspected
- * @param skip_client  Client to ignore (the one being placed)
- * @param x            Candidate left coordinate
- * @param y            Candidate top coordinate
- * @param fw           Candidate width
- * @param fh           Candidate height
- * @param center_x     X coordinate of the workarea centre
- * @param center_y     Y coordinate of the workarea centre
+ * @param desktop     Desktop whose clients are inspected
+ * @param skip_client Client to ignore (the one being placed)
+ * @param x           Candidate left coordinate
+ * @param y           Candidate top coordinate
+ * @param fw          Candidate width
+ * @param fh          Candidate height
+ * @param center_x    X coordinate of the workarea centre
+ * @param center_y    Y coordinate of the workarea centre
  *
  * @return Aggregate cost; lower is better; 0 means a perfect position
  *
@@ -166,10 +167,8 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
  * bounds, preferring to keep it at the near edge when it does not fit.
  *
  * @param surface Pointer to the surface providing the placement bounds
- *
  * @param client  Pointer to the client whose gravity and frame size are
- *                 used
- *
+ *                used
  * @param x       Pointer to the X coordinate to adjust and clamp in
  *                place
  * @param y       Pointer to the Y coordinate to adjust and clamp in
@@ -270,6 +269,7 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     int32_t cx;
     int32_t cy;
     uint64_t cost;
+    bool found;
 
     (void) wm; /* reserved for future use */
 
@@ -310,8 +310,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     center_x = wa_x + (int32_t) (wa_w / 2u);
     center_y = wa_y + (int32_t) (wa_h / 2u);
 
-    /* Seed with the centred position so an empty desktop still lands the
-     * first window in the middle of the screen */
+    /* Seed with the centred position so an empty desktop still lands
+     * the first window in the middle of the screen */
     cx = center_x - (int32_t) (fw / 2u);
     cy = center_y - (int32_t) (fh / 2u);
     if (cx < min_x) { cx = min_x; }
@@ -319,71 +319,63 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     if (cx > max_x) { cx = max_x; }
     if (cy > max_y) { cy = max_y; }
 
-    best_x    = cx;
-    best_y    = cy;
+    best_x = cx;
+    best_y = cy;
     best_cost = s_score_window_pos(desktop, client, cx, cy, fw, fh,
             center_x, center_y);
-
-    if (best_cost == 0u) {
-        goto done;
-    }
+    found = (best_cost == 0u);
 
     /* Grid sweep: score every candidate and keep the minimum-cost one.
      * The first zero-cost candidate found terminates the search early. */
-    for (int32_t y = min_y; y <= max_y; y += (int32_t) step) {
-        for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
+    for (int32_t y = min_y; y <= max_y && !found; y += (int32_t) step) {
+        for (int32_t x = min_x; x <= max_x && !found; x += (int32_t) step) {
             cost = s_score_window_pos(desktop, client, x, y, fw, fh,
                     center_x, center_y);
             if (cost < best_cost) {
                 best_cost = cost;
-                best_x    = x;
-                best_y    = y;
-                if (cost == 0u) {
-                    goto done;
-                }
+                best_x = x;
+                best_y = y;
+                found = (cost == 0u);
             }
         }
 
-        /* Right-column guard: ensure max_x is always evaluated */
-        if (max_x != min_x) {
+        /* Right-column guard: ensure 'max_x' is always evaluated */
+        if (!found && max_x != min_x) {
             cost = s_score_window_pos(desktop, client, max_x, y, fw, fh,
                     center_x, center_y);
             if (cost < best_cost) {
                 best_cost = cost;
-                best_x    = max_x;
-                best_y    = y;
-                if (cost == 0u) {
-                    goto done;
-                }
+                best_x = max_x;
+                best_y = y;
+                found = (cost == 0u);
             }
         }
     }
 
-    /* Bottom-row guard: ensure max_y is always evaluated */
-    if (max_y != min_y) {
-        for (int32_t x = min_x; x <= max_x; x += (int32_t) step) {
+    /* Bottom-row guard: ensure 'max_y' is always evaluated */
+    if (!found && max_y != min_y) {
+        for (int32_t x = min_x; x <= max_x && !found; x += (int32_t) step) {
             cost = s_score_window_pos(desktop, client, x, max_y, fw, fh,
                     center_x, center_y);
             if (cost < best_cost) {
                 best_cost = cost;
-                best_x    = x;
-                best_y    = max_y;
-                if (cost == 0u) {
-                    goto done;
-                }
+                best_x = x;
+                best_y = max_y;
+                found = (cost == 0u);
             }
         }
 
-        cost = s_score_window_pos(desktop, client, max_x, max_y, fw, fh,
-                center_x, center_y);
-        if (cost < best_cost) {
-            best_cost = cost;
-            best_x    = max_x;
-            best_y    = max_y;
+        if (!found) {
+            cost = s_score_window_pos(desktop, client, max_x, max_y,
+                    fw, fh, center_x, center_y);
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_x = max_x;
+                best_y = max_y;
+            }
         }
     }
 
-done:
     LOGGER_DEBUG("smart-place win: pos=(%d,%d) cost=%lu wa=(%d,%d %ux%u)",
             best_x, best_y, (unsigned long) best_cost,
             wa_x, wa_y, wa_w, wa_h);
@@ -426,9 +418,9 @@ void place_icon(const client_td *client, desktop_td *desktop,
         ? INT32_MAX : (int32_t) border_twice_u64;
 
     /* SMART uses BOTTOM layout for slot indexing: slots are numbered
-     * from the bottom-left corner, growing right then up.  We score
-     * every free slot by its overlap with visible windows and pick the
-     * one with the lowest cost instead of blindly taking the first
+     * from the bottom-left corner, growing right then up.  Score every
+     * free slot by its overlap with visible windows and pick the one
+     * with the lowest cost instead of blindly taking the first
      * available slot. */
     if (policy == CONFIG_ICON_PLACEMENT_SMART) {
         /* Compute max_primary for BOTTOM layout */
@@ -478,7 +470,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
 
         /* Score every free slot by window overlap + compactness.
          * 'sec' (overflow row) is used as a compactness tie-breaker:
-         * lower sec means closer to the screen edge. */
+         * lower 'sec' means closer to the screen edge */
         chosen = 0u;
         {
             uint64_t best_cost = UINT64_MAX;
@@ -503,8 +495,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
                     continue;
                 }
 
-                p  = (uint16_t) (i % max_primary);
-                s  = (uint16_t) (i / max_primary);
+                p = (uint16_t) (i % max_primary);
+                s = (uint16_t) (i / max_primary);
                 ix = (int32_t) margin +
                     (int32_t) p * (int32_t) step_x;
                 iy = (int32_t) screen_h -
@@ -600,8 +592,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
         max_primary = 1u;
     }
 
-    /* Mark occupied slots.  'slot = sec * max_primary + pri' where
-     * 'pri' indexes along the edge and 'sec' counts overflow
+    /* Mark occupied slots: 'slot = sec * max_primary + pri' where
+     * 'pri' indexes along the edge, and 'sec' counts overflow
      * rows/columns */
     for (uint16_t i = 0u; i < 256u; ++i) {
         occupied[i] = false;
@@ -787,10 +779,15 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     uint32_t sh;
     uint32_t fw;
     uint32_t fh;
+    int32_t wa_x;
+    int32_t wa_y;
+    uint32_t wa_w;
+    uint32_t wa_h;
     int32_t new_x;
     int32_t new_y;
     xcb_window_t target;
     enum config_placement_policy_e policy;
+    desktop_td *desktop;
 
     if (wm == NULL || wm->config == NULL ||
             surface == NULL || client == NULL) {
@@ -803,26 +800,70 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     fh = client->layout.geometry.cur.dim.h;
     policy = wm->config->base.windows.placement_policy;
 
+    /* Determine the usable workarea (respects panel struts).
+     * Fall back to the full screen dimensions when no workarea is set */
+    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    if (desktop != NULL && desktop->workarea.dim.w > 0u &&
+            desktop->workarea.dim.h > 0u) {
+        wa_x = desktop->workarea.pos.x;
+        wa_y = desktop->workarea.pos.y;
+        wa_w = desktop->workarea.dim.w;
+        wa_h = desktop->workarea.dim.h;
+    } else {
+        wa_x = 0;
+        wa_y = 0;
+        wa_w = sw;
+        wa_h = sh;
+    }
+
     /* ICCCM §4.1.2.6: center transient dialogs over their parent */
     if (client->transient_for != XCB_WINDOW_NONE) {
-        xcb_get_geometry_cookie_t pgc;
-        xcb_get_geometry_reply_t *pgr;
-        pgc = xcb_get_geometry(wm->connection, client->transient_for);
-        pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+        bool placed_as_transient = false;
 
-        if (pgr != NULL) {
-            new_x = (int32_t) pgr->x +
-                    ((int32_t) pgr->width - (int32_t) fw) / 2;
-            new_y = (int32_t) pgr->y +
-                    ((int32_t) pgr->height - (int32_t) fh) / 2;
-            free(pgr);
+        /* Prefer the WM's stored frame geometry over
+         * 'xcb_get_geometry': after reparenting the parent's inner
+         * window lives inside the frame, so 'xcb_get_geometry' would
+         * return its position relative to the frame (left, top); not
+         * the frame's root-relative screen position.  Using the stored
+         * geometry correctly centres the dialog wherever the parent
+         * window is on screen. */
+        client_td *parent = lookup_find_client(wm->surfaces,
+                client->transient_for, NULL, NULL);
+        if (parent != NULL) {
+            int32_t px = parent->layout.geometry.cur.pos.x;
+            int32_t py = parent->layout.geometry.cur.pos.y;
+            uint32_t pw = parent->layout.geometry.cur.dim.w;
+            uint32_t ph = parent->layout.geometry.cur.dim.h;
+
+            new_x = px + ((int32_t) pw - (int32_t) fw) / 2;
+            new_y = py + ((int32_t) ph - (int32_t) fh) / 2;
+            placed_as_transient = true;
+        } else {
+            /* Parent not yet managed (or unmanaged window): fall back
+             * to 'xcb_get_geometry' on the declared transient-for
+             * window */
+            xcb_get_geometry_cookie_t pgc;
+            xcb_get_geometry_reply_t *pgr;
+            pgc = xcb_get_geometry(wm->connection, client->transient_for);
+            pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+            if (pgr != NULL) {
+                new_x = (int32_t) pgr->x +
+                        ((int32_t) pgr->width - (int32_t) fw) / 2;
+                new_y = (int32_t) pgr->y +
+                        ((int32_t) pgr->height - (int32_t) fh) / 2;
+                free(pgr);
+                placed_as_transient = true;
+            }
+        }
+
+        if (placed_as_transient) {
             if (new_x < 0) { new_x = 0; }
-            if (new_y < 0) { new_y = 0; }
+            if (new_y < wa_y) { new_y = wa_y; }
             if ((uint32_t) new_x + fw > sw) {
                 new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
             }
             if ((uint32_t) new_y + fh > sh) {
-                new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+                new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
             }
 
             target = (client_is_decorated(client) && client->frame != 0)
@@ -830,13 +871,13 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             xcb_configure_window(wm->connection, target,
                     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
                     (const uint32_t[]) {
-                        (uint32_t) new_x, (uint32_t) new_y});
-
+                        (uint32_t) new_x,
+                        (uint32_t) new_y
+                    });
             client->layout.geometry.cur.pos.x = new_x;
             client->layout.geometry.cur.pos.y = new_y;
             return;
         }
-        /* Parent geometry unavailable; fall through to normal policy */
     }
 
     if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
@@ -856,14 +897,19 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             max_steps = 1u;
         }
 
-        new_x = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-        new_y = (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+        /* Cascade starts at the workarea origin, not at (0, 0), so
+         * the title bar is never hidden behind a panel or dock */
+        new_x =
+            wa_x + (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+        new_y =
+            wa_y + (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
         s_cascade_seq++;
     } else if (policy == CONFIG_PLACEMENT_POLICY_CENTERED) {
-        new_x = ((int32_t) sw - (int32_t) fw) / 2;
-        new_y = ((int32_t) sh - (int32_t) fh) / 2;
-        if (new_x < 0) { new_x = 0; }
-        if (new_y < 0) { new_y = 0; }
+        /* Centre on the workarea, not on the full screen. */
+        new_x = wa_x + ((int32_t) wa_w - (int32_t) fw) / 2;
+        new_y = wa_y + ((int32_t) wa_h - (int32_t) fh) / 2;
+        if (new_x < wa_x) { new_x = wa_x; }
+        if (new_y < wa_y) { new_y = wa_y; }
     } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
         pointer_cookie = xcb_query_pointer(wm->connection,
                 surface->screen->root);
@@ -884,16 +930,17 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         } else if ((uint32_t) new_x + fw > sw) {
             new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
         }
-        if (new_y < 0) {
-            new_y = 0;
+        if (new_y < wa_y) {
+            new_y = wa_y;
         } else if ((uint32_t) new_y + fh > sh) {
-            new_y = (sh > fh) ? (int32_t) (sh - fh) : 0;
+            new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
         }
 
         free(pointer_reply);
     } else {
-        /* "none" or unknown: keep X-server position unless the frame
-         * would start outside the visible top-left screen corner */
+        /* "none" or unknown: keep the X-server-assigned position unless
+         * the frame title bar would be hidden above the workarea top
+         * (e.g., behind a panel) or above the physical screen edge */
         new_x = client->layout.geometry.cur.pos.x;
         new_y = client->layout.geometry.cur.pos.y;
 
@@ -901,8 +948,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             new_x = 0;
         }
 
-        if (new_y < 0) {
-            new_y = 0;
+        if (new_y < wa_y) {
+            new_y = wa_y;
         }
 
         if (new_x == client->layout.geometry.cur.pos.x &&
@@ -912,6 +959,11 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     }
 
     s_place_apply_gravity(surface, client, &new_x, &new_y);
+
+    /* Final safety: gravity adjustments must not push the title bar
+     * above the workarea top or above the physical screen edge */
+    if (new_y < wa_y) { new_y = wa_y; }
+    if (new_x < wa_x) { new_x = wa_x; }
 
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame
