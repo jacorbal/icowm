@@ -196,9 +196,13 @@ void client_constrain_size(const client_td *client,
             uint32_t base;
             uint32_t inc;
             uint32_t over;
+            /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE'
+             * serves as the base for the increment grid */
             base = (client->size_hints.base_w > 0)
                 ? (uint32_t) client->size_hints.base_w
-                : 0u;
+                : (client->size_hints.min_w > 0
+                        ? (uint32_t) client->size_hints.min_w
+                        : 0u);
             inc = (uint32_t) client->size_hints.inc_w;
             over = (req_w > base) ? (req_w - base) : 0u;
             req_w = base + (over / inc) * inc;
@@ -208,9 +212,13 @@ void client_constrain_size(const client_td *client,
             uint32_t base;
             uint32_t inc;
             uint32_t over;
+            /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE'
+             * serves as the base for the increment grid */
             base = (client->size_hints.base_h > 0)
                 ? (uint32_t) client->size_hints.base_h
-                : 0u;
+                : (client->size_hints.min_h > 0
+                        ? (uint32_t) client->size_hints.min_h
+                        : 0u);
             inc = (uint32_t) client->size_hints.inc_h;
             over = (req_h > base) ? (req_h - base) : 0u;
             req_h = base + (over / inc) * inc;
@@ -263,9 +271,9 @@ int ci_create_decorations(client_td *client)
     inner_w = (uint16_t) client->layout.geometry.cur.dim.w;
     title_h = client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
-
     frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
     frame_y32 = client->layout.geometry.cur.pos.y - (int32_t) top;
+
     if (frame_x32 < INT16_MIN) {
         frame_x = INT16_MIN;
     } else if (frame_x32 > INT16_MAX) {
@@ -273,6 +281,7 @@ int ci_create_decorations(client_td *client)
     } else {
         frame_x = (int16_t) frame_x32;
     }
+
     if (frame_y32 < INT16_MIN) {
         frame_y = INT16_MIN;
     } else if (frame_y32 > INT16_MAX) {
@@ -280,6 +289,7 @@ int ci_create_decorations(client_td *client)
     } else {
         frame_y = (int16_t) frame_y32;
     }
+
     frame_w =
         (uint16_t) (client->layout.geometry.cur.dim.w + left + right);
     frame_h =
@@ -313,8 +323,7 @@ int ci_create_decorations(client_td *client)
             client->titlebar,
             client->frame,
             (int16_t) left, (int16_t) title_y,
-            inner_w,
-            title_h,
+            inner_w, title_h,
             0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,

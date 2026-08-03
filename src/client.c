@@ -741,8 +741,8 @@ client_td *client_manage(xcb_connection_t *connection,
     /* NOTE: Apply border width before subscribing to 'STRUCTURE_NOTIFY'
      * so the resulting 'ConfigureNotify' is not delivered to the window
      * manager.  At this point the window has not yet been placed; the
-     * event would carry the X-server-initial position (typically 0,0)
-     * and handler_configure_notify would overwrite the placement
+     * event would carry the X-server-initial position, typically (0,0),
+     * and 'handler_configure_notify' would overwrite the placement
      * position computed later by place_apply, causing an undecorated
      * window to flicker back to the origin on every render cycle.
      * Dock windows always get zero border width. */
@@ -759,7 +759,6 @@ client_td *client_manage(xcb_connection_t *connection,
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);
-
 
     /* Only grab buttons on client windows that the window manager
      * decorates or that could receive focus.  Dock and notification

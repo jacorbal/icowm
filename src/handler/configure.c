@@ -451,6 +451,37 @@ void handler_configure_notify(xcb_connection_t *connection,
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 
+            /* For undecorated clients the window is its own frame and
+             * lives as a direct root child.  The X server delivers
+             * 'ConfigureNotify' events via two routes:
+             *
+             *  - 'StructureNotify' ('event->event == window'):
+             *     reliable, reflects the position the window manager
+             *     last configured.
+             *  - 'SubStructureNotify' on root ('event->event !=
+             *    window'): also generated for every 'ConfigureWindow'
+             *    the window manager issued on the client, including the
+             *    border-width adjustment that happens before placement
+             *    in client_manage.  That pre-placement event carries
+             *    the application's initial position, often (0,0), which
+             *    can arrive late (after place_apply already stored the
+             *    centred coordinates) and corrupt the stored position.
+             *    When the subsequent render uses the corrupted
+             *    coordinates the window is moved to the wrong position,
+             *    which in turn queues another stale
+             *    'SubStructureNotify', creating a render loop that
+             *    manifests as continuous flickering until the window is
+             *    iconified/restored.
+             *
+             * Ignore 'SubStructureNotify'-delivered 'ConfigureNotify'
+             * events for undecorated clients: the 'StructureNotify'
+             * copy (same data, always correct) handles all legitimate
+             * updates. */
+            if (client->frame == 0 &&
+                    event->event != event->window) {
+                return;
+            }
+
             geom_changed =
                 client->layout.geometry.cur.pos.x !=
                     (int32_t) event->x ||

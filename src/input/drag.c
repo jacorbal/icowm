@@ -302,9 +302,9 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.snap = snap;
 
     /* For resize operations, make the visible corner handles define the
-     * corner hit zones.  Outside those 12 px corner zones, keep the
-     * existing center-based fallback so the rest of the border still
-     * behaves as a resize handle. */
+     * corner hit zones.  Outside those 'WM_RESIZE_CORNER_SIZE' px
+     * corner zones, keep the existing center-based fallback so the rest
+     * of the border still behaves as a resize handle. */
     if (operation == CLIENT_OPERATION_RESIZING) {
         int32_t left = s_drag.client_start_x;
         int32_t top = s_drag.client_start_y;
