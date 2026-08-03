@@ -19,7 +19,6 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -28,9 +27,6 @@
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Hash table for clients */
-
-/* Input includes */
-#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/cycle.h>
@@ -417,42 +413,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     ? desktop->config_theme->icon.active.background_color
                     : desktop->config_theme->icon.inactive.background_color);
 
-                    /* When 'show-geom' is enabled and this icon is
-                     * being dragged, replace the caption with the
-                     * current coordinates centered in the icon
-                     * window */
-                    if (client->config_base != NULL &&
-                            client->config_base->icons.show_geom &&
-                            drag_is_active() &&
-                            drag_client() == client &&
-                            drag_is_icon_drag()) {
-                        char geom_buf[24];
-                        int32_t cur_x = 0;
-                        int32_t cur_y = 0;
-                        int16_t geom_x;
-                        uint16_t icon_w = WM_ICON_SQUARE_SIZE;
-
-                        drag_current_pos(&cur_x, &cur_y);
-                        (void) snprintf(geom_buf, sizeof(geom_buf),
-                                "%+d%+d", (int) cur_x, (int) cur_y);
-                        geom_x = (icon_w > text_measure_string(geom_buf))
-                        ? (int16_t) ((icon_w -
-                                    text_measure_string(geom_buf)) / 2u)
-                        : 0;
-                        text_draw_string(desktop->connection,
-                                client->icon_window, XCB_NONE,
-                                geom_x,
-                                (int16_t) (WM_ICON_SQUARE_SIZE +
-                                    WM_ICON_CAPTION_HEIGHT - 2u),
-                                geom_buf);
-                    } else {
-                        text_draw_string(desktop->connection,
-                                client->icon_window, XCB_NONE,
-                                2,
-                                (int16_t) (WM_ICON_SQUARE_SIZE +
-                                    WM_ICON_CAPTION_HEIGHT - 2u),
-                                caption);
-                    }
+                    text_draw_string(desktop->connection,
+                            client->icon_window, XCB_NONE,
+                            2,
+                            (int16_t) (WM_ICON_SQUARE_SIZE +
+                                WM_ICON_CAPTION_HEIGHT - 2u),
+                            caption);
                 }
             }
 
@@ -613,58 +579,18 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     ? desktop->config_theme->window.active.background_color
                     : desktop->config_theme->window.inactive.background_color);
 
-                /* When 'show-geom' is enabled and the window is being
-                 * moved or resized, display the current geometry
-                 * centered in the titlebar instead of the window
-                 * name */
-                if (client->config_base != NULL &&
-                        client->config_base->windows.show_geom &&
-                        drag_is_active() && drag_client() == client &&
-                        client->properties.operation !=
-                            (uint16_t) CLIENT_OPERATION_IDLE) {
-                    char geom_buf[32];
-                    int16_t geom_x;
-                    int16_t text_y =
+                text_draw_string(desktop->connection,
+                        client->titlebar, XCB_NONE,
+                        (int16_t) (WM_DECOR_BTN_PAD +
+                            2u * (WM_DECOR_BTN_SIZE +
+                                WM_DECOR_BTN_GAP) +
+                            WM_DECOR_BTN_GAP),
                         (int16_t) ((title_h >
-                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
-                            ? title_h -
-                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
-                            : title_h);
-
-                    if (client->properties.operation ==
-                            (uint16_t) CLIENT_OPERATION_RESIZING) {
-                        (void) snprintf(geom_buf, sizeof(geom_buf),
-                                "%ux%u",
-                                client->layout.geometry.cur.dim.w,
-                                client->layout.geometry.cur.dim.h);
-                    } else {
-                        (void) snprintf(geom_buf, sizeof(geom_buf),
-                                "%+d%+d",
-                                client->layout.geometry.cur.pos.x,
-                                client->layout.geometry.cur.pos.y);
-                    }
-
-                    geom_x = (inner_w > text_measure_string(geom_buf))
-                        ? (int16_t) ((inner_w -
-                                text_measure_string(geom_buf)) / 2u)
-                        : 0;
-                    text_draw_string(desktop->connection,
-                            client->titlebar, XCB_NONE,
-                            geom_x, text_y, geom_buf);
-                } else {
-                    text_draw_string(desktop->connection,
-                            client->titlebar, XCB_NONE,
-                            (int16_t) (WM_DECOR_BTN_PAD +
-                                2u * (WM_DECOR_BTN_SIZE +
-                                    WM_DECOR_BTN_GAP) +
-                                WM_DECOR_BTN_GAP),
-                            (int16_t) ((title_h >
-                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
-                            ? title_h -
-                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
-                            : title_h),
-                            client->info.name);
-                }
+                            (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                        ? title_h -
+                            (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                        : title_h),
+                        client->info.name);
 
                 desktop_draw_titlebar_buttons(desktop->connection,
                         client->titlebar,
