@@ -86,13 +86,17 @@ void menu_dialog_center(const surface_td *surface,
  * @param prompt        Null-terminated prompt text
  * @param cancel_label  Null-terminated cancel button label
  * @param confirm_label Null-terminated confirm button label
+ * @param on_confirm    Optional callback invoked when the confirm
+ *                      button is activated; receives the XCB connection
+ *                      (may be null)
  *
  * @note Complexity: @e O(n), where @e n is the total text length
  */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *prompt,
-        const char *cancel_label, const char *confirm_label);
+        const char *cancel_label, const char *confirm_label,
+        void (*on_confirm)(xcb_connection_t *));
 
 /**
  * @brief Destroy the currently visible confirm dialog

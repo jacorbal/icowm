@@ -116,6 +116,9 @@ static xcb_window_t s_confirm_window = XCB_WINDOW_NONE;
 /** Currently highlighted button: 0 = cancel (default), 1 = confirm */
 static int s_confirm_selected = 0;
 
+/** Callback invoked when the confirm button is activated */
+static void (*s_confirm_callback)(xcb_connection_t *) = NULL;
+
 /** Cached layout used for both creation and repaint */
 static s_confirm_layout_td s_confirm_layout;
 
@@ -280,7 +283,8 @@ static void s_confirm_draw(xcb_connection_t *connection,
 void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *prompt,
-        const char *cancel_label, const char *confirm_label)
+        const char *cancel_label, const char *confirm_label,
+        void (*on_confirm)(xcb_connection_t *))
 {
     int16_t x;
     int16_t y;
@@ -316,6 +320,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     text_renderer_init(connection, config->theme.window.active.font);
     s_confirm_compute_layout(&s_confirm_layout);
     s_confirm_selected = 0;
+    s_confirm_callback = on_confirm;
 
     menu_dialog_center(surface, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
@@ -362,8 +367,10 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
     xcb_destroy_window(connection, s_confirm_window);
     xcb_flush(connection);
-    s_confirm_window   = XCB_WINDOW_NONE;
+
+    s_confirm_window= XCB_WINDOW_NONE;
     s_confirm_selected = 0;
+    s_confirm_callback = NULL;
 }
 
 
@@ -396,7 +403,7 @@ bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
         if (x >= (int) lo->confirm_x &&
                 x < (int) lo->confirm_x + (int) lo->btn_w) {
             s_confirm_selected = 1;
-            menu_confirm_dialog_accept(connection, NULL);
+            menu_confirm_dialog_accept(connection, s_confirm_callback);
             return true;
         }
     }

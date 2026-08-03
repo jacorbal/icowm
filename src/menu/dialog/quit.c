@@ -54,8 +54,10 @@ void dialog_quit_show(xcb_connection_t *connection,
 
     (void) snprintf(prompt, sizeof(prompt),
             DIALOG_QUIT_PROMPT_FMT, WM_EWMH_NAME);
+
     menu_confirm_dialog_show(connection, surface, cfg,
-            prompt, DIALOG_QUIT_LABEL_CANCEL, DIALOG_QUIT_LABEL_EXIT);
+            prompt, DIALOG_QUIT_LABEL_CANCEL, DIALOG_QUIT_LABEL_EXIT,
+            s_on_quit_confirm);
 
 }
 
