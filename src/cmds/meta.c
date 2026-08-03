@@ -21,7 +21,7 @@
 #include <xcb/xcb_icccm.h>
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <actdata.h>

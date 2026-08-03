@@ -16,7 +16,7 @@
 #include <string.h>     /* memcpy */
 
 /* Local includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 
 /* Calculate the length of a string, up to a maximum length */

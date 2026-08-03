@@ -15,7 +15,7 @@
 #include <stdlib.h>     /* NULL, free, malloc */
 
 /* Util includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <actdata.h>

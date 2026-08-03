@@ -1,5 +1,5 @@
 /**
- * @file utils/safeflg.h
+ * @file utils/safe/safeflg.h
  *
   * @brief Safe flag management
  *

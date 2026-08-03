@@ -29,9 +29,9 @@
 #include <xcb/xcb_icccm.h>
 
 /* Utils includes */
-#include <utils/safemem.h>
-#include <utils/safestr.h>
-#include <utils/safeflg.h>
+#include <utils/safe/safemem.h>
+#include <utils/safe/safestr.h>
+#include <utils/safe/safeflg.h>
 
 /* Type includes */
 #include <types/pair.h>

@@ -43,6 +43,13 @@
 #include <config.h>
 
 
+/** Stable primary seed used by desktop client hash tables */
+#define DESKTOP_HASH_SEED_PRIMARY (0x9E3779B9u)
+
+/** Stable secondary seed used by desktop client hash tables */
+#define DESKTOP_HASH_SEED_SECONDARY (0x85EBCA6Bu)
+
+
 /**
  * @brief Structure for a virtual desktop within an XCB screen
  *

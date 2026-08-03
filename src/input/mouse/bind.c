@@ -30,7 +30,7 @@
 #include <adt/list.h>
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <config.h>

@@ -9,7 +9,7 @@
 #include <string.h>     /* memcpy */
 
 /* Local includes */
-#include <utils/murmurhash.h>
+#include <utils/hash/murmurhash.h>
 
 
 /* MurmurHash1 32-bit hash function */

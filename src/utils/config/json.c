@@ -22,13 +22,13 @@
 #include <cjson/cJSON.h>
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>
 
 /* Local includes */
-#include <utils/json.h>
+#include <utils/config/json.h>
 
 
 /* Maximum length for normalized field-name buffers */

@@ -42,8 +42,8 @@
 #include <unistd.h>     /* optarg, getopt, getpid */
 
 /* Utils includes */
-#include <utils/safemem.h>
-#include <utils/safestr.h>
+#include <utils/safe/safemem.h>
+#include <utils/safe/safestr.h>
 
 /* Default initial values */
 #include <defs/config.h>

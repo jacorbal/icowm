@@ -26,8 +26,8 @@
 #include <adt/queue.h>  /* FIFO queue (recording & macro buffers) */
 
 /* Utils includes */
-#include <utils/safemem.h>
-#include <utils/safestr.h>
+#include <utils/safe/safemem.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <event.h>

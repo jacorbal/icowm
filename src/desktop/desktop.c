@@ -30,12 +30,9 @@
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
-/* Default initial values */
-#include <defs/desktop.h>
-
 /* Utils includes */
-#include <utils/murmurhash.h>
-#include <utils/safestr.h>
+#include <utils/hash/murmurhash.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>

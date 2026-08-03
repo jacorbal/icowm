@@ -35,7 +35,7 @@
 #include <types/pair.h> /* geometry_s, sides_s */
 
 /* Util includes */
-#include <utils/safeflg.h>
+#include <utils/safe/safeflg.h>
 
 /* Project includes */
 #include <action.h>

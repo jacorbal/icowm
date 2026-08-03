@@ -21,7 +21,7 @@
 #include <xcb/xcb.h>
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>

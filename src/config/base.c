@@ -18,8 +18,8 @@
 #include <cjson/cJSON.h>
 
 /* Utils includes */
-#include <utils/json.h>
-#include <utils/safestr.h>
+#include <utils/config/json.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>

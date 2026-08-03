@@ -16,7 +16,7 @@
 #include <stdlib.h>     /* free */
 
 /* Local includes */
-#include <utils/safemem.h>
+#include <utils/safe/safemem.h>
 
 
 /* Free a allocated memory block if the pointer is non-null */

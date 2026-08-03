@@ -15,7 +15,7 @@
 #include <cjson/cJSON.h>
 
 /* Utils includes */
-#include <utils/json.h>
+#include <utils/config/json.h>
 
 /* Project includes */
 #include <logger.h>

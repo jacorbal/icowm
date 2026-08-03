@@ -16,7 +16,7 @@
 #include <stdint.h>     /* uint16_t */
 
 /* Local includes */
-#include <utils/safeflg.h>
+#include <utils/safe/safeflg.h>
 
 
 /* Validate if a flag is within the allowed range */

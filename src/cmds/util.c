@@ -23,7 +23,7 @@
 #include <xcb/xcb_ewmh.h>
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>

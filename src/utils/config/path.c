@@ -12,10 +12,10 @@
  */
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Local includes */
-#include <utils/path.h>
+#include <utils/config/path.h>
 
 
 /* Normalize a given file path by removing unnecessary components */

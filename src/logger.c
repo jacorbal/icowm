@@ -24,7 +24,7 @@
 #include <time.h>       /* localtime, strftime, time, tm */
 
 /* Utils includes */
-#include <utils/safestr.h>
+#include <utils/safe/safestr.h>
 
 /* Local includes */
 #include <logger.h>

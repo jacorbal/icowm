@@ -1,5 +1,5 @@
 /**
- * @file utils/json.h
+ * @file utils/config/json.h
  *
  * @brief Low-level JSON helper declarations
  *
@@ -16,8 +16,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef UTILS_JSON_H
-#define UTILS_JSON_H
+#ifndef UTILS_CONFIG_JSON_H
+#define UTILS_CONFIG_JSON_H
 
 
 /* System includes */
@@ -196,4 +196,4 @@ int json_load_file(const char *filename, char **data);
 int json_load_config(const char *filename, cJSON **json_out);
 
 
-#endif  /* ! UTILS_JSON_H */
+#endif  /* ! UTILS_CONFIG_JSON_H */

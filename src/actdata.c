@@ -23,7 +23,7 @@
 #include <surface.h>
 
 /* Utils includes */
-#include <utils/safemem.h>
+#include <utils/safe/safemem.h>
 
 /* Local includes */
 #include <actdata.h>

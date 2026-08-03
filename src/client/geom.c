@@ -24,7 +24,7 @@
 #include <xcb/xcb_ewmh.h>
 
 /* Utils includes */
-#include <utils/safemem.h>
+#include <utils/safe/safemem.h>
 
 /* Default initial values */
 #include <defs/config.h>

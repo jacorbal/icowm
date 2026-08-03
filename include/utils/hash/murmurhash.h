@@ -1,5 +1,5 @@
 /**
- * @file utils/murmurhash.h
+ * @file utils/hash/murmurhash.h
  *
  * @brief Declaration for different variations on MurmurHash algorithm
  *
@@ -49,8 +49,8 @@
  * the hash values.
  */
 
-#ifndef UTILS_MURMURHASH_H
-#define UTILS_MURMURHASH_H
+#ifndef MURMURHASH_H
+#define MURMURHASH_H
 
 
 /* System includes */
@@ -159,4 +159,4 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed);
 uint32_t murmurhash3_32(const void *key, int len, uint32_t seed);
 
 
-#endif  /* ! UTILS_MURMURHASH_H */
+#endif  /* ! MURMURHASH_H */

@@ -1,5 +1,5 @@
 /**
- * @file utils/path.h
+ * @file utils/config/path.h
  *
  * @brief Declarations of path handling functions
  *
@@ -13,8 +13,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef UTILS_PATH
-#define UTILS_PATH
+#ifndef UTILS_CONFIG_PATH
+#define UTILS_CONFIG_PATH
 
 
 /**
@@ -33,4 +33,4 @@
 void path_simplify(char *restrict path);
 
 
-#endif  /* UTILS_PATH */
+#endif  /* UTILS_CONFIG_PATH */

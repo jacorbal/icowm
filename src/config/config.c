@@ -39,9 +39,9 @@
 #include <stdlib.h>     /* NULL, calloc, free, getenv */
 
 /* Utils includes */
-#include <utils/json.h>
-#include <utils/path.h>
-#include <utils/safestr.h>
+#include <utils/config/json.h>
+#include <utils/config/path.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>

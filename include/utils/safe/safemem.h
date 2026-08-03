@@ -1,5 +1,5 @@
 /**
- * @file utils/safemem.h
+ * @file utils/safe/safemem.h
  *
  * @brief Provide safe memory handling functions
  *
