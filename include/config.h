@@ -66,8 +66,9 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
-        uint32_t snap;
-        bool has_grips;
+        uint32_t snap;      /**< Snap factor in pixels */
+        bool has_grips;     /**< Add grips to the client's corners */
+        bool show_geom;     /**< Show geometry overlay on move/resize */
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;
@@ -98,6 +99,7 @@ struct config_base_s {
 
     /* Icon placement policy settings */
     struct {
+        bool show_geom;     /**< Show geometry overlay on move/resize */
         enum config_icon_placement_e {
             CONFIG_ICON_PLACEMENT_BOTTOM = 0, /**< Bottom rpw (default) */
             CONFIG_ICON_PLACEMENT_TOP,        /**< Top row */

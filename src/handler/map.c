@@ -409,6 +409,21 @@ void handler_map_notify(xcb_connection_t *connection,
     client = lookup_find_client(surfaces, event->window, NULL, NULL);
     if (client != NULL) {
         wm_request_client_redraw(client);
+
+        /* ICCCM §4.2.3: re-send the synthetic 'ConfigureNotify' at
+         * 'MapNotify' time so that some programs have the correct
+         * screen-relative position in their event queue before their
+         * first 'Expose'-driven draw.  The primary fix for the
+         * initial-open misalignment is in 'desktop_render_clients',
+         * which sends a synthetic 'ConfigureNotify' after every
+         * inner-window configure to ensure the screen-relative one is
+         * always the last event the client receives. */
+        if (event->window == client->window &&
+                client->frame != 0 &&
+                client_is_decorated(client)) {
+            client_send_synthetic_configure_notify(connection, client);
+            xcb_flush(connection);
+        }
     }
 }
 

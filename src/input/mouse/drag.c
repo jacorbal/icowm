@@ -19,6 +19,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -39,6 +40,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
+#include <render/text.h>
 #include <surface.h>
 
 /* Local includes */
@@ -64,6 +66,9 @@ static struct {
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap;              /**< Snap distance in pixels */
+    int32_t client_cur_x;       /**< Current X during drag (updated each
+                                 *   motion notify event) */
+    int32_t client_cur_y;       /**< Current Y during drag */
     bool anchor_right;          /**< Resize: right edge is fixed (resize
                                  *   from left) */
     bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
@@ -72,6 +77,9 @@ static struct {
                                  *   changed in this drag */
     bool resize_h;              /**< Resize: height is actively being
                                  *   changed in this drag */
+    xcb_window_t overlay_window;/**< Centered feedback overlay window */
+    bool overlay_is_icon;       /**< Overlay belongs to icon drag */
+    char overlay_text[32];      /**< Current overlay text */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -87,11 +95,230 @@ static struct {
     .screen_w = 0,
     .screen_h = 0,
     .snap = 0,
+    .client_cur_x = 0,
+    .client_cur_y = 0,
     .anchor_right = false,
     .anchor_bottom = false,
     .resize_w = false,
-    .resize_h = false
+    .resize_h = false,
+    .overlay_window = XCB_WINDOW_NONE,
+    .overlay_is_icon = false,
+    .overlay_text = {'\0'}
 };
+
+
+#define WM_DRAG_OVERLAY_PAD_X (8u)
+#define WM_DRAG_OVERLAY_HEIGHT (22u)
+#define WM_DRAG_OVERLAY_MIN_WIDTH (40u)
+
+
+/**
+ * @brief Clamp a 32-bit unsigned value to the 16-bit range
+ *
+ * Returns @p value converted to @c uint16_t, saturating to
+ * @c UINT16_MAX if the input exceeds the maximum 16-bit unsigned value.
+ *
+ * @param value Unsigned 32-bit value to clamp
+ *
+ * @return Clamped 16-bit unsigned value
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_drag_u16_sat(uint32_t value)
+{
+    return (value > UINT16_MAX) ? UINT16_MAX : (uint16_t) value;
+}
+
+
+/**
+ * @brief Return the full icon-window height for a dragged client
+ *
+ * Computes the icon height from the base icon square size and adds the
+ * caption height when the client theme uses captioned icons.
+ *
+ * @param client Client whose icon height is requested
+ *
+ * @return Total icon-window height in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_drag_icon_height(const client_td *client)
+{
+    if (client == NULL || client->theme == NULL) {
+        return (uint16_t) WM_ICON_SQUARE_SIZE;
+    }
+
+    return (uint16_t) (WM_ICON_SQUARE_SIZE +
+            (client->theme->icon.general.is_captioned
+                ? WM_ICON_CAPTION_HEIGHT
+                : 0u));
+}
+
+
+/**
+ * @brief Compute the centered overlay position for a target rectangle
+ *
+ * Centers an overlay of size @p overlay_w by @p overlay_h within the
+ * target rectangle and stores the resulting top-left coordinates in
+ * @p out_x and @p out_y.  Negative coordinates are clamped to zero
+ * before conversion to @c int16_t.
+ *
+ * @param target_x  Left coordinate of the target rectangle
+ * @param target_y  Top coordinate of the target rectangle
+ * @param target_w  Width of the target rectangle
+ * @param target_h  Height of the target rectangle
+ * @param overlay_w Width of the overlay rectangle
+ * @param overlay_h Height of the overlay rectangle
+ * @param out_x     Computed overlay X coordinate
+ * @param out_y     Computed overlay Y coordinate
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
+        uint16_t target_w, uint16_t target_h,
+        uint16_t overlay_w, uint16_t overlay_h,
+        int16_t *out_x, int16_t *out_y)
+{
+    int32_t centered_x;
+    int32_t centered_y;
+
+    centered_x = target_x +
+        ((int32_t) target_w - (int32_t) overlay_w) / 2;
+    centered_y = target_y +
+        ((int32_t) target_h - (int32_t) overlay_h) / 2;
+
+    if (centered_x < 0) {
+        centered_x = 0;
+    }
+    if (centered_y < 0) {
+        centered_y = 0;
+    }
+
+    *out_x = (centered_x < INT16_MIN) ? INT16_MIN
+        : (centered_x > INT16_MAX) ? INT16_MAX
+        : (int16_t) centered_x;
+    *out_y = (centered_y < INT16_MIN) ? INT16_MIN
+        : (centered_y > INT16_MAX) ? INT16_MAX
+        : (int16_t) centered_y;
+}
+
+
+/**
+ * @brief Destroy and reset the active drag overlay window
+ *
+ * Destroys the overlay window if it exists and clears the associated
+ * overlay state.
+ *
+ * @param connection XCB connection used to destroy the overlay window
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_overlay_hide(xcb_connection_t *connection)
+{
+    if (connection != NULL && s_drag.overlay_window != XCB_WINDOW_NONE) {
+        xcb_destroy_window(connection, s_drag.overlay_window);
+    }
+
+    s_drag.overlay_window = XCB_WINDOW_NONE;
+    s_drag.overlay_is_icon = false;
+    s_drag.overlay_text[0] = '\0';
+}
+
+
+/**
+ * @brief Show or reposition the drag overlay window
+ *
+ * Updates the overlay text and mode, computes a centered overlay
+ * rectangle for the given target geometry, and either creates the
+ * overlay window or moves and resizes the existing one before
+ * repainting it.
+ *
+ * @param connection XCB connection used to manage the overlay window
+ * @param is_icon    Whether the overlay should use the active icon theme
+ * @param target_x   Left coordinate of the target rectangle
+ * @param target_y   Top coordinate of the target rectangle
+ * @param target_w   Width of the target rectangle
+ * @param target_h   Height of the target rectangle
+ * @param text       Overlay text to display
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_overlay_show(xcb_connection_t *connection,
+        bool is_icon,
+        int32_t target_x, int32_t target_y,
+        uint16_t target_w, uint16_t target_h,
+        const char *text)
+{
+    uint16_t text_w;
+    uint16_t overlay_w;
+    int16_t overlay_x;
+    int16_t overlay_y;
+    uint16_t create_mask;
+    uint32_t create_values[4];
+
+    if (connection == NULL || s_drag.client == NULL || text == NULL ||
+            text[0] == '\0') {
+        return;
+    }
+
+    (void) snprintf(s_drag.overlay_text, sizeof(s_drag.overlay_text),
+            "%s", text);
+    s_drag.overlay_is_icon = is_icon;
+
+    (void) text_renderer_init(connection,
+            is_icon
+                ? s_drag.client->theme->icon.active.font
+                : s_drag.client->theme->window.active.font);
+    text_w = text_measure_string(s_drag.overlay_text);
+    overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
+    if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
+        overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
+    }
+
+    s_drag_overlay_rect(target_x, target_y, target_w, target_h,
+            overlay_w, WM_DRAG_OVERLAY_HEIGHT, &overlay_x, &overlay_y);
+
+    if (s_drag.overlay_window == XCB_WINDOW_NONE) {
+        s_drag.overlay_window = xcb_generate_id(connection);
+        create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
+            XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
+        create_values[0] = is_icon
+            ? s_drag.client->theme->icon.active.background_color
+            : s_drag.client->theme->window.active.background_color;
+        create_values[1] = is_icon
+            ? s_drag.client->theme->icon.active.border_color
+            : s_drag.client->theme->window.active.border_color;
+        create_values[2] = 1u;
+        create_values[3] = XCB_EVENT_MASK_EXPOSURE;
+
+        xcb_create_window(connection,
+                XCB_COPY_FROM_PARENT,
+                s_drag.overlay_window,
+                s_drag.client->parent_id,
+                overlay_x, overlay_y,
+                overlay_w, WM_DRAG_OVERLAY_HEIGHT,
+                1,
+                XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                XCB_COPY_FROM_PARENT,
+                create_mask, create_values);
+        xcb_map_window(connection, s_drag.overlay_window);
+    } else {
+        xcb_configure_window(connection, s_drag.overlay_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) {
+                    (uint32_t) overlay_x,
+                    (uint32_t) overlay_y,
+                    overlay_w,
+                    WM_DRAG_OVERLAY_HEIGHT,
+                    XCB_STACK_MODE_ABOVE
+                });
+    }
+
+    drag_repaint_overlay(connection);
+    xcb_flush(connection);
+}
 
 
 /**
@@ -290,6 +517,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         return;
     }
 
+    s_drag_overlay_hide(connection);
     s_drag.active = true;
     s_drag.client = client;
     s_drag.desktop = desktop;
@@ -303,14 +531,16 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         (uint16_t) client->layout.geometry.cur.dim.w;
     s_drag.client_start_h =
         (uint16_t) client->layout.geometry.cur.dim.h;
+    s_drag.client_cur_x = s_drag.client_start_x;
+    s_drag.client_cur_y = s_drag.client_start_y;
     s_drag.screen_w = screen_w;
     s_drag.screen_h = screen_h;
     s_drag.snap = snap;
 
     /* For resize operations, make the visible corner handles define the
-     * corner hit zones.  Outside those 'WM_RESIZE_CORNER_SIZE' px
-     * corner zones, keep the existing center-based fallback so the rest
-     * of the border still behaves as a resize handle. */
+     * corner hit zones.  Outside those 12 px corner zones, keep the
+     * existing center-based fallback so the rest of the border still
+     * behaves as a resize handle. */
     if (operation == CLIENT_OPERATION_RESIZING) {
         int32_t left = s_drag.client_start_x;
         int32_t top = s_drag.client_start_y;
@@ -338,13 +568,13 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             s_drag.anchor_bottom = ((int32_t) root_y < cy);
         }
 
-        /* Track which axes are actively resized.
-         * An axis is active only when the grab point is near that edge.
-         * Keeping the other axis fixed at its start value prevents
-         * 'client_constrain_size' from snapping it down by a full
+        /* Track which axes are actively resized.  An axis is active
+         * only when the grab point is near that edge.  Keeping the
+         * other axis fixed at its start value prevents
+         * client_constrain_size from snapping it down by a full
          * increment due to sub-increment pointer noise on the
-         * orthogonal axis, which for size-hinted clients such as gVim
-         * would produce a 'ConfigureRequest' feedback loop. */
+         * orthogonal axis, which for size-hinted clients would produce
+         * a 'ConfigureRequest' feedback loop */
         s_drag.resize_w = ((int32_t) root_x < left + corner ||
                 (int32_t) root_x >= right - corner);
         s_drag.resize_h = ((int32_t) root_y < top + corner ||
@@ -354,7 +584,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             s_drag.resize_h = true;
         }
     } else {
-        s_drag.anchor_right = false;
+        s_drag.anchor_right  = false;
         s_drag.anchor_bottom = false;
         s_drag.resize_w = false;
         s_drag.resize_h = false;
@@ -379,16 +609,15 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 /* Begin a drag operation for an icon window */
 void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
         client_td *client,
-        int32_t icon_x,
-        int32_t icon_y,
+        int32_t icon_x, int32_t icon_y,
         xcb_timestamp_t event_time,
-        int16_t root_x,
-        int16_t root_y)
+        int16_t root_x, int16_t root_y)
 {
     if (connection == NULL || client == NULL) {
         return;
     }
 
+    s_drag_overlay_hide(connection);
     s_drag.active = true;
     s_drag.client = client;
     s_drag.desktop = NULL;
@@ -400,7 +629,9 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_y = icon_y;
     s_drag.client_start_w = 0;
     s_drag.client_start_h = 0;
-    s_drag.anchor_right = false;
+    s_drag.client_cur_x = icon_x;
+    s_drag.client_cur_y = icon_y;
+    s_drag.anchor_right  = false;
     s_drag.anchor_bottom = false;
     s_drag.resize_w = false;
     s_drag.resize_h = false;
@@ -502,8 +733,7 @@ static void s_drag_snap_resize(int32_t x, int32_t y,
 
 /* Update the in-progress drag on a motion-notify event */
 void drag_update(xcb_connection_t *connection,
-        int16_t root_x,
-        int16_t root_y)
+        int16_t root_x, int16_t root_y)
 {
     client_td *client;
     int32_t dx;
@@ -520,25 +750,60 @@ void drag_update(xcb_connection_t *connection,
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
             s_drag.drag_window != XCB_WINDOW_NONE &&
             s_drag.drag_window == client->icon_window) {
+        char geom_buf[24];
+        bool show_geom = client->config_base != NULL &&
+            client->config_base->icons.show_geom;
         int32_t new_x = s_drag.client_start_x + dx;
         int32_t new_y = s_drag.client_start_y + dy;
         uint32_t vals[2];
+
+        s_drag.client_cur_x = new_x;
+        s_drag.client_cur_y = new_y;
 
         vals[0] = (uint32_t) new_x;
         vals[1] = (uint32_t) new_y;
         xcb_configure_window(connection, client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+        if (show_geom) {
+            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                    (int) new_x, (int) new_y);
+            s_drag_overlay_show(connection, true,
+                    new_x, new_y,
+                    (uint16_t) WM_ICON_SQUARE_SIZE,
+                    s_drag_icon_height(client),
+                    geom_buf);
+        } else {
+            s_drag_overlay_hide(connection);
+        }
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
+        char geom_buf[24];
+        bool show_geom = client->config_base != NULL &&
+            client->config_base->windows.show_geom;
         int32_t new_x = s_drag.client_start_x + dx;
         int32_t new_y = s_drag.client_start_y + dy;
 
         s_drag_snap_move(&new_x, &new_y,
                 s_drag.client_start_w, s_drag.client_start_h);
 
+        s_drag.client_cur_x = new_x;
+        s_drag.client_cur_y = new_y;
         (void) client_send_event_move(client, new_x, new_y);
+        if (show_geom) {
+            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                    (int) new_x, (int) new_y);
+            s_drag_overlay_show(connection, false,
+                    new_x, new_y,
+                    s_drag.client_start_w, s_drag.client_start_h,
+                    geom_buf);
+        } else {
+            s_drag_overlay_hide(connection);
+        }
 
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
+        char geom_buf[24];
+        bool show_geom = client->config_base != NULL &&
+            client->config_base->windows.show_geom;
         int32_t new_x = s_drag.client_start_x;
         int32_t new_y = s_drag.client_start_y;
         uint32_t new_w;
@@ -550,9 +815,9 @@ void drag_update(xcb_connection_t *connection,
          * shrinks/grows as the pointer moves right/left.  Similarly for
          * 'anchor_bottom' and the top edge.  When an axis is not
          * actively resized its dimension is frozen at the start value
-         * so that 'client_constrain_size' cannot floor it due to
+         * so that client_constrain_size cannot floor it due to
          * sub-increment pointer noise, which would cause size-hinted
-         * clients (vid. gVim) to lose a row or column and enter
+         * clients (e.g., 'gVim') to lose a row or column and enter
          * a 'ConfigureRequest' loop. */
         if (!s_drag.resize_w) {
             new_w = s_drag.client_start_w;
@@ -590,18 +855,28 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag_snap_resize(new_x, new_y, &new_w, &new_h);
 
-        (void) client_send_event_resize(client,
-                new_x, new_y, new_w, new_h);
+        s_drag.client_cur_x = new_x;
+        s_drag.client_cur_y = new_y;
+        (void) client_send_event_resize(client, new_x, new_y,
+                new_w, new_h);
+        if (show_geom) {
+            (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                    new_w, new_h);
+            s_drag_overlay_show(connection, false,
+                    new_x, new_y,
+                    s_drag_u16_sat(new_w), s_drag_u16_sat(new_h),
+                    geom_buf);
+        } else {
+            s_drag_overlay_hide(connection);
+        }
     }
 }
 
 
 /* Finish the drag on a button-release event */
 void drag_end(xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        int16_t root_x,
-        int16_t root_y)
+        surface_td *surface, desktop_td *desktop,
+        int16_t root_x, int16_t root_y)
 {
     if (!s_drag.active) {
         return;
@@ -644,6 +919,7 @@ void drag_end(xcb_connection_t *connection,
         }
     }
 
+    s_drag_overlay_hide(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
@@ -664,6 +940,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
         return;
     }
 
+    s_drag_overlay_hide(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
@@ -684,8 +961,85 @@ bool drag_is_active(void)
 }
 
 
+/* Query whether the active drag is on an icon window */
+bool drag_is_icon_drag(void)
+{
+    return s_drag.active &&
+        s_drag.drag_window != XCB_WINDOW_NONE &&
+        s_drag.client != NULL &&
+        s_drag.drag_window == s_drag.client->icon_window;
+}
+
+
+/* Query whether the active drag window matches the overlay window */
+bool drag_is_overlay_window(xcb_window_t window)
+{
+    return s_drag.overlay_window != XCB_WINDOW_NONE &&
+        window == s_drag.overlay_window;
+}
+
+
 /* Return the client currently being dragged, or NULL */
 client_td *drag_client(void)
 {
     return s_drag.client;
+}
+
+
+/* Repaint the active drag overlay window */
+void drag_repaint_overlay(xcb_connection_t *connection)
+{
+    uint32_t bg;
+    uint32_t fg;
+    uint32_t border;
+    const char *font_name;
+    uint16_t text_w;
+    int16_t text_x;
+
+    if (connection == NULL ||
+            s_drag.overlay_window == XCB_WINDOW_NONE ||
+            s_drag.client == NULL || s_drag.client->theme == NULL ||
+            s_drag.overlay_text[0] == '\0') {
+        return;
+    }
+
+    if (s_drag.overlay_is_icon) {
+        bg = s_drag.client->theme->icon.active.background_color;
+        fg = s_drag.client->theme->icon.active.foreground_color;
+        border = s_drag.client->theme->icon.active.border_color;
+        font_name = s_drag.client->theme->icon.active.font;
+    } else {
+        bg = s_drag.client->theme->window.active.background_color;
+        fg = s_drag.client->theme->window.active.foreground_color;
+        border = s_drag.client->theme->window.active.border_color;
+        font_name = s_drag.client->theme->window.active.font;
+    }
+
+    xcb_change_window_attributes(connection, s_drag.overlay_window,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) { bg, border });
+    xcb_clear_area(connection, 0, s_drag.overlay_window, 0, 0, 0, 0);
+
+    (void) text_renderer_init(connection, font_name);
+    text_renderer_set_color(fg, bg);
+
+    text_w = text_measure_string(s_drag.overlay_text);
+    text_x = (text_w < WM_DRAG_OVERLAY_MIN_WIDTH)
+        ? (int16_t) ((WM_DRAG_OVERLAY_MIN_WIDTH - text_w) / 2u)
+        : (int16_t) WM_DRAG_OVERLAY_PAD_X;
+
+    text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
+            text_x, 15, s_drag.overlay_text);
+}
+
+
+/* Return the current drag position */
+void drag_current_pos(int32_t *x, int32_t *y)
+{
+    if (x != NULL) {
+        *x = s_drag.client_cur_x;
+    }
+    if (y != NULL) {
+        *y = s_drag.client_cur_y;
+    }
 }

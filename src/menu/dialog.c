@@ -651,7 +651,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     int16_t y;
     uint32_t mask;
     uint32_t values[3];
-    const char *prefix;
+    const char *prefix = "\0";
 
     if (connection == NULL || surface == NULL || config == NULL ||
             surface->screen == NULL) {

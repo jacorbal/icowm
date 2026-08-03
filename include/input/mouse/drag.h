@@ -2,11 +2,6 @@
  * @file input/mouse/drag.h
  *
  * @brief Mouse drag-operation state and interface
- *
- * Declares the drag state type and the public functions used to start,
- * update, end, and cancel an interactive move or resize drag.  The drag
- * module owns all mutable drag state; no other module accesses it
- * directly.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -85,11 +80,9 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 void drag_start_icon(xcb_connection_t *connection,
         xcb_window_t root,
         client_td *client,
-        int32_t icon_x,
-        int32_t icon_y,
+        int32_t icon_x, int32_t icon_y,
         xcb_timestamp_t event_time,
-        int16_t root_x,
-        int16_t root_y);
+        int16_t root_x, int16_t root_y);
 
 /**
  * @brief Update the in-progress drag on a motion-notify event
@@ -105,8 +98,7 @@ void drag_start_icon(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void drag_update(xcb_connection_t *connection,
-        int16_t root_x,
-        int16_t root_y);
+        int16_t root_x, int16_t root_y);
 
 /**
  * @brief Finish the drag on a button-release event
@@ -125,10 +117,8 @@ void drag_update(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void drag_end(xcb_connection_t *connection,
-        surface_td *surface,
-        desktop_td *desktop,
-        int16_t root_x,
-        int16_t root_y);
+        surface_td *surface, desktop_td *desktop,
+        int16_t root_x, int16_t root_y);
 
 /**
  * @brief Cancel an in-progress drag when the dragged client disappears
@@ -155,6 +145,26 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client);
 bool drag_is_active(void);
 
 /**
+ * @brief Query whether the active drag is on an icon window
+ *
+ * @return @c true when the active drag is moving an icon window
+ *
+ * @note Complexity: @e O(1)
+ */
+bool drag_is_icon_drag(void);
+
+/**
+ * @brief Query whether a window is the active drag overlay window
+ *
+ * @param window X window identifier to compare
+ *
+ * @return @c true when @p window is the drag overlay window
+ *
+ * @note Complexity: @e O(1)
+ */
+bool drag_is_overlay_window(xcb_window_t window);
+
+/**
  * @brief Return the client currently being dragged, or @c NULL
  *
  * @return Pointer to the dragged @c client_td, or @c NULL
@@ -162,6 +172,33 @@ bool drag_is_active(void);
  * @note Complexity: @e O(1)
  */
 client_td *drag_client(void);
+
+/**
+ * @brief Repaint the active drag overlay window
+ *
+ * Redraws the current geometry text into the overlay window created for
+ * interactive move/resize feedback.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void drag_repaint_overlay(xcb_connection_t *connection);
+
+/**
+ * @brief Return the current drag position
+ *
+ * Writes the most-recently applied target position into @p x and @p y.
+ * For a window move this is the frame top-left; for an icon drag this
+ * is the icon window top-left.  Both values are zero when no drag is
+ * active.
+ *
+ * @param x Output X coordinate (may be null)
+ * @param y Output Y coordinate (may be null)
+ *
+ * @note Complexity: @e O(1)
+ */
+void drag_current_pos(int32_t *x, int32_t *y);
 
 
 #endif  /* ! INPUT_MOUSE_DRAG_H */

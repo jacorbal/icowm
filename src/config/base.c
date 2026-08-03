@@ -397,6 +397,8 @@ int config_load_base(const char *filename,
         json_load_uint(windows, "snap", &config_base->windows.snap);
         json_load_bool(windows, "has-grips",
                 &config_base->windows.has_grips);
+        json_load_bool(windows, "show-geom",
+                &config_base->windows.show_geom);
         gravity = json_get_item(windows, "gravity");
         if (gravity != NULL && cJSON_IsString(gravity)) {
             config_base->windows.gravity =
@@ -438,7 +440,11 @@ int config_load_base(const char *filename,
     /* Load icon policy configuration */
     icons = cJSON_GetObjectItem(json, "icons");
     if (icons) {
-        cJSON *placement = cJSON_GetObjectItem(icons, "placement");
+        cJSON *placement;
+
+        json_load_bool(icons, "show-geom",
+                &config_base->icons.show_geom);
+        placement = cJSON_GetObjectItem(icons, "placement");
         if (placement && cJSON_IsObject(placement)) {
             cJSON *icon_policy_item = json_get_item(placement, "policy");
             if (icon_policy_item != NULL &&

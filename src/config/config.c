@@ -164,12 +164,14 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.web_browser, "firefox");
     config->base.windows.snap = 4;
     config->base.windows.has_grips = true;
+    config->base.windows.show_geom = true;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
+    config->base.icons.show_geom = false;
 
     /* Predetermined values for RandR output profile management */
     LOGGER_TRACE("Setting default RandR configuration", L_NARG);

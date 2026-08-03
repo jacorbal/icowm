@@ -19,6 +19,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -27,6 +28,9 @@
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Hash table for clients */
+
+/* Input includes */
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/cycle.h>
@@ -390,7 +394,8 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 xcb_clear_area(desktop->connection, 0,
                         client->icon_window, 0, 0, 0, 0);
                 xcb_map_window(desktop->connection, client->icon_window);
-                xcb_configure_window(desktop->connection, client->icon_window,
+                xcb_configure_window(desktop->connection,
+                        client->icon_window,
                         XCB_CONFIG_WINDOW_STACK_MODE,
                         (const uint32_t[]) { XCB_STACK_MODE_BELOW });
 
@@ -412,12 +417,42 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     ? desktop->config_theme->icon.active.background_color
                     : desktop->config_theme->icon.inactive.background_color);
 
-                    text_draw_string(desktop->connection,
-                            client->icon_window, XCB_NONE,
-                            2,
-                            (int16_t) (WM_ICON_SQUARE_SIZE +
-                                WM_ICON_CAPTION_HEIGHT - 2u),
-                            caption);
+                    /* When 'show-geom' is enabled and this icon is
+                     * being dragged, replace the caption with the
+                     * current coordinates centered in the icon
+                     * window */
+                    if (client->config_base != NULL &&
+                            client->config_base->icons.show_geom &&
+                            drag_is_active() &&
+                            drag_client() == client &&
+                            drag_is_icon_drag()) {
+                        char geom_buf[24];
+                        int32_t cur_x = 0;
+                        int32_t cur_y = 0;
+                        int16_t geom_x;
+                        uint16_t icon_w = WM_ICON_SQUARE_SIZE;
+
+                        drag_current_pos(&cur_x, &cur_y);
+                        (void) snprintf(geom_buf, sizeof(geom_buf),
+                                "%+d%+d", (int) cur_x, (int) cur_y);
+                        geom_x = (icon_w > text_measure_string(geom_buf))
+                        ? (int16_t) ((icon_w -
+                                    text_measure_string(geom_buf)) / 2u)
+                        : 0;
+                        text_draw_string(desktop->connection,
+                                client->icon_window, XCB_NONE,
+                                geom_x,
+                                (int16_t) (WM_ICON_SQUARE_SIZE +
+                                    WM_ICON_CAPTION_HEIGHT - 2u),
+                                geom_buf);
+                    } else {
+                        text_draw_string(desktop->connection,
+                                client->icon_window, XCB_NONE,
+                                2,
+                                (int16_t) (WM_ICON_SQUARE_SIZE +
+                                    WM_ICON_CAPTION_HEIGHT - 2u),
+                                caption);
+                    }
                 }
             }
 
@@ -467,7 +502,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
          * switched to.
          *
          * Visibility of non-current desktops must be governed solely by
-         * 'surface_clients_hide()'/'surface_clients_show()'. */
+         * 'surface_clients_hide'/'surface_clients_show' */
         if (is_current) {
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(desktop->connection,
@@ -480,11 +515,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 xcb_unmap_window(desktop->connection, client->titlebar);
             }
             xcb_map_window(desktop->connection, target);
+
             /* Do not re-map the content window for shaded clients: the
              * shade operation explicitly unmaps it, and mapping it here
              * would undo the shade and prevent the titlebar-only view
              * from being painted correctly, especially for inactive
-             * windows that receive no FocusOut-triggered repaint. */
+             * windows that receive no 'FocusOut'-triggered repaint */
             if (target != client->window && !client_is_shaded(client)) {
                 xcb_map_window(desktop->connection, client->window);
             }
@@ -508,10 +544,12 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             bottom = (uint16_t) client->layout.frame_extents.bottom;
             title_h = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w > left + right)
-            ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
+            ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                    left - right)
             : 1;
         inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
-            ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
+            ? (uint16_t) (client->layout.geometry.cur.dim.h -
+                    top - bottom)
             : 1;
 
             xcb_configure_window(desktop->connection, client->window,
@@ -520,13 +558,32 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     (const uint32_t[]) {
                         left, top, inner_w, inner_h
                     });
+
+            /* ICCCM §4.2.3: the xcb_configure_window above positions
+             * the inner window relative to the frame (x=left, y=top),
+             * so the X server delivers a 'ConfigureNotify' to the
+             * client with those frame-relative coordinates.  Override
+             * it immediately with a synthetic ConfigureNotify carrying
+             * the true screen-relative position so the client's last
+             * geometry notification is always correct.  Without this
+             * the client (e.g., gVim) sees a frame-relative
+             * 'ConfigureNotify' as its final event on every render
+             * pass, including the very first one after the window is
+             * mapped, causing misaligned popups and a content area that
+             * appears not to fill the frame until the next
+             * user-triggered repaint. */
+            client_send_synthetic_configure_notify(desktop->connection,
+                    client);
+
             desktop_repaint_frame_decoration(desktop->connection, client,
                     is_focused, desktop->config_theme);
 
             if (client->titlebar != 0 && !hide_decoration) {
                 xcb_configure_window(desktop->connection, client->titlebar,
-                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                        XCB_CONFIG_WINDOW_X     |
+                        XCB_CONFIG_WINDOW_Y     |
+                        XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT,
                         (const uint32_t[]) {
                             left,
                             (top > title_h) ? top - title_h : 0,
@@ -547,7 +604,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             : desktop->config_theme->window.inactive.font);
 
                 /* Use theme foreground color so text contrasts against
-                 * the titlebar background (active or inactive). */
+                 * the titlebar background (active or inactive) */
                 text_renderer_set_color(
                 (is_focused)
                     ? desktop->config_theme->window.active.foreground_color
@@ -555,17 +612,59 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                 (is_focused)
                     ? desktop->config_theme->window.active.background_color
                     : desktop->config_theme->window.inactive.background_color);
-                text_draw_string(desktop->connection,
-                        client->titlebar, XCB_NONE,
-                        (int16_t) (WM_DECOR_BTN_PAD +
-                            2u * (WM_DECOR_BTN_SIZE + WM_DECOR_BTN_GAP) +
-                            WM_DECOR_BTN_GAP),
+
+                /* When 'show-geom' is enabled and the window is being
+                 * moved or resized, display the current geometry
+                 * centered in the titlebar instead of the window
+                 * name */
+                if (client->config_base != NULL &&
+                        client->config_base->windows.show_geom &&
+                        drag_is_active() && drag_client() == client &&
+                        client->properties.operation !=
+                            (uint16_t) CLIENT_OPERATION_IDLE) {
+                    char geom_buf[32];
+                    int16_t geom_x;
+                    int16_t text_y =
                         (int16_t) ((title_h >
                                 (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
                             ? title_h -
                                 (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                            : title_h);
+
+                    if (client->properties.operation ==
+                            (uint16_t) CLIENT_OPERATION_RESIZING) {
+                        (void) snprintf(geom_buf, sizeof(geom_buf),
+                                "%ux%u",
+                                client->layout.geometry.cur.dim.w,
+                                client->layout.geometry.cur.dim.h);
+                    } else {
+                        (void) snprintf(geom_buf, sizeof(geom_buf),
+                                "%+d%+d",
+                                client->layout.geometry.cur.pos.x,
+                                client->layout.geometry.cur.pos.y);
+                    }
+
+                    geom_x = (inner_w > text_measure_string(geom_buf))
+                        ? (int16_t) ((inner_w -
+                                text_measure_string(geom_buf)) / 2u)
+                        : 0;
+                    text_draw_string(desktop->connection,
+                            client->titlebar, XCB_NONE,
+                            geom_x, text_y, geom_buf);
+                } else {
+                    text_draw_string(desktop->connection,
+                            client->titlebar, XCB_NONE,
+                            (int16_t) (WM_DECOR_BTN_PAD +
+                                2u * (WM_DECOR_BTN_SIZE +
+                                    WM_DECOR_BTN_GAP) +
+                                WM_DECOR_BTN_GAP),
+                            (int16_t) ((title_h >
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                            ? title_h -
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
                             : title_h),
-                        client->info.name);
+                            client->info.name);
+                }
 
                 desktop_draw_titlebar_buttons(desktop->connection,
                         client->titlebar,

@@ -14,6 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -31,6 +32,9 @@
 /* Render includes */
 #include <render/desktop.h>
 #include <render/text.h>
+
+/* Input includes */
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/cycle.h>
@@ -137,11 +141,41 @@ void handler_expose(xcb_connection_t *connection,
                     (is_cycle_preview)
                         ? cfg->theme.icon.active.background_color
                         : cfg->theme.icon.inactive.background_color);
-            text_draw_string(connection, client->icon_window, XCB_NONE,
-                    2,
-                    (int16_t) (WM_ICON_SQUARE_SIZE +
-                        WM_ICON_CAPTION_HEIGHT - 2u),
-                    caption);
+
+            /* When 'show-geom' is enabled and this icon is being
+             * dragged, replace the caption with the current screen
+             * coordinates centered in the icon window */
+            if (client->config_base != NULL &&
+                    client->config_base->icons.show_geom &&
+                    drag_is_active() &&
+                    drag_client() == client &&
+                    drag_is_icon_drag()) {
+                char geom_buf[24];
+                int32_t cur_x = 0;
+                int32_t cur_y = 0;
+                int16_t geom_x;
+                uint16_t icon_w = WM_ICON_SQUARE_SIZE;
+
+                drag_current_pos(&cur_x, &cur_y);
+                (void) snprintf(geom_buf, sizeof(geom_buf),
+                        "%+d%+d", (int) cur_x, (int) cur_y);
+
+                geom_x = (icon_w > text_measure_string(geom_buf))
+                    ? (int16_t) ((icon_w - text_measure_string(geom_buf))
+                        / 2u)
+                    : 0;
+                text_draw_string(connection, client->icon_window, XCB_NONE,
+                        geom_x,
+                        (int16_t) (WM_ICON_SQUARE_SIZE +
+                            WM_ICON_CAPTION_HEIGHT - 2u),
+                        geom_buf);
+            } else {
+                text_draw_string(connection, client->icon_window, XCB_NONE,
+                        2,
+                        (int16_t) (WM_ICON_SQUARE_SIZE +
+                            WM_ICON_CAPTION_HEIGHT - 2u),
+                        caption);
+            }
         }
 
         xcb_flush(connection);
