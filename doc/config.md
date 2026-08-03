@@ -199,9 +199,9 @@ policy, and placement policy.
 Default window gravity, i.e., the corner used as the reference point
 for window coordinates.
 
-Accepted values: `"north-west"`, `"north"`, `"north-east"`, `"east"`,
-`"south-east"`, `"south"`, `"south-west"`, `"west"`, `"center"`,
-`"static"`.
+Accepted `windows.gravity` values: `"north-west"`, `"north"`,
+`"north-east"`, `"east"`, `"south-east"`, `"south"`, `"south-west"`,
+`"west"`, `"center"`, `"static"`.
 
 #### `windows.snap`
 
@@ -732,6 +732,14 @@ Each rule entry is a JSON object with the following keys:
 | `match` | object | `{}`    | Set of window-property predicates.  Omitted or empty means the rule matches every window. |
 | `apply` | object | none    | Actions to apply when the rule matches.  If absent or not an object, the entry is ignored. |
 
+The `when` field controls *when* IcoWM is allowed to evaluate the rule.
+Use `"map"` for actions that should be decided only once, when the
+window first appears.  Use `"property"` for rules that should react only
+after a later change to a tracked window property such as title, role,
+or type.  Use `"both"` when the same rule should be considered in both
+situations: at initial map time and again after relevant property
+updates.
+
 ### 6.3 Match fields
 
 All match fields are optional.  A rule matches only when all specified
@@ -998,3 +1006,71 @@ ignored.
     }
 }
 ```
+
+### `rules.json`
+
+```json
+{
+    "rules": [
+        {
+            "when": "property",
+            "match": {
+                "title": "Journal console"
+            },
+            "apply": {
+                "desktop": 2,
+                "focus": true,
+                "layer": "above"
+            }
+        },
+        {
+            "when": "map",
+            "match": {
+                "name": "*Sonata"
+            },
+            "apply": {
+                "sticky": true,
+                "decorated": false,
+                "layer": "below",
+                "geometry": {
+                    "x": 1520,
+                    "y": 0,
+                    "width": 400,
+                    "height": 300
+                }
+            }
+        }
+    ]
+}
+```
+This example shows two complete rules:
+- a `"property"` rule that waits until a window title becomes `"Journal
+  console"`, then moves it to desktop of index `2`, focuses it, and
+  raises it to the `"above"` layer.
+- a `"map"` rule for the program name `"\*Sonata"` that applies once
+  when the window is first managed, keeping it sticky, undecorated, in
+  the `"below"` layer, and positioned at the top-right corner using
+  a fixed geometry.
+
+### `session.json`
+
+```json
+{
+    "on-start": [
+        "picom --config $HOME/.config/picom/picom.conf",
+        "nm-applet",
+        "volumeicon"
+    ],
+    "on-reload": [
+        "pkill -HUP picom",
+        "notify-send 'IcoWM' 'Configuration reloaded'"
+    ],
+    "on-exit": [
+        "notify-send 'IcoWM' 'Shutting down session hooks'"
+    ]
+}
+```
+
+This example starts a compositor and tray applets when IcoWM launches,
+reloads or notifies companion processes after configuration changes, and
+emits a final notification on exit.
