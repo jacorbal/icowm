@@ -152,7 +152,7 @@ void config_set_default_values(config_td *config)
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
 
             config->base.screens[i].desktops[j].settings.background.color
-                = json_hex2uint32("#000000");
+                = json_hex2uint32("#C0CCD8");
         }
     }
 
@@ -216,6 +216,8 @@ void config_set_default_values(config_td *config)
             "modc+mod1+m");
     safe_strcpy(config->bindings.keyboard.window.pin,
             "modc+mod1+p");
+    safe_strcpy(config->bindings.keyboard.window.layer,
+            "modc+mod1+mods+y");
     safe_strcpy(config->bindings.keyboard.window.shade,
             "modc+mod1+s");
     safe_strcpy(config->bindings.keyboard.cycle.desktop.prev,
@@ -281,28 +283,28 @@ void config_set_default_values(config_td *config)
     config->theme.window.general.border_width = 2;
     config->theme.window.general.is_decorated = true;
     config->theme.window.active.background_color =
-        json_hex2uint32("FFFFFF");
+        json_hex2uint32("9AAEC8");
     config->theme.window.active.foreground_color =
-        json_hex2uint32("000000");
+        json_hex2uint32("253040");
     config->theme.window.active.border_color =
-        json_hex2uint32("222222");
+        json_hex2uint32("4A5566");
     safe_strcpy(config->theme.window.active.font, "monospace bold 9");
     config->theme.window.inactive.background_color =
-        json_hex2uint32("000000");
+        json_hex2uint32("D0D9E5");
     config->theme.window.inactive.foreground_color =
-        json_hex2uint32("FFFFFF");
+        json_hex2uint32("4A5566");
     config->theme.window.inactive.border_color =
-        json_hex2uint32("999999");
+        json_hex2uint32("7F9AB6");
     safe_strcpy(config->theme.window.inactive.font, "monospace 9");
-    config->theme.icon.general.border_width = 1;
+    config->theme.icon.general.border_width = 2;
     config->theme.icon.general.is_captioned = true;
-    config->theme.icon.active.background_color = json_hex2uint32("FFFFFF");
-    config->theme.icon.active.foreground_color = json_hex2uint32("000000");
-    config->theme.icon.active.border_color = json_hex2uint32("000000");
+    config->theme.icon.active.background_color = json_hex2uint32("9AAEC8");
+    config->theme.icon.active.foreground_color = json_hex2uint32("253040");
+    config->theme.icon.active.border_color = json_hex2uint32("4A5566");
     safe_strcpy(config->theme.icon.active.font, "monospace 8");
-    config->theme.icon.inactive.background_color = json_hex2uint32("000000");
-    config->theme.icon.inactive.foreground_color = json_hex2uint32("FFFFFF");
-    config->theme.icon.inactive.border_color = json_hex2uint32("000000");
+    config->theme.icon.inactive.background_color = json_hex2uint32("D0D9E5");
+    config->theme.icon.inactive.foreground_color = json_hex2uint32("4A5566");
+    config->theme.icon.inactive.border_color = json_hex2uint32("7F9AB6");
     safe_strcpy(config->theme.icon.inactive.font, "monospace 8");
 }
 

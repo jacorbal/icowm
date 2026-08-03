@@ -16,8 +16,11 @@ Basic features are:
   - **XRandR support.**
     Dynamic screen configuration via the XRandR extension.  Output
     profiles (resolution, position, rotation, primary flag) are defined
-    in a dedicated `randr.json` file.  Hot-plug events and screen-change
-    notifications are handled at runtime.
+    in a dedicated `randr.json` file.  XRandR extension events
+    (screen-change and output-change notifications from the X server)
+    are dispatched within the main event loop; the window manager
+    automatically adjusts surface geometry, refreshes work areas, and
+    reflows managed clients without requiring a restart.
 
   - **Configurable keyboard and mouse controls.**
     Full flexibility to customize input methods tailoring keyboard
