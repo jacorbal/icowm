@@ -270,6 +270,7 @@ client_td *client_init(xcb_connection_t *connection,
         safe_strncpy(client->info.class_name[0], wm_instance,
                 CONFIG_MAX_LENGTH_NAME - 1);
     }
+    client_props_refresh_role(client);
 
     /* Map the window to make it visible on the screen and flush the
      * output buffer to ensure the request is sent */

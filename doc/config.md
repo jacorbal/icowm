@@ -39,12 +39,12 @@ values, and built-in default value.
 IcoWM looks for its configuration files in the following directory,
 evaluated in order:
 
-| Condition | Config directory |
-|---|---|
+| Condition                 | Config directory                    |
+|---------------------------|-------------------------------------|
 | Command-line prefix given | The path passed on the command line |
-| `$XDG_CONFIG_HOME` is set | `$XDG_CONFIG_HOME/icowm/` |
-| `$HOME` is set | `$HOME/.icowm/` |
-| Neither is set | `./.icowm/` (current directory) |
+| `$XDG_CONFIG_HOME` is set | `$XDG_CONFIG_HOME/icowm/`           |
+| `$HOME` is set            | `$HOME/.icowm/`                     |
+| Neither is set            | `./.icowm/` (current directory)     |
 
 Inside that directory the expected file tree is:
 
@@ -73,8 +73,8 @@ icon placement.
 
 ### 2.1 `theme`
 
-| Key | Type | Default |
-|---|---|---|
+| Key    | Type    | Default               |
+|--------|---------|-----------------------|
 | `theme` | string | `""` (built-in theme) |
 
 Name of the theme to load, without the `.json` extension.  The file
@@ -148,12 +148,12 @@ The `desktops` array inside `screens.settings` accepts two layouts:
 
 Per-screen layout fields:
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `count` | integer | `10` | Number of virtual desktops for this screen. Maximum is `10`. |
-| `inaugural` | integer | `0` | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
-| `settings[].name` | string | `"Desktop N"` | Display name of desktop N. |
-| `settings[].background-color` | string | `"#C0CCD8"` | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| Key                           | Type    | Default      | Description |
+|-------------------------------|---------|--------------|-------------|
+| `count`                       | integer | `10`         | Number of virtual desktops for this screen. Maximum is `10`. |
+| `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
+| `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
+| `settings[].background-color` | string  | `"#C0CCD8"`  | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
 
 ### 2.3 `programs`
 
@@ -185,8 +185,8 @@ policy, and placement policy.
 
 #### `windows.gravity`
 
-| Key | Type | Default |
-|---|---|---|
+| Key               | Type   | Default        |
+|-------------------|--------|----------------|
 | `windows.gravity` | string | `"north-west"` |
 
 Default window gravity, i.e., the corner used as the reference point
@@ -198,9 +198,9 @@ Accepted values: `"north-west"`, `"north"`, `"north-east"`, `"east"`,
 
 #### `windows.snap`
 
-| Key | Type | Default |
-|---|---|---|
-| `windows.snap` | integer | `4` |
+| Key            | Type    | Default |
+|----------------|---------|---------|
+| `windows.snap` | integer | `4`     |
 
 Snap threshold in pixels.  When a window being dragged comes within
 this many pixels of a screen edge or another window border, it snaps
@@ -208,20 +208,28 @@ into alignment.  Set to `0` to disable snapping.
 
 #### `windows.has-grips`
 
-| Key | Type | Default |
-|---|---|---|
-| `windows.has-grips` | boolean | `true` |
+| Key                 | Type    | Default |
+|---------------------|---------|---------|
+| `windows.has-grips` | boolean | `true`  |
 
 When `true`, decorated resizable windows draw corner resize grips.
 
+#### `windows.show-geom`
+
+| Key                 | Type    | Default |
+|---------------------|---------|---------|
+| `windows.show-geom` | boolean | `true`  |
+
+When `true`, geometry when moving (mouse drag) or position when resizing
+(with mouse drag) is shown in the center of the window.
 
 #### `windows.focus`
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `focus.policy` | string | `"click"` | Focus policy. `"click"` requires a click to focus; `"follow-mouse"` focuses whichever window is under the pointer. |
-| `focus.is-new-focused` | boolean | `true` | When `true`, newly mapped windows receive focus automatically. |
-| `focus.is-raised-on-focus` | boolean | `false` | When `true`, a window is raised to the top of the stack when it receives focus. |
+| Key                        | Type    | Default   | Description |
+|----------------------------|---------|-----------|-------------|
+| `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"follow-mouse"` focuses whichever window is under the pointer. |
+| `focus.is-new-focused`     | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
+| `focus.is-raised-on-focus` | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
 
 ```json
 "focus": {
@@ -233,17 +241,17 @@ When `true`, decorated resizable windows draw corner resize grips.
 
 #### `windows.placement`
 
-| Key | Type | Default | Description |
-|---|---|---|---|
+| Key                | Type   | Default   | Description |
+|--------------------|--------|-----------|-------------|
 | `placement.policy` | string | `"smart"` | How newly mapped windows are placed. |
 
 Accepted placement policy values:
 
-| Value | Behavior |
-|---|---|
-| `"smart"` | Finds the position that minimizes overlap with existing windows. |
-| `"cascade"` | Places windows in a stepped diagonal sequence. |
-| `"centered"` | Centers the window on the screen. |
+| Value           | Behavior |
+|-----------------|----------|
+| `"smart"`       | Finds the position that minimizes overlap with existing windows. |
+| `"cascade"`     | Places windows in a stepped diagonal sequence. |
+| `"centered"`    | Centers the window on the screen. |
 | `"under-mouse"` | Places the window under the current pointer position. |
 
 Transient (dialog) windows are always centered over their parent
@@ -257,21 +265,32 @@ window, regardless of this setting.
 
 ### 2.5 `icons`
 
+#### `icons.show-geom`
+
+| Key               | Type    | Default |
+|-------------------|---------|---------|
+| `icons.show-geom` | boolean | `true`  |
+
+When `true`, geometry when moving (mouse drag) is shown in the center of
+the icon.
+
+#### `icons.placement`
+
 Controls how iconified windows are laid out on the desktop.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
+| Key                      | Type   | Default    | Description |
+|--------------------------|--------|------------|-------------|
 | `icons.placement.policy` | string | `"bottom"` | Where new icons are placed. |
 
 Accepted icon placement values:
 
-| Value | Behavior |
-|---|---|
+| Value      | Behavior                                                    |
+|------------|-------------------------------------------------------------|
 | `"bottom"` | Icons fill the bottom row of the screen from left to right. |
-| `"top"` | Icons fill the top row from left to right. |
-| `"left"` | Icons fill the left column from top to bottom. |
-| `"right"` | Icons fill the right column from top to bottom. |
-| `"smart"` | Icons are placed in the first available free slot. |
+| `"top"`    | Icons fill the top row from left to right.                  |
+| `"left"`   | Icons fill the left column from top to bottom.              |
+| `"right"`  | Icons fill the right column from top to bottom.             |
+| `"smart"`  | Icons are placed in the first available free slot.          |
 
 ```json
 "icons": {
@@ -313,16 +332,16 @@ Example:  `"modc+mod1+Return"` with the default modifiers resolves to
 Symbolic names for modifier keys.  Every binding that references a
 modifier uses one of these aliases.
 
-| Alias | Default X11 key | Description |
-|---|---|---|
-| `modc` | `Control` | Control key |
-| `mods` | `Shift` | Shift key |
-| `modl` | `Caps_Lock` | Caps Lock |
-| `mod1` | `Alt` | Alt / Meta key |
-| `mod2` | `Num_Lock` | Num Lock |
-| `mod3` | `""` | Unassigned (empty by default) |
-| `mod4` | `Super` | Super / Windows key |
-| `mod5` | `Hyper` | Hyper key |
+| Alias  | Default X11 key | Description                   |
+|--------|-----------------|-------------------------------|
+| `modc` | `Control`       | Control key                   |
+| `mods` | `Shift`         | Shift key                     |
+| `modl` | `Caps_Lock`     | Caps Lock                     |
+| `mod1` | `Alt`           | Alt / Meta key                |
+| `mod2` | `Num_Lock`      | Num Lock                      |
+| `mod3` | `""`            | Unassigned (empty by default) |
+| `mod4` | `Super`         | Super / Windows key           |
+| `mod5` | `Hyper`         | Hyper key                     |
 
 ```json
 "modifiers": {
@@ -342,13 +361,13 @@ modifier uses one of these aliases.
 Shortcuts for launching external applications.  The executables are
 taken from the `programs` section of `config.json`.
 
-| Key | Default binding | Action |
-|---|---|---|
-| `terminal` | `modc+mod1+Return` | Launch the terminal emulator. |
-| `launcher` | `modc+mod1+r` | Launch the application launcher. |
-| `file-manager` | `modc+mod1+q` | Launch the file manager. |
-| `web-browser` | `modc+mod1+w` | Launch the web browser. |
-| `editor` | `modc+mod1+e` | Launch the text editor. |
+| Key            | Default binding    | Action                           |
+|----------------|--------------------|----------------------------------|
+| `terminal`     | `modc+mod1+Return` | Launch the terminal emulator.    |
+| `launcher`     | `modc+mod1+r`      | Launch the application launcher. |
+| `file-manager` | `modc+mod1+q`      | Launch the file manager.         |
+| `web-browser`  | `modc+mod1+w`      | Launch the web browser.          |
+| `editor`       | `modc+mod1+e`      | Launch the text editor.          |
 
 ### 3.4 `keyboard.window`
 
@@ -356,63 +375,63 @@ Actions performed on the currently focused window.
 
 #### Direct window actions
 
-| Key | Default binding | Action |
-|---|---|---|
-| `close` | `modc+mod1+c` | Send `WM_DELETE_WINDOW` to politely close the window. |
-| `kill` | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
-| `iconify` | `modc+mod1+i` | Iconify the window (TWM-style desktop icon). |
-| `hide` | `modc+mod1+mods+h` | Hide the window without iconifying it. |
-| `maximize` | `modc+mod1+m` | Toggle maximize (full work area). |
-| `fullscreen` | `modc+mod1+f` | Toggle true fullscreen mode. |
-| `shade` | `modc+mod1+s` | Roll-up / roll-down the window (shade). |
-| `pin` | `modc+mod1+p` | Toggle sticky mode (window appears on all desktops). |
-| `decorate` | `modc+mod1+d` | Toggle window decorations (title bar). |
-| `layer` | `modc+mod1+mods+y` | Cycle the window stacking layer: *normal* > *above* > *below*. |
-| `info` | `modc+mod1+mods+i` | Show a popup with window information. |
+| Key          | Default binding         | Action |
+|--------------|-------------------------|--------|
+| `close`      | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
+| `kill`       | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
+| `iconify`    | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
+| `hide`       | `modc+mod1+mods+h`      | Hide the window without iconifying it. |
+| `maximize`   | `modc+mod1+m`           | Toggle maximize (full work area). |
+| `fullscreen` | `modc+mod1+f`           | Toggle true fullscreen mode. |
+| `shade`      | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
+| `pin`        | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
+| `decorate`   | `modc+mod1+d`           | Toggle window decorations (title bar). |
+| `layer`      | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
+| `info`       | `modc+mod1+mods+i`      | Show a popup with window information. |
 
 #### `keyboard.window.move.relative`
 
 Move the focused window by a fixed step in the given direction.
 
-| Key | Default binding |
-|---|---|
-| `right` | `modc+mod1+l` |
-| `left` | `modc+mod1+h` |
-| `up` | `modc+mod1+k` |
-| `down` | `modc+mod1+j` |
+| Key     | Default binding |
+|---------|-----------------|
+| `right` | `modc+mod1+l`   |
+| `left`  | `modc+mod1+h`   |
+| `up`    | `modc+mod1+k`   |
+| `down`  | `modc+mod1+j`   |
 
 #### `keyboard.window.move.absolute`
 
 Teleport the focused window to a named screen position.
 
-| Key | Default binding | Destination |
-|---|---|---|
-| `center` | `modc+mod1+g` | Center of the screen. |
-| `top-left` | `modc+mod1+y` | Top-left corner. |
-| `top-right` | `modc+mod1+u` | Top-right corner. |
-| `bottom-left` | `modc+mod1+b` | Bottom-left corner. |
-| `bottom-right` | `modc+mod1+n` | Bottom-right corner. |
+| Key            | Default binding | Destination           |
+|----------------|-----------------|-----------------------|
+| `center`       | `modc+mod1+g`   | Center of the screen. |
+| `top-left`     | `modc+mod1+y`   | Top-left corner.      |
+| `top-right`    | `modc+mod1+u`   | Top-right corner.     |
+| `bottom-left`  | `modc+mod1+b`   | Bottom-left corner.   |
+| `bottom-right` | `modc+mod1+n`   | Bottom-right corner.  |
 
 #### `keyboard.window.resize`
 
 Resize the focused window by a fixed step in the given direction.
 
-| Key | Default binding |
-|---|---|
+| Key     | Default binding    |
+|---------|--------------------|
 | `right` | `modc+mod1+mods+l` |
-| `left` | `modc+mod1+mods+h` |
-| `up` | `modc+mod1+mods+k` |
-| `down` | `modc+mod1+mods+j` |
+| `left`  | `modc+mod1+mods+h` |
+| `up`    | `modc+mod1+mods+k` |
+| `down`  | `modc+mod1+mods+j` |
 
 ### 3.5 `keyboard.wm`
 
 Window manager control shortcuts.
 
-| Key | Default binding | Action |
-|---|---|---|
+| Key      | Default binding    | Action |
+|----------|--------------------|--------|
 | `redraw` | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload` | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit` | `modc+mod1+mods+x` | Exit IcoWM. |
+| `quit`   | `modc+mod1+mods+x` | Exit IcoWM. |
 
 ### 3.6 `keyboard.cycle`
 
@@ -421,38 +440,38 @@ open windows.
 
 #### `keyboard.cycle.desktop`
 
-| Key | Default binding | Action |
-|---|---|---|
-| `prev` | `modc+mod1+Left` | Switch to the previous virtual desktop. |
-| `next` | `modc+mod1+Right` | Switch to the next virtual desktop. |
+| Key    | Default binding   | Action                                  |
+|--------|-------------------|-----------------------------------------|
+| `prev` | `modc+mod1+Left`  | Switch to the previous virtual desktop. |
+| `next` | `modc+mod1+Right` | Switch to the next virtual desktop.     |
 
 #### `keyboard.cycle.window`
 
 Keyboard Alt+Tab-style navigation through open (non-iconified) windows.
 
-| Key | Default binding | Action |
-|---|---|---|
+| Key    | Default binding | Action                                       |
+|--------|-----------------|----------------------------------------------|
 | `prev` | `mod1+mods+Tab` | Focus the previous window in the cycle list. |
-| `next` | `mod1+Tab` | Focus the next window in the cycle list. |
+| `next` | `mod1+Tab`      | Focus the next window in the cycle list.     |
 
 #### `keyboard.cycle.icon`
 
 Cycle through iconified (minimized) windows only.
 
-| Key | Default binding | Action |
-|---|---|---|
+| Key    | Default binding      | Action                   |
+|--------|----------------------|--------------------------|
 | `prev` | `modc+mod1+mods+Tab` | Focus the previous icon. |
-| `next` | `modc+mod1+Tab` | Focus the next icon. |
+| `next` | `modc+mod1+Tab`      | Focus the next icon.     |
 
 ### 3.7 `mouse.window`
 
 Mouse button bindings for window management.
 
-| Key | Default binding | Action |
-|---|---|---|
-| `move` | `mod1+button1` | Click and drag to move the window. |
-| `lower` | `mod1+button2` | Lower the window to the bottom of the stack. |
-| `resize` | `mod1+button3` | Click and drag to resize the window. |
+| Key      | Default binding | Action                                       |
+|----------|-----------------|----------------------------------------------|
+| `move`   | `mod1+button1`  | Click and drag to move the window.           |
+| `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
+| `resize` | `mod1+button3`  | Click and drag to resize the window.         |
 
 ### 3.8 `mouse.cycle`
 
@@ -478,34 +497,34 @@ Appearance settings for managed windows.
 
 #### `window.general`
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `border-width` | integer | `2` | Border thickness in pixels. |
-| `is-decorated` | boolean | `true` | When `false`, windows start without any decoration (title bar is hidden). |
+| Key            | Type    | Default | Description                 |
+|----------------|---------|---------|-----------------------------|
+| `border-width` | integer | `2`     | Border thickness in pixels. |
+| `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (title bar is hidden). |
 
 #### `window.active`
 
 Appearance of the currently focused window.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
+| Key                | Type   | Default     | Description                 |
+|--------------------|--------|-------------|-----------------------------|
 | `background-color` | string | `"#9AAEC8"` | Title bar background color. |
-| `foreground-color` | string | `"#253040"` | Title bar text color. |
-| `border-color` | string | `"#4A5566"` | Border color. |
-| `grip-color` | string | `"#9AAEC8"` | Resize grip color. |
-| `font` | string | `"fixed"` | Title bar font (X core font description; see note below). |
+| `foreground-color` | string | `"#253040"` | Title bar text color.       |
+| `border-color`     | string | `"#4A5566"` | Border color.               |
+| `grip-color`       | string | `"#9AAEC8"` | Resize grip color.          |
+| `font`             | string | `"fixed"`   | Title bar font (X core font description; see note below). |
 
 #### `window.inactive`
 
 Appearance of windows that do not have focus.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
+| Key                | Type   | Default     | Description                 |
+|--------------------|--------|-------------|-----------------------------|
 | `background-color` | string | `"#D0D9E5"` | Title bar background color. |
-| `foreground-color` | string | `"#4A5566"` | Title bar text color. |
-| `border-color` | string | `"#7F9AB6"` | Border color. |
-| `grip-color` | string | `"#4A5566"` | Resize grip color. |
-| `font` | string | `"fixed"` | Title bar font. |
+| `foreground-color` | string | `"#4A5566"` | Title bar text color.       |
+| `border-color`     | string | `"#7F9AB6"` | Border color.               |
+| `grip-color`       | string | `"#4A5566"` | Resize grip color.          |
+| `font`             | string | `"fixed"`   | Title bar font.             |
 
 ### 4.2 `icon`
 
@@ -513,32 +532,32 @@ Appearance settings for iconified windows.
 
 #### `icon.general`
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `border-width` | integer | `2` | Icon border thickness in pixels. |
-| `is-captioned` | boolean | `true` | When `true`, the icon displays the window title below the icon graphic. |
+| Key            | Type    | Default | Description                      |
+|----------------|---------|---------|----------------------------------|
+| `border-width` | integer | `2`     | Icon border thickness in pixels. |
+| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
 
 #### `icon.active`
 
 Appearance of the currently focused icon.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `background-color` | string | `"#9AAEC8"` | Icon background color. |
+| Key                | Type   | Default     | Description              |
+|--------------------|--------|-------------|--------------------------|
+| `background-color` | string | `"#9AAEC8"` | Icon background color.   |
 | `foreground-color` | string | `"#253040"` | Icon caption text color. |
-| `border-color` | string | `"#4A5566"` | Icon border color. |
-| `font` | string | `"fixed"` | Icon caption font. |
+| `border-color`     | string | `"#4A5566"` | Icon border color.       |
+| `font`             | string | `"fixed"`   | Icon caption font.       |
 
 #### `icon.inactive`
 
 Appearance of icons that do not have focus.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `background-color` | string | `"#D0D9E5"` | Icon background color. |
+| Key                | Type   | Default     | Description              |
+|--------------------|--------|-------------|--------------------------|
+| `background-color` | string | `"#D0D9E5"` | Icon background color.   |
 | `foreground-color` | string | `"#4A5566"` | Icon caption text color. |
-| `border-color` | string | `"#7F9AB6"` | Icon border color. |
-| `font` | string | `"fixed"` | Icon caption font. |
+| `border-color`     | string | `"#7F9AB6"` | Icon border color.       |
+| `font`             | string | `"fixed"`   | Icon caption font.       |
 
 ---
 
@@ -598,24 +617,24 @@ Up to **8** output entries are supported.
 
 ### 5.1 Top-level fields
 
-| Key | Type | Default | Description |
-|---|---|---|---|
+| Key          | Type    | Default | Description |
+|--------------|---------|---------|-------------|
 | `is-enabled` | boolean | `false` | Master switch.  Set to `true` to activate output profile management. |
 
 ### 5.2 `outputs[]` entries
 
 Each entry in the `outputs` array describes one physical display output.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `name` | string | `""` | Output connector name as reported by the X server (e.g., `"HDMI-1"`, `"eDP-1"`, `"DP-2"`).  Run `xrandr` in a terminal to list available names. |
-| `is-enabled` | boolean | `false` | Whether this output should be active. |
-| `is-primary` | boolean | `false` | Mark this output as the primary display. |
-| `resolution.w` | integer | `0` | Preferred horizontal resolution in pixels. |
-| `resolution.h` | integer | `0` | Preferred vertical resolution in pixels. |
-| `position.x` | integer | `0` | Horizontal position of this output in the virtual screen. |
-| `position.y` | integer | `0` | Vertical position of this output in the virtual screen. |
-| `rotation` | string | `"normal"` | Screen rotation.  Accepted values: `"normal"`, `"left"` (90°), `"right"` (270°), `"inverted"` (180°). |
+| Key            | Type    | Default    | Description |
+|----------------|---------|------------|-------------|
+| `name`         | string  | `""`       | Output connector name as reported by the X server (e.g., `"HDMI-1"`, `"eDP-1"`, `"DP-2"`).  Run `xrandr` in a terminal to list available names. |
+| `is-enabled`   | boolean | `false`    | Whether this output should be active. |
+| `is-primary`   | boolean | `false`    | Mark this output as the primary display. |
+| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels. |
+| `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels. |
+| `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen. |
+| `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen. |
+| `rotation`     | string  | `"normal"` | Screen rotation.  Accepted values: `"normal"`, `"left"` (90°), `"right"` (270°), `"inverted"` (180°). |
 
 ```json
 {

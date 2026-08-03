@@ -601,6 +601,18 @@ int client_send_event_set_icon(client_td *client, const char *icon_name);
 void client_props_refresh_name(client_td *client);
 
 /**
+ * @brief Refresh the managed client's role from @c WM_WINDOW_ROLE
+ *
+ * Queries @c WM_WINDOW_ROLE and writes the result into
+ * @p client->info.role_name.
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(n), where @e n is the role string length
+ */
+void client_props_refresh_role(client_td *client);
+
+/**
  * @brief Refresh the managed client's icon name from X11 properties
  *
  * Queries @c _NET_WM_ICON_NAME (UTF-8) first, then falls back to

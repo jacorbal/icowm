@@ -17,6 +17,12 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Session includes */
+#include <session/session.h>
+
+/* Rules includs */
+#include <rules/rules.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
@@ -41,6 +47,13 @@ int wm_action_config_reload(void)
     if (config_load(wm->config, wm->config_dir_prefix) != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
+    }
+
+    if (wm->rules != NULL) {
+        (void) rules_load(wm->rules, wm->config_dir_prefix);
+    }
+    if (wm->session != NULL) {
+        (void) session_load(wm->session, wm->config_dir_prefix);
     }
 
     for (list_item_td *snode = list_head(wm->surfaces);
@@ -69,6 +82,11 @@ int wm_action_config_reload(void)
     }
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
+    if (wm->session != NULL) {
+        session_run_hook(wm->session, wm->connection,
+                SESSION_HOOK_RELOAD);
+    }
+
     return 0;
 }
 

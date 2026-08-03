@@ -26,6 +26,9 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Command includes */
 #include <cmds/ccmd.h>
 
@@ -263,6 +266,48 @@ void client_props_refresh_name(client_td *client)
     if (reply != NULL) {
         free(reply);
     }
+}
+
+
+/* Update a managed client's role from 'WM_WINDOW_ROLE' */
+void client_props_refresh_role(client_td *client)
+{
+    xcb_intern_atom_reply_t *role_atom_reply;
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+
+    if (client == NULL || client->info.role_name == NULL) {
+        return;
+    }
+
+    role_atom_reply = xcb_intern_atom_reply(client->connection,
+            xcb_intern_atom(client->connection, 1,
+                (uint16_t) safe_strlen("WM_WINDOW_ROLE"),
+                "WM_WINDOW_ROLE"), NULL);
+    if (role_atom_reply == NULL) {
+        client->info.role_name[0] = '\0';
+        return;
+    }
+
+    cookie = xcb_get_property(client->connection, 0, client->window,
+            role_atom_reply->atom, XCB_ATOM_STRING, 0, 255);
+    reply = xcb_get_property_reply(client->connection, cookie, NULL);
+
+    if (reply != NULL && reply->value_len > 0) {
+        size_t len = (reply->value_len < 255u) ? reply->value_len : 254u;
+        char *value = (char *) xcb_get_property_value(reply);
+
+        memcpy(client->info.role_name, value, len);
+        client->info.role_name[len] = '\0';
+    } else {
+        client->info.role_name[0] = '\0';
+    }
+
+    if (reply != NULL) {
+        free(reply);
+    }
+
+    free(role_atom_reply);
 }
 
 

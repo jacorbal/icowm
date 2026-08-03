@@ -1,0 +1,442 @@
+/**
+ * @file session/session.c
+ *
+ * @brief Session hooks loader and launcher
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#define _POSIX_C_SOURCE 200112L
+
+
+/* System includes */
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <wordexp.h>
+
+/* JSON includes */
+#include <cjson/cJSON.h>
+
+/* Default initial values */
+#include <defs/config.h>
+
+/* Project includes */
+#include <logger.h>
+#include <utils/config/json.h>
+#include <utils/safe/safestr.h>
+
+/* Local includes */
+#include <session/session.h>
+
+
+/** Maximum number of commands stored per session hook list */
+#define SESSION_MAX_COMMANDS (64u)
+
+/** Maximum length of a single command string (shared with path limit) */
+#define SESSION_MAX_CMD_LEN (CONFIG_MAX_LENGTH_PATH_BASE)
+
+/** Maximum number of child PIDs tracked simultaneously */
+#define SESSION_TRACKED_PIDS_MAX (256u)
+
+
+/** Ordered list of shell commands for one session lifecycle hook */
+struct session_command_list_s {
+    uint32_t count;
+    char items[SESSION_MAX_COMMANDS][SESSION_MAX_CMD_LEN];
+};
+
+
+/** Session table holding the three hook command lists */
+struct session_s {
+    struct session_command_list_s on_start;
+    struct session_command_list_s on_reload;
+    struct session_command_list_s on_exit;
+};
+
+
+/** Entry tracking one spawned child process by PID and origin */
+struct session_tracked_pid_s {
+    pid_t pid;
+    char hook[16];
+    char command[SESSION_MAX_CMD_LEN];
+};
+
+/** Table of in-flight child processes spawned by session hooks */
+static struct session_tracked_pid_s
+    s_session_tracked[SESSION_TRACKED_PIDS_MAX];
+
+
+/**
+ * @brief Resolve the configuration directory base path for session
+ *        files
+ *
+ * Writes the effective configuration directory path into
+ * @p config_dir_base.  The resolution order is: @p config_dir_prefix
+ * (when non-empty) > @c $XDG_CONFIG_HOME/icowm > @c $HOME/.icowm >
+ * @c ./icowm.
+ *
+ * @param config_dir_prefix Caller-supplied prefix, or @c NULL to use
+ *                          the environment-based default
+ * @param config_dir_base   Buffer that receives the resolved path;
+ *                          should be at least
+ *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long
+ */
+static void s_session_config_dir_set(const char *config_dir_prefix,
+        char *config_dir_base)
+{
+    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
+    const char *config_home = getenv("HOME");
+
+    if (config_dir_prefix != NULL && config_dir_prefix[0] != '\0') {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s", config_dir_prefix);
+    } else if (config_xdg_config_home != NULL) {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s/%s", config_xdg_config_home, CONFIG_DIR_BASE);
+    } else if (config_home != NULL) {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s/.%s", config_home, CONFIG_DIR_BASE);
+    } else {
+        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
+                "./%s", CONFIG_DIR_BASE);
+    }
+}
+
+
+/**
+ * @brief Return the JSON key name used for a session hook
+ *
+ * Maps each @c session_hook_e value to the string key present in the
+ * session configuration file and used in log messages.
+ *
+ * @param hook Lifecycle hook identifier
+ *
+ * @return A null-terminated string literal naming @p hook; @c on-exit
+ *         is returned for any unrecognised value
+ *
+ * @note Complexity: @e O(1)
+ */
+static const char *s_session_hook_name(enum session_hook_e hook)
+{
+    if (hook == SESSION_HOOK_START) {
+        return "on-start";
+    }
+    if (hook == SESSION_HOOK_RELOAD) {
+        return "on-reload";
+    }
+
+    return "on-exit";
+}
+
+
+/**
+ * @brief Return the mutable command list for a session hook
+ *
+ * @param session Session table that holds the lists
+ * @param hook    Lifecycle hook identifier
+ *
+ * @return Pointer to the mutable @c session_command_list_s for @p hook;
+ *         the @c on_exit list is returned for any unrecognised value
+ *
+ * @note Complexity: @e O(1)
+ */
+static struct session_command_list_s
+    *s_session_hook_list(session_td *session, enum session_hook_e hook)
+{
+    if (hook == SESSION_HOOK_START) {
+        return &session->on_start;
+    }
+    if (hook == SESSION_HOOK_RELOAD) {
+        return &session->on_reload;
+    }
+
+    return &session->on_exit;
+}
+
+
+/**
+ * @brief Return the read-only command list for a session hook
+ *
+ * @param session Session table that holds the lists
+ * @param hook    Lifecycle hook identifier
+ *
+ * @return Const pointer to the @c session_command_list_s for @p hook;
+ *         the @c on_exit list is returned for any unrecognised value
+ *
+ * @note Complexity: @e O(1)
+ */
+static const struct session_command_list_s
+    *s_session_hook_list_const(const session_td *session,
+            enum session_hook_e hook)
+{
+    if (hook == SESSION_HOOK_START) {
+        return &session->on_start;
+    }
+    if (hook == SESSION_HOOK_RELOAD) {
+        return &session->on_reload;
+    }
+
+    return &session->on_exit;
+}
+
+
+/**
+ * @brief Record a spawned child PID in the tracking table
+ *
+ * Finds the first free slot in @c s_session_tracked and stores @p pid
+ * together with the originating hook name and command string.  When the
+ * table is full the function returns silently and the PID will not be
+ * tracked.
+ *
+ * @param pid     PID of the spawned child process
+ * @param hook    Name of the session hook that spawned the child
+ * @param command Command string used to spawn the child
+ *
+ * @note Complexity: @e O(n), where @e n is @c SESSION_TRACKED_PIDS_MAX
+ */
+static void s_session_track_pid(pid_t pid, const char *hook,
+        const char *command)
+{
+    for (uint32_t i = 0u; i < SESSION_TRACKED_PIDS_MAX; ++i) {
+        if (s_session_tracked[i].pid == 0) {
+            s_session_tracked[i].pid = pid;
+            safe_strncpy(s_session_tracked[i].hook, hook,
+                    sizeof(s_session_tracked[i].hook));
+            safe_strncpy(s_session_tracked[i].command, command,
+                    sizeof(s_session_tracked[i].command));
+            return;
+        }
+    }
+}
+
+
+/**
+ * @brief Find the tracking entry for a given child PID
+ *
+ * @param pid PID to look up
+ *
+ * @return Pointer to the matching @c session_tracked_pid_s entry, or
+ *         @c NULL when @p pid is not in the table
+ *
+ * @note Complexity: @e O(n), where @e n is @c SESSION_TRACKED_PIDS_MAX
+ */
+static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
+{
+    for (uint32_t i = 0u; i < SESSION_TRACKED_PIDS_MAX; ++i) {
+        if (s_session_tracked[i].pid == pid) {
+            return &s_session_tracked[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+/**
+ * @brief Fork a child process and execute a shell command
+ *
+ * Calls @c fork; in the child the XCB file descriptor is closed, the
+ * command string is word-expanded with @c wordexp, and the resulting
+ * argument vector is handed to @c execvp.  The child exits with status
+ * 127 on any @c wordexp or @c execvp failure.  In the parent the new
+ * PID is recorded in the tracking table.
+ *
+ * @param connection XCB connection whose file descriptor is closed in
+ *                   the child before executing (may be null)
+ * @param command    Shell command to run; @a word-expanded before
+ *                   @a exec
+ * @param hook       Hook name used only for logging and tracking
+ *
+ * @return Status of the operation
+ * @retval  0 @c fork succeeded (execution result is asynchronous)
+ * @retval  1 @c fork failed
+ *
+ * @note Complexity: @e O(1) in the parent path
+ */
+static int s_session_spawn_command(xcb_connection_t *connection,
+        const char *command, const char *hook)
+{
+    pid_t pid;
+
+    pid = fork();
+    if (pid < 0) {
+        LOGGER_ERROR("Failed to fork session hook '%s' command '%s'",
+                hook, command);
+        return 1;
+    }
+
+    if (pid == 0) {
+        wordexp_t words = (wordexp_t) {0};
+        int wordexp_flags = WRDE_NOCMD;
+        int wr;
+
+#ifdef WRDE_NOENV
+        wordexp_flags |= WRDE_NOENV;
+#endif
+
+        if (connection != NULL) {
+            close(xcb_get_file_descriptor(connection));
+        }
+
+        wr = wordexp(command, &words, wordexp_flags);
+        if (wr != 0 || words.we_wordc == 0u) {
+            if (words.we_wordv != NULL) {
+                wordfree(&words);
+            }
+            _exit(127);
+        }
+
+        execvp(words.we_wordv[0], words.we_wordv);
+        wordfree(&words);
+        _exit(127);
+    }
+
+    s_session_track_pid(pid, hook, command);
+    LOGGER_INFO("Session hook '%s' command '%s' started with PID %d",
+            hook, command, (int) pid);
+    return 0;
+}
+
+
+/* Allocate and zero-initialise a new session table */
+session_td *session_init(void)
+{
+    return calloc(1, sizeof(session_td));
+}
+
+
+/* Destroy a session table and free its allocated memory */
+void session_destroy(session_td *session)
+{
+    if (session != NULL) {
+        free(session);
+    }
+}
+
+
+/* Load session hook commands from the JSON configuration file */
+int session_load(session_td *session, const char *config_dir_prefix)
+{
+    char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
+    char session_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
+    cJSON *json = NULL;
+
+    if (session == NULL) {
+        return 1;
+    }
+
+    memset(session, 0, sizeof(*session));
+
+    s_session_config_dir_set(config_dir_prefix, config_dir);
+    snprintf(session_file, sizeof(session_file), "%s/%s",
+            config_dir, CONFIG_FILENAME_SESSION);
+
+    if (json_load_config(session_file, &json) != 0 || json == NULL) {
+        LOGGER_DEBUG("Session file '%s' not loaded; hooks disabled",
+                session_file);
+        return 0;
+    }
+
+    for (int h = (int) SESSION_HOOK_START;
+            h <= (int) SESSION_HOOK_EXIT;
+            ++h) {
+        enum session_hook_e hook = (enum session_hook_e) h;
+        const char *hook_name = s_session_hook_name(hook);
+        struct session_command_list_s *list =
+            s_session_hook_list(session, hook);
+        cJSON *arr = json_get_item(json, hook_name);
+        cJSON *it;
+
+        if (!cJSON_IsArray(arr)) {
+            continue;
+        }
+
+        cJSON_ArrayForEach(it, arr) {
+            if (list->count >= SESSION_MAX_COMMANDS) {
+                break;
+            }
+            if (cJSON_IsString(it) && it->valuestring != NULL &&
+                    it->valuestring[0] != '\0') {
+                safe_strncpy(list->items[list->count], it->valuestring,
+                        sizeof(list->items[list->count]));
+                list->count++;
+            }
+        }
+    }
+
+    cJSON_Delete(json);
+
+    LOGGER_INFO("Loaded session hooks from '%s'" \
+            " (start=%u, reload=%u, exit=%u)",
+            session_file,
+            session->on_start.count,
+            session->on_reload.count,
+            session->on_exit.count);
+
+    return 0;
+}
+
+
+/* Spawn every command registered for the given session lifecycle hook */
+void session_run_hook(const session_td *session,
+        xcb_connection_t *connection, enum session_hook_e hook)
+{
+    const struct session_command_list_s *list;
+    const char *hook_name;
+
+    if (session == NULL) {
+        return;
+    }
+
+    list = s_session_hook_list_const(session, hook);
+    hook_name = s_session_hook_name(hook);
+    for (uint32_t i = 0u; i < list->count; ++i) {
+        (void) s_session_spawn_command(connection,
+                list->items[i], hook_name);
+    }
+}
+
+
+/* Reap all finished child processes previously spawned by session hooks */
+void session_reap_children(void)
+{
+    int status;
+    pid_t pid;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        struct session_tracked_pid_s *tracked = s_session_find_pid(pid);
+
+        if (tracked != NULL) {
+            if (WIFEXITED(status)) {
+                LOGGER_INFO("Session hook '%s' PID %d ('%s') exited with status %d",
+                        tracked->hook, (int) pid, tracked->command,
+                        WEXITSTATUS(status));
+            } else if (WIFSIGNALED(status)) {
+                LOGGER_WARNING("Session hook '%s' PID %d ('%s') terminated by signal %d",
+                        tracked->hook, (int) pid, tracked->command,
+                        WTERMSIG(status));
+            }
+            tracked->pid = 0;
+            tracked->hook[0] = '\0';
+            tracked->command[0] = '\0';
+        } else {
+            if (WIFEXITED(status)) {
+                LOGGER_DEBUG("Child PID %d exited with status %d",
+                        (int) pid, WEXITSTATUS(status));
+            } else if (WIFSIGNALED(status)) {
+                LOGGER_DEBUG("Child PID %d terminated by signal %d",
+                        (int) pid, WTERMSIG(status));
+            }
+        }
+    }
+}

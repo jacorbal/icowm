@@ -335,7 +335,10 @@ int wm_ewmh_init(void)
     xcb_atom_t net_wm_state_focused = XCB_ATOM_NONE;
     xcb_atom_t net_wm_win_type_notif = XCB_ATOM_NONE;
     xcb_atom_t net_wm_icon_geometry = XCB_ATOM_NONE;
+    xcb_atom_t net_restack_window = XCB_ATOM_NONE;
+    xcb_atom_t net_wm_fullscreen_monitors = XCB_ATOM_NONE;
     xcb_atom_t wm_icon_size_atom = XCB_ATOM_NONE;
+    xcb_atom_t manager_atom = XCB_ATOM_NONE;
     uint32_t icon_size_hints[6];
 
     if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL) {
@@ -378,6 +381,34 @@ int wm_ewmh_init(void)
 
     if (ia != NULL) {
         wm_icon_size_atom = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_RESTACK_WINDOW") - 1u,
+                "_NET_RESTACK_WINDOW"), NULL);
+
+    if (ia != NULL) {
+        net_restack_window = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_WM_FULLSCREEN_MONITORS") - 1u,
+                "_NET_WM_FULLSCREEN_MONITORS"), NULL);
+
+    if (ia != NULL) {
+        net_wm_fullscreen_monitors = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("MANAGER") - 1u, "MANAGER"), NULL);
+    if (ia != NULL) {
+        manager_atom = ia->atom;
         free(ia);
     }
 
@@ -445,6 +476,8 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_MOVERESIZE_WINDOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_FRAME_EXTENTS;
     supported_atoms[n_supported++] = wm->ewmh->_NET_REQUEST_FRAME_EXTENTS;
+    supported_atoms[n_supported++] = net_restack_window;
+    supported_atoms[n_supported++] = net_wm_fullscreen_monitors;
     supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_LAYOUT;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MODAL;
     supported_atoms[n_supported++] = net_wm_state_focused;
@@ -484,6 +517,52 @@ int wm_ewmh_init(void)
                 surface->screen->root, support);
         xcb_ewmh_set_supported(wm->ewmh, (int) surface->id,
                 n_supported, supported_atoms);
+
+        if (manager_atom != XCB_ATOM_NONE) {
+            char selection_name[16];
+            xcb_atom_t selection_atom = XCB_ATOM_NONE;
+            xcb_get_selection_owner_reply_t *owner_reply;
+            xcb_client_message_event_t manager_event;
+
+            snprintf(selection_name, sizeof(selection_name),
+                    "WM_S%u", surface->id);
+            ia = xcb_intern_atom_reply(wm->connection,
+                    xcb_intern_atom(wm->connection, 0,
+                        (uint16_t) strlen(selection_name),
+                        selection_name), NULL);
+            if (ia != NULL) {
+                selection_atom = ia->atom;
+                free(ia);
+            }
+
+            if (selection_atom != XCB_ATOM_NONE) {
+                xcb_set_selection_owner(wm->connection, support,
+                        selection_atom, XCB_CURRENT_TIME);
+                owner_reply = xcb_get_selection_owner_reply(wm->connection,
+                        xcb_get_selection_owner(wm->connection,
+                            selection_atom), NULL);
+                if (owner_reply != NULL &&
+                        owner_reply->owner == support) {
+                    memset(&manager_event, 0, sizeof(manager_event));
+                    manager_event.response_type = XCB_CLIENT_MESSAGE;
+                    manager_event.format = 32;
+                    manager_event.window = surface->screen->root;
+                    manager_event.type = manager_atom;
+                    manager_event.data.data32[0] = XCB_CURRENT_TIME;
+                    manager_event.data.data32[1] = selection_atom;
+                    manager_event.data.data32[2] = support;
+                    manager_event.data.data32[3] = 0u;
+                    manager_event.data.data32[4] = 0u;
+                    xcb_send_event(wm->connection, 0,
+                            surface->screen->root,
+                            XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                            (const char *) &manager_event);
+                }
+                if (owner_reply != NULL) {
+                    free(owner_reply);
+                }
+            }
+        }
 
         /* ICCCM §4.1.3: announce fixed icon dimensions on the root
          * window */

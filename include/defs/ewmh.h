@@ -41,7 +41,7 @@
  * Must equal the number of @c (supported_atoms[n_supported++]) lines in
  * @c wm_ewmh_init.
  *
- * Current set (62 atoms):
+ * Current set (64 atoms):
  *   @c _NET_SUPPORTED, @c _NET_SUPPORTING_WM_CHECK,
  *   @c _NET_CLIENT_LIST, @c _NET_CLIENT_LIST_STACKING,
  *   @c _NET_NUMBER_OF_DESKTOPS, @c _NET_CURRENT_DESKTOP,
@@ -68,6 +68,8 @@
  *   @c _NET_WM_WINDOW_TYPE_NOTIFICATION,
  *   @c _NET_MOVERESIZE_WINDOW, @c _NET_FRAME_EXTENTS
  *   @c _NET_REQUEST_FRAME_EXTENTS,
+ *   @c _NET_RESTACK_WINDOW,
+ *   @c _NET_WM_FULLSCREEN_MONITORS,
  *   @c _NET_WM_ALLOWED_ACTIONS,
  *   @c _NET_WM_ACTION_MOVE, @c _NET_WM_ACTION_RESIZE,
  *   @c _NET_WM_ACTION_MINIMIZE, @c _NET_WM_ACTION_SHADE,
@@ -80,7 +82,7 @@
  *   @c _NET_SHOWING_DESKTOP,
  *   @c _NET_WM_ICON_GEOMETRY
  */
-#define WM_EWMH_SUPPORTED_COUNT (62)
+#define WM_EWMH_SUPPORTED_COUNT (64)
 
 /**
  * @brief Interval between successive @c _NET_WM_PING probes (seconds)

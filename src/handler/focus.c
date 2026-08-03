@@ -15,6 +15,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -24,6 +25,9 @@
 
 /* ADT includes */
 #include <adt/list.h>
+
+/* Rules includes */
+#include <rules/rules.h>
 
 /* Project includes */
 #include <client.h>
@@ -39,6 +43,7 @@
 
 /* Project includes */
 #include <lookup.h>
+#include <wm.h>
 
 /* Local includes */
 #include <handler.h>
@@ -74,7 +79,7 @@ static void s_handler_refresh_workareas(surface_td *surface)
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
-void handler_property_notify(xcb_connection_t *connection,
+void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_property_notify_event_t *event)
 {
     client_td *client;
@@ -82,6 +87,8 @@ void handler_property_notify(xcb_connection_t *connection,
     desktop_td *desktop;
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
+    xcb_atom_t wm_window_role = XCB_ATOM_NONE;
+    xcb_intern_atom_reply_t *ia;
 
     (void) connection;
 
@@ -109,6 +116,14 @@ void handler_property_notify(xcb_connection_t *connection,
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_NAME)) {
         client_props_refresh_name(client);
+
+        if (surface != NULL && desktop != NULL &&
+                rules_apply(wm, client, &surface, &desktop,
+                    RULES_TRIGGER_PROPERTY)) {
+            wm_invalidate_surface(surface);
+            wm_invalidate_desktop(desktop);
+        }
+
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
         return;
@@ -120,6 +135,29 @@ void handler_property_notify(xcb_connection_t *connection,
         client_props_refresh_icon_name(client);
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
+        return;
+    }
+
+    ia = xcb_intern_atom_reply(client->connection,
+            xcb_intern_atom(client->connection, 1,
+                (uint16_t) strlen("WM_WINDOW_ROLE"),
+                "WM_WINDOW_ROLE"), NULL);
+    if (ia != NULL) {
+        wm_window_role = ia->atom;
+        free(ia);
+    }
+
+    if (event->atom == XCB_ATOM_WM_CLASS ||
+            event->atom == wm_window_role) {
+        if (event->atom == wm_window_role) {
+            client_props_refresh_role(client);
+        }
+        if (surface != NULL && desktop != NULL &&
+                rules_apply(wm, client, &surface, &desktop,
+                    RULES_TRIGGER_PROPERTY)) {
+            wm_invalidate_surface(surface);
+            wm_invalidate_desktop(desktop);
+        }
         return;
     }
 
@@ -171,6 +209,14 @@ void handler_property_notify(xcb_connection_t *connection,
 
         s_handler_refresh_workareas(surface);
 
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+        return;
+    }
+
+    if (surface != NULL && desktop != NULL &&
+            rules_apply(wm, client, &surface, &desktop,
+                RULES_TRIGGER_PROPERTY)) {
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
     }

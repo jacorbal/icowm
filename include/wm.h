@@ -32,6 +32,17 @@
 #include <surface.h>
 
 
+#ifndef RULES_TD_DECLARED
+#define RULES_TD_DECLARED
+typedef struct rules_s rules_td;
+#endif
+
+#ifndef SESSION_TD_DECLARED
+#define SESSION_TD_DECLARED
+typedef struct session_s session_td;
+#endif
+
+
 /**
  * @brief Window manager structure
  *
@@ -57,6 +68,8 @@ typedef struct {
     bool randr_available;           /**< XRandR extension availability */
     uint8_t randr_base_event;       /**< XRandR base event code */
     config_td *config;              /**< Window manager configuration */
+    rules_td *rules;                /**< Window matching rules */
+    session_td *session;            /**< Session hooks */
     const char *config_dir_prefix;  /**< Config dir. passed at startup,
                                          for @c NULL if the default
                                          config. dir. is used; kept to

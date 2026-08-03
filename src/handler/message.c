@@ -64,6 +64,45 @@
 #define MOVERESIZE_FLAG_WIDTH  (1u << 10)
 #define MOVERESIZE_FLAG_HEIGHT (1u << 11)
 
+/* '_NET_RESTACK_WINDOW' detail values (EWMH §4.3) */
+#define RESTACK_DETAIL_ABOVE     (0u)
+#define RESTACK_DETAIL_BELOW     (1u)
+#define RESTACK_DETAIL_TOP_IF    (2u)
+#define RESTACK_DETAIL_BOTTOM_IF (3u)
+#define RESTACK_DETAIL_OPPOSITE  (4u)
+
+
+/**
+ * @brief Intern a custom atom and return @c XCB_ATOM_NONE on failure
+ *
+ * @param connection XCB connection used to intern the atom
+ * @param name       Atom name string to intern
+ *
+ * @return Interned atom identifier, or @c XCB_ATOM_NONE on failure
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
+        const char *name)
+{
+    xcb_intern_atom_reply_t *ia;
+    xcb_atom_t atom = XCB_ATOM_NONE;
+
+    if (connection == NULL || name == NULL) {
+        return XCB_ATOM_NONE;
+    }
+
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 0,
+                (uint16_t) strlen(name), name),
+            NULL);
+    if (ia != NULL) {
+        atom = ia->atom;
+        free(ia);
+    }
+
+    return atom;
+}
 
 /**
  * @brief Dispatch a single EWMH @c _NET_WM_STATE atom for a given action
@@ -451,7 +490,21 @@ static void s_handle_net_wm_desktop(wm_td *wm,
 }
 
 
-/* Handle a '_NET_MOVERESIZE_WINDOW' client message */
+/**
+ * @brief Handle a @c _NET_MOVERESIZE_WINDOW client message
+ *
+ * Applies the requested move and/or resize to the target client window
+ * or frame, updates cached client geometry, and refreshes layout state
+ * when the size changes.
+ *
+ * @param wm      Window manager state
+ * @param event   Client-message event carrying the requested geometry
+ * @param client  Target client to move or resize
+ * @param surface Surface containing the client
+ * @param desktop Desktop containing the client
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_handle_net_moveresize_window(wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
@@ -547,7 +600,18 @@ static void s_handle_net_moveresize_window(wm_td *wm,
 }
 
 
-/* Apply '_NET_SHOWING_DESKTOP' request to one surface */
+/**
+ * @brief Apply a @c _NET_SHOWING_DESKTOP request to one surface
+ *
+ * Hides or restores client windows for the current desktop on the given
+ * surface and updates the surface showing-desktop state.
+ *
+ * @param surface Surface to update
+ * @param show    Whether showing-desktop mode should be enabled
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       current desktop
+ */
 static void s_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     desktop_td *desktop;
@@ -581,7 +645,137 @@ static void s_handle_net_showing_desktop(surface_td *surface, bool show)
 }
 
 
-/* Handle a 'CLIENT_MESSAGE' event */
+/**
+ * @brief Handle a @c _NET_RESTACK_WINDOW client message
+ *
+ * Restacks the target client window or frame relative to an optional
+ * sibling according to the requested EWMH stack detail, then
+ * invalidates the affected surface and desktop.
+ *
+ * @param wm      Window manager state
+ * @param event   Client-message event carrying the restack request
+ * @param client  Target client to restack
+ * @param surface Surface containing the client
+ * @param desktop Desktop containing the client
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handle_net_restack_window(wm_td *wm,
+        xcb_client_message_event_t *event,
+        client_td *client, surface_td *surface, desktop_td *desktop)
+{
+    uint32_t detail;
+    xcb_window_t sibling;
+    xcb_window_t target;
+    uint16_t mask = 0;
+    uint32_t values[2];
+    int i = 0;
+
+    if (wm == NULL || event == NULL || client == NULL) {
+        return;
+    }
+
+    detail = event->data.data32[2];
+    sibling = (xcb_window_t) event->data.data32[1];
+    target = (client->frame != 0 && client_is_decorated(client))
+        ? client->frame : client->window;
+
+    if (sibling != XCB_NONE) {
+        mask |= XCB_CONFIG_WINDOW_SIBLING;
+        values[i++] = sibling;
+    }
+
+    if (detail == RESTACK_DETAIL_BELOW) {
+        mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+        values[i++] = XCB_STACK_MODE_BELOW;
+    } else if (detail == RESTACK_DETAIL_TOP_IF) {
+        mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+        values[i++] = XCB_STACK_MODE_TOP_IF;
+    } else if (detail == RESTACK_DETAIL_BOTTOM_IF) {
+        mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+        values[i++] = XCB_STACK_MODE_BOTTOM_IF;
+    } else if (detail == RESTACK_DETAIL_OPPOSITE) {
+        mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+        values[i++] = XCB_STACK_MODE_OPPOSITE;
+    } else {
+        mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+        values[i++] = XCB_STACK_MODE_ABOVE;
+    }
+
+    xcb_configure_window(wm->connection, target, mask, values);
+    xcb_flush(wm->connection);
+    wm_invalidate_surface(surface);
+    wm_invalidate_desktop(desktop);
+}
+
+
+/**
+ * @brief Handle a @c _NET_WM_FULLSCREEN_MONITORS client message
+ *
+ * Stores the requested fullscreen monitor indices on the client window
+ * and reapplies fullscreen layout when the client is already
+ * fullscreen.
+ *
+ * @param wm      Window manager state
+ * @param event   Client-message event carrying the monitor indices
+ * @param client  Target client
+ * @param surface Surface containing the client
+ * @param desktop Desktop containing the client
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handle_net_wm_fullscreen_monitors(wm_td *wm,
+        xcb_client_message_event_t *event,
+        client_td *client, surface_td *surface, desktop_td *desktop)
+{
+    uint32_t monitors[4];
+
+    if (wm == NULL || event == NULL || client == NULL ||
+            wm->ewmh == NULL) {
+        return;
+    }
+
+    monitors[0] = event->data.data32[0];
+    monitors[1] = event->data.data32[1];
+    monitors[2] = event->data.data32[2];
+    monitors[3] = event->data.data32[3];
+
+    xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+            client->window,
+            s_intern_atom(wm->connection, "_NET_WM_FULLSCREEN_MONITORS"),
+            XCB_ATOM_CARDINAL, 32, 4, monitors);
+
+    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN) {
+        wcmd_client_fullscreen(client);
+    }
+
+    wm_invalidate_surface(surface);
+    wm_invalidate_desktop(desktop);
+}
+
+
+
+/**
+ * @brief Dispatch a @c ClientMessage event to the appropriate handler
+ *
+ * Interprets an incoming @c ClientMessage according to EWMH/WM
+ * protocols and forwards it to the specific handler function for the
+ * target client, surface, or desktop.
+ *
+ * Recognized messages include:
+ * @c _NET_WM_STATE, @c _NET_RESTACK_WINDOW,
+ * @c _NET_WM_FULLSCREEN_MONITORS, @c _NET_ACTIVE_WINDOW,
+ * @c _NET_CLOSE_WINDOW, @c _NET_WM_DESKTOP,
+ * @c _NET_CURRENT_DESKTOP, @c _NET_MOVERESIZE_WINDOW,
+ * @c _NET_REQUEST_FRAME_EXTENTS, @c _NET_SHOWING_DESKTOP,
+ * @c _NET_WM_PING, and @c WM_CHANGE_STATE.
+ *
+ * @param wm    Window manager state
+ * @param event Raw @c ClientMessage event received from XCB
+ *
+ * @note Complexity: @e O(1) for dispatch, excluding the cost of any
+ *       delegated handler
+ */
 void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event)
 {
@@ -589,6 +783,8 @@ void handler_client_message(wm_td *wm,
     surface_td *surface;
     desktop_td *desktop;
     xcb_atom_t wm_change_state;
+    xcb_atom_t net_restack_window;
+    xcb_atom_t net_wm_fullscreen_monitors;
     xcb_intern_atom_reply_t *ia;
 
     if (wm == NULL || event == NULL || wm->ewmh == NULL) {
@@ -598,11 +794,36 @@ void handler_client_message(wm_td *wm,
     LOGGER_TRACE("Client message: window=0x%x, type=%u",
             event->window, event->type);
 
+    net_restack_window = s_intern_atom(wm->connection,
+            "_NET_RESTACK_WINDOW");
+    net_wm_fullscreen_monitors = s_intern_atom(wm->connection,
+            "_NET_WM_FULLSCREEN_MONITORS");
+
     if (event->type == wm->ewmh->_NET_WM_STATE) {
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
             s_handle_net_wm_state(client, event, wm->ewmh,
+                    surface, desktop);
+        }
+        return;
+    }
+
+    if (event->type == net_restack_window) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+        if (client != NULL) {
+            s_handle_net_restack_window(wm, event, client,
+                    surface, desktop);
+        }
+        return;
+    }
+
+    if (event->type == net_wm_fullscreen_monitors) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+        if (client != NULL) {
+            s_handle_net_wm_fullscreen_monitors(wm, event, client,
                     surface, desktop);
         }
         return;
@@ -752,3 +973,5 @@ void handler_client_message(wm_td *wm,
         }
     } /* ! if (!ia) */
 }
+
+

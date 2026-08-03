@@ -81,6 +81,30 @@ Basic features are:
     subsequently be reloaded in response to a `SIGHUP` signal, without
     restarting the window manager.
 
+  - **Per-window rules.**
+    Optional rules can match window
+    instance/class/role/title/type/transient and apply desktop, layer,
+    focus and initial geometry with deterministic precedence (last
+    matching rule wins).  Rules can be map-only or also apply on
+    property changes.
+
+  - **Session hooks.**
+    Optional asynchronous hooks (`on-start`, `on-reload`, `on-exit`) can
+    launch external processes (panel/compositor/daemons) with PID and
+    termination logging.
+
+  - **Per-window rules.**
+    Optional rules can match window
+    instance/class/role/title/type/transient and apply desktop, layer,
+    focus and initial geometry with deterministic precedence (last
+    matching rule wins).  Rules can be map-only or also apply on
+    property changes.
+
+  - **Session hooks.**
+    Optional asynchronous hooks (`on-start`, `on-reload`, `on-exit`) can
+    launch external processes (panel/compositor/daemons) with PID and
+    termination logging.
+
   - **Iconifying (classical).**
     Instead of classical minimization, the window is iconified on the
     desktop in TWM-style.  Icon placement follows a configurable policy

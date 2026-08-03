@@ -24,13 +24,8 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
-/* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <invalidate.h>
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
+/* Rules includes */
+#include <rules/rules.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -38,6 +33,14 @@
 
 /* Input includes */
 #include <input/mouse/drag.h>
+
+/* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <invalidate.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Command includes */
 #include <cmds/ccmd.h>
@@ -187,6 +190,11 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     /* Refresh work area in case the new client declares struts */
     surface_refresh_workareas(surface);
+
+    if (rules_apply(wm, client, &surface, &desktop, RULES_TRIGGER_MAP)) {
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+    }
 
     /* Dock/panel windows self-position; do not override their geometry */
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {

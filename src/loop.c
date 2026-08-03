@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* strerror */
-#include <sys/wait.h>   /* waitpid */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -30,6 +29,9 @@
 
 /* ADT includes */
 #include <adt/list.h>
+
+/* Session includes */
+#include <session/session.h>
 
 /* Render includes */
 #include <render/surface.h>
@@ -200,8 +202,7 @@ void loop_run(wm_td *wm)
         }
 
         if (startup_child_reap_requested()) {
-            while (waitpid(-1, NULL, WNOHANG) > 0) {
-            }
+            session_reap_children();
         }
 
         if (xcb_connection_has_error(wm->connection) != 0) {
@@ -302,7 +303,7 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_PROPERTY_NOTIFY:
-                    handler_property_notify(wm->connection,
+                    handler_property_notify(wm, wm->connection,
                             wm->surfaces,
                             (xcb_property_notify_event_t *) event);
                     break;

@@ -25,6 +25,12 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Session includes */
+#include <session/session.h>
+
+/* Rules includes */
+#include <rules/rules.h>
+
 /* Render includes */
 #include <render/text.h>
 
@@ -71,11 +77,26 @@ static void s_wm_cleanup(void)
         return;
     }
 
+    if (wm->session != NULL) {
+        session_run_hook(wm->session, wm->connection,
+                SESSION_HOOK_EXIT);
+    }
+
     text_renderer_destroy();
 
     if (wm->surfaces != NULL) {
         list_destroy(wm->surfaces);
         wm->surfaces = NULL;
+    }
+
+    if (wm->rules != NULL) {
+        rules_destroy(wm->rules);
+        wm->rules = NULL;
+    }
+
+    if (wm->session != NULL) {
+        session_destroy(wm->session);
+        wm->session = NULL;
     }
 
     eventq_stop();  /* Safe even if eventq was never started */
@@ -131,6 +152,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm->ewmh = NULL;
     wm->ewmh_support_win = XCB_NONE;
     wm->config = NULL;
+    wm->rules = NULL;
+    wm->session = NULL;
     wm->surfaces = NULL;
     wm->randr_available = false;
     wm->randr_base_event = 0u;
@@ -176,6 +199,16 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     LOGGER_DEBUG("Loading configuration into window manager", L_NARG);
     wm->config_dir_prefix = config_dir_prefix;
     config_load(wm->config, wm->config_dir_prefix);
+
+    wm->rules = rules_init();
+    if (wm->rules != NULL) {
+        (void) rules_load(wm->rules, wm->config_dir_prefix);
+    }
+
+    wm->session = session_init();
+    if (wm->session != NULL) {
+        (void) session_load(wm->session, wm->config_dir_prefix);
+    }
 
     if (eventq_start() != 0) {
         LOGGER_FATAL("Failed to initialize event queue", L_NARG);
@@ -276,6 +309,9 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     LOGGER_DEBUG("Setting running status flag to 'true'", L_NARG);
     wm->is_running = true;
+    if (wm->session != NULL) {
+        session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
+    }
     loop_run(wm);
 
     return 0;
