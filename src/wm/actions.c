@@ -72,10 +72,12 @@ int wm_action_config_reload(void)
                 continue;
             }
 
-            d->background.is_image = false;
-            d->background.bg.color =
-                cb->screens[s->id].desktops[i].settings.background.color;
-            d->is_outdated = true;
+            
+            if (!d->background.is_image &&
+                    !d->background.use_root_pixmap) {
+                d->background.bg.color =
+                    cb->screens[s->id].desktops[i].settings.background.color;
+            }
         }
 
         s->is_outdated = true;

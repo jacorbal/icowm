@@ -300,10 +300,11 @@ void handler_unmap_notify(xcb_connection_t *connection,
                     desktop, client);
         }
 
-        /* Unmap decoration windows so they do not float without
-         * content.  Increment ignore_unmap for each WM-initiated unmap
-         * so the resulting 'UnmapNotify' events do not re-enter this
-         * handler. */
+        /* When a managed client withdraws itself (for example, to
+         * a system tray), unmap every WM-created decoration and mark
+         * the client hidden so later render passes never remap the
+         * ghost frame */
+        client_set_hidden(client);
         if (client->frame != 0) {
             client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->frame);
@@ -312,6 +313,11 @@ void handler_unmap_notify(xcb_connection_t *connection,
             client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->titlebar);
         }
+        wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, XCB_NONE);
+        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+        wm_request_client_redraw(client);
+
         if (connection != NULL) {
             xcb_flush(connection);
         }

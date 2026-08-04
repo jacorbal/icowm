@@ -73,6 +73,8 @@ typedef struct desktop_s {
 
     struct background_s {
         bool is_image;                      /**< BG color or image? */
+        bool use_root_pixmap;               /**< Reuse externally set
+                                                 root pixmap on redraw */
         union {
             uint32_t color;                 /**< Background color */
             char *image_path;               /**< Background image */

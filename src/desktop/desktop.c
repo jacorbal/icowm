@@ -218,6 +218,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     /* Set background color */
     desktop->background.is_image = false;
+    desktop->background.use_root_pixmap = false;
     desktop->background.bg.color =
         config_base->screens[screen_id].desktops[desktop_id].settings.background.color;
 
@@ -521,6 +522,7 @@ int desktop_action_background_update(desktop_td *desktop, uint32_t color)
     }
 
     desktop->background.is_image = false;
+    desktop->background.use_root_pixmap = false;
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
 

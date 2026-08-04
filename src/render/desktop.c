@@ -17,8 +17,10 @@
  */
 
 /* System includes */
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -40,12 +42,81 @@
 #include <render/desktop.h>
 
 
+/**
+ */
+static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
+        const char *name)
+{
+    xcb_intern_atom_reply_t *reply;
+    xcb_atom_t atom = XCB_ATOM_NONE;
+
+    if (connection == NULL || name == NULL) {
+        return XCB_ATOM_NONE;
+    }
+
+    reply = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1,
+                (uint16_t) strlen(name), name), NULL);
+
+    if (reply != NULL) {
+        atom = reply->atom;
+        free(reply);
+    }
+
+    return atom;
+}
+
+
+/**
+ */
+static xcb_pixmap_t
+    s_get_root_background_pixmap(xcb_connection_t *connection,
+            xcb_window_t root)
+{
+    const char *prop_names[] = { "_XROOTPMAP_ID", "ESETROOT_PMAP_ID" };
+    const size_t prop_count = sizeof(prop_names) / sizeof(prop_names[0]);
+
+    if (connection == NULL || root == XCB_WINDOW_NONE) {
+        return XCB_NONE;
+    }
+
+    for (size_t i = 0; i < prop_count; ++i) {
+        xcb_atom_t prop = s_intern_atom(connection, prop_names[i]);
+        xcb_get_property_reply_t *reply;
+        xcb_pixmap_t pixmap = XCB_NONE;
+        if (prop == XCB_ATOM_NONE) {
+            continue;
+        }
+
+        reply = xcb_get_property_reply(connection,
+                xcb_get_property(connection, 0, root, prop,
+                    XCB_ATOM_PIXMAP, 0, 1), NULL);
+        if (reply == NULL) {
+            continue;
+        }
+
+        if (reply->format == 32 && reply->value_len >= 1 &&
+                xcb_get_property_value(reply) != NULL) {
+            pixmap = *((xcb_pixmap_t *) xcb_get_property_value(reply));
+        }
+        free(reply);
+
+        if (pixmap != XCB_NONE) {
+            return pixmap;
+        }
+    }
+
+    return XCB_NONE;
+}
+
+
 /* Draw the background of a desktop */
 int desktop_render_background(desktop_td *desktop)
 {
     xcb_screen_t *screen;
     xcb_screen_iterator_t iter;
     uint32_t values[2];
+    xcb_pixmap_t root_pixmap;
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received null desktop pointer", L_NARG);
@@ -81,16 +152,21 @@ int desktop_render_background(desktop_td *desktop)
 
     screen = iter.data;
 
-    /* Clear any existing background pixmap, then set the background
-     * pixel and repaint the root window.  Values are ordered by
-     * ascending bit position: 'XCB_CW_BACK_PIXMAP' (bit 0) comes before
-     * 'XCB_CW_BACK_PIXEL' (bit 1).  Unsetting the background pixmap
-     * ensures that 'xcb_clear_area' fills with the pixel color rather
-     * than the previous pixmap. */
-    values[0] = XCB_BACK_PIXMAP_NONE;
-    values[1] = desktop->background.bg.color;
-    xcb_change_window_attributes(desktop->connection, screen->root,
-            XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
+    root_pixmap = s_get_root_background_pixmap(desktop->connection,
+            screen->root);
+    if (root_pixmap != XCB_NONE) {
+        desktop->background.use_root_pixmap = true;
+        values[0] = root_pixmap;
+        xcb_change_window_attributes(desktop->connection, screen->root,
+                XCB_CW_BACK_PIXMAP, values);
+    } else {
+        desktop->background.use_root_pixmap = false;
+        values[0] = XCB_BACK_PIXMAP_NONE;
+        values[1] = desktop->background.bg.color;
+        xcb_change_window_attributes(desktop->connection, screen->root,
+                XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
+    }
+
     xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
             screen->width_in_pixels, screen->height_in_pixels);
 
