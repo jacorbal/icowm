@@ -1,8 +1,8 @@
 {
     "on-start": [
+        "xsetbg -fullscreen ~/.background",
         "tint2",
-        "redshift-gtk",
-        "volumeicon"
+        "redshift-gtk"
     ],
     "on-reload": [
         "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"

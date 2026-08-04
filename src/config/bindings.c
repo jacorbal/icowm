@@ -70,6 +70,7 @@ int config_load_bindings(const char *filename,
         cJSON *launch;
         cJSON *window;
         cJSON *cycle;
+        cJSON *go_to;
 
         launch = cJSON_GetObjectItem(keyboard, "launch");
         if (launch) {
@@ -185,24 +186,21 @@ int config_load_bindings(const char *filename,
             }
 
             json_load_string(window, "show-desktop",
-                    config_bindings->keyboard.window.show_desktop,
+                    config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);
-            /* Direct goto-desktop shortcuts 0-9 */
-            {
-                cJSON *window_goto =
-                    cJSON_GetObjectItem(window, "goto");
-                if (window_goto != NULL) {
-                    static const char *keys[10] = {
-                        "desktop0", "desktop1", "desktop2",
-                        "desktop3", "desktop4", "desktop5",
-                        "desktop6", "desktop7", "desktop8",
-                        "desktop9"
-                    };
-                    for (int gi = 0; gi < 10; ++gi) {
-                        json_load_string(window_goto, keys[gi],
-                                config_bindings->keyboard.window.go_to.desktop[gi],
-                                CONFIG_MAX_LENGTH_BINDING);
-                    }
+            /* Direct go-to shortcuts 0-9 */
+            go_to = cJSON_GetObjectItem(wm, "go-to");
+            if (go_to != NULL) {
+                static const char *keys[10] = {
+                    "desktop0", "desktop1", "desktop2",
+                    "desktop3", "desktop4", "desktop5",
+                    "desktop6", "desktop7", "desktop8",
+                    "desktop9"
+                };
+                for (int gi = 0; gi < 10; ++gi) {
+                    json_load_string(go_to, keys[gi],
+                            config_bindings->keyboard.wm.go_to.desktop[gi],
+                            CONFIG_MAX_LENGTH_BINDING);
                 }
             }
         }

@@ -56,5 +56,5 @@
         }
     },
     "show-desktop-notify": true,
-    "enable-emergency-shortcut": false
+    "enable-emergency-shortcut": true
 }

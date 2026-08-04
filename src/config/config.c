@@ -245,6 +245,31 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+c");
     safe_strcpy(config->bindings.keyboard.wm.quit,
             "modc+mod1+mods+x");
+    safe_strcpy(config->bindings.keyboard.wm.show_desktop,
+            "modc+mod1+mods+d");
+
+    /* Predetermined goto-desktop shortcuts for desktops 0-9 */
+    LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[0],
+            "modc+mod1+0");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[1],
+            "modc+mod1+1");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[2],
+            "modc+mod1+2");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[3],
+            "modc+mod1+3");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[4],
+            "modc+mod1+4");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[5],
+            "modc+mod1+5");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[6],
+            "modc+mod1+6");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[7],
+            "modc+mod1+7");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[8],
+            "modc+mod1+8");
+    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[9],
+            "modc+mod1+9");
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -275,31 +300,6 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+k");
     safe_strcpy(config->bindings.keyboard.window.resize.down,
             "modc+mod1+mods+j");
-    safe_strcpy(config->bindings.keyboard.window.show_desktop,
-            "modc+mod1+mods+d");
-
-    /* Predetermined goto-desktop shortcuts for desktops 0-9 */
-    LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[0],
-            "modc+mod1+0");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[1],
-            "modc+mod1+1");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[2],
-            "modc+mod1+2");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[3],
-            "modc+mod1+3");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[4],
-            "modc+mod1+4");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[5],
-            "modc+mod1+5");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[6],
-            "modc+mod1+6");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[7],
-            "modc+mod1+7");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[8],
-            "modc+mod1+8");
-    safe_strcpy(config->bindings.keyboard.window.go_to.desktop[9],
-            "modc+mod1+9");
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);

@@ -138,6 +138,13 @@ struct config_bindings_s {
             char redraw[CONFIG_MAX_LENGTH_BINDING];
             char reload[CONFIG_MAX_LENGTH_BINDING];
             char quit[CONFIG_MAX_LENGTH_BINDING];
+
+            char show_desktop[CONFIG_MAX_LENGTH_BINDING];
+
+            /* Direct desktop goto shortcuts (indices 0-9) */
+            struct {
+                char desktop[10][CONFIG_MAX_LENGTH_BINDING];
+            } go_to;
         } wm;
 
         struct {
@@ -185,13 +192,6 @@ struct config_bindings_s {
                 char up[CONFIG_MAX_LENGTH_BINDING];
                 char down[CONFIG_MAX_LENGTH_BINDING];
             } resize;
-
-            char show_desktop[CONFIG_MAX_LENGTH_BINDING];
-
-            /* Direct desktop goto shortcuts (indices 0-9) */
-            struct {
-                char desktop[10][CONFIG_MAX_LENGTH_BINDING];
-            } go_to;
         } window;
 
         struct {

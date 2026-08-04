@@ -1007,9 +1007,10 @@ ignored.
         },
 
         "wm": {
+            "show-desktop": "modc+mod1+mods+d",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
-            "quit": "modc+mod1+mods+x"
+            "quit": "modc+mod1+mods+x",
         },
 
         "cycle": {

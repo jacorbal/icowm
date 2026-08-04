@@ -11,9 +11,22 @@
     },
     "keyboard": {
         "wm": {
+            "show-desktop": "modc+mod1+mods+d",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
-            "quit": "modc+mod1+mods+x"
+            "quit": "modc+mod1+mods+x",
+            "go-to": {
+                "desktop0": "modc+mod1+0",
+                "desktop1": "modc+mod1+1",
+                "desktop2": "modc+mod1+2",
+                "desktop3": "modc+mod1+3",
+                "desktop4": "modc+mod1+4",,
+                "desktop5": "modc+mod1+5",
+                "desktop6": "modc+mod1+6",
+                "desktop7": "modc+mod1+7",
+                "desktop8": "modc+mod1+8",
+                "desktop9": "modc+mod1+9"
+            }
         },
         "launch": {
             "terminal": "modc+mod1+Enter",

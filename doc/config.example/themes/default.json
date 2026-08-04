@@ -6,7 +6,7 @@
     "window": {
         "general": {
             "border-width": 2,
-            "is-decorated": true
+            "is-decorated": false
         },
         "active": {
             "background-color": "#454f5b",
@@ -35,10 +35,10 @@
             "font": "fixed"
         },
         "inactive": {
-            "background-color": "#282c31",
-            "foreground-color": "#7a8087",
+            "background-color": "#f0f0f0",
+            "foreground-color": "#33383e",
             "border-color": "#33383e",
-            "font": "fixed"
+            "font": "fixed bold"
         }
     }
 }
