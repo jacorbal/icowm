@@ -599,6 +599,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 client->layout.geometry.cur.pos.x;
                             int32_t new_y =
                                 client->layout.geometry.cur.pos.y;
+                            /* 's_kb_resize_axis_target' and
+                             * 'client_send_event_resize' both operate
+                             * in frame space (outer dimensions
+                             * including decoration extents).  Use the
+                             * raw frame dimensions here; the callee
+                             * subtracts extents internally when it
+                             * needs inner sizes. */
                             uint32_t old_w =
                                 client->layout.geometry.cur.dim.w;
                             uint32_t old_h = client_is_shaded(client)

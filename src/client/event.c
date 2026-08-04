@@ -255,38 +255,35 @@ int client_send_event_resize(client_td *client,
     req_w += fe_l + fe_r;
     req_h += fe_t + fe_b;
 
-    /* Update client's internal geometry */
-    client->layout.geometry.cur.pos.x = req_x;
-    client->layout.geometry.cur.pos.y = req_y;
-    client->layout.geometry.cur.dim.w = req_w;
-    client->layout.geometry.cur.dim.h = req_h;
-
-    /* Configure the XCB window immediately */
-    /* For decorated clients the frame must be resized; resizing only
-     * the inner window would leave the decoration at the wrong size */
     interactive_resize =
         client->properties.operation == CLIENT_OPERATION_RESIZING;
-    mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-    values[0] = req_w;
-    values[1] = req_h;
-    if (req_x != old_x || req_y != old_y) {
-        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = (uint32_t) req_x;
-        values[1] = (uint32_t) req_y;
-        values[2] = req_w;
-        values[3] = req_h;
-    }
-
-    xcb_configure_window(client->connection,
-            (client->frame != 0 && client_is_decorated(client))
-                ? client->frame : client->window,
-            mask,
-            values);
-    client_sync_decoration_layout(client);
-    xcb_flush(client->connection);
 
     if (interactive_resize) {
+        /* During interactive mouse resizing, apply the geometry
+         * immediately so the user sees live feedback */
+        client->layout.geometry.cur.pos.x = req_x;
+        client->layout.geometry.cur.pos.y = req_y;
+        client->layout.geometry.cur.dim.w = req_w;
+        client->layout.geometry.cur.dim.h = req_h;
+        mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = req_w;
+        values[1] = req_h;
+        if (req_x != old_x || req_y != old_y) {
+            mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+            values[0] = (uint32_t) req_x;
+            values[1] = (uint32_t) req_y;
+            values[2] = req_w;
+            values[3] = req_h;
+        }
+        xcb_configure_window(client->connection,
+                (client->frame != 0 && client_is_decorated(client))
+                ? client->frame : client->window,
+                mask,
+                values);
+        client_sync_decoration_layout(client);
+        xcb_flush(client->connection);
+
         return 0;
     }
 

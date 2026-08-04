@@ -155,6 +155,14 @@ void client_sync_decoration_layout(client_td *client)
                     left, title_y, inner_w, title_h
                 });
     }
+
+    /* Force the reparented client area to repaint immediately after the
+     * frame/title layout changes.  Some applications (e.g., gVim) do
+     * not fully repaint the newly exposed lower area until an
+     * additional expose-triggering action occurs, which is visible only
+     * when window decorations are enabled because undecorated clients
+     * bypass this reparented layout path entirely. */
+    xcb_clear_area(client->connection, 0, client->window, 0, 0, 0, 0);
 }
 
 
