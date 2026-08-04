@@ -172,7 +172,12 @@ void wcmd_client_resize(client_td *client,
      * point. */
     client_sync_decoration_layout(client);
 
-    xcb_clear_area(client->connection, 0, client->window, 0, 0, 0, 0);
+    /* Use 'exposures=1' so the X server generates an Expose event and
+     * the client (e.g., gVim) redraws the newly exposed area
+     * immediately after a non-interactive (keyboard or programmatic)
+     * resize, rather than leaving stale content until the next
+     * user-triggered redraw. */
+    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 
     /* Mark the client's desktop as outdated so the frame decoration
      * (titlebar background, text, border grips) is repainted on the

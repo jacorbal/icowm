@@ -157,12 +157,12 @@ void client_sync_decoration_layout(client_td *client)
     }
 
     /* Force the reparented client area to repaint immediately after the
-     * frame/title layout changes.  Some applications (e.g., gVim) do
-     * not fully repaint the newly exposed lower area until an
-     * additional expose-triggering action occurs, which is visible only
-     * when window decorations are enabled because undecorated clients
-     * bypass this reparented layout path entirely. */
-    xcb_clear_area(client->connection, 0, client->window, 0, 0, 0, 0);
+     * frame/title layout changes.  Using 'exposures=1' causes the
+     * X server to generate an Expose event so applications that do not
+     * repaint on 'ConfigureNotify' alone (e.g., gVim) redraw the newly
+     * exposed lower area without requiring an additional user-triggered
+     * action. */
+    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 }
 
 

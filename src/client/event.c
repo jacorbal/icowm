@@ -285,11 +285,13 @@ int client_send_event_resize(client_td *client,
 
         /* For undecorated clients 'client_sync_decoration_layout' is
          * a no-op, so the content window does not receive
-         * a 'xcb_clear_area' call there.  Force a repaint explicitly so
-         * the newly exposed region is filled immediately rather than
-         * remaining stale until the next user-triggered redraw. */
+         * a 'xcb_clear_area' call there.  Force a repaint with
+         * 'exposures=1' so the X server generates an Expose event and
+         * the client (e.g., gVim) redraws the newly exposed region
+         * immediately rather than leaving stale content until the next
+         * user-triggered event. */
         if (client->frame == 0 || !client_is_decorated(client)) {
-            xcb_clear_area(client->connection, 0,
+            xcb_clear_area(client->connection, 1,
                     client->window, 0, 0, 0, 0);
         }
         /* Send a synthetic 'ConfigureNotify' so applications that use
