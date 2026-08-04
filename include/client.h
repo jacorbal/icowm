@@ -311,7 +311,10 @@ typedef struct client_s {
     uint32_t last_ping_sent;    /**< X timestamp of last ping sent */
     uint32_t last_ping_reply;   /**< X timestamp of last ping reply */
 
-
+    bool is_outdated;           /**< Geometry or decoration changed;
+                                     full configure+repaint needed on
+                                     next render pass (cleared after
+                                     render) */
 } client_td;
 
 

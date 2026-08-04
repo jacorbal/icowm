@@ -21,8 +21,32 @@
 
 
 /* Project includes */
+#include <client.h>
 #include <desktop.h>
 #include <surface.h>
+
+
+/**
+ * @brief Mark a client as needing a full geometry configure and repaint
+ *
+ * Sets the per-client @p is_outdated flag so that the next
+ * @c desktop_render_clients pass issues the heavyweight
+ * @c xcb_configure_window, @c xcb_clear_area (with exposures), and
+ * synthetic @c ConfigureNotify calls only for this client rather than
+ * for every client on the desktop.  This avoids triggering spurious
+ * redraws (and visible flicker) in other windows during a keyboard
+ * resize or any operation that affects only a single client.
+ *
+ * @param c Client to invalidate, or @c NULL (no-op)
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline void wm_invalidate_client(client_td *c)
+{
+    if (c != NULL) {
+        c->is_outdated = true;
+    }
+}
 
 
 /**

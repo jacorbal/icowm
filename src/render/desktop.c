@@ -492,82 +492,161 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             }
         }
 
-        /* Configure position and size */
-        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-               XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = client->layout.geometry.cur.pos.x;
-        values[1] = client->layout.geometry.cur.pos.y;
-        values[2] = (int32_t) client->layout.geometry.cur.dim.w;
-        values[3] = (int32_t) client->layout.geometry.cur.dim.h;
+        if (client->is_outdated) {
+            /* Configure position and size — only when the client's
+             * geometry or decoration changed.  Skipping this for
+             * up-to-date clients prevents the server from generating
+             * spurious 'ConfigureNotify' and 'Expose' events that cause
+             * other windows (e.g., gVim) to unnecessarily redraw,
+             * which appears as flicker during keyboard resize of an
+             * unrelated client. */
+            mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                   XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+            values[0] = client->layout.geometry.cur.pos.x;
+            values[1] = client->layout.geometry.cur.pos.y;
+            values[2] = (int32_t) client->layout.geometry.cur.dim.w;
+            values[3] = (int32_t) client->layout.geometry.cur.dim.h;
 
-        xcb_configure_window(desktop->connection, target, mask,
-                (uint32_t *) values);
+            xcb_configure_window(desktop->connection, target, mask,
+                    (uint32_t *) values);
+            if (target != client->window) {
+                left = (uint16_t) client->layout.frame_extents.left;
+                right = (uint16_t) client->layout.frame_extents.right;
+                top = (uint16_t) client->layout.frame_extents.top;
+                bottom = (uint16_t) client->layout.frame_extents.bottom;
+                title_h = client->title_height;
+                inner_w = (client->layout.geometry.cur.dim.w > left + right)
+                    ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                            left - right)
+                    : 1;
+                inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
+                    ? (uint16_t) (client->layout.geometry.cur.dim.h -
+                            top - bottom)
+                    : 1;
 
-        if (target != client->window) {
+                xcb_configure_window(desktop->connection, client->window,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                            left, top, inner_w, inner_h
+                        });
+
+                /* ICCCM §4.2.3: the xcb_configure_window above positions
+                 * the inner window relative to the frame (x=left, y=top),
+                 * so the X server delivers a 'ConfigureNotify' to the
+                 * client with those frame-relative coordinates.  Override
+                 * it immediately with a synthetic 'ConfigureNotify'
+                 * carrying the true screen-relative position so the
+                 * client's last geometry notification is always correct.
+                 * Without this the client (e.g., 'gVim') sees
+                 * a frame-relative 'ConfigureNotify' as its final event on
+                 * every render pass, including the very first one after the
+                 * window is mapped, causing misaligned popups and a content
+                 * area that appears not to fill the frame until the next
+                 * user-triggered repaint. */
+                client_send_synthetic_configure_notify(desktop->connection,
+                        client);
+
+                /* Force a repaint AFTER the synthetic 'ConfigureNotify' so
+                 * the client (e.g., 'gVim') always redraws at its correct
+                 * screen-relative geometry.  Programs like 'gVim' do not
+                 * redraw on 'ConfigureNotify' alone; this 'Expose' ensures
+                 * the drawing happens at the right size and position after
+                 * every render pass, including the initial map and
+                 * post-resize redraws.  'exposures=1' causes the X server
+                 * to generate an 'Expose' event, which arrives in the
+                 * client's queue after both the 'xcb_configure_window' and
+                 * the synthetic 'ConfigureNotify' above. */
+                xcb_clear_area(desktop->connection, 1,
+                        client->window, 0, 0, 0, 0);
+                desktop_repaint_frame_decoration(desktop->connection, client,
+                        is_focused, desktop->config_theme);
+
+                if (client->titlebar != 0 && !hide_decoration) {
+                    xcb_configure_window(desktop->connection,
+                            client->titlebar,
+                            XCB_CONFIG_WINDOW_X     |
+                            XCB_CONFIG_WINDOW_Y     |
+                            XCB_CONFIG_WINDOW_WIDTH |
+                            XCB_CONFIG_WINDOW_HEIGHT,
+                            (const uint32_t[]) {
+                                left,
+                                (top > title_h) ? top - title_h : 0,
+                                inner_w, title_h
+                            });
+                    xcb_change_window_attributes(desktop->connection,
+                            client->titlebar, XCB_CW_BACK_PIXEL,
+                            (const uint32_t[]) {
+                        (is_focused)
+                    ? desktop->config_theme->window.active.background_color
+                    : desktop->config_theme->window.inactive.background_color
+                            });
+                    xcb_clear_area(desktop->connection, 0,
+                            client->titlebar, 0, 0, 0, 0);
+                    text_renderer_init(desktop->connection,
+                            (is_focused)
+                                ? desktop->config_theme->window.active.font
+                                : desktop->config_theme->window.inactive.font);
+
+                    /* Use theme foreground color so text contrasts against
+                     * the titlebar background (active or inactive) */
+                    text_renderer_set_color(
+                    (is_focused)
+                    ? desktop->config_theme->window.active.foreground_color
+                    : desktop->config_theme->window.inactive.foreground_color,
+                    (is_focused)
+                    ? desktop->config_theme->window.active.background_color
+                    : desktop->config_theme->window.inactive.background_color);
+
+                    text_draw_string(desktop->connection,
+                            client->titlebar, XCB_NONE,
+                            (int16_t) (WM_DECOR_BTN_PAD +
+                                2u * (WM_DECOR_BTN_SIZE +
+                                    WM_DECOR_BTN_GAP) +
+                                WM_DECOR_BTN_GAP),
+                            (int16_t) ((title_h >
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
+                            ? title_h -
+                                (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
+                            : title_h),
+                            client->info.name);
+
+                    desktop_draw_titlebar_buttons(desktop->connection,
+                            client->titlebar,
+                            inner_w,
+                            title_h,
+                            is_focused,
+                            (bool) client_is_sticky(client),
+                            (client->properties.layer != CLIENT_LAYER_NORMAL),
+                            (!client_is_fullscreen(client) &&
+                             (bool) client_is_resizable(client)),
+                            desktop->config_theme);
+                } else if (client->titlebar != 0) {
+                    xcb_unmap_window(desktop->connection, client->titlebar);
+                }
+            }
+
+            client->is_outdated = false;
+        } else if (target != client->window) {
+            /* The client geometry has not changed; only refresh the
+             * focus-sensitive decoration colors (border and titlebar
+             * background/text) so that focus changes are always
+             * reflected without triggering unnecessary redraws in
+             * other windows. */
             left = (uint16_t) client->layout.frame_extents.left;
             right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
             bottom = (uint16_t) client->layout.frame_extents.bottom;
             title_h = client->title_height;
-        inner_w = (client->layout.geometry.cur.dim.w > left + right)
-            ? (uint16_t) (client->layout.geometry.cur.dim.w -
-                    left - right)
-            : 1;
-        inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
-            ? (uint16_t) (client->layout.geometry.cur.dim.h -
-                    top - bottom)
-            : 1;
-
-            xcb_configure_window(desktop->connection, client->window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                    (const uint32_t[]) {
-                        left, top, inner_w, inner_h
-                    });
-
-            /* ICCCM §4.2.3: the xcb_configure_window above positions
-             * the inner window relative to the frame (x=left, y=top),
-             * so the X server delivers a 'ConfigureNotify' to the
-             * client with those frame-relative coordinates.  Override
-             * it immediately with a synthetic 'ConfigureNotify'
-             * carrying the true screen-relative position so the
-             * client's last geometry notification is always correct.
-             * Without this the client (e.g., 'gVim') sees
-             * a frame-relative 'ConfigureNotify' as its final event on
-             * every render pass, including the very first one after the
-             * window is mapped, causing misaligned popups and a content
-             * area that appears not to fill the frame until the next
-             * user-triggered repaint. */
-            client_send_synthetic_configure_notify(desktop->connection,
-                    client);
-
-            /* Force a repaint AFTER the synthetic 'ConfigureNotify' so
-             * the client (e.g., 'gVim') always redraws at its correct
-             * screen-relative geometry.  Programs like 'gVim' do not
-             * redraw on 'ConfigureNotify' alone; this 'Expose' ensures
-             * the drawing happens at the right size and position after
-             * every render pass, including the initial map and
-             * post-resize redraws.  'exposures=1' causes the X server
-             * to generate an 'Expose' event, which arrives in the
-             * client's queue after both the 'xcb_configure_window' and
-             * the synthetic 'ConfigureNotify' above. */
-            xcb_clear_area(desktop->connection, 1,
-                    client->window, 0, 0, 0, 0);
+            inner_w = (client->layout.geometry.cur.dim.w > left + right)
+                ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                        left - right)
+                : 1;
 
             desktop_repaint_frame_decoration(desktop->connection, client,
                     is_focused, desktop->config_theme);
 
             if (client->titlebar != 0 && !hide_decoration) {
-                xcb_configure_window(desktop->connection, client->titlebar,
-                        XCB_CONFIG_WINDOW_X     |
-                        XCB_CONFIG_WINDOW_Y     |
-                        XCB_CONFIG_WINDOW_WIDTH |
-                        XCB_CONFIG_WINDOW_HEIGHT,
-                        (const uint32_t[]) {
-                            left,
-                            (top > title_h) ? top - title_h : 0,
-                            inner_w, title_h
-                        });
                 xcb_change_window_attributes(desktop->connection,
                         client->titlebar, XCB_CW_BACK_PIXEL,
                         (const uint32_t[]) {
@@ -582,8 +661,6 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                             ? desktop->config_theme->window.active.font
                             : desktop->config_theme->window.inactive.font);
 
-                /* Use theme foreground color so text contrasts against
-                 * the titlebar background (active or inactive) */
                 text_renderer_set_color(
                 (is_focused)
                     ? desktop->config_theme->window.active.foreground_color

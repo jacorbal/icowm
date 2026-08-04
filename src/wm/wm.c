@@ -382,13 +382,18 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 
 
 /* Mark the client owner desktop and surface as outdated */
-void wm_request_client_redraw(const client_td *client)
+void wm_request_client_redraw(client_td *client)
 {
     desktop_td *desktop;
 
     if (client == NULL || wm == NULL || wm->surfaces == NULL) {
         return;
     }
+
+    /* Mark the individual client so the render pass applies the heavy
+     * geometry configure and expose only to this client, avoiding
+     * spurious redraws (and visible flicker) in other windows */
+    client->is_outdated = true;
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {

@@ -205,7 +205,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       surfaces and desktops
  */
-void wm_request_client_redraw(const client_td *client);
+void wm_request_client_redraw(client_td *client);
 
 /**
  * @brief Mark all surfaces and desktops as outdated

@@ -284,7 +284,7 @@ static void s_kbd_resize_apply(client_td *client,
      * geometry.  Placing the 'Expose' here ensures it arrives in the
      * client's event queue after both the xcb_configure_window (from
      * 'client_sync_decoration_layout') and the synthetic
-     * 'ConfigureNotify', giving (strange) programs like 'gVim' the
+     * 'ConfigureNotify', giving (strange) programs like gVim, the
      * correct size and position before its 'Expose' handler runs. */
     xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 

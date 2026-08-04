@@ -744,6 +744,11 @@ client_td *client_manage(xcb_connection_t *connection,
 
     wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
 
+    /* Mark the client as needing a full geometry configure and repaint
+     * on the first render pass so the decoration and content area are
+     * correctly sized and positioned from the outset */
+    client->is_outdated = true;
+
     LOGGER_TRACE("Now managing window %#x ('%s')",
             window, client->info.name);
 
