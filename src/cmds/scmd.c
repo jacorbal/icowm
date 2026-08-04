@@ -16,14 +16,48 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 
+/* Menu includes */
+#include <menu/notify.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
+#include <desktop.h>
 #include <logger.h>
+#include <lookup.h>
 #include <surface.h>
 
 /* Local includes */
 #include <cmds/scmd.h>
+
+
+/**
+ * @brief Show the desktop-switch notification for the current desktop
+ *
+ * Retrieves the desktop name from the active desktop and passes it to
+ * the notify module together with the new desktop index.  Does nothing
+ * when no config is available on the surface.
+ *
+ * @param surface Surface whose current desktop just became active
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       the surface
+ */
+static void s_show_desktop_notify(surface_td *surface)
+{
+    desktop_td *desktop;
+    
+    if (surface == NULL || surface->connection == NULL ||
+            surface->config == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    notify_desktop_show(surface->connection, surface,
+            surface->desktop_cur,
+            (desktop != NULL) ? desktop->name : "",
+            surface->config);
+}
 
 
 /* Add a new desktop */
@@ -75,6 +109,8 @@ void scmd_surface_desktop_switch(surface_td *surface,
     surface_clients_sticky_transfer_all(surface, new_id);
     surface_clients_show(surface, new_id);
 
+    s_show_desktop_notify(surface);
+
     surface->is_outdated = true;
     xcb_flush(surface->connection);
 }
@@ -101,6 +137,7 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
         surface_clients_sticky_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
+        s_show_desktop_notify(surface);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
     } else {
@@ -131,6 +168,7 @@ void scmd_surface_desktop_switch_prev(surface_td *surface)
         surface_clients_sticky_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
+        s_show_desktop_notify(surface);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
     } else {

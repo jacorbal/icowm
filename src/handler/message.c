@@ -139,15 +139,42 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
+            /* A hidden client (e.g., minimised to systray) should be
+             * restored on the current desktop, not by switching to the
+             * desktop where it was originally opened.  For all other
+             * non-sticky clients on a different desktop, the
+             * traditional behaviour of switching to that desktop is
+             * preserved. */
             if (!(client->properties.flags & CLIENT_FLAG_STICKY) &&
                     surface->desktop_cur != desktop->id) {
-                action_data_surface_td surface_data;
+                if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+                    desktop_td *cur_desktop;
+                    uint32_t cur_id = surface->desktop_cur;
 
-                surface_data.surface = surface;
-                surface_data.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-                surface_data.new_data.uvalue = desktop->id;
-                scmd_surface_desktop_switch(surface, &surface_data);
-                desktop = lookup_current_desktop(surface);
+                    cur_desktop = surface_desktop_get(surface, cur_id);
+                    if (cur_desktop != NULL && cur_desktop != desktop) {
+                        desktop_action_client_rem(desktop, client);
+                        desktop_action_client_add(cur_desktop, client);
+                        client->desktop_id = cur_id;
+                        if (wm->ewmh != NULL) {
+                            xcb_change_property(wm->connection,
+                                    XCB_PROP_MODE_REPLACE,
+                                    client->window,
+                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    XCB_ATOM_CARDINAL, 32, 1, &cur_id);
+                        }
+                        desktop = cur_desktop;
+                    }
+                } else {
+                    action_data_surface_td surface_data;
+
+                    surface_data.surface = surface;
+                    surface_data.action_surface =
+                        ACTION_SURFACE_DESKTOP_SWITCH;
+                    surface_data.new_data.uvalue = desktop->id;
+                    scmd_surface_desktop_switch(surface, &surface_data);
+                    desktop = lookup_current_desktop(surface);
+                }
             }
 
             if (client->properties.state ==

@@ -35,7 +35,7 @@
 #define WM_DESKTOP_ID_ALL (0xFFFFFFFFu)
 
 /** Maximum number of supported key bindings */
-#define WM_MAX_KEYBINDINGS (128)
+#define WM_MAX_KEYBINDINGS (160)
 
 /** Maximum number of supported mouse bindings */
 #define WM_MAX_MOUSEBINDINGS (8)
@@ -138,6 +138,9 @@
 
 /** Poll timeout (ms) for one main-loop iteration */
 #define WM_EVENT_POLL_TIMEOUT_MS (1000)
+
+/** Duration in milliseconds for the desktop-switch notification */
+#define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)
 
 
 #endif  /* ! DEFS_WM_H */

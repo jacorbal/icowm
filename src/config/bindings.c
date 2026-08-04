@@ -183,6 +183,28 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.window.resize.down,
                         CONFIG_MAX_LENGTH_BINDING);
             }
+
+            json_load_string(window, "show-desktop",
+                    config_bindings->keyboard.window.show_desktop,
+                    CONFIG_MAX_LENGTH_BINDING);
+            /* Direct goto-desktop shortcuts 0-9 */
+            {
+                cJSON *window_goto =
+                    cJSON_GetObjectItem(window, "goto");
+                if (window_goto != NULL) {
+                    static const char *keys[10] = {
+                        "desktop0", "desktop1", "desktop2",
+                        "desktop3", "desktop4", "desktop5",
+                        "desktop6", "desktop7", "desktop8",
+                        "desktop9"
+                    };
+                    for (int gi = 0; gi < 10; ++gi) {
+                        json_load_string(window_goto, keys[gi],
+                                config_bindings->keyboard.window.go_to.desktop[gi],
+                                CONFIG_MAX_LENGTH_BINDING);
+                    }
+                }
+            }
         }
 
         wm = cJSON_GetObjectItem(keyboard, "wm");

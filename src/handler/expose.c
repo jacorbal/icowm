@@ -35,6 +35,7 @@
 /* Menu includes */
 #include <menu/cycle.h>
 #include <menu/dialog/quit.h>
+#include <menu/notify.h>
 #include <menu/popup.h>
 
 /* Default initial values */
@@ -78,6 +79,13 @@ void handler_expose(xcb_connection_t *connection,
     /* Info popup repaint */
     if (popup_is_open() && event->window == popup_window()) {
         popup_repaint(connection, cfg);
+        return;
+    }
+
+    /* Desktop notify repaint */
+    if (notify_desktop_is_open() &&
+            event->window == notify_desktop_window()) {
+        notify_desktop_repaint(connection, cfg);
         return;
     }
 

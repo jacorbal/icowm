@@ -112,6 +112,9 @@ struct config_base_s {
                                                    when none available */
         } placement_policy;
     } icons;
+
+    bool show_desktop_notify;       /**< Show desktop name on switch */
+    bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
 };
 
 
@@ -182,6 +185,13 @@ struct config_bindings_s {
                 char up[CONFIG_MAX_LENGTH_BINDING];
                 char down[CONFIG_MAX_LENGTH_BINDING];
             } resize;
+
+            char show_desktop[CONFIG_MAX_LENGTH_BINDING];
+
+            /* Direct desktop goto shortcuts (indices 0-9) */
+            struct {
+                char desktop[10][CONFIG_MAX_LENGTH_BINDING];
+            } go_to;
         } window;
 
         struct {

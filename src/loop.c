@@ -46,6 +46,7 @@
 #include <input/mouse/drag.h>
 
 /* Menu includes */
+#include <menu/notify.h>
 #include <menu/popup.h>
 
 /* Default initial values */
@@ -222,6 +223,13 @@ void loop_run(wm_td *wm)
         poll_timeout_ms = WM_EVENT_POLL_TIMEOUT_MS;
         if (popup_is_open()) {
             int ms = popup_ms_remaining();
+            if (ms >= 0 && ms < poll_timeout_ms) {
+                poll_timeout_ms = ms;
+            }
+        }
+
+        if (notify_desktop_is_open()) {
+            int ms = notify_desktop_ms_remaining();
             if (ms >= 0 && ms < poll_timeout_ms) {
                 poll_timeout_ms = ms;
             }
@@ -414,6 +422,26 @@ void loop_run(wm_td *wm)
             popup_close(wm->connection);
             if (popup_surface != NULL) {
                 surface_render_current_desktop_repaint(popup_surface);
+            }
+        }
+
+        /* Auto-close the desktop notify when its timeout has elapsed */
+        if (notify_desktop_is_open() &&
+                notify_desktop_ms_remaining() == 0) {
+            surface_td *notify_surface = NULL;
+
+            for (list_item_td *ps_node = list_head(wm->surfaces);
+                    ps_node != NULL; ps_node = list_next(ps_node)) {
+                surface_td *s = (surface_td *) list_data(ps_node);
+                if (s != NULL) {
+                    notify_surface = s;
+                    break;
+                }
+            }
+
+            notify_desktop_close(wm->connection);
+            if (notify_surface != NULL) {
+                surface_render_current_desktop_repaint(notify_surface);
             }
         }
 

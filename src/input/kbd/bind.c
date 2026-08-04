@@ -339,6 +339,28 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_RESIZE_UP },
         { config->bindings.keyboard.window.resize.down,
           KEYBIND_CLIENT_RESIZE_DOWN },
+        { config->bindings.keyboard.window.show_desktop,
+          KEYBIND_DESKTOP_SHOW },
+        { config->bindings.keyboard.window.go_to.desktop[0],
+          KEYBIND_DESKTOP_GOTO_0 },
+        { config->bindings.keyboard.window.go_to.desktop[1],
+          KEYBIND_DESKTOP_GOTO_1 },
+        { config->bindings.keyboard.window.go_to.desktop[2],
+          KEYBIND_DESKTOP_GOTO_2 },
+        { config->bindings.keyboard.window.go_to.desktop[3],
+          KEYBIND_DESKTOP_GOTO_3 },
+        { config->bindings.keyboard.window.go_to.desktop[4],
+          KEYBIND_DESKTOP_GOTO_4 },
+        { config->bindings.keyboard.window.go_to.desktop[5],
+          KEYBIND_DESKTOP_GOTO_5 },
+        { config->bindings.keyboard.window.go_to.desktop[6],
+          KEYBIND_DESKTOP_GOTO_6 },
+        { config->bindings.keyboard.window.go_to.desktop[7],
+          KEYBIND_DESKTOP_GOTO_7 },
+        { config->bindings.keyboard.window.go_to.desktop[8],
+          KEYBIND_DESKTOP_GOTO_8 },
+        { config->bindings.keyboard.window.go_to.desktop[9],
+          KEYBIND_DESKTOP_GOTO_9 },
         { config->bindings.keyboard.cycle.window.prev,
           KEYBIND_CLIENT_CYCLE_PREV },
         { config->bindings.keyboard.cycle.window.next,
@@ -351,7 +373,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
-        /* Hardcoded emergency exit */
+        /* Hardcoded emergency exit (grabbed only if enabled) */
         { "Ctrl+Mod1+BackSpace", KEYBIND_NONE },
         { NULL, KEYBIND_NONE }
     };
@@ -379,6 +401,12 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         xcb_keysym_t keysym;
         uint16_t modmask;
         xcb_keycode_t *keycodes;
+
+        /* Skip emergency exit grab when disabled in configuration */
+        if (defs[i].type == KEYBIND_NONE &&
+                !config->base.enable_emergency_shortcut) {
+            continue;
+        }
 
         if (!s_parse_binding(config, defs[i].binding,
                     &modmask, &keysym)) {

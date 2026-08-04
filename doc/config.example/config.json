@@ -30,8 +30,8 @@
     "programs": {
         "terminal": "xterm",
         "launcher": "gmrun",
-        "file-manager": "pcmanfm",
         "editor": "gvim",
+        "file-manager": "pcmanfm",
         "web-browser": "firefox"
     },
     "windows": {
@@ -54,5 +54,7 @@
         "placement": {
             "policy": "smart"
         }
-    }
+    },
+    "show-desktop-notify": true,
+    "enable-emergency-shortcut": false
 }

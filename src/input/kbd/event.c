@@ -37,8 +37,12 @@
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
+/* Handler includes */
+#include <handler/internal.h>
+
 /* Command includes */
 #include <cmds/ccmd.h>
+#include <cmds/scmd.h>
 
 /* Default initial values */
 #include <defs/wm.h>
@@ -446,7 +450,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     }
 
     /* Emergency exit 'Ctrl+Mod1+BackSpace' */
-    if (keysym == 0xff08u &&
+    if (config->base.enable_emergency_shortcut &&
+            keysym == 0xff08u &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
         LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
@@ -494,6 +499,33 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                     ev = event_init((void *) surface, NULL, action,
                             PRIORITY_NORMAL);
                     if (ev != NULL) { eventq_add(ev); }
+                }
+                return;
+
+            case KEYBIND_DESKTOP_SHOW:
+                if (surface != NULL) {
+                    hi_handle_net_showing_desktop(surface,
+                            !surface->showing_desktop);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_GOTO_0:
+            case KEYBIND_DESKTOP_GOTO_1:
+            case KEYBIND_DESKTOP_GOTO_2:
+            case KEYBIND_DESKTOP_GOTO_3:
+            case KEYBIND_DESKTOP_GOTO_4:
+            case KEYBIND_DESKTOP_GOTO_5:
+            case KEYBIND_DESKTOP_GOTO_6:
+            case KEYBIND_DESKTOP_GOTO_7:
+            case KEYBIND_DESKTOP_GOTO_8:
+            case KEYBIND_DESKTOP_GOTO_9:
+                if (surface != NULL) {
+                    action_data_surface_td sdata;
+                    sdata.surface = surface;
+                    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
+                    sdata.new_data.uvalue = (uint32_t) (btype -
+                            KEYBIND_DESKTOP_GOTO_0);
+                    scmd_surface_desktop_switch(surface, &sdata);
                 }
                 return;
 

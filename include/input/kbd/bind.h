@@ -96,6 +96,21 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_RESIZE_UP,           /**< Shrink focused client height */
     KEYBIND_CLIENT_RESIZE_DOWN,         /**< Grow focused client height */
 
+    /* Show-desktop toggle */
+    KEYBIND_DESKTOP_SHOW,               /**< Toggle show-desktop (hide all) */
+
+    /* Direct desktop go-to (indices 0-9) */
+    KEYBIND_DESKTOP_GOTO_0,             /**< Switch directly to desktop 0 */
+    KEYBIND_DESKTOP_GOTO_1,             /**< Switch directly to desktop 1 */
+    KEYBIND_DESKTOP_GOTO_2,             /**< Switch directly to desktop 2 */
+    KEYBIND_DESKTOP_GOTO_3,             /**< Switch directly to desktop 3 */
+    KEYBIND_DESKTOP_GOTO_4,             /**< Switch directly to desktop 4 */
+    KEYBIND_DESKTOP_GOTO_5,             /**< Switch directly to desktop 5 */
+    KEYBIND_DESKTOP_GOTO_6,             /**< Switch directly to desktop 6 */
+    KEYBIND_DESKTOP_GOTO_7,             /**< Switch directly to desktop 7 */
+    KEYBIND_DESKTOP_GOTO_8,             /**< Switch directly to desktop 8 */
+    KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
+
     /* Window manager lifecycle */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */

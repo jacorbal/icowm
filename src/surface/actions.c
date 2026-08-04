@@ -65,9 +65,15 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                 : client->window;
 
             /* Track WM-initiated unmaps so handler_unmap_notify skips
-             * them */
+             * them.  The titlebar is a sibling, not a child, of the
+             * frame, so unmapping it generates a separate 'UnmapNotify'
+             * that must also be accounted for. */
             client->ignore_unmap += 1u;
             if (target != client->window) {
+                client->ignore_unmap += 1u;
+            }
+
+            if (client->titlebar != 0) {
                 client->ignore_unmap += 1u;
             }
 

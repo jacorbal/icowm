@@ -76,6 +76,51 @@ static xcb_timestamp_t s_last_titlebar_press_time = 0;
 static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
 
 
+/**
+ * @brief Check whether a pointer position is near the edge of a client
+ *
+ * Returns @c true when the pointer's root coordinates fall within
+ * @c WM_RESIZE_CORNER_SIZE pixels of any edge of the client's current
+ * bounding box, indicating that a border-drag resize should be
+ * initiated.
+ *
+ * @param client Client whose geometry is used for the test
+ * @param root_x Pointer X position in root-window coordinates
+ * @param root_y Pointer Y position in root-window coordinates
+ *
+ * @return @c true if the pointer is on the resize border, @c false
+ *         otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_mouse_near_edge(const client_td *client,
+        int16_t root_x, int16_t root_y)
+{
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
+
+    if (client == NULL) {
+        return false;
+    }
+
+    left = client->layout.geometry.cur.pos.x;
+    top = client->layout.geometry.cur.pos.y;
+    right = left + (int32_t) client->layout.geometry.cur.dim.w;
+    bottom = top + (int32_t) client->layout.geometry.cur.dim.h;
+
+    if ((int32_t) root_x < left + WM_RESIZE_CORNER_SIZE ||
+            (int32_t) root_x >= right - WM_RESIZE_CORNER_SIZE ||
+            (int32_t) root_y < top + WM_RESIZE_CORNER_SIZE ||
+            (int32_t) root_y >= bottom - WM_RESIZE_CORNER_SIZE) {
+        return true;
+    }
+
+    return false;
+}
+
+
 /* Mirror sticky focus on the currently shown desktop of a surface */
 static void s_mouse_sync_sticky_active(surface_td *surface,
         desktop_td *owner_desktop, client_td *client)
@@ -674,17 +719,56 @@ void mouse_handle_press(xcb_connection_t *connection,
                 if (client_is_shaded(client)) {
                     wcmd_client_unshade(client);
                 }
+
                 surface = lookup_surface_for_root(surfaces, event->root);
                 screen_w = (surface != NULL)
                     ? surface->properties.dim.w : 0u;
                 screen_h = (surface != NULL)
                     ? surface->properties.dim.h : 0u;
+
                 drag_start(connection, event->root, client, desktop,
                         CLIENT_OPERATION_RESIZING,
                         event->time,
                         event->root_x, event->root_y,
                         screen_w, screen_h,
                         config->base.windows.snap);
+
+                xcb_allow_events(connection,
+                        XCB_ALLOW_ASYNC_POINTER, event->time);
+                xcb_flush(connection);
+                return;
+            }
+
+            /* Clicks near the border of an undecorated client (no
+             * frame) initiate a resize drag using the same edge
+             * detection as decorated windows.  The click must land
+             * within 'WM_RESIZE_CORNER_SIZE' pixels of any edge. */
+            if (client->frame == 0 &&
+                    window == client->window &&
+                    client_is_resizable(client) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_FULLSCREEN &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED_VERT &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ &&
+                    s_mouse_near_edge(client, event->root_x,
+                        event->root_y)) {
+                surface = lookup_surface_for_root(surfaces, event->root);
+                screen_w = (surface != NULL)
+                    ? surface->properties.dim.w : 0u;
+                screen_h = (surface != NULL)
+                    ? surface->properties.dim.h : 0u;
+
+                drag_start(connection, event->root, client, desktop,
+                        CLIENT_OPERATION_RESIZING,
+                        event->time,
+                        event->root_x, event->root_y,
+                        screen_w, screen_h,
+                        config->base.windows.snap);
+
                 xcb_allow_events(connection,
                         XCB_ALLOW_ASYNC_POINTER, event->time);
                 xcb_flush(connection);

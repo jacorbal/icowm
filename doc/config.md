@@ -15,6 +15,8 @@ values, and built-in default value.
    - [2.3 `programs`](#23-programs)
    - [2.4 `windows`](#24-windows)
    - [2.5 `icons`](#25-icons)
+   - [2.6 `show-desktop-notify`](#27-show-desktop-notify)
+   - [2.7 `enable-emergency-shortcut`](#26-enable-emergency-shortcut)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -57,20 +59,22 @@ Inside that directory the expected file tree is:
 
 ```
 ~/.icowm/
-├── config.json       Base configuration (optional)
-├── bindings.json     Keyboard & mouse bindings (optional)
-├── randr.json        XRandR output profiles (optional)
+├── config.json       Base configuration
+├── bindings.json     Keyboard & mouse bindings
+├── randr.json        XRandR output profiles
+├── rules.json        Optional matching rules per-window
+├── session.json      Command lists run at start, end, or on config. reload
 └── themes/
-    └── default.json  Theme file referenced by 'config.json' (optional)
+    └── default.json  Theme file referenced by 'config.json'
 ```
 
-- All files are optional; they fall back to built-in defaults when
+- **All files are optional**; they fall back to built-in defaults when
   absent.
 - Theme files are loaded from the `themes/` sub-directory.  The theme
   name field in `config.json` must match the filename without the
   `.json` extension.
-- `randr.json` is completely optional; XRandR hot-plug event handling
-  is always active regardless of this file.
+- `randr.json`; XRandR hot-plug event handling is always active
+  regardless of this file existence.
 
 ## 2. `config.json` -- Base configuration
 
@@ -317,6 +321,38 @@ Accepted icon placement values:
 }
 ```
 
+### 2.6 `show-desktop-notify`
+
+| Key                    | Type    | Default |
+|------------------------|---------|---------|
+| `show-desktop-notify`  | boolean | `true`  |
+
+When `true`, a small notification popup is displayed in the center of
+the screen for approximately 400 ms whenever the active virtual desktop
+changes.  The popup shows the desktop index and name in the format
+`[index] -- Name`, or just `[index]` in the case when the desktop has no
+name.  Set to `false` to suppress the popup entirely.
+
+```json
+"show-desktop-notify": true
+```
+
+### 2.7 `enable-emergency-shortcut`
+
+| Key                          | Type    | Default  |
+|------------------------------|---------|----------|
+| `enable-emergency-shortcut`  | boolean | `false`  |
+
+When `true`, the hardcoded emergency exit shortcut `Ctrl+Mod1+BackSpace`
+is active and immediately terminates the window manager ignoring peding
+session hooks.  Set to `false` to disable that shortcut, for example on
+systems where the key combination might be triggered accidentally.
+
+```json
+
+"enable-emergency-shortcut": true
+```
+
 ## 3. `bindings.json` -- Keyboard and mouse bindings
 
 Defines all keyboard shortcuts and mouse button bindings.  This file is
@@ -392,19 +428,20 @@ Actions performed on the currently focused window.
 
 #### Direct window actions
 
-| Key          | Default binding         | Action |
-|--------------|-------------------------|--------|
-| `close`      | `modc+mod1+c`           | Send `WM\_DELETE\_WINDOW` to politely close the window. |
-| `kill`       | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
-| `iconify`    | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
-| `hide`       | `modc+mod1+mods+h`      | Hide the window without iconifying it. |
-| `maximize`   | `modc+mod1+m`           | Toggle maximize (full work area). |
-| `fullscreen` | `modc+mod1+f`           | Toggle true fullscreen mode. |
-| `shade`      | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
-| `pin`        | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
-| `decorate`   | `modc+mod1+d`           | Toggle window decorations (title bar). |
-| `layer`      | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
-| `info`       | `modc+mod1+mods+i`      | Show a popup with window information. |
+| Key            | Default binding         | Action |
+|----------------|-------------------------|--------|
+| `close`        | `modc+mod1+c`           | Send `WM\_DELETE\_WINDOW` to politely close the window. |
+| `kill`         | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
+| `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
+| `hide`         | `modc+mod1+mods+h`      | Hide the window without iconifying it. |
+| `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
+| `fullscreen`   | `modc+mod1+f`           | Toggle true fullscreen mode. |
+| `shade`        | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
+| `pin`          | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
+| `decorate`     | `modc+mod1+d`           | Toggle window decorations (title bar). |
+| `layer`        | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
+| `info`         | `modc+mod1+mods+i`      | Show a popup with window information. |
+| `show-desktop` | `modc+mod1+mods+d`      | Toggle show-desktop mode: hide all windows; press again to restore them. |
 
 #### `keyboard.window.move.relative`
 
@@ -439,6 +476,28 @@ Resize the focused window by a fixed step in the given direction.
 | `left`  | `modc+mod1+mods+h` |
 | `up`    | `modc+mod1+mods+k` |
 | `down`  | `modc+mod1+mods+j` |
+
+#### `keyboard.window.goto`
+
+Jump directly to a virtual desktop by index (0-9).  Desktops beyond
+index 9 are not reachable by these shortcuts.
+
+| Key        | Default binding  | Destination  |
+|------------|------------------|--------------|
+| `desktop0` | `modc+mod1+0`    | Desktop 0.   |
+| `desktop1` | `modc+mod1+1`    | Desktop 1.   |
+| `desktop2` | `modc+mod1+2`    | Desktop 2.   |
+| `desktop3` | `modc+mod1+3`    | Desktop 3.   |
+| `desktop4` | `modc+mod1+4`    | Desktop 4.   |
+| `desktop5` | `modc+mod1+5`    | Desktop 5.   |
+| `desktop6` | `modc+mod1+6`    | Desktop 6.   |
+| `desktop7` | `modc+mod1+7`    | Desktop 7.   |
+| `desktop8` | `modc+mod1+8`    | Desktop 8.   |
+| `desktop9` | `modc+mod1+9`    | Desktop 9.   |
+
+If the interest is to use a 1-based indexing system, a trick could be
+setting `inaugural` to `1`.  Another is to change every single
+`goto` binding.
 
 ### 3.5 `keyboard.wm`
 
@@ -807,6 +866,9 @@ eventual termination status.
 Command substitution is disabled.  Environment-variable expansion may
 also be disabled on platforms that provide `WRDE\_NOENV`.
 
+If the "emergency shortcut" is used to exit, all pending session hooks
+will be ignored.
+
 ### 7.1 Hook arrays
 
 | Key         | Type             | Default | Description |
@@ -818,8 +880,6 @@ also be disabled on platforms that provide `WRDE\_NOENV`.
 Only non-empty string entries are used; all other array items are
 ignored.
 
-
-
 ## 8. Full examples
 
 ### `config.json`
@@ -829,7 +889,7 @@ ignored.
     "theme": "default",
 
     "screens": {
-        "count": 1,
+        "count": 2,
         "settings": {
             "desktops": [
                 {
@@ -841,6 +901,14 @@ ignored.
                         { "name": "Desktop 2", "background-color": "#6a5470" },
                         { "name": "Desktop 3", "background-color": "#5a7d6f" }
                     ]
+                },
+                {
+                    "count": 2,
+                    "inaugural": 0,
+                    "settings": [
+                        { "name": "Desktop A", "background-color": "#4c5b6b" },
+                        { "name": "Desktop B", "background-color": "#8a8f94" },
+                    ]
                 }
             ]
         }
@@ -849,8 +917,8 @@ ignored.
     "programs": {
         "terminal": "xterm",
         "launcher": "gmrun",
-        "file-manager": "pcmanfm",
         "editor": "gvim",
+        "file-manager": "pcmanfm",
         "web-browser": "firefox"
     },
 
@@ -873,7 +941,9 @@ ignored.
         "placement": {
             "policy": "smart"
         }
-    }
+    },
+    "show-desktop-notify": true,
+    "enable-emergency-shortcut": false    
 }
 ```
 
