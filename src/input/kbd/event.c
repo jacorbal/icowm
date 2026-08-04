@@ -218,16 +218,6 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
 static void s_kbd_resize_apply(client_td *client,
         int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h)
 {
-    uint32_t fe_l;
-    uint32_t fe_r;
-    uint32_t fe_t;
-    uint32_t fe_b;
-    uint32_t req_w;
-    uint32_t req_h;
-    uint32_t snap_w;
-    uint32_t snap_h;
-    bool w_changed;
-    bool h_changed;
     bool pos_changed;
     uint16_t mask;
     uint32_t values[4];
@@ -243,36 +233,16 @@ static void s_kbd_resize_apply(client_td *client,
         wcmd_client_unshade(client);
     }
 
-    fe_l = (uint32_t) client->layout.frame_extents.left;
-    fe_r = (uint32_t) client->layout.frame_extents.right;
-    fe_t = (uint32_t) client->layout.frame_extents.top;
-    fe_b = (uint32_t) client->layout.frame_extents.bottom;
-
-    /* Convert from frame space to inner space for constraint checks.
-     * For undecorated clients all extents are zero so this is no-op. */
-    req_w = (new_w > fe_l + fe_r) ? new_w - fe_l - fe_r : 0u;
-    req_h = (new_h > fe_t + fe_b) ? new_h - fe_t - fe_b : 0u;
-
-    /* Apply ICCCM size hints only to the axis that actually changed to
-     * avoid snapping the unchanged axis onto a different grid
-     * position. */
-    w_changed = (new_w != client->layout.geometry.cur.dim.w);
-    h_changed = (new_h != client->layout.geometry.cur.dim.h);
+    /* The caller ('keyboard_handle_press' via
+     * 's_kb_resize_axis_target') already produced fully snapped,
+     * increment-aligned frame dimensions.  Re-applying
+     * 'client_constrain_size' here would snap the values a second time
+     * and could produce a size different from what the position
+     * correction ('new_y += old_h - new_h') was computed for, causing
+     * the top edge of the window to shift by the wrong amount on
+     * 'RESIZE_UP'. */
     pos_changed = (new_x != client->layout.geometry.cur.pos.x ||
                    new_y != client->layout.geometry.cur.pos.y);
-    snap_w = req_w;
-    snap_h = req_h;
-    client_constrain_size(client, &snap_w, &snap_h);
-    if (w_changed) {
-        req_w = snap_w;
-    }
-    if (h_changed) {
-        req_h = snap_h;
-    }
-
-    /* Convert constrained inner size back to frame space */
-    req_w += fe_l + fe_r;
-    req_h += fe_t + fe_b;
 
     /* Apply the new geometry to the correct X window.  Decorated
      * clients are reparented into a frame; undecorated clients are
@@ -285,12 +255,8 @@ static void s_kbd_resize_apply(client_td *client,
                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         values[0] = (uint32_t) new_x;
         values[1] = (uint32_t) new_y;
-        values[2] = req_w;
-        values[3] = req_h;
     } else {
         mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = req_w;
-        values[1] = req_h;
     }
     xcb_configure_window(client->connection, target_win, mask, values);
 
@@ -299,8 +265,8 @@ static void s_kbd_resize_apply(client_td *client,
      * 'ConfigureNotify' both see the final values */
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
-    client->layout.geometry.cur.dim.w = req_w;
-    client->layout.geometry.cur.dim.h = req_h;
+    client->layout.geometry.cur.dim.w = new_w;
+    client->layout.geometry.cur.dim.h = new_h;
 
     /* Reposition and resize the inner window and titlebar to match the
      * new frame dimensions (no-op for undecorated clients) */

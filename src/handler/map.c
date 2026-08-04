@@ -407,8 +407,6 @@ void handler_map_notify(xcb_connection_t *connection,
 {
     client_td *client;
 
-    (void) connection;
-
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in map notify handler",
                 L_NARG);
@@ -440,8 +438,20 @@ void handler_map_notify(xcb_connection_t *connection,
                 client->frame != 0 &&
                 client_is_decorated(client)) {
             client_send_synthetic_configure_notify(connection, client);
-            xcb_flush(connection);
         }
+
+        /* Force the content window to repaint immediately after it
+         * becomes visible.  Applications like gVim do not repaint on
+         * 'ConfigureNotify' or 'MapNotify' alone; without an 'Expose'
+         * event the lower portion of the window may remain blank until
+         * the user triggers a focus change or another redraw action.
+         * Using 'exposures=1' causes the X server to generate an
+         * 'Expose' event so the application redraws the full client
+         * area from the outset. */
+        if (event->window == client->window) {
+            xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
+        }
+        xcb_flush(connection);
     }
 }
 
