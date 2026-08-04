@@ -41,6 +41,11 @@ static pthread_mutex_t logger_mutex = PTHREAD_MUTEX_INITIALIZER;
  * @brief Flush the log messages to one or two files and reset the
  *        buffer
  *
+ * Prints all buffered messages to @p fp_a and, when @p fp_b is non-NULL
+ * and differs from @p fp_a, also to @p fp_b.  Each message is freed
+ * after being written to both destinations so the buffer is always left
+ * empty regardless of how many output files are active.
+ *
  * @param logger_buffer Pointer to the buffer structure
  * @param fp_a          Primary output file (must not be null)
  * @param fp_b          Secondary output file, or @c NULL if unused
@@ -62,14 +67,15 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         fflush(fp_b);
     }
 
-
     for (unsigned int i = 0; i < logger_buffer->count; ++i) {
         fprintf(fp_a, "%s\n", logger_buffer->messages[i]);
         if (dual) {
             fprintf(fp_b, "%s\n", logger_buffer->messages[i]);
         }
+        free(logger_buffer->messages[i]);
     }
-    free(fp_a);
+
+    fflush(fp_a);
     if (dual) {
         fflush(fp_b);
     }
