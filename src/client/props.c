@@ -342,3 +342,59 @@ void client_props_refresh_wm_hints(client_td *client)
         wcmd_client_clear_urgent(client);
     }
 }
+
+
+/* Re-read 'WM_NORMAL_HINTS' and update the client's size-hint fields */
+void client_props_refresh_normal_hints(client_td *client)
+{
+    xcb_size_hints_t hints;
+
+    if (client == NULL) {
+        return;
+    }
+
+    memset(&hints, 0, sizeof(hints));
+    memset(&client->size_hints, 0, sizeof(client->size_hints));
+    if (!xcb_icccm_get_wm_normal_hints_reply(client->connection,
+                xcb_icccm_get_wm_normal_hints(client->connection,
+                    client->window),
+                &hints, NULL)) {
+        return;
+    }
+
+    client->size_hints.valid = true;
+
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
+        client->size_hints.min_w = (int32_t) hints.min_width;
+        client->size_hints.min_h = (int32_t) hints.min_height;
+    }
+
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+        client->size_hints.max_w = (int32_t) hints.max_width;
+        client->size_hints.max_h = (int32_t) hints.max_height;
+    }
+
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
+        client->size_hints.base_w = (int32_t) hints.base_width;
+        client->size_hints.base_h = (int32_t) hints.base_height;
+    }
+
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
+        client->size_hints.inc_w = (int32_t) hints.width_inc;
+        client->size_hints.inc_h = (int32_t) hints.height_inc;
+    }
+
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
+        client->layout.gravity = (uint16_t) hints.win_gravity;
+    }
+
+    /* ICCCM §4.1.2.3: a fixed-size window has min == max */
+    if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
+            (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) &&
+            hints.min_width > 0 && hints.min_height > 0 &&
+            hints.min_width == hints.max_width &&
+            hints.min_height == hints.max_height) {
+        client_unset_resizable(client);
+    }
+}
+

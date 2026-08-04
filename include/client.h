@@ -642,6 +642,22 @@ void client_props_refresh_icon_name(client_td *client);
 void client_props_refresh_wm_hints(client_td *client);
 
 /**
+ * @brief Refresh @c WM_NORMAL_HINTS size-constraints from X11
+ *        properties
+ *
+ * Re-reads @c WM_NORMAL_HINTS from the X server and updates the stored
+ * size-hint fields (@c size_hints) in @p client.  Should be called both
+ * at manage time and whenever a @c PROPERTY_NOTIFY event for
+ * @c WM_NORMAL_HINTS is received, because applications such as gVim
+ * update their increment grid and base size after initial startup.
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_props_refresh_normal_hints(client_td *client);
+
+/**
  * @brief Macro that sends an event to close the specified client
  *
  * @see @a client_send_event

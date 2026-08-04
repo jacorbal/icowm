@@ -112,6 +112,21 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
+    /* Re-read 'WM_NORMAL_HINTS' whenever the application updates them.
+     * Applications such as gVim set their final 'base_size' and
+     * 'resize_inc' values after startup (e.g., once the font and UI
+     * chrome are initialised), so the hints read at 'MAP_REQUEST' time
+     * may already be stale by the time the first keyboard resize is
+     * attempted.  Keeping the stored size hints current ensures that
+     * 's_kb_resize_axis_target' and 'client_constrain_size' compute
+     * a target height that lies exactly on the application's current
+     * increment grid, preventing the spurious ConfigureRequest that
+     * otherwise causes 'RESIZE_UP' to also shrink the bottom edge. */
+    if (event->atom == XCB_ATOM_WM_NORMAL_HINTS) {
+        client_props_refresh_normal_hints(client);
+        return;
+    }
+
     if (event->atom == XCB_ATOM_WM_NAME ||
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_NAME)) {

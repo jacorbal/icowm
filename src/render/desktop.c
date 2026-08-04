@@ -529,17 +529,30 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
              * the inner window relative to the frame (x=left, y=top),
              * so the X server delivers a 'ConfigureNotify' to the
              * client with those frame-relative coordinates.  Override
-             * it immediately with a synthetic ConfigureNotify carrying
-             * the true screen-relative position so the client's last
-             * geometry notification is always correct.  Without this
-             * the client (e.g., gVim) sees a frame-relative
-             * 'ConfigureNotify' as its final event on every render
-             * pass, including the very first one after the window is
-             * mapped, causing misaligned popups and a content area that
-             * appears not to fill the frame until the next
+             * it immediately with a synthetic 'ConfigureNotify'
+             * carrying the true screen-relative position so the
+             * client's last geometry notification is always correct.
+             * Without this the client (e.g., 'gVim') sees
+             * a frame-relative 'ConfigureNotify' as its final event on
+             * every render pass, including the very first one after the
+             * window is mapped, causing misaligned popups and a content
+             * area that appears not to fill the frame until the next
              * user-triggered repaint. */
             client_send_synthetic_configure_notify(desktop->connection,
                     client);
+
+            /* Force a repaint AFTER the synthetic 'ConfigureNotify' so
+             * the client (e.g., 'gVim') always redraws at its correct
+             * screen-relative geometry.  Programs like 'gVim' do not
+             * redraw on 'ConfigureNotify' alone; this 'Expose' ensures
+             * the drawing happens at the right size and position after
+             * every render pass, including the initial map and
+             * post-resize redraws.  'exposures=1' causes the X server
+             * to generate an 'Expose' event, which arrives in the
+             * client's queue after both the 'xcb_configure_window' and
+             * the synthetic 'ConfigureNotify' above. */
+            xcb_clear_area(desktop->connection, 1,
+                    client->window, 0, 0, 0, 0);
 
             desktop_repaint_frame_decoration(desktop->connection, client,
                     is_focused, desktop->config_theme);

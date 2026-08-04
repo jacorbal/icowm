@@ -272,18 +272,22 @@ static void s_kbd_resize_apply(client_td *client,
      * new frame dimensions (no-op for undecorated clients) */
     client_sync_decoration_layout(client);
 
-    /* Force an immediate repaint of the content area with 'exposures=1'
-     * so the X server generates an Expose event and the application
-     * redraws the newly exposed region without waiting for the next
-     * user-triggered event (e.g., a focus change). */
-
-    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
-
     /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
      * screen-relative coordinates so the application always knows its
      * true on-screen position and content-area size, regardless of
      * reparenting. */
     client_send_synthetic_configure_notify(client->connection, client);
+
+
+    /* Force a repaint AFTER the synthetic 'ConfigureNotify' so the
+     * application (e.g., gVim) draws at the correct screen-relative
+     * geometry.  Placing the 'Expose' here ensures it arrives in the
+     * client's event queue after both the xcb_configure_window (from
+     * 'client_sync_decoration_layout') and the synthetic
+     * 'ConfigureNotify', giving (strange) programs like 'gVim' the
+     * correct size and position before its 'Expose' handler runs. */
+    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+
     xcb_flush(client->connection);
 
     /* Mark the desktop as needing a repaint so frame decorations are
