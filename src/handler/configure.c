@@ -196,49 +196,60 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         if (mask & XCB_CONFIG_WINDOW_X) {
-            if (is_reparented && on_inner) {
-                req_x = (int32_t) ((uint32_t) (int32_t) event->x -
-                        (uint32_t) left);
+            if (client->rule_position_locked) {
+                /* Position was fixed by a rule; reject the client's
+                 * attempt to move the window and keep the locked X */
+                send_synth = is_reparented;
             } else {
-                req_x = event->x;
-            }
+                if (is_reparented && on_inner) {
+                    req_x = (int32_t) ((uint32_t) (int32_t) event->x -
+                            (uint32_t) left);
+                } else {
+                    req_x = event->x;
+                }
+                if ((uint32_t) req_x !=
+                        (uint32_t) client->layout.geometry.cur.pos.x) {
+                    geom_changed = true;
+                }
 
-            if ((uint32_t) req_x !=
-                    (uint32_t) client->layout.geometry.cur.pos.x) {
-                geom_changed = true;
+                target_values[i++] = (uint32_t) req_x;
+                target_mask |= XCB_CONFIG_WINDOW_X;
+                client->layout.geometry.cur.pos.x = req_x;
+                send_synth = is_reparented;
             }
-
-            target_values[i++] = (uint32_t) req_x;
-            target_mask |= XCB_CONFIG_WINDOW_X;
-            client->layout.geometry.cur.pos.x = req_x;
-            send_synth = is_reparented;
         }
 
         if (mask & XCB_CONFIG_WINDOW_Y) {
             if (is_reparented && on_inner) {
-                /* Clamp before subtracting to keep req_y >= 0 and avoid
-                 * the "X - C < 0 => X < C" strict-overflow
-                 * transformation */
-                req_y = ((int32_t) event->y > (int32_t) top)
-                    ? (int32_t) ((uint32_t) (int32_t) event->y -
-                            (uint32_t) top)
-                    : 0;
+                /* Position was fixed by a rule; reject the client's
+                 * attempt to move the window and keep the locked Y */
+                send_synth = is_reparented;
             } else {
-                req_y = (int32_t) event->y;
-                if (req_y < 0) {
-                    req_y = 0;
+                if (is_reparented && on_inner) {
+                    /* Clamp before subtracting to keep req_y >= 0 and
+                     * avoid the "X - C < 0 => X < C" strict-overflow
+                     * transformation */
+                    req_y = ((int32_t) event->y > (int32_t) top)
+                        ? (int32_t) ((uint32_t) (int32_t) event->y -
+                                (uint32_t) top)
+                        : 0;
+                } else {
+                    req_y = (int32_t) event->y;
+                    if (req_y < 0) {
+                        req_y = 0;
+                    }
                 }
-            }
 
-            if ((uint32_t) req_y !=
-                    (uint32_t) client->layout.geometry.cur.pos.y) {
-                geom_changed = true;
-            }
+                if ((uint32_t) req_y !=
+                        (uint32_t) client->layout.geometry.cur.pos.y) {
+                    geom_changed = true;
+                }
 
-            target_values[i++] = (uint32_t) req_y;
-            target_mask |= XCB_CONFIG_WINDOW_Y;
-            client->layout.geometry.cur.pos.y = req_y;
-            send_synth = is_reparented;
+                target_values[i++] = (uint32_t) req_y;
+                target_mask |= XCB_CONFIG_WINDOW_Y;
+                client->layout.geometry.cur.pos.y = req_y;
+                send_synth = is_reparented;
+            }
         }
 
         if (mask & XCB_CONFIG_WINDOW_WIDTH) {

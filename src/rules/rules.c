@@ -467,6 +467,7 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
         values[vi++] = (uint32_t) client->layout.geometry.cur.pos.x;
         values[vi++] = (uint32_t) client->layout.geometry.cur.pos.y;
+        client->rule_position_locked = true;
     }
 
     if (apply->has_size) {

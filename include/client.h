@@ -300,6 +300,10 @@ typedef struct client_s {
     bool initial_iconic;        /**< Map iconic for 'WM_HINTS' initial state */
     xcb_window_t group_leader;  /**< Window group leader, or 'XCB_NONE' */
 
+    bool rule_position_locked;  /**< Position was set by a rule; ignore
+                                     client-initiated @c ConfigureRequests
+                                     that try to move the window */
+
     /**
      * @brief EWMH '_NET_WM_PING' state
      */

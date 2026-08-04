@@ -336,7 +336,6 @@ int logger_msg(enum logger_level_e level, const char *prefix,
             case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
         }
 
-
         /* Format first part message */
         if (logger->level_min == LOG_TRACE || logger->is_tracking) {
             len = snprintf(msg, sizeof(msg), "[%s] (%s) <%s>: ",

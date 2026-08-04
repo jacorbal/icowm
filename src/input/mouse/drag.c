@@ -592,6 +592,11 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
     client->properties.operation = (uint16_t) operation;
 
+    /* A user-initiated move overrides any rule-assigned position */
+    if (operation == CLIENT_OPERATION_MOVING) {
+        client->rule_position_locked = false;
+    }
+
     xcb_grab_pointer(connection,
             0,
             root,

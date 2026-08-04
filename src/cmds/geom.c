@@ -47,6 +47,7 @@ void wcmd_client_move(client_td *client,
             });
     client->layout.geometry.cur.pos =
         client_data->new_data.geometry.pos;
+    client->rule_position_locked = false;
 }
 
 
@@ -78,6 +79,7 @@ void wcmd_client_center(client_td *client)
             (const uint32_t[]) {(uint32_t) x, (uint32_t) y});
     client->layout.geometry.cur.pos.x = x;
     client->layout.geometry.cur.pos.y = y;
+    client->rule_position_locked = false;
 }
 
 
