@@ -26,17 +26,6 @@
 /* Render includes */
 #include <render/surface.h>
 
-/* Project includes */
-#include <action.h>
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <event.h>
-#include <eventq.h>
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
-
 /* Utils includes */
 #include <utils/geom.h>
 
@@ -48,12 +37,24 @@
 #include <menu/cycle.h>
 #include <menu/popup.h>
 
+/* Command includes */
+#include <cmds/ccmd.h>
+
 /* Default initial values */
 #include <defs/wm.h>
 
 /* Project includes */
+#include <action.h>
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <event.h>
+#include <eventq.h>
 #include <lifecycle.h>
+#include <logger.h>
 #include <lookup.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <input/kbd/bind.h>
@@ -192,6 +193,136 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         ? (int32_t) cur_frame + WM_KEYBOARD_RESIZE_STEP
         : (int32_t) cur_frame - WM_KEYBOARD_RESIZE_STEP;
     return geom_clamp_dim(target);
+}
+
+
+/**
+ * @brief Directly apply a keyboard resize to a client
+ *
+ * Applies the resize synchronously without going through the event
+ * queue.  This mirrors the interactive (mouse-drag) resize path so that
+ * both input methods share identical behaviour: the geometry is
+ * constrained per-axis, applied to the correct X window (frame for
+ * decorated clients, content window for undecorated clients), and
+ * followed by a synthetic 'ConfigureNotify' so the application learns
+ * its new geometry immediately.
+ *
+ * @param client Pointer to the client to resize
+ * @param new_x  New frame X position (screen-relative)
+ * @param new_y  New frame Y position (screen-relative)
+ * @param new_w  New frame width
+ * @param new_h  New frame height
+ *
+ * @note This function flushes the XCB connection before returning.
+ */
+static void s_kbd_resize_apply(client_td *client,
+        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h)
+{
+    uint32_t fe_l;
+    uint32_t fe_r;
+    uint32_t fe_t;
+    uint32_t fe_b;
+    uint32_t req_w;
+    uint32_t req_h;
+    uint32_t snap_w;
+    uint32_t snap_h;
+    bool w_changed;
+    bool h_changed;
+    bool pos_changed;
+    uint16_t mask;
+    uint32_t values[4];
+    xcb_window_t target_win;
+
+    if (client == NULL) {
+        return;
+    }
+
+    /* A shaded client shows only the titlebar; restore the full window
+     * before applying the new dimensions */
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+
+    fe_l = (uint32_t) client->layout.frame_extents.left;
+    fe_r = (uint32_t) client->layout.frame_extents.right;
+    fe_t = (uint32_t) client->layout.frame_extents.top;
+    fe_b = (uint32_t) client->layout.frame_extents.bottom;
+
+    /* Convert from frame space to inner space for constraint checks.
+     * For undecorated clients all extents are zero so this is no-op. */
+    req_w = (new_w > fe_l + fe_r) ? new_w - fe_l - fe_r : 0u;
+    req_h = (new_h > fe_t + fe_b) ? new_h - fe_t - fe_b : 0u;
+
+    /* Apply ICCCM size hints only to the axis that actually changed to
+     * avoid snapping the unchanged axis onto a different grid
+     * position. */
+    w_changed = (new_w != client->layout.geometry.cur.dim.w);
+    h_changed = (new_h != client->layout.geometry.cur.dim.h);
+    pos_changed = (new_x != client->layout.geometry.cur.pos.x ||
+                   new_y != client->layout.geometry.cur.pos.y);
+    snap_w = req_w;
+    snap_h = req_h;
+    client_constrain_size(client, &snap_w, &snap_h);
+    if (w_changed) {
+        req_w = snap_w;
+    }
+    if (h_changed) {
+        req_h = snap_h;
+    }
+
+    /* Convert constrained inner size back to frame space */
+    req_w += fe_l + fe_r;
+    req_h += fe_t + fe_b;
+
+    /* Apply the new geometry to the correct X window.  Decorated
+     * clients are reparented into a frame; undecorated clients are
+     * direct children of the root. */
+    target_win = (client->frame != 0 && client_is_decorated(client))
+        ? client->frame : client->window;
+
+    if (pos_changed) {
+        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+               XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = (uint32_t) new_x;
+        values[1] = (uint32_t) new_y;
+        values[2] = req_w;
+        values[3] = req_h;
+    } else {
+        mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = req_w;
+        values[1] = req_h;
+    }
+    xcb_configure_window(client->connection, target_win, mask, values);
+
+    /* Update the stored geometry after configuring X so that
+     * 'client_sync_decoration_layout' and the synthetic
+     * 'ConfigureNotify' both see the final values */
+    client->layout.geometry.cur.pos.x = new_x;
+    client->layout.geometry.cur.pos.y = new_y;
+    client->layout.geometry.cur.dim.w = req_w;
+    client->layout.geometry.cur.dim.h = req_h;
+
+    /* Reposition and resize the inner window and titlebar to match the
+     * new frame dimensions (no-op for undecorated clients) */
+    client_sync_decoration_layout(client);
+
+    /* Force an immediate repaint of the content area with 'exposures=1'
+     * so the X server generates an Expose event and the application
+     * redraws the newly exposed region without waiting for the next
+     * user-triggered event (e.g., a focus change). */
+
+    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+
+    /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
+     * screen-relative coordinates so the application always knows its
+     * true on-screen position and content-area size, regardless of
+     * reparenting. */
+    client_send_synthetic_configure_notify(client->connection, client);
+    xcb_flush(client->connection);
+
+    /* Mark the desktop as needing a repaint so frame decorations are
+     * refreshed at the correct new dimensions */
+    wm_request_client_redraw(client);
 }
 
 
@@ -599,13 +730,11 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 client->layout.geometry.cur.pos.x;
                             int32_t new_y =
                                 client->layout.geometry.cur.pos.y;
-                            /* 's_kb_resize_axis_target' and
-                             * 'client_send_event_resize' both operate
-                             * in frame space (outer dimensions
-                             * including decoration extents).  Use the
-                             * raw frame dimensions here; the callee
-                             * subtracts extents internally when it
-                             * needs inner sizes. */
+                            /* Operate in frame space (outer dimensions
+                             * including decoration extents).
+                             * 's_kbd_resize_apply' converts to inner
+                             * space internally when applying size
+                             * hints */
                             uint32_t old_w =
                                 client->layout.geometry.cur.dim.w;
                             uint32_t old_h = (client_is_shaded(client))
@@ -644,7 +773,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                         client, false, old_h, true);
                             }
 
-                            (void) client_send_event_resize(client,
+                            s_kbd_resize_apply(client,
                                     new_x, new_y,
                                     geom_clamp_dim(new_w),
                                     geom_clamp_dim(new_h));
