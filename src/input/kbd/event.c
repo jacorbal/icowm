@@ -608,7 +608,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                              * needs inner sizes. */
                             uint32_t old_w =
                                 client->layout.geometry.cur.dim.w;
-                            uint32_t old_h = client_is_shaded(client)
+                            uint32_t old_h = (client_is_shaded(client))
                                 ? client->layout.geometry.old.dim.h
                                 : client->layout.geometry.cur.dim.h;
                             int32_t new_w = (int32_t)

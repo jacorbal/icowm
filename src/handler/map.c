@@ -238,6 +238,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * imperfect initial viewport layout. */
         if (client->frame != 0 && client_is_decorated(client)) {
             client_send_synthetic_configure_notify(wm->connection, client);
+            xcb_clear_area(wm->connection, 0, client->window, 0, 0, 0, 0);
         }
     }
 

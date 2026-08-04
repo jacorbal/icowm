@@ -172,6 +172,8 @@ void wcmd_client_resize(client_td *client,
      * point. */
     client_sync_decoration_layout(client);
 
+    xcb_clear_area(client->connection, 0, client->window, 0, 0, 0, 0);
+
     /* Mark the client's desktop as outdated so the frame decoration
      * (titlebar background, text, border grips) is repainted on the
      * next render pass to match the new frame size */
