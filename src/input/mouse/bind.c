@@ -286,6 +286,24 @@ void mouse_load(list_td *surfaces, const config_td *config)
             continue;
         }
 
+        /* Scroll-wheel bindings ('DESKTOP_PREV'/'DESKTOP_NEXT') must
+         * not be grabbed passively on the root window.  A root passive
+         * grab uses async pointer mode, which means the pointer is
+         * never frozen; 'AllowEvents'/'ReplayPointer' becomes a no-op
+         * and the event cannot be forwarded to the application under
+         * the pointer.  These bindings are still registered in the
+         * binding table so that scroll events arriving on the root via
+         * the root's own event-mask subscription ('XSelectInput') are
+         * still dispatched to the desktop-cycle handler.  Events over
+         * managed client windows are caught by the per-frame sync grab
+         * (ANY button, ANY modifier) and reach this handler via that
+         * path, where 'ReplayPointer¡ correctly thaws the pointer and
+         * re-delivers the event to the application. */
+        if (defs[i].type == MOUSEBIND_DESKTOP_PREV ||
+                defs[i].type == MOUSEBIND_DESKTOP_NEXT) {
+            continue;
+        }
+
         for (list_item_td *node = list_head(surfaces);
                 node != NULL; node = list_next(node)) {
             surface_td *surface = (surface_td *) list_data(node);

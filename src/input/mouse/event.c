@@ -25,6 +25,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 
 /* Render includes */
@@ -328,47 +329,117 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (type == MOUSEBIND_DESKTOP_NEXT ||
             type == MOUSEBIND_DESKTOP_PREV) {
         if (client != NULL) {
-            /* Scroll on titlebar: shade (up) or unshade (down).
-             * For root-grabbed buttons event->child is the frame, not
-             * the titlebar, so verify the Y coordinate instead. */
-            if (client->titlebar != 0 &&
-                    (event->child == client->frame ||
-                     event->child == client->titlebar)) {
+            /* Determine whether the scroll landed on the titlebar.
+             * For a frame passive grab (SYNC), 'event->child' is the
+             * content window when scrolling over it; for the titlebar
+             * itself, 'event->child' is the titlebar window.  Fall back
+             * to the Y-coordinate check to handle both. */
+            bool on_titlebar = false;
+
+            surface = lookup_surface_for_root(surfaces, event->root);
+            if (client->titlebar != 0) {
                 int32_t bw = client->layout.frame_extents.left;
                 int32_t fy = client->layout.geometry.cur.pos.y;
                 int32_t ty0 = fy + bw;
                 int32_t ty1 = fy + client->layout.frame_extents.top;
                 int32_t ry = (int32_t) event->root_y;
-                if (ry >= ty0 && ry < ty1) {
-                    if (type == MOUSEBIND_DESKTOP_PREV) {
-                        if (!client_is_shaded(client)) {
-                            client_send_event(client, ACTION_CLIENT_SHADE,
-                                    PRIORITY_NORMAL);
-                            if (desktop != NULL) {
-                                desktop->is_outdated = true;
+
+                /* The 'event->child' for a frame-sync grab over the
+                 * titlebar is the titlebar window itself; over the
+                 * content it is the content window.  Accept either the
+                 * window match or the Y-range match. */
+                if (event->child == client->titlebar ||
+                        (ry >= ty0 && ry < ty1)) {
+                    on_titlebar = true;
+                }
+            }
+
+            if (on_titlebar) {
+                /* Scroll up (PREV) on titlebar: shade the window and
+                 * transfer focus to the previously active client.
+                 * Scroll down (NEXT) on titlebar: unshade and focus. */
+                if (type == MOUSEBIND_DESKTOP_PREV) {
+                    if (!client_is_shaded(client)) {
+                        /* Shade the window */
+                        wcmd_client_shade(client);
+
+                        /* Transfer focus to the previous focusable
+                         * client in the stacking order (MRU list).
+                         * The current client is at the tail; walk
+                         * backwards to find the next candidate. */
+                        if (desktop != NULL && surface != NULL) {
+                            cdlist_item_td *node = NULL;
+                            client_td *prev_c = NULL;
+
+                            if (desktop->stacking != NULL) {
+                                cdlist_item_td *tail =
+                                    cdlist_tail(desktop->stacking);
+                                if (tail != NULL) {
+                                    node = cdlist_prev(tail);
+                                }
                             }
-                            surface = lookup_surface_for_root(surfaces,
-                                    event->root);
-                            if (surface != NULL) {
-                                surface->is_outdated = true;
+
+                            while (node != NULL &&
+                                    node != cdlist_tail(
+                                        desktop->stacking)) {
+                                client_td *c =
+                                    (client_td *) cdlist_data(node);
+                                if (c != NULL && c != client &&
+                                        client_is_focusable(c) &&
+                                        !client_is_iconified(c)) {
+                                    prev_c = c;
+                                    break;
+                                }
+                                node = cdlist_prev(node);
                             }
-                        }
-                    } else if (client_is_shaded(client)) {
-                        client_send_event(client, ACTION_CLIENT_UNSHADE,
-                                PRIORITY_NORMAL);
-                        if (desktop != NULL) {
+
+                            if (prev_c != NULL) {
+                                focus_apply(surfaces, surface,
+                                        desktop, prev_c, false,
+                                        config);
+                                s_mouse_sync_sticky_active(surface,
+                                        desktop, prev_c);
+                            } else {
+                                /* No other focusable client: clear
+                                 * the active client on the desktop */
+                                (void) client_send_event_unfocus(
+                                        client);
+                                desktop->client_active_id = 0;
+                                desktop->focus_dirty = true;
+                            }
+
                             desktop->is_outdated = true;
+                            surface->is_outdated = true;
                         }
-                        surface = lookup_surface_for_root(surfaces,
-                                event->root);
-                        if (surface != NULL) {
+                    }
+                } else { /* MOUSEBIND_DESKTOP_NEXT */
+                    if (client_is_shaded(client)) {
+                        /* Unshade and focus */
+                        wcmd_client_unshade(client);
+
+                        if (surface != NULL && desktop != NULL) {
+                            focus_apply(surfaces, surface, desktop,
+                                    client, false, config);
+                            s_mouse_sync_sticky_active(surface,
+                                    desktop, client);
+                            desktop->is_outdated = true;
                             surface->is_outdated = true;
                         }
                     }
                 }
+
+                xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                        event->time);
+            } else {
+                /* Scroll over client content area: replay the event so
+                 * the application receives it.  The frame passive grab
+                 * uses SYNC pointer mode, so ReplayPointer thaws the
+                 * pointer and re-delivers the event to the actual
+                 * window under the pointer, bypassing passive grabs. */
+                xcb_allow_events(connection,
+                        XCB_ALLOW_REPLAY_POINTER, event->time);
             }
-            xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
-                    event->time);
+
             xcb_flush(connection);
             return;
         }
@@ -540,9 +611,10 @@ void mouse_handle_press(xcb_connection_t *connection,
                 }
 
                 /* Clicks that land on the titlebar but miss all buttons
-                 * start a window-move drag, making the titlebar serve as
-                 * a drag handle.  A double-click on the same titlebar
-                 * within the threshold, toggles shade instead. */
+                 * start a window-move drag, making the titlebar serve
+                 * as a drag handle.  A double-click on the same
+                 * titlebar within the threshold, toggles shade
+                 * instead. */
                 if (!hit_btn) {
                     xcb_timestamp_t dt = event->time -
                         s_last_titlebar_press_time;
@@ -702,6 +774,7 @@ void mouse_handle_press(xcb_connection_t *connection,
             event->root_x, event->root_y,
             screen_w, screen_h,
             config->base.windows.snap);
+
 }
 
 
