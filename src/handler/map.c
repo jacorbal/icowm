@@ -85,6 +85,7 @@ static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
                         (uint16_t) CLIENT_STATE_ICONIFIED &&
                     (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {
                 desktop->client_active_id = c->id;
+                desktop->focus_dirty = true;
 
                 if (connection != NULL) {
                     xcb_set_input_focus(connection,
@@ -294,6 +295,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             desktop->client_active_id = 0;
+            desktop->focus_dirty = true;
             s_restore_focus_after_client_loss(connection, surface,
                     desktop, client);
         }
@@ -350,6 +352,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
 
     if (desktop != NULL && desktop->client_active_id == client->id) {
         desktop->client_active_id = 0;
+        desktop->focus_dirty = true;
         s_restore_focus_after_client_loss(connection, surface,
                 desktop, client);
         if (connection != NULL) {

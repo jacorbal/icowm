@@ -627,12 +627,15 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             }
 
             client->is_outdated = false;
-        } else if (target != client->window) {
+        } else if (target != client->window && desktop->focus_dirty) {
             /* The client geometry has not changed; only refresh the
              * focus-sensitive decoration colors (border and titlebar
-             * background/text) so that focus changes are always
-             * reflected without triggering unnecessary redraws in
-             * other windows. */
+             * background/text) when the active client actually changed.
+             * Skipping this repaint when focus is unchanged avoids
+             * spurious 'xcb_clear_area + text-draw' calls on every
+             * render pass during resize, which was the source of the
+             * desktop-wide flickering visible on all non-resized
+             * windows. */
             left = (uint16_t) client->layout.frame_extents.left;
             right = (uint16_t) client->layout.frame_extents.right;
             top = (uint16_t) client->layout.frame_extents.top;
@@ -744,6 +747,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
     /* Mark desktop as up-to-date */
     desktop->is_outdated = false;
+    desktop->focus_dirty = true;
 
     /* NOTE: Do NOT flush here!  Let the surface handle the flushing */
 

@@ -541,6 +541,7 @@ int desktop_action_lock(desktop_td *desktop)
         return 1;
     }
     desktop->client_active_id = 0;
+    desktop->focus_dirty = true;
     desktop->is_outdated = true;
 
     return 0;

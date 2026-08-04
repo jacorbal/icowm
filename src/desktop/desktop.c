@@ -287,6 +287,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     /* Mark desktop as outdated to trigger initial render */
     desktop->is_outdated = true;
+    desktop->focus_dirty = true;
 
     LOGGER_TRACE("Initialized desktop %u ('%s') on screen %u" \
             " with geometry %ux%u",

@@ -222,6 +222,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
     if (focus_target != NULL) {
         desktop->client_active_id = focus_target->id;
+        desktop->focus_dirty = true;
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_PARENT,
                 focus_target->window, XCB_CURRENT_TIME);
@@ -231,6 +232,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
     if (!focus_restored) {
         desktop->client_active_id = 0;
+        desktop->focus_dirty = true;
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
@@ -298,6 +300,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                     (from_desktop->client_active_id == sticky[i]->id);
                 if (was_active) {
                     from_desktop->client_active_id = 0;
+                    from_desktop->focus_dirty = true;
                 }
 
                 desktop_action_client_rem(from_desktop, sticky[i]);
@@ -310,6 +313,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                  * restores input focus to it */
                 if (was_active) {
                     to_desktop->client_active_id = sticky[i]->id;
+                    to_desktop->focus_dirty = true;
                 }
             }
         }

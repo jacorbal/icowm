@@ -81,6 +81,7 @@ static void s_client_focus_fallback(client_td *client)
     }
 
     desktop->client_active_id = 0;
+    desktop->focus_dirty = true;
     next_focus = NULL;
 
     if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
@@ -107,6 +108,7 @@ static void s_client_focus_fallback(client_td *client)
 
     if (next_focus != NULL) {
         desktop->client_active_id = next_focus->id;
+        desktop->focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, next_focus);
         wcmd_client_focus(next_focus);
     } else {

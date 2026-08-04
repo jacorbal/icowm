@@ -96,6 +96,7 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
     }
 
     current_desktop->client_active_id = client->id;
+    current_desktop->focus_dirty = true;
     current_desktop->is_outdated = true;
     surface->is_outdated = true;
 }

@@ -91,6 +91,10 @@ typedef struct desktop_s {
 
     bool is_outdated;                       /**< Flag when data needs to
                                                  be updated */
+    bool focus_dirty;                       /**< Active client changed
+                                                 since last render pass;
+                                                 decoration colors must be
+                                                 refreshed on all clients */
 } desktop_td;
 
 

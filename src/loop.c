@@ -98,6 +98,7 @@ static void s_loop_handle_leave_notify(wm_td *wm,
                 event->time);
         if (desktop != NULL) {
             desktop->client_active_id = 0;
+            desktop->focus_dirty = true;
             desktop->is_outdated = true;
         }
         if (surface != NULL) {

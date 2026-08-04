@@ -356,6 +356,7 @@ void wcmd_client_fullscreen(client_td *client)
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         desktop->client_active_id = client->id;
+        desktop->focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
     }
@@ -657,6 +658,7 @@ void wcmd_client_toggle_decoration(client_td *client)
     if (keep_focus) {
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
+            desktop->focus_dirty = true;
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }

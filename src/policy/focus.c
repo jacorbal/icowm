@@ -57,6 +57,7 @@ void focus_apply(list_td *surfaces,
     }
 
     desktop->client_active_id = client->id;
+    desktop->focus_dirty = true;
     (void) client_send_event_focus(client);
 
     /* Mark outdated so the next update cycle repaints titlebars */
