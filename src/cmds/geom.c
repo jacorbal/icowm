@@ -93,10 +93,6 @@ void wcmd_client_resize(client_td *client,
     uint32_t req_w;
     uint32_t req_h;
     uint16_t mask;
-    uint32_t fe_l;
-    uint32_t fe_r;
-    uint32_t fe_t;
-    uint32_t fe_b;
 
     if (client == NULL || client_data == NULL) {
         return;
@@ -123,21 +119,16 @@ void wcmd_client_resize(client_td *client,
     req_x = client_data->new_data.geometry.pos.x;
     req_y = client_data->new_data.geometry.pos.y;
 
-    /* ICCCM §4.1.2.3: size hints apply to the inner (content) window.
-     * Convert incoming frame dimensions to inner dimensions, apply
-     * constraints, then convert back.  For undecorated clients the
-     * frame extents are all zero, so the conversion is a no-op. */
-    fe_l = (uint32_t) client->layout.frame_extents.left;
-    fe_r = (uint32_t) client->layout.frame_extents.right;
-    fe_t = (uint32_t) client->layout.frame_extents.top;
-    fe_b = (uint32_t) client->layout.frame_extents.bottom;
+    /* The event data was already constrained by
+     * 'client_send_event_resize' (size hints, increments, min/max)
+     * before being queued.  Use the pre-constrained frame-space values
+     * directly so we do not apply increment snapping a second time.
+     * A second pass would force the unchanged axis (e.g., height when
+     * only width is being resized by keyboard) onto the increment grid
+     * from whatever the program reported via its own ConfigureRequest,
+     * causing the window to shrink on every resize keypress. */
     req_w = client_data->new_data.geometry.dim.w;
     req_h = client_data->new_data.geometry.dim.h;
-    req_w = (req_w > fe_l + fe_r) ? req_w - fe_l - fe_r : 0u;
-    req_h = (req_h > fe_t + fe_b) ? req_h - fe_t - fe_b : 0u;
-    client_constrain_size(client, &req_w, &req_h);
-    req_w += fe_l + fe_r;
-    req_h += fe_t + fe_b;
 
     target = wcmd_target_win(client);
     mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;

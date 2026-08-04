@@ -245,7 +245,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * appear outside the configured frame bounds until a focus
          * change or move forces a redraw. */
         client_send_synthetic_configure_notify(wm->connection, client);
-        xcb_clear_area(wm->connection, 0, client->window, 0, 0, 0, 0);
+        xcb_clear_area(wm->connection, 1, client->window, 0, 0, 0, 0);
     }
 
     /* Re-apply layer stacking so newly mapped windows do not obscure

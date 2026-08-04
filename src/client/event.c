@@ -18,6 +18,7 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
@@ -225,6 +226,10 @@ int client_send_event_resize(client_td *client,
     uint32_t fe_r;
     uint32_t fe_t;
     uint32_t fe_b;
+    bool w_changed;
+    bool h_changed;
+    uint32_t snap_w;
+    uint32_t snap_h;
 
     if (client == NULL) {
         LOGGER_ERROR("Received null client pointer", L_NARG);
@@ -244,7 +249,16 @@ int client_send_event_resize(client_td *client,
      * Convert the incoming frame dimensions to inner dimensions before
      * applying the constraints, then convert back so the rest of the
      * function always works in frame space.  For undecorated clients
-     * the frame extents are all zero, so the conversion is a no-op. */
+     * the frame extents are all zero, so the conversion is a no-op.
+     *
+     * Important: only apply increment snapping to the axis that
+     * actually changed relative to the current stored size.  Applying
+     * increments to the unchanged axis would snap an off-grid dimension
+     * (set by the application itself via 'ConfigureRequest') down to
+     * the nearest lower multiple, causing the window to shrink on every
+     * keypress that only moves the other edge (e.g., pressing
+     * 'RESIZE_RIGHT' would shrink the height if program's height is not
+     * on the WM's grid). */
     fe_l = (uint32_t) client->layout.frame_extents.left;
     fe_r = (uint32_t) client->layout.frame_extents.right;
     fe_t = (uint32_t) client->layout.frame_extents.top;
@@ -252,6 +266,19 @@ int client_send_event_resize(client_td *client,
     req_w = (new_w > fe_l + fe_r) ? new_w - fe_l - fe_r : 0u;
     req_h = (new_h > fe_t + fe_b) ? new_h - fe_t - fe_b : 0u;
     client_constrain_size(client, &req_w, &req_h);
+
+    w_changed = (new_w != client->layout.geometry.cur.dim.w);
+    h_changed = (new_h != client->layout.geometry.cur.dim.h);
+    snap_w = req_w;
+    snap_h = req_h;
+    client_constrain_size(client, &snap_w, &snap_h);
+    if (w_changed) {
+        req_w = snap_w;
+    }
+    if (h_changed) {
+        req_h = snap_h;
+    }
+
     req_w += fe_l + fe_r;
     req_h += fe_t + fe_b;
 
