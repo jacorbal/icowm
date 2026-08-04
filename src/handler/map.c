@@ -240,11 +240,11 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * imperfect initial viewport layout.
          *
          * For undecorated clients the X server supplies the correct
-         * screen-relative coordinates, but applications like gVim
-         * require an explicit 'ConfigureNotify' to commit their initial
-         * layout; without it a fragment of the window content can
-         * appear outside the configured frame bounds until a focus
-         * change or move forces a redraw. */
+         * screen-relative coordinates, but some applications require an
+         * explicit 'ConfigureNotify' to commit their initial layout;
+         * without it a fragment of the window content can appear
+         * outside the configured frame bounds until a focus change or
+         * move forces a redraw. */
         client_send_synthetic_configure_notify(wm->connection, client);
         xcb_clear_area(wm->connection, 1, client->window, 0, 0, 0, 0);
     }

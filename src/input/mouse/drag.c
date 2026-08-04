@@ -822,7 +822,7 @@ void drag_update(xcb_connection_t *connection,
          * actively resized its dimension is frozen at the start value
          * so that client_constrain_size cannot floor it due to
          * sub-increment pointer noise, which would cause size-hinted
-         * clients (e.g., 'gVim') to lose a row or column and enter
+         * clients to lose a row or column and enter
          * a 'ConfigureRequest' loop. */
         if (!s_drag.resize_w) {
             new_w = s_drag.client_start_w;

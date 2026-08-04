@@ -75,6 +75,9 @@ typedef struct {
                                          config. dir. is used; kept to
                                          reuse it on config. reload */
     bool is_running;                /**< Running state flag */
+    bool is_emergency_exit;         /**< Set when an emergency exit is
+                                         requested; suppresses pending
+                                         session hooks on shutdown */
 } wm_td;
 
 
@@ -250,6 +253,11 @@ int wm_ewmh_init(void);
  * runtime state.
  */
 void wm_ewmh_tick(void);
+
+/**
+ * @brief Set the emergency exit flag to @c true
+ */
+void wm_enable_emergency_exit(void);
 
 /**
  * @brief Macro that evaluates to the number of surfaces handled by the

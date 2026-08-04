@@ -525,13 +525,14 @@ void handler_configure_notify(xcb_connection_t *connection,
              * through 'client_sync_decoration_layout'; reacting to a
              * stale 'ConfigureNotify' with a different size would:
              *
-             *   1. Overwrite the stored geometry with the pre-snap value
-             *   2. Call client_sync_decoration_layout again, generating
-             *      another ConfigureNotify with the old size
-             *   3. Create a feedback loop visible as gVim (or any
-             *      size-hint-constrained app) flickering and collapsing
-             *      during mouse resize, or losing one character row on
-             *      every keyboard resize keypress. */
+             *   1. overwrite the stored geometry with the pre-snap
+             *      value;
+             *   2. call client_sync_decoration_layout again, generating
+             *      another 'ConfigureNotify' with the old size;
+             *   3. create a feedback loop visible as
+             *      size-hint-constrained applications flickering and
+             *      collapsing during mouse resize, or losing one
+             *      character row on every keyboard resize keypress. */
             if ((int32_t) event->x != (int32_t) left ||
                     (int32_t) event->y != (int32_t) top) {
                 client_sync_decoration_layout(client);

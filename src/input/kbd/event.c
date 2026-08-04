@@ -280,12 +280,12 @@ static void s_kbd_resize_apply(client_td *client,
 
 
     /* Force a repaint AFTER the synthetic 'ConfigureNotify' so the
-     * application (e.g., gVim) draws at the correct screen-relative
-     * geometry.  Placing the 'Expose' here ensures it arrives in the
-     * client's event queue after both the xcb_configure_window (from
+     * application draws at the correct screen-relative geometry.
+     * Placing the 'Expose' here ensures it arrives in the client's
+     * event queue after both the xcb_configure_window (from
      * 'client_sync_decoration_layout') and the synthetic
-     * 'ConfigureNotify', giving (strange) programs like gVim, the
-     * correct size and position before its 'Expose' handler runs. */
+     * 'ConfigureNotify', giving programs that rely on size and position
+     * before their 'Expose' handler runs the correct geometry. */
     xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 
     xcb_flush(client->connection);
@@ -447,6 +447,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
         LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
+        wm_enable_emergency_exit();
         raise(SIGTERM);
         return;
     }

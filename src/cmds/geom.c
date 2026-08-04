@@ -163,11 +163,10 @@ void wcmd_client_resize(client_td *client,
      * point. */
     client_sync_decoration_layout(client);
 
-    /* Use 'exposures=1' so the X server generates an Expose event and
-     * the client (e.g., gVim) redraws the newly exposed area
-     * immediately after a non-interactive (keyboard or programmatic)
-     * resize, rather than leaving stale content until the next
-     * user-triggered redraw. */
+    /* Use 'exposures=1' so the X server generates an 'Expose' event and
+     * the client redraws the newly exposed area immediately after
+     * a non-interactive (keyboard or programmatic) resize, rather than
+     * leaving stale content until the next user-triggered redraw */
     xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 
     /* Mark the client's desktop as outdated so the frame decoration
@@ -186,14 +185,14 @@ void wcmd_client_resize(client_td *client,
      *
      * For undecorated clients there is no reparenting, so the X server
      * would normally supply the correct screen-relative coordinates.
-     * However applications like gVim that size themselves on character
-     * increments rely on receiving 'ConfigureNotify' to recompute their
-     * internal layout; without an explicit notification after
-     * a non-interactive (keyboard or programmatic) resize they do not
-     * redraw the newly exposed region, leaving a fragment of stale
-     * content visible until the next user-triggered repaint.  Send the
-     * synthetic event unconditionally so every client always receives
-     * the definitive geometry notification. */
+     * However applications that size themselves on character increments
+     * rely on receiving 'ConfigureNotify' to recompute their internal
+     * layout; without an explicit notification after a non-interactive
+     * (keyboard or programmatic) resize they do not redraw the newly
+     * exposed region, leaving a fragment of stale content visible until
+     * the next user-triggered repaint.  Send the synthetic event
+     * unconditionally so every client always receives the definitive
+     * geometry notification. */
     client_send_synthetic_configure_notify(client->connection, client);
 }
 

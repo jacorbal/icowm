@@ -78,8 +78,13 @@ static void s_wm_cleanup(void)
     }
 
     if (wm->session != NULL) {
-        session_run_hook(wm->session, wm->connection,
-                SESSION_HOOK_EXIT);
+        if (wm->is_emergency_exit) {
+            LOGGER_NOTICE("Emergency exit in effect;" \
+                    " pending session hooks will not be run", L_NARG);
+        } else {
+            session_run_hook(wm->session, wm->connection,
+                    SESSION_HOOK_EXIT);
+        }
     }
 
     text_renderer_destroy();
@@ -157,6 +162,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm->surfaces = NULL;
     wm->randr_available = false;
     wm->randr_base_event = 0u;
+    wm->is_emergency_exit = false;
 
     LOGGER_DEBUG("Opening X display", L_NARG);
     wm->connection = xcb_connect(display_name,
@@ -439,4 +445,11 @@ void wm_request_full_redraw(void)
             }
         }
     } /* ! for (snode) */
+}
+
+
+/* Set the emergency exit flag to true */
+void wm_enable_emergency_exit(void)
+{
+    wm->is_emergency_exit = true;
 }
