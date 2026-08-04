@@ -282,6 +282,22 @@ int client_send_event_resize(client_td *client,
                 mask,
                 values);
         client_sync_decoration_layout(client);
+
+        /* For undecorated clients 'client_sync_decoration_layout' is
+         * a no-op, so the content window does not receive
+         * a 'xcb_clear_area' call there.  Force a repaint explicitly so
+         * the newly exposed region is filled immediately rather than
+         * remaining stale until the next user-triggered redraw. */
+        if (client->frame == 0 || !client_is_decorated(client)) {
+            xcb_clear_area(client->connection, 0,
+                    client->window, 0, 0, 0, 0);
+        }
+        /* Send a synthetic 'ConfigureNotify' so applications that use
+         * size increments (e.g., gVim) can recompute their internal
+         * layout during live mouse-resize feedback. */
+        client_send_synthetic_configure_notify(client->connection,
+        client);
+
         xcb_flush(client->connection);
 
         return 0;

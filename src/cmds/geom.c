@@ -181,15 +181,24 @@ void wcmd_client_resize(client_td *client,
 
     /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
      * screen-relative coordinates so the application always knows its
-     * true on-screen position and content-area size.  Without this the
-     * application receives only the X-server-generated
-     * 'ConfigureNotify' from 'client_sync_decoration_layout', which
-     * carries frame-relative coordinates (x=left, y=top) instead of
-     * screen-relative ones, causing drawing artefacts or misaligned
-     * popup windows. */
-    if (client->frame != 0 && client_is_decorated(client)) {
-        client_send_synthetic_configure_notify(client->connection, client);
-    }
+     * true on-screen position and content-area size.
+     *
+     * For decorated (reparented) clients the X server delivers
+     * a frame-relative 'ConfigureNotify' (x=border, y=titlebar+border)
+     * from 'client_sync_decoration_layout'; the synthetic event
+     * overrides that with screen-relative coordinates.
+     *
+     * For undecorated clients there is no reparenting, so the X server
+     * would normally supply the correct screen-relative coordinates.
+     * However applications like gVim that size themselves on character
+     * increments rely on receiving 'ConfigureNotify' to recompute their
+     * internal layout; without an explicit notification after
+     * a non-interactive (keyboard or programmatic) resize they do not
+     * redraw the newly exposed region, leaving a fragment of stale
+     * content visible until the next user-triggered repaint.  Send the
+     * synthetic event unconditionally so every client always receives
+     * the definitive geometry notification. */
+    client_send_synthetic_configure_notify(client->connection, client);
 }
 
 
