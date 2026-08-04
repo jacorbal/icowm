@@ -73,7 +73,12 @@ static xcb_pixmap_t
     s_get_root_background_pixmap(xcb_connection_t *connection,
             xcb_window_t root)
 {
-    const char *prop_names[] = { "_XROOTPMAP_ID", "ESETROOT_PMAP_ID" };
+    /* 'ESETROOT_PMAP_ID': legacy 'Esetroot' alias, also used by 'feh'.
+     * '_XROOTPMAP_ID': set by 'Esetroot', 'feh', 'nitrogen', 'hsetroot', &c.
+     * '_XSETROOT_ID': set by 'xsetroot' and 'xsetbg'. */
+    const char *prop_names[] = {
+        "_XROOTPMAP_ID", "ESETROOT_PMAP_ID", "_XSETROOT_ID"
+    };
     const size_t prop_count = sizeof(prop_names) / sizeof(prop_names[0]);
 
     if (connection == NULL || root == XCB_WINDOW_NONE) {
@@ -140,6 +145,7 @@ int desktop_render_background(desktop_td *desktop)
      */
     iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
     screen = NULL;
+
     for (uint32_t i = 0; i < desktop->screen_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
     }
@@ -155,20 +161,42 @@ int desktop_render_background(desktop_td *desktop)
     root_pixmap = s_get_root_background_pixmap(desktop->connection,
             screen->root);
     if (root_pixmap != XCB_NONE) {
+        /* An external tool ('xsetbg', 'feh', 'xsetroot', 'nitrogen',
+         * &c.) has set a background pixmap on the root window.  Point
+         * the root window's background at that pixmap and record the
+         * fact so that subsequent repaints do not overwrite it with our
+         * color. */
+
+         /* NOTE: Do NOT call 'xcb_clear_area': the pixels are already
+          *       correct and clearing would cause an unnecessary
+          *       repaint flash */
         desktop->background.use_root_pixmap = true;
         values[0] = root_pixmap;
         xcb_change_window_attributes(desktop->connection, screen->root,
                 XCB_CW_BACK_PIXMAP, values);
+        LOGGER_TRACE("External root pixmap 0x%x detected for" \
+                " desktop %u ('%s'); skipping color fill",
+                root_pixmap, desktop->id, desktop->name);
+    } else if (desktop->background.use_root_pixmap) {
+        /* No pixmap atom found this time, but an external tool
+         * previously painted the root window.  The pixels are still
+         * there; do not repaint with the window manager color, just
+         * leave the root window untouched so the wallpaper remains
+         * visible. */
+        LOGGER_TRACE("Preserving previous external background for" \
+                " desktop %u ('%s')", desktop->id, desktop->name);
     } else {
+        /* No external background detected and the WM owns the
+         * background: apply the configured color and clear the root
+         * window to make it visible */
         desktop->background.use_root_pixmap = false;
         values[0] = XCB_BACK_PIXMAP_NONE;
         values[1] = desktop->background.bg.color;
         xcb_change_window_attributes(desktop->connection, screen->root,
                 XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
+        xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
+                screen->width_in_pixels, screen->height_in_pixels);
     }
-
-    xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
-            screen->width_in_pixels, screen->height_in_pixels);
 
     LOGGER_TRACE("Background rendered for desktop %u ('%s')",
             desktop->id, desktop->name);
