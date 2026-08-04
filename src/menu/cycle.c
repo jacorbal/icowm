@@ -1,7 +1,7 @@
 /**
  * @file menu/cycle.c
  *
- * @brief Window/icon cycle menu implementation
+ * @brief Window and icon cycle menu implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -49,30 +49,11 @@
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/cycle.h>
+#include <menu/internal.h>
 
 
 /** Private cycle menu state */
-static struct {
-    xcb_window_t window;
-    client_td *clients[WM_CYCLE_MENU_MAX_ENTRIES];
-    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LEN];
-    int count;
-    int selected;
-    uint16_t width;
-    bool is_icon_menu;
-    surface_td *surface;
-    desktop_td *desktop;
-    uint16_t modifier;
-    xcb_window_t prev_focus;
-    xcb_keysym_t next_keysym;
-    uint16_t next_modmask;
-    xcb_keysym_t prev_keysym;
-    uint16_t prev_modmask;
-    client_td *preview_client;
-    const config_td *config;
-    int scroll_offset;
-    int viewport_rows;
-} s_menu = {
+struct cycle_menu_state_s g_cycle_menu = {
     .window = XCB_WINDOW_NONE,
     .count = 0,
     .selected = 0,
@@ -94,310 +75,16 @@ static struct {
 
 
 /**
- * @brief Resolve the X window used as the visual target for cycle
- *        preview
+ * @brief Restore the preview style for all clients in the cycle menu
  *
- * Determines which X window should be used to represent a client during
- * cycle preview operations.  The function accounts for icon menu mode,
- * hidden clients, and window decorations to select the appropriate
- * drawable target.
+ * Iterates over the clients listed in the global cycle menu and resets
+ * their preview windows or icons to the normal border style, using the
+ * active or inactive window/icon theme as appropriate.
  *
- * @param client       Pointer to the client to evaluate
- * @param is_icon_menu Whether the cycle preview is operating in icon
- *                     menu mode
+ * @param connection XCB connection used to update preview window
+ *                   attributes
  *
- * @return The X window ID to use as preview target, or
- *         @c XCB_WINDOW_NONE if no valid target is available
- *
- * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
- *       lacks a valid drawable target
- * @note Prefers @c client->icon_window in icon menu mode when available
- * @note Uses the frame window when the client is decorated
- * @note Complexity: @e O(1)
- */
-static xcb_window_t s_cycle_preview_target(const client_td *client,
-        bool is_icon_menu)
-{
-    if (client == NULL) {
-        return XCB_WINDOW_NONE;
-    }
-
-    if (is_icon_menu) {
-        return (client->icon_window != 0)
-            ? client->icon_window
-            : XCB_WINDOW_NONE;
-    }
-
-    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-        return XCB_WINDOW_NONE;
-    }
-
-    if (client_is_decorated(client) && client->frame != 0) {
-        return client->frame;
-    }
-
-    return client->window;
-}
-
-
-/**
- * @brief Return the border width for a cycle-preview target
- *
- * Computes the border width to use for a preview target in the cycle
- * interface, selecting the icon border width for icon previews, no
- * border for decorated client frames, and the normal window border
- * width for undecorated window targets. When the target is highlighted,
- * an extra selection width is added.
- *
- * @param client         Pointer to the client associated with the target
- * @param cfg            Pointer to the active configuration
- * @param is_icon_menu   Whether the cycle menu is showing icon previews
- * @param is_highlighted Whether the target is currently highlighted
- *
- * @return Border width to apply to the preview target
- *
- * @note Complexity: @e O(1)
- */
-static uint32_t s_cycle_preview_border_width(const client_td *client,
-        const config_td *cfg, bool is_icon_menu, bool is_highlighted)
-{
-    uint32_t border_width;
-
-    if (cfg == NULL) {
-        return 0u;
-    }
-
-    if (is_icon_menu) {
-        border_width = cfg->theme.icon.general.border_width;
-    } else if (client != NULL &&
-            client_is_decorated(client) &&
-            client->frame != 0) {
-        border_width = 0u;
-    } else {
-        border_width = cfg->theme.window.general.border_width;
-    }
-
-    if (is_highlighted) {
-        border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-    }
-
-    return border_width;
-}
-
-
-/**
- * @brief Apply preview border color and width to a target window
- *
- * Updates the border width and border color of the given cycle-preview
- * target.  For decorated client frames in window mode, the frame
- * background is also updated and cleared so the visual highlight is
- * redrawn consistently; otherwise only the border pixel is changed.
- *
- * @param connection     Active XCB connection used to update the window
- * @param target         Target window receiving the preview styling
- * @param client         Pointer to the client associated with @p target
- * @param cfg            Pointer to the active configuration
- * @param is_icon_menu   Whether the cycle menu is showing icon previews
- * @param border_color   Border color to apply
- * @param is_highlighted Whether the target is currently highlighted
- *
- * @note Complexity: @e O(1)
- */
-static void s_cycle_preview_style_target(xcb_connection_t *connection,
-        xcb_window_t target, const client_td *client,
-        const config_td *cfg, bool is_icon_menu,
-        uint32_t border_color, bool is_highlighted)
-{
-    uint32_t border_width;
-    uint32_t frame_values[2];
-
-    if (connection == NULL || target == XCB_WINDOW_NONE ||
-            cfg == NULL) {
-        return;
-    }
-
-    border_width = s_cycle_preview_border_width(client, cfg,
-            is_icon_menu, is_highlighted);
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
-
-    if (!is_icon_menu &&
-            client != NULL &&
-            client_is_decorated(client) &&
-            client->frame == target) {
-        frame_values[0] = border_color;
-        frame_values[1] = border_color;
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                frame_values);
-        xcb_clear_area(connection, 0, target, 0, 0, 0, 0);
-    } else {
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BORDER_PIXEL, &border_color);
-    }
-}
-
-
-/**
- * @brief Apply cycle preview highlighting and stacking for the selected
- *        client
- *
- * Updates the visual state of the currently selected client in the
- * cycle preview by adjusting its border color and ensuring it is
- * stacked above its peers.  Also restores the previous preview client's
- * border color according to its active or inactive state.
- *
- * @param connection Pointer to the XCB connection
- * @param cfg        Pointer to the configuration containing theme data
- *
- * @note No-op if required state (connection, config, menu, or
- *       selection) is invalid or incomplete
- * @note Restores the previous preview client's border color before
- *       applying the new selection highlight
- * @note Ensures the selected target window is raised above others
- * @note Updates @c s_menu.preview_client to track the current preview
- * @note Complexity: @e O(1)
- */
-static void s_cycle_preview_apply(xcb_connection_t *connection,
-        const config_td *cfg)
-{
-    client_td *selected;
-    client_td *previous;
-    xcb_window_t selected_target;
-    xcb_window_t previous_target;
-    uint32_t values[2];
-    uint32_t selected_border;
-    uint32_t previous_border;
-    bool prev_is_active;
-
-    if (connection == NULL || cfg == NULL ||
-            s_menu.window == XCB_WINDOW_NONE ||
-            s_menu.surface == NULL || s_menu.desktop == NULL ||
-            s_menu.selected < 0 || s_menu.selected >= s_menu.count) {
-        return;
-    }
-
-    selected = s_menu.clients[s_menu.selected];
-    selected_target = s_cycle_preview_target(selected, s_menu.is_icon_menu);
-    if (selected == NULL || selected_target == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    previous = s_menu.preview_client;
-    if (previous != NULL && previous != selected) {
-        previous_target = s_cycle_preview_target(previous,
-                s_menu.is_icon_menu);
-
-        if (previous_target != XCB_WINDOW_NONE) {
-            prev_is_active =
-                (s_menu.desktop->client_active_id == previous->id);
-
-            if (s_menu.is_icon_menu) {
-                previous_border = cfg->theme.icon.inactive.border_color;
-            } else if (prev_is_active) {
-                previous_border = cfg->theme.window.active.border_color;
-            } else {
-                previous_border = cfg->theme.window.inactive.border_color;
-            }
-
-            s_cycle_preview_style_target(connection, previous_target,
-                    previous, cfg, s_menu.is_icon_menu,
-                    previous_border, false);
-
-            if (s_menu.is_icon_menu) {
-                xcb_configure_window(connection, previous_target,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-
-                values[0] = cfg->theme.icon.inactive.background_color;
-                values[1] = cfg->theme.icon.inactive.border_color;
-
-                xcb_change_window_attributes(connection, previous_target,
-                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
-                xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
-                if (cfg->theme.icon.general.is_captioned &&
-                        previous->info.name != NULL) {
-                    const char *caption =
-                        (previous->icon_info.visible_icon_name != NULL &&
-                         previous->icon_info.visible_icon_name[0] != '\0')
-                            ? previous->icon_info.visible_icon_name
-                            : previous->info.name;
-
-                    text_renderer_init(connection,
-                            cfg->theme.icon.inactive.font);
-                    text_renderer_set_color(
-                            cfg->theme.icon.inactive.foreground_color,
-                            cfg->theme.icon.inactive.background_color);
-                    text_draw_string(connection, previous_target, XCB_NONE,
-                            2,
-                            (int16_t) (WM_ICON_SQUARE_SIZE +
-                                WM_ICON_CAPTION_HEIGHT - 2u),
-                            caption);
-                }
-            } /* ! if (s_menu.is_icon_menu) */
-        } /* ! if (previous_target) */
-    }
-
-    selected_border = (s_menu.is_icon_menu)
-        ? cfg->theme.icon.active.border_color
-        : cfg->theme.window.active.border_color;
-    s_cycle_preview_style_target(connection, selected_target,
-            selected, cfg, s_menu.is_icon_menu,
-            selected_border, true);
-
-    if (s_menu.is_icon_menu) {
-        values[0] = cfg->theme.icon.active.background_color;
-        values[1] = cfg->theme.icon.active.border_color;
-
-        xcb_change_window_attributes(connection, selected_target,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
-        xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
-        if (cfg->theme.icon.general.is_captioned &&
-                selected->info.name != NULL) {
-            const char *caption =
-                (selected->icon_info.visible_icon_name != NULL &&
-                 selected->icon_info.visible_icon_name[0] != '\0')
-                    ? selected->icon_info.visible_icon_name
-                    : selected->info.name;
-
-            text_renderer_init(connection,
-                    cfg->theme.icon.active.font);
-            text_renderer_set_color(
-                    cfg->theme.icon.active.foreground_color,
-                    cfg->theme.icon.active.background_color);
-            text_draw_string(connection, selected_target, XCB_NONE,
-                    2,
-                    (int16_t) (WM_ICON_SQUARE_SIZE +
-                        WM_ICON_CAPTION_HEIGHT - 2u),
-                    caption);
-        }
-    }
-
-    values[0] = s_menu.window;
-    values[1] = XCB_STACK_MODE_BELOW;
-    xcb_configure_window(connection, selected_target,
-            XCB_CONFIG_WINDOW_SIBLING |
-            XCB_CONFIG_WINDOW_STACK_MODE,
-            values);
-
-    s_menu.preview_client = selected;
-    xcb_flush(connection);
-}
-
-
-/**
- * @brief Restore preview border style for all cycle entries
- *
- * Iterates over every client currently listed in the cycle menu and
- * restores its preview border to the appropriate non-highlighted color,
- * based on whether the menu is showing icons or windows and, for
- * windows, whether the client is the active one on its desktop.
- *
- * @param connection Active XCB connection used to apply the border
- *                   style
- *
- * @note Operates on the global @c s_menu state
- * @note Complexity: @e O(n), where @e n is the number of entries in the
+ * @note Complexity: @e O(n), where @e n is the number of clients in the
  *       cycle menu
  */
 static void s_cycle_preview_restore(xcb_connection_t *connection)
@@ -407,33 +94,36 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
     uint32_t border_color;
     bool is_active;
 
-    if (connection == NULL || s_menu.config == NULL ||
-            s_menu.desktop == NULL || s_menu.count <= 0) {
+    if (connection == NULL || g_cycle_menu.config == NULL ||
+            g_cycle_menu.desktop == NULL || g_cycle_menu.count <= 0) {
         return;
     }
 
-    for (int i = 0; i < s_menu.count; ++i) {
-        client = s_menu.clients[i];
+    for (int i = 0; i < g_cycle_menu.count; ++i) {
+        client = g_cycle_menu.clients[i];
         if (client == NULL) {
             continue;
         }
 
-        target = s_cycle_preview_target(client, s_menu.is_icon_menu);
+        target =
+            mi_cycle_preview_target(client, g_cycle_menu.is_icon_menu);
         if (target == XCB_WINDOW_NONE) {
             continue;
         }
 
-        if (s_menu.is_icon_menu) {
-            border_color = s_menu.config->theme.icon.inactive.border_color;
+        if (g_cycle_menu.is_icon_menu) {
+            border_color =
+                g_cycle_menu.config->theme.icon.inactive.border_color;
         } else {
-            is_active = (s_menu.desktop->client_active_id == client->id);
+            is_active =
+                (g_cycle_menu.desktop->client_active_id == client->id);
             border_color = (is_active)
-                ? s_menu.config->theme.window.active.border_color
-                : s_menu.config->theme.window.inactive.border_color;
+                ? g_cycle_menu.config->theme.window.active.border_color
+                : g_cycle_menu.config->theme.window.inactive.border_color;
         }
 
-        s_cycle_preview_style_target(connection, target,
-                client, s_menu.config, s_menu.is_icon_menu,
+        mi_cycle_preview_style_target(connection, target,
+                client, g_cycle_menu.config, g_cycle_menu.is_icon_menu,
                 border_color, false);
     }
 }
@@ -448,25 +138,24 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
  * display every row, scrolling is disabled and the offset is reset to
  * zero.
  *
- * @note Operates on the global @c s_menu state
+ * @note Operates on the global @c g_cycle_menu state
  * @note Complexity: @e O(1)
  */
 static void s_cycle_scroll_to_selection(void)
 {
-    if (s_menu.viewport_rows >= s_menu.count) {
-        s_menu.scroll_offset = 0;
+    if (g_cycle_menu.viewport_rows >= g_cycle_menu.count) {
+        g_cycle_menu.scroll_offset = 0;
         return;
     }
 
-    if (s_menu.selected < s_menu.scroll_offset) {
-        s_menu.scroll_offset = s_menu.selected;
-    } else if (s_menu.selected >=
-            s_menu.scroll_offset + s_menu.viewport_rows) {
-        s_menu.scroll_offset =
-            s_menu.selected - s_menu.viewport_rows + 1;
+    if (g_cycle_menu.selected < g_cycle_menu.scroll_offset) {
+        g_cycle_menu.scroll_offset = g_cycle_menu.selected;
+    } else if (g_cycle_menu.selected >=
+            g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows) {
+        g_cycle_menu.scroll_offset =
+            g_cycle_menu.selected - g_cycle_menu.viewport_rows + 1;
     }
 }
-
 
 
 /* Open the cycle menu for window or icon cycling */
@@ -512,13 +201,13 @@ void cycle_open(list_td *surfaces,
 
     cycle_close(connection);
 
-    s_menu.count = 0;
-    s_menu.surface = surface;
-    s_menu.desktop = desktop;
-    s_menu.is_icon_menu = is_icon;
-    s_menu.modifier =
+    g_cycle_menu.count = 0;
+    g_cycle_menu.surface = surface;
+    g_cycle_menu.desktop = desktop;
+    g_cycle_menu.is_icon_menu = is_icon;
+    g_cycle_menu.modifier =
         (uint16_t) ((unsigned int) modifier & ~(unsigned int) lock_mask);
-    s_menu.prev_focus = (foc_reply != NULL &&
+    g_cycle_menu.prev_focus = (foc_reply != NULL &&
             foc_reply->focus != XCB_WINDOW_NONE &&
             foc_reply->focus != XCB_INPUT_FOCUS_POINTER_ROOT &&
             foc_reply->focus != XCB_INPUT_FOCUS_NONE)
@@ -528,20 +217,24 @@ void cycle_open(list_td *surfaces,
         free(foc_reply);
     }
 
-    nt = (is_icon) ? KEYBIND_DESKTOP_ICON_NEXT : KEYBIND_CLIENT_CYCLE_NEXT;
-    pt = (is_icon) ? KEYBIND_DESKTOP_ICON_PREV : KEYBIND_CLIENT_CYCLE_PREV;
+    nt = (is_icon)
+        ? KEYBIND_DESKTOP_ICON_NEXT
+        : KEYBIND_CLIENT_CYCLE_NEXT;
+    pt = (is_icon)
+        ? KEYBIND_DESKTOP_ICON_PREV
+        : KEYBIND_CLIENT_CYCLE_PREV;
     nks = XCB_NO_SYMBOL; nmm = 0;
     pks = XCB_NO_SYMBOL; pmm = 0;
     (void) keyboard_find(nt, &nks, &nmm);
     (void) keyboard_find(pt, &pks, &pmm);
-    s_menu.next_keysym = nks;
-    s_menu.next_modmask =
+    g_cycle_menu.next_keysym = nks;
+    g_cycle_menu.next_modmask =
         (uint16_t) ((unsigned int) nmm & ~(unsigned int) lock_mask);
-    s_menu.prev_keysym = pks;
-    s_menu.prev_modmask =
+    g_cycle_menu.prev_keysym = pks;
+    g_cycle_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
-    s_menu.preview_client = NULL;
-    s_menu.config = cfg;
+    g_cycle_menu.preview_client = NULL;
+    g_cycle_menu.config = cfg;
 
     /* Collect matching clients, i.e., iterate from tail (top of stack,
      * most recently raised) to head (bottom), so the list order matches
@@ -555,49 +248,52 @@ void cycle_open(list_td *surfaces,
                 bool want = (is_icon)
                     ? (bool) client_is_iconified(c)
                     : !client_is_iconified(c);
-                if (want && s_menu.count < WM_CYCLE_MENU_MAX_ENTRIES) {
-                    int idx = s_menu.count;
+                if (want &&
+                        g_cycle_menu.count < WM_CYCLE_MENU_MAX_ENTRIES) {
+                    int idx = g_cycle_menu.count;
                     const char *name = (c->info.name != NULL &&
                             c->info.name[0] != '\0')
                         ? c->info.name : "(unnamed)";
 
-                    s_menu.clients[idx] = c;
+                    g_cycle_menu.clients[idx] = c;
 
                     /* Mark hidden windows with brackets so they stand
-                     * out visually in the cycle menu. */
+                     * out visually in the cycle menu */
                     if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
-                        snprintf(s_menu.labels[idx],
+                        snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "(%s)", name);
                     } else {
-                        snprintf(s_menu.labels[idx],
+                        snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
                     }
 
                     if (c->id == desktop->client_active_id) {
                         active_idx = idx;
                     }
-                    s_menu.count++;
+                    g_cycle_menu.count++;
                 }
             }
             node = cdlist_prev(node);
         } while (node != NULL && node != initial);
     }
 
-    if (s_menu.count == 0) {
+    if (g_cycle_menu.count == 0) {
         return;
     }
 
     /* Preselect: start from active client, step by preselect */
     if (active_idx >= 0) {
-        s_menu.selected = (active_idx + preselect + s_menu.count) %
-            s_menu.count;
+        g_cycle_menu.selected =
+            (active_idx + preselect + g_cycle_menu.count) %
+            g_cycle_menu.count;
     } else {
-        s_menu.selected = (preselect >= 0) ? 0 : s_menu.count - 1;
+        g_cycle_menu.selected =
+            (preselect >= 0) ? 0 : g_cycle_menu.count - 1;
     }
 
     /* Compute dimensions */
-    for (int i = 0; i < s_menu.count; ++i) {
-        uint16_t w = menu_draw_measure(s_menu.labels[i]);
+    for (int i = 0; i < g_cycle_menu.count; ++i) {
+        uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);
         if (w > max_w) { max_w = w; }
     }
 
@@ -613,17 +309,17 @@ void cycle_open(list_td *surfaces,
     if (vp_rows < 1) {
         vp_rows = 1;
     }
-    if (vp_rows > s_menu.count) {
-        vp_rows = s_menu.count;
+    if (vp_rows > g_cycle_menu.count) {
+        vp_rows = g_cycle_menu.count;
     }
-    s_menu.viewport_rows = vp_rows;
-    s_menu.scroll_offset = 0;
+    g_cycle_menu.viewport_rows = vp_rows;
+    g_cycle_menu.scroll_offset = 0;
     s_cycle_scroll_to_selection();
 
     menu_h = (uint16_t) (WM_CYCLE_MENU_PAD_Y * 2 +
-            s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
+            g_cycle_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
 
-    s_menu.width = menu_w;
+    g_cycle_menu.width = menu_w;
 
     menu_x = (int16_t) (((int32_t) surface->properties.dim.w -
                 (int32_t) menu_w) / 2);
@@ -632,7 +328,7 @@ void cycle_open(list_td *surfaces,
     if (menu_x < 0) { menu_x = 0; }
     if (menu_y < 0) { menu_y = 0; }
 
-    s_menu.window = xcb_generate_id(connection);
+    g_cycle_menu.window = xcb_generate_id(connection);
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
@@ -646,7 +342,7 @@ void cycle_open(list_td *surfaces,
 
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
-            s_menu.window,
+            g_cycle_menu.window,
             surface->screen->root,
             menu_x, menu_y,
             menu_w, menu_h,
@@ -655,13 +351,13 @@ void cycle_open(list_td *surfaces,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    xcb_map_window(connection, s_menu.window);
+    xcb_map_window(connection, g_cycle_menu.window);
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
-            s_menu.window,
+            g_cycle_menu.window,
             XCB_CURRENT_TIME);
 
-    s_cycle_preview_apply(connection, cfg);
+    mi_cycle_preview_apply(connection, cfg);
     xcb_flush(connection);
 }
 
@@ -672,31 +368,31 @@ void cycle_close(xcb_connection_t *connection)
     xcb_window_t restore_focus;
     surface_td *surface;
 
-    if (connection == NULL || s_menu.window == XCB_WINDOW_NONE) {
+    if (connection == NULL || g_cycle_menu.window == XCB_WINDOW_NONE) {
         return;
     }
 
-    restore_focus = s_menu.prev_focus;
-    surface = s_menu.surface;
+    restore_focus = g_cycle_menu.prev_focus;
+    surface = g_cycle_menu.surface;
     s_cycle_preview_restore(connection);
 
-    xcb_destroy_window(connection, s_menu.window);
-    s_menu.window = XCB_WINDOW_NONE;
-    s_menu.count = 0;
-    s_menu.selected = 0;
-    s_menu.width = 0;
-    s_menu.surface = NULL;
-    s_menu.desktop = NULL;
-    s_menu.modifier = 0;
-    s_menu.prev_focus = XCB_WINDOW_NONE;
-    s_menu.next_keysym = XCB_NO_SYMBOL;
-    s_menu.next_modmask = 0;
-    s_menu.prev_keysym = XCB_NO_SYMBOL;
-    s_menu.prev_modmask = 0;
-    s_menu.preview_client = NULL;
-    s_menu.config = NULL;
-    s_menu.scroll_offset = 0;
-    s_menu.viewport_rows = 0;
+    xcb_destroy_window(connection, g_cycle_menu.window);
+    g_cycle_menu.window = XCB_WINDOW_NONE;
+    g_cycle_menu.count = 0;
+    g_cycle_menu.selected = 0;
+    g_cycle_menu.width = 0;
+    g_cycle_menu.surface = NULL;
+    g_cycle_menu.desktop = NULL;
+    g_cycle_menu.modifier = 0;
+    g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
+    g_cycle_menu.next_keysym = XCB_NO_SYMBOL;
+    g_cycle_menu.next_modmask = 0;
+    g_cycle_menu.prev_keysym = XCB_NO_SYMBOL;
+    g_cycle_menu.prev_modmask = 0;
+    g_cycle_menu.preview_client = NULL;
+    g_cycle_menu.config = NULL;
+    g_cycle_menu.scroll_offset = 0;
+    g_cycle_menu.viewport_rows = 0;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection,
@@ -713,99 +409,6 @@ void cycle_close(xcb_connection_t *connection)
 }
 
 
-/* Repaint all menu entries */
-void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
-{
-    uint32_t fg_sel;
-    uint32_t bg_sel;
-    uint32_t fg_nor;
-    uint32_t bg_nor;
-
-    if (connection == NULL || cfg == NULL ||
-            s_menu.window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    fg_sel = cfg->theme.window.active.foreground_color;
-    bg_sel = cfg->theme.window.active.background_color;
-    fg_nor = cfg->theme.window.inactive.foreground_color;
-    bg_nor = cfg->theme.window.inactive.background_color;
-
-    text_renderer_init(connection, cfg->theme.window.active.font);
-
-    for (int i = s_menu.scroll_offset;
-            i < s_menu.scroll_offset + s_menu.viewport_rows;
-            ++i) {
-        int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
-                (i - s_menu.scroll_offset) * WM_CYCLE_MENU_ROW_HEIGHT);
-
-        if (i == s_menu.selected) {
-            menu_draw_row_bg(connection, s_menu.window, bg_sel,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    s_menu.width);
-            text_renderer_set_color(fg_sel, bg_sel);
-        } else {
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    s_menu.width);
-            text_renderer_set_color(fg_nor, bg_nor);
-        }
-
-        menu_draw_label(connection, s_menu.window,
-                (int16_t) WM_CYCLE_MENU_PAD_X,
-                (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
-                s_menu.labels[i]);
-    }
-
-    /* Draw scroll-indicator arrows in the top/bottom padding areas
-     * when there are hidden entries above or below the viewport */
-    if (s_menu.count > s_menu.viewport_rows) {
-        /* Up arrow: entries exist above the viewport */
-        if (s_menu.scroll_offset > 0) {
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
-                    s_menu.width);
-            text_renderer_set_color(fg_sel, bg_nor);
-            menu_draw_label(connection, s_menu.window,
-                    (int16_t) (s_menu.width / 2u - 4u),
-                    (int16_t) (WM_CYCLE_MENU_PAD_Y - 2),
-                    "---");
-                    //"\xe2\x96\xb2");    /* UTF-8: ▲ U+25B2 */
-        } else {
-            /* Clear the top padding area when no arrow is needed */
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
-                    s_menu.width);
-        }
-
-        /* Down arrow: entries exist below the viewport */
-        if (s_menu.scroll_offset + s_menu.viewport_rows < s_menu.count) {
-            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
-                    s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
-                    s_menu.width);
-            text_renderer_set_color(fg_sel, bg_nor);
-            menu_draw_label(connection, s_menu.window,
-                    (int16_t) (s_menu.width / 2u - 4u),
-                    (int16_t) (bot_y + WM_CYCLE_MENU_PAD_Y - 2),
-                    "---");
-                    //"\xe2\x96\xbc");    /* UTF-8: ▼ U+25BC */
-        } else {
-            /* Clear the bottom padding area when no arrow is needed */
-            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
-                    s_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
-            menu_draw_row_bg(connection, s_menu.window, bg_nor,
-                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
-                    s_menu.width);
-        }
-    }
-
-    s_cycle_preview_apply(connection, cfg);
-    xcb_flush(connection);
-}
-
-
 /* Confirm the currently selected cycle menu entry */
 void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
         const config_td *cfg)
@@ -815,16 +418,16 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     desktop_td *desktop;
     bool is_icon;
 
-    if (s_menu.window == XCB_WINDOW_NONE ||
-            s_menu.selected < 0 ||
-            s_menu.selected >= s_menu.count) {
+    if (g_cycle_menu.window == XCB_WINDOW_NONE ||
+            g_cycle_menu.selected < 0 ||
+            g_cycle_menu.selected >= g_cycle_menu.count) {
         return;
     }
 
-    target = s_menu.clients[s_menu.selected];
-    surface = s_menu.surface;
-    desktop = s_menu.desktop;
-    is_icon = s_menu.is_icon_menu;
+    target = g_cycle_menu.clients[g_cycle_menu.selected];
+    surface = g_cycle_menu.surface;
+    desktop = g_cycle_menu.desktop;
+    is_icon = g_cycle_menu.is_icon_menu;
 
     cycle_close(connection);
 
@@ -852,15 +455,15 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
 /* Set the selection directly to a given index */
 void cycle_navigate_to(unsigned int idx)
 {
-    if (s_menu.count <= 0) {
+    if (g_cycle_menu.count <= 0) {
         return;
     }
 
-    if ((int) idx >= s_menu.count) {
-        idx = (unsigned int)(s_menu.count - 1);
+    if ((int) idx >= g_cycle_menu.count) {
+        idx = (unsigned int)(g_cycle_menu.count - 1);
     }
 
-    s_menu.selected = (int) idx;
+    g_cycle_menu.selected = (int) idx;
     s_cycle_scroll_to_selection();
 }
 
@@ -868,11 +471,12 @@ void cycle_navigate_to(unsigned int idx)
 /* Advance the selection by one entry */
 void cycle_navigate_next(void)
 {
-    if (s_menu.count <= 0) {
+    if (g_cycle_menu.count <= 0) {
         return;
     }
 
-    s_menu.selected = (s_menu.selected + 1) % s_menu.count;
+    g_cycle_menu.selected =
+        (g_cycle_menu.selected + 1) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 }
 
@@ -880,11 +484,13 @@ void cycle_navigate_next(void)
 /* Retreat the selection by one entry */
 void cycle_navigate_prev(void)
 {
-    if (s_menu.count <= 0) {
+    if (g_cycle_menu.count <= 0) {
         return;
     }
 
-    s_menu.selected = (s_menu.selected - 1 + s_menu.count) % s_menu.count;
+    g_cycle_menu.selected =
+        (g_cycle_menu.selected - 1 +
+         g_cycle_menu.count) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 }
 
@@ -892,62 +498,62 @@ void cycle_navigate_prev(void)
 /* Query whether the cycle menu is currently open */
 bool cycle_is_open(void)
 {
-    return s_menu.window != XCB_WINDOW_NONE;
+    return g_cycle_menu.window != XCB_WINDOW_NONE;
 }
 
 
 /* Return the cycle menu window identifier */
 xcb_window_t cycle_window(void)
 {
-    return s_menu.window;
+    return g_cycle_menu.window;
 }
 
 
 /* Return the currently highlighted client in the cycle menu */
 client_td *cycle_get_selected_client(void)
 {
-    if (s_menu.count <= 0 ||
-            s_menu.selected < 0 ||
-            s_menu.selected >= s_menu.count) {
+    if (g_cycle_menu.count <= 0 ||
+            g_cycle_menu.selected < 0 ||
+            g_cycle_menu.selected >= g_cycle_menu.count) {
         return NULL;
     }
 
-    return s_menu.clients[s_menu.selected];
+    return g_cycle_menu.clients[g_cycle_menu.selected];
 }
 
 
 /* Return the modifier mask that opened the cycle menu */
 uint16_t cycle_modifier(void)
 {
-    return s_menu.modifier;
+    return g_cycle_menu.modifier;
 }
 
 
 /* Return the keysym configured for cycle-next navigation */
 xcb_keysym_t cycle_next_keysym(void)
 {
-    return s_menu.next_keysym;
+    return g_cycle_menu.next_keysym;
 }
 
 
 /* Return the modifier mask for the cycle-next binding */
 uint16_t cycle_next_modmask(void)
 {
-    return s_menu.next_modmask;
+    return g_cycle_menu.next_modmask;
 }
 
 
 /* Return the keysym configured for cycle-prev navigation */
 xcb_keysym_t cycle_prev_keysym(void)
 {
-    return s_menu.prev_keysym;
+    return g_cycle_menu.prev_keysym;
 }
 
 
 /* Return the modifier mask for the cycle-prev binding */
 uint16_t cycle_prev_modmask(void)
 {
-    return s_menu.prev_modmask;
+    return g_cycle_menu.prev_modmask;
 }
 
 
@@ -961,10 +567,10 @@ bool cycle_client_has_extra_border(const client_td *client,
 
     if (cycle_is_open()) {
         return cycle_get_selected_client() == client &&
-            s_menu.is_icon_menu == is_icon_menu;
+            g_cycle_menu.is_icon_menu == is_icon_menu;
     }
 
     return cycle_is_open() &&
         cycle_get_selected_client() == client &&
-        s_menu.is_icon_menu == is_icon_menu;
+        g_cycle_menu.is_icon_menu == is_icon_menu;
 }

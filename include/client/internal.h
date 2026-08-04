@@ -65,8 +65,8 @@ size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
  * @param window     Window ID to query
  * @param class_buf  Buffer for the class name
  * @param class_sz   Size of @p class_buf
- * @param inst_buf   Buffer for the instance name (may be @c NULL)
- * @param inst_sz    Size of @p inst_buf (ignored when @c NULL)
+ * @param inst_buf   Buffer for the instance name (may be null)
+ * @param inst_sz    Size of @p inst_buf (ignored when null)
  *
  * @return 0 on success, -1 otherwise
  */

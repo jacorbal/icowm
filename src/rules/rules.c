@@ -14,7 +14,6 @@
 #define _POSIX_C_SOURCE 200112L
 
 /* System includes */
-#include <fnmatch.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -43,69 +42,10 @@
 #include <cmds/layer.h>
 
 /* Local includes */
+#include <rules/internal.h>
 #include <rules/rules.h>
 
 
-/** Maximum number of rule entries stored in a single rules table */
-#define RULES_MAX (256u)
-
-/** Timing constraint controlling when a rule is evaluated */
-enum rules_when_e {
-    RULES_WHEN_MAP = 0,     /**< Rule applies on @c MAP_REQUEST only */
-    RULES_WHEN_PROPERTY,    /**< Rule applies on property change only */
-    RULES_WHEN_BOTH         /**< Rule applies on both events */
-};
-
-/* Criteria used to match a client against one rule entry */
-struct rules_match_s {
-    bool has_instance;
-    bool has_class;
-    bool has_role;
-    bool has_title;
-    bool has_type;
-    bool has_transient;
-
-    char instance[CONFIG_MAX_LENGTH_NAME];
-    char klass[CONFIG_MAX_LENGTH_NAME];
-    char role[CONFIG_MAX_LENGTH_NAME];
-    char title[CONFIG_MAX_LENGTH_NAME];
-    char type[CONFIG_MAX_LENGTH_NAME];
-    bool transient;
-};
-
-/** Actions to apply to a client when a rule entry matches */
-struct rules_apply_s {
-    bool has_desktop;
-    bool has_layer;
-    bool has_focus;
-    bool has_position;  /* 'x' & 'y' set independently of 'size' */
-    bool has_size;      /* 'width' & 'height' independent of 'position' */
-    bool has_sticky;
-    bool has_decorated;
-
-    uint32_t desktop;
-    uint16_t layer;
-    bool focus;
-    int32_t x;
-    int32_t y;
-    uint32_t w;
-    uint32_t h;
-    bool sticky;
-    bool decorated;
-};
-
-/** A single rule entry combining match criteria and the action to apply */
-struct rules_rule_s {
-    enum rules_when_e when;
-    struct rules_match_s match;
-    struct rules_apply_s apply;
-};
-
-/** Rules table holding all loaded rule entries and their count */
-struct rules_s {
-    uint32_t count;
-    struct rules_rule_s rules[RULES_MAX];
-};
 
 
 /**
@@ -141,203 +81,6 @@ static void s_rules_config_dir_set(const char *config_dir_prefix,
         snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
                 "./%s", CONFIG_DIR_BASE);
     }
-}
-
-
-/**
- * @brief Test whether a shell glob pattern matches a string value
- *
- * Wraps @c fnmatch with default flags, returning @c false whenever
- * either argument is null.
- *
- * @param pattern Shell glob pattern (may contain @c * and @c ?)
- * @param value   String to test against @p pattern
- *
- * @return Whether @p pattern matches @p value
- * @retval true  @p pattern matches @p value
- * @retval false @p pattern does not match, or either argument is null
- *
- * @note Complexity: @e O(n), where @e n is the length of @p value
- */
-static bool s_rules_match_str(const char *pattern, const char *value)
-{
-    if (pattern == NULL || value == NULL) {
-        return false;
-    }
-
-    return fnmatch(pattern, value, 0) == 0;
-}
-
-
-/**
- * @brief Convert a layer name string to the corresponding client layer
- *
- * Recognised names are @c "above", @c "below", and anything else
- * (including @c NULL) which maps to @c CLIENT_LAYER_NORMAL.
- *
- * @param layer Layer name string from the configuration
- *
- * @return The @c client_layer_e value that corresponds to @p layer,
- *         cast to @c uint16_t; defaults to @c CLIENT_LAYER_NORMAL
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_rules_parse_layer(const char *layer)
-{
-    if (layer == NULL) {
-        return (uint16_t) CLIENT_LAYER_NORMAL;
-    }
-
-    if (safe_strcmp(layer, "above") == 0) {
-        return (uint16_t) CLIENT_LAYER_ABOVE;
-    }
-    if (safe_strcmp(layer, "below") == 0) {
-        return (uint16_t) CLIENT_LAYER_BELOW;
-    }
-
-    return (uint16_t) CLIENT_LAYER_NORMAL;
-}
-
-
-/**
- * @brief Test whether a type name string matches a client's type value
- *
- * Compares the lower-case EWMH type name @p type against @p client_type
- * and returns @c true only when they correspond.  Returns @c false for
- * @c NULL or unrecognised type names.
- *
- * @param type        Lower-case EWMH type name from the configuration
- * @param client_type @c client_type_e value cast to @c uint16_t from
- *                    the client's property set
- *
- * @return Whether @p type names the same window type as @p client_type
- * @retval true  The names are equivalent
- * @retval false @p type is @c NULL, unrecognised, or does not match
- *
- * @note Complexity: @e O(1)
- */
-static bool s_rules_parse_type(const char *type, uint16_t client_type)
-{
-    if (type == NULL) {
-        return false;
-    }
-
-    if (safe_strcmp(type, "normal") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_NORMAL;
-    }
-    if (safe_strcmp(type, "dialog") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_DIALOG;
-    }
-    if (safe_strcmp(type, "toolbar") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_TOOLBAR;
-    }
-    if (safe_strcmp(type, "notification") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_NOTIFICATION;
-    }
-    if (safe_strcmp(type, "menu") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_MENU;
-    }
-    if (safe_strcmp(type, "desktop") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_DESKTOP;
-    }
-    if (safe_strcmp(type, "splash") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_SPLASH;
-    }
-    if (safe_strcmp(type, "utility") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_UTILITY;
-    }
-    if (safe_strcmp(type, "dock") == 0) {
-        return client_type == (uint16_t) CLIENT_TYPE_DOCK;
-    }
-
-    return false;
-}
-
-
-/**
- * @brief Test whether a rule's timing constraint is satisfied
- *
- * Returns @c true when @p when is @c RULES_WHEN_BOTH, or when the
- * single-event value of @p when matches @p trigger.
- *
- * @param when    Timing constraint stored in the rule entry
- * @param trigger Event that caused the current evaluation
- *
- * @return Whether the constraint allows the rule to be evaluated now
- * @retval true  @p when is compatible with @p trigger
- * @retval false @p when is not compatible with @p trigger
- *
- * @note Complexity: @e O(1)
- */
-static bool s_rules_when_matches(enum rules_when_e when,
-        enum rules_trigger_e trigger)
-{
-    if (when == RULES_WHEN_BOTH) {
-        return true;
-    }
-
-    if (trigger == RULES_TRIGGER_MAP) {
-        return when == RULES_WHEN_MAP;
-    }
-
-    return when == RULES_WHEN_PROPERTY;
-}
-
-
-/**
- * @brief Test whether all match criteria of a rule entry match a client
- *
- * Each criterion that is flagged as present in @p match is evaluated
- * against the corresponding property of @p client.  The function
- * returns @c false as soon as any active criterion fails, so only
- * clients that satisfy every stated criterion will return @c true.
- *
- * @param match  Match criteria from the rule entry
- * @param client Client whose properties are tested
- *
- * @return Whether every active criterion in @p match is satisfied
- * @retval true  All active criteria match
- * @retval false At least one active criterion does not match
- *
- * @note Complexity: @e O(1) per criterion evaluated
- */
-static bool s_rules_client_matches(const struct rules_match_s *match,
-        const client_td *client)
-{
-    const char *instance = (client->info.class_name[0] != NULL)
-        ? client->info.class_name[0] : "";
-    const char *klass = (client->info.class_name[1] != NULL)
-        ? client->info.class_name[1] : "";
-    const char *role = (client->info.role_name != NULL)
-        ? client->info.role_name : "";
-    const char *title = (client->info.name != NULL)
-        ? client->info.name : "";
-
-    if (match->has_instance &&
-            !s_rules_match_str(match->instance, instance)) {
-        return false;
-    }
-    if (match->has_class && !s_rules_match_str(match->klass, klass)) {
-        return false;
-    }
-    if (match->has_role && !s_rules_match_str(match->role, role)) {
-        return false;
-    }
-    if (match->has_title && !s_rules_match_str(match->title, title)) {
-        return false;
-    }
-    if (match->has_type && !s_rules_parse_type(match->type,
-                client->properties.type)) {
-        return false;
-    }
-    if (match->has_transient) {
-        bool is_transient = client->transient_for != XCB_WINDOW_NONE;
-        if (is_transient != match->transient) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 
@@ -498,8 +241,8 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
  * @brief Apply sticky and decoration flag rules to a client
  *
  * Sets or clears the sticky flag and toggles decoration according to
- * @p apply.  Each flag is only touched when its corresponding
- * @c has_* field is @c true.
+ * @p apply.  Each flag is only touched when its corresponding @c has_*
+ * field is @c true.
  *
  * @param client Client whose flags are to be updated
  * @param apply  Action descriptor
@@ -657,7 +400,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
         item = json_get_item(apply_json, "layer");
         if (cJSON_IsString(item) && item->valuestring != NULL) {
             rule->apply.has_layer = true;
-            rule->apply.layer = s_rules_parse_layer(item->valuestring);
+            rule->apply.layer = ri_parse_layer(item->valuestring);
         }
 
         item = json_get_item(apply_json, "focus");
@@ -739,11 +482,11 @@ bool rules_apply(wm_td *wm, client_td *client,
     for (uint32_t i = 0u; i < wm->rules->count; ++i) {
         struct rules_rule_s *rule = &wm->rules->rules[i];
 
-        if (!s_rules_when_matches(rule->when, trigger)) {
+        if (!ri_when_matches(rule->when, trigger)) {
             continue;
         }
 
-        if (!s_rules_client_matches(&rule->match, client)) {
+        if (!ri_client_matches(&rule->match, client)) {
             continue;
         }
 

@@ -83,7 +83,8 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
             xcb_unmap_window(surface->connection, target);
 
             if (client->icon_window != 0 && client->is_icon_mapped) {
-                xcb_unmap_window(surface->connection, client->icon_window);
+                xcb_unmap_window(surface->connection,
+                        client->icon_window);
                 client->is_icon_mapped = false;
             }
         }
@@ -140,7 +141,8 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                     (uint16_t) CLIENT_STATE_ICONIFIED &&
                 client->icon_window != 0) {
             xcb_map_window(surface->connection, client->icon_window);
-            xcb_configure_window(surface->connection, client->icon_window,
+            xcb_configure_window(surface->connection,
+                    client->icon_window,
                     XCB_CONFIG_WINDOW_STACK_MODE,
                     (const uint32_t[]) { XCB_STACK_MODE_BELOW });
             client->is_icon_mapped = true;
@@ -418,203 +420,6 @@ void surface_reflow_clients(surface_td *surface)
 
         dnode = cdlist_next(dnode);
     } while (dnode != NULL && dnode != dinitial);
-}
-
-
-/* Add a new desktop to the surface */
-int surface_action_desktop_add(surface_td *surface)
-{
-    desktop_td *desktop;
-
-    LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    desktop = desktop_init(surface->connection,
-            surface->ewmh,
-            surface->id,
-            surface->desktop_count,
-            &(surface->config->base),
-            &(surface->config->theme));
-    if (desktop == NULL) {
-        LOGGER_ERROR("Failed to initialize new desktop on surface %u",
-                surface->id);
-        return 1;
-    }
-
-    if (surface_desktop_add(surface, desktop) != 0) {
-        LOGGER_ERROR("Failed to add desktop to surface %u", surface->id);
-        desktop_destroy(desktop);
-        return 1;
-    }
-
-    surface->is_outdated = true;
-
-    return 0;
-}
-
-
-/* Remove the last desktop from the surface */
-int surface_action_desktop_remove(surface_td *surface)
-{
-    cdlist_item_td *tail_item;
-    desktop_td *desktop;
-
-    LOGGER_DEBUG("Removing desktop from surface %u", surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    /* Need at least two desktops to remove one */
-    if (surface->desktop_count <= 1) {
-        LOGGER_NOTICE("Cannot remove the last desktop on surface %u",
-                surface->id);
-        return 1;
-    }
-
-    tail_item = cdlist_tail(surface->desktops);
-    if (tail_item == NULL) {
-        return 1;
-    }
-
-    desktop = (desktop_td *) cdlist_data(tail_item);
-    if (desktop == NULL) {
-        return 1;
-    }
-
-    /* If the desktop to be removed is the current one, switch first */
-    if (desktop->id == surface->desktop_cur) {
-        surface_clients_hide(surface, surface->desktop_cur);
-        surface_desktop_select_prev(surface, false);
-        surface_clients_show(surface, surface->desktop_cur);
-    }
-
-    if (surface_desktop_rem(surface, desktop->id) != 0) {
-        LOGGER_ERROR("Failed to remove desktop from surface %u",
-                surface->id);
-        return 1;
-    }
-
-    surface->is_outdated = true;
-
-    return 0;
-}
-
-
-/* Switch to a specific desktop by ID */
-int surface_action_desktop_switch(surface_td *surface,
-        uint32_t desktop_id)
-{
-    uint32_t old_id;
-
-    LOGGER_DEBUG("Switching to desktop %u on surface %u",
-            desktop_id, surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    old_id = surface->desktop_cur;
-    if (desktop_id == old_id) {
-        return 0;
-    }
-
-    surface_clients_hide(surface, old_id);
-    if (surface_desktop_select(surface, desktop_id) != 0) {
-        /* Restore visibility on failure */
-        surface_clients_show(surface, old_id);
-        LOGGER_ERROR("Failed to switch to desktop %u on surface %u",
-                desktop_id, surface->id);
-        return 1;
-    }
-
-    surface_clients_show(surface, desktop_id);
-    surface->is_outdated = true;
-    xcb_flush(surface->connection);
-
-    return 0;
-}
-
-
-/* Switch to the next desktop */
-int surface_action_desktop_switch_next(surface_td *surface)
-{
-    uint32_t old_id;
-
-    LOGGER_DEBUG("Switching to next desktop on surface %u", surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    old_id = surface->desktop_cur;
-    surface_clients_hide(surface, old_id);
-    surface_desktop_select_next(surface, true);
-
-    if (surface->desktop_cur != old_id) {
-        surface_clients_show(surface, surface->desktop_cur);
-        surface->is_outdated = true;
-        xcb_flush(surface->connection);
-    } else {
-        surface_clients_show(surface, old_id);
-    }
-
-    return 0;
-}
-
-
-/* Switch to the previous desktop */
-int surface_action_desktop_switch_prev(surface_td *surface)
-{
-    uint32_t old_id;
-
-    LOGGER_DEBUG("Switching to previous desktop on surface %u",
-            surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    old_id = surface->desktop_cur;
-    surface_clients_hide(surface, old_id);
-    surface_desktop_select_prev(surface, true);
-
-    if (surface->desktop_cur != old_id) {
-        surface_clients_show(surface, surface->desktop_cur);
-        surface->is_outdated = true;
-        xcb_flush(surface->connection);
-    } else {
-        surface_clients_show(surface, old_id);
-    }
-
-    return 0;
-}
-
-
-/* Toggle full-surface mode */
-int surface_action_toggle_fullsurface(surface_td *surface)
-{
-    LOGGER_DEBUG("Toggling full-surface mode on surface %u",
-            surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    surface->fullsurface = !surface->fullsurface;
-    surface->is_outdated = true;
-    xcb_flush(surface->connection);
-
-    return 0;
 }
 
 

@@ -40,9 +40,22 @@
 
 /* Local includes */
 #include <render/desktop.h>
+#include <render/internal.h>
 
 
 /**
+ * @brief Intern a custom atom and return @c XCB_ATOM_NONE on failure
+ *
+ * Performs an @c XCBInternAtom request for the given atom name and
+ * returns the resulting atom identifier, or @c XCB_ATOM_NONE if the
+ * request fails or the connection/name is invalid.
+ *
+ * @param connection XCB connection used to intern the atom
+ * @param name       Atom name string to intern
+ *
+ * @return Interned atom identifier, or @c XCB_ATOM_NONE on failure
+ *
+ * @note Complexity: @e O(1)
  */
 static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
         const char *name)
@@ -68,6 +81,19 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
 
 
 /**
+ * @brief Retrieve the root window background pixmap if set
+ *
+ * Queries the root window for one of the standard background pixmap
+ * properties (@c _XROOTPMAP_ID, @c ESETROOT_PMAP_ID, @c _XSETROOT_ID)
+ * and returns the first non-@c XCB_NONE pixmap found, or @c XCB_NONE if
+ * no valid pixmap is present.
+ *
+ * @param connection XCB connection to the X server
+ * @param root       Root window to query for background pixmap
+ *
+ * @return Root background pixmap, or @c XCB_NONE if not available
+ *
+ * @note Complexity: @e O(n) in the number of candidate properties
  */
 static xcb_pixmap_t
     s_get_root_background_pixmap(xcb_connection_t *connection,
@@ -141,8 +167,7 @@ int desktop_render_background(desktop_td *desktop)
      * But, in general terms, the number of screens in any setup tends
      * to be low, so this loop has a complexity of O(n), where 'n' is
      * the number of screens, in most cases, 'n' approaches 1 or a small
-     * constant.
-     */
+     * constant. */
     iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
     screen = NULL;
 
@@ -416,7 +441,6 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     uint16_t inner_w;
     uint16_t inner_h;
     bool hide_decoration;
-    bool has_extra_icon_border;
     bool has_extra_window_border;
     uint32_t border_width;
 
@@ -465,69 +489,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 
         /* Keep icon windows visible for iconified clients */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            if (is_current && client->is_icon_mapped &&
-                    client->icon_window != 0) {
-                bool is_cycle_sel = cycle_is_open() &&
-                    cycle_get_selected_client() == client;
-
-                has_extra_icon_border =
-                    cycle_client_has_extra_border(client, true);
-                xcb_change_window_attributes(desktop->connection,
-                        client->icon_window,
-                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                        (const uint32_t[]) {
-                    (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.background_color
-                    : desktop->config_theme->icon.inactive.background_color,
-                    (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.border_color
-                    : desktop->config_theme->icon.inactive.border_color
-                        });
-
-                border_width = client->theme->icon.general.border_width;
-                if (has_extra_icon_border) {
-                    border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-                }
-                xcb_configure_window(desktop->connection,
-                        client->icon_window,
-                        XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                        &border_width);
-
-                xcb_clear_area(desktop->connection, 0,
-                        client->icon_window, 0, 0, 0, 0);
-                xcb_map_window(desktop->connection, client->icon_window);
-                xcb_configure_window(desktop->connection,
-                        client->icon_window,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-
-                if (desktop->config_theme->icon.general.is_captioned &&
-                        client->info.name != NULL) {
-                    const char *caption =
-                        (client->icon_info.visible_icon_name != NULL &&
-                         client->icon_info.visible_icon_name[0] != '\0')
-                            ? client->icon_info.visible_icon_name
-                            : client->info.name;
-
-                    text_renderer_init(desktop->connection,
-                            desktop->config_theme->icon.inactive.font);
-                    text_renderer_set_color(
-                    (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.foreground_color
-                    : desktop->config_theme->icon.inactive.foreground_color,
-                    (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.background_color
-                    : desktop->config_theme->icon.inactive.background_color);
-
-                    text_draw_string(desktop->connection,
-                            client->icon_window, XCB_NONE,
-                            2,
-                            (int16_t) (WM_ICON_SQUARE_SIZE +
-                                WM_ICON_CAPTION_HEIGHT - 2u),
-                            caption);
-                }
-            }
-
+            ri_render_client_icon(desktop, client, is_current);
             stacking_node = cdlist_next(stacking_node);
             continue;
         }
@@ -599,7 +561,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         }
 
         if (client->is_outdated) {
-            /* Configure position and size — only when the client's
+            /* Configure position and size; only when the client's
              * geometry or decoration changed.  Skipping this for
              * up-to-date clients prevents the server from generating
              * spurious 'ConfigureNotify' and 'Expose' events that cause
@@ -657,15 +619,15 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                  * redraw on 'ConfigureNotify' alone; this 'Expose'
                  * ensures the drawing happens at the right size and
                  * position after every render pass, including the
-                 * initial map and post-resize redraws.  'exposures=1'
-                 * causes the X server to generate an 'Expose' event,
-                 * which arrives in the client's queue after both the
-                 * 'xcb_configure_window' and the synthetic
-                 * 'ConfigureNotify' above. */
+                 * initial map and post-resize redraws.  Setting
+                 * 'exposures=1' causes the X server to generate an
+                 * 'Expose' event, which arrives in the client's queue
+                 * after both the 'xcb_configure_window' and the
+                 * synthetic 'ConfigureNotify' above. */
                 xcb_clear_area(desktop->connection, 1,
                         client->window, 0, 0, 0, 0);
-                desktop_repaint_frame_decoration(desktop->connection, client,
-                        is_focused, desktop->config_theme);
+                desktop_repaint_frame_decoration(desktop->connection,
+                        client, is_focused, desktop->config_theme);
 
                 if (client->titlebar != 0 && !hide_decoration) {
                     xcb_configure_window(desktop->connection,
@@ -693,8 +655,9 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                                 ? desktop->config_theme->window.active.font
                                 : desktop->config_theme->window.inactive.font);
 
-                    /* Use theme foreground color so text contrasts against
-                     * the titlebar background (active or inactive) */
+                    /* Use theme foreground color so text contrasts
+                     * against the titlebar background (active or
+                     * inactive) */
                     text_renderer_set_color(
                     (is_focused)
                     ? desktop->config_theme->window.active.foreground_color

@@ -18,6 +18,9 @@
 #define CMDS_CCMD_H
 
 
+/* Command includes */
+#include <cmds/state.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
@@ -105,34 +108,7 @@ void wcmd_client_hide(client_td *client);
 void wcmd_client_unhide(client_td *client);
 
 /**
- * @brief Shade (roll-up) the client
- *
- * @param client Window to shade
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_shade(client_td *client);
-
-/**
- * @brief Unshade (roll-down) the client
- *
- * @param client Window to unshade
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_unshade(client_td *client);
-
-/**
- * @brief Toggle client shading
- *
- * @param client Window to toggle shade in
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_toggle_shade(client_td *client);
-
-/**
- * @brief Set the client to sticky mode
+ * @brief Make the client sticky (visible on all desktops)
  *
  * @param client Window to make sticky
  *
@@ -159,34 +135,7 @@ void wcmd_client_unsticky(client_td *client);
 void wcmd_client_toggle_sticky(client_td *client);
 
 /**
- * @brief Set the client to full screen mode
- *
- * @param client Window to set to fullscreen
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_fullscreen(client_td *client);
-
-/**
- * @brief Remove full screen mode from the client
- *
- * @param client Window to unfullscreen
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_unfullscreen(client_td *client);
-
-/**
- * @brief Toggle full screen mode for the client
- *
- * @param client Window to toggle full screen state
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_toggle_fullscreen(client_td *client);
-
-/**
- * @brief Mark the client as urgent
+ * @brief Mark the client as urgent (requesting attention)
  *
  * @param client Window to mark as urgent
  *
@@ -217,20 +166,6 @@ void wcmd_client_clear_urgent(client_td *client);
  * @note Complexity: @e O(1)
  */
 void wcmd_client_update_allowed_actions(client_td *client);
-
-/**
- * @brief Toggle window decoration on or off for the client
- *
- * If the client is currently decorated, removes the titlebar (unmaps
- * it) and adjusts the frame extents so the frame covers only the client
- * content area plus border.  If not decorated, restores the titlebar
- * and the original frame extents.
- *
- * @param client Window whose decoration is to be toggled
- *
- * @note Complexity: @e O(1)
- */
-void wcmd_client_toggle_decoration(client_td *client);
 
 
 #endif  /* ! CMDS_CCMD_H */

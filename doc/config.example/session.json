@@ -1,12 +1,13 @@
 {
     "on-start": [
         "tint2",
-        "redshift-gtk"
+        "redshift-gtk",
+        "volumeicon"
     ],
     "on-reload": [
-        "notify-send 'IcoWM' 'Configuration reloaded'"
+        "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
     ],
     "on-exit": [
-        "notify-send 'IcoWM' 'Shutting down session hooks'"
+        "notify-send -e -i 'exit' 'IcoWM' 'Shutting down session hooks'"
     ]
 }
