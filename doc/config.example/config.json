@@ -39,7 +39,6 @@
         "show-geom": true,
         "has-grips": false,
         "move-step": 10,
-        "resize-step": 20,
         "snap": 4,
         "focus": {
             "policy": "click",
