@@ -162,41 +162,43 @@ int desktop_render_background(desktop_td *desktop)
             screen->root);
     if (root_pixmap != XCB_NONE) {
         /* An external tool ('xsetbg', 'feh', 'xsetroot', 'nitrogen',
-         * &c.) has set a background pixmap on the root window.  Point
-         * the root window's background at that pixmap and record the
-         * fact so that subsequent repaints do not overwrite it with our
-         * color. */
-
-         /* NOTE: Do NOT call 'xcb_clear_area': the pixels are already
-          *       correct and clearing would cause an unnecessary
-          *       repaint flash */
+         * painted the root window and recorded the pixmap ID in
+         * a well-known atom.  Record that fact so that subsequent
+         * repaints do not overwrite the wallpaper with our color.
+         */
+        /* NOTE: Deliberately do NOT set `XCB_CW_BACK_PIXMAP` on the
+         *       root window to this pixmap.  Many setters free the
+         *       pixmap after drawing (the pixels persist in the root
+         *       drawable), so referencing it via `XCB_CW_BACK_PIXMAP`
+         *       would cause X to use a freed resource on the next
+         *       `xcb_clear_area`, and leading to a `BadPixmap` or
+         *       `BadDrawable` X error and an abrupt crash. */
         desktop->background.use_root_pixmap = true;
-        values[0] = root_pixmap;
-        xcb_change_window_attributes(desktop->connection, screen->root,
-                XCB_CW_BACK_PIXMAP, values);
         LOGGER_TRACE("External root pixmap 0x%x detected for" \
                 " desktop %u ('%s'); skipping color fill",
                 root_pixmap, desktop->id, desktop->name);
-    } else if (desktop->background.use_root_pixmap) {
+        return 0;
+    }
+
+    if (desktop->background.use_root_pixmap) {
         /* No pixmap atom found this time, but an external tool
          * previously painted the root window.  The pixels are still
-         * there; do not repaint with the window manager color, just
-         * leave the root window untouched so the wallpaper remains
-         * visible. */
+         * there; leave the root window untouched so the wallpaper
+         * remains visible. */
         LOGGER_TRACE("Preserving previous external background for" \
                 " desktop %u ('%s')", desktop->id, desktop->name);
-    } else {
-        /* No external background detected and the WM owns the
-         * background: apply the configured color and clear the root
-         * window to make it visible */
-        desktop->background.use_root_pixmap = false;
-        values[0] = XCB_BACK_PIXMAP_NONE;
-        values[1] = desktop->background.bg.color;
-        xcb_change_window_attributes(desktop->connection, screen->root,
-                XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
-        xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
-                screen->width_in_pixels, screen->height_in_pixels);
+        return 0;
     }
+
+    /* No external background detected and the window manager owns the
+     * background: apply the configured color and clear the root window
+     * to make it visible */
+    values[0] = XCB_BACK_PIXMAP_NONE;
+    values[1] = desktop->background.bg.color;
+    xcb_change_window_attributes(desktop->connection, screen->root,
+            XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
+    xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
+            screen->width_in_pixels, screen->height_in_pixels);
 
     LOGGER_TRACE("Background rendered for desktop %u ('%s')",
             desktop->id, desktop->name);
