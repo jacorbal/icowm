@@ -1016,40 +1016,50 @@ ignored.
 ```json
 {
     "rules": [
-        {
-            "when": "property",
-            "match": {
-                "title": "Journal console"
-            },
-            "apply": {
-                "desktop": 2,
-                "focus": true,
-                "layer": "above"
-            }
+    {
+        "when": "property",
+        "match": {
+            "title": "Journal console"
         },
-        {
-            "when": "map",
-            "match": {
-                "name": "*Sonata"
-            },
-            "apply": {
-                "sticky": true,
-                "decorated": false,
-                "layer": "below",
-                "position": {
-                    "x": 1450,
-                    "y": 0
-                },
-                "size": {
-                    "width": 400,
-                    "height": 300
-                }
+        "apply": {
+            "desktop": 2,
+            "focus": true,
+            "layer": "above"
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "title": "*Sonata"
+        },
+        "apply": {
+            "sticky": true,
+            "decorated": false,
+            "layer": "below",
+            "position": {
+                "x": 1460,
+                "y": 10
             }
         }
+    },
+    {
+        "when": "map",
+        "match": {
+            "title": "gmrun"
+        },
+        "apply": {
+            "decorated": false,
+            "layer": "above",
+            "position": {
+                "x": 710,
+                "y": 500
+            }
+        }
+    }
     ]
 }
 ```
-This example shows two complete rules:
+This example shows three complete rules:
 - a `"property"` rule that waits until a window title becomes `"Journal
   console"`, then moves it to desktop of index `2`, focuses it, and
   raises it to the `"above"` layer.
@@ -1057,6 +1067,9 @@ This example shows two complete rules:
   when the window is first managed, keeping it sticky, undecorated, in
   the `"below"` layer, and positioned at the top-right corner using
   a fixed geometry.
+- a `"map"` rule for the program name `"gmrun"` that applies once when
+  the window is first managed, keeping it undecorated, in the `"above"`
+  layer.
 
 ### `session.json`
 
