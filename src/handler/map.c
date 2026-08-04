@@ -191,20 +191,16 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     /* Refresh work area in case the new client declares struts */
     surface_refresh_workareas(surface);
 
-    /* Dock/panel windows self-position; do not override their geometry */
-    if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {
-        place_apply(wm, surface, client);
-    }
-
-    /* Apply rules after placement so that rule-specified geometry takes
-     * precedence over the placement policy result */
+    /* Apply map-time rules before placement so explicit rule geometry
+     * can lock the client position and exempt it from policy placement */
     if (rules_apply(wm, client, &surface, &desktop, RULES_TRIGGER_MAP)) {
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
     }
 
     /* Dock/panel windows self-position; do not override their geometry */
-    if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK) {
+    if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
+            !client->rule_position_locked) {
         place_apply(wm, surface, client);
     }
 
