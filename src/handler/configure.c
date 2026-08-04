@@ -449,11 +449,17 @@ void handler_configure_notify(xcb_connection_t *connection,
              *    iconified/restored.
              *
              * Ignore 'SubStructureNotify'-delivered 'ConfigureNotify'
-             * events for undecorated clients: the 'StructureNotify'
-             * copy (same data, always correct) handles all legitimate
-             * updates. */
-            if (client->frame == 0 &&
-                    event->event != event->window) {
+             * events for all managed clients (decorated and undecorated
+             * alike): the 'StructureNotify' copy (same data, always
+             * correct) handles all legitimate updates.  For decorated
+             * clients this also prevents stale 'SubStructureNotify'
+             * events from placement (place_apply) from overwriting the
+             * position set by rules_apply: when the event loop sees the
+             * stale placement 'SubStructureNotify' it would update the
+             * stored position and trigger a re-render, which then
+             * re-configures the frame to the old placement position,
+             * overriding the rules-specified position entirely. */
+            if (event->event != event->window) {
                 return;
             }
 

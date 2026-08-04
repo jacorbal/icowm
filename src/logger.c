@@ -38,28 +38,41 @@ static pthread_mutex_t logger_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /**
- * @brief Flush the log messages and reset the buffer
+ * @brief Flush the log messages to one or two files and reset the
+ *        buffer
  *
  * @param logger_buffer Pointer to the buffer structure
- * @param fp            File descriptor where to flush the stream
+ * @param fp_a          Primary output file (must not be null)
+ * @param fp_b          Secondary output file, or @c NULL if unused
  *
  * @note Complexity: @e O(n), where @e n is the number of messages in
  *       the buffer
  */
 static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
-        FILE *fp)
+        FILE *fp_a, FILE *fp_b)
 {
-    if (fp == NULL) {
+    bool const dual = (fp_b != NULL && fp_b != fp_a);
+
+    if (fp_a == NULL) {
         return;
     }
 
-    fflush(fp);
+    fflush(fp_a);
+    if (dual) {
+        fflush(fp_b);
+    }
+
 
     for (unsigned int i = 0; i < logger_buffer->count; ++i) {
-        fprintf(fp, "%s\n", logger_buffer->messages[i]);
-        free(logger_buffer->messages[i]);
+        fprintf(fp_a, "%s\n", logger_buffer->messages[i]);
+        if (dual) {
+            fprintf(fp_b, "%s\n", logger_buffer->messages[i]);
+        }
     }
-    fflush(fp);
+    free(fp_a);
+    if (dual) {
+        fflush(fp_b);
+    }
 
     logger_buffer->count = 0;
 }
@@ -249,7 +262,8 @@ int logger_stop(void)
 
     /* Free buffer */
     if (logger->buffer) {
-        s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
+        s_logger_buffer_flush(logger->buffer, logger->file.fp_out,
+                logger->file.fp_err);
         free(logger->buffer->messages);
         free(logger->buffer);
     } else {
@@ -373,10 +387,8 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 
         /* Check if there's enough space in buffer, or flush it */
         if (logger->buffer->count >= LOGGER_FLUSH_THRESHOLD) {
-            s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
-            if (logger->file.fp_out != logger->file.fp_err) {
-                s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
-            }
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_out,
+                    logger->file.fp_err);
         }
 
         /* Allocate memory for the message */
@@ -395,10 +407,8 @@ int logger_msg(enum logger_level_e level, const char *prefix,
 
         /* Flush the buffer on error to make sure it's on the logfile */
         if (level > LOG_WARNING) {
-            s_logger_buffer_flush(logger->buffer, logger->file.fp_out);
-            if (logger->file.fp_out != logger->file.fp_err) {
-                s_logger_buffer_flush(logger->buffer, logger->file.fp_err);
-            }
+            s_logger_buffer_flush(logger->buffer, logger->file.fp_out,
+                    logger->file.fp_err);
         }
 
         retval = len;
