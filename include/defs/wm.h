@@ -64,12 +64,6 @@
 /** Glyph index of the mask for @c XC_left_ptr in the X cursor font */
 #define WM_CURSOR_LEFT_PTR_MASK_GLYPH (69u)
 
-/** Keyboard move step (pixels) */
-#define WM_KEYBOARD_MOVE_STEP (20)
-
-/** Keyboard resize step (pixels) */
-#define WM_KEYBOARD_RESIZE_STEP (20)
-
 /** Pixels between baseline and the bottom of the titlebar */
 #define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)
 

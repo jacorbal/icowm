@@ -213,6 +213,26 @@ Snap threshold in pixels.  When a window being dragged comes within
 this many pixels of a screen edge or another window border, it snaps
 into alignment.  Set to `0` to disable snapping.
 
+#### `windows.move-step`
+
+| Key                 | Type    | Default |
+|---------------------|---------|---------|
+| `windows.move-step` | integer | `10`    |
+
+Keyboard movement step in pixels.  Each key press that moves the focused
+window changes its position by this amount.  Values lower than `1` are
+treated as `1`.
+
+#### `windows.resize-step`
+
+| Key                   | Type    | Default |
+|-----------------------|---------|---------|
+| `windows.resize-step` | integer | `20`    |
+
+Keyboard resize step in pixels.  Each key press that resizes the focused
+window changes its size by this amount when no resize increment hint
+applies.  Values lower than `1` are treated as `1`.
+
 #### `windows.has-grips`
 
 | Key                 | Type    | Default |
@@ -847,6 +867,8 @@ ignored.
     "windows": {
         "gravity": "north-west",
         "has-grips": true
+        "move-step": 10,
+        "resize-step": 20,
         "snap": 4,
         "focus": {
             "policy": "click",

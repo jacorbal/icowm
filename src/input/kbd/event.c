@@ -107,6 +107,7 @@ static surface_td *s_lookup_surface_fallback(list_td *surfaces,
  * @param client     Pointer to the client whose geometry is being
  *                   resized; may be null, in which case @p cur_frame is
  *                   returned
+ * @param step       Amount of pixels to resize every step
  * @param horizontal @c true to operate on the horizontal axis (width),
  *                   @c false for the vertical axis (height)
  * @param cur_frame  Current outer frame size (including extents) for
@@ -123,7 +124,7 @@ static surface_td *s_lookup_surface_fallback(list_td *surfaces,
  *       client's preferred resize granularity.
  */
 static uint32_t s_kb_resize_axis_target(const client_td *client,
-        bool horizontal, uint32_t cur_frame, bool grow)
+        uint32_t step, bool horizontal, uint32_t cur_frame, bool grow)
 {
     uint32_t ext_a;
     uint32_t ext_b;
@@ -148,9 +149,10 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     cur_inner = (cur_frame > ext_a + ext_b)
         ? cur_frame - ext_a - ext_b : 0u;
     if (!client->size_hints.valid) {
+        int32_t resize_step = (step > 0u) ? (int32_t) step : 1;
         target = grow
-            ? (int32_t) cur_frame + WM_KEYBOARD_RESIZE_STEP
-            : (int32_t) cur_frame - WM_KEYBOARD_RESIZE_STEP;
+            ? (int32_t) cur_frame + resize_step
+            : (int32_t) cur_frame - resize_step;
         return geom_clamp_dim(target);
     }
 
@@ -189,9 +191,10 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
     }
 
-    target = grow
-        ? (int32_t) cur_frame + WM_KEYBOARD_RESIZE_STEP
-        : (int32_t) cur_frame - WM_KEYBOARD_RESIZE_STEP;
+    target = (grow)
+        ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
+        : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
+
     return geom_clamp_dim(target);
 }
 
@@ -649,6 +652,9 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 desktop->client_active_id, &cs, &cd);
 
                         if (client != NULL) {
+                            int32_t move_step = (int32_t)
+                                ((config->base.windows.move_step > 0u)
+                                 ? config->base.windows.move_step : 1u);
                             int32_t new_x = client->layout.geometry.cur.pos.x;
                             int32_t new_y = client->layout.geometry.cur.pos.y;
                             int32_t max_x = (cs != NULL)
@@ -661,13 +667,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                             : new_y;
 
                             if (btype == KEYBIND_CLIENT_MOVE_LEFT)
-                                new_x -= WM_KEYBOARD_MOVE_STEP;
+                                new_x -= move_step;
                             else if (btype == KEYBIND_CLIENT_MOVE_RIGHT)
-                                new_x += WM_KEYBOARD_MOVE_STEP;
+                                new_x += move_step;
                             else if (btype == KEYBIND_CLIENT_MOVE_UP)
-                                new_y -= WM_KEYBOARD_MOVE_STEP;
+                                new_y -= move_step;
                             else if (btype == KEYBIND_CLIENT_MOVE_DOWN)
-                                new_y += WM_KEYBOARD_MOVE_STEP;
+                                new_y += move_step;
                             else if (btype == KEYBIND_CLIENT_MOVE_TOP_LEFT)
                                 { new_x = 0; new_y = 0; }
                             else if (btype == KEYBIND_CLIENT_MOVE_TOP_RIGHT)
@@ -697,6 +703,9 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 desktop->client_active_id, &cs, &cd);
 
                         if (client != NULL && client_is_resizable(client)) {
+                            uint32_t resize_step =
+                                (config->base.windows.resize_step > 0u)
+                                    ? config->base.windows.resize_step : 1u;
                             int32_t new_x =
                                 client->layout.geometry.cur.pos.x;
                             int32_t new_y =
@@ -730,18 +739,22 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
                             if (btype == KEYBIND_CLIENT_RESIZE_LEFT) {
                                 new_w = (int32_t) s_kb_resize_axis_target(
-                                        client, true, old_w, false);
+                                        client, resize_step,
+                                        true, old_w, false);
                                 new_x += (int32_t) old_w - new_w;
                             } else if (btype == KEYBIND_CLIENT_RESIZE_RIGHT) {
                                 new_w = (int32_t) s_kb_resize_axis_target(
-                                        client, true, old_w, true);
+                                        client, resize_step,
+                                        true, old_w, true);
                             } else if (btype == KEYBIND_CLIENT_RESIZE_UP) {
                                 new_h = (int32_t) s_kb_resize_axis_target(
-                                        client, false, old_h, false);
+                                        client, resize_step,
+                                        false, old_h, false);
                                 new_y += (int32_t) old_h - new_h;
                             } else if (btype == KEYBIND_CLIENT_RESIZE_DOWN) {
                                 new_h = (int32_t) s_kb_resize_axis_target(
-                                        client, false, old_h, true);
+                                        client, resize_step,
+                                        false, old_h, true);
                             }
 
                             s_kbd_resize_apply(client,

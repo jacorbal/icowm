@@ -66,9 +66,11 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
-        uint32_t snap;      /**< Snap factor in pixels */
-        bool has_grips;     /**< Add grips to the client's corners */
-        bool show_geom;     /**< Show geometry overlay on move/resize */
+        uint32_t snap;          /**< Snap factor in pixels */
+        uint32_t move_step;     /**< Keyboard move step in pixels */
+        uint32_t resize_step;   /**< Keyboard resize step in pixels */
+        bool has_grips;         /**< Add grips to the client's corners */
+        bool show_geom;         /**< Show geometry overlay on move/resize */
         struct {
             bool is_new_focused;
             bool is_raised_on_focus;

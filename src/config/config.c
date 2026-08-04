@@ -162,6 +162,8 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.file_manager, "pcmanfm");
     safe_strcpy(config->base.programs.editor, "gvim");
     safe_strcpy(config->base.programs.web_browser, "firefox");
+    config->base.windows.move_step = 10;
+    config->base.windows.resize_step = 20;
     config->base.windows.snap = 4;
     config->base.windows.has_grips = true;
     config->base.windows.show_geom = true;

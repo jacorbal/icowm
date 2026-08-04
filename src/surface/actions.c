@@ -376,8 +376,9 @@ void surface_reflow_clients(surface_td *surface)
                 int32_t sh = (int32_t) surface->properties.dim.h;
 
                 /* Minimum visible strip to keep on screen. */
-                int32_t margin = (int32_t) WM_KEYBOARD_MOVE_STEP;
-
+                int32_t margin = (int32_t)
+                    ((surface->config->base.windows.move_step > 0u)
+                     ? surface->config->base.windows.move_step : 1u);
                 int32_t new_x = cx;
                 int32_t new_y = cy;
 

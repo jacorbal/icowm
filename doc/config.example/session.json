@@ -1,0 +1,12 @@
+{
+    "on-start": [
+        "tint2",
+        "redshift-gtk"
+    ],
+    "on-reload": [
+        "notify-send 'IcoWM' 'Configuration reloaded'"
+    ],
+    "on-exit": [
+        "notify-send 'IcoWM' 'Shutting down session hooks'"
+    ]
+}

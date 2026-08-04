@@ -35,8 +35,11 @@
         "web-browser": "firefox"
     },
     "windows": {
-        "has-grips": false,
         "gravity": "north-west",
+        "show-geom": true,
+        "has-grips": false,
+        "move-step": 10,
+        "resize-step": 20,
         "snap": 4,
         "focus": {
             "policy": "click",
@@ -48,6 +51,7 @@
         }
     },
     "icons": {
+        "show-geom": false,
         "placement": {
             "policy": "smart"
         }
