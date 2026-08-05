@@ -346,7 +346,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     int16_t x;
     int16_t y;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
 
     if (connection == NULL || surface == NULL || config == NULL ||
             surface->screen == NULL) {
@@ -382,12 +382,16 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     menu_dialog_center(surface, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
 
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL    |
+        XCB_CW_BORDER_PIXEL     |
+        XCB_CW_EVENT_MASK       |
+        XCB_CW_OVERRIDE_REDIRECT;
     values[0] = config->theme.window.inactive.background_color;
     values[1] = config->theme.window.active.border_color;
     values[2] = XCB_EVENT_MASK_EXPOSURE |
         XCB_EVENT_MASK_BUTTON_PRESS     |
         XCB_EVENT_MASK_KEY_PRESS;
+    values[3] = 1;
 
     s_confirm_window = xcb_generate_id(connection);
     xcb_create_window(connection,
@@ -402,6 +406,9 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
             mask, values);
 
     xcb_map_window(connection, s_confirm_window);
+    xcb_configure_window(connection, s_confirm_window,
+            XCB_CONFIG_WINDOW_STACK_MODE,
+            (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
     xcb_flush(connection);
 
     xcb_grab_keyboard(connection, 0, s_confirm_window,
@@ -651,7 +658,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     int16_t x;
     int16_t y;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
     const char *prefix = "\0";
 
     if (connection == NULL || surface == NULL || config == NULL ||
@@ -695,12 +702,16 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     menu_dialog_center(surface, s_message_layout.w,
             s_message_layout.h, &x, &y);
 
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL    |
+        XCB_CW_BORDER_PIXEL     |
+        XCB_CW_EVENT_MASK       |
+        XCB_CW_OVERRIDE_REDIRECT;
     values[0] = config->theme.window.inactive.background_color;
     values[1] = config->theme.window.active.border_color;
     values[2] = XCB_EVENT_MASK_EXPOSURE     |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_KEY_PRESS;
+    values[3] = 1;
 
     s_message_window = xcb_generate_id(connection);
     xcb_create_window(connection,
@@ -715,6 +726,9 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             mask, values);
 
     xcb_map_window(connection, s_message_window);
+    xcb_configure_window(connection, s_message_window,
+            XCB_CONFIG_WINDOW_STACK_MODE,
+            (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
     xcb_flush(connection);
 
     xcb_grab_keyboard(connection, 0, s_message_window,

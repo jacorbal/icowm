@@ -257,9 +257,15 @@ void cycle_open(list_td *surfaces,
 
                     g_cycle_menu.clients[idx] = c;
 
-                    /* Mark hidden windows with brackets so they stand
-                     * out visually in the cycle menu */
+                    /* Encode window state directly in the menu label:
+                     *  - hidden -> "{name}"
+                     *  - icon   -> "(name)"
+                     *  - normal ->  "name" */
                     if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
+                        snprintf(g_cycle_menu.labels[idx],
+                                WM_CYCLE_MENU_ENTRY_LEN, "{%s}", name);
+                    } else if (c->properties.state ==
+                            (uint16_t) CLIENT_STATE_ICONIFIED) {
                         snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "(%s)", name);
                     } else {

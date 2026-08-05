@@ -73,79 +73,182 @@ static int s_entry_count = 0;
  */
 typedef struct {
     surface_td *surface;    /**< Surface that owns the desktop */
+    client_td *client;      /**< Client to focus, or @c NULL */
     uint32_t desktop_id;    /**< Destination desktop index */
-} winlist_goto_data_td;
+} winlist_entry_data_td;
 
 
-/** Per-entry goto userdata pool */
-static winlist_goto_data_td s_goto_data[WINLIST_MAX_ENTRIES];
+/** Per-entry userdata pool */
+static winlist_entry_data_td s_entry_data[WINLIST_MAX_ENTRIES];
 
 
 /**
- * @brief Callback: switch to a desktop from the window list
+ * @brief Switch to a desktop from the window list
  *
- * @param connection XCB connection
- * @param userdata   Pointer to 'winlist_goto_data_td'
+ * Callback invoked when a desktop entry in the window list is
+ * activated.  Triggers a desktop switch to the desktop stored in
+ * @p userdata.
+ *
+ * @param connection XCB connection (unused)
+ * @param userdata   Pointer to a @c winlist_entry_data_td with the
+ *                   target surface and desktop ID
  */
 static void s_cb_goto_desktop(xcb_connection_t *connection,
         void *userdata)
 {
-    winlist_goto_data_td *d;
+    winlist_entry_data_td *data;
     action_data_surface_td sdata;
 
     (void) connection;
 
-    if (userdata == NULL) {
+    data = (winlist_entry_data_td *) userdata;
+    if (data == NULL || data->surface == NULL) {
         return;
     }
 
-    d = (winlist_goto_data_td *) userdata;
-    if (d->surface == NULL) {
-        return;
-    }
-
-    sdata.surface = d->surface;
+    sdata.surface = data->surface;
     sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    sdata.new_data.uvalue = d->desktop_id;
-    scmd_surface_desktop_switch(d->surface, &sdata);
+    sdata.new_data.uvalue = data->desktop_id;
+    scmd_surface_desktop_switch(data->surface, &sdata);
 }
 
 
+
 /**
- * @brief Callback: switch to the desktop that holds a client, then
- *        focus and raise it
+ * @brief Switch to the selected desktop and optionally focus its client
  *
- * @param connection XCB connection (unused; dispatch via event queue)
- * @param userdata   Pointer to @c client_td
+ * Callback invoked when a client entry in the window list is activated.
+ * Switches to the associated desktop and, if a client is stored in
+ * @p userdata, sends focus and raise events to that client.
+ *
+ * @param connection XCB connection (unused)
+ * @param userdata   Pointer to a @c winlist_entry_data_td with the
+ *                   target surface, desktop ID, and optional client
  */
 static void s_cb_focus_client(xcb_connection_t *connection,
         void *userdata)
 {
-    client_td *client;
+    winlist_entry_data_td *data;
     action_data_surface_td sdata;
-    surface_td *surface;
 
     (void) connection;
 
-    client = (client_td *) userdata;
-    if (client == NULL) {
+    data = (winlist_entry_data_td *) userdata;
+    if (data == NULL || data->surface == NULL) {
         return;
     }
 
-    /* Switch to the desktop that contains this client first */
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface != NULL) {
-        sdata.surface = surface;
-        sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-        sdata.new_data.uvalue = client->desktop_id;
-        scmd_surface_desktop_switch(surface, &sdata);
+    sdata.surface = data->surface;
+    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
+    sdata.new_data.uvalue = data->desktop_id;
+    scmd_surface_desktop_switch(data->surface, &sdata);
+    if (data->client == NULL) {
+        return;
     }
 
-    /* Then focus and raise */
-    (void) client_send_event(client,
+    (void) client_send_event(data->client,
             ACTION_CLIENT_FOCUS, PRIORITY_NORMAL);
-    (void) client_send_event(client,
+    (void) client_send_event(data->client,
             ACTION_CLIENT_RAISE, PRIORITY_NORMAL);
+}
+
+
+/**
+ * @brief Format a window-list entry label according to the client state
+ *
+ * Wraps @p name in curly braces if the client is hidden, in parentheses
+ * if iconified, or copies it verbatim otherwise.  The result is written
+ * into @p buf.
+ *
+ * @param client   Client whose state determines the format
+ * @param name     Base name string to format
+ * @param buf      Destination buffer for the formatted label
+ * @param buf_size Size of @p buf in bytes
+ */
+static void s_format_client_label(const client_td *client,
+        const char *name, char *buf, size_t buf_size)
+{
+    if (client == NULL || name == NULL || buf == NULL ||
+            buf_size == 0u) {
+        return;
+    }
+
+    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        (void) snprintf(buf, buf_size, "{%s}", name);
+    } else if (client->properties.state ==
+            (uint16_t) CLIENT_STATE_ICONIFIED) {
+        (void) snprintf(buf, buf_size, "(%s)", name);
+    } else {
+        (void) snprintf(buf, buf_size, "%s", name);
+    }
+}
+
+
+/**
+ * @brief Append all clients that belong to a desktop as menu entries
+ *
+ * Iterates over the client hash table of the desktop identified by
+ * @p did and appends one @c CTXMENU_COMMAND entry per visible client.
+ * Sticky clients are included regardless of their @c desktop_id.
+ * Stops early when @c WINLIST_MAX_ENTRIES is reached.
+ *
+ * @param surface     Surface that owns the desktop
+ * @param did         Desktop ID whose clients are to be listed
+ * @param entry_count In/out: current number of entries; updated on
+ *                    return to reflect the entries appended
+ */
+static void s_add_desktop_clients(surface_td *surface, uint32_t did,
+        int *entry_count)
+{
+    desktop_td *desktop;
+    client_td *client;
+    int n;
+    const char *cname;
+    char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
+
+    if (surface == NULL || entry_count == NULL) {
+        return;
+    }
+
+    desktop = surface_desktop_get(surface, did);
+    if (desktop == NULL || desktop->clients == NULL) {
+        return;
+    }
+
+    n = *entry_count;
+    ohtbl_foreach(desktop->clients, client) {
+        bool belongs_here;
+
+        if (n >= WINLIST_MAX_ENTRIES - 1) {
+            break;
+        }
+        if (client == NULL) {
+            continue;
+        }
+
+        belongs_here = client_is_sticky(client) ||
+            client->desktop_id == did;
+        if (!belongs_here) {
+            continue;
+        }
+
+        cname = (client->info.name != NULL &&
+                client->info.name[0] != '\0')
+            ? client->info.name : "(unnamed)";
+        s_format_client_label(client, cname,
+                name_buf, sizeof(name_buf));
+        s_entries[n].type = CTXMENU_COMMAND;
+        safe_strncpy(s_entries[n].label, name_buf,
+                sizeof(s_entries[n].label) - 1u);
+        s_entry_data[n].surface = surface;
+        s_entry_data[n].client = client;
+        s_entry_data[n].desktop_id = did;
+        s_entries[n].on_activate = s_cb_focus_client;
+        s_entries[n].userdata = &s_entry_data[n];
+        ++n;
+    }
+
+    *entry_count = n;
 }
 
 
@@ -158,10 +261,8 @@ void winlist_show(xcb_connection_t *connection,
     uint32_t cur_did;
     desktop_td *desktop;
     int n;
-    client_td *client;
-    const char *cname;
+    const char *label_fmt;
     char label_buf[WM_CTXMENU_LABEL_MAX_LEN];
-    char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
 
     if (connection == NULL || surface == NULL || config == NULL) {
         return;
@@ -177,34 +278,32 @@ void winlist_show(xcb_connection_t *connection,
 
     n = 0;
     cur_did = surface->desktop_cur;
-    memset(s_goto_data, 0, sizeof(s_goto_data));
+    memset(s_entry_data, 0, sizeof(s_entry_data));
 
     for (did = 0;
             (did < surface->desktop_count) &&
                 (n < WINLIST_MAX_ENTRIES - 1);
             ++did) {
         bool is_cur;
-        bool has_clients;
+        int before_clients;
 
         desktop = surface_desktop_get(surface, did);
         if (desktop == NULL) {
             continue;
         }
 
-        is_cur = (did == cur_did);
-        has_clients = (desktop->clients != NULL &&
-                desktop->clients->size > 0);
+        is_cur = did == cur_did;
+        label_fmt = (desktop->name[0] != '\0')
+            ? "%s[%u] -- %s%s"
+            : "%s[%u]%s";
 
-        /* Desktop label with "--- ... ---" decoration */
         if (desktop->name[0] != '\0') {
-            (void) snprintf(label_buf, sizeof(label_buf),
-                    "%s[%u] -- %s%s",
+                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     did, desktop->name,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         } else {
-            (void) snprintf(label_buf, sizeof(label_buf),
-                    "%s[%u]%s",
+            (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     did,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
@@ -214,60 +313,31 @@ void winlist_show(xcb_connection_t *connection,
                 sizeof(s_entries[n].label) - 1u);
         ++n;
 
-        if (!has_clients) {
-            /* Empty desktop: show "Go there..." entry.
-             * Disabled when it is the currently active desktop. */
-            if (n >= WINLIST_MAX_ENTRIES - 1) {
-                break;
-            }
-
-            s_entries[n].type = CTXMENU_COMMAND;
-            safe_strncpy(s_entries[n].label, "Go there...",
-                    sizeof(s_entries[n].label) - 1u);
-            s_entries[n].is_disabled = is_cur;
-            if (!is_cur) {
-                s_goto_data[n].surface = surface;
-                s_goto_data[n].desktop_id = did;
-                s_entries[n].on_activate = s_cb_goto_desktop;
-                s_entries[n].userdata = &s_goto_data[n];
-            }
-            ++n;
-        } else {
-            /* One entry per client on this desktop */
-            ohtbl_foreach(desktop->clients, client) {
-                if (n >= WINLIST_MAX_ENTRIES - 1) {
-                    break;
-                }
-
-                cname = (client->info.name != NULL &&
-                        client->info.name[0] != '\0')
-                    ? client->info.name : "(unnamed)";
-
-                /* Format based on state */
-                if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-                    (void) snprintf(name_buf, sizeof(name_buf),
-                            "(%s)", cname);
-                } else if (client->properties.state ==
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
-                    (void) snprintf(name_buf, sizeof(name_buf),
-                            "[%s]", cname);
-                } else {
-                    (void) snprintf(name_buf, sizeof(name_buf),
-                            "%s", cname);
-                }
-
-                s_entries[n].type = CTXMENU_COMMAND;
-                safe_strncpy(s_entries[n].label, name_buf,
-                        sizeof(s_entries[n].label) - 1u);
-                s_entries[n].on_activate = s_cb_focus_client;
-                s_entries[n].userdata = client;
-                ++n;
-            }
+        before_clients = n;
+        s_add_desktop_clients(surface, did, &n);
+        if (n != before_clients) {
+            continue;
         }
+
+        if (n >= WINLIST_MAX_ENTRIES - 1) {
+            break;
+        }
+
+        s_entries[n].type = CTXMENU_COMMAND;
+        safe_strncpy(s_entries[n].label, "Go there...",
+                sizeof(s_entries[n].label) - 1u);
+        s_entries[n].is_disabled = is_cur;
+        if (!is_cur) {
+            s_entry_data[n].surface = surface;
+            s_entry_data[n].client = NULL;
+            s_entry_data[n].desktop_id = did;
+            s_entries[n].on_activate = s_cb_goto_desktop;
+            s_entries[n].userdata = &s_entry_data[n];
+        }
+        ++n;
     }
 
     if (n == 0) {
-        /* Nothing to show; add a placeholder */
         s_entries[n].type = CTXMENU_LABEL;
         safe_strncpy(s_entries[n].label, "(no windows)",
                 sizeof(s_entries[n].label) - 1u);

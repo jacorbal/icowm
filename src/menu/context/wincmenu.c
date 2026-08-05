@@ -310,9 +310,9 @@ static void s_cb_move(xcb_connection_t *connection,
 /**
  * @brief Callback: resize the client (interactive pointer-driven resize)
  *
- * Warps the pointer to the bottom-right corner of the window, then
- * starts a resize drag so that subsequent pointer motion resizes the
- * window interactively.
+ * Unshades the window when needed, warps the pointer to the bottom-left
+ * corner of the full window, then starts a resize drag so that
+ * subsequent pointer motion resizes the window interactively.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
@@ -341,9 +341,12 @@ static void s_cb_resize(xcb_connection_t *connection,
     screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
     screen = (surface != NULL) ? surface->screen : NULL;
 
-    /* Warp pointer to the bottom-right corner for resize feedback */
-    rx = (int16_t) (s_target_client->layout.geometry.cur.pos.x +
-            (int16_t) s_target_client->layout.geometry.cur.dim.w - 1);
+    if (client_is_shaded(s_target_client)) {
+        wcmd_client_unshade(s_target_client);
+    }
+
+    /* Warp pointer to the bottom-left corner for resize feedback */
+    rx = (int16_t) s_target_client->layout.geometry.cur.pos.x;
     ry = (int16_t) (s_target_client->layout.geometry.cur.pos.y +
             (int16_t) s_target_client->layout.geometry.cur.dim.h - 1);
 

@@ -280,8 +280,6 @@ void mouse_handle_press(xcb_connection_t *connection,
             }
         }
 
-        /* Click outside dialog: close without action */
-        dialog_quit_close(connection);
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(connection);
@@ -294,9 +292,6 @@ void mouse_handle_press(xcb_connection_t *connection,
             dialog_info_handle_click(connection,
                     (int) event->event_x,
                     (int) event->event_y);
-        } else {
-            /* Click outside dialog: close it */
-            dialog_info_close(connection);
         }
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
@@ -596,10 +591,12 @@ void mouse_handle_press(xcb_connection_t *connection,
 
 
             /* Right-click on titlebar or frame border: open window
-             * context menu.  When the click lands on the content window
-             * ('event->child == client->window') the frame passive grab
-             * fired but the user clicked inside the application, so the
-             * menu must NOT appear. */
+             * context menu.  Titlebar buttons consume all mouse buttons
+             * before this branch so button-specific actions are not
+             * replaced by the menu.  When the click lands on the
+             * content window ('event->child == client->window') the
+             * frame passive grab fired but the user clicked inside the
+             * application, so the menu must NOT appear. */
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
                     ((event->child == client->titlebar &&
                       client->titlebar != 0) ||

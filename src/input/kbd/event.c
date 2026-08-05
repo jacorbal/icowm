@@ -33,10 +33,12 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
+#include <menu/cycle.h>
 #include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
-#include <menu/cycle.h>
 #include <menu/popup.h>
 
 /* Handler includes */
@@ -287,7 +289,6 @@ static void s_kbd_resize_apply(client_td *client,
      * reparenting. */
     client_send_synthetic_configure_notify(client->connection, client);
 
-
     /* Force a repaint AFTER the synthetic 'ConfigureNotify' so the
      * application draws at the correct screen-relative geometry.
      * Placing the 'Expose' here ensures it arrives in the client's
@@ -453,9 +454,32 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
     /* Informational dialog key handling */
     if (dialog_info_is_open()) {
-        /* Any key closes the dialog */
-        if (surface != NULL && surface->connection != NULL) {
-            dialog_info_close(surface->connection);
+        if (keysym == 0xff0du || keysym == 0xff8du ||
+                keysym == 0xff1bu) {
+            if (surface != NULL && surface->connection != NULL) {
+                dialog_info_close(surface->connection);
+            }
+        }
+        return;
+    }
+
+    if (wincmenu_is_open()) {
+        if (keysym == 0xff1bu) {
+            wincmenu_close();
+        }
+        return;
+    }
+
+    if (rootmenu_is_open()) {
+        if (keysym == 0xff1bu) {
+            rootmenu_close();
+        }
+        return;
+    }
+
+    if (winlist_is_open()) {
+        if (keysym == 0xff1bu) {
+            winlist_close();
         }
         return;
     }
