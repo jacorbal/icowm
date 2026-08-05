@@ -54,7 +54,7 @@
 #include <wm.h>
 
 
-/* '_NET_WM_STATE' action values (EWMH §5.8) */
+/* '_NET_WM_STATE' action values (EWMH section 5.8) */
 #define WM_STATE_ACTION_REMOVE (0)
 #define WM_STATE_ACTION_ADD    (1)
 #define WM_STATE_ACTION_TOGGLE (2)
@@ -107,8 +107,7 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
 
 
 /**
- * @brief Dispatch a single EWMH @c _NET_WM_STATE atom for a given
- *        action
+ * @brief Dispatch a single EWMH @c _NET_WM_STATE atom for a given action
  *
  * @param client     Pointer to the client being updated
  * @param state_atom EWMH @c _NET_WM_STATE atom to process
@@ -315,20 +314,7 @@ static void s_handle_wm_state_atom(client_td *client,
 }
 
 
-/**
- * @brief Handle a @c _NET_WM_STATE client message
- *
- * @param client  Pointer to the target client
- * @param event   Pointer to the received @c CLIENT_MESSAGE event
- * @param ewmh    Pointer to the EWMH connection handle
- * @param surface Pointer to the surface that owns the client
- * @param desktop Pointer to the desktop where the client resides
- *
- * @note Invalidates @p surface and @p desktop when the client state
- *       changes
- * @note No-op if any of @p client, @p event or @p ewmh are null
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_WM_STATE' client message */
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
         xcb_ewmh_connection_t *ewmh,
@@ -356,16 +342,7 @@ void hi_handle_net_wm_state(client_td *client,
 }
 
 
-/**
- * @brief Handle a @c _NET_CURRENT_DESKTOP client message
- *
- * @param wm    Pointer to the window manager context
- * @param event Pointer to the received @c CLIENT_MESSAGE event
- *
- * @note No-op if @p wm or @p event are null, or if the root surface
- *       cannot be found
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_CURRENT_DESKTOP' client message */
 void hi_handle_net_current_desktop(wm_td *wm,
         xcb_client_message_event_t *event)
 {
@@ -390,17 +367,7 @@ void hi_handle_net_current_desktop(wm_td *wm,
 }
 
 
-/**
- * @brief Handle a @c _NET_WM_DESKTOP client message
- *
- * @param wm          Pointer to the window manager context
- * @param event       Pointer to the received @c CLIENT_MESSAGE event
- * @param client      Pointer to the client to be moved
- * @param surface     Pointer to the surface that owns the client
- * @param src_desktop Pointer to the client's current desktop
- *
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_WM_DESKTOP' client message */
 void hi_handle_net_wm_desktop(wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface,
@@ -443,17 +410,7 @@ void hi_handle_net_wm_desktop(wm_td *wm,
 }
 
 
-/**
- * @brief Handle a @c _NET_MOVERESIZE_WINDOW client message
- *
- * @param wm      Window manager state
- * @param event   Client-message event carrying the requested geometry
- * @param client  Target client to move or resize
- * @param surface Surface containing the client
- * @param desktop Desktop containing the client
- *
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_MOVERESIZE_WINDOW' client message */
 void hi_handle_net_moveresize_window(wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
@@ -548,24 +505,15 @@ void hi_handle_net_moveresize_window(wm_td *wm,
 }
 
 
-/**
- * @brief Apply a @c _NET_SHOWING_DESKTOP request to one surface
- *
- * @param surface Surface to update
- * @param show    Whether showing-desktop mode should be enabled
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the current desktop
- */
+/* Apply a @c _NET_SHOWING_DESKTOP request to one surface */
 void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     desktop_td *desktop;
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    bool any_visible;
 
     if (surface == NULL || surface->connection == NULL) {
-        return;
-    }
-
-    if (surface->showing_desktop == show) {
         return;
     }
 
@@ -574,13 +522,82 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         return;
     }
 
-    if (show) {
+    any_visible = false;
+    node = (desktop->stacking != NULL)
+        ? cdlist_head(desktop->stacking)
+        : NULL;
+    if (node != NULL) {
+        initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL &&
+                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                any_visible = true;
+                break;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    if (show && !surface->showing_desktop) {
+        node = (desktop->stacking != NULL)
+            ? cdlist_head(desktop->stacking)
+            : NULL;
+        if (node == NULL || !any_visible) {
+            show = false;
+        }
+    }
+
+    if (!show && surface->showing_desktop) {
+        surface_clients_show(surface, surface->desktop_cur);
+    } else if (show) {
+        node = (desktop->stacking != NULL)
+            ? cdlist_head(desktop->stacking)
+            : NULL;
+        if (node == NULL) {
+            return;
+        }
+        initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL &&
+                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                client_set_hidden(client);
+                wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
+                        XCB_NONE);
+                wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
         surface_clients_hide(surface, surface->desktop_cur);
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_CURRENT_TIME);
     } else {
+        node = (desktop->stacking != NULL)
+            ? cdlist_head(desktop->stacking)
+            : NULL;
+        if (node == NULL) {
+            return;
+        }
+        initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                client_unset_hidden(client);
+                wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL,
+                        XCB_NONE);
+                wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
         surface_clients_show(surface, surface->desktop_cur);
     }
 
@@ -590,17 +607,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 }
 
 
-/**
- * @brief Handle a @c _NET_RESTACK_WINDOW client message
- *
- * @param wm      Window manager state
- * @param event   Client-message event carrying the restack request
- * @param client  Target client to restack
- * @param surface Surface containing the client
- * @param desktop Desktop containing the client
- *
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_RESTACK_WINDOW' client message */
 void hi_handle_net_restack_window(wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
@@ -652,17 +659,7 @@ void hi_handle_net_restack_window(wm_td *wm,
 }
 
 
-/**
- * @brief Handle a @c _NET_WM_FULLSCREEN_MONITORS client message
- *
- * @param wm      Window manager state
- * @param event   Client-message event carrying the monitor indices
- * @param client  Target client
- * @param surface Surface containing the client
- * @param desktop Desktop containing the client
- *
- * @note Complexity: @e O(1)
- */
+/* Handle a '_NET_WM_FULLSCREEN_MONITORS' client message */
 void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
@@ -681,10 +678,12 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
 
     xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
             client->window,
-            s_intern_atom(wm->connection, "_NET_WM_FULLSCREEN_MONITORS"),
+            s_intern_atom(wm->connection,
+                "_NET_WM_FULLSCREEN_MONITORS"),
             XCB_ATOM_CARDINAL, 32, 4, monitors);
 
-    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN) {
+    if (client->properties.state ==
+            (uint16_t) CLIENT_STATE_FULLSCREEN) {
         wcmd_client_fullscreen(client);
     }
 

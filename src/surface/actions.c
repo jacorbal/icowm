@@ -85,7 +85,10 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
              * its child client window; issuing an extra unmap on the
              * child would duplicate 'UnmapNotify' handling and may
              * overwrite the remembered active client during desktop
-             * switches */
+             * switches.  Desktop switches must not toggle the client's
+             * hidden flag, for it represents an explicit
+             * user/application hidden state, not temporary invisibility
+             * on another desktop. */
             xcb_unmap_window(surface->connection, target);
 
             if (client->icon_window != 0 && client->is_icon_mapped) {

@@ -46,7 +46,7 @@
 #include <input/mouse/drag.h>
 
 /* Menu includes */
-#include <menu/notify.h>
+#include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
 /* Default initial values */

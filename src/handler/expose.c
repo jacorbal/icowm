@@ -35,7 +35,7 @@
 /* Menu includes */
 #include <menu/cycle.h>
 #include <menu/dialog/quit.h>
-#include <menu/notify.h>
+#include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
 /* Default initial values */

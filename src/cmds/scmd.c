@@ -27,6 +27,9 @@
 #include <lookup.h>
 #include <surface.h>
 
+/* Menu includes */
+#include <menu/notify/desktop.h>
+
 /* Local includes */
 #include <cmds/scmd.h>
 
@@ -105,7 +108,10 @@ void scmd_surface_desktop_switch(surface_td *surface,
             old_id, new_id, surface->id);
 
     surface_clients_hide(surface, old_id);
-    surface_desktop_select(surface, new_id);
+    if (surface_desktop_select(surface, new_id) != 0) {
+        surface_clients_show(surface, old_id);
+        return;
+    }
     surface_clients_sticky_transfer_all(surface, new_id);
     surface_clients_show(surface, new_id);
 

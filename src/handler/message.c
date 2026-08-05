@@ -179,6 +179,29 @@ void handler_client_message(wm_td *wm,
 
             if (client->properties.state ==
                     (uint16_t) CLIENT_STATE_ICONIFIED) {
+                if (!(client->properties.flags & CLIENT_FLAG_STICKY) &&
+                        surface != NULL && desktop != NULL &&
+                        surface->desktop_cur != desktop->id) {
+                    desktop_td *cur_desktop =
+                        surface_desktop_get(surface, surface->desktop_cur);
+
+                    if (cur_desktop != NULL && cur_desktop != desktop) {
+                        desktop_action_client_rem(desktop, client);
+                        desktop_action_client_add(cur_desktop, client);
+                        client->desktop_id = surface->desktop_cur;
+
+                        if (wm->ewmh != NULL) {
+                            xcb_change_property(wm->connection,
+                                    XCB_PROP_MODE_REPLACE,
+                                    client->window,
+                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    XCB_ATOM_CARDINAL, 32, 1,
+                                    &surface->desktop_cur);
+                        }
+                        desktop = cur_desktop;
+                    }
+                }
+
                 wcmd_client_restore(client);
             } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
                 wcmd_client_unhide(client);
@@ -188,6 +211,7 @@ void handler_client_message(wm_td *wm,
                 focus_apply(wm->surfaces, surface, desktop, client,
                         true, wm->config);
             }
+
             wm_invalidate_surface(surface);
             wm_invalidate_desktop(desktop);
         }
@@ -304,4 +328,3 @@ void handler_client_message(wm_td *wm,
         }
     }
 }
-

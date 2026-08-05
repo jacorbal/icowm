@@ -1,13 +1,7 @@
 /**
  * @file menu/notify.h
  *
- * @brief Desktop-switch notification popup interface
- *
- * Declares the functions for showing and closing the transient centered
- * notification that appears when the active desktop changes.  The
- * notification displays the desktop index and name for a configurable
- * duration (@c WM_DESKTOP_NOTIFY_TIMEOUT_MS) and then closes
- * automatically.
+ * @brief Generic notification interfaces
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,6 +18,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>       /* timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -32,82 +27,106 @@
 #include <config.h>
 #include <surface.h>
 
+/* Default initial values */
+#include <defs/wm.h>
+
+
+/**
+ * @brief State shared by all notification popup instances
+ *
+ * Tracks the XCB window handle, the monotonic timestamp at which the
+ * popup was last shown, and the text currently displayed inside it.
+ */
+struct notify_popup_state_s {
+    xcb_window_t window;                        /**< XCB window
+                                                     identifier, or
+                                                     'XCB_WINDOW_NONE' */
+    struct timespec open_time;                  /**< Monotonic time when
+                                                     the popup was opened */
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 16]; /**< Cached display text */
+
+};
+
+
 
 /* Public interface */
 /**
- * @brief Show the desktop-switch notification popup
- *
- * Creates a small centered window on @p surface that displays the
- * desktop index and name.  Any previously visible notification is
- * closed first.  The popup closes automatically after
- * @c WM_DESKTOP_NOTIFY_TIMEOUT_MS milliseconds.
- *
- * Format: "[index] -- Name" when the name is non-empty, or "[index]"
- * otherwise.
- *
- * @param connection   XCB connection
- * @param surface      Surface on which to display the notification
- * @param desktop_idx  Zero-based desktop index to display
- * @param desktop_name Desktop name string (may be empty or null)
- * @param cfg          Active configuration (theme colors and font)
- *
- * @note No-op when @c cfg->base.show_desktop_notify is @c false
- * @note Complexity: @e O(1)
- */
-void notify_desktop_show(xcb_connection_t *connection,
-        surface_td *surface, uint32_t desktop_idx,
-        const char *desktop_name, const config_td *cfg);
-
-/**
- * @brief Destroy the currently visible desktop-switch notification
+ * @brief Destroy the notification popup window and reset its state
  *
  * @param connection XCB connection
+ * @param state      Popup state to reset
  *
  * @note Complexity: @e O(1)
  */
-void notify_desktop_close(xcb_connection_t *connection);
+void notify_popup_close(xcb_connection_t *connection,
+        struct notify_popup_state_s *state);
 
 /**
- * @brief Repaint the desktop-switch notification from its cached text
+ * @brief Query whether the notification popup is currently visible
  *
- * Called from the expose handler when the notification window receives
- * an expose event.
+ * @param state Popup state to inspect
+ *
+ * @return @c true when the popup window exists
+ *
+ * @note Complexity: @e O(1)
+ */
+bool notify_popup_is_open(const struct notify_popup_state_s *state);
+
+/**
+ * @brief Return the popup window identifier
+ *
+ * @param state Popup state to inspect
+ *
+ * @return The popup's @c xcb_window_t, or @c XCB_WINDOW_NONE
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t
+    notify_popup_window(const struct notify_popup_state_s *state);
+
+/**
+ * @brief Return milliseconds remaining before the popup should close
+ *
+ * @param state      Popup state to inspect
+ * @param timeout_ms Total display duration in milliseconds
+ *
+ * @return Remaining milliseconds, 0 if expired, or -1 on error
+ *
+ * @note Complexity: @e O(1)
+ */
+int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
+        int timeout_ms);
+
+/**
+ * @brief Create and display a notification popup centered on the screen
+ *
+ * If a popup is already open it is destroyed before the new one is
+ * created.  The text is cached in @p state for later repaints.
  *
  * @param connection XCB connection
- * @param cfg        Active configuration (for font)
+ * @param surface    Surface on which to center the popup
+ * @param state      Popup state to initialize
+ * @param text       Text to display inside the popup
+ * @param config     Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
-void notify_desktop_repaint(xcb_connection_t *connection,
-        const config_td *cfg);
+void notify_popup_show_centered(xcb_connection_t *connection,
+        surface_td *surface, struct notify_popup_state_s *state,
+        const char *text, const config_td *config);
 
 /**
- * @brief Query whether the desktop notification is currently visible
+ * @brief Repaint a centered notification popup from its cached text
  *
- * @return @c true when the notification window exists
- *
- * @note Complexity: @e O(1)
- */
-bool notify_desktop_is_open(void);
-
-/**
- * @brief Return the desktop notification window identifier
- *
- * @return The window's @c xcb_window_t, or @c XCB_WINDOW_NONE
+ * @param connection XCB connection
+ * @param state      Popup state containing the cached text
+ * @param config     Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
-xcb_window_t notify_desktop_window(void);
-
-/**
- * @brief Return the milliseconds remaining before auto-close
- *
- * @return Milliseconds until auto-close, 0 if expired, -1 if no
- *         notification is open or the open time was not recorded
- *
- * @note Complexity: @e O(1)
- */
-int notify_desktop_ms_remaining(void);
+void notify_popup_repaint_centered(xcb_connection_t *connection,
+        const struct notify_popup_state_s *state,
+        const config_td *config);
 
 
 #endif  /* ! MENU_NOTIFY_H */
