@@ -388,13 +388,19 @@ void client_props_refresh_normal_hints(client_td *client)
         client->layout.gravity = (uint16_t) hints.win_gravity;
     }
 
-    /* ICCCM §4.1.2.3: a fixed-size window has min == max */
+    /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
+     * one axis.  Some applications (e.g. gmrun) constrain only height,
+     * leaving width free; the window is still effectively non-resizable
+     * from the WM's perspective and must not be maximised or resized. */
     if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
-            (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) &&
-            hints.min_width > 0 && hints.min_height > 0 &&
-            hints.min_width == hints.max_width &&
-            hints.min_height == hints.max_height) {
-        client_unset_resizable(client);
+            (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
+        bool fixed_w = (hints.min_width > 0 &&
+                hints.min_width == hints.max_width);
+        bool fixed_h = (hints.min_height > 0 &&
+                hints.min_height == hints.max_height);
+        if (fixed_w || fixed_h) {
+            client_unset_resizable(client);
+        }
     }
 }
 

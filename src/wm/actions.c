@@ -78,6 +78,8 @@ int wm_action_config_reload(void)
                 d->background.bg.color =
                     cb->screens[s->id].desktops[i].settings.background.color;
             }
+
+            d->is_outdated = true;
         }
 
         s->is_outdated = true;

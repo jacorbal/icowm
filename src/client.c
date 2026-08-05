@@ -647,6 +647,43 @@ client_td *client_manage(xcb_connection_t *connection,
                 "_NET_WM_STATE_SKIP_PAGER");
     }
 
+    /* Read the pre-existing '_NET_WM_STATE' property so that panels and
+     * dock windows that set '_NET_WM_STATE_BELOW' before mapping (e.g.
+     * tint2) are honoured: override the default layer with BELOW. */
+    if (ewmh != NULL) {
+        xcb_get_property_cookie_t state_ck;
+        xcb_get_property_reply_t *state_r;
+        xcb_atom_t atom_below;
+        xcb_intern_atom_reply_t *ia_below;
+        ia_below = xcb_intern_atom_reply(connection,
+                xcb_intern_atom(connection, 1,
+                    sizeof("_NET_WM_STATE_BELOW") - 1u,
+                    "_NET_WM_STATE_BELOW"), NULL);
+        atom_below = (ia_below != NULL) ? ia_below->atom : XCB_ATOM_NONE;
+        if (ia_below != NULL) {
+            free(ia_below);
+        }
+        if (atom_below != XCB_ATOM_NONE) {
+            state_ck = xcb_ewmh_get_wm_state(ewmh, window);
+            state_r = xcb_get_property_reply(connection, state_ck, NULL);
+            if (state_r != NULL) {
+                uint32_t natoms = (uint32_t)
+                    xcb_get_property_value_length(state_r) /
+                    sizeof(xcb_atom_t);
+                xcb_atom_t *atoms = (xcb_atom_t *)
+                    xcb_get_property_value(state_r);
+                for (uint32_t si = 0; si < natoms; ++si) {
+                    if (atoms[si] == atom_below) {
+                        client->properties.layer = CLIENT_LAYER_BELOW;
+                        break;
+                    }
+                }
+                free(state_r);
+            } /* ! if (!state_r) */
+        } /* ! if (atom_below) */
+    } /* ! if (!ewmh) */
+
+
     /* Read '_NET_WM_PID': associate X window with its owning process */
     ewmh_pid = 0u;
     if (xcb_ewmh_get_wm_pid_reply(ewmh,

@@ -286,7 +286,15 @@ static void s_add_sticky_clients(surface_td *surface, uint32_t did,
         desktop = (desktop_td *) cdlist_data(dnode);
         if (desktop != NULL && desktop->clients != NULL) {
             ohtbl_foreach(desktop->clients, client) {
-                if (client == NULL || !client_is_sticky(client)) {
+                if (client == NULL) {
+                    continue;
+                }
+                if (!client_is_sticky(client)) {
+                    continue;
+                }
+                /* Skip panels, docks, and other windows that have asked
+                 * not to appear in taskbar/window lists */
+                if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
                     continue;
                 }
                 /* Only add if this desktop's hash table does not
@@ -342,7 +350,10 @@ static void s_add_desktop_clients(surface_td *surface, uint32_t did,
          if (*entry_count >= WINLIST_MAX_ENTRIES - 1) {
             break;
         }
-        if (client == NULL) {
+
+        /* Skip panels, docks, and other windows that have asked not to
+         * appear in taskbar/window lists */
+        if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
             continue;
         }
 

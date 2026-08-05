@@ -513,7 +513,13 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
 
         has_extra_window_border =
             cycle_client_has_extra_border(client, false);
-        if (client_is_decorated(client) && client->frame != 0) {
+
+        if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
+                client->properties.type ==
+                    (uint16_t) CLIENT_TYPE_NOTIFICATION) {
+            /* Dock and notification windows must never have a WM border */
+            border_width = 0u;
+        } else if (client_is_decorated(client) && client->frame != 0) {
             border_width = (has_extra_window_border)
                 ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
         } else {
