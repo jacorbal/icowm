@@ -526,6 +526,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     cdlist_item_td *node;
     cdlist_item_td *initial;
     bool any_visible;
+    bool changed_hidden_state;
 
     if (surface == NULL || surface->connection == NULL) {
         return;
@@ -537,6 +538,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     }
 
     any_visible = false;
+    changed_hidden_state = false;
     node = (desktop->stacking != NULL)
         ? cdlist_head(desktop->stacking)
         : NULL;
@@ -581,6 +583,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
                 client_set_hidden(client);
+                changed_hidden_state = true;
                 wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
                         XCB_NONE);
                 wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -603,9 +606,11 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         do {
             client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL &&
+                    (client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
                 client_unset_hidden(client);
+                changed_hidden_state = true;
                 wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL,
                         XCB_NONE);
                 wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -615,7 +620,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         surface_clients_show(surface, surface->desktop_cur);
     }
 
-    surface->showing_desktop = show;
+    surface->showing_desktop = show && changed_hidden_state;
     wm_invalidate_surface(surface);
     wm_invalidate_desktop(desktop);
 }

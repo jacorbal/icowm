@@ -48,7 +48,6 @@ struct notify_popup_state_s {
 };
 
 
-
 /* Public interface */
 /**
  * @brief Destroy the notification popup window and reset its state
