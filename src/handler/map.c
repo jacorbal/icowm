@@ -221,6 +221,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
             xcb_map_window(wm->connection, event->window);
         }
 
+        client_unset_hidden(client);
+
         if (wm->config->base.windows.focus.is_new_focused &&
                 client_is_focusable(client)) {
             focus_apply(wm->surfaces, surface, desktop, client, true,

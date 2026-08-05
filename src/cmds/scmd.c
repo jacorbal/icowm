@@ -16,9 +16,6 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 
-/* Menu includes */
-#include <menu/notify.h>
-
 /* Project includes */
 #include <actdata.h>
 #include <client.h>

@@ -575,6 +575,13 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         if (node == NULL) {
             return;
         }
+
+        /* Unmap the windows first, then mark them hidden.
+         * 'surface_clients_hide' skips clients that already have
+         * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
+         * after the unmap call. */
+        surface_clients_hide(surface, surface->desktop_cur);
+
         initial = node;
         do {
             client_td *client = (client_td *) cdlist_data(node);
@@ -590,7 +597,6 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
-        surface_clients_hide(surface, surface->desktop_cur);
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,

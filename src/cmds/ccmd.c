@@ -22,9 +22,6 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* Utils includes */
-#include <utils/safe/safemem.h>
-
 /* Default initial values */
 #include <defs/wm.h>
 
@@ -497,6 +494,21 @@ void wcmd_client_hide(client_td *client)
 
     target = wcmd_target_win(client);
 
+    /* Account for the 'UnmapNotify' events that 'handler_unmap_notify'
+     * must skip.  Two events arrive for the unmapped target
+     * ('SubstructureNotify' on parent + 'StructureNotify' on target)
+     * and one additional event for the titlebar via the frame's
+     * 'SubstructureNotify'.  If 'target' is the frame, the content
+     * window is also unmapped explicitly below, producing two more
+     * events for 'client->window'. */
+    client->ignore_unmap += 2u;
+    if (client->titlebar != 0) {
+        client->ignore_unmap += 1u;
+    }
+    if (target != client->window) {
+        client->ignore_unmap += 2u;
+    }
+
     if (client->titlebar != 0) {
         xcb_unmap_window(client->connection, client->titlebar);
     }
@@ -515,6 +527,7 @@ void wcmd_client_hide(client_td *client)
 
     s_client_focus_fallback(client);
     wm_request_client_redraw(client);
+    xcb_flush(client->connection);
 }
 
 
