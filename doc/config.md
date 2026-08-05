@@ -15,8 +15,8 @@ values, and built-in default value.
    - [2.3 `programs`](#23-programs)
    - [2.4 `windows`](#24-windows)
    - [2.5 `icons`](#25-icons)
-   - [2.6 `show-desktop-notify`](#27-show-desktop-notify)
-   - [2.7 `enable-emergency-shortcut`](#26-enable-emergency-shortcut)
+   - [2.6 `show-desktop-notify`](#26-show-desktop-notify)
+   - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -1163,16 +1163,18 @@ This example shows three complete rules:
 ```json
 {
     "on-start": [
+        "xsetbg -fullscreen '$HOME/images/background.png'",
+        "tint2",
         "picom --config $HOME/.config/picom/picom.conf",
         "nm-applet",
         "volumeicon"
     ],
     "on-reload": [
         "pkill -HUP picom",
-        "notify-send 'IcoWM' 'Configuration reloaded'"
+        "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
     ],
     "on-exit": [
-        "notify-send 'IcoWM' 'Shutting down session hooks'"
+        "notify-send -e -i 'exit' 'IcoWM' 'Shutting down session hooks'"
     ]
 }
 ```
