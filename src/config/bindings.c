@@ -72,6 +72,19 @@ int config_load_bindings(const char *filename,
         cJSON *cycle;
         cJSON *go_to;
 
+        wm = cJSON_GetObjectItem(keyboard, "wm");
+        if (wm) {
+            json_load_string(wm, "redraw",
+                    config_bindings->keyboard.wm.redraw,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "reload",
+                    config_bindings->keyboard.wm.reload,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "quit",
+                    config_bindings->keyboard.wm.quit,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
         launch = cJSON_GetObjectItem(keyboard, "launch");
         if (launch) {
             json_load_string(launch, "terminal",
@@ -203,19 +216,6 @@ int config_load_bindings(const char *filename,
                             CONFIG_MAX_LENGTH_BINDING);
                 }
             }
-        }
-
-        wm = cJSON_GetObjectItem(keyboard, "wm");
-        if (wm) {
-            json_load_string(wm, "redraw",
-                    config_bindings->keyboard.wm.redraw,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(wm, "reload",
-                    config_bindings->keyboard.wm.reload,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(wm, "quit",
-                    config_bindings->keyboard.wm.quit,
-                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         /* Keybindings for cycling: desktop, icon, and window */
