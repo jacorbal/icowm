@@ -163,16 +163,16 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->base.programs.editor, "gvim");
     safe_strcpy(config->base.programs.web_browser, "firefox");
     config->base.windows.move_step = 10;
-    config->base.windows.resize_step = 20;
+    config->base.windows.resize_step = 20;  /* usually overriden by hints */
     config->base.windows.snap = 4;
-    config->base.windows.has_grips = true;
+    config->base.windows.has_grips = false;
     config->base.windows.show_geom = true;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
-    config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
+    config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = true;
     config->base.show_desktop_notify = true;
@@ -212,7 +212,7 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.keyboard.window.fullscreen,
             "modc+mod1+f");
     safe_strcpy(config->bindings.keyboard.window.hide,
-            "modc+mod1+mods+h");
+            "modc+mod1+mods+u");
     safe_strcpy(config->bindings.keyboard.window.iconify,
             "modc+mod1+i");
     safe_strcpy(config->bindings.keyboard.window.info,
@@ -322,7 +322,7 @@ void config_set_default_values(config_td *config)
         json_hex2uint32("4A5566");
     config->theme.window.active.grip_color =
         json_hex2uint32("9AAEC8");
-    safe_strcpy(config->theme.window.active.font, "fixed bold 9");
+    safe_strcpy(config->theme.window.active.font, "fixed bold");
     config->theme.window.inactive.background_color =
         json_hex2uint32("D0D9E5");
     config->theme.window.inactive.foreground_color =
@@ -331,17 +331,17 @@ void config_set_default_values(config_td *config)
         json_hex2uint32("7F9AB6");
     config->theme.window.inactive.grip_color =
         json_hex2uint32("4A5566");
-    safe_strcpy(config->theme.window.inactive.font, "fixed 9");
+    safe_strcpy(config->theme.window.inactive.font, "fixed");
     config->theme.icon.general.border_width = 2;
     config->theme.icon.general.is_captioned = true;
     config->theme.icon.active.background_color = json_hex2uint32("9AAEC8");
     config->theme.icon.active.foreground_color = json_hex2uint32("253040");
     config->theme.icon.active.border_color = json_hex2uint32("4A5566");
-    safe_strcpy(config->theme.icon.active.font, "fixed 8");
+    safe_strcpy(config->theme.icon.active.font, "fixed");
     config->theme.icon.inactive.background_color = json_hex2uint32("D0D9E5");
     config->theme.icon.inactive.foreground_color = json_hex2uint32("4A5566");
     config->theme.icon.inactive.border_color = json_hex2uint32("7F9AB6");
-    safe_strcpy(config->theme.icon.inactive.font, "fixed 8");
+    safe_strcpy(config->theme.icon.inactive.font, "fixed");
 }
 
 

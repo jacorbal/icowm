@@ -47,8 +47,8 @@ uint32_t json_hex2uint32(const char *hex_color)
         hex_color++;
     }
     if (sscanf(hex_color, "%x", &color) != 1) {
-        LOGGER_WARNING("Failed to parse hexadecimal color '%s';" \
-                " defaulting to '#000000'", hex_color);
+        LOGGER_DEBUG("JSON hex-encoded RGB color for key '%s' is" \
+                " missing; defaulting to '#000000'", hex_color);
         return 0;
     }
 
@@ -131,7 +131,8 @@ int json_load_color(cJSON *json, const char *field, uint32_t *dest)
         return 0;
     }
 
-    LOGGER_WARNING("Failed to load JSON color string: '%s'", field);
+    LOGGER_DEBUG("JSON color string for key: '%s' is missing;" \
+            " using default value", field);
     return 1;
 }
 
@@ -148,7 +149,8 @@ int json_load_string(cJSON *json, const char *field,
         return 0;
     }
 
-    LOGGER_WARNING("Failed to load JSON string: '%s'", field);
+    LOGGER_DEBUG("JSON string for key: '%s' is missing;" \
+            " using default value", field);
     return 1;
 }
 
@@ -164,7 +166,8 @@ int json_load_uint(cJSON *json, const char *field, unsigned int *dest)
         return 0;
     }
 
-    LOGGER_WARNING("Failed to load JSON unsigned integer: '%s'", field);
+    LOGGER_DEBUG("JSON unsigned integer for key '%s' is missing;" \
+            " using default value", field);
     return 1;
 }
 
@@ -180,7 +183,8 @@ int json_load_bool(cJSON *json, const char *field, bool *dest)
         return 0;
     }
 
-    LOGGER_WARNING("Failed to load JSON boolean: '%s'", field);
+    LOGGER_DEBUG("JSON boolean for key '%s' is missing;" \
+            " using default value", field);
     return 1;
 }
 

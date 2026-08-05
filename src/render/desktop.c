@@ -487,9 +487,13 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
         }
         client_count++;
 
-        /* Keep icon windows visible for iconified clients */
+        /* Keep icon windows visible only for iconified clients.
+         * Plain hidden windows must stay fully unmapped. */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            ri_render_client_icon(desktop, client, is_current);
+            if (client->properties.state ==
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                ri_render_client_icon(desktop, client, is_current);
+            }
             stacking_node = cdlist_next(stacking_node);
             continue;
         }

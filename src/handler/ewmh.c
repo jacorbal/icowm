@@ -567,8 +567,6 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     }
 
     if (!show && surface->showing_desktop) {
-        surface_clients_show(surface, surface->desktop_cur);
-    } else if (show) {
         node = (desktop->stacking != NULL)
             ? cdlist_head(desktop->stacking)
             : NULL;
@@ -576,38 +574,6 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             return;
         }
 
-        /* Unmap the windows first, then mark them hidden.
-         * 'surface_clients_hide' skips clients that already have
-         * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
-         * after the unmap call. */
-        surface_clients_hide(surface, surface->desktop_cur);
-
-        initial = node;
-        do {
-            client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL &&
-                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    client->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
-                client_set_hidden(client);
-                changed_hidden_state = true;
-                wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
-                        XCB_NONE);
-                wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-        xcb_set_input_focus(surface->connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
-    } else {
-        node = (desktop->stacking != NULL)
-            ? cdlist_head(desktop->stacking)
-            : NULL;
-        if (node == NULL) {
-            return;
-        }
         initial = node;
         do {
             client_td *client = (client_td *) cdlist_data(node);
@@ -624,6 +590,39 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
         surface_clients_show(surface, surface->desktop_cur);
+    } else {
+        node = (desktop->stacking != NULL)
+            ? cdlist_head(desktop->stacking)
+            : NULL;
+        if (node == NULL) {
+            return;
+        }
+
+        /* Unmap the windows first, then mark them hidden.
+         * 'surface_clients_hide' skips clients that already have
+         * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
+         * after the unmap call. */
+        surface_clients_hide(surface, surface->desktop_cur);
+        initial = node;
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
+            if (client != NULL &&
+                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                client_set_hidden(client);
+                changed_hidden_state = true;
+                wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
+                        XCB_NONE);
+                wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+
+        xcb_set_input_focus(surface->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
     }
 
     surface->showing_desktop = show && changed_hidden_state;

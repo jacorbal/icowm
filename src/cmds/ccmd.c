@@ -487,9 +487,15 @@ void wcmd_client_iconify(client_td *client)
 void wcmd_client_hide(client_td *client)
 {
     xcb_window_t target;
+    surface_td *surface;
 
     if (client == NULL) {
         return;
+    }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface != NULL && surface->showing_desktop) {
+        surface->showing_desktop = false;
     }
 
     target = wcmd_target_win(client);

@@ -39,11 +39,12 @@
 
 
 /**
- * @brief Render the icon window for a hidden (iconified) client
+ * @brief Render the icon window for an iconified client
  *
  * Applies icon window attributes (background, border color and width,
  * stacking) and optionally draws a caption label.  Called from
- * @c desktop_render_clients for clients with @c CLIENT_FLAG_HIDDEN set.
+ * @c desktop_render_clients for clients that are both hidden and
+ * iconified.
  *
  * @param desktop    Desktop whose rendering context and theme are used
  * @param client     The iconified client to render
