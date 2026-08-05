@@ -33,6 +33,9 @@
 #include <render/text.h>
 
 /* Menu includes */
+#include <menu/context/rootmenu.h>
+#include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
 #include <menu/cycle.h>
 #include <menu/dialog/quit.h>
 #include <menu/notify/desktop.h>
@@ -98,6 +101,24 @@ void handler_expose(xcb_connection_t *connection,
     /* Confirmation dialog repaint */
     if (dialog_quit_is_open() && event->window == dialog_quit_window()) {
         dialog_quit_repaint(connection, cfg);
+        return;
+    }
+
+    /* Window context menu repaint */
+    if (wincmenu_owns_window(event->window)) {
+        wincmenu_repaint(event->window);
+        return;
+    }
+
+    /* Root desktop menu repaint */
+    if (rootmenu_owns_window(event->window)) {
+        rootmenu_repaint(event->window);
+        return;
+    }
+
+    /* Window list menu repaint */
+    if (winlist_owns_window(event->window)) {
+        winlist_repaint(event->window);
         return;
     }
 

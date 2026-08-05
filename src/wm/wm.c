@@ -387,6 +387,17 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 }
 
 
+/* Return the configuration directory prefix */
+const char *wm_get_config_dir(void)
+{
+    if (wm == NULL) {
+        return NULL;
+    }
+
+    return wm->config_dir_prefix;
+}
+
+
 /* Mark the client owner desktop and surface as outdated */
 void wm_request_client_redraw(client_td *client)
 {

@@ -39,6 +39,7 @@
 #define CONFIG_FILENAME_RANDR "randr.json"
 #define CONFIG_FILENAME_RULES "rules.json"
 #define CONFIG_FILENAME_SESSION "session.json"
+#define CONFIG_FILENAME_MENU "menu.json"
 
 /* Default values when no value is given */
 #define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */

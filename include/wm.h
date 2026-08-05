@@ -198,6 +198,19 @@ desktop_td *wm_get_client_desktop(const client_td *client);
 surface_td *wm_get_surface_by_id(uint32_t surface_id);
 
 /**
+ * @brief Return the configuration directory prefix
+ *
+ * Returns the value of @c config_dir_prefix passed to @a wm_start, or
+ * @c NULL if the default directory is being used.  The returned pointer
+ * is valid for the lifetime of the window manager instance.
+ *
+ * @return Configuration directory prefix, or @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+const char *wm_get_config_dir(void);
+
+/**
  * @brief Mark the client owner desktop and surface as outdated
  *
  * Locates the desktop currently owning @p client and marks that desktop

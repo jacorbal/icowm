@@ -1,0 +1,49 @@
+{
+  "menu": [
+    {
+      "type": "command",
+      "name": "Terminal",
+      "command": "xterm"
+    },
+    {
+      "type": "command",
+      "name": "Editor",
+      "command": "gvim"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "submenu",
+      "name": "Games",
+      "items": [
+        {
+          "type": "label",
+          "name": "On console"
+        },
+        {
+          "type": "command",
+          "name": "NetHack",
+          "command": "xterm -e nethack"
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "label",
+          "name": "Non-console"
+        },
+        {
+          "type": "command",
+          "name": "Nexuiz",
+          "command": "nexuiz"
+        },
+        {
+          "type": "command",
+          "name": "Chess",
+          "command": "gnuchess"
+        }
+      ]
+    }
+  ]
+}

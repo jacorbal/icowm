@@ -35,6 +35,9 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/context/rootmenu.h>
+#include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
 #include <menu/cycle.h>
 #include <menu/dialog/quit.h>
 #include <menu/popup.h>
@@ -234,6 +237,7 @@ void mouse_handle_press(xcb_connection_t *connection,
     desktop_td *desktop = NULL;
     surface_td *surface = NULL;
     uint16_t state;
+    bool owns_event;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
     uint32_t screen_w;
     uint32_t screen_h;
@@ -301,6 +305,60 @@ void mouse_handle_press(xcb_connection_t *connection,
 
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
+        xcb_flush(connection);
+        return;
+    }
+
+    /* Window context menu: delegate click to the menu or close it */
+    if (wincmenu_is_open()) {
+        owns_event = wincmenu_owns_window(event->event);
+        if (owns_event || wincmenu_owns_window(event->child)) {
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
+            (void) wincmenu_handle_click(connection,
+                    lookup_surface_for_root(surfaces, event->root),
+                    mw, (int) event->event_x, (int) event->event_y,
+                    config);
+        } else {
+            wincmenu_close();
+        }
+        xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(connection);
+        return;
+    }
+
+    /* Root desktop menu: delegate click to the menu or close it */
+    if (rootmenu_is_open()) {
+        owns_event = rootmenu_owns_window(event->event);
+        if (owns_event || rootmenu_owns_window(event->child)) {
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
+            (void) rootmenu_handle_click(connection,
+                    lookup_surface_for_root(surfaces, event->root),
+                    mw, (int) event->event_x, (int) event->event_y,
+                    config);
+        } else {
+            rootmenu_close();
+        }
+        xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(connection);
+        return;
+    }
+
+    /* Window list menu: delegate click to the menu or close it */
+    if (winlist_is_open()) {
+        owns_event = winlist_owns_window(event->event);
+        if (owns_event || winlist_owns_window(event->child)) {
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
+            (void) winlist_handle_click(connection,
+                    lookup_surface_for_root(surfaces, event->root),
+                    mw, (int) event->event_x, (int) event->event_y,
+                    config);
+        } else {
+            winlist_close();
+        }
+        xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
         xcb_flush(connection);
         return;
     }
@@ -517,6 +575,23 @@ void mouse_handle_press(xcb_connection_t *connection,
                     client_is_focusable(client)) {
                 focus_apply(surfaces, surface, desktop, client,
                         true, config);
+            }
+
+            /* Right-click on titlebar or frame: open window context menu */
+            if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
+                    (event->child == client->titlebar ||
+                     event->child == client->frame ||
+                     event->event == client->frame)) {
+                surface = lookup_surface_for_root(surfaces, event->root);
+                if (surface != NULL && desktop != NULL) {
+                    wincmenu_show(connection, surface, desktop, client,
+                            (int16_t) event->root_x,
+                            (int16_t) event->root_y, config);
+                }
+                xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                        event->time);
+                xcb_flush(connection);
+                return;
             }
 
             if (event->child == client->titlebar &&
@@ -788,6 +863,37 @@ void mouse_handle_press(xcb_connection_t *connection,
                         event->time);
             }
         } else {
+            /* No managed client was clicked.  Check if we clicked on
+             * the root window to trigger the root desktop or window
+             * list menu. */
+            surface = lookup_surface_for_root(surfaces, event->root);
+            if (surface != NULL &&
+                    (event->event == event->root ||
+                     event->child == XCB_NONE)) {
+                if ((xcb_button_index_t) event->detail ==
+                        XCB_BUTTON_INDEX_3) {
+                    /* Right-click on root: open root desktop menu */
+                    rootmenu_show(connection, surface,
+                            (int16_t) event->root_x,
+                            (int16_t) event->root_y,
+                            config, wm_get_config_dir());
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                } else if ((xcb_button_index_t) event->detail ==
+                        XCB_BUTTON_INDEX_2) {
+                    /* Middle-click on root: open window list menu */
+                    winlist_show(connection, surface,
+                            (int16_t) event->root_x,
+                            (int16_t) event->root_y, config);
+                    xcb_allow_events(connection,
+                            XCB_ALLOW_ASYNC_POINTER, event->time);
+                    xcb_flush(connection);
+                    return;
+                }
+            }
+
             if (event->event != event->root) {
                 xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
                         event->time);
