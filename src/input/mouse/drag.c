@@ -67,19 +67,21 @@ static struct {
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap;              /**< Snap distance in pixels */
     int32_t client_cur_x;       /**< Current X during drag (updated each
-                                 *   motion notify event) */
+                                     motion notify event) */
     int32_t client_cur_y;       /**< Current Y during drag */
     bool anchor_right;          /**< Resize: right edge is fixed (resize
-                                 *   from left) */
+                                     from left) */
     bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
-                                 *   from top) */
+                                     from top) */
     bool resize_w;              /**< Resize: width is actively being
-                                 *   changed in this drag */
+                                     changed in this drag */
     bool resize_h;              /**< Resize: height is actively being
-                                 *   changed in this drag */
+                                     changed in this drag */
     xcb_window_t overlay_window;/**< Centered feedback overlay window */
     bool overlay_is_icon;       /**< Overlay belongs to icon drag */
     char overlay_text[32];      /**< Current overlay text */
+    bool icon_was_mapped;       /**< Original icon mapped state before
+                                     drag */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -103,13 +105,45 @@ static struct {
     .resize_h = false,
     .overlay_window = XCB_WINDOW_NONE,
     .overlay_is_icon = false,
-    .overlay_text = {'\0'}
+    .overlay_text = {'\0'},
+    .icon_was_mapped = false
 };
 
 
 #define WM_DRAG_OVERLAY_PAD_X (8u)
 #define WM_DRAG_OVERLAY_HEIGHT (22u)
 #define WM_DRAG_OVERLAY_MIN_WIDTH (40u)
+
+
+/**
+ * @brief Synchronizes the active visual of the drag icon window.
+ *
+ * Updates the background and border colors of the drag icon window so
+ * that they match the active icon theme, and then clears the window to
+ * force a visual refresh.  If the connection, client, theme, or icon
+ * window are not valid, the function returns without doing anything.
+ *
+ * @param connection XCB connection used to issue window attribute and
+ *                   clear-area requests
+ */
+static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
+{
+    if (connection == NULL || s_drag.client == NULL ||
+            s_drag.client->theme == NULL ||
+            s_drag.client->icon_window == 0) {
+        return;
+    }
+
+    xcb_change_window_attributes(connection,
+            s_drag.client->icon_window,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                s_drag.client->theme->icon.active.background_color,
+                s_drag.client->theme->icon.active.border_color
+            });
+    xcb_clear_area(connection, 0,
+            s_drag.client->icon_window, 0, 0, 0, 0);
+}
 
 
 /**
@@ -636,12 +670,15 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_h = 0;
     s_drag.client_cur_x = icon_x;
     s_drag.client_cur_y = icon_y;
+    s_drag.icon_was_mapped = client->is_icon_mapped;
     s_drag.anchor_right  = false;
     s_drag.anchor_bottom = false;
     s_drag.resize_w = false;
     s_drag.resize_h = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
+    client->is_icon_mapped = true;
+    s_drag_sync_icon_active_visual(connection);
 
     xcb_grab_pointer(connection,
             0,
@@ -916,6 +953,7 @@ void drag_end(xcb_connection_t *connection,
         }
 
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
+        s_drag.client->is_icon_mapped = s_drag.icon_was_mapped;
         if (finalize_resize) {
             (void) client_send_event_resize(s_drag.client,
                     s_drag.client->layout.geometry.cur.pos.x,
@@ -930,6 +968,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.client = NULL;
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
+    s_drag.icon_was_mapped = false;
 
     if (connection != NULL) {
         xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);

@@ -96,7 +96,7 @@ static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
  * @param time       Event timestamp
  */
 static void s_allow_and_flush(xcb_connection_t *connection,
-        uint32_t mode, xcb_timestamp_t time)
+        uint8_t mode, xcb_timestamp_t time)
 {
     xcb_allow_events(connection, mode, time);
     xcb_flush(connection);

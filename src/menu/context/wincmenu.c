@@ -324,6 +324,18 @@ static void s_cb_resize(xcb_connection_t *connection,
     int16_t rx;
     int16_t ry;
 
+    /* To drag on accordinly with the window position */
+    int32_t left;
+    int32_t top;
+    int32_t width;
+    int32_t height;
+    int32_t center_x;
+    int32_t center_y;
+    int32_t mid_x;
+    int32_t mid_y;
+    bool left_half;
+    bool top_half;
+
     (void) userdata;
 
     if (s_target_client == NULL || connection == NULL) {
@@ -345,10 +357,32 @@ static void s_cb_resize(xcb_connection_t *connection,
         wcmd_client_unshade(s_target_client);
     }
 
-    /* Warp pointer to the bottom-left corner for resize feedback */
-    rx = (int16_t) s_target_client->layout.geometry.cur.pos.x;
-    ry = (int16_t) (s_target_client->layout.geometry.cur.pos.y +
-            (int16_t) s_target_client->layout.geometry.cur.dim.h - 1);
+    /* Choose corner depending on window's position */
+    left = s_target_client->layout.geometry.cur.pos.x;
+    top = s_target_client->layout.geometry.cur.pos.y;
+    width = (int32_t) s_target_client->layout.geometry.cur.dim.w;
+    height =
+        (int32_t) s_target_client->layout.geometry.cur.dim.h;
+    center_x = left + (width / 2);
+    center_y = top + (height / 2);
+    mid_x = (screen_w > 0u) ? (int32_t) (screen_w / 2u) : center_x;
+    mid_y = (screen_h > 0u) ? (int32_t) (screen_h / 2u) : center_y;
+    left_half = center_x < mid_x;
+    top_half = center_y < mid_y;
+
+    if (top_half && left_half) {
+        rx = (int16_t) (left + width - 1);
+        ry = (int16_t) (top + height - 1);
+    } else if (top_half && !left_half) {
+        rx = (int16_t) left;
+        ry = (int16_t) (top + height - 1);
+    } else if (!top_half && left_half) {
+        rx = (int16_t) (left + width - 1);
+        ry = (int16_t) top;
+    } else {
+        rx = (int16_t) left;
+        ry = (int16_t) top;
+    }
 
     if (screen != NULL) {
         xcb_warp_pointer(connection, XCB_NONE, screen->root,

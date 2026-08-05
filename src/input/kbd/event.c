@@ -540,6 +540,49 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
     }
 
     switch (btype) {
+        /* To avoid warnings from the compiler, ALL cases must be here */
+        case KEYBIND_NONE:
+        case KEYBIND_DESKTOP_NEXT:
+        case KEYBIND_DESKTOP_PREV:
+        case KEYBIND_CLIENT_WINDOW_MENU:
+        case KEYBIND_CLIENT_CYCLE_NEXT:
+        case KEYBIND_CLIENT_CYCLE_PREV:
+        case KEYBIND_DESKTOP_ICON_NEXT:
+        case KEYBIND_DESKTOP_ICON_PREV:
+        case KEYBIND_LAUNCH_TERMINAL:
+        case KEYBIND_LAUNCH_LAUNCHER:
+        case KEYBIND_LAUNCH_FILE_MANAGER:
+        case KEYBIND_LAUNCH_WEB_BROWSER:
+        case KEYBIND_LAUNCH_EDITOR:
+        case KEYBIND_CLIENT_MOVE_LEFT:
+        case KEYBIND_CLIENT_MOVE_RIGHT:
+        case KEYBIND_CLIENT_MOVE_UP:
+        case KEYBIND_CLIENT_MOVE_DOWN:
+        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
+        case KEYBIND_CLIENT_RESIZE_LEFT:
+        case KEYBIND_CLIENT_RESIZE_RIGHT:
+        case KEYBIND_CLIENT_RESIZE_UP:
+        case KEYBIND_CLIENT_RESIZE_DOWN:
+        case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_GOTO_0:
+        case KEYBIND_DESKTOP_GOTO_1:
+        case KEYBIND_DESKTOP_GOTO_2:
+        case KEYBIND_DESKTOP_GOTO_3:
+        case KEYBIND_DESKTOP_GOTO_4:
+        case KEYBIND_DESKTOP_GOTO_5:
+        case KEYBIND_DESKTOP_GOTO_6:
+        case KEYBIND_DESKTOP_GOTO_7:
+        case KEYBIND_DESKTOP_GOTO_8:
+        case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_REDRAW:
+        case KEYBIND_WM_RELOAD:
+        case KEYBIND_WM_QUIT:
+            return;
+
         case KEYBIND_CLIENT_INFO:
             popup_show(surface->connection, surface, desktop, client,
                     bmm, detail, config);
@@ -606,9 +649,6 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             client_send_event(client, ACTION_CLIENT_CYCLE_LAYER,
                     PRIORITY_NORMAL);
             return;
-
-        default:
-            return;
     }
 }
 
@@ -632,6 +672,56 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
     const char *program = NULL;
 
     switch (btype) {
+        /* To avoid warnings from the compiler, ALL cases must be here */
+        case KEYBIND_NONE:
+        case KEYBIND_DESKTOP_NEXT:
+        case KEYBIND_DESKTOP_PREV:
+        case KEYBIND_CLIENT_WINDOW_MENU:
+        case KEYBIND_CLIENT_ICONIFY:
+        case KEYBIND_CLIENT_HIDE:
+        case KEYBIND_CLIENT_CLOSE:
+        case KEYBIND_CLIENT_KILL:
+        case KEYBIND_CLIENT_MAXIMIZE:
+        case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_SHADE:
+        case KEYBIND_CLIENT_FULLSCREEN:
+        case KEYBIND_CLIENT_PIN:
+        case KEYBIND_CLIENT_INFO:
+        case KEYBIND_CLIENT_TOGGLE_DECORATION:
+        case KEYBIND_CLIENT_CYCLE_LAYER:
+        case KEYBIND_CLIENT_CYCLE_NEXT:
+        case KEYBIND_CLIENT_CYCLE_PREV:
+        case KEYBIND_DESKTOP_ICON_NEXT:
+        case KEYBIND_DESKTOP_ICON_PREV:
+        case KEYBIND_CLIENT_MOVE_LEFT:
+        case KEYBIND_CLIENT_MOVE_RIGHT:
+        case KEYBIND_CLIENT_MOVE_UP:
+        case KEYBIND_CLIENT_MOVE_DOWN:
+        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
+        case KEYBIND_CLIENT_RESIZE_LEFT:
+        case KEYBIND_CLIENT_RESIZE_RIGHT:
+        case KEYBIND_CLIENT_RESIZE_UP:
+        case KEYBIND_CLIENT_RESIZE_DOWN:
+        case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_GOTO_0:
+        case KEYBIND_DESKTOP_GOTO_1:
+        case KEYBIND_DESKTOP_GOTO_2:
+        case KEYBIND_DESKTOP_GOTO_3:
+        case KEYBIND_DESKTOP_GOTO_4:
+        case KEYBIND_DESKTOP_GOTO_5:
+        case KEYBIND_DESKTOP_GOTO_6:
+        case KEYBIND_DESKTOP_GOTO_7:
+        case KEYBIND_DESKTOP_GOTO_8:
+        case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_REDRAW:
+        case KEYBIND_WM_RELOAD:
+        case KEYBIND_WM_QUIT:
+            return;
+
         case KEYBIND_LAUNCH_TERMINAL:
             program = config->base.programs.terminal;
             break;
@@ -647,8 +737,6 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_LAUNCH_EDITOR:
             program = config->base.programs.editor;
             break;
-        default:
-            return;
     }
 
     lifecycle_dispatch_launch(surface, program, NULL);
@@ -703,6 +791,53 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         : new_y;
 
     switch (btype) {
+        /* To avoid warnings from the compiler, ALL cases must be here */
+        case KEYBIND_NONE:
+        case KEYBIND_DESKTOP_NEXT:
+        case KEYBIND_DESKTOP_PREV:
+        case KEYBIND_CLIENT_WINDOW_MENU:
+        case KEYBIND_CLIENT_ICONIFY:
+        case KEYBIND_CLIENT_HIDE:
+        case KEYBIND_CLIENT_CLOSE:
+        case KEYBIND_CLIENT_KILL:
+        case KEYBIND_CLIENT_MAXIMIZE:
+        case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_SHADE:
+        case KEYBIND_CLIENT_FULLSCREEN:
+        case KEYBIND_CLIENT_PIN:
+        case KEYBIND_CLIENT_INFO:
+        case KEYBIND_CLIENT_TOGGLE_DECORATION:
+        case KEYBIND_CLIENT_CYCLE_LAYER:
+        case KEYBIND_CLIENT_CYCLE_NEXT:
+        case KEYBIND_CLIENT_CYCLE_PREV:
+        case KEYBIND_DESKTOP_ICON_NEXT:
+        case KEYBIND_DESKTOP_ICON_PREV:
+        case KEYBIND_LAUNCH_TERMINAL:
+        case KEYBIND_LAUNCH_LAUNCHER:
+        case KEYBIND_LAUNCH_FILE_MANAGER:
+        case KEYBIND_LAUNCH_WEB_BROWSER:
+        case KEYBIND_LAUNCH_EDITOR:
+        case KEYBIND_CLIENT_RESIZE_LEFT:
+        case KEYBIND_CLIENT_RESIZE_RIGHT:
+        case KEYBIND_CLIENT_RESIZE_UP:
+        case KEYBIND_CLIENT_RESIZE_DOWN:
+        case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_GOTO_0:
+        case KEYBIND_DESKTOP_GOTO_1:
+        case KEYBIND_DESKTOP_GOTO_2:
+        case KEYBIND_DESKTOP_GOTO_3:
+        case KEYBIND_DESKTOP_GOTO_4:
+        case KEYBIND_DESKTOP_GOTO_5:
+        case KEYBIND_DESKTOP_GOTO_6:
+        case KEYBIND_DESKTOP_GOTO_7:
+        case KEYBIND_DESKTOP_GOTO_8:
+        case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_REDRAW:
+        case KEYBIND_WM_RELOAD:
+        case KEYBIND_WM_QUIT:
+            return;
+
         case KEYBIND_CLIENT_MOVE_LEFT:
             new_x -= move_step;
             break;
@@ -731,8 +866,6 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
             new_x = max_x;
             new_y = max_y;
             break;
-        default:
-            return;
     }
 
     (void) client_send_event_move(client, new_x, new_y);
@@ -800,6 +933,57 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
     new_h = (int32_t) old_h;
 
     switch (btype) {
+        /* To avoid warnings from the compiler, ALL cases must be here */
+        case KEYBIND_NONE:
+        case KEYBIND_DESKTOP_NEXT:
+        case KEYBIND_DESKTOP_PREV:
+        case KEYBIND_CLIENT_WINDOW_MENU:
+        case KEYBIND_CLIENT_ICONIFY:
+        case KEYBIND_CLIENT_HIDE:
+        case KEYBIND_CLIENT_CLOSE:
+        case KEYBIND_CLIENT_KILL:
+        case KEYBIND_CLIENT_MAXIMIZE:
+        case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_SHADE:
+        case KEYBIND_CLIENT_FULLSCREEN:
+        case KEYBIND_CLIENT_PIN:
+        case KEYBIND_CLIENT_INFO:
+        case KEYBIND_CLIENT_TOGGLE_DECORATION:
+        case KEYBIND_CLIENT_CYCLE_LAYER:
+        case KEYBIND_CLIENT_CYCLE_NEXT:
+        case KEYBIND_CLIENT_CYCLE_PREV:
+        case KEYBIND_DESKTOP_ICON_NEXT:
+        case KEYBIND_DESKTOP_ICON_PREV:
+        case KEYBIND_LAUNCH_TERMINAL:
+        case KEYBIND_LAUNCH_LAUNCHER:
+        case KEYBIND_LAUNCH_FILE_MANAGER:
+        case KEYBIND_LAUNCH_WEB_BROWSER:
+        case KEYBIND_LAUNCH_EDITOR:
+        case KEYBIND_CLIENT_MOVE_LEFT:
+        case KEYBIND_CLIENT_MOVE_RIGHT:
+        case KEYBIND_CLIENT_MOVE_UP:
+        case KEYBIND_CLIENT_MOVE_DOWN:
+        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
+        case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_GOTO_0:
+        case KEYBIND_DESKTOP_GOTO_1:
+        case KEYBIND_DESKTOP_GOTO_2:
+        case KEYBIND_DESKTOP_GOTO_3:
+        case KEYBIND_DESKTOP_GOTO_4:
+        case KEYBIND_DESKTOP_GOTO_5:
+        case KEYBIND_DESKTOP_GOTO_6:
+        case KEYBIND_DESKTOP_GOTO_7:
+        case KEYBIND_DESKTOP_GOTO_8:
+        case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_REDRAW:
+        case KEYBIND_WM_RELOAD:
+        case KEYBIND_WM_QUIT:
+            return;
+
         case KEYBIND_CLIENT_RESIZE_LEFT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, false);
@@ -818,8 +1002,6 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, true);
             break;
-        default:
-            return;
     }
 
     s_kbd_resize_apply(client,
