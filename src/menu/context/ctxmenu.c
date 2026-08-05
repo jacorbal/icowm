@@ -20,6 +20,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 
 /* Project includes */
 #include <config.h>
@@ -312,18 +313,137 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 }
 
 
-/**/
-bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
-        xcb_keysym_t keysym)
+/* Handle a key-press event while a context menu is open */
+bool ctxmenu_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *state,
+        xcb_keysym_t keysym, const config_td *config)
 {
     char target;
     int match_count;
     int match_idx;
+    int sel;
+    int i;
+    int step;
+    int next;
+    ctxmenu_state_td *root;
+    ctxmenu_state_td *child_state;
+    int16_t sub_x;
+    int16_t sub_y;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return false;
     }
 
+    /* Up arrow: move selection to previous selectable entry */
+    if (keysym == 0xff52u) {
+        sel = state->selected;
+        step = -1;
+        next = (sel < 0) ? state->entry_count - 1 : sel + step;
+        for (i = 0; i < state->entry_count; ++i) {
+            if (next < 0) { next = state->entry_count - 1; }
+            if (next >= state->entry_count) { next = 0; }
+            if (state->entries[next].type != CTXMENU_SEPARATOR &&
+                    state->entries[next].type != CTXMENU_LABEL &&
+                    !state->entries[next].is_disabled) {
+                break;
+            }
+            next += step;
+        }
+        if (i < state->entry_count) {
+            state->selected = next;
+            ctxmenu_repaint(state);
+        }
+        return true;
+    }
+
+    /* Down arrow: move selection to next selectable entry */
+    if (keysym == 0xff54u) {
+        sel = state->selected;
+        step = 1;
+        next = (sel < 0) ? 0 : sel + step;
+        for (i = 0; i < state->entry_count; ++i) {
+            if (next < 0) { next = state->entry_count - 1; }
+            if (next >= state->entry_count) { next = 0; }
+            if (state->entries[next].type != CTXMENU_SEPARATOR &&
+                    state->entries[next].type != CTXMENU_LABEL &&
+                    !state->entries[next].is_disabled) {
+                break;
+            }
+            next += step;
+        }
+        if (i < state->entry_count) {
+            state->selected = next;
+            ctxmenu_repaint(state);
+        }
+        return true;
+    }
+
+    /* Right arrow: open submenu for the selected entry */
+    if (keysym == 0xff53u) {
+        sel = state->selected;
+        if (sel >= 0 && sel < state->entry_count &&
+                state->entries[sel].type == CTXMENU_SUBMENU) {
+            child_state =
+                (ctxmenu_state_td *) state->entries[sel].userdata;
+            if (child_state != NULL &&
+                    state->entries[sel].items != NULL &&
+                    state->entries[sel].item_count > 0) {
+                if (state->child != NULL) {
+                    ctxmenu_close(state->child);
+                    state->child = NULL;
+                }
+                child_state->entries = state->entries[sel].items;
+                child_state->entry_count = state->entries[sel].item_count;
+                child_state->parent = state;
+                child_state->child = NULL;
+                sub_x = (int16_t) (state->origin_x +
+                        (int16_t) state->width);
+                sub_y = (int16_t) (state->origin_y
+                        + (int16_t) s_entry_top_y(state->entries,
+                                state->entry_count, sel));
+                ctxmenu_show(connection, surface, child_state,
+                        sub_x, sub_y, config);
+                state->child = child_state;
+            }
+        }
+        return true;
+    }
+
+    /* Left arrow: close this submenu and return to parent */
+    if (keysym == 0xff51u) {
+        if (state->parent != NULL) {
+            ctxmenu_close(state);
+            state->parent->child = NULL;
+            ctxmenu_repaint(state->parent);
+        }
+        return true;
+    }
+
+    /* Return / KP_Enter: activate selected entry */
+    if (keysym == 0xff0du || keysym == 0xff8du) {
+        sel = state->selected;
+        if (sel >= 0 && sel < state->entry_count) {
+            if (state->entries[sel].type == CTXMENU_SUBMENU) {
+                /* Open submenu on Enter, same as Right arrow */
+                return ctxmenu_handle_keypress(connection, surface,
+                        state, 0xff53u, config);
+            }
+            return s_ctxmenu_activate_entry(state, sel);
+        }
+        return true;
+    }
+
+    /* Escape: close the entire menu hierarchy */
+    if (keysym == 0xff1bu) {
+        root = state;
+        while (root->parent != NULL) {
+            root = root->parent;
+        }
+        ctxmenu_close(root);
+        return true;
+    }
+
+    /* Printable character: jump to first matching entry */
     if (keysym > 0xFFu || !isprint((int) keysym)) {
         return false;
     }
@@ -331,7 +451,7 @@ bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
     target = (char) tolower((int) ((unsigned char) keysym));
     match_count = 0;
     match_idx = -1;
-    for (int i = 0; i < state->entry_count; ++i) {
+    for (i = 0; i < state->entry_count; ++i) {
         const ctxmenu_entry_td *e = &state->entries[i];
         unsigned char c;
 
@@ -358,6 +478,7 @@ bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
     }
 
     return true;
+
 }
 
 
@@ -447,6 +568,32 @@ void ctxmenu_show(xcb_connection_t *connection,
             XCB_CONFIG_WINDOW_STACK_MODE, stk);
 
     xcb_map_window(connection, state->window);
+
+    /* Grab keyboard and pointer for the root menu only (not submenus).
+     * The keyboard grab redirects all key events (including 'Escape') to
+     * the window manager so the menu can be dismissed without the
+     * focused application consuming those keys first.  The pointer grab
+     * ensures that clicks outside the menu hierarchy are seen by the WM
+     * even when an application holds an active pointer grab. */
+    if (state->parent == NULL) {
+        xcb_grab_keyboard(connection,
+                0,                      /* owner_events */
+                surface->screen->root,
+                XCB_CURRENT_TIME,
+                XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
+                XCB_GRAB_MODE_ASYNC);   /* keyboard events delivered async */
+        xcb_grab_pointer(connection,
+                0,                      /* owner_events */
+                surface->screen->root,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,               /* confine to no window */
+                XCB_NONE,               /* no cursor override */
+                XCB_CURRENT_TIME);
+    }
+
     xcb_flush(connection);
 }
 
@@ -466,6 +613,13 @@ void ctxmenu_close(ctxmenu_state_td *state)
 
     if (state->connection != NULL && state->window != XCB_WINDOW_NONE) {
         xcb_destroy_window(state->connection, state->window);
+
+        /* Release keyboard and pointer grabs when the root menu closes */
+        if (state->parent == NULL) {
+            xcb_ungrab_keyboard(state->connection, XCB_CURRENT_TIME);
+            xcb_ungrab_pointer(state->connection, XCB_CURRENT_TIME);
+        }
+
         xcb_flush(state->connection);
     }
 

@@ -74,6 +74,9 @@ int config_load_bindings(const char *filename,
 
         wm = cJSON_GetObjectItem(keyboard, "wm");
         if (wm) {
+            json_load_string(wm, "menu",
+                    config_bindings->keyboard.wm.menu,
+                    CONFIG_MAX_LENGTH_BINDING);
             json_load_string(wm, "show-desktop",
                     config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);

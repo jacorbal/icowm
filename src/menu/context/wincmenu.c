@@ -813,3 +813,21 @@ bool wincmenu_owns_window(xcb_window_t win)
 {
     return ctxmenu_find_state_for_window(&s_root, win) != NULL;
 }
+
+
+/* Handle a key-press event while the window context menu is open */
+bool wincmenu_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, xcb_keysym_t keysym,
+        const config_td *config)
+{
+    ctxmenu_state_td *deepest;
+    deepest = ctxmenu_find_state_for_window(&s_root,
+            ctxmenu_deepest_window(&s_root));
+
+    if (deepest == NULL) {
+        deepest = &s_root;
+    }
+
+    return ctxmenu_handle_keypress(connection, surface, deepest,
+            keysym, config);
+}

@@ -121,5 +121,23 @@ xcb_window_t winlist_window(void);
  */
 bool winlist_owns_window(xcb_window_t win);
 
+/**
+ * @brief Handle a key-press event while the window list menu is open
+ *
+ * Forwards the key event to the window list menu context.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface on which the menu is displayed
+ * @param keysym     X keysym of the pressed key
+ * @param config     Active configuration
+ *
+ * @return @c true if the event was consumed, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of menu entries
+ */
+bool winlist_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, xcb_keysym_t keysym,
+        const config_td *config);
+
 
 #endif  /* ! MENU_CONTEXT_WINLIST_H */

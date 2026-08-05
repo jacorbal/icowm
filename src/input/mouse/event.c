@@ -899,6 +899,28 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
         return;
     }
 
+    if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
+        /* Left-click on the empty desktop: unfocus the active client so
+         * all windows lose their selection highlight */
+        desktop_td *desktop =
+            surface_desktop_get(surface, surface->desktop_cur);
+
+        if (desktop != NULL && desktop->client_active_id != 0) {
+            client_td *active = lookup_find_client(surfaces,
+                    desktop->client_active_id, NULL, NULL);
+            if (active != NULL) {
+                (void) client_send_event_unfocus(active);
+            }
+            desktop->client_active_id = 0;
+            desktop->focus_dirty = true;
+            desktop->is_outdated = true;
+            surface->is_outdated = true;
+        }
+        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        return;
+    }
+
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_2) {
         winlist_show(connection, surface,
                 (int16_t) event->root_x, (int16_t) event->root_y,

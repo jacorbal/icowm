@@ -345,29 +345,49 @@ int ci_create_decorations(client_td *client)
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0});
 
-    /* Passive grab: any button, any modifier, SYNC pointer mode.  With
-     * 'owner_events=0' ALL button presses on the frame or any of its
+    /* Passive grab: selected button, any modifier, SYNC pointer mode.
+     * With 'owner_events=0' button presses on the frame or any of its
      * children (titlebar, client window) are delivered to the window
      * manager through this grab rather than via SelectInput.  SYNC mode
      * freezes pointer events until the window manager calls
      * 'xcb_allow_events', which lets the manager focus the window
      * before deciding whether to replay the click to the application or
      * consume it silently.  'XCB_MOD_MASK_ANY' already covers all
-     * lock-modifier combinations, so no lock-modifier loop is
-     * required. */
+     * lock-modifier combinations, so no lock-modifier loop is required.
+     *
+     * Scroll-wheel buttons 4 and 5 are intentionally excluded.  A sync
+     * passive grab on those buttons intercepts scroll events before the
+     * application can receive them; even though 'ReplayPointer' is
+     * issued, some applications (e.g. Chromium, pcmanfm) use their own
+     * grabs internally and the event is not re-delivered correctly.
+     * Leaving 4 and 5 ungrabbed here allows the X server to deliver
+     * scroll events directly to the focused application window. */
     /* Root-level 'MOD1+button' grabs are more specific (specific
      * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
      * priority for move/resize interactions. */
-    xcb_grab_button(client->connection,
-            0,                              /* owner_events */
-            client->frame,
-            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
-            XCB_GRAB_MODE_SYNC,             /* freeze until allow_events */
-            XCB_GRAB_MODE_ASYNC,
-            XCB_NONE,
-            XCB_NONE,
-            XCB_BUTTON_INDEX_ANY,
-            XCB_MOD_MASK_ANY);
+    {
+        static const xcb_button_index_t s_grab_buttons[] = {
+            XCB_BUTTON_INDEX_1,
+            XCB_BUTTON_INDEX_2,
+            XCB_BUTTON_INDEX_3,
+            6,   /* extra side buttons */
+            7
+        };
+        size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
+        for (size_t bi = 0; bi < nb; ++bi) {
+            xcb_grab_button(client->connection,
+                    0,                              /* owner_events */
+                    client->frame,
+                    XCB_EVENT_MASK_BUTTON_PRESS |
+                    XCB_EVENT_MASK_BUTTON_RELEASE,
+                    XCB_GRAB_MODE_SYNC,             /* freeze until allow_events */
+                    XCB_GRAB_MODE_ASYNC,
+                    XCB_NONE,
+                    XCB_NONE,
+                    (uint8_t) s_grab_buttons[bi],
+                    XCB_MOD_MASK_ANY);
+        }
+    }
 
     client->layout.geometry.cur.pos.x = frame_x;
     client->layout.geometry.cur.pos.y = frame_y;

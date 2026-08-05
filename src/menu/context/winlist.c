@@ -537,3 +537,13 @@ bool winlist_owns_window(xcb_window_t win)
 {
     return (s_root.window != XCB_WINDOW_NONE) && (s_root.window == win);
 }
+
+
+/* Handle a key-press event while the window list menu is open */
+bool winlist_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, xcb_keysym_t keysym,
+        const config_td *config)
+{
+    return ctxmenu_handle_keypress(connection, surface, &s_root,
+            keysym, config);
+}

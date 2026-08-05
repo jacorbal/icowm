@@ -113,10 +113,11 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
 
     /* Window manager lifecycle */
-    KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
+    KEYBIND_WM_MENU,                    /**< Open root desktop menu */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
-    KEYBIND_WM_QUIT,                    /**< Quit w/ confirmation dialog */
+    KEYBIND_WM_QUIT,                    /**< Quit with confirmation dialog */
+    KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
 };
 
 

@@ -275,6 +275,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const char *binding;
         enum wm_keybind_type_e type;
     } defs[] = {
+        { config->bindings.keyboard.wm.menu,
+          KEYBIND_WM_MENU },
         { config->bindings.keyboard.wm.redraw,
           KEYBIND_WM_REDRAW },
         { config->bindings.keyboard.wm.reload,

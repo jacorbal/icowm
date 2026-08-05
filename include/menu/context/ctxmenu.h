@@ -37,6 +37,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 
 /* Project includes */
 #include <config.h>
@@ -262,21 +263,38 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
 /**
  * @brief Handle a key-press event while a context menu is open
  *
- * When a printable character is pressed, scans the open @p state for
- * entries whose label starts with that character (case-insensitive).
- * If exactly one match is found the entry is activated immediately.  If
- * more than one match is found the first match is highlighted and the
- * function returns @c true without activating.
+ * Dispatches navigation and activation keys:
  *
- * @param state  Root menu state (the currently visible level)
- * @param keysym X keysym of the pressed key
+ * - @c Up / @c Down arrows: move the selection highlight to the
+ *   previous or next selectable entry (skipping separators and labels),
+ *   wrapping around at the ends.
+ * - @c Right arrow: if the currently selected entry is a submenu, open
+ *   it; otherwise no action.
+ * - @c Left arrow: if @p state has a parent (i.e., it is a submenu),
+ *   close this submenu and return focus to the parent.
+ * - @c Return / @c KP_Enter: activate the currently selected entry.
+ * - @c Escape: close the entire menu hierarchy from the root.
+ * - Any printable character: scan entries whose label begins with that
+ *   character (case-insensitive).  If exactly one match is found the
+ *   entry is activated immediately.  If more than one match is found
+ *   the first match is highlighted without activating.
+ *
+ * The @p state parameter should be the deepest currently open level
+ * (i.e., the visible submenu, or the root if no submenu is open).
+ *
+ * @param connection XCB connection (used to open submenus)
+ * @param surface    Surface on which the menu is displayed
+ * @param state      Deepest open menu state
+ * @param keysym     X keysym of the pressed key
+ * @param config     Active configuration
  *
  * @return @c true if the event was consumed, @c false otherwise
  *
  * @note Complexity: @e O(n), where @e n is @p state->entry_count
  */
-bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
-        xcb_keysym_t keysym);
+bool ctxmenu_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *state,
+        xcb_keysym_t keysym, const config_td *config);
 
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */

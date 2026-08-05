@@ -462,34 +462,40 @@ static void s_handle_dialog_quit_key(xcb_keysym_t keysym,
 }
 
 
-/* Context-menu 'Escape' handling */
+/* Context-menu key handling */
 
 /**
- * @brief Close any open context menu when Escape is pressed
+ * @brief Dispatch a key-press event to the currently open context menu
  *
  * Checks each of the three context menus (window menu, root menu,
- * window list) in order and closes whichever is currently visible.
- * Returns @c true when a menu was open (and the key event was
- * consumed), @c false when no menu was open.
+ * window list) in order and forwards the key event to whichever is
+ * currently visible.  Navigation (arrows), activation (@c Enter), and
+ * cancellation (@c Escape) are all handled by
+ * @c ctxmenu_handle_keypress via the per-menu wrapper.
  *
- * @param keysym Keysym of the pressed key
+ * @param keysym     Keysym of the pressed key
+ * @param connection XCB connection (for submenu creation)
+ * @param surface    Surface on which the menu is displayed
+ * @param config     Active configuration
  *
  * @return @c true if a menu was closed, @c false otherwise
  */
-static bool s_close_open_menu_on_escape(xcb_keysym_t keysym)
+static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
+        xcb_connection_t *connection, surface_td *surface,
+        const config_td *config)
 {
     if (wincmenu_is_open()) {
-        if (keysym == 0xff1bu) { wincmenu_close(); }
+        wincmenu_handle_keypress(connection, surface, keysym, config);
         return true;
     }
 
     if (rootmenu_is_open()) {
-        if (keysym == 0xff1bu) { rootmenu_close(); }
+        rootmenu_handle_keypress(connection, surface, keysym, config);
         return true;
     }
 
     if (winlist_is_open()) {
-        if (keysym == 0xff1bu) { winlist_close(); }
+        winlist_handle_keypress(connection, surface, keysym, config);
         return true;
     }
 
@@ -577,10 +583,11 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_EMERGENCY_EXIT:
             return;
 
         case KEYBIND_CLIENT_INFO:
@@ -716,10 +723,11 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_EMERGENCY_EXIT:
             return;
 
         case KEYBIND_LAUNCH_TERMINAL:
@@ -832,10 +840,11 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_EMERGENCY_EXIT:
             return;
 
         case KEYBIND_CLIENT_MOVE_LEFT:
@@ -978,10 +987,11 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_EMERGENCY_EXIT:
             return;
 
         case KEYBIND_CLIENT_RESIZE_LEFT:
@@ -1087,9 +1097,10 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /* Context menus: Escape closes the open one; all other keys are
-     * consumed without action */
-    if (s_close_open_menu_on_escape(keysym)) {
+    /* Context menus intercept all keys while any menu is open */
+    if (s_dispatch_open_menu_key(keysym, (surface != NULL)
+                ? surface->connection : NULL,
+            surface, config)) {
         return;
     }
 
@@ -1225,6 +1236,15 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_RELOAD:
                 (void) wm_action_config_reload();
+                return;
+
+            case KEYBIND_WM_MENU:
+                if (surface != NULL && surface->connection != NULL) {
+                    int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
+                    int16_t my = (int16_t) (surface->properties.dim.h / 2u);
+                    rootmenu_show(surface->connection, surface,
+                            mx, my, config, wm_get_config_dir());
+                }
                 return;
 
             case KEYBIND_CLIENT_ICONIFY:

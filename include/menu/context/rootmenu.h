@@ -131,5 +131,24 @@ xcb_window_t rootmenu_window(void);
  */
 bool rootmenu_owns_window(xcb_window_t win);
 
+/**
+ * @brief Handle a key-press event while the root desktop menu is open
+ *
+ * Forwards the key event to the deepest open menu level in the root
+ * menu hierarchy.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface on which the menu is displayed
+ * @param keysym     X keysym of the pressed key
+ * @param config     Active configuration
+ *
+ * @return @c true if the event was consumed, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of menu entries
+ */
+bool rootmenu_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, xcb_keysym_t keysym,
+        const config_td *config);
+
 
 #endif  /* ! MENU_CONTEXT_ROOTMENU_H */
