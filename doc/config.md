@@ -947,7 +947,7 @@ informational dialog so the user is notified immediately.
 |----------|--------|----------|---------------------|
 | `"type"` | string | yes      | Must be `"separator"` |
 
-No other fields are used.
+At this moment there's only one kind of `"type"`, which is `"separator"`.
 
 #### `"label"` entry
 
@@ -958,6 +958,8 @@ No other fields are used.
 
 Labels are rendered with `--- ` prepended and ` ---` appended so the
 user can distinguish them from clickable items at a glance.
+
+At this moment there's only one kind of `"type"`, which is `"label"`.
 
 #### `"submenu"` entry
 
@@ -1200,21 +1202,32 @@ Sub-menus can be nested to the depth limit defined by
             "type": "submenu",
             "name": "Text editors",
             "items": [
-                { "type": "command", "name": "Vim",    "command": "xterm -e vim" },
+                { "type": "command", "name": "Vim",    "command": "gvim" },
                 { "type": "command", "name": "Emacs",  "command": "emacs" },
                 { "type": "command", "name": "Gedit",  "command": "gedit" }
             ]
         },
+        { "type": "submenu",
+            "name": "Games",
+            "items": [
+                { "type": "label", "name": "Roguelike" },
+                { "type": "command", "name": "NetHack", "command": "xterm -e nethack" },
+                { "type": "separator" },
+                { "type": "label", "name": "FPS" },
+                { "type": "command", "name": "Nexuiz",  "command": "nexuiz" },
+            ]
+        },
+
         { "type": "separator" },
         { "type": "command", "name": "Lock screen", "command": "xsecurelock" }
     ]
 }
 ```
 
-The fixed footer entries (`Reload configuration`, `Redraw`, `Exit`) are
-always appended after the user-defined entries and cannot be overridden.
-The `Exit` entry opens the same quit-confirmation dialog as the keyboard
-`exit` binding.
+The fixed footer entries (`Reload configuration`, `Redraw all windows`,
+`Exit`) are always appended after the user-defined entries and cannot be
+overridden.  The `Exit` entry opens the same quit-confirmation dialog as
+the keyboard `exit` binding.
 
 ### `rules.json`
 

@@ -23,6 +23,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/ohtbl.h>
 
 /* Utils includes */
@@ -185,12 +186,118 @@ static void s_format_client_label(const client_td *client,
 
 
 /**
+ * @brief Append one menu entry for a client in a given desktop section
+ *
+ * Fills the next available slot in @c s_entries with a command entry
+ * for @p client, associating it with @p did so that activating it
+ * switches to @p did and then focuses the client.
+ *
+ * @param client      Client to add
+ * @param did         Desktop section this entry belongs to
+ * @param surface     Surface that owns the desktop
+ * @param entry_count In/out: current number of entries; updated on
+ *                    return
+ */
+static void s_append_client_entry(client_td *client, uint32_t did,
+        surface_td *surface, int *entry_count)
+{
+    const char *cname;
+    char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    int n;
+
+    if (client == NULL || surface == NULL || entry_count == NULL) {
+        return;
+    }
+
+    n = *entry_count;
+    if (n >= WINLIST_MAX_ENTRIES - 1) {
+        return;
+    }
+
+    cname = (client->info.name != NULL && client->info.name[0] != '\0')
+        ? client->info.name : "(unnamed)";
+    s_format_client_label(client, cname, name_buf, sizeof(name_buf));
+    s_entries[n].type = CTXMENU_COMMAND;
+    safe_strncpy(s_entries[n].label, name_buf,
+            sizeof(s_entries[n].label) - 1u);
+    s_entry_data[n].surface = surface;
+    s_entry_data[n].client = client;
+    s_entry_data[n].desktop_id = did;
+    s_entries[n].on_activate = s_cb_focus_client;
+    s_entries[n].userdata = &s_entry_data[n];
+    *entry_count = n + 1;
+}
+
+
+/**
+ * @brief Append sticky clients from every desktop to a desktop section
+ *
+ * Sticky (pinned) clients are physically stored in the current desktop
+ * after each desktop switch.  To show them under every desktop section
+ * in the window list, this function scans all desktops on @p surface
+ * and appends any client that is sticky, regardless of which desktop's
+ * hash table currently holds it.  Avoids duplicating a sticky client
+ * that is already present in the section because it happens to be in
+ * that desktop's hash table.
+ *
+ * @param surface     Surface that owns all desktops
+ * @param did         Desktop section to populate with sticky entries
+ * @param entry_count Current number of entries; updated on return
+ */
+static void s_add_sticky_clients(surface_td *surface, uint32_t did,
+        int *entry_count)
+{
+    cdlist_item_td *dnode;
+    cdlist_item_td *dinitial;
+    desktop_td *desktop;
+    client_td *client;
+
+    if (surface == NULL || surface->desktops == NULL ||
+            entry_count == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        desktop = (desktop_td *) cdlist_data(dnode);
+        if (desktop != NULL && desktop->clients != NULL) {
+            ohtbl_foreach(desktop->clients, client) {
+                if (client == NULL || !client_is_sticky(client)) {
+                    continue;
+                }
+                /* Only add if this desktop's hash table does not
+                 * already hold it for this section (it will be listed
+                 * by 's_add_desktop_clients' when did matches the
+                 * desktop the sticky client is physically stored in). */
+                if (desktop == surface_desktop_get(surface, did)) {
+                    continue;
+                }
+                s_append_client_entry(client, did, surface, entry_count);
+                if (*entry_count >= WINLIST_MAX_ENTRIES - 1) {
+                    return;
+                }
+            }
+        }
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
+/**
  * @brief Append all clients that belong to a desktop as menu entries
  *
  * Iterates over the client hash table of the desktop identified by
  * @p did and appends one @c CTXMENU_COMMAND entry per visible client.
- * Sticky clients are included regardless of their @c desktop_id.
- * Stops early when @c WINLIST_MAX_ENTRIES is reached.
+ * Non-sticky clients are included only when their @c desktop_id matches
+ * @p did.  Sticky clients found in this desktop's hash table are always
+ * included; sticky clients stored in other desktops are added by
+ * @c s_add_sticky_clients.  Stops early when @c WINLIST_MAX_ENTRIES is
+ * reached.
  *
  * @param surface     Surface that owns the desktop
  * @param did         Desktop ID whose clients are to be listed
@@ -202,9 +309,6 @@ static void s_add_desktop_clients(surface_td *surface, uint32_t did,
 {
     desktop_td *desktop;
     client_td *client;
-    int n;
-    const char *cname;
-    char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
 
     if (surface == NULL || entry_count == NULL) {
         return;
@@ -215,40 +319,28 @@ static void s_add_desktop_clients(surface_td *surface, uint32_t did,
         return;
     }
 
-    n = *entry_count;
     ohtbl_foreach(desktop->clients, client) {
-        bool belongs_here;
-
-        if (n >= WINLIST_MAX_ENTRIES - 1) {
+         if (*entry_count >= WINLIST_MAX_ENTRIES - 1) {
             break;
         }
         if (client == NULL) {
             continue;
         }
 
-        belongs_here = client_is_sticky(client) ||
-            client->desktop_id == did;
-        if (!belongs_here) {
+        /* Include every client physically stored in this desktop's hash
+         * table whose desktop_id matches.  Sticky clients that happen
+         * to be stored here (because this is the current desktop) are
+         * also included; sticky clients stored in other desktops are
+         * added separately by 's_add_sticky_clients'. */
+        if (!client_is_sticky(client) && client->desktop_id != did) {
             continue;
         }
 
-        cname = (client->info.name != NULL &&
-                client->info.name[0] != '\0')
-            ? client->info.name : "(unnamed)";
-        s_format_client_label(client, cname,
-                name_buf, sizeof(name_buf));
-        s_entries[n].type = CTXMENU_COMMAND;
-        safe_strncpy(s_entries[n].label, name_buf,
-                sizeof(s_entries[n].label) - 1u);
-        s_entry_data[n].surface = surface;
-        s_entry_data[n].client = client;
-        s_entry_data[n].desktop_id = did;
-        s_entries[n].on_activate = s_cb_focus_client;
-        s_entries[n].userdata = &s_entry_data[n];
-        ++n;
+        s_append_client_entry(client, did, surface, entry_count);
     }
 
-    *entry_count = n;
+    /* Add sticky clients that are currently stored in other desktops */
+    s_add_sticky_clients(surface, did, entry_count);
 }
 
 

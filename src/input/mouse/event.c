@@ -590,19 +590,19 @@ void mouse_handle_press(xcb_connection_t *connection,
             }
 
 
-            /* Right-click on titlebar or frame border: open window
-             * context menu.  Titlebar buttons consume all mouse buttons
-             * before this branch so button-specific actions are not
-             * replaced by the menu.  When the click lands on the
+            /* Right-click on the frame border (but not titlebar, which
+             * is handled below after button hit detection): open the
+             * window context menu.  Titlebar clicks are deferred so
+             * that buttons on the titlebar consume the right-click
+             * before the menu is shown.  When the click lands on the
              * content window ('event->child == client->window') the
              * frame passive grab fired but the user clicked inside the
              * application, so the menu must NOT appear. */
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
-                    ((event->child == client->titlebar &&
-                      client->titlebar != 0) ||
-                     (event->event == client->frame &&
-                      client->frame != 0 &&
-                      event->child != client->window))) {
+                    event->event == client->frame &&
+                    client->frame != 0 &&
+                    event->child != client->window &&
+                    event->child != client->titlebar) {
                 surface = lookup_surface_for_root(surfaces, event->root);
                 if (surface != NULL && desktop != NULL) {
                     wincmenu_show(connection, surface, desktop, client,
@@ -818,6 +818,20 @@ void mouse_handle_press(xcb_connection_t *connection,
                         }
                     }
                 } /* ! if (!hit_btn) */
+
+                /* Right-click on the titlebar drag area (no button
+                 * hit): open the window context menu.  Buttons already
+                 * consumed their action above, so a right-click that
+                 * reached this point did not land on any button. */
+                if (!hit_btn &&
+                        (xcb_button_index_t) event->detail ==
+                            XCB_BUTTON_INDEX_3) {
+                    if (surface != NULL && desktop != NULL) {
+                        wincmenu_show(connection, surface, desktop,
+                                client, (int16_t) event->root_x,
+                                (int16_t) event->root_y, config);
+                    }
+                }
             }
 
             /* Clicks that land directly on the frame window (not on the

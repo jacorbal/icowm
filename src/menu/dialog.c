@@ -382,16 +382,21 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     menu_dialog_center(surface, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
 
-    mask = XCB_CW_BACK_PIXEL    |
-        XCB_CW_BORDER_PIXEL     |
-        XCB_CW_EVENT_MASK       |
-        XCB_CW_OVERRIDE_REDIRECT;
+    /* XCB requires attribute values to be listed in ascending bit order
+     * of their mask.
+     *
+     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) < EVENT_MASK(2048)
+     * */
+    mask = XCB_CW_BACK_PIXEL        |
+        XCB_CW_BORDER_PIXEL         |
+        XCB_CW_OVERRIDE_REDIRECT    |
+        XCB_CW_EVENT_MASK;
     values[0] = config->theme.window.inactive.background_color;
     values[1] = config->theme.window.active.border_color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE |
+    values[2] = 1;  /* override_redirect: keep WM from managing it */
+    values[3] = XCB_EVENT_MASK_EXPOSURE |
         XCB_EVENT_MASK_BUTTON_PRESS     |
         XCB_EVENT_MASK_KEY_PRESS;
-    values[3] = 1;
 
     s_confirm_window = xcb_generate_id(connection);
     xcb_create_window(connection,
@@ -702,16 +707,21 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     menu_dialog_center(surface, s_message_layout.w,
             s_message_layout.h, &x, &y);
 
-    mask = XCB_CW_BACK_PIXEL    |
-        XCB_CW_BORDER_PIXEL     |
-        XCB_CW_EVENT_MASK       |
-        XCB_CW_OVERRIDE_REDIRECT;
+    /* XCB requires attribute values to be listed in ascending bit order
+     * of their mask.
+     *
+     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) < EVENT_MASK(2048)
+     * */
+    mask = XCB_CW_BACK_PIXEL        |
+        XCB_CW_BORDER_PIXEL         |
+        XCB_CW_OVERRIDE_REDIRECT    |
+        XCB_CW_EVENT_MASK;
     values[0] = config->theme.window.inactive.background_color;
     values[1] = config->theme.window.active.border_color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE     |
+    values[2] = 1;  /* override_redirect: keep WM from managing it */
+    values[3] = XCB_EVENT_MASK_EXPOSURE     |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_KEY_PRESS;
-    values[3] = 1;
 
     s_message_window = xcb_generate_id(connection);
     xcb_create_window(connection,
