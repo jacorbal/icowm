@@ -597,13 +597,13 @@ void wcmd_client_unsticky(client_td *client)
             owner_desktop->id != current_desktop->id) {
         target = wcmd_target_win(client);
 
-        /* Increment 'ignore_unmap' to prevent 'handler_unmap_notify'
-         * from treating the WM-initiated unmaps as client self-closes.
-         * The frame 'unmap' implicitly unmaps its child, so only one
-         * extra increment is needed when target is the frame. */
-        client->ignore_unmap += 1u;
-
-        if (target != client->window) {
+        /* Account for the 'UnmapNotify' events that
+         * 'handler_unmap_notify' must skip.  Two events arrive for the
+         * unmapped target ('SubstructureNotify' on parent
+         * + 'StructureNotify' on target) and one additional event for
+         * the titlebar via the frame's 'SubstructureNotify'. */
+        client->ignore_unmap += 2u;
+        if (client->titlebar != 0) {
             client->ignore_unmap += 1u;
         }
 

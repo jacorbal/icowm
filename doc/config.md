@@ -104,9 +104,9 @@ assigned to each.
 
 #### `screens.count`
 
-| Key | Type | Default |
-|---|---|---|
-| `screens.count` | integer | `1` |
+| Key             | Type    | Default |
+|-----------------|---------|---------|
+| `screens.count` | integer | `1`     |
 
 Number of physical screens (monitors) to manage.  Maximum is `6`.
 
@@ -149,7 +149,7 @@ The `desktops` array inside `screens.settings` accepts two layouts:
                 "count": 1,
                 "inaugural": 0,
                 "settings": [
-                    { "name": "Secondary", "background-color": "#c0c0c0" }
+                    { "name": "Code", "background-color": "#c0c0c0" }
                 ]
             }
         ]
@@ -171,13 +171,13 @@ Per-screen layout fields:
 Associates application categories with the executables IcoWM will
 launch for the corresponding keyboard shortcuts.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `programs.terminal` | string | `"xterm"` | Terminal emulator. |
-| `programs.launcher` | string | `"gmrun"` | Application launcher / run dialog. |
-| `programs.file-manager` | string | `"pcmanfm"` | File manager. |
-| `programs.editor` | string | `"gvim"` | Text editor. |
-| `programs.web-browser` | string | `"firefox"` | Web browser. |
+| Key                     | Type   | Default     | Description          |
+|-------------------------|--------|-------------|----------------------|
+| `programs.terminal`     | string | `"xterm"`   | Terminal emulator.   |
+| `programs.launcher`     | string | `"gmrun"`   | Application launcher |
+| `programs.file-manager` | string | `"pcmanfm"` | File manager.        |
+| `programs.editor`       | string | `"gvim"`    | Text editor.         |
+| `programs.web-browser`  | string | `"firefox"` | Web browser.         |
 
 ```json
 "programs": {
@@ -253,10 +253,12 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 | `focus.is-raised-on-focus` | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
 
 ```json
-"focus": {
-    "policy":            "click",
-    "is-new-focused":    true,
-    "is-raised-on-focus": false
+"windows": {
+    "focus": {
+        "policy": "click",
+        "is-new-focused": true,
+        "is-raised-on-focus": false
+    }
 }
 ```
 
@@ -270,17 +272,19 @@ Accepted placement policy values:
 
 | Value           | Behavior |
 |-----------------|----------|
-| `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 | `"cascade"`     | Places windows in a stepped diagonal sequence. |
 | `"centered"`    | Centers the window on the screen. |
 | `"under-mouse"` | Places the window under the current pointer position. |
+| `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 
 Transient (dialog) windows are always centered over their parent
 window, regardless of this setting.
 
 ```json
-"placement": {
-    "policy": "smart"
+"windows": {
+    "placement": {
+        "policy": "smart"
+    }
 }
 ```
 
@@ -299,9 +303,9 @@ the icon.
 
 Controls how iconified windows are laid out on the desktop.
 
-| Key                      | Type   | Default    | Description |
-|--------------------------|--------|------------|-------------|
-| `icons.placement.policy` | string | `"bottom"` | Where new icons are placed. |
+| Key                      | Type   | Default    | Description               |
+|--------------------------|--------|------------|---------------------------|
+| `icons.placement.policy` | string | `"bottom"` | How new icons are placed. |
 
 Accepted icon placement values:
 
@@ -477,7 +481,18 @@ Resize the focused window by a fixed step in the given direction.
 | `up`    | `modc+mod1+mods+k` |
 | `down`  | `modc+mod1+mods+j` |
 
-#### `keyboard.window.goto`
+### 3.5 `keyboard.wm`
+
+Window manager control shortcuts.
+
+| Key            | Default binding    | Action |
+|----------------|--------------------|--------|
+| `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
+| `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
+| `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
+| `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
+
+#### `keyboard.wm.go-to`
 
 Jump directly to a virtual desktop by index (0-9).  Desktops beyond
 index 9 are not reachable by these shortcuts.
@@ -497,17 +512,7 @@ index 9 are not reachable by these shortcuts.
 
 If the interest is to use a 1-based indexing system, a trick could be
 setting `inaugural` to `1`.  Another is to change every single
-`goto` binding.
-
-### 3.5 `keyboard.wm`
-
-Window manager control shortcuts.
-
-| Key      | Default binding    | Action |
-|----------|--------------------|--------|
-| `redraw` | `modc+mod1+mods+r` | Force a full redraw of all windows. |
-| `reload` | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit`   | `modc+mod1+mods+x` | Exit IcoWM. |
+`keyboard.wm.go-to` binding.
 
 ### 3.6 `keyboard.cycle`
 
@@ -553,10 +558,10 @@ Mouse button bindings for window management.
 
 Mouse button bindings for switching virtual desktops.
 
-| Key | Default binding | Action |
-|---|---|---|
-| `cycle.desktop.prev` | `button4` | Scroll up to go to the previous desktop. |
-| `cycle.desktop.next` | `button5` | Scroll down to go to the next desktop. |
+| Key                  | Default binding | Action |
+|----------------------|-----------------|--------|
+| `cycle.desktop.prev` | `button4`       | Scroll up to go to the previous desktop. |
+| `cycle.desktop.next` | `button5`       | Scroll down to go to the next desktop. |
 
 ## 4. `themes/<name>.json` -- Theme configuration
 

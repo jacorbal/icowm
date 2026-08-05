@@ -59,37 +59,44 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
         client_td *client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_STICKY)) {
-            xcb_window_t target =
-                (client_is_decorated(client) && client->frame != 0)
-                ? client->frame
-                : client->window;
+            /* Only unmap and track events for clients whose windows are
+             * currently mapped.  Hidden and iconified clients have
+             * already had their windows unmapped by other code paths;
+             * issuing another unmap would generate no 'UnmapNotify'
+             * events, yet incrementing 'ignore_unmap' would leave the
+             * counter positive.  That residual count would then
+             * silently absorb the next genuine 'UnmapNotify' (e.g., the
+             * app self-unmapping to go to the system tray), preventing
+             * 'handler_unmap_notify' from setting 'CLIENT_FLAG_HIDDEN'
+             * and breaking the systray restore path in
+             * 'handler_message'. */
+            if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                    client->properties.state !=
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                xcb_window_t target =
+                    (client_is_decorated(client) && client->frame != 0)
+                    ? client->frame
+                    : client->window;
+                /* Two 'UnmapNotify' events arrive for the unmapped
+                 * target: one via the parent's 'SubstructureNotify'
+                 * (event=parent, window=target) and one via the
+                 * target's own 'StructureNotify' (event=target,
+                 * window=target).  An additional event arrives for the
+                 * titlebar via the frame's 'SubstructureNotify'.
+                 * Desktop switches must not toggle
+                 * 'CLIENT_FLAG_HIDDEN': that flag represents an
+                 * explicit user/application hidden state, not temporary
+                 * invisibility on another desktop. */
+                client->ignore_unmap += 2u;
+                if (client->titlebar != 0) {
+                    client->ignore_unmap += 1u;
+                }
 
-            /* Track WM-initiated unmaps so handler_unmap_notify skips
-             * them.  The titlebar is a sibling, not a child, of the
-             * frame, so unmapping it generates a separate 'UnmapNotify'
-             * that must also be accounted for. */
-            client->ignore_unmap += 1u;
-            if (target != client->window) {
-                client->ignore_unmap += 1u;
+                if (client->titlebar != 0) {
+                    xcb_unmap_window(surface->connection, client->titlebar);
+                }
+                xcb_unmap_window(surface->connection, target);
             }
-
-            if (client->titlebar != 0) {
-                client->ignore_unmap += 1u;
-            }
-
-            if (client->titlebar != 0) {
-                xcb_unmap_window(surface->connection, client->titlebar);
-            }
-
-            /* For decorated clients, unmapping the frame also unmaps
-             * its child client window; issuing an extra unmap on the
-             * child would duplicate 'UnmapNotify' handling and may
-             * overwrite the remembered active client during desktop
-             * switches.  Desktop switches must not toggle the client's
-             * hidden flag, for it represents an explicit
-             * user/application hidden state, not temporary invisibility
-             * on another desktop. */
-            xcb_unmap_window(surface->connection, target);
 
             if (client->icon_window != 0 && client->is_icon_mapped) {
                 xcb_unmap_window(surface->connection,

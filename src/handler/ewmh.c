@@ -390,10 +390,24 @@ void hi_handle_net_wm_desktop(wm_td *wm,
     desktop_action_client_add(tgt_desktop, client);
 
     if (surface->desktop_cur != target_id) {
-        xcb_unmap_window(wm->connection, client->window);
-        if (client->frame != 0) {
-            xcb_unmap_window(wm->connection, client->frame);
+        xcb_window_t target =
+            (client_is_decorated(client) && client->frame != 0)
+            ? client->frame
+            : client->window;
+
+        /* Account for the 'UnmapNotify' events so
+         * 'handler_unmap_notify' does not treat this WM-initiated unmap
+         * as a client self-close and set 'CLIENT_FLAG_HIDDEN'.  Two
+         * events arrive for the unmapped target (0SubstructureNotify'
+         * on parent + 'StructureNotify' on target) and one additional
+         * event for the titlebar via the frame's
+         * 'SubstructureNotify'. */
+        client->ignore_unmap += 2u;
+        if (client->titlebar != 0) {
+            client->ignore_unmap += 1u;
+            xcb_unmap_window(wm->connection, client->titlebar);
         }
+        xcb_unmap_window(wm->connection, target);
     }
 
     client->desktop_id = target_id;
