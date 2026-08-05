@@ -39,6 +39,7 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
 #include <menu/popup.h>
 
@@ -281,6 +282,22 @@ void mouse_handle_press(xcb_connection_t *connection,
 
         /* Click outside dialog: close without action */
         dialog_quit_close(connection);
+        xcb_allow_events(connection,
+                XCB_ALLOW_ASYNC_POINTER, event->time);
+        xcb_flush(connection);
+        return;
+    }
+
+    if (dialog_info_is_open()) {
+        if (event->event == dialog_info_window() ||
+                event->child == dialog_info_window()) {
+            dialog_info_handle_click(connection,
+                    (int) event->event_x,
+                    (int) event->event_y);
+        } else {
+            /* Click outside dialog: close it */
+            dialog_info_close(connection);
+        }
         xcb_allow_events(connection,
                 XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(connection);
@@ -577,11 +594,39 @@ void mouse_handle_press(xcb_connection_t *connection,
                         true, config);
             }
 
-            /* Right-click on titlebar or frame: open window context menu */
+
+            /* Right-click on titlebar or frame border: open window
+             * context menu.  When the click lands on the content window
+             * ('event->child == client->window') the frame passive grab
+             * fired but the user clicked inside the application, so the
+             * menu must NOT appear. */
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
                     ((event->child == client->titlebar &&
                       client->titlebar != 0) ||
-                     event->event == client->frame)) {
+                     (event->event == client->frame &&
+                      client->frame != 0 &&
+                      event->child != client->window))) {
+                surface = lookup_surface_for_root(surfaces, event->root);
+                if (surface != NULL && desktop != NULL) {
+                    wincmenu_show(connection, surface, desktop, client,
+                            (int16_t) event->root_x,
+                            (int16_t) event->root_y, config);
+                }
+                xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                        event->time);
+                xcb_flush(connection);
+                return;
+            }
+            /* Right-click near the border of an undecorated window:
+             * open the window context menu.  The click must be within
+             * 'WM_RESIZE_CORNER_SIZE' pixels of any edge so that the
+             * menu does not steal clicks from the application
+             * content. */
+            if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
+                    client->frame == 0 &&
+                    window == client->window &&
+                    s_mouse_near_edge(client, event->root_x,
+                        event->root_y)) {
                 surface = lookup_surface_for_root(surfaces, event->root);
                 if (surface != NULL && desktop != NULL) {
                     wincmenu_show(connection, surface, desktop, client,

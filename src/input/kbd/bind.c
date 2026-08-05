@@ -373,8 +373,10 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
+        /* Hardcoded Alt+Space: open window context menu */
+        { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
         /* Hardcoded emergency exit (grabbed only if enabled) */
-        { "Ctrl+Mod1+BackSpace", KEYBIND_NONE },
+        { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }
     };
 

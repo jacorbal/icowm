@@ -47,11 +47,20 @@
 
 
 /**
- * @brief String to differentiate labels from real menu entries
+ * @brief Label prefix prepended to non-clickable desktop headings
  *
- * This string is appended and prepended to the label text
+ * Used by @c winlist_show to decorate desktop label entries.
+ * Change this token to alter the visual style of all label entries.
  */
-#define MENU_CONTEXT_CTXMENU_LABEL_STR "---"
+#define MENU_CONTEXT_CTXMENU_LABEL_PREFIX "--- "
+
+/**
+ * @brief Label suffix appended to non-clickable desktop headings
+ *
+ * Paired with @c MENU_CONTEXT_CTXMENU_LABEL_PREFIX to form the full
+ * decoration.
+ */
+#define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX " ---"
 
 
 /**
@@ -246,7 +255,22 @@ ctxmenu_state_td *ctxmenu_find_state_for_window(ctxmenu_state_td *state,
  */
 void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
 
-
+/**
+ * @brief Handle a key-press event while a context menu is open
+ *
+ * When a printable character is pressed, scans the open @p state for
+ * entries whose label starts with that character (case-insensitive).
+ * If exactly one match is found the entry is activated immediately.  If
+ * more than one match is found the first match is highlighted and the
+ * function returns @c true without activating.
+ *
+ * @param state  Root menu state (the currently visible level)
+ * @param keysym X keysym of the pressed key
+ *
+ * @return @c true if the event was consumed, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is @p state->entry_count
+ */
 bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
         xcb_keysym_t keysym);
 

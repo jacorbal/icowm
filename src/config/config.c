@@ -321,7 +321,7 @@ void config_set_default_values(config_td *config)
     config->theme.window.active.border_color =
         json_hex2uint32("4A5566");
     config->theme.window.active.grip_color =
-        json_hex2uint32("9AAEC8");
+        json_hex2uint32("7F9AB6");
     safe_strcpy(config->theme.window.active.font, "fixed bold");
     config->theme.window.inactive.background_color =
         json_hex2uint32("D0D9E5");

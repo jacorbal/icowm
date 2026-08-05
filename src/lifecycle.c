@@ -40,6 +40,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Menu includes */
+#include <menu/dialog/info.h>
+
 /* Local includes */
 #include <lifecycle.h>
 
@@ -168,18 +171,29 @@ void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
         const char *class_name)
 {
     desktop_td *desktop;
+    int result;
+    char msg[256];
 
     if (surface == NULL || prog == NULL || prog[0] == '\0') {
         return;
     }
 
     desktop = lookup_current_desktop(surface);
-    if (desktop != NULL) {
-        if (class_name != NULL && class_name[0] != '\0') {
-            (void) desktop_action_process_launch_with_class(desktop,
-                    prog, class_name);
-        } else {
-            (void) desktop_action_process_launch(desktop, prog);
-        }
+    if (desktop == NULL) {
+        return;
+    }
+    if (class_name != NULL && class_name[0] != '\0') {
+        result = desktop_action_process_launch_with_class(desktop,
+                prog, class_name);
+    } else {
+        result = desktop_action_process_launch(desktop, prog);
+    }
+    if (result == -2 && surface->connection != NULL &&
+            surface->config != NULL) {
+        (void) snprintf(msg, sizeof(msg),
+                "Failed to execute child process '%s';" \
+                " no such file or directory", prog);
+        dialog_info_show(surface->connection, surface,
+                surface->config, msg, MENU_MSG_LEVEL_WARNING);
     }
 }

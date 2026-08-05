@@ -57,11 +57,6 @@
  */
 #define WINLIST_MAX_ENTRIES (256)
 
-/**
- * @brief Label prefix/suffix added to non-clickable desktop labels
- */
-#define WINLIST_LABEL_PREFIX "--- "
-#define WINLIST_LABEL_SUFFIX " ---"
 
 /** Singleton menu state */
 static ctxmenu_state_td s_root;
@@ -204,13 +199,19 @@ void winlist_show(xcb_connection_t *connection,
         if (desktop->name[0] != '\0') {
             (void) snprintf(label_buf, sizeof(label_buf),
                     "%s[%u] -- %s%s",
-                    WINLIST_LABEL_PREFIX, did, desktop->name,
-                    WINLIST_LABEL_SUFFIX);
+                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                    did, desktop->name,
+                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         } else {
-            s_entries[n].type = CTXMENU_LABEL;
-            safe_strncpy(s_entries[n].label, label_buf,
-                    sizeof(s_entries[n].label) - 1u);
+            (void) snprintf(label_buf, sizeof(label_buf),
+                    "%s[%u]%s",
+                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                    did,
+                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         }
+        s_entries[n].type = CTXMENU_LABEL;
+        safe_strncpy(s_entries[n].label, label_buf,
+                sizeof(s_entries[n].label) - 1u);
         ++n;
 
         if (!has_clients) {

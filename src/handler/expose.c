@@ -37,6 +37,7 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
@@ -82,6 +83,12 @@ void handler_expose(xcb_connection_t *connection,
     /* Info popup repaint */
     if (popup_is_open() && event->window == popup_window()) {
         popup_repaint(connection, cfg);
+        return;
+    }
+
+    /* Informational dialog repaint */
+    if (dialog_info_is_open() && event->window == dialog_info_window()) {
+        dialog_info_repaint(connection, cfg);
         return;
     }
 

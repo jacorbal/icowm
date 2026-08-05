@@ -165,7 +165,23 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
 }
 
 
+
 /**
+ * @brief Activate the entry at the given index in a context menu
+ *
+ * Invokes the entry's @p on_activate callback if set, or calls
+ * @c lifecycle_dispatch_launch for command entries that carry a shell
+ * command string.  For separator, label, or disabled entries no action
+ * is taken but @c true is returned to consume the event.  Closes the
+ * entire menu hierarchy (root and all children) after activation.
+ *
+ * @param state Menu state that contains the entry
+ * @param idx   Zero-based index of the entry to activate
+ *
+ * @return @c true if the event was consumed, @c false when @p state or
+ *         @p idx is out of range
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 static bool s_ctxmenu_activate_entry(ctxmenu_state_td *state, int idx)
 {
@@ -241,12 +257,18 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     is_sel = (idx == state->selected) && !e->is_disabled
         && (e->type == CTXMENU_COMMAND || e->type == CTXMENU_SUBMENU);
 
-    bg = is_sel
-        ? state->config->theme.window.active.border_color
-        : state->config->theme.window.active.background_color;
-    fg = e->is_disabled
-        ? state->config->theme.window.inactive.foreground_color
-        : state->config->theme.window.active.foreground_color;
+
+    if (e->type == CTXMENU_LABEL) {
+        bg = state->config->theme.window.inactive.background_color;
+        fg = state->config->theme.window.inactive.foreground_color;
+    } else {
+        bg = (is_sel)
+            ? state->config->theme.window.active.border_color
+            : state->config->theme.window.active.background_color;
+        fg = (e->is_disabled)
+            ? state->config->theme.window.inactive.foreground_color
+            : state->config->theme.window.active.foreground_color;
+    }
 
     menu_draw_row_bg(conn, state->window, bg,
             (int16_t) top_y, (uint16_t) row_h, state->width);

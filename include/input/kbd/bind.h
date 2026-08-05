@@ -56,6 +56,7 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
 
     /* Window operations */
+    KEYBIND_CLIENT_WINDOW_MENU,         /**< Open window context menu */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
     KEYBIND_CLIENT_HIDE,                /**< Hide (minimize) focused client */
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
@@ -112,6 +113,7 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
 
     /* Window manager lifecycle */
+    KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
     KEYBIND_WM_QUIT,                    /**< Quit w/ confirmation dialog */

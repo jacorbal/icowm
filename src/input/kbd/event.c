@@ -33,6 +33,8 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/context/wincmenu.h>
+#include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
 #include <menu/cycle.h>
 #include <menu/popup.h>
@@ -449,6 +451,15 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
+    /* Informational dialog key handling */
+    if (dialog_info_is_open()) {
+        /* Any key closes the dialog */
+        if (surface != NULL && surface->connection != NULL) {
+            dialog_info_close(surface->connection);
+        }
+        return;
+    }
+
     /* Emergency exit 'Ctrl+Mod1+BackSpace' */
     if (config->base.enable_emergency_shortcut &&
             keysym == 0xff08u &&
@@ -561,6 +572,10 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 }
                 return;
 
+            case KEYBIND_WM_EMERGENCY_EXIT:
+                /* Already taken care of */
+                return;
+
             case KEYBIND_WM_REDRAW:
                 wm_request_full_redraw();
                 return;
@@ -640,6 +655,29 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 return;
                             }
                             client_send_event(client, act, PRIORITY_NORMAL);
+                        }
+                    }
+                }
+                return;
+
+            case KEYBIND_CLIENT_WINDOW_MENU:
+                if (surface != NULL) {
+                    desktop_td *desktop =
+                        lookup_current_desktop(surface);
+                    if (desktop != NULL &&
+                            desktop->client_active_id != 0) {
+                        surface_td *cs = NULL;
+                        desktop_td *cd = NULL;
+                        client_td *client = lookup_find_client(surfaces,
+                                desktop->client_active_id, &cs, &cd);
+                        if (client != NULL) {
+                            int16_t mx = (int16_t)
+                                client->layout.geometry.cur.pos.x;
+                            int16_t my = (int16_t)
+                                client->layout.geometry.cur.pos.y;
+                            wincmenu_show(surface->connection,
+                                    surface, desktop, client,
+                                    mx, my, config);
                         }
                     }
                 }

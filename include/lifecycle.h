@@ -51,7 +51,7 @@ void lifecycle_scan_existing(wm_td *wm);
  *
  * @param surface    Active surface (screen); may be null
  * @param prog       Program command string to launch; may be null
- * @param class_name Program class, may be null
+ * @param class_name Optional @c WM_CLASS override string; may be null
  *
  * @note Complexity: @e O(1)
  */

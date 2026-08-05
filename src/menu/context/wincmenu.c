@@ -524,16 +524,16 @@ static int s_build_desk_entries(surface_td *surface,
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
                     "%s [%u] -- %s %s",
-                    MENU_CONTEXT_CTXMENU_LABEL_STR,
+                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx, d->name,
-                    MENU_CONTEXT_CTXMENU_LABEL_STR);
+                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         } else {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
                     "%s [%u] %s",
-                    MENU_CONTEXT_CTXMENU_LABEL_STR,
+                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx,
-                    MENU_CONTEXT_CTXMENU_LABEL_STR);
+                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         }
 
         s_desk_entries[n].type = CTXMENU_COMMAND;
