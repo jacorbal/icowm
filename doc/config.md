@@ -369,7 +369,7 @@ A binding is a `+`-separated chain of modifier aliases and a final key
 or button name:
 
 ```
-modifier1+modifier2+KeyName
+modifier1+[modifier2+[modifier3+]]KeyName
 ```
 
 - **Modifier aliases** are the symbolic names defined in the
@@ -437,7 +437,7 @@ Actions performed on the currently focused window.
 | `close`        | `modc+mod1+c`           | Send `WM\_DELETE\_WINDOW` to politely close the window. |
 | `kill`         | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
 | `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
-| `hide`         | `modc+mod1+mods+h`      | Hide the window without iconifying it. |
+| `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `fullscreen`   | `modc+mod1+f`           | Toggle true fullscreen mode. |
 | `shade`        | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
