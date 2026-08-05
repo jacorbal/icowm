@@ -174,10 +174,10 @@ static void s_format_client_label(const client_td *client,
         return;
     }
 
-    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+    if (client->properties.state == (uint16_t) CLIENT_STATE_ICONIFIED) {
         (void) snprintf(buf, buf_size, "{%s}", name);
-    } else if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_ICONIFIED) {
+    } else if (client->properties.flags &
+            CLIENT_FLAG_HIDDEN) {
         (void) snprintf(buf, buf_size, "(%s)", name);
     } else {
         (void) snprintf(buf, buf_size, "%s", name);
