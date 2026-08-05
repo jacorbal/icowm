@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* calloc, free */
-#include <string.h>     /* memcpy, strlen, snprintf */
+#include <string.h>     /* memcpy, snprintf */
 #include <sys/types.h>  /* pid_t */
 
 /* XCB includes */
@@ -78,7 +78,7 @@ static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
     for (uint32_t i = 0u; i < desktop_count; ++i) {
         const char *name = desktop->config_base
             ->screens[desktop->screen_id].desktops[i].name;
-        names_len += strlen(name) + 1u;
+        names_len += safe_strlen(name) + 1u;
     }
 
     if (names_len == 0u || names_len > UINT32_MAX) {
@@ -94,7 +94,7 @@ static void s_dcmd_sync_desktop_names(const desktop_td *desktop)
     for (uint32_t i = 0u; i < desktop_count; ++i) {
         const char *name = desktop->config_base
             ->screens[desktop->screen_id].desktops[i].name;
-        size_t name_len = strlen(name);
+        size_t name_len = safe_strlen(name);
         if (offset + name_len + 1u > names_len) {
             break;
         }

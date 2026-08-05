@@ -17,11 +17,13 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <config.h>
@@ -112,7 +114,7 @@ void notify_popup_show_centered(xcb_connection_t *connection,
         return;
     }
 
-    strncpy(state->text, text, sizeof(state->text) - 1u);
+    safe_strncpy(state->text, text, sizeof(state->text) - 1u);
     state->text[sizeof(state->text) - 1u] = '\0';
 
     notify_popup_close(connection, state);

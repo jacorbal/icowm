@@ -29,6 +29,9 @@
 /* Rules includes */
 #include <rules/rules.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -155,7 +158,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
 
     ia = xcb_intern_atom_reply(client->connection,
             xcb_intern_atom(client->connection, 1,
-                (uint16_t) strlen("WM_WINDOW_ROLE"),
+                (uint16_t) safe_strlen("WM_WINDOW_ROLE"),
                 "WM_WINDOW_ROLE"), NULL);
     if (ia != NULL) {
         wm_window_role = ia->atom;

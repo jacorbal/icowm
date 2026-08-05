@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -32,6 +31,9 @@
 
 /* Menu includes */
 #include <menu/cycle.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>
@@ -69,7 +71,7 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
 
     reply = xcb_intern_atom_reply(connection,
             xcb_intern_atom(connection, 1,
-                (uint16_t) strlen(name), name), NULL);
+                (uint16_t) safe_strlen(name), name), NULL);
 
     if (reply != NULL) {
         atom = reply->atom;

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, calloc, free, malloc */
-#include <string.h>     /* memcpy, strlen */
+#include <string.h>     /* memcpy */
 #include <time.h>       /* time */
 
 /* XCB includes */
@@ -26,6 +26,9 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Default initial values */
 #include <defs/ewmh.h>
@@ -268,7 +271,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop != NULL && desktop->name[0] != '\0') {
-            names_len += strlen(desktop->name) + 1u;
+            names_len += safe_strlen(desktop->name) + 1u;
         } else {
             char fallback_name[32];
             int written = snprintf(fallback_name, sizeof(fallback_name),
@@ -308,7 +311,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
             name = fallback_name;
         }
 
-        name_len = strlen(name);
+        name_len = safe_strlen(name);
         if (offset + name_len + 1u > names_len) {
             break;
         }
@@ -528,7 +531,7 @@ int wm_ewmh_init(void)
                     "WM_S%u", surface->id);
             ia = xcb_intern_atom_reply(wm->connection,
                     xcb_intern_atom(wm->connection, 0,
-                        (uint16_t) strlen(selection_name),
+                        (uint16_t) safe_strlen(selection_name),
                         selection_name), NULL);
             if (ia != NULL) {
                 selection_atom = ia->atom;

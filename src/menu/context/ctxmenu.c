@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <string.h>     /* strlen */
 #include <stdio.h>      /* snprintf */
 
 /* XCB includes */

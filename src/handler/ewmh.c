@@ -23,7 +23,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free */
-#include <string.h>     /* strlen */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -38,6 +37,9 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Default initial values */
 #include <defs/wm.h>
@@ -95,7 +97,7 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
 
     ia = xcb_intern_atom_reply(connection,
             xcb_intern_atom(connection, 0,
-                (uint16_t) strlen(name), name),
+                (uint16_t) safe_strlen(name), name),
             NULL);
     if (ia != NULL) {
         atom = ia->atom;

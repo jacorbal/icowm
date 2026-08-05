@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
 #include <stdlib.h>     /* malloc, free, calloc */
-#include <string.h>     /* strlen */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -98,17 +97,17 @@ static bool s_parse_array(const cJSON *arr,
         type_str = (cJSON_IsString(type_node))
             ? type_node->valuestring : "";
 
-        if (strcmp(type_str, "separator") == 0) {
+        if (safe_strcmp(type_str, "separator") == 0) {
             entries[i].type = CTXMENU_SEPARATOR;
 
-        } else if (strcmp(type_str, "label") == 0) {
+        } else if (safe_strcmp(type_str, "label") == 0) {
             entries[i].type = CTXMENU_LABEL;
             if (cJSON_IsString(name_node)) {
                 safe_strncpy(entries[i].label, name_node->valuestring,
                         sizeof(entries[i].label) - 1u);
             }
 
-        } else if (strcmp(type_str, "command") == 0) {
+        } else if (safe_strcmp(type_str, "command") == 0) {
             entries[i].type = CTXMENU_COMMAND;
             if (cJSON_IsString(name_node)) {
                 safe_strncpy(entries[i].label, name_node->valuestring,
@@ -119,7 +118,7 @@ static bool s_parse_array(const cJSON *arr,
                         sizeof(entries[i].command) - 1u);
             }
 
-        } else if (strcmp(type_str, "submenu") == 0) {
+        } else if (safe_strcmp(type_str, "submenu") == 0) {
             entries[i].type = CTXMENU_SUBMENU;
             if (cJSON_IsString(name_node)) {
                 safe_strncpy(entries[i].label, name_node->valuestring,
