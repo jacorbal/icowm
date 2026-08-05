@@ -60,6 +60,7 @@ static bool s_parse_array(const cJSON *arr,
     int i;
     const cJSON *type_node;
     const cJSON *name_node;
+    const cJSON *class_node;
     const cJSON *cmd_node;
     const cJSON *items_node;
     const char *type_str;
@@ -91,6 +92,7 @@ static bool s_parse_array(const cJSON *arr,
 
         type_node = cJSON_GetObjectItemCaseSensitive(item, "type");
         name_node = cJSON_GetObjectItemCaseSensitive(item, "name");
+        class_node = cJSON_GetObjectItemCaseSensitive(item, "class");
         cmd_node  = cJSON_GetObjectItemCaseSensitive(item, "command");
         items_node = cJSON_GetObjectItemCaseSensitive(item, "items");
 
@@ -106,7 +108,6 @@ static bool s_parse_array(const cJSON *arr,
                 safe_strncpy(entries[i].label, name_node->valuestring,
                         sizeof(entries[i].label) - 1u);
             }
-
         } else if (safe_strcmp(type_str, "command") == 0) {
             entries[i].type = CTXMENU_COMMAND;
             if (cJSON_IsString(name_node)) {
@@ -117,7 +118,11 @@ static bool s_parse_array(const cJSON *arr,
                 safe_strncpy(entries[i].command, cmd_node->valuestring,
                         sizeof(entries[i].command) - 1u);
             }
-
+            if (cJSON_IsString(class_node)) {
+                safe_strncpy(entries[i].class_name,
+                        class_node->valuestring,
+                        sizeof(entries[i].class_name) - 1u);
+            }
         } else if (safe_strcmp(type_str, "submenu") == 0) {
             entries[i].type = CTXMENU_SUBMENU;
             if (cJSON_IsString(name_node)) {

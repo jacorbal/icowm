@@ -47,6 +47,14 @@
 
 
 /**
+ * @brief String to differentiate labels from real menu entries
+ *
+ * This string is appended and prepended to the label text
+ */
+#define MENU_CONTEXT_CTXMENU_LABEL_STR "---"
+
+
+/**
  * @brief Types of entries that a context menu can contain
  */
 typedef enum {
@@ -71,6 +79,7 @@ typedef struct ctxmenu_entry_s {
     ctxmenu_entry_type_e type;                  /**< Entry kind */
     char label[WM_CTXMENU_LABEL_MAX_LEN];       /**< Visible text */
     char command[WM_CTXMENU_CMD_MAX_LEN];       /**< Shell command (COMMAND) */
+    char class_name[CONFIG_MAX_LENGTH_NAME];    /**< 'WM_CLASS' override */
     bool is_disabled;                           /**< Grayed-out when true */
 
     /** Optional callback invoked when the entry is activated */
@@ -107,6 +116,7 @@ typedef struct ctxmenu_state_s {
 
     xcb_connection_t *connection;   /**< Cached connection for repaints */
     const config_td *config;        /**< Cached configuration */
+    surface_td *surface;            /**< Cached surface for activation */
 } ctxmenu_state_td;
 
 
@@ -235,6 +245,10 @@ ctxmenu_state_td *ctxmenu_find_state_for_window(ctxmenu_state_td *state,
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
+
+
+bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
+        xcb_keysym_t keysym);
 
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */

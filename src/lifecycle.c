@@ -163,52 +163,9 @@ void lifecycle_scan_existing(wm_td *wm)
 }
 
 
-/* Dispatch a program-launch event on the active desktop */
-int lifecycle_send_desktop_launch(desktop_td *desktop,
-        const char *command)
-{
-    action_td action;
-    action_data_desktop_td *data;
-    event_td *event;
-
-    if (desktop == NULL || command == NULL || command[0] == '\0') {
-        LOGGER_WARNING("Cannot launch: command is null or empty",
-                L_NARG);
-        return -1;
-    }
-
-    action.type = ACTION_TYPE_DESKTOP;
-    action.object.desktop = ACTION_DESKTOP_COMMAND_LAUNCH;
-
-    data = action_data_desktop_init(desktop, action.object.desktop);
-    if (data == NULL) {
-        LOGGER_ERROR("Failed to allocate desktop action data", L_NARG);
-        return 1;
-    }
-    /* Command pointer originates from persistent config; valid for the
-     * lifetime of the event queue */
-    data->new_data.str = (char *) command;
-
-    event = event_init((void *) desktop, (void *) data,
-            action, PRIORITY_NORMAL);
-    if (event == NULL) {
-        LOGGER_ERROR("Failed to create desktop launch event", L_NARG);
-        action_data_desktop_destroy(data);
-        return 1;
-    }
-
-    if (eventq_add(event) != 0) {
-        LOGGER_ERROR("Failed to queue desktop launch event", L_NARG);
-        event_destroy(event);
-        return 1;
-    }
-
-    return 0;
-}
-
-
 /* Build and enqueue a launch event for a desktop */
-void lifecycle_dispatch_launch(surface_td *surface, const char *prog)
+void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
+        const char *class_name)
 {
     desktop_td *desktop;
 
@@ -218,6 +175,11 @@ void lifecycle_dispatch_launch(surface_td *surface, const char *prog)
 
     desktop = lookup_current_desktop(surface);
     if (desktop != NULL) {
-        (void) lifecycle_send_desktop_launch(desktop, prog);
+        if (class_name != NULL && class_name[0] != '\0') {
+            (void) desktop_action_process_launch_with_class(desktop,
+                    prog, class_name);
+        } else {
+            (void) desktop_action_process_launch(desktop, prog);
+        }
     }
 }

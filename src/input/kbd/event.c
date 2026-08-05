@@ -625,8 +625,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                                 }
                             else if (btype == KEYBIND_CLIENT_PIN)
                                 act = ACTION_CLIENT_TOGGLE_STICKY;
-                            else if (btype == KEYBIND_CLIENT_TOGGLE_DECORATION)
+                            else if (btype ==
+                                    KEYBIND_CLIENT_TOGGLE_DECORATION) {
+                                if (client_is_shaded(client)) {
+                                    wcmd_client_unshade(client);
+                                }
                                 act = ACTION_CLIENT_TOGGLE_DECORATION;
+                            }
                             else if (btype == KEYBIND_CLIENT_CYCLE_LAYER)
                                 act = ACTION_CLIENT_CYCLE_LAYER;
 
@@ -642,27 +647,27 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_LAUNCH_TERMINAL:
                 lifecycle_dispatch_launch(surface,
-                        config->base.programs.terminal);
+                        config->base.programs.terminal, NULL);
                 return;
 
             case KEYBIND_LAUNCH_LAUNCHER:
                 lifecycle_dispatch_launch(surface,
-                        config->base.programs.launcher);
+                        config->base.programs.launcher, NULL);
                 return;
 
             case KEYBIND_LAUNCH_FILE_MANAGER:
                 lifecycle_dispatch_launch(surface,
-                        config->base.programs.file_manager);
+                        config->base.programs.file_manager, NULL);
                 return;
 
             case KEYBIND_LAUNCH_WEB_BROWSER:
                 lifecycle_dispatch_launch(surface,
-                        config->base.programs.web_browser);
+                        config->base.programs.web_browser, NULL);
                 return;
 
             case KEYBIND_LAUNCH_EDITOR:
                 lifecycle_dispatch_launch(surface,
-                        config->base.programs.editor);
+                        config->base.programs.editor, NULL);
                 return;
 
             case KEYBIND_CLIENT_MOVE_LEFT:

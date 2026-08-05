@@ -628,6 +628,7 @@ static void s_message_draw(xcb_connection_t *connection,
     xcb_free_gc(connection, gc);
 
     /* Message text */
+    text_renderer_init(connection, config->theme.window.active.font);
     text_renderer_set_color(fg_nor, bg_win);
     menu_draw_label(connection, s_message_window,
             lo->msg_x, lo->msg_y, lo->message);

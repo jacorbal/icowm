@@ -523,11 +523,17 @@ static int s_build_desk_entries(surface_td *surface,
         if (d->name[0] != '\0') {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "[%u] -- %s", d_idx, d->name);
+                    "%s [%u] -- %s %s",
+                    MENU_CONTEXT_CTXMENU_LABEL_STR,
+                    d_idx, d->name,
+                    MENU_CONTEXT_CTXMENU_LABEL_STR);
         } else {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "[%u]", d_idx);
+                    "%s [%u] %s",
+                    MENU_CONTEXT_CTXMENU_LABEL_STR,
+                    d_idx,
+                    MENU_CONTEXT_CTXMENU_LABEL_STR);
         }
 
         s_desk_entries[n].type = CTXMENU_COMMAND;
@@ -614,8 +620,6 @@ void wincmenu_show(xcb_connection_t *connection,
         && !client_is_fullscreen(client);
     can_resize = client_is_resizable(client)
         && !client_is_maximized(client)
-        && !client_is_maximized_horz(client)
-        && !client_is_maximized_vert(client)
         && !client_is_fullscreen(client);
     can_shade = (client->properties.flags &
             CLIENT_FLAG_DECORATED) != 0u;

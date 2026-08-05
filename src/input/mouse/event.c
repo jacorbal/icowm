@@ -579,8 +579,8 @@ void mouse_handle_press(xcb_connection_t *connection,
 
             /* Right-click on titlebar or frame: open window context menu */
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
-                    (event->child == client->titlebar ||
-                     event->child == client->frame ||
+                    ((event->child == client->titlebar &&
+                      client->titlebar != 0) ||
                      event->event == client->frame)) {
                 surface = lookup_surface_for_root(surfaces, event->root);
                 if (surface != NULL && desktop != NULL) {
@@ -735,7 +735,8 @@ void mouse_handle_press(xcb_connection_t *connection,
                  * as a drag handle.  A double-click on the same
                  * titlebar within the threshold, toggles shade
                  * instead. */
-                if (!hit_btn) {
+                if (!hit_btn && (xcb_button_index_t) event->detail ==
+                        XCB_BUTTON_INDEX_1) {
                     xcb_timestamp_t dt = event->time -
                         s_last_titlebar_press_time;
                     xcb_window_t prev_win = s_last_titlebar_press_win;
@@ -759,17 +760,20 @@ void mouse_handle_press(xcb_connection_t *connection,
                             surface->is_outdated = true;
                         }
                     } else {
-                        drag_start(connection, event->root, client,
-                                desktop,
-                                CLIENT_OPERATION_MOVING,
-                                event->time,
-                                event->root_x, event->root_y,
-                                (surface != NULL)
-                                    ? surface->properties.dim.w : 0u,
-                                (surface != NULL)
-                                    ? surface->properties.dim.h : 0u,
-                                (config != NULL)
-                                    ? config->base.windows.snap : 0u);
+                        if (!client_is_maximized(client) &&
+                                !client_is_fullscreen(client)) {
+                            drag_start(connection, event->root, client,
+                                    desktop,
+                                    CLIENT_OPERATION_MOVING,
+                                    event->time,
+                                    event->root_x, event->root_y,
+                                    (surface != NULL)
+                                        ? surface->properties.dim.w : 0u,
+                                    (surface != NULL)
+                                        ? surface->properties.dim.h : 0u,
+                                    (config != NULL)
+                                        ? config->base.windows.snap : 0u);
+                        }
                     }
                 } /* ! if (!hit_btn) */
             }
@@ -921,9 +925,7 @@ void mouse_handle_press(xcb_connection_t *connection,
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_FULLSCREEN ||
             client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ)) {
+                (uint16_t) CLIENT_STATE_MAXIMIZED)) {
         xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         xcb_flush(connection);
@@ -954,6 +956,16 @@ void mouse_handle_press(xcb_connection_t *connection,
     if (surface != NULL) {
         screen_w = surface->properties.dim.w;
         screen_h = surface->properties.dim.h;
+    }
+
+
+    if (type == MOUSEBIND_MOVE &&
+            (client_is_maximized(client) ||
+             client_is_fullscreen(client))) {
+        xcb_allow_events(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        xcb_flush(connection);
+        return;
     }
 
     drag_start(connection, event->root, client, desktop,

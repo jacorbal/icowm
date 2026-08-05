@@ -405,6 +405,10 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout);
 int desktop_action_process_launch(desktop_td *desktop,
         const char *executable_path);
 
+
+int desktop_action_process_launch_with_class(desktop_td *desktop,
+        const char *executable_path, const char *class_name);
+
 /**
  * @brief Terminate a process
  *

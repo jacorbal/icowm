@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
@@ -165,6 +166,42 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
 
 
 /**
+ */
+static bool s_ctxmenu_activate_entry(ctxmenu_state_td *state, int idx)
+{
+    ctxmenu_entry_td *e;
+    ctxmenu_state_td *root;
+
+    if (state == NULL || idx < 0 || idx >= state->entry_count) {
+        return false;
+    }
+
+    e = &state->entries[idx];
+    if (e->type == CTXMENU_SEPARATOR || e->type == CTXMENU_LABEL ||
+            e->is_disabled) {
+        return true;
+    }
+
+    if (e->on_activate != NULL) {
+        e->on_activate(state->connection, e->userdata);
+    } else if (e->command[0] != '\0') {
+        lifecycle_dispatch_launch(state->surface,
+                e->command, e->class_name);
+    }
+
+    root = state;
+    while (root->parent != NULL) {
+        root = root->parent;
+    }
+
+    ctxmenu_close(root);
+    return true;
+}
+
+
+
+
+/**
  * @brief Draw a single menu entry row
  *
  * Renders the background, optional selection highlight, and the entry
@@ -248,6 +285,55 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 }
 
 
+/**/
+bool ctxmenu_handle_keypress(ctxmenu_state_td *state,
+        xcb_keysym_t keysym)
+{
+    char target;
+    int match_count;
+    int match_idx;
+
+    if (state == NULL || state->window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    if (keysym > 0xFFu || !isprint((int) keysym)) {
+        return false;
+    }
+
+    target = (char) tolower((int) ((unsigned char) keysym));
+    match_count = 0;
+    match_idx = -1;
+    for (int i = 0; i < state->entry_count; ++i) {
+        const ctxmenu_entry_td *e = &state->entries[i];
+        unsigned char c;
+
+        if (e->is_disabled || e->type == CTXMENU_SEPARATOR ||
+                e->type == CTXMENU_LABEL || e->label[0] == '\0') {
+            continue;
+        }
+
+        c = (unsigned char) e->label[0];
+        if ((char) tolower((int) c) == target) {
+            ++match_count;
+            match_idx = i;
+        }
+    }
+
+    if (match_count == 0 || match_idx < 0) {
+        return false;
+    }
+
+    state->selected = match_idx;
+    ctxmenu_repaint(state);
+    if (match_count == 1) {
+        return s_ctxmenu_activate_entry(state, match_idx);
+    }
+
+    return true;
+}
+
+
 /* Create and show a context menu window */
 void ctxmenu_show(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
@@ -275,6 +361,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     ctxmenu_close(state);
 
     state->connection = connection;
+    state->surface = surface;
     state->config = config;
     state->selected = -1;
 
@@ -360,6 +447,7 @@ void ctxmenu_close(ctxmenu_state_td *state)
     state->width = 0;
     state->height = 0;
     state->connection = NULL;
+    state->surface = NULL;
     state->config = NULL;
 }
 
@@ -391,11 +479,9 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         int x, int y, const config_td *config)
 {
     int idx;
-    ctxmenu_entry_td *e;
     int16_t sub_x;
     int16_t sub_y;
     ctxmenu_state_td *child_state;
-    ctxmenu_state_td *root;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return false;
@@ -406,23 +492,24 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         return false;
     }
 
-    e = &state->entries[idx];
-
-    if (e->type == CTXMENU_SEPARATOR || e->type == CTXMENU_LABEL) {
+    if (state->entries[idx].type == CTXMENU_SEPARATOR ||
+            state->entries[idx].type == CTXMENU_LABEL) {
         return true;    /* consumed but no action */
     }
 
-    if (e->is_disabled) {
+    if (state->entries[idx].is_disabled) {
         return true;
     }
 
-    if (e->type == CTXMENU_SUBMENU) {
+    if (state->entries[idx].type == CTXMENU_SUBMENU) {
         /* Open or re-open the child submenu to the right.
          * The caller stores the child 'ctxmenu_state_td' pointer in the
          * entry's 'userdata' field. */
-        child_state = (ctxmenu_state_td *) e->userdata;
-        if (child_state == NULL || e->items == NULL ||
-                e->item_count <= 0) {
+        child_state =
+            (ctxmenu_state_td *) state->entries[idx].userdata;
+        if (child_state == NULL ||
+                state->entries[idx].items == NULL ||
+                state->entries[idx].item_count <= 0) {
             return true;
         }
 
@@ -431,8 +518,8 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
             state->child = NULL;
         }
 
-        child_state->entries = e->items;
-        child_state->entry_count = e->item_count;
+        child_state->entries = state->entries[idx].items;
+        child_state->entry_count = state->entries[idx].item_count;
         child_state->parent = state;
         child_state->child = NULL;
 
@@ -447,21 +534,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         return true;
     }
 
-    /* 'CTXMENU_COMMAND': invoke callback or launch command */
-    if (e->on_activate != NULL) {
-        e->on_activate(connection, e->userdata);
-    } else if (e->command[0] != '\0') {
-        lifecycle_dispatch_launch(surface, e->command);
-    }
-
-    /* Close the whole menu hierarchy from the root */
-    root = state;
-    while (root->parent != NULL) {
-        root = root->parent;
-    }
-
-    ctxmenu_close(root);
-    return true;
+    return s_ctxmenu_activate_entry(state, idx);
 }
 
 

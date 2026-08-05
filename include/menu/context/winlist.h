@@ -7,10 +7,10 @@
  * the user middle-clicks on the root window (empty desktop).
  *
  * Each desktop group is introduced by a non-clickable label entry of
- * the form "[index] -- <desktop name>" (or "[index]" if the name is
- * empty).  Each client window inside that group is listed as
- * a clickable command entry that focuses and raises the window when
- * activated.
+ * the form "--- [index] -- <desktop name> ---" (or "--- [index] ---" if
+ * the name is empty).  Each client window inside that group is listed
+ * as a a clickable command entry that focuses and raises the window
+ * when activated.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

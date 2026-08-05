@@ -606,6 +606,15 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout)
 int desktop_action_process_launch(desktop_td *desktop,
         const char *executable_path)
 {
+    return desktop_action_process_launch_with_class(desktop,
+            executable_path, NULL);
+}
+
+
+/* Launch a process on the desktop with 'WM_CLASS' override */
+int desktop_action_process_launch_with_class(desktop_td *desktop,
+        const char *executable_path, const char *class_name)
+{
     pid_t pid;
     int err_pipe[2];
     int exec_errno;
@@ -674,6 +683,11 @@ int desktop_action_process_launch(desktop_td *desktop,
 
         wordfree(&words);
         _exit(127);
+    }
+
+    if (class_name != NULL && class_name[0] != '\0') {
+        (void) setenv("RESOURCE_NAME", class_name, 1);
+        (void) setenv("RESOURCE_CLASS", class_name, 1);
     }
 
     /* Parent: close write end and read exec result */

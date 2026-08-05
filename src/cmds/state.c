@@ -261,6 +261,16 @@ void wcmd_client_unshade(client_td *client)
 }
 
 
+/**
+ */
+static void s_client_unshade_if_needed(client_td *client)
+{
+    if (client != NULL && client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+}
+
+
 /* Toggle shading */
 void wcmd_client_toggle_shade(client_td *client)
 {
@@ -507,6 +517,8 @@ void wcmd_client_toggle_decoration(client_td *client)
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
     keep_focus = true;
+
+    s_client_unshade_if_needed(client);
 
     if (client_is_decorated(client)) {  /* Remove decoration */
         if (client->frame != 0) {

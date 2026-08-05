@@ -49,12 +49,14 @@ void lifecycle_scan_existing(wm_td *wm);
  * a launch event for @p prog.  Does nothing if either @p surface or
  * @p prog is @c NULL or empty.
  *
- * @param surface Active surface (screen); may be null
- * @param prog    Program command string to launch; may be null
+ * @param surface    Active surface (screen); may be null
+ * @param prog       Program command string to launch; may be null
+ * @param class_name Program class, may be null
  *
  * @note Complexity: @e O(1)
  */
-void lifecycle_dispatch_launch(surface_td *surface, const char *prog);
+void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
+        const char *class_name);
 
 /**
  * @brief Build and enqueue a launch event for a desktop
