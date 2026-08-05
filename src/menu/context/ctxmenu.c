@@ -238,6 +238,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     uint32_t bg;
     uint32_t fg;
     char label_buf[WM_CTXMENU_LABEL_MAX_LEN + 4];
+    uint16_t arrow_w;
+    int16_t arrow_x;
     xcb_gcontext_t gc;
     uint32_t gc_vals[1];
     xcb_rectangle_t rect;
@@ -289,14 +291,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         return;
     }
 
-    /* Build label string, appending " >" for submenu entries */
-    if (e->type == CTXMENU_SUBMENU) {
-        (void) snprintf(label_buf, sizeof(label_buf),
-                "%s >", e->label);
-    } else {
-        (void) snprintf(label_buf, sizeof(label_buf),
-                "%s", e->label);
-    }
+    (void) snprintf(label_buf, sizeof(label_buf), "%s", e->label);
 
     text_renderer_init(conn, state->config->theme.window.active.font);
     text_renderer_set_color(fg, bg);
@@ -304,6 +299,16 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
             (int16_t) WM_CTXMENU_PAD_X,
             (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
             label_buf);
+
+    if (e->type == CTXMENU_SUBMENU) {
+        arrow_w = menu_draw_measure(MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
+        arrow_x = (int16_t) (state->width - (uint16_t) WM_CTXMENU_PAD_X -
+                arrow_w);
+        menu_draw_label(conn, state->window,
+                arrow_x,
+                (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
+                MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
+    }
 }
 
 

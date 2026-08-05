@@ -42,6 +42,7 @@
 #include <lookup.h>
 #include <render/text.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>
@@ -128,6 +129,8 @@ static struct {
  */
 static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
 {
+    const char *caption;
+
     if (connection == NULL || s_drag.client == NULL ||
             s_drag.client->theme == NULL ||
             s_drag.client->icon_window == 0) {
@@ -143,6 +146,26 @@ static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
             });
     xcb_clear_area(connection, 0,
             s_drag.client->icon_window, 0, 0, 0, 0);
+
+    if (!s_drag.client->theme->icon.general.is_captioned ||
+            s_drag.client->info.name == NULL) {
+        return;
+    }
+
+    caption = (s_drag.client->icon_info.visible_icon_name != NULL &&
+            s_drag.client->icon_info.visible_icon_name[0] != '\0')
+        ? s_drag.client->icon_info.visible_icon_name
+        : s_drag.client->info.name;
+
+    text_renderer_init(connection,
+            s_drag.client->theme->icon.active.font);
+    text_renderer_set_color(
+            s_drag.client->theme->icon.active.foreground_color,
+            s_drag.client->theme->icon.active.background_color);
+    text_draw_string(connection, s_drag.client->icon_window, XCB_NONE,
+            2,
+            (int16_t) (WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u),
+            caption);
 }
 
 
@@ -300,7 +323,7 @@ static void s_drag_overlay_show(xcb_connection_t *connection,
     s_drag.overlay_is_icon = is_icon;
 
     (void) text_renderer_init(connection,
-            is_icon
+            (is_icon)
                 ? s_drag.client->theme->icon.active.font
                 : s_drag.client->theme->window.active.font);
     text_w = text_measure_string(s_drag.overlay_text);
@@ -316,10 +339,10 @@ static void s_drag_overlay_show(xcb_connection_t *connection,
         s_drag.overlay_window = xcb_generate_id(connection);
         create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-        create_values[0] = is_icon
+        create_values[0] = (is_icon)
             ? s_drag.client->theme->icon.active.background_color
             : s_drag.client->theme->window.active.background_color;
-        create_values[1] = is_icon
+        create_values[1] = (is_icon)
             ? s_drag.client->theme->icon.active.border_color
             : s_drag.client->theme->window.active.border_color;
         create_values[2] = 1u;
@@ -954,6 +977,18 @@ void drag_end(xcb_connection_t *connection,
 
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
         s_drag.client->is_icon_mapped = s_drag.icon_was_mapped;
+
+        if (connection != NULL && s_drag.drag_window != XCB_WINDOW_NONE &&
+                s_drag.drag_window == s_drag.client->icon_window) {
+            xcb_clear_area(connection, 0, s_drag.client->icon_window,
+                    0, 0, 0, 0);
+
+            /* Request a full repaint so the icon returns to its normal
+             * (inactive) appearance after being shown in active colors
+             * during the drag */
+            wm_request_client_redraw(s_drag.client);
+        }
+
         if (finalize_resize) {
             (void) client_send_event_resize(s_drag.client,
                     s_drag.client->layout.geometry.cur.pos.x,

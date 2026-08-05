@@ -52,7 +52,7 @@
  * Used by @c winlist_show to decorate desktop label entries.
  * Change this token to alter the visual style of all label entries.
  */
-#define MENU_CONTEXT_CTXMENU_LABEL_PREFIX "--- "
+#define MENU_CONTEXT_CTXMENU_LABEL_PREFIX ""    //"--- "
 
 /**
  * @brief Label suffix appended to non-clickable desktop headings
@@ -60,7 +60,11 @@
  * Paired with @c MENU_CONTEXT_CTXMENU_LABEL_PREFIX to form the full
  * decoration.
  */
-#define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX " ---"
+#define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX ""    //" ---"
+
+/**
+ */
+#define MENU_CONTEXT_CTXMENU_SUBMENU_ARROW ">"
 
 
 /**

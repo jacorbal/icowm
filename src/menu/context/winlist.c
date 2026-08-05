@@ -131,6 +131,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
 {
     winlist_entry_data_td *data;
     action_data_surface_td sdata;
+    uint32_t target_did;
 
     (void) connection;
 
@@ -139,12 +140,31 @@ static void s_cb_focus_client(xcb_connection_t *connection,
         return;
     }
 
+    target_did = (data->client != NULL)
+        ? data->client->desktop_id
+        : data->desktop_id;
+
     sdata.surface = data->surface;
     sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    sdata.new_data.uvalue = data->desktop_id;
+    sdata.new_data.uvalue = target_did;
     scmd_surface_desktop_switch(data->surface, &sdata);
     if (data->client == NULL) {
         return;
+    }
+
+    /* Restore the window that was selected */
+    if (data->client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        if (data->client->properties.state ==
+                (uint16_t) CLIENT_STATE_ICONIFIED) {
+            (void) client_send_event_restore(data->client);
+        } else {
+            (void) client_send_event(data->client,
+                    ACTION_CLIENT_UNHIDE, PRIORITY_NORMAL);
+        }
+    }
+    if (client_is_shaded(data->client)) {
+        (void) client_send_event(data->client,
+                ACTION_CLIENT_UNSHADE, PRIORITY_NORMAL);
     }
 
     (void) client_send_event(data->client,
@@ -195,8 +215,7 @@ static void s_format_client_label(const client_td *client,
  * @param client      Client to add
  * @param did         Desktop section this entry belongs to
  * @param surface     Surface that owns the desktop
- * @param entry_count In/out: current number of entries; updated on
- *                    return
+ * @param entry_count Current number of entries; updated on return
  */
 static void s_append_client_entry(client_td *client, uint32_t did,
         surface_td *surface, int *entry_count)
@@ -301,8 +320,8 @@ static void s_add_sticky_clients(surface_td *surface, uint32_t did,
  *
  * @param surface     Surface that owns the desktop
  * @param did         Desktop ID whose clients are to be listed
- * @param entry_count In/out: current number of entries; updated on
- *                    return to reflect the entries appended
+ * @param entry_count Current number of entries; updated on return to
+ *                    reflect the entries appended
  */
 static void s_add_desktop_clients(surface_td *surface, uint32_t did,
         int *entry_count)
@@ -328,7 +347,7 @@ static void s_add_desktop_clients(surface_td *surface, uint32_t did,
         }
 
         /* Include every client physically stored in this desktop's hash
-         * table whose desktop_id matches.  Sticky clients that happen
+         * table whose 'desktop_id' matches.  Sticky clients that happen
          * to be stored here (because this is the current desktop) are
          * also included; sticky clients stored in other desktops are
          * added separately by 's_add_sticky_clients'. */

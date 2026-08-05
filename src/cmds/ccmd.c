@@ -169,6 +169,7 @@ void wcmd_client_restore(client_td *client)
 {
     xcb_window_t target;
     xcb_atom_t icon_geom_atom;
+    bool was_iconified;
 
     if (client == NULL) {
         return;
@@ -180,6 +181,10 @@ void wcmd_client_restore(client_td *client)
         wcmd_client_unfullscreen(client);
         return;
     }
+
+    /* Remember whether we are restoring from an iconified state so the
+     * window can be raised and focused afterwards */
+    was_iconified = client_is_iconified(client);
 
     target = wcmd_target_win(client);
     client_geometry_restore(client);
@@ -212,6 +217,22 @@ void wcmd_client_restore(client_td *client)
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
+
+    /* When restoring from an icon, raise the client to the top of the
+     * desktop stacking order and give it real input focus so that
+     * keyboard shortcuts and other window manager operations target
+     * this window immediately, rather than whichever window was
+     * previously active */
+    if (was_iconified && client_is_focusable(client)) {
+        desktop_td *desktop = wm_get_client_desktop(client);
+        if (desktop != NULL) {
+            desktop->client_active_id = client->id;
+            desktop->focus_dirty = true;
+            (void) desktop_action_client_send_front(desktop, client);
+            desktop->is_outdated = true;
+        }
+        wcmd_client_focus(client);
+    }
 
     wm_request_client_redraw(client);
 }
@@ -562,6 +583,22 @@ void wcmd_client_unhide(client_td *client)
 
     wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+
+    /* Raise the unhidden client to the top of the desktop stacking
+     * order and give it real input focus, matching the deiconify
+     * behaviour, so that clicking a hidden window in the window menu
+     * immediately activates it for keyboard input */
+    if (client_is_focusable(client)) {
+        desktop_td *desktop = wm_get_client_desktop(client);
+        if (desktop != NULL) {
+            desktop->client_active_id = client->id;
+            desktop->focus_dirty = true;
+            (void) desktop_action_client_send_front(desktop, client);
+            desktop->is_outdated = true;
+        }
+        wcmd_client_focus(client);
+    }
+    wm_request_client_redraw(client);
 }
 
 
