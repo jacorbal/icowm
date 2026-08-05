@@ -10,13 +10,13 @@
  * @code
  * ----------------------
  * Reload configuration
- * Redraw
+ * Redraw all windows
  * ----------------------
  * Exit
  * @endcode
  *
- * "Reload configuration", "Redraw", and "Exit" map directly to the
- * corresponding window manager keyboard actions.
+ * "Reload configuration", "Redraw all windows", and "Exit" map directly
+ * to the corresponding window manager keyboard actions.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

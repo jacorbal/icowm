@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* calloc, free */
-#include <string.h>     /* memcpy, strlen */
+#include <string.h>     /* memcpy, strlen, snprintf */
 #include <sys/types.h>  /* pid_t */
 
 /* XCB includes */
@@ -32,10 +32,16 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Menu includes */
+#include <menu/dialog/info.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <cmds/dcmd.h>
@@ -197,16 +203,44 @@ void dcmd_desktop_client_rem(desktop_td *desktop,
 void dcmd_desktop_client_send(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
+    client_td *client;
+    surface_td *surface;
+    xcb_window_t target;
+
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->client == NULL ||
             desktop_data->target == NULL) {
         return;
     }
 
-    desktop_action_client_rem(desktop, desktop_data->client);
-    desktop_action_client_add(desktop_data->target,
-            desktop_data->client);
-    desktop_data->client->desktop_id = desktop_data->target->id;
+    client = desktop_data->client;
+
+    /* If the client is currently visible on the active desktop, unmap
+     * it immediately so it disappears from the source desktop without
+     * waiting for the user to switch away */
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface != NULL &&
+            desktop->id == surface->desktop_cur &&
+            !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+            client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
+        target = (client_is_decorated(client) && client->frame != 0)
+            ? client->frame : client->window;
+        client->ignore_unmap += 2u;
+        if (client->titlebar != 0) {
+            client->ignore_unmap += 1u;
+            xcb_unmap_window(surface->connection, client->titlebar);
+        }
+        xcb_unmap_window(surface->connection, target);
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(surface->connection, client->icon_window);
+            client->is_icon_mapped = false;
+        }
+        xcb_flush(surface->connection);
+    }
+
+    desktop_action_client_rem(desktop, client);
+    desktop_action_client_add(desktop_data->target, client);
+    client->desktop_id = desktop_data->target->id;
 }
 
 
@@ -348,13 +382,37 @@ void dcmd_desktop_layout(desktop_td *desktop,
 pid_t dcmd_desktop_process_launch(desktop_td *desktop,
         action_data_desktop_td *desktop_data)
 {
+    int result;
+    char msg[256];
+    surface_td *surface;
+    const config_td *config;
+
     if (desktop == NULL || desktop_data == NULL ||
             desktop_data->new_data.str == NULL) {
         return -1;
     }
 
-    return (pid_t) desktop_action_process_launch(desktop,
+    result = desktop_action_process_launch(desktop,
             desktop_data->new_data.str);
+
+    if (result == -2) {
+        /* 'execvp' failed: already logged by
+         * 'desktop_action_process_launch'.  Also show an informational
+         * dialog so the user gets feedback. */
+        (void) snprintf(msg, sizeof(msg),
+                "Cannot launch: '%s'", desktop_data->new_data.str);
+
+        surface = wm_get_surface_by_id(desktop->screen_id);
+        config = (surface != NULL) ? surface->config : NULL;
+        if (surface != NULL && config != NULL &&
+                surface->connection != NULL) {
+            dialog_info_show(surface->connection, surface, config,
+                    msg, MENU_MSG_LEVEL_WARNING);
+        }
+        return -1;
+    }
+
+    return (pid_t) result;
 }
 
 

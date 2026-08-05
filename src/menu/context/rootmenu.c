@@ -16,14 +16,18 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdlib.h>     /* malloc, free, calloc */
-#include <string.h>     /* memset, strncpy, snprintf */
+#include <string.h>     /* memset, snprintf */
 #include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Project includes */
 #include <config.h>
+#include <logger.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -34,12 +38,20 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/menujson.h>
 #include <menu/context/rootmenu.h>
+#include <menu/dialog/quit.h>
+
+
+/** Surface stored at open time (needed by the exit callback) */
+static surface_td *s_surface = NULL;
+
+/** Config stored at open time (needed by the exit callback) */
+static const config_td *s_config = NULL;
 
 
 /**
  * @brief Number of fixed footer entries appended after the JSON
- *        entries: separator, "Reload configuration", "Redraw",
- *        separator, "Exit"
+ *        entries: separator, "Reload configuration", "Redraw all
+ *        windows", separator, "Exit"
  */
 #define ROOTMENU_FOOTER_COUNT (5)
 
@@ -72,7 +84,7 @@ static int s_json_count = 0;
 
 
 /**
- * @brief Callback: reload the WM configuration
+ * @brief Callback: reload the window manager configuration
  *
  * @param connection XCB connection (unused)
  * @param userdata   Unused
@@ -81,6 +93,7 @@ static void s_cb_reload(xcb_connection_t *connection, void *userdata)
 {
     (void) connection;
     (void) userdata;
+    LOGGER_DEBUG("Reloading root menu configuration", L_NARG);
     (void) wm_action_config_reload();
 }
 
@@ -100,16 +113,21 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
 
 
 /**
- * @brief Callback: request window manager exit
+ * @brief Callback: open the quit confirmation dialog
  *
- * @param connection XCB connection (unused)
+ * Shows the same confirmation dialog as the keyboard "exit" binding
+ * instead of exiting directly.
+ *
+ * @param connection XCB connection
  * @param userdata   Unused
  */
 static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 {
-    (void) connection;
     (void) userdata;
-    (void) wm_action_exit();
+
+    if (connection != NULL && s_surface != NULL && s_config != NULL) {
+        dialog_quit_show(connection, s_surface, s_config);
+    }
 }
 
 
@@ -132,6 +150,10 @@ void rootmenu_show(xcb_connection_t *connection,
     }
 
     rootmenu_close();
+
+    /* Cache surface and config for use by the exit callback */
+    s_surface = surface;
+    s_config = config;
 
     /* Build path to menu.json */
     if (config_dir != NULL && config_dir[0] != '\0') {
@@ -156,7 +178,10 @@ void rootmenu_show(xcb_connection_t *connection,
     (void) menujson_load(menu_path, &json_entries, &json_count);
 
     /* Total entries: JSON entries + footer */
-    n = json_count + ROOTMENU_FOOTER_COUNT;
+    /* The leading separator is only added when JSON entries are present
+     * so the footer is not preceded by a bare separator when
+     * 'menu.json' is missing or empty */
+    n = json_count + ROOTMENU_FOOTER_COUNT - (json_count == 0 ? 1 : 0);
     if (n > ROOTMENU_MAX_ENTRIES) {
         n = ROOTMENU_MAX_ENTRIES;
     }
@@ -169,28 +194,30 @@ void rootmenu_show(xcb_connection_t *connection,
     }
 
     /* Copy JSON-loaded entries */
-    copy_count = (json_count < n - ROOTMENU_FOOTER_COUNT)
-        ? json_count : (n - ROOTMENU_FOOTER_COUNT);
+    copy_count = json_count;
     for (int i = 0; i < copy_count; ++i) {
         s_entries[i] = json_entries[i];
     }
     s_json_entries = json_entries;
     s_json_count = json_count;
 
-    /* Footer: separator, Reload, Redraw, separator, Exit */
+    /* Footer: [<separator> if JSON is present], Reload, Redraw,
+     * <separator>, Exit */
     fi = copy_count;
 
-    s_entries[fi].type = CTXMENU_SEPARATOR;
-    ++fi;
+    if (copy_count > 0) {
+        s_entries[fi].type = CTXMENU_SEPARATOR;
+        ++fi;
+    }
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    strncpy(s_entries[fi].label, "Reload configuration",
+    safe_strncpy(s_entries[fi].label, "Reload configuration",
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_reload;
     ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    strncpy(s_entries[fi].label, "Redraw",
+    safe_strncpy(s_entries[fi].label, "Redraw all windows",
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_redraw;
     ++fi;
@@ -199,7 +226,7 @@ void rootmenu_show(xcb_connection_t *connection,
     ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    strncpy(s_entries[fi].label, "Exit",
+    safe_strncpy(s_entries[fi].label, "Exit",
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_exit;
     ++fi;
@@ -230,7 +257,10 @@ void rootmenu_close(void)
         free(s_entries);
         s_entries = NULL;
     }
+
     s_entry_count = 0;
+    s_surface = NULL;
+    s_config = NULL;
 }
 
 

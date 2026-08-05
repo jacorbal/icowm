@@ -39,7 +39,11 @@ values, and built-in default value.
    - [6.4 Apply fields](#64-apply-fields)
 7. [`session.json` -- Session lifecycle hooks](#7-sessionjson--session-lifecycle-hooks)
    - [7.1 Hook arrays](#71-hook-arrays)
-8. [Full examples](#8-full-examples)
+8. [`menu.json` -- Root desktop menu](#8-menujson----root-desktop-menu)
+   - [8.1 Top-level structure](#81-top-level-structure)
+   - [8.2 Entry types](#82-entry-types)
+   - [8.3 Entry fields reference](#83-entry-fields-reference)
+9. [Full examples](#9-full-examples)
 
 ---
 
@@ -61,6 +65,7 @@ Inside that directory the expected file tree is:
 ~/.icowm/
 ├── config.json       Base configuration
 ├── bindings.json     Keyboard & mouse bindings
+├── menu.json         Root desktop menu entries
 ├── randr.json        XRandR output profiles
 ├── rules.json        Optional matching rules per-window
 ├── session.json      Command lists run at start, end, or on config. reload
@@ -393,9 +398,9 @@ modifier uses one of these aliases.
 |--------|-----------------|-------------------------------|
 | `modc` | `Control`       | Control key                   |
 | `mods` | `Shift`         | Shift key                     |
-| `modl` | `Caps\_Lock`    | Caps Lock                     |
+| `modl` | `Caps_Lock`    | Caps Lock                     |
 | `mod1` | `Alt`           | Alt / Meta key                |
-| `mod2` | `Num\_Lock`     | Num Lock                      |
+| `mod2` | `Num_Lock`     | Num Lock                      |
 | `mod3` | `""`            | Unassigned (empty by default) |
 | `mod4` | `Super`         | Super / Windows key           |
 | `mod5` | `Hyper`         | Hyper key                     |
@@ -434,7 +439,7 @@ Actions performed on the currently focused window.
 
 | Key            | Default binding         | Action |
 |----------------|-------------------------|--------|
-| `close`        | `modc+mod1+c`           | Send `WM\_DELETE\_WINDOW` to politely close the window. |
+| `close`        | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
 | `kill`         | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
 | `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
 | `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
@@ -659,7 +664,7 @@ Appearance of icons that do not have focus.
 >    appear in any order, except that `registry-encoding` (if given)
 >    must come last.  `registry-encoding` is any token that contains
 >    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
->    two XLFD fields (`charset\_registry` and `charset\_encoding`).
+>    two XLFD fields (`charset_registry` and `charset_encoding`).
 >
 >   Examples:
 >    - `"fixed"` -- the `fixed` alias (available on every X server)
@@ -821,11 +826,11 @@ fields match the current window.
 
 | Key               | Type    | Default | Description |
 |-------------------|---------|---------|-------------|
-| `match.instance`  | string  | unset   | Match the first string in `WM\_CLASS` (instance name). |
-| `match.class`     | string  | unset   | Match the second string in `WM\_CLASS` (class name). |
-| `match.role`      | string  | unset   | Match `WM\_WINDOW\_ROLE`. |
+| `match.instance`  | string  | unset   | Match the first string in `WM_CLASS` (instance name). |
+| `match.class`     | string  | unset   | Match the second string in `WM_CLASS` (class name). |
+| `match.role`      | string  | unset   | Match `WM_WINDOW_ROLE`. |
 | `match.title`     | string  | unset   | Match the current window title. |
-| `match.type`      | string  | unset   | Match `\_NET\_WM\_WINDOW\_TYPE`. |
+| `match.type`      | string  | unset   | Match `_NET_WM_WINDOW_TYPE`. |
 | `match.transient` | boolean | unset   | Match whether the window is transient for another window. |
 
 String matches use shell-style glob patterns, so `\*` matches any
@@ -851,12 +856,12 @@ matching rule for each property are applied.
 | `apply.size.width`      | integer | unset   | Window width in pixels; must be greater than `0`. |
 | `apply.size.height`     | integer | unset   | Window height in pixels; must be greater than `0`. |
 
-Position (`position.x`, `position.y`) and size (`size.width`, `size.height`)
-are applied independently via separate JSON objects.  Specifying only
-`position` moves the window without resizing it; specifying only `size` resizes
-it without moving it; both objects may be present to set position and size at
-once.  Both `size.width` and `size.height` are only accepted when are greater
-than `0`.
+Position (`position.x`, `position.y`) and size (`size.width`,
+`size.height`) are applied independently via separate JSON objects.
+Specifying only `position` moves the window without resizing it;
+specifying only `size` resizes it without moving it; both objects may be
+present to set position and size at once.  Both `size.width` and
+`size.height` are only accepted when are greater than `0`.
 
 ## 7. `session.json` -- Session lifecycle hooks
 
@@ -869,7 +874,7 @@ independently from the window manager; IcoWM only logs their start and
 eventual termination status.
 
 Command substitution is disabled.  Environment-variable expansion may
-also be disabled on platforms that provide `WRDE\_NOENV`.
+also be disabled on platforms that provide `WRDE_NOENV`.
 
 If the "emergency shortcut" is used to exit, all pending session hooks
 will be ignored.
@@ -885,7 +890,89 @@ will be ignored.
 Only non-empty string entries are used; all other array items are
 ignored.
 
-## 8. Full examples
+## 8. `menu.json` -- Root desktop menu
+
+`menu.json` defines the user-configurable entries that appear when the
+user right-clicks on the empty desktop (root window).  The file is
+**optional**; when it is absent or cannot be parsed, the built-in footer
+(`Reload configuration`, `Redraw all windows`, `Exit`) is still shown
+without any preceding separator.
+
+### 8.1 Top-level structure
+
+The file must contain a single JSON object with one key: `"menu"`, whose
+value is a JSON array of entry objects.
+
+```json
+{
+    "menu": [
+        { ... },
+        { ... }
+    ]
+}
+```
+
+### 8.2 Entry types
+
+Each entry object must have a `"type"` string field.  Four types are
+supported:
+
+| `"type"`      | Description                                           |
+|---------------|-------------------------------------------------------|
+| `"command"`   | Clickable item that launches an application           |
+| `"separator"` | Horizontal dividing line (no other fields needed)     |
+| `"label"`     | Non-clickable section heading (shown as `--- ... ---`)|
+| `"submenu"`   | Nested sub-menu revealed on hover/click               |
+
+### 8.3 Entry fields reference
+
+#### `"command"` entry
+
+| Field       | Type   | Required | Description                            |
+|-------------|--------|----------|----------------------------------------|
+| `"type"`    | string | yes      | Must be `"command"`                    |
+| `"name"`    | string | yes      | Label text shown in the menu           |
+| `"command"` | string | yes      | Shell command or program to execute    |
+
+The `"command"` value is passed through `wordexp(3)` so environment
+variables and simple shell expansions (`~`, `$HOME`, …) are supported.
+Command injection via sub-shells is **disabled** (`WRDE_NOCMD`).
+
+If the command cannot be executed, IcoWM logs a warning and shows an
+informational dialog so the user is notified immediately.
+
+#### `"separator"` entry
+
+| Field    | Type   | Required | Description         |
+|----------|--------|----------|---------------------|
+| `"type"` | string | yes      | Must be `"separator"` |
+
+No other fields are used.
+
+#### `"label"` entry
+
+| Field    | Type   | Required | Description                      |
+|----------|--------|----------|----------------------------------|
+| `"type"` | string | yes      | Must be `"label"`                |
+| `"name"` | string | yes      | Section heading text to display  |
+
+Labels are rendered with `--- ` prepended and ` ---` appended so the
+user can distinguish them from clickable items at a glance.
+
+#### `"submenu"` entry
+
+| Field     | Type   | Required | Description                              |
+|-----------|--------|----------|------------------------------------------|
+| `"type"`  | string | yes      | Must be `"submenu"`                      |
+| `"name"`  | string | yes      | Label text shown in the parent menu      |
+| `"items"` | array  | yes      | Nested array of entry objects (any type) |
+
+Sub-menus can be nested to the depth limit defined by
+`WM_CTXMENU_MAX_DEPTH` (default: 4).
+
+---
+
+## 9. Full examples
 
 ### `config.json`
 
@@ -1097,6 +1184,37 @@ ignored.
     }
 }
 ```
+
+### `menu.json`
+
+```json
+{
+    "menu": [
+        { "type": "label",   "name": "Applications" },
+        { "type": "command", "name": "Terminal",  "command": "xterm" },
+        { "type": "command", "name": "Browser",   "command": "firefox" },
+        { "type": "command", "name": "Mail",      "command": "thunderbird" },
+        { "type": "separator" },
+        { "type": "label",   "name": "Editors" },
+        {
+            "type": "submenu",
+            "name": "Text editors",
+            "items": [
+                { "type": "command", "name": "Vim",    "command": "xterm -e vim" },
+                { "type": "command", "name": "Emacs",  "command": "emacs" },
+                { "type": "command", "name": "Gedit",  "command": "gedit" }
+            ]
+        },
+        { "type": "separator" },
+        { "type": "command", "name": "Lock screen", "command": "xsecurelock" }
+    ]
+}
+```
+
+The fixed footer entries (`Reload configuration`, `Redraw`, `Exit`) are
+always appended after the user-defined entries and cannot be overridden.
+The `Exit` entry opens the same quit-confirmation dialog as the keyboard
+`exit` binding.
 
 ### `rules.json`
 

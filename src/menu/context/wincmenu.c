@@ -20,10 +20,13 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* malloc, free, calloc */
-#include <string.h>     /* strncpy, memset */
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <actdata.h>
@@ -42,6 +45,9 @@
 #include <cmds/ccmd.h>
 #include <cmds/layer.h>
 #include <cmds/state.h>
+
+/* Input includes */
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -172,6 +178,7 @@ static void s_cb_sticky(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_TOGGLE_STICKY, PRIORITY_NORMAL);
@@ -187,6 +194,7 @@ static void s_cb_layer_above(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_LAYER_ABOVE, PRIORITY_NORMAL);
@@ -202,6 +210,7 @@ static void s_cb_layer_normal(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_LAYER_NORMAL, PRIORITY_NORMAL);
@@ -217,6 +226,7 @@ static void s_cb_layer_below(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_LAYER_BELOW, PRIORITY_NORMAL);
@@ -232,6 +242,7 @@ static void s_cb_restore(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_RESTORE, PRIORITY_NORMAL);
@@ -240,37 +251,117 @@ static void s_cb_restore(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback: move the client (interactive keyboard-driven move)
+ * @brief Callback: move the client (interactive pointer-driven move)
  *
- * Requests a move start via the existing @c ACTION_CLIENT_MOVE action.
- * The interactive keyboard-driven move mode is handled by the keyboard
- * event handler when this action is received with no geometry data.
+ * Warps the pointer to the window's centre, then starts a drag so that
+ * subsequent pointer motion moves the window interactively.
  */
 static void s_cb_move(xcb_connection_t *connection,
         void *userdata)
 {
-    (void) connection;
+    xcb_screen_t *screen;
+    surface_td *surface;
+    uint32_t screen_w;
+    uint32_t screen_h;
+    int16_t cx;
+    int16_t cy;
+
     (void) userdata;
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_MOVE, PRIORITY_NORMAL);
+
+    if (s_target_client == NULL || connection == NULL) {
+        return;
     }
+
+    /* Cannot move a fully-maximized or fullscreen window */
+    if (client_is_maximized(s_target_client) ||
+            client_is_fullscreen(s_target_client)) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(s_target_client->screen_id);
+    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen = (surface != NULL) ? surface->screen : NULL;
+
+    /* Warp pointer to the window centre so drag feedback is immediate */
+    cx = (int16_t) (s_target_client->layout.geometry.cur.pos.x +
+            (int16_t) (s_target_client->layout.geometry.cur.dim.w / 2u));
+    cy = (int16_t) (s_target_client->layout.geometry.cur.pos.y +
+            (int16_t) (s_target_client->layout.geometry.cur.dim.h / 2u));
+
+    if (screen != NULL) {
+        xcb_warp_pointer(connection, XCB_NONE, screen->root,
+                0, 0, 0, 0, cx, cy);
+        xcb_flush(connection);
+    }
+
+    drag_start(connection,
+            (screen != NULL) ? screen->root : XCB_WINDOW_NONE,
+            s_target_client, s_desktop,
+            CLIENT_OPERATION_MOVING,
+            XCB_CURRENT_TIME,
+            cx, cy,
+            screen_w, screen_h,
+            (surface != NULL && surface->config != NULL)
+                ? surface->config->base.windows.snap : 0u);
 }
 
 
 /**
- * @brief Callback: resize the client (interactive keyboard-driven
- *        resize)
+ * @brief Callback: resize the client (interactive pointer-driven resize)
+ *
+ * Warps the pointer to the bottom-right corner of the window, then
+ * starts a resize drag so that subsequent pointer motion resizes the
+ * window interactively.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
 {
-    (void) connection;
+    xcb_screen_t *screen;
+    surface_td *surface;
+    uint32_t screen_w;
+    uint32_t screen_h;
+    int16_t rx;
+    int16_t ry;
+
     (void) userdata;
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_RESIZE, PRIORITY_NORMAL);
+
+    if (s_target_client == NULL || connection == NULL) {
+        return;
     }
+
+    if (!client_is_resizable(s_target_client) ||
+            client_is_maximized(s_target_client) ||
+            client_is_fullscreen(s_target_client)) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(s_target_client->screen_id);
+    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen = (surface != NULL) ? surface->screen : NULL;
+
+    /* Warp pointer to the bottom-right corner for resize feedback */
+    rx = (int16_t) (s_target_client->layout.geometry.cur.pos.x +
+            (int16_t) s_target_client->layout.geometry.cur.dim.w - 1);
+    ry = (int16_t) (s_target_client->layout.geometry.cur.pos.y +
+            (int16_t) s_target_client->layout.geometry.cur.dim.h - 1);
+
+    if (screen != NULL) {
+        xcb_warp_pointer(connection, XCB_NONE, screen->root,
+                0, 0, 0, 0, rx, ry);
+        xcb_flush(connection);
+    }
+
+    drag_start(connection,
+            (screen != NULL) ? screen->root : XCB_WINDOW_NONE,
+            s_target_client, s_desktop,
+            CLIENT_OPERATION_RESIZING,
+            XCB_CURRENT_TIME,
+            rx, ry,
+            screen_w, screen_h,
+            (surface != NULL && surface->config != NULL)
+                ? surface->config->base.windows.snap : 0u);
 }
 
 
@@ -282,6 +373,7 @@ static void s_cb_iconify(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_ICONIFY, PRIORITY_NORMAL);
@@ -297,6 +389,7 @@ static void s_cb_hide(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_HIDE, PRIORITY_NORMAL);
@@ -312,6 +405,7 @@ static void s_cb_maximize(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_MAXIMIZE, PRIORITY_NORMAL);
@@ -327,6 +421,7 @@ static void s_cb_shade(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_TOGGLE_SHADE, PRIORITY_NORMAL);
@@ -336,13 +431,21 @@ static void s_cb_shade(xcb_connection_t *connection,
 
 /**
  * @brief Callback: toggle decoration
+ *
+ * A rolled-up (shaded) window must be unrolled before its decoration
+ * can be toggled, because the decorated titlebar is what keeps the
+ * shade state meaningful.
  */
 static void s_cb_decorate(xcb_connection_t *connection,
         void *userdata)
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
+        if (client_is_shaded(s_target_client)) {
+            wcmd_client_unshade(s_target_client);
+        }
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_TOGGLE_DECORATION, PRIORITY_NORMAL);
     }
@@ -357,6 +460,7 @@ static void s_cb_close(xcb_connection_t *connection,
 {
     (void) connection;
     (void) userdata;
+
     if (s_target_client != NULL) {
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_CLOSE, PRIORITY_NORMAL);
@@ -379,7 +483,7 @@ static void s_entry_command(ctxmenu_entry_td *e, const char *label,
 {
     memset(e, 0, sizeof(*e));
     e->type = CTXMENU_COMMAND;
-    strncpy(e->label, label, sizeof(e->label) - 1u);
+    safe_strncpy(e->label, label, sizeof(e->label) - 1u);
     e->on_activate = cb;
     e->userdata = userdata;
     e->is_disabled = is_disabled;
@@ -437,7 +541,7 @@ static int s_build_desk_entries(surface_td *surface,
     }
 
     /* 'All desktops' entry for sticky support */
-    strncpy(s_desk_entries[n].label, "All desktops",
+    safe_strncpy(s_desk_entries[n].label, "All desktops",
             sizeof(s_desk_entries[n].label) - 1u);
     s_desk_entries[n].type = CTXMENU_COMMAND;
     s_desk_entries[n].is_disabled = is_sticky;
@@ -500,13 +604,18 @@ void wincmenu_show(xcb_connection_t *connection,
     s_surface = surface;
     s_desktop = desktop;
 
-    /* Determine disabled states */
+    /* Determine disabled states.
+     * A window that is only partially maximized (horizontal or vertical
+     * only) can still be moved, but fully-maximized and fullscreen
+     * windows cannot be moved or resized at all. */
     can_restore = client_is_maximized(client)
         || client_is_fullscreen(client);
     can_move = !client_is_maximized(client)
         && !client_is_fullscreen(client);
     can_resize = client_is_resizable(client)
         && !client_is_maximized(client)
+        && !client_is_maximized_horz(client)
+        && !client_is_maximized_vert(client)
         && !client_is_fullscreen(client);
     can_shade = (client->properties.flags &
             CLIENT_FLAG_DECORATED) != 0u;
@@ -535,7 +644,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Send to desktop (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;
-    strncpy(s_entries[n].label, "Send to desktop",
+    safe_strncpy(s_entries[n].label, "Send to desktop",
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_desk_entries;
     s_entries[n].item_count = desk_count;
@@ -544,7 +653,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Layer (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;
-    strncpy(s_entries[n].label, "Layer",
+    safe_strncpy(s_entries[n].label, "Layer",
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_layer_entries;
     s_entries[n].item_count = WINCMENU_LAYER_COUNT;
@@ -577,7 +686,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     s_entry_command(&s_entries[n], "Maximize",
             s_cb_maximize, NULL,
-            !client_is_resizable(client));
+            !client_is_resizable(client) || client_is_maximized(client));
     ++n;
 
     s_entry_command(&s_entries[n], "Roll up/down",

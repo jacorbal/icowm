@@ -12,16 +12,19 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* fork, execvp */
+#define _POSIX_C_SOURCE 200112L /* execvp, fork, pipe */
 
 
 /* System includes */
+#include <errno.h>      /* errno */
+#include <fcntl.h>      /* fcntl, F_SETFD, FD_CLOEXEC */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL */
+#include <string.h>     /* strerror */
 #include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
-#include <unistd.h>     /* fork, execvp, _exit, close */
+#include <unistd.h>     /* execvp, _exit, fork, close, pipe, read */
 #include <wordexp.h>    /* wordexp, wordfree */
 
 /* XCB includes */
@@ -604,7 +607,9 @@ int desktop_action_process_launch(desktop_td *desktop,
         const char *executable_path)
 {
     pid_t pid;
-
+    int err_pipe[2];
+    int exec_errno;
+    ssize_t nread;
 
     if (desktop == NULL || executable_path == NULL ||
             executable_path[0] == '\0') {
@@ -616,27 +621,36 @@ int desktop_action_process_launch(desktop_td *desktop,
     LOGGER_TRACE("Launching process for '%s' on desktop %u ('%s')",
             executable_path, desktop->id, desktop->name);
 
+    /* Create a close-on-exec pipe so the parent can detect 'execvp'
+     * failures.  If 'exec' succeeds the write end is closed by the
+     * kernel ('FD_CLOEXEC') and the parent reads 0 bytes.  If 'exec'
+     * fails the child writes 'errno' and exits. */
+    if (pipe(err_pipe) != 0) {
+        LOGGER_ERROR("Failed to create error pipe for '%s'",
+                executable_path);
+        return 1;
+    }
+    (void) fcntl(err_pipe[1], F_SETFD, FD_CLOEXEC);
+
     pid = fork();
     if (pid < 0) {
         LOGGER_ERROR("Failed to fork process for executable '%s'",
                 executable_path);
+        close(err_pipe[0]);
+        close(err_pipe[1]);
         return 1;
     }
     if (pid == 0) {
         wordexp_t words = (wordexp_t) {0};
         int wordexp_flags;
         int wr;
+        int child_errno;
+
+        /* Child: close the read end; write end is close-on-exec */
+        close(err_pipe[0]);
 
         /* Child must close its inherited copy of the X connection's
          * file descriptor before continuing */
-        /* Here, 'desktop->connection' is the SAME 'xcb_connection_t'
-         * pointer shared with the parent (it is not duplicated by
-         * 'fork()'), so calling 'xcb_disconnect()' here would tear down
-         * the connection's internal state and break it for the parent
-         * process too, since the underlying socket is shared.  A plain
-         * 'close()' on the raw descriptor only affects the child's own
-         * file descriptor table entry and leaves the parent's
-         * connection intact. */
         if (desktop->connection != NULL) {
             close(xcb_get_file_descriptor(desktop->connection));
         }
@@ -647,8 +661,6 @@ int desktop_action_process_launch(desktop_td *desktop,
 #endif
         wr = wordexp(executable_path, &words, wordexp_flags);
         if (wr != 0 || words.we_wordc == 0u) {
-            LOGGER_ERROR("Failed to parse launch command '%s'",
-                    executable_path);
             if (words.we_wordv != NULL) {
                 wordfree(&words);
             }
@@ -656,13 +668,29 @@ int desktop_action_process_launch(desktop_td *desktop,
         }
 
         execvp(words.we_wordv[0], words.we_wordv);
+        /* 'execvp' failed: report 'errno' to parent */
+        child_errno = errno;
+        (void) write(err_pipe[1], &child_errno, sizeof(child_errno));
+
         wordfree(&words);
         _exit(127);
+    }
+
+    /* Parent: close write end and read exec result */
+    close(err_pipe[1]);
+    exec_errno = 0;
+    nread = read(err_pipe[0], &exec_errno, sizeof(exec_errno));
+    close(err_pipe[0]);
+
+    if (nread > 0) {
+        /* 'execvp' failed in the child */
+        LOGGER_WARNING("Failed to launch '%s': %s",
+                executable_path, strerror(exec_errno));
+        return -2;
     }
 
     LOGGER_DEBUG("Process for '%s' running with PID %d",
             executable_path, (int) pid);
 
     return 0;
-
 }

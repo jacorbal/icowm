@@ -27,6 +27,14 @@
 #include <defs/config.h>
 #include <defs/wm.h>
 
+/* Utils includes */
+#include <utils/config/json.h>
+#include <utils/safe/safestr.h>
+
+/* Command includes */
+#include <cmds/ccmd.h>
+#include <cmds/layer.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -34,12 +42,6 @@
 #include <lookup.h>
 #include <policy/focus.h>
 #include <surface.h>
-#include <utils/config/json.h>
-#include <utils/safe/safestr.h>
-
-/* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/layer.h>
 
 /* Local includes */
 #include <rules/internal.h>

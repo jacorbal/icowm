@@ -15,13 +15,16 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
 #include <stdlib.h>     /* malloc, free, calloc */
-#include <string.h>     /* strncpy, strlen */
+#include <string.h>     /* strlen */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>
@@ -76,7 +79,7 @@ static bool s_parse_array(const cJSON *arr,
     entries = (ctxmenu_entry_td *) calloc((size_t) count,
             sizeof(ctxmenu_entry_td));
     if (entries == NULL) {
-        LOGGER_ERROR("menujson: failed to allocate %d entries", count);
+        LOGGER_ERROR("Failed to allocate %d entries in JSON menu", count);
         return false;
     }
 
@@ -92,7 +95,8 @@ static bool s_parse_array(const cJSON *arr,
         cmd_node  = cJSON_GetObjectItemCaseSensitive(item, "command");
         items_node = cJSON_GetObjectItemCaseSensitive(item, "items");
 
-        type_str = cJSON_IsString(type_node) ? type_node->valuestring : "";
+        type_str = (cJSON_IsString(type_node))
+            ? type_node->valuestring : "";
 
         if (strcmp(type_str, "separator") == 0) {
             entries[i].type = CTXMENU_SEPARATOR;
@@ -100,25 +104,25 @@ static bool s_parse_array(const cJSON *arr,
         } else if (strcmp(type_str, "label") == 0) {
             entries[i].type = CTXMENU_LABEL;
             if (cJSON_IsString(name_node)) {
-                strncpy(entries[i].label, name_node->valuestring,
+                safe_strncpy(entries[i].label, name_node->valuestring,
                         sizeof(entries[i].label) - 1u);
             }
 
         } else if (strcmp(type_str, "command") == 0) {
             entries[i].type = CTXMENU_COMMAND;
             if (cJSON_IsString(name_node)) {
-                strncpy(entries[i].label, name_node->valuestring,
+                safe_strncpy(entries[i].label, name_node->valuestring,
                         sizeof(entries[i].label) - 1u);
             }
             if (cJSON_IsString(cmd_node)) {
-                strncpy(entries[i].command, cmd_node->valuestring,
+                safe_strncpy(entries[i].command, cmd_node->valuestring,
                         sizeof(entries[i].command) - 1u);
             }
 
         } else if (strcmp(type_str, "submenu") == 0) {
             entries[i].type = CTXMENU_SUBMENU;
             if (cJSON_IsString(name_node)) {
-                strncpy(entries[i].label, name_node->valuestring,
+                safe_strncpy(entries[i].label, name_node->valuestring,
                         sizeof(entries[i].label) - 1u);
             }
             if (cJSON_IsArray(items_node)) {
