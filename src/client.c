@@ -761,9 +761,11 @@ client_td *client_manage(xcb_connection_t *connection,
      * explicitly request no window decorations, predating
      * '_NET_WM_WINDOW_TYPE'.
      *
-     * Format: 5x CARD32 { flags, functions, decorations, input_mode,
-     * status }; only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and
-     * 'decorations' are consulted here.
+     * Format: 5x CARD32
+     *      { flags, functions, decorations, input_mode, status };
+     *
+     *  only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations'
+     *  are consulted here.
      *
      * An explicit request to turn decorations off overrides whatever
      * the type-based defaults above chose; a request to turn them on is
@@ -816,23 +818,56 @@ client_td *client_manage(xcb_connection_t *connection,
                 "_NET_WM_STATE_SKIP_PAGER");
     }
 
-    /* Read the pre-existing '_NET_WM_STATE' property so that panels and
-     * dock windows that set '_NET_WM_STATE_BELOW' before mapping (e.g.
-     * tint2) are honoured: override the default layer with BELOW. */
+    /* Read the pre-existing '_NET_WM_STATE' property so that states an
+     * application sets on itself before ever mapping (i.e. before the
+     * window manager has a chance to intervene) are honoured from the
+     * start, instead of only taking effect the first time the
+     * application happens to resend the same state later via a
+     * '_NET_WM_STATE' 'ClientMessage' (e.g. toggling a "skip taskbar"
+     * preference off and back on in xpad's settings): panels and dock
+     * windows that set '_NET_WM_STATE_BELOW' (e.g. tint2) get the
+     * BELOW layer, and applications that set '_NET_WM_STATE_SKIP_
+     * TASKBAR'/'_NET_WM_STATE_SKIP_PAGER' (e.g. xpad's "hide from
+     * taskbar" option, enabled from its own startup) are excluded from
+     * the cycle menu and window list immediately rather than only
+     * after the user re-toggles the same preference in that
+     * application once the window manager is already running. */
     if (ewmh != NULL) {
         xcb_get_property_cookie_t state_ck;
         xcb_get_property_reply_t *state_r;
-        xcb_atom_t atom_below;
-        xcb_intern_atom_reply_t *ia_below;
-        ia_below = xcb_intern_atom_reply(connection,
+        xcb_atom_t atom_below = XCB_ATOM_NONE;
+        xcb_atom_t atom_skip_taskbar = XCB_ATOM_NONE;
+        xcb_atom_t atom_skip_pager = XCB_ATOM_NONE;
+        xcb_intern_atom_reply_t *ia_state;
+
+        ia_state = xcb_intern_atom_reply(connection,
                 xcb_intern_atom(connection, 1,
                     sizeof("_NET_WM_STATE_BELOW") - 1u,
                     "_NET_WM_STATE_BELOW"), NULL);
-        atom_below = (ia_below != NULL) ? ia_below->atom : XCB_ATOM_NONE;
-        if (ia_below != NULL) {
-            free(ia_below);
+        if (ia_state != NULL) {
+            atom_below = ia_state->atom;
+            free(ia_state);
         }
-        if (atom_below != XCB_ATOM_NONE) {
+        ia_state = xcb_intern_atom_reply(connection,
+                xcb_intern_atom(connection, 1,
+                    sizeof("_NET_WM_STATE_SKIP_TASKBAR") - 1u,
+                    "_NET_WM_STATE_SKIP_TASKBAR"), NULL);
+        if (ia_state != NULL) {
+            atom_skip_taskbar = ia_state->atom;
+            free(ia_state);
+        }
+        ia_state = xcb_intern_atom_reply(connection,
+                xcb_intern_atom(connection, 1,
+                    sizeof("_NET_WM_STATE_SKIP_PAGER") - 1u,
+                    "_NET_WM_STATE_SKIP_PAGER"), NULL);
+        if (ia_state != NULL) {
+            atom_skip_pager = ia_state->atom;
+            free(ia_state);
+        }
+
+        if (atom_below != XCB_ATOM_NONE ||
+                atom_skip_taskbar != XCB_ATOM_NONE ||
+                atom_skip_pager != XCB_ATOM_NONE) {
             state_ck = xcb_ewmh_get_wm_state(ewmh, window);
             state_r = xcb_get_property_reply(connection, state_ck, NULL);
             if (state_r != NULL) {
@@ -844,9 +879,19 @@ client_td *client_manage(xcb_connection_t *connection,
                 for (uint32_t si = 0; si < natoms; ++si) {
                     if (atoms[si] == atom_below) {
                         client->properties.layer = CLIENT_LAYER_BELOW;
-                        break;
+                    } else if (atoms[si] == atom_skip_taskbar) {
+                        client_set_skip_taskbar(client);
+                    } else if (atoms[si] == atom_skip_pager) {
+                        client_set_skip_pager(client);
                     }
                 }
+                LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
+                        " layer=%u, skip_taskbar=%d, skip_pager=%d",
+                        window, (unsigned int) client->properties.layer,
+                        (int) ((client->properties.flags &
+                                CLIENT_FLAG_SKIP_TASKBAR) != 0u),
+                        (int) ((client->properties.flags &
+                                CLIENT_FLAG_SKIP_PAGER) != 0u));
                 free(state_r);
             } /* ! if (!state_r) */
         } /* ! if (atom_below) */

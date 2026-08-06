@@ -151,7 +151,7 @@ void handler_configure_request(xcb_connection_t *connection,
             &surface, &desktop);
 
     if (client != NULL) {
-        LOGGER_DEBUG("'ConfigureRequest' matched client window=0x%x:" \
+        LOGGER_TRACE("'ConfigureRequest' matched client window=0x%x:" \
                 " frame=0x%x, decorated=%d, on_inner=%d, mask=0x%x," \
                 " requested=%ux%u+%d+%d, operation=%u",
                 client->window, client->frame,
@@ -183,8 +183,9 @@ void handler_configure_request(xcb_connection_t *connection,
         uint16_t right = (uint16_t) client->layout.frame_extents.right;
         uint16_t top = (uint16_t) client->layout.frame_extents.top;
         uint16_t bottom = (uint16_t) client->layout.frame_extents.bottom;
-        uint16_t geom_mask = XCB_CONFIG_WINDOW_X |
-            XCB_CONFIG_WINDOW_Y |
+        uint16_t geom_mask =
+            XCB_CONFIG_WINDOW_X     |
+            XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT;
 
@@ -415,7 +416,7 @@ void handler_configure_request(xcb_connection_t *connection,
              * decoration repaint (border, titlebar
              * background/text/buttons) in the next render pass only
              * runs for clients with 'is_outdated' set */
-            LOGGER_DEBUG("Marking window=0x%x outdated after" \
+            LOGGER_TRACE("Marking window=0x%x outdated after" \
                     " 'ConfigureRequest' (new frame geometry %ux%u+%d+%d)",
                     client->window,
                     client->layout.geometry.cur.dim.w,

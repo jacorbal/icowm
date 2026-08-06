@@ -244,7 +244,8 @@ void cycle_open(list_td *surfaces,
     if (node != NULL) {
         do {
             client_td *c = (client_td *) cdlist_data(node);
-            if (c != NULL && client_is_focusable(c)) {
+            if (c != NULL && client_is_focusable(c) &&
+                    !(c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
                 bool want = (is_icon)
                     ? (bool) client_is_iconified(c)
                     : !client_is_iconified(c);

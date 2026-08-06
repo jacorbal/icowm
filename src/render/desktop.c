@@ -590,7 +590,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
              * spurious 'ConfigureNotify' and 'Expose' events that cause
              * other windows to unnecessarily redraw, which appears as
              * flicker during keyboard resize of an unrelated client. */
-            LOGGER_DEBUG("Render pass applying outdated geometry for" \
+            LOGGER_TRACE("Render pass applying outdated geometry for" \
                     " window=0x%x: target=0x%x (%s frame), %ux%u+%d+%d",
                     client->window, target,
                     (target != client->window) ? "has" : "no",
