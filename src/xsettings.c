@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free, malloc */
-#include <string.h>     /* memset, memcpy, strlen, strcmp */
+#include <string.h>     /* memset, memcpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -126,7 +126,7 @@ static size_t s_xs_padded_len(size_t len)
  */
 static size_t s_xs_int_entry_size(const char *name)
 {
-    return 1u + 1u + 2u + s_xs_padded_len(strlen(name)) + 4u + 4u;
+    return 1u + 1u + 2u + s_xs_padded_len(safe_strlen(name)) + 4u + 4u;
 }
 
 
@@ -140,8 +140,8 @@ static size_t s_xs_int_entry_size(const char *name)
  */
 static size_t s_xs_string_entry_size(const char *name, const char *value)
 {
-    return 1u + 1u + 2u + s_xs_padded_len(strlen(name)) + 4u
-        + 4u + s_xs_padded_len(strlen(value));
+    return 1u + 1u + 2u + s_xs_padded_len(safe_strlen(name)) + 4u
+        + 4u + s_xs_padded_len(safe_strlen(value));
 }
 
 
@@ -203,7 +203,7 @@ static void s_xs_put_padded_bytes(uint8_t *buf, size_t *off,
 static void s_xs_write_int_entry(uint8_t *buf, size_t *off,
         const char *name, uint32_t serial, int32_t value)
 {
-    size_t name_len = strlen(name);
+    size_t name_len = safe_strlen(name);
 
     buf[*off] = (uint8_t) XS_TYPE_INTEGER;
     *off += 1u;
@@ -228,8 +228,8 @@ static void s_xs_write_int_entry(uint8_t *buf, size_t *off,
 static void s_xs_write_string_entry(uint8_t *buf, size_t *off,
         const char *name, uint32_t serial, const char *value)
 {
-    size_t name_len = strlen(name);
-    size_t value_len = strlen(value);
+    size_t name_len = safe_strlen(name);
+    size_t value_len = safe_strlen(value);
 
     buf[*off] = (uint8_t) XS_TYPE_STRING;
     *off += 1u;
@@ -372,11 +372,11 @@ static void s_xs_load_config(wm_td *wm)
  */
 static bool s_xs_config_changed(const wm_td *wm)
 {
-    return strcmp(s_xs.gtk_theme_name,
+    return safe_strcmp(s_xs.gtk_theme_name,
                 wm->config->base.xsettings.gtk_theme_name) != 0 ||
-        strcmp(s_xs.icon_theme_name,
+        safe_strcmp(s_xs.icon_theme_name,
                 wm->config->base.xsettings.icon_theme_name) != 0 ||
-        strcmp(s_xs.cursor_theme_name,
+        safe_strcmp(s_xs.cursor_theme_name,
                 wm->config->base.xsettings.cursor_theme_name) != 0 ||
         s_xs.cursor_theme_size !=
             wm->config->base.xsettings.cursor_theme_size ||

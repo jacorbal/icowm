@@ -537,10 +537,11 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
          * particular client changed at all (e.g., a keyboard resize of
          * one window previously still re-sent border width for every
          * other window on the desktop each time). */
-        if (border_width != client->last_border_width)
-        { xcb_configure_window(desktop->connection, target,
-        XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
-        client->last_border_width = border_width; }
+        if (border_width != client->last_border_width) {
+            xcb_configure_window(desktop->connection, target,
+                    XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+            client->last_border_width = border_width;
+        }
 
         /* Map the window to make it visible */
         /* Only do this when 'desktop' is the surface's currently
@@ -589,6 +590,15 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
              * spurious 'ConfigureNotify' and 'Expose' events that cause
              * other windows to unnecessarily redraw, which appears as
              * flicker during keyboard resize of an unrelated client. */
+            LOGGER_DEBUG("Render pass applying outdated geometry for" \
+                    " window=0x%x: target=0x%x (%s frame), %ux%u+%d+%d",
+                    client->window, target,
+                    (target != client->window) ? "has" : "no",
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h,
+                    client->layout.geometry.cur.pos.x,
+                    client->layout.geometry.cur.pos.y);
+
             mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
             values[0] = client->layout.geometry.cur.pos.x;

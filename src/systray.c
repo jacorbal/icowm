@@ -16,10 +16,13 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free */
-#include <string.h>     /* memset, strlen */
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Utils include */
+#include <utils/safe/safestr.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -177,26 +180,29 @@ static void s_systray_reflow(void)
     w = s_systray_content_width();
 
     switch (s_tray.position) {
-    case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
-        x = 0;
-        y = 0;
-        break;
-    case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
-        x = 0;
-        y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
-                (int32_t) h);
-        break;
-    case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
-        x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
-                (int32_t) w);
-        y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
-                (int32_t) h);
-        break;
-    case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
-        x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
-                (int32_t) w);
-        y = 0;
-        break;
+        case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
+            x = 0;
+            y = 0;
+            break;
+
+        case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
+            x = 0;
+            y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
+                    (int32_t) h);
+            break;
+
+        case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
+            x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
+                    (int32_t) w);
+            y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
+                    (int32_t) h);
+            break;
+
+        case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
+            x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
+                    (int32_t) w);
+            y = 0;
+            break;
     }
 
     geom_values[0] = (uint32_t) x;
@@ -303,28 +309,33 @@ static uint16_t s_systray_insert_index(const char *sort_key)
     uint16_t i;
 
     switch (s_tray.order) {
-    case CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT:
-        return 0u;
+        case CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT:
+            return 0u;
 
-    case CONFIG_SYSTRAY_ORDER_ASCENDING:
-        for (i = 0u; i < s_tray.icon_count; ++i) {
-            if (strcmp(sort_key, s_tray.icons[i].sort_key) < 0) {
-                return i;
+        case CONFIG_SYSTRAY_ORDER_ASCENDING:
+            for (i = 0u; i < s_tray.icon_count; ++i) {
+                if (safe_strcmp(sort_key,
+                            s_tray.icons[i].sort_key) < 0) {
+                    return i;
+                }
             }
-        }
-        return s_tray.icon_count;
+            return s_tray.icon_count;
 
-    case CONFIG_SYSTRAY_ORDER_DESCENDING:
-        for (i = 0u; i < s_tray.icon_count; ++i) {
-            if (strcmp(sort_key, s_tray.icons[i].sort_key) > 0) {
-                return i;
+        case CONFIG_SYSTRAY_ORDER_DESCENDING:
+            for (i = 0u; i < s_tray.icon_count; ++i) {
+                if (safe_strcmp(sort_key,
+                            s_tray.icons[i].sort_key) > 0) {
+                    return i;
+                }
             }
-        }
-        return s_tray.icon_count;
+            return s_tray.icon_count;
 
-    case CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT:
-        return s_tray.icon_count;
+        case CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT:
+            return s_tray.icon_count;
     }
+
+    /* Just to avoid compiler warnings... */
+    return s_tray.icon_count;
 }
 
 

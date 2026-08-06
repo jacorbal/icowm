@@ -401,6 +401,26 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
     s_keybindings_count = 0;
 
+    /* Release every key grab this window manager previously made on
+     * each root window before re-grabbing below.  Without this, calling
+     * 'keyboard_load' again after a configuration reload (vid.
+     * 'wm_action_config_reload') would leave a binding's OLD key
+     * combination still grabbed and firing in addition to its new one
+     * whenever a binding actually changed, since 'xcb_grab_key' only
+     * adds a grab and there was previously nothing here that removed
+     * a stale one. */
+    for (list_item_td *node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
+        xcb_ungrab_key(surface->connection, XCB_GRAB_ANY,
+                surface->screen->root, XCB_MOD_MASK_ANY);
+    }
+
     for (int i = 0; defs[i].binding != NULL; ++i) {
         xcb_keysym_t keysym;
         uint16_t modmask;

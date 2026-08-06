@@ -307,10 +307,24 @@ int ci_create_decorations(client_td *client)
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = client->theme->window.inactive.border_color;
     values[1] = client->theme->window.inactive.border_color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE |
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is essential here, not
+     * optional: once the client's own top-level window is reparented
+     * into this frame, its *parent* for X11 purposes becomes the frame
+     * instead of the root.
+     *
+     * A client's own attempt to reconfigure itself is delivered as
+     * a 'ConfigureRequest' to whichever client selected
+     * substructure-redirect on its *parent*; if that is only ever
+     * selected on the root window (needed for top-level 'MapRequest's)
+     * and not on every frame the window manager itself
+     * creates, the server has nothing to redirect a reparented client's
+     * own resize to, and simply performs it directly with no
+     * 'ConfigureRequest' ever generated at all. */
+    values[2] = XCB_EVENT_MASK_EXPOSURE             |
+                XCB_EVENT_MASK_BUTTON_PRESS         |
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY     |
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
+                XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
     xcb_create_window(client->connection,
             XCB_COPY_FROM_PARENT,
             client->frame,

@@ -264,6 +264,26 @@ void mouse_load(list_td *surfaces, const config_td *config)
 
     s_mousebindings_count = 0;
 
+    /* Release every button grab this window manager previously made on
+     * each root window before re-grabbing below, for the same reason
+     * 'keyboard_load' does: otherwise a binding's old button/modifier
+     * combination stays grabbed and active alongside its new one after
+     * a configuration reload actually changes it. */
+    if (surfaces != NULL) {
+        for (list_item_td *node = list_head(surfaces);
+                node != NULL; node = list_next(node)) {
+            surface_td *surface = (surface_td *) list_data(node);
+
+            if (surface == NULL || surface->screen == NULL) {
+                continue;
+            }
+
+            xcb_ungrab_button(surface->connection,
+                    XCB_BUTTON_INDEX_ANY, surface->screen->root,
+                    XCB_MOD_MASK_ANY);
+        }
+    }
+
     for (int i = 0; defs[i].binding != NULL; ++i) {
         xcb_button_index_t button;
         uint16_t modmask;

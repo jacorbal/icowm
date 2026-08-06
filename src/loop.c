@@ -169,6 +169,7 @@ void loop_run(wm_td *wm)
         LOGGER_ERROR("Failed to allocate key symbols table", L_NARG);
         return;
     }
+    wm->keysyms = keysyms;
 
     keyboard_load(wm->surfaces, keysyms, wm->config);
     mouse_load(wm->surfaces, wm->config);
@@ -497,6 +498,7 @@ void loop_run(wm_td *wm)
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
     xcb_key_symbols_free(keysyms);
+    wm->keysyms = NULL;
 }
 
 

@@ -165,6 +165,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm->rules = NULL;
     wm->session = NULL;
     wm->surfaces = NULL;
+    wm->keysyms = NULL;
     wm->randr_available = false;
     wm->randr_base_event = 0u;
     wm->sync_available = false;

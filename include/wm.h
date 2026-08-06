@@ -22,6 +22,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+#include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
@@ -65,6 +66,19 @@ typedef struct {
     xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
     list_td *surfaces;              /**< List of surfaces */
     uint32_t screenp;               /**< Preferred screen */
+
+    /**
+     * Key symbols table used to translate keycodes to keysyms for
+     * keyboard binding grabs; owned and freed by @a loop_run, which
+     * allocates it once at startup.
+     *
+     * Stored here so @a wm_action_config_reload can re-run @a
+     * keyboard_load with the current bindings after every reload
+     * trigger (@c SIGHUP, the reload keybinding, and the root menu's
+     * "Reload configuration" entry) without each of those three call
+     * sites needing its own copy of this pointer. */
+    xcb_key_symbols_t *keysyms;
+
     bool randr_available;           /**< XRandR extension availability */
     uint8_t randr_base_event;       /**< XRandR base event code */
     bool sync_available;            /**< XSync extension availability */
@@ -76,6 +90,7 @@ typedef struct {
                                          for @c NULL if the default
                                          config. dir. is used; kept to
                                          reuse it on config. reload */
+
     bool is_running;                /**< Running state flag */
     bool is_emergency_exit;         /**< Set when an emergency exit is
                                          requested; suppresses pending

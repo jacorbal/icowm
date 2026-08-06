@@ -23,6 +23,10 @@
 /* Rules includes */
 #include <rules/rules.h>
 
+/* Input includes */
+#include <input/kbd/bind.h>
+#include <input/mouse.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
@@ -50,6 +54,22 @@ int wm_action_config_reload(void)
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
     }
+
+    /* Re-establish keyboard/mouse binding grabs from the just-reloaded
+     * 'wm->config->bindings': 'config_load' above already refreshed
+     * that in-memory data (it loads 'bindings.json' too, not just
+     * 'config.json'), but the X server grabs 'keyboard_load' and
+     * 'mouse_load' set up at startup are a separate, one-time action
+     * that nothing was re-running on reload, so a changed binding had
+     * no actual effect until the window manager was restarted.
+     *
+     * Both functions release every grab they previously made before
+     * re-grabbing, so a binding that changed does not end up with both
+     * its old and new key/button combination active at once. */
+    if (wm->keysyms != NULL) {
+        keyboard_load(wm->surfaces, wm->keysyms, wm->config);
+    }
+    mouse_load(wm->surfaces, wm->config);
 
     /* Reload the systray reacting to config. reload */
     systray_reload(wm);

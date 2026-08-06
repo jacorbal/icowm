@@ -150,6 +150,18 @@ void handler_configure_request(xcb_connection_t *connection,
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
 
+    if (client != NULL) {
+        LOGGER_DEBUG("'ConfigureRequest' matched client window=0x%x:" \
+                " frame=0x%x, decorated=%d, on_inner=%d, mask=0x%x," \
+                " requested=%ux%u+%d+%d, operation=%u",
+                client->window, client->frame,
+                (int) client_is_decorated(client),
+                (int) (event->window == client->window),
+                mask, event->width, event->height,
+                event->x, event->y,
+                (unsigned int) client->properties.operation);
+    }
+
     geom_changed = false;
     target_mask = 0;
     i = 0;
@@ -400,13 +412,18 @@ void handler_configure_request(xcb_connection_t *connection,
         if (client != NULL && geom_changed) {
             /* A client-initiated resize already had its frame
              * reconfigured directly above, but the per-client
-             * decoration repaint (border, titlebar background, text,
-             * buttons, &c.) in the next render pass only runs for
-             * clients with 'is_outdated' set.  Without this, the frame
-             * border is left stale at the old size until something
-             * unrelated later marks the client outdated for its own
-             * reasons. */
-            client->is_outdated = true; }
+             * decoration repaint (border, titlebar
+             * background/text/buttons) in the next render pass only
+             * runs for clients with 'is_outdated' set */
+            LOGGER_DEBUG("Marking window=0x%x outdated after" \
+                    " 'ConfigureRequest' (new frame geometry %ux%u+%d+%d)",
+                    client->window,
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h,
+                    client->layout.geometry.cur.pos.x,
+                    client->layout.geometry.cur.pos.y);
+            wm_invalidate_client(client);
+        }
 
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);

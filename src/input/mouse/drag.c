@@ -1022,6 +1022,13 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
     s_drag_overlay_hide(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
+    if (s_drag.client != NULL) {
+        /* The module-level 's_drag' bookkeeping above is reset either
+         * way, but without this the client's OWN operation flag stays
+         * stuck at 'MOVING'/'RESIZING' forever whenever a future caller
+         * passes a client that survives the cancel. */
+        s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
+    }
     s_drag.client = NULL;
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
