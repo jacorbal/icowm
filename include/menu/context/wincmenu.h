@@ -89,8 +89,8 @@ void wincmenu_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param x          Pointer X relative to @p win
- * @param y          Pointer Y relative to @p win
+ * @param root_x     Pointer X in root (screen) coordinates
+ * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
  * @return @c true if the event was consumed
@@ -98,7 +98,7 @@ void wincmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int root_x, int root_y,
         const config_td *config);
 
 /**
@@ -149,6 +149,18 @@ bool wincmenu_owns_window(xcb_window_t win);
 bool wincmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config);
+
+/**
+ * @brief Handle a pointer-motion event over a window context menu window
+ *
+ * Finds the menu state that owns @p win and updates its hover highlight
+ * based on the pointer position (@p x, @p y) relative to that window.
+ *
+ * @param win Window that received the motion event
+ * @param x   Pointer X relative to @p win
+ * @param y   Pointer Y relative to @p win
+ */
+void wincmenu_handle_motion(xcb_window_t win, int x, int y);
 
 
 #endif  /* ! MENU_CONTEXT_WINCMENU_H */

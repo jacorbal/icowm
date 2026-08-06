@@ -47,7 +47,7 @@
 #include <cmds/state.h>
 
 /* Input includes */
-#include <input/kbd/modal.h>
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -259,7 +259,12 @@ static void s_cb_restore(xcb_connection_t *connection,
 static void s_cb_move(xcb_connection_t *connection,
         void *userdata)
 {
+    xcb_screen_t *screen;
     surface_td *surface;
+    uint32_t screen_w;
+    uint32_t screen_h;
+    int16_t cx;
+    int16_t cy;
 
     (void) userdata;
 
@@ -274,22 +279,62 @@ static void s_cb_move(xcb_connection_t *connection,
     }
 
     surface = wm_get_surface_by_id(s_target_client->screen_id);
-    kbd_modal_move_start(connection, surface, s_target_client); 
+    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen = (surface != NULL) ? surface->screen : NULL;
+
+    /* Warp pointer to the window centre so drag feedback is immediate */
+    cx = (int16_t) (s_target_client->layout.geometry.cur.pos.x +
+            (int16_t) (s_target_client->layout.geometry.cur.dim.w / 2u));
+    cy = (int16_t) (s_target_client->layout.geometry.cur.pos.y +
+            (int16_t) (s_target_client->layout.geometry.cur.dim.h / 2u));
+
+    if (screen != NULL) {
+        xcb_warp_pointer(connection, XCB_NONE, screen->root,
+                0, 0, 0, 0, cx, cy);
+        xcb_flush(connection);
+    }
+
+    drag_start(connection,
+            (screen != NULL) ? screen->root : XCB_WINDOW_NONE,
+            s_target_client, s_desktop,
+            CLIENT_OPERATION_MOVING,
+            XCB_CURRENT_TIME,
+            cx, cy,
+            screen_w, screen_h,
+            (surface != NULL && surface->config != NULL)
+                ? surface->config->base.windows.snap : 0u);
 }
 
 
 /**
- * @brief Callback: resize the client (keyboard modalresize)
+ * @brief Callback: resize the client (interactive pointer-driven resize)
  *
- * Validates that the client can be resized and enters keyboard modal
- * resize mode.  The user presses arrow keys to grow or shrink along the
- * chosen edge; @c Return confirms and @c Escape restores the original
- * geometry.
+ * Unshades the window when needed, warps the pointer to the bottom-left
+ * corner of the full window, then starts a resize drag so that
+ * subsequent pointer motion resizes the window interactively.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
 {
+    xcb_screen_t *screen;
     surface_td *surface;
+    uint32_t screen_w;
+    uint32_t screen_h;
+    int16_t rx;
+    int16_t ry;
+
+    /* To drag on accordinly with the window position */
+    int32_t left;
+    int32_t top;
+    int32_t width;
+    int32_t height;
+    int32_t center_x;
+    int32_t center_y;
+    int32_t mid_x;
+    int32_t mid_y;
+    bool left_half;
+    bool top_half;
 
     (void) userdata;
 
@@ -303,12 +348,57 @@ static void s_cb_resize(xcb_connection_t *connection,
         return;
     }
 
+    surface = wm_get_surface_by_id(s_target_client->screen_id);
+    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen = (surface != NULL) ? surface->screen : NULL;
+
     if (client_is_shaded(s_target_client)) {
         wcmd_client_unshade(s_target_client);
     }
 
-    surface = wm_get_surface_by_id(s_target_client->screen_id);
-    kbd_modal_resize_start(connection, surface, s_target_client);
+    /* Choose corner depending on window's position */
+    left = s_target_client->layout.geometry.cur.pos.x;
+    top = s_target_client->layout.geometry.cur.pos.y;
+    width = (int32_t) s_target_client->layout.geometry.cur.dim.w;
+    height =
+        (int32_t) s_target_client->layout.geometry.cur.dim.h;
+    center_x = left + (width / 2);
+    center_y = top + (height / 2);
+    mid_x = (screen_w > 0u) ? (int32_t) (screen_w / 2u) : center_x;
+    mid_y = (screen_h > 0u) ? (int32_t) (screen_h / 2u) : center_y;
+    left_half = center_x < mid_x;
+    top_half = center_y < mid_y;
+
+    if (top_half && left_half) {
+        rx = (int16_t) (left + width - 1);
+        ry = (int16_t) (top + height - 1);
+    } else if (top_half && !left_half) {
+        rx = (int16_t) left;
+        ry = (int16_t) (top + height - 1);
+    } else if (!top_half && left_half) {
+        rx = (int16_t) (left + width - 1);
+        ry = (int16_t) top;
+    } else {
+        rx = (int16_t) left;
+        ry = (int16_t) top;
+    }
+
+    if (screen != NULL) {
+        xcb_warp_pointer(connection, XCB_NONE, screen->root,
+                0, 0, 0, 0, rx, ry);
+        xcb_flush(connection);
+    }
+
+    drag_start(connection,
+            (screen != NULL) ? screen->root : XCB_WINDOW_NONE,
+            s_target_client, s_desktop,
+            CLIENT_OPERATION_RESIZING,
+            XCB_CURRENT_TIME,
+            rx, ry,
+            screen_w, screen_h,
+            (surface != NULL && surface->config != NULL)
+                ? surface->config->base.windows.snap : 0u);
 }
 
 
@@ -470,14 +560,14 @@ static int s_build_desk_entries(surface_td *surface,
         if (d->name[0] != '\0') {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "%s [%u] -- %s %s",
+                    "%s[%u] -- %s%s",
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx, d->name,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         } else {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "%s [%u] %s",
+                    "%s[%u]%s",
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
@@ -731,9 +821,9 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
         const config_td *config)
 {
     ctxmenu_state_td *deepest;
-
     deepest = ctxmenu_find_state_for_window(&s_root,
             ctxmenu_deepest_window(&s_root));
+
     if (deepest == NULL) {
         deepest = &s_root;
     }
@@ -743,12 +833,8 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
 }
 
 
-/* Handle a pointer-motion event over the window context menu */
-void wincmenu_handle_motion(xcb_window_t win, int x, int y)
+/* Update the hover highlight when the pointer moves over the window menu */
+bool wincmenu_handle_motion(xcb_window_t win, int root_x, int root_y)
 {
-    ctxmenu_state_td *state;
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_handle_motion(state, x, y);
-    }
+    return ctxmenu_handle_motion(&s_root, win, root_x, root_y);
 }

@@ -166,15 +166,17 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
 }
 
 
-
 /**
  * @brief Activate the entry at the given index in a context menu
  *
- * Invokes the entry's @p on_activate callback if set, or calls
- * @c lifecycle_dispatch_launch for command entries that carry a shell
- * command string.  For separator, label, or disabled entries no action
- * is taken but @c true is returned to consume the event.  Closes the
- * entire menu hierarchy (root and all children) after activation.
+ * Closes the entire menu hierarchy first (releasing keyboard and
+ * pointer grabs), then invokes the entry's @p on_activate callback or
+ * calls @c lifecycle_dispatch_launch for command entries.  Closing
+ * before the callback allows the callback to establish its own grabs
+ * (e.g., for interactive keyboard move or resize) without conflicting
+ * with the menu's active grab.  For separator, label, or disabled
+ * entries no action is taken but @c true is returned to consume the
+ * event.
  *
  * @param state Menu state that contains the entry
  * @param idx   Zero-based index of the entry to activate
@@ -186,24 +188,19 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
  */
 static bool s_ctxmenu_activate_entry(ctxmenu_state_td *state, int idx)
 {
-    ctxmenu_entry_td *e;
+    ctxmenu_entry_td e;
     ctxmenu_state_td *root;
+    xcb_connection_t *conn;
+    surface_td *surf;
 
     if (state == NULL || idx < 0 || idx >= state->entry_count) {
         return false;
     }
 
-    e = &state->entries[idx];
-    if (e->type == CTXMENU_SEPARATOR || e->type == CTXMENU_LABEL ||
-            e->is_disabled) {
+    e = state->entries[idx];
+    if (e.type == CTXMENU_SEPARATOR || e.type == CTXMENU_LABEL ||
+            e.is_disabled) {
         return true;
-    }
-
-    if (e->on_activate != NULL) {
-        e->on_activate(state->connection, e->userdata);
-    } else if (e->command[0] != '\0') {
-        lifecycle_dispatch_launch(state->surface,
-                e->command, e->class_name);
     }
 
     root = state;
@@ -211,7 +208,20 @@ static bool s_ctxmenu_activate_entry(ctxmenu_state_td *state, int idx)
         root = root->parent;
     }
 
+    /* Save connection and surface before close clears them */
+    conn = root->connection;
+    surf = root->surface;
+
+    /* Close first so keyboard and pointer grabs are released before the
+     * callback runs; this lets callbacks establish their own grabs */
     ctxmenu_close(root);
+
+    if (e.on_activate != NULL) {
+        e.on_activate(conn, e.userdata);
+    } else if (e.command[0] != '\0') {
+        lifecycle_dispatch_launch(surf, e.command, e.class_name);
+    }
+
     return true;
 }
 
@@ -381,7 +391,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     /* Right arrow: open submenu for the selected entry */
     if (keysym == 0xff53u) {
         sel = state->selected;
-        if (sel >= 0 && sel < state->entry_count &&
+        if (connection != NULL && sel >= 0 &&
+                sel < state->entry_count &&
                 state->entries[sel].type == CTXMENU_SUBMENU) {
             child_state =
                 (ctxmenu_state_td *) state->entries[sel].userdata;
@@ -398,8 +409,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                 child_state->child = NULL;
                 sub_x = (int16_t) (state->origin_x +
                         (int16_t) state->width);
-                sub_y = (int16_t) (state->origin_y
-                        + (int16_t) s_entry_top_y(state->entries,
+                sub_y = (int16_t) (state->origin_y +
+                        (int16_t) s_entry_top_y(state->entries,
                                 state->entry_count, sel));
                 ctxmenu_show(connection, surface, child_state,
                         sub_x, sub_y, config);
@@ -569,29 +580,26 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     xcb_map_window(connection, state->window);
 
-    /* Grab keyboard and pointer for the root menu only (not submenus).
-     * The keyboard grab redirects all key events (including 'Escape') to
-     * the window manager so the menu can be dismissed without the
-     * focused application consuming those keys first.  The pointer grab
-     * ensures that clicks outside the menu hierarchy are seen by the WM
-     * even when an application holds an active pointer grab. */
+    /* Grab keyboard and take input focus so that navigation keys
+     * (arrows, 'Enter', 'Escape') are delivered to the window manager
+     * even when an application window holds normal focus.  Only the
+     * root-level menu (no parent) grabs; submenus are opened from
+     * within the same grab context.
+     *
+     * 'xcb_grab_keyboard' may fail when the menu is opened during the
+     * processing of a passive key grab event (the X server reports
+     * 'XCB_GRAB_STATUS_ALREADY_GRABBED').  ¡xcb_set_input_focus' is
+     * therefore issued unconditionally: if the active grab succeeds,
+     * key events are routed to the grab window; if it fails, the menu
+     * window still receives them because it holds keyboard focus and
+     * has 'XCB_EVENT_MASK_KEY_PRESS' subscribed. */
     if (state->parent == NULL) {
-        xcb_grab_keyboard(connection,
-                0,                      /* owner_events */
-                surface->screen->root,
+        xcb_grab_keyboard(connection, 0, state->window,
                 XCB_CURRENT_TIME,
-                XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
-                XCB_GRAB_MODE_ASYNC);   /* keyboard events delivered async */
-        xcb_grab_pointer(connection,
-                0,                      /* owner_events */
-                surface->screen->root,
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_RELEASE,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_NONE,               /* confine to no window */
-                XCB_NONE,               /* no cursor override */
-                XCB_CURRENT_TIME);
+                XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_set_input_focus(connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                state->window, XCB_CURRENT_TIME);
     }
 
     xcb_flush(connection);
@@ -611,15 +619,26 @@ void ctxmenu_close(ctxmenu_state_td *state)
         state->child = NULL;
     }
 
+    /* Close children first */
+    if (state->child != NULL) {
+        ctxmenu_close(state->child);
+        state->child = NULL;
+    }
+
     if (state->connection != NULL && state->window != XCB_WINDOW_NONE) {
         xcb_destroy_window(state->connection, state->window);
+    }
 
-        /* Release keyboard and pointer grabs when the root menu closes */
-        if (state->parent == NULL) {
-            xcb_ungrab_keyboard(state->connection, XCB_CURRENT_TIME);
-            xcb_ungrab_pointer(state->connection, XCB_CURRENT_TIME);
-        }
+    /* Always release keyboard and pointer grabs when the root menu
+     * closes, even if the window was already gone.  This prevents stale
+     * grabs from blocking further input when a race condition or early
+     * destroy leaves 'window' as 'XCB_WINDOW_NONE' before close. */
+    if (state->parent == NULL && state->connection != NULL) {
+        xcb_ungrab_keyboard(state->connection, XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(state->connection, XCB_CURRENT_TIME);
+    }
 
+    if (state->connection != NULL) {
         xcb_flush(state->connection);
     }
 
@@ -657,18 +676,28 @@ void ctxmenu_repaint(ctxmenu_state_td *state)
 /* Handle a button-press event inside a context menu window */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int x, int y, const config_td *config)
+        int root_x, int root_y, const config_td *config)
 {
     int idx;
+    int win_y;
     int16_t sub_x;
     int16_t sub_y;
     ctxmenu_state_td *child_state;
+
+    (void) root_x;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return false;
     }
 
-    idx = s_entry_at_y(state->entries, state->entry_count, y);
+    
+    /* Translate from root (screen) coordinates to window-relative.
+     * Button-press events may arrive via a passive grab on the root
+     * window (e.g., 'Alt+Button1'), in which case 'event_x'/'event_y'
+     * are root- relative.  Subtracting the menu's own origin always
+     * yields the correct in-window Y for entry hit-testing. */
+    win_y = root_y - (int) state->origin_y;
+    idx = s_entry_at_y(state->entries, state->entry_count, win_y);
     if (idx < 0 || idx >= state->entry_count) {
         return false;
     }
@@ -723,6 +752,41 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
 bool ctxmenu_is_open(const ctxmenu_state_td *state)
 {
     return state != NULL && state->window != XCB_WINDOW_NONE;
+}
+
+
+/* Handle a pointer-motion event inside a context menu window */
+void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
+{
+    int idx;
+
+    if (state == NULL || state->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    /* Ignore X coordinate: entries span the full width */
+    (void) x;
+
+    idx = s_entry_at_y(state->entries, state->entry_count, y);
+
+    /* Clear selection when pointer leaves all entries */
+    if (idx < 0 || idx >= state->entry_count ||
+            state->entries[idx].type == CTXMENU_SEPARATOR ||
+            state->entries[idx].type == CTXMENU_LABEL ||
+            state->entries[idx].is_disabled) {
+        if (state->selected >= 0) {
+            state->selected = -1;
+            ctxmenu_repaint(state);
+        }
+        return;
+    }
+
+    if (idx == state->selected) {
+        return;
+    }
+
+    state->selected = idx;
+    ctxmenu_repaint(state);
 }
 
 

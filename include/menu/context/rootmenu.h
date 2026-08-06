@@ -90,8 +90,8 @@ void rootmenu_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param x          Pointer X relative to @p win
- * @param y          Pointer Y relative to @p win
+ * @param root_x     Pointer X in root (screen) coordinates
+ * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
  * @return @c true if the event was consumed
@@ -99,7 +99,7 @@ void rootmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int root_x, int root_y,
         const config_td *config);
 
 /**
@@ -149,6 +149,17 @@ bool rootmenu_owns_window(xcb_window_t win);
 bool rootmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config);
+
+/**
+ * @brief Handle a pointer-motion event over a root desktop menu window
+ *
+ * Finds the menu state that owns @p win and updates its hover highlight.
+ *
+ * @param win Window that received the motion event
+ * @param x   Pointer X relative to @p win
+ * @param y   Pointer Y relative to @p win
+ */
+void rootmenu_handle_motion(xcb_window_t win, int x, int y);
 
 
 #endif  /* ! MENU_CONTEXT_ROOTMENU_H */

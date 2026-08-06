@@ -493,6 +493,7 @@ Window manager control shortcuts.
 | Key            | Default binding    | Action |
 |----------------|--------------------|--------|
 | `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
+| `menu`         | `modc+mod1+mods+m` | Open the root desktop menu. |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
@@ -921,7 +922,7 @@ supported:
 |---------------|-------------------------------------------------------|
 | `"command"`   | Clickable item that launches an application           |
 | `"separator"` | Horizontal dividing line (no other fields needed)     |
-| `"label"`     | Non-clickable section heading (shown as `--- ... ---`)|
+| `"label"`     | Non-clickable section heading                         |
 | `"submenu"`   | Nested sub-menu revealed on hover/click               |
 
 ### 8.3 Entry fields reference
@@ -955,9 +956,6 @@ At this moment there's only one kind of `"type"`, which is `"separator"`.
 |----------|--------|----------|----------------------------------|
 | `"type"` | string | yes      | Must be `"label"`                |
 | `"name"` | string | yes      | Section heading text to display  |
-
-Labels are rendered with `--- ` prepended and ` ---` appended so the
-user can distinguish them from clickable items at a glance.
 
 At this moment there's only one kind of `"type"`, which is `"label"`.
 
@@ -1102,6 +1100,7 @@ Sub-menus can be nested to the depth limit defined by
 
         "wm": {
             "show-desktop": "modc+mod1+mods+d",
+            "menu": "modc+mod1+mods+m",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",

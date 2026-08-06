@@ -80,8 +80,8 @@ void winlist_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param x          Pointer X relative to @p win
- * @param y          Pointer Y relative to @p win
+ * @param root_x     Pointer X in root (screen) coordinates
+ * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
  * @return @c true if the event was consumed
@@ -89,7 +89,7 @@ void winlist_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int root_x, int root_y,
         const config_td *config);
 
 /**
@@ -138,6 +138,18 @@ bool winlist_owns_window(xcb_window_t win);
 bool winlist_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config);
+
+/**
+ * @brief Handle a pointer-motion event over the window list menu window
+ *
+ * Updates the hover highlight based on the pointer position.
+ *
+ * @param win Window that received the motion event (unused; window list
+ *            has a single-state hierarchy)
+ * @param x   Pointer X relative to the menu window
+ * @param y   Pointer Y relative to the menu window
+ */
+void winlist_handle_motion(xcb_window_t win, int x, int y);
 
 
 #endif  /* ! MENU_CONTEXT_WINLIST_H */

@@ -504,7 +504,7 @@ void winlist_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window list menu */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int root_x, int root_y,
         const config_td *config)
 {
     ctxmenu_state_td *state;
@@ -513,8 +513,9 @@ bool winlist_handle_click(xcb_connection_t *connection,
     if (state == NULL) {
         return false;
     }
+
     return ctxmenu_handle_click(connection, surface, state,
-            x, y, config);
+            root_x, root_y, config);
 }
 
 
@@ -546,4 +547,13 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
 {
     return ctxmenu_handle_keypress(connection, surface, &s_root,
             keysym, config);
+}
+
+
+/* Handle a pointer-motion event over the window list menu */
+void winlist_handle_motion(xcb_window_t win, int x, int y)
+{
+    /* Window list uses a single state; win check is implicit */
+    (void) win;
+    ctxmenu_handle_motion(&s_root, x, y);
 }

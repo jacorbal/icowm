@@ -46,6 +46,9 @@
 #include <input/mouse/drag.h>
 
 /* Menu includes */
+#include <menu/context/rootmenu.h>
+#include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
@@ -243,6 +246,7 @@ void loop_run(wm_td *wm)
         }
 
         while ((event = xcb_poll_for_event(wm->connection)) != NULL) {
+            xcb_motion_notify_event_t *me;
             uint8_t event_type =
                 (uint8_t) (event->response_type & ~0x80u);
 
@@ -282,9 +286,18 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MOTION_NOTIFY:
-                    drag_update(wm->connection,
-                            ((xcb_motion_notify_event_t *) event)->root_x,
-                            ((xcb_motion_notify_event_t *) event)->root_y);
+                    me = (xcb_motion_notify_event_t *) event;
+                    drag_update(wm->connection, me->root_x, me->root_y);
+                    if (wincmenu_is_open()) {
+                        wincmenu_handle_motion(me->event,
+                                me->event_x, me->event_y);
+                    } else if (rootmenu_is_open()) {
+                        rootmenu_handle_motion(me->event,
+                                me->event_x, me->event_y);
+                    } else if (winlist_is_open()) {
+                        winlist_handle_motion(me->event,
+                                me->event_x, me->event_y);
+                    }
                     break;
 
                 case XCB_ENTER_NOTIFY:

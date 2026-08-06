@@ -342,7 +342,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         if (owns_event || wincmenu_owns_window(event->child)) {
             xcb_window_t mw = owns_event ? event->event : event->child;
             (void) wincmenu_handle_click(connection, surface, mw,
-                    (int) event->event_x, (int) event->event_y, config);
+                    (int) event->root_x, (int) event->root_y, config);
         } else {
             wincmenu_close();
         }
@@ -357,7 +357,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         if (owns_event || rootmenu_owns_window(event->child)) {
             xcb_window_t mw = owns_event ? event->event : event->child;
             (void) rootmenu_handle_click(connection, surface, mw,
-                    (int) event->event_x, (int) event->event_y, config);
+                    (int) event->root_x, (int) event->root_y, config);
         } else {
             rootmenu_close();
         }
@@ -372,7 +372,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         if (owns_event || winlist_owns_window(event->child)) {
             xcb_window_t mw = owns_event ? event->event : event->child;
             (void) winlist_handle_click(connection, surface, mw,
-                    (int) event->event_x, (int) event->event_y, config);
+                    (int) event->root_x, (int) event->root_y, config);
         } else {
             winlist_close();
         }

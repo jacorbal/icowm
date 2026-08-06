@@ -20,7 +20,7 @@
 /* Session includes */
 #include <session/session.h>
 
-/* Rules includs */
+/* Rules includes */
 #include <rules/rules.h>
 
 /* Project includes */
@@ -72,7 +72,6 @@ int wm_action_config_reload(void)
                 continue;
             }
 
-            
             if (!d->background.is_image &&
                     !d->background.use_root_pixmap) {
                 d->background.bg.color =

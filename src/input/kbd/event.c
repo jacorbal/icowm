@@ -67,6 +67,7 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
+#include <input/kbd/modal.h>
 
 
 /* Surface lookup */
@@ -1073,6 +1074,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             keysym, state);
 
     surface = s_lookup_surface_fallback(surfaces, event->root);
+
+    /* Keyboard modal move/resize intercepts all keys while active */
+    if (kbd_modal_is_active()) {
+        kbd_modal_handle_keypress(
+                (surface != NULL) ? surface->connection : NULL,
+                surface, keysym, config);
+        return;
+    }
 
     /* Cycle menu intercepts all keys while it is open */
     if (cycle_is_open()) {

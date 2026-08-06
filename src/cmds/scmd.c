@@ -46,7 +46,7 @@
 static void s_show_desktop_notify(surface_td *surface)
 {
     desktop_td *desktop;
-    
+
     if (surface == NULL || surface->connection == NULL ||
             surface->config == NULL) {
         return;

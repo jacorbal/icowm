@@ -52,6 +52,9 @@
  *
  * Used by @c winlist_show to decorate desktop label entries.
  * Change this token to alter the visual style of all label entries.
+ *
+ * @note The prefix goes without separation before the next word unless
+ *       it's specified here
  */
 #define MENU_CONTEXT_CTXMENU_LABEL_PREFIX ""    //"--- "
 
@@ -60,6 +63,9 @@
  *
  * Paired with @c MENU_CONTEXT_CTXMENU_LABEL_PREFIX to form the full
  * decoration.
+ *
+ * @note The suffix goes without separation after the next word unless
+ *       it's specified here
  */
 #define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX ""    //" ---"
 
@@ -193,8 +199,8 @@ void ctxmenu_repaint(ctxmenu_state_td *state);
  * @param connection XCB connection
  * @param surface    Surface on which the menu is displayed
  * @param state      Menu state that owns the window receiving the event
- * @param x          Pointer X relative to the menu window
- * @param y          Pointer Y relative to the menu window
+ * @param root_x     Pointer X in root (screen) coordinates
+ * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
  * @return @c true if the event was consumed, @c false otherwise
@@ -203,7 +209,7 @@ void ctxmenu_repaint(ctxmenu_state_td *state);
  */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int x, int y, const config_td *config);
+        int root_x, int root_y, const config_td *config);
 
 /**
  * @brief Query whether the context menu (or any child) is currently open
@@ -295,6 +301,23 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
         xcb_keysym_t keysym, const config_td *config);
+
+/**
+ * @brief Handle a pointer-motion event inside a context menu window
+ *
+ * Updates the hover highlight to the entry under the pointer position
+ * @p y (relative to the menu window top edge).  Non-selectable entries
+ * (separators, labels, disabled items) clear the selection instead of
+ * highlighting.  Repaints the menu only when the selection changes.
+ *
+ * @param state Menu state that owns the window the pointer is over
+ * @param x     Pointer X relative to the menu window (unused; kept for
+ *              future use)
+ * @param y     Pointer Y relative to the menu window top edge
+ *
+ * @note Complexity: @e O(n), where @e n is @p state->entry_count
+ */
+void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
 
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */
