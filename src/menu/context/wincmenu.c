@@ -610,14 +610,14 @@ static int s_build_desk_entries(surface_td *surface,
         if (d->name[0] != '\0') {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "%s [%u] -- %s %s",
+                    "%s[%u] -- %s%s",
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx, d->name,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         } else {
             (void) snprintf(s_desk_entries[n].label,
                     sizeof(s_desk_entries[n].label),
-                    "%s [%u] %s",
+                    "%s[%u]%s",
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     d_idx,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
@@ -638,16 +638,16 @@ static int s_build_desk_entries(surface_td *surface,
      * disabling it, since 's_cb_sticky' already toggles both ways and
      * there is otherwise no menu entry to remove a pin once set */
     if (is_sticky) {
-        safe_strncpy(s_desk_entries[n].label, "Only on this desktop",
+        safe_strncpy(s_desk_entries[n].label,
+                "This desktop only (unpin)",
                 sizeof(s_desk_entries[n].label) - 1u);
     } else {
-        safe_strncpy(s_desk_entries[n].label, "All desktops",
+        safe_strncpy(s_desk_entries[n].label,
+                "All desktops (pin)",
                 sizeof(s_desk_entries[n].label) - 1u);
     }
 
     /* 'All desktops' entry for sticky support */
-    safe_strncpy(s_desk_entries[n].label, "All desktops",
-            sizeof(s_desk_entries[n].label) - 1u);
     s_desk_entries[n].type = CTXMENU_COMMAND;
     s_desk_entries[n].is_disabled = false/*is_sticky*/;
     s_desk_entries[n].on_activate = s_cb_sticky;

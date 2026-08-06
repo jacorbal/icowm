@@ -193,7 +193,6 @@ static void s_systray_reflow(void)
                 (int32_t) h);
         break;
     case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
-    default:
         x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
                 (int32_t) w);
         y = 0;
@@ -324,7 +323,6 @@ static uint16_t s_systray_insert_index(const char *sort_key)
         return s_tray.icon_count;
 
     case CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT:
-    default:
         return s_tray.icon_count;
     }
 }
