@@ -504,7 +504,7 @@ void winlist_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window list menu */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_x, int root_y,
+        surface_td *surface, xcb_window_t win, int x, int y,
         const config_td *config)
 {
     ctxmenu_state_td *state;
@@ -513,9 +513,11 @@ bool winlist_handle_click(xcb_connection_t *connection,
     if (state == NULL) {
         return false;
     }
+    x -= state->origin_x;
+    y -= state->origin_y;
 
     return ctxmenu_handle_click(connection, surface, state,
-            root_x, root_y, config);
+            x, y, config);
 }
 
 

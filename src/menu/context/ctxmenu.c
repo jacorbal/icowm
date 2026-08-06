@@ -120,8 +120,8 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
             continue;
         }
 
-        w = (uint16_t) (menu_draw_measure(entries[i].label)
-                + (uint16_t) (WM_CTXMENU_PAD_X * 2));
+        w = (uint16_t) (menu_draw_measure(entries[i].label) +
+                (uint16_t) (WM_CTXMENU_PAD_X * 2));
 
         /* Add space for the submenu arrow indicator */
         if (entries[i].type == CTXMENU_SUBMENU) {
@@ -166,17 +166,17 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
 }
 
 
+
 /**
  * @brief Activate the entry at the given index in a context menu
  *
- * Closes the entire menu hierarchy first (releasing keyboard and
- * pointer grabs), then invokes the entry's @p on_activate callback or
- * calls @c lifecycle_dispatch_launch for command entries.  Closing
- * before the callback allows the callback to establish its own grabs
- * (e.g., for interactive keyboard move or resize) without conflicting
- * with the menu's active grab.  For separator, label, or disabled
- * entries no action is taken but @c true is returned to consume the
- * event.
+ * Closes the entire menu hierarchy first (releasing keyboard and pointer
+ * grabs), then invokes the entry's @p on_activate callback or calls
+ * @c lifecycle_dispatch_launch for command entries.  Closing before the
+ * callback allows the callback to establish its own grabs (e.g. for
+ * interactive keyboard move or resize) without conflicting with the
+ * menu's active grab.  For separator, label, or disabled entries no
+ * action is taken but @c true is returned to consume the event.
  *
  * @param state Menu state that contains the entry
  * @param idx   Zero-based index of the entry to activate
@@ -391,8 +391,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     /* Right arrow: open submenu for the selected entry */
     if (keysym == 0xff53u) {
         sel = state->selected;
-        if (connection != NULL && sel >= 0 &&
-                sel < state->entry_count &&
+        if (sel >= 0 && sel < state->entry_count &&
                 state->entries[sel].type == CTXMENU_SUBMENU) {
             child_state =
                 (ctxmenu_state_td *) state->entries[sel].userdata;
@@ -580,26 +579,29 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     xcb_map_window(connection, state->window);
 
-    /* Grab keyboard and take input focus so that navigation keys
-     * (arrows, 'Enter', 'Escape') are delivered to the window manager
-     * even when an application window holds normal focus.  Only the
-     * root-level menu (no parent) grabs; submenus are opened from
-     * within the same grab context.
-     *
-     * 'xcb_grab_keyboard' may fail when the menu is opened during the
-     * processing of a passive key grab event (the X server reports
-     * 'XCB_GRAB_STATUS_ALREADY_GRABBED').  ¡xcb_set_input_focus' is
-     * therefore issued unconditionally: if the active grab succeeds,
-     * key events are routed to the grab window; if it fails, the menu
-     * window still receives them because it holds keyboard focus and
-     * has 'XCB_EVENT_MASK_KEY_PRESS' subscribed. */
+    /* Grab keyboard and pointer for the root menu only (not submenus).
+     * The keyboard grab redirects all key events (including 'Escape')
+     * to the window manager so the menu can be dismissed without the
+     * focused application consuming those keys first.  The pointer grab
+     * ensures that clicks outside the menu hierarchy are seen by the WM
+     * even when an application holds an active pointer grab. */
     if (state->parent == NULL) {
-        xcb_grab_keyboard(connection, 0, state->window,
+        xcb_grab_keyboard(connection,
+                0,                      /* owner_events */
+                surface->screen->root,
                 XCB_CURRENT_TIME,
-                XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-        xcb_set_input_focus(connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                state->window, XCB_CURRENT_TIME);
+                XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
+                XCB_GRAB_MODE_ASYNC);   /* keyboard events delivered async */
+        xcb_grab_pointer(connection,
+                0,                      /* owner_events */
+                surface->screen->root,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,               /* confine to no window */
+                XCB_NONE,               /* no cursor override */
+                XCB_CURRENT_TIME);
     }
 
     xcb_flush(connection);
@@ -611,12 +613,6 @@ void ctxmenu_close(ctxmenu_state_td *state)
 {
     if (state == NULL) {
         return;
-    }
-
-    /* Close children first */
-    if (state->child != NULL) {
-        ctxmenu_close(state->child);
-        state->child = NULL;
     }
 
     /* Close children first */
@@ -676,28 +672,18 @@ void ctxmenu_repaint(ctxmenu_state_td *state)
 /* Handle a button-press event inside a context menu window */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int root_x, int root_y, const config_td *config)
+        int x, int y, const config_td *config)
 {
     int idx;
-    int win_y;
     int16_t sub_x;
     int16_t sub_y;
     ctxmenu_state_td *child_state;
-
-    (void) root_x;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return false;
     }
 
-    
-    /* Translate from root (screen) coordinates to window-relative.
-     * Button-press events may arrive via a passive grab on the root
-     * window (e.g., 'Alt+Button1'), in which case 'event_x'/'event_y'
-     * are root- relative.  Subtracting the menu's own origin always
-     * yields the correct in-window Y for entry hit-testing. */
-    win_y = root_y - (int) state->origin_y;
-    idx = s_entry_at_y(state->entries, state->entry_count, win_y);
+    idx = s_entry_at_y(state->entries, state->entry_count, y);
     if (idx < 0 || idx >= state->entry_count) {
         return false;
     }
@@ -734,8 +720,8 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         child_state->child = NULL;
 
         sub_x = (int16_t) (state->origin_x + (int16_t) state->width);
-        sub_y = (int16_t) (state->origin_y
-                + (int16_t) s_entry_top_y(state->entries,
+        sub_y = (int16_t) (state->origin_y +
+                (int16_t) s_entry_top_y(state->entries,
                         state->entry_count, idx));
 
         ctxmenu_show(connection, surface, child_state,

@@ -47,7 +47,9 @@
 #include <cmds/state.h>
 
 /* Input includes */
+/* Keyboard modal move/resize */
 #include <input/kbd/modal.h>
+#include <input/mouse/drag.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -121,6 +123,9 @@ static surface_td *s_surface = NULL;
 
 /** Pointer to the source desktop (valid while the menu is open) */
 static desktop_td *s_desktop = NULL;
+
+/** Active configuration (valid while the menu is open) */
+static const config_td *s_config = NULL;
 
 
 /**
@@ -253,17 +258,21 @@ static void s_cb_restore(xcb_connection_t *connection,
 /**
  * @brief Callback: move the client (interactive pointer-driven move)
  *
- * Warps the pointer to the window's centre, then starts a drag so that
- * subsequent pointer motion moves the window interactively.
+ * Warps the pointer to the window's centre, then starts a pointer drag so
+ * subsequent motion keeps the pre-modal mouse workflow intact.
  */
 static void s_cb_move(xcb_connection_t *connection,
         void *userdata)
 {
-    surface_td *surface;
+    xcb_window_t root_win;
+    int32_t center_x;
+    int32_t center_y;
+    uint32_t snap;
 
     (void) userdata;
 
-    if (s_target_client == NULL || connection == NULL) {
+    if (s_target_client == NULL || connection == NULL || s_surface == NULL ||
+            s_surface->screen == NULL) {
         return;
     }
 
@@ -273,13 +282,34 @@ static void s_cb_move(xcb_connection_t *connection,
         return;
     }
 
-    surface = wm_get_surface_by_id(s_target_client->screen_id);
-    kbd_modal_move_start(connection, surface, s_target_client); 
+    root_win = s_surface->screen->root;
+    if (root_win == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    center_x = s_target_client->layout.geometry.cur.pos.x
+        + (int32_t) (s_target_client->layout.geometry.cur.dim.w / 2u);
+    center_y = s_target_client->layout.geometry.cur.pos.y
+        + (int32_t) (s_target_client->layout.geometry.cur.dim.h / 2u);
+    snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
+
+    xcb_warp_pointer(connection, XCB_NONE, root_win,
+            0, 0, 0, 0,
+            (int16_t) center_x, (int16_t) center_y);
+    xcb_flush(connection);
+
+    drag_start(connection, root_win, s_target_client, s_desktop,
+            CLIENT_OPERATION_MOVING,
+            XCB_CURRENT_TIME,
+            (int16_t) center_x, (int16_t) center_y,
+            s_surface->properties.dim.w,
+            s_surface->properties.dim.h,
+            snap);
 }
 
 
 /**
- * @brief Callback: resize the client (keyboard modalresize)
+ * @brief Callback: resize the client (keyboard modal resize)
  *
  * Validates that the client can be resized and enters keyboard modal
  * resize mode.  The user presses arrow keys to grow or shrink along the
@@ -556,6 +586,7 @@ void wincmenu_show(xcb_connection_t *connection,
     s_target_client = client;
     s_surface = surface;
     s_desktop = desktop;
+    s_config = config;
 
     /* Determine disabled states.
      * A window that is only partially maximized (horizontal or vertical
@@ -672,6 +703,7 @@ void wincmenu_close(void)
     s_target_client = NULL;
     s_surface = NULL;
     s_desktop = NULL;
+    s_config = NULL;
 }
 
 
@@ -689,7 +721,7 @@ void wincmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window context menu */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_x, int root_y,
+        surface_td *surface, xcb_window_t win, int x, int y,
         const config_td *config)
 {
     ctxmenu_state_td *state;
@@ -699,8 +731,11 @@ bool wincmenu_handle_click(xcb_connection_t *connection,
         return false;
     }
 
+    x -= state->origin_x;
+    y -= state->origin_y;
+
     return ctxmenu_handle_click(connection, surface, state,
-            root_x, root_y, config);
+            x, y, config);
 }
 
 
@@ -731,9 +766,9 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
         const config_td *config)
 {
     ctxmenu_state_td *deepest;
-
     deepest = ctxmenu_find_state_for_window(&s_root,
             ctxmenu_deepest_window(&s_root));
+
     if (deepest == NULL) {
         deepest = &s_root;
     }
@@ -747,6 +782,7 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
 void wincmenu_handle_motion(xcb_window_t win, int x, int y)
 {
     ctxmenu_state_td *state;
+
     state = ctxmenu_find_state_for_window(&s_root, win);
     if (state != NULL) {
         ctxmenu_handle_motion(state, x, y);
