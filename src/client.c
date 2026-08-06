@@ -122,6 +122,10 @@ static void s_client_init_common(client_td *client,
     client->properties.layer = CLIENT_LAYER_NORMAL;
     client->properties.operation = CLIENT_OPERATION_IDLE;
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+    /* Force the render pass to apply the real border width at least
+     * once, regardless of what that value turns out to be
+     * (vid. 'ri_render_client' in 'render/desktop.c') */
+    client->last_border_width = UINT32_MAX;
     ci_set_decoration_defaults(client, theme);
 }
 
@@ -356,6 +360,9 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
     xcb_atom_t wm_take_focus_atom = XCB_ATOM_NONE;
     xcb_atom_t net_wm_ping_atom = XCB_ATOM_NONE;
+    xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
+    xcb_get_property_cookie_t motif_ck;
+    xcb_get_property_reply_t *motif_r;
     xcb_atom_t client_leader_atom = XCB_ATOM_NONE;
     xcb_get_property_cookie_t client_leader_cookie;
     xcb_get_property_reply_t *client_leader_reply;
@@ -549,10 +556,17 @@ client_td *client_manage(xcb_connection_t *connection,
                             XCB_SYNC_CA_TEST_TYPE |
                             XCB_SYNC_CA_DELTA),
                     alarm_values);
+            LOGGER_DEBUG("Enabled '_NET_WM_SYNC_REQUEST' for" \
+                    " window=0x%x (counter=0x%x, alarm=0x%x)", window,
+                    client->sync_counter, client->sync_alarm);
         } else {
             /* Client advertised the protocol but never actually set
              * its counter property; treat it as unsupported rather
              * than sending requests nobody will ever answer */
+            LOGGER_DEBUG("window=0x%x advertised" \
+                    " '_NET_WM_SYNC_REQUEST' but never set its" \
+                    " counter property; treating it as unsupported",
+                    window);
             client->has_net_wm_sync_request = false;
         }
     }
@@ -740,6 +754,58 @@ client_td *client_manage(xcb_connection_t *connection,
             }
         }
         xcb_ewmh_get_atoms_reply_wipe(&type_reply);
+    }
+
+    /* Read '_MOTIF_WM_HINTS': the long-standing de-facto convention
+     * several toolkits and applications (e.g., Xpad) still use to
+     * explicitly request no window decorations, predating
+     * '_NET_WM_WINDOW_TYPE'.
+     *
+     * Format: 5x CARD32 { flags, functions, decorations, input_mode,
+     * status }; only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and
+     * 'decorations' are consulted here.
+     *
+     * An explicit request to turn decorations off overrides whatever
+     * the type-based defaults above chose; a request to turn them on is
+     * honored only if the theme itself decorates windows by default, so
+     * this never re-decorates a client type (dock, splash, menu, &c.)
+     * that is unconditionally undecorated above. */
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1,
+                sizeof("_MOTIF_WM_HINTS") - 1u, "_MOTIF_WM_HINTS"),
+            NULL);
+    if (ia != NULL) {
+        motif_hints_atom = ia->atom;
+        free(ia);
+    }
+    if (motif_hints_atom != XCB_ATOM_NONE) {
+        motif_ck = xcb_get_property(connection, 0, window,
+                motif_hints_atom, motif_hints_atom, 0, 5);
+        motif_r = xcb_get_property_reply(connection, motif_ck, NULL);
+        if (motif_r != NULL) {
+            if (motif_r->format == 32 &&
+                    xcb_get_property_value_length(motif_r) >=
+                        (int) (3u * sizeof(uint32_t))) {
+                const uint32_t *motif_vals = (const uint32_t *)
+                    xcb_get_property_value(motif_r);
+                uint32_t motif_flags = motif_vals[0];
+                uint32_t motif_decorations = motif_vals[2];
+
+                if ((motif_flags & 0x2u) != 0u) {
+                    /* MWM_HINTS_DECORATIONS set: 'decorations' is
+                     * meaningful */
+                    if (motif_decorations == 0u) {
+                        client_unset_decoration(client);
+                        client->layout.frame_extents =
+                            (struct sides_s) {0, 0, 0, 0};
+                    } else if (theme != NULL &&
+                            theme->window.general.is_decorated) {
+                        client_set_decoration(client);
+                    }
+                }
+            }
+            free(motif_r);
+        }
     }
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&

@@ -216,6 +216,23 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
 bool wm_sync_available(void);
 
 /**
+ * @brief Return the list of surfaces managed by the singleton window
+ *        manager instance
+ *
+ * Used by code outside @c src/wm/ (which cannot include the private
+ * @c wm/internal.h singleton pointer directly) that needs the full
+ * surface list rather than a single surface by ID (e.g.,
+ * @c focus_apply) which needs it to look up and unfocus whichever
+ * client was previously active.
+ *
+ * @return The managed surfaces list, or @c NULL when the window
+ *         manager is not initialized
+ *
+ * @note Complexity: @e O(1)
+ */
+list_td *wm_get_surfaces(void);
+
+/**
  * @brief Return the configuration directory prefix
  *
  * Returns the value of @c config_dir_prefix passed to @a wm_start, or

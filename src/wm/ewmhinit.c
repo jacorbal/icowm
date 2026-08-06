@@ -120,9 +120,10 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
         return;
     }
 
-    /* Orientation=0(horizontal), columns=n, rows=1, corner=0(top-left) */
+    /* Orientation=0(horizontal), cols=n, rows=1, corner=0(top-left) */
     layout[0] = 0u;
-    layout[1] = (surface->desktop_count > 0u) ? surface->desktop_count : 1u;
+    layout[1] = (surface->desktop_count > 0u)
+        ? surface->desktop_count : 1u;
     layout[2] = 1u;
     layout[3] = 0u;
 
@@ -207,7 +208,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
                         surface->ewmh->_NET_WM_DESKTOP,
                         XCB_ATOM_CARDINAL, 32, 1, &did_prop);
             }
-        }
+        } /* ! ohtbl_foreach */
     }
 
     xcb_ewmh_set_client_list(surface->ewmh, (int) surface->id,

@@ -129,11 +129,25 @@ typedef struct ctxmenu_state_s {
     int16_t origin_x;               /**< Actual X origin after clamping */
     int16_t origin_y;               /**< Actual Y origin after clamping */
 
-    /** Cached top-Y pixel offset per entry, allocated by
-     *  @c ctxmenu_show (size @p entry_count) and freed by
-     *  @c ctxmenu_close; @c NULL when the allocation failed, in which
-     *  case row lookups fall back to walking @p entries directly */
+    /**
+     * Cached top-Y pixel offset per entry, allocated by @c ctxmenu_show
+     * (size @p entry_count) and freed by @c ctxmenu_close; @c NULL when
+     * the allocation failed, in which case row lookups fall back to
+     * walking @p entries directly
+     */
     int32_t *entry_top_y;
+
+    /**
+     * Window-relative Y of the last 'MotionNotify' actually processed
+     * by @c ctxmenu_handle_motion, or -1 before the first one.
+     *
+     * Used to ignore a motion event that reports the exact same
+     * position as the last one: X can deliver such a "no-op" event
+     * right after a submenu maps under an already-resting pointer,
+     * which would otherwise silently override a selection just made
+     * with the keyboard even though the mouse never actually moved.
+     */
+    int32_t last_motion_y;
 
     /** Currently open child menu, or NULL */
     struct ctxmenu_state_s *child;

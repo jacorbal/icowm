@@ -44,6 +44,9 @@
 #include <input/kbd/bind.h>
 #include <input/mouse.h>
 
+/* Command includes */
+#include <cmds/state.h>
+
 /* Project includes */
 #include <lookup.h>
 #include <wm.h>
@@ -91,6 +94,9 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
     xcb_atom_t wm_window_role = XCB_ATOM_NONE;
+    xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
+    xcb_get_property_cookie_t motif_ck;
+    xcb_get_property_reply_t *motif_r;
     xcb_intern_atom_reply_t *ia;
 
     (void) connection;
@@ -175,6 +181,59 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                     RULES_TRIGGER_PROPERTY)) {
             wm_invalidate_surface(surface);
             wm_invalidate_desktop(desktop);
+        }
+        return;
+    }
+
+    /* Applications that dynamically toggle their own decoration request
+     * (e.g., 'Xpad') do so by re-setting '_MOTIF_WM_HINTS' at runtime
+     * and rely on the window manager noticing the change; the same
+     * freaking de-facto hint 'client_manage' already reads once at
+     * initial map time (see there for the field layout), just applied
+     * live here whenever it actually changes. */
+    ia = xcb_intern_atom_reply(client->connection,
+            xcb_intern_atom(client->connection, 1,
+                (uint16_t) safe_strlen("_MOTIF_WM_HINTS"),
+                "_MOTIF_WM_HINTS"), NULL);
+    if (ia != NULL) {
+        motif_hints_atom = ia->atom;
+        free(ia);
+    }
+    if (motif_hints_atom != XCB_ATOM_NONE &&
+            event->atom == motif_hints_atom) {
+        motif_ck = xcb_get_property(client->connection, 0,
+                client->window, motif_hints_atom, motif_hints_atom,
+                0, 5);
+        motif_r = xcb_get_property_reply(client->connection, motif_ck,
+                NULL);
+        if (motif_r != NULL) {
+            if (motif_r->format == 32 &&
+                    xcb_get_property_value_length(motif_r) >=
+                        (int) (3u * sizeof(uint32_t))) {
+                const uint32_t *motif_vals = (const uint32_t *)
+                    xcb_get_property_value(motif_r);
+                uint32_t motif_flags = motif_vals[0];
+                uint32_t motif_decorations = motif_vals[2];
+                bool wants_decorated = client_is_decorated(client);
+
+                if ((motif_flags & 0x2u) != 0u) {
+                    if (motif_decorations == 0u) {
+                        wants_decorated = false;
+                    } else if (client->theme != NULL &&
+                            client->theme->window.general.is_decorated) {
+                        wants_decorated = true;
+                    }
+                }
+
+                if (wants_decorated != client_is_decorated(client)) {
+                    LOGGER_DEBUG("'_MOTIF_WM_HINTS' changed for" \
+                            " window=0x%x; toggling decoration to" \
+                            " decorated=%d", client->window,
+                            (int) wants_decorated);
+                    wcmd_client_toggle_decoration(client);
+                }
+            }
+            free(motif_r);
         }
         return;
     }

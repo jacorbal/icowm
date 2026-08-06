@@ -123,6 +123,9 @@ void dcmd_desktop_rename(desktop_td *desktop,
         return;
     }
 
+    LOGGER_TRACE("Renaming desktop %u to '%s'", desktop->id,
+            desktop_data->new_data.str);
+
     if (desktop_action_rename(desktop,
                 desktop_data->new_data.str) != 0) {
         return;
@@ -155,6 +158,9 @@ void dcmd_desktop_bg_color(desktop_td *desktop,
         return;
     }
 
+    LOGGER_TRACE("Setting desktop %u background color to 0x%x",
+            desktop->id, desktop_data->new_data.uvalue);
+
     desktop->background.is_image = false;
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color = desktop_data->new_data.uvalue;
@@ -169,6 +175,7 @@ void dcmd_desktop_clear(desktop_td *desktop)
         return;
     }
 
+    LOGGER_TRACE("Clearing desktop %u", desktop->id);
     desktop_clear(desktop);
 }
 
@@ -215,6 +222,10 @@ void dcmd_desktop_client_send(desktop_td *desktop,
 
     client = desktop_data->client;
 
+    LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
+            " desktop %u", client->window, desktop->id,
+            desktop_data->target->id);
+
     /* If the client is currently visible on the active desktop, unmap
      * it immediately so it disappears from the source desktop without
      * waiting for the user to switch away */
@@ -253,6 +264,10 @@ void dcmd_desktop_client_clone(desktop_td *desktop,
             desktop_data->target == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Cloning client window=0x%x from desktop %u onto" \
+            " desktop %u", desktop_data->client->window, desktop->id,
+            desktop_data->target->id);
 
     /* Add to target without removing from source.  The same client
      * pointer lives in two desktops; the caller is responsible for
@@ -350,6 +365,7 @@ void dcmd_desktop_lock(desktop_td *desktop)
         return;
     }
 
+    LOGGER_TRACE("Locking desktop %u", desktop->id);
     desktop_action_lock(desktop);
 }
 
@@ -361,6 +377,7 @@ void dcmd_desktop_unlock(desktop_td *desktop)
         return;
     }
 
+    LOGGER_TRACE("Unlocking desktop %u", desktop->id);
     desktop_action_unlock(desktop);
 }
 
@@ -374,6 +391,8 @@ void dcmd_desktop_layout(desktop_td *desktop,
         return;
     }
 
+    LOGGER_TRACE("Setting desktop %u layout to '%s'", desktop->id,
+            desktop_data->new_data.str);
     desktop_action_set_layout(desktop, desktop_data->new_data.str);
 }
 
@@ -430,6 +449,9 @@ bool dcmd_desktop_process_kill(desktop_td *desktop,
     if (target_pid <= 0) {
         return false;
     }
+
+    LOGGER_TRACE("Sending SIGTERM to pid=%ld for desktop %u",
+            (long) target_pid, desktop->id);
 
     return (kill(target_pid, SIGTERM) == 0);
 }

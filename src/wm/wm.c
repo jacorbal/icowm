@@ -398,7 +398,14 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 /* Query whether the XSync extension is available on this server */
 bool wm_sync_available(void)
 {
-    return wm != NULL && wm->sync_available;
+    return (wm != NULL) && (wm->sync_available);
+}
+
+
+/* Return the list of surfaces managed by the singleton window manager */
+list_td *wm_get_surfaces(void)
+{
+    return (wm != NULL) ? wm->surfaces : NULL;
 }
 
 

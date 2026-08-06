@@ -42,6 +42,9 @@
 /* Command includes */
 #include <cmds/scmd.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Initial definition values */
 #include <defs/wm.h>
 
@@ -114,13 +117,19 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
 }
 
 
-
 /**
- * @brief Switch to the selected desktop and optionally focus its client
+ * @brief Switch to the selected desktop, focus, and raise its client
  *
  * Callback invoked when a client entry in the window list is activated.
  * Switches to the associated desktop and, if a client is stored in
- * @p userdata, sends focus and raise events to that client.
+ * @p userdata, makes it the active client on that desktop (not just
+ * giving it real keyboard focus): sets @c client_active_id, unfocuses
+ * whichever client was active there before, and raises it, all via
+ * @c focus_apply; the same path every other "focus this client" action
+ * in the window manager goes through, instead of only sending a raw
+ * focus event that would leave the window receiving keystrokes without
+ * ever becoming the window manager's own notion of the active window
+ * (e.g., its titlebar not highlighting as active).
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
@@ -132,6 +141,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     winlist_entry_data_td *data;
     action_data_surface_td sdata;
     uint32_t target_did;
+    desktop_td *target_desktop;
 
     (void) connection;
 
@@ -167,10 +177,9 @@ static void s_cb_focus_client(xcb_connection_t *connection,
                 ACTION_CLIENT_UNSHADE, PRIORITY_NORMAL);
     }
 
-    (void) client_send_event(data->client,
-            ACTION_CLIENT_FOCUS, PRIORITY_NORMAL);
-    (void) client_send_event(data->client,
-            ACTION_CLIENT_RAISE, PRIORITY_NORMAL);
+    target_desktop = surface_desktop_get(data->surface, target_did);
+    focus_apply(wm_get_surfaces(), data->surface, target_desktop,
+            data->client, true, NULL);
 }
 
 

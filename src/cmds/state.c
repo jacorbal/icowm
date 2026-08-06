@@ -33,6 +33,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <wm.h>
 
 /* Local includes */
@@ -201,6 +202,8 @@ void wcmd_client_shade(client_td *client)
         return;
     }
 
+    LOGGER_TRACE("Shading client window=0x%x", client->window);
+
     target = wcmd_target_win(client);
     client_geometry_save(client);
 
@@ -249,6 +252,8 @@ void wcmd_client_unshade(client_td *client)
             !client_is_shaded(client)) {
         return;
     }
+
+    LOGGER_TRACE("Unshading client window=0x%x", client->window);
 
     target = wcmd_target_win(client);
 
@@ -316,6 +321,9 @@ void wcmd_client_fullscreen(client_td *client)
     if (!client_is_resizable(client)) {
         return;
     }
+
+    LOGGER_TRACE("Entering fullscreen for client window=0x%x",
+            client->window);
 
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
@@ -407,6 +415,9 @@ void wcmd_client_unfullscreen(client_td *client)
     if (client == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Exiting fullscreen for client window=0x%x",
+            client->window);
 
     target = wcmd_target_win(client);
     client_geometry_restore(client);
@@ -523,6 +534,10 @@ void wcmd_client_toggle_decoration(client_td *client)
     if (client == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Toggling decoration for client window=0x%x" \
+            " (currently decorated=%d)", client->window,
+            (int) client_is_decorated(client));
 
     bw = (client->theme != NULL)
         ? (int32_t) client->theme->window.general.border_width

@@ -600,6 +600,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     state->surface = surface;
     state->config = config;
     state->selected = -1;
+    state->last_motion_y = -1;
 
     state->width = s_compute_width(connection, state->entries,
             state->entry_count, config);
@@ -854,6 +855,17 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return;
     }
+
+    /* Ignore a motion event reporting the exact same position as the
+     * last one actually processed: X can deliver one of these right
+     * after a submenu maps under an already-resting pointer, which
+     * would otherwise silently steal a selection just made with the
+     * keyboard even though the mouse never actually moved (vid.
+     * 'last_motion_y' in 'ctxmenu.h') */
+    if (y == state->last_motion_y) {
+        return;
+    }
+    state->last_motion_y = y;
 
     /* Ignore X coordinate: entries span the full width */
     (void) x;

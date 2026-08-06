@@ -26,6 +26,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -54,8 +55,7 @@
  *
  * @see @c client_manage
  */
-static client_td *s_find_client_by_alarm(list_td *surfaces,
-        uint32_t alarm)
+static client_td *s_find_client_by_alarm(list_td *surfaces, uint32_t alarm)
 {
     if (surfaces == NULL || alarm == 0u) {
         return NULL;
@@ -125,8 +125,14 @@ void handler_sync_event(wm_td *wm, xcb_generic_event_t *event)
     client = s_find_client_by_alarm(wm->surfaces,
             (uint32_t) alarm_event->alarm);
     if (client == NULL) {
+        LOGGER_TRACE("'AlarmNotify' for unknown alarm=0x%x; ignoring",
+                (unsigned int) alarm_event->alarm);
         return;
     }
+
+    LOGGER_TRACE("'AlarmNotify' acknowledges sync request for" \
+            " window=0x%x (pending=%d)", client->window,
+            (int) client->sync_has_pending);
 
     /* The client has caught up to (or past) the last size the window
      * manager sent it; release the wait and, if a newer resize step

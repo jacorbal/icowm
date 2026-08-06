@@ -633,11 +633,23 @@ static int s_build_desk_entries(surface_td *surface,
         ++n;
     }
 
+    /* "All desktops" entry for sticky support: when the client is
+     * already sticky, relabel it as an active un-pin action instead of
+     * disabling it, since 's_cb_sticky' already toggles both ways and
+     * there is otherwise no menu entry to remove a pin once set */
+    if (is_sticky) {
+        safe_strncpy(s_desk_entries[n].label, "Only on this desktop",
+                sizeof(s_desk_entries[n].label) - 1u);
+    } else {
+        safe_strncpy(s_desk_entries[n].label, "All desktops",
+                sizeof(s_desk_entries[n].label) - 1u);
+    }
+
     /* 'All desktops' entry for sticky support */
     safe_strncpy(s_desk_entries[n].label, "All desktops",
             sizeof(s_desk_entries[n].label) - 1u);
     s_desk_entries[n].type = CTXMENU_COMMAND;
-    s_desk_entries[n].is_disabled = is_sticky;
+    s_desk_entries[n].is_disabled = false/*is_sticky*/;
     s_desk_entries[n].on_activate = s_cb_sticky;
     s_desk_entries[n].userdata = NULL;
     ++n;

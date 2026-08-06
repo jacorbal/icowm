@@ -26,6 +26,7 @@
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
+#include <logger.h>
 
 /* Local includes */
 #include <cmds/meta.h>
@@ -39,6 +40,9 @@ void wcmd_client_rename(client_td *client,
     if (client == NULL || client_data == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Renaming client window=0x%x to '%s'", client->window,
+            client_data->new_data.str.str0);
 
     free(client->info.name);
     client->info.name = safe_strdup(client_data->new_data.str.str0);
@@ -70,6 +74,11 @@ void wcmd_client_reclass(client_td *client,
     if (client == NULL || client_data == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Setting 'WM_CLASS' for client window=0x%x to" \
+            " '%s'/'%s'", client->window,
+            client_data->new_data.str.str0,
+            client_data->new_data.str.str1);
 
     free(client->info.class_name[0]);
     free(client->info.class_name[1]);
@@ -114,6 +123,9 @@ void wcmd_client_rerole(client_td *client,
         return;
     }
 
+    LOGGER_TRACE("Setting 'WM_WINDOW_ROLE' for client window=0x%x to" \
+            " '%s'", client->window, client_data->new_data.str.str0);
+
     free(client->info.role_name);
     client->info.role_name =
         safe_strdup(client_data->new_data.str.str0);
@@ -147,6 +159,9 @@ void wcmd_client_set_icon(client_td *client,
     if (client == NULL || client_data == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Setting icon name for client window=0x%x to '%s'",
+            client->window, client_data->new_data.str.str0);
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,

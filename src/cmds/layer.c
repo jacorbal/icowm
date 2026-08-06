@@ -20,6 +20,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <wm.h>
 
 /* Local includes */
@@ -35,6 +36,8 @@ void wcmd_client_raise(client_td *client)
     if (client == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Raising client window=0x%x", client->window);
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
@@ -60,6 +63,8 @@ void wcmd_client_lower(client_td *client)
         return;
     }
 
+    LOGGER_TRACE("Lowering client window=0x%x", client->window);
+
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         (void) desktop_action_client_send_back(desktop, client);
@@ -83,6 +88,9 @@ void wcmd_client_layer_above(client_td *client)
     if (client == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Setting client window=0x%x to layer 'above'",
+            client->window);
     client->properties.layer = CLIENT_LAYER_ABOVE;
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_BELOW");
@@ -107,6 +115,8 @@ void wcmd_client_layer_normal(client_td *client)
         return;
     }
 
+    LOGGER_TRACE("Setting client window=0x%x to layer 'normal'",
+            client->window);
     client->properties.layer = CLIENT_LAYER_NORMAL;
 
     wcmd_rem_states(client, 2,
@@ -132,6 +142,8 @@ void wcmd_client_layer_below(client_td *client)
         return;
     }
 
+    LOGGER_TRACE("Setting client window=0x%x to layer 'below'",
+            client->window);
     client->properties.layer = CLIENT_LAYER_BELOW;
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_ABOVE");
