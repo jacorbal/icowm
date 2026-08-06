@@ -515,11 +515,22 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     /* Cluster windows of the same application: if another currently
      * mapped (non-iconified) client on this desktop shares the same
      * 'WM_CLIENT_LEADER'/'WM_HINTS' group as 'client', place the new
-     * window offset from it instead of running the configured placement
-     * policy, so related windows stay visually together */
+     * window offset from the group instead of running the configured
+     * placement policy, so related windows stay visually together.
+     * Gated by 'windows.placement.group-related' since not everyone
+     * wants this: it can be turned off in configuration.
+     *
+     * The offset scales with how many siblings already exist (not just
+     * whichever one 'ohtbl_foreach' happens to visit first) so that
+     * a 3rd, 4th,... window of the same group each land at a further,
+     * distinct position instead of every one of them after the 2nd
+     * piling up on exactly the same spot as the 2nd. */
     if (leader != XCB_WINDOW_NONE && desktop != NULL &&
-            desktop->clients != NULL) {
+            desktop->clients != NULL &&
+            wm->config->base.windows.group_related) {
         void *elem;
+        client_td *anchor = NULL;
+        uint32_t sibling_count = 0u;
 
         ohtbl_foreach(desktop->clients, elem) {
             client_td *sibling = (client_td *) elem;
@@ -531,12 +542,18 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
                 continue;
             }
 
-            new_x = sibling->layout.geometry.cur.pos.x +
-                (int32_t) cascade_step;
-            new_y = sibling->layout.geometry.cur.pos.y +
-                (int32_t) cascade_step;
+            sibling_count++;
+            if (anchor == NULL) {
+                anchor = sibling;
+            }
+        }
+
+        if (anchor != NULL) {
+            new_x = anchor->layout.geometry.cur.pos.x +
+                (int32_t) (cascade_step * sibling_count);
+            new_y = anchor->layout.geometry.cur.pos.y +
+                (int32_t) (cascade_step * sibling_count);
             placed_as_sibling = true;
-            break;
         }
     }
 

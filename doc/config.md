@@ -19,6 +19,7 @@ values, and built-in default value.
    - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
    - [2.8 `menu`](#28-menu)
    - [2.9 `systray`](#29-systray)
+   - [2.10 `xsettings`](#210-xsettings)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -271,9 +272,10 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 
 #### `windows.placement`
 
-| Key                | Type   | Default   | Description |
-|--------------------|--------|-----------|-------------|
-| `placement.policy` | string | `"smart"` | How newly mapped windows are placed. |
+| Key                         | Type    | Default   | Description |
+|-----------------------------|---------|-----------|-------------|
+| `placement.policy`          | string  | `"smart"` | How newly mapped windows are placed. |
+| `placement.group-related`   | boolean | `true`    | Cluster windows of the same application together. |
 
 Accepted placement policy values:
 
@@ -284,13 +286,28 @@ Accepted placement policy values:
 | `"under-mouse"` | Places the window under the current pointer position. |
 | `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 
-Transient (dialog) windows are always centered over their parent
-window, regardless of this setting.
+Transient (dialog) windows are always centered over their parent window,
+regardless of this setting.
+
+When `group-related` is `true` (the default), a newly mapped window
+whose `WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
+matches another currently visible window's is placed offset from that
+group instead of running the policy above for it, i.e., a second,
+third,... window opened by the same application lands next to the others
+instead of wherever `policy` would otherwise put it.  Set it to `false`
+to always use `policy` for every window, with no special-casing for
+related ones.
+
+This is named after what it actually groups by (an application's stated
+client/window group), not by `WM_CLASS`, since not every application
+that opens several related windows gives them all the exact same class
+name.
 
 ```json
 "windows": {
     "placement": {
-        "policy": "smart"
+        "policy": "smart",
+        "group-related": true
     }
 }
 ```
@@ -432,6 +449,51 @@ tray.
     "is-enabled": false,
     "position": "top-right"
     "order": "left-to-right"
+}
+```
+
+### 2.10 `xsettings`
+
+| Key                           | Type    | Default     |
+|-------------------------------|---------|-------------|
+| `xsettings.is-enabled`        | boolean | `false`     |
+| `xsettings.gtk-theme-name`    | string  | `"Adwaita"` |
+| `xsettings.icon-theme-name`   | string  | `"Adwaita"` |
+| `xsettings.cursor-theme-name` | string  | `"Adwaita"` |
+| `xsettings.cursor-theme-size` | integer | `24`        |
+| `xsettings.dpi`               | integer | `96`        |
+
+Built-in XSETTINGS manager, implementing the freedesktop.org XSETTINGS
+specification.  Many GTK and Qt applications have a "use theme colors"
+or "use system settings" option that only takes effect if some XSETTINGS
+manager is running to tell them what the theme, icon theme, cursor
+theme, and display DPI actually are; without one, those applications
+silently fall back to their own built-in defaults regardless of what
+this option is set to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn`
+manager selection on the first managed screen and publishes
+`Net/ThemeName`, `Net/IconThemeName`, `Gtk/CursorThemeName`,
+`Gtk/CursorThemeSize`, and `Xft/DPI` (as `dpi * 1024`, per the
+specification) from the values below.
+
+Changing any of these values and reloading the configuration updates the
+published settings immediately for every application watching them,
+without needing to restart them.  As with the systray, if another
+settings manager (e.g., `xsettingsd`, or a desktop environment's own)
+already owns the selection, IcoWM's built-in one steps aside rather than
+fighting over ownership, for only one settings manager can be active at
+a time.  This does not give applications a full theme (GTK/Qt themes are
+CSS-like stylesheets, not something conveyed over XSETTINGS); it gives
+them the *name* of a theme they already have installed to switch to,
+exactly as a dedicated XSETTINGS daemon would.
+
+```json
+"xsettings": {
+    "is-enabled": false,
+    "gtk-theme-name": "Adwaita",
+    "icon-theme-name": "Adwaita",
+    "cursor-theme-name": "Adwaita",
+    "cursor-theme-size": 24,
+    "dpi": 96
 }
 ```
 
@@ -1089,9 +1151,10 @@ Sub-menus can be nested to the depth limit defined by
 
     "windows": {
         "gravity": "north-west",
-        "has-grips": true
+        "has-grips": true,
         "move-step": 10,
         "snap": 4,
+        "group-related": true,
         "focus": {
             "policy": "click",
             "is-new-focused": true,
@@ -1113,9 +1176,18 @@ Sub-menus can be nested to the depth limit defined by
     },
 
     "systray": {
-        "is-enabled": false,
+        "is-enabled": true,
         "position": "top-right",
         "order": "left-to-right"
+    },
+
+    "xsettings": {
+        "is-enabled": false,
+        "gtk-theme-name": "Adwaita",
+        "icon-theme-name": "Adwaita",
+        "cursor-theme-name": "Adwaita",
+        "cursor-theme-size": 24,
+        "dpi": 96
     },
 
     "show-desktop-notify": true,

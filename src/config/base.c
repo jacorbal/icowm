@@ -544,6 +544,8 @@ int config_load_base(const char *filename,
                     s_config_parse_placement_policy(
                             placement_policy_item->valuestring);
             }
+            json_load_bool(placement, "group-related",
+                    &config_base->windows.group_related);
         }
 
     }

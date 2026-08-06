@@ -97,6 +97,16 @@ struct config_base_s {
             CONFIG_PLACEMENT_POLICY_CENTERED,
             CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
         } placement_policy;
+
+        /**
+         * Cluster a newly placed window next to others sharing its
+         * @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g., several
+         * windows of the same application) instead of running the
+         * placement policy above for it.
+         *
+         * @see @c place_apply
+         */
+        bool group_related;
     } windows;
 
     /* Icon placement policy settings */
@@ -136,14 +146,6 @@ struct config_base_s {
      * Implements the @c _NET_SYSTEM_TRAY_Sn manager selection and the
      * XEMBED protocol needed to actually host tray icons.
      * The boolean @p is_enabled just gates whether that runs.
-     *
-     * @note This only controls whether/where a built-in systray would
-     *       be drawn; it does not by itself implement the
-     *       @c _NET_SYSTEM_TRAY_Sn manager selection or the @c XEMBED
-     *       protocol needed to actually host tray icons.  With
-     *       @p is_enabled left @c false (the default) nothing changes:
-     *       external providers (such as @c tint2) remain the supported
-     *       way to get a systray.
      *
      * @see @c systray.c
      */
