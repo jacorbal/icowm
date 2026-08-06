@@ -48,6 +48,7 @@
 #include <startup.h>
 #include <surface.h>
 #include <systray.h>
+#include <xsettings.h>
 
 /* Local includes */
 #include <wm.h>
@@ -79,6 +80,7 @@ static void s_wm_cleanup(void)
     }
 
     systray_shutdown(wm);
+    xsettings_shutdown(wm);
 
     if (wm->session != NULL) {
         if (wm->is_emergency_exit) {
@@ -320,6 +322,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm_ewmh_sync();
 
     systray_init(wm);
+    xsettings_init(wm);
 
     LOGGER_DEBUG("Setting running status flag to 'true'", L_NARG);
     wm->is_running = true;
@@ -431,7 +434,7 @@ void wm_request_client_redraw(client_td *client)
 
     /* Mark the individual client so the render pass applies the heavy
      * geometry configure and expose only to this client, avoiding
-     * unwanted redraws (and visible flicker) in other windows */
+     * spurious redraws (and visible flicker) in other windows */
     client->is_outdated = true;
 
     desktop = wm_get_client_desktop(client);

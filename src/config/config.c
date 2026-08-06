@@ -174,12 +174,22 @@ void config_set_default_values(config_td *config)
     config->base.windows.focus.is_raised_on_focus = false;
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
-    config->base.enable_emergency_shortcut = true;
+    config->base.enable_emergency_shortcut = false;
     config->base.show_desktop_notify = true;
     config->base.menu.root_position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
+
+    config->base.xsettings.is_enabled = false;
+    safe_strncpy(config->base.xsettings.gtk_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->base.xsettings.icon_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->base.xsettings.cursor_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    config->base.xsettings.cursor_theme_size = 24u;
+    config->base.xsettings.dpi = 96u;
 
     /* Predetermined values for RandR output profile management */
     LOGGER_TRACE("Setting default RandR configuration", L_NARG);

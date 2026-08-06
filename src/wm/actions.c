@@ -29,6 +29,7 @@
 #include <logger.h>
 #include <surface.h>
 #include <systray.h>
+#include <xsettings.h>
 
 /* Local includes */
 #include <wm.h>
@@ -50,8 +51,11 @@ int wm_action_config_reload(void)
         return 1;
     }
 
-    /* Reload also the systray reacting to config. reload */
+    /* Reload the systray reacting to config. reload */
     systray_reload(wm);
+
+    /* Reload also XSETTINGS */
+    xsettings_reload(wm);
 
     if (wm->rules != NULL) {
         (void) rules_load(wm->rules, wm->config_dir_prefix);

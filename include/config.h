@@ -172,6 +172,29 @@ struct config_base_s {
                                  relative to already-docked ones */
         bool is_enabled;    /**< Enable the built-in systray dock */
     } systray;
+
+    /**
+     * @brief Configuration for the built-in XSETTINGS manager
+     *
+     * Implements the freedesktop.org XSETTINGS specification (a
+     * @c _XSETTINGS_Sn manager selection publishing a
+     * @c _XSETTINGS_SETTINGS property) so that GTK/Qt applications
+     * requesting to "use theme colors"/system settings pick up a real
+     * theme, icon theme, cursor theme, and DPI instead of falling back
+     * to their own built-in defaults.
+     */
+    struct {
+        bool is_enabled;                /**< Enable the built-in
+                                             XSETTINGS manager */
+        unsigned int cursor_theme_size; /**< Cursor size in pixels */
+        unsigned int dpi;               /**< Display resolution, in dots
+                                             per inch; published as
+                                             'Xft/DPI' (times 1024, per
+                                             the XSETTINGS convention) */
+        char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
+        char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
+        char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
+    } xsettings;
 };
 
 

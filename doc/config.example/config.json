@@ -56,12 +56,21 @@
         }
     },
     "menu": {
-        "root-position": "center"
+        "root-position": "under-mouse"
     },
     "systray": {
         "is-enabled": false,
-        "position": "top-right"
+        "position": "top-right",
+        "order": "left-to-right"
+    },
+    "xsettings": {
+        "is-enabled": false,
+        "gtk-theme-name": "Adwaita",
+        "icon-theme-name": "Adwaita",
+        "cursor-theme-name": "Adwaita",
+        "cursor-theme-size": 24,
+        "dpi": 96
     },
     "show-desktop-notify": true,
-    "enable-emergency-shortcut": true
+    "enable-emergency-shortcut": false
 }
