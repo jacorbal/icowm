@@ -28,6 +28,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <systray.h>
 
 /* Local includes */
 #include <wm.h>
@@ -48,6 +49,9 @@ int wm_action_config_reload(void)
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
     }
+
+    /* Reload also the systray reacting to config. reload */
+    systray_reload(wm);
 
     if (wm->rules != NULL) {
         (void) rules_load(wm->rules, wm->config_dir_prefix);

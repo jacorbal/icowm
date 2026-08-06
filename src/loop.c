@@ -64,6 +64,7 @@
 #include <logger.h>
 #include <startup.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
@@ -328,6 +329,9 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_DESTROY_NOTIFY:
+                    systray_handle_destroy(wm,
+                            ((xcb_destroy_notify_event_t *)
+                                event)->window);
                     handler_destroy_notify(wm->connection,
                             wm->surfaces,
                             (xcb_destroy_notify_event_t *) event);

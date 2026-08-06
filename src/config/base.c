@@ -97,7 +97,7 @@ static enum config_placement_policy_e
  *
  * @return Parsed menu position enumeration value
  *
- * @note Supported values are @c center and @c cursor
+ * @note Supported values are @c center and @c under-mouse
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 static enum config_menu_position_e
@@ -106,14 +106,14 @@ static enum config_menu_position_e
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_MENU_POSITION_CENTER;
-    }
-
-    if (safe_strcmp(value_norm, "under-mouse") == 0) {
         return CONFIG_MENU_POSITION_UNDER_MOUSE;
     }
 
-    return CONFIG_MENU_POSITION_CENTER;
+    if (safe_strcmp(value_norm, "center") == 0) {
+        return CONFIG_MENU_POSITION_CENTER;
+    }
+
+    return CONFIG_MENU_POSITION_UNDER_MOUSE;
 }
 
 
@@ -149,6 +149,41 @@ static enum config_systray_position_e
     }
 
     return CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
+}
+
+
+/**
+ * @brief Parse systray icon-ordering policy text into configuration
+ *        enumeration
+ *
+ * @param value Systray order string from configuration
+ *
+ * @return Parsed systray order enumeration value
+ *
+ * @note Supported values are @c left-to-right, @c right-to-left,
+ *       @c ascending, and @c descending
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_order_e
+    s_config_parse_systray_order(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
+    }
+
+    if (safe_strcmp(value_norm, "right-to-left") == 0) {
+        return CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT;
+    }
+    if (safe_strcmp(value_norm, "ascending") == 0) {
+        return CONFIG_SYSTRAY_ORDER_ASCENDING;
+    }
+    if (safe_strcmp(value_norm, "descending") == 0) {
+        return CONFIG_SYSTRAY_ORDER_DESCENDING;
+    }
+
+    return CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
 }
 
 
@@ -223,7 +258,7 @@ static enum config_icon_placement_e s_config_parse_icon_placement(
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_ICON_PLACEMENT_BOTTOM;
+        return CONFIG_ICON_PLACEMENT_SMART;
     }
 
     if (safe_strcmp(value_norm, "top") == 0) {
@@ -235,11 +270,11 @@ static enum config_icon_placement_e s_config_parse_icon_placement(
     if (safe_strcmp(value_norm, "right") == 0) {
         return CONFIG_ICON_PLACEMENT_RIGHT;
     }
-    if (safe_strcmp(value_norm, "smart") == 0) {
-        return CONFIG_ICON_PLACEMENT_SMART;
+    if (safe_strcmp(value_norm, "bottom") == 0) {
+        return CONFIG_ICON_PLACEMENT_BOTTOM;
     }
 
-    return CONFIG_ICON_PLACEMENT_BOTTOM;
+    return CONFIG_ICON_PLACEMENT_SMART;
 }
 
 
@@ -570,6 +605,7 @@ int config_load_base(const char *filename,
     systray = cJSON_GetObjectItem(json, "systray");
     if (systray) {
         cJSON *position_item;
+        cJSON *order_item;
 
         json_load_bool(systray, "is-enabled",
                 &config_base->systray.is_enabled);
@@ -578,6 +614,11 @@ int config_load_base(const char *filename,
             config_base->systray.position =
                 s_config_parse_systray_position(
                         position_item->valuestring);
+        }
+        order_item = json_get_item(systray, "order");
+        if (order_item != NULL && cJSON_IsString(order_item)) {
+            config_base->systray.order =
+                s_config_parse_systray_order(order_item->valuestring);
         }
     }
 

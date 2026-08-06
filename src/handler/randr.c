@@ -23,6 +23,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
@@ -80,6 +81,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
             surface->randr.crtc_id =
                 (uint32_t) randr_event->config_timestamp;
             s_handler_randr_refresh_surface(surface);
+            systray_handle_surface_resize(wm);
 
             LOGGER_INFO("XRandR screen change on surface %u: %ux%u",
                     surface->id,

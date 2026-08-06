@@ -310,9 +310,9 @@ the icon.
 
 Controls how iconified windows are laid out on the desktop.
 
-| Key                      | Type   | Default    | Description               |
-|--------------------------|--------|------------|---------------------------|
-| `icons.placement.policy` | string | `"bottom"` | How new icons are placed. |
+| Key                      | Type   | Default   | Description               |
+|--------------------------|--------|-----------|---------------------------|
+| `icons.placement.policy` | string | `"smart"` | How new icons are placed. |
 
 Accepted icon placement values:
 
@@ -366,16 +366,16 @@ systems where the key combination might be triggered accidentally.
 
 ### 2.8 `menu`
 
-| Key                    | Type   | Default    |
-|------------------------|--------|------------|
-| `menu.root-position`   | string | `"center"` |
+| Key                    | Type   | Default         |
+|------------------------|--------|-----------------|
+| `menu.root-position`   | string | `"under-mouse"` |
 
 Controls where the desktop (root) context menu appears when it is opened
 by a means with no screen position of its own, such as its keyboard
 shortcut.  Supported values are `"center"`, which always opens the menu
-in the center of the screen (legacy behavior), and `"under-mouse"`,
-which opens it under the current mouse pointer position instead,
-matching the naming of `windows.placement.policy`.
+in the center of the screen, and `"under-mouse"`, which opens it under
+the current mouse pointer position instead, matching the naming of
+`windows.placement.policy`.
 
 This setting has no effect when the menu is opened with the mouse (e.g.,
 right-click on the desktop), since it already opens under the pointer in
@@ -389,25 +389,49 @@ that case.
 
 ### 2.9 `systray`
 
-| Key                  | Type    | Default       |
-|----------------------|---------|---------------|
-| `systray.is-enabled` | boolean | `false`       |
-| `systray.position`   | string  | `"top-right"` |
+| Key                  | Type    | Default            |
+|----------------------|---------|--------------------|
+| `systray.is-enabled` | boolean | `false`            |
+| `systray.position`   | string  | `"top-right"`      |
+| `systray.order`      | string  | `"left-to-right"`  |
 
-Reserved for a future built-in systray dock.  `is-enabled` toggles it on
-or off, and `position` (one of `"top-left"`, `"top-right"`,
-`"bottom-left"`, or `"bottom-right"`) selects which screen corner it
-docks in.  As of this version these keys are parsed and stored but not
-yet acted upon: IcoWM does not currently acquire the
-`_NET_SYSTEM_TRAY_Sn` manager selection or speak the XEMBED protocol
-needed to actually host tray icons, so `is-enabled` has no visible
-effect yet.  Continue using an external provider (such as `tint2`) for
-a systray in the meantime.
+Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
+`"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
+selects which corner of the first managed screen it docks in.
+
+The key `order` controls where a newly docked icon is placed relative to
+the ones already there: `"left-to-right"` appends it after the last
+icon, `"right-to-left"` inserts it before the first, and `"ascending"`
+/ `"descending"` instead keep the whole row continuously sorted
+alphabetically ('A-Z' or 'Z-A') by each icon's window class name,
+ignoring insertion order entirely.
+
+When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
+on startup and embeds icon windows that request docking via the
+freedesktop.org System Tray Protocol together with the XEMBED handshake;
+the dock window stays hidden while no icons are docked.  Toggling
+`is-enabled` off and back on via a configuration reload releases and
+re-acquires the selection immediately without losing already-docked
+icons: the dock window and its icons persist in the background while
+disabled, just hidden and not accepting new dock requests, so they
+reappear as soon as it is re-enabled instead of only newly-launched tray
+icons showing up.
+
+If another tray manager (e.g., `tint2`'s built-in tray) already owns the
+selection, IcoWM's built-in tray steps aside and stays disabled for that
+session.  Only one tray manager can be active at a time, same as with
+any other implementation of this protocol.
+
+Icons are embedded with the window manager's default visual rather than
+a negotiated 32-bit ARGB one, so icons relying on real alpha
+transparency may show a solid background instead of blending into the
+tray.
 
 ```json
 "systray": {
     "is-enabled": false,
     "position": "top-right"
+    "order": "left-to-right"
 }
 ```
 
@@ -1083,6 +1107,17 @@ Sub-menus can be nested to the depth limit defined by
             "policy": "smart"
         }
     },
+
+    "menu": {
+        "root-position": "under-mouse"
+    },
+
+    "systray": {
+        "is-enabled": false,
+        "position": "top-right",
+        "order": "left-to-right"
+    },
+
     "show-desktop-notify": true,
     "enable-emergency-shortcut": false    
 }

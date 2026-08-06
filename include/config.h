@@ -131,7 +131,11 @@ struct config_base_s {
     } menu;
 
     /**
-     * @brief Configuration switch for a built-in systray dock
+     * @brief Configuration for the built-in systray dock
+     *
+     * Implements the @c _NET_SYSTEM_TRAY_Sn manager selection and the
+     * XEMBED protocol needed to actually host tray icons.
+     * The boolean @p is_enabled just gates whether that runs.
      *
      * @note This only controls whether/where a built-in systray would
      *       be drawn; it does not by itself implement the
@@ -140,6 +144,8 @@ struct config_base_s {
      *       @p is_enabled left @c false (the default) nothing changes:
      *       external providers (such as @c tint2) remain the supported
      *       way to get a systray.
+     *
+     * @see @c systray.c
      */
     struct {
         enum config_systray_position_e {
@@ -148,6 +154,22 @@ struct config_base_s {
             CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT,
             CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT
         } position;         /**< Corner of the screen to dock it in */
+
+        enum config_systray_order_e {
+            CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0, /**< New icons are
+                                                         appended after
+                                                         the last one */
+            CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT,     /**< New icons are
+                                                         inserted before
+                                                         the first one */
+            CONFIG_SYSTRAY_ORDER_ASCENDING,         /**< Kept sorted by
+                                                         icon class name,
+                                                         'A-Z' */
+            CONFIG_SYSTRAY_ORDER_DESCENDING         /**< Kept sorted by
+                                                         icon class name,
+                                                         'Z-A' */
+        } order;            /**< Where newly docked icons are placed
+                                 relative to already-docked ones */
         bool is_enabled;    /**< Enable the built-in systray dock */
     } systray;
 };

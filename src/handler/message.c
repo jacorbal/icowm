@@ -47,6 +47,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 
@@ -92,6 +93,11 @@ void handler_client_message(wm_td *wm,
 
     LOGGER_TRACE("Client message: window=0x%x, type=%u",
             event->window, event->type);
+
+    if (systray_owns_window(event->window)) {
+        systray_handle_client_message(wm, event);
+        return;
+    }
 
     ia = xcb_intern_atom_reply(wm->connection,
             xcb_intern_atom(wm->connection, 0,

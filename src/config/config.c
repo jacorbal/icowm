@@ -177,8 +177,9 @@ void config_set_default_values(config_td *config)
     config->base.enable_emergency_shortcut = true;
     config->base.show_desktop_notify = true;
     config->base.menu.root_position = CONFIG_MENU_POSITION_UNDER_MOUSE;
-    config->base.systray.is_enabled = false;
+    config->base.systray.is_enabled = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
+    config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
 
     /* Predetermined values for RandR output profile management */
     LOGGER_TRACE("Setting default RandR configuration", L_NARG);
@@ -340,7 +341,7 @@ void config_set_default_values(config_td *config)
     config->theme.icon.active.background_color = json_hex2uint32("9AAEC8");
     config->theme.icon.active.foreground_color = json_hex2uint32("253040");
     config->theme.icon.active.border_color = json_hex2uint32("4A5566");
-    safe_strcpy(config->theme.icon.active.font, "fixed");
+    safe_strcpy(config->theme.icon.active.font, "fixed bold");
     config->theme.icon.inactive.background_color = json_hex2uint32("D0D9E5");
     config->theme.icon.inactive.foreground_color = json_hex2uint32("4A5566");
     config->theme.icon.inactive.border_color = json_hex2uint32("7F9AB6");

@@ -371,6 +371,17 @@ typedef struct client_s {
                                          full configure+repaint needed
                                          on next render pass (cleared
                                          after render) */
+    uint32_t last_border_width; /**< Border width most recently sent to
+                                     the X server for this client's
+                                     frame/window (see 'target' in
+                                     'ri_render_client'), so the render
+                                     pass can skip re-sending
+                                     'xcb_configure_window' when it
+                                     would not actually change anything.
+                                     Initialized to 'UINT32_MAX' by
+                                     'client_manage' so the very first
+                                     render always applies the real
+                                     value regardless of what it is */
 } client_td;
 
 
@@ -960,6 +971,25 @@ void client_props_refresh_normal_hints(client_td *client);
  */
 #define client_is_maximized_vert(w) \
     ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED_VERT)
+
+/**
+ * @brief Macro that evaluates to whether the client is maximized in any
+ *        way (fully, horizontally-only, or vertically-only)
+ *
+ * Used wherever an operation needs to know only that the client's
+ * @p layout.geometry.old already holds a valid pre-maximize geometry
+ * (regardless of which maximize variant is currently active), most
+ * notably to decide whether it is safe to call @c client_geometry_save
+ * again without stranding that original geometry.
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @c wcmd_client_maximize, @c wcmd_client_maximize_horz,
+ *      @c wcmd_client_maximize_vert, and @c wcmd_client_iconify.
+ */
+#define client_is_maximized_any(w) \
+    (client_is_maximized(w) || client_is_maximized_horz(w) || \
+     client_is_maximized_vert(w))
 
 /**
  * @brief Macro that evaluates to the client full screen state

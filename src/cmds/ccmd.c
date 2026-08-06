@@ -22,11 +22,17 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* ADT includes */
+#include <adt/cdlist.h>
+
 /* Default initial values */
 #include <defs/wm.h>
 
 /* Windows & icons policy includes */
 #include <policy/placement.h>
+
+/* Utils includes */
+#include <utils/geom.h>
 
 /* Project includes */
 #include <client.h>
@@ -304,6 +310,25 @@ void wcmd_client_unfocus(client_td *client)
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     client_unfocus(client);
+
+    /* Actually redirect the X server's real input focus away from this
+     * client, not just the window manager's own bookkeeping of which
+     * client looks focused.  Without this, a client that keeps
+     * 'WM_HINTS.input=true' (the default) still receives every
+     * 'KeyPress'/'KeyRelease' after being visually unfocused (e.g. by
+     * clicking the empty desktop), since nothing ever told the X
+     * server to stop delivering keyboard events to its window.
+     * A caller that is unfocusing this client only to immediately
+     * focus another one (see 'focus_apply') harmlessly overrides this
+     * a moment later via that client's own 'SetInputFocus' call, same
+     * as the existing pattern in 'wcmd_client_close' below. */
+    if (client->connection != NULL) {
+        xcb_set_input_focus(client->connection,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_INPUT_FOCUS_POINTER_ROOT,
+                XCB_CURRENT_TIME);
+    }
+
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL) {
         border_color = client->theme->window.inactive.border_color;
@@ -316,6 +341,68 @@ void wcmd_client_unfocus(client_td *client)
                 (int) client->screen_id,
                 XCB_NONE);
     }
+}
+
+
+/**
+ * @brief Whether a remembered icon position is already occupied
+ *
+ * Checks @p client's saved @p icon_x/@p icon_y against every other
+ * client on the same desktop that currently has a mapped icon, so
+ * @c wcmd_client_iconify can tell a genuinely free remembered spot
+ * from one that another window's icon has since claimed (e.g. because
+ * that other window was iconified while @p client was still restored,
+ * and happened to land where @p client's own icon last was).
+ *
+ * @param client Client about to be iconified; its own @p icon_window
+ *               may still be non-zero from a previous iconify, in
+ *               which case it is skipped so it never collides with
+ *               itself
+ * @param icon_w Icon width, in pixels
+ * @param icon_h Icon height, in pixels
+ *
+ * @return @c true if another icon already overlaps that position
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop
+ */
+static bool s_icon_slot_is_taken(const client_td *client,
+        uint16_t icon_w, uint16_t icon_h)
+{
+    desktop_td *desktop;
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+
+    if (client == NULL || client->icon_x < 0 || client->icon_y < 0) {
+        return false;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop == NULL || desktop->stacking == NULL) {
+        return false;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    initial = node;
+    if (node == NULL) {
+        return false;
+    }
+
+    do {
+        const client_td *other = (const client_td *) cdlist_data(node);
+
+        if (other != NULL && other != client &&
+                other->icon_window != 0u && other->is_icon_mapped &&
+                geom_intersection_area(
+                        client->icon_x, client->icon_y, icon_w, icon_h,
+                        other->icon_x, other->icon_y, icon_w, icon_h)
+                    > 0u) {
+            return true;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return false;
 }
 
 
@@ -345,7 +432,16 @@ void wcmd_client_iconify(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
+    /* Only remember the geometry to restore to if it is not already
+     * a maximized state's geometry: iconifying a maximized window must
+     * not overwrite the true pre-maximize geometry already held in
+     * 'layout.geometry.old' (see 'client_is_maximized_any' and the
+     * matching guard in the 'wcmd_client_maximize*' functions), or
+     * un-iconifying it later would restore it at the maximized size
+     * instead of its original one */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
 
     /* EWMH: if a pager sets '_NET_WM_HANDLED_ICONS' on the root window,
      * it manages icon display itself; the window manager must not
@@ -386,9 +482,18 @@ void wcmd_client_iconify(client_td *client)
                 policy = client->config_base->icons.placement_policy;
             }
 
-            /* Re-use saved position when the client was already iconified
-             * once and manually repositioned by the user */
-            if (client->icon_x >= 0 && client->icon_y >= 0) {
+            /* Re-use the saved position when the client was already
+             * iconified once (and possibly manually repositioned by the
+             * user), UNLESS another client's icon has since claimed
+             * that exact spot (e.g., it was free when this client was
+             * last iconified, but has since been taken by a window that
+             * got iconified while this one was restored).  In that case
+             * fall through to 'place_icon' just like a client with no
+             * remembered position at all, so the two icons never
+             * overlap. */
+            if (client->icon_x >= 0 && client->icon_y >= 0 &&
+                    !s_icon_slot_is_taken(client, WM_ICON_SQUARE_SIZE,
+                        icon_h_out)) {
                 ix = client->icon_x;
                 iy = client->icon_y;
             } else {

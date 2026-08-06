@@ -529,21 +529,31 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             }
         }
 
-        xcb_configure_window(desktop->connection, target,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+        /* Only actually send the request when the value would change:
+         * an unconditional 'ConfigureWindow' here on every render pass
+         * for every client (needed so an icon-cycle selection border
+         * appears/disappears promptly) was extra server round-trip
+         * traffic for the common case where nothing about this
+         * particular client changed at all (e.g., a keyboard resize of
+         * one window previously still re-sent border width for every
+         * other window on the desktop each time). */
+        if (border_width != client->last_border_width)
+        { xcb_configure_window(desktop->connection, target,
+        XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+        client->last_border_width = border_width; }
 
         /* Map the window to make it visible */
         /* Only do this when 'desktop' is the surface's currently
          * displayed desktop.
          *
          * Its also invoked as part of a general
-         * 'surface_render_all_desktops()' refresh pass whenever ANY
+         * 'surface_render_all_desktops' refresh pass whenever ANY
          * desktop's 'is_outdated' flag is set (e.g., after moving or
          * resizing a client, which marks its own desktop outdated).
          *
          * If that pass unconditionally mapped clients on a desktop that
          * is not currently shown, it could race with (and undo) an
-         * explicit 'surface_clients_hide()' issued by a desktop switch,
+         * explicit 'surface_clients_hide' issued by a desktop switch,
          * making a client reappear on top of the desktop the user just
          * switched to.
          *

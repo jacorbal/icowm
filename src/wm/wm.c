@@ -47,6 +47,7 @@
 #include <loop.h>
 #include <startup.h>
 #include <surface.h>
+#include <systray.h>
 
 /* Local includes */
 #include <wm.h>
@@ -76,6 +77,8 @@ static void s_wm_cleanup(void)
     if (wm == NULL) {
         return;
     }
+
+    systray_shutdown(wm);
 
     if (wm->session != NULL) {
         if (wm->is_emergency_exit) {
@@ -315,6 +318,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
                 L_NARG);
     }
     wm_ewmh_sync();
+
+    systray_init(wm);
 
     LOGGER_DEBUG("Setting running status flag to 'true'", L_NARG);
     wm->is_running = true;

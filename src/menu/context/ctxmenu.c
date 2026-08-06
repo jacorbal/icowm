@@ -74,7 +74,8 @@ static int s_entry_top_y(const ctxmenu_state_td *state, int idx)
 {
     int y;
 
-    if (state->entry_top_y != NULL && idx >= 0 && idx < state->entry_count) {
+    if (state->entry_top_y != NULL && idx >= 0 &&
+            idx < state->entry_count) {
         return state->entry_top_y[idx];
     }
 

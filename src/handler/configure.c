@@ -397,6 +397,17 @@ void handler_configure_request(xcb_connection_t *connection,
             wcmd_desktop_enforce_layers(desktop);
         }
 
+        if (client != NULL && geom_changed) {
+            /* A client-initiated resize already had its frame
+             * reconfigured directly above, but the per-client
+             * decoration repaint (border, titlebar background, text,
+             * buttons, &c.) in the next render pass only runs for
+             * clients with 'is_outdated' set.  Without this, the frame
+             * border is left stale at the old size until something
+             * unrelated later marks the client outdated for its own
+             * reasons. */
+            client->is_outdated = true; }
+
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
     }
@@ -411,6 +422,7 @@ void handler_configure_notify(xcb_connection_t *connection,
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
     bool geom_changed;
+    bool size_changed;
 
     (void) connection;
 
@@ -483,6 +495,11 @@ void handler_configure_notify(xcb_connection_t *connection,
                     (uint32_t) event->width ||
                 client->layout.geometry.cur.dim.h !=
                     (uint32_t) event->height;
+            size_changed =
+                client->layout.geometry.cur.dim.w !=
+                    (uint32_t) event->width ||
+                client->layout.geometry.cur.dim.h !=
+                    (uint32_t) event->height;
 
             client->layout.geometry.cur.pos.x = event->x;
             client->layout.geometry.cur.pos.y = event->y;
@@ -495,7 +512,20 @@ void handler_configure_notify(xcb_connection_t *connection,
              * frame to the same dimensions and the resulting
              * 'ConfigureNotify' would re-mark the desktop as
              * outdated. */
-            if (geom_changed) {
+            if (size_changed) {
+                /* Only redraw the decoration (border, titlebar
+                 * background, title text, buttons) when the frame's
+                 * SIZE changed: a pure move (position-only) leaves
+                 * every one of those pixels correct as-is, since the
+                 * X server already relocates the window's rendered
+                 * content for free.  Previously this ran on every
+                 * single 'ConfigureNotify' during an interactive drag,
+                 * including plain moves, which is why dragging
+                 * a decorated window felt noticeably heavier than an
+                 * undecorated one: each mouse-motion step was paying
+                 * for a full titlebar repaint (clear, background,
+                 * font-rendered title text, three button glyphs) that
+                 * a move never actually needed. */
                 desktop_repaint_frame_decoration(connection, client,
                         is_focused,
                         (desktop != NULL) ? desktop->config_theme
@@ -503,6 +533,8 @@ void handler_configure_notify(xcb_connection_t *connection,
                 if (connection != NULL) {
                     xcb_flush(connection);
                 }
+            }
+            if (geom_changed) {
                 wm_invalidate_surface(surface);
                 wm_invalidate_desktop(desktop);
             } /* ! if (geom_changed) */
@@ -522,8 +554,8 @@ void handler_configure_notify(xcb_connection_t *connection,
              *
              * Size changes are intentionally NOT reacted to here.  The
              * window manager controls the inner window size exclusively
-             * through 'client_sync_decoration_layout'; reacting to a
-             * stale 'ConfigureNotify' with a different size would:
+             * through 'client_sync_decoration_layout'; reacting to
+             * a stale 'ConfigureNotify' with a different size would:
              *
              *   1. overwrite the stored geometry with the pre-snap
              *      value;
