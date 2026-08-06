@@ -322,6 +322,63 @@ static void s_cb_move(xcb_connection_t *connection,
 
 
 /**
+ * @brief Pick the resize-drag corner diagonally opposite the window's
+ *        screen quadrant
+ *
+ * Determines which screen quadrant the window's centre falls in and
+ * returns the coordinates of the opposite corner of the window frame,
+ * one pixel inside each edge so @c drag_start recognizes it as
+ * a corner handle (see @c WM_RESIZE_CORNER_SIZE):
+ * - Window in the top-left quadrant    -> bottom-right corner.
+ * - Window in the bottom-left quadrant -> top-right corner.
+ * - Window in the bottom-right quadrant -> top-left corner.
+ * - Window in the top-right quadrant   -> bottom-left corner.
+ *
+ * This keeps the resize handle on the side of the window that is
+ * furthest from the screen edge it is closest to, so the pointer never
+ * has to be warped off-screen (or right against a screen edge) to
+ * start the drag.
+ *
+ * @param client Client to resize
+ * @param surface Surface the client is on (for screen dimensions)
+ * @param out_x  Output: root-relative X of the chosen corner
+ * @param out_y  Output: root-relative Y of the chosen corner
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_resize_grab_corner(const client_td *client,
+        const surface_td *surface, int32_t *out_x, int32_t *out_y)
+{
+    int32_t win_center_x;
+    int32_t win_center_y;
+    int32_t screen_center_x;
+    int32_t screen_center_y;
+    bool is_left;
+    bool is_top;
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
+
+    left = client->layout.geometry.cur.pos.x;
+    top = client->layout.geometry.cur.pos.y;
+    right = left + (int32_t) client->layout.geometry.cur.dim.w - 1;
+    bottom = top + (int32_t) client->layout.geometry.cur.dim.h - 1;
+
+    win_center_x = left + (int32_t) (client->layout.geometry.cur.dim.w / 2u);
+    win_center_y = top + (int32_t) (client->layout.geometry.cur.dim.h / 2u);
+    screen_center_x = (int32_t) (surface->properties.dim.w / 2u);
+    screen_center_y = (int32_t) (surface->properties.dim.h / 2u);
+
+    is_left = win_center_x < screen_center_x;
+    is_top = win_center_y < screen_center_y;
+
+    *out_x = is_left ? right : left;
+    *out_y = is_top ? bottom : top;
+}
+
+
+/**
  * @brief Callback: resize the client
  *
  * Dispatches based on how the "Resize" entry was activated:
@@ -329,10 +386,12 @@ static void s_cb_move(xcb_connection_t *connection,
  *   The user presses arrow keys to grow or shrink along the chosen
  *   edge; @c Return confirms and @c Escape restores the original
  *   geometry.
- * - Activated with the mouse: warps the pointer to the window's
- *   bottom-right corner and starts a pointer-driven resize drag, so the
- *   window is resized from that corner as the mouse moves, exactly like
- *   dragging the visible bottom-right resize handle.
+ * - Activated with the mouse: warps the pointer to whichever corner of
+ *   the window is diagonally opposite its screen quadrant and starts
+ *   a pointer-driven resize drag from there, so the resize handle is
+ *   always the corner furthest from the screen edge the window is
+ *   closest to (and thus always reachable without the pointer having
+ *   to leave the screen).  See @c s_resize_grab_corner.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
@@ -375,13 +434,7 @@ static void s_cb_resize(xcb_connection_t *connection,
         return;
     }
 
-    /* Warp just inside the bottom-right corner so 'drag_start' picks it
-     * up as a corner resize handle (both edges active) rather than the
-     * single-edge fallback that applies further from the corner */
-    corner_x = s_target_client->layout.geometry.cur.pos.x
-        + (int32_t) s_target_client->layout.geometry.cur.dim.w - 1;
-    corner_y = s_target_client->layout.geometry.cur.pos.y
-        + (int32_t) s_target_client->layout.geometry.cur.dim.h - 1;
+    s_resize_grab_corner(s_target_client, s_surface, &corner_x, &corner_y);
     snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
 
     xcb_warp_pointer(connection, XCB_NONE, root_win,

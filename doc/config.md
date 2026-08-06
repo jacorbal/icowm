@@ -369,14 +369,13 @@ systems where the key combination might be triggered accidentally.
 |------------------------|--------|------------|
 | `menu.root-position`   | string | `"center"` |
 
-Controls where the desktop (root) context menu appears when it is
-opened by a means with no screen position of its own, such as its
-keyboard shortcut.  Supported values are `"center"`, which always
-opens the menu in the center of the screen (legacy behavior), and
-`"cursor"`, which opens it under the current mouse pointer position
-instead.  This setting has no effect when the menu is opened with the
-mouse (e.g. right-click on the desktop), since it already opens under
-the pointer in that case.
+Controls where the desktop (root) context menu appears when it is opened
+by a means with no screen position of its own, such as its keyboard
+shortcut.  Supported values are `"center"`, which always opens the menu
+in the center of the screen, and `"cursor"`, which opens it under the
+current mouse pointer position instead.  This setting has no effect when
+the menu is opened with the mouse (e.g., right-click on the desktop),
+since it already opens under the pointer in that case.
 
 ```json
 "menu": {
