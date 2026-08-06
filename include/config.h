@@ -115,6 +115,22 @@ struct config_base_s {
 
     bool show_desktop_notify;       /**< Show desktop name on switch */
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
+
+    /* Desktop (root) context menu placement */
+    struct {
+        /**
+         * @brief Where the desktop (root) context menu appears when it
+         *        is opened by a means that has no inherent screen
+         *        position of its own (e.g. a keyboard shortcut)
+         */
+        enum config_menu_position_e {
+            CONFIG_MENU_POSITION_CENTER = 0, /**< Always screen-centered
+                                                   (default, legacy
+                                                   behavior) */
+            CONFIG_MENU_POSITION_CURSOR      /**< Under the current
+                                                   mouse pointer position */
+        } root_position;
+    } menu;
 };
 
 

@@ -90,6 +90,34 @@ static enum config_placement_policy_e
 
 
 /**
+ * @brief Parse desktop menu position text into configuration
+ *        enumeration
+ *
+ * @param value Menu position string from configuration
+ *
+ * @return Parsed menu position enumeration value
+ *
+ * @note Supported values are @c center and @c cursor
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_menu_position_e
+    s_config_parse_menu_position(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_MENU_POSITION_CENTER;
+    }
+
+    if (safe_strcmp(value_norm, "cursor") == 0) {
+        return CONFIG_MENU_POSITION_CURSOR;
+    }
+
+    return CONFIG_MENU_POSITION_CENTER;
+}
+
+
+/**
  * @brief Parse default window gravity text into configuration
  *        enumeration
  *
@@ -222,6 +250,7 @@ int config_load_base(const char *filename,
     cJSON *windows;
     cJSON *screen_settings;
     cJSON *icons;
+    cJSON *menu;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
@@ -486,6 +515,20 @@ int config_load_base(const char *filename,
             &config_base->enable_emergency_shortcut);
     json_load_bool(json, "show-desktop-notify",
             &config_base->show_desktop_notify);
+
+    /* Load desktop (root) context menu configuration */
+    menu = cJSON_GetObjectItem(json, "menu");
+    if (menu) {
+        cJSON *root_position_item;
+
+        root_position_item = json_get_item(menu, "root-position");
+        if (root_position_item != NULL &&
+                cJSON_IsString(root_position_item)) {
+            config_base->menu.root_position =
+                s_config_parse_menu_position(
+                        root_position_item->valuestring);
+        }
+    }
 
     /* Free memory */
     cJSON_Delete(json);

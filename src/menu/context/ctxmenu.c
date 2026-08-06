@@ -168,6 +168,21 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
 
 
 /**
+ * @brief Records whether the most recently activated entry was
+ *        triggered by the keyboard (@c Return / @c KP_Enter or a
+ *        printable-character shortcut) or by a mouse click
+ *
+ * Set immediately before @c s_ctxmenu_activate_entry is called from
+ * either @c ctxmenu_handle_keypress (@c true) or @c ctxmenu_handle_click
+ * (@c false), so that an entry's @c on_activate callback can query
+ * @c ctxmenu_last_activation_was_keyboard to decide between a
+ * keyboard-driven and a pointer-driven interaction (e.g. window move
+ * or resize).
+ */
+static bool s_activated_by_keyboard = false;
+
+
+/**
  * @brief Activate the entry at the given index in a context menu
  *
  * Closes the entire menu hierarchy first (releasing keyboard and pointer
@@ -438,6 +453,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                 return ctxmenu_handle_keypress(connection, surface,
                         state, 0xff53u, config);
             }
+            s_activated_by_keyboard = true;
             return s_ctxmenu_activate_entry(state, sel);
         }
         return true;
@@ -484,6 +500,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     state->selected = match_idx;
     ctxmenu_repaint(state);
     if (match_count == 1) {
+        s_activated_by_keyboard = true;
         return s_ctxmenu_activate_entry(state, match_idx);
     }
 
@@ -593,10 +610,19 @@ void ctxmenu_show(xcb_connection_t *connection,
                 XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
                 XCB_GRAB_MODE_ASYNC);   /* keyboard events delivered async */
         xcb_grab_pointer(connection,
-                0,                      /* owner_events */
+                1,                      /* owner_events: report events
+                                           normally to whichever window
+                                           in the menu hierarchy the
+                                           pointer is actually over
+                                           (needed so 'MotionNotify'
+                                           events are delivered with the
+                                           correct 'event' window and
+                                           window-relative coordinates,
+                                           enabling hover highlight) */
                 surface->screen->root,
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_RELEASE,
+                XCB_EVENT_MASK_BUTTON_PRESS     |
+                XCB_EVENT_MASK_BUTTON_RELEASE   |
+                XCB_EVENT_MASK_POINTER_MOTION,
                 XCB_GRAB_MODE_ASYNC,
                 XCB_GRAB_MODE_ASYNC,
                 XCB_NONE,               /* confine to no window */
@@ -697,6 +723,8 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         return true;
     }
 
+    s_activated_by_keyboard = false;
+
     if (state->entries[idx].type == CTXMENU_SUBMENU) {
         /* Open or re-open the child submenu to the right.
          * The caller stores the child 'ctxmenu_state_td' pointer in the
@@ -738,6 +766,13 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
 bool ctxmenu_is_open(const ctxmenu_state_td *state)
 {
     return state != NULL && state->window != XCB_WINDOW_NONE;
+}
+
+
+/* Query whether the last activated entry was triggered by the keyboard */
+bool ctxmenu_last_activation_was_keyboard(void)
+{
+    return s_activated_by_keyboard;
 }
 
 

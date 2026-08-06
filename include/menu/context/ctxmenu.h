@@ -319,5 +319,23 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
  */
 void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
 
+/**
+ * @brief Query whether the last activated entry was triggered by the
+ *        keyboard rather than a mouse click
+ *
+ * Set right before an entry's @c on_activate callback runs: @c true
+ * when activation came from @c Return / @c KP_Enter or a printable
+ * character shortcut inside @c ctxmenu_handle_keypress, @c false when
+ * it came from @c ctxmenu_handle_click.  Callbacks that need to behave
+ * differently for keyboard vs. mouse activation (e.g. window move or
+ * resize, which use keyboard modal mode vs. a pointer drag) should
+ * query this at the top of @c on_activate.
+ *
+ * @return @c true if the most recent activation was keyboard-driven
+ *
+ * @note Complexity: @e O(1)
+ */
+bool ctxmenu_last_activation_was_keyboard(void);
+
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */

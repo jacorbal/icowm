@@ -256,10 +256,16 @@ static void s_cb_restore(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback: move the client (interactive pointer-driven move)
+ * @brief Callback: move the client
  *
- * Warps the pointer to the window's centre, then starts a pointer drag so
- * subsequent motion keeps the pre-modal mouse workflow intact.
+ * Dispatches based on how the "Move" entry was activated:
+ * - Activated from the keyboard (@c Return or a letter shortcut):
+ *   enters keyboard modal move mode, exactly like the "Resize" entry
+ *   does for keyboard activation.  Arrow keys move the window,
+ *   @c Return confirms, @c Escape restores the original position.
+ * - Activated with the mouse (a click on the entry): warps the pointer
+ *   to the window's centre and starts a pointer-driven move drag, so
+ *   the window then follows the mouse until the button is released.
  */
 static void s_cb_move(xcb_connection_t *connection,
         void *userdata)
@@ -268,6 +274,7 @@ static void s_cb_move(xcb_connection_t *connection,
     int32_t center_x;
     int32_t center_y;
     uint32_t snap;
+    surface_td *surface;
 
     (void) userdata;
 
@@ -279,6 +286,12 @@ static void s_cb_move(xcb_connection_t *connection,
     /* Cannot move a fully-maximized or fullscreen window */
     if (client_is_maximized(s_target_client) ||
             client_is_fullscreen(s_target_client)) {
+        return;
+    }
+
+    if (ctxmenu_last_activation_was_keyboard()) {
+        surface = wm_get_surface_by_id(s_target_client->screen_id);
+        kbd_modal_move_start(connection, surface, s_target_client);
         return;
     }
 
@@ -309,17 +322,26 @@ static void s_cb_move(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback: resize the client (keyboard modal resize)
+ * @brief Callback: resize the client
  *
- * Validates that the client can be resized and enters keyboard modal
- * resize mode.  The user presses arrow keys to grow or shrink along the
- * chosen edge; @c Return confirms and @c Escape restores the original
- * geometry.
+ * Dispatches based on how the "Resize" entry was activated:
+ * - Activated from the keyboard: enters keyboard modal resize mode.
+ *   The user presses arrow keys to grow or shrink along the chosen
+ *   edge; @c Return confirms and @c Escape restores the original
+ *   geometry.
+ * - Activated with the mouse: warps the pointer to the window's
+ *   bottom-right corner and starts a pointer-driven resize drag, so the
+ *   window is resized from that corner as the mouse moves, exactly like
+ *   dragging the visible bottom-right resize handle.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
 {
     surface_td *surface;
+    xcb_window_t root_win;
+    int32_t corner_x;
+    int32_t corner_y;
+    uint32_t snap;
 
     (void) userdata;
 
@@ -338,7 +360,42 @@ static void s_cb_resize(xcb_connection_t *connection,
     }
 
     surface = wm_get_surface_by_id(s_target_client->screen_id);
-    kbd_modal_resize_start(connection, surface, s_target_client);
+
+    if (ctxmenu_last_activation_was_keyboard()) {
+        kbd_modal_resize_start(connection, surface, s_target_client);
+        return;
+    }
+
+    if (s_surface == NULL || s_surface->screen == NULL) {
+        return;
+    }
+
+    root_win = s_surface->screen->root;
+    if (root_win == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    /* Warp just inside the bottom-right corner so 'drag_start' picks it
+     * up as a corner resize handle (both edges active) rather than the
+     * single-edge fallback that applies further from the corner */
+    corner_x = s_target_client->layout.geometry.cur.pos.x
+        + (int32_t) s_target_client->layout.geometry.cur.dim.w - 1;
+    corner_y = s_target_client->layout.geometry.cur.pos.y
+        + (int32_t) s_target_client->layout.geometry.cur.dim.h - 1;
+    snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
+
+    xcb_warp_pointer(connection, XCB_NONE, root_win,
+            0, 0, 0, 0,
+            (int16_t) corner_x, (int16_t) corner_y);
+    xcb_flush(connection);
+
+    drag_start(connection, root_win, s_target_client, s_desktop,
+            CLIENT_OPERATION_RESIZING,
+            XCB_CURRENT_TIME,
+            (int16_t) corner_x, (int16_t) corner_y,
+            s_surface->properties.dim.w,
+            s_surface->properties.dim.h,
+            snap);
 }
 
 

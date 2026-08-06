@@ -15,6 +15,7 @@
 #include <signal.h>     /* SIGTERM */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -1251,6 +1252,28 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 if (surface != NULL && surface->connection != NULL) {
                     int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
                     int16_t my = (int16_t) (surface->properties.dim.h / 2u);
+
+                    /* When configured to appear under the cursor
+                     * instead of always centered, query the current
+                     * pointer position and use it, falling back to the
+                     * screen center if the query fails */
+                    if (config != NULL &&
+                            config->base.menu.root_position ==
+                                CONFIG_MENU_POSITION_CURSOR &&
+                            surface->screen != NULL) {
+                        xcb_query_pointer_cookie_t qc =
+                            xcb_query_pointer(surface->connection,
+                                    surface->screen->root);
+                        xcb_query_pointer_reply_t *qr =
+                            xcb_query_pointer_reply(surface->connection,
+                                    qc, NULL);
+                        if (qr != NULL) {
+                            mx = qr->root_x;
+                            my = qr->root_y;
+                            free(qr);
+                        }
+                    }
+
                     rootmenu_show(surface->connection, surface,
                             mx, my, config, wm_get_config_dir());
                 }
