@@ -1,5 +1,5 @@
 /**
- * @file wm/ewmh.c
+ * @file wm/ewmhinit.c
  *
  * @brief Window manager EWMH initialization and synchronization
  */
@@ -499,6 +499,11 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_BELOW;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_PING;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_USER_TIME;
+    if (wm->sync_available) {
+        supported_atoms[n_supported++] = wm->ewmh->_NET_WM_SYNC_REQUEST;
+        supported_atoms[n_supported++] =
+            wm->ewmh->_NET_WM_SYNC_REQUEST_COUNTER;
+    }
     supported_atoms[n_supported++] = wm->ewmh->_NET_SHOWING_DESKTOP;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DESKTOP;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR;

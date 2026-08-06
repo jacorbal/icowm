@@ -109,11 +109,46 @@ static enum config_menu_position_e
         return CONFIG_MENU_POSITION_CENTER;
     }
 
-    if (safe_strcmp(value_norm, "cursor") == 0) {
-        return CONFIG_MENU_POSITION_CURSOR;
+    if (safe_strcmp(value_norm, "under-mouse") == 0) {
+        return CONFIG_MENU_POSITION_UNDER_MOUSE;
     }
 
     return CONFIG_MENU_POSITION_CENTER;
+}
+
+
+/**
+ * @brief Parse systray dock position text into configuration
+ *        enumeration
+ *
+ * @param value Systray position string from configuration
+ *
+ * @return Parsed systray position enumeration value
+ *
+ * @note Supported values are @c top-left, @c top-right,
+ *       @c bottom-left, and @c bottom-right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_position_e
+    s_config_parse_systray_position(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
+    }
+
+    if (safe_strcmp(value_norm, "top-left") == 0) {
+        return CONFIG_SYSTRAY_POSITION_TOP_LEFT;
+    }
+    if (safe_strcmp(value_norm, "bottom-left") == 0) {
+        return CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT;
+    }
+    if (safe_strcmp(value_norm, "bottom-right") == 0) {
+        return CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT;
+    }
+
+    return CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
 }
 
 
@@ -251,6 +286,7 @@ int config_load_base(const char *filename,
     cJSON *screen_settings;
     cJSON *icons;
     cJSON *menu;
+    cJSON *systray;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
@@ -527,6 +563,21 @@ int config_load_base(const char *filename,
             config_base->menu.root_position =
                 s_config_parse_menu_position(
                         root_position_item->valuestring);
+        }
+    }
+
+    /* Load systray dock configuration */
+    systray = cJSON_GetObjectItem(json, "systray");
+    if (systray) {
+        cJSON *position_item;
+
+        json_load_bool(systray, "is-enabled",
+                &config_base->systray.is_enabled);
+        position_item = json_get_item(systray, "position");
+        if (position_item != NULL && cJSON_IsString(position_item)) {
+            config_base->systray.position =
+                s_config_parse_systray_position(
+                        position_item->valuestring);
         }
     }
 

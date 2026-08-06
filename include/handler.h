@@ -262,7 +262,7 @@ void handler_expose(xcb_connection_t *connection,
  * @brief Handle a @c CLIENT_MESSAGE event
  *
  * Dispatches EWMH and ICCCM client-message requests from applications
- * (fullscreen, maximize, close, desktop switch, iconify, etc.) to the
+ * (fullscreen, maximize, close, desktop switch, iconify, &c.) to the
  * appropriate command functions so that they are honored by the window
  * manager.
  *
@@ -285,6 +285,21 @@ void handler_client_message(wm_td *wm,
  * @param event Raw XCB event from the main loop
  */
 void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
+
+/**
+ * @brief Handle XSync extension events
+ *
+ * Recognizes @c AlarmNotify events for @c _NET_WM_SYNC_REQUEST alarms
+ * and applies the owning client's pending throttled resize, if any.
+ * Events on alarms owned by no managed client, or arriving while XSync
+ * is unavailable, are ignored.
+ *
+ * @param wm    Window manager state
+ * @param event Raw XCB event from the main loop
+ *
+ * @see @c wcmd_client_resize_flush_pending
+ */
+void handler_sync_event(wm_td *wm, xcb_generic_event_t *event);
 
 
 #endif  /* ! HANDLER_H */

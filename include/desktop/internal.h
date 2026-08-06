@@ -4,7 +4,7 @@
  * @brief Private helpers shared across desktop implementation modules
  *
  * Declares functions that are used by more than one of the desktop
- * translation units (@c desktop/desktop.c, @c desktop/client.c) but
+ * translation units (@c desktop/desktop.c, @c desktop/dclient.c) but
  * must not be exposed as part of the public desktop API declared in
  * @c desktop.h.
  *
@@ -45,7 +45,7 @@
  * @retval  0 Success
  * @retval  1 Invalid input (@p desktop or its client list is null)
  *
- * @note Implemented in @c desktop/client.c
+ * @note Implemented in @c desktop/dclient.c
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
 int di_set_clients_enabled(desktop_td *desktop, bool enabled);

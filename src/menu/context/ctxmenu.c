@@ -17,6 +17,7 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* calloc, free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -37,27 +38,49 @@
 
 
 /**
+ * @brief Return the pixel height of a single menu row by entry type
+ *
+ * @param type Entry type
+ *
+ * @return @c WM_CTXMENU_SEP_HEIGHT for a separator, or
+ *         @c WM_CTXMENU_ROW_HEIGHT for any other entry type
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_row_height(ctxmenu_entry_type_e type)
+{
+    return (type == CTXMENU_SEPARATOR)
+        ? WM_CTXMENU_SEP_HEIGHT : WM_CTXMENU_ROW_HEIGHT;
+}
+
+
+/**
  * @brief Compute the pixel Y of the top edge of an entry by index
  *
- * @param entries     Array of menu entries
- * @param entry_count Number of entries
- * @param idx         Entry index (0-based)
+ * Reads @p state->entry_top_y when the cache was successfully allocated
+ * by @c ctxmenu_show, giving @e O(1) lookup; falls back to an @e O(n)
+ * walk over @p state->entries otherwise (e.g., @c calloc failed at
+ * menu-open time).
+ *
+ * @param state Menu state
+ * @param idx   Entry index (0-based)
  *
  * @return Y coordinate (pixels) relative to the menu window top
  *
- * @note Complexity: @e O(n), where @e n is @p idx
+ * @note Complexity: @e O(1) with the cache, @e O(n) without it, where
+ *       @e n is @p idx
  */
-static int s_entry_top_y(const ctxmenu_entry_td *entries,
-        int entry_count, int idx)
+static int s_entry_top_y(const ctxmenu_state_td *state, int idx)
 {
-    int y = WM_CTXMENU_PAD_Y;
+    int y;
 
-    for (int i = 0; i < idx && i < entry_count; ++i) {
-        if (entries[i].type == CTXMENU_SEPARATOR) {
-            y += WM_CTXMENU_SEP_HEIGHT;
-        } else {
-            y += WM_CTXMENU_ROW_HEIGHT;
-        }
+    if (state->entry_top_y != NULL && idx >= 0 && idx < state->entry_count) {
+        return state->entry_top_y[idx];
+    }
+
+    y = WM_CTXMENU_PAD_Y;
+    for (int i = 0; i < idx && i < state->entry_count; ++i) {
+        y += s_row_height(state->entries[i].type);
     }
 
     return y;
@@ -65,29 +88,34 @@ static int s_entry_top_y(const ctxmenu_entry_td *entries,
 
 
 /**
- * @brief Compute the total pixel height of a menu from its entries
+ * @brief Compute per-row Y offsets and the total menu height
  *
- * @param entries    Array of menu entries
- * @param entry_count Number of entries
+ * Walks the entries once, filling @p state->entry_top_y (when
+ * allocated) with the top-Y pixel offset of each row, so that
+ * @c s_entry_top_y and @c s_entry_at_y can look rows up directly
+ * afterwards instead of re-walking the entry array on every call.
+ * Also returns the total height, replacing what used to be a separate
+ * pass over the same entries.
  *
- * @return Total height in pixels
+ * @param state Menu state; @p entries and @p entry_count must already
+ *              be set
  *
- * @note Complexity: @e O(n), where @e n is @p entry_count
+ * @return Total menu height in pixels
+ *
+ * @note Complexity: @e O(n), where @e n is @p state->entry_count
  */
-static uint16_t s_compute_height(const ctxmenu_entry_td *entries,
-        int entry_count)
+static uint16_t s_build_layout(ctxmenu_state_td *state)
 {
-    int h = WM_CTXMENU_PAD_Y * 2;
+    int y = WM_CTXMENU_PAD_Y;
 
-    for (int i = 0; i < entry_count; ++i) {
-        if (entries[i].type == CTXMENU_SEPARATOR) {
-            h += WM_CTXMENU_SEP_HEIGHT;
-        } else {
-            h += WM_CTXMENU_ROW_HEIGHT;
+    for (int i = 0; i < state->entry_count; ++i) {
+        if (state->entry_top_y != NULL) {
+            state->entry_top_y[i] = y;
         }
+        y += s_row_height(state->entries[i].type);
     }
 
-    return (uint16_t) h;
+    return (uint16_t) (y + WM_CTXMENU_PAD_Y);
 }
 
 
@@ -139,23 +167,56 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
 /**
  * @brief Return the row index at the given pixel Y, or -1 if none
  *
- * @param entries     Array of menu entries
- * @param entry_count Number of entries
- * @param y           Pixel Y relative to menu window
+ * Binary-searches @p state->entry_top_y for the last row whose top
+ * offset is @c <= @p y, then checks @p y still falls within that row's
+ * height, giving @e O(log n) lookup when the cache is available.
+ * Falls back to an @e O(n) linear walk over @p state->entries when it
+ * is not (e.g., @c calloc failed at menu-open time).
+ *
+ * @param state Menu state
+ * @param y     Pixel Y relative to menu window
  *
  * @return Entry index, or -1 if @p y is outside all rows
  *
- * @note Complexity: @e O(n)
+ * @note Complexity: @e O(log n) with the cache, @e O(n) without it,
+ *       where @e n is @p state->entry_count
  */
-static int s_entry_at_y(const ctxmenu_entry_td *entries,
-        int entry_count, int y)
+static int s_entry_at_y(const ctxmenu_state_td *state, int y)
 {
-    int cur_y = WM_CTXMENU_PAD_Y;
+    int lo;
+    int hi;
+    int mid;
+    int found;
+    int cur_y;
+    int row_h;
 
-    for (int i = 0; i < entry_count; ++i) {
-        int row_h = (entries[i].type == CTXMENU_SEPARATOR)
-            ? WM_CTXMENU_SEP_HEIGHT : WM_CTXMENU_ROW_HEIGHT;
+    if (state->entry_top_y != NULL) {
+        lo = 0;
+        hi = state->entry_count - 1;
+        found = -1;
 
+        while (lo <= hi) {
+            mid = lo + (hi - lo) / 2;
+            if (state->entry_top_y[mid] <= y) {
+                found = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+
+        if (found < 0) {
+            return -1;
+        }
+
+        row_h = s_row_height(state->entries[found].type);
+        return (y < state->entry_top_y[found] + row_h) ? found : -1;
+    }
+
+    /* Fallback linear scan when no cache is available */
+    cur_y = WM_CTXMENU_PAD_Y;
+    for (int i = 0; i < state->entry_count; ++i) {
+        row_h = s_row_height(state->entries[i].type);
         if (y >= cur_y && y < cur_y + row_h) {
             return i;
         }
@@ -176,7 +237,7 @@ static int s_entry_at_y(const ctxmenu_entry_td *entries,
  * either @c ctxmenu_handle_keypress (@c true) or @c ctxmenu_handle_click
  * (@c false), so that an entry's @c on_activate callback can query
  * @c ctxmenu_last_activation_was_keyboard to decide between a
- * keyboard-driven and a pointer-driven interaction (e.g. window move
+ * keyboard-driven and a pointer-driven interaction (e.g., window move
  * or resize).
  */
 static bool s_activated_by_keyboard = false;
@@ -188,7 +249,7 @@ static bool s_activated_by_keyboard = false;
  * Closes the entire menu hierarchy first (releasing keyboard and pointer
  * grabs), then invokes the entry's @p on_activate callback or calls
  * @c lifecycle_dispatch_launch for command entries.  Closing before the
- * callback allows the callback to establish its own grabs (e.g. for
+ * callback allows the callback to establish its own grabs (e.g., for
  * interactive keyboard move or resize) without conflicting with the
  * menu's active grab.  For separator, label, or disabled entries no
  * action is taken but @c true is returned to consume the event.
@@ -279,7 +340,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
     conn = state->connection;
     e = &state->entries[idx];
-    top_y = s_entry_top_y(state->entries, state->entry_count, idx);
+    top_y = s_entry_top_y(state, idx);
     row_h = (e->type == CTXMENU_SEPARATOR)
         ? WM_CTXMENU_SEP_HEIGHT : WM_CTXMENU_ROW_HEIGHT;
     is_sel = (idx == state->selected) && !e->is_disabled
@@ -424,8 +485,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                 sub_x = (int16_t) (state->origin_x +
                         (int16_t) state->width);
                 sub_y = (int16_t) (state->origin_y +
-                        (int16_t) s_entry_top_y(state->entries,
-                                state->entry_count, sel));
+                        (int16_t) s_entry_top_y(state, sel));
                 ctxmenu_show(connection, surface, child_state,
                         sub_x, sub_y, config);
                 state->child = child_state;
@@ -542,7 +602,14 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     state->width = s_compute_width(connection, state->entries,
             state->entry_count, config);
-    state->height = s_compute_height(state->entries, state->entry_count);
+
+    /* Cache each row's top-Y offset so 's_entry_top_y' and
+     * 's_entry_at_y' need not re-walk 'entries' on every repaint,
+     * click, or motion event; 'entry_top_y' is left 'NULL' (and both
+     * helpers fall back to an 'O(n)' walk) if 'calloc' fails */
+    state->entry_top_y = (int32_t *) calloc((size_t) state->entry_count,
+            sizeof(int32_t));
+    state->height = s_build_layout(state);
 
     /* Use the active desktop's work area to clamp position */
     work_x = 0;
@@ -620,8 +687,8 @@ void ctxmenu_show(xcb_connection_t *connection,
                                            window-relative coordinates,
                                            enabling hover highlight) */
                 surface->screen->root,
-                XCB_EVENT_MASK_BUTTON_PRESS     |
-                XCB_EVENT_MASK_BUTTON_RELEASE   |
+                XCB_EVENT_MASK_BUTTON_PRESS   |
+                XCB_EVENT_MASK_BUTTON_RELEASE |
                 XCB_EVENT_MASK_POINTER_MOTION,
                 XCB_GRAB_MODE_ASYNC,
                 XCB_GRAB_MODE_ASYNC,
@@ -671,6 +738,9 @@ void ctxmenu_close(ctxmenu_state_td *state)
     state->connection = NULL;
     state->surface = NULL;
     state->config = NULL;
+
+    free(state->entry_top_y);
+    state->entry_top_y = NULL;
 }
 
 
@@ -709,7 +779,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         return false;
     }
 
-    idx = s_entry_at_y(state->entries, state->entry_count, y);
+    idx = s_entry_at_y(state, y);
     if (idx < 0 || idx >= state->entry_count) {
         return false;
     }
@@ -749,8 +819,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
 
         sub_x = (int16_t) (state->origin_x + (int16_t) state->width);
         sub_y = (int16_t) (state->origin_y +
-                (int16_t) s_entry_top_y(state->entries,
-                        state->entry_count, idx));
+                (int16_t) s_entry_top_y(state, idx));
 
         ctxmenu_show(connection, surface, child_state,
                 sub_x, sub_y, config);
@@ -788,7 +857,7 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
     /* Ignore X coordinate: entries span the full width */
     (void) x;
 
-    idx = s_entry_at_y(state->entries, state->entry_count, y);
+    idx = s_entry_at_y(state, y);
 
     /* Clear selection when pointer leaves all entries */
     if (idx < 0 || idx >= state->entry_count ||

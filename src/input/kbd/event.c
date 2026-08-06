@@ -1259,7 +1259,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                      * screen center if the query fails */
                     if (config != NULL &&
                             config->base.menu.root_position ==
-                                CONFIG_MENU_POSITION_CURSOR &&
+                                CONFIG_MENU_POSITION_UNDER_MOUSE &&
                             surface->screen != NULL) {
                         xcb_query_pointer_cookie_t qc =
                             xcb_query_pointer(surface->connection,

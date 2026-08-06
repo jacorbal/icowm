@@ -1,5 +1,5 @@
 /**
- * @file handler/ewmh.c
+ * @file handler/ewmhmsg.c
  *
  * @brief EWMH client-message sub-handlers
  *
@@ -56,7 +56,7 @@
 #include <wm.h>
 
 
-/* '_NET_WM_STATE' action values (EWMH section 5.8) */
+/* '_NET_WM_STATE' action values (EWMH §5.8) */
 #define WM_STATE_ACTION_REMOVE (0)
 #define WM_STATE_ACTION_ADD    (1)
 #define WM_STATE_ACTION_TOGGLE (2)

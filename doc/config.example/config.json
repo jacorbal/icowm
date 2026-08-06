@@ -55,6 +55,13 @@
             "policy": "smart"
         }
     },
+    "menu": {
+        "root-position": "center"
+    },
+    "systray": {
+        "is-enabled": false,
+        "position": "top-right"
+    },
     "show-desktop-notify": true,
     "enable-emergency-shortcut": true
 }

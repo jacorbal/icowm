@@ -27,6 +27,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/sync.h>
 
 /* Utils includes */
 #include <utils/safe/safemem.h>
@@ -53,6 +54,7 @@
 #include <eventq.h>
 #include <logger.h>
 #include <priority.h>
+#include <wm.h>
 
 /* Local includes */
 #include <client/internal.h>
@@ -302,6 +304,16 @@ void client_destroy(client_td *client)
         xcb_flush(client->connection);
     }
 
+    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
+     * a server-side resource owned by the window manager's own
+     * connection (unlike the counter it watches, which belongs to the
+     * client and is not ours to destroy), so it is not freed
+     * automatically when the client window above is destroyed */
+    if (client->connection != NULL && client->sync_alarm != 0u) {
+        xcb_sync_destroy_alarm(client->connection,
+                (xcb_sync_alarm_t) client->sync_alarm);
+    }
+
     /* Destroy decorations if any */
     if (client->connection != NULL && client->titlebar != 0) {
         xcb_destroy_window(client->connection, client->titlebar);
@@ -344,6 +356,9 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
     xcb_atom_t wm_take_focus_atom = XCB_ATOM_NONE;
     xcb_atom_t net_wm_ping_atom = XCB_ATOM_NONE;
+    xcb_atom_t client_leader_atom = XCB_ATOM_NONE;
+    xcb_get_property_cookie_t client_leader_cookie;
+    xcb_get_property_reply_t *client_leader_reply;
     xcb_icccm_get_wm_protocols_reply_t proto;
     xcb_icccm_wm_hints_t wm_hints;
     uint32_t bw[1];
@@ -466,6 +481,7 @@ client_td *client_manage(xcb_connection_t *connection,
     client->wm_take_focus_atom = wm_take_focus_atom;
     client->has_wm_take_focus = false;
     client->has_net_wm_ping = false;
+    client->has_net_wm_sync_request = false;
     memset(&proto, 0, sizeof(proto));
     if (xcb_icccm_get_wm_protocols_reply(connection,
                 xcb_icccm_get_wm_protocols(connection, window,
@@ -478,9 +494,67 @@ client_td *client_manage(xcb_connection_t *connection,
                 client->has_wm_take_focus = true;
             } else if (proto.atoms[pi] == net_wm_ping_atom) {
                 client->has_net_wm_ping = true;
+            } else if (proto.atoms[pi] == ewmh->_NET_WM_SYNC_REQUEST) {
+                client->has_net_wm_sync_request = true;
             }
         }
         xcb_icccm_get_wm_protocols_reply_wipe(&proto);
+    }
+
+    /* '_NET_WM_SYNC_REQUEST': per the EWMH protocol, the CLIENT (not
+     * the window manager) creates the XSync counter and advertises its
+     * XID via the '_NET_WM_SYNC_REQUEST_COUNTER' property on its own
+     * window; the window manager only reads that property and creates
+     * an alarm watching the client's counter for positive transitions,
+     * so it is notified ('AlarmNotify') whenever the client advances it
+     * after finishing a redraw (see 'wcmd_client_resize' and
+     * 'handler_sync_event').  These are unchecked requests, matching
+     * the rest of this function, so an unsupported/misbehaving client
+     * or server at worst leaves 'has_net_wm_sync_request' effectively
+     * unusable, not a crash. */
+    client->sync_counter = 0u;
+    client->sync_alarm = 0u;
+    if (client->has_net_wm_sync_request && wm_sync_available()) {
+        xcb_get_property_cookie_t counter_cookie;
+        xcb_get_property_reply_t *counter_reply;
+
+        counter_cookie = xcb_get_property(connection, 0, window,
+                ewmh->_NET_WM_SYNC_REQUEST_COUNTER, XCB_ATOM_CARDINAL,
+                0, 1);
+        counter_reply = xcb_get_property_reply(connection,
+                counter_cookie, NULL);
+        if (counter_reply != NULL) {
+            if (counter_reply->format == 32 &&
+                    xcb_get_property_value_length(counter_reply) >=
+                        (int) sizeof(uint32_t)) {
+                client->sync_counter = *(uint32_t *)
+                    xcb_get_property_value(counter_reply);
+            }
+            free(counter_reply);
+        }
+
+        if (client->sync_counter != 0u) {
+            uint32_t alarm_values[4];
+
+            client->sync_alarm = xcb_generate_id(connection);
+            alarm_values[0] = client->sync_counter;
+            alarm_values[1] = (uint32_t) XCB_SYNC_VALUETYPE_RELATIVE;
+            alarm_values[2] =
+                (uint32_t) XCB_SYNC_TESTTYPE_POSITIVE_TRANSITION;
+            alarm_values[3] = 1u;
+            xcb_sync_create_alarm(connection,
+                    (xcb_sync_alarm_t) client->sync_alarm,
+                    (uint32_t) (XCB_SYNC_CA_COUNTER |
+                            XCB_SYNC_CA_VALUE_TYPE |
+                            XCB_SYNC_CA_TEST_TYPE |
+                            XCB_SYNC_CA_DELTA),
+                    alarm_values);
+        } else {
+            /* Client advertised the protocol but never actually set
+             * its counter property; treat it as unsupported rather
+             * than sending requests nobody will ever answer */
+            client->has_net_wm_sync_request = false;
+        }
     }
 
     /* Read 'WM_HINTS': input model and window group */
@@ -500,6 +574,35 @@ client_td *client_manage(xcb_connection_t *connection,
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
             client_set_urgent(client);
+        }
+    }
+
+    /* Read 'WM_CLIENT_LEADER': ICCCM §5.1 property used, together with
+     * the 'WM_HINTS' window group above, to cluster windows belonging
+     * to the same application for placement (see 'client_group_leader'
+     * and 'place_apply') */
+    client->client_leader = XCB_WINDOW_NONE;
+    ia = xcb_intern_atom_reply(connection,
+            xcb_intern_atom(connection, 1, 16, "WM_CLIENT_LEADER"),
+            NULL);
+    if (ia != NULL) {
+        client_leader_atom = ia->atom;
+        free(ia);
+    }
+    if (client_leader_atom != XCB_ATOM_NONE) {
+        client_leader_cookie = xcb_get_property(connection, 0, window,
+                client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
+        client_leader_reply = xcb_get_property_reply(connection,
+                client_leader_cookie, NULL);
+        if (client_leader_reply != NULL) {
+            if (client_leader_reply->type == XCB_ATOM_WINDOW &&
+                    client_leader_reply->format == 32 &&
+                    xcb_get_property_value_length(client_leader_reply) >=
+                        (int) sizeof(xcb_window_t)) {
+                client->client_leader = *(xcb_window_t *)
+                    xcb_get_property_value(client_leader_reply);
+            }
+            free(client_leader_reply);
         }
     }
 

@@ -59,6 +59,21 @@ int startup_subscribe_root_events(wm_td *wm);
 int startup_randr_init(wm_td *wm);
 
 /**
+ * @brief Probe XSync extension support and cache metadata in @p wm
+ *
+ * Used for @c _NET_WM_SYNC_REQUEST: caches the base event code so
+ * @c AlarmNotify events can be recognized in the main loop.  No
+ * per-root event subscription is required for the XSync extension
+ * (unlike XRandR); alarms deliver their notifications directly to the
+ * connection that created them.
+ *
+ * @param wm Window manager state
+ *
+ * @return 0 on success or when XSync is unavailable, -1 on fatal input
+ */
+int startup_sync_init(wm_td *wm);
+
+/**
  * @brief Subscribe XRandR change notifications on every managed root
  *
  * Registers interest in monitor/output/screen-change notifications for

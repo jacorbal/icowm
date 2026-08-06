@@ -1,5 +1,5 @@
 /**
- * @file desktop/client.c
+ * @file desktop/dclient.c
  *
  * @brief Desktop client management and action dispatchers
  *        implementation
@@ -105,8 +105,8 @@ static int s_desktop_set_clients_enabled(desktop_td *desktop,
 static bool s_desktop_layout_supported(const char *layout)
 {
     static const char *layouts[] = {
-        "floating",
         "stacking",
+        "floating",
         "tiling",
         "monocle"
     };

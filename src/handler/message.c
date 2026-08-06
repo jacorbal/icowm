@@ -5,7 +5,7 @@
  *
  * Dispatches EWMH and ICCCM client-message events to the appropriate
  * per-protocol handler.  Protocol-level handlers for individual EWMH
- * atoms are implemented in @c handler/ewmh.c.
+ * atoms are implemented in @c handler/ewmhmsg.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

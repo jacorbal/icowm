@@ -26,6 +26,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/randr.h>
+#include <xcb/sync.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -256,6 +257,14 @@ void loop_run(wm_td *wm)
                      event_type == (uint8_t) (wm->randr_base_event +
                             XCB_RANDR_NOTIFY))) {
                 handler_randr_event(wm, event);
+                free(event);
+                continue;
+            }
+
+            if (wm->sync_available &&
+                    event_type == (uint8_t) (wm->sync_base_event +
+                            XCB_SYNC_ALARM_NOTIFY)) {
+                handler_sync_event(wm, event);
                 free(event);
                 continue;
             }

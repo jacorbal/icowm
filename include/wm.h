@@ -67,6 +67,8 @@ typedef struct {
     uint32_t screenp;               /**< Preferred screen */
     bool randr_available;           /**< XRandR extension availability */
     uint8_t randr_base_event;       /**< XRandR base event code */
+    bool sync_available;            /**< XSync extension availability */
+    uint8_t sync_base_event;        /**< XSync base event code */
     config_td *config;              /**< Window manager configuration */
     rules_td *rules;                /**< Window matching rules */
     session_td *session;            /**< Session hooks */
@@ -196,6 +198,22 @@ desktop_td *wm_get_client_desktop(const client_td *client);
  *       surfaces
  */
 surface_td *wm_get_surface_by_id(uint32_t surface_id);
+
+/**
+ * @brief Query whether the XSync extension is available on this server
+ *
+ * Used by @c client_manage to decide whether to create a per-client
+ * sync counter/alarm for @c _NET_WM_SYNC_REQUEST, and by
+ * @c wcmd_client_resize to decide whether to throttle interactive
+ * resize on that client's acknowledgement.
+ *
+ * @return @c true when @c startup_sync_init found XSync present and
+ *         queryable, @c false otherwise (including when the window
+ *         manager is not initialized)
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_sync_available(void);
 
 /**
  * @brief Return the configuration directory prefix

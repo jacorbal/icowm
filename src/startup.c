@@ -24,6 +24,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/randr.h>
+#include <xcb/sync.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -256,6 +257,47 @@ int startup_randr_init(wm_td *wm)
 
         free(res_reply);
     }
+
+    return 0;
+}
+
+
+/* Probe XSync extension support and cache metadata in 'wm' */
+int startup_sync_init(wm_td *wm)
+{
+    const xcb_query_extension_reply_t *ext;
+    xcb_sync_initialize_reply_t *ver_reply;
+    xcb_sync_initialize_cookie_t ver_cookie;
+
+    if (wm == NULL || wm->connection == NULL) {
+        return -1;
+    }
+
+    wm->sync_available = false;
+    wm->sync_base_event = 0u;
+
+    ext = xcb_get_extension_data(wm->connection, &xcb_sync_id);
+    if (ext == NULL || !ext->present) {
+        LOGGER_NOTICE("XSync extension is unavailable on this X server;" \
+                " '_NET_WM_SYNC_REQUEST' will not be offered", L_NARG);
+        return 0;
+    }
+
+    ver_cookie = xcb_sync_initialize(wm->connection, 3u, 0u);
+    ver_reply = xcb_sync_initialize_reply(wm->connection, ver_cookie, NULL);
+    if (ver_reply == NULL) {
+        LOGGER_WARNING("Failed to query XSync version;" \
+                " disabling '_NET_WM_SYNC_REQUEST'", L_NARG);
+        return 0;
+    }
+
+    wm->sync_available = true;
+    wm->sync_base_event = ext->first_event;
+    LOGGER_INFO("XSync enabled (server version %u.%u, base event=%u)",
+            (unsigned int) ver_reply->major_version,
+            (unsigned int) ver_reply->minor_version,
+            (unsigned int) wm->sync_base_event);
+    free(ver_reply);
 
     return 0;
 }

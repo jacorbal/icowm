@@ -299,6 +299,12 @@ typedef struct client_s {
     bool wm_input_hint;         /**< Client accepts input (default true) */
     bool initial_iconic;        /**< Map iconic for 'WM_HINTS' initial state */
     xcb_window_t group_leader;  /**< Window group leader, or 'XCB_NONE' */
+    xcb_window_t client_leader; /**< ICCCM 'WM_CLIENT_LEADER' window, or
+                                     'XCB_NONE' if unset.  Used together
+                                     with @p group_leader (see
+                                     @c client_group_leader) to cluster
+                                     windows belonging to the same
+                                     application for placement */
 
     bool rule_position_locked;  /**< Position was set by a rule; ignore
                                      client-initiated @c ConfigureRequests
@@ -311,10 +317,60 @@ typedef struct client_s {
     uint32_t last_ping_sent;    /**< X timestamp of last ping sent */
     uint32_t last_ping_reply;   /**< X timestamp of last ping reply */
 
-    bool is_outdated;           /**< Geometry or decoration changed;
-                                     full configure+repaint needed on
-                                     next render pass (cleared after
-                                     render) */
+    /**
+     * @brief EWMH @c _NET_WM_SYNC_REQUEST state
+     *
+     * @c sync_counter and @c sync_alarm hold plain XCB XIDs (an
+     * @c xcb_sync_counter_t / @c xcb_sync_alarm_t are both a
+     * @c uint32_t under the hood) rather than the XSync-typed values,
+     * so this header does not need to pull in @c xcb/sync.h; call sites
+     * that actually issue XSync requests cast as needed.
+     *
+     * @see @c wcmd_client_resize (throttling) and @c handler_sync_event
+     * (acknowledgement) for how these fields are driven
+     */
+    bool has_net_wm_sync_request;   /**< Supports @c _NET_WM_SYNC_REQUEST */
+    uint32_t sync_counter;          /**< XSync counter XID the CLIENT
+                                         created and advertised via its
+                                         own @c _NET_WM_SYNC_REQUEST_COUNTER
+                                         property (read, not created, by
+                                         'client_manage'), or 0 if unset */
+    uint32_t sync_alarm;            /**< WM-owned alarm XID watching
+                                         @p sync_counter for positive
+                                         transitions, or 0 */
+    uint32_t sync_value;            /**< Local shadow of the last
+                                         counter value sent to the
+                                         client (low 32 bits; a single
+                                         resize session never comes
+                                         close to wrapping) */
+    bool sync_waiting;              /**< @c true between sending a sync
+                                         request and receiving the
+                                         matching @c AlarmNotify (or
+                                         giving up after @c sync_wait_ticks) */
+    uint8_t sync_wait_ticks;        /**< Consecutive resize attempts
+                                         spent waiting for the current
+                                         request; past
+                                         @c WM_SYNC_MAX_WAIT_TICKS the
+                                         pending geometry is
+                                         force-applied so an
+                                         unresponsive client can never
+                                         freeze interactive resize */
+    bool sync_has_pending;          /**< @c true when a newer geometry
+                                         arrived while @p sync_waiting
+                                         and still needs to be applied */
+    struct {
+        int32_t x;
+        int32_t y;
+        uint32_t w;
+        uint32_t h;
+    } sync_pending_geom;            /**< Geometry to apply once the
+                                         pending request is acknowledged
+                                         or times out */
+
+    bool is_outdated;               /**< Geometry or decoration changed;
+                                         full configure+repaint needed
+                                         on next render pass (cleared
+                                         after render) */
 } client_td;
 
 
@@ -346,6 +402,20 @@ static inline void client_focus(client_td *client)
 static inline void client_unfocus(client_td *client)
 {
     client->properties.focusing = CLIENT_FOCUSING_UNFOCUSED;
+}
+
+
+/* Return the window that identifies which application 'client' belongs
+ * to, for grouping purposes: 'WM_CLIENT_LEADER' when set, otherwise the
+ * 'WM_HINTS' window group, otherwise 'XCB_WINDOW_NONE' when the client
+ * declares no group at all */
+static inline xcb_window_t client_group_leader(const client_td *client)
+{
+    if (client->client_leader != XCB_WINDOW_NONE) {
+        return client->client_leader;
+    }
+
+    return client->group_leader;
 }
 
 
@@ -426,7 +496,8 @@ void client_constrain_size(const client_td *client,
         uint32_t *width, uint32_t *height);
 
 /**
- * @brief Send a synthetic @c ConfigureNotify to an ICCCM-compliant client
+ * @brief Send a synthetic @c ConfigureNotify to an ICCCM-compliant
+ *        client
  *
  * Sends a @c ConfigureNotify event directly to @p client->window with
  * screen-relative coordinates, as required by ICCCM §4.2.3 for

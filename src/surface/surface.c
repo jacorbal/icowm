@@ -386,7 +386,7 @@ desktop_td *surface_desktop_prev(surface_td *surface,
              * 'head->tail'.  Comparing against the head here, as
              * a previous version of this function did, is wrong.  For
              * any desktop other than the first one, 'prev_item' can
-             * legitimately equal the head (e.g. moving from the second
+             * legitimately equal the head (e.g., moving from the second
              * to the first desktop) which incorrectly looked like
              * a wraparound and jumped to the tail instead of stopping
              * at the head. */

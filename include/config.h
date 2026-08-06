@@ -121,16 +121,35 @@ struct config_base_s {
         /**
          * @brief Where the desktop (root) context menu appears when it
          *        is opened by a means that has no inherent screen
-         *        position of its own (e.g. a keyboard shortcut)
+         *        position of its own (e.g., a keyboard shortcut)
          */
         enum config_menu_position_e {
-            CONFIG_MENU_POSITION_CENTER = 0, /**< Always screen-centered
-                                                   (default, legacy
-                                                   behavior) */
-            CONFIG_MENU_POSITION_CURSOR      /**< Under the current
+            CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
+            CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
                                                    mouse pointer position */
         } root_position;
     } menu;
+
+    /**
+     * @brief Configuration switch for a built-in systray dock
+     *
+     * @note This only controls whether/where a built-in systray would
+     *       be drawn; it does not by itself implement the
+     *       @c _NET_SYSTEM_TRAY_Sn manager selection or the @c XEMBED
+     *       protocol needed to actually host tray icons.  With
+     *       @p is_enabled left @c false (the default) nothing changes:
+     *       external providers (such as @c tint2) remain the supported
+     *       way to get a systray.
+     */
+    struct {
+        enum config_systray_position_e {
+            CONFIG_SYSTRAY_POSITION_TOP_LEFT = 0,
+            CONFIG_SYSTRAY_POSITION_TOP_RIGHT,
+            CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT,
+            CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT
+        } position;         /**< Corner of the screen to dock it in */
+        bool is_enabled;    /**< Enable the built-in systray dock */
+    } systray;
 };
 
 

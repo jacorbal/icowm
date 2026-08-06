@@ -55,6 +55,24 @@ void wcmd_client_resize(client_td *client,
         action_data_client_td *client_data);
 
 /**
+ * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled
+ *        resize
+ *
+ * Called from @c handler_sync_event when an @c AlarmNotify confirms the
+ * client has redrawn to match the last size it was sent.  Clears the
+ * client's wait state and, if a newer geometry arrived from
+ * @c wcmd_client_resize while it was waiting, applies that geometry now
+ * and sends the next sync request so the throttling pipeline keeps up
+ * with an ongoing interactive resize.  A no-op for clients that are not
+ * currently waiting on an acknowledgement.
+ *
+ * @param client Client whose alarm just fired
+ *
+ * @note Complexity: @e O(1)
+ */
+void wcmd_client_resize_flush_pending(client_td *client);
+
+/**
  * @brief Maximize the client horizontally
  *
  * @param client Window to maximize horizontally

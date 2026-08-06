@@ -129,6 +129,12 @@ typedef struct ctxmenu_state_s {
     int16_t origin_x;               /**< Actual X origin after clamping */
     int16_t origin_y;               /**< Actual Y origin after clamping */
 
+    /** Cached top-Y pixel offset per entry, allocated by
+     *  @c ctxmenu_show (size @p entry_count) and freed by
+     *  @c ctxmenu_close; @c NULL when the allocation failed, in which
+     *  case row lookups fall back to walking @p entries directly */
+    int32_t *entry_top_y;
+
     /** Currently open child menu, or NULL */
     struct ctxmenu_state_s *child;
     /** Back-pointer to the parent menu, or NULL */
@@ -327,7 +333,7 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
  * when activation came from @c Return / @c KP_Enter or a printable
  * character shortcut inside @c ctxmenu_handle_keypress, @c false when
  * it came from @c ctxmenu_handle_click.  Callbacks that need to behave
- * differently for keyboard vs. mouse activation (e.g. window move or
+ * differently for keyboard vs. mouse activation (e.g., window move or
  * resize, which use keyboard modal mode vs. a pointer drag) should
  * query this at the top of @c on_activate.
  *

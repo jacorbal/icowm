@@ -18,6 +18,7 @@ values, and built-in default value.
    - [2.6 `show-desktop-notify`](#26-show-desktop-notify)
    - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
    - [2.8 `menu`](#28-menu)
+   - [2.9 `systray`](#29-systray)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -372,14 +373,41 @@ systems where the key combination might be triggered accidentally.
 Controls where the desktop (root) context menu appears when it is opened
 by a means with no screen position of its own, such as its keyboard
 shortcut.  Supported values are `"center"`, which always opens the menu
-in the center of the screen, and `"cursor"`, which opens it under the
-current mouse pointer position instead.  This setting has no effect when
-the menu is opened with the mouse (e.g., right-click on the desktop),
-since it already opens under the pointer in that case.
+in the center of the screen (legacy behavior), and `"under-mouse"`,
+which opens it under the current mouse pointer position instead,
+matching the naming of `windows.placement.policy`.
+
+This setting has no effect when the menu is opened with the mouse (e.g.,
+right-click on the desktop), since it already opens under the pointer in
+that case.
 
 ```json
 "menu": {
-    "root-position": "cursor"
+    "root-position": "under-mouse"
+}
+```
+
+### 2.9 `systray`
+
+| Key                  | Type    | Default       |
+|----------------------|---------|---------------|
+| `systray.is-enabled` | boolean | `false`       |
+| `systray.position`   | string  | `"top-right"` |
+
+Reserved for a future built-in systray dock.  `is-enabled` toggles it on
+or off, and `position` (one of `"top-left"`, `"top-right"`,
+`"bottom-left"`, or `"bottom-right"`) selects which screen corner it
+docks in.  As of this version these keys are parsed and stored but not
+yet acted upon: IcoWM does not currently acquire the
+`_NET_SYSTEM_TRAY_Sn` manager selection or speak the XEMBED protocol
+needed to actually host tray icons, so `is-enabled` has no visible
+effect yet.  Continue using an external provider (such as `tint2`) for
+a systray in the meantime.
+
+```json
+"systray": {
+    "is-enabled": false,
+    "position": "top-right"
 }
 ```
 

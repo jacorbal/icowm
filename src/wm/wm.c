@@ -162,6 +162,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm->surfaces = NULL;
     wm->randr_available = false;
     wm->randr_base_event = 0u;
+    wm->sync_available = false;
+    wm->sync_base_event = 0u;
     wm->is_emergency_exit = false;
 
     LOGGER_DEBUG("Opening X display", L_NARG);
@@ -306,6 +308,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     }
     (void) startup_randr_init(wm);
     (void) startup_subscribe_randr_events(wm);
+    (void) startup_sync_init(wm);
 
     if (wm_ewmh_init() != 0) {
         LOGGER_WARNING("Failed to initialize EWMH root metadata",
@@ -387,6 +390,13 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 }
 
 
+/* Query whether the XSync extension is available on this server */
+bool wm_sync_available(void)
+{
+    return wm != NULL && wm->sync_available;
+}
+
+
 /* Return the configuration directory prefix */
 const char *wm_get_config_dir(void)
 {
@@ -409,7 +419,7 @@ void wm_request_client_redraw(client_td *client)
 
     /* Mark the individual client so the render pass applies the heavy
      * geometry configure and expose only to this client, avoiding
-     * spurious redraws (and visible flicker) in other windows */
+     * unwanted redraws (and visible flicker) in other windows */
     client->is_outdated = true;
 
     desktop = wm_get_client_desktop(client);

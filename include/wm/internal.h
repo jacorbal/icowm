@@ -4,7 +4,7 @@
  * @brief Private singleton accessor shared across wm sub-modules
  *
  * Declares the singleton @c wm_td pointer that is defined in
- * @c wm/wm.c and shared with @c wm/ewmh.c and @c wm/action.c.
+ * @c wm/wm.c and shared with @c wm/ewmhinit.c and @c wm/action.c.
  *
  * @note This header is private to the wm subsystem and must not be
  *       included outside of @c src/wm/, for it is NOT part of the

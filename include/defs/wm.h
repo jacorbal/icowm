@@ -121,6 +121,21 @@
  * border clicks.
  */
 #define WM_RESIZE_CORNER_SIZE (12)
+
+/**
+ * @brief Maximum consecutive interactive-resize steps to wait for a
+ *        client's @c _NET_WM_SYNC_REQUEST acknowledgement
+ *
+ * Each unit is one resize attempt while the pointer is being dragged
+ * (i.e., roughly one @c MotionNotify), not a fixed time interval, so
+ * the effective wait scales with how fast the user is actually moving
+ * the mouse instead of a wall-clock timeout the window manager would
+ * have to track separately.  Past this many attempts without an
+ * @c AlarmNotify, the pending geometry is force-applied so a slow or
+ * unresponsive client can never freeze interactive resize.
+ */
+#define WM_SYNC_MAX_WAIT_TICKS (8u)
+
 /**
  * @brief Duration in milliseconds before the info popup auto-closes
  *

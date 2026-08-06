@@ -21,6 +21,7 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
+#include <adt/ohtbl.h>
 
 /* Utils includes */
 #include <utils/geom.h>
@@ -415,6 +416,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     xcb_window_t target;
     enum config_placement_policy_e policy;
     desktop_td *desktop;
+    xcb_window_t leader;
+    bool placed_as_sibling;
 
     if (wm == NULL || wm->config == NULL ||
             surface == NULL || client == NULL) {
@@ -426,6 +429,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
     policy = wm->config->base.windows.placement_policy;
+    leader = client_group_leader(client);
+    placed_as_sibling = false;
 
     /* Determine the usable workarea (respects panel struts).
      * Fall back to the full screen dimensions when no workarea is set */
@@ -507,7 +512,47 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         }
     }
 
-    if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
+    /* Cluster windows of the same application: if another currently
+     * mapped (non-iconified) client on this desktop shares the same
+     * 'WM_CLIENT_LEADER'/'WM_HINTS' group as 'client', place the new
+     * window offset from it instead of running the configured placement
+     * policy, so related windows stay visually together */
+    if (leader != XCB_WINDOW_NONE && desktop != NULL &&
+            desktop->clients != NULL) {
+        void *elem;
+
+        ohtbl_foreach(desktop->clients, elem) {
+            client_td *sibling = (client_td *) elem;
+
+            if (sibling == client ||
+                    client_group_leader(sibling) != leader ||
+                    sibling->properties.state ==
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                continue;
+            }
+
+            new_x = sibling->layout.geometry.cur.pos.x +
+                (int32_t) cascade_step;
+            new_y = sibling->layout.geometry.cur.pos.y +
+                (int32_t) cascade_step;
+            placed_as_sibling = true;
+            break;
+        }
+    }
+
+    if (placed_as_sibling) {
+        /* Clamp to the workarea/screen the same way the cascade policy
+         * below does, so a sibling near the edge does not push the new
+         * window off-screen */
+        if (new_x < wa_x) { new_x = wa_x; }
+        if (new_y < wa_y) { new_y = wa_y; }
+        if ((uint32_t) new_x + fw > sw) {
+            new_x = (sw > fw) ? (int32_t) (sw - fw) : wa_x;
+        }
+        if ((uint32_t) new_y + fh > sh) {
+            new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
+        }
+    } else if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
             place_smart(wm, surface, client, &new_x, &new_y)) {
         /* Placement chosen by smart scan */
     } else if (policy == CONFIG_PLACEMENT_POLICY_CASCADE ||

@@ -66,14 +66,14 @@ CCWARN = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
 CCDEPS = -MMD -MP
 
 XCB_CFLAGS = $(shell $(PKGCONF) --cflags \
-		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr 2>/dev/null)
+		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync 2>/dev/null)
 JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
 		$(PKGCONF) --cflags cjson 2>/dev/null)
 CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
 		$(XCB_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
 XCB_LFLAGS = $(shell $(PKGCONF) --libs \
-		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr 2>/dev/null || \
-		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh -lxcb-randr')
+		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync 2>/dev/null || \
+		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh -lxcb-randr -lxcb-sync')
 JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
 		$(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
 OTHR_LFLAGS = -lpthread
