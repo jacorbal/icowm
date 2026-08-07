@@ -235,14 +235,6 @@ Keyboard movement step in pixels.  Each key press that moves the focused
 window changes its position by this amount.  Values lower than `1` are
 treated as `1`.
 
-#### `windows.has-grips`
-
-| Key                 | Type    | Default |
-|---------------------|---------|---------|
-| `windows.has-grips` | boolean | `true`  |
-
-When `true`, decorated resizable windows draw corner resize grips.
-
 #### `windows.show-geom`
 
 | Key                 | Type    | Default |
@@ -461,12 +453,50 @@ a negotiated 32-bit ARGB one, so icons relying on real alpha
 transparency may show a solid background instead of blending into the
 tray.
 
+#### `systray.clock`
+
+| Key                        | Type    | Default    |
+|-----------------------------|---------|------------|
+| `systray.clock.is-enabled` | boolean | `false`    |
+| `systray.clock.format`     | string  | `"%H:%M"`  |
+| `systray.clock.position`   | string  | `"right"`  |
+
+An optional clock drawn inside the systray dock, next to the icons.
+`is-enabled` turns it on; when it is the only reason the tray would
+otherwise stay hidden (no icons docked), the tray still shows with just
+the clock.
+
+`format` is a `strftime(3)` format string, interpreted in the system's
+local time zone.  A few common examples:
+
+| `format`      | Looks like            |
+|---------------|------------------------|
+| `"%H:%M"`     | `14:07`                |
+| `"%H:%M:%S"`  | `14:07:32`              |
+| `"%F %R"`     | `2026-08-07 14:07`      |
+| `"%a %d %b"`  | `Fri 07 Aug`            |
+
+`position` (`"left"` or `"right"`) controls whether the clock is drawn
+before or after the icons, in dock order; it does not affect which
+corner of the screen the whole tray sits in, which is still
+`systray.position` above.
+
+The clock redraws itself once per second while any part of it (the
+tray dock, or the clock specifically) is enabled; a `format` string
+without `%S` or other sub-minute fields simply redraws the same text
+every second, which is harmless.
+
 ```json
 "systray": {
     "is-enabled": false,
     "position": "top-right",
     "order": "left-to-right",
-    "layer": "above"
+    "layer": "above",
+    "clock": {
+        "is-enabled": true,
+        "format": "%F %R",
+        "position": "right"
+    }
 }
 ```
 
@@ -743,80 +773,163 @@ Mouse button bindings for switching virtual desktops.
 
 ## 4. `themes/<name>.json` -- Theme configuration
 
-Controls the visual appearance of windows and desktop icons.  Theme
-files live in the `themes/` subdirectory of the configuration directory.
-The name in `config.json`'s `"theme"` field selects which file is
-loaded.
+Controls the visual appearance of windows, desktop icons, and the
+systray.  Theme files live in the `themes/` subdirectory of the
+configuration directory.  The name in `config.json`'s `"theme"` field
+selects which file is loaded.
 
 All color values are hex strings in the form `"#RRGGBB"` or `"RRGGBB"`.
+
+`name` is the only top-level field IcoWM actually reads.  `author`,
+`creation-date`, and `modified-date` may also appear at the top level,
+but they are purely comments for whoever maintains the file; IcoWM
+never parses or acts on them.
+
+```json
+{
+    "name": "Default theme",
+    "author": "Jane Doe",
+    "creation-date": "Sat Aug  1 03:57:54 UTC 2026",
+    "modified-date": "Sat Aug  7 15:08:21 UTC 2026",
+
+    "window": { "...": "..." },
+    "icon": { "...": "..." },
+    "systray": { "...": "..." }
+}
+```
 
 ### 4.1 `window`
 
 Appearance settings for managed windows.
 
-#### `window.general`
+| Key            | Type    | Default | Description |
+|----------------|---------|---------|-------------|
+| `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (no title bar, no themed border).  Equivalent to setting `titlebar.height` to `0`; see below. |
 
-| Key            | Type    | Default | Description                 |
-|----------------|---------|---------|-----------------------------|
-| `border-width` | integer | `2`     | Border thickness in pixels. |
-| `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (title bar is hidden). |
+#### `window.titlebar`
 
-#### `window.active`
+| Key                    | Type    | Default  | Description |
+|------------------------|---------|----------|-------------|
+| `height`               | integer | `19`     | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
+| `alignment`             | string  | `"left"` | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
+| `padding.horizontal`    | integer | `2`      | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
+| `padding.vertical`      | integer | `2`      | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| `buttons.left`          | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
+| `buttons.right`         | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
 
-Appearance of the currently focused window.
+Accepted button names, for both `buttons.left` and `buttons.right`,
+are: `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`,
+`"maximize"`, `"fullscreen"`, `"close"`.  A button omitted from both
+lists is simply never drawn and never clickable; there is no separate
+setting to hide a button.  The same name can only usefully appear
+once across both lists (whichever list is processed for it first
+wins its slot; putting it in both does not draw it twice).
 
-| Key                | Type   | Default     | Description                 |
-|--------------------|--------|-------------|-----------------------------|
-| `background-color` | string | `"#9AAEC8"` | Title bar background color. |
-| `foreground-color` | string | `"#253040"` | Title bar text color.       |
-| `border-color`     | string | `"#4A5566"` | Border color.               |
-| `grip-color`       | string | `"#9AAEC8"` | Resize grip color.          |
-| `font`             | string | `"fixed"`   | Title bar font (X core font description; see note below). |
+#### `window.active` / `window.inactive`
 
-#### `window.inactive`
+Appearance of the focused window (`active`) and of windows that do not
+have focus (`inactive`).  Both share the same shape:
 
-Appearance of windows that do not have focus.
+| Key                 | Type    | Default (active) | Default (inactive) | Description |
+|---------------------|---------|-------------------|---------------------|-------------|
+| `font`              | string  | `"fixed bold"`    | `"fixed"`           | Title bar font (X core font description; see note below). |
+| `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         | Title bar background color. |
+| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         | Title bar text and button color. |
+| `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         | Border color. |
+| `border.width`      | integer | `2`               | `2`                 | Border thickness in pixels. |
 
-| Key                | Type   | Default     | Description                 |
-|--------------------|--------|-------------|-----------------------------|
-| `background-color` | string | `"#D0D9E5"` | Title bar background color. |
-| `foreground-color` | string | `"#4A5566"` | Title bar text color.       |
-| `border-color`     | string | `"#7F9AB6"` | Border color.               |
-| `grip-color`       | string | `"#4A5566"` | Resize grip color.          |
-| `font`             | string | `"fixed"`   | Title bar font.             |
+`border.width` need not match between `active` and `inactive`.  When
+they differ, a decorated window's frame actually grows or shrinks by
+the difference every time it gains or loses focus, so its content
+never has to resize; see the note on configuration reload below for
+the one case this resizing does not happen automatically.
 
 ### 4.2 `icon`
 
 Appearance settings for iconified windows.
 
-#### `icon.general`
-
-| Key            | Type    | Default | Description                      |
-|----------------|---------|---------|----------------------------------|
-| `border-width` | integer | `2`     | Icon border thickness in pixels. |
+| Key            | Type    | Default | Description |
+|----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
 
-#### `icon.active`
+#### `icon.active` / `icon.inactive`
 
-Appearance of the currently focused icon.
+Same shape as `window.active` / `window.inactive` above (`font`,
+`color.background`, `color.foreground`, `border.color`,
+`border.width`), applied to the icon selected in the icon-cycle menu
+(`active`) versus every other icon (`inactive`).
 
-| Key                | Type   | Default     | Description              |
-|--------------------|--------|-------------|--------------------------|
-| `background-color` | string | `"#9AAEC8"` | Icon background color.   |
-| `foreground-color` | string | `"#253040"` | Icon caption text color. |
-| `border-color`     | string | `"#4A5566"` | Icon border color.       |
-| `font`             | string | `"fixed"`   | Icon caption font.       |
+| Key                 | Type    | Default (active) | Default (inactive) |
+|---------------------|---------|-------------------|---------------------|
+| `font`              | string  | `"fixed bold"`    | `"fixed"`           |
+| `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         |
+| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         |
+| `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         |
+| `border.width`      | integer | `1`               | `1`                 |
 
-#### `icon.inactive`
+### 4.3 `systray`
 
-Appearance of icons that do not have focus.
+A `font` / `color` / `border` block, the same shape as `window.active`
+above, applied to the systray dock itself, plus its own height and the
+clock's vertical alignment.
 
-| Key                | Type   | Default     | Description              |
-|--------------------|--------|-------------|--------------------------|
-| `background-color` | string | `"#D0D9E5"` | Icon background color.   |
-| `foreground-color` | string | `"#4A5566"` | Icon caption text color. |
-| `border-color`     | string | `"#7F9AB6"` | Icon border color.       |
-| `font`             | string | `"fixed"`   | Icon caption font.       |
+| Key                 | Type    | Default     |
+|---------------------|---------|-------------|
+| `font`              | string  | `"fixed"`   |
+| `color.background`  | string  | `"#D0D9E5"` |
+| `color.foreground`  | string  | `"#4A5566"` |
+| `border.color`      | string  | `"#7F9AB6"` |
+| `border.width`      | integer | `1`         |
+| `height`            | integer | `32`        |
+| `clock.valign`      | string  | `"center"`  |
+
+`height` is the tray dock's own height in pixels; icons and the clock
+(when enabled, see `systray.clock.is-enabled` in `config.json`) are
+positioned within it according to `clock.valign` for the clock, and
+centered for icons.  It must be at least tall enough to fit one icon or
+icons get clipped.
+
+`clock.valign` (one of `"center"`, `"top"`, or `"bottom"`) controls
+where the clock text sits vertically within that height.  With the
+default `height` of `32`, an icon already fills nearly the whole row,
+so `valign` has little visible effect; raising `height` gives it
+actual room to work with.  This is unrelated to `systray.clock.position`
+in `config.json`, which instead controls whether the clock sits before
+or after the icons horizontally, in dock order; that stays a behavior
+setting rather than an appearance one, since it changes where among the
+icons the clock counts as being docked.
+
+```json
+"systray": {
+    "font": "fixed",
+    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+    "border": { "color": "#7F9AB6", "width": 1 },
+    "height": 32,
+    "clock": {
+        "valign": "center"
+    }
+}
+```
+
+### 4.4 Configuration reload and already-open windows
+
+Reloading the configuration (`SIGHUP`, the reload keybinding, or the
+root menu action) re-reads whichever theme file `config.json` names
+and applies the new colors, font, and titlebar button lists to every
+open window immediately, since those are read live from the theme on
+every repaint.  Every already-decorated window's frame is also resized
+to match a changed `border.width` or `titlebar.height`, the same way
+it resizes on a focus change (see 4.1 above).
+
+What reload does **not** do is force a window's decorated/undecorated
+state to follow a changed `window.is-decorated` or `titlebar.height`
+in the theme file.  A window that was decorated when it was mapped
+stays decorated after a reload even if the reloaded theme now says
+`"is-decorated": false` (and vice versa): only newly mapped windows,
+and windows whose decoration is toggled by hand, pick up that setting.
+This is deliberate: undoing a decoration choice a person made for a
+specific window just because the theme file changed would be a
+surprising, unrequested side effect.
 
 ---
 
@@ -840,12 +953,12 @@ Appearance of icons that do not have focus.
 >    two XLFD fields (`charset_registry` and `charset_encoding`).
 >
 >   Examples:
->    - `"fixed"` -- the `fixed` alias (available on every X server)
->    - `"fixed 13"` -- `fixed` family at 13 pixels
->    - `"fixed bold 13"` -- `fixed` family, bold weight, 13 pixels
->    - `"fixed bold 13 iso8859-15"` -- `fixed`, bold, 13 pixels,
+>    - `"fixed"`: the `fixed` alias (available on every X server)
+>    - `"fixed 13"`: `fixed` family at 13 pixels
+>    - `"fixed bold 13"`: `fixed` family, bold weight, 13 pixels
+>    - `"fixed bold 13 iso8859-15"`: `fixed`, bold, 13 pixels,
 >       ISO 8859-15 charset
->    - `"courier bold italic 17"` -- Courier, bold italic, 17 pixels
+>    - `"courier bold italic 17"`: Courier, bold italic, 17 pixels
 >
 > 2. **Full XLFD:** a string starting with "`-`", e.g.,
 >    `"-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"`, is passed verbatim
@@ -862,7 +975,6 @@ Appearance of icons that do not have focus.
 > ```
 > xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
 > ```
-
 ---
 
 ## 5. `randr.json` -- XRandR output profiles
@@ -1238,7 +1350,6 @@ Sub-menus can be nested to the depth limit defined by
 
     "windows": {
         "gravity": "north-west",
-        "has-grips": false,
         "move-step": 10,
         "snap": 4,
         "group-related": true,
@@ -1271,7 +1382,12 @@ Sub-menus can be nested to the depth limit defined by
         "is-enabled": true,
         "position": "top-right",
         "order": "left-to-right",
-        "layer": "above"
+        "layer": "above",
+        "clock": {
+            "is-enabled": true,
+            "format": "%F %R",
+            "position": "right"
+        }
     },
 
     "xsettings": {

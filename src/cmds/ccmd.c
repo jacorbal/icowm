@@ -284,9 +284,21 @@ void wcmd_client_focus(client_td *client)
     xcb_map_window(client->connection, client->window);
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL) {
-        border_color = client->theme->window.active.border_color;
+        border_color = client->theme->window.active.border.color;
         xcb_change_window_attributes(client->connection, client->window,
                 XCB_CW_BORDER_PIXEL, &border_color);
+        /* Undecorated clients have no separate frame to resize: an
+         * X11 border is drawn entirely outside a window's own width
+         * and height, so changing its thickness here never touches
+         * the window's own geometry, unlike the decorated case just
+         * below which does need to grow or shrink the frame. */
+        xcb_configure_window(client->connection, client->window,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                (const uint32_t[]) {
+                    client->theme->window.active.border.width
+                });
+    } else {
+        client_resync_theme_layout(client, true);
     }
 
     if (client->ewmh != NULL) {
@@ -315,7 +327,7 @@ void wcmd_client_unfocus(client_td *client)
      * client, not just the window manager's own bookkeeping of which
      * client looks focused.  Without this, a client that keeps
      * 'WM_HINTS.input=true' (the default) still receives every
-     * 'KeyPress'/'KeyRelease' after being visually unfocused (e.g. by
+     * 'KeyPress'/'KeyRelease' after being visually unfocused (e.g., by
      * clicking the empty desktop), since nothing ever told the X
      * server to stop delivering keyboard events to its window.
      * A caller that is unfocusing this client only to immediately
@@ -331,9 +343,16 @@ void wcmd_client_unfocus(client_td *client)
 
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL) {
-        border_color = client->theme->window.inactive.border_color;
+        border_color = client->theme->window.inactive.border.color;
         xcb_change_window_attributes(client->connection, client->window,
                 XCB_CW_BORDER_PIXEL, &border_color);
+        xcb_configure_window(client->connection, client->window,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                (const uint32_t[]) {
+                    client->theme->window.inactive.border.width
+                });
+    } else {
+        client_resync_theme_layout(client, false);
     }
 
     if (client->ewmh != NULL) {
@@ -350,7 +369,7 @@ void wcmd_client_unfocus(client_td *client)
  * Checks @p client's saved @p icon_x/@p icon_y against every other
  * client on the same desktop that currently has a mapped icon, so
  * @c wcmd_client_iconify can tell a genuinely free remembered spot
- * from one that another window's icon has since claimed (e.g. because
+ * from one that another window's icon has since claimed (e.g., because
  * that other window was iconified while @p client was still restored,
  * and happened to land where @p client's own icon last was).
  *
@@ -458,7 +477,7 @@ void wcmd_client_iconify(client_td *client)
 
     /* Compute icon height once for use in both branches */
     icon_h_out = (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.general.is_captioned)
+            ((client->theme->icon.is_captioned)
              ? WM_ICON_CAPTION_HEIGHT
              : 0u));
 
@@ -509,8 +528,8 @@ void wcmd_client_iconify(client_td *client)
             mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
                 XCB_CW_EVENT_MASK;
 
-            values[0] = client->theme->icon.inactive.background_color;
-            values[1] = client->theme->icon.inactive.border_color;
+            values[0] = client->theme->icon.inactive.color.background;
+            values[1] = client->theme->icon.inactive.border.color;
             values[2] = XCB_EVENT_MASK_EXPOSURE |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_BUTTON_MOTION;
@@ -521,7 +540,7 @@ void wcmd_client_iconify(client_td *client)
                     client->parent_id,
                     ix, iy,
                     (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
-                    (uint16_t) client->theme->icon.general.border_width,
+                    (uint16_t) client->theme->icon.active.border.width,
                     XCB_WINDOW_CLASS_INPUT_OUTPUT,
                     XCB_COPY_FROM_PARENT,
                     mask, values);

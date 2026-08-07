@@ -131,8 +131,8 @@ void notify_popup_show_centered(xcb_connection_t *connection,
 
     state->window = xcb_generate_id(connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.active.background_color;
-    values[1] = cfg->theme.window.active.border_color;
+    values[0] = cfg->theme.window.active.color.background;
+    values[1] = cfg->theme.window.active.border.color;
     values[2] = XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, state->window,
@@ -161,14 +161,14 @@ void notify_popup_repaint_centered(xcb_connection_t *connection,
     }
 
     text_renderer_init(connection, cfg->theme.window.active.font);
-    text_renderer_set_color(cfg->theme.window.active.foreground_color,
-            cfg->theme.window.active.background_color);
+    text_renderer_set_color(cfg->theme.window.active.color.foreground,
+            cfg->theme.window.active.color.background);
     text_w = menu_draw_measure(state->text);
     width = (int16_t) ((text_w > 40u) ? (text_w + 32u) : 72u);
     height = 36;
 
     menu_draw_row_bg(connection, state->window,
-            cfg->theme.window.active.background_color,
+            cfg->theme.window.active.color.background,
             0, (uint16_t) height, (uint16_t) width);
     text_x = (int16_t) ((width - (int16_t) text_w) / 2);
     text_y = (int16_t) (height / 2 + 5);

@@ -349,15 +349,15 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
 
     if (e->type == CTXMENU_LABEL) {
-        bg = state->config->theme.window.inactive.background_color;
-        fg = state->config->theme.window.inactive.foreground_color;
+        bg = state->config->theme.window.inactive.color.background;
+        fg = state->config->theme.window.inactive.color.foreground;
     } else {
         bg = (is_sel)
-            ? state->config->theme.window.active.border_color
-            : state->config->theme.window.active.background_color;
+            ? state->config->theme.window.active.border.color
+            : state->config->theme.window.active.color.background;
         fg = (e->is_disabled)
-            ? state->config->theme.window.inactive.foreground_color
-            : state->config->theme.window.active.foreground_color;
+            ? state->config->theme.window.inactive.color.foreground
+            : state->config->theme.window.active.color.foreground;
     }
 
     menu_draw_row_bg(conn, state->window, bg,
@@ -366,7 +366,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     if (e->type == CTXMENU_SEPARATOR) {
         /* Draw a centered horizontal line for the separator */
         gc = xcb_generate_id(conn);
-        gc_vals[0] = state->config->theme.window.active.foreground_color;
+        gc_vals[0] = state->config->theme.window.active.color.foreground;
         xcb_create_gc(conn, gc, state->window,
                 XCB_GC_FOREGROUND, gc_vals);
         rect.x = (int16_t) WM_CTXMENU_PAD_X;
@@ -643,7 +643,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     mask = XCB_CW_BACK_PIXEL        |
            XCB_CW_OVERRIDE_REDIRECT |
            XCB_CW_EVENT_MASK;
-    values[0] = config->theme.window.active.background_color;
+    values[0] = config->theme.window.active.color.background;
     values[1] = 1;  /* override_redirect: prevent WM from managing it */
     values[2] = XCB_EVENT_MASK_EXPOSURE     |
                 XCB_EVENT_MASK_BUTTON_PRESS |
@@ -756,7 +756,7 @@ void ctxmenu_repaint(ctxmenu_state_td *state)
 
     /* Clear background */
     menu_draw_row_bg(state->connection, state->window,
-            state->config->theme.window.active.background_color,
+            state->config->theme.window.active.color.background,
             0, state->height, state->width);
 
     for (int i = 0; i < state->entry_count; ++i) {

@@ -535,7 +535,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     rules->count = loaded;
     cJSON_Delete(json);
 
-    LOGGER_INFO("Loaded %u window rule(s) from '%s'", rules->count,
+    LOGGER_DEBUG("Loaded %u window rule(s) from '%s'", rules->count,
             rules_file);
     return 0;
 }

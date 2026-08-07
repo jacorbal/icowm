@@ -147,14 +147,14 @@ void handler_expose(xcb_connection_t *connection,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
                     (is_cycle_preview)
-                        ? cfg->theme.icon.active.background_color
-                        : cfg->theme.icon.inactive.background_color,
+                        ? cfg->theme.icon.active.color.background
+                        : cfg->theme.icon.inactive.color.background,
                     (is_cycle_preview)
-                        ? cfg->theme.icon.active.border_color
-                        : cfg->theme.icon.inactive.border_color
+                        ? cfg->theme.icon.active.border.color
+                        : cfg->theme.icon.inactive.border.color
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
-        if (cfg->theme.icon.general.is_captioned &&
+        if (cfg->theme.icon.is_captioned &&
                 client->info.name != NULL) {
             const char *caption =
                 (client->icon_info.visible_icon_name != NULL &&
@@ -168,11 +168,11 @@ void handler_expose(xcb_connection_t *connection,
                     : cfg->theme.icon.inactive.font);
             text_renderer_set_color(
                     (is_cycle_preview)
-                        ? cfg->theme.icon.active.foreground_color
-                        : cfg->theme.icon.inactive.foreground_color,
+                        ? cfg->theme.icon.active.color.foreground
+                        : cfg->theme.icon.inactive.color.foreground,
                     (is_cycle_preview)
-                        ? cfg->theme.icon.active.background_color
-                        : cfg->theme.icon.inactive.background_color);
+                        ? cfg->theme.icon.active.color.background
+                        : cfg->theme.icon.inactive.color.background);
             text_draw_string(connection, client->icon_window, XCB_NONE,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +
@@ -209,42 +209,8 @@ void handler_expose(xcb_connection_t *connection,
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
         : 1u;
 
-    xcb_change_window_attributes(connection, client->titlebar,
-            XCB_CW_BACK_PIXEL,
-            (const uint32_t[]) {
-            (use_active_style)
-                    ? cfg->theme.window.active.background_color
-                    : cfg->theme.window.inactive.background_color
-            });
-    xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
-
-    text_renderer_init(connection,
-            (use_active_style)
-                ? cfg->theme.window.active.font
-                : cfg->theme.window.inactive.font);
-    text_renderer_set_color(
-            (use_active_style)
-                ? cfg->theme.window.active.foreground_color
-                : cfg->theme.window.inactive.foreground_color,
-            (use_active_style)
-                ? cfg->theme.window.active.background_color
-                : cfg->theme.window.inactive.background_color);
-    text_draw_string(connection, client->titlebar, XCB_NONE,
-            (int16_t) (WM_DECOR_BTN_PAD +
-                2u * (WM_DECOR_BTN_SIZE + WM_DECOR_BTN_GAP) +
-                WM_DECOR_BTN_GAP),
-            (int16_t) ((title_h > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
-                    ? title_h - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
-                    : title_h),
-            client->info.name);
-
-    desktop_draw_titlebar_buttons(connection, client->titlebar,
-            inner_w, title_h,
-            use_active_style, (bool) client_is_sticky(client),
-            (client->properties.layer != CLIENT_LAYER_NORMAL),
-            (!client_is_fullscreen(client) &&
-                (bool) client_is_resizable(client)),
-            &cfg->theme);
+    desktop_repaint_titlebar_content(connection, client,
+            use_active_style, inner_w, title_h, &cfg->theme);
 
     xcb_flush(connection);
 }

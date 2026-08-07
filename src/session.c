@@ -307,7 +307,7 @@ static int s_session_spawn_command(xcb_connection_t *connection,
     }
 
     s_session_track_pid(pid, hook, command);
-    LOGGER_INFO("Session hook '%s' command '%s' started with PID %d",
+    LOGGER_DEBUG("Session hook '%s' command '%s' started with PID %d",
             hook, command, (int) pid);
     return 0;
 }
@@ -414,7 +414,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
 
     cJSON_Delete(json);
 
-    LOGGER_INFO("Loaded session hooks from '%s'" \
+    LOGGER_DEBUG("Loaded session hooks from '%s'" \
             " (start=%u, reload=%u, exit=%u)",
             session_file,
             (unsigned int) list_size(session->on_start),
@@ -457,7 +457,7 @@ void session_reap_children(void)
 
         if (tracked != NULL) {
             if (WIFEXITED(status)) {
-                LOGGER_INFO("Session hook '%s' PID %d ('%s') exited with status %d",
+                LOGGER_DEBUG("Session hook '%s' PID %d ('%s') exited with status %d",
                         tracked->hook, (int) pid, tracked->command,
                         WEXITSTATUS(status));
             } else if (WIFSIGNALED(status)) {

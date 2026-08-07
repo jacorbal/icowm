@@ -69,7 +69,7 @@
  * Each source glyph's mask is always the very next glyph index (the
  * font stores every shape as a source/mask pair), same convention as
  * @c WM_CURSOR_LEFT_PTR_GLYPH / @c WM_CURSOR_LEFT_PTR_MASK_GLYPH above,
- * so only the source glyph needs naming here -- the mask is always
+ * so only the source glyph needs naming here; the mask is always
  * "this value plus one".  Used to show the matching resize direction
  * when the pointer hovers over a window's border or corner, before any
  * button is pressed.
@@ -126,9 +126,6 @@
 /** Gap between buttons */
 #define WM_DECOR_BTN_GAP (2u)
 
-/** Padding from frame edge */
-#define WM_DECOR_BTN_PAD (4u)
-
 /** Threshold below which an icon drag is treated as a click */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) × 4 (px) = 16 (px^2) */
 
@@ -180,6 +177,10 @@
 
 /** Poll timeout (ms) for one main-loop iteration */
 #define WM_EVENT_POLL_TIMEOUT_MS (1000)
+
+/** Fallback poll timeout (ms) used to wait out the rest of the current
+ *  wall-clock second before the systray clock is due its next redraw */
+#define WM_SYSTRAY_CLOCK_POLL_MS (250)
 
 /** Duration in milliseconds for the desktop-switch notification */
 #define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)

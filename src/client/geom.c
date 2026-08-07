@@ -34,6 +34,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <wm.h>
 
 /* Local includes */
 #include <client/internal.h>
@@ -85,17 +86,28 @@ void ci_set_decoration_defaults(client_td *client,
         struct config_theme_s *theme)
 {
     uint16_t border_width = 0;
+    bool is_decorated;
 
     if (client == NULL) {
         return;
     }
 
-    client->title_height = WM_TITLEBAR_DEFAULT_HEIGHT;
+    client->title_height = (theme != NULL)
+        ? (uint16_t) theme->window.titlebar.height
+        : WM_TITLEBAR_DEFAULT_HEIGHT;
     if (theme != NULL) {
-        border_width = (uint16_t) theme->window.general.border_width;
+        border_width = (uint16_t) theme->window.active.border.width;
     }
 
-    if (theme != NULL && theme->window.general.is_decorated) {
+    /* A theme's 'window.titlebar.height' of 0 is equivalent to
+     * 'window.is-decorated: false': a titlebar with no height has
+     * nothing to draw and nowhere to put its buttons, so there is no
+     * point pretending the window is still decorated just because the
+     * theme's 'is-decorated' flag itself was left (or set) to true. */
+    is_decorated = theme != NULL && theme->window.is_decorated &&
+        client->title_height > 0u;
+
+    if (is_decorated) {
         client_set_decoration(client);
         client->layout.frame_extents.left = border_width;
         client->layout.frame_extents.right = border_width;
@@ -106,6 +118,166 @@ void ci_set_decoration_defaults(client_td *client,
         client_unset_decoration(client);
         client->layout.frame_extents = (struct sides_s) {0, 0, 0, 0};
     }
+}
+
+
+/* Update a decorated client's border width and titlebar height to match
+ * the current theme and focus state */
+void client_resync_theme_layout(client_td *client, bool is_active)
+{
+    uint16_t new_border;
+    uint16_t new_title_height;
+    int32_t delta_side;
+    int32_t delta_top_extra;
+
+    if (client == NULL || client->theme == NULL ||
+            !client_is_decorated(client) || client->frame == 0) {
+        return;
+    }
+
+    new_border = (uint16_t) ((is_active)
+        ? client->theme->window.active.border.width
+        : client->theme->window.inactive.border.width);
+    new_title_height = (uint16_t) client->theme->window.titlebar.height;
+
+    /* 'left' alone is enough to detect "border width unchanged":
+     * 'left', 'right', and 'bottom' are always set equal to each other
+     * by 'ci_set_decoration_defaults' and by this same function */
+    delta_side = (int32_t) new_border -
+        (int32_t) client->layout.frame_extents.left;
+    delta_top_extra = (int32_t) new_title_height -
+        (int32_t) client->title_height;
+
+    if (delta_side == 0 && delta_top_extra == 0) {
+        return;
+    }
+
+    client->title_height = new_title_height;
+    client->layout.frame_extents.left = new_border;
+    client->layout.frame_extents.right = new_border;
+    client->layout.frame_extents.bottom = new_border;
+    client->layout.frame_extents.top =
+        (uint16_t) (new_border + new_title_height);
+
+    /* Grow or shrink the frame around its content: the content window's
+     * own on-screen position and size never change, only how much
+     * border and titlebar surround it.  The border widens or narrows
+     * symmetrically on every side ('delta_side'); the titlebar height
+     * only affects the top ('delta_top_extra' on top of the border's
+     * own share there). */
+    client->layout.geometry.cur.pos.x -= delta_side;
+    client->layout.geometry.cur.pos.y -= (delta_side + delta_top_extra);
+    client->layout.geometry.cur.dim.w =
+        (uint32_t) ((int64_t) client->layout.geometry.cur.dim.w +
+                2 * delta_side);
+    client->layout.geometry.cur.dim.h =
+        (uint32_t) ((int64_t) client->layout.geometry.cur.dim.h +
+                2 * delta_side + delta_top_extra);
+
+    /* The render pass picks this client up from here: it applies
+     * 'geometry.cur' to the frame via 'xcb_configure_window' and then
+     * calls 'client_sync_decoration_layout' (below) to reposition the
+     * content window and titlebar to match the new 'frame_extents'; the
+     * exact same sequence any other geometry change already goes
+     * through, so there is nothing further to duplicate here. */
+    wm_request_client_redraw(client);
+}
+
+
+/* Compute where every configured titlebar button goes */
+void client_titlebar_layout(const struct config_theme_s *theme,
+        uint16_t frame_w, uint16_t title_h,
+        struct titlebar_button_layout_s *out_left,
+        uint8_t *out_left_n,
+        struct titlebar_button_layout_s *out_right,
+        uint8_t *out_right_n,
+        int16_t *out_title_x, uint16_t *out_title_w,
+        int16_t *out_btn_y)
+{
+    uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
+    uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
+    uint16_t pad_h;
+    uint16_t pad_v;
+    uint8_t left_n;
+    uint8_t right_n;
+    int32_t x;
+    int32_t left_extent;
+    int32_t right_extent;
+    int32_t title_x;
+    int32_t title_right;
+    int32_t inset_avail;
+
+    if (out_left_n != NULL) { *out_left_n = 0u; }
+    if (out_right_n != NULL) { *out_right_n = 0u; }
+    if (out_title_x != NULL) { *out_title_x = 0; }
+    if (out_title_w != NULL) { *out_title_w = 0u; }
+    if (out_btn_y != NULL) { *out_btn_y = 0; }
+
+    if (theme == NULL || out_left == NULL || out_left_n == NULL ||
+            out_right == NULL || out_right_n == NULL ||
+            out_title_x == NULL || out_title_w == NULL ||
+            out_btn_y == NULL) {
+        return;
+    }
+
+    pad_h = (uint16_t) theme->window.titlebar.padding.horizontal;
+    pad_v = (uint16_t) theme->window.titlebar.padding.vertical;
+
+    /* Vertically center every button as a group: inset top and bottom
+     * by 'padding.vertical' first, then center within whatever room
+     * that leaves; if the padding alone would already exceed the
+     * titlebar height (a theme with a very short titlebar and generous
+     * padding), fall back to plain centering with no inset instead of
+     * producing a negative position. */
+    inset_avail = (int32_t) title_h - 2 * (int32_t) pad_v;
+    if (inset_avail >= (int32_t) btn) {
+        *out_btn_y = (int16_t) (pad_v + (inset_avail -
+                    (int32_t) btn) / 2);
+    } else {
+        *out_btn_y = (title_h > btn)
+            ? (int16_t) ((title_h - btn) / 2u) : 0;
+    }
+
+    left_n = theme->window.titlebar.buttons.left_count;
+    if (left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
+        left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
+    }
+    x = (int32_t) pad_h;
+    for (uint8_t i = 0u; i < left_n; ++i) {
+        out_left[i].button = theme->window.titlebar.buttons.left[i];
+        out_left[i].x = (int16_t) x;
+        x += (int32_t) (btn + gap);
+    }
+    *out_left_n = left_n;
+    left_extent = (left_n == 0u) ? 0
+        : (int32_t) (left_n * btn + (left_n - 1u) * gap);
+
+    right_n = theme->window.titlebar.buttons.right_count;
+    if (right_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
+        right_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
+    }
+    x = (int32_t) frame_w - (int32_t) pad_h - (int32_t) btn;
+    for (uint8_t i = 0u; i < right_n; ++i) {
+        out_right[i].button = theme->window.titlebar.buttons.right[i];
+        out_right[i].x = (int16_t) x;
+        x -= (int32_t) (btn + gap);
+    }
+    *out_right_n = right_n;
+    right_extent = (right_n == 0u) ? 0
+        : (int32_t) (right_n * btn + (right_n - 1u) * gap);
+
+    /* An extra 'WM_DECOR_BTN_GAP' beyond the plain edge padding gives
+     * the title a bit more breathing room next to whichever button
+     * group it is adjacent to, matching how buttons in the same group
+     * are spaced from each other. */
+    title_x = (int32_t) pad_h + left_extent + ((left_n > 0u)
+        ? (int32_t) (pad_h + gap) : 0);
+    title_right = (int32_t) frame_w - (int32_t) pad_h - right_extent -
+        ((right_n > 0u) ? (int32_t) (pad_h + gap) : 0);
+
+    *out_title_x = (int16_t) title_x;
+    *out_title_w = (uint16_t) ((title_right > title_x)
+        ? (title_right - title_x) : 0);
 }
 
 
@@ -158,9 +330,10 @@ void client_sync_decoration_layout(client_td *client)
 
     /* Force the reparented client area to repaint immediately after the
      * frame/title layout changes.  Using 'exposures=1' causes the
-     * X server to generate an Expose event so applications that do not
-     * repaint on 'ConfigureNotify' alone redraw the newly exposed lower
-     * area without requiring an additional user-triggered action. */
+     * X server to generate an 'Expose' event so applications that do
+     * not repaint on 'ConfigureNotify' alone redraw the newly exposed
+     * lower area without requiring an additional user-triggered
+     * action. */
     xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
 }
 
@@ -305,8 +478,8 @@ int ci_create_decorations(client_td *client)
 
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = client->theme->window.inactive.border_color;
-    values[1] = client->theme->window.inactive.border_color;
+    values[0] = client->theme->window.inactive.border.color;
+    values[1] = client->theme->window.inactive.border.color;
     /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is essential here, not
      * optional: once the client's own top-level window is reparented
      * into this frame, its *parent* for X11 purposes becomes the frame
@@ -339,7 +512,7 @@ int ci_create_decorations(client_td *client)
 
     client->titlebar = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = client->theme->window.inactive.background_color;
+    values[0] = client->theme->window.inactive.color.background;
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
     xcb_create_window(client->connection,
             XCB_COPY_FROM_PARENT,

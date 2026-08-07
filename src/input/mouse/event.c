@@ -177,17 +177,6 @@ enum s_resize_zone_e {
 static xcb_cursor_t s_resize_cursors[S_RESIZE_ZONE_COUNT];
 
 
-/* Last client, frame window, and cursor zone used to avoid redundant
- * cursor updates during motion within the same zone.  The client
- * pointer is stored alongside the X11 window ID because IDs may be
- * reused after a client or frame is destroyed; comparing only the ID
- * could suppress the cursor update for a new client that reuses
- * a cached frame ID.  */
-static xcb_window_t s_last_cursor_window = XCB_WINDOW_NONE;
-static const client_td *s_last_cursor_client = NULL;
-static enum s_resize_zone_e s_last_cursor_zone = S_RESIZE_ZONE_NONE;
-
-
 /**
  * @brief Determine which border/corner zone, if any, a point falls in
  *
@@ -235,10 +224,10 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
      * disagree with X11's actual border hit-testing by one or more
      * pixels.
      */
-    /* FIXME: On decorated windows, exclude the titlebar from the top
-     *        resize margin. Pointer motion from the titlebar propagates
-     *        to the frame, so this requires a geometric check rather
-     *        than checking 'event->event'.
+    /* On decorated windows, exclude the titlebar from the top resize
+     * margin.  Pointer motion from the titlebar propagates to the
+     * frame, so this requires a geometric check rather than checking
+     * 'event->event'.
      */
     top_margin = WM_RESIZE_CORNER_SIZE;
     if (client->frame != 0) {
@@ -271,13 +260,22 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
 
 
 /**
- * @brief Create one glyph cursor from the X cursor font
+ * @brief Create an X11 cursor from consecutive glyphs in a font
  *
- * @param connection XCB connection
- * @param font       Already-open handle to the "cursor" font
- * @param glyph      Source glyph index; its mask is always @p glyph + 1
+ * Allocates a new X11 cursor resource identifier and creates a glyph
+ * cursor using @a glyph as its source glyph and the following glyph as
+ * its mask.  The cursor uses black for its foreground and white for its
+ * background.
  *
- * @return The newly created cursor's XID
+ * @param connection Active XCB connection
+ * @param font       Font containing the cursor source and mask glyphs
+ * @param glyph      Source glyph; the mask glyph is @p glyph + 1
+ *
+ * @return Identifier of the newly allocated cursor resource
+ *
+ * @note The cursor creation request is asynchronous; protocol errors,
+ *       if any, are reported by X11 asynchronously
+ * @note Complexity: @e O(1)
  *
  * @see @c WM_CURSOR_TOP_SIDE_GLYPH and siblings
  */
@@ -294,91 +292,23 @@ static xcb_cursor_t s_mouse_create_glyph_cursor(
 }
 
 
-/* Create the eight border-resize cursors used for hover feedback */
-void mouse_create_resize_cursors(xcb_connection_t *connection)
-{
-    xcb_font_t font;
-
-    if (connection == NULL || s_resize_cursors[S_RESIZE_ZONE_NONE] != 0) {
-        return;
-    }
-
-    font = xcb_generate_id(connection);
-    xcb_open_font(connection, font,
-            (uint16_t) safe_strlen("cursor"), "cursor");
-
-    s_resize_cursors[S_RESIZE_ZONE_NONE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_LEFT_PTR_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_N] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_S] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_E] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_RIGHT_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_W] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_LEFT_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_NE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_RIGHT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_NW] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_LEFT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_SE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_SW] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH);
-
-    xcb_close_font(connection, font);
-    xcb_flush(connection);
-}
-
-
-/* Free the cursors created by 'mouse_create_resize_cursors' */
-void mouse_destroy_resize_cursors(xcb_connection_t *connection)
-{
-    if (connection == NULL) {
-        return;
-    }
-
-    for (int i = 0; i < (int) S_RESIZE_ZONE_COUNT; ++i) {
-        if (s_resize_cursors[i] != 0) {
-            xcb_free_cursor(connection, s_resize_cursors[i]);
-            s_resize_cursors[i] = 0;
-        }
-    }
-    s_last_cursor_window = XCB_WINDOW_NONE;
-    s_last_cursor_client = NULL;
-    s_last_cursor_zone = S_RESIZE_ZONE_NONE;
-}
-
-
-/* Update the pointer cursor to match a window's resize border */
-void mouse_handle_motion_hover(xcb_connection_t *connection,
-        list_td *surfaces, xcb_motion_notify_event_t *event)
-{
-    client_td *client;
-    surface_td *surface;
-    desktop_td *desktop;
-    enum s_resize_zone_e zone;
-
-    if (connection == NULL || surfaces == NULL || event == NULL ||
-            s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
-        return;
-    }
-
-    client = lookup_find_client(surfaces, event->event, &surface,
-            &desktop);
-    if (client == NULL || !client_is_resizable(client)) {
-        return;
-    }
-
-    zone = s_mouse_resize_zone(client, event->root_x, event->root_y);
-
-    xcb_change_window_attributes(connection, event->event,
-            XCB_CW_CURSOR, (const uint32_t[]) { s_resize_cursors[zone] });
-    xcb_flush(connection);
-}
-
-
-/* Mirror sticky focus on the currently shown desktop of a surface */
+/**
+ * @brief Mirror sticky-client focus on the currently shown desktop
+ *
+ * If @a client is sticky and its owning desktop is not the desktop
+ * currently shown on @a surface, marks @a client as active on that
+ * currently shown desktop.  The affected desktop and surface are then
+ * marked outdated so their focus-dependent state can be refreshed.
+ *
+ * @param surface       Surface whose current desktop is inspected
+ * @param owner_desktop Desktop that owns @a client
+ * @param client        Sticky client whose active state is synchronized
+ *
+ * @note Does nothing if any argument is @c NULL, if @a client is not
+ *       sticky, if the current desktop cannot be resolved, or if the
+ *       owner desktop is already current
+ * @note Complexity: @e O(1)
+ */
 static void s_mouse_sync_sticky_active(surface_td *surface,
         desktop_td *owner_desktop, client_td *client)
 {
@@ -478,6 +408,89 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
     }
 
     return client;
+}
+
+
+/* Create the eight border-resize cursors used for hover feedback */
+void mouse_create_resize_cursors(xcb_connection_t *connection)
+{
+    xcb_font_t font;
+
+    if (connection == NULL ||
+            s_resize_cursors[S_RESIZE_ZONE_NONE] != 0) {
+        return;
+    }
+
+    font = xcb_generate_id(connection);
+    xcb_open_font(connection, font,
+            (uint16_t) safe_strlen("cursor"), "cursor");
+
+    s_resize_cursors[S_RESIZE_ZONE_NONE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_LEFT_PTR_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_N] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_S] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_E] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_RIGHT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_W] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_LEFT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NW] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_LEFT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SW] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH);
+
+    xcb_close_font(connection, font);
+    xcb_flush(connection);
+}
+
+
+/* Free the cursors created by 'mouse_create_resize_cursors' */
+void mouse_destroy_resize_cursors(xcb_connection_t *connection)
+{
+    if (connection == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < (int) S_RESIZE_ZONE_COUNT; ++i) {
+        if (s_resize_cursors[i] != 0) {
+            xcb_free_cursor(connection, s_resize_cursors[i]);
+            s_resize_cursors[i] = 0;
+        }
+    }
+}
+
+
+/* Update the pointer cursor to match a window's resize border */
+void mouse_handle_motion_hover(xcb_connection_t *connection,
+        list_td *surfaces, xcb_motion_notify_event_t *event)
+{
+    client_td *client;
+    surface_td *surface;
+    desktop_td *desktop;
+    enum s_resize_zone_e zone;
+
+    if (connection == NULL || surfaces == NULL || event == NULL ||
+            s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
+        return;
+    }
+
+    client = lookup_find_client(surfaces, event->event, &surface,
+            &desktop);
+    if (client == NULL || !client_is_resizable(client)) {
+        return;
+    }
+
+    zone = s_mouse_resize_zone(client, event->root_x, event->root_y);
+
+    xcb_change_window_attributes(connection, event->event,
+            XCB_CW_CURSOR,
+            (const uint32_t[]) { s_resize_cursors[zone] });
+    xcb_flush(connection);
 }
 
 
@@ -809,14 +822,109 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 /* Titlebar button hit-test */
 
 /**
- * @brief Test whether a click on the titlebar landed on a button and
- *        dispatch its action
+ * @brief Look up which titlebar button, if any, a client's own button
+ *        list has at a given frame-relative X position
+ */
+static bool s_titlebar_button_at(
+        const struct titlebar_button_layout_s *entries, uint8_t count,
+        int16_t x, enum config_titlebar_button_e *out)
+{
+    for (uint8_t i = 0u; i < count; ++i) {
+        if (x >= entries[i].x &&
+                x < entries[i].x + (int16_t) WM_DECOR_BTN_SIZE) {
+            *out = entries[i].button;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/**
+ * @brief Dispatch the action a titlebar button click should trigger
  *
- * The titlebar has two left-aligned buttons (pin, layer-cycle) and six
- * right-aligned buttons (close, fullscreen, maximize, shade, hide,
- * iconify).  If the click lands on a button its action is dispatched
- * and the function returns @c true.  Scroll-wheel events (buttons 4 and
- * 5) on the titlebar area also count as a hit and are handled here.
+ * @param button       Which button was clicked
+ * @param client       Client whose titlebar was clicked
+ * @param can_maximize Whether maximize/fullscreen are currently enabled
+ * @param event        Incoming button-press event (button 1/2/3 select
+ *                      full/vertical/horizontal maximize respectively)
+ */
+static void s_titlebar_button_action(enum config_titlebar_button_e button,
+        client_td *client, bool can_maximize,
+        const xcb_button_press_event_t *event)
+{
+    switch (button) {
+        case CONFIG_TITLEBAR_BUTTON_PIN:
+            client_send_event(client, ACTION_CLIENT_TOGGLE_STICKY,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_LAYER:
+            client_send_event(client, ACTION_CLIENT_CYCLE_LAYER,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_ICONIZE:
+            client_send_event(client, ACTION_CLIENT_ICONIFY,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_HIDE:
+            client_send_event(client, ACTION_CLIENT_HIDE,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_SHADE:
+            client_send_event(client, ACTION_CLIENT_TOGGLE_SHADE,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_MAXIMIZE:
+            if (!can_maximize) {
+                break;
+            }
+            if ((xcb_button_index_t) event->detail ==
+                    XCB_BUTTON_INDEX_2) {
+                client_send_event(client, ACTION_CLIENT_MAXIMIZE_VERT,
+                        PRIORITY_NORMAL);
+            } else if ((xcb_button_index_t) event->detail ==
+                    XCB_BUTTON_INDEX_3) {
+                client_send_event(client, ACTION_CLIENT_MAXIMIZE_HORZ,
+                        PRIORITY_NORMAL);
+            } else {
+                client_send_event(client, ACTION_CLIENT_MAXIMIZE,
+                        PRIORITY_NORMAL);
+            }
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_FULLSCREEN:
+            if (!can_maximize) {
+                break;
+            }
+            client_send_event(client, ACTION_CLIENT_TOGGLE_FULLSCREEN,
+                    PRIORITY_NORMAL);
+            break;
+
+        case CONFIG_TITLEBAR_BUTTON_CLOSE:
+            client_send_event(client, ACTION_CLIENT_CLOSE,
+                    PRIORITY_NORMAL);
+            break;
+    }
+}
+
+
+/**
+ * @brief Test whether a click on the titlebar landed on a configured
+ *        button and dispatch its action
+ *
+ * Uses @c client_titlebar_layout to find each button's position --
+ * the exact same computation @c desktop_draw_titlebar_buttons uses to
+ * paint them -- so a click can never land "between" where a button
+ * looks like it is and where this function thinks it is.  If the
+ * click lands on a button its action is dispatched and the function
+ * returns @c true.  Scroll-wheel events (buttons 4 and 5) on the
+ * titlebar area also count as a hit and are handled here.
  *
  * @param connection Active XCB connection (unused directly but kept for
  *                   symmetry)
@@ -831,89 +939,52 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
         client_td *client, desktop_td *desktop, surface_td *surface,
         xcb_button_press_event_t *event)
 {
-    static const enum action_client_e btn_actions[6] = {
-        ACTION_CLIENT_CLOSE,
-        ACTION_CLIENT_TOGGLE_FULLSCREEN,
-        ACTION_CLIENT_MAXIMIZE,
-        ACTION_CLIENT_TOGGLE_SHADE,
-        ACTION_CLIENT_HIDE,
-        ACTION_CLIENT_ICONIFY
-    };
-
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    int16_t title_x;
+    uint16_t title_w;
+    int16_t btn_y;
     int ex = (int) event->event_x;
     int ey = (int) event->event_y;
-    int left = (int) client->layout.frame_extents.left;
-    int right = (int) client->layout.frame_extents.right;
+    int left_extent = (int) client->layout.frame_extents.left;
+    int right_extent = (int) client->layout.frame_extents.right;
     int frame_w = (int) client->layout.geometry.cur.dim.w;
-    int fw = (frame_w > left + right) ? frame_w - left - right : 1;
-    int btn = (int) WM_DECOR_BTN_SIZE;
-    int gap = (int) WM_DECOR_BTN_GAP;
-    int pad = (int) WM_DECOR_BTN_PAD;
-    int step = btn + gap;
+    int fw = (frame_w > left_extent + right_extent)
+        ? frame_w - left_extent - right_extent : 1;
     int title_h = (int) client->title_height;
-    int btn_y = (title_h > btn) ? (title_h - btn) / 2 : 0;
     bool can_maximize;
+    enum config_titlebar_button_e button;
 
     (void) connection;
+    (void) title_x;
+    (void) title_w;
+
+    if (client->theme == NULL) {
+        return false;
+    }
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_resizable(client);
 
-    /* Only test buttons when the click Y is within the button row */
-    if (ey >= btn_y && ey < btn_y + btn) {
-        if (ex >= pad && ex < pad + btn) {
-            /* Left-aligned button 0: pin / sticky */
-            client_send_event(client, ACTION_CLIENT_TOGGLE_STICKY,
-                    PRIORITY_NORMAL);
-            return true;
-        }
+    /* Same layout the render pass just painted from -- computed first
+     * (not just when the click Y already looks close) since it is what
+     * determines 'btn_y' now that button rows can be vertically inset
+     * by 'padding.vertical', not just centered in the full titlebar
+     * height. */
+    client_titlebar_layout(client->theme, (uint16_t) fw, (uint16_t) title_h,
+            left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
-        if (ex >= pad + step && ex < pad + step + btn) {
-            /* Left-aligned button 1: layer cycle */
-            client_send_event(client, ACTION_CLIENT_CYCLE_LAYER,
-                    PRIORITY_NORMAL);
+    /* Only test buttons when the click Y is within the button row */
+    if (ey >= btn_y && ey < btn_y + (int) WM_DECOR_BTN_SIZE) {
+        if (s_titlebar_button_at(left, left_n, (int16_t) ex, &button) ||
+                s_titlebar_button_at(right, right_n, (int16_t) ex,
+                    &button)) {
+            s_titlebar_button_action(button, client, can_maximize, event);
             if (desktop != NULL) { desktop->is_outdated = true; }
             if (surface != NULL) { surface->is_outdated = true; }
             return true;
-        }
-
-        /* Right-aligned buttons */
-        for (int bi = 0; bi < 6; ++bi) {
-            int bx = fw - pad - btn - bi * step;
-            if (ex >= bx && ex < bx + btn) {
-                if (!can_maximize && (bi == 1 || bi == 2)) {
-                    /* Fullscreen / maximize blocked for fixed-size */
-                    return true;
-                }
-
-                if (bi == 2) {
-                    /* Maximize button: button 1 = full,
-                     *                 button 2 = vert,
-                     *                 button 3 = horz */
-                    if ((xcb_button_index_t) event->detail ==
-                            XCB_BUTTON_INDEX_2) {
-                        client_send_event(client,
-                                ACTION_CLIENT_MAXIMIZE_VERT,
-                                PRIORITY_NORMAL);
-                    } else if ((xcb_button_index_t) event->detail ==
-                            XCB_BUTTON_INDEX_3) {
-                        client_send_event(client,
-                                ACTION_CLIENT_MAXIMIZE_HORZ,
-                                PRIORITY_NORMAL);
-                    } else {
-                        client_send_event(client,
-                                ACTION_CLIENT_MAXIMIZE,
-                                PRIORITY_NORMAL);
-                    }
-                } else {
-                    client_send_event(client, btn_actions[bi],
-                            PRIORITY_NORMAL);
-                }
-
-                if (desktop != NULL) { desktop->is_outdated = true; }
-                if (surface != NULL) { surface->is_outdated = true; }
-                return true;
-            }
         }
     }
 

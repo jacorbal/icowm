@@ -36,12 +36,22 @@ static struct {
     xcb_gcontext_t gc;
     char font_name[256];
     uint16_t char_width;
+    int16_t ascent;      /**< Pixels the baseline sits below the top of
+                               a line of text, from the font's own
+                               metrics; used to vertically center or
+                               top/bottom-align text against a known
+                               pixel height (see 'text_font_ascent'
+                               and 'text_font_descent') */
+    int16_t descent;     /**< Pixels the baseline sits above the
+                               bottom of a line of text */
     bool initialized;
 } s_text = {
     .connection = NULL,
     .font = XCB_NONE,
     .gc = XCB_NONE,
     .char_width = 8,
+    .ascent = 10,
+    .descent = 3,
     .initialized = false
 };
 
@@ -304,6 +314,8 @@ int text_renderer_init(xcb_connection_t *connection,
             s_text.char_width =
                 (uint16_t) qf_reply->max_bounds.character_width;
         }
+        s_text.ascent = qf_reply->font_ascent;
+        s_text.descent = qf_reply->font_descent;
         free(qf_reply);
     }
 
@@ -403,4 +415,20 @@ uint16_t text_measure_string(const char *text)
     }
 
     return (uint16_t) (len * s_text.char_width);
+}
+
+
+/* Pixels the baseline sits below the top of a line, for the current
+ * font */
+int16_t text_font_ascent(void)
+{
+    return s_text.ascent;
+}
+
+
+/* Pixels the baseline sits above the bottom of a line, for the
+ * current font */
+int16_t text_font_descent(void)
+{
+    return s_text.descent;
 }

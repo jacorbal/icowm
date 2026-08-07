@@ -151,6 +151,7 @@ void loop_run(wm_td *wm)
     struct pollfd pfd;
     int poll_status;
     int poll_timeout_ms;
+    int clock_ms;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -241,12 +242,19 @@ void loop_run(wm_td *wm)
             }
         }
 
+        clock_ms = systray_clock_ms_remaining();
+        if (clock_ms >= 0 && clock_ms < poll_timeout_ms) {
+            poll_timeout_ms = clock_ms;
+        }
+
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
                     strerror(errno));
             break;
         }
+
+        systray_clock_tick();
 
         while ((event = xcb_poll_for_event(wm->connection)) != NULL) {
             xcb_motion_notify_event_t *me;

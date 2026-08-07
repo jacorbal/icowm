@@ -222,8 +222,8 @@ client_td *client_init(xcb_connection_t *connection,
      * Background pixel, border pixel, and event mask are theme-aware */
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
            XCB_CW_EVENT_MASK;
-    values[0] = theme->window.inactive.background_color;
-    values[1] = theme->window.inactive.border_color;
+    values[0] = theme->window.inactive.color.background;
+    values[1] = theme->window.inactive.border.color;
     values[2] = XCB_EVENT_MASK_EXPOSURE         |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY |
                 XCB_EVENT_MASK_PROPERTY_CHANGE  |
@@ -240,7 +240,7 @@ client_td *client_init(xcb_connection_t *connection,
             parent_id,
             (int16_t) x, (int16_t) y,
             (uint16_t) w, (uint16_t) h,
-            (uint16_t) theme->window.general.border_width,
+            (uint16_t) theme->window.active.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
@@ -819,7 +819,7 @@ client_td *client_manage(xcb_connection_t *connection,
                         client->layout.frame_extents =
                             (struct sides_s) {0, 0, 0, 0};
                     } else if (theme != NULL &&
-                            theme->window.general.is_decorated) {
+                            theme->window.is_decorated) {
                         client_set_decoration(client);
                     }
                 }
@@ -978,7 +978,7 @@ client_td *client_manage(xcb_connection_t *connection,
     /* Apply border width from theme; dock windows always get 0 */
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
         ? 0u
-        : ((theme != NULL) ? theme->window.general.border_width : 0u);
+        : ((theme != NULL) ? theme->window.active.border.width : 0u);
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 

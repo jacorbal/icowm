@@ -377,13 +377,15 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
-        /* Hardcoded 'Alt+Space': also opens the window context menu,
-         * alongside whichever binding 'keyboard.window.menu' sets.
-         * To be kept as a fixed, always-available fallback matching the
-         * common desktop-environment convention for this exact key
-         * combination, the same way 'KEYBIND_WM_EMERGENCY_EXIT'.
-         */
-        //{ "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
+        /* Hardcoded 'Alt+Space': always opens the per-window context
+         * menu (right-click on a titlebar); fixed, not configurable,
+         * matching the common desktop-environment convention for this
+         * exact key combination, the same way 'Ctrl+Mod1+BackSpace'
+         * below is a fixed emergency-exit shortcut.  Unrelated to
+         * either 'keyboard.wm.menus.root' or '.windows': those two
+         * open the desktop menu and the all-desktops window list;
+         * this opens the context menu of one specific window. */
+        { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
         /* Hardcoded emergency exit (grabbed only if enabled) */
         { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }

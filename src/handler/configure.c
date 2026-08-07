@@ -36,6 +36,7 @@
 #include <invalidate.h>
 #include <logger.h>
 #include <surface.h>
+#include <systray.h>
 #include <lookup.h>
 
 /* Local includes */
@@ -149,6 +150,14 @@ void handler_configure_request(xcb_connection_t *connection,
 
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
+
+    /* A docked systray icon is not a managed client, so it would
+     * otherwise fall through to the generic "forward the request
+     * unmodified" path below, undoing the fixed size the tray forces
+     * on every icon at dock time; see 'systray_enforce_icon_size'. */
+    if (client == NULL && systray_enforce_icon_size(event->window)) {
+        return;
+    }
 
     if (client != NULL) {
         LOGGER_TRACE("'ConfigureRequest' matched client window=0x%x:" \

@@ -165,7 +165,6 @@ void config_set_default_values(config_td *config)
     config->base.windows.move_step = 10;
     config->base.windows.resize_step = 20;  /* usually overriden by hints */
     config->base.windows.snap = 4;
-    config->base.windows.has_grips = false;
     config->base.windows.show_geom = true;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
@@ -183,6 +182,9 @@ void config_set_default_values(config_td *config)
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
+    config->base.systray.clock.is_enabled = false;
+    safe_strcpy(config->base.systray.clock.format, "%H:%M");
+    config->base.systray.clock.position = CONFIG_SYSTRAY_CLOCK_RIGHT;
 
     config->base.xsettings.is_enabled = false;
     safe_strncpy(config->base.xsettings.gtk_theme_name, "Adwaita",
@@ -333,36 +335,79 @@ void config_set_default_values(config_td *config)
     /* Predetermined values for a default theme */
     LOGGER_TRACE("Setting default theme", L_NARG);
     safe_strcpy(config->theme.name, "Default (builtin)");
-    config->theme.window.general.border_width = 2;
-    config->theme.window.general.is_decorated = true;
-    config->theme.window.active.background_color =
-        json_hex2uint32("9AAEC8");
-    config->theme.window.active.foreground_color =
-        json_hex2uint32("253040");
-    config->theme.window.active.border_color =
-        json_hex2uint32("4A5566");
-    config->theme.window.active.grip_color =
-        json_hex2uint32("7F9AB6");
+
+    config->theme.window.is_decorated = true;
+    config->theme.window.titlebar.height = 19u;
+    config->theme.window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_LEFT;
+    config->theme.window.titlebar.padding.horizontal = 2u;
+    config->theme.window.titlebar.padding.vertical = 2u;
+
+    config->theme.window.titlebar.buttons.left[0] =
+        CONFIG_TITLEBAR_BUTTON_PIN;
+    config->theme.window.titlebar.buttons.left[1] =
+        CONFIG_TITLEBAR_BUTTON_LAYER;
+    config->theme.window.titlebar.buttons.left_count = 2u;
+
+    config->theme.window.titlebar.buttons.right[0] =
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    config->theme.window.titlebar.buttons.right[1] =
+        CONFIG_TITLEBAR_BUTTON_HIDE;
+    config->theme.window.titlebar.buttons.right[2] =
+        CONFIG_TITLEBAR_BUTTON_SHADE;
+    config->theme.window.titlebar.buttons.right[3] =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    config->theme.window.titlebar.buttons.right[4] =
+        CONFIG_TITLEBAR_BUTTON_FULLSCREEN;
+    config->theme.window.titlebar.buttons.right[5] =
+        CONFIG_TITLEBAR_BUTTON_CLOSE;
+    config->theme.window.titlebar.buttons.right_count = 6u;
+
     safe_strcpy(config->theme.window.active.font, "fixed bold");
-    config->theme.window.inactive.background_color =
-        json_hex2uint32("D0D9E5");
-    config->theme.window.inactive.foreground_color =
-        json_hex2uint32("4A5566");
-    config->theme.window.inactive.border_color =
-        json_hex2uint32("7F9AB6");
-    config->theme.window.inactive.grip_color =
-        json_hex2uint32("4A5566");
+    config->theme.window.active.color.background =
+        json_hex2uint32("9AAEC8");
+    config->theme.window.active.color.foreground =
+        json_hex2uint32("253040");
+    config->theme.window.active.border.color = json_hex2uint32("4A5566");
+    config->theme.window.active.border.width = 2u;
+
     safe_strcpy(config->theme.window.inactive.font, "fixed");
-    config->theme.icon.general.border_width = 2;
-    config->theme.icon.general.is_captioned = true;
-    config->theme.icon.active.background_color = json_hex2uint32("9AAEC8");
-    config->theme.icon.active.foreground_color = json_hex2uint32("253040");
-    config->theme.icon.active.border_color = json_hex2uint32("4A5566");
+    config->theme.window.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.window.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    config->theme.window.inactive.border.color = json_hex2uint32("7F9AB6");
+    config->theme.window.inactive.border.width = 2u;
+
+    config->theme.icon.is_captioned = true;
+
     safe_strcpy(config->theme.icon.active.font, "fixed bold");
-    config->theme.icon.inactive.background_color = json_hex2uint32("D0D9E5");
-    config->theme.icon.inactive.foreground_color = json_hex2uint32("4A5566");
-    config->theme.icon.inactive.border_color = json_hex2uint32("7F9AB6");
+    config->theme.icon.active.color.background =
+        json_hex2uint32("9AAEC8");
+    config->theme.icon.active.color.foreground =
+        json_hex2uint32("253040");
+    config->theme.icon.active.border.color = json_hex2uint32("4A5566");
+    config->theme.icon.active.border.width = 1u;
+
     safe_strcpy(config->theme.icon.inactive.font, "fixed");
+    config->theme.icon.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.icon.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    config->theme.icon.inactive.border.color = json_hex2uint32("7F9AB6");
+    config->theme.icon.inactive.border.width = 1u;
+
+    safe_strcpy(config->theme.systray.style.font, "fixed");
+    config->theme.systray.style.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.systray.style.color.foreground =
+        json_hex2uint32("4A5566");
+    config->theme.systray.style.border.color = json_hex2uint32("7F9AB6");
+    config->theme.systray.style.border.width = 1u;
+    /* Matches 'SYSTRAY_ICON_SIZE + 2 * SYSTRAY_ICON_PAD' in systray.c:
+     * exactly tall enough for one icon row with no extra room, so
+     * 'clock.valign' has no visible effect until this is raised. */
+    config->theme.systray.height = 32u;
+    config->theme.systray.clock.valign = CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER;
 }
 
 
@@ -390,6 +435,7 @@ int config_load(config_td *config, const char *config_prefix)
                 " default values will be used", L_NARG);
         return 1;
     }
+    LOGGER_DEBUG("Loaded base configuration from '%s'", config_base_file);
 
     /* Set bindings configuration path */
     snprintf(config_bindings_file, sizeof(config_bindings_file),
@@ -400,6 +446,9 @@ int config_load(config_td *config, const char *config_prefix)
                 &(config->bindings)) != 0) {
         LOGGER_ERROR("Failed to load bindings from:" \
                 " '%s'; default bindings will be used",
+                config_bindings_file);
+    } else {
+        LOGGER_DEBUG("Loaded key/mouse bindings from '%s'",
                 config_bindings_file);
     }
 
@@ -414,10 +463,16 @@ int config_load(config_td *config, const char *config_prefix)
         LOGGER_NOTICE("No theme specified in base configuration;" \
                 " default will be used", L_NARG);
     } else {
+        LOGGER_DEBUG("Loading theme '%s' from '%s'",
+                config->base.theme, config_theme_file);
         if (config_load_theme(config_theme_file,
                     &(config->theme)) != 0) {
             LOGGER_WARNING("Failed to load theme from:" \
                     " '%s'; default theme will be used",
+                    config_theme_file);
+        } else {
+            LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",
+                    config->base.theme, config->theme.name,
                     config_theme_file);
         }
     }

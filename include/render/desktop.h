@@ -99,37 +99,80 @@ int desktop_render_full(desktop_td *desktop, bool is_current);
  */
 void desktop_render_flush(desktop_td *desktop);
 
-
 /**
- * @brief Draw decoration button squares on a titlebar window
+ * @brief Draw the buttons configured in @c window.titlebar.buttons on
+ *        a titlebar window
  *
- * Renders six right-aligned button squares (iconify, hide, shade,
- * maximize, fullscreen, close), one left-aligned button (pin/sticky)
- * and another left-aligned button (layer cycle) as filled rectangles.
- * The fill color is taken from @p theme:
- * @c window.active.foreground_color when @p is_focused is @c true,
- * @c window.inactive.foreground_color otherwise.  The pin button uses
- * the active foreground when sticky, and the inactive foreground when
- * not sticky.  The layer button uses the active foreground when the
- * layer is above or below, and the inactive foreground when the layer
- * is normal.
+ * Draws exactly the buttons in @p left (before the window title) and
+ * @p right (after the window title), at the positions
+ * @c client_titlebar_layout already computed for them.
+ *
+ * The position is never recomputed on by this function on its own, so
+ * it can never disagree with the click hit-test, which uses the same
+ * computed layout.  The fill color for most buttons is taken from
+ * @p theme: @c window.active.color.foreground when @p is_focused is
+ * @c true, @c window.inactive.color.foreground otherwise; the pin and
+ * layer buttons instead reflect their own state (sticky/non-normal
+ * layer) regardless of focus; maximize and fullscreen fall back to the
+ * background color when @p can_maximize is @c false.
  *
  * @param connection   Active XCB connection
  * @param titlebar     XCB window identifier of the titlebar
- * @param frame_w      Width of the titlebar in pixels
- * @param frame_top    Height of the titlebar in pixels
+ * @param btn_y        Y position every button shares, from
+ *                     @c client_titlebar_layout
+ * @param left         Left-side button layout from
+ *                     @c client_titlebar_layout
+ * @param left_n       Number of entries in @p left
+ * @param right        Right-side button layout from
+ *                     @c client_titlebar_layout
+ * @param right_n      Number of entries in @p right
  * @param is_focused   Whether the owning client is currently focused
  * @param is_sticky    Whether the owning client has the sticky flag set
  * @param is_layered   Whether the client layer is above or below normal
  * @param can_maximize Whether the maximize button is enabled
  * @param theme        Pointer to the theme providing button colors
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
  */
 void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
-        xcb_window_t titlebar, uint16_t frame_w, uint16_t frame_top,
+        xcb_window_t titlebar, int16_t btn_y,
+        const struct titlebar_button_layout_s *left,
+        uint8_t left_n,
+        const struct titlebar_button_layout_s *right,
+        uint8_t right_n,
         bool is_focused, bool is_sticky, bool is_layered,
         bool can_maximize, const struct config_theme_s *theme);
+
+/**
+ * @brief Repaint a titlebar's background, text, and buttons
+ *
+ * The single place that does this: called from every titlebar repaint
+ * path in the codebase (the render pass's "geometry changed" and "only
+ * focus changed" branches, and the @c Expose-event handler), so none of
+ * them can ever end up drawing the title or buttons differently from
+ * one another. Computes the button layout itself via
+ * @c client_titlebar_layout and draws the title text through
+ * @c s_titlebar_draw_title (alignment- and width-aware, so a title too
+ * long for the space the buttons leave is truncated rather than drawn
+ * underneath them) before calling
+ * @c desktop_draw_titlebar_buttons.  A no-op if @p client has no
+ * titlebar window.
+ *
+ * @param connection Active XCB connection
+ * @param client     Client whose titlebar is to be repainted
+ * @param is_focused Whether @p client is currently focused (selects
+ *                   active vs inactive colors and font)
+ * @param inner_w    Width available for the titlebar (the frame's
+ *                   width minus its left/right decoration extents)
+ * @param title_h    Titlebar height in pixels
+ * @param theme      Theme providing colors, font, and titlebar layout
+ *
+ * @note Complexity: @e O(n), where @e n is the number of configured
+ *       titlebar buttons plus the length of the client's title
+ */
+void desktop_repaint_titlebar_content(xcb_connection_t *connection,
+        client_td *client, bool is_focused, uint16_t inner_w,
+        uint16_t title_h, const struct config_theme_s *theme);
 
 /**
  * @brief Repaint the frame window decoration for a client
@@ -139,7 +182,8 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  * state.
  *
  * @param connection       Active XCB connection
- * @param client           Client whose frame decoration will be repainted
+ * @param client           Client whose frame decoration will be
+ *                         repainted
  * @param use_active_style Whether to use the active theme colors
  * @param theme            Theme providing frame and grip colors
  *

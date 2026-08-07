@@ -79,14 +79,16 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
         (is_cycle_sel)
-        ? desktop->config_theme->icon.active.background_color
-        : desktop->config_theme->icon.inactive.background_color,
+            ? desktop->config_theme->icon.active.color.background
+            : desktop->config_theme->icon.inactive.color.background,
         (is_cycle_sel)
-        ? desktop->config_theme->icon.active.border_color
-        : desktop->config_theme->icon.inactive.border_color
+            ? desktop->config_theme->icon.active.border.color
+            : desktop->config_theme->icon.inactive.border.color
             });
 
-    border_width = client->theme->icon.general.border_width;
+    border_width = (is_cycle_sel)
+        ? client->theme->icon.active.border.width
+        : client->theme->icon.inactive.border.width;
     if (has_extra_icon_border) {
         border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
     }
@@ -103,7 +105,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             XCB_CONFIG_WINDOW_STACK_MODE,
             (const uint32_t[]) { XCB_STACK_MODE_BELOW });
 
-    if (desktop->config_theme->icon.general.is_captioned &&
+    if (desktop->config_theme->icon.is_captioned &&
             client->info.name != NULL) {
         const char *caption =
             (client->icon_info.visible_icon_name != NULL &&
@@ -115,11 +117,11 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
                 desktop->config_theme->icon.inactive.font);
         text_renderer_set_color(
         (is_cycle_sel)
-        ? desktop->config_theme->icon.active.foreground_color
-        : desktop->config_theme->icon.inactive.foreground_color,
+            ? desktop->config_theme->icon.active.color.foreground
+            : desktop->config_theme->icon.inactive.color.foreground,
         (is_cycle_sel)
-        ? desktop->config_theme->icon.active.background_color
-        : desktop->config_theme->icon.inactive.background_color);
+            ? desktop->config_theme->icon.active.color.background
+            : desktop->config_theme->icon.inactive.color.background);
 
         text_draw_string(desktop->connection,
                 client->icon_window, XCB_NONE,

@@ -63,7 +63,7 @@ void systray_init(wm_td *wm);
  * tray window implicitly reparents any still-docked icon windows back
  * to the root window, matching how every other systray implementation
  * behaves on exit.  To toggle the tray off and on again during normal
- * operation (e.g. a configuration reload flipping @c is-enabled) use
+ * operation (e.g., a configuration reload flipping @c is-enabled) use
  * @c systray_reload instead, which keeps the window and any docked
  * icons alive in the background so they reappear immediately when
  * re-enabled instead of needing every application to re-dock itself.
@@ -89,6 +89,30 @@ void systray_shutdown(wm_td *wm);
  * @note Complexity: @e O(1)
  */
 bool systray_owns_window(xcb_window_t window);
+
+/**
+ * @brief Query whether @p window is a currently docked icon, and if
+ *        so, force it back to the tray's fixed icon size
+ *
+ * Meant to be called from the @c ConfigureRequest handler for any
+ * window not otherwise recognised as a managed client: a docked
+ * icon's own resize attempt on itself reaches the window manager as a
+ * @c ConfigureRequest only because the tray window now sets
+ * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
+ * actively overriding it back to @c SYSTRAY_ICON_SIZE, that redirect
+ * alone would just let the request through unchanged, which is no
+ * better than not redirecting at all.
+ *
+ * @param window Window to test
+ *
+ * @return @c true if @p window was a docked icon (its size was just
+ *         forced back, and the caller should treat the request as
+ *         fully handled); @c false otherwise (the caller should fall
+ *         through to its normal handling)
+ *
+ * @note Complexity: @e O(n), where @e n is the number of docked icons
+ */
+bool systray_enforce_icon_size(xcb_window_t window);
 
 /**
  * @brief Handle a @c ClientMessage addressed to the tray window
@@ -141,7 +165,7 @@ void systray_handle_surface_resize(wm_td *wm);
  * next window manager restart:
  * - Was enabled, now disabled: releases the selection right away, but
  *   keeps the dock window and every currently docked icon exactly as
- *   they are, just hidden -- unlike @c systray_shutdown, nothing is
+ *   they are, just hidden.  Unlike @c systray_shutdown, nothing is
  *   destroyed or reparented away.
  * - Was disabled, now enabled: creates the dock window if this is the
  *   very first time (nothing to do otherwise), then re-acquires the
@@ -180,6 +204,40 @@ void systray_reload(wm_td *wm);
  * @see @c wcmd_client_fullscreen and @c wcmd_client_unfullscreen
  */
 void systray_restack(void);
+
+/**
+ * @brief How many milliseconds until the systray clock needs its next
+ *        redraw
+ *
+ * Meant for the main event loop's @c poll timeout: call this once per
+ * iteration and use the result to shorten the timeout when it is
+ * smaller, the same way the info popup and desktop-switch notification
+ * already do, so the clock's displayed text advances promptly at each
+ * wall-clock second instead of only when some unrelated X event
+ * happens to wake the loop up.
+ *
+ * @return @c -1 when the clock is disabled or the tray does not
+ *         currently own the systray selection (nothing to redraw);
+ *         @c 0 when a redraw is due right now; otherwise a small
+ *         positive number of milliseconds
+ *
+ * @note Complexity: @e O(1)
+ */
+int systray_clock_ms_remaining(void);
+
+/**
+ * @brief Redraw the systray clock if the wall-clock second has changed
+ *        since it was last drawn
+ *
+ * Call this once per main-loop iteration, after @c poll returns,
+ * regardless of whether it returned due to an X event or a timeout.  A
+ * no-op when the clock is disabled, the tray does not own the systray
+ * selection, or less than a second has passed since the last redraw.
+ *
+ * @note Complexity: @e O(1) plus whatever @c s_systray_reflow costs
+ *       when a redraw actually happens (see its own complexity note)
+ */
+void systray_clock_tick(void);
 
 
 #endif  /* ! SYSTRAY_H */

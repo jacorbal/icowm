@@ -32,6 +32,19 @@
 #include <defs/config.h>
 
 
+/* Theme-related configuration structure */
+/**
+ * @brief Where a menu appears when it is opened by a means that
+ *        has no inherent screen position of its own (e.g.,
+ *        a keyboard shortcut); shared by every menu type below
+ */
+enum config_menu_position_e {
+    CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
+    CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
+                                             mouse pointer position */
+};
+
+
 /**
  * @brief Base settings configuration structure
  */
@@ -69,7 +82,6 @@ struct config_base_s {
         uint32_t snap;          /**< Snap factor in pixels */
         uint32_t move_step;     /**< Keyboard move step in pixels */
         uint32_t resize_step;   /**< Keyboard resize step in pixels */
-        bool has_grips;         /**< Add grips to the client's corners */
         bool show_geom;         /**< Show geometry overlay on move/resize */
         struct {
             bool is_new_focused;
@@ -128,18 +140,6 @@ struct config_base_s {
 
     /* Context-menu placement, per menu type */
     struct {
-        /**
-         * @brief Where a menu appears when it is opened by a means
-         *        that has no inherent screen position of its own
-         *        (e.g. a keyboard shortcut); shared by every menu
-         *        type below
-         */
-        enum config_menu_position_e {
-            CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
-            CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
-                                                     mouse pointer position */
-        } position;
-
         struct {
             enum config_menu_position_e position;   /**< Desktop (root)
                                                          context menu
@@ -202,6 +202,27 @@ struct config_base_s {
                                                      including fullscreen
                                                      windows */
         } layer;
+
+        /**
+         * @brief Optional clock drawn inside the systray dock, next
+         *        to the icons
+         *
+         * @c valign is a theme setting (see @c config_theme_s), not
+         * here: how the clock lines up vertically is an aesthetic
+         * choice, the same as @c systray.height.
+         */
+        struct {
+            bool is_enabled;    /**< Draw the clock at all */
+            char format[CONFIG_MAX_LENGTH_NAME]; /**< 'strftime(3)'
+                                                       format string */
+
+            enum config_systray_clock_position_e {
+                CONFIG_SYSTRAY_CLOCK_LEFT = 0,  /**< Before the icons,
+                                                     in dock order */
+                CONFIG_SYSTRAY_CLOCK_RIGHT      /**< After the icons,
+                                                     in dock order */
+            } position;
+        } clock;
     } systray;
 
     /**
@@ -246,6 +267,11 @@ struct config_bindings_s {
     /* Keyboard bindings */
     struct keyboard_s {
         struct {
+            /**
+             * Keyboard shortcuts that open a menu with no inherent
+             * screen position of their own; see 'config.menus.*' for
+             * where each one appears
+             */
             struct {
                 /**
                  * Keyboard shortcuts that open a menu with no inherent
@@ -350,8 +376,58 @@ struct config_bindings_s {
 };
 
 
+/* Theme-related configuration structure */
 /**
- * @brief Theme-related configuration structure
+ * @brief Maximum titlebar buttons on one side (left or right)
+ *
+ * Generous headroom over the eight buttons the built-in default theme
+ * uses across both sides combined.
+ */
+#define CONFIG_MAX_TITLEBAR_BUTTONS (8u)
+
+
+/**
+ * @brief A single titlebar button kind, as named in a theme's
+ *        @c window.titlebar.buttons.left / @c .right lists
+ *
+ * A button not present in either list is simply never drawn and never
+ * clickable; there is no separate "hidden" flag; omission from both
+ * lists *is* how a theme turns a button off.
+ */
+enum config_titlebar_button_e {
+    CONFIG_TITLEBAR_BUTTON_PIN = 0,
+    CONFIG_TITLEBAR_BUTTON_LAYER,
+    CONFIG_TITLEBAR_BUTTON_ICONIZE,
+    CONFIG_TITLEBAR_BUTTON_HIDE,
+    CONFIG_TITLEBAR_BUTTON_SHADE,
+    CONFIG_TITLEBAR_BUTTON_MAXIMIZE,
+    CONFIG_TITLEBAR_BUTTON_FULLSCREEN,
+    CONFIG_TITLEBAR_BUTTON_CLOSE
+};
+
+
+/**
+ * @brief Font, color, and border shared shape used by every themeable
+ *        surface (window active/inactive, icon active/inactive,
+ *        systray)
+ */
+struct config_theme_style_s {
+    char font[CONFIG_MAX_LENGTH_FONTNAME];
+
+    struct {
+        uint32_t background;
+        uint32_t foreground;
+    } color;
+
+    struct {
+        uint32_t color;
+        uint32_t width;
+    } border;
+};
+
+
+/**
+ * @brief Theme configuration structure
  */
 struct config_theme_s {
     /* Name of this theme, just for future reference if necessary */
@@ -359,49 +435,75 @@ struct config_theme_s {
 
     /* Window theme */
     struct window_theme_s {
-        struct general_s {
-            uint32_t border_width;
-            bool is_decorated;
-        } general;
+        /**
+         * Whether windows get window-manager decoration at all; also
+         * implied by 'titlebar.height' being 0
+         *
+         * @see @c client_is_decorated / @c ci_set_decoration_defaults
+         *      for where that equivalence is applied, since a theme
+         *      only needs to specify one or the other)
+         */
+        bool is_decorated;
 
         struct {
-            uint32_t background_color;
-            uint32_t foreground_color;
-            uint32_t border_color;
-            uint32_t grip_color;
-            char font[CONFIG_MAX_LENGTH_FONTNAME];
-        } active;
+            uint32_t height;    /**< Setting it to zero is equivalent
+                                     to 'window.is-decorated: false' */
+            enum config_titlebar_alignment_e {
+                CONFIG_TITLEBAR_ALIGN_LEFT = 0,
+                CONFIG_TITLEBAR_ALIGN_CENTER,
+                CONFIG_TITLEBAR_ALIGN_RIGHT
+            } alignment;
 
-        struct {
-            uint32_t background_color;
-            uint32_t foreground_color;
-            uint32_t border_color;
-            uint32_t grip_color;
-            char font[CONFIG_MAX_LENGTH_FONTNAME];
-        } inactive;
+            struct {
+                uint32_t horizontal;
+                uint32_t vertical;
+            } padding;
+
+            struct {
+                enum config_titlebar_button_e
+                    left[CONFIG_MAX_TITLEBAR_BUTTONS];
+                uint8_t left_count;
+                enum config_titlebar_button_e
+                    right[CONFIG_MAX_TITLEBAR_BUTTONS];
+                uint8_t right_count;
+            } buttons;
+        } titlebar;
+
+        struct config_theme_style_s active;
+        struct config_theme_style_s inactive;
     } window;
 
     /* Icons theme when windows are iconified */
     struct {
-        struct {
-            uint32_t border_width;
-            bool is_captioned;
-        } general;
+        bool is_captioned;
 
-        struct {
-            uint32_t background_color;
-            uint32_t foreground_color;
-            uint32_t border_color;
-            char font[CONFIG_MAX_LENGTH_FONTNAME];
-        } active;
-
-        struct {
-            uint32_t background_color;
-            uint32_t foreground_color;
-            uint32_t border_color;
-            char font[CONFIG_MAX_LENGTH_FONTNAME];
-        } inactive;
+        struct config_theme_style_s active;
+        struct config_theme_style_s inactive;
     } icon;
+
+    /* Systray dock theme */
+    struct {
+        struct config_theme_style_s style;
+        uint32_t height;    /**< Tray dock height in pixels; icons and
+                                  the clock (if enabled) are vertically
+                                  centered or aligned within it, per
+                                  'clock.valign' for the clock; must be
+                                  at least tall enough to fit an icon,
+                                  see 'SYSTRAY_ICON_SIZE' in systray.c,
+                                  or icons get clipped */
+
+        struct {
+            enum config_systray_clock_valign_e {
+                CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER = 0, /**< Centered
+                                                              in the
+                                                              tray's
+                                                              full
+                                                              height */
+                CONFIG_SYSTRAY_CLOCK_VALIGN_TOP,
+                CONFIG_SYSTRAY_CLOCK_VALIGN_BOTTOM
+            } valign;
+        } clock;
+    } systray;
 };
 
 
@@ -413,12 +515,17 @@ struct config_theme_s {
  * and whenever the output is reconnected.
  */
 struct config_randr_output_s {
-    char name[CONFIG_RANDR_OUTPUT_NAME_LEN];/**< Output name, ("HDMI-1"...) */
-    bool is_enabled;           /**< Whether this profile is active */
-    bool is_primary;        /**< Mark output as primary */
+    char name[CONFIG_RANDR_OUTPUT_NAME_LEN];    /**< Output name
+                                                     ("HDMI-1",
+                                                     "VESA-1",...) */
+
+    bool is_enabled;    /**< Whether this profile is active */
+    bool is_primary;    /**< Mark output as primary */
+
     struct dimensions_s preferred_res;  /**< Preferred resolution */
     struct position_s position;         /**< Output position (x, y) */
-    uint16_t rotation;      /**< Preferred rotation (XRandR mask) */
+    uint16_t rotation;                  /**< Preferred rotation
+                                             (XRandR mask) */
 };
 
 

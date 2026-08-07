@@ -219,6 +219,33 @@ static enum config_systray_layer_e
 
 
 /**
+ * @brief Parse systray clock position text into configuration
+ *
+ * @param value Position text from configuration, e.g., @c "right"
+ *
+ * @return Parsed systray clock position enumeration value
+ *
+ * @note Supported values are @c left and @c right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_clock_position_e
+    s_config_parse_systray_clock_position(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_CLOCK_RIGHT;
+    }
+
+    if (safe_strcmp(value_norm, "left") == 0) {
+        return CONFIG_SYSTRAY_CLOCK_LEFT;
+    }
+
+    return CONFIG_SYSTRAY_CLOCK_RIGHT;
+}
+
+
+/**
  * @brief Parse default window gravity text into configuration
  *        enumeration
  *
@@ -537,8 +564,6 @@ int config_load_base(const char *filename,
         json_load_uint(windows, "resize-step",
                 &config_base->windows.resize_step);
 */
-        json_load_bool(windows, "has-grips",
-                &config_base->windows.has_grips);
         json_load_bool(windows, "show-geom",
                 &config_base->windows.show_geom);
         gravity = json_get_item(windows, "gravity");
@@ -655,6 +680,7 @@ int config_load_base(const char *filename,
         cJSON *position_item;
         cJSON *order_item;
         cJSON *layer_item;
+        cJSON *clock_item;
 
         json_load_bool(systray, "is-enabled",
                 &config_base->systray.is_enabled);
@@ -673,6 +699,24 @@ int config_load_base(const char *filename,
         if (layer_item != NULL && cJSON_IsString(layer_item)) {
             config_base->systray.layer =
                 s_config_parse_systray_layer(layer_item->valuestring);
+        }
+
+        clock_item = cJSON_GetObjectItem(systray, "clock");
+        if (clock_item) {
+            cJSON *clock_position_item;
+
+            json_load_bool(clock_item, "is-enabled",
+                    &config_base->systray.clock.is_enabled);
+            json_load_string(clock_item, "format",
+                    config_base->systray.clock.format,
+                    sizeof(config_base->systray.clock.format));
+            clock_position_item = json_get_item(clock_item, "position");
+            if (clock_position_item != NULL &&
+                    cJSON_IsString(clock_position_item)) {
+                config_base->systray.clock.position =
+                    s_config_parse_systray_clock_position(
+                            clock_position_item->valuestring);
+            }
         }
     }
 

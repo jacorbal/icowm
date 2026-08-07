@@ -91,7 +91,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
     *out_y = (int16_t) margin;
 
     border_twice_u64 =
-        (uint64_t) client->theme->icon.general.border_width * 2u;
+        (uint64_t) client->theme->icon.active.border.width * 2u;
     border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
         ? INT32_MAX : (int32_t) border_twice_u64;
 

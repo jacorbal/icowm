@@ -141,13 +141,13 @@ static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
             s_drag.client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
-                s_drag.client->theme->icon.active.background_color,
-                s_drag.client->theme->icon.active.border_color
+                s_drag.client->theme->icon.active.color.background,
+                s_drag.client->theme->icon.active.border.color
             });
     xcb_clear_area(connection, 0,
             s_drag.client->icon_window, 0, 0, 0, 0);
 
-    if (!s_drag.client->theme->icon.general.is_captioned ||
+    if (!s_drag.client->theme->icon.is_captioned ||
             s_drag.client->info.name == NULL) {
         return;
     }
@@ -160,8 +160,8 @@ static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
     text_renderer_init(connection,
             s_drag.client->theme->icon.active.font);
     text_renderer_set_color(
-            s_drag.client->theme->icon.active.foreground_color,
-            s_drag.client->theme->icon.active.background_color);
+            s_drag.client->theme->icon.active.color.foreground,
+            s_drag.client->theme->icon.active.color.background);
     text_draw_string(connection, s_drag.client->icon_window, XCB_NONE,
             2,
             (int16_t) (WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u),
@@ -206,7 +206,7 @@ static uint16_t s_drag_icon_height(const client_td *client)
     }
 
     return (uint16_t) (WM_ICON_SQUARE_SIZE +
-            (client->theme->icon.general.is_captioned
+            (client->theme->icon.is_captioned
                 ? WM_ICON_CAPTION_HEIGHT
                 : 0u));
 }
@@ -340,11 +340,11 @@ static void s_drag_overlay_show(xcb_connection_t *connection,
         create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
         create_values[0] = (is_icon)
-            ? s_drag.client->theme->icon.active.background_color
-            : s_drag.client->theme->window.active.background_color;
+            ? s_drag.client->theme->icon.active.color.background
+            : s_drag.client->theme->window.active.color.background;
         create_values[1] = (is_icon)
-            ? s_drag.client->theme->icon.active.border_color
-            : s_drag.client->theme->window.active.border_color;
+            ? s_drag.client->theme->icon.active.border.color
+            : s_drag.client->theme->window.active.border.color;
         create_values[2] = 1u;
         create_values[3] = XCB_EVENT_MASK_EXPOSURE;
 
@@ -1090,14 +1090,14 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     }
 
     if (s_drag.overlay_is_icon) {
-        bg = s_drag.client->theme->icon.active.background_color;
-        fg = s_drag.client->theme->icon.active.foreground_color;
-        border = s_drag.client->theme->icon.active.border_color;
+        bg = s_drag.client->theme->icon.active.color.background;
+        fg = s_drag.client->theme->icon.active.color.foreground;
+        border = s_drag.client->theme->icon.active.border.color;
         font_name = s_drag.client->theme->icon.active.font;
     } else {
-        bg = s_drag.client->theme->window.active.background_color;
-        fg = s_drag.client->theme->window.active.foreground_color;
-        border = s_drag.client->theme->window.active.border_color;
+        bg = s_drag.client->theme->window.active.color.background;
+        fg = s_drag.client->theme->window.active.color.foreground;
+        border = s_drag.client->theme->window.active.border.color;
         font_name = s_drag.client->theme->window.active.font;
     }
 

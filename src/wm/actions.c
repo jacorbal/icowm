@@ -16,6 +16,7 @@
 
 /* ADT includes */
 #include <adt/list.h>
+#include <adt/ohtbl.h>
 
 /* Session includes */
 #include <session.h>
@@ -28,6 +29,7 @@
 #include <input/mouse.h>
 
 /* Project includes */
+#include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
@@ -104,6 +106,42 @@ int wm_action_config_reload(void)
                     !d->background.use_root_pixmap) {
                 d->background.bg.color =
                     cb->screens[s->id].desktops[i].settings.background.color;
+            }
+
+            /* Resize every already-decorated client's frame to match
+             * whatever 'window.titlebar.height' and border width the
+             * just-reloaded theme now specifies.  'client->theme' is
+             * a shared pointer into 'wm->config->theme' that
+             * 'config_load' above already updated in place, so colors,
+             * fonts, and button lists all take effect on their own the
+             * next time each client repaints; only the cached
+             * 'title_height'/'frame_extents' (and the frame size that
+             * has to match them) need this explicit resync, since
+             * nothing else re-derives those from the theme on its own
+             * once a client is already mapped. */
+            if (d->clients != NULL) {
+                void *elem;
+
+                ohtbl_foreach(d->clients, elem) {
+                    client_td *c = (client_td *) elem;
+
+                    if (c != NULL) {
+                        client_resync_theme_layout(c,
+                                d->client_active_id == c->id);
+                        /* 'client_resync_theme_layout' above only
+                         * marks 'c' outdated (which is what actually
+                         * makes the render pass repaint its border
+                         * and titlebar, see 'desktop_render_clients')
+                         * when the border width or titlebar height
+                         * numerically changed; a reload that only
+                         * changed a color or font, with every
+                         * dimension unchanged, would otherwise never
+                         * repaint anything already on screen even
+                         * though 'client->theme' itself already
+                         * points at the freshly reloaded values. */
+                        wm_request_client_redraw(c);
+                    }
+                }
             }
 
             d->is_outdated = true;

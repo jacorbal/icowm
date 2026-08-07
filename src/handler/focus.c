@@ -220,7 +220,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                     if (motif_decorations == 0u) {
                         wants_decorated = false;
                     } else if (client->theme != NULL &&
-                            client->theme->window.general.is_decorated) {
+                            client->theme->window.is_decorated) {
                         wants_decorated = true;
                     }
                 }

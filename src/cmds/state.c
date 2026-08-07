@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -74,10 +75,10 @@ static void s_client_enable_decoration(client_td *client,
     }
 
     border_color = (client->theme != NULL)
-        ? client->theme->window.inactive.border_color
+        ? client->theme->window.inactive.border.color
         : 0x999999U;
     bg_color = (client->theme != NULL)
-        ? client->theme->window.inactive.background_color
+        ? client->theme->window.inactive.color.background
         : 0x000000U;
 
     frame_x = client->layout.geometry.cur.pos.x - bw;
@@ -203,6 +204,8 @@ void wcmd_client_shade(client_td *client)
 {
     xcb_window_t target;
     uint32_t shaded_h;
+    xcb_get_geometry_cookie_t geom_ck;
+    xcb_get_geometry_reply_t *geom_r;
 
     if (client == NULL || !client_is_decorated(client) ||
             client_is_shaded(client) || client_is_fullscreen(client)) {
@@ -212,6 +215,19 @@ void wcmd_client_shade(client_td *client)
     LOGGER_TRACE("Shading client window=0x%x", client->window);
 
     target = wcmd_target_win(client);
+
+    /* Refresh 'geometry.cur' from the real X11 state right before
+     * saving it: an application-driven resize the window manager did
+     * not initiate could leave 'geometry.cur' stale, and shading would
+     * then save (and unshading would later restore) the wrong height. */
+    geom_ck = xcb_get_geometry(client->connection, target);
+    geom_r = xcb_get_geometry_reply(client->connection, geom_ck, NULL);
+    if (geom_r != NULL) {
+        client->layout.geometry.cur.dim.w = geom_r->width;
+        client->layout.geometry.cur.dim.h = geom_r->height;
+        free(geom_r);
+    }
+
     client_geometry_save(client);
 
     shaded_h = (uint32_t) (client->layout.frame_extents.top +
@@ -462,7 +478,7 @@ void wcmd_client_unfullscreen(client_td *client)
     client_geometry_restore(client);
 
     border_width = (client->theme != NULL)
-        ? (uint16_t) client->theme->window.general.border_width : 0u;
+        ? (uint16_t) client->theme->window.active.border.width : 0u;
 
     /* 'BORDER_WIDTH' is included here too, not just inside the
      * 'was_decorated_fullscreen' block below: for an undecorated
@@ -506,9 +522,16 @@ void wcmd_client_unfullscreen(client_td *client)
             (uint16_t) (border_width + title_height);
         client->layout.frame_extents.bottom = border_width;
 
+        /* The frame's own X11-native border width must stay 0, always,
+         * for a decorated client (see the main render pass in
+         * render/desktop.c, which enforces exactly that): the visible
+         * border comes from the frame's own size and background color
+         * (see frame_extents above), not from an X11-native border.  A
+         * non-zero value here would add an extra, unwanted border on
+         * top of that until the next full repaint reset it back. */
         xcb_configure_window(client->connection, client->frame,
                 XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                (const uint32_t[]) { (uint32_t) border_width });
+                (const uint32_t[]) { 0u });
         xcb_configure_window(client->connection, client->window,
                 XCB_CONFIG_WINDOW_X |
                 XCB_CONFIG_WINDOW_Y |
@@ -605,7 +628,7 @@ void wcmd_client_toggle_decoration(client_td *client)
             (int) client_is_decorated(client));
 
     bw = (client->theme != NULL)
-        ? (int32_t) client->theme->window.general.border_width
+        ? (int32_t) client->theme->window.active.border.width
         : 0;
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);

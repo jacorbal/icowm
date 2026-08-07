@@ -37,7 +37,6 @@
     "windows": {
         "gravity": "north-west",
         "show-geom": true,
-        "has-grips": false,
         "move-step": 10,
         "snap": 4,
         "focus": {
@@ -67,7 +66,12 @@
     "systray": {
         "is-enabled": true,
         "position": "top-right",
-        "order": "left-to-right"
+        "order": "left-to-right",
+        "clock": {
+            "is-enabled": true,
+            "format": "%F %R",
+            "position": "right"
+        }
     },
     "xsettings": {
         "is-enabled": false,

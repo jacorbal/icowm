@@ -102,8 +102,8 @@ void popup_show(xcb_connection_t *connection,
     s_popup_window = xcb_generate_id(connection);
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.active.background_color;
-    values[1] = cfg->theme.window.active.border_color;
+    values[0] = cfg->theme.window.active.color.background;
+    values[1] = cfg->theme.window.active.border.color;
     values[2] = XCB_EVENT_MASK_EXPOSURE    |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_KEY_PRESS;

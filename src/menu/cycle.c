@@ -113,13 +113,13 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
 
         if (g_cycle_menu.is_icon_menu) {
             border_color =
-                g_cycle_menu.config->theme.icon.inactive.border_color;
+                g_cycle_menu.config->theme.icon.inactive.border.color;
         } else {
             is_active =
                 (g_cycle_menu.desktop->client_active_id == client->id);
             border_color = (is_active)
-                ? g_cycle_menu.config->theme.window.active.border_color
-                : g_cycle_menu.config->theme.window.inactive.border_color;
+                ? g_cycle_menu.config->theme.window.active.border.color
+                : g_cycle_menu.config->theme.window.inactive.border.color;
         }
 
         mi_cycle_preview_style_target(connection, target,
@@ -339,8 +339,8 @@ void cycle_open(list_td *surfaces,
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.inactive.background_color;
-    values[1] = cfg->theme.window.active.border_color;
+    values[0] = cfg->theme.window.inactive.color.background;
+    values[1] = cfg->theme.window.active.border.color;
     values[2] = 1;  /* override_redirect = true */
     values[3] = XCB_EVENT_MASK_EXPOSURE    |
         XCB_EVENT_MASK_KEY_PRESS    |

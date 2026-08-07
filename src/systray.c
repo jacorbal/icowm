@@ -17,6 +17,7 @@
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memset */
+#include <time.h>       /* strftime, localtime, time */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -34,6 +35,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
+#include <render/text.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -103,8 +105,23 @@ static struct {
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     enum config_systray_position_e position;
+    uint16_t height;
     enum config_systray_order_e order;
     enum config_systray_layer_e layer;
+    bool clock_enabled;
+    char clock_format[CONFIG_MAX_LENGTH_NAME];
+    enum config_systray_clock_position_e clock_position;
+    enum config_systray_clock_valign_e clock_valign;
+    const struct config_theme_s *theme; /**< Shared pointer into
+                                              'wm->config->theme'; stays
+                                              live-updated across a
+                                              configuration reload the
+                                              same way 'client->theme'
+                                              does */
+    char clock_text[64];        /**< Last rendered clock text */
+    time_t clock_last_tick;     /**< Second the clock was last
+                                      rendered for, to redraw at most
+                                      once per second */
     systray_icon_td icons[SYSTRAY_MAX_ICONS];
     uint16_t icon_count;
 } s_tray;
@@ -135,20 +152,75 @@ static xcb_atom_t s_systray_intern(xcb_connection_t *connection,
 
 
 /**
- * @brief Pixel width the tray window needs for the current icon count
+ * @brief Format the current local time into @c s_tray.clock_text
  *
- * @return 0 when no icons are docked (the tray window stays unmapped in
- *         that case), otherwise enough to fit every icon with padding
- *         around and between each
+ * A no-op when the clock is disabled.  Called once up front and again
+ * every time @c systray_clock_tick observes the second has changed.
  */
-static uint16_t s_systray_content_width(void)
+static void s_systray_clock_refresh_text(void)
 {
-    if (s_tray.icon_count == 0u) {
+    time_t now;
+    struct tm *local;
+
+    if (!s_tray.clock_enabled) {
+        s_tray.clock_text[0] = '\0';
+        return;
+    }
+
+    now = time(NULL);
+    local = localtime(&now);
+    if (local == NULL) {
+        s_tray.clock_text[0] = '\0';
+        return;
+    }
+
+    if (strftime(s_tray.clock_text, sizeof(s_tray.clock_text),
+            s_tray.clock_format, local) == 0u) {
+        s_tray.clock_text[0] = '\0';
+    }
+
+    s_tray.clock_last_tick = now;
+}
+
+
+/**
+ * @brief Pixel width the clock needs, padding included
+ *
+ * @return 0 when the clock is disabled or its text is empty
+ */
+static uint16_t s_systray_clock_width(void)
+{
+    uint16_t text_w;
+
+    if (!s_tray.clock_enabled || s_tray.clock_text[0] == '\0') {
         return 0u;
     }
 
-    return (uint16_t) (SYSTRAY_ICON_PAD +
+    if (s_tray.theme != NULL) {
+        text_renderer_init(s_tray.connection, s_tray.theme->systray.style.font);
+    }
+    text_w = text_measure_string(s_tray.clock_text);
+
+    return (uint16_t) (text_w + 2u * SYSTRAY_ICON_PAD);
+}
+
+
+/**
+ * @brief Pixel width the tray window needs for the current icon count
+ *        and, if enabled, the clock
+ *
+ * @return 0 when no icons are docked and the clock is disabled (the
+ *         tray window stays unmapped in that case), otherwise enough
+ *         to fit every icon with padding around and between each, plus
+ *         the clock's own width when it is enabled
+ */
+static uint16_t s_systray_content_width(void)
+{
+    uint16_t icons_w = (s_tray.icon_count == 0u) ? 0u
+        : (uint16_t) (SYSTRAY_ICON_PAD +
             s_tray.icon_count * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD));
+
+    return (uint16_t) (icons_w + s_systray_clock_width());
 }
 
 
@@ -259,22 +331,43 @@ static void s_systray_reflow(void)
 {
     uint16_t w;
     uint16_t h;
+    uint16_t clock_w;
+    uint16_t icons_base_x;
+    uint16_t icon_y;
     int16_t x = 0;
     int16_t y = 0;
+    int32_t border2;
     uint32_t geom_values[4];
 
     if (!s_tray.window_ready || s_tray.surface == NULL) {
         return;
     }
 
-    if (!s_tray.selection_owned || s_tray.icon_count == 0u) {
+    if (!s_tray.selection_owned ||
+            (s_tray.icon_count == 0u && !s_tray.clock_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
         xcb_flush(s_tray.connection);
         return;
     }
 
-    h = (uint16_t) (SYSTRAY_ICON_SIZE + 2u * SYSTRAY_ICON_PAD);
+    h = s_tray.height;
+    clock_w = s_systray_clock_width();
     w = s_systray_content_width();
+    if (w == 0u) {
+        xcb_unmap_window(s_tray.connection, s_tray.window);
+        xcb_flush(s_tray.connection);
+        return;
+    }
+
+    /* An X11 border is drawn entirely outside a window's own width and
+     * height (the X/Y a window is configured at mark the outer corner,
+     * before the border), so the tray's true on-screen footprint is
+     * 'w + 2 * border_width' wide and 'h + 2 * border_width' tall, not
+     * just 'w' by 'h'.  Right/bottom-anchored positions have to
+     * subtract that extra span or the tray pokes out past the screen
+     * edge by exactly that amount. */
+    border2 = (s_tray.theme != NULL)
+        ? (int32_t) (2u * s_tray.theme->systray.style.border.width) : 0;
 
     switch (s_tray.position) {
         case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
@@ -285,19 +378,19 @@ static void s_systray_reflow(void)
         case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
             x = 0;
             y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
-                    (int32_t) h);
+                    (int32_t) h - border2);
             break;
 
         case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
             x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
-                    (int32_t) w);
+                    (int32_t) w - border2);
             y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
-                    (int32_t) h);
+                    (int32_t) h - border2);
             break;
 
         case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
             x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
-                    (int32_t) w);
+                    (int32_t) w - border2);
             y = 0;
             break;
     }
@@ -313,17 +406,72 @@ static void s_systray_reflow(void)
             XCB_CONFIG_WINDOW_HEIGHT,
             geom_values);
 
+    /* Icons sit after the clock when it is on the left, or right at
+     * the tray's own left edge otherwise (clock on the right, or
+     * disabled). */
+    icons_base_x = (clock_w > 0u &&
+            s_tray.clock_position == CONFIG_SYSTRAY_CLOCK_LEFT)
+        ? clock_w : 0u;
+    icon_y = (h > (uint16_t) SYSTRAY_ICON_SIZE)
+        ? (uint16_t) ((h - SYSTRAY_ICON_SIZE) / 2u) : 0u;
+
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         uint32_t icon_pos[2];
 
-        icon_pos[0] = SYSTRAY_ICON_PAD +
+        icon_pos[0] = icons_base_x + SYSTRAY_ICON_PAD +
             i * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD);
-        icon_pos[1] = SYSTRAY_ICON_PAD;
+        icon_pos[1] = icon_y;
         xcb_configure_window(s_tray.connection, s_tray.icons[i].window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);
     }
 
     xcb_map_window(s_tray.connection, s_tray.window);
+
+    if (clock_w > 0u && s_tray.theme != NULL) {
+        uint16_t icons_w = (uint16_t) (w - clock_w);
+        int16_t clock_x = (s_tray.clock_position == CONFIG_SYSTRAY_CLOCK_LEFT)
+            ? 0 : (int16_t) icons_w;
+        int16_t ascent;
+        int16_t descent;
+        int16_t text_h;
+        int16_t clock_y = 0;
+
+        xcb_clear_area(s_tray.connection, 0, s_tray.window,
+                clock_x, 0, clock_w, h);
+        text_renderer_init(s_tray.connection, s_tray.theme->systray.style.font);
+        text_renderer_set_color(s_tray.theme->systray.style.color.foreground,
+                s_tray.theme->systray.style.color.background);
+
+        /* 'text_draw_string' takes the baseline, not the top of the
+         * text, so each alignment has to add the font's own ascent
+         * (see 'text_font_ascent') to whatever pixel the top of the
+         * text should land on. */
+        ascent = text_font_ascent();
+        descent = text_font_descent();
+        text_h = (int16_t) (ascent + descent);
+
+        switch (s_tray.clock_valign) {
+            case CONFIG_SYSTRAY_CLOCK_VALIGN_TOP:
+                clock_y = (int16_t) ((int32_t) SYSTRAY_ICON_PAD + ascent);
+                break;
+
+            case CONFIG_SYSTRAY_CLOCK_VALIGN_BOTTOM:
+                clock_y = (int16_t) ((int32_t) h -
+                        (int32_t) SYSTRAY_ICON_PAD - descent);
+                break;
+
+            case CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER:
+                clock_y = (int16_t) (((h > (uint16_t) text_h)
+                        ? (int32_t) (h - (uint16_t) text_h) / 2 : 0) +
+                        ascent);
+                break;
+        }
+
+        text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
+                (int16_t) (clock_x + (int16_t) SYSTRAY_ICON_PAD),
+                clock_y, s_tray.clock_text);
+    }
+
     xcb_flush(s_tray.connection);
 
     s_systray_restack();
@@ -435,6 +583,50 @@ static uint16_t s_systray_insert_index(const char *sort_key)
 
 
 /**
+ * @brief Re-sort every already-docked icon by the current
+ *        @c s_tray.order policy
+ *
+ * @c s_systray_insert_index above only ever decides where a newly
+ * docked icon goes; it is never consulted again for icons already in
+ * @c s_tray.icons, so a configuration reload that changes @c order
+ * would otherwise have no visible effect on anything already docked.
+ * A no-op for @c CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT and
+ * @c CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT: both are pure insertion-order
+ * policies with no single "correct" arrangement to recompute from
+ * icon state alone once the original insertion order is gone, so
+ * reloading into either one leaves already-docked icons exactly where
+ * they were.
+ *
+ * @note Complexity: @e O(n^2), where @e n is @c s_tray.icon_count;
+ *       fine at the tray's small fixed icon-count ceiling
+ *       (@c SYSTRAY_MAX_ICONS)
+ */
+static void s_systray_resort(void)
+{
+    if (s_tray.order != CONFIG_SYSTRAY_ORDER_ASCENDING &&
+            s_tray.order != CONFIG_SYSTRAY_ORDER_DESCENDING) {
+        return;
+    }
+
+    for (uint16_t i = 1u; i < s_tray.icon_count; ++i) {
+        systray_icon_td key = s_tray.icons[i];
+        uint16_t j = i;
+
+        while (j > 0u &&
+                ((s_tray.order == CONFIG_SYSTRAY_ORDER_ASCENDING)
+                    ? (safe_strcmp(key.sort_key,
+                            s_tray.icons[j - 1u].sort_key) < 0)
+                    : (safe_strcmp(key.sort_key,
+                            s_tray.icons[j - 1u].sort_key) > 0))) {
+            s_tray.icons[j] = s_tray.icons[j - 1u];
+            --j;
+        }
+        s_tray.icons[j] = key;
+    }
+}
+
+
+/**
  * @brief Dock an icon window: reparent it in, embed it, and reflow
  *
  * @param icon Icon window named by a @c SYSTEM_TRAY_REQUEST_DOCK
@@ -507,6 +699,45 @@ static void s_systray_dock(xcb_window_t icon)
 
 
 /**
+ * @brief Re-apply the theme's background color, border color, and
+ *        border width to the already-existing tray window
+ *
+ * @c s_systray_ensure_window only ever sets these once, at creation
+ * time, and the window is never destroyed and recreated just because
+ * @c is-enabled toggles off and back on (see its own doc comment for
+ * why); without this, a font/color/border change in the theme file
+ * would take effect for the clock text (drawn fresh on every repaint)
+ * and for the tray's own height (re-applied by every
+ * @c s_systray_reflow), but never for the tray window's own
+ * background or border, which a configuration reload would otherwise
+ * leave stuck at whatever they were when the window was first
+ * created.
+ *
+ * A no-op if the window does not exist yet or there is no theme to
+ * read from.
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_systray_apply_theme_style(void)
+{
+    if (!s_tray.window_ready || s_tray.theme == NULL) {
+        return;
+    }
+
+    xcb_change_window_attributes(s_tray.connection, s_tray.window,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                s_tray.theme->systray.style.color.background,
+                s_tray.theme->systray.style.border.color
+            });
+    xcb_configure_window(s_tray.connection, s_tray.window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) { s_tray.theme->systray.style.border.width });
+    xcb_flush(s_tray.connection);
+}
+
+
+/**
  * @brief Create the tray window and intern its atoms, once
  *
  * Idempotent: does nothing (beyond returning success) if
@@ -524,7 +755,7 @@ static bool s_systray_ensure_window(wm_td *wm)
     char selection_name[32];
     int selection_name_len;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
 
     if (s_tray.window_ready) {
         return true;
@@ -567,16 +798,27 @@ static bool s_systray_ensure_window(wm_td *wm)
     }
 
     s_tray.window = xcb_generate_id(wm->connection);
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-    values[0] = wm->config->theme.window.inactive.background_color;
-    values[1] = 1;   /* override_redirect: never managed as a client */
-    values[2] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    mask = XCB_CW_BACK_PIXEL   |
+        XCB_CW_BORDER_PIXEL    |
+        XCB_CW_OVERRIDE_REDIRECT |
+        XCB_CW_EVENT_MASK;
+    values[0] = wm->config->theme.systray.style.color.background;
+    values[1] = wm->config->theme.systray.style.border.color;
+    values[2] = 1;   /* override_redirect: never managed as a client */
+    values[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+        /* Without this, a docked icon's own resize attempt on itself
+         * (many apps resize their tray icon for DPI or content
+         * reasons) is applied by the server directly with no
+         * 'ConfigureRequest' ever generated, silently undoing the
+         * fixed 'SYSTRAY_ICON_SIZE' this module forces on it at dock
+         * time; see 'systray_enforce_icon_size'. */
+        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
 
     xcb_create_window(wm->connection, XCB_COPY_FROM_PARENT,
             s_tray.window, surface->screen->root,
-            0, 0, 1,
-            (uint16_t) (SYSTRAY_ICON_SIZE + 2u * SYSTRAY_ICON_PAD),
-            0, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
+            0, 0, 1, s_tray.height,
+            (uint16_t) wm->config->theme.systray.style.border.width,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
     xcb_flush(wm->connection);
 
@@ -687,8 +929,19 @@ void systray_init(wm_td *wm)
     }
 
     s_tray.position = wm->config->base.systray.position;
+    s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
+            SYSTRAY_ICON_SIZE)
+        ? wm->config->theme.systray.height : SYSTRAY_ICON_SIZE);
     s_tray.order = wm->config->base.systray.order;
     s_tray.layer = wm->config->base.systray.layer;
+    s_tray.clock_enabled = wm->config->base.systray.clock.is_enabled;
+    safe_strncpy(s_tray.clock_format,
+            wm->config->base.systray.clock.format,
+            sizeof(s_tray.clock_format));
+    s_tray.clock_position = wm->config->base.systray.clock.position;
+    s_tray.clock_valign = wm->config->theme.systray.clock.valign;
+    s_tray.theme = &wm->config->theme;
+    s_systray_clock_refresh_text();
 
     if (!s_systray_ensure_window(wm)) {
         return;
@@ -728,6 +981,30 @@ bool systray_owns_window(xcb_window_t window)
 {
     return s_tray.window_ready && window != XCB_WINDOW_NONE &&
         window == s_tray.window;
+}
+
+
+/* Query whether 'window' is a currently docked icon, and if so, force
+ * it back to the tray's fixed icon size */
+bool systray_enforce_icon_size(xcb_window_t window)
+{
+    if (window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+        if (s_tray.icons[i].window == window) {
+            xcb_configure_window(s_tray.connection, window,
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    (const uint32_t[]) {
+                        SYSTRAY_ICON_SIZE, SYSTRAY_ICON_SIZE
+                    });
+            xcb_flush(s_tray.connection);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
@@ -792,11 +1069,54 @@ void systray_handle_surface_resize(wm_td *wm)
 }
 
 
-/* Re-apply the configured stacking layer, e.g. after a fullscreen
+/* Re-apply the configured stacking layer, e.g., after a fullscreen
  * change elsewhere */
 void systray_restack(void)
 {
     s_systray_restack();
+}
+
+
+/* How many milliseconds until the clock needs its next redraw */
+int systray_clock_ms_remaining(void)
+{
+    time_t now;
+
+    if (!s_tray.clock_enabled || !s_tray.selection_owned) {
+        return -1;
+    }
+
+    now = time(NULL);
+    if (now != s_tray.clock_last_tick) {
+        return 0;
+    }
+
+    /* 'now' and 'clock_last_tick' are still the same whole second, so
+     * redraw is not due yet.  A flat, small poll timeout is used
+     * instead of computing the exact remaining fraction of a second:
+     * good enough for a display that only needs second-level
+     * precision, and simpler than reasoning about clock skew between
+     * 'time(NULL)' calls. */
+    return WM_SYSTRAY_CLOCK_POLL_MS;
+}
+
+
+/* Redraw the clock if the wall-clock second has changed */
+void systray_clock_tick(void)
+{
+    time_t now;
+
+    if (!s_tray.clock_enabled || !s_tray.selection_owned) {
+        return;
+    }
+
+    now = time(NULL);
+    if (now == s_tray.clock_last_tick) {
+        return;
+    }
+
+    s_systray_clock_refresh_text();
+    s_systray_reflow();
 }
 
 
@@ -811,8 +1131,20 @@ void systray_reload(wm_td *wm)
 
     should_be_enabled = wm->config->base.systray.is_enabled;
     s_tray.position = wm->config->base.systray.position;
+    s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
+            SYSTRAY_ICON_SIZE)
+        ? wm->config->theme.systray.height : SYSTRAY_ICON_SIZE);
     s_tray.order = wm->config->base.systray.order;
     s_tray.layer = wm->config->base.systray.layer;
+    s_tray.clock_enabled = wm->config->base.systray.clock.is_enabled;
+    safe_strncpy(s_tray.clock_format,
+            wm->config->base.systray.clock.format,
+            sizeof(s_tray.clock_format));
+    s_tray.clock_position = wm->config->base.systray.clock.position;
+    s_tray.clock_valign = wm->config->theme.systray.clock.valign;
+    s_tray.theme = &wm->config->theme;
+    s_systray_clock_refresh_text();
+    s_systray_apply_theme_style();
 
     if (s_tray.selection_owned && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \
@@ -826,15 +1158,18 @@ void systray_reload(wm_td *wm)
         LOGGER_INFO("Systray enabled by configuration reload", L_NARG);
         if (s_systray_ensure_window(wm) &&
                 s_systray_acquire_selection()) {
+            s_systray_resort();
             s_systray_reflow();
         }
         return;
     }
 
     if (s_tray.selection_owned) {
-        /* Still enabled: pick up a possible 'position' change without
-         * disturbing already-docked icons ('order' only affects where
-         * a newly docked icon is inserted, not icons already placed) */
+        /* Still enabled: pick up a possible 'position' change, and
+         * re-sort already-docked icons for the alphabetical 'order'
+         * policies (see 's_systray_resort') without disturbing
+         * anything for the two plain insertion-order policies. */
+        s_systray_resort();
         s_systray_reflow();
     }
 }

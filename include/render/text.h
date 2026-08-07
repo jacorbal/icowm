@@ -109,5 +109,34 @@ void text_draw_string(xcb_connection_t *connection,
  */
 uint16_t text_measure_string(const char *text);
 
+/**
+ * @brief Pixels the baseline sits below the top of a line, for
+ *        whichever font @c text_renderer_init last selected
+ *
+ * Together with @c text_font_descent, lets a caller vertically center
+ * or top/bottom-align a line of text against a known pixel height
+ * without needing its own hardcoded assumption about font metrics:
+ * the Y coordinate @c text_draw_string expects is the baseline, so
+ * placing text @p top pixels from the top of a box of height @p box_h
+ * means passing @c top @c + @c text_font_ascent() as that Y coordinate.
+ *
+ * @return Font ascent in pixels; a small built-in default before the
+ *         first successful @c text_renderer_init call
+ *
+ * @note Complexity: @e O(1)
+ */
+int16_t text_font_ascent(void);
+
+/**
+ * @brief Pixels the baseline sits above the bottom of a line, for
+ *        whichever font @c text_renderer_init last selected
+ *
+ * @return Font descent in pixels; a small built-in default before the
+ *         first successful @c text_renderer_init call
+ *
+ * @note Complexity: @e O(1)
+ */
+int16_t text_font_descent(void);
+
 
 #endif  /* ! RENDER_TEXT_H */

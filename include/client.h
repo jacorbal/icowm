@@ -489,6 +489,94 @@ void client_destroy(client_td *client);
 void client_sync_decoration_layout(client_td *client);
 
 /**
+ * @brief Update a decorated client's border width and titlebar height
+ *        to match the current theme and focus state, resizing the frame
+ *        around its content so the content's own size never changes
+ *
+ * A theme's @c window.active.border.width and
+ * @c window.inactive.border.width need not be equal; when they differ,
+ * this grows or shrinks the frame's outer edge by the difference on
+ * every side. @c window.titlebar.height can also have changed
+ * (e.g. a configuration reload picked up an edited theme file), in
+ * which case only the top edge grows or shrinks by that additional
+ * amount. Either way the client's own content window never moves or
+ * resizes (only how much frame surrounds it changes) and the client is
+ * marked for a redraw so the next render pass applies it and repaints
+ * the border, titlebar, and its buttons at the new size. A fast no-op
+ * when neither value actually changed (the common case for a plain
+ * focus change with the built-in default theme, whose active and
+ * inactive border widths are equal), when @p client has no theme, or
+ * when @p client is not decorated.
+ *
+ * @param client    Client whose layout is to be resynchronized
+ * @param is_active Whether @p client currently holds focus (selects
+ *                  which of the two theme border widths applies)
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_resync_theme_layout(client_td *client, bool is_active);
+
+/**
+ * @brief One computed titlebar button position
+ */
+struct titlebar_button_layout_s {
+    enum config_titlebar_button_e button;
+    int16_t x;  /**< Frame-relative X of the button's left edge */
+};
+
+/**
+ * @brief Compute where every configured titlebar button goes, and the
+ *        horizontal span left over for the title text
+ *
+ * The single source of truth for titlebar layout: both
+ * @c desktop_draw_titlebar_buttons (what gets painted) and the titlebar
+ * click handler (what a click at a given X actually hits) call this, so
+ * the two can never desynchronize the way two independently
+ * hand-written copies of the same arithmetic could.
+ *
+ * Left buttons are placed left-to-right starting at
+ * @c titlebar.padding.horizontal from the frame's left edge; right
+ * buttons are placed right-to-left starting the same distance from the
+ * right edge, with @c WM_DECOR_BTN_GAP between adjacent buttons on the
+ * same side. Every button is also inset from top and bottom by
+ * @c titlebar.padding.vertical and vertically centered within whatever
+ * room that leaves in @p title_h (falling back to plain centering with
+ * no inset if the padding alone would not leave room for a full
+ * button). The title span starts immediately after the left buttons
+ * (plus one more padding gap and @c WM_DECOR_BTN_GAP for extra
+ * breathing room, or just the edge padding if there are none) and ends
+ * immediately before the right buttons (symmetrically), clamped to
+ * never go negative.
+ *
+ * @param theme       Theme providing the button lists and padding;
+ *                    a @c NULL theme produces an empty layout
+ * @param frame_w     Total frame width in pixels
+ * @param title_h     Titlebar height in pixels, used to vertically
+ *                    center the buttons
+ * @param out_left    Receives up to @c CONFIG_MAX_TITLEBAR_BUTTONS
+ *                    entries for the left side, in the theme's order
+ * @param out_left_n  Receives the number of entries written to
+ *                    @p out_left
+ * @param out_right   Same as @p out_left, for the right side
+ * @param out_right_n Same as @p out_left_n, for the right side
+ * @param out_title_x Receives the left edge of the space available
+ *                    for the title text, frame-relative
+ * @param out_title_w Receives the width of that space; 0 if the buttons
+ *                    leave no room at all
+ * @param out_btn_y   Receives the Y position every button shares
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_titlebar_layout(const struct config_theme_s *theme,
+        uint16_t frame_w, uint16_t title_h,
+        struct titlebar_button_layout_s *out_left,
+        uint8_t *out_left_n,
+        struct titlebar_button_layout_s *out_right,
+        uint8_t *out_right_n,
+        int16_t *out_title_x, uint16_t *out_title_w,
+        int16_t *out_btn_y);
+
+/**
  * @brief Apply ICCCM size hints to a requested client size
  *
  * Clamps and rounds @p width and @p height according to the client's

@@ -113,13 +113,13 @@ uint32_t mi_cycle_preview_border_width(const client_td *client,
     }
 
     if (is_icon_menu) {
-        border_width = config->theme.icon.general.border_width;
+        border_width = config->theme.icon.active.border.width;
     } else if (client != NULL &&
             client_is_decorated(client) &&
             client->frame != 0) {
         border_width = 0u;
     } else {
-        border_width = config->theme.window.general.border_width;
+        border_width = config->theme.window.active.border.width;
     }
 
     if (is_highlighted) {
@@ -241,11 +241,11 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                 (g_cycle_menu.desktop->client_active_id == previous->id);
 
             if (g_cycle_menu.is_icon_menu) {
-                previous_border = config->theme.icon.inactive.border_color;
+                previous_border = config->theme.icon.inactive.border.color;
             } else if (prev_is_active) {
-                previous_border = config->theme.window.active.border_color;
+                previous_border = config->theme.window.active.border.color;
             } else {
-                previous_border = config->theme.window.inactive.border_color;
+                previous_border = config->theme.window.inactive.border.color;
             }
 
             mi_cycle_preview_style_target(connection, previous_target,
@@ -257,13 +257,13 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                         XCB_CONFIG_WINDOW_STACK_MODE,
                         (const uint32_t[]) { XCB_STACK_MODE_BELOW });
 
-                values[0] = config->theme.icon.inactive.background_color;
-                values[1] = config->theme.icon.inactive.border_color;
+                values[0] = config->theme.icon.inactive.color.background;
+                values[1] = config->theme.icon.inactive.border.color;
 
                 xcb_change_window_attributes(connection, previous_target,
                         XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
                 xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
-                if (config->theme.icon.general.is_captioned &&
+                if (config->theme.icon.is_captioned &&
                         previous->info.name != NULL) {
                     const char *caption =
                         (previous->icon_info.visible_icon_name != NULL &&
@@ -274,8 +274,8 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                     text_renderer_init(connection,
                             config->theme.icon.inactive.font);
                     text_renderer_set_color(
-                            config->theme.icon.inactive.foreground_color,
-                            config->theme.icon.inactive.background_color);
+                            config->theme.icon.inactive.color.foreground,
+                            config->theme.icon.inactive.color.background);
                     text_draw_string(connection, previous_target, XCB_NONE,
                             2,
                             (int16_t) (WM_ICON_SQUARE_SIZE +
@@ -287,20 +287,20 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     }
 
     selected_border = (g_cycle_menu.is_icon_menu)
-        ? config->theme.icon.active.border_color
-        : config->theme.window.active.border_color;
+        ? config->theme.icon.active.border.color
+        : config->theme.window.active.border.color;
     mi_cycle_preview_style_target(connection, selected_target,
             selected, config, g_cycle_menu.is_icon_menu,
             selected_border, true);
 
     if (g_cycle_menu.is_icon_menu) {
-        values[0] = config->theme.icon.active.background_color;
-        values[1] = config->theme.icon.active.border_color;
+        values[0] = config->theme.icon.active.color.background;
+        values[1] = config->theme.icon.active.border.color;
 
         xcb_change_window_attributes(connection, selected_target,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
         xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
-        if (config->theme.icon.general.is_captioned &&
+        if (config->theme.icon.is_captioned &&
                 selected->info.name != NULL) {
             const char *caption =
                 (selected->icon_info.visible_icon_name != NULL &&
@@ -311,8 +311,8 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
             text_renderer_init(connection,
                     config->theme.icon.active.font);
             text_renderer_set_color(
-                    config->theme.icon.active.foreground_color,
-                    config->theme.icon.active.background_color);
+                    config->theme.icon.active.color.foreground,
+                    config->theme.icon.active.color.background);
             text_draw_string(connection, selected_target, XCB_NONE,
                     2,
                     (int16_t) (WM_ICON_SQUARE_SIZE +
@@ -346,10 +346,10 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
         return;
     }
 
-    fg_sel = config->theme.window.active.foreground_color;
-    bg_sel = config->theme.window.active.background_color;
-    fg_nor = config->theme.window.inactive.foreground_color;
-    bg_nor = config->theme.window.inactive.background_color;
+    fg_sel = config->theme.window.active.color.foreground;
+    bg_sel = config->theme.window.active.color.background;
+    fg_nor = config->theme.window.inactive.color.foreground;
+    bg_nor = config->theme.window.inactive.color.background;
 
     text_renderer_init(connection, config->theme.window.active.font);
 
