@@ -389,9 +389,9 @@ systems where the key combination might be triggered accidentally.
 | `menus.windows.position`   | string | `"under-mouse"` |
 
 Controls where a menu appears when it is opened by a means with no
-screen position of its own, such as a keyboard shortcut, one setting
-per menu type: `root` is the desktop context menu (`menu.json`, opened
-by `keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm)),
+screen position of its own, such as a keyboard shortcut, one setting per
+menu type: `root` is the desktop context menu (`menu.json`, opened by
+`keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm));
 `windows` is the menu listing every window on every desktop (opened by
 `keyboard.wm.menus.windows`). Supported values are `"center"`, which
 always opens the menu in the center of the screen, and `"under-mouse"`,
@@ -997,17 +997,46 @@ updates.
 All match fields are optional.  A rule matches only when all specified
 fields match the current window.
 
-| Key               | Type    | Default | Description |
-|-------------------|---------|---------|-------------|
-| `match.instance`  | string  | unset   | Match the first string in `WM_CLASS` (instance name). |
-| `match.class`     | string  | unset   | Match the second string in `WM_CLASS` (class name). |
-| `match.role`      | string  | unset   | Match `WM_WINDOW_ROLE`. |
-| `match.title`     | string  | unset   | Match the current window title. |
-| `match.type`      | string  | unset   | Match `_NET_WM_WINDOW_TYPE`. |
-| `match.transient` | boolean | unset   | Match whether the window is transient for another window. |
+| Key               | Type              | Default | Description |
+|-------------------|-------------------|---------|-------------|
+| `match.instance`  | string or array   | unset   | Match the first string in `WM_CLASS` (instance name). |
+| `match.class`     | string or array   | unset   | Match the second string in `WM_CLASS` (class name). |
+| `match.role`      | string or array   | unset   | Match `WM_WINDOW_ROLE`. |
+| `match.title`     | string or array   | unset   | Match the current window title. |
+| `match.type`      | string or array   | unset   | Match `_NET_WM_WINDOW_TYPE`. |
+| `match.transient` | boolean           | unset   | Match whether the window is transient for another window. |
 
 String matches use shell-style glob patterns, so `\*` matches any
 sequence of characters and `?` matches any single character.
+
+Every field above except `transient` accepts either a single string or
+a JSON array of strings.  When it is an array, the window matches that
+field if it matches *any one* of the values in the array (an "or" within
+the field), up to 6 values; the rest of the fields still all have to
+match too (the "and" across fields still applies).  This is useful for
+grouping several related applications under one rule instead of
+repeating the same `apply` block for each of them:
+
+```json
+{
+    "when": "map",
+    "match": {
+        "title": ["*Sonata", "*mpv", "mplayer"],
+        "class": "MEDIA"
+    },
+    "apply": {
+        "sticky": true,
+        "decorated": false,
+        "layer": "below"
+    }
+}
+```
+
+This matches any window whose title matches one of the three patterns
+*and* whose class is `"MEDIA"`; a window matching only one of those two
+conditions does not match the rule.  A single string, as in `"class"`
+above, still works exactly as before.  Tthere is no need to wrap
+a single value in an array.
 
 Accepted `match.type` values are: `"normal"`, `"desktop"`, `"dock"`,
 `"toolbar"`, `"menu"`, `"utility"`, `"splash"`, `"dialog"`.
@@ -1017,24 +1046,38 @@ Accepted `match.type` values are: `"normal"`, `"desktop"`, `"dock"`,
 All apply fields are optional.  Only the fields present in the last
 matching rule for each property are applied.
 
-| Key                     | Type    | Default | Description |
-|-------------------------|---------|---------|-------------|
-| `apply.desktop`         | integer | unset   | Zero-based desktop index to move the window to. |
-| `apply.layer`           | string  | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`. |
-| `apply.focus`           | boolean | unset   | Whether the matched window should receive focus. |
-| `apply.sticky`          | boolean | unset   | Whether the window should be visible on all desktops. |
-| `apply.decorated`       | boolean | unset   | Whether the window should keep its decorations. |
-| `apply.position.x`      | integer | unset   | Absolute X position in pixels. |
-| `apply.position.y`      | integer | unset   | Absolute Y position in pixels. |
-| `apply.size.width`      | integer | unset   | Window width in pixels; must be greater than `0`. |
-| `apply.size.height`     | integer | unset   | Window height in pixels; must be greater than `0`. |
+| Key                     | Type                 | Default | Description |
+|-------------------------|----------------------|---------|-------------|
+| `apply.desktop`         | integer              | unset   | Zero-based desktop index to move the window to. |
+| `apply.layer`           | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`. |
+| `apply.focus`           | boolean              | unset   | Whether the matched window should receive focus. |
+| `apply.sticky`          | boolean              | unset   | Whether the window should be visible on all desktops. |
+| `apply.decorated`       | boolean              | unset   | Whether the window should keep its decorations. |
+| `apply.position`        | object or `"center"` | unset   | Where to place the window; see below. |
+| `apply.position.x`      | integer              | unset   | Absolute X position in pixels (when `position` is an object). |
+| `apply.position.y`      | integer              | unset   | Absolute Y position in pixels (when `position` is an object). |
+| `apply.size.width`      | integer              | unset   | Window width in pixels; must be greater than `0`. |
+| `apply.size.height`     | integer              | unset   | Window height in pixels; must be greater than `0`. |
 
-Position (`position.x`, `position.y`) and size (`size.width`,
-`size.height`) are applied independently via separate JSON objects.
-Specifying only `position` moves the window without resizing it;
-specifying only `size` resizes it without moving it; both objects may be
-present to set position and size at once.  Both `size.width` and
-`size.height` are only accepted when are greater than `0`.
+Position and size are applied independently.  Specifying only `position`
+moves the window without resizing it; specifying only `size` resizes it
+without moving it; both may be present to set position and size at once.
+Both `size.width` and `size.height` are only accepted when greater than
+`0`.
+
+`position` is either an `{"x": ..., "y": ...}` object with an absolute
+pixel position, or the string `"center"`, which centers the window on
+its screen at the moment the rule is applied instead of using a fixed
+point:
+
+```json
+"apply": {
+    "position": "center"
+}
+```
+
+Combining `"position": "center"` with a `size` object centers the window
+at that new size, not whatever size it happened to already have.
 
 ## 7. `session.json` -- Session lifecycle hooks
 

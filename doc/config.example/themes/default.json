@@ -32,13 +32,13 @@
             "background-color": "#9aaec8",
             "foreground-color": "#253040",
             "border-color": "#4a5566",
-            "font": "fixed"
+            "font": "fixed bold"
         },
         "inactive": {
             "background-color": "#d0d9e5",
             "foreground-color": "#4a5566",
             "border-color": "#7f9ab6",
-            "font": "fixed bold"
+            "font": "fixed"
         }
     }
 }

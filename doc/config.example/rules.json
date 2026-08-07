@@ -3,7 +3,7 @@
     {
         "when": "property",
         "match": {
-            "class": "Xconsole"
+            "class": [ "Xconsole" ]
         },
         "apply": {
             "desktop": 2,
@@ -14,7 +14,7 @@
     {
         "when": "map",
         "match": {
-            "title": "*Sonata"
+            "title": [ "*Sonata" ]
         },
         "apply": {
             "sticky": true,
@@ -29,16 +29,13 @@
     {
         "when": "map",
         "match": {
-            "title": "gmrun"
+            "title": [ "gmrun" ]
         },
         "apply": {
             "sticky": true,
             "decorated": false,
             "layer": "above",
-            "position": {
-                "x": 710,
-                "y": 503
-            }
+            "position": "center"
         }
     }
     ]

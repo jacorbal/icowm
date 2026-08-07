@@ -38,6 +38,18 @@
 #define RULES_MAX (256u)
 
 /**
+ * @brief Maximum alternative values a single match criterion (e.g.
+ *        @c title) can hold when given as a JSON array instead of a
+ *        single string
+ *
+ * A window matches the criterion if it matches *any* one of these
+ * (an "or" within the field); a rule with several different criteria
+ * present (e.g. both @c title and @c class) still requires *all* of
+ * them to match (an "and" across fields) -- see @c ri_client_matches.
+ */
+#define RULES_MATCH_MAX_VALUES (6u)
+
+/**
  * @brief Timing constraint controlling when a rule is evaluated
  */
 enum rules_when_e {
@@ -48,6 +60,11 @@ enum rules_when_e {
 
 /**
  * @brief Criteria used to match a client against one rule entry
+ *
+ * Each @c has_* criterion, when present, may hold one or more
+ * alternative values (see @c RULES_MATCH_MAX_VALUES): the client
+ * matches that criterion if it matches any one of them.  A client must
+ * match every criterion that is present to match the rule as a whole.
  */
 struct rules_match_s {
     bool has_instance;
@@ -57,11 +74,17 @@ struct rules_match_s {
     bool has_type;
     bool has_transient;
 
-    char instance[CONFIG_MAX_LENGTH_NAME];
-    char klass[CONFIG_MAX_LENGTH_NAME];
-    char role[CONFIG_MAX_LENGTH_NAME];
-    char title[CONFIG_MAX_LENGTH_NAME];
-    char type[CONFIG_MAX_LENGTH_NAME];
+    uint8_t class_count;
+    uint8_t instance_count;
+    uint8_t role_count;
+    uint8_t title_count;
+    uint8_t type_count;
+
+    char instance[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
+    char klass[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
+    char role[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
+    char title[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
+    char type[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
     bool transient;
 };
 
@@ -72,8 +95,14 @@ struct rules_apply_s {
     bool has_desktop;
     bool has_layer;
     bool has_focus;
-    bool has_position;  /**< @c x & @c y set independently of @c size */
-    bool has_size;      /**< @c width & @c height independent of position */
+    bool has_position;      /**< @c x & @c y, or @c position_centered,
+                                 set independently of @c size */
+    bool position_centered; /**< @c ("position": "center") was given
+                                 instead of an @c {x,y} object: center
+                                 the client on its screen at apply time
+                                 instead of using @c x and @c y */
+    bool has_size;          /**< @c width & @c height independent of
+                                 position */
     bool has_sticky;
     bool has_decorated;
 

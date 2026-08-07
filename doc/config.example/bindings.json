@@ -11,8 +11,11 @@
     },
     "keyboard": {
         "wm": {
+            "menus": {
+                "root": "modc+mod1+mods+m",
+                "windows": "modc+mod1+mods+w"
+            },
             "show-desktop": "modc+mod1+mods+d",
-            "menu": "modc+mod1+mods+m",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",
@@ -37,7 +40,7 @@
             "editor": "modc+mod1+e"
         },
         "window": {
-            "close": "modc+mod1+c",
+            "close": "mod1+modc+c",
             "decorate": "modc+mod1+d",
             "fullscreen": "modc+mod1+f",
             "hide": "modc+mod1+mods+u",

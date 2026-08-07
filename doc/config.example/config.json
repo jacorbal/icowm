@@ -43,10 +43,11 @@
         "focus": {
             "policy": "click",
             "is-new-focused": true,
-            "is-raised-on-focus": true
+            "is-raised-on-focus": false
         },
         "placement": {
-            "policy": "smart"
+            "policy": "smart",
+            "group-related": true
         }
     },
     "icons": {
@@ -55,11 +56,16 @@
             "policy": "smart"
         }
     },
-    "menu": {
-        "root-position": "under-mouse"
+    "menus": {
+        "root": {
+            "position": "under-mouse"
+        },
+        "windows": {
+            "position": "under-mouse"
+        }
     },
     "systray": {
-        "is-enabled": false,
+        "is-enabled": true,
         "position": "top-right",
         "order": "left-to-right"
     },
@@ -72,5 +78,5 @@
         "dpi": 96
     },
     "show-desktop-notify": true,
-    "enable-emergency-shortcut": false
+    "enable-emergency-shortcut": true
 }

@@ -58,6 +58,32 @@ static bool s_match_str(const char *pattern, const char *value)
 
 
 /**
+ * @brief Test a string value against a list of alternative patterns
+ *
+ * @param patterns List of shell glob patterns
+ * @param count    Number of entries in @p patterns actually in use
+ * @param value    String to test against every pattern in the list
+ *
+ * @return @c true if @p value matches at least one pattern in the list
+ *
+ * @note Complexity: @e O(n*m), where @e n is @p count and @e m is the
+ *       length of @p value
+ */
+static bool s_match_str_list(
+        const char patterns[][CONFIG_MAX_LENGTH_NAME], uint8_t count,
+        const char *value)
+{
+    for (uint8_t i = 0u; i < count; ++i) {
+        if (s_match_str(patterns[i], value)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/**
  * @brief Test whether a type name string matches a client's type value
  *
  * Compares the lower-case EWMH type name @p type against @p client_type
@@ -69,7 +95,7 @@ static bool s_match_str(const char *pattern, const char *value)
  *                    the client's property set
  *
  * @return Whether @p type names the same window type as @p client_type
- * @retval true  The names are equivalent
+ * @retval  true The names are equivalent
  * @retval false @p type is @c NULL, unrecognised, or does not match
  *
  * @note Complexity: @e O(1)
@@ -112,6 +138,32 @@ static bool s_parse_type(const char *type, uint16_t client_type)
 }
 
 
+/**
+ * @brief Test a client's type against a list of alternative type names
+ *
+ * @param types       List of lower-case EWMH type names
+ * @param count       Number of entries in @p types actually in use
+ * @param client_type @c client_type_e value cast to @c uint16_t from
+ *                    the client's property set
+ *
+ * @return @c true if @p client_type matches any name in the list
+ *
+ * @note Complexity: @e O(n), where @e n is @p count
+ */
+static bool s_parse_type_list(
+        const char types[][CONFIG_MAX_LENGTH_NAME], uint8_t count,
+        uint16_t client_type)
+{
+    for (uint8_t i = 0u; i < count; ++i) {
+        if (s_parse_type(types[i], client_type)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 /* Test whether a rule's timing constraint is satisfied */
 bool ri_when_matches(enum rules_when_e when,
         enum rules_trigger_e trigger)
@@ -141,20 +193,26 @@ bool ri_client_matches(const struct rules_match_s *match,
     const char *title = (client->info.name != NULL)
         ? client->info.name : "";
 
-    if (match->has_instance && !s_match_str(match->instance, instance)) {
+    if (match->has_instance &&
+            !s_match_str_list(match->instance, match->instance_count,
+                    instance)) {
         return false;
     }
-    if (match->has_class && !s_match_str(match->klass, klass)) {
+    if (match->has_class &&
+            !s_match_str_list(match->klass, match->class_count, klass)) {
         return false;
     }
-    if (match->has_role && !s_match_str(match->role, role)) {
+    if (match->has_role &&
+            !s_match_str_list(match->role, match->role_count, role)) {
         return false;
     }
-    if (match->has_title && !s_match_str(match->title, title)) {
+    if (match->has_title &&
+            !s_match_str_list(match->title, match->title_count, title)) {
         return false;
     }
     if (match->has_type &&
-            !s_parse_type(match->type, client->properties.type)) {
+            !s_parse_type_list(match->type, match->type_count,
+                    client->properties.type)) {
         return false;
     }
     if (match->has_transient) {

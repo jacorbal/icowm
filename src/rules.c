@@ -177,15 +177,23 @@ static void s_rules_apply_layer(client_td *client,
 /**
  * @brief Apply the geometry rule to a client
  *
- * Position (@p apply->x, @p apply->y) and size (@p apply->w,
- * @p apply->h) are applied independently: only the fields that are
- * flagged as present are touched.  When both are set the behaviour is
- * identical to the previous all-or-nothing mode.  When the client has
- * a decoration frame, the synchronisation helper is called to keep the
- * inner window aligned.  The function is a no-op when neither
- * @p apply->has_position nor @p apply->has_size is @c true.
+ * Position (@p apply->x, @p apply->y, or @p apply->position_centered)
+ * and size (@p apply->w, @p apply->h) are applied independently: only
+ * the fields that are flagged as present are touched.  When both are
+ * set the behaviour is identical to the previous all-or-nothing mode.
+ * When the client has a decoration frame, the synchronisation helper is
+ * called to keep the inner window aligned.  The function is a no-op
+ * when neither @p apply->has_position nor @p apply->has_size is
+ * @c true.
+ *
+ * Size is resolved before position so that a rule combining
+ * @c ("position": "center") with an explicit @c size centers the client
+ * at its @e new size, not whatever size it happened to have already been
+ * placed at.
  *
  * @param connection XCB connection used to send the configure request
+ * @param surface    Surface the client is on, used to compute the
+ *                   center point for @p apply->position_centered
  * @param client     Client whose geometry is to be set
  * @param apply      Action descriptor
  *
@@ -193,7 +201,8 @@ static void s_rules_apply_layer(client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_rules_apply_geometry(xcb_connection_t *connection,
-        client_td *client, const struct rules_apply_s *apply)
+        const surface_td *surface, client_td *client,
+        const struct rules_apply_s *apply)
 {
     xcb_window_t target;
     uint16_t mask = 0;
@@ -201,19 +210,17 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     uint32_t vi = 0;
     uint32_t width;
     uint32_t height;
+    int32_t x = 0;
+    int32_t y = 0;
+    bool set_pos = false;
+    bool set_size = false;
 
     if (!apply->has_position && !apply->has_size) {
         return;
     }
 
-    if (apply->has_position) {
-        client->layout.geometry.cur.pos.x = apply->x;
-        client->layout.geometry.cur.pos.y = (apply->y < 0) ? 0 : apply->y;
-        mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-        values[vi++] = (uint32_t) client->layout.geometry.cur.pos.x;
-        values[vi++] = (uint32_t) client->layout.geometry.cur.pos.y;
-        client->rule_position_locked = true;
-    }
+    width = client->layout.geometry.cur.dim.w;
+    height = client->layout.geometry.cur.dim.h;
 
     if (apply->has_size) {
         width = apply->w;
@@ -221,12 +228,42 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         client_constrain_size(client, &width, &height);
         client->layout.geometry.cur.dim.w = width;
         client->layout.geometry.cur.dim.h = height;
+        set_size = true;
+    }
+
+    if (apply->has_position) {
+        if (apply->position_centered && surface != NULL) {
+            uint32_t screen_w = surface->properties.dim.w;
+            uint32_t screen_h = surface->properties.dim.h;
+
+            x = (screen_w > width)
+                ? (int32_t) ((screen_w - width) / 2u) : 0;
+            y = (screen_h > height)
+                ? (int32_t) ((screen_h - height) / 2u) : 0;
+        } else {
+            x = apply->x;
+            y = (apply->y < 0) ? 0 : apply->y;
+        }
+
+        client->layout.geometry.cur.pos.x = x;
+        client->layout.geometry.cur.pos.y = y;
+        client->rule_position_locked = true;
+        set_pos = true;
+    }
+
+    /* Value list order must ascend by 'XCB_CONFIG_WINDOW_*' bit value:
+     * X, Y, then WIDTH, HEIGHT.  Built here in that order regardless
+     * of which of position/size were actually resolved above */
+    if (set_pos) {
+        mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+        values[vi++] = (uint32_t) x;
+        values[vi++] = (uint32_t) y;
+    }
+    if (set_size) {
         mask |= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         values[vi++] = width;
         values[vi++] = height;
     }
-
-    (void) vi;
 
     target = (client->frame != 0 && client_is_decorated(client))
         ? client->frame : client->window;
@@ -282,6 +319,64 @@ void rules_destroy(rules_td *rules)
 {
     if (rules != NULL) {
         free(rules);
+    }
+}
+
+
+/**
+ * @brief Load a match criterion that may be a single string or an array
+ *        of strings into a fixed-size list
+ *
+ * Reads @p key from @p match_json: a plain JSON string is stored as the
+ * list's only entry; a JSON array has each of its string elements
+ * copied in order, up to @c RULES_MATCH_MAX_VALUES (any beyond that are
+ * silently ignored). Non-string array elements are skipped rather than
+ * aborting the whole list. Leaves @p has_flag and @p count untouched
+ * (so already-loaded defaults survive) when @p key is absent or is
+ * neither a string nor an array.
+ *
+ * @param match_json   Parsed @c match JSON object
+ * @param key          Field name to read (e.g. @c title)
+ * @param dest         Destination fixed-size string array
+ * @param count_out    Receives the number of values actually stored
+ * @param has_flag_out Set to @c true when at least one value was
+ *                      stored
+ *
+ * @note Complexity: @e O(n), where @e n is @c RULES_MATCH_MAX_VALUES
+ */
+static void s_rules_load_match_list(cJSON *match_json, const char *key,
+        char dest[][CONFIG_MAX_LENGTH_NAME], uint8_t *count_out,
+        bool *has_flag_out)
+{
+    cJSON *item;
+    cJSON *elem;
+    uint8_t n;
+
+    item = json_get_item(match_json, key);
+    if (item == NULL) {
+        return;
+    }
+
+    n = 0u;
+    if (cJSON_IsString(item) && item->valuestring != NULL) {
+        safe_strncpy(dest[0], item->valuestring, CONFIG_MAX_LENGTH_NAME);
+        n = 1u;
+    } else if (cJSON_IsArray(item)) {
+        cJSON_ArrayForEach(elem, item) {
+            if (n >= (uint8_t) RULES_MATCH_MAX_VALUES) {
+                break;
+            }
+            if (cJSON_IsString(elem) && elem->valuestring != NULL) {
+                safe_strncpy(dest[n], elem->valuestring,
+                        CONFIG_MAX_LENGTH_NAME);
+                ++n;
+            }
+        }
+    }
+
+    if (n > 0u) {
+        *count_out = n;
+        *has_flag_out = true;
     }
 }
 
@@ -346,40 +441,21 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
 
         match_json = json_get_item(rule_json, "match");
         if (cJSON_IsObject(match_json)) {
-            item = json_get_item(match_json, "instance");
-            if (cJSON_IsString(item) && item->valuestring != NULL) {
-                rule->match.has_instance = true;
-                safe_strncpy(rule->match.instance, item->valuestring,
-                        sizeof(rule->match.instance));
-            }
-
-            item = json_get_item(match_json, "class");
-            if (cJSON_IsString(item) && item->valuestring != NULL) {
-                rule->match.has_class = true;
-                safe_strncpy(rule->match.klass, item->valuestring,
-                        sizeof(rule->match.klass));
-            }
-
-            item = json_get_item(match_json, "role");
-            if (cJSON_IsString(item) && item->valuestring != NULL) {
-                rule->match.has_role = true;
-                safe_strncpy(rule->match.role, item->valuestring,
-                        sizeof(rule->match.role));
-            }
-
-            item = json_get_item(match_json, "title");
-            if (cJSON_IsString(item) && item->valuestring != NULL) {
-                rule->match.has_title = true;
-                safe_strncpy(rule->match.title, item->valuestring,
-                        sizeof(rule->match.title));
-            }
-
-            item = json_get_item(match_json, "type");
-            if (cJSON_IsString(item) && item->valuestring != NULL) {
-                rule->match.has_type = true;
-                safe_strncpy(rule->match.type, item->valuestring,
-                        sizeof(rule->match.type));
-            }
+            s_rules_load_match_list(match_json, "instance",
+                    rule->match.instance, &rule->match.instance_count,
+                    &rule->match.has_instance);
+            s_rules_load_match_list(match_json, "class",
+                    rule->match.klass, &rule->match.class_count,
+                    &rule->match.has_class);
+            s_rules_load_match_list(match_json, "role",
+                    rule->match.role, &rule->match.role_count,
+                    &rule->match.has_role);
+            s_rules_load_match_list(match_json, "title",
+                    rule->match.title, &rule->match.title_count,
+                    &rule->match.has_title);
+            s_rules_load_match_list(match_json, "type",
+                    rule->match.type, &rule->match.type_count,
+                    &rule->match.has_type);
 
             item = json_get_item(match_json, "transient");
             if (cJSON_IsBool(item)) {
@@ -430,9 +506,14 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
 
             if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
                 rule->apply.has_position = true;
+                rule->apply.position_centered = false;
                 rule->apply.x = x->valueint;
                 rule->apply.y = y->valueint;
             }
+        } else if (cJSON_IsString(item) && item->valuestring != NULL &&
+                safe_strcmp(item->valuestring, "center") == 0) {
+            rule->apply.has_position = true;
+            rule->apply.position_centered = true;
         }
 
         item = json_get_item(apply_json, "size");
@@ -508,6 +589,7 @@ bool rules_apply(wm_td *wm, client_td *client,
         }
         if (rule->apply.has_position) {
             merged.has_position = true;
+            merged.position_centered = rule->apply.position_centered;
             merged.x = rule->apply.x;
             merged.y = rule->apply.y;
         }
@@ -550,7 +632,7 @@ bool rules_apply(wm_td *wm, client_td *client,
     }
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
-    s_rules_apply_geometry(wm->connection, client, &merged);
+    s_rules_apply_geometry(wm->connection, *surface_io, client, &merged);
 
     if (merged.has_focus && merged.focus &&
             wm->config != NULL && client_is_focusable(client)) {
