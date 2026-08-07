@@ -56,7 +56,6 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
 
     /* Window operations */
-    KEYBIND_CLIENT_WINDOW_MENU,         /**< Open window context menu */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
     KEYBIND_CLIENT_HIDE,                /**< Hide (minimize) focused client */
     KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
@@ -71,6 +70,10 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_CYCLE_LAYER,         /**< Cycle layer: normal/above/below */
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
+    KEYBIND_CLIENT_WINDOW_MENU,         /**< Open this client's context
+                                              menu (fixed 'Alt+Space',
+                                              unrelated to
+                                              'KEYBIND_WM_WINDOWS_MENU') */
     KEYBIND_DESKTOP_ICON_NEXT,          /**< Cycle to next iconified client */
     KEYBIND_DESKTOP_ICON_PREV,          /**< Cycle to prev iconified client */
 
@@ -113,7 +116,8 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
 
     /* Window manager lifecycle */
-    KEYBIND_WM_MENU,                    /**< Open root desktop menu */
+    KEYBIND_WM_ROOT_MENU,               /**< Open root desktop menu */
+    KEYBIND_WM_WINDOWS_MENU,            /**< Open windows desktop menu */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
     KEYBIND_WM_QUIT,                    /**< Quit with confirmation dialog */

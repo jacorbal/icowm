@@ -126,19 +126,32 @@ struct config_base_s {
     bool show_desktop_notify;       /**< Show desktop name on switch */
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
 
-    /* Desktop (root) context menu placement */
+    /* Context-menu placement, per menu type */
     struct {
         /**
-         * @brief Where the desktop (root) context menu appears when it
-         *        is opened by a means that has no inherent screen
-         *        position of its own (e.g., a keyboard shortcut)
+         * @brief Where a menu appears when it is opened by a means
+         *        that has no inherent screen position of its own
+         *        (e.g. a keyboard shortcut); shared by every menu
+         *        type below
          */
         enum config_menu_position_e {
             CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
             CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
-                                                   mouse pointer position */
-        } root_position;
-    } menu;
+                                                     mouse pointer position */
+        } position;
+
+        struct {
+            enum config_menu_position_e position;   /**< Desktop (root)
+                                                         context menu
+                                                         (@c menu.json) */
+        } root;
+
+        struct {
+            enum config_menu_position_e position;   /**< Window list menu;
+                                                         every window on
+                                                         every desktop */
+        } windows;
+    } menus;
 
     /**
      * @brief Configuration for the built-in systray dock
@@ -233,7 +246,17 @@ struct config_bindings_s {
     /* Keyboard bindings */
     struct keyboard_s {
         struct {
-            char menu[CONFIG_MAX_LENGTH_BINDING];
+            struct {
+                /**
+                 * Keyboard shortcuts that open a menu with no inherent
+                 * screen position of their own
+                 *
+                 * @see @c config.menus.* for where each one appears
+                 */
+                char root[CONFIG_MAX_LENGTH_BINDING];
+                char windows[CONFIG_MAX_LENGTH_BINDING];
+            } menus;
+
             char redraw[CONFIG_MAX_LENGTH_BINDING];
             char reload[CONFIG_MAX_LENGTH_BINDING];
             char quit[CONFIG_MAX_LENGTH_BINDING];

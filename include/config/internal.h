@@ -4,7 +4,7 @@
  * @brief Private helpers shared across config implementation modules
  *
  * Declares static helper functions that are used by more than one of
- * the config translation units (@c config/base.c, @c config/config.c,
+ * the config translation units (@c config/base.c, @c config.c,
  * @c config/randr.c) but must not be exposed as part of the public
  * configuration API declared in @c config.h.
  *
@@ -40,7 +40,7 @@
  *                          should be at least
  *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long
  *
- * @note Implemented in @c config/config.c
+ * @note Implemented in @c config.c
  * @note Complexity: @e O(1)
  */
 void ci_config_dir_set(const char *config_dir_prefix,

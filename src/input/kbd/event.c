@@ -552,7 +552,6 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_NONE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_CLIENT_CYCLE_NEXT:
         case KEYBIND_CLIENT_CYCLE_PREV:
         case KEYBIND_DESKTOP_ICON_NEXT:
@@ -585,7 +584,9 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_MENU:
+        case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_WINDOWS_MENU:
+        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
@@ -685,7 +686,6 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_NONE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_CLIENT_ICONIFY:
         case KEYBIND_CLIENT_HIDE:
         case KEYBIND_CLIENT_CLOSE:
@@ -725,7 +725,9 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_MENU:
+        case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_WINDOWS_MENU:
+        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
@@ -805,7 +807,6 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_NONE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_CLIENT_ICONIFY:
         case KEYBIND_CLIENT_HIDE:
         case KEYBIND_CLIENT_CLOSE:
@@ -842,7 +843,9 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_MENU:
+        case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_WINDOWS_MENU:
+        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
@@ -948,7 +951,6 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_NONE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_CLIENT_ICONIFY:
         case KEYBIND_CLIENT_HIDE:
         case KEYBIND_CLIENT_CLOSE:
@@ -989,7 +991,9 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_MENU:
+        case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_WINDOWS_MENU:
+        case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
@@ -1248,7 +1252,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 (void) wm_action_config_reload();
                 return;
 
-            case KEYBIND_WM_MENU:
+            case KEYBIND_WM_ROOT_MENU:
                 if (surface != NULL && surface->connection != NULL) {
                     int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
                     int16_t my = (int16_t) (surface->properties.dim.h / 2u);
@@ -1258,7 +1262,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                      * pointer position and use it, falling back to the
                      * screen center if the query fails */
                     if (config != NULL &&
-                            config->base.menu.root_position ==
+                            config->base.menus.root.position ==
                                 CONFIG_MENU_POSITION_UNDER_MOUSE &&
                             surface->screen != NULL) {
                         xcb_query_pointer_cookie_t qc =
@@ -1279,6 +1283,57 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 }
                 return;
 
+            case KEYBIND_WM_WINDOWS_MENU:
+                if (surface != NULL && surface->connection != NULL) {
+                    int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
+                    int16_t my = (int16_t) (surface->properties.dim.h / 2u);
+
+                    /* Same "under the cursor instead of a fixed point"
+                     * behavior as the root menu (see
+                     * 'KEYBIND_WM_ROOT_MENU' above), just governed by
+                     * its own 'menus.windows.position' setting */
+                    if (config != NULL &&
+                            config->base.menus.windows.position ==
+                                CONFIG_MENU_POSITION_UNDER_MOUSE &&
+                            surface->screen != NULL) {
+                        xcb_query_pointer_cookie_t qc =
+                            xcb_query_pointer(surface->connection,
+                                    surface->screen->root);
+                        xcb_query_pointer_reply_t *qr =
+                            xcb_query_pointer_reply(surface->connection,
+                                    qc, NULL);
+                        if (qr != NULL) {
+                            mx = qr->root_x;
+                            my = qr->root_y;
+                            free(qr);
+                        }
+                    }
+
+                    winlist_show(surface->connection, surface,
+                            mx, my, config);
+                }
+                return;
+
+            case KEYBIND_CLIENT_WINDOW_MENU: {
+                /* Hardcoded 'Alt+Space': opens the context menu of the
+                 * currently active client, anchored at its own position
+                 * (unrelated to 'KEYBIND_WM_WINDOWS_MENU') */
+                client_td *client = s_get_active_client(surface,
+                        surfaces, NULL, NULL);
+                if (client != NULL && surface != NULL &&
+                        surface->connection != NULL) {
+                    desktop_td *desktop =
+                        lookup_current_desktop(surface);
+                    int16_t mx = (int16_t)
+                        client->layout.geometry.cur.pos.x;
+                    int16_t my = (int16_t)
+                        client->layout.geometry.cur.pos.y;
+                    wincmenu_show(surface->connection, surface,
+                            desktop, client, mx, my, config);
+                }
+                return;
+            }
+
             case KEYBIND_CLIENT_ICONIFY:
             case KEYBIND_CLIENT_HIDE:
             case KEYBIND_CLIENT_CLOSE:
@@ -1294,22 +1349,6 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 s_dispatch_client_action(btype, surface, surfaces,
                         bmm, event->detail, config);
                 return;
-
-            case KEYBIND_CLIENT_WINDOW_MENU: {
-                client_td *client = s_get_active_client(surface,
-                        surfaces, NULL, NULL);
-                if (client != NULL) {
-                    desktop_td *desktop =
-                        lookup_current_desktop(surface);
-                    int16_t mx = (int16_t)
-                        client->layout.geometry.cur.pos.x;
-                    int16_t my = (int16_t)
-                        client->layout.geometry.cur.pos.y;
-                    wincmenu_show(surface->connection, surface,
-                            desktop, client, mx, my, config);
-                }
-                return;
-            }
 
             case KEYBIND_LAUNCH_TERMINAL:
             case KEYBIND_LAUNCH_LAUNCHER:

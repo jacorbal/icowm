@@ -394,6 +394,21 @@ void wcmd_client_fullscreen(client_td *client)
     client->layout.geometry.cur.dim.w = (uint32_t) sw;
     client->layout.geometry.cur.dim.h = (uint32_t) sh;
 
+    /* ICCCM §4.2.3: applications that render via GL/Vulkan (e.g.,
+     * 'mplayer', 'mpv') generally wait for a 'ConfigureNotify' before
+     * resizing their rendering surface/viewport, and it must carry the
+     * true screen-relative geometry.  The real 'ConfigureNotify' the
+     * X server sends for the frame/window configure above already
+     * happens to be screen-relative here since fullscreen always starts
+     * at (0,0), so this was not strictly required for the client's OWN
+     * 'ConfigureNotify'; but the frame reparenting above still delivers
+     * one relative to the *frame*, and without an explicit synthetic
+     * one afterward some clients only apply the next size they are told
+     * about relative to their own last known good state, which can
+     * otherwise show as a blank frame until an unrelated event forces
+     * a fresh redraw. */
+    client_send_synthetic_configure_notify(client->connection, client);
+
     client->properties.state = CLIENT_STATE_FULLSCREEN;
 
     wcmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
@@ -524,6 +539,14 @@ void wcmd_client_unfullscreen(client_td *client)
     }
     client->was_decorated_fullscreen = false;
 
+    /* Same reasoning as the matching call in 'wcmd_client_fullscreen':
+     * make sure the client is told its true screen-relative geometry
+     * explicitly, since exiting fullscreen can restore it to any
+     * position, not just (0,0), where a decorated client's real
+     * 'ConfigureNotify' from the frame reparenting above would be
+     * frame-relative instead. */
+    client_send_synthetic_configure_notify(client->connection, client);
+
     client->properties.state = CLIENT_STATE_NORMAL;
 
     wcmd_publish_frame_extents(client,
@@ -536,7 +559,7 @@ void wcmd_client_unfullscreen(client_td *client)
 
     /* The client that just left fullscreen may have been the one the
      * systray was lowered below; let it reconsider its stacking now
-     * that it is gone. */
+     * that it is gone */
     systray_restack();
 
     wm_request_client_redraw(client);

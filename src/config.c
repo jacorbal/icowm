@@ -1,5 +1,5 @@
 /**
- * @file config/config.c
+ * @file config.c
  *
  * @brief Configuration init, destroy, defaults, and load dispatcher
  *        implementation
@@ -177,7 +177,8 @@ void config_set_default_values(config_td *config)
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
     config->base.show_desktop_notify = true;
-    config->base.menu.root_position = CONFIG_MENU_POSITION_UNDER_MOUSE;
+    config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
+    config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
@@ -221,6 +222,10 @@ void config_set_default_values(config_td *config)
             "modc+mod1+w");
     safe_strcpy(config->bindings.keyboard.launch.editor,
             "modc+mod1+e");
+    safe_strcpy(config->bindings.keyboard.wm.menus.root,
+            "modc+mod1+mods+m");
+    safe_strcpy(config->bindings.keyboard.wm.menus.windows,
+            "modc+mod1+mods+w");
     safe_strcpy(config->bindings.keyboard.window.close,
             "modc+mod1+c");
     safe_strcpy(config->bindings.keyboard.window.decorate,

@@ -1,5 +1,5 @@
 /**
- * @file surface/surface.c
+ * @file surface.c
  *
  * @brief Surface lifecycle, i.e., init, update, resize, and desktop
  *        list implementation

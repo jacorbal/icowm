@@ -133,8 +133,16 @@
  * have to track separately.  Past this many attempts without an
  * @c AlarmNotify, the pending geometry is force-applied so a slow or
  * unresponsive client can never freeze interactive resize.
+ *
+ * @note Kept small on purpose: this is the fallback for a client that
+ *       never acknowledges at all (including one whose 'AlarmNotify'
+ *       never arrives due to some as-yet-undiscovered XSync protocol
+ *       mismatch on the window manager's side), and a resize should
+ *       still feel reasonably responsive even in that worst case rather
+ *       than visibly stalling for several steps before each catch-up
+ *       jump.
  */
-#define WM_SYNC_MAX_WAIT_TICKS (8u)
+#define WM_SYNC_MAX_WAIT_TICKS (2u)
 
 /**
  * @brief Duration in milliseconds before the info popup auto-closes

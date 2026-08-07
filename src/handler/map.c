@@ -25,7 +25,7 @@
 #include <adt/list.h>
 
 /* Rules includes */
-#include <rules/rules.h>
+#include <rules.h>
 
 /* Policy includes */
 #include <policy/focus.h>

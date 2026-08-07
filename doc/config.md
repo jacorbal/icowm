@@ -17,7 +17,7 @@ values, and built-in default value.
    - [2.5 `icons`](#25-icons)
    - [2.6 `show-desktop-notify`](#26-show-desktop-notify)
    - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
-   - [2.8 `menu`](#28-menu)
+   - [2.8 `menus`](#28-menus)
    - [2.9 `systray`](#29-systray)
    - [2.10 `xsettings`](#210-xsettings)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
@@ -383,24 +383,33 @@ systems where the key combination might be triggered accidentally.
 
 ### 2.8 `menu`
 
-| Key                    | Type   | Default         |
-|------------------------|--------|-----------------|
-| `menu.root-position`   | string | `"under-mouse"` |
+| Key                        | Type   | Default         |
+|----------------------------|--------|-----------------|
+| `menus.root.position`      | string | `"under-mouse"` |
+| `menus.windows.position`   | string | `"under-mouse"` |
 
-Controls where the desktop (root) context menu appears when it is opened
-by a means with no screen position of its own, such as its keyboard
-shortcut.  Supported values are `"center"`, which always opens the menu
-in the center of the screen, and `"under-mouse"`, which opens it under
-the current mouse pointer position instead, matching the naming of
-`windows.placement.policy`.
+Controls where a menu appears when it is opened by a means with no
+screen position of its own, such as a keyboard shortcut, one setting
+per menu type: `root` is the desktop context menu (`menu.json`, opened
+by `keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm)),
+`windows` is the menu listing every window on every desktop (opened by
+`keyboard.wm.menus.windows`). Supported values are `"center"`, which
+always opens the menu in the center of the screen, and `"under-mouse"`,
+which opens it under the current mouse pointer position instead,
+matching the naming of `windows.placement.policy`.
 
-This setting has no effect when the menu is opened with the mouse (e.g.,
-right-click on the desktop), since it already opens under the pointer in
-that case.
+This setting has no effect when a menu is opened with the mouse (e.g.,
+right-click on the desktop for the root menu), since it already opens
+under the pointer in that case.
 
 ```json
 "menu": {
-    "root-position": "under-mouse"
+    "root": {
+        "position": "under-mouse"
+    },
+    "windows": {
+        "position": "under-mouse"
+    }
 }
 ```
 
@@ -637,10 +646,29 @@ Window manager control shortcuts.
 | Key            | Default binding    | Action |
 |----------------|--------------------|--------|
 | `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
-| `menu`         | `modc+mod1+mods+m` | Open the root desktop menu. |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
+
+#### `keyboard.wm.menus`
+
+Keyboard shortcuts for the two menus that have no inherent screen
+position of their own for where each one appears when opened this way).
+
+
+| Key       | Default binding     | Action |
+|-----------|---------------------|--------|
+| `root`    | `modc+mod1+mods+m`  | Open the desktop (root) context menu, `menu.json`. |
+| `windows` | `modc+mod1+mods+w`  | Open the menu listing every window on every desktop. |
+
+```json
+"wm": {
+    "menus": {
+        "root": "modc+mod1+mods+m",
+        "windows": "modc+mod1+mods+w"
+    }
+}
+```
 
 #### `keyboard.wm.go-to`
 
@@ -1180,8 +1208,13 @@ Sub-menus can be nested to the depth limit defined by
         }
     },
 
-    "menu": {
-        "root-position": "under-mouse"
+    "menus": {
+        "root": {
+            "position": "under-mouse"
+        },
+        "windows": {
+            "position": "under-mouse"
+        }
     },
 
     "systray": {
@@ -1265,8 +1298,11 @@ Sub-menus can be nested to the depth limit defined by
         },
 
         "wm": {
+            "menus": {
+                "root": "modc+mod1+mods+m",
+                "windows": "modc+mod1+mods+w"
+            },
             "show-desktop": "modc+mod1+mods+d",
-            "menu": "modc+mod1+mods+m",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",

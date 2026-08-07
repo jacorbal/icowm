@@ -32,7 +32,7 @@
 #include <adt/list.h>
 
 /* Session includes */
-#include <session/session.h>
+#include <session.h>
 
 /* Render includes */
 #include <render/surface.h>

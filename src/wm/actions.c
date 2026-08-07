@@ -18,10 +18,10 @@
 #include <adt/list.h>
 
 /* Session includes */
-#include <session/session.h>
+#include <session.h>
 
 /* Rules includes */
-#include <rules/rules.h>
+#include <rules.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>

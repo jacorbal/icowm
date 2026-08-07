@@ -27,7 +27,7 @@
 #include <adt/list.h>
 
 /* Rules includes */
-#include <rules/rules.h>
+#include <rules.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>

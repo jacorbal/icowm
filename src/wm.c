@@ -1,5 +1,5 @@
 /**
- * @file wm/wm.c
+ * @file wm.c
  *
  * @brief Window manager singleton lifecycle and query helpers
  */
@@ -26,10 +26,10 @@
 #include <adt/list.h>
 
 /* Session includes */
-#include <session/session.h>
+#include <session.h>
 
 /* Rules includes */
-#include <rules/rules.h>
+#include <rules.h>
 
 /* Render includes */
 #include <render/text.h>

@@ -748,7 +748,20 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_handle_keypress(connection, surface, &s_root,
+    ctxmenu_state_td *deepest;
+
+    /* Apply the keypress to the deepest currently open submenu, not
+     * always the top-level (per-desktop) one: without this, arrow keys
+     * kept moving the selection in the desktop list even while an
+     * application-group submenu was open in front of it, making that
+     * submenu look unresponsive to the keyboard. */
+    deepest = ctxmenu_find_state_for_window(&s_root,
+            ctxmenu_deepest_window(&s_root));
+    if (deepest == NULL) {
+        deepest = &s_root;
+    }
+
+    return ctxmenu_handle_keypress(connection, surface, deepest,
             keysym, config);
 }
 

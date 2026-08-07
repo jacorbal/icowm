@@ -1,5 +1,5 @@
 /**
- * @file desktop/desktop.c
+ * @file desktop.c
  *
  * @brief Desktop lifecycle: init, update, destroy, rename, background
  *

@@ -1,5 +1,5 @@
 /**
- * @file rules/rules.c
+ * @file rules.c
  *
  * @brief Window matching rules loader and applier implementation
  */
@@ -44,8 +44,8 @@
 #include <surface.h>
 
 /* Local includes */
+#include <rules.h>
 #include <rules/internal.h>
-#include <rules/rules.h>
 
 
 

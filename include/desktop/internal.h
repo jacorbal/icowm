@@ -4,9 +4,8 @@
  * @brief Private helpers shared across desktop implementation modules
  *
  * Declares functions that are used by more than one of the desktop
- * translation units (@c desktop/desktop.c, @c desktop/dclient.c) but
- * must not be exposed as part of the public desktop API declared in
- * @c desktop.h.
+ * translation units (@c desktop.c, @c desktop/dclient.c) but must not
+ * be exposed as part of the public desktop API declared in @c desktop.h.
  *
  * @note This header is private to the desktop subsystem and must not be
  *       included outside of @c src/desktop/

@@ -351,7 +351,7 @@ int config_load_base(const char *filename,
     cJSON *windows;
     cJSON *screen_settings;
     cJSON *icons;
-    cJSON *menu;
+    cJSON *menus;
     cJSON *systray;
     cJSON *xsettings;
 
@@ -621,17 +621,31 @@ int config_load_base(const char *filename,
     json_load_bool(json, "show-desktop-notify",
             &config_base->show_desktop_notify);
 
-    /* Load desktop (root) context menu configuration */
-    menu = cJSON_GetObjectItem(json, "menu");
-    if (menu) {
-        cJSON *root_position_item;
+    /* Load per-menu-type context menu configuration */
+    menus = cJSON_GetObjectItem(json, "menus");
+    if (menus) {
+        cJSON *root_menu;
+        cJSON *windows_menu;
+        cJSON *position_item;
 
-        root_position_item = json_get_item(menu, "root-position");
-        if (root_position_item != NULL &&
-                cJSON_IsString(root_position_item)) {
-            config_base->menu.root_position =
-                s_config_parse_menu_position(
-                        root_position_item->valuestring);
+        root_menu = cJSON_GetObjectItem(menus, "root");
+        if (root_menu) {
+            position_item = json_get_item(root_menu, "position");
+            if (position_item != NULL && cJSON_IsString(position_item)) {
+                config_base->menus.root.position =
+                    s_config_parse_menu_position(
+                            position_item->valuestring);
+            }
+        }
+
+        windows_menu = cJSON_GetObjectItem(menus, "windows");
+        if (windows_menu) {
+            position_item = json_get_item(windows_menu, "position");
+            if (position_item != NULL && cJSON_IsString(position_item)) {
+                config_base->menus.windows.position =
+                    s_config_parse_menu_position(
+                            position_item->valuestring);
+            }
         }
     }
 

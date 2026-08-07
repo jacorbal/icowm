@@ -6,7 +6,7 @@
  * Implements the pattern-matching helpers used to evaluate rule entries
  * against a client's properties.  The "when" timing test, the full
  * multi-criterion client matcher, and the layer-name parser live here
- * so that @c rules/rules.c can remain focused on loading, applying, and
+ * so that @c rules.c can remain focused on loading, applying, and
  * managing the rules table.
  */
 /*

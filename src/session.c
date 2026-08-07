@@ -1,5 +1,5 @@
 /**
- * @file session/session.c
+ * @file session.c
  *
  * @brief Session hooks loader and launcher
  */
@@ -39,7 +39,7 @@
 #include <utils/safe/safestr.h>
 
 /* Local includes */
-#include <session/session.h>
+#include <session.h>
 
 
 /** Maximum length of a single command string (shared with path limit) */

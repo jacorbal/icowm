@@ -541,18 +541,36 @@ client_td *client_manage(xcb_connection_t *connection,
         }
 
         if (client->sync_counter != 0u) {
-            uint32_t alarm_values[4];
+            uint32_t alarm_values[7];
 
             client->sync_alarm = xcb_generate_id(connection);
-            alarm_values[0] = client->sync_counter;
+            /* Per the XSync value-list order (ascending 'CA_*' bit pos.):
+             * 'COUNTER', 'VALUE_TYPE', 'VALUE', 'TEST_TYPE', 'DELTA'.
+             * 'VALUE' and 'DELTA' are each a 64-bit 'INT64' (hi-word,
+             * then lo word), not a single 'CARD32'.  Omitting 'VALUE'
+             * entirely and treating 'DELTA' as one word (an earlier
+             * version of this code did both) leaves the value-list
+             * shorter than what the request's own mask calls for, which
+             * the server rejects; the alarm XID above then never
+             * actually exists server-side, so it can never fire, and
+             * every resize silently falls back to only ever applying
+             * once every 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of
+             * being acknowledged promptly. */
+            alarm_values[0] = client->sync_counter;         /* COUNTER */
             alarm_values[1] = (uint32_t) XCB_SYNC_VALUETYPE_RELATIVE;
-            alarm_values[2] =
+                                                            /* VALUE_TYPE */
+            alarm_values[2] = 0u;                           /* VALUE.hi */
+            alarm_values[3] = 0u;                           /* VALUE.lo */
+            alarm_values[4] =
                 (uint32_t) XCB_SYNC_TESTTYPE_POSITIVE_TRANSITION;
-            alarm_values[3] = 1u;
+                                                            /* TEST_TYPE */
+            alarm_values[5] = 0u;                           /* DELTA.hi */
+            alarm_values[6] = 1u;                           /* DELTA.lo */
             xcb_sync_create_alarm(connection,
                     (xcb_sync_alarm_t) client->sync_alarm,
                     (uint32_t) (XCB_SYNC_CA_COUNTER |
                             XCB_SYNC_CA_VALUE_TYPE |
+                            XCB_SYNC_CA_VALUE |
                             XCB_SYNC_CA_TEST_TYPE |
                             XCB_SYNC_CA_DELTA),
                     alarm_values);

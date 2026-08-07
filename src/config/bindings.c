@@ -74,9 +74,17 @@ int config_load_bindings(const char *filename,
 
         wm = cJSON_GetObjectItem(keyboard, "wm");
         if (wm) {
-            json_load_string(wm, "menu",
-                    config_bindings->keyboard.wm.menu,
-                    CONFIG_MAX_LENGTH_BINDING);
+            cJSON *wm_menus;
+
+            wm_menus = cJSON_GetObjectItem(wm, "menus");
+            if (wm_menus) {
+                json_load_string(wm_menus, "root",
+                        config_bindings->keyboard.wm.menus.root,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(wm_menus, "windows",
+                        config_bindings->keyboard.wm.menus.windows,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
             json_load_string(wm, "show-desktop",
                     config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);

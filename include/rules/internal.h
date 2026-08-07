@@ -5,8 +5,8 @@
  *        modules
  *
  * Declares the internal structures and constants used by both
- * @c rules/rules.c and @c rules/match.c that must not be exposed as
- * part of the public rules API in @c rules/rules.h.
+ * @c rules.c and @c rules/match.c that must not be exposed as part of
+ * the public rules API in @c rules.h.
  *
  * @note This header is private to the rules subsystem and must not be
  *       included outside of @c src/rules/
@@ -30,8 +30,8 @@
 /* Default initial values */
 #include <defs/config.h>
 
-/* Public rules header (for rules_trigger_e) */
-#include <rules/rules.h>
+/* Rules includes */
+#include <rules.h>
 
 
 /** Maximum number of rule entries stored in a single rules table */

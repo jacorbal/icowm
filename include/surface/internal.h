@@ -4,7 +4,7 @@
  * @brief Private helpers shared across surface implementation modules
  *
  * Declares helper functions that are used by more than one of the
- * surface translation units (@c surface/surface.c,
+ * surface translation units (@c surface.c,
  * @c surface/actions.c) but must not be exposed as part of the public
  * surface API declared in @c surface.h.
  *
@@ -39,7 +39,7 @@
  * @param surface Target surface to update
  * @param screen  X screen from which to read the properties
  *
- * @note Implemented in @c surface/surface.c
+ * @note Implemented in @c surface.c
  * @note Complexity: @e O(n), where @e n is the number of visuals on the
  *       screen
  */

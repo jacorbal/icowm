@@ -275,8 +275,10 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const char *binding;
         enum wm_keybind_type_e type;
     } defs[] = {
-        { config->bindings.keyboard.wm.menu,
-          KEYBIND_WM_MENU },
+        { config->bindings.keyboard.wm.menus.root,
+          KEYBIND_WM_ROOT_MENU },
+        { config->bindings.keyboard.wm.menus.windows,
+          KEYBIND_WM_WINDOWS_MENU },
         { config->bindings.keyboard.wm.redraw,
           KEYBIND_WM_REDRAW },
         { config->bindings.keyboard.wm.reload,
@@ -375,8 +377,13 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
-        /* Hardcoded Alt+Space: open window context menu */
-        { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
+        /* Hardcoded 'Alt+Space': also opens the window context menu,
+         * alongside whichever binding 'keyboard.window.menu' sets.
+         * To be kept as a fixed, always-available fallback matching the
+         * common desktop-environment convention for this exact key
+         * combination, the same way 'KEYBIND_WM_EMERGENCY_EXIT'.
+         */
+        //{ "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
         /* Hardcoded emergency exit (grabbed only if enabled) */
         { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }
