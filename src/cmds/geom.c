@@ -22,7 +22,7 @@
 #include <xcb/sync.h>
 
 /* Default initial values */
-#include <defs/wm.h>     /* WM_SYNC_MAX_WAIT_TICKS */
+#include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
 /* Project includes */
 #include <actdata.h>

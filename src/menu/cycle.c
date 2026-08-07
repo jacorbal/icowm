@@ -38,7 +38,7 @@
 #include <policy/focus.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/cycle.h>
 
 /* Project includes */
 #include <client.h>

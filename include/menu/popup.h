@@ -26,6 +26,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/popup.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>

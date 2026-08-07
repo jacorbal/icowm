@@ -26,6 +26,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/input.h>
+
 /* ADT includes */
 #include <adt/list.h>
 

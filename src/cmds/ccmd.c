@@ -26,7 +26,8 @@
 #include <adt/cdlist.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/desktop.h>
+#include <defs/icon.h>
 
 /* Windows & icons policy includes */
 #include <policy/placement.h>

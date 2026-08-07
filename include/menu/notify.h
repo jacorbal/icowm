@@ -28,7 +28,7 @@
 #include <surface.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/desktop.h>
 
 
 /**

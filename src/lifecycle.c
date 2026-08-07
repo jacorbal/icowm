@@ -25,6 +25,7 @@
 
 /* Default initial values */
 #include <defs/config.h>
+#include <defs/desktop.h>
 
 /* Project includes */
 #include <actdata.h>

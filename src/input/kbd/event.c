@@ -50,7 +50,6 @@
 #include <cmds/scmd.h>
 
 /* Default initial values */
-#include <defs/wm.h>
 
 /* Project includes */
 #include <action.h>

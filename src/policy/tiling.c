@@ -31,7 +31,7 @@
 #include <utils/geom.h>
 
 /* Default initial values */
-#include <defs/wm.h>     /* WM_ICON_SQUARE_SIZE */
+#include <defs/icon.h>     /* WM_ICON_SQUARE_SIZE */
 
 /* Project includes */
 #include <client.h>

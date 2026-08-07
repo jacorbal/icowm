@@ -29,7 +29,7 @@
 #include <surface.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/popup.h>
 
 /* Local includes */
 #include <menu/draw.h>

@@ -34,7 +34,9 @@
 #include <policy/focus.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/client.h>
+#include <defs/icon.h>
+#include <defs/input.h>
 
 /* Project includes */
 #include <client.h>

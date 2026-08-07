@@ -36,7 +36,6 @@
 
 /* Default initial values */
 #include <defs/ewmh.h>
-#include <defs/wm.h>
 
 /* Project includes */
 #include <config.h>

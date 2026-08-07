@@ -17,7 +17,7 @@
 #include <stdint.h>
 
 /* Default initial values */
-#include <defs/wm.h>    /* WM_MIN_WINDOW_DIMENSION */
+#include <defs/client.h>    /* WM_MIN_WINDOW_DIMENSION */
 
 /* Local includes */
 #include <utils/geom.h>

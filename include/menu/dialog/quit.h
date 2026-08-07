@@ -33,17 +33,8 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+#include <ui_strings.h>
 
-
-/* Confirm dialog values */
-/** Quit prompt rendered in the confirmation dialog */
-#define DIALOG_QUIT_PROMPT_FMT ("Are you sure you want to exit %s?")
-
-/** Cancel button label text */
-#define DIALOG_QUIT_LABEL_CANCEL ("[ Cancel ]")
-
-/** Exit button label text */
-#define DIALOG_QUIT_LABEL_EXIT ("[ Exit ]")
 
 /** Maximum prompt buffer length */
 #define DIALOG_QUIT_PROMPT_MAX_LEN (128u)

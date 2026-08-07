@@ -22,6 +22,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/ctxmenu.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
@@ -29,6 +32,7 @@
 #include <config.h>
 #include <logger.h>
 #include <surface.h>
+#include <ui_strings.h>
 #include <wm.h>
 
 /* Def includes */
@@ -211,13 +215,13 @@ void rootmenu_show(xcb_connection_t *connection,
     }
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    safe_strncpy(s_entries[fi].label, "Reload configuration",
+    safe_strncpy(s_entries[fi].label, STR_ROOTMENU_RELOAD_CONFIG,
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_reload;
     ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    safe_strncpy(s_entries[fi].label, "Redraw all windows",
+    safe_strncpy(s_entries[fi].label, STR_ROOTMENU_REDRAW_ALL,
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_redraw;
     ++fi;
@@ -226,7 +230,7 @@ void rootmenu_show(xcb_connection_t *connection,
     ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;
-    safe_strncpy(s_entries[fi].label, "Exit",
+    safe_strncpy(s_entries[fi].label, STR_ROOTMENU_EXIT,
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_exit;
     ++fi;

@@ -30,7 +30,7 @@
 #include <adt/list.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/cursor.h>
 
 /* Project includes */
 #include <logger.h>
@@ -399,8 +399,8 @@ int startup_subscribe_root_events(wm_td *wm)
 
     /* Set a default left-pointer cursor on every root window so the
      * cursor is visible even when no client window is under the
-     * pointer.  The cursor font stores glyphs in pairs; see 'defs/wm.h'
-     * for the named constants. */
+     * pointer.  The cursor font stores glyphs in pairs; see
+     * 'defs/cursor.h' for the named constants. */
     fnt = xcb_generate_id(wm->connection);
     cur = xcb_generate_id(wm->connection);
     xcb_open_font(wm->connection, fnt,

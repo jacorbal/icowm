@@ -23,6 +23,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Default initial values */
+#include <defs/ctxmenu.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>

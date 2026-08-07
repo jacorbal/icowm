@@ -22,6 +22,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/loop.h>
+
 /* Utils include */
 #include <utils/safe/safestr.h>
 

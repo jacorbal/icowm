@@ -31,6 +31,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* Default initial values */
+#include <defs/client.h>
+
 /* Type includes */
 #include <types/pair.h> /* geometry_s, sides_s */
 

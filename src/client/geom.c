@@ -29,7 +29,7 @@
 
 /* Default initial values */
 #include <defs/config.h>
-#include <defs/wm.h>
+#include <defs/client.h>
 
 /* Project includes */
 #include <client.h>

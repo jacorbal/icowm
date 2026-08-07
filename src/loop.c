@@ -54,7 +54,7 @@
 #include <menu/popup.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/loop.h>
 
 /* Project includes */
 #include <eventq.h>

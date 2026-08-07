@@ -26,7 +26,8 @@
 #include <render/text.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/cycle.h>
+#include <defs/icon.h>
 
 /* Project includes */
 #include <client.h>

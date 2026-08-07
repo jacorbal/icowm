@@ -36,7 +36,7 @@
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/desktop.h>
 
 /* Project includes */
 #include <client.h>

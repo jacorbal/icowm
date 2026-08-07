@@ -28,7 +28,7 @@
 #include <render/desktop.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/client.h>
 
 /* Project includes */
 #include <client.h>

@@ -43,7 +43,7 @@
 #include <menu/popup.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/icon.h>
 
 /* Project includes */
 #include <lookup.h>

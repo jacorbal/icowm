@@ -42,7 +42,7 @@
 #include <utils/safe/safestr.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/client.h>
 
 /* Project includes */
 #include <actdata.h>

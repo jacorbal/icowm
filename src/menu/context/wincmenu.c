@@ -25,6 +25,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/input.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
@@ -39,6 +42,7 @@
 #include <lookup.h>
 #include <priority.h>
 #include <surface.h>
+#include <ui_strings.h>
 #include <wm.h>
 
 /* CMD includes */
@@ -639,11 +643,11 @@ static int s_build_desk_entries(surface_td *surface,
      * there is otherwise no menu entry to remove a pin once set */
     if (is_sticky) {
         safe_strncpy(s_desk_entries[n].label,
-                "This desktop only (unpin)",
+                STR_WINCMENU_THIS_DESKTOP_UNPIN,
                 sizeof(s_desk_entries[n].label) - 1u);
     } else {
         safe_strncpy(s_desk_entries[n].label,
-                "All desktops (pin)",
+                STR_WINCMENU_ALL_DESKTOPS_PIN,
                 sizeof(s_desk_entries[n].label) - 1u);
     }
 
@@ -676,11 +680,11 @@ static void s_build_layer_entries(const client_td *client)
     is_below  = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_BELOW);
 
-    s_entry_command(&s_layer_entries[0], "Always on top",
+    s_entry_command(&s_layer_entries[0], STR_WINCMENU_LAYER_ALWAYS_ON_TOP,
             s_cb_layer_above, NULL, is_above);
-    s_entry_command(&s_layer_entries[1], "Normal",
+    s_entry_command(&s_layer_entries[1], STR_WINCMENU_LAYER_NORMAL,
             s_cb_layer_normal, NULL, is_normal);
-    s_entry_command(&s_layer_entries[2], "Always on bottom",
+    s_entry_command(&s_layer_entries[2], STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM,
             s_cb_layer_below, NULL, is_below);
 }
 
@@ -748,7 +752,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Send to desktop (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;
-    safe_strncpy(s_entries[n].label, "Send to desktop",
+    safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_DESKTOP,
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_desk_entries;
     s_entries[n].item_count = desk_count;
@@ -757,7 +761,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Layer (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;
-    safe_strncpy(s_entries[n].label, "Layer",
+    safe_strncpy(s_entries[n].label, STR_WINCMENU_LAYER,
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_layer_entries;
     s_entries[n].item_count = WINCMENU_LAYER_COUNT;
@@ -768,36 +772,36 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].type = CTXMENU_SEPARATOR;
     ++n;
 
-    s_entry_command(&s_entries[n], "Restore",
+    s_entry_command(&s_entries[n], STR_WINCMENU_RESTORE,
             s_cb_restore, NULL, !can_restore);
     ++n;
 
-    s_entry_command(&s_entries[n], "Move",
+    s_entry_command(&s_entries[n], STR_WINCMENU_MOVE,
             s_cb_move, NULL, !can_move);
     ++n;
 
-    s_entry_command(&s_entries[n], "Resize",
+    s_entry_command(&s_entries[n], STR_WINCMENU_RESIZE,
             s_cb_resize, NULL, !can_resize);
     ++n;
 
-    s_entry_command(&s_entries[n], "Iconify",
+    s_entry_command(&s_entries[n], STR_WINCMENU_ICONIFY,
             s_cb_iconify, NULL, false);
     ++n;
 
-    s_entry_command(&s_entries[n], "Hide",
+    s_entry_command(&s_entries[n], STR_WINCMENU_HIDE,
             s_cb_hide, NULL, false);
     ++n;
 
-    s_entry_command(&s_entries[n], "Maximize",
+    s_entry_command(&s_entries[n], STR_WINCMENU_MAXIMIZE,
             s_cb_maximize, NULL,
             !client_is_resizable(client) || client_is_maximized(client));
     ++n;
 
-    s_entry_command(&s_entries[n], "Roll up/down",
+    s_entry_command(&s_entries[n], STR_WINCMENU_ROLL_UP_DOWN,
             s_cb_shade, NULL, !can_shade);
     ++n;
 
-    s_entry_command(&s_entries[n], "Un/decorate",
+    s_entry_command(&s_entries[n], STR_WINCMENU_UNDECORATE,
             s_cb_decorate, NULL, false);
     ++n;
 
@@ -805,7 +809,7 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].type = CTXMENU_SEPARATOR;
     ++n;
 
-    s_entry_command(&s_entries[n], "Close",
+    s_entry_command(&s_entries[n], STR_WINCMENU_CLOSE,
             s_cb_close, NULL, false);
     ++n;
 

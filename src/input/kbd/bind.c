@@ -30,6 +30,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Default initial values */
+#include <defs/input.h>
+
 /* ADT includes */
 #include <adt/list.h>
 

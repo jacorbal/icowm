@@ -4,9 +4,9 @@
  * @brief EWMH-related constants for the window manager
  *
  * Centralizes every constant that relates to the Extended Window Manager
- * Hints protocol, keeping them separate from the generic window manager
- * constants in @c defs/wm.h so that EWMH compliance can be audited and
- * maintained in one place.
+ * Hints protocol, keeping them separate from the other, domain-specific
+ * constant headers under @c defs/ so that EWMH compliance can be
+ * audited and maintained in one place.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

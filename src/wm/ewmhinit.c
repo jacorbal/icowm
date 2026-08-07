@@ -32,7 +32,8 @@
 
 /* Default initial values */
 #include <defs/ewmh.h>
-#include <defs/wm.h>
+#include <defs/desktop.h>
+#include <defs/icon.h>
 
 /* Project includes */
 #include <client.h>

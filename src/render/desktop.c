@@ -3,10 +3,9 @@
  *
  * @brief Desktop rendering implementation
  *
- * @note Decoration and icon constants are defined in @c defs/wm.h,
- *       pulled in via @c (render/desktop.h -> desktop.h -> defs/wm.h);
- *       button colors come from the theme passed to
- *       @c desktop_draw_titlebar_buttons
+ * @note Decoration constants come from @c defs/client.h, icon constants
+ *       from @c defs/icon.h; button colors come from the theme passed
+ *       to @c desktop_draw_titlebar_buttons
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,6 +23,10 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+
+/* Default initial values */
+#include <defs/client.h>
+#include <defs/icon.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */

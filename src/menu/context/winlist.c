@@ -36,6 +36,7 @@
 #include <desktop.h>
 #include <priority.h>
 #include <surface.h>
+#include <ui_strings.h>
 #include <wm.h>
 
 /* Command includes */
@@ -45,7 +46,7 @@
 #include <policy/focus.h>
 
 /* Initial definition values */
-#include <defs/wm.h>
+#include <defs/ctxmenu.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -618,7 +619,7 @@ void winlist_show(xcb_connection_t *connection,
                 }
                 s_desktop_entries[did][0].type = CTXMENU_COMMAND;
                 safe_strncpy(s_desktop_entries[did][0].label,
-                        "Go there...",
+                        STR_WINLIST_GO_THERE,
                         sizeof(s_desktop_entries[did][0].label) - 1u);
                 s_desktop_entries[did][0].is_disabled = is_cur;
                 s_desktop_entries[did][0].on_activate = NULL;

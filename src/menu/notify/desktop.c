@@ -27,7 +27,7 @@
 
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/desktop.h>
 
 /* Local includes */
 #include <menu/draw.h>

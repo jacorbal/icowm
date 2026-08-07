@@ -23,7 +23,6 @@
 #include <adt/cdlist.h>
 
 /* Default initial values */
-#include <defs/wm.h>
 
 /* Project includes */
 #include <client.h>

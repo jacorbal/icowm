@@ -26,6 +26,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* Default initial values */
+#include <defs/desktop.h>
+
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */

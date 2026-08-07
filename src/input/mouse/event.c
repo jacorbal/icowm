@@ -46,7 +46,10 @@
 #include <menu/popup.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/client.h>
+#include <defs/cursor.h>
+#include <defs/cycle.h>
+#include <defs/input.h>
 
 /* Project includes */
 #include <action.h>

@@ -20,7 +20,6 @@
 
 /* Default initial values */
 #include <defs/ewmh.h>
-#include <defs/wm.h>
 
 /* Project includes */
 #include <config.h>
@@ -53,10 +52,10 @@ void dialog_quit_show(xcb_connection_t *connection,
     char prompt[DIALOG_QUIT_PROMPT_MAX_LEN];
 
     (void) snprintf(prompt, sizeof(prompt),
-            DIALOG_QUIT_PROMPT_FMT, WM_EWMH_NAME);
+            STR_DIALOG_QUIT_PROMPT_FMT, WM_EWMH_NAME);
 
     menu_confirm_dialog_show(connection, surface, cfg,
-            prompt, DIALOG_QUIT_LABEL_CANCEL, DIALOG_QUIT_LABEL_EXIT,
+            prompt, STR_DIALOG_QUIT_CANCEL, STR_DIALOG_QUIT_EXIT,
             s_on_quit_confirm);
 
 }

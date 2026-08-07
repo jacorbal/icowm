@@ -27,7 +27,7 @@
 #include <menu/cycle.h>
 
 /* Default initial values */
-#include <defs/wm.h>
+#include <defs/icon.h>
 
 /* Project includes */
 #include <client.h>

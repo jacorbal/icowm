@@ -21,6 +21,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Default initial values */
+#include <defs/client.h>
+
 
 /* Public interface */
 /**

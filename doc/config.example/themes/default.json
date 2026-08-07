@@ -16,6 +16,8 @@
             "buttons": {
                 "left": [ "pin", "layer" ],
                 "right": [
+                    "iconize",
+                    "hide",
                     "shade",
                     "maximize",
                     "fullscreen",
@@ -81,9 +83,9 @@
         },
         "border": {
             "color": "#7f9ab6",
-            "width": 10
+            "width": 1
         },
-        "height": 48,
+        "height": 32,
         "clock": {
             "valign": "center"
         }

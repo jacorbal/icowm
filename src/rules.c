@@ -25,7 +25,7 @@
 
 /* Default initial values */
 #include <defs/config.h>
-#include <defs/wm.h>
+#include <defs/desktop.h>
 
 /* Utils includes */
 #include <utils/config/json.h>
