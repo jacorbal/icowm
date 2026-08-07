@@ -216,6 +216,9 @@ int config_load_theme(const char *filename,
     cJSON *window;
     cJSON *icon;
     cJSON *systray;
+    cJSON *menu;
+    cJSON *dialog;
+    cJSON *overlay;
 
     LOGGER_TRACE("Parsing theme configuration from file '%s'",
             filename);
@@ -310,6 +313,85 @@ int config_load_theme(const char *filename,
             }
         }
     }
+
+    menu = cJSON_GetObjectItem(json, "menu");
+    if (menu) {
+        cJSON *unselected;
+        cJSON *selected;
+        cJSON *disabled;
+        cJSON *separator;
+
+        unselected = cJSON_GetObjectItem(menu, "unselected");
+        s_load_theme_colors(unselected, &config_theme->menu.unselected);
+
+        selected = cJSON_GetObjectItem(menu, "selected");
+        s_load_theme_colors(selected, &config_theme->menu.selected);
+
+        disabled = cJSON_GetObjectItem(menu, "disabled");
+        if (disabled) {
+            cJSON *disabled_color = cJSON_GetObjectItem(disabled, "color");
+            if (disabled_color) {
+                json_load_color(disabled_color, "foreground",
+                        &config_theme->menu.disabled_foreground);
+            }
+        }
+
+        separator = cJSON_GetObjectItem(menu, "separator");
+        if (separator) {
+            json_load_color(separator, "color",
+                    &config_theme->menu.separator_color);
+        }
+    }
+
+    dialog = cJSON_GetObjectItem(json, "dialog");
+    if (dialog) {
+        cJSON *dialog_color;
+        cJSON *border_obj;
+        cJSON *label;
+        cJSON *button;
+
+        dialog_color = cJSON_GetObjectItem(dialog, "color");
+        if (dialog_color) {
+            json_load_color(dialog_color, "background",
+                    &config_theme->dialog.background);
+        }
+
+        border_obj = cJSON_GetObjectItem(dialog, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->dialog.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->dialog.border.width);
+        }
+
+        label = cJSON_GetObjectItem(dialog, "label");
+        if (label) {
+            cJSON *label_color;
+
+            json_load_string(label, "font", config_theme->dialog.label.font,
+                    CONFIG_MAX_LENGTH_FONTNAME);
+            label_color = cJSON_GetObjectItem(label, "color");
+            if (label_color) {
+                json_load_color(label_color, "foreground",
+                        &config_theme->dialog.label.foreground);
+            }
+        }
+
+        button = cJSON_GetObjectItem(dialog, "button");
+        if (button) {
+            cJSON *btn_unselected = cJSON_GetObjectItem(button,
+                    "unselected");
+            cJSON *btn_selected = cJSON_GetObjectItem(button, "selected");
+
+            s_load_theme_colors(btn_unselected,
+                    &config_theme->dialog.button.unselected);
+            s_load_theme_colors(btn_selected,
+                    &config_theme->dialog.button.selected);
+        }
+    }
+
+    overlay = cJSON_GetObjectItem(json, "overlay");
+    s_load_theme_colors(overlay, &config_theme->overlay);
 
     cJSON_Delete(json);
 

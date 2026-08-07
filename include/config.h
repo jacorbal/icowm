@@ -504,6 +504,70 @@ struct config_theme_s {
             } valign;
         } clock;
     } systray;
+
+    /**
+     * @brief Context/cycle menu theme
+     *
+     * Applies to every context menu (root menu, per-window menu, the
+     * all-desktops window list, and their submenus) and to the
+     * Alt+Tab-style cycle menu's own window chrome.  The cycle menu's
+     * individual icon cells keep using @c icon.active / @c
+     * icon.inactive above instead of this, since that is what already
+     * themes "the icon currently selected while cycling" specifically.
+     */
+    struct {
+        /** Style for a menu entry that is neither hovered nor the
+         *  keyboard-navigated selection */
+        struct config_theme_style_s unselected;
+
+        /** Style for the hovered or keyboard-navigated entry */
+        struct config_theme_style_s selected;
+
+        /** Text color for an entry that cannot currently be activated
+         *  (e.g., "maximize" on a client that cannot be resized) */
+        uint32_t disabled_foreground;
+
+        /** Line color for a separator between groups of entries */
+        uint32_t separator_color;
+    } menu;
+
+    /**
+     * @brief Dialog theme (the quit-confirmation and generic message
+     *        dialogs)
+     */
+    struct {
+        /** Dialog window background color */
+        uint32_t background;
+
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
+
+        /** Prompt text (e.g., "Are you sure you want to exit IcoWM?") */
+        struct {
+            char font[CONFIG_MAX_LENGTH_FONTNAME];
+            uint32_t foreground;
+        } label;
+
+        /** The dialog's own buttons (e.g., "Cancel" / "Exit"), styled
+         *  the same way as a menu entry: not selected, or the
+         *  keyboard-navigated choice */
+        struct {
+            struct config_theme_style_s unselected;
+            struct config_theme_style_s selected;
+        } button;
+    } dialog;
+
+    /**
+     * @brief Transient informational overlay theme
+     *
+     * Applies to the client-info popup and the desktop-switch
+     * notification: both are single-style, non-interactive overlays
+     * with no selected/unselected state to distinguish, unlike
+     * @c menu and @c dialog above.
+     */
+    struct config_theme_style_s overlay;
 };
 
 

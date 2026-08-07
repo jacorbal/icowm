@@ -102,8 +102,8 @@ void popup_show(xcb_connection_t *connection,
     s_popup_window = xcb_generate_id(connection);
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.active.color.background;
-    values[1] = cfg->theme.window.active.border.color;
+    values[0] = cfg->theme.overlay.color.background;
+    values[1] = cfg->theme.overlay.border.color;
     values[2] = XCB_EVENT_MASK_EXPOSURE    |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_KEY_PRESS;
@@ -201,7 +201,9 @@ void popup_repaint(xcb_connection_t *connection,
     }
 
     text_renderer_init(connection,
-            cfg->theme.window.active.font);
+            cfg->theme.overlay.font);
+    text_renderer_set_color(cfg->theme.overlay.color.foreground,
+            cfg->theme.overlay.color.background);
     menu_draw_label(connection, s_popup_window, 8, 16, s_popup_lines[0]);
     menu_draw_label(connection, s_popup_window, 8, 34, s_popup_lines[1]);
     menu_draw_label(connection, s_popup_window, 8, 52, s_popup_lines[2]);

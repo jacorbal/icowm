@@ -268,21 +268,21 @@ static void s_confirm_draw(xcb_connection_t *connection,
         return;
     }
 
-    bg_win = config->theme.window.inactive.color.background;
-    fg_sel = config->theme.window.active.color.foreground;
-    bg_sel = config->theme.window.active.color.background;
-    fg_nor = config->theme.window.inactive.color.foreground;
-    bg_nor = config->theme.window.inactive.color.background;
+    bg_win = config->theme.dialog.background;
+    fg_sel = config->theme.dialog.button.selected.color.foreground;
+    bg_sel = config->theme.dialog.button.selected.color.background;
+    fg_nor = config->theme.dialog.button.unselected.color.foreground;
+    bg_nor = config->theme.dialog.button.unselected.color.background;
 
     /* 'text_renderer_init' sets shared, module-level font state used
      * by every 'text_draw_string' caller, not something private to
-     * this dialog.  Re-asserting it on every repaint, not just once
-     * when the dialog first opens, is what keeps the button labels on
-     * the correct font: something else repainting text in between two
-     * key presses here (a titlebar, a menu, the systray clock) would
-     * otherwise leave its own font selected the next time this
-     * function runs. */
-    text_renderer_init(connection, config->theme.window.active.font);
+     * this dialog.  Re-asserting it right before each piece of text
+     * below, not just once when the dialog first opens, is what keeps
+     * every label on the correct font: something else repainting text
+     * in between two key presses here (a titlebar, a menu, the systray
+     * clock) would otherwise leave its own font selected the next
+     * time this function runs, and the prompt and the two buttons can
+     * each have their own font besides. */
 
     gc = xcb_generate_id(connection);
 
@@ -322,11 +322,15 @@ static void s_confirm_draw(xcb_connection_t *connection,
     }
 
     /* Prompt text */
-    text_renderer_set_color(fg_nor, bg_win);
+    text_renderer_init(connection, config->theme.dialog.label.font);
+    text_renderer_set_color(config->theme.dialog.label.foreground, bg_win);
     menu_draw_label(connection, s_confirm_window,
             lo->prompt_x, lo->prompt_y, lo->prompt);
 
     /* Cancel label */
+    text_renderer_init(connection, (s_confirm_selected == 0)
+            ? config->theme.dialog.button.selected.font
+            : config->theme.dialog.button.unselected.font);
     text_renderer_set_color(
             (s_confirm_selected == 0) ? fg_sel : fg_nor,
             (s_confirm_selected == 0) ? bg_sel : bg_nor);
@@ -335,6 +339,9 @@ static void s_confirm_draw(xcb_connection_t *connection,
             lo->cancel_label);
 
     /* Confirm label */
+    text_renderer_init(connection, (s_confirm_selected == 1)
+            ? config->theme.dialog.button.selected.font
+            : config->theme.dialog.button.unselected.font);
     text_renderer_set_color(
             (s_confirm_selected == 1) ? fg_sel : fg_nor,
             (s_confirm_selected == 1) ? bg_sel : bg_nor);
@@ -384,7 +391,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     s_confirm_layout.confirm_label[
         sizeof(s_confirm_layout.confirm_label) - 1u] = '\0';
 
-    text_renderer_init(connection, config->theme.window.active.font);
+    text_renderer_init(connection, config->theme.dialog.label.font);
     s_confirm_compute_layout(&s_confirm_layout);
     s_confirm_selected = 0;
     s_confirm_callback = on_confirm;
@@ -401,8 +408,8 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
         XCB_CW_BORDER_PIXEL         |
         XCB_CW_OVERRIDE_REDIRECT    |
         XCB_CW_EVENT_MASK;
-    values[0] = config->theme.window.inactive.color.background;
-    values[1] = config->theme.window.active.border.color;
+    values[0] = config->theme.dialog.background;
+    values[1] = config->theme.dialog.border.color;
     values[2] = 1;  /* override_redirect: keep WM from managing it */
     values[3] = XCB_EVENT_MASK_EXPOSURE |
         XCB_EVENT_MASK_BUTTON_PRESS     |
@@ -622,15 +629,14 @@ static void s_message_draw(xcb_connection_t *connection,
         return;
     }
 
-    bg_win = config->theme.window.inactive.color.background;
-    fg_sel = config->theme.window.active.color.foreground;
-    bg_sel = config->theme.window.active.color.background;
-    fg_nor = config->theme.window.inactive.color.foreground;
+    bg_win = config->theme.dialog.background;
+    fg_sel = config->theme.dialog.button.selected.color.foreground;
+    bg_sel = config->theme.dialog.button.selected.color.background;
+    fg_nor = config->theme.dialog.label.foreground;
 
-    /* See the matching comment in 's_confirm_draw' above: this has to
-     * be re-asserted on every repaint, not just once when the dialog
-     * first opens. */
-    text_renderer_init(connection, config->theme.window.active.font);
+    /* See the matching comment in 's_confirm_draw' above: font has to
+     * be re-asserted right before each piece of text, not just once
+     * when the dialog first opens. */
 
     gc = xcb_generate_id(connection);
 
@@ -655,12 +661,13 @@ static void s_message_draw(xcb_connection_t *connection,
     xcb_free_gc(connection, gc);
 
     /* Message text */
-    text_renderer_init(connection, config->theme.window.active.font);
+    text_renderer_init(connection, config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
     menu_draw_label(connection, s_message_window,
             lo->msg_x, lo->msg_y, lo->message);
 
     /* OK label */
+    text_renderer_init(connection, config->theme.dialog.button.selected.font);
     text_renderer_set_color(fg_sel, bg_sel);
     menu_draw_label(connection, s_message_window,
             lo->btn_label_x, lo->btn_label_y,
@@ -716,7 +723,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             sizeof(s_message_layout.message) - 1u] = '\0';
     }
 
-    text_renderer_init(connection, config->theme.window.active.font);
+    text_renderer_init(connection, config->theme.dialog.label.font);
     s_message_compute_layout(&s_message_layout);
 
     menu_dialog_center(surface, s_message_layout.w,
@@ -731,8 +738,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
         XCB_CW_BORDER_PIXEL         |
         XCB_CW_OVERRIDE_REDIRECT    |
         XCB_CW_EVENT_MASK;
-    values[0] = config->theme.window.inactive.color.background;
-    values[1] = config->theme.window.active.border.color;
+    values[0] = config->theme.dialog.background;
+    values[1] = config->theme.dialog.border.color;
     values[2] = 1;  /* override_redirect: keep WM from managing it */
     values[3] = XCB_EVENT_MASK_EXPOSURE     |
                 XCB_EVENT_MASK_BUTTON_PRESS |

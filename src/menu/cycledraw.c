@@ -347,12 +347,12 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
         return;
     }
 
-    fg_sel = config->theme.window.active.color.foreground;
-    bg_sel = config->theme.window.active.color.background;
-    fg_nor = config->theme.window.inactive.color.foreground;
-    bg_nor = config->theme.window.inactive.color.background;
+    fg_sel = config->theme.menu.selected.color.foreground;
+    bg_sel = config->theme.menu.selected.color.background;
+    fg_nor = config->theme.menu.unselected.color.foreground;
+    bg_nor = config->theme.menu.unselected.color.background;
 
-    text_renderer_init(connection, config->theme.window.active.font);
+    text_renderer_init(connection, config->theme.menu.unselected.font);
 
     for (int i = g_cycle_menu.scroll_offset;
             i < g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows;
@@ -392,7 +392,6 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
                     (int16_t) (WM_CYCLE_MENU_PAD_Y - 2),
                     "---");
-                    //"\xe2\x96\xb2");    /* UTF-8: ▲ U+25B2 */
         } else {
             /* Clear the top padding area when no arrow is needed */
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
@@ -414,7 +413,6 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
                     (int16_t) (bot_y + WM_CYCLE_MENU_PAD_Y - 2),
                     "---");
-                    //"\xe2\x96\xbc");    /* UTF-8: ▼ U+25BC */
         } else {
             /* Clear the bottom padding area when no arrow is needed */
             int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +

@@ -339,8 +339,8 @@ void cycle_open(list_td *surfaces,
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.window.inactive.color.background;
-    values[1] = cfg->theme.window.active.border.color;
+    values[0] = cfg->theme.menu.unselected.color.background;
+    values[1] = cfg->theme.menu.unselected.border.color;
     values[2] = 1;  /* override_redirect = true */
     values[3] = XCB_EVENT_MASK_EXPOSURE    |
         XCB_EVENT_MASK_KEY_PRESS    |

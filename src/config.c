@@ -408,6 +408,56 @@ void config_set_default_values(config_td *config)
      * 'clock.valign' has no visible effect until this is raised. */
     config->theme.systray.height = 32u;
     config->theme.systray.clock.valign = CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER;
+
+    safe_strcpy(config->theme.menu.unselected.font, "fixed");
+    config->theme.menu.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.menu.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    config->theme.menu.unselected.border.color = json_hex2uint32("7F9AB6");
+    config->theme.menu.unselected.border.width = 1u;
+
+    safe_strcpy(config->theme.menu.selected.font, "fixed bold");
+    config->theme.menu.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    config->theme.menu.selected.color.foreground =
+        json_hex2uint32("253040");
+    config->theme.menu.selected.border.color = json_hex2uint32("4A5566");
+    config->theme.menu.selected.border.width = 1u;
+
+    config->theme.menu.disabled_foreground = json_hex2uint32("A0A8B0");
+    config->theme.menu.separator_color = json_hex2uint32("7F9AB6");
+
+    config->theme.dialog.background = json_hex2uint32("D0D9E5");
+    config->theme.dialog.border.color = json_hex2uint32("7F9AB6");
+    config->theme.dialog.border.width = 2u;
+
+    safe_strcpy(config->theme.dialog.label.font, "fixed");
+    config->theme.dialog.label.foreground = json_hex2uint32("4A5566");
+
+    safe_strcpy(config->theme.dialog.button.unselected.font, "fixed");
+    config->theme.dialog.button.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.dialog.button.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    config->theme.dialog.button.unselected.border.color =
+        json_hex2uint32("7F9AB6");
+    config->theme.dialog.button.unselected.border.width = 1u;
+
+    safe_strcpy(config->theme.dialog.button.selected.font, "fixed bold");
+    config->theme.dialog.button.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    config->theme.dialog.button.selected.color.foreground =
+        json_hex2uint32("253040");
+    config->theme.dialog.button.selected.border.color =
+        json_hex2uint32("4A5566");
+    config->theme.dialog.button.selected.border.width = 1u;
+
+    safe_strcpy(config->theme.overlay.font, "fixed");
+    config->theme.overlay.color.background = json_hex2uint32("D0D9E5");
+    config->theme.overlay.color.foreground = json_hex2uint32("4A5566");
+    config->theme.overlay.border.color = json_hex2uint32("7F9AB6");
+    config->theme.overlay.border.width = 1u;
 }
 
 

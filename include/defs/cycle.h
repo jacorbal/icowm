@@ -1,5 +1,5 @@
 /**
- * @file cycle_menu.h
+ * @file cycle.h
  *
  * @brief Dimensions and capacity limits for the Alt+Tab-style client
  *        cycle menu
@@ -12,8 +12,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef DEFS_CYCLE_MENU_H
-#define DEFS_CYCLE_MENU_H
+#ifndef DEFS_CYCLE_H
+#define DEFS_CYCLE_H
 
 
 /** Maximum number of entries in the cycle menu */
@@ -42,4 +42,4 @@
 #define WM_CYCLE_MENU_MAX_HEIGHT_PERC (80)
 
 
-#endif  /* ! DEFS_CYCLE_MENU_H */
+#endif  /* ! DEFS_CYCLE_H */

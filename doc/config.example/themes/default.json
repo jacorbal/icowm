@@ -89,5 +89,90 @@
         "clock": {
             "valign": "center"
         }
+    },
+
+    "menu": {
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#4a5566"
+            },
+            "border": {
+                "color": "#7f9ab6",
+                "width": 1
+            }
+        },
+        "selected": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            },
+            "border": {
+                "color": "#4a5566",
+                "width": 1
+            }
+        },
+        "disabled": {
+            "color": {
+                "foreground": "#a0a8b0"
+            }
+        },
+        "separator": {
+            "color": "#7f9ab6"
+        }
+    },
+
+    "dialog": {
+        "color": {
+            "background": "#d0d9e5"
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        },
+        "label": {
+            "font": "fixed",
+            "color": {
+                "foreground": "#4a5566"
+            }
+        },
+        "button": {
+            "unselected": {
+                "font": "fixed",
+                "color": {
+                    "background": "#d0d9e5",
+                    "foreground": "#4a5566"
+                },
+                "border": {
+                    "color": "#7f9ab6",
+                    "width": 1
+                }
+            },
+            "selected": {
+                "font": "fixed bold",
+                "color": {
+                    "background": "#9aaec8",
+                    "foreground": "#253040"
+                },
+                "border": {
+                    "color": "#4a5566",
+                    "width": 1
+                }
+            }
+        }
+    },
+
+    "overlay": {
+        "font": "fixed",
+        "color": {
+            "background": "#d0d9e5",
+            "foreground": "#4a5566"
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 1
+        }
     }
 }

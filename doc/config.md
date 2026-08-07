@@ -911,7 +911,143 @@ icons the clock counts as being docked.
 }
 ```
 
-### 4.4 Configuration reload and already-open windows
+### 4.4 `menu`
+
+Applies to every context menu (root menu, per-window menu, the
+all-desktops window list, and their submenus) and to the Alt+Tab-style
+cycle menu's own window chrome.  The cycle menu's individual icon
+cells keep using `icon.active` / `icon.inactive` (section 4.2) instead
+of this, since that already themes "the icon currently selected while
+cycling" specifically; likewise, the border drawn around the actual
+window or icon being previewed while cycling uses `window.active` /
+`window.inactive` (section 4.1), since that is a highlight on the real
+window, not on the menu.
+
+| Key                        | Type    | Default     |
+|-----------------------------|---------|-------------|
+| `unselected.font`          | string  | `"fixed"`   |
+| `unselected.color.background` | string | `"#D0D9E5"` |
+| `unselected.color.foreground` | string | `"#4A5566"` |
+| `unselected.border.color`  | string  | `"#7F9AB6"` |
+| `unselected.border.width`  | integer | `1`         |
+| `selected.font`            | string  | `"fixed bold"` |
+| `selected.color.background` | string | `"#9AAEC8"` |
+| `selected.color.foreground` | string | `"#253040"` |
+| `selected.border.color`    | string  | `"#4A5566"` |
+| `selected.border.width`    | integer | `1`         |
+| `disabled.color.foreground` | string | `"#A0A8B0"` |
+| `separator.color`          | string  | `"#7F9AB6"` |
+
+`unselected` styles an entry that is neither hovered nor the
+keyboard-navigated selection; `selected` styles the entry that is.
+`disabled.color.foreground` colors the text of an entry that cannot
+currently be activated (e.g., "maximize" on a client that cannot be
+resized); its background still comes from `unselected` or `selected`
+depending on whether it happens to also be the current selection.
+`separator.color` is the line color for a separator between groups of
+entries.
+
+```json
+"menu": {
+    "unselected": {
+        "font": "fixed",
+        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+        "border": { "color": "#7F9AB6", "width": 1 }
+    },
+    "selected": {
+        "font": "fixed bold",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" },
+        "border": { "color": "#4A5566", "width": 1 }
+    },
+    "disabled": {
+        "color": { "foreground": "#A0A8B0" }
+    },
+    "separator": {
+        "color": "#7F9AB6"
+    }
+}
+```
+
+### 4.5 `dialog`
+
+Applies to the quit-confirmation dialog and the generic message
+dialog.
+
+| Key                          | Type    | Default     |
+|-------------------------------|---------|-------------|
+| `color.background`           | string  | `"#D0D9E5"` |
+| `border.color`                | string  | `"#7F9AB6"` |
+| `border.width`                | integer | `2`         |
+| `label.font`                  | string  | `"fixed"`   |
+| `label.color.foreground`     | string  | `"#4A5566"` |
+| `button.unselected.font`     | string  | `"fixed"`   |
+| `button.unselected.color.background` | string | `"#D0D9E5"` |
+| `button.unselected.color.foreground` | string | `"#4A5566"` |
+| `button.unselected.border.color` | string | `"#7F9AB6"` |
+| `button.unselected.border.width` | integer | `1`     |
+| `button.selected.font`       | string  | `"fixed bold"` |
+| `button.selected.color.background` | string | `"#9AAEC8"` |
+| `button.selected.color.foreground` | string | `"#253040"` |
+| `button.selected.border.color` | string | `"#4A5566"` |
+| `button.selected.border.width` | integer | `1`     |
+
+`color.background` and `border` are the dialog window's own background
+and frame.  `label` styles the prompt or message text (e.g., "Are you
+sure you want to exit IcoWM?").  `button.unselected` and
+`button.selected` style the dialog's buttons (e.g., "Cancel" / "Exit"),
+the same not-selected/keyboard-navigated-choice distinction as `menu`
+above; the message dialog's single "OK" button always uses
+`button.selected`, since there is nothing else it could be navigated
+away from.
+
+```json
+"dialog": {
+    "color": { "background": "#D0D9E5" },
+    "border": { "color": "#7F9AB6", "width": 2 },
+    "label": {
+        "font": "fixed",
+        "color": { "foreground": "#4A5566" }
+    },
+    "button": {
+        "unselected": {
+            "font": "fixed",
+            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+            "border": { "color": "#7F9AB6", "width": 1 }
+        },
+        "selected": {
+            "font": "fixed bold",
+            "color": { "background": "#9AAEC8", "foreground": "#253040" },
+            "border": { "color": "#4A5566", "width": 1 }
+        }
+    }
+}
+```
+
+### 4.6 `overlay`
+
+A single `font` / `color` / `border` block, the same shape as
+`window.active` (section 4.1), applied to transient informational
+overlays that are not menus or dialogs: the client-info popup and the
+desktop-switch notification.  Both are single-style, non-interactive
+overlays with no selected/unselected state to distinguish.
+
+| Key                 | Type    | Default     |
+|---------------------|---------|-------------|
+| `font`              | string  | `"fixed"`   |
+| `color.background`  | string  | `"#D0D9E5"` |
+| `color.foreground`  | string  | `"#4A5566"` |
+| `border.color`      | string  | `"#7F9AB6"` |
+| `border.width`      | integer | `1`         |
+
+```json
+"overlay": {
+    "font": "fixed",
+    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+    "border": { "color": "#7F9AB6", "width": 1 }
+}
+```
+
+### 4.7 Configuration reload and already-open windows
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names
