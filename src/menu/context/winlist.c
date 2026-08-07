@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <stdlib.h>     /* calloc, free */
 #include <string.h>     /* memset */
 #include <stdio.h>      /* snprintf */
 
@@ -54,26 +53,79 @@
 
 
 /**
- * @brief Maximum total entries in the window list menu
+ * @brief Maximum desktops shown as top-level entries
  *
- * One label per desktop + one entry per client.  Cap to avoid
- * over-allocation when many clients are open.
+ * A generous cap on how many per-desktop submenus can exist at once;
+ * far above any realistic desktop count.
  */
-#define WINLIST_MAX_ENTRIES (256)
+#define WINLIST_MAX_DESKTOPS (16)
 
+/**
+ * @brief Maximum entries (windows and application-group submenus
+ *        combined) inside a single desktop's submenu
+ */
+#define WINLIST_MAX_ENTRIES_PER_DESKTOP (64)
 
-/** Singleton menu state */
+/**
+ * @brief Maximum simultaneously open application-group submenus, summed
+ *        across every desktop submenu
+ *
+ * Only applications with two or more windows on the same desktop get
+ * one of these; single-window applications are listed directly.
+ */
+#define WINLIST_MAX_APPGROUPS (32)
+
+/**
+ * @brief Maximum windows listed inside a single application-group
+ *        submenu
+ */
+#define WINLIST_MAX_APPGROUP_SIZE (32)
+
+/**
+ * @brief Size of the scratch buffer used to collect a desktop's
+ *        candidate clients before grouping them by application
+ */
+#define WINLIST_MAX_COLLECTED (128)
+
+/**
+ * @brief Size of the shared pool of per-entry userdata records
+ *
+ * Sized to cover the worst case at every level: one per desktop (for
+ * its "Go there..." entry), one per entry in every desktop submenu, and
+ * one per window in every application-group submenu.
+ */
+#define WINLIST_MAX_ENTRY_DATA \
+    (WINLIST_MAX_DESKTOPS + \
+     WINLIST_MAX_DESKTOPS * WINLIST_MAX_ENTRIES_PER_DESKTOP + \
+     WINLIST_MAX_APPGROUPS * WINLIST_MAX_APPGROUP_SIZE)
+
+/** Singleton root menu state: one @c CTXMENU_SUBMENU entry per desktop */
 static ctxmenu_state_td s_root;
 
-/** Dynamically allocated entry array */
-static ctxmenu_entry_td *s_entries = NULL;
+/** Entries for the top-level (per-desktop) menu */
+static ctxmenu_entry_td s_root_entries[WINLIST_MAX_DESKTOPS + 1];
 
-/** Number of entries in @a s_entries */
-static int s_entry_count = 0;
+/** State for each desktop's submenu */
+static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
+
+/** Entries for each desktop's submenu */
+static ctxmenu_entry_td
+    s_desktop_entries[WINLIST_MAX_DESKTOPS][WINLIST_MAX_ENTRIES_PER_DESKTOP];
+
+/** State for each application-group submenu, allocated on demand */
+static ctxmenu_state_td s_appgroup_state[WINLIST_MAX_APPGROUPS];
+
+/** Entries for each application-group submenu */
+static ctxmenu_entry_td
+    s_appgroup_entries[WINLIST_MAX_APPGROUPS][WINLIST_MAX_APPGROUP_SIZE];
+
+/** Number of application-group slots claimed during this 'winlist_show' */
+static int s_appgroup_used = 0;
+
 
 
 /**
- * @brief Userdata structure for the "Go there..." desktop-switch entry
+ * @brief Userdata structure for a window-list menu entry
  */
 typedef struct {
     surface_td *surface;    /**< Surface that owns the desktop */
@@ -82,8 +134,11 @@ typedef struct {
 } winlist_entry_data_td;
 
 
-/** Per-entry userdata pool */
-static winlist_entry_data_td s_entry_data[WINLIST_MAX_ENTRIES];
+/** Shared pool of per-entry userdata, handed out sequentially */
+static winlist_entry_data_td s_entry_data[WINLIST_MAX_ENTRY_DATA];
+
+/** Number of @e s_entry_data slots claimed during this @a winlist_show */
+static int s_entry_data_used = 0;
 
 
 /**
@@ -217,169 +272,289 @@ static void s_format_client_label(const client_td *client,
 /**
  * @brief Append one menu entry for a client in a given desktop section
  *
- * Fills the next available slot in @c s_entries with a command entry
- * for @p client, associating it with @p did so that activating it
- * switches to @p did and then focuses the client.
+ * @return Pointer to a zeroed @c winlist_entry_data_td slot, or @c NULL
+ *         if the pool is exhausted
+ */
+static winlist_entry_data_td *s_alloc_entry_data(void)
+{
+    winlist_entry_data_td *slot;
+
+    if (s_entry_data_used >= WINLIST_MAX_ENTRY_DATA) {
+        return NULL;
+    }
+
+    slot = &s_entry_data[s_entry_data_used];
+    s_entry_data_used++;
+    memset(slot, 0, sizeof(*slot));
+
+    return slot;
+}
+
+
+/**
+ * @brief Append one command entry for a client into an entries array
  *
  * @param client      Client to add
- * @param did         Desktop section this entry belongs to
+ * @param did         Desktop this entry switches to when activated
  * @param surface     Surface that owns the desktop
- * @param entry_count Current number of entries; updated on return
+ * @param out_entries Destination entries array
+ * @param out_cap     Capacity of @p out_entries
+ * @param out_count   Current entry count in @p out_entries; advanced by
+ *                    one on success
  */
 static void s_append_client_entry(client_td *client, uint32_t did,
-        surface_td *surface, int *entry_count)
+        surface_td *surface, ctxmenu_entry_td *out_entries,
+        int out_cap, int *out_count)
 {
     const char *cname;
     char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    winlist_entry_data_td *data;
     int n;
 
-    if (client == NULL || surface == NULL || entry_count == NULL) {
+    if (client == NULL || surface == NULL || out_entries == NULL ||
+            out_count == NULL) {
         return;
     }
 
-    n = *entry_count;
-    if (n >= WINLIST_MAX_ENTRIES - 1) {
+    n = *out_count;
+    if (n >= out_cap) {
+        return;
+    }
+
+    data = s_alloc_entry_data();
+    if (data == NULL) {
         return;
     }
 
     cname = (client->info.name != NULL && client->info.name[0] != '\0')
         ? client->info.name : "(unnamed)";
     s_format_client_label(client, cname, name_buf, sizeof(name_buf));
-    s_entries[n].type = CTXMENU_COMMAND;
-    safe_strncpy(s_entries[n].label, name_buf,
-            sizeof(s_entries[n].label) - 1u);
-    s_entry_data[n].surface = surface;
-    s_entry_data[n].client = client;
-    s_entry_data[n].desktop_id = did;
-    s_entries[n].on_activate = s_cb_focus_client;
-    s_entries[n].userdata = &s_entry_data[n];
-    *entry_count = n + 1;
+    out_entries[n].type = CTXMENU_COMMAND;
+    safe_strncpy(out_entries[n].label, name_buf,
+            sizeof(out_entries[n].label) - 1u);
+    data->surface = surface;
+    data->client = client;
+    data->desktop_id = did;
+    out_entries[n].on_activate = s_cb_focus_client;
+    out_entries[n].userdata = data;
+    *out_count = n + 1;
 }
 
 
 /**
- * @brief Append sticky clients from every desktop to a desktop section
+ * @brief Best-effort display name for an application group
  *
- * Sticky (pinned) clients are physically stored in the current desktop
- * after each desktop switch.  To show them under every desktop section
- * in the window list, this function scans all desktops on @p surface
- * and appends any client that is sticky, regardless of which desktop's
- * hash table currently holds it.  Avoids duplicating a sticky client
- * that is already present in the section because it happens to be in
- * that desktop's hash table.
+ * Prefers the group leader's own @c WM_CLASS class name (more stable
+ * across an application's windows than each window's own title); falls
+ * back to the first member's window title when unavailable.
  *
- * @param surface     Surface that owns all desktops
- * @param did         Desktop section to populate with sticky entries
- * @param entry_count Current number of entries; updated on return
+ * @param members  Array of the group's client pointers
+ * @param member_n Number of entries in @p members
+ * @param buf      Destination buffer
+ * @param buf_size Size of @p buf in bytes
  */
-static void s_add_sticky_clients(surface_td *surface, uint32_t did,
-        int *entry_count)
+static void s_appgroup_label(client_td * const *members, int member_n,
+        char *buf, size_t buf_size)
 {
-    cdlist_item_td *dnode;
-    cdlist_item_td *dinitial;
-    desktop_td *desktop;
-    client_td *client;
+    const char *name;
 
-    if (surface == NULL || surface->desktops == NULL ||
-            entry_count == NULL) {
+    if (members == NULL || member_n <= 0 || buf == NULL ||
+            buf_size == 0u) {
         return;
     }
 
-    dnode = cdlist_head(surface->desktops);
-    if (dnode == NULL) {
-        return;
-    }
-
-    dinitial = dnode;
-    do {
-        desktop = (desktop_td *) cdlist_data(dnode);
-        if (desktop != NULL && desktop->clients != NULL) {
-            ohtbl_foreach(desktop->clients, client) {
-                if (client == NULL) {
-                    continue;
-                }
-                if (!client_is_sticky(client)) {
-                    continue;
-                }
-                /* Skip panels, docks, and other windows that have asked
-                 * not to appear in taskbar/window lists */
-                if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
-                    continue;
-                }
-                /* Only add if this desktop's hash table does not
-                 * already hold it for this section (it will be listed
-                 * by 's_add_desktop_clients' when did matches the
-                 * desktop the sticky client is physically stored in). */
-                if (desktop == surface_desktop_get(surface, did)) {
-                    continue;
-                }
-                s_append_client_entry(client, did, surface, entry_count);
-                if (*entry_count >= WINLIST_MAX_ENTRIES - 1) {
-                    return;
-                }
-            }
+    name = NULL;
+    for (int i = 0; i < member_n && name == NULL; ++i) {
+        if (members[i] != NULL && members[i]->info.class_name[1] != NULL &&
+                members[i]->info.class_name[1][0] != '\0') {
+            name = members[i]->info.class_name[1];
         }
-        dnode = cdlist_next(dnode);
-    } while (dnode != NULL && dnode != dinitial);
+    }
+    if (name == NULL) {
+        name = (members[0] != NULL && members[0]->info.name != NULL &&
+                members[0]->info.name[0] != '\0')
+            ? members[0]->info.name : "(unnamed)";
+    }
+
+    (void) snprintf(buf, buf_size, "%s (%d)", name, member_n);
 }
 
 
 /**
- * @brief Append all clients that belong to a desktop as menu entries
+ * @brief Build one desktop's submenu entries
  *
- * Iterates over the client hash table of the desktop identified by
- * @p did and appends one @c CTXMENU_COMMAND entry per visible client.
- * Non-sticky clients are included only when their @c desktop_id matches
- * @p did.  Sticky clients found in this desktop's hash table are always
- * included; sticky clients stored in other desktops are added by
- * @c s_add_sticky_clients.  Stops early when @c WINLIST_MAX_ENTRIES is
- * reached.
+ * Collects every client that belongs to @p did (physically stored
+ * there, plus sticky clients stored elsewhere), then groups them by
+ * @c client_group_leader: an application with two or more windows on
+ * this desktop collapses into a single "ProgName (N)" submenu instead
+ * of @e N separate rows, so a desktop with many windows from a handful
+ * of applications (e.g., several Xpad notes) stays short enough to fit
+ * on screen without needing to scroll.
  *
  * @param surface     Surface that owns the desktop
  * @param did         Desktop ID whose clients are to be listed
- * @param entry_count Current number of entries; updated on return to
- *                    reflect the entries appended
+ * @param out_entries Destination entries array for this desktop
+ * @param out_count   Entry count in @p out_entries; advanced as entries
+ *                    are appended
+ *
+ * @note Applications with only one window here are listed directly
  */
-static void s_add_desktop_clients(surface_td *surface, uint32_t did,
-        int *entry_count)
+static void s_build_desktop_entries(surface_td *surface, uint32_t did,
+        ctxmenu_entry_td *out_entries, int *out_count)
 {
+    client_td *collected[WINLIST_MAX_COLLECTED];
+    bool placed[WINLIST_MAX_COLLECTED];
+    int collected_n;
     desktop_td *desktop;
+    desktop_td *home_desktop;
     client_td *client;
+    cdlist_item_td *dnode;
+    cdlist_item_td *dinitial;
+    int group_idx;
+    int group_n;
+    char label_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    int n;
 
-    if (surface == NULL || entry_count == NULL) {
+    if (surface == NULL || out_entries == NULL || out_count == NULL) {
         return;
     }
 
     desktop = surface_desktop_get(surface, did);
-    if (desktop == NULL || desktop->clients == NULL) {
+    if (desktop == NULL) {
         return;
     }
 
-    ohtbl_foreach(desktop->clients, client) {
-         if (*entry_count >= WINLIST_MAX_ENTRIES - 1) {
-            break;
+    /* Collect: every client physically stored in this desktop's own
+     * table (sticky ones stored here because it is the current desktop
+     * included), plus sticky clients physically stored in other
+     * desktops (sticky clients live wherever the desktop switch last
+     * put them, not necessarily their nominal 'desktop_id') */
+    collected_n = 0;
+    if (desktop->clients != NULL) {
+        ohtbl_foreach(desktop->clients, client) {
+            if (client == NULL ||
+                    (client->properties.flags &
+                        CLIENT_FLAG_SKIP_TASKBAR) ||
+                    (!client_is_sticky(client) &&
+                        client->desktop_id != did)) {
+                continue;
+            }
+            if (collected_n < WINLIST_MAX_COLLECTED) {
+                collected[collected_n] = client;
+                placed[collected_n] = false;
+                collected_n++;
+            }
         }
-
-        /* Skip panels, docks, and other windows that have asked not to
-         * appear in taskbar/window lists */
-        if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
-            continue;
-        }
-
-        /* Include every client physically stored in this desktop's hash
-         * table whose 'desktop_id' matches.  Sticky clients that happen
-         * to be stored here (because this is the current desktop) are
-         * also included; sticky clients stored in other desktops are
-         * added separately by 's_add_sticky_clients'. */
-        if (!client_is_sticky(client) && client->desktop_id != did) {
-            continue;
-        }
-
-        s_append_client_entry(client, did, surface, entry_count);
     }
 
-    /* Add sticky clients that are currently stored in other desktops */
-    s_add_sticky_clients(surface, did, entry_count);
+    if (surface->desktops != NULL) {
+        dnode = cdlist_head(surface->desktops);
+        if (dnode != NULL) {
+            dinitial = dnode;
+            do {
+                home_desktop = (desktop_td *) cdlist_data(dnode);
+                if (home_desktop != NULL && home_desktop != desktop &&
+                        home_desktop->clients != NULL) {
+                    ohtbl_foreach(home_desktop->clients, client) {
+                        if (client == NULL || !client_is_sticky(client) ||
+                                (client->properties.flags &
+                                    CLIENT_FLAG_SKIP_TASKBAR)) {
+                            continue;
+                        }
+                        if (collected_n < WINLIST_MAX_COLLECTED) {
+                            collected[collected_n] = client;
+                            placed[collected_n] = false;
+                            collected_n++;
+                        }
+                    } /* ! ohtbl_foreach */
+                }
+                dnode = cdlist_next(dnode);
+            } while (dnode != NULL && dnode != dinitial);
+        }
+    }
+
+    /* Group by application (shared 'WM_CLIENT_LEADER'/'WM_HINTS' group
+     * leader); ungrouped clients (no leader) are always listed alone */
+    for (int i = 0; i < collected_n; ++i) {
+        xcb_window_t leader;
+        client_td *members[WINLIST_MAX_APPGROUP_SIZE];
+        int member_n;
+
+        if (placed[i]) {
+            continue;
+        }
+
+        leader = client_group_leader(collected[i]);
+        if (leader == XCB_WINDOW_NONE) {
+            s_append_client_entry(collected[i], did, surface,
+                    out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
+                    out_count);
+            placed[i] = true;
+            continue;
+        }
+
+        member_n = 0;
+        for (int j = i; j < collected_n; ++j) {
+            if (!placed[j] &&
+                    client_group_leader(collected[j]) == leader) {
+                if (member_n < WINLIST_MAX_APPGROUP_SIZE) {
+                    members[member_n] = collected[j];
+                    member_n++;
+                }
+                placed[j] = true;
+            }
+        }
+
+        if (member_n <= 1) {
+            if (member_n == 1) {
+                s_append_client_entry(members[0], did, surface,
+                        out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
+                        out_count);
+            }
+            continue;
+        }
+
+        if (*out_count >= WINLIST_MAX_ENTRIES_PER_DESKTOP ||
+                s_appgroup_used >= WINLIST_MAX_APPGROUPS) {
+            /* Out of submenu slots: fall back to listing this group's
+             * windows directly rather than dropping them silently */
+            for (int k = 0; k < member_n; ++k) {
+                s_append_client_entry(members[k], did, surface,
+                        out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
+                        out_count);
+            }
+            continue;
+        }
+
+        group_idx = s_appgroup_used;
+        group_n = 0;
+        n = *out_count;
+
+        s_appgroup_used++;
+        for (int k = 0; k < member_n; ++k) {
+            s_append_client_entry(members[k], did, surface,
+                    s_appgroup_entries[group_idx],
+                    WINLIST_MAX_APPGROUP_SIZE, &group_n);
+        }
+
+        memset(&s_appgroup_state[group_idx], 0,
+                sizeof(s_appgroup_state[group_idx]));
+        s_appgroup_state[group_idx].window = XCB_WINDOW_NONE;
+        s_appgroup_state[group_idx].entries =
+            s_appgroup_entries[group_idx];
+        s_appgroup_state[group_idx].entry_count = group_n;
+
+        s_appgroup_label(members, member_n, label_buf,
+                sizeof(label_buf));
+
+        out_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(out_entries[n].label, label_buf,
+                sizeof(out_entries[n].label) - 1u);
+        out_entries[n].items = s_appgroup_entries[group_idx];
+        out_entries[n].item_count = group_n;
+        out_entries[n].userdata = &s_appgroup_state[group_idx];
+        *out_count = n + 1;
+    }
 }
 
 
@@ -392,6 +567,7 @@ void winlist_show(xcb_connection_t *connection,
     uint32_t cur_did;
     desktop_td *desktop;
     int n;
+    int desktop_count;
     const char *label_fmt;
     char label_buf[WM_CTXMENU_LABEL_MAX_LEN];
 
@@ -401,35 +577,78 @@ void winlist_show(xcb_connection_t *connection,
 
     winlist_close();
 
-    s_entries = (ctxmenu_entry_td *) calloc(
-            (size_t) WINLIST_MAX_ENTRIES, sizeof(ctxmenu_entry_td));
-    if (s_entries == NULL) {
-        return;
-    }
+    s_entry_data_used = 0;
+    s_appgroup_used = 0;
+    memset(s_root_entries, 0, sizeof(s_root_entries));
+    memset(s_desktop_entries, 0, sizeof(s_desktop_entries));
 
     n = 0;
     cur_did = surface->desktop_cur;
-    memset(s_entry_data, 0, sizeof(s_entry_data));
+    desktop_count = (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
+        ? (int) surface->desktop_count : WINLIST_MAX_DESKTOPS;
 
-    for (did = 0;
-            (did < surface->desktop_count) &&
-                (n < WINLIST_MAX_ENTRIES - 1);
-            ++did) {
+    for (did = 0; (int) did < desktop_count; ++did) {
+        winlist_entry_data_td *data;
+        int desktop_n;
         bool is_cur;
-        int before_clients;
 
         desktop = surface_desktop_get(surface, did);
         if (desktop == NULL) {
             continue;
         }
 
+        desktop_n = 0;
+        s_build_desktop_entries(surface, did, s_desktop_entries[did],
+                &desktop_n);
+
         is_cur = did == cur_did;
+
+        /* Always add a "Go there..." entry at the top of the desktop's
+         * own submenu, same as before, so picking the desktop itself
+         * (with no particular window) still works */
+        if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+            data = s_alloc_entry_data();
+            if (data != NULL) {
+                /* Shift existing entries down by one to make room at
+                 * the front; desktop_n is always small enough for this
+                 * to be cheap */
+                for (int i = desktop_n; i > 0; --i) {
+                    s_desktop_entries[did][i] =
+                        s_desktop_entries[did][i - 1];
+                }
+                s_desktop_entries[did][0].type = CTXMENU_COMMAND;
+                safe_strncpy(s_desktop_entries[did][0].label,
+                        "Go there...",
+                        sizeof(s_desktop_entries[did][0].label) - 1u);
+                s_desktop_entries[did][0].is_disabled = is_cur;
+                s_desktop_entries[did][0].on_activate = NULL;
+                s_desktop_entries[did][0].userdata = NULL;
+                if (!is_cur) {
+                    data->surface = surface;
+                    data->client = NULL;
+                    data->desktop_id = did;
+                    s_desktop_entries[did][0].on_activate =
+                        s_cb_goto_desktop;
+                    s_desktop_entries[did][0].userdata = data;
+                }
+                desktop_n++;
+            }
+        }
+
+        if (desktop_n == 0) {
+            continue;
+        }
+
+        memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
+        s_desktop_state[did].window = XCB_WINDOW_NONE;
+        s_desktop_state[did].entries = s_desktop_entries[did];
+        s_desktop_state[did].entry_count = desktop_n;
+
         label_fmt = (desktop->name[0] != '\0')
             ? "%s[%u] -- %s%s"
             : "%s[%u]%s";
-
         if (desktop->name[0] != '\0') {
-                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
+            (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                     did, desktop->name,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
@@ -439,47 +658,26 @@ void winlist_show(xcb_connection_t *connection,
                     did,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
         }
-        s_entries[n].type = CTXMENU_LABEL;
-        safe_strncpy(s_entries[n].label, label_buf,
-                sizeof(s_entries[n].label) - 1u);
-        ++n;
 
-        before_clients = n;
-        s_add_desktop_clients(surface, did, &n);
-        if (n != before_clients) {
-            continue;
-        }
-
-        if (n >= WINLIST_MAX_ENTRIES - 1) {
-            break;
-        }
-
-        s_entries[n].type = CTXMENU_COMMAND;
-        safe_strncpy(s_entries[n].label, "Go there...",
-                sizeof(s_entries[n].label) - 1u);
-        s_entries[n].is_disabled = is_cur;
-        if (!is_cur) {
-            s_entry_data[n].surface = surface;
-            s_entry_data[n].client = NULL;
-            s_entry_data[n].desktop_id = did;
-            s_entries[n].on_activate = s_cb_goto_desktop;
-            s_entries[n].userdata = &s_entry_data[n];
-        }
+        s_root_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_root_entries[n].label, label_buf,
+                sizeof(s_root_entries[n].label) - 1u);
+        s_root_entries[n].items = s_desktop_entries[did];
+        s_root_entries[n].item_count = desktop_n;
+        s_root_entries[n].userdata = &s_desktop_state[did];
         ++n;
     }
 
     if (n == 0) {
-        s_entries[n].type = CTXMENU_LABEL;
-        safe_strncpy(s_entries[n].label, "(no windows)",
-                sizeof(s_entries[n].label) - 1u);
+        s_root_entries[n].type = CTXMENU_LABEL;
+        safe_strncpy(s_root_entries[n].label, "(no windows)",
+                sizeof(s_root_entries[n].label) - 1u);
         ++n;
     }
 
-    s_entry_count = n;
-
     memset(&s_root, 0, sizeof(s_root));
     s_root.window = XCB_WINDOW_NONE;
-    s_root.entries = s_entries;
+    s_root.entries = s_root_entries;
     s_root.entry_count = n;
 
     ctxmenu_show(connection, surface, &s_root, x, y, config);
@@ -490,12 +688,6 @@ void winlist_show(xcb_connection_t *connection,
 void winlist_close(void)
 {
     ctxmenu_close(&s_root);
-
-    if (s_entries != NULL) {
-        free(s_entries);
-        s_entries = NULL;
-    }
-    s_entry_count = 0;
 }
 
 
@@ -547,7 +739,7 @@ xcb_window_t winlist_window(void)
 /* Check whether 'win' belongs to the window list menu */
 bool winlist_owns_window(xcb_window_t win)
 {
-    return (s_root.window != XCB_WINDOW_NONE) && (s_root.window == win);
+    return ctxmenu_find_state_for_window(&s_root, win) != NULL;
 }
 
 
@@ -564,7 +756,10 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
 /* Handle a pointer-motion event over the window list menu */
 void winlist_handle_motion(xcb_window_t win, int x, int y)
 {
-    /* Window list uses a single state; win check is implicit */
-    (void) win;
-    ctxmenu_handle_motion(&s_root, x, y);
+    ctxmenu_state_td *state;
+
+    state = ctxmenu_find_state_for_window(&s_root, win);
+    if (state != NULL) {
+        ctxmenu_handle_motion(state, x, y);
+    }
 }

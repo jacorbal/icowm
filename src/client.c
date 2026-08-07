@@ -764,8 +764,8 @@ client_td *client_manage(xcb_connection_t *connection,
      * Format: 5x CARD32
      *      { flags, functions, decorations, input_mode, status };
      *
-     *  only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations'
-     *  are consulted here.
+     * only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations'
+     * are consulted here.
      *
      * An explicit request to turn decorations off overrides whatever
      * the type-based defaults above chose; a request to turn them on is
