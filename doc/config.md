@@ -411,6 +411,7 @@ that case.
 | `systray.is-enabled` | boolean | `false`            |
 | `systray.position`   | string  | `"top-right"`      |
 | `systray.order`      | string  | `"left-to-right"`  |
+| `systray.layer`      | string  | `"above"`          |
 
 Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
 `"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
@@ -422,6 +423,13 @@ icon, `"right-to-left"` inserts it before the first, and `"ascending"`
 / `"descending"` instead keep the whole row continuously sorted
 alphabetically ('A-Z' or 'Z-A') by each icon's window class name,
 ignoring insertion order entirely.
+
+The key `layer` controls where the dock sits in the stacking order:
+`"below"` keeps it behind every normal client window, `"above"` (the
+default) keeps it above normal windows but still lets a fullscreen
+window cover it, the same way a fullscreen window covers a taskbar or
+panel in most desktop environments, and `"above-all"` keeps it above
+absolutely everything, including fullscreen windows.
 
 When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
 on startup and embeds icon windows that request docking via the
@@ -447,8 +455,9 @@ tray.
 ```json
 "systray": {
     "is-enabled": false,
-    "position": "top-right"
-    "order": "left-to-right"
+    "position": "top-right",
+    "order": "left-to-right",
+    "layer": "above"
 }
 ```
 
@@ -1151,7 +1160,7 @@ Sub-menus can be nested to the depth limit defined by
 
     "windows": {
         "gravity": "north-west",
-        "has-grips": true,
+        "has-grips": false,
         "move-step": 10,
         "snap": 4,
         "group-related": true,
@@ -1178,7 +1187,8 @@ Sub-menus can be nested to the depth limit defined by
     "systray": {
         "is-enabled": true,
         "position": "top-right",
-        "order": "left-to-right"
+        "order": "left-to-right",
+        "layer": "above"
     },
 
     "xsettings": {

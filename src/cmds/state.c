@@ -34,6 +34,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
@@ -367,10 +368,21 @@ void wcmd_client_fullscreen(client_td *client)
         client->layout.frame_extents.bottom = 0;
     }
 
-    /* Resize the visible target to fill screen */
+    /* Resize the visible target to fill screen.  'BORDER_WIDTH' is
+     * always included here, not just inside the 'was_decorated' block
+     * above: for an undecorated client, 'target' is the client's own
+     * window (there is no frame to have already cleared the border
+     * on), and it may well have a real border of its own (the theme's
+     * border width is applied directly to undecorated windows).
+     * Leaving that out only for undecorated clients was exactly why
+     * they kept a visible border in fullscreen while decorated ones
+     * did not. */
     xcb_configure_window(client->connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            XCB_CONFIG_WINDOW_X      |
+            XCB_CONFIG_WINDOW_Y      |
+            XCB_CONFIG_WINDOW_WIDTH  |
+            XCB_CONFIG_WINDOW_HEIGHT |
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) {
                 0u, 0u,
                 (uint32_t) sw,
@@ -403,6 +415,12 @@ void wcmd_client_fullscreen(client_td *client)
             "_NET_WM_STATE_MAXIMIZED_VERT");
     wcmd_add_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
+    /* Let the systray reconsider its stacking now that a client just
+     * became fullscreen: with 'systray.layer' set to "above" it should
+     * drop below this window, the same way a taskbar or panel yields to
+     * a fullscreen application everywhere else. */
+    systray_restack();
+
     wm_request_client_redraw(client);
     xcb_flush(client->connection);
 }
@@ -427,20 +445,33 @@ void wcmd_client_unfullscreen(client_td *client)
     target = wcmd_target_win(client);
     client_geometry_restore(client);
 
+    border_width = (client->theme != NULL)
+        ? (uint16_t) client->theme->window.general.border_width : 0u;
+
+    /* 'BORDER_WIDTH' is included here too, not just inside the
+     * 'was_decorated_fullscreen' block below: for an undecorated
+     * client, 'target' is its own window and this is the only place
+     * its border gets restored at all, since there is no separate
+     * frame for a later step to set it on.  Restore the real theme
+     * width directly; for a decorated client this 0-or-real value is
+     * immediately superseded by the frame's own border configure just
+     * below, so it is harmless there, just redundant. */
     xcb_configure_window(client->connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            XCB_CONFIG_WINDOW_X      |
+            XCB_CONFIG_WINDOW_Y      |
+            XCB_CONFIG_WINDOW_WIDTH  |
+            XCB_CONFIG_WINDOW_HEIGHT |
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) {
                 (uint32_t) client->layout.geometry.cur.pos.x,
                 (uint32_t) client->layout.geometry.cur.pos.y,
                 client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h
+                client->layout.geometry.cur.dim.h,
+                (client->was_decorated_fullscreen)
+                    ? 0u : (uint32_t) border_width
             });
 
     if (client->was_decorated_fullscreen && client->frame != 0) {
-        border_width = (client->theme != NULL)
-            ? (uint16_t) client->theme->window.general.border_width
-            : 0u;
         title_height = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w >
                 (uint16_t) (border_width * 2u))
@@ -502,6 +533,11 @@ void wcmd_client_unfullscreen(client_td *client)
             (uint32_t) client->layout.frame_extents.bottom);
 
     wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+
+    /* The client that just left fullscreen may have been the one the
+     * systray was lowered below; let it reconsider its stacking now
+     * that it is gone. */
+    systray_restack();
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);

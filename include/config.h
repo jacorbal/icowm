@@ -173,6 +173,22 @@ struct config_base_s {
         } order;            /**< Where newly docked icons are placed
                                  relative to already-docked ones */
         bool is_enabled;    /**< Enable the built-in systray dock */
+
+        /**
+         * @brief Where the tray dock window sits in the stacking order
+         *        relative to normal client windows and fullscreen ones
+         */
+        enum config_systray_layer_e {
+            CONFIG_SYSTRAY_LAYER_BELOW = 0,     /**< Always behind every
+                                                     normal client window */
+            CONFIG_SYSTRAY_LAYER_ABOVE,         /**< Above normal windows
+                                                     (default); a
+                                                     fullscreen window
+                                                     still covers it */
+            CONFIG_SYSTRAY_LAYER_ABOVE_ALL      /**< Above everything,
+                                                     including fullscreen
+                                                     windows */
+        } layer;
     } systray;
 
     /**

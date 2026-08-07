@@ -158,5 +158,28 @@ void systray_handle_surface_resize(wm_td *wm);
  */
 void systray_reload(wm_td *wm);
 
+/**
+ * @brief Re-apply the configured @c systray.layer stacking rule
+ *
+ * Meant to be called whenever something elsewhere in the window manager
+ * changes in a way that could affect where the tray should sit relative
+ * to other windows.  Currently just a client entering or leaving
+ * fullscreen.  A safe no-op when the tray is not currently active.
+ *
+ * Valid layer values are:
+ * - @c below: always behind normal windows
+ * - @c above (default): above normal windows, but covered by
+ *   a fullscreen window (the correct/expected behavior)
+ * - @c above-all: above absolutely everything, including fullscreen
+ *   windows (the current behavior, now optional instead of fixed)
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients (only when @c systray.layer is @c above;
+ *       @e O(1) for @c below and @c above-all)
+ *
+ * @see @c wcmd_client_fullscreen and @c wcmd_client_unfullscreen
+ */
+void systray_restack(void);
+
 
 #endif  /* ! SYSTRAY_H */

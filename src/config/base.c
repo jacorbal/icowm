@@ -188,6 +188,37 @@ static enum config_systray_order_e
 
 
 /**
+ * @brief Parse systray stacking-layer text into configuration
+ *        enumeration
+ *
+ * @param value Systray layer string from configuration
+ *
+ * @return Parsed systray layer enumeration value
+ *
+ * @note Supported values are @c below, @c above, and @c above-all
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_layer_e
+    s_config_parse_systray_layer(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_LAYER_ABOVE;
+    }
+
+    if (safe_strcmp(value_norm, "below") == 0) {
+        return CONFIG_SYSTRAY_LAYER_BELOW;
+    }
+    if (safe_strcmp(value_norm, "above-all") == 0) {
+        return CONFIG_SYSTRAY_LAYER_ABOVE_ALL;
+    }
+
+    return CONFIG_SYSTRAY_LAYER_ABOVE;
+}
+
+
+/**
  * @brief Parse default window gravity text into configuration
  *        enumeration
  *
@@ -609,6 +640,7 @@ int config_load_base(const char *filename,
     if (systray) {
         cJSON *position_item;
         cJSON *order_item;
+        cJSON *layer_item;
 
         json_load_bool(systray, "is-enabled",
                 &config_base->systray.is_enabled);
@@ -622,6 +654,11 @@ int config_load_base(const char *filename,
         if (order_item != NULL && cJSON_IsString(order_item)) {
             config_base->systray.order =
                 s_config_parse_systray_order(order_item->valuestring);
+        }
+        layer_item = json_get_item(systray, "layer");
+        if (layer_item != NULL && cJSON_IsString(layer_item)) {
+            config_base->systray.layer =
+                s_config_parse_systray_layer(layer_item->valuestring);
         }
     }
 

@@ -25,10 +25,14 @@
 #include <utils/safe/safestr.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
+#include <adt/ohtbl.h>
 
 /* Project includes */
+#include <client.h>
 #include <config.h>
+#include <desktop.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
@@ -100,6 +104,7 @@ static struct {
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     enum config_systray_position_e position;
     enum config_systray_order_e order;
+    enum config_systray_layer_e layer;
     systray_icon_td icons[SYSTRAY_MAX_ICONS];
     uint16_t icon_count;
 } s_tray;
@@ -144,6 +149,98 @@ static uint16_t s_systray_content_width(void)
 
     return (uint16_t) (SYSTRAY_ICON_PAD +
             s_tray.icon_count * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD));
+}
+
+
+/**
+ * @brief Apply the configured @c systray.layer stacking rule
+ *
+ * - @c CONFIG_SYSTRAY_LAYER_BELOW: stacks the tray window at the very
+ *   bottom, behind every client window.
+ * - @c CONFIG_SYSTRAY_LAYER_ABOVE (the default): stacks it at the top,
+ *   then lowers it just below any client that is currently fullscreen,
+ *   so a fullscreen window still covers it; the same way a taskbar or
+ *   panel gets covered by a fullscreen window in most desktop
+ *   environments, instead of a systray floating above literally
+ *   everything regardless of what the user is doing.
+ * - @c CONFIG_SYSTRAY_LAYER_ABOVE_ALL: stacks it at the top and leaves
+ *   it there unconditionally, even over fullscreen windows.
+ *
+ * Safe to call whenever the tray's stacking might need reconsidering:
+ * after every reflow (see @c s_systray_reflow), and whenever any client
+ * enters or exits fullscreen (see @c wcmd_client_fullscreen and
+ * @c wcmd_client_unfullscreen, which call the public @c systray_restack
+ * wrapper).
+ */
+static void s_systray_restack(void)
+{
+    if (!s_tray.window_ready || s_tray.connection == NULL) {
+        return;
+    }
+
+    if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        xcb_flush(s_tray.connection);
+        return;
+    }
+
+    xcb_configure_window(s_tray.connection, s_tray.window,
+            XCB_CONFIG_WINDOW_STACK_MODE,
+            (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+
+    if (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE) {
+        list_td *surfaces;
+
+        surfaces = wm_get_surfaces();
+        if (surfaces != NULL) {
+            for (list_item_td *snode = list_head(surfaces);
+                    snode != NULL; snode = list_next(snode)) {
+                surface_td *surface = (surface_td *) list_data(snode);
+                cdlist_item_td *dnode;
+                cdlist_item_td *dinitial;
+
+                if (surface == NULL || surface->desktops == NULL) {
+                    continue;
+                }
+                dnode = cdlist_head(surface->desktops);
+                if (dnode == NULL) {
+                    continue;
+                }
+                dinitial = dnode;
+                do {
+                    desktop_td *desktop =
+                        (desktop_td *) cdlist_data(dnode);
+                    void *elem;
+
+                    if (desktop != NULL && desktop->clients != NULL) {
+                        ohtbl_foreach(desktop->clients, elem) {
+                            client_td *client = (client_td *) elem;
+                            xcb_window_t target;
+
+                            if (client->properties.state !=
+                                    (uint16_t) CLIENT_STATE_FULLSCREEN) {
+                                continue;
+                            }
+                            target = (client->frame != 0)
+                                ? client->frame : client->window;
+                            xcb_configure_window(s_tray.connection,
+                                    s_tray.window,
+                                    XCB_CONFIG_WINDOW_SIBLING |
+                                    XCB_CONFIG_WINDOW_STACK_MODE,
+                                    (const uint32_t[]) {
+                                        target, XCB_STACK_MODE_BELOW
+                                    });
+                        }
+                    }
+                    dnode = cdlist_next(dnode);
+                } while (dnode != NULL && dnode != dinitial);
+            }
+        }
+    }
+
+    xcb_flush(s_tray.connection);
 }
 
 
@@ -227,11 +324,9 @@ static void s_systray_reflow(void)
     }
 
     xcb_map_window(s_tray.connection, s_tray.window);
-    geom_values[0] = XCB_STACK_MODE_ABOVE;
-    xcb_configure_window(s_tray.connection, s_tray.window,
-            XCB_CONFIG_WINDOW_STACK_MODE, geom_values);
-
     xcb_flush(s_tray.connection);
+
+    s_systray_restack();
 }
 
 
@@ -593,6 +688,7 @@ void systray_init(wm_td *wm)
 
     s_tray.position = wm->config->base.systray.position;
     s_tray.order = wm->config->base.systray.order;
+    s_tray.layer = wm->config->base.systray.layer;
 
     if (!s_systray_ensure_window(wm)) {
         return;
@@ -696,6 +792,14 @@ void systray_handle_surface_resize(wm_td *wm)
 }
 
 
+/* Re-apply the configured stacking layer, e.g. after a fullscreen
+ * change elsewhere */
+void systray_restack(void)
+{
+    s_systray_restack();
+}
+
+
 /* React to a configuration reload */
 void systray_reload(wm_td *wm)
 {
@@ -708,6 +812,7 @@ void systray_reload(wm_td *wm)
     should_be_enabled = wm->config->base.systray.is_enabled;
     s_tray.position = wm->config->base.systray.position;
     s_tray.order = wm->config->base.systray.order;
+    s_tray.layer = wm->config->base.systray.layer;
 
     if (s_tray.selection_owned && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \
