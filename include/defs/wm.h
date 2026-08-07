@@ -59,10 +59,29 @@
  * pointer cursor uses glyph 68 as the source shape and glyph 69 as its
  * transparency mask.
  */
-#define WM_CURSOR_LEFT_PTR_GLYPH      (68u)
-
-/** Glyph index of the mask for @c XC_left_ptr in the X cursor font */
+#define WM_CURSOR_LEFT_PTR_GLYPH (68u)
 #define WM_CURSOR_LEFT_PTR_MASK_GLYPH (69u)
+
+/**
+ * @brief Glyph indices of the eight border-resize cursors in the X
+ *        cursor font
+ *
+ * Each source glyph's mask is always the very next glyph index (the
+ * font stores every shape as a source/mask pair), same convention as
+ * @c WM_CURSOR_LEFT_PTR_GLYPH / @c WM_CURSOR_LEFT_PTR_MASK_GLYPH above,
+ * so only the source glyph needs naming here -- the mask is always
+ * "this value plus one".  Used to show the matching resize direction
+ * when the pointer hovers over a window's border or corner, before any
+ * button is pressed.
+ */
+#define WM_CURSOR_TOP_SIDE_GLYPH            (138u)
+#define WM_CURSOR_BOTTOM_SIDE_GLYPH         (16u)
+#define WM_CURSOR_LEFT_SIDE_GLYPH           (70u)
+#define WM_CURSOR_RIGHT_SIDE_GLYPH          (96u)
+#define WM_CURSOR_TOP_LEFT_CORNER_GLYPH     (134u)
+#define WM_CURSOR_TOP_RIGHT_CORNER_GLYPH    (136u)
+#define WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH  (12u)
+#define WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH (14u)
 
 /** Pixels between baseline and the bottom of the titlebar */
 #define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)

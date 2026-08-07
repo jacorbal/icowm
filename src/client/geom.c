@@ -324,7 +324,8 @@ int ci_create_decorations(client_td *client)
                 XCB_EVENT_MASK_BUTTON_PRESS         |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY     |
                 XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
-                XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+                XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                XCB_EVENT_MASK_POINTER_MOTION;
     xcb_create_window(client->connection,
             XCB_COPY_FROM_PARENT,
             client->frame,

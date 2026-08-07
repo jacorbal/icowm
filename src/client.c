@@ -962,7 +962,8 @@ client_td *client_manage(xcb_connection_t *connection,
                     XCB_EVENT_MASK_LEAVE_WINDOW     |
                     XCB_EVENT_MASK_FOCUS_CHANGE     |
                     XCB_EVENT_MASK_PROPERTY_CHANGE  |
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                    XCB_EVENT_MASK_POINTER_MOTION;
     }
 
     /* Apply border width before subscribing to 'STRUCTURE_NOTIFY' so

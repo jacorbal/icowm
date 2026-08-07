@@ -101,7 +101,7 @@
                                              variadic macros in log
                                              messages */
 
-#define LOGGER_MAX_LENGTH_MSG (160)     /**< Max. length of a log message */
+#define LOGGER_MAX_LENGTH_MSG (256)     /**< Max. length of a log message */
 #define LOGGER_FLUSH_THRESHOLD (16)     /**< Number of messages stored in
                                              buffer before flushing */
 

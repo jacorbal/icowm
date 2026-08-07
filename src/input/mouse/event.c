@@ -27,6 +27,9 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Render includes */
 #include <render/surface.h>
 
@@ -52,6 +55,7 @@
 #include <desktop.h>
 #include <event.h>
 #include <eventq.h>
+#include <logger.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
@@ -145,6 +149,232 @@ static bool s_mouse_near_edge(const client_td *client,
     }
 
     return false;
+}
+
+
+/**
+ * @brief Which border/corner zone of a client's bounding box a point
+ *        falls within, if any
+ */
+enum s_resize_zone_e {
+    S_RESIZE_ZONE_NONE = 0,
+    S_RESIZE_ZONE_N,
+    S_RESIZE_ZONE_S,
+    S_RESIZE_ZONE_E,
+    S_RESIZE_ZONE_W,
+    S_RESIZE_ZONE_NE,
+    S_RESIZE_ZONE_NW,
+    S_RESIZE_ZONE_SE,
+    S_RESIZE_ZONE_SW,
+    S_RESIZE_ZONE_COUNT,    /**< Not a real zone; array size marker */
+};
+
+/**
+ * One allocated cursor per @c s_resize_zone_e value; index 0 (@c NONE)
+ * holds the plain left-pointer cursor
+ *
+ * Zero (@c XCB_CURSOR_NONE) until @c mouse_create_resize_cursors runs */
+static xcb_cursor_t s_resize_cursors[S_RESIZE_ZONE_COUNT];
+
+
+/* Last client, frame window, and cursor zone used to avoid redundant
+ * cursor updates during motion within the same zone.  The client
+ * pointer is stored alongside the X11 window ID because IDs may be
+ * reused after a client or frame is destroyed; comparing only the ID
+ * could suppress the cursor update for a new client that reuses
+ * a cached frame ID.  */
+static xcb_window_t s_last_cursor_window = XCB_WINDOW_NONE;
+static const client_td *s_last_cursor_client = NULL;
+static enum s_resize_zone_e s_last_cursor_zone = S_RESIZE_ZONE_NONE;
+
+
+/**
+ * @brief Determine which border/corner zone, if any, a point falls in
+ *
+ * Uses the same @c WM_RESIZE_CORNER_SIZE border width as
+ * @c s_mouse_near_edge (and the border-drag resize it guards) so the
+ * cursor always changes exactly where a resize can actually start, no
+ * wider and no narrower.
+ *
+ * @param client Client whose geometry is used for the test
+ * @param root_x Pointer X position in root-window coordinates
+ * @param root_y Pointer Y position in root-window coordinates
+ *
+ * @return The matching zone, or @c S_RESIZE_ZONE_NONE when @p root_x /
+ *         @p root_y fall outside every border zone (including entirely
+ *         outside the client, or in its non-resizable interior)
+ *
+ * @note Complexity: @e O(1)
+ */
+static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
+        int16_t root_x, int16_t root_y)
+{
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
+    int32_t top_margin;
+    bool near_left;
+    bool near_right;
+    bool near_top;
+    bool near_bottom;
+    enum s_resize_zone_e zone;
+
+    if (client == NULL) {
+        return S_RESIZE_ZONE_NONE;
+    }
+
+    left = client->layout.geometry.cur.pos.x;
+    top = client->layout.geometry.cur.pos.y;
+    right = left + (int32_t) client->layout.geometry.cur.dim.w;
+    bottom = top + (int32_t) client->layout.geometry.cur.dim.h;
+
+    /* Do not add bounds checks here.  The caller only invokes this
+     * function for motion events already known to belong to this
+     * client's frame or window, and an extra geometric check may
+     * disagree with X11's actual border hit-testing by one or more
+     * pixels.
+     */
+    /* FIXME: On decorated windows, exclude the titlebar from the top
+     *        resize margin. Pointer motion from the titlebar propagates
+     *        to the frame, so this requires a geometric check rather
+     *        than checking 'event->event'.
+     */
+    top_margin = WM_RESIZE_CORNER_SIZE;
+    if (client->frame != 0) {
+        int32_t top_border = client->layout.frame_extents.top -
+            (int32_t) client->title_height;
+
+        top_margin = (top_border > 0) ? top_border : 0;
+        if (top_margin > WM_RESIZE_CORNER_SIZE) {
+            top_margin = WM_RESIZE_CORNER_SIZE;
+        }
+    }
+
+    near_left = (int32_t) root_x < left + WM_RESIZE_CORNER_SIZE;
+    near_right = (int32_t) root_x >= right - WM_RESIZE_CORNER_SIZE;
+    near_top = (int32_t) root_y < top + top_margin;
+    near_bottom = (int32_t) root_y >= bottom - WM_RESIZE_CORNER_SIZE;
+
+    if (near_top && near_left) { zone = S_RESIZE_ZONE_NW; }
+    else if (near_top && near_right) { zone = S_RESIZE_ZONE_NE; }
+    else if (near_bottom && near_left) { zone = S_RESIZE_ZONE_SW; }
+    else if (near_bottom && near_right) { zone = S_RESIZE_ZONE_SE; }
+    else if (near_top) { zone = S_RESIZE_ZONE_N; }
+    else if (near_bottom) { zone = S_RESIZE_ZONE_S; }
+    else if (near_left) { zone = S_RESIZE_ZONE_W; }
+    else if (near_right) { zone = S_RESIZE_ZONE_E; }
+    else { zone = S_RESIZE_ZONE_NONE; }
+
+    return zone;
+}
+
+
+/**
+ * @brief Create one glyph cursor from the X cursor font
+ *
+ * @param connection XCB connection
+ * @param font       Already-open handle to the "cursor" font
+ * @param glyph      Source glyph index; its mask is always @p glyph + 1
+ *
+ * @return The newly created cursor's XID
+ *
+ * @see @c WM_CURSOR_TOP_SIDE_GLYPH and siblings
+ */
+static xcb_cursor_t s_mouse_create_glyph_cursor(
+        xcb_connection_t *connection, xcb_font_t font, uint16_t glyph)
+{
+    xcb_cursor_t cur = xcb_generate_id(connection);
+
+    xcb_create_glyph_cursor(connection, cur, font, font,
+            glyph, (uint16_t) (glyph + 1u),
+            0u, 0u, 0u, 0xffffu, 0xffffu, 0xffffu);
+
+    return cur;
+}
+
+
+/* Create the eight border-resize cursors used for hover feedback */
+void mouse_create_resize_cursors(xcb_connection_t *connection)
+{
+    xcb_font_t font;
+
+    if (connection == NULL || s_resize_cursors[S_RESIZE_ZONE_NONE] != 0) {
+        return;
+    }
+
+    font = xcb_generate_id(connection);
+    xcb_open_font(connection, font,
+            (uint16_t) safe_strlen("cursor"), "cursor");
+
+    s_resize_cursors[S_RESIZE_ZONE_NONE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_LEFT_PTR_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_N] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_S] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_E] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_RIGHT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_W] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_LEFT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NW] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_TOP_LEFT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SE] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SW] = s_mouse_create_glyph_cursor(
+            connection, font, WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH);
+
+    xcb_close_font(connection, font);
+    xcb_flush(connection);
+}
+
+
+/* Free the cursors created by 'mouse_create_resize_cursors' */
+void mouse_destroy_resize_cursors(xcb_connection_t *connection)
+{
+    if (connection == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < (int) S_RESIZE_ZONE_COUNT; ++i) {
+        if (s_resize_cursors[i] != 0) {
+            xcb_free_cursor(connection, s_resize_cursors[i]);
+            s_resize_cursors[i] = 0;
+        }
+    }
+    s_last_cursor_window = XCB_WINDOW_NONE;
+    s_last_cursor_client = NULL;
+    s_last_cursor_zone = S_RESIZE_ZONE_NONE;
+}
+
+
+/* Update the pointer cursor to match a window's resize border */
+void mouse_handle_motion_hover(xcb_connection_t *connection,
+        list_td *surfaces, xcb_motion_notify_event_t *event)
+{
+    client_td *client;
+    surface_td *surface;
+    desktop_td *desktop;
+    enum s_resize_zone_e zone;
+
+    if (connection == NULL || surfaces == NULL || event == NULL ||
+            s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
+        return;
+    }
+
+    client = lookup_find_client(surfaces, event->event, &surface,
+            &desktop);
+    if (client == NULL || !client_is_resizable(client)) {
+        return;
+    }
+
+    zone = s_mouse_resize_zone(client, event->root_x, event->root_y);
+
+    xcb_change_window_attributes(connection, event->event,
+            XCB_CW_CURSOR, (const uint32_t[]) { s_resize_cursors[zone] });
+    xcb_flush(connection);
 }
 
 
@@ -413,9 +643,13 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
 
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, NULL);
-        icon_x = (gr != NULL) ? (int32_t) gr->x : (int32_t) client->icon_x;
-        icon_y = (gr != NULL) ? (int32_t) gr->y : (int32_t) client->icon_y;
-        if (gr != NULL) { free(gr); }
+        icon_x = (gr != NULL)
+            ? (int32_t) gr->x : (int32_t) client->icon_x;
+        icon_y = (gr != NULL)
+            ? (int32_t) gr->y : (int32_t) client->icon_y;
+        if (gr != NULL) {
+            free(gr);
+        }
 
         drag_start_icon(connection, event->root, client,
                 icon_x, icon_y,
@@ -713,8 +947,8 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 /**
  * @brief Handle a click on the client titlebar
  *
- * Delegates to @c s_mouse_hit_titlebar_buttons first.  If no button was
- * hit:
+ * Delegates to @c s_mouse_hit_titlebar_buttons first.
+ * If no button was hit:
  * - Left-click starts a move drag, or toggles shade on double-click.
  * - Right-click opens the window context menu.
  *
@@ -761,9 +995,12 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
                         CLIENT_OPERATION_MOVING,
                         event->time,
                         event->root_x, event->root_y,
-                        (surface != NULL) ? surface->properties.dim.w : 0u,
-                        (surface != NULL) ? surface->properties.dim.h : 0u,
-                        (config != NULL) ? config->base.windows.snap : 0u);
+                        (surface != NULL)
+                            ? surface->properties.dim.w : 0u,
+                        (surface != NULL)
+                            ? surface->properties.dim.h : 0u,
+                        (config != NULL)
+                            ? config->base.windows.snap : 0u);
             }
         }
     }
@@ -804,8 +1041,10 @@ static bool s_mouse_can_resize_client(const client_td *client,
         return false;
     }
 
-    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
-            client->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED ||
+    if (client->properties.state ==
+                (uint16_t) CLIENT_STATE_FULLSCREEN ||
+            client->properties.state ==
+                (uint16_t) CLIENT_STATE_MAXIMIZED ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
             client->properties.state ==
@@ -863,7 +1102,8 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
             event->time, event->root_x, event->root_y,
             screen_w, screen_h, config->base.windows.snap);
 
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
+    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+            event->time);
 }
 
 
@@ -1218,7 +1458,8 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    client = lookup_find_client(surfaces, event->event, NULL, &desktop);
+    client = lookup_find_client(surfaces, event->event, NULL,
+            &desktop);
     if (client == NULL) {
         return;
     }

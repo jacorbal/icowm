@@ -187,5 +187,63 @@ bool mouse_enter_focus_is_active(void);
  */
 void mouse_enter_focus_clear(void);
 
+/**
+ * @brief Create the eight border-resize cursors used for hover feedback
+ *
+ * Allocates the cursors once for the whole session (matching the
+ * left-pointer cursor already set up in @c startup_subscribe_root_events)
+ * so that @c mouse_handle_motion_hover only ever has to look one up,
+ * never create one. Safe to call more than once; only the first call
+ * actually allocates anything. Call @c mouse_destroy_resize_cursors at
+ * shutdown to free them.
+ *
+ * @param connection XCB connection used to create the cursors
+ *
+ * @note Complexity: @e O(1)
+ */
+void mouse_create_resize_cursors(xcb_connection_t *connection);
+
+/**
+ * @brief Free the cursors created by @c mouse_create_resize_cursors
+ *
+ * Safe to call even if they were never created.
+ *
+ * @param connection XCB connection used to free the cursors
+ *
+ * @note Complexity: @e O(1)
+ */
+void mouse_destroy_resize_cursors(xcb_connection_t *connection);
+
+/**
+ * @brief Update the pointer cursor to match a window's resize border
+ *
+ * Meant to be called for every @c MotionNotify while no drag is active.
+ * Finds the client that owns @p event's window (its frame or, for an
+ * undecorated client, the window itself) and, if the pointer is within
+ * the resize border on one of its edges or corners, sets that window's
+ * cursor to the matching directional shape; otherwise restores the
+ * plain left-pointer cursor.
+ *
+ * A no-op if the event's window is not a managed client, or the client
+ * cannot be resized.  Skips the X request entirely when the target
+ * window and resize zone are unchanged since the last call, since this
+ * runs on every pointer motion and a plain cursor-attribute change
+ * carries no risk of visible flicker on its own but is still needless
+ * traffic to repeat every single motion step while sitting still in the
+ * same zone.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces, for the client lookup
+ * @param event      Motion-notify event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients (for the lookup)
+ *
+ * @see @c drag_is_active, @c lookup_find_client and
+ *      @c mouse_create_resize_cursors
+ */
+void mouse_handle_motion_hover(xcb_connection_t *connection,
+        list_td *surfaces, xcb_motion_notify_event_t *event);
+
 
 #endif  /* ! INPUT_MOUSE_H */

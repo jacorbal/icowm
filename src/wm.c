@@ -50,6 +50,9 @@
 #include <systray.h>
 #include <xsettings.h>
 
+/* Input includes */
+#include <input/mouse.h>
+
 /* Local includes */
 #include <wm.h>
 #include <wm/internal.h>
@@ -81,6 +84,7 @@ static void s_wm_cleanup(void)
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
+    mouse_destroy_resize_cursors(wm->connection);
 
     if (wm->session != NULL) {
         if (wm->is_emergency_exit) {
@@ -270,8 +274,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     }
 
     if (wm->config->base.screen_count > CONFIG_MAX_SCREENS) {
-        LOGGER_NOTICE("Configured %u screen(s), but this build supports" \
-                " up to %u; clamping",
+        LOGGER_NOTICE("Configured %u screen(s), but this build" \
+                " supports up to %u; clamping",
                 wm->config->base.screen_count, CONFIG_MAX_SCREENS);
         wm->config->base.screen_count = CONFIG_MAX_SCREENS;
     }
@@ -312,6 +316,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         s_wm_cleanup();
         return 9;
     }
+
+    mouse_create_resize_cursors(wm->connection);
     (void) startup_randr_init(wm);
     (void) startup_subscribe_randr_events(wm);
     (void) startup_sync_init(wm);
@@ -325,7 +331,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     systray_init(wm);
     xsettings_init(wm);
 
-    LOGGER_DEBUG("Setting running status flag to 'true'", L_NARG);
+    LOGGER_DEBUG("Setting running status flag to" \
+            " an unquestionable 'true'", L_NARG);
     wm->is_running = true;
     if (wm->session != NULL) {
         session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);

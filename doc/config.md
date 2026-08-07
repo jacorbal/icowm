@@ -1022,7 +1022,8 @@ repeating the same `apply` block for each of them:
     "when": "map",
     "match": {
         "title": ["*Sonata", "*mpv", "mplayer"],
-        "class": "MEDIA"
+        "class": "MEDIA",
+        "type": "normal"
     },
     "apply": {
         "sticky": true,
@@ -1035,11 +1036,17 @@ repeating the same `apply` block for each of them:
 This matches any window whose title matches one of the three patterns
 *and* whose class is `"MEDIA"`; a window matching only one of those two
 conditions does not match the rule.  A single string, as in `"class"`
-above, still works exactly as before.  Tthere is no need to wrap
+above, still works exactly as before.  There is no need to wrap
 a single value in an array.
 
 Accepted `match.type` values are: `"normal"`, `"desktop"`, `"dock"`,
 `"toolbar"`, `"menu"`, `"utility"`, `"splash"`, `"dialog"`.
+
+As with every other match field, omitting `match.type` entirely does not
+default to `"normal"`.  It means that criterion is not checked at all,
+so the rule matches windows of any type. In the example above, `"type"`:
+"normal" is an explicit, active condition; removing that line and the
+rule would also match e.g., a dialog with a matching title and class.
 
 ### 6.4 Apply fields
 
@@ -1065,10 +1072,10 @@ without moving it; both may be present to set position and size at once.
 Both `size.width` and `size.height` are only accepted when greater than
 `0`.
 
-`position` is either an `{"x": ..., "y": ...}` object with an absolute
-pixel position, or the string `"center"`, which centers the window on
-its screen at the moment the rule is applied instead of using a fixed
-point:
+Key `position` is either an `{"x": ..., "y": ...}` object with an
+absolute pixel position, or the string `"center"`, which centers the
+window on its screen at the moment the rule is applied instead of using
+a fixed point:
 
 ```json
 "apply": {
@@ -1481,7 +1488,7 @@ the keyboard `exit` binding.
     {
         "when": "property",
         "match": {
-            "title": "Journal console"
+            "title": [ "Journal console" ]
         },
         "apply": {
             "desktop": 2,
@@ -1492,7 +1499,8 @@ the keyboard `exit` binding.
     {
         "when": "map",
         "match": {
-            "title": "*Sonata"
+            "title": [ "*Sonata" ],
+                "type": "normal"
         },
         "apply": {
             "sticky": true,
@@ -1507,15 +1515,13 @@ the keyboard `exit` binding.
     {
         "when": "map",
         "match": {
-            "title": "gmrun"
+            "title": [ "gmrun" ],
+            "type": "normal"
         },
         "apply": {
             "decorated": false,
             "layer": "above",
-            "position": {
-                "x": 710,
-                "y": 500
-            }
+            "position": "center"
         }
     }
     ]

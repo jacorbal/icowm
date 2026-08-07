@@ -308,6 +308,9 @@ void loop_run(wm_td *wm)
                     } else if (winlist_is_open()) {
                         winlist_handle_motion(me->event,
                                 me->event_x, me->event_y);
+                    } else if (!drag_is_active()) {
+                        mouse_handle_motion_hover(wm->connection,
+                                wm->surfaces, me);
                     }
                     break;
 
