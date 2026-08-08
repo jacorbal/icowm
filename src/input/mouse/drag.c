@@ -48,6 +48,7 @@
 
 /* Local includes */
 #include <input/mouse/drag.h>
+#include <input/mouse/internal.h>
 
 
 /**
@@ -592,31 +593,28 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.snap = snap;
 
     /* For resize operations, make the visible corner handles define the
-     * corner hit zones.  Outside those 12 px corner zones, keep the
+     * corner hit zones.  Outside those adaptive-margin corner zones
+     * (see 'im_resize_bounds' in input/mouse/internal.h), keep the
      * existing center-based fallback so the rest of the border still
      * behaves as a resize handle. */
     if (operation == CLIENT_OPERATION_RESIZING) {
-        int32_t left = s_drag.client_start_x;
-        int32_t top = s_drag.client_start_y;
-        int32_t right = left + (int32_t) s_drag.client_start_w;
-        int32_t bottom = top + (int32_t) s_drag.client_start_h;
+        im_resize_bounds_td b = im_resize_bounds(client);
         int32_t cx = s_drag.client_start_x +
             (int32_t) (s_drag.client_start_w / 2u);
         int32_t cy = s_drag.client_start_y +
             (int32_t) (s_drag.client_start_h / 2u);
-        int32_t corner = WM_RESIZE_CORNER_SIZE;
 
-        if ((int32_t) root_x < left + corner) {
+        if ((int32_t) root_x < b.left + b.margin_left) {
             s_drag.anchor_right = true;
-        } else if ((int32_t) root_x >= right - corner) {
+        } else if ((int32_t) root_x >= b.right - b.margin_right) {
             s_drag.anchor_right = false;
         } else {
             s_drag.anchor_right = ((int32_t) root_x < cx);
         }
 
-        if ((int32_t) root_y < top + corner) {
+        if ((int32_t) root_y < b.top + b.margin_top) {
             s_drag.anchor_bottom = true;
-        } else if ((int32_t) root_y >= bottom - corner) {
+        } else if ((int32_t) root_y >= b.bottom - b.margin_bottom) {
             s_drag.anchor_bottom = false;
         } else {
             s_drag.anchor_bottom = ((int32_t) root_y < cy);
@@ -629,10 +627,10 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
          * increment due to sub-increment pointer noise on the
          * orthogonal axis, which for size-hinted clients would produce
          * a 'ConfigureRequest' feedback loop */
-        s_drag.resize_w = ((int32_t) root_x < left + corner ||
-                (int32_t) root_x >= right - corner);
-        s_drag.resize_h = ((int32_t) root_y < top + corner ||
-                (int32_t) root_y >= bottom - corner);
+        s_drag.resize_w = ((int32_t) root_x < b.left + b.margin_left ||
+                (int32_t) root_x >= b.right - b.margin_right);
+        s_drag.resize_h = ((int32_t) root_y < b.top + b.margin_top ||
+                (int32_t) root_y >= b.bottom - b.margin_bottom);
         if (!s_drag.resize_w && !s_drag.resize_h) {
             s_drag.resize_w = true;
             s_drag.resize_h = true;

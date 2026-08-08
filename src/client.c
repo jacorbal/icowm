@@ -57,6 +57,9 @@
 #include <render/wmicon.h>
 #include <wm.h>
 
+/* Input includes */
+#include <input/mouse.h>
+
 /* Local includes */
 #include <client/internal.h>
 
@@ -353,7 +356,7 @@ client_td *client_manage(xcb_connection_t *connection,
     client_td *client;
     xcb_get_geometry_reply_t *geom_reply;
     xcb_get_window_attributes_reply_t *attr_reply;
-    uint32_t values[1];
+    uint32_t values[2];
     char wm_name[256];
     char wm_class[256];
     char wm_instance[256];
@@ -988,8 +991,23 @@ client_td *client_manage(xcb_connection_t *connection,
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 
+    /* An explicit plain-pointer cursor here, set once, is what makes
+     * the resize cursor set while hovering the frame's own border
+     * reliably give way to a plain pointer the instant the pointer
+     * crosses into this client's own content: X11 always prefers the
+     * nearest explicit cursor over an inherited one, resolved by the
+     * server itself on every crossing, with no window-manager-side
+     * event handling required.  A purely event-driven reset (motion,
+     * or even enter-notify) can be preempted by a client that
+     * intercepts pointer motion for its own purposes (e.g., GTK/Qt
+     * applications tracking hover for their own UI), which stops
+     * those events from ever reaching this window manager at all;
+     * this static default has no such dependency. */
+    values[1] = mouse_plain_cursor();
     xcb_change_window_attributes(connection, window,
-            XCB_CW_EVENT_MASK, values);
+            XCB_CW_EVENT_MASK | XCB_CW_CURSOR, values);
+    LOGGER_TRACE("client_manage: window=0x%x cursor=0x%x", window,
+            values[1]);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

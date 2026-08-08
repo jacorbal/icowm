@@ -35,6 +35,7 @@
 #include <policy/placement.h>
 
 /* Input includes */
+#include <input/mouse.h>
 #include <input/mouse/drag.h>
 
 /* Project includes */
@@ -464,6 +465,21 @@ void handler_map_notify(xcb_connection_t *connection,
          * area from the outset. */
         if (event->window == client->window) {
             xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
+
+            /* Re-assert the plain-pointer cursor 'client_manage'
+             * already set once on this same window (see client.c).
+             * Many GTK/GDK applications explicitly set their own
+             * top-level window's cursor as part of their own
+             * realization, which can run after (and so silently
+             * overwrite) that first assignment; MapNotify, confirming
+             * the window has actually become visible, is reliably
+             * later than that realization, so setting it again here
+             * wins whatever race existed. */
+            xcb_change_window_attributes(connection, client->window,
+                    XCB_CW_CURSOR,
+                    (const uint32_t[]) { mouse_plain_cursor() });
+            LOGGER_TRACE("handler_map_notify: window=0x%x cursor=0x%x",
+                    client->window, mouse_plain_cursor());
         }
         xcb_flush(connection);
     }

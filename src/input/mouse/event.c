@@ -68,6 +68,7 @@
 
 /* Local includes */
 #include <input/mouse/drag.h>
+#include <input/mouse/internal.h>
 #include <input/mouse.h>
 
 
@@ -113,8 +114,9 @@ static void s_allow_and_flush(xcb_connection_t *connection,
 /**
  * @brief Check whether a pointer position is near the edge of a client
  *
- * Returns @c true when the pointer's root coordinates fall within
- * @c WM_RESIZE_CORNER_SIZE pixels of any edge of the client's current
+ * Returns @c true when the pointer's root coordinates fall within the
+ * adaptive resize-grab margin (see @c im_resize_bounds in
+ * input/mouse/internal.h) of any edge of the client's current
  * bounding box, indicating that a border-drag resize should be
  * initiated.
  *
@@ -130,28 +132,18 @@ static void s_allow_and_flush(xcb_connection_t *connection,
 static bool s_mouse_near_edge(const client_td *client,
         int16_t root_x, int16_t root_y)
 {
-    int32_t left;
-    int32_t top;
-    int32_t right;
-    int32_t bottom;
+    im_resize_bounds_td b;
 
     if (client == NULL) {
         return false;
     }
 
-    left = client->layout.geometry.cur.pos.x;
-    top = client->layout.geometry.cur.pos.y;
-    right = left + (int32_t) client->layout.geometry.cur.dim.w;
-    bottom = top + (int32_t) client->layout.geometry.cur.dim.h;
+    b = im_resize_bounds(client);
 
-    if ((int32_t) root_x < left + WM_RESIZE_CORNER_SIZE ||
-            (int32_t) root_x >= right - WM_RESIZE_CORNER_SIZE ||
-            (int32_t) root_y < top + WM_RESIZE_CORNER_SIZE ||
-            (int32_t) root_y >= bottom - WM_RESIZE_CORNER_SIZE) {
-        return true;
-    }
-
-    return false;
+    return (int32_t) root_x < b.left + b.margin_left ||
+        (int32_t) root_x >= b.right - b.margin_right ||
+        (int32_t) root_y < b.top + b.margin_top ||
+        (int32_t) root_y >= b.bottom - b.margin_bottom;
 }
 
 
@@ -183,10 +175,16 @@ static xcb_cursor_t s_resize_cursors[S_RESIZE_ZONE_COUNT];
 /**
  * @brief Determine which border/corner zone, if any, a point falls in
  *
- * Uses the same @c WM_RESIZE_CORNER_SIZE border width as
- * @c s_mouse_near_edge (and the border-drag resize it guards) so the
- * cursor always changes exactly where a resize can actually start, no
- * wider and no narrower.
+ * Uses the same adaptive resize-grab margins as @c s_mouse_near_edge
+ * (both call @c im_resize_bounds), so the cursor changes exactly where
+ * a resize can actually start, including the same titlebar-row
+ * exclusion for the left/right margins (see @c im_resize_bounds_td's
+ * own doc comment): a titlebar button such as close, typically placed
+ * near the frame's own right edge, would otherwise still register as
+ * near that edge, showing a resize cursor over it even though clicking
+ * it still correctly closes the window rather than starting a resize
+ * (titlebar buttons take priority over a border drag in the
+ * button-press handler regardless of this function).
  *
  * @param client Client whose geometry is used for the test
  * @param root_x Pointer X position in root-window coordinates
@@ -194,18 +192,15 @@ static xcb_cursor_t s_resize_cursors[S_RESIZE_ZONE_COUNT];
  *
  * @return The matching zone, or @c S_RESIZE_ZONE_NONE when @p root_x /
  *         @p root_y fall outside every border zone (including entirely
- *         outside the client, or in its non-resizable interior)
+ *         outside the client, its titlebar row, or its non-resizable
+ *         interior)
  *
  * @note Complexity: @e O(1)
  */
 static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
         int16_t root_x, int16_t root_y)
 {
-    int32_t left;
-    int32_t top;
-    int32_t right;
-    int32_t bottom;
-    int32_t top_margin;
+    im_resize_bounds_td b;
     bool near_left;
     bool near_right;
     bool near_top;
@@ -216,10 +211,7 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
         return S_RESIZE_ZONE_NONE;
     }
 
-    left = client->layout.geometry.cur.pos.x;
-    top = client->layout.geometry.cur.pos.y;
-    right = left + (int32_t) client->layout.geometry.cur.dim.w;
-    bottom = top + (int32_t) client->layout.geometry.cur.dim.h;
+    b = im_resize_bounds(client);
 
     /* Do not add bounds checks here.  The caller only invokes this
      * function for motion events already known to belong to this
@@ -227,26 +219,17 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
      * disagree with X11's actual border hit-testing by one or more
      * pixels.
      */
-    /* On decorated windows, exclude the titlebar from the top resize
-     * margin.  Pointer motion from the titlebar propagates to the
-     * frame, so this requires a geometric check rather than checking
-     * 'event->event'.
-     */
-    top_margin = WM_RESIZE_CORNER_SIZE;
-    if (client->frame != 0) {
-        int32_t top_border = client->layout.frame_extents.top -
-            (int32_t) client->title_height;
+    near_left = (int32_t) root_x < b.left + b.margin_left;
+    near_right = (int32_t) root_x >= b.right - b.margin_right;
+    near_top = (int32_t) root_y < b.top + b.margin_top;
+    near_bottom = (int32_t) root_y >= b.bottom - b.margin_bottom;
 
-        top_margin = (top_border > 0) ? top_border : 0;
-        if (top_margin > WM_RESIZE_CORNER_SIZE) {
-            top_margin = WM_RESIZE_CORNER_SIZE;
-        }
+    if (b.has_titlebar_row &&
+            (int32_t) root_y >= b.titlebar_row_top &&
+            (int32_t) root_y < b.titlebar_row_bottom) {
+        near_left = false;
+        near_right = false;
     }
-
-    near_left = (int32_t) root_x < left + WM_RESIZE_CORNER_SIZE;
-    near_right = (int32_t) root_x >= right - WM_RESIZE_CORNER_SIZE;
-    near_top = (int32_t) root_y < top + top_margin;
-    near_bottom = (int32_t) root_y >= bottom - WM_RESIZE_CORNER_SIZE;
 
     if (near_top && near_left) { zone = S_RESIZE_ZONE_NW; }
     else if (near_top && near_right) { zone = S_RESIZE_ZONE_NE; }
@@ -435,6 +418,13 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection)
 }
 
 
+/* The plain-pointer cursor, the same one shown for 'S_RESIZE_ZONE_NONE' */
+xcb_cursor_t mouse_plain_cursor(void)
+{
+    return s_resize_cursors[S_RESIZE_ZONE_NONE];
+}
+
+
 /**
  * @brief Recompute and apply the resize-border cursor for a client
  *        window at a given pointer position
@@ -475,10 +465,18 @@ static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
 
     client = lookup_find_client(surfaces, window, &surface, &desktop);
     if (client == NULL || !client_is_resizable(client)) {
+        LOGGER_TRACE("Resize cursor: window=0x%x root=%d,%d ->" \
+                " no resizable client found (client=%p)",
+                window, root_x, root_y, (void *) client);
         return;
     }
 
     zone = s_mouse_resize_zone(client, root_x, root_y);
+
+    LOGGER_TRACE("Resize cursor: window=0x%x (client->window=0x%x" \
+            " frame=0x%x) root=%d,%d zone=%d cursor=0x%x",
+            window, client->window, client->frame, root_x, root_y,
+            (int) zone, s_resize_cursors[zone]);
 
     xcb_change_window_attributes(connection, window,
             XCB_CW_CURSOR,
@@ -1134,7 +1132,8 @@ static bool s_mouse_can_resize_client(const client_td *client,
         return true;
     }
 
-    /* Undecorated: click within 'WM_RESIZE_CORNER_SIZE' of any edge */
+    /* Undecorated: click within the resize-grab margin of any edge
+     * (see 's_mouse_near_edge' and 'im_resize_bounds') */
     if (client->frame == 0 && window == client->window &&
             s_mouse_near_edge(client, event->root_x, event->root_y)) {
         return true;
@@ -1349,10 +1348,10 @@ void mouse_handle_press(xcb_connection_t *connection,
             }
 
             /* Right-click near border of an undecorated window: open
-             * the window context menu.  The click must be within
-             * 'WM_RESIZE_CORNER_SIZE' pixels of any edge so that the
-             * menu does not steal clicks from the application
-             * content. */
+             * the window context menu.  The click must be within the
+             * resize-grab margin of any edge (see 's_mouse_near_edge')
+             * so that the menu does not steal clicks from the
+             * application content. */
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
                     client->frame == 0 &&
                     window == client->window &&
@@ -1523,6 +1522,11 @@ void mouse_handle_enter(xcb_connection_t *connection,
     if (connection == NULL || event == NULL || config == NULL) {
         return;
     }
+
+    LOGGER_TRACE("Enter notify: event->event=0x%x child=0x%x" \
+            " root=%d,%d mode=%u detail=%u",
+            event->event, event->child, event->root_x, event->root_y,
+            event->mode, event->detail);
 
     if (event->mode != XCB_NOTIFY_MODE_NORMAL) {
         return;

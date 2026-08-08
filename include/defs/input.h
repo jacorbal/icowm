@@ -27,13 +27,19 @@
 #define WM_DOUBLE_CLICK_MS (400u)
 
 /**
- * @brief Size in pixels of the corner zone used for edge/corner resize
+ * @brief Minimum, in pixels, that a resize-grab margin is guaranteed
+ *        to be along any one edge, regardless of how thin that edge's
+ *        own visible border is
  *
- * Clicks on the frame border within this many pixels of a frame corner
- * are treated as corner-resize initiation events rather than plain
- * border clicks.
+ * A border already at least this wide needs no help: the border
+ * itself is the margin.  A thinner border gets padded out to exactly
+ * this many pixels of tolerance instead (see @c im_resize_bounds in
+ * input/mouse/internal.h), so a 0px, 1px, or 2px border all feel the
+ * same to grab rather than each requiring hitting a progressively
+ * smaller number of exact pixels; the two cases meet exactly at this
+ * threshold, where the border is already wide enough on its own.
  */
-#define WM_RESIZE_CORNER_SIZE (12)
+#define WM_RESIZE_GRAB_THRESHOLD (3)
 
 /** Threshold below which an icon drag is treated as a click */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) x 4 (px) = 16 (px^2) */

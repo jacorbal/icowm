@@ -233,6 +233,29 @@ void mouse_create_resize_cursors(xcb_connection_t *connection);
 void mouse_destroy_resize_cursors(xcb_connection_t *connection);
 
 /**
+ * @brief The plain-pointer cursor, the same one shown for
+ *        @c S_RESIZE_ZONE_NONE
+ *
+ * Meant for a client's own window to be given this cursor explicitly,
+ * once, at decoration time (see @c ci_create_decorations in
+ * client/geom.c), rather than left to inherit whatever the frame's
+ * own cursor happens to currently be set to.  Explicit beats
+ * inherited: once the client's own window has its own cursor, the X
+ * server shows it the instant the pointer crosses into that window,
+ * with no window-manager-side event handling required at all, unlike
+ * relying on catching every possible crossing or motion event (which
+ * a client that intercepts pointer motion for its own purposes, e.g.
+ * to track hover for its own UI, can prevent from ever reaching this
+ * window manager in the first place).
+ *
+ * @return The plain-pointer cursor, or 0 if
+ *         @c mouse_create_resize_cursors has not run yet
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_cursor_t mouse_plain_cursor(void);
+
+/**
  * @brief Update the pointer cursor to match a window's resize border
  *
  * Meant to be called for every @c MotionNotify while no drag is active.
