@@ -96,6 +96,12 @@
         }
     },
 
+    "desktop": {
+        "color": {
+            "background": "#4c5b6b"
+        }
+    },
+
     "menu": {
         "unselected": {
             "font": "fixed",

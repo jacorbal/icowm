@@ -34,6 +34,22 @@
 /** Desktop identifier when the client is pinned to all desktops */
 #define WM_DESKTOP_ID_ALL (0xFFFFFFFFu)
 
+/**
+ * @brief Sentinel meaning a desktop's own @c background-color
+ *        (config.json) was never explicitly set
+ *
+ * Distinguishes "this desktop's entry did not set its own color" from
+ * "this desktop's entry explicitly set this exact color", so a
+ * desktop with no override of its own correctly falls back to
+ * @c theme.desktop.color.background (theme.json) instead: any real,
+ * explicitly configured 24-bit color always has its own top byte
+ * zero, so this reserved value (top byte @c 0xFF) can never collide
+ * with one.
+ *
+ * @see @c desktop_init in desktop.c, where this fallback is applied
+ */
+#define WM_DESKTOP_BG_COLOR_UNSET (0xFF000000u)
+
 /** Duration in milliseconds for the desktop-switch notification */
 #define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)
 

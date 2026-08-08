@@ -101,7 +101,7 @@ int config_load_randr(const char *filename,
     }
 
     json_load_bool(json, "is-enabled", &config_randr->is_enabled);
-    LOGGER_DEBUG("RandR configuration: is-enabled=%d",
+    LOGGER_DEBUG("Loaded RandR configuration (is-enabled=%d)",
             (int) config_randr->is_enabled);
 
     outputs_arr = cJSON_GetObjectItem(json, "outputs");
@@ -166,8 +166,9 @@ int config_load_randr(const char *filename,
             out->rotation = (uint16_t) XCB_RANDR_ROTATION_ROTATE_0;
         }
 
-        LOGGER_DEBUG("RandR profile[%u]: name='%s' is-enabled=%d"
-                " is-primary=%d res=%ux%u pos=(%d,%d) rot=%u",
+        LOGGER_DEBUG("Loaded RandR profile %u (name='%s'," \
+                " is-enabled=%d, is-primary=%d, res=%ux%u," \
+                " pos=%d+%d, rot=%u)",
                 config_randr->output_count,
                 out->name,
                 (int) out->is_enabled, (int) out->is_primary,

@@ -32,6 +32,13 @@ values, and built-in default value.
 4. [`themes/<name>.json` -- Theme configuration](#4-themesnamejson----theme-configuration)
    - [4.1 `window`](#41-window)
    - [4.2 `icon`](#42-icon)
+   - [4.3 `systray`](#43-systray)
+   - [4.4 `desktop`](#44-desktop)
+   - [4.5 `menu`](#45-menu)
+   - [4.6 `dialog`](#46-dialog)
+   - [4.7 `overlay`](#47-overlay)
+   - [4.8 `xsettings`](#48-xsettings)
+   - [4.9 Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
 5. [`randr.json` -- XRandR output profiles](#5-randrjson----xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
@@ -1015,7 +1022,42 @@ internal spacing and vertical alignment are theme concerns.
 }
 ```
 
-### 4.4 `menu`
+### 4.4 `desktop`
+
+The desktop's own default background color, used only as a fallback:
+see the explanation right after the table below for exactly when it
+applies.
+
+| Key               | Type   | Default     |
+|-------------------|--------|-------------|
+| `color.background`| string | `"#4C5B6B"` |
+
+This is deliberately not the same tone as `systray.color.background`
+or the other UI-chrome colors above (`"#D0D9E5"`-family): a desktop
+background is a large, full-screen area rather than a small UI
+element, so it wants a more neutral, less attention-grabbing tone,
+and a darker one gives windows placed on top of it more contrast to
+stand out against than a light background would.  It still reads as
+the same overall blue-gray palette as the rest of the default theme,
+close to `window.active.color.foreground`'s own `"#4A5566"`, rather
+than an unrelated new hue.
+
+This value is used only when a desktop's own entry in
+`screens.settings.desktops` (`config.json`, section 2.2) does not
+set its own `background-color`; a desktop that does set one always
+keeps it, regardless of this.  It is also only ever used when no
+external tool (`xsetbg`, `feh`, `nitrogen`, `hsetroot`, and so on)
+has painted the root window with its own wallpaper image, exactly
+the same way an explicit per-desktop `background-color` is: icowm
+never overwrites an externally set wallpaper with either one.
+
+```json
+"desktop": {
+    "color": { "background": "#4C5B6B" }
+}
+```
+
+### 4.5 `menu`
 
 Applies to every context menu (root menu, per-window menu, the
 all-desktops window list, and their submenus) and to the Alt+Tab-style
@@ -1117,7 +1159,7 @@ alike, and equally to `unselected`, `selected`, and `label` rows.
 }
 ```
 
-### 4.5 `dialog`
+### 4.6 `dialog`
 
 Applies to the quit-confirmation dialog and the generic message
 dialog.
@@ -1189,7 +1231,7 @@ never looks off-center.
 }
 ```
 
-### 4.6 `overlay`
+### 4.7 `overlay`
 
 A single `font` / `color` / `border` block, the same shape as
 `window.active` (section 4.1), applied to transient informational
@@ -1213,7 +1255,7 @@ overlays with no selected/unselected state to distinguish.
 }
 ```
 
-### 4.7 `xsettings`
+### 4.8 `xsettings`
 
 | Key                           | Type    | Default     |
 |-------------------------------|---------|-------------|
@@ -1263,7 +1305,7 @@ exactly as a dedicated XSETTINGS daemon would.
 }
 ```
 
-### 4.8 Configuration reload and already-open windows
+### 4.9 Configuration reload and already-open windows
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names

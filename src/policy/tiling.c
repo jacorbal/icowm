@@ -227,7 +227,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
             *out_y = (int16_t) margin;
         }
 
-        LOGGER_DEBUG("smart-place icon: slot=%u pri=%u sec=%u pos=(%d,%d)",
+        LOGGER_DEBUG("Smart-placed icon (slot=%u, pri=%u, sec=%u," \
+                " pos=%d+%d)",
                 (unsigned) chosen, (unsigned) pri, (unsigned) sec,
                 (int) *out_x, (int) *out_y);
         return;

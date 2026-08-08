@@ -220,11 +220,20 @@ desktop_td *desktop_init(xcb_connection_t *connection,
                 WM_DESKTOP_MAX_LENGTH_NAME);
     }
 
-    /* Set background color */
+    /* Set background color: a desktop entry that set its own
+     * 'background-color' (config.json) always keeps it; one that
+     * did not (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the
+     * sentinel every entry starts with) falls back to
+     * 'theme.desktop.color.background' (theme.json) instead. */
     desktop->background.is_image = false;
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color =
-        config_base->screens[screen_id].desktops[desktop_id].settings.background.color;
+        config_base->screens[screen_id].desktops[desktop_id]
+            .settings.background.color;
+    if (desktop->background.bg.color == WM_DESKTOP_BG_COLOR_UNSET) {
+        desktop->background.bg.color =
+            config_theme->desktop.color.background;
+    }
 
     LOGGER_TRACE("Initializing client list structure for" \
             " desktop %u ('%s') on screen %u",

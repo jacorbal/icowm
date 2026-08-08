@@ -616,6 +616,27 @@ struct config_theme_s {
     } systray;
 
     /**
+     * @brief Default desktop background color
+     *
+     * Used only as the fallback for a desktop whose own entry in
+     * @c screens.settings.desktops (config.json) does not set its own
+     * @c background-color; a desktop that does set one always keeps
+     * it regardless of this.  Also only ever used when no external
+     * tool (xsetbg, feh, nitrogen, and so on) has painted the root
+     * window with its own wallpaper pixmap, exactly like an explicit
+     * per-desktop color (see @c desktop_render_background in
+     * render/desktop.c).  Named @c color.background, matching every
+     * other themed section (@c systray.color.background and so on),
+     * rather than @c background.color, even though a desktop has no
+     * corresponding foreground to pair it with today.
+     */
+    struct {
+        struct {
+            uint32_t background;
+        } color;
+    } desktop;
+
+    /**
      * @brief Context/cycle menu theme
      *
      * Applies to every context menu (root menu, per-window menu, the

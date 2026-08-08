@@ -586,9 +586,9 @@ void loop_run(wm_td *wm)
                      * mid-startup) is exactly the kind of detail worth
                      * having on hand afterward. */
                     proto_error = (const xcb_generic_error_t *) event;
-                    LOGGER_WARNING("X protocol error: code=%u" \
-                            " resource=0x%x major=%u minor=%u" \
-                            " sequence=%u",
+                    LOGGER_WARNING("X protocol error (code=%u," \
+                            " resource=0x%x, major=%u, minor=%u," \
+                            " sequence=%u)",
                             proto_error->error_code,
                             proto_error->resource_id,
                             proto_error->major_code,

@@ -1014,7 +1014,7 @@ client_td *client_manage(xcb_connection_t *connection,
     values[1] = mouse_plain_cursor();
     xcb_change_window_attributes(connection, window,
             XCB_CW_EVENT_MASK | XCB_CW_CURSOR, values);
-    LOGGER_TRACE("client_manage: window=0x%x cursor=0x%x", window,
+    LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)", window,
             values[1]);
 
     /* Ignore return value, as decoration creation is non-fatal here */

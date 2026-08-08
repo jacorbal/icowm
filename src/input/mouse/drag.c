@@ -41,6 +41,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
 #include <render/text.h>
 #include <surface.h>
@@ -482,8 +483,15 @@ static void s_drag_snap_move(int32_t *x, int32_t *y,
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
         cdlist_item_td *initial;
-        int32_t dx = snap;
-        int32_t dy = snap;
+        /* One past 'snap' itself, not 'snap' itself: 'abs(delta) <=
+         * snap' below is what decides whether a candidate actually
+         * applies, so starting exactly at 'snap' would make that
+         * check pass on the untouched initial value alone whenever no
+         * real candidate ever beat it, applying a spurious snap of
+         * exactly the snap distance with no nearby window at all
+         * responsible for it. */
+        int32_t dx = snap + 1;
+        int32_t dy = snap + 1;
 
         node = cdlist_head(s_drag.desktop->stacking);
         initial = node;
@@ -521,6 +529,10 @@ static void s_drag_snap_move(int32_t *x, int32_t *y,
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
         }
+
+        LOGGER_TRACE("Move snap candidates (x=%d, y=%d, right=%d," \
+                " bottom=%d, dx=%d, dy=%d, snap=%d)",
+                *x, *y, right, bottom, dx, dy, snap);
 
         if (s_drag_abs_i32(dx) <= snap) {
             *x += dx;
@@ -766,8 +778,10 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
         cdlist_item_td *initial;
-        int32_t d_horiz = snap;
-        int32_t d_vert = snap;
+        /* See the matching comment in 's_drag_snap_move' for why this
+         * is 'snap + 1', not 'snap' itself. */
+        int32_t d_horiz = snap + 1;
+        int32_t d_vert = snap + 1;
 
         node = cdlist_head(s_drag.desktop->stacking);
         initial = node;
@@ -819,6 +833,13 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
         }
+
+        LOGGER_TRACE("Resize snap candidates (x=%d, y=%d, right=%d," \
+                " bottom=%d, anchor-right=%d, anchor-bottom=%d," \
+                " d-horiz=%d, d-vert=%d, snap=%d)",
+                *x, *y, right, bottom,
+                (int) s_drag.anchor_right, (int) s_drag.anchor_bottom,
+                d_horiz, d_vert, snap);
 
         if (s_drag_abs_i32(d_horiz) <= snap) {
             if (s_drag.anchor_right) {

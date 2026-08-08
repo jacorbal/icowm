@@ -108,7 +108,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Property notify event: window=0x%x, atom=%u",
+    LOGGER_TRACE("Property notify event (window=0x%x, atom=%u)",
             event->window, event->atom);
 
     if (event->state == XCB_PROPERTY_DELETE) {
@@ -378,7 +378,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    LOGGER_TRACE("Mapping notify: request=%u; refreshing grabs",
+    LOGGER_TRACE("Mapping notify (request=%u); refreshing grabs",
             (unsigned int) event->request);
 
     /* Obtain the XCB connection from the first surface */

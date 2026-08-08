@@ -475,16 +475,16 @@ static client_td *s_mouse_update_resize_cursor(xcb_connection_t *connection,
 
     client = lookup_find_client(surfaces, window, &surface, &desktop);
     if (client == NULL || !client_is_resizable(client)) {
-        LOGGER_TRACE("Resize cursor: window=0x%x root=%d,%d ->" \
-                " no resizable client found (client=%p)",
+        LOGGER_TRACE("No resizable client for resize cursor" \
+                " (window=0x%x, root=%d+%d, client=%p)",
                 window, root_x, root_y, (void *) client);
         return NULL;
     }
 
     zone = s_mouse_resize_zone(client, root_x, root_y);
 
-    LOGGER_TRACE("Resize cursor: window=0x%x (client->window=0x%x" \
-            " frame=0x%x) root=%d,%d zone=%d cursor=0x%x",
+    LOGGER_TRACE("Set resize cursor (window=0x%x, client-window=0x%x," \
+            " frame=0x%x, root=%d+%d, zone=%d, cursor=0x%x)",
             window, client->window, client->frame, root_x, root_y,
             (int) zone, s_resize_cursors[zone]);
 
@@ -1634,8 +1634,8 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Enter notify: event->event=0x%x child=0x%x" \
-            " root=%d,%d mode=%u detail=%u",
+    LOGGER_TRACE("Enter notify (event=0x%x, child=0x%x," \
+            " root=%d+%d, mode=%u, detail=%u)",
             event->event, event->child, event->root_x, event->root_y,
             event->mode, event->detail);
 

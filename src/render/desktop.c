@@ -937,8 +937,16 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     LOGGER_TRACE("Fully rendering desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    /* Draw background */
-    if (desktop_render_background(desktop) != 0) {
+    /* Draw background, but only for the desktop currently shown on
+     * screen: a non-current desktop's own background is never
+     * actually visible (the surface-level repaint that calls this,
+     * in render/surface.c, re-applies the current desktop's own
+     * background again right after every desktop in the list has
+     * been rendered, specifically because earlier ones painting
+     * theirs would otherwise overwrite it on the one shared root
+     * window), so painting it here for a desktop nobody can see would
+     * just be work immediately thrown away. */
+    if (is_current && desktop_render_background(desktop) != 0) {
         LOGGER_ERROR("Failed to render background on" \
                  " desktop %u ('%s')", desktop->id, desktop->name);
         return 1;

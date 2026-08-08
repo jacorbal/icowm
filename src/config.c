@@ -45,6 +45,7 @@
 
 /* Default initial values */
 #include <defs/ctxmenu.h>
+#include <defs/desktop.h>
 #include <defs/loop.h>
 
 /* Project includes */
@@ -144,7 +145,7 @@ void config_set_default_values(config_td *config)
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
 
             config->base.screens[i].desktops[j].settings.background.color
-                = json_hex2uint32("#C0CCD8");
+                = WM_DESKTOP_BG_COLOR_UNSET;
         }
     }
 
@@ -416,6 +417,17 @@ void config_set_default_values(config_td *config)
     config->theme.systray.height = 32u;
     config->theme.systray.text.gap = 4u;
     config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+
+    /* Deliberately darker than the D0D9E5/4A5566-family colors used
+     * for menus, the systray, and other UI chrome above and below:
+     * a desktop background is a large, full-screen area rather than
+     * a small UI element, so it wants a more neutral, less
+     * attention-grabbing tone that still reads as the same overall
+     * blue-gray palette (close to the existing 4A5566 foreground
+     * color used elsewhere) rather than an unrelated new hue, and
+     * gives windows placed on top of it more contrast to stand out
+     * against than a light background would. */
+    config->theme.desktop.color.background = json_hex2uint32("4C5B6B");
 
     safe_strcpy(config->theme.menu.unselected.font, "fixed");
     config->theme.menu.unselected.color.background =

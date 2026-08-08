@@ -90,7 +90,7 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    LOGGER_TRACE("Client message: window=0x%x, type=%u",
+    LOGGER_TRACE("Client message (window=0x%x, type=%u)",
             event->window, event->type);
 
     /* Startup-notification messages are broadcast on a root window by

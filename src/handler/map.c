@@ -129,7 +129,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         return;
     }
 
-    LOGGER_TRACE("Map request event: window=0x%x, parent=0x%x",
+    LOGGER_TRACE("Map request event (window=0x%x, parent=0x%x)",
             event->window, event->parent);
 
     if (lookup_find_client(wm->surfaces,
@@ -281,7 +281,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Unmap notify event: window=0x%x", event->window);
+    LOGGER_TRACE("Unmap notify event (window=0x%x)", event->window);
 
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
@@ -345,7 +345,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Destroy notify event: window=0x%x", event->window);
+    LOGGER_TRACE("Destroy notify event (window=0x%x)", event->window);
 
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);
@@ -428,7 +428,8 @@ void handler_map_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Map notify event: window=0x%x, override_redirect=%u",
+    LOGGER_TRACE("Map notify event (window=0x%x," \
+            " override-redirect=%u)",
             event->window, event->override_redirect);
 
     /* Unmanaged override-redirect windows (tooltips, menus) are
@@ -478,7 +479,7 @@ void handler_map_notify(xcb_connection_t *connection,
             xcb_change_window_attributes(connection, client->window,
                     XCB_CW_CURSOR,
                     (const uint32_t[]) { mouse_plain_cursor() });
-            LOGGER_TRACE("handler_map_notify: window=0x%x cursor=0x%x",
+            LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)",
                     client->window, mouse_plain_cursor());
         }
         xcb_flush(connection);
@@ -498,7 +499,7 @@ void handler_gravity_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Gravity notify event: window=0x%x, pos=%d+%d",
+    LOGGER_TRACE("Gravity notify event (window=0x%x, pos=%d+%d)",
             event->window, event->x, event->y);
 
     /* The X server repositioned a frame window ('event->window') within
@@ -536,7 +537,7 @@ void handler_circulate_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Circulate notify event: window=0x%x, place=%u",
+    LOGGER_TRACE("Circulate notify event (window=0x%x, place=%u)",
             event->window, event->place);
 
     /* The stacking order changed; mark the surface so 'wm_ewmh_sync'
@@ -560,7 +561,7 @@ void handler_circulate_request(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Circulate request event: window=0x%x, place=%u",
+    LOGGER_TRACE("Circulate request event (window=0x%x, place=%u)",
             event->window, event->place);
 
     client = lookup_find_client(surfaces, event->window, NULL, NULL);

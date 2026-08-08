@@ -217,6 +217,7 @@ int config_load_theme(const char *filename,
     cJSON *window;
     cJSON *icon;
     cJSON *systray;
+    cJSON *desktop;
     cJSON *menu;
     cJSON *dialog;
     cJSON *overlay;
@@ -328,6 +329,17 @@ int config_load_theme(const char *filename,
                 config_theme->systray.text.valign =
                     s_parse_systray_text_valign(valign_item->valuestring);
             }
+        }
+    }
+
+    desktop = cJSON_GetObjectItem(json, "desktop");
+    if (desktop) {
+        cJSON *color_obj;
+
+        color_obj = cJSON_GetObjectItem(desktop, "color");
+        if (color_obj) {
+            json_load_color(color_obj, "background",
+                    &config_theme->desktop.color.background);
         }
     }
 

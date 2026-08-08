@@ -87,7 +87,7 @@ static void s_event_handle_client(event_td *event)
         return;
     }
 
-    LOGGER_TRACE("Processing client event: action=%d, client=%p",
+    LOGGER_TRACE("Processing client event (action=%d, client=%p)",
             event->action.object.client, (void *) client);
 
     switch (event->action.object.client) {
@@ -307,7 +307,7 @@ static void s_event_handle_desktop(event_td *event)
         return;
     }
 
-    LOGGER_TRACE("Processing desktop event: action=%d, desktop=%p",
+    LOGGER_TRACE("Processing desktop event (action=%d, desktop=%p)",
             event->action.object.desktop, (void *) desktop);
 
     switch (event->action.object.desktop) {
@@ -436,7 +436,7 @@ static void s_event_handle_surface(event_td *event)
         return;
     }
 
-    LOGGER_TRACE("Processing surface event: action=%d, surface=%p",
+    LOGGER_TRACE("Processing surface event (action=%d, surface=%p)",
             event->action.object.surface, (void *) surface);
 
     switch (event->action.object.surface) {
@@ -512,7 +512,7 @@ static void s_event_handle_wm(event_td *event)
         return; /* Invalid action */
     }
 
-    LOGGER_TRACE("Processing window manager event: action=%d",
+    LOGGER_TRACE("Processing window manager event (action=%d)",
             event->action.object.wm);
 
     switch (event->action.object.wm) {

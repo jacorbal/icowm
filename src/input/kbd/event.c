@@ -1090,7 +1090,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             ~((unsigned int) XCB_MOD_MASK_LOCK |
                 (unsigned int) XCB_MOD_MASK_2));
 
-    LOGGER_TRACE("Key press event: keysym=0x%x, state=0x%x",
+    LOGGER_TRACE("Key press event (keysym=0x%x, state=0x%x)",
             keysym, state);
 
     surface = s_lookup_surface_fallback(surfaces, event->root);

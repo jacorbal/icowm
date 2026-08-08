@@ -322,8 +322,8 @@ static void s_xs_publish(void)
 
     free(buf);
 
-    LOGGER_DEBUG("Published XSETTINGS (serial=%u): theme='%s'," \
-            " icons='%s', cursor='%s'@%u, dpi=%u",
+    LOGGER_DEBUG("Published XSETTINGS (serial=%u, theme='%s'," \
+            " icons='%s', cursor='%s', cursor-size=%u, dpi=%u)",
             (unsigned int) s_xs.serial, s_xs.gtk_theme_name,
             s_xs.icon_theme_name, s_xs.cursor_theme_name,
             s_xs.cursor_theme_size, s_xs.dpi);

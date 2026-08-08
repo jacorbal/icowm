@@ -140,7 +140,7 @@ void handler_configure_request(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Configure request event: window=0x%x, mask=0x%x",
+    LOGGER_TRACE("Configure request event (window=0x%x, mask=0x%x)",
             event->window, event->value_mask);
 
     mask = event->value_mask &
@@ -502,7 +502,8 @@ void handler_configure_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Configure notify event: window=0x%x, geom=%ux%u+%d+%d",
+    LOGGER_TRACE("Configure notify event (window=0x%x," \
+            " geom=%ux%u+%d+%d)",
             event->window, event->width, event->height,
             event->x, event->y);
 

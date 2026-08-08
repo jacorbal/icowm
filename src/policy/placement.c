@@ -351,7 +351,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         }
     }
 
-    LOGGER_DEBUG("smart-place win: pos=(%d,%d) cost=%lu wa=(%d,%d %ux%u)",
+    LOGGER_DEBUG("Smart-placed window (pos=%d+%d, cost=%lu," \
+            " wa-pos=%d+%d, wa-size=%ux%u)",
             best_x, best_y, (unsigned long) best_cost,
             wa_x, wa_y, wa_w, wa_h);
 
