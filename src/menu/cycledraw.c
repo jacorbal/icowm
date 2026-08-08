@@ -310,6 +310,14 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         xcb_change_window_attributes(connection, selected_target,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
         xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
+
+        if (config->theme.icon.use_pixmap) {
+            wmicon_draw(connection, selected->ewmh,
+                    selected->window, selected_target,
+                    WM_ICON_SQUARE_SIZE,
+                    &selected->icon_pixmap_cache);
+        }
+
         if (config->theme.icon.is_captioned &&
                 selected->info.name != NULL) {
             const char *caption =

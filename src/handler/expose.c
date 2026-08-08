@@ -43,6 +43,9 @@
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
+/* Input includes */
+#include <input/mouse/drag.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -61,7 +64,8 @@ void handler_expose(xcb_connection_t *connection,
     client_td *client;
     desktop_td *desktop;
     bool is_focused;
-    bool is_cycle_preview;
+    bool is_active_visual;
+    bool is_icon_dragging;
     bool use_active_style;
     client_td *cycle_client;
     uint16_t left;
@@ -139,7 +143,19 @@ void handler_expose(xcb_connection_t *connection,
     /* Icon window: repaint caption */
     if (client->icon_window == event->window) {
         cycle_client = cycle_get_selected_client();
-        is_cycle_preview = cycle_is_open() && cycle_client == client;
+        is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
+            drag_client() == client;
+        /* The icon's own drag ('drag_start_icon' in
+         * input/mouse/drag.c) sets the active styling once, at the
+         * start of the drag, and nothing re-applies it afterward; an
+         * icon passing behind another window mid-drag gets exposed
+         * again once it re-emerges, and without this check that
+         * repaint would fall back to the inactive styling for the
+         * rest of the drag, well after it visually cleared whatever
+         * it had passed behind, since being-dragged is not otherwise
+         * part of what decides active vs. inactive here. */
+        is_active_visual = (cycle_is_open() && cycle_client == client) ||
+            is_icon_dragging;
 
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
             return;
@@ -147,16 +163,24 @@ void handler_expose(xcb_connection_t *connection,
         xcb_change_window_attributes(connection, client->icon_window,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                    (is_cycle_preview)
+                    (is_active_visual)
                         ? cfg->theme.icon.active.color.background
                         : cfg->theme.icon.inactive.color.background,
-                    (is_cycle_preview)
+                    (is_active_visual)
                         ? cfg->theme.icon.active.border.color
                         : cfg->theme.icon.inactive.border.color
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
 
-        if (cfg->theme.icon.use_pixmap) {
+        /* Deliberately skipped while this same icon is being dragged
+         * ('s_drag_sync_icon_active_visual' in input/mouse/drag.c
+         * clears the icon window without drawing its pixmap when the
+         * drag starts, on purpose): without this check, an Expose
+         * from passing behind another window mid-drag would redraw
+         * the pixmap this same repaint just cleared, bringing it back
+         * for the rest of the drag despite the drag itself never
+         * wanting it shown in the first place. */
+        if (cfg->theme.icon.use_pixmap && !is_icon_dragging) {
             wmicon_draw(connection, client->ewmh, client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
                     &client->icon_pixmap_cache);
@@ -171,14 +195,14 @@ void handler_expose(xcb_connection_t *connection,
                     : client->info.name;
 
             text_renderer_init(connection,
-                (is_cycle_preview)
+                (is_active_visual)
                     ? cfg->theme.icon.active.font
                     : cfg->theme.icon.inactive.font);
             text_renderer_set_color(
-                    (is_cycle_preview)
+                    (is_active_visual)
                         ? cfg->theme.icon.active.color.foreground
                         : cfg->theme.icon.inactive.color.foreground,
-                    (is_cycle_preview)
+                    (is_active_visual)
                         ? cfg->theme.icon.active.color.background
                         : cfg->theme.icon.inactive.color.background);
             text_draw_string(connection, client->icon_window, XCB_NONE,
@@ -195,8 +219,8 @@ void handler_expose(xcb_connection_t *connection,
     is_focused = (desktop != NULL &&
                   desktop->client_active_id == client->id);
     cycle_client = cycle_get_selected_client();
-    is_cycle_preview = cycle_is_open() && cycle_client == client;
-    use_active_style = is_focused || is_cycle_preview;
+    is_active_visual = cycle_is_open() && cycle_client == client;
+    use_active_style = is_focused || is_active_visual;
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
