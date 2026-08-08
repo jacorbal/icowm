@@ -72,7 +72,7 @@ Basic features are:
     area.
 
   - **Window cycling.**
-    An interactive window-cycle menu (similar to Alt+Tab) allows quick
+    An interactive window-cycle menu (similar to `Alt+Tab`) allows quick
     keyboard-driven navigation across open clients and iconified
     windows.
 
@@ -80,18 +80,6 @@ Basic features are:
     Configuration files are read upon initialization and can
     subsequently be reloaded in response to a `SIGHUP` signal, without
     restarting the window manager.
-
-  - **Per-window rules.**
-    Optional rules can match window
-    instance/class/role/title/type/transient and apply desktop, layer,
-    focus and initial geometry with deterministic precedence (last
-    matching rule wins).  Rules can be map-only or also apply on
-    property changes.
-
-  - **Session hooks.**
-    Optional asynchronous hooks (`on-start`, `on-reload`, `on-exit`) can
-    launch external processes (panel/compositor/daemons) with PID and
-    termination logging.
 
   - **Per-window rules.**
     Optional rules can match window
@@ -135,6 +123,41 @@ overly aggressive automatism upon window placement, but rather to
 provide a mode of interaction that is orderly, intelligible, and
 deliberate, wherein changes of focus, iconification, and navigation
 between desktops are treated as essential operations.
+
+Dependencies
+------------
+
+Building IcoWM requires a C99 compiler, GNU Make, and `pkg-config` (used
+to locate the libraries below; if unavailable, the build falls back to
+a fixed link line for the same set of libraries).
+
+  - **libxcb** and the following extension libraries: `xcb-keysyms`,
+    `xcb-util`, `xcb-icccm`, `xcb-ewmh`, `xcb-randr`, `xcb-sync`, and
+    `xcb-cursor`.  The last of these, `xcb-cursor`, is what lets IcoWM
+    load cursors (the window pointer, the eight border-resize cursors,
+    and the startup-notification busy cursor) from the user's actual
+    cursor theme, falling back to the X server's own built-in cursor
+    font only for a cursor name that theme does not provide.
+
+  - **cJSON**, for reading every JSON configuration file.
+
+  - **pthread**, for the event queue's internal mutex; part of the
+    C library itself on any POSIX system, with no separate package
+    needed.
+
+On Debian (and family), the following installs everything above:
+
+```sh
+sudo apt install build-essential pkg-config \
+    libxcb1-dev libxcb-keysyms1-dev libxcb-util-dev \
+    libxcb-icccm4-dev libxcb-ewmh-dev libxcb-randr0-dev \
+    libxcb-sync-dev libxcb-cursor-dev libcjson-dev
+```
+
+Other distributions provide equivalent packages, typically under
+similarly named `xcb-util-*`/`xcb-util-*-devel` or `libxcb-*-dev`
+packages and a `cjson`/`libcjson` development package; consult your
+distribution's package search for the exact names.
 
 License
 -------
