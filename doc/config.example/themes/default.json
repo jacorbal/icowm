@@ -22,7 +22,11 @@
                     "maximize",
                     "fullscreen",
                     "close"
-                ]
+                ],
+                "color": {
+                    "on": "#253040",
+                    "off": "#4a5566"
+                }
             }
         },
         "active": {
@@ -85,10 +89,7 @@
             "color": "#7f9ab6",
             "width": 1
         },
-        "height": 32,
-        "clock": {
-            "valign": "center"
-        }
+        "height": 32
     },
 
     "menu": {

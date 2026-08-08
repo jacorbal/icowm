@@ -142,33 +142,6 @@ static enum config_titlebar_alignment_e s_parse_titlebar_alignment(
 
 
 /**
- * @brief Parse systray clock vertical alignment text into configuration
- *
- * @param value Alignment text from configuration, e.g., @c "top"
- *
- * @return Parsed systray clock vertical alignment enumeration value
- *
- * @note Supported values are @c center, @c top, and @c bottom
- * @note Complexity: @e O(n), where @e n is the length of @p value
- */
-static enum config_systray_clock_valign_e
-    s_parse_systray_clock_valign(const char *value)
-{
-    if (value == NULL) {
-        return CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER;
-    }
-    if (safe_strcmp(value, "top") == 0) {
-        return CONFIG_SYSTRAY_CLOCK_VALIGN_TOP;
-    }
-    if (safe_strcmp(value, "bottom") == 0) {
-        return CONFIG_SYSTRAY_CLOCK_VALIGN_BOTTOM;
-    }
-
-    return CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER;
-}
-
-
-/**
  * @brief Load one @c { font, color: {background, foreground},
  *        border: {color, width} } block, the shape shared by every
  *        themeable surface (window active/inactive, icon
@@ -265,12 +238,22 @@ int config_load_theme(const char *filename,
 
             buttons = cJSON_GetObjectItem(titlebar, "buttons");
             if (buttons) {
+                cJSON *btn_color;
+
                 s_load_button_list(buttons, "left",
                         config_theme->window.titlebar.buttons.left,
                         &config_theme->window.titlebar.buttons.left_count);
                 s_load_button_list(buttons, "right",
                         config_theme->window.titlebar.buttons.right,
                         &config_theme->window.titlebar.buttons.right_count);
+
+                btn_color = cJSON_GetObjectItem(buttons, "color");
+                if (btn_color) {
+                    json_load_color(btn_color, "on",
+                            &config_theme->window.titlebar.buttons.color.on);
+                    json_load_color(btn_color, "off",
+                            &config_theme->window.titlebar.buttons.color.off);
+                }
             }
         }
 
@@ -299,19 +282,7 @@ int config_load_theme(const char *filename,
     systray = cJSON_GetObjectItem(json, "systray");
     s_load_theme_colors(systray, &config_theme->systray.style);
     if (systray) {
-        cJSON *clock_obj;
-        cJSON *valign_item;
-
         json_load_uint(systray, "height", &config_theme->systray.height);
-
-        clock_obj = cJSON_GetObjectItem(systray, "clock");
-        if (clock_obj) {
-            valign_item = json_get_item(clock_obj, "valign");
-            if (valign_item != NULL && cJSON_IsString(valign_item)) {
-                config_theme->systray.clock.valign =
-                    s_parse_systray_clock_valign(valign_item->valuestring);
-            }
-        }
     }
 
     menu = cJSON_GetObjectItem(json, "menu");

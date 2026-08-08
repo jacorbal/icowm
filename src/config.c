@@ -186,8 +186,20 @@ void config_set_default_values(config_td *config)
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
     config->base.systray.clock.is_enabled = false;
-    safe_strcpy(config->base.systray.clock.format, "%H:%M");
-    config->base.systray.clock.position = CONFIG_SYSTRAY_CLOCK_RIGHT;
+    safe_strcpy(config->base.systray.clock.format, "%a %R");
+
+    config->base.systray.battery.is_enabled = false;
+    config->base.systray.battery.threshold.charged = 100u;
+    config->base.systray.battery.threshold.low = 20u;
+    config->base.systray.battery.threshold.critical = 5u;
+    config->base.systray.battery.backend.type = CONFIG_BATTERY_BACKEND_ACPI;
+    config->base.systray.battery.backend.number = 0u;
+
+    config->base.systray.text.order[0] = CONFIG_SYSTRAY_TEXT_BATTERY;
+    config->base.systray.text.order[1] = CONFIG_SYSTRAY_TEXT_CLOCK;
+    config->base.systray.text.order_count = 2u;
+    config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_RIGHT;
+    config->base.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
     config->base.xsettings.is_enabled = false;
     safe_strncpy(config->base.xsettings.gtk_theme_name, "Adwaita",
@@ -365,6 +377,11 @@ void config_set_default_values(config_td *config)
         CONFIG_TITLEBAR_BUTTON_CLOSE;
     config->theme.window.titlebar.buttons.right_count = 6u;
 
+    config->theme.window.titlebar.buttons.color.on =
+        json_hex2uint32("253040");
+    config->theme.window.titlebar.buttons.color.off =
+        json_hex2uint32("4A5566");
+
     safe_strcpy(config->theme.window.active.font, "fixed bold");
     config->theme.window.active.color.background =
         json_hex2uint32("9AAEC8");
@@ -408,9 +425,9 @@ void config_set_default_values(config_td *config)
     config->theme.systray.style.border.width = 1u;
     /* Matches 'SYSTRAY_ICON_SIZE + 2 * SYSTRAY_ICON_PAD' in systray.c:
      * exactly tall enough for one icon row with no extra room, so
-     * 'clock.valign' has no visible effect until this is raised. */
+     * 'systray.text.valign' has no visible effect until this is
+     * raised. */
     config->theme.systray.height = 32u;
-    config->theme.systray.clock.valign = CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER;
 
     safe_strcpy(config->theme.menu.unselected.font, "fixed");
     config->theme.menu.unselected.color.background =

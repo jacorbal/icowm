@@ -204,25 +204,106 @@ struct config_base_s {
         } layer;
 
         /**
-         * @brief Optional clock drawn inside the systray dock, next
-         *        to the icons
+         * @brief Optional clock drawn inside the systray dock
          *
-         * @c valign is a theme setting (see @c config_theme_s), not
-         * here: how the clock lines up vertically is an aesthetic
-         * choice, the same as @c systray.height.
+         * Where it is positioned/aligned is shared with @c battery
+         * below; see @c text.
          */
         struct {
             bool is_enabled;    /**< Draw the clock at all */
             char format[CONFIG_MAX_LENGTH_NAME]; /**< 'strftime(3)'
                                                        format string */
-
-            enum config_systray_clock_position_e {
-                CONFIG_SYSTRAY_CLOCK_LEFT = 0,  /**< Before the icons,
-                                                     in dock order */
-                CONFIG_SYSTRAY_CLOCK_RIGHT      /**< After the icons,
-                                                     in dock order */
-            } position;
         } clock;
+
+        /**
+         * @brief Optional battery status drawn inside the systray
+         *        dock, compatible with either the Linux ACPI or the
+         *        older APM battery interface
+         *
+         * The status text itself follows @c threshold: @c charged is
+         * the percentage (typically 100) at or above which it reads
+         * "Full" instead of a percentage; @c low and @c critical each
+         * append one or two '!' to the percentage while running on
+         * battery power (never while on AC), e.g., "20%!" or "5%!!".
+         * "AC" is appended whenever AC power is connected, whether or
+         * not the battery itself is present or charged.  "N/A" is
+         * shown when no battery matching @c backend can be read at
+         * all.  Where it is positioned/aligned is shared with @c clock
+         * above; see @c text.
+         */
+        struct {
+            bool is_enabled;    /**< Draw the battery status at all */
+
+            struct {
+                uint32_t charged;   /**< Percentage at/above which the
+                                          status reads "Full" */
+                uint32_t low;       /**< Percentage at/below which a
+                                          single '!' is appended */
+                uint32_t critical;  /**< Percentage at/below which two
+                                          '!' are appended instead of
+                                          one */
+            } threshold;
+
+            /**
+             * @brief Which kernel battery interface to read, and
+             *        which battery to read from it
+             */
+            struct {
+                enum config_battery_backend_type_e {
+                    CONFIG_BATTERY_BACKEND_ACPI = 0, /**< Linux sysfs
+                                                           @c
+                                                           /sys/class/power_supply,
+                                                           the modern,
+                                                           near-universal
+                                                           interface */
+                    CONFIG_BATTERY_BACKEND_APM       /**< Legacy
+                                                           @c /proc/apm,
+                                                           for older
+                                                           hardware or
+                                                           kernels
+                                                           without ACPI
+                                                           */
+                } type;
+
+                /** Which battery to read when a system has more than
+                 *  one, 0-indexed (e.g., 1 for @c BAT1 under ACPI);
+                 *  meaningless for APM, which only ever exposes one
+                 *  aggregate battery */
+                uint32_t number;
+            } backend;
+        } battery;
+
+        /**
+         * @brief Shared placement and alignment for the clock and
+         *        battery status text, when either or both are enabled
+         */
+        struct {
+            /** Which of the two to show, and in what left-to-right
+             *  order; an item absent from this list does not show
+             *  even if its own @c is_enabled is true, and one with
+             *  @c is_enabled false is skipped even if listed here */
+            enum config_systray_text_item_e {
+                CONFIG_SYSTRAY_TEXT_CLOCK = 0,
+                CONFIG_SYSTRAY_TEXT_BATTERY
+            } order[2];
+            uint8_t order_count;
+
+            enum config_systray_text_position_e {
+                CONFIG_SYSTRAY_TEXT_LEFT = 0,  /**< Before the icons,
+                                                    in dock order */
+                CONFIG_SYSTRAY_TEXT_RIGHT      /**< After the icons,
+                                                    in dock order */
+            } position;
+
+            enum config_systray_text_valign_e {
+                CONFIG_SYSTRAY_TEXT_VALIGN_CENTER = 0, /**< Centered in
+                                                             the tray's
+                                                             full
+                                                             height */
+                CONFIG_SYSTRAY_TEXT_VALIGN_TOP,
+                CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM
+            } valign;
+        } text;
     } systray;
 
     /**
@@ -466,6 +547,20 @@ struct config_theme_s {
                 enum config_titlebar_button_e
                     right[CONFIG_MAX_TITLEBAR_BUTTONS];
                 uint8_t right_count;
+
+                /** Button glyph colors, independent of the titlebar's
+                 *  own text foreground: @c on for a button whose
+                 *  state is currently engaged (pinned, a non-normal
+                 *  layer, or simply the focused-window state every
+                 *  other button reflects), @c off otherwise.  A
+                 *  button that cannot currently do anything (e.g.,
+                 *  maximize on a non-resizable client) is not drawn
+                 *  at all rather than needing a third color for that
+                 *  case. */
+                struct {
+                    uint32_t on;
+                    uint32_t off;
+                } color;
             } buttons;
         } titlebar;
 
@@ -485,24 +580,13 @@ struct config_theme_s {
     struct {
         struct config_theme_style_s style;
         uint32_t height;    /**< Tray dock height in pixels; icons and
-                                  the clock (if enabled) are vertically
-                                  centered or aligned within it, per
-                                  'clock.valign' for the clock; must be
-                                  at least tall enough to fit an icon,
-                                  see 'SYSTRAY_ICON_SIZE' in systray.c,
-                                  or icons get clipped */
-
-        struct {
-            enum config_systray_clock_valign_e {
-                CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER = 0, /**< Centered
-                                                              in the
-                                                              tray's
-                                                              full
-                                                              height */
-                CONFIG_SYSTRAY_CLOCK_VALIGN_TOP,
-                CONFIG_SYSTRAY_CLOCK_VALIGN_BOTTOM
-            } valign;
-        } clock;
+                                  the clock/battery text (if enabled,
+                                  see 'config_base_s.systray.text.valign')
+                                  are vertically centered or aligned
+                                  within it; must be at least tall
+                                  enough to fit an icon, see
+                                  'SYSTRAY_ICON_SIZE' in systray.c, or
+                                  icons get clipped */
     } systray;
 
     /**

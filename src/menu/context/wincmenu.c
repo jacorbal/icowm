@@ -811,7 +811,8 @@ void wincmenu_show(xcb_connection_t *connection,
 
     s_entry_command(&s_entries[n], STR_WINCMENU_MAXIMIZE,
             s_cb_maximize, NULL,
-            !client_is_resizable(client) || client_is_maximized(client));
+            !client_is_resizable(client) || client_is_maximized(client) ||
+                client_is_fullscreen(client));
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_FULLSCREEN,

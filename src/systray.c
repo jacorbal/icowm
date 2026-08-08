@@ -44,6 +44,7 @@
 
 /* Local includes */
 #include <systray.h>
+#include <systray/battery.h>
 
 
 /** Side length in pixels of each docked icon's embed window */
@@ -113,8 +114,16 @@ static struct {
     enum config_systray_layer_e layer;
     bool clock_enabled;
     char clock_format[CONFIG_MAX_LENGTH_NAME];
-    enum config_systray_clock_position_e clock_position;
-    enum config_systray_clock_valign_e clock_valign;
+    bool battery_enabled;
+    uint32_t battery_threshold_charged;
+    uint32_t battery_threshold_low;
+    uint32_t battery_threshold_critical;
+    enum config_battery_backend_type_e battery_backend_type;
+    uint32_t battery_backend_number;
+    enum config_systray_text_position_e text_position;
+    enum config_systray_text_valign_e text_valign;
+    enum config_systray_text_item_e text_order[2];
+    uint8_t text_order_count;
     const struct config_theme_s *theme; /**< Shared pointer into
                                               'wm->config->theme'; stays
                                               live-updated across a
@@ -125,6 +134,14 @@ static struct {
     time_t clock_last_tick;     /**< Second the clock was last
                                       rendered for, to redraw at most
                                       once per second */
+    char battery_text[32];      /**< Last rendered battery status */
+    time_t battery_last_poll;   /**< Wall-clock time battery state was
+                                      last read; polled far less often
+                                      than the clock ticks, since a
+                                      percentage does not need
+                                      per-second freshness and every
+                                      poll costs a handful of file
+                                      reads */
     systray_icon_td icons[SYSTRAY_MAX_ICONS];
     uint16_t icon_count;
 } s_tray;
@@ -187,35 +204,108 @@ static void s_systray_clock_refresh_text(void)
 
 
 /**
- * @brief Pixel width the clock needs, padding included
+ * @brief Read and format the current battery status into
+ *        @c s_tray.battery_text
  *
- * @return 0 when the clock is disabled or its text is empty
+ * A no-op when the battery status is disabled.  See
+ * @c battery_status_read for what the formatted text can look like.
  */
-static uint16_t s_systray_clock_width(void)
+static void s_systray_battery_refresh_text(void)
 {
-    uint16_t text_w;
-
-    if (!s_tray.clock_enabled || s_tray.clock_text[0] == '\0') {
-        return 0u;
+    if (!s_tray.battery_enabled) {
+        s_tray.battery_text[0] = '\0';
+        return;
     }
 
-    if (s_tray.theme != NULL) {
-        text_renderer_init(s_tray.connection, s_tray.theme->systray.style.font);
-    }
-    text_w = text_measure_string(s_tray.clock_text);
+    battery_status_read(s_tray.battery_backend_type,
+            s_tray.battery_backend_number,
+            s_tray.battery_threshold_charged,
+            s_tray.battery_threshold_low,
+            s_tray.battery_threshold_critical,
+            s_tray.battery_text, sizeof(s_tray.battery_text));
 
-    return (uint16_t) (text_w + 2u * SYSTRAY_ICON_PAD);
+    s_tray.battery_last_poll = time(NULL);
 }
 
 
 /**
- * @brief Pixel width the tray window needs for the current icon count
- *        and, if enabled, the clock
+ * @brief The already-formatted text buffer and enabled flag for one
+ *        @c systray.text.order item
  *
- * @return 0 when no icons are docked and the clock is disabled (the
- *         tray window stays unmapped in that case), otherwise enough
- *         to fit every icon with padding around and between each, plus
- *         the clock's own width when it is enabled
+ * @param item       Which item to look up
+ * @param out_enabled Receives whether that item is currently enabled
+ *
+ * @return Pointer to that item's own null-terminated text buffer
+ *
+ * @note Complexity: @e O(1)
+ */
+static const char *s_systray_text_for_item(
+        enum config_systray_text_item_e item, bool *out_enabled)
+{
+    if (item == CONFIG_SYSTRAY_TEXT_BATTERY) {
+        if (out_enabled != NULL) {
+            *out_enabled = s_tray.battery_enabled;
+        }
+        return s_tray.battery_text;
+    }
+
+    if (out_enabled != NULL) {
+        *out_enabled = s_tray.clock_enabled;
+    }
+    return s_tray.clock_text;
+}
+
+
+/**
+ * @brief Pixel width needed for every active @c systray.text.order
+ *        item combined, padding and inter-item gaps included
+ *
+ * @return 0 when nothing in @c systray.text.order is both listed and
+ *         enabled with non-empty text
+ */
+static uint16_t s_systray_text_width(void)
+{
+    uint16_t total = 0u;
+    uint16_t shown = 0u;
+
+    if (s_tray.theme != NULL) {
+        text_renderer_init(s_tray.connection,
+                s_tray.theme->systray.style.font);
+    }
+
+    for (uint8_t i = 0u; i < s_tray.text_order_count; ++i) {
+        bool enabled = false;
+        const char *text = s_systray_text_for_item(s_tray.text_order[i],
+                &enabled);
+
+        if (!enabled || text[0] == '\0') {
+            continue;
+        }
+        if (shown > 0u) {
+            total = (uint16_t) (total + SYSTRAY_ICON_PAD);
+        }
+        total = (uint16_t) (total + text_measure_string(text));
+        ++shown;
+    }
+
+    if (shown == 0u) {
+        return 0u;
+    }
+
+    return (uint16_t) (total + 2u * SYSTRAY_ICON_PAD);
+}
+
+
+
+/**
+ * @brief Pixel width the tray window needs for the current icon count
+ *        and, if enabled, the clock and/or battery status text
+ *
+ * @return 0 when no icons are docked and neither text item is
+ *         enabled (the tray window stays unmapped in that case),
+ *         otherwise enough to fit every icon with padding around and
+ *         between each, plus the combined text width when any of it
+ *         is enabled
  */
 static uint16_t s_systray_content_width(void)
 {
@@ -223,7 +313,7 @@ static uint16_t s_systray_content_width(void)
         : (uint16_t) (SYSTRAY_ICON_PAD +
             s_tray.icon_count * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD));
 
-    return (uint16_t) (icons_w + s_systray_clock_width());
+    return (uint16_t) (icons_w + s_systray_text_width());
 }
 
 
@@ -334,7 +424,7 @@ static void s_systray_reflow(void)
 {
     uint16_t w;
     uint16_t h;
-    uint16_t clock_w;
+    uint16_t text_w;
     uint16_t icons_base_x;
     uint16_t icon_y;
     int16_t x = 0;
@@ -347,14 +437,15 @@ static void s_systray_reflow(void)
     }
 
     if (!s_tray.selection_owned ||
-            (s_tray.icon_count == 0u && !s_tray.clock_enabled)) {
+            (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
+                !s_tray.battery_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
         xcb_flush(s_tray.connection);
         return;
     }
 
     h = s_tray.height;
-    clock_w = s_systray_clock_width();
+    text_w = s_systray_text_width();
     w = s_systray_content_width();
     if (w == 0u) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
@@ -409,12 +500,12 @@ static void s_systray_reflow(void)
             XCB_CONFIG_WINDOW_HEIGHT,
             geom_values);
 
-    /* Icons sit after the clock when it is on the left, or right at
-     * the tray's own left edge otherwise (clock on the right, or
-     * disabled). */
-    icons_base_x = (clock_w > 0u &&
-            s_tray.clock_position == CONFIG_SYSTRAY_CLOCK_LEFT)
-        ? clock_w : 0u;
+    /* Icons sit after the text block when it is on the left, or right
+     * at the tray's own left edge otherwise (text block on the
+     * right, or nothing enabled). */
+    icons_base_x = (text_w > 0u &&
+            s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
+        ? text_w : 0u;
     icon_y = (h > (uint16_t) SYSTRAY_ICON_SIZE)
         ? (uint16_t) ((h - SYSTRAY_ICON_SIZE) / 2u) : 0u;
 
@@ -430,49 +521,65 @@ static void s_systray_reflow(void)
 
     xcb_map_window(s_tray.connection, s_tray.window);
 
-    if (clock_w > 0u && s_tray.theme != NULL) {
-        uint16_t icons_w = (uint16_t) (w - clock_w);
-        int16_t clock_x = (s_tray.clock_position == CONFIG_SYSTRAY_CLOCK_LEFT)
+    if (text_w > 0u && s_tray.theme != NULL) {
+        uint16_t icons_w = (uint16_t) (w - text_w);
+        int16_t block_x = (s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
             ? 0 : (int16_t) icons_w;
         int16_t ascent;
         int16_t descent;
-        int16_t text_h;
-        int16_t clock_y = 0;
+        int16_t item_h;
+        int16_t item_y = 0;
+        int16_t pen_x;
 
         xcb_clear_area(s_tray.connection, 0, s_tray.window,
-                clock_x, 0, clock_w, h);
-        text_renderer_init(s_tray.connection, s_tray.theme->systray.style.font);
+                block_x, 0, text_w, h);
+        text_renderer_init(s_tray.connection,
+                s_tray.theme->systray.style.font);
         text_renderer_set_color(s_tray.theme->systray.style.color.foreground,
                 s_tray.theme->systray.style.color.background);
 
         /* 'text_draw_string' takes the baseline, not the top of the
          * text, so each alignment has to add the font's own ascent
          * (see 'text_font_ascent') to whatever pixel the top of the
-         * text should land on. */
+         * text should land on.  Every item in 'text_order' shares one
+         * font, so this is computed once and reused for each. */
         ascent = text_font_ascent();
         descent = text_font_descent();
-        text_h = (int16_t) (ascent + descent);
+        item_h = (int16_t) (ascent + descent);
 
-        switch (s_tray.clock_valign) {
-            case CONFIG_SYSTRAY_CLOCK_VALIGN_TOP:
-                clock_y = (int16_t) ((int32_t) SYSTRAY_ICON_PAD + ascent);
+        switch (s_tray.text_valign) {
+            case CONFIG_SYSTRAY_TEXT_VALIGN_TOP:
+                item_y = (int16_t) ((int32_t) SYSTRAY_ICON_PAD + ascent);
                 break;
 
-            case CONFIG_SYSTRAY_CLOCK_VALIGN_BOTTOM:
-                clock_y = (int16_t) ((int32_t) h -
+            case CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM:
+                item_y = (int16_t) ((int32_t) h -
                         (int32_t) SYSTRAY_ICON_PAD - descent);
                 break;
 
-            case CONFIG_SYSTRAY_CLOCK_VALIGN_CENTER:
-                clock_y = (int16_t) (((h > (uint16_t) text_h)
-                        ? (int32_t) (h - (uint16_t) text_h) / 2 : 0) +
+            case CONFIG_SYSTRAY_TEXT_VALIGN_CENTER:
+                item_y = (int16_t) (((h > (uint16_t) item_h)
+                        ? (int32_t) (h - (uint16_t) item_h) / 2 : 0) +
                         ascent);
                 break;
         }
 
-        text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
-                (int16_t) (clock_x + (int16_t) SYSTRAY_ICON_PAD),
-                clock_y, s_tray.clock_text);
+        pen_x = (int16_t) (block_x + (int16_t) SYSTRAY_ICON_PAD);
+        for (uint8_t i = 0u; i < s_tray.text_order_count; ++i) {
+            bool enabled = false;
+            const char *text = s_systray_text_for_item(
+                    s_tray.text_order[i], &enabled);
+
+            if (!enabled || text[0] == '\0') {
+                continue;
+            }
+
+            text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
+                    pen_x, item_y, text);
+            pen_x = (int16_t) (pen_x +
+                    (int16_t) text_measure_string(text) +
+                    (int16_t) SYSTRAY_ICON_PAD);
+        }
     }
 
     xcb_flush(s_tray.connection);
@@ -941,10 +1048,25 @@ void systray_init(wm_td *wm)
     safe_strncpy(s_tray.clock_format,
             wm->config->base.systray.clock.format,
             sizeof(s_tray.clock_format));
-    s_tray.clock_position = wm->config->base.systray.clock.position;
-    s_tray.clock_valign = wm->config->theme.systray.clock.valign;
+    s_tray.battery_enabled = wm->config->base.systray.battery.is_enabled;
+    s_tray.battery_threshold_charged =
+        wm->config->base.systray.battery.threshold.charged;
+    s_tray.battery_threshold_low =
+        wm->config->base.systray.battery.threshold.low;
+    s_tray.battery_threshold_critical =
+        wm->config->base.systray.battery.threshold.critical;
+    s_tray.battery_backend_type =
+        wm->config->base.systray.battery.backend.type;
+    s_tray.battery_backend_number =
+        wm->config->base.systray.battery.backend.number;
+    s_tray.text_position = wm->config->base.systray.text.position;
+    s_tray.text_valign = wm->config->base.systray.text.valign;
+    s_tray.text_order[0] = wm->config->base.systray.text.order[0];
+    s_tray.text_order[1] = wm->config->base.systray.text.order[1];
+    s_tray.text_order_count = wm->config->base.systray.text.order_count;
     s_tray.theme = &wm->config->theme;
     s_systray_clock_refresh_text();
+    s_systray_battery_refresh_text();
 
     if (!s_systray_ensure_window(wm)) {
         return;
@@ -1081,45 +1203,65 @@ void systray_restack(void)
 
 
 /* How many milliseconds until the clock needs its next redraw */
+/* How many milliseconds until the systray text (clock and/or battery)
+ * needs its next redraw */
 int systray_clock_ms_remaining(void)
 {
     time_t now;
 
-    if (!s_tray.clock_enabled || !s_tray.selection_owned) {
+    if (!s_tray.selection_owned ||
+            (!s_tray.clock_enabled && !s_tray.battery_enabled)) {
         return -1;
     }
 
     now = time(NULL);
-    if (now != s_tray.clock_last_tick) {
+
+    if (s_tray.clock_enabled && now != s_tray.clock_last_tick) {
+        return 0;
+    }
+    if (s_tray.battery_enabled &&
+            (now - s_tray.battery_last_poll) >=
+                (time_t) WM_SYSTRAY_BATTERY_POLL_SECONDS) {
         return 0;
     }
 
-    /* 'now' and 'clock_last_tick' are still the same whole second, so
-     * redraw is not due yet.  A flat, small poll timeout is used
-     * instead of computing the exact remaining fraction of a second:
-     * good enough for a display that only needs second-level
-     * precision, and simpler than reasoning about clock skew between
-     * 'time(NULL)' calls. */
+    /* Neither is due yet.  A flat, small poll timeout is used instead
+     * of computing the exact remaining fraction of a second: good
+     * enough for a display that only needs second-level precision for
+     * the clock (the battery's own interval is far coarser still),
+     * and simpler than reasoning about clock skew between 'time(NULL)'
+     * calls. */
     return WM_SYSTRAY_CLOCK_POLL_MS;
 }
 
 
-/* Redraw the clock if the wall-clock second has changed */
+/* Redraw the clock and/or battery status, whichever is due */
 void systray_clock_tick(void)
 {
     time_t now;
+    bool changed = false;
 
-    if (!s_tray.clock_enabled || !s_tray.selection_owned) {
+    if (!s_tray.selection_owned ||
+            (!s_tray.clock_enabled && !s_tray.battery_enabled)) {
         return;
     }
 
     now = time(NULL);
-    if (now == s_tray.clock_last_tick) {
-        return;
+
+    if (s_tray.clock_enabled && now != s_tray.clock_last_tick) {
+        s_systray_clock_refresh_text();
+        changed = true;
+    }
+    if (s_tray.battery_enabled &&
+            (now - s_tray.battery_last_poll) >=
+                (time_t) WM_SYSTRAY_BATTERY_POLL_SECONDS) {
+        s_systray_battery_refresh_text();
+        changed = true;
     }
 
-    s_systray_clock_refresh_text();
-    s_systray_reflow();
+    if (changed) {
+        s_systray_reflow();
+    }
 }
 
 
@@ -1143,10 +1285,25 @@ void systray_reload(wm_td *wm)
     safe_strncpy(s_tray.clock_format,
             wm->config->base.systray.clock.format,
             sizeof(s_tray.clock_format));
-    s_tray.clock_position = wm->config->base.systray.clock.position;
-    s_tray.clock_valign = wm->config->theme.systray.clock.valign;
+    s_tray.battery_enabled = wm->config->base.systray.battery.is_enabled;
+    s_tray.battery_threshold_charged =
+        wm->config->base.systray.battery.threshold.charged;
+    s_tray.battery_threshold_low =
+        wm->config->base.systray.battery.threshold.low;
+    s_tray.battery_threshold_critical =
+        wm->config->base.systray.battery.threshold.critical;
+    s_tray.battery_backend_type =
+        wm->config->base.systray.battery.backend.type;
+    s_tray.battery_backend_number =
+        wm->config->base.systray.battery.backend.number;
+    s_tray.text_position = wm->config->base.systray.text.position;
+    s_tray.text_valign = wm->config->base.systray.text.valign;
+    s_tray.text_order[0] = wm->config->base.systray.text.order[0];
+    s_tray.text_order[1] = wm->config->base.systray.text.order[1];
+    s_tray.text_order_count = wm->config->base.systray.text.order_count;
     s_tray.theme = &wm->config->theme;
     s_systray_clock_refresh_text();
+    s_systray_battery_refresh_text();
     s_systray_apply_theme_style();
 
     if (s_tray.selection_owned && !should_be_enabled) {

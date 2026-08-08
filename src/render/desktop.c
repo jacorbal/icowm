@@ -283,13 +283,15 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
     xcb_rectangle_t rect;
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
 
-    /* Button colors come from the theme: foreground contrasts against
-     * the titlebar background so buttons are always visible. */
+    /* Button colors have their own dedicated theme entry, independent
+     * of the titlebar text foreground, so a theme can style one
+     * without the other changing to match: see
+     * 'window.titlebar.buttons.color'. */
     uint32_t color_active = (theme != NULL)
-        ? theme->window.active.color.foreground
+        ? theme->window.titlebar.buttons.color.on
         : 0x000000u;
     uint32_t color_inactive = (theme != NULL)
-        ? theme->window.inactive.color.foreground
+        ? theme->window.titlebar.buttons.color.off
         : 0xFFFFFFu;
     uint32_t bg_fill = (theme != NULL)
         ? ((is_focused)

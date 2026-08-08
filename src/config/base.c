@@ -219,29 +219,122 @@ static enum config_systray_layer_e
 
 
 /**
- * @brief Parse systray clock position text into configuration
+ * @brief Parse systray clock/battery text position into configuration
  *
  * @param value Position text from configuration, e.g., @c "right"
  *
- * @return Parsed systray clock position enumeration value
+ * @return Parsed systray text position enumeration value
  *
  * @note Supported values are @c left and @c right
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-static enum config_systray_clock_position_e
-    s_config_parse_systray_clock_position(const char *value)
+static enum config_systray_text_position_e
+    s_config_parse_systray_text_position(const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_SYSTRAY_CLOCK_RIGHT;
+        return CONFIG_SYSTRAY_TEXT_RIGHT;
     }
 
     if (safe_strcmp(value_norm, "left") == 0) {
-        return CONFIG_SYSTRAY_CLOCK_LEFT;
+        return CONFIG_SYSTRAY_TEXT_LEFT;
     }
 
-    return CONFIG_SYSTRAY_CLOCK_RIGHT;
+    return CONFIG_SYSTRAY_TEXT_RIGHT;
+}
+
+
+/**
+ * @brief Parse systray clock/battery text vertical alignment into
+ *        configuration
+ *
+ * @param value Alignment text from configuration, e.g., @c "top"
+ *
+ * @return Parsed systray text vertical alignment enumeration value
+ *
+ * @note Supported values are @c center, @c top, and @c bottom
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_text_valign_e
+    s_config_parse_systray_text_valign(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+    }
+
+    if (safe_strcmp(value_norm, "top") == 0) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_TOP;
+    }
+    if (safe_strcmp(value_norm, "bottom") == 0) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM;
+    }
+
+    return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+}
+
+
+/**
+ * @brief Parse one systray text item name ("clock" or "battery") into
+ *        configuration
+ *
+ * @param value Item name from configuration
+ * @param out   Receives the parsed item; left untouched if @p value
+ *              does not match a known item name
+ *
+ * @return @c true if @p value matched a known item name
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static bool s_config_parse_systray_text_item(const char *value,
+        enum config_systray_text_item_e *out)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm)) ||
+            out == NULL) {
+        return false;
+    }
+
+    if (safe_strcmp(value_norm, "clock") == 0) {
+        *out = CONFIG_SYSTRAY_TEXT_CLOCK;
+        return true;
+    }
+    if (safe_strcmp(value_norm, "battery") == 0) {
+        *out = CONFIG_SYSTRAY_TEXT_BATTERY;
+        return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * @brief Parse a systray battery backend type into configuration
+ *
+ * @param value Backend type text from configuration, e.g., @c "apm"
+ *
+ * @return Parsed backend type enumeration value
+ *
+ * @note Supported values are @c acpi and @c apm
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_battery_backend_type_e
+    s_config_parse_battery_backend_type(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_BATTERY_BACKEND_ACPI;
+    }
+
+    if (safe_strcmp(value_norm, "apm") == 0) {
+        return CONFIG_BATTERY_BACKEND_APM;
+    }
+
+    return CONFIG_BATTERY_BACKEND_ACPI;
 }
 
 
@@ -681,6 +774,8 @@ int config_load_base(const char *filename,
         cJSON *order_item;
         cJSON *layer_item;
         cJSON *clock_item;
+        cJSON *battery_item;
+        cJSON *text_item;
 
         json_load_bool(systray, "is-enabled",
                 &config_base->systray.is_enabled);
@@ -703,19 +798,90 @@ int config_load_base(const char *filename,
 
         clock_item = cJSON_GetObjectItem(systray, "clock");
         if (clock_item) {
-            cJSON *clock_position_item;
-
             json_load_bool(clock_item, "is-enabled",
                     &config_base->systray.clock.is_enabled);
             json_load_string(clock_item, "format",
                     config_base->systray.clock.format,
                     sizeof(config_base->systray.clock.format));
-            clock_position_item = json_get_item(clock_item, "position");
-            if (clock_position_item != NULL &&
-                    cJSON_IsString(clock_position_item)) {
-                config_base->systray.clock.position =
-                    s_config_parse_systray_clock_position(
-                            clock_position_item->valuestring);
+        }
+
+        battery_item = cJSON_GetObjectItem(systray, "battery");
+        if (battery_item) {
+            cJSON *threshold_item;
+            cJSON *backend_item;
+
+            json_load_bool(battery_item, "is-enabled",
+                    &config_base->systray.battery.is_enabled);
+
+            threshold_item = cJSON_GetObjectItem(battery_item,
+                    "threshold");
+            if (threshold_item) {
+                json_load_uint(threshold_item, "charged",
+                        &config_base->systray.battery.threshold.charged);
+                json_load_uint(threshold_item, "low",
+                        &config_base->systray.battery.threshold.low);
+                json_load_uint(threshold_item, "critical",
+                        &config_base->systray.battery.threshold.critical);
+            }
+
+            backend_item = cJSON_GetObjectItem(battery_item, "backend");
+            if (backend_item) {
+                cJSON *backend_type_item = json_get_item(backend_item,
+                        "type");
+
+                if (backend_type_item != NULL &&
+                        cJSON_IsString(backend_type_item)) {
+                    config_base->systray.battery.backend.type =
+                        s_config_parse_battery_backend_type(
+                                backend_type_item->valuestring);
+                }
+                json_load_uint(backend_item, "number",
+                        &config_base->systray.battery.backend.number);
+            }
+        }
+
+        text_item = cJSON_GetObjectItem(systray, "text");
+        if (text_item) {
+            cJSON *text_position_item;
+            cJSON *text_valign_item;
+            cJSON *text_order_item;
+
+            text_position_item = json_get_item(text_item, "position");
+            if (text_position_item != NULL &&
+                    cJSON_IsString(text_position_item)) {
+                config_base->systray.text.position =
+                    s_config_parse_systray_text_position(
+                            text_position_item->valuestring);
+            }
+
+            text_valign_item = json_get_item(text_item, "valign");
+            if (text_valign_item != NULL &&
+                    cJSON_IsString(text_valign_item)) {
+                config_base->systray.text.valign =
+                    s_config_parse_systray_text_valign(
+                            text_valign_item->valuestring);
+            }
+
+            text_order_item = cJSON_GetObjectItem(text_item, "order");
+            if (text_order_item != NULL &&
+                    cJSON_IsArray(text_order_item)) {
+                uint8_t out_count = 0u;
+                int arr_size = cJSON_GetArraySize(text_order_item);
+
+                for (int i = 0;
+                        i < arr_size && out_count < 2u; ++i) {
+                    cJSON *elem = cJSON_GetArrayItem(text_order_item, i);
+                    enum config_systray_text_item_e parsed;
+
+                    if (elem != NULL && cJSON_IsString(elem) &&
+                            s_config_parse_systray_text_item(
+                                    elem->valuestring, &parsed)) {
+                        config_base->systray.text.order[out_count] =
+                            parsed;
+                        ++out_count;
+                    }
+                }
+                config_base->systray.text.order_count = out_count;
             }
         }
     }

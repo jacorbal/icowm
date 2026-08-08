@@ -459,12 +459,12 @@ tray.
 |-----------------------------|---------|------------|
 | `systray.clock.is-enabled` | boolean | `false`    |
 | `systray.clock.format`     | string  | `"%H:%M"`  |
-| `systray.clock.position`   | string  | `"right"`  |
 
-An optional clock drawn inside the systray dock, next to the icons.
-`is-enabled` turns it on; when it is the only reason the tray would
-otherwise stay hidden (no icons docked), the tray still shows with just
-the clock.
+An optional clock drawn inside the systray dock.  `is-enabled` turns
+it on; when it is the only reason the tray would otherwise stay
+hidden (no icons docked), the tray still shows with just the clock.
+Where it is positioned and aligned is shared with `systray.battery`
+below; see `systray.text`.
 
 `format` is a `strftime(3)` format string, interpreted in the system's
 local time zone.  A few common examples:
@@ -476,15 +476,79 @@ local time zone.  A few common examples:
 | `"%F %R"`     | `2026-08-07 14:07`      |
 | `"%a %d %b"`  | `Fri 07 Aug`            |
 
-`position` (`"left"` or `"right"`) controls whether the clock is drawn
-before or after the icons, in dock order; it does not affect which
-corner of the screen the whole tray sits in, which is still
-`systray.position` above.
+The clock redraws itself once per second while enabled; a `format`
+string without `%S` or other sub-minute fields simply redraws the same
+text every second, which is harmless.
 
-The clock redraws itself once per second while any part of it (the
-tray dock, or the clock specifically) is enabled; a `format` string
-without `%S` or other sub-minute fields simply redraws the same text
-every second, which is harmless.
+#### `systray.battery`
+
+| Key                                    | Type    | Default  |
+|------------------------------------------|---------|----------|
+| `systray.battery.is-enabled`             | boolean | `false`  |
+| `systray.battery.threshold.charged`      | integer | `100`    |
+| `systray.battery.threshold.low`          | integer | `20`     |
+| `systray.battery.threshold.critical`     | integer | `5`      |
+| `systray.battery.backend.type`           | string  | `"acpi"` |
+| `systray.battery.backend.number`         | integer | `0`      |
+
+An optional battery/AC status drawn inside the systray dock, read
+directly from the kernel rather than through any external daemon.
+`backend.type` selects which kernel interface to read: `"acpi"` reads
+`/sys/class/power_supply` (the modern, near-universal interface on
+Linux), and `"apm"` reads the older `/proc/apm` for hardware or
+kernels without ACPI.  `backend.number` selects which battery to read
+when a system has more than one (0-indexed, e.g., `1` for `BAT1`);
+it is ignored under `"apm"`, which only ever exposes one aggregate
+battery regardless of how many cells the system actually has.
+
+The status text's exact shape depends on both AC power and how the
+battery's charge compares to `threshold`:
+
+| State                                    | Text        |
+|--------------------------------------------|-------------|
+| On battery, above `low`                    | `"X%"`      |
+| On battery, at/below `low`                 | `"X%!"`     |
+| On battery, at/below `critical`            | `"X%!!"`    |
+| On AC, not fully charged                   | `"X% AC"`   |
+| Fully charged (`charged` or above), on battery | `"Full"`    |
+| Fully charged, on AC                       | `"Full AC"` |
+| No battery found for `backend`             | `"N/A"`     |
+
+A battery counts as "fully charged" once its percentage reaches
+`threshold.charged`, regardless of what the kernel itself reports as
+its charging state: some hardware never reports "full" even sitting
+at 100% on AC power, so going by the percentage alone reads correctly
+across more machines than trusting the kernel's own status string
+would.  The status is re-read every 30 seconds; a percentage does not
+need per-second freshness the way a clock does.  Where it is
+positioned and aligned is shared with `systray.clock` above; see
+`systray.text`.
+
+#### `systray.text`
+
+| Key                       | Type            | Default                    |
+|-----------------------------|-----------------|-----------------------------|
+| `systray.text.order`      | array of string | `[ "battery", "clock" ]`   |
+| `systray.text.position`   | string          | `"right"`                  |
+| `systray.text.valign`     | string          | `"center"`                 |
+
+Shared placement for the clock and battery status text: which of the
+two show, in what left-to-right order, and how both line up within
+the tray.  `order` lists the enabled items to show, by name (`"clock"`
+and/or `"battery"`); an item absent from this list never shows even if
+its own `is-enabled` is `true`, and one with `is-enabled` set to
+`false` is skipped even when listed here.  Both entries are optional;
+an empty list shows neither, regardless of their individual
+`is-enabled` settings.
+
+`position` (`"left"` or `"right"`) controls whether the whole text
+block sits before or after the icons, in dock order; it does not
+affect which corner of the screen the tray itself sits in, which is
+still `systray.position` above.  `valign` (`"center"`, `"top"`, or
+`"bottom"`) controls where the text sits vertically within the tray's
+own height (`systray.height` in the theme); with the theme's default
+height there is little spare room for this to matter, since an icon
+already fills nearly the whole row.
 
 ```json
 "systray": {
@@ -494,8 +558,24 @@ every second, which is harmless.
     "layer": "above",
     "clock": {
         "is-enabled": true,
-        "format": "%F %R",
-        "position": "right"
+        "format": "%a %R"
+    },
+    "battery": {
+        "is-enabled": true,
+        "threshold": {
+            "charged": 100,
+            "low": 20,
+            "critical": 5
+        },
+        "backend": {
+            "type": "acpi",
+            "number": 0
+        }
+    },
+    "text": {
+        "order": [ "battery", "clock" ],
+        "position": "right",
+        "valign": "center"
     }
 }
 ```
@@ -816,6 +896,8 @@ Appearance settings for managed windows.
 | `padding.vertical`      | integer | `2`      | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
 | `buttons.left`          | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
 | `buttons.right`         | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
+| `buttons.color.on`      | string  | `"#253040"` | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
+| `buttons.color.off`     | string  | `"#4A5566"` | Color for a button otherwise, i.e., not engaged. |
 
 Accepted button names, for both `buttons.left` and `buttons.right`,
 are: `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`,
@@ -824,6 +906,14 @@ lists is simply never drawn and never clickable; there is no separate
 setting to hide a button.  The same name can only usefully appear
 once across both lists (whichever list is processed for it first
 wins its slot; putting it in both does not draw it twice).
+
+`buttons.color` is independent of `window.active`/`window.inactive`'s
+own `color.foreground` below, so a theme can restyle button glyphs
+without the title text changing color to match, or the other way
+around.  There is deliberately no third color for a button that
+cannot currently do anything (e.g., maximize on a non-resizable
+client): that button is not drawn at all rather than needing a color
+of its own for that case.
 
 #### `window.active` / `window.inactive`
 
@@ -834,7 +924,7 @@ have focus (`inactive`).  Both share the same shape:
 |---------------------|---------|-------------------|---------------------|-------------|
 | `font`              | string  | `"fixed bold"`    | `"fixed"`           | Title bar font (X core font description; see note below). |
 | `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         | Title bar background color. |
-| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         | Title bar text and button color. |
+| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         | Title bar text color. |
 | `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         | Border color. |
 | `border.width`      | integer | `2`               | `2`                 | Border thickness in pixels. |
 
@@ -870,8 +960,7 @@ Same shape as `window.active` / `window.inactive` above (`font`,
 ### 4.3 `systray`
 
 A `font` / `color` / `border` block, the same shape as `window.active`
-above, applied to the systray dock itself, plus its own height and the
-clock's vertical alignment.
+above, applied to the systray dock itself, plus its own height.
 
 | Key                 | Type    | Default     |
 |---------------------|---------|-------------|
@@ -881,33 +970,27 @@ clock's vertical alignment.
 | `border.color`      | string  | `"#7F9AB6"` |
 | `border.width`      | integer | `1`         |
 | `height`            | integer | `32`        |
-| `clock.valign`      | string  | `"center"`  |
 
 `height` is the tray dock's own height in pixels; icons and the clock
-(when enabled, see `systray.clock.is-enabled` in `config.json`) are
-positioned within it according to `clock.valign` for the clock, and
-centered for icons.  It must be at least tall enough to fit one icon or
-icons get clipped.
-
-`clock.valign` (one of `"center"`, `"top"`, or `"bottom"`) controls
-where the clock text sits vertically within that height.  With the
-default `height` of `32`, an icon already fills nearly the whole row,
-so `valign` has little visible effect; raising `height` gives it
-actual room to work with.  This is unrelated to `systray.clock.position`
-in `config.json`, which instead controls whether the clock sits before
-or after the icons horizontally, in dock order; that stays a behavior
-setting rather than an appearance one, since it changes where among the
-icons the clock counts as being docked.
+and/or battery status text (when either is enabled, see
+`systray.clock`/`systray.battery` in `config.json`) are positioned
+within it according to `systray.text.valign` in `config.json` for the
+text, and centered for icons.  It must be at least tall enough to fit
+one icon or icons get clipped.  With the default `height` of `32`, an
+icon already fills nearly the whole row, so `systray.text.valign` has
+little visible effect; raising `height` gives it actual room to work
+with.  Where the text sits horizontally (`systray.text.position` in
+`config.json`, before or after the icons) stays a behavior setting
+rather than an appearance one, since it changes where among the icons
+the text counts as being docked; only its own vertical alignment
+within this height is a theme concern.
 
 ```json
 "systray": {
     "font": "fixed",
     "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
     "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 32,
-    "clock": {
-        "valign": "center"
-    }
+    "height": 32
 }
 ```
 

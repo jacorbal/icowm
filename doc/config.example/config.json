@@ -69,8 +69,24 @@
         "order": "left-to-right",
         "clock": {
             "is-enabled": true,
-            "format": "%F %R",
-            "position": "right"
+            "format": "%a %R"
+        },
+        "battery": {
+            "is-enabled": true,
+            "threshold": {
+                "charged": 100,
+                "low": 20,
+                "critical": 5
+            },
+            "backend": {
+                "type": "acpi",
+                "number": 0
+            }
+        },
+        "text": {
+            "order": [ "battery", "clock" ],
+            "position": "right",
+            "valign": "center"
         }
     },
     "xsettings": {
