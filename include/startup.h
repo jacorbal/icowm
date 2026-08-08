@@ -101,6 +101,39 @@ int startup_subscribe_randr_events(wm_td *wm);
 int startup_install_signals(void);
 
 /**
+ * @brief Install handlers for fatal signals (@c SIGSEGV, @c SIGABRT,
+ *        @c SIGBUS, @c SIGFPE) that log a diagnostic before dying
+ *
+ * These cannot recover and keep running: by the time one of these
+ * signals arrives, the process's own memory state may already be
+ * corrupted, and continuing to issue X requests from that state risks
+ * doing more damage (to other clients, or to the X server itself)
+ * than simply dying would.  What they do instead is make sure dying
+ * is not silent: each writes a short diagnostic naming the signal
+ * directly to standard error using nothing but the @c write syscall
+ * (the only output primitive POSIX guarantees safe to call from a
+ * signal handler; the logger's own buffered, allocating machinery is
+ * not), then restores that signal's default disposition and re-raises
+ * it, so the process actually terminates through the normal mechanism
+ * afterward (a core dump, if the system is configured to produce one,
+ * and the correct exit status reported to whatever started icowm).
+ *
+ * A client application crashing on its own (for example, failing its
+ * own graphics initialization) does not, by itself, send icowm any
+ * signal at all; installing this does not change whether such a
+ * crash brings icowm down with it; see @c xcb_connection_has_error's
+ * own handling in loop.c for the separate, and far more likely,
+ * mechanism behind that (the X server itself becoming unreachable,
+ * which no window manager can recover from either, being just
+ * another client of that same server) instead.
+ *
+ * @return 0 on success, -1 if @c sigaction fails
+ *
+ * @note Complexity: @e O(1)
+ */
+int startup_install_crash_handlers(void);
+
+/**
  * @brief Query whether a termination signal has been received
  *
  * @return @c true when a signal has set the internal flag

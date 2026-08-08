@@ -214,15 +214,16 @@ void systray_reload(wm_td *wm);
  * fullscreen.  A safe no-op when the tray is not currently active.
  *
  * Valid layer values are:
- * - @c below: always behind normal windows
- * - @c above (default): above normal windows, but covered by
- *   a fullscreen window (the correct/expected behavior)
- * - @c above-all: above absolutely everything, including fullscreen
- *   windows (the current behavior, now optional instead of fixed)
+ * - @c below (default): always behind normal windows
+ * - @c above: above normal windows, but covered by a fullscreen
+ *   window, the same way a taskbar or panel gets covered by a
+ *   fullscreen window in most desktop environments
+ * - @c overlay: above absolutely everything, including fullscreen
+ *   windows
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients (only when @c systray.layer is @c above;
- *       @e O(1) for @c below and @c above-all)
+ *       @e O(1) for @c below and @c overlay)
  *
  * @see @c wcmd_client_fullscreen and @c wcmd_client_unfullscreen
  */

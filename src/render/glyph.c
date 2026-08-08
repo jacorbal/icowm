@@ -111,8 +111,8 @@ static struct {
 static uint32_t s_utf8_next(const char *text, size_t *index)
 {
     unsigned char b0;
-    uint32_t codepoint;
-    int extra;
+    uint32_t codepoint = 0u;
+    int extra = 0;
 
     b0 = (unsigned char) text[*index];
     if (b0 == 0u) {
@@ -344,6 +344,37 @@ static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
 }
 
 
+/**
+ * @brief Advance width for one codepoint, ensuring its glyph exists
+ *        first
+ *
+ * A thin wrapper around @c s_ensure_glyph returning the advance width
+ * directly instead of through an output parameter, so a caller never
+ * holds a local variable whose initialization depends on a call whose
+ * own success or failure it does not otherwise care about; callers
+ * that only need the width call this, callers that also need to know
+ * whether the glyph was newly rendered (there are none currently, but
+ * the distinction is real) would still call @c s_ensure_glyph
+ * directly instead.
+ *
+ * @param codepoint Unicode codepoint to look up or render
+ *
+ * @return The glyph's advance width in pixels; the same fallback
+ *         value @c s_ensure_glyph itself falls back to when the glyph
+ *         cannot be rendered
+ *
+ * @note Complexity: @e O(1) amortized (see @c s_ensure_glyph)
+ */
+static int16_t s_glyph_advance_for(uint32_t codepoint)
+{
+    int16_t advance = 0;
+
+    (void) s_ensure_glyph(codepoint, &advance);
+
+    return advance;
+}
+
+
 /* Try to initialize the glyph renderer for the given font description */
 int glyph_renderer_init(xcb_connection_t *connection,
         const char *font_name)
@@ -510,12 +541,11 @@ void glyph_draw_string(xcb_connection_t *connection,
     byte_index = 0u;
     while (len < GLYPH_MAX_STRING_LEN) {
         uint32_t codepoint = s_utf8_next(text, &byte_index);
-        int16_t advance;
 
         if (codepoint == 0u) {
             break;
         }
-        (void) s_ensure_glyph(codepoint, &advance);
+        (void) s_glyph_advance_for(codepoint);
         codepoints[len] = codepoint;
         ++len;
     }
@@ -553,15 +583,13 @@ uint16_t glyph_measure_string(const char *text)
 
     total = 0;
     byte_index = 0u;
-    for (;;) {
+    while (true) {
         uint32_t codepoint = s_utf8_next(text, &byte_index);
-        int16_t advance;
 
         if (codepoint == 0u) {
             break;
         }
-        (void) s_ensure_glyph(codepoint, &advance);
-        total += advance;
+        total += s_glyph_advance_for(codepoint);
         if (total > (int32_t) UINT16_MAX) {
             return UINT16_MAX;
         }

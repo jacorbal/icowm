@@ -412,7 +412,8 @@ void wcmd_client_fullscreen(client_td *client)
             (const uint32_t[]) {
                 0u, 0u,
                 (uint32_t) sw,
-                (uint32_t) sh
+                (uint32_t) sh,
+                0u
             });
 
     client->layout.geometry.cur.pos.x = 0;

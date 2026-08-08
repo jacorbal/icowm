@@ -205,12 +205,13 @@ struct config_base_s {
          */
         enum config_systray_layer_e {
             CONFIG_SYSTRAY_LAYER_BELOW = 0,     /**< Always behind every
-                                                     normal client window */
-            CONFIG_SYSTRAY_LAYER_ABOVE,         /**< Above normal windows
-                                                     (default); a
+                                                     normal client window
+                                                     (default) */
+            CONFIG_SYSTRAY_LAYER_ABOVE,         /**< Above normal
+                                                     windows; a
                                                      fullscreen window
                                                      still covers it */
-            CONFIG_SYSTRAY_LAYER_ABOVE_ALL      /**< Above everything,
+            CONFIG_SYSTRAY_LAYER_OVERLAY        /**< Above everything,
                                                      including fullscreen
                                                      windows */
         } layer;

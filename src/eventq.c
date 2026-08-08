@@ -297,6 +297,56 @@ event_td *eventq_extract(void)
 }
 
 
+/* Remove every currently queued event whose object matches 'object' */
+void eventq_purge_object(const void *object)
+{
+    queue_td *kept;
+    event_td *event;
+    unsigned int purged = 0u;
+
+    if (object == NULL) {
+        return;
+    }
+
+    kept = queue_init(NULL);
+    if (kept == NULL) {
+        LOGGER_ERROR("Failed to allocate temporary queue for" \
+                " event purge", L_NARG);
+        return;
+    }
+
+    for (;;) {
+        event = eventq_extract();
+        if (event == NULL) {
+            break;
+        }
+        if (event->object == object) {
+            event_destroy(event);
+            ++purged;
+        } else if (queue_enqueue(kept, (void *) event) != 0) {
+            /* Failed to stash it for reinsertion below; destroying it
+             * here would silently drop an unrelated event, so put it
+             * back on the real queue immediately instead */
+            (void) eventq_add(event);
+        }
+    }
+
+    while (!queue_is_empty(kept)) {
+        if (queue_dequeue(kept, (void **) &event) != 0) {
+            break;
+        }
+        (void) eventq_add(event);
+    }
+
+    queue_destroy(kept);
+
+    if (purged > 0u) {
+        LOGGER_TRACE("Purged %u queued event(s) for object %p",
+                purged, object);
+    }
+}
+
+
 /* Begin capturing events for later replay */
 int eventq_record_start(void)
 {

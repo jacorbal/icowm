@@ -410,8 +410,13 @@ int logger_msg(enum logger_level_e level, const char *prefix,
                 msg, safe_strlen(msg) + 1);
         logger->buffer->count++;
 
-        /* Flush the buffer on error to make sure it's on the logfile */
-        if (level > LOG_WARNING) {
+        /* Flush the buffer on warning-or-above so it is not lost to
+         * an unflushed buffer if the process terminates shortly
+         * after: an unexpected client (or icowm's own) crash is
+         * exactly the kind of event this range of severities exists
+         * to record, and exactly the moment losing it to buffering
+         * would matter most. */
+        if (level >= LOG_WARNING) {
             s_logger_buffer_flush(logger->buffer, logger->file.fp_out,
                     logger->file.fp_err);
         }

@@ -305,6 +305,14 @@ void client_destroy(client_td *client)
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
             (void *) client, client->window, client->info.name);
 
+    /* Discard any event still queued for this client (for example, a
+     * deferred focus request from 'client_send_event', not yet
+     * reached by 'eventq_process' when this client's own window
+     * disappeared before that could happen) before anything below
+     * frees the memory it points to; see 'eventq_purge_object' for
+     * why this is needed at all. */
+    eventq_purge_object((const void *) client);
+
     /* Destroy the XCB window representation and flush the output buffer
      * to ensure the request is processed */
     if (client->connection != NULL && client->window != 0) {

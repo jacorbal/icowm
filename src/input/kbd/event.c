@@ -315,8 +315,12 @@ static void s_kbd_resize_apply(client_td *client,
                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         values[0] = (uint32_t) new_x;
         values[1] = (uint32_t) new_y;
+        values[2] = new_w;
+        values[3] = new_h;
     } else {
         mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = new_w;
+        values[1] = new_h;
     }
     xcb_configure_window(client->connection, target_win, mask, values);
 

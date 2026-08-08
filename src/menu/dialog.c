@@ -17,7 +17,8 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* snprintf, popen, pclose */
+#include <stdio.h>      /* popen, pclose */
+#include <string.h>     /* memcpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -631,15 +632,48 @@ static void s_message_wrap_text(const char *raw,
             size_t word_len = 0u;
             char candidate[DIALOG_MSG_LINE_MAX_LEN];
             uint16_t candidate_w;
+            size_t space_len;
+            size_t used;
+            size_t avail;
+            size_t fit_len;
+            size_t candidate_pos;
 
             while (i < raw_len && raw[i] != ' ' && raw[i] != '\n') {
                 ++i;
                 ++word_len;
             }
 
-            (void) snprintf(candidate, sizeof(candidate), "%s%s%.*s",
-                    line, (line_len > 0u) ? " " : "",
-                    (int) word_len, &raw[word_start]);
+            /* 'fit_len' is provably bounded so that 'line' plus the
+             * optional separating space plus 'fit_len' bytes of the
+             * word always fits within 'candidate', with room left for
+             * the terminating null ('used' capped at capacity first
+             * avoids the subtraction underflowing if 'line' is
+             * already at or past it).  Built here with explicit
+             * 'memcpy' calls at that already-proven-safe length,
+             * rather than 'snprintf' with a '%.*s' precision
+             * argument: GCC's own '-Wformat-truncation' analysis is
+             * not able to trace a bound proven this way (through
+             * several local variables and a ternary) back to a
+             * precision argument, and warns as if the call were
+             * unbounded even though it provably is not; avoiding the
+             * format string here entirely sidesteps that analysis
+             * rather than silencing it. */
+            space_len = (line_len > 0u) ? 1u : 0u;
+            used = line_len + space_len;
+            avail = (used < sizeof(candidate) - 1u)
+                ? (sizeof(candidate) - 1u - used) : 0u;
+            fit_len = (word_len > avail) ? avail : word_len;
+
+            memcpy(candidate, line, line_len);
+            candidate_pos = line_len;
+            if (space_len > 0u) {
+                candidate[candidate_pos] = ' ';
+                candidate_pos += 1u;
+            }
+            memcpy(candidate + candidate_pos, &raw[word_start], fit_len);
+            candidate_pos += fit_len;
+            candidate[candidate_pos] = '\0';
+
             candidate_w = text_measure_string(candidate);
 
             if (candidate_w <= (uint16_t) DIALOG_MSG_WRAP_WIDTH ||

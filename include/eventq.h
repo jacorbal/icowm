@@ -149,6 +149,31 @@ int eventq_add(event_td *event);
 event_td *eventq_extract(void);
 
 /**
+ * @brief Remove every currently queued event whose object matches
+ *        @p object, destroying each one removed
+ *
+ * @c event_td.object is a shallow-copied raw pointer (typically a
+ * @c client_td*, per @c event_init's own documentation), so nothing
+ * about the queue itself prevents the object it points to from being
+ * freed while an event referencing it is still pending; the caller
+ * enqueuing that event was always the one responsible for the
+ * referenced object outliving it.  A client being destroyed is
+ * exactly the case that responsibility was never actually being
+ * upheld for: @c client_destroy calls this first, so any event still
+ * queued for it (for example, a deferred focus request from
+ * @c client_send_event, not yet reached by @c eventq_process when the
+ * client's own window disappeared before that could happen) is
+ * discarded instead of later being dispatched against freed memory.
+ *
+ * @param object Object pointer to match against every queued event's
+ *               own @c object field; a no-op if @c NULL
+ *
+ * @note Complexity: @e O(n log n), where @e n is the number of
+ *       currently queued events
+ */
+void eventq_purge_object(const void *object);
+
+/**
  * @brief Process the event in the queue
  *
  * Extracts and dispatches every event in the queue until it is empty.

@@ -176,7 +176,7 @@ void config_set_default_values(config_td *config)
     config->base.systray.is_enabled = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
-    config->base.systray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
+    config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
     config->base.systray.clock.is_enabled = false;
     safe_strcpy(config->base.systray.clock.format, "%a %R");
 

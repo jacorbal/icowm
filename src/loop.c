@@ -151,6 +151,58 @@ static void s_loop_handle_focus_out(wm_td *wm,
 }
 
 
+/**
+ * @brief Human-readable description for an @c xcb_connection_has_error
+ *        return value
+ *
+ * Distinguishes an ordinary per-window protocol error, which XCB
+ * delivers as a regular event and never causes this, from an actual
+ * connection failure: the socket to the X server itself is gone,
+ * something no window manager can recover from, since the window
+ * manager is just another client of that same server.  Logging which
+ * one occurred is the most this function's caller can do about it;
+ * an @c XCB_CONN_ERROR here in particular, especially right after a
+ * client (e.g., a game attempting hardware-accelerated rendering) was
+ * seen doing something unusual, is worth checking the system's own
+ * logs (Xorg's own log file, @c dmesg for a GPU driver crash) for,
+ * outside of icowm entirely.
+ *
+ * @param error_code Value returned by @c xcb_connection_has_error
+ *
+ * @return A short, constant description; never @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+static const char *s_loop_connection_error_string(int error_code)
+{
+    switch (error_code) {
+        case XCB_CONN_ERROR:
+            return "XCB_CONN_ERROR (socket, pipe, or other stream" \
+                " error; most likely the X server itself is gone)";
+        case XCB_CONN_CLOSED_EXT_NOTSUPPORTED:
+            return "XCB_CONN_CLOSED_EXT_NOTSUPPORTED" \
+                " (a required X extension is not supported)";
+        case XCB_CONN_CLOSED_MEM_INSUFFICIENT:
+            return "XCB_CONN_CLOSED_MEM_INSUFFICIENT" \
+                " (out of memory)";
+        case XCB_CONN_CLOSED_REQ_LEN_EXCEED:
+            return "XCB_CONN_CLOSED_REQ_LEN_EXCEED" \
+                " (a request exceeded the server's maximum length)";
+        case XCB_CONN_CLOSED_PARSE_ERR:
+            return "XCB_CONN_CLOSED_PARSE_ERR" \
+                " (error parsing the display name)";
+        case XCB_CONN_CLOSED_INVALID_SCREEN:
+            return "XCB_CONN_CLOSED_INVALID_SCREEN" \
+                " (the server has no screen matching the display)";
+        case XCB_CONN_CLOSED_FDPASSING_FAILED:
+            return "XCB_CONN_CLOSED_FDPASSING_FAILED" \
+                " (file descriptor passing failed)";
+        default:
+            return "unknown XCB connection error code";
+    }
+}
+
+
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
@@ -170,6 +222,8 @@ void loop_run(wm_td *wm)
     int clock_ms;
     int sn_ms;
     int hover_ms;
+    int conn_error;
+    const xcb_generic_error_t *proto_error;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -180,6 +234,11 @@ void loop_run(wm_td *wm)
 
     if (startup_install_signals() != 0) {
         LOGGER_WARNING("Continuing without termination signal handling",
+                L_NARG);
+    }
+
+    if (startup_install_crash_handlers() != 0) {
+        LOGGER_WARNING("Continuing without fatal-signal diagnostics",
                 L_NARG);
     }
 
@@ -232,9 +291,11 @@ void loop_run(wm_td *wm)
             session_reap_children();
         }
 
-        if (xcb_connection_has_error(wm->connection) != 0) {
-            LOGGER_ERROR("X connection error detected;" \
-                    " requesting shutdown", L_NARG);
+        conn_error = xcb_connection_has_error(wm->connection);
+        if (conn_error != 0) {
+            LOGGER_ERROR("X connection error detected (%s);" \
+                    " requesting shutdown",
+                    s_loop_connection_error_string(conn_error));
             wm_request_stop();
             break;
         }
@@ -497,6 +558,30 @@ void loop_run(wm_td *wm)
                 case XCB_CREATE_NOTIFY:
                     /* Windows are adopted on 'MAP_REQUEST', not on
                      * creation; a created window may never be mapped */
+                    break;
+
+                case 0:
+                    /* A protocol error, not a real event type (X has
+                     * no named constant for it; 0 never collides with
+                     * a real event type, since those start at 1).  Not
+                     * inherently fatal on its own, unlike an actual
+                     * connection failure (see 'xcb_connection_has_error'
+                     * above): logged at WARNING rather than this
+                     * switch's usual TRACE-level default below so it
+                     * is not lost among routine unhandled-event
+                     * traffic, since a request against a resource a
+                     * misbehaving client just destroyed (e.g., a crash
+                     * mid-startup) is exactly the kind of detail worth
+                     * having on hand afterward. */
+                    proto_error = (const xcb_generic_error_t *) event;
+                    LOGGER_WARNING("X protocol error: code=%u" \
+                            " resource=0x%x major=%u minor=%u" \
+                            " sequence=%u",
+                            proto_error->error_code,
+                            proto_error->resource_id,
+                            proto_error->major_code,
+                            proto_error->minor_code,
+                            proto_error->sequence);
                     break;
 
                 default:

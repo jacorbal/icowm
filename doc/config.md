@@ -452,7 +452,7 @@ under the pointer in that case.
 | `systray.is-enabled` | boolean | `false`            |
 | `systray.position`   | string  | `"top-right"`      |
 | `systray.order`      | string  | `"left-to-right"`  |
-| `systray.layer`      | string  | `"above"`          |
+| `systray.layer`      | string  | `"below"`          |
 
 Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
 `"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
@@ -466,10 +466,10 @@ alphabetically ('A-Z' or 'Z-A') by each icon's window class name,
 ignoring insertion order entirely.
 
 The key `layer` controls where the dock sits in the stacking order:
-`"below"` keeps it behind every normal client window, `"above"` (the
-default) keeps it above normal windows but still lets a fullscreen
+`"below"` (the default) keeps it behind every normal client window,
+`"above"` keeps it above normal windows but still lets a fullscreen
 window cover it, the same way a fullscreen window covers a taskbar or
-panel in most desktop environments, and `"above-all"` keeps it above
+panel in most desktop environments, and `"overlay"` keeps it above
 absolutely everything, including fullscreen windows.
 
 When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
@@ -598,7 +598,7 @@ tray) is a theme setting rather than a behavior one; see
     "is-enabled": false,
     "position": "top-right",
     "order": "left-to-right",
-    "layer": "above",
+    "layer": "below",
     "clock": {
         "is-enabled": true,
         "format": "%a %R"
@@ -1783,7 +1783,7 @@ Sub-menus can be nested to the depth limit defined by
         "is-enabled": true,
         "position": "top-right",
         "order": "left-to-right",
-        "layer": "above",
+        "layer": "below",
         "clock": {
             "is-enabled": true,
             "format": "%a %R"

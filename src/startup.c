@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memset */
+#include <unistd.h>     /* write */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -127,6 +128,61 @@ static void s_startup_handle_child(int signum)
 {
     (void) signum;
     s_child_reap_requested = 1;
+}
+
+
+/**
+ * @brief Async-signal-safe handler for fatal signals
+ *
+ * See @c startup_install_crash_handlers in startup.h for the full
+ * reasoning: this cannot recover and keep running, only make sure
+ * dying is not silent.  Every operation here is restricted to what
+ * POSIX guarantees is safe from within a signal handler: the @c write
+ * syscall directly to standard error (never the logger's own
+ * buffered, allocating machinery), a hand-rolled digit-by-digit
+ * conversion of the signal number (never @c snprintf or similar,
+ * which are not on the guaranteed-safe list), @c sigaction to restore
+ * the signal's default disposition, and @c raise to re-deliver it so
+ * the process actually terminates through the normal mechanism
+ * afterward.
+ *
+ * @param signum Number of the received fatal signal
+ */
+static void s_startup_handle_crash(int signum)
+{
+    static const char s_prefix[] = "icowm: fatal signal ";
+    static const char s_suffix[] = "; terminating (see above for" \
+        " which signal number; a core dump, if enabled, has the" \
+        " rest)\n";
+    char rev[4];
+    char digits[4];
+    int rlen = 0;
+    int len = 0;
+    int n = signum;
+    struct sigaction sa;
+
+    (void) write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);
+
+    if (n <= 0) {
+        digits[len++] = '0';
+    } else {
+        while (n > 0 && rlen < (int) sizeof(rev)) {
+            rev[rlen++] = (char) ('0' + (n % 10));
+            n /= 10;
+        }
+        while (rlen > 0) {
+            digits[len++] = rev[--rlen];
+        }
+    }
+    (void) write(STDERR_FILENO, digits, (size_t) len);
+    (void) write(STDERR_FILENO, s_suffix, sizeof(s_suffix) - 1u);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = SIG_DFL;
+    sigemptyset(&sa.sa_mask);
+    (void) sigaction(signum, &sa, NULL);
+
+    (void) raise(signum);
 }
 
 
@@ -463,6 +519,27 @@ int startup_install_signals(void)
             s_startup_install_handler(SIGCHLD,
                 s_startup_handle_child, SA_NOCLDSTOP) != 0) {
         LOGGER_ERROR("Failed to install startup signal handlers",
+                L_NARG);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/* Install handlers for fatal signals that log a diagnostic before
+ * dying */
+int startup_install_crash_handlers(void)
+{
+    if (s_startup_install_handler(SIGSEGV,
+                s_startup_handle_crash, 0) != 0 ||
+            s_startup_install_handler(SIGABRT,
+                s_startup_handle_crash, 0) != 0 ||
+            s_startup_install_handler(SIGBUS,
+                s_startup_handle_crash, 0) != 0 ||
+            s_startup_install_handler(SIGFPE,
+                s_startup_handle_crash, 0) != 0) {
+        LOGGER_ERROR("Failed to install fatal-signal handlers",
                 L_NARG);
         return -1;
     }

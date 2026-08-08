@@ -358,20 +358,20 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
 /**
  * @brief Apply the configured @c systray.layer stacking rule
  *
- * - @c CONFIG_SYSTRAY_LAYER_BELOW: stacks the tray window at the very
- *   bottom, behind every client window.
- * - @c CONFIG_SYSTRAY_LAYER_ABOVE (the default): stacks it at the top,
- *   unless a client is currently fullscreen, in which case it stacks
- *   just below that client instead, so a fullscreen window still
- *   covers it; the same way a taskbar or panel gets covered by a
- *   fullscreen window in most desktop environments, instead of a
- *   systray floating above literally everything regardless of what
- *   the user is doing.  Always resolved to its final position in one
- *   single 'ConfigureWindow' call (see @c s_systray_find_fullscreen_
- *   target above), never by raising to the top and only then lowering
- *   in a second, separate request, which would flash the tray above
+ * - @c CONFIG_SYSTRAY_LAYER_BELOW (the default): stacks the tray
+ *   window at the very bottom, behind every client window.
+ * - @c CONFIG_SYSTRAY_LAYER_ABOVE: stacks it at the top, unless a
+ *   client is currently fullscreen, in which case it stacks just
+ *   below that client instead, so a fullscreen window still covers
+ *   it; the same way a taskbar or panel gets covered by a fullscreen
+ *   window in most desktop environments, instead of a systray
+ *   floating above literally everything regardless of what the user
+ *   is doing.  Always resolved to its final position in one single
+ *   'ConfigureWindow' call (see @c s_systray_find_fullscreen_target
+ *   above), never by raising to the top and only then lowering in a
+ *   second, separate request, which would flash the tray above
  *   fullscreen content for the brief moment between the two.
- * - @c CONFIG_SYSTRAY_LAYER_ABOVE_ALL: stacks it at the top and leaves
+ * - @c CONFIG_SYSTRAY_LAYER_OVERLAY: stacks it at the top and leaves
  *   it there unconditionally, even over fullscreen windows.
  *
  * Safe to call whenever the tray's stacking might need reconsidering:

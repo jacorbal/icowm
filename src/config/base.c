@@ -195,7 +195,8 @@ static enum config_systray_order_e
  *
  * @return Parsed systray layer enumeration value
  *
- * @note Supported values are @c below, @c above, and @c above-all
+ * @note Supported values are @c below (the default), @c above, and
+ *       @c overlay; an unrecognized value falls back to @c below
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 static enum config_systray_layer_e
@@ -204,17 +205,17 @@ static enum config_systray_layer_e
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_SYSTRAY_LAYER_ABOVE;
-    }
-
-    if (safe_strcmp(value_norm, "below") == 0) {
         return CONFIG_SYSTRAY_LAYER_BELOW;
     }
-    if (safe_strcmp(value_norm, "above-all") == 0) {
-        return CONFIG_SYSTRAY_LAYER_ABOVE_ALL;
+
+    if (safe_strcmp(value_norm, "above") == 0) {
+        return CONFIG_SYSTRAY_LAYER_ABOVE;
+    }
+    if (safe_strcmp(value_norm, "overlay") == 0) {
+        return CONFIG_SYSTRAY_LAYER_OVERLAY;
     }
 
-    return CONFIG_SYSTRAY_LAYER_ABOVE;
+    return CONFIG_SYSTRAY_LAYER_BELOW;
 }
 
 
