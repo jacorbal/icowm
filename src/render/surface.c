@@ -65,7 +65,8 @@ int surface_render_current_desktop(surface_td *surface)
         return 1;
     }
 
-    LOGGER_DEBUG("Rendering desktop '%s'", desktop->name);
+    LOGGER_DEBUG("Rendering desktop '%s'",
+            (desktop->name[0] != '\0') ? desktop->name : "unnamed");
 
     /* Render only this desktop.  It is always the surface's current
      * desktop here, so clients must be (re-)mapped. */
@@ -125,8 +126,14 @@ int surface_render_all_desktops(surface_td *surface)
             continue;
         }
 
-        LOGGER_DEBUG("Rendering desktop %u ('%s')",
-                rendered_count, desktop->name);
+        /* Checking is cheap and happens for every desktop regardless
+         * of outcome, so this logs unconditionally; only the work
+         * inside the 'is_outdated' branch below is actually expensive,
+         * and 'desktop_render_full' logs its own specifics once that
+         * runs. */
+        LOGGER_DEBUG("Checking whether desktop %u ('%s') needs" \
+                " rendering", rendered_count,
+                (desktop->name[0] != '\0') ? desktop->name : "unnamed");
 
         /* Only render if outdated */
         /* Pass wether this is the surface's currently displayed desktop

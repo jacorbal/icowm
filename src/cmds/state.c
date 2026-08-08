@@ -334,6 +334,9 @@ void wcmd_client_toggle_shade(client_td *client)
         return;
     }
 
+    LOGGER_DEBUG("Toggle-shade: window=0x%x currently_shaded=%d",
+            client->window, (int) client_is_shaded(client));
+
     if (client_is_shaded(client)) {
         wcmd_client_unshade(client);
     } else {

@@ -384,14 +384,16 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     }
 
     /* Draw scroll-indicator arrows in the top/bottom padding areas when
-     * there are hidden entries above or below the viewport.  The top
-     * one needs the font's own ascent (see 'text_font_ascent'), not
-     * just 'pad_y - 2' like the bottom one uses: 'menu_draw_label'
-     * positions text by its baseline, and with a small
-     * 'padding.vertical' a baseline that close to the window's own top
-     * edge puts most of the glyph above Y=0, clipped off entirely
-     * and invisible, while the bottom indicator has the rest of the
-     * window below it to spare and never hits this. */
+     * there are hidden entries above or below the viewport.
+     * 'menu_draw_label' positions text by its baseline, and the
+     * top/bottom padding strips are each only 'pad_y' pixels tall
+     * (the default theme's 4px is smaller than most fonts' own
+     * ascent), so a naive baseline offset clips the glyph against
+     * whichever window edge is closer: the top indicator's baseline
+     * sits at the font's own ascent from Y=0 (see 'text_font_ascent'),
+     * keeping it below the window's top edge; the bottom indicator's
+     * sits 'descent' pixels above the window's bottom edge (see
+     * 'text_font_descent'), keeping it above that edge instead. */
     if (g_cycle_menu.count > g_cycle_menu.viewport_rows) {
         int16_t top_baseline_y = text_font_ascent();
 
@@ -404,7 +406,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
                     top_baseline_y,
-                    "---");
+                    WM_CYCLE_MENU_SCROLL_UP_INDICATOR);
         } else {
             /* Clear the top padding area when no arrow is needed */
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
@@ -424,8 +426,8 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             text_renderer_set_color(fg_sel, bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
-                    (int16_t) (bot_y + text_font_ascent()),
-                    "---");
+                    (int16_t) (bot_y + pad_y - text_font_descent()),
+                    WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR);
         } else {
             /* Clear the bottom padding area when no arrow is needed */
             int16_t bot_y = (int16_t) (pad_y +

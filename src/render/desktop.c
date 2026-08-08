@@ -639,6 +639,18 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     client->layout.geometry.cur.dim.h,
                     client->layout.geometry.cur.pos.x,
                     client->layout.geometry.cur.pos.y);
+            LOGGER_DEBUG("Render pass: window=0x%x cur.dim=%ux%u" \
+                    " frame_extents l=%u r=%u t=%u b=%u title_h=%u" \
+                    " shaded=%d",
+                    client->window,
+                    (unsigned int) client->layout.geometry.cur.dim.w,
+                    (unsigned int) client->layout.geometry.cur.dim.h,
+                    (unsigned int) client->layout.frame_extents.left,
+                    (unsigned int) client->layout.frame_extents.right,
+                    (unsigned int) client->layout.frame_extents.top,
+                    (unsigned int) client->layout.frame_extents.bottom,
+                    (unsigned int) client->title_height,
+                    (int) client_is_shaded(client));
 
             mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
