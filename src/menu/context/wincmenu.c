@@ -705,8 +705,11 @@ void wincmenu_show(xcb_connection_t *connection,
     /* Determine disabled states.
      * A window that is only partially maximized (horizontal or vertical
      * only) can still be moved, but fully-maximized and fullscreen
-     * windows cannot be moved or resized at all. */
-    can_restore = client_is_maximized(client)
+     * windows cannot be moved or resized at all.  Restore, on the other
+     * hand, is available from any maximized state (full, horizontal, or
+     * vertical) as well as fullscreen, since 'wcmd_client_restore'
+     * already handles all of them. */
+    can_restore = client_is_maximized_any(client)
         || client_is_fullscreen(client);
     can_move = !client_is_maximized(client)
         && !client_is_fullscreen(client);
