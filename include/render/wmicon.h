@@ -7,10 +7,16 @@
  * @c _NET_WM_ICON (the EWMH property most applications publish so a
  * taskbar, pager, or window manager can show the application's own
  * icon rather than a generic placeholder), picks whichever available
- * size is closest to the icon window's square icon-graphic area, and
- * composites it there via the X RENDER extension, so translucent
- * edges in the source icon blend correctly instead of leaving a hard
- * square artifact.
+ * size is closest to the target it will be drawn at, and composites
+ * it there via the X RENDER extension, so translucent edges in the
+ * source icon blend correctly instead of leaving a hard square
+ * artifact.
+ *
+ * Scaled to a consistent size regardless of whatever size the source
+ * image happened to be (see @c WM_ICON_PIXMAP_SCALE in defs/icon.h),
+ * since applications publish wildly differing icon sizes and drawing
+ * each one at its own natural size would leave icons looking
+ * inconsistent next to one another.
  *
  * Deliberately not cached: unlike @c render/glyph.c, where the same
  * handful of glyphs get redrawn constantly, an iconified client's

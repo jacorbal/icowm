@@ -948,7 +948,7 @@ Appearance settings for iconified windows.
 | Key            | Type    | Default | Description |
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
-| `use-pixmap`   | boolean | `false` | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. |
+| `use-pixmap`   | boolean | `false` | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another; see `WM_ICON_PIXMAP_SCALE` in `defs/icon.h` for that fraction of the icon square the image is scaled to fill (not currently configurable from a JSON file, only at compile time). |
 
 #### `icon.active` / `icon.inactive`
 

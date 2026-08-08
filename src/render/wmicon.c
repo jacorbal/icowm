@@ -22,6 +22,7 @@
 #include <xcb/xcb_renderutil.h>
 
 /* Local includes */
+#include <defs/icon.h>
 #include <render/wmicon.h>
 
 
@@ -30,6 +31,29 @@
  *  icon anywhere near this large, so a value past it is far more
  *  likely a corrupt or hostile property than a legitimate icon */
 #define WMICON_MAX_SIDE (512u)
+
+/** Standard X RENDER filter name requested for scaling; smooths out
+ *  both directions (a small source icon scaled up, or a large one
+ *  scaled down) far better than the nearest-neighbor sampling used by
+ *  default */
+#define WMICON_FILTER_NAME "bilinear"
+
+
+/**
+ * @brief Convert a plain floating-point value to the 16.16 fixed-point
+ *        representation the X RENDER extension's transform matrices
+ *        use
+ *
+ * @param value Value to convert
+ *
+ * @return @p value in 16.16 fixed-point form
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_render_fixed_t s_double_to_fixed(double value)
+{
+    return (xcb_render_fixed_t) (value * 65536.0);
+}
 
 
 /**
@@ -66,7 +90,16 @@ static uint32_t s_premultiply(uint32_t argb)
 
 /**
  * @brief Upload one icon image to the X server and composite it,
- *        premultiplied and clipped, onto a square area of @p drawable
+ *        premultiplied, scaled, and clipped, onto a square area of
+ *        @p drawable
+ *
+ * Scaled to fit within a @p draw_size by @p draw_size box, preserving
+ * its own aspect ratio (so a non-square source is letterboxed rather
+ * than stretched), then centered within the full @p area_size square;
+ * @p draw_size smaller than @p area_size is what leaves the small
+ * margin around every icon (see @c WM_ICON_PIXMAP_SCALE in
+ * defs/icon.h), and is also what makes every icon the same size on
+ * screen regardless of whatever size the source image happened to be.
  *
  * @param connection XCB connection
  * @param pixels     Straight-alpha @c 0xAARRGGBB pixels, @p width
@@ -74,6 +107,8 @@ static uint32_t s_premultiply(uint32_t argb)
  * @param width      Icon width in pixels
  * @param height     Icon height in pixels
  * @param drawable   Drawable to composite onto
+ * @param draw_size  Side length of the box the image is scaled to fit
+ *                   within
  * @param area_size  Side length of the square area to center in and
  *                   clip to
  *
@@ -85,7 +120,7 @@ static uint32_t s_premultiply(uint32_t argb)
  */
 static void s_composite_icon(xcb_connection_t *connection,
         const uint32_t *pixels, uint32_t width, uint32_t height,
-        xcb_drawable_t drawable, uint16_t area_size)
+        xcb_drawable_t drawable, uint16_t draw_size, uint16_t area_size)
 {
     xcb_screen_t *screen;
     xcb_pixmap_t pixmap;
@@ -95,13 +130,19 @@ static void s_composite_icon(xcb_connection_t *connection,
     const xcb_render_pictvisual_t *visual_info;
     xcb_render_picture_t src_picture;
     xcb_render_picture_t dst_picture;
+    xcb_render_transform_t transform;
     xcb_rectangle_t clip_rect;
     uint32_t *premultiplied;
+    double scale_w;
+    double scale_h;
+    double scale;
+    uint16_t dest_w;
+    uint16_t dest_h;
     int16_t dst_x;
     int16_t dst_y;
 
     if (width == 0u || height == 0u || width > WMICON_MAX_SIDE ||
-            height > WMICON_MAX_SIDE) {
+            height > WMICON_MAX_SIDE || draw_size == 0u) {
         return;
     }
 
@@ -121,6 +162,18 @@ static void s_composite_icon(xcb_connection_t *connection,
             screen->root_visual);
     if (argb_info == NULL || visual_info == NULL) {
         return;
+    }
+
+    scale_w = (double) draw_size / (double) width;
+    scale_h = (double) draw_size / (double) height;
+    scale = (scale_w < scale_h) ? scale_w : scale_h;
+    dest_w = (uint16_t) ((double) width * scale + 0.5);
+    dest_h = (uint16_t) ((double) height * scale + 0.5);
+    if (dest_w == 0u) {
+        dest_w = 1u;
+    }
+    if (dest_h == 0u) {
+        dest_h = 1u;
     }
 
     premultiplied = malloc((size_t) width * height * sizeof(uint32_t));
@@ -149,13 +202,33 @@ static void s_composite_icon(xcb_connection_t *connection,
             argb_info->id, 0u, NULL);
     xcb_free_pixmap(connection, pixmap);
 
+    /* The transform maps each destination pixel back to the source
+     * pixel it samples, so its scale factors are the inverse of
+     * 'scale' above (source size divided by the drawn size, not the
+     * other way around) */
+    transform.matrix11 = s_double_to_fixed((double) width / dest_w);
+    transform.matrix12 = 0;
+    transform.matrix13 = 0;
+    transform.matrix21 = 0;
+    transform.matrix22 = s_double_to_fixed((double) height / dest_h);
+    transform.matrix23 = 0;
+    transform.matrix31 = 0;
+    transform.matrix32 = 0;
+    transform.matrix33 = s_double_to_fixed(1.0);
+    xcb_render_set_picture_transform(connection, src_picture, transform);
+    xcb_render_set_picture_filter(connection, src_picture,
+            (uint16_t) (sizeof(WMICON_FILTER_NAME) - 1u),
+            WMICON_FILTER_NAME, 0u, NULL);
+
     dst_picture = xcb_generate_id(connection);
     xcb_render_create_picture(connection, dst_picture, drawable,
             visual_info->format, 0u, NULL);
 
-    /* Clip to the target square so an icon larger than 'area_size'
-     * does not spill past it (into a caption strip below it, in the
-     * icon-window case this exists for) */
+    /* Clip to the target square; with 'draw_size' already at most
+     * 'area_size', this should rarely trim anything in practice, but
+     * stays as a defensive backstop against a scale computation bug
+     * rather than letting one spill the icon into, for example, a
+     * caption strip below the square in the icon-window case */
     clip_rect.x = 0;
     clip_rect.y = 0;
     clip_rect.width = area_size;
@@ -163,14 +236,14 @@ static void s_composite_icon(xcb_connection_t *connection,
     xcb_render_set_picture_clip_rectangles(connection, dst_picture,
             0, 0, 1u, &clip_rect);
 
-    dst_x = (int16_t) ((area_size > width)
-            ? (area_size - width) / 2u : 0u);
-    dst_y = (int16_t) ((area_size > height)
-            ? (area_size - height) / 2u : 0u);
+    dst_x = (int16_t) ((area_size > dest_w)
+            ? (area_size - dest_w) / 2u : 0u);
+    dst_y = (int16_t) ((area_size > dest_h)
+            ? (area_size - dest_h) / 2u : 0u);
 
     xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER,
             src_picture, XCB_NONE, dst_picture, 0, 0, 0, 0,
-            dst_x, dst_y, (uint16_t) width, (uint16_t) height);
+            dst_x, dst_y, dest_w, dest_h);
 
     xcb_render_free_picture(connection, src_picture);
     xcb_render_free_picture(connection, dst_picture);
@@ -183,6 +256,7 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
 {
     xcb_ewmh_get_wm_icon_reply_t reply;
     xcb_ewmh_wm_icon_iterator_t iter;
+    uint16_t draw_size;
     uint32_t best_width = 0u;
     uint32_t best_height = 0u;
     const uint32_t *best_data = NULL;
@@ -191,6 +265,11 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
     if (connection == NULL || ewmh == NULL || window == XCB_NONE ||
             drawable == XCB_NONE || area_size == 0u) {
         return;
+    }
+
+    draw_size = (uint16_t) ((double) area_size * WM_ICON_PIXMAP_SCALE);
+    if (draw_size == 0u) {
+        draw_size = 1u;
     }
 
     if (xcb_ewmh_get_wm_icon_reply(ewmh,
@@ -203,12 +282,12 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
         if (iter.width > 0u && iter.height > 0u &&
                 iter.width <= WMICON_MAX_SIDE &&
                 iter.height <= WMICON_MAX_SIDE) {
-            int64_t dw = (iter.width > area_size)
-                ? (int64_t) (iter.width - area_size)
-                : (int64_t) (area_size - iter.width);
-            int64_t dh = (iter.height > area_size)
-                ? (int64_t) (iter.height - area_size)
-                : (int64_t) (area_size - iter.height);
+            int64_t dw = (iter.width > draw_size)
+                ? (int64_t) (iter.width - draw_size)
+                : (int64_t) (draw_size - iter.width);
+            int64_t dh = (iter.height > draw_size)
+                ? (int64_t) (iter.height - draw_size)
+                : (int64_t) (draw_size - iter.height);
             int64_t score = dw + dh;
 
             if (best_score < 0 || score < best_score) {
@@ -223,7 +302,7 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
 
     if (best_data != NULL) {
         s_composite_icon(connection, best_data, best_width, best_height,
-                drawable, area_size);
+                drawable, draw_size, area_size);
     }
 
     xcb_ewmh_get_wm_icon_reply_wipe(&reply);
