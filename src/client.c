@@ -54,6 +54,7 @@
 #include <eventq.h>
 #include <logger.h>
 #include <priority.h>
+#include <render/wmicon.h>
 #include <wm.h>
 
 /* Local includes */
@@ -325,6 +326,11 @@ void client_destroy(client_td *client)
     if (client->connection != NULL && client->icon_window != 0) {
         xcb_destroy_window(client->connection, client->icon_window);
     }
+    /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
+     * (see render/wmicon.h), if any; a no-op if nothing was ever
+     * cached, e.g., a client that never had 'theme.icon.use-pixmap'
+     * draw anything for it in the first place */
+    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
     if (client->connection != NULL && client->frame != 0) {
         xcb_destroy_window(client->connection, client->frame);
     }

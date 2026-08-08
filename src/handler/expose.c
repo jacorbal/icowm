@@ -158,7 +158,8 @@ void handler_expose(xcb_connection_t *connection,
 
         if (cfg->theme.icon.use_pixmap) {
             wmicon_draw(connection, client->ewmh, client->window,
-                    client->icon_window, WM_ICON_SQUARE_SIZE);
+                    client->icon_window, WM_ICON_SQUARE_SIZE,
+                    &client->icon_pixmap_cache);
         }
 
         if (cfg->theme.icon.is_captioned &&

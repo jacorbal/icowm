@@ -109,7 +109,8 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
 
     if (desktop->config_theme->icon.use_pixmap) {
         wmicon_draw(desktop->connection, client->ewmh, client->window,
-                client->icon_window, WM_ICON_SQUARE_SIZE);
+                client->icon_window, WM_ICON_SQUARE_SIZE,
+                &client->icon_pixmap_cache);
     }
 
     if (desktop->config_theme->icon.is_captioned &&

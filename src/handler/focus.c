@@ -38,6 +38,9 @@
 #include <desktop.h>
 #include <invalidate.h>
 #include <logger.h>
+#include <render/desktop.h>
+#include <render/surface.h>
+#include <render/wmicon.h>
 #include <surface.h>
 
 /* Input includes */
@@ -99,8 +102,6 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     xcb_get_property_reply_t *motif_r;
     xcb_intern_atom_reply_t *ia;
 
-    (void) connection;
-
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in property handler",
                 L_NARG);
@@ -111,6 +112,32 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
             event->window, event->atom);
 
     if (event->state == XCB_PROPERTY_DELETE) {
+        return;
+    }
+
+    /* A root window's own property changing, not a managed client's:
+     * 'lookup_find_client' below would never find one for it, so this
+     * has to be checked first, before that early return discards the
+     * event.  Recognizes only the specific properties a wallpaper tool
+     * might set (see 'desktop_property_is_background_pixmap' in
+     * render/desktop.c), rather than invalidating the cached
+     * background pixmap on every root property change regardless of
+     * which one it was; many of those, including ones icowm's own
+     * EWMH state syncing writes to the root window itself, have
+     * nothing to do with the background pixmap at all. */
+    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+            snode = list_next(snode)) {
+        surface_td *s = (surface_td *) list_data(snode);
+
+        if (s == NULL || s->screen == NULL ||
+                event->window != s->screen->root) {
+            continue;
+        }
+        if (desktop_property_is_background_pixmap(connection,
+                    event->atom)) {
+            desktop_invalidate_background_pixmap_cache();
+            surface_render_current_desktop_repaint(s);
+        }
         return;
     }
 
@@ -157,6 +184,22 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_ICON_NAME)) {
         client_props_refresh_icon_name(client);
+        wm_invalidate_surface(surface);
+        wm_invalidate_desktop(desktop);
+        return;
+    }
+
+    /* '_NET_WM_ICON' (the icon image itself, unlike '_NET_WM_ICON_NAME'
+     * above, which is only its taskbar label text) has no cached data
+     * of its own to refresh here: 'wmicon_draw' (see render/wmicon.h)
+     * always reads the property fresh on a cache miss, so all that is
+     * needed is throwing away whatever it cached from the property's
+     * old value, which would otherwise keep being reused (that is the
+     * entire point of the cache) even though it no longer matches what
+     * the application just published. */
+    if (client->ewmh != NULL &&
+            event->atom == client->ewmh->_NET_WM_ICON) {
+        wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
         wm_invalidate_surface(surface);
         wm_invalidate_desktop(desktop);
         return;

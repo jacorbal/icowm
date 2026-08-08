@@ -269,7 +269,8 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                 if (config->theme.icon.use_pixmap) {
                     wmicon_draw(connection, previous->ewmh,
                             previous->window, previous_target,
-                            WM_ICON_SQUARE_SIZE);
+                            WM_ICON_SQUARE_SIZE,
+                            &previous->icon_pixmap_cache);
                 }
 
                 if (config->theme.icon.is_captioned &&

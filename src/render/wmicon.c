@@ -40,6 +40,21 @@
 
 
 /**
+ * @brief Cached picture-format query, reused across calls
+ *
+ * @c xcb_render_util_query_formats is a genuine round trip to the X
+ * server (see @c render/glyph.c, which caches it the same way, for
+ * the same reason), and the set of supported picture formats a
+ * connection offers never changes for the life of that connection, so
+ * querying it again on every icon rebuilt is pure waste.  Never freed:
+ * held for the life of the process, the same as @c render/glyph.c's
+ * own copy of this same cache.
+ */
+static const xcb_render_query_pict_formats_reply_t *s_formats = NULL;
+static xcb_connection_t *s_formats_connection = NULL;
+
+
+/**
  * @brief Convert a plain floating-point value to the 16.16 fixed-point
  *        representation the X RENDER extension's transform matrices
  *        use
@@ -53,6 +68,27 @@
 static xcb_render_fixed_t s_double_to_fixed(double value)
 {
     return (xcb_render_fixed_t) (value * 65536.0);
+}
+
+
+/**
+ * @brief Get the picture-format query for @p connection, resolving
+ *        and caching it first if this is the first call for it
+ *
+ * @param connection XCB connection
+ *
+ * @return The cached query result, or @c NULL on failure
+ *
+ * @note Complexity: @e O(1) once resolved for @p connection
+ */
+static const xcb_render_query_pict_formats_reply_t *s_get_formats(
+        xcb_connection_t *connection)
+{
+    if (s_formats == NULL || s_formats_connection != connection) {
+        s_formats = xcb_render_util_query_formats(connection);
+        s_formats_connection = connection;
+    }
+    return s_formats;
 }
 
 
@@ -89,28 +125,33 @@ static uint32_t s_premultiply(uint32_t argb)
 
 
 /**
- * @brief Upload one icon image to the X server and composite it,
- *        premultiplied, scaled, and clipped, onto a square area of
- *        @p drawable
+ * @brief Upload one icon image to the X server as a premultiplied,
+ *        scaled, transform-ready Picture
  *
  * Scaled to fit within a @p draw_size by @p draw_size box, preserving
  * its own aspect ratio (so a non-square source is letterboxed rather
- * than stretched), then centered within the full @p area_size square;
- * @p draw_size smaller than @p area_size is what leaves the small
- * margin around every icon (see @c WM_ICON_PIXMAP_SCALE in
- * defs/icon.h), and is also what makes every icon the same size on
- * screen regardless of whatever size the source image happened to be.
+ * than stretched); @p draw_size smaller than the icon-graphic area it
+ * will later be centered and clipped within (see @c s_composite_cache)
+ * is what leaves the small margin around every icon (see
+ * @c WM_ICON_PIXMAP_SCALE in defs/icon.h), and is also what makes
+ * every icon the same size on screen regardless of whatever size the
+ * source image happened to be.
  *
  * @param connection XCB connection
  * @param pixels     Straight-alpha @c 0xAARRGGBB pixels, @p width
  *                   times @p height of them, row-major
  * @param width      Icon width in pixels
  * @param height     Icon height in pixels
- * @param drawable   Drawable to composite onto
  * @param draw_size  Side length of the box the image is scaled to fit
  *                   within
- * @param area_size  Side length of the square area to center in and
- *                   clip to
+ * @param out_dest_w Receives the actual scaled width, after fitting
+ *                   the source's own aspect ratio within @p draw_size
+ * @param out_dest_h Receives the actual scaled height; see
+ *                   @p out_dest_w
+ *
+ * @return The built Picture, owned by the caller from this point on
+ *         (see @c wmicon_invalidate to free it), or @c XCB_NONE on
+ *         failure
  *
  * @note Assumes the X server's own image byte order matches the
  *       host's, true of virtually every system this window manager
@@ -118,50 +159,44 @@ static uint32_t s_premultiply(uint32_t argb)
  *       each pixel's bytes reversed
  * @note Complexity: @e O(p), where @e p is @p width times @p height
  */
-static void s_composite_icon(xcb_connection_t *connection,
-        const uint32_t *pixels, uint32_t width, uint32_t height,
-        xcb_drawable_t drawable, uint16_t draw_size, uint16_t area_size)
+static xcb_render_picture_t s_build_icon_picture(
+        xcb_connection_t *connection, const uint32_t *pixels,
+        uint32_t width, uint32_t height, uint16_t draw_size,
+        uint16_t *out_dest_w, uint16_t *out_dest_h)
 {
     xcb_screen_t *screen;
     xcb_pixmap_t pixmap;
     xcb_gcontext_t gc;
     const xcb_render_query_pict_formats_reply_t *formats;
     const xcb_render_pictforminfo_t *argb_info;
-    const xcb_render_pictvisual_t *visual_info;
     xcb_render_picture_t src_picture;
-    xcb_render_picture_t dst_picture;
     xcb_render_transform_t transform;
-    xcb_rectangle_t clip_rect;
     uint32_t *premultiplied;
     double scale_w;
     double scale_h;
     double scale;
     uint16_t dest_w;
     uint16_t dest_h;
-    int16_t dst_x;
-    int16_t dst_y;
 
     if (width == 0u || height == 0u || width > WMICON_MAX_SIDE ||
             height > WMICON_MAX_SIDE || draw_size == 0u) {
-        return;
+        return XCB_NONE;
     }
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
     if (screen == NULL) {
-        return;
+        return XCB_NONE;
     }
 
-    formats = xcb_render_util_query_formats(connection);
+    formats = s_get_formats(connection);
     if (formats == NULL) {
-        return;
+        return XCB_NONE;
     }
 
     argb_info = xcb_render_util_find_standard_format(formats,
             XCB_PICT_STANDARD_ARGB_32);
-    visual_info = xcb_render_util_find_visual_format(formats,
-            screen->root_visual);
-    if (argb_info == NULL || visual_info == NULL) {
-        return;
+    if (argb_info == NULL) {
+        return XCB_NONE;
     }
 
     scale_w = (double) draw_size / (double) width;
@@ -178,7 +213,7 @@ static void s_composite_icon(xcb_connection_t *connection,
 
     premultiplied = malloc((size_t) width * height * sizeof(uint32_t));
     if (premultiplied == NULL) {
-        return;
+        return XCB_NONE;
     }
     for (uint32_t i = 0u; i < width * height; ++i) {
         premultiplied[i] = s_premultiply(pixels[i]);
@@ -205,7 +240,10 @@ static void s_composite_icon(xcb_connection_t *connection,
     /* The transform maps each destination pixel back to the source
      * pixel it samples, so its scale factors are the inverse of
      * 'scale' above (source size divided by the drawn size, not the
-     * other way around) */
+     * other way around).  Set once here and never touched again: it
+     * stays attached to 'src_picture' for as long as the cache keeps
+     * that Picture around, so a later cache hit does not need to
+     * reapply it. */
     transform.matrix11 = s_double_to_fixed((double) width / dest_w);
     transform.matrix12 = 0;
     transform.matrix13 = 0;
@@ -220,15 +258,67 @@ static void s_composite_icon(xcb_connection_t *connection,
             (uint16_t) (sizeof(WMICON_FILTER_NAME) - 1u),
             WMICON_FILTER_NAME, 0u, NULL);
 
+    *out_dest_w = dest_w;
+    *out_dest_h = dest_h;
+    return src_picture;
+}
+
+
+/**
+ * @brief Composite an already built icon Picture onto a square area
+ *        of @p drawable, centered and clipped
+ *
+ * @param connection XCB connection
+ * @param src_picture Already built Picture (see @c s_build_icon_picture
+ *                   or a cache hit); left untouched, still owned by
+ *                   whichever cache slot it came from
+ * @param dest_w     Width @p src_picture was built to draw at
+ * @param dest_h     Height @p src_picture was built to draw at
+ * @param drawable   Drawable to composite onto
+ * @param area_size  Side length of the square area to center in and
+ *                   clip to
+ *
+ * @note Complexity: @e O(1); the expensive per-pixel work already
+ *       happened whenever @p src_picture was originally built
+ */
+static void s_composite_cached(xcb_connection_t *connection,
+        xcb_render_picture_t src_picture, uint16_t dest_w,
+        uint16_t dest_h, xcb_drawable_t drawable, uint16_t area_size)
+{
+    xcb_screen_t *screen;
+    const xcb_render_query_pict_formats_reply_t *formats;
+    const xcb_render_pictvisual_t *visual_info;
+    xcb_render_picture_t dst_picture;
+    xcb_rectangle_t clip_rect;
+    int16_t dst_x;
+    int16_t dst_y;
+
+    screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
+    if (screen == NULL) {
+        return;
+    }
+
+    formats = s_get_formats(connection);
+    if (formats == NULL) {
+        return;
+    }
+
+    visual_info = xcb_render_util_find_visual_format(formats,
+            screen->root_visual);
+    if (visual_info == NULL) {
+        return;
+    }
+
     dst_picture = xcb_generate_id(connection);
     xcb_render_create_picture(connection, dst_picture, drawable,
             visual_info->format, 0u, NULL);
 
-    /* Clip to the target square; with 'draw_size' already at most
-     * 'area_size', this should rarely trim anything in practice, but
-     * stays as a defensive backstop against a scale computation bug
-     * rather than letting one spill the icon into, for example, a
-     * caption strip below the square in the icon-window case */
+    /* Clip to the target square; with 'dest_w'/'dest_h' already at
+     * most 'area_size' (see 's_build_icon_picture'), this should
+     * rarely trim anything in practice, but stays as a defensive
+     * backstop against a scale computation bug rather than letting
+     * one spill the icon into, for example, a caption strip below the
+     * square in the icon-window case */
     clip_rect.x = 0;
     clip_rect.y = 0;
     clip_rect.width = area_size;
@@ -245,14 +335,14 @@ static void s_composite_icon(xcb_connection_t *connection,
             src_picture, XCB_NONE, dst_picture, 0, 0, 0, 0,
             dst_x, dst_y, dest_w, dest_h);
 
-    xcb_render_free_picture(connection, src_picture);
     xcb_render_free_picture(connection, dst_picture);
 }
 
 
 /* Fetch and draw a client's own '_NET_WM_ICON' */
 void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
-        xcb_window_t window, xcb_drawable_t drawable, uint16_t area_size)
+        xcb_window_t window, xcb_drawable_t drawable, uint16_t area_size,
+        wmicon_cache_td *cache)
 {
     xcb_ewmh_get_wm_icon_reply_t reply;
     xcb_ewmh_wm_icon_iterator_t iter;
@@ -261,15 +351,27 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
     uint32_t best_height = 0u;
     const uint32_t *best_data = NULL;
     int64_t best_score = -1;
+    xcb_render_picture_t built;
+    uint16_t dest_w = 0u;
+    uint16_t dest_h = 0u;
 
     if (connection == NULL || ewmh == NULL || window == XCB_NONE ||
-            drawable == XCB_NONE || area_size == 0u) {
+            drawable == XCB_NONE || area_size == 0u || cache == NULL) {
         return;
     }
 
     draw_size = (uint16_t) ((double) area_size * WM_ICON_PIXMAP_SCALE);
     if (draw_size == 0u) {
         draw_size = 1u;
+    }
+
+    /* Cache hit: the same Picture already built for this exact
+     * 'draw_size' is reused as-is, skipping the property fetch,
+     * per-pixel premultiply, and pixmap upload entirely. */
+    if (cache->picture != XCB_NONE && cache->draw_size == draw_size) {
+        s_composite_cached(connection, cache->picture, cache->dest_w,
+                cache->dest_h, drawable, area_size);
+        return;
     }
 
     if (xcb_ewmh_get_wm_icon_reply(ewmh,
@@ -300,10 +402,41 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
         xcb_ewmh_get_wm_icon_next(&iter);
     }
 
-    if (best_data != NULL) {
-        s_composite_icon(connection, best_data, best_width, best_height,
-                drawable, draw_size, area_size);
-    }
+    built = (best_data != NULL)
+        ? s_build_icon_picture(connection, best_data, best_width,
+                best_height, draw_size, &dest_w, &dest_h)
+        : XCB_NONE;
 
     xcb_ewmh_get_wm_icon_reply_wipe(&reply);
+
+    if (built == XCB_NONE) {
+        return;
+    }
+
+    wmicon_invalidate(connection, cache);
+    cache->picture = built;
+    cache->draw_size = draw_size;
+    cache->dest_w = dest_w;
+    cache->dest_h = dest_h;
+
+    s_composite_cached(connection, cache->picture, cache->dest_w,
+            cache->dest_h, drawable, area_size);
+}
+
+
+/* Invalidate a cache slot, freeing its cached Picture's X server
+ * resource */
+void wmicon_invalidate(xcb_connection_t *connection, wmicon_cache_td *cache)
+{
+    if (cache == NULL || cache->picture == XCB_NONE) {
+        return;
+    }
+
+    if (connection != NULL) {
+        xcb_render_free_picture(connection, cache->picture);
+    }
+    cache->picture = XCB_NONE;
+    cache->draw_size = 0u;
+    cache->dest_w = 0u;
+    cache->dest_h = 0u;
 }

@@ -49,6 +49,55 @@
 
 
 /**
+ * @brief Property names a wallpaper-setting tool might publish its
+ *        own root window background pixmap under
+ *
+ * - @c ESETROOT_PMAP_ID: legacy 'Esetroot' alias, also used by @c feh
+ * - @c _XROOTPMAP_ID: set by @c Esetroot, @c feh, @c nitrogen,
+ *   @c hsetroot, and others
+ * - @c _XSETROOT_ID: set by @c xsetroot and @c xsetbg
+ *
+ * Shared between @c s_get_root_background_pixmap, which checks each
+ * in turn for a pixmap value, and
+ * @c desktop_property_is_background_pixmap, which the @c PropertyNotify
+ * handler in handler/focus.c uses to recognize a change to one of
+ * them on the root window.
+ */
+static const char *const s_bg_prop_names[3] = {
+    "_XROOTPMAP_ID", "ESETROOT_PMAP_ID", "_XSETROOT_ID"
+};
+
+/**
+ * @brief Cached, once-resolved atoms for @c s_bg_prop_names
+ *
+ * None of these ever changes once interned (an atom, once assigned by
+ * the X server, is permanent for the life of the connection), so
+ * resolving them again on every lookup would be pure waste; resolved
+ * lazily by @c s_resolve_bg_atoms on first use.
+ */
+static xcb_atom_t s_bg_atoms[3] = {
+    XCB_ATOM_NONE, XCB_ATOM_NONE, XCB_ATOM_NONE
+};
+static bool s_bg_atoms_resolved = false;
+
+/**
+ * @brief Cached resolution of the root window's background pixmap
+ *
+ * A well-behaved system sets this once (a wallpaper tool such as
+ * @c feh, @c nitrogen, or @c hsetroot runs once at session start) and
+ * essentially never changes it again during a normal session, so
+ * resolving it fresh on every @c s_get_root_background_pixmap call
+ * (up to three property fetches, each a round trip to the X server)
+ * would be paying that cost repeatedly for something that stays the
+ * same almost every single time.  Cached here instead, and only
+ * re-resolved once @c desktop_invalidate_background_pixmap_cache says
+ * the underlying property actually changed.
+ */
+static bool s_bg_pixmap_resolved = false;
+static xcb_pixmap_t s_bg_pixmap_cache = XCB_NONE;
+
+
+/**
  * @brief Intern a custom atom and return @c XCB_ATOM_NONE on failure
  *
  * Performs an @c XCBInternAtom request for the given atom name and
@@ -86,6 +135,28 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
 
 
 /**
+ * @brief Resolve @c s_bg_prop_names into @c s_bg_atoms, once
+ *
+ * @param connection XCB connection used to intern any atom not
+ *                   already resolved from a previous call
+ *
+ * @note Complexity: @e O(1) once resolved; @e O(n) in the number of
+ *       candidate properties the first time
+ */
+static void s_resolve_bg_atoms(xcb_connection_t *connection)
+{
+    if (s_bg_atoms_resolved) {
+        return;
+    }
+
+    for (size_t i = 0; i < 3u; ++i) {
+        s_bg_atoms[i] = s_intern_atom(connection, s_bg_prop_names[i]);
+    }
+    s_bg_atoms_resolved = true;
+}
+
+
+/**
  * @brief Retrieve the root window background pixmap if set
  *
  * Queries the root window for one of the standard background pixmap
@@ -98,35 +169,38 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
  *
  * @return Root background pixmap, or @c XCB_NONE if not available
  *
- * @note Complexity: @e O(n) in the number of candidate properties
+ * @note Resolved once and cached from then on (see
+ *       @c s_bg_pixmap_resolved above); a cache hit costs nothing
+ *       beyond returning the cached value, in contrast to a miss,
+ *       which pays for up to three property fetches, each its own
+ *       round trip to the X server
+ * @note Complexity: @e O(1) on a cache hit; @e O(n) in the number of
+ *       candidate properties on a cache miss
  */
 static xcb_pixmap_t
     s_get_root_background_pixmap(xcb_connection_t *connection,
             xcb_window_t root)
 {
-    /* - 'ESETROOT_PMAP_ID': legacy 'Esetroot' alias, also used by 'feh'
-     * - '_XROOTPMAP_ID': set by 'Esetroot', 'feh', 'nitrogen',
-     *   'hsetroot', &c
-     * - '_XSETROOT_ID': set by 'xsetroot' & 'xsetbg' */
-    const char *prop_names[] = {
-        "_XROOTPMAP_ID", "ESETROOT_PMAP_ID", "_XSETROOT_ID"
-    };
-    const size_t prop_count = sizeof(prop_names) / sizeof(prop_names[0]);
+    if (s_bg_pixmap_resolved) {
+        return s_bg_pixmap_cache;
+    }
 
     if (connection == NULL || root == XCB_WINDOW_NONE) {
         return XCB_NONE;
     }
 
-    for (size_t i = 0; i < prop_count; ++i) {
-        xcb_atom_t prop = s_intern_atom(connection, prop_names[i]);
+    s_resolve_bg_atoms(connection);
+
+    for (size_t i = 0; i < 3u; ++i) {
         xcb_get_property_reply_t *reply;
         xcb_pixmap_t pixmap = XCB_NONE;
-        if (prop == XCB_ATOM_NONE) {
+
+        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
             continue;
         }
 
         reply = xcb_get_property_reply(connection,
-                xcb_get_property(connection, 0, root, prop,
+                xcb_get_property(connection, 0, root, s_bg_atoms[i],
                     XCB_ATOM_PIXMAP, 0, 1), NULL);
         if (reply == NULL) {
             continue;
@@ -139,11 +213,48 @@ static xcb_pixmap_t
         free(reply);
 
         if (pixmap != XCB_NONE) {
+            s_bg_pixmap_cache = pixmap;
+            s_bg_pixmap_resolved = true;
             return pixmap;
         }
     }
 
+    /* No wallpaper tool has set any of the candidate properties; that
+     * is itself a stable outcome worth caching too, not just a
+     * successful resolution, so a desktop with no such tool running
+     * does not keep paying for this same negative lookup either */
+    s_bg_pixmap_cache = XCB_NONE;
+    s_bg_pixmap_resolved = true;
     return XCB_NONE;
+}
+
+
+/* Invalidate the cached root window background pixmap */
+void desktop_invalidate_background_pixmap_cache(void)
+{
+    s_bg_pixmap_resolved = false;
+    s_bg_pixmap_cache = XCB_NONE;
+}
+
+
+/* Recognize whether an atom is one of the background pixmap
+ * properties this module watches */
+bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
+        xcb_atom_t atom)
+{
+    if (atom == XCB_ATOM_NONE) {
+        return false;
+    }
+
+    s_resolve_bg_atoms(connection);
+
+    for (size_t i = 0; i < 3u; ++i) {
+        if (s_bg_atoms[i] != XCB_ATOM_NONE && s_bg_atoms[i] == atom) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 

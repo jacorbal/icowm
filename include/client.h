@@ -46,6 +46,7 @@
 #include <config.h>
 #include <event.h>
 #include <priority.h>
+#include <render/wmicon.h>
 
 
 /* Default priority on client creation */
@@ -235,6 +236,22 @@ typedef struct client_s {
     xcb_window_t frame;             /**< Optional decoration frame */
     xcb_window_t titlebar;          /**< Optional titlebar window */
     xcb_window_t icon_window;       /**< Optional iconified placeholder */
+
+    /**
+     * @brief Cached, already built '_NET_WM_ICON' Picture
+     *
+     * Built once by 'wmicon_draw' (see render/wmicon.h) the first
+     * time this client's icon is drawn, then reused on every later
+     * draw instead of re-fetching the property, re-premultiplying
+     * every pixel, and re-uploading a pixmap each time, none of which
+     * changes between draws unless the client's own '_NET_WM_ICON'
+     * property itself changes.  Freed by 'wmicon_invalidate', called
+     * from the 'PropertyNotify' handler when that property changes,
+     * and from 'client_destroy' so the cached server-side resource
+     * does not leak.
+     */
+    wmicon_cache_td icon_pixmap_cache;
+
     bool is_icon_mapped;            /**< Whether icon window is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full screen */
     uint8_t ignore_unmap;           /**< WM-initiated unmaps to suppress */

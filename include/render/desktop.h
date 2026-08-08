@@ -37,9 +37,55 @@
  * @retval  0 Success
  * @retval  1 Failed to draw background
  *
+ * @note The root window's background pixmap (see
+ *       @c desktop_invalidate_background_pixmap_cache) is resolved
+ *       once and cached from then on, so this is @e O(1) after the
+ *       first call rather than the handful of round trips to the X
+ *       server a naive re-resolve on every call would cost
  * @note Complexity: @e O(1)
  */
 int desktop_render_background(desktop_td *desktop);
+
+/**
+ * @brief Invalidate the cached root window background pixmap
+ *
+ * Call this whenever one of the (several, mutually exclusive)
+ * conventions a wallpaper-setting tool might use to publish its own
+ * background pixmap on the root window changes (see
+ * @c s_get_root_background_pixmap in render/desktop.c for the exact
+ * property names watched), so the next @c desktop_render_background
+ * call re-resolves it instead of continuing to draw whatever was
+ * cached from before the change.
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_invalidate_background_pixmap_cache(void);
+
+/**
+ * @brief Recognize whether an atom is one of the root window
+ *        background pixmap properties this module watches
+ *
+ * For the @c PropertyNotify handler in handler/focus.c to check a
+ * changed atom against, so it can call
+ * @c desktop_invalidate_background_pixmap_cache only when the change
+ * is actually relevant, rather than on every root window property
+ * change regardless of which one it was (many of which, including
+ * ones icowm's own EWMH state syncing writes to the root window
+ * itself, have nothing to do with the background pixmap at all).
+ *
+ * @param connection XCB connection, used to intern the candidate atom
+ *                   names the first time this or
+ *                   @c desktop_render_background is called, whichever
+ *                   comes first; a no-op on every call after that
+ * @param atom       Atom to check
+ *
+ * @return @c true if @p atom is one of the candidate background
+ *         pixmap properties
+ *
+ * @note Complexity: @e O(1)
+ */
+bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
+        xcb_atom_t atom);
 
 /**
  * @brief Draw all clients on a desktop
