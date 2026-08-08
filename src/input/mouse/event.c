@@ -435,32 +435,68 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection)
 }
 
 
-/* Update the pointer cursor to match a window's resize border */
-void mouse_handle_motion_hover(xcb_connection_t *connection,
-        list_td *surfaces, xcb_motion_notify_event_t *event)
+/**
+ * @brief Recompute and apply the resize-border cursor for a client
+ *        window at a given pointer position
+ *
+ * Shared by @c mouse_handle_motion_hover (every pointer motion) and
+ * @c mouse_handle_enter (every time the pointer crosses into a new
+ * window), since either kind of event can be the only one a given
+ * transition actually generates: a client that selects
+ * @c PointerMotion for its own purposes intercepts motion events
+ * before they propagate to whichever window the resize-cursor logic
+ * is watching, leaving @c EnterNotify as the only remaining signal
+ * that the pointer has moved into that client's own content area and
+ * the cursor needs re-evaluating there.
+ *
+ * @param connection XCB connection
+ * @param surfaces   Every managed surface, to look up the client
+ *                   @p window belongs to
+ * @param window     Window the crossing or motion was reported on
+ * @param root_x     Pointer X position in root-window coordinates
+ * @param root_y     Pointer Y position in root-window coordinates
+ *
+ * @note No-op if @p window does not belong to a resizable client
+ * @note Complexity: @e O(1)
+ */
+static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t window, int16_t root_x,
+        int16_t root_y)
 {
     client_td *client;
     surface_td *surface;
     desktop_td *desktop;
     enum s_resize_zone_e zone;
 
-    if (connection == NULL || surfaces == NULL || event == NULL ||
+    if (connection == NULL || surfaces == NULL ||
             s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
         return;
     }
 
-    client = lookup_find_client(surfaces, event->event, &surface,
-            &desktop);
+    client = lookup_find_client(surfaces, window, &surface, &desktop);
     if (client == NULL || !client_is_resizable(client)) {
         return;
     }
 
-    zone = s_mouse_resize_zone(client, event->root_x, event->root_y);
+    zone = s_mouse_resize_zone(client, root_x, root_y);
 
-    xcb_change_window_attributes(connection, event->event,
+    xcb_change_window_attributes(connection, window,
             XCB_CW_CURSOR,
             (const uint32_t[]) { s_resize_cursors[zone] });
     xcb_flush(connection);
+}
+
+
+/* Update the pointer cursor to match a window's resize border */
+void mouse_handle_motion_hover(xcb_connection_t *connection,
+        list_td *surfaces, xcb_motion_notify_event_t *event)
+{
+    if (event == NULL) {
+        return;
+    }
+
+    s_mouse_update_resize_cursor(connection, surfaces, event->event,
+            event->root_x, event->root_y);
 }
 
 
@@ -1474,7 +1510,8 @@ void mouse_handle_release(xcb_connection_t *connection,
 }
 
 
-/* Apply focus-follows-mouse on an enter-notify event */
+/* Re-evaluate the resize cursor, then apply focus-follows-mouse, on
+ * an enter-notify event */
 void mouse_handle_enter(xcb_connection_t *connection,
         list_td *surfaces, xcb_enter_notify_event_t *event,
         const config_td *config)
@@ -1490,6 +1527,20 @@ void mouse_handle_enter(xcb_connection_t *connection,
     if (event->mode != XCB_NOTIFY_MODE_NORMAL) {
         return;
     }
+
+    /* Independent of focus-follows-mouse below: a resizable client
+     * that selects 'PointerMotion' for its own purposes (common in
+     * GTK/Qt applications tracking hover for their own UI) intercepts
+     * motion events at the X11 propagation level before they ever
+     * reach 'mouse_handle_motion_hover', so the cursor set while
+     * hovering this client's own border never gets re-evaluated once
+     * the pointer moves on into that client's content area; this
+     * 'EnterNotify', unlike motion, still fires reliably since it was
+     * selected directly on this client's own window (see client.c),
+     * giving the resize-cursor logic a second, independent chance to
+     * catch what motion alone might have missed. */
+    s_mouse_update_resize_cursor(connection, surfaces, event->event,
+            event->root_x, event->root_y);
 
     if (event->detail == XCB_NOTIFY_DETAIL_INFERIOR) {
         return;

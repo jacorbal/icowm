@@ -146,11 +146,29 @@ void mouse_handle_release(xcb_connection_t *connection,
         const config_td *config);
 
 /**
- * @brief Apply focus-follows-mouse on an enter-notify event
+ * @brief Re-evaluate the resize cursor, then apply focus-follows-mouse,
+ *        on an enter-notify event
  *
- * Focuses the client under the pointer when the configured focus policy
- * is @c follow-mouse.  Normal events on managed client frames raise no
- * stacking change; grab/inferior transitions are silently ignored.
+ * The cursor re-evaluation runs unconditionally as long as the event
+ * is a normal one (gated only by @c event->mode below, not by whether
+ * focus-follows-mouse is even enabled): a resizable client that
+ * selects @c PointerMotion for its own purposes (common in GTK/Qt
+ * applications tracking hover for their own UI) intercepts motion
+ * events at the X11 propagation level before @c mouse_handle_motion_hover
+ * ever sees them, which otherwise leaves whichever resize-border
+ * cursor was last set stuck for as long as the pointer stays over that
+ * client's own content.  This enter-notify still fires reliably even
+ * then, since it is selected directly on the client's own window (see
+ * client.c), giving the cursor logic a second, independent chance
+ * motion alone might have missed.
+ *
+ * Focus itself is then applied to the client under the pointer only
+ * when the configured focus policy is @c follow-mouse.  Normal events
+ * on managed client frames raise no stacking change; an inferior
+ * transition (entering this same client's own content area from its
+ * frame) skips focus re-evaluation, since the client was already
+ * focused to get there, but still gets the cursor re-evaluation
+ * above.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
