@@ -8,7 +8,7 @@
  *
  * @date Tue Feb 24 11:42:50 UTC 2026
  *
- * @version 0.1.0 ("'ovelya")
+ * @version 1.0.1b1 ("'ovelya")
  * @copyright Copyright (c) 2026, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *
@@ -50,6 +50,8 @@
 #include <defs/main.h>
 
 /* Project includes */
+#include <config.h>
+#include <config/lint.h>
 #include <logger.h>
 #include <wm.h>
 
@@ -120,6 +122,8 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "\nMain options:\n");
     fprintf(fp, "   -d <display>    Set X server display (e.g., ':0')\n");
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
+    fprintf(fp, "   -C              Check all configuration files" \
+                " under <config_dir>, and exit\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -306,6 +310,7 @@ int main(int argc, char *const argv[])
     enum logger_level_e log_level_min = ICOWM_DEFAULT_LOGGER_LEVEL_MIN;
     bool log_is_tracking = false;
     bool verbose = true;
+    bool lint_requested = false;
     int opt;
 
     /* Generate a random seed (windows are in a hash table and the seeds
@@ -313,7 +318,7 @@ int main(int argc, char *const argv[])
     srand((unsigned int) (time(NULL) ^ getpid()));
 
     /* Get user options */
-    while ((opt = getopt(argc, argv, "hvd:c:l:L:qt")) != -1) {
+    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qt")) != -1) {
         int opt_level;
 
         switch (opt) {
@@ -330,6 +335,10 @@ int main(int argc, char *const argv[])
                                      &display_name,
                                      &config_dir);
                 return 0;
+
+            case 'C':
+                lint_requested = true;
+                break;
 
             case 'd':
                 if (s_replace_option_string(&display_name, optarg) != 0) {
@@ -392,6 +401,16 @@ int main(int argc, char *const argv[])
                                      &config_dir);
                 return -1;
         }
+    }
+
+    if (lint_requested) {
+        char resolved_dir[CONFIG_MAX_LENGTH_PATH_BASE];
+        int unknown_count;
+
+        config_resolve_dir(config_dir, resolved_dir);
+        unknown_count = config_lint_run(resolved_dir);
+        s_deallocate_buffers(&log_filename, &display_name, &config_dir);
+        return (unknown_count != 0) ? 1 : 0;
     }
 
     /* Welcome: be polite, greet */

@@ -121,6 +121,7 @@ enum wm_keybind_type_e {
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
     KEYBIND_WM_QUIT,                    /**< Quit with confirmation dialog */
+    KEYBIND_WM_SHORTCUTS_LIST,          /**< Show active keybindings */
     KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
     KEYBIND_WM_FORTUNE,                 /**< Show a 'fortune' dialog */
 };

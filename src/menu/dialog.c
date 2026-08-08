@@ -876,6 +876,11 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     }
 
     switch (level) {
+        case MENU_MSG_LEVEL_NONE:
+            /* 'prefix' is already the empty string from its own
+             * declaration above; nothing to do here */
+            break;
+
         case MENU_MSG_LEVEL_WARNING:
             prefix = DIALOG_MSG_PREFIX_WARNING;
             break;
@@ -1067,6 +1072,6 @@ void dialog_fortune_show(xcb_connection_t *connection,
 
     text = (len > 0u) ? buffer : DIALOG_FORTUNE_FALLBACK_MSG;
 
-    menu_message_dialog_show(connection, surface, config, text,
-            MENU_MSG_LEVEL_INFO);
+    menu_message_dialog_show(connection, surface, config,
+            text, MENU_MSG_LEVEL_NONE);
 }

@@ -56,7 +56,8 @@
  * @param surface    Surface on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  * @param message    Null-terminated message text to display
- * @param level      Alert severity level (@c MENU_MSG_LEVEL_INFO,
+ * @param level      Alert severity level (@c MENU_MSG_LEVEL_NONE,
+ *                   @c MENU_MSG_LEVEL_INFO,
  *                   @c MENU_MSG_LEVEL_WARNING, or
  *                   @c MENU_MSG_LEVEL_ERROR)
  *

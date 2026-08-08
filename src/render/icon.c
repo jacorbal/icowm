@@ -33,6 +33,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <render/text.h>
+#include <render/wmicon.h>
 
 /* Local includes */
 #include <render/internal.h>
@@ -42,9 +43,10 @@
  * @brief Render the icon window for an iconified client
  *
  * Applies icon window attributes (background, border color and width,
- * stacking) and optionally draws a caption label.  Called from
- * @c desktop_render_clients for clients that are both hidden and
- * iconified.
+ * stacking), optionally draws the client's own @c _NET_WM_ICON image
+ * (see @c theme.icon.use-pixmap), and optionally draws a caption label.
+ * Called from @c desktop_render_clients for clients that are both
+ * hidden and iconified.
  *
  * @param desktop    Desktop whose rendering context and theme are used
  * @param client     The iconified client to render
@@ -104,6 +106,11 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             client->icon_window,
             XCB_CONFIG_WINDOW_STACK_MODE,
             (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+
+    if (desktop->config_theme->icon.use_pixmap) {
+        wmicon_draw(desktop->connection, client->ewmh, client->window,
+                client->icon_window, WM_ICON_SQUARE_SIZE);
+    }
 
     if (desktop->config_theme->icon.is_captioned &&
             client->info.name != NULL) {

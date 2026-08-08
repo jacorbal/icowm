@@ -756,11 +756,21 @@ Window manager control shortcuts.
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
+| `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
+
+`shortcuts` opens a dialog listing every active keyboard binding
+described in this section, grouped by category and read directly from
+the configuration actually in effect, so it always matches what is
+really bound rather than a separately maintained description of the
+defaults.  `F1` is used here since it conventionally means "help" on
+most keyboards, and `modc+mod4` is unlikely to already be claimed by
+another running application.
 
 #### `keyboard.wm.menus`
 
 Keyboard shortcuts for the two menus that have no inherent screen
-position of their own for where each one appears when opened this way).
+position of their own (see `config.menus.*` in `config.json` for
+where each one appears when opened this way).
 
 
 | Key       | Default binding     | Action |
@@ -938,6 +948,7 @@ Appearance settings for iconified windows.
 | Key            | Type    | Default | Description |
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
+| `use-pixmap`   | boolean | `false` | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. |
 
 #### `icon.active` / `icon.inactive`
 
@@ -1017,12 +1028,14 @@ icon being previewed while cycling uses `window.active` /
 `window.inactive` (section 4.1), since that is a highlight on the real
 window, not on the menu.
 
-`unselected.border` doubles as the frame drawn around the whole
-cycle-menu popup window itself, not just individual context-menu rows,
-which is why its default width is `1` rather than `0`: a context menu
-window currently has no frame of its own, so that same default also
-means every ordinary (non-label) row gets a subtle 1px outline unless
-lowered to `0`.
+`unselected.border`, `selected.border`, and `label.border` each style
+one row's own outline; the menu window's outer frame is a separate
+field, `border` (below the per-entry styles in the table), so raising
+or lowering an entry's own border never changes whether the window
+itself has a frame, and vice versa.  The cycle menu's own window
+shares this same `border` for its outer frame, so a context menu and
+the cycle menu always present the same outer border, regardless of
+whatever an entry's own border happens to be set to.
 
 | Key                        | Type    | Default     |
 |-----------------------------|---------|-------------|
@@ -1043,6 +1056,8 @@ lowered to `0`.
 | `label.border.width`       | integer | `0`         |
 | `disabled.color.foreground` | string | `"#A0A8B0"` |
 | `separator.color`          | string  | `"#7F9AB6"` |
+| `border.color`             | string  | `"#7F9AB6"` |
+| `border.width`             | integer | `1`         |
 | `padding.horizontal`       | integer | `12`        |
 | `padding.vertical`         | integer | `4`         |
 
@@ -1061,6 +1076,9 @@ resized); its background still comes from `unselected` or `selected`
 depending on whether it happens to also be the current selection.
 `separator.color` is the line color for a separator between groups of
 entries.
+`border.color` and `border.width` are the menu window's own outer
+frame, entries aside; see the paragraph above the table for how this
+differs from any entry's own `border`.
 
 `padding.horizontal` and `padding.vertical` are the inset in pixels
 between a menu window's own edges and its content: row text (and, for
@@ -1867,6 +1885,7 @@ Sub-menus can be nested to the depth limit defined by
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",
+            "shortcuts": "modc+mod4+F1"
         },
 
         "cycle": {
@@ -1985,7 +2004,7 @@ Sub-menus can be nested to the depth limit defined by
                 { "type": "command", "name": "NetHack", "command": "xterm -e nethack" },
                 { "type": "separator" },
                 { "type": "label", "name": "FPS" },
-                { "type": "command", "name": "Nexuiz",  "command": "nexuiz" },
+                { "type": "command", "name": "Nexuiz",  "command": "nexuiz" }
             ]
         },
 

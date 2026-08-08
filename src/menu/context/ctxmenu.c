@@ -124,17 +124,6 @@ static uint16_t s_build_layout(ctxmenu_state_td *state)
 
 
 /**
- * @brief Larger of two @c uint16_t values
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_u16max(uint16_t a, uint16_t b)
-{
-    return (a > b) ? a : b;
-}
-
-
-/**
  * @brief Compute the pixel width required to display all menu entries
  *
  * Iterates over all entries and measures each label, adding space for
@@ -156,39 +145,59 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
     uint16_t max_w = WM_CTXMENU_MIN_WIDTH;
     uint16_t pad2 = (uint16_t) (config->theme.menu.padding.horizontal * 2u);
 
-    /* Every entry is measured in whichever font(s) it could actually
-     * end up drawn in: a 'CTXMENU_LABEL' heading only ever uses
-     * 'menu.label.font', but an ordinary entry switches between
-     * 'unselected.font' and 'selected.font' (bold by default) as the
-     * highlight moves over it, so sizing the menu off only one of the
-     * two would leave no room for the other, clipping or crowding the
-     * text whichever one turns out wider. */
+    /* Measured in three passes, one font each, rather than switching
+     * between 'unselected.font' and 'selected.font' on every regular
+     * entry as a single combined pass would: since
+     * max(max(a, b)) == max(max(a), max(b)), computing each font's
+     * contribution to the overall maximum in its own pass gives the
+     * identical result while letting 'text_renderer_init's
+     * already-active check actually skip a redundant reopen of the
+     * same font (on the X11 backend, a full round trip) for every
+     * single entry, which is what interleaving the two fonts would
+     * otherwise force on every call. */
+
+    text_renderer_init(connection, config->theme.menu.label.font);
     for (int i = 0; i < entry_count; ++i) {
         uint16_t w;
 
-        if (entries[i].type == CTXMENU_SEPARATOR) {
+        if (entries[i].type != CTXMENU_LABEL) {
             continue;
         }
 
-        if (entries[i].type == CTXMENU_LABEL) {
-            text_renderer_init(connection, config->theme.menu.label.font);
-            w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
-        } else {
-            uint16_t w_unsel;
-            uint16_t w_sel;
+        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
+        if (w > max_w) {
+            max_w = w;
+        }
+    }
 
-            text_renderer_init(connection,
-                    config->theme.menu.unselected.font);
-            w_unsel = menu_draw_measure(entries[i].label);
+    text_renderer_init(connection, config->theme.menu.unselected.font);
+    for (int i = 0; i < entry_count; ++i) {
+        uint16_t w;
 
-            text_renderer_init(connection,
-                    config->theme.menu.selected.font);
-            w_sel = menu_draw_measure(entries[i].label);
-
-            w = (uint16_t) (s_u16max(w_unsel, w_sel) + pad2);
+        if (entries[i].type == CTXMENU_SEPARATOR ||
+                entries[i].type == CTXMENU_LABEL) {
+            continue;
         }
 
-        /* Add space for the submenu arrow indicator */
+        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
+        if (entries[i].type == CTXMENU_SUBMENU) {
+            w = (uint16_t) (w + 16u);
+        }
+        if (w > max_w) {
+            max_w = w;
+        }
+    }
+
+    text_renderer_init(connection, config->theme.menu.selected.font);
+    for (int i = 0; i < entry_count; ++i) {
+        uint16_t w;
+
+        if (entries[i].type == CTXMENU_SEPARATOR ||
+                entries[i].type == CTXMENU_LABEL) {
+            continue;
+        }
+
+        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
         if (entries[i].type == CTXMENU_SUBMENU) {
             w = (uint16_t) (w + 16u);
         }
@@ -411,12 +420,12 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     menu_draw_row_bg(conn, state->window, bg,
             (int16_t) top_y, (uint16_t) row_h, state->width);
 
-    /* Every style's 'border' is drawn if 'border.width' is greater
-     * than 0; the built-in default theme sets it to a subtle 1px for
-     * 'unselected'/'selected' (matching the border already drawn
-     * around the whole cycle-menu window, which reuses
-     * 'menu.unselected.border' for its own frame) and to 0 for
-     * 'label', so heading rows stay plain by default. */
+    /* Every style's own 'border' is drawn if 'border.width' is
+     * greater than 0; the built-in default theme sets it to a subtle
+     * 1px for 'unselected'/'selected' and to 0 for 'label', so
+     * heading rows stay plain by default.  This is separate from
+     * 'menu.border', the menu window's own outer frame, entries
+     * aside; see that field's own doc comment in config.h. */
     if (e->type != CTXMENU_SEPARATOR && border_width > 0u) {
         xcb_gcontext_t border_gc = xcb_generate_id(conn);
         xcb_rectangle_t border_rect;
@@ -652,7 +661,7 @@ void ctxmenu_show(xcb_connection_t *connection,
         int16_t x, int16_t y, const config_td *config)
 {
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
     uint32_t stk[1];
     int16_t clamped_x;
     int16_t clamped_y;
@@ -728,11 +737,13 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     state->window = xcb_generate_id(connection);
     mask = XCB_CW_BACK_PIXEL        |
+           XCB_CW_BORDER_PIXEL      |
            XCB_CW_OVERRIDE_REDIRECT |
            XCB_CW_EVENT_MASK;
     values[0] = config->theme.menu.unselected.color.background;
-    values[1] = 1;  /* override_redirect: prevent WM from managing it */
-    values[2] = XCB_EVENT_MASK_EXPOSURE     |
+    values[1] = config->theme.menu.border.color;
+    values[2] = 1;  /* override_redirect: prevent WM from managing it */
+    values[3] = XCB_EVENT_MASK_EXPOSURE     |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_POINTER_MOTION;
 
@@ -740,7 +751,7 @@ void ctxmenu_show(xcb_connection_t *connection,
             state->window, surface->screen->root,
             clamped_x, clamped_y,
             state->width, state->height,
-            1,
+            (uint16_t) config->theme.menu.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);

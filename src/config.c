@@ -55,22 +55,9 @@
 #include <config.h>
 
 
-/**
- * @brief Set the configuration directory base
- *
- * Set the base path for the configuration directory based on the
- * environment variables @c XDG_CONFIG_HOME and @c HOME.  If neither is
- * set, it defaults to the current working directory.  The resulting
- * path is stored in the provided buffer @p config_dir_base.
- *
- * @param config_dir_prefix Base configuration directory, or @c NULL to
- *                          use the default directory
- * @param config_dir_base   Pointer to a character array where the
- *                          configuration directory path will be stored
- *
- * @note Buffer should be at least @c CONFIG_MAX_LENGTH_PATH_BASE
- */
-static void s_config_dir_set(const char *config_dir_prefix,
+/* Resolve the configuration directory from a prefix, or environment
+ * variables when none is given (see config.h for the fallback order) */
+void config_resolve_dir(const char *config_dir_prefix,
         char *config_dir_base)
 {
     const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
@@ -279,6 +266,8 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+c");
     safe_strcpy(config->bindings.keyboard.wm.quit,
             "modc+mod1+mods+x");
+    safe_strcpy(config->bindings.keyboard.wm.shortcuts,
+            "modc+mod4+F1");
     safe_strcpy(config->bindings.keyboard.wm.show_desktop,
             "modc+mod1+mods+d");
 
@@ -395,6 +384,7 @@ void config_set_default_values(config_td *config)
     config->theme.window.inactive.border.width = 2u;
 
     config->theme.icon.is_captioned = true;
+    config->theme.icon.use_pixmap = false;
 
     safe_strcpy(config->theme.icon.active.font, "fixed bold");
     config->theme.icon.active.color.background =
@@ -453,6 +443,8 @@ void config_set_default_values(config_td *config)
 
     config->theme.menu.disabled_foreground = json_hex2uint32("A0A8B0");
     config->theme.menu.separator_color = json_hex2uint32("7F9AB6");
+    config->theme.menu.border.color = json_hex2uint32("7F9AB6");
+    config->theme.menu.border.width = 1u;
     config->theme.menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
     config->theme.menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
 
@@ -514,7 +506,7 @@ int config_load(config_td *config, const char *config_prefix)
     char config_theme_file[CONFIG_MAX_LENGTH_PATH_THEME];
     char config_randr_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
 
-    s_config_dir_set(config_prefix, config_dir);
+    config_resolve_dir(config_prefix, config_dir);
 
     LOGGER_DEBUG("Loading configuration from files on: '%s'",
             config_dir);

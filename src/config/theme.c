@@ -300,6 +300,8 @@ int config_load_theme(const char *filename,
 
         json_load_bool(icon, "is-captioned",
                 &config_theme->icon.is_captioned);
+        json_load_bool(icon, "use-pixmap",
+                &config_theme->icon.use_pixmap);
 
         active = cJSON_GetObjectItem(icon, "active");
         s_load_theme_colors(active, &config_theme->icon.active);
@@ -336,6 +338,7 @@ int config_load_theme(const char *filename,
         cJSON *label;
         cJSON *disabled;
         cJSON *separator;
+        cJSON *border_obj;
         cJSON *padding;
 
         unselected = cJSON_GetObjectItem(menu, "unselected");
@@ -360,6 +363,14 @@ int config_load_theme(const char *filename,
         if (separator) {
             json_load_color(separator, "color",
                     &config_theme->menu.separator_color);
+        }
+
+        border_obj = cJSON_GetObjectItem(menu, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->menu.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->menu.border.width);
         }
 
         padding = cJSON_GetObjectItem(menu, "padding");

@@ -81,12 +81,16 @@
             "backend": {
                 "type": "acpi",
                 "number": 0
-            }
+            },
+            "poll-seconds": 30
         },
         "text": {
             "order": [ "battery", "clock" ],
             "position": "right"
         }
+    },
+    "startup-notification": {
+        "timeout-seconds": 20
     },
     "show-desktop-overlay": true,
     "enable-emergency-shortcut": true,

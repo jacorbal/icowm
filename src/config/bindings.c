@@ -97,6 +97,9 @@ int config_load_bindings(const char *filename,
             json_load_string(wm, "quit",
                     config_bindings->keyboard.wm.quit,
                     CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "shortcuts",
+                    config_bindings->keyboard.wm.shortcuts,
+                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         launch = cJSON_GetObjectItem(keyboard, "launch");

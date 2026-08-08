@@ -13,7 +13,7 @@
 PROJECT_NAME_PROG = icowm
 PROJECT_NAME_SHORT = "IcoWM"
 PROJECT_NAME_LONG = "Iconifying Window Manager"
-PROJECT_VERSION = "0.1.0-alpha"
+PROJECT_VERSION = "1.0.1b1"
 PROJECT_VERSION_CODENAME = "'ovelya"
 LICENSE = "ISC License"
 COPYRIGHT = "Copyright (c) 2026"

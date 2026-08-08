@@ -41,6 +41,7 @@
 #include <menu/dialog.h>
 #include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
+#include <menu/dialog/shortcuts.h>
 #include <menu/popup.h>
 
 /* Handler includes */
@@ -590,6 +591,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_SHORTCUTS_LIST:
         case KEYBIND_WM_EMERGENCY_EXIT:
         case KEYBIND_WM_FORTUNE:
             return;
@@ -732,6 +734,7 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_SHORTCUTS_LIST:
         case KEYBIND_WM_EMERGENCY_EXIT:
         case KEYBIND_WM_FORTUNE:
             return;
@@ -851,6 +854,7 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_SHORTCUTS_LIST:
         case KEYBIND_WM_EMERGENCY_EXIT:
         case KEYBIND_WM_FORTUNE:
             return;
@@ -1000,6 +1004,7 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
+        case KEYBIND_WM_SHORTCUTS_LIST:
         case KEYBIND_WM_EMERGENCY_EXIT:
         case KEYBIND_WM_FORTUNE:
             return;
@@ -1269,6 +1274,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_WM_QUIT:
                 if (surface != NULL && surface->connection != NULL) {
                     dialog_quit_show(surface->connection, surface,
+                            config);
+                }
+                return;
+
+            case KEYBIND_WM_SHORTCUTS_LIST:
+                if (surface != NULL && surface->connection != NULL) {
+                    dialog_shortcuts_show(surface->connection, surface,
                             config);
                 }
                 return;

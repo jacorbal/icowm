@@ -353,6 +353,11 @@ struct config_bindings_s {
             char reload[CONFIG_MAX_LENGTH_BINDING];
             char quit[CONFIG_MAX_LENGTH_BINDING];
 
+            /** Opens a dialog listing every currently active keyboard
+             *  shortcut; see 'ctxmenu_show_shortcuts_list' in
+             *  menu/dialog/shortcuts.h */
+            char shortcuts[CONFIG_MAX_LENGTH_BINDING];
+
             char show_desktop[CONFIG_MAX_LENGTH_BINDING];
 
             /* Direct desktop goto shortcuts (indices 0-9) */
@@ -557,6 +562,14 @@ struct config_theme_s {
     struct {
         bool is_captioned;
 
+        /** Draw the client's own '_NET_WM_ICON' image, centered in
+         *  the icon window's square icon-graphic area, above the
+         *  caption text (see 'is_captioned'); the two never overlap,
+         *  since the caption has its own separate strip below that
+         *  square (see 'WM_ICON_SQUARE_SIZE' and
+         *  'WM_ICON_CAPTION_HEIGHT' in defs/icon.h) */
+        bool use_pixmap;
+
         struct config_theme_style_s active;
         struct config_theme_style_s inactive;
     } icon;
@@ -631,6 +644,23 @@ struct config_theme_s {
 
         /** Line color for a separator between groups of entries */
         uint32_t separator_color;
+
+        /**
+         * @brief The menu window's own outer frame, entries aside
+         *
+         * Distinct from any entry's own @c border (see @c unselected,
+         * @c selected, @c label above): those draw a rectangle around
+         * one row; this is the single window border XCB itself draws
+         * around the whole menu.  The Alt+Tab-style cycle menu shares
+         * this same field for its own window frame, so a context menu
+         * and the cycle menu always present the same outer border
+         * regardless of whatever an entry's own border happens to be
+         * set to (including entries having none at all).
+         */
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
 
         /** Inset, in pixels, between the menu window's own edges and
          *  every row's text (and, for a submenu, its arrow indicator);
@@ -849,6 +879,25 @@ void config_set_default_values(config_td *config);
  *      @a config_load_theme
  */
 int config_load(config_td *config, const char *config_dir_prefix);
+
+/**
+ * @brief Resolve the configuration directory from a prefix, or from
+ *        environment variables when none is given
+ *
+ * Resolution order: @p config_dir_prefix, if given; otherwise
+ * @c "${XDG_CONFIG_HOME}/icowm"; otherwise @c "${HOME}/.icowm";
+ * otherwise @c "./.icowm" in the current working directory.
+ *
+ * @param config_dir_prefix Configuration directory, or @c NULL to
+ *                          resolve it from the environment instead
+ * @param config_dir_base   Buffer to receive the resolved path
+ *
+ * @note @p config_dir_base should be at least
+ *       @c CONFIG_MAX_LENGTH_PATH_BASE bytes
+ * @note Complexity: @e O(1)
+ */
+void config_resolve_dir(const char *config_dir_prefix,
+        char *config_dir_base);
 
 /**
  * @brief Load base configuration settings from a JSON file

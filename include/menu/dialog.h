@@ -69,13 +69,18 @@
  *
  * A hard cap so a pathologically long message cannot grow the dialog
  * (and the fixed-size arrays backing it) without bound; text past
- * this many lines is simply not shown.
+ * this many lines is simply not shown.  Raised well past what a
+ * confirmation or alert message would ever need so the same dialog
+ * can also serve the keyboard-shortcuts list (see
+ * 'menu/dialog/shortcuts.h'), whose grouped categories run to a few
+ * dozen lines.
  */
-#define DIALOG_MSG_MAX_LINES (12u)
+#define DIALOG_MSG_MAX_LINES (40u)
 
 /** Maximum length of the raw message text before wrapping, prefix
- *  included */
-#define DIALOG_MSG_RAW_MAX_LEN (1024u)
+ *  included; see 'DIALOG_MSG_MAX_LINES' for why this is larger than a
+ *  short confirmation or alert message alone would need */
+#define DIALOG_MSG_RAW_MAX_LEN (2048u)
 
 /** Maximum length of a single already-wrapped line */
 #define DIALOG_MSG_LINE_MAX_LEN (160u)
@@ -122,11 +127,17 @@
 /**
  * @brief Alert level for the message dialog
  *
- * Controls the level prefix shown alongside the message and
- *
- * @remark Choose accent colors from the active theme
+ * Controls the level prefix shown alongside the message (see
+ * @c DIALOG_MSG_PREFIX_INFO and its siblings in dialog.c) and the
+ * accent color drawn from the active theme.
  */
 typedef enum {
+    MENU_MSG_LEVEL_NONE,    /**< No prefix at all; for content that is
+                                  not itself an alert or a notice, such
+                                  as the keyboard-shortcuts list or the
+                                  output of the @c fortune easter egg
+                                  (see @c dialog_shortcuts_show and
+                                  @c dialog_fortune_show) */
     MENU_MSG_LEVEL_INFO,    /**< Informational message */
     MENU_MSG_LEVEL_WARNING, /**< Non-critical warning */
     MENU_MSG_LEVEL_ERROR    /**< Error or critical condition */

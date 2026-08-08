@@ -31,6 +31,7 @@
 /* Render includes */
 #include <render/desktop.h>
 #include <render/text.h>
+#include <render/wmicon.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -154,6 +155,12 @@ void handler_expose(xcb_connection_t *connection,
                         : cfg->theme.icon.inactive.border.color
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
+
+        if (cfg->theme.icon.use_pixmap) {
+            wmicon_draw(connection, client->ewmh, client->window,
+                    client->icon_window, WM_ICON_SQUARE_SIZE);
+        }
+
         if (cfg->theme.icon.is_captioned &&
                 client->info.name != NULL) {
             const char *caption =

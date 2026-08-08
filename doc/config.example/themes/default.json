@@ -138,6 +138,10 @@
         "separator": {
             "color": "#7f9ab6"
         },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 1
+        },
         "padding": {
             "horizontal": 12,
             "vertical": 4
