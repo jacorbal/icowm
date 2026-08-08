@@ -184,4 +184,27 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
         client_td *client, surface_td *surface, desktop_td *desktop);
 
 
+/**
+ * @brief Handle a @c _NET_WM_MOVERESIZE client message
+ *
+ * Starts (or cancels) an icowm-managed interactive move or resize on
+ * behalf of a Client that draws its own titlebar or resize grips,
+ * matching whichever operation and anchor the message's direction
+ * requests.
+ *
+ * @param wm      Window manager state
+ * @param event   Client-message event carrying x_root, y_root,
+ *                direction, button, and source indication
+ * @param client  Target client
+ * @param surface Surface containing the client
+ * @param desktop Desktop containing the client
+ *
+ * @note Implemented in @c handler/ewmhmsg.c
+ * @note Complexity: @e O(1)
+ */
+void hi_handle_net_wm_moveresize(wm_td *wm,
+        xcb_client_message_event_t *event,
+        client_td *client, surface_td *surface, desktop_td *desktop);
+
+
 #endif  /* ! HANDLER_INTERNAL_H */

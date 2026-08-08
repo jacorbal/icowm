@@ -70,6 +70,7 @@
  *   @c _NET_REQUEST_FRAME_EXTENTS,
  *   @c _NET_RESTACK_WINDOW,
  *   @c _NET_WM_FULLSCREEN_MONITORS,
+ *   @c _NET_WM_MOVERESIZE,
  *   @c _NET_WM_ALLOWED_ACTIONS,
  *   @c _NET_WM_ACTION_MOVE, @c _NET_WM_ACTION_RESIZE,
  *   @c _NET_WM_ACTION_MINIMIZE, @c _NET_WM_ACTION_SHADE,
@@ -83,7 +84,7 @@
  *   @c _NET_SHOWING_DESKTOP,
  *   @c _NET_WM_ICON_GEOMETRY
  */
-#define WM_EWMH_SUPPORTED_COUNT (72)
+#define WM_EWMH_SUPPORTED_COUNT (73)
 
 /**
  * @brief Interval between successive @c _NET_WM_PING probes (seconds)

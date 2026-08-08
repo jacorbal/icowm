@@ -651,7 +651,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
     if (dialog_quit_is_open()) {
         if (event->event == dialog_quit_window() ||
                 event->child == dialog_quit_window()) {
-            (void) dialog_quit_handle_click(connection,
+            (void) dialog_quit_handle_click(connection, config,
                     (int) event->event_x, (int) event->event_y);
         }
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,

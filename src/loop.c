@@ -50,6 +50,7 @@
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
+#include <menu/dialog.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
@@ -222,6 +223,7 @@ void loop_run(wm_td *wm)
     int clock_ms;
     int sn_ms;
     int hover_ms;
+    int confirm_ms;
     int conn_error;
     const xcb_generic_error_t *proto_error;
     bool any_outdated;
@@ -340,6 +342,15 @@ void loop_run(wm_td *wm)
             poll_timeout_ms = hover_ms;
         }
 
+        /* Shorter still while a confirm-dialog click's deferred
+         * close/accept is pending (see 'menu_confirm_dialog_tick' in
+         * menu/dialog.h), so it happens promptly once its short
+         * delay elapses. */
+        confirm_ms = menu_confirm_dialog_ms_remaining();
+        if (confirm_ms >= 0 && confirm_ms < poll_timeout_ms) {
+            poll_timeout_ms = confirm_ms;
+        }
+
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -350,6 +361,7 @@ void loop_run(wm_td *wm)
         systray_clock_tick();
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
+        menu_confirm_dialog_tick(wm->connection);
 
         while ((event = (pending_event != NULL)
                     ? pending_event

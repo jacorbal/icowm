@@ -61,7 +61,8 @@
  *
  * Recognized messages include:
  * @c _NET_WM_STATE, @c _NET_RESTACK_WINDOW,
- * @c _NET_WM_FULLSCREEN_MONITORS, @c _NET_ACTIVE_WINDOW,
+ * @c _NET_WM_FULLSCREEN_MONITORS, @c _NET_WM_MOVERESIZE,
+ * @c _NET_ACTIVE_WINDOW,
  * @c _NET_CLOSE_WINDOW, @c _NET_WM_DESKTOP,
  * @c _NET_CURRENT_DESKTOP, @c _NET_MOVERESIZE_WINDOW,
  * @c _NET_REQUEST_FRAME_EXTENTS, @c _NET_SHOWING_DESKTOP,
@@ -82,6 +83,7 @@ void handler_client_message(wm_td *wm,
     xcb_atom_t wm_change_state;
     xcb_atom_t net_restack_window;
     xcb_atom_t net_wm_fullscreen_monitors;
+    xcb_atom_t net_wm_moveresize;
     xcb_intern_atom_reply_t *ia;
 
     if (wm == NULL || event == NULL || wm->ewmh == NULL) {
@@ -118,6 +120,13 @@ void handler_client_message(wm_td *wm,
     net_wm_fullscreen_monitors = (ia != NULL) ? ia->atom : XCB_ATOM_NONE;
     free(ia);
 
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_WM_MOVERESIZE") - 1u,
+                "_NET_WM_MOVERESIZE"), NULL);
+    net_wm_moveresize = (ia != NULL) ? ia->atom : XCB_ATOM_NONE;
+    free(ia);
+
     if (event->type == wm->ewmh->_NET_WM_STATE) {
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
@@ -143,6 +152,16 @@ void handler_client_message(wm_td *wm,
                 &surface, &desktop);
         if (client != NULL) {
             hi_handle_net_wm_fullscreen_monitors(wm, event, client,
+                    surface, desktop);
+        }
+        return;
+    }
+
+    if (event->type == net_wm_moveresize) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+        if (client != NULL) {
+            hi_handle_net_wm_moveresize(wm, event, client,
                     surface, desktop);
         }
         return;

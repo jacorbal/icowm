@@ -18,7 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* popen, pclose */
-#include <string.h>     /* memcpy */
+#include <string.h>     /* memcpy, memset */
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -74,6 +75,25 @@ static void (*s_confirm_callback)(xcb_connection_t *) = NULL;
 
 /** Cached layout used for both creation and repaint */
 static s_confirm_layout_td s_confirm_layout;
+
+/**
+ * @brief Absolute time the deferred click action (see
+ *        's_confirm_defer_action') becomes due, valid only while
+ *        's_confirm_deferred_pending' is true
+ */
+static struct timespec s_confirm_deferred_due;
+
+/**
+ * @brief Whether a mouse click on the confirm dialog is waiting to
+ *        actually close/accept it, deferred so the newly selected
+ *        button is visible for a moment first; see
+ *        's_confirm_defer_action' for the full reasoning
+ */
+static bool s_confirm_deferred_pending = false;
+
+/** How long the newly selected button stays visible before a
+ *  mouse-click-triggered close/accept actually happens */
+#define DIALOG_CONFIRM_CLICK_DELAY_MS (150)
 
 
 /**
@@ -469,6 +489,12 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     s_confirm_window= XCB_WINDOW_NONE;
     s_confirm_selected = 0;
     s_confirm_callback = NULL;
+    /* Also cancels any click-triggered close/accept still scheduled
+     * (see 's_confirm_defer_action'), so 'menu_confirm_dialog_tick'
+     * has nothing left to do once this dialog is gone through some
+     * other path (e.g., Escape) before that delay elapsed on its
+     * own. */
+    s_confirm_deferred_pending = false;
 }
 
 
@@ -480,9 +506,104 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Repaint the confirm dialog with its newly clicked selection,
+ *        then schedule the actual close/accept for shortly after
+ *
+ * A mouse click on the button that was not already selected changes
+ * 's_confirm_selected' and needs that to actually be visible before
+ * the dialog goes away, or the click reads as though it did not
+ * register at the right spot even though it did; closing on the very
+ * same repaint that shows the new selection would not give a person
+ * any real chance to perceive it (screen updates and human perception
+ * both take a moment neither this function nor the repaint it just
+ * issued can shortcut), and blocking here with a sleep to wait one
+ * out would freeze the whole window manager's event loop for that
+ * long. 'menu_confirm_dialog_tick', called every main-loop iteration,
+ * performs the deferred close/accept once 's_confirm_deferred_due'
+ * arrives instead.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration, for the repaint; the
+ *                    deferred action is scheduled even when this is
+ *                    @c NULL, just without a repaint first
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_confirm_defer_action(xcb_connection_t *connection,
+        const config_td *config)
+{
+    if (config != NULL) {
+        s_confirm_draw(connection, config);
+        xcb_flush(connection);
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &s_confirm_deferred_due) != 0) {
+        /* Could not read the clock to schedule the delay; still
+         * better to act immediately than to leave the dialog stuck
+         * open with a pending action that can never become due. */
+        s_confirm_deferred_pending = false;
+        if (s_confirm_selected == 1) {
+            menu_confirm_dialog_accept(connection, s_confirm_callback);
+        } else {
+            menu_confirm_dialog_close(connection);
+        }
+        return;
+    }
+
+    s_confirm_deferred_due.tv_nsec +=
+        (long) DIALOG_CONFIRM_CLICK_DELAY_MS * 1000000L;
+    if (s_confirm_deferred_due.tv_nsec >= 1000000000L) {
+        s_confirm_deferred_due.tv_sec += 1;
+        s_confirm_deferred_due.tv_nsec -= 1000000000L;
+    }
+    s_confirm_deferred_pending = true;
+}
+
+
+/* Milliseconds until the deferred confirm-dialog click action is due */
+int menu_confirm_dialog_ms_remaining(void)
+{
+    struct timespec now;
+    long remaining_ms;
+
+    if (!s_confirm_deferred_pending) {
+        return -1;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return 0;
+    }
+
+    remaining_ms =
+        (long) (s_confirm_deferred_due.tv_sec - now.tv_sec) * 1000L +
+        (s_confirm_deferred_due.tv_nsec - now.tv_nsec) / 1000000L;
+
+    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+}
+
+
+/* Perform the deferred confirm-dialog click action, if due */
+void menu_confirm_dialog_tick(xcb_connection_t *connection)
+{
+    if (!s_confirm_deferred_pending ||
+            menu_confirm_dialog_ms_remaining() > 0) {
+        return;
+    }
+
+    s_confirm_deferred_pending = false;
+
+    if (s_confirm_selected == 1) {
+        menu_confirm_dialog_accept(connection, s_confirm_callback);
+    } else {
+        menu_confirm_dialog_close(connection);
+    }
+}
+
+
 /* Handle a mouse click in the confirm dialog */
 bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
-        int x, int y)
+        const config_td *config, int x, int y)
 {
     const s_confirm_layout_td *lo = &s_confirm_layout;
 
@@ -495,13 +616,13 @@ bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
         if (x >= (int) lo->cancel_x &&
                 x < (int) lo->cancel_x + (int) lo->btn_w) {
             s_confirm_selected = 0;
-            menu_confirm_dialog_close(connection);
+            s_confirm_defer_action(connection, config);
             return true;
         }
         if (x >= (int) lo->confirm_x &&
                 x < (int) lo->confirm_x + (int) lo->btn_w) {
             s_confirm_selected = 1;
-            menu_confirm_dialog_accept(connection, s_confirm_callback);
+            s_confirm_defer_action(connection, config);
             return true;
         }
     }
@@ -614,6 +735,18 @@ static void s_message_wrap_text(const char *raw,
     if (raw == NULL || lines == NULL || out_count == NULL) {
         return;
     }
+
+    /* Defensively blank every line slot up front, not just the ones
+     * this call ends up writing: 'lines' is the caller's own
+     * persistent, static buffer (reused call to call, never
+     * reallocated), so a slot a previous, longer call wrote into but
+     * this call's own (possibly shorter) output never touches again
+     * would otherwise still hold that stale content — harmless as
+     * long as every reader stops at 'line_count', but cheap enough to
+     * rule out entirely rather than rely on that holding everywhere
+     * text ever gets read from this array. */
+    memset(lines, 0, (size_t) DIALOG_MSG_MAX_LINES *
+            (size_t) DIALOG_MSG_LINE_MAX_LEN);
 
     raw_len = safe_strlen(raw);
 

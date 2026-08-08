@@ -216,8 +216,17 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  *
  * Activates the clicked button when the pointer lands inside either
  * button rectangle.  Clicks outside both buttons return @c false.
+ * Clicking the button that was not already selected moves the visual
+ * selection there and repaints immediately, but the actual
+ * close/accept is deferred a short moment (see
+ * @c menu_confirm_dialog_tick) rather than happening on this same
+ * call, so the new selection is visible before the dialog goes away
+ * instead of the click reading as though it landed on the wrong spot.
  *
  * @param connection XCB connection
+ * @param config     Active configuration, for the repaint of the
+ *                    newly selected button; the click is still
+ *                    handled, just without that repaint, if @c NULL
  * @param x          Pointer X coordinate relative to the dialog
  * @param y          Pointer Y coordinate relative to the dialog
  *
@@ -226,7 +235,32 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
-        int x, int y);
+        const config_td *config, int x, int y);
+
+/**
+ * @brief Milliseconds until a pending click-triggered close/accept
+ *        (see @c menu_confirm_dialog_handle_click) becomes due
+ *
+ * For the main loop to fold into its own @c poll timeout computation,
+ * the same way @c popup_ms_remaining and similar already are.
+ *
+ * @return Milliseconds remaining (never negative), or -1 if no such
+ *         action is currently pending
+ *
+ * @note Complexity: @e O(1)
+ */
+int menu_confirm_dialog_ms_remaining(void);
+
+/**
+ * @brief Perform the deferred click-triggered close/accept, if one is
+ *        pending and due
+ *
+ * @param connection XCB connection
+ *
+ * @note No-op if nothing is pending, or pending but not yet due
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_tick(xcb_connection_t *connection);
 
 /**
  * @brief Move selection to the next button (wraps around)

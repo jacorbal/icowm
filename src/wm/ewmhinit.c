@@ -342,6 +342,7 @@ int wm_ewmh_init(void)
     xcb_atom_t net_wm_icon_geometry = XCB_ATOM_NONE;
     xcb_atom_t net_restack_window = XCB_ATOM_NONE;
     xcb_atom_t net_wm_fullscreen_monitors = XCB_ATOM_NONE;
+    xcb_atom_t net_wm_moveresize = XCB_ATOM_NONE;
     xcb_atom_t wm_icon_size_atom = XCB_ATOM_NONE;
     xcb_atom_t manager_atom = XCB_ATOM_NONE;
     uint32_t icon_size_hints[6];
@@ -406,6 +407,16 @@ int wm_ewmh_init(void)
 
     if (ia != NULL) {
         net_wm_fullscreen_monitors = ia->atom;
+        free(ia);
+    }
+
+    ia = xcb_intern_atom_reply(wm->connection,
+            xcb_intern_atom(wm->connection, 0,
+                sizeof("_NET_WM_MOVERESIZE") - 1u,
+                "_NET_WM_MOVERESIZE"), NULL);
+
+    if (ia != NULL) {
+        net_wm_moveresize = ia->atom;
         free(ia);
     }
 
@@ -483,6 +494,7 @@ int wm_ewmh_init(void)
     supported_atoms[n_supported++] = wm->ewmh->_NET_REQUEST_FRAME_EXTENTS;
     supported_atoms[n_supported++] = net_restack_window;
     supported_atoms[n_supported++] = net_wm_fullscreen_monitors;
+    supported_atoms[n_supported++] = net_wm_moveresize;
     supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_LAYOUT;
     supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MODAL;
     supported_atoms[n_supported++] = net_wm_state_focused;

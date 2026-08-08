@@ -35,6 +35,9 @@
 #include <cmds/scmd.h>
 #include <cmds/util.h>
 
+/* Input includes */
+#include <input/mouse/drag.h>
+
 /* Policy includes */
 #include <policy/focus.h>
 
@@ -698,4 +701,197 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
 
     wm_invalidate_surface(surface);
     wm_invalidate_desktop(desktop);
+}
+
+
+/**
+ * @brief Map a @c '_NET_WM_MOVERESIZE' direction to the anchor and
+ *        per-axis resize flags @c drag_start_directed expects
+ *
+ * @param direction  One of the eight @c
+ *                   XCB_EWMH_WM_MOVERESIZE_SIZE_* values
+ * @param out_anchor_right  Set to whether the right edge stays fixed
+ * @param out_anchor_bottom Set to whether the bottom edge stays fixed
+ * @param out_resize_w      Set to whether this direction resizes the
+ *                          width at all
+ * @param out_resize_h      Set to whether this direction resizes the
+ *                          height at all
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_moveresize_direction_to_anchor(uint32_t direction,
+        bool *out_anchor_right, bool *out_anchor_bottom,
+        bool *out_resize_w, bool *out_resize_h)
+{
+    switch (direction) {
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT:
+            *out_anchor_right = true;
+            *out_anchor_bottom = true;
+            *out_resize_w = true;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_TOP:
+            *out_anchor_right = false;
+            *out_anchor_bottom = true;
+            *out_resize_w = false;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT:
+            *out_anchor_right = false;
+            *out_anchor_bottom = true;
+            *out_resize_w = true;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT:
+            *out_anchor_right = false;
+            *out_anchor_bottom = false;
+            *out_resize_w = true;
+            *out_resize_h = false;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT:
+            *out_anchor_right = false;
+            *out_anchor_bottom = false;
+            *out_resize_w = true;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM:
+            *out_anchor_right = false;
+            *out_anchor_bottom = false;
+            *out_resize_w = false;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT:
+            *out_anchor_right = true;
+            *out_anchor_bottom = false;
+            *out_resize_w = true;
+            *out_resize_h = true;
+            break;
+        case XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT:
+        default:
+            *out_anchor_right = true;
+            *out_anchor_bottom = false;
+            *out_resize_w = true;
+            *out_resize_h = false;
+            break;
+    }
+}
+
+
+/**
+ * @brief Handle a '_NET_WM_MOVERESIZE' client message
+ *
+ * Lets a Client that draws its own titlebar or resize grips (common
+ * among GTK/Qt applications using client-side decoration) ask icowm
+ * to take over an interactive move or resize, the same way dragging
+ * icowm's own decoration would, rather than the Client having to
+ * track pointer motion itself: a Client MAY choose to grab the
+ * pointer directly instead and never send this message at all, so
+ * receiving it is optional to begin with, but a Client that does
+ * relies on getting the exact same move/resize behavior (edge
+ * snapping and so on) icowm's own decoration already provides.
+ *
+ * @c direction selects the operation: @c
+ * XCB_EWMH_WM_MOVERESIZE_MOVE starts a move; one of the eight @c
+ * XCB_EWMH_WM_MOVERESIZE_SIZE_* values starts a resize anchored on
+ * the opposite edge or corner (see
+ * @c s_moveresize_direction_to_anchor); @c
+ * XCB_EWMH_WM_MOVERESIZE_CANCEL cancels whichever of the two is
+ * currently active for this same client, if any.  The message
+ * itself carries no timestamp (only x_root, y_root, direction,
+ * button, and source indication), so @c XCB_CURRENT_TIME is used for
+ * both the pointer grab and, where a move is requested, the drag
+ * state that would otherwise want the triggering event's own time.
+ * The keyboard variants (@c XCB_EWMH_WM_MOVERESIZE_MOVE_KEYBOARD and
+ * @c _SIZE_KEYBOARD) have no continuous, pointer-free equivalent in
+ * icowm's own move/resize machinery to hand off to, so they are
+ * acknowledged by being recognized at all but otherwise silently
+ * ignored, the same way some other window managers (e.g., i3) treat
+ * the full set of possible directions as more complexity than the
+ * few Clients actually relying on this message call for.
+ *
+ * @param wm      Window manager state
+ * @param event   Incoming client message event
+ * @param client  Client the message targets
+ * @param surface Surface (screen) @p client is on
+ * @param desktop Desktop @p client is on
+ *
+ * @note Complexity: @e O(1)
+ */
+void hi_handle_net_wm_moveresize(wm_td *wm,
+        xcb_client_message_event_t *event,
+        client_td *client, surface_td *surface, desktop_td *desktop)
+{
+    uint32_t direction;
+    int32_t x_root;
+    int32_t y_root;
+    uint32_t screen_w;
+    uint32_t screen_h;
+    uint32_t snap;
+    bool anchor_right;
+    bool anchor_bottom;
+    bool resize_w;
+    bool resize_h;
+
+    (void) desktop;
+
+    if (wm == NULL || event == NULL || client == NULL ||
+            surface == NULL || surface->screen == NULL ||
+            wm->config == NULL) {
+        return;
+    }
+
+    direction = event->data.data32[2];
+
+    if (direction == XCB_EWMH_WM_MOVERESIZE_CANCEL) {
+        if (drag_is_active()) {
+            drag_cancel(wm->connection, client);
+        }
+        return;
+    }
+
+    if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE_KEYBOARD ||
+            direction == XCB_EWMH_WM_MOVERESIZE_SIZE_KEYBOARD) {
+        return;
+    }
+
+    x_root = (int32_t) event->data.data32[0];
+    y_root = (int32_t) event->data.data32[1];
+    if (x_root < INT16_MIN) {
+        x_root = INT16_MIN;
+    } else if (x_root > INT16_MAX) {
+        x_root = INT16_MAX;
+    }
+    if (y_root < INT16_MIN) {
+        y_root = INT16_MIN;
+    } else if (y_root > INT16_MAX) {
+        y_root = INT16_MAX;
+    }
+
+    screen_w = surface->properties.dim.w;
+    screen_h = surface->properties.dim.h;
+    snap = wm->config->base.windows.snap;
+
+    if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE) {
+        drag_start(wm->connection, surface->screen->root, client,
+                wm_get_client_desktop(client),
+                CLIENT_OPERATION_MOVING,
+                XCB_CURRENT_TIME,
+                (int16_t) x_root, (int16_t) y_root,
+                screen_w, screen_h, snap);
+        return;
+    }
+
+    if (!client_is_resizable(client)) {
+        return;
+    }
+
+    s_moveresize_direction_to_anchor(direction, &anchor_right,
+            &anchor_bottom, &resize_w, &resize_h);
+
+    drag_start_directed(wm->connection, surface->screen->root,
+            client, wm_get_client_desktop(client),
+            XCB_CURRENT_TIME,
+            (int16_t) x_root, (int16_t) y_root,
+            screen_w, screen_h, snap,
+            anchor_right, anchor_bottom, resize_w, resize_h);
 }

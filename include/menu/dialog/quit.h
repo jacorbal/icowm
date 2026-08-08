@@ -82,6 +82,9 @@ void dialog_quit_repaint(xcb_connection_t *connection,
  * @brief Handle a mouse click inside the quit-confirmation dialog
  *
  * @param connection XCB connection
+ * @param config     Active configuration, for the repaint of a newly
+ *                    selected button; see @c
+ *                    menu_confirm_dialog_handle_click
  * @param x          Pointer X coordinate relative to the dialog
  * @param y          Pointer Y coordinate relative to the dialog
  *
@@ -90,7 +93,7 @@ void dialog_quit_repaint(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool dialog_quit_handle_click(xcb_connection_t *connection,
-        int x, int y);
+        const config_td *config, int x, int y);
 
 /**
  * @brief Move selection to the next button (wraps around)

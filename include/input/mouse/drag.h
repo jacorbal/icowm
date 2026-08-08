@@ -71,6 +71,50 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         uint32_t snap);
 
 /**
+ * @brief Begin a resize drag with an explicit anchor, rather than one
+ *        @c drag_start would infer from @p root_x / @p root_y
+ *
+ * For @c '_NET_WM_MOVERESIZE' (see @c hi_handle_net_wm_moveresize in
+ * handler/ewmhmsg.c): the requesting client names which edge or
+ * corner it wants resized directly, rather than icowm inferring one
+ * from where the pointer happens to be, since that position (wherever
+ * the client's own custom resize grip was clicked) has no fixed
+ * relationship to the client's actual border the way a normal
+ * border-drag's position does.  Calls @c drag_start itself for
+ * everything else (state recording, the pointer grab), then
+ * overwrites just the anchor and per-axis resize flags it would
+ * otherwise have inferred; every existing caller of @c drag_start
+ * itself is completely unaffected.
+ *
+ * @param connection  XCB connection
+ * @param root        Root window on which to grab the pointer
+ * @param client      Client being resized
+ * @param desktop     Desktop that owns @p client (may be null)
+ * @param event_time  Timestamp from the triggering request
+ * @param root_x      Root-relative X of the pointer at request time
+ * @param root_y      Root-relative Y of the pointer at request time
+ * @param screen_w    Screen width in pixels (0 to disable snap)
+ * @param screen_h    Screen height in pixels (0 to disable snap)
+ * @param snap        Snap distance in pixels (0 to disable snap)
+ * @param anchor_right @c true if the right edge stays fixed (a left,
+ *                    top-left, or bottom-left drag)
+ * @param anchor_bottom @c true if the bottom edge stays fixed (a top,
+ *                    top-left, or top-right drag)
+ * @param resize_w    @c true if this direction changes the width
+ * @param resize_h    @c true if this direction changes the height
+ *
+ * @note Complexity: @e O(1)
+ */
+void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
+        client_td *client, desktop_td *desktop,
+        xcb_timestamp_t event_time,
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap,
+        bool anchor_right, bool anchor_bottom,
+        bool resize_w, bool resize_h);
+
+/**
  * @brief Begin a drag operation for an icon window
  *
  * Like @a drag_start, but the drag target is the icon window of

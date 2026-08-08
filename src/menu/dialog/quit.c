@@ -78,9 +78,9 @@ void dialog_quit_repaint(xcb_connection_t *connection,
 
 /* Handle a mouse click in the quit-confirmation dialog */
 bool dialog_quit_handle_click(xcb_connection_t *connection,
-        int x, int y)
+        const config_td *config, int x, int y)
 {
-    return menu_confirm_dialog_handle_click(connection, x, y);
+    return menu_confirm_dialog_handle_click(connection, config, x, y);
 }
 
 

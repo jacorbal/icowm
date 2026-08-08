@@ -663,6 +663,32 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 }
 
 
+/* Begin a resize drag with an explicit anchor, rather than one
+ * 'drag_start' would infer from 'root_x' / 'root_y' */
+void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
+        client_td *client, desktop_td *desktop,
+        xcb_timestamp_t event_time,
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap,
+        bool anchor_right, bool anchor_bottom,
+        bool resize_w, bool resize_h)
+{
+    drag_start(connection, root, client, desktop,
+            CLIENT_OPERATION_RESIZING, event_time, root_x, root_y,
+            screen_w, screen_h, snap);
+
+    if (!s_drag.active) {
+        return;
+    }
+
+    s_drag.anchor_right = anchor_right;
+    s_drag.anchor_bottom = anchor_bottom;
+    s_drag.resize_w = resize_w;
+    s_drag.resize_h = resize_h;
+}
+
+
 /* Begin a drag operation for an icon window */
 void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
         client_td *client,
