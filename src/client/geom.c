@@ -131,7 +131,8 @@ void client_resync_theme_layout(client_td *client, bool is_active)
     int32_t delta_top_extra;
 
     if (client == NULL || client->theme == NULL ||
-            !client_is_decorated(client) || client->frame == 0) {
+            !client_is_decorated(client) || client->frame == 0 ||
+            client_is_fullscreen(client)) {
         return;
     }
 

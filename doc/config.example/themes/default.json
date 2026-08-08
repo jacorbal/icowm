@@ -85,7 +85,7 @@
             "color": "#7f9ab6",
             "width": 1
         },
-        "height": 24,
+        "height": 32,
         "clock": {
             "valign": "center"
         }
@@ -100,7 +100,7 @@
             },
             "border": {
                 "color": "#7f9ab6",
-                "width": 0
+                "width": 1
             }
         },
         "selected": {
@@ -132,6 +132,10 @@
         },
         "separator": {
             "color": "#7f9ab6"
+        },
+        "padding": {
+            "horizontal": 12,
+            "vertical": 4
         }
     },
 

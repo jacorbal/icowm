@@ -50,6 +50,7 @@
 #define STR_WINCMENU_ICONIFY         ("Iconify")
 #define STR_WINCMENU_HIDE            ("Hide")
 #define STR_WINCMENU_MAXIMIZE        ("Maximize")
+#define STR_WINCMENU_FULLSCREEN      ("Un/fullscreen")
 #define STR_WINCMENU_ROLL_UP_DOWN    ("Roll up/down")
 #define STR_WINCMENU_UNDECORATE      ("Un/decorate")
 #define STR_WINCMENU_CLOSE           ("Close")

@@ -230,6 +230,15 @@ void wcmd_client_shade(client_td *client)
 
     client_geometry_save(client);
 
+    LOGGER_DEBUG("Shade: saved old.dim=%ux%u cur.dim=%ux%u" \
+            " frame_extents top=%u bottom=%u",
+            (unsigned int) client->layout.geometry.old.dim.w,
+            (unsigned int) client->layout.geometry.old.dim.h,
+            (unsigned int) client->layout.geometry.cur.dim.w,
+            (unsigned int) client->layout.geometry.cur.dim.h,
+            (unsigned int) client->layout.frame_extents.top,
+            (unsigned int) client->layout.frame_extents.bottom);
+
     shaded_h = (uint32_t) (client->layout.frame_extents.top +
                            client->layout.frame_extents.bottom);
     if (shaded_h < WM_MIN_WINDOW_DIMENSION) {
@@ -284,6 +293,12 @@ void wcmd_client_unshade(client_td *client)
      * position so that moving the shaded window is honored */
     restored_h = client->layout.geometry.old.dim.h;
     client->layout.geometry.cur.dim.h = restored_h;
+
+    LOGGER_DEBUG("Unshade: restoring to old.dim=%ux%u," \
+            " cur.dim.w stays=%u",
+            (unsigned int) client->layout.geometry.old.dim.w,
+            (unsigned int) restored_h,
+            (unsigned int) client->layout.geometry.cur.dim.w);
 
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_HEIGHT,

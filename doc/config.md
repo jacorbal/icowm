@@ -950,6 +950,8 @@ lowered to `0`.
 | `label.border.width`       | integer | `0`         |
 | `disabled.color.foreground` | string | `"#A0A8B0"` |
 | `separator.color`          | string  | `"#7F9AB6"` |
+| `padding.horizontal`       | integer | `12`        |
+| `padding.vertical`         | integer | `4`         |
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
@@ -966,6 +968,13 @@ resized); its background still comes from `unselected` or `selected`
 depending on whether it happens to also be the current selection.
 `separator.color` is the line color for a separator between groups of
 entries.
+
+`padding.horizontal` and `padding.vertical` are the inset in pixels
+between a menu window's own edges and its content: row text (and, for
+a submenu, its arrow indicator) for `padding.horizontal`, and the
+space above the first row and below the last for `padding.vertical`.
+Both apply to every context menu and to the Alt+Tab-style cycle menu
+alike, and equally to `unselected`, `selected`, and `label` rows.
 
 ```json
 "menu": {
@@ -989,6 +998,10 @@ entries.
     },
     "separator": {
         "color": "#7F9AB6"
+    },
+    "padding": {
+        "horizontal": 12,
+        "vertical": 4
     }
 }
 ```

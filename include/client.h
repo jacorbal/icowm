@@ -508,8 +508,13 @@ void client_sync_decoration_layout(client_td *client);
  * the border, titlebar, and its buttons at the new size. A fast no-op
  * when neither value actually changed (the common case for a plain
  * focus change with the built-in default theme, whose active and
- * inactive border widths are equal), when @p client has no theme, or
- * when @p client is not decorated.
+ * inactive border widths are equal), when @p client has no theme, when
+ * @p client is not decorated, or when @p client is currently
+ * fullscreen: a fullscreen client's frame extents are deliberately
+ * zeroed by @c wcmd_client_fullscreen regardless of what the theme
+ * says, and this function would otherwise read that as "the theme
+ * changed" and restore the border/titlebar space, reintroducing a gap
+ * where the titlebar used to be even though it stays unmapped.
  *
  * @param client    Client whose layout is to be resynchronized
  * @param is_active Whether @p client currently holds focus (selects

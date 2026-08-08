@@ -73,12 +73,12 @@
 
 /**
  * @brief Number of fixed top-level entries in the window context menu:
- *        TWO submenus (Send to desktop, Layer) + ONE separator + EIGHT
- *        commands (Restore, Move, Resize, Iconify, Hide, Maximize, Roll
- *        up/down, Un/decorate) + ONE separator + ONE command (Close)
- *        = THIRTEEN total
+ *        TWO submenus (Send to desktop, Layer) + ONE separator + NINE
+ *        commands (Restore, Move, Resize, Iconify, Hide, Maximize,
+ *        Un/fullscreen, Roll up/down, Un/decorate) + ONE separator +
+ *        ONE command (Close) = FOURTEEN total
  */
-#define WINCMENU_FIXED_ENTRIES (13)
+#define WINCMENU_FIXED_ENTRIES (14)
 
 /**
  * @brief Total top-level entry slots:
@@ -505,6 +505,22 @@ static void s_cb_maximize(xcb_connection_t *connection,
 
 
 /**
+ * @brief Callback for the "Un/fullscreen" entry
+ */
+static void s_cb_fullscreen(xcb_connection_t *connection,
+        void *userdata)
+{
+    (void) connection;
+    (void) userdata;
+
+    if (s_target_client != NULL) {
+        (void) client_send_event(s_target_client,
+                ACTION_CLIENT_TOGGLE_FULLSCREEN, PRIORITY_NORMAL);
+    }
+}
+
+
+/**
  * @brief Callback: toggle shade (roll up/down)
  */
 static void s_cb_shade(xcb_connection_t *connection,
@@ -795,6 +811,10 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entry_command(&s_entries[n], STR_WINCMENU_MAXIMIZE,
             s_cb_maximize, NULL,
             !client_is_resizable(client) || client_is_maximized(client));
+    ++n;
+
+    s_entry_command(&s_entries[n], STR_WINCMENU_FULLSCREEN,
+            s_cb_fullscreen, NULL, !client_is_resizable(client));
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_ROLL_UP_DOWN,
