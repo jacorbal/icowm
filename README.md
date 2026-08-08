@@ -72,7 +72,7 @@ Basic features are:
     area.
 
   - **Window cycling.**
-    An interactive window-cycle menu (similar to `Alt+Tab`) allows quick
+    An interactive window-cycle menu (similar to Alt+Tab) allows quick
     keyboard-driven navigation across open clients and iconified
     windows.
 
@@ -127,31 +127,32 @@ between desktops are treated as essential operations.
 Dependencies
 ------------
 
-Building IcoWM requires a C99 compiler, GNU Make, and `pkg-config` (used
-to locate the libraries below; if unavailable, the build falls back to
-a fixed link line for the same set of libraries).
+Building IcoWM requires a C99 compiler, GNU Make, and `pkg-config`
+(used to locate the libraries below; if unavailable, the build falls
+back to a fixed link line for the same set of libraries).
 
   - **libxcb** and the following extension libraries: `xcb-keysyms`,
-    `xcb-util`, `xcb-icccm`, `xcb-ewmh`, `xcb-randr`, `xcb-sync`, and
-    `xcb-cursor`.  The last of these, `xcb-cursor`, is what lets IcoWM
-    load cursors (the window pointer, the eight border-resize cursors,
-    and the startup-notification busy cursor) from the user's actual
-    cursor theme, falling back to the X server's own built-in cursor
-    font only for a cursor name that theme does not provide.
+    `xcb-util`, `xcb-icccm`, `xcb-ewmh`, `xcb-randr`, `xcb-sync`,
+    `xcb-cursor`, `xcb-render`, and `xcb-renderutil`.
+
+  - **FreeType2** and **fontconfig**, for TrueType/OpenType text
+    rendering when a theme's font does not resolve to an X core font.
 
   - **cJSON**, for reading every JSON configuration file.
 
-  - **pthread**, for the event queue's internal mutex; part of the
-    C library itself on any POSIX system, with no separate package
+  - **pthread**, for the event queue's internal mutex; part of the C
+    library itself on any POSIX system, with no separate package
     needed.
 
-On Debian (and family), the following installs everything above:
+On Debian and Ubuntu, the following installs everything above:
 
 ```sh
 sudo apt install build-essential pkg-config \
     libxcb1-dev libxcb-keysyms1-dev libxcb-util-dev \
     libxcb-icccm4-dev libxcb-ewmh-dev libxcb-randr0-dev \
-    libxcb-sync-dev libxcb-cursor-dev libcjson-dev
+    libxcb-sync-dev libxcb-cursor-dev libxcb-render0-dev \
+    libxcb-render-util0-dev libfreetype-dev libfontconfig-dev \
+    libcjson-dev
 ```
 
 Other distributions provide equivalent packages, typically under

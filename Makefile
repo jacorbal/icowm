@@ -31,7 +31,8 @@ B_DIR = $(PWD)/bin
 
 SHELL=/bin/sh
 JOBS ?= $(shell nproc)
-PKGCONF ?= pkgconf
+PKGCONF ?= $(shell command -v pkgconf 2>/dev/null || \
+		command -v pkg-config 2>/dev/null || echo pkgconf)
 
 
 ## Compiler & linker options
@@ -67,19 +68,23 @@ CCDEPS = -MMD -MP
 
 XCB_CFLAGS = $(shell $(PKGCONF) --cflags \
 		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
-		xcb-cursor 2>/dev/null)
+		xcb-cursor xcb-render xcb-renderutil 2>/dev/null)
+FONT_CFLAGS = $(shell $(PKGCONF) --cflags freetype2 fontconfig 2>/dev/null | \
+		sed 's/-I/-isystem /g')
 JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
 		$(PKGCONF) --cflags cjson 2>/dev/null)
 CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
-		$(XCB_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
+		$(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
 XCB_LFLAGS = $(shell $(PKGCONF) --libs \
 		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
-		xcb-cursor 2>/dev/null || \
-		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh -lxcb-randr -lxcb-sync -lxcb-cursor')
+		xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \
+		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh -lxcb-randr -lxcb-sync -lxcb-cursor -lxcb-render -lxcb-render-util')
+FONT_LFLAGS = $(shell $(PKGCONF) --libs freetype2 fontconfig 2>/dev/null || \
+		printf '%s' '-lfreetype -lfontconfig')
 JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
 		$(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
 OTHR_LFLAGS = -lpthread
-LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
+LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
 
 
 ## Data & build information

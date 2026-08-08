@@ -123,9 +123,9 @@ static bool s_battery_acpi_ac_online(void)
     }
 
     while (!online && (entry = readdir(dir)) != NULL) {
-        char type_path[256];
+        char type_path[BATTERY_PATH_MAX_LEN];
         char type_line[BATTERY_LINE_MAX_LEN];
-        char online_path[256];
+        char online_path[BATTERY_PATH_MAX_LEN];
         uint32_t online_val;
 
         if (entry->d_name[0] == '.') {

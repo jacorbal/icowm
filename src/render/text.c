@@ -27,7 +27,26 @@
 #include <logger.h>
 
 /* Local includes */
+#include <render/glyph.h>
 #include <render/text.h>
+
+
+/**
+ * @brief Which backend @c text_renderer_init last successfully
+ *        selected
+ *
+ * @c S_BACKEND_X11 renders through the X core font path this file
+ * implements directly; @c S_BACKEND_GLYPH delegates every operation
+ * to @c render/glyph.c instead, the xcb-render/FreeType2/fontconfig
+ * fallback used for a font name that does not resolve to an X core
+ * font (e.g., a TrueType/OpenType family name most cursor and icon
+ * themes install but the X server's own bitmap font set does not).
+ */
+enum s_text_backend_e {
+    S_BACKEND_NONE = 0,
+    S_BACKEND_X11,
+    S_BACKEND_GLYPH
+};
 
 
 static struct {
@@ -35,6 +54,12 @@ static struct {
     xcb_font_t font;
     xcb_gcontext_t gc;
     char font_name[256];
+    char raw_font_name[256]; /**< 'font_name' as the caller passed it,
+                                   before the XLFD conversion below;
+                                   kept so a fallback to the glyph
+                                   backend can hand fontconfig its own
+                                   syntax instead of a mangled XLFD
+                                   pattern it would not understand */
     uint16_t char_width;
     int16_t ascent;      /**< Pixels the baseline sits below the top of
                                a line of text, from the font's own
@@ -44,14 +69,18 @@ static struct {
                                and 'text_font_descent') */
     int16_t descent;     /**< Pixels the baseline sits above the
                                bottom of a line of text */
+    enum s_text_backend_e backend;
     bool initialized;
 } s_text = {
     .connection = NULL,
     .font = XCB_NONE,
     .gc = XCB_NONE,
+    .font_name = {'\0'},
+    .raw_font_name = {'\0'},
     .char_width = 8,
     .ascent = 10,
     .descent = 3,
+    .backend = S_BACKEND_NONE,
     .initialized = false
 };
 
@@ -261,38 +290,42 @@ static void font_config_to_xlfd(const char *input, char *output,
 
 
 /* Initialize the text renderer using the specified font */
-int text_renderer_init(xcb_connection_t *connection,
-        const char *font_name)
+/**
+ * @brief Try to open @p xlfd as an X core font and query its metrics
+ *
+ * @param connection Pointer to the XCB connection
+ * @param xlfd       XLFD pattern to open
+ *
+ * @return @c true if the font opened and its metrics could be read
+ *
+ * @note On failure, any font resource this call opened is closed
+ *       again before returning, so the caller never has to clean up
+ *       a partial X11 attempt itself
+ * @note Complexity: @e O(1)
+ */
+static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
 {
-    char xlfd[256];
     uint32_t gc_values[2];
     xcb_query_font_reply_t *qf_reply;
 
-    if (connection == NULL) {
-        return -1;
-    }
-
-    /* Convert the config-style font description (e.g., "fixed bold 9")
-     * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
-    if (font_name == NULL || font_name[0] == '\0') {
-        safe_strncpy(xlfd, "fixed", sizeof(xlfd));
-    } else {
-        font_config_to_xlfd(font_name, xlfd, sizeof(xlfd));
-    }
-
-    if (s_text.initialized &&
-            s_text.connection == connection &&
-            safe_strcmp(s_text.font_name, xlfd) == 0) {
-        return 0;
-    }
-
-    text_renderer_destroy();
-
-    s_text.connection = connection;
-    safe_strncpy(s_text.font_name, xlfd, sizeof(s_text.font_name));
     s_text.font = xcb_generate_id(connection);
     xcb_open_font(connection, s_text.font,
             (uint16_t) safe_strlen(xlfd), xlfd);
+
+    qf_reply = xcb_query_font_reply(connection,
+            xcb_query_font(connection, s_text.font), NULL);
+    if (qf_reply == NULL) {
+        xcb_close_font(connection, s_text.font);
+        s_text.font = XCB_NONE;
+        return false;
+    }
+
+    if (qf_reply->max_bounds.character_width > 0) {
+        s_text.char_width = (uint16_t) qf_reply->max_bounds.character_width;
+    }
+    s_text.ascent = qf_reply->font_ascent;
+    s_text.descent = qf_reply->font_descent;
+    free(qf_reply);
 
     s_text.gc = xcb_generate_id(connection);
 
@@ -307,43 +340,100 @@ int text_renderer_init(xcb_connection_t *connection,
     xcb_change_gc(connection, s_text.gc, XCB_GC_FONT,
             (const uint32_t[]) {s_text.font});
 
-    qf_reply = xcb_query_font_reply(connection,
-            xcb_query_font(connection, s_text.font), NULL);
-    if (qf_reply != NULL) {
-        if (qf_reply->max_bounds.character_width > 0) {
-            s_text.char_width =
-                (uint16_t) qf_reply->max_bounds.character_width;
-        }
-        s_text.ascent = qf_reply->font_ascent;
-        s_text.descent = qf_reply->font_descent;
-        free(qf_reply);
+    return true;
+}
+
+
+/* Initialize the text renderer using the specified font */
+int text_renderer_init(xcb_connection_t *connection,
+        const char *font_name)
+{
+    char xlfd[256];
+    const char *raw;
+
+    if (connection == NULL) {
+        return -1;
     }
 
-    s_text.initialized = true;
-    return 0;
+    raw = (font_name == NULL || font_name[0] == '\0') ? "fixed" : font_name;
+
+    if (s_text.initialized &&
+            s_text.connection == connection &&
+            safe_strcmp(s_text.raw_font_name, raw) == 0) {
+        return 0;
+    }
+
+    text_renderer_destroy();
+
+    /* Convert the config-style font description (e.g., "fixed bold 9")
+     * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
+    font_config_to_xlfd(raw, xlfd, sizeof(xlfd));
+
+    s_text.connection = connection;
+    safe_strncpy(s_text.raw_font_name, raw, sizeof(s_text.raw_font_name));
+
+    if (s_try_x11(connection, xlfd)) {
+        safe_strncpy(s_text.font_name, xlfd, sizeof(s_text.font_name));
+        s_text.backend = S_BACKEND_X11;
+        s_text.initialized = true;
+        return 0;
+    }
+
+    /* 'xlfd' did not resolve to any X core font (e.g., a
+     * TrueType/OpenType family name most systems have via fontconfig
+     * but whose bitmap X font set does not include): fall back to
+     * rendering it through xcb-render/FreeType2/fontconfig instead,
+     * handing fontconfig the caller's original string rather than the
+     * XLFD pattern just built for X11, since fontconfig has its own,
+     * different pattern syntax. */
+    if (glyph_renderer_init(connection, raw) == 0) {
+        s_text.ascent = glyph_font_ascent();
+        s_text.descent = glyph_font_descent();
+        s_text.backend = S_BACKEND_GLYPH;
+        s_text.initialized = true;
+        return 0;
+    }
+
+    /* Both backends failed for this specific font description: fall
+     * back to "fixed", which every X server ships and is guaranteed
+     * to open, so the renderer is never left completely unusable. */
+    if (safe_strcmp(raw, "fixed") != 0 && s_try_x11(connection, "fixed")) {
+        safe_strncpy(s_text.font_name, "fixed", sizeof(s_text.font_name));
+        s_text.backend = S_BACKEND_X11;
+        s_text.initialized = true;
+        return 0;
+    }
+
+    s_text.connection = NULL;
+    return -1;
 }
 
 
 /* Destroy global text renderer resources */
 void text_renderer_destroy(void)
 {
-    if (!s_text.initialized || s_text.connection == NULL) {
+    if (!s_text.initialized) {
         return;
     }
 
-    if (s_text.gc != XCB_NONE) {
-        xcb_free_gc(s_text.connection, s_text.gc);
-    }
-
-    if (s_text.font != XCB_NONE) {
-        xcb_close_font(s_text.connection, s_text.font);
+    if (s_text.backend == S_BACKEND_GLYPH) {
+        glyph_renderer_destroy();
+    } else if (s_text.connection != NULL) {
+        if (s_text.gc != XCB_NONE) {
+            xcb_free_gc(s_text.connection, s_text.gc);
+        }
+        if (s_text.font != XCB_NONE) {
+            xcb_close_font(s_text.connection, s_text.font);
+        }
     }
 
     s_text.connection = NULL;
     s_text.font = XCB_NONE;
     s_text.gc = XCB_NONE;
     s_text.font_name[0] = '\0';
+    s_text.raw_font_name[0] = '\0';
     s_text.char_width = 8;
+    s_text.backend = S_BACKEND_NONE;
     s_text.initialized = false;
 }
 
@@ -353,8 +443,16 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
 {
     uint32_t gc_values[2];
 
-    if (!s_text.initialized || s_text.gc == XCB_NONE ||
-            s_text.connection == NULL) {
+    if (!s_text.initialized) {
+        return;
+    }
+
+    if (s_text.backend == S_BACKEND_GLYPH) {
+        glyph_renderer_set_color(fg, bg);
+        return;
+    }
+
+    if (s_text.gc == XCB_NONE || s_text.connection == NULL) {
         return;
     }
 
@@ -383,6 +481,11 @@ void text_draw_string(xcb_connection_t *connection,
         }
     }
 
+    if (s_text.backend == S_BACKEND_GLYPH) {
+        glyph_draw_string(connection, drawable, x, y, text);
+        return;
+    }
+
     len = safe_strlen(text);
     if (len == 0) {
         return;
@@ -408,8 +511,13 @@ void text_draw_string(xcb_connection_t *connection,
 /* Measure the rendered width of a string */
 uint16_t text_measure_string(const char *text)
 {
-    size_t len = safe_strlen(text);
+    size_t len;
 
+    if (s_text.backend == S_BACKEND_GLYPH) {
+        return glyph_measure_string(text);
+    }
+
+    len = safe_strlen(text);
     if (len > UINT16_MAX / s_text.char_width) {
         return UINT16_MAX;
     }

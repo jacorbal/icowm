@@ -34,6 +34,20 @@
 /** Maximum bytes read from any one single-line sysfs/procfs file */
 #define BATTERY_LINE_MAX_LEN (64)
 
+/**
+ * @brief Buffer size for one constructed sysfs path under
+ *        @c BATTERY_ACPI_BASE_DIR
+ *
+ * Sized generously above the worst case a compiler's static
+ * truncation analysis can prove for @c "<base>/<d_name>/<suffix>"
+ * (the base directory's own length, plus a full @c NAME_MAX-sized
+ * directory entry name, plus the longest suffix used, @c "/online",
+ * plus the terminating NUL), so building such a path can never be
+ * flagged as a possible truncation regardless of what the C library's
+ * own @c d_name field declares itself capable of holding.
+ */
+#define BATTERY_PATH_MAX_LEN (320)
+
 
 /**
  * @brief Read the current battery/AC state and format it into @p out

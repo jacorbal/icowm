@@ -890,7 +890,7 @@ have focus (`inactive`).  Both share the same shape:
 
 | Key                 | Type    | Default (active) | Default (inactive) | Description |
 |---------------------|---------|-------------------|---------------------|-------------|
-| `font`              | string  | `"fixed bold"`    | `"fixed"`           | Title bar font (X core font description; see note below). |
+| `font`              | string  | `"fixed bold"`    | `"fixed"`           | Title bar font (see note below). |
 | `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         | Title bar background color. |
 | `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         | Title bar text color. |
 | `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         | Border color. |
@@ -1238,14 +1238,40 @@ surprising, unrequested side effect.
 
 ---
 
-> **Font format note:**  IcoWM uses the X server's built-in *X core
-> font* system (accessed via XCB), which is completely separate from
-> client-side font rendering libraries such as FreeType/Fontconfig,
-> Pango, or Cairo.  Only **X11 bitmap fonts** (BDF/PCF) are supported;
-> TrueType (TTF), OpenType (OTF), and other scalable formats are **not**
-> available here.
+> **Font format note:**  Every `font` field in a theme accepts the
+> same string, tried through two backends in order:
 >
-> The `font` field accepts two formats:
+> 1. **X core fonts** (accessed via XCB), IcoWM's original text
+>    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are
+>    available through this backend; it is tried first because it has
+>    no per-glyph rasterization cost and every X server ships the
+>    `fixed` family it falls back to below.
+>
+> 2. **TrueType/OpenType**, via fontconfig (font matching), FreeType2
+>    (rasterization), and the X RENDER extension (compositing), used
+>    automatically whenever a `font` string does not resolve to an X
+>    core font, e.g., a family name such as `"DejaVu Sans"` that most
+>    systems only have as a scalable font, not as a legacy X bitmap
+>    one.  This is what gives window titles, menus, and the systray
+>    clock/battery text real anti-aliasing and full UTF-8 support
+>    (accented characters, non-Latin scripts, and so on), neither of
+>    which the X core font backend can provide.
+>
+> If a `font` string resolves through neither backend, IcoWM falls
+> back to `"fixed"`, so text rendering is never left completely
+> broken by a single bad theme value.
+>
+> No separate field or prefix selects which backend is used: it is
+> decided purely by whether the string resolves as an X core font
+> first.  A short description like `"fixed bold 13"` almost always
+> takes the X core font path, since `fixed` is an X bitmap family;
+> a TrueType/OpenType family name takes the fontconfig path instead,
+> using fontconfig's own pattern syntax rather than the short
+> description syntax below.
+>
+> #### X core font syntax
+>
+> The `font` field accepts two X core font formats:
 >
 > 1. **Short description:**
 >   `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
@@ -1279,6 +1305,29 @@ surprising, unrequested side effect.
 >
 > ```
 > xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
+> ```
+>
+> #### TrueType/OpenType syntax
+>
+> A `font` string that reaches the fontconfig fallback is parsed with
+> fontconfig's own pattern syntax, the same one used by tools such as
+> `fc-match`:
+>
+> ```
+> <family>[-<size>][:<name1>=<value1>[:<name2>=<value2>...]]
+> ```
+>
+> Examples:
+>  - `"DejaVu Sans Mono"`: family name alone, fontconfig's default size
+>  - `"DejaVu Sans Mono-11"`: family and pixel size
+>  - `"Noto Sans:bold"`: family and weight
+>  - `"Noto Sans:bold:size=11"`: family, weight, and size
+>
+> To check what font a given pattern resolves to (and confirm it is
+> actually installed) before putting it in a theme file, run:
+>
+> ```
+> fc-match "Noto Sans:bold:size=11"
 > ```
 ---
 

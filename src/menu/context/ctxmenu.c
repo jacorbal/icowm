@@ -663,12 +663,23 @@ void ctxmenu_show(xcb_connection_t *connection,
     uint32_t work_w;
     uint32_t work_h;
     desktop_td *desktop;
+    size_t entry_count;
 
     if (connection == NULL || surface == NULL || state == NULL ||
             config == NULL || state->entries == NULL ||
             state->entry_count <= 0) {
         return;
     }
+
+    /* Copied into a 'size_t' local right after the guard above proved
+     * it positive: GCC's allocation-size analysis cannot otherwise
+     * see past the 'ctxmenu_close'/'s_compute_width' calls between
+     * here and the 'calloc' below to know 'state->entry_count' is
+     * still positive at that point, since either call could in
+     * principle modify the struct through the same pointer, so
+     * without this it falls back to assuming the field's entire
+     * signed range is possible there. */
+    entry_count = (size_t) state->entry_count;
 
     ctxmenu_close(state);
 
@@ -685,7 +696,7 @@ void ctxmenu_show(xcb_connection_t *connection,
      * 's_entry_at_y' need not re-walk 'entries' on every repaint,
      * click, or motion event; 'entry_top_y' is left 'NULL' (and both
      * helpers fall back to an 'O(n)' walk) if 'calloc' fails */
-    state->entry_top_y = (int32_t *) calloc((size_t) state->entry_count,
+    state->entry_top_y = (int32_t *) calloc(entry_count,
             sizeof(int32_t));
     state->height = s_build_layout(state);
 
