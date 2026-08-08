@@ -28,7 +28,7 @@
 #include <adt/list.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
+#include <utils/cursor.h>
 
 /* Render includes */
 #include <render/surface.h>
@@ -263,39 +263,6 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
 
 
 /**
- * @brief Create an X11 cursor from consecutive glyphs in a font
- *
- * Allocates a new X11 cursor resource identifier and creates a glyph
- * cursor using @a glyph as its source glyph and the following glyph as
- * its mask.  The cursor uses black for its foreground and white for its
- * background.
- *
- * @param connection Active XCB connection
- * @param font       Font containing the cursor source and mask glyphs
- * @param glyph      Source glyph; the mask glyph is @p glyph + 1
- *
- * @return Identifier of the newly allocated cursor resource
- *
- * @note The cursor creation request is asynchronous; protocol errors,
- *       if any, are reported by X11 asynchronously
- * @note Complexity: @e O(1)
- *
- * @see @c WM_CURSOR_TOP_SIDE_GLYPH and siblings
- */
-static xcb_cursor_t s_mouse_create_glyph_cursor(
-        xcb_connection_t *connection, xcb_font_t font, uint16_t glyph)
-{
-    xcb_cursor_t cur = xcb_generate_id(connection);
-
-    xcb_create_glyph_cursor(connection, cur, font, font,
-            glyph, (uint16_t) (glyph + 1u),
-            0u, 0u, 0u, 0xffffu, 0xffffu, 0xffffu);
-
-    return cur;
-}
-
-
-/**
  * @brief Mirror sticky-client focus on the currently shown desktop
  *
  * If @a client is sticky and its owning desktop is not the desktop
@@ -417,37 +384,37 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 /* Create the eight border-resize cursors used for hover feedback */
 void mouse_create_resize_cursors(xcb_connection_t *connection)
 {
-    xcb_font_t font;
+    xcb_screen_t *screen;
+    util_cursor_ctx_td *ctx;
 
     if (connection == NULL ||
             s_resize_cursors[S_RESIZE_ZONE_NONE] != 0) {
         return;
     }
 
-    font = xcb_generate_id(connection);
-    xcb_open_font(connection, font,
-            (uint16_t) safe_strlen("cursor"), "cursor");
+    screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
+    ctx = util_cursor_ctx_new(connection, screen);
 
-    s_resize_cursors[S_RESIZE_ZONE_NONE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_LEFT_PTR_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_N] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_S] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_E] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_RIGHT_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_W] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_LEFT_SIDE_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_NE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_RIGHT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_NW] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_TOP_LEFT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_SE] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH);
-    s_resize_cursors[S_RESIZE_ZONE_SW] = s_mouse_create_glyph_cursor(
-            connection, font, WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NONE] = util_cursor_load(ctx,
+            "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_N] = util_cursor_load(ctx,
+            "top_side", WM_CURSOR_TOP_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_S] = util_cursor_load(ctx,
+            "bottom_side", WM_CURSOR_BOTTOM_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_E] = util_cursor_load(ctx,
+            "right_side", WM_CURSOR_RIGHT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_W] = util_cursor_load(ctx,
+            "left_side", WM_CURSOR_LEFT_SIDE_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NE] = util_cursor_load(ctx,
+            "top_right_corner", WM_CURSOR_TOP_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_NW] = util_cursor_load(ctx,
+            "top_left_corner", WM_CURSOR_TOP_LEFT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SE] = util_cursor_load(ctx,
+            "bottom_right_corner", WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH);
+    s_resize_cursors[S_RESIZE_ZONE_SW] = util_cursor_load(ctx,
+            "bottom_left_corner", WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH);
 
-    xcb_close_font(connection, font);
+    util_cursor_ctx_free(ctx);
     xcb_flush(connection);
 }
 
@@ -586,7 +553,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         owns_event = wincmenu_owns_window(event->event);
         if (owns_event || wincmenu_owns_window(event->child)) {
-            xcb_window_t mw = owns_event ? event->event : event->child;
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
             (void) wincmenu_handle_click(connection, surface, mw,
                     (int) event->root_x, (int) event->root_y, config);
         } else {
@@ -601,7 +568,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         owns_event = rootmenu_owns_window(event->event);
         if (owns_event || rootmenu_owns_window(event->child)) {
-            xcb_window_t mw = owns_event ? event->event : event->child;
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
             (void) rootmenu_handle_click(connection, surface, mw,
                     (int) event->root_x, (int) event->root_y, config);
         } else {
@@ -616,7 +583,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         owns_event = winlist_owns_window(event->event);
         if (owns_event || winlist_owns_window(event->child)) {
-            xcb_window_t mw = owns_event ? event->event : event->child;
+            xcb_window_t mw = (owns_event) ? event->event : event->child;
             (void) winlist_handle_click(connection, surface, mw,
                     (int) event->root_x, (int) event->root_y, config);
         } else {

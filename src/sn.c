@@ -33,6 +33,7 @@
 #include <defs/cursor.h>
 
 /* Utils includes */
+#include <utils/cursor.h>
 #include <utils/safe/safestr.h>
 
 /* Project includes */
@@ -113,10 +114,13 @@ static xcb_atom_t s_intern(xcb_connection_t *connection, const char *name)
  * @brief Show or restore the busy (watch) cursor on every managed
  *        root window
  *
- * Built from the X server's own built-in "cursor" font glyphs, the
- * same mechanism @c mouse_create_resize_cursors already uses for the
- * border-hover cursors, rather than the separate @c libxcb-cursor
- * theme-loading library, which this project does not link against.
+ * Loaded from the active cursor theme via @c util_cursor_load (same
+ * as every other cursor in the project), falling back to the X core
+ * cursor font automatically if the theme has no "watch"/"left_ptr"
+ * cursor.  The theme lookup itself is tied to one screen, but the
+ * resulting cursor resource is valid to apply to every root window on
+ * the same connection, so only the first managed surface's screen is
+ * used to build it.
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
@@ -129,27 +133,37 @@ static xcb_atom_t s_intern(xcb_connection_t *connection, const char *name)
 static void s_set_busy_cursor(xcb_connection_t *connection,
         list_td *surfaces, bool busy)
 {
-    xcb_font_t font;
+    surface_td *first_surface = NULL;
+    util_cursor_ctx_td *ctx;
     xcb_cursor_t cursor;
     uint32_t value;
-    uint16_t glyph;
-    uint16_t mask_glyph;
 
     if (connection == NULL || surfaces == NULL) {
         return;
     }
 
-    glyph = (busy) ? WM_CURSOR_WATCH_GLYPH : WM_CURSOR_LEFT_PTR_GLYPH;
-    mask_glyph = (busy)
-        ? WM_CURSOR_WATCH_MASK_GLYPH : WM_CURSOR_LEFT_PTR_MASK_GLYPH;
+    for (list_item_td *node = list_head(surfaces); node != NULL;
+            node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
 
-    font = xcb_generate_id(connection);
-    xcb_open_font(connection, font,
-            (uint16_t) safe_strlen("cursor"), "cursor");
+        if (surface != NULL && surface->screen != NULL) {
+            first_surface = surface;
+            break;
+        }
+    }
+    if (first_surface == NULL) {
+        return;
+    }
 
-    cursor = xcb_generate_id(connection);
-    xcb_create_glyph_cursor(connection, cursor, font, font,
-            glyph, mask_glyph, 0u, 0u, 0u, 0xffffu, 0xffffu, 0xffffu);
+    ctx = util_cursor_ctx_new(connection, first_surface->screen);
+    cursor = (busy)
+        ? util_cursor_load(ctx, "watch", WM_CURSOR_WATCH_GLYPH)
+        : util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
+    util_cursor_ctx_free(ctx);
+
+    if (cursor == XCB_NONE) {
+        return;
+    }
 
     for (list_item_td *node = list_head(surfaces); node != NULL;
             node = list_next(node)) {
@@ -165,7 +179,6 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
     }
 
     xcb_free_cursor(connection, cursor);
-    xcb_close_font(connection, font);
     xcb_flush(connection);
     s_cursor_busy = busy;
 }

@@ -32,6 +32,9 @@
 /* Default initial values */
 #include <defs/cursor.h>
 
+/* Utils includes */
+#include <utils/cursor.h>
+
 /* Project includes */
 #include <logger.h>
 #include <surface.h>
@@ -354,9 +357,9 @@ int startup_subscribe_randr_events(wm_td *wm)
 int startup_subscribe_root_events(wm_td *wm)
 {
     uint32_t values[1];
-    xcb_font_t fnt;
     xcb_cursor_t cur;
     uint32_t cur_val[1];
+    surface_td *first_surface;
 
     if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
         return -1;
@@ -399,16 +402,34 @@ int startup_subscribe_root_events(wm_td *wm)
 
     /* Set a default left-pointer cursor on every root window so the
      * cursor is visible even when no client window is under the
-     * pointer.  The cursor font stores glyphs in pairs; see
-     * 'defs/cursor.h' for the named constants. */
-    fnt = xcb_generate_id(wm->connection);
-    cur = xcb_generate_id(wm->connection);
-    xcb_open_font(wm->connection, fnt,
-            (uint16_t) strlen("cursor"), "cursor");
-    xcb_create_glyph_cursor(wm->connection, cur, fnt, fnt,
-            WM_CURSOR_LEFT_PTR_GLYPH, WM_CURSOR_LEFT_PTR_MASK_GLYPH,
-            0u, 0u, 0u,
-            0xffffu, 0xffffu, 0xffffu);
+     * pointer.  Loaded from the active cursor theme via
+     * 'util_cursor_load' (see 'utils/cursor.h'), falling back to the
+     * X core cursor font automatically if the theme has no
+     * "left_ptr" cursor; see 'defs/cursor.h' for that fallback
+     * glyph's named constant. */
+    first_surface = NULL;
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+
+        if (surface != NULL && surface->screen != NULL) {
+            first_surface = surface;
+            break;
+        }
+    }
+
+    cur = XCB_NONE;
+    if (first_surface != NULL) {
+        util_cursor_ctx_td *ctx = util_cursor_ctx_new(wm->connection,
+                first_surface->screen);
+
+        cur = util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
+        util_cursor_ctx_free(ctx);
+    }
+    if (cur == XCB_NONE) {
+        xcb_flush(wm->connection);
+        return 0;
+    }
     cur_val[0] = (uint32_t) cur;
     for (list_item_td *cn = list_head(wm->surfaces);
             cn != NULL; cn = list_next(cn)) {
@@ -420,7 +441,6 @@ int startup_subscribe_root_events(wm_td *wm)
                 sv->screen->root, XCB_CW_CURSOR, cur_val);
     }
     xcb_free_cursor(wm->connection, cur);
-    xcb_close_font(wm->connection, fnt);
 
     xcb_flush(wm->connection);
     return 0;

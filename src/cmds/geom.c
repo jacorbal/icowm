@@ -381,7 +381,16 @@ void wcmd_client_maximize_horz(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
+    /* Only remember the geometry to restore to if it is not already
+     * a maximized state's geometry: switching from vertical-only
+     * maximize to horizontal must not overwrite the true pre-maximize
+     * geometry already held in 'layout.geometry.old' (see
+     * 'client_is_maximized_any'), or restoring later would land at
+     * whichever partial-maximize size happened to be current, instead
+     * of the window's original one */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
 
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X |
@@ -444,7 +453,16 @@ void wcmd_client_maximize_vert(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
+    /* Only remember the geometry to restore to if it is not already
+     * a maximized state's geometry: switching from horizontal-only
+     * maximize to vertical must not overwrite the true pre-maximize
+     * geometry already held in 'layout.geometry.old' (see
+     * 'client_is_maximized_any'), or restoring later would land at
+     * whichever partial-maximize size happened to be current, instead
+     * of the window's original one */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
 
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X |
@@ -486,9 +504,11 @@ void wcmd_client_maximize(client_td *client)
         wcmd_client_unshade(client);
     }
 
-    /* Toggle: if already maximized (fully or vertically), restore */
-    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
-            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+    /* Toggle: only restore if already fully maximized; a window
+     * maximized on just one axis (horizontal or vertical) falls
+     * through to the "maximize" branch below instead, completing it
+     * to full maximize on the other axis too. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED) {
         target = wcmd_target_win(client);
         client_geometry_restore(client);
         xcb_configure_window(client->connection, target,
@@ -515,7 +535,16 @@ void wcmd_client_maximize(client_td *client)
     }
 
     target = wcmd_target_win(client);
-    client_geometry_save(client);
+    /* Only remember the geometry to restore to if it is not already
+     * a maximized state's geometry: switching from horizontal-only or
+     * vertical-only maximize to full maximize must not overwrite the
+     * true pre-maximize geometry already held in
+     * 'layout.geometry.old' (see 'client_is_maximized_any'), or
+     * restoring later would land at whichever partial-maximize size
+     * happened to be current, instead of the window's original one */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
 
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X     |
