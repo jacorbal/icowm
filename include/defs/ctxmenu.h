@@ -1,5 +1,5 @@
 /**
- * @file ctxmenu.h
+ * @file defs/ctxmenu.h
  *
  * @brief Dimensions and capacity limits for the generic context menu
  *        implementation (root menu, window menu, window list, and

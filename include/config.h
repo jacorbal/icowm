@@ -523,12 +523,27 @@ struct config_theme_s {
         /** Style for the hovered or keyboard-navigated entry */
         struct config_theme_style_s selected;
 
+        /** Style for a non-interactive heading row (@c CTXMENU_LABEL):
+         *  never highlighted or activated, so it never borrows
+         *  @c unselected or @c selected even though it can look
+         *  similar by default */
+        struct config_theme_style_s label;
+
         /** Text color for an entry that cannot currently be activated
          *  (e.g., "maximize" on a client that cannot be resized) */
         uint32_t disabled_foreground;
 
         /** Line color for a separator between groups of entries */
         uint32_t separator_color;
+
+        /** Inset, in pixels, between the menu window's own edges and
+         *  every row's text (and, for a submenu, its arrow indicator);
+         *  applies equally to @c unselected, @c selected, and
+         *  @c label rows */
+        struct {
+            uint32_t horizontal;
+            uint32_t vertical;
+        } padding;
     } menu;
 
     /**
@@ -548,6 +563,13 @@ struct config_theme_s {
         struct {
             char font[CONFIG_MAX_LENGTH_FONTNAME];
             uint32_t foreground;
+
+            /** Inset, in pixels, between the dialog window's edges
+             *  and the prompt text */
+            struct {
+                uint32_t horizontal;
+                uint32_t vertical;
+            } padding;
         } label;
 
         /** The dialog's own buttons (e.g., "Cancel" / "Exit"), styled
@@ -556,6 +578,16 @@ struct config_theme_s {
         struct {
             struct config_theme_style_s unselected;
             struct config_theme_style_s selected;
+
+            /** Inset, in pixels, between a button's own edges and its
+             *  label; shared by @c unselected and @c selected on
+             *  purpose, since a button growing or shrinking when it
+             *  becomes the selection would shift every other button
+             *  beside it */
+            struct {
+                uint32_t horizontal;
+                uint32_t vertical;
+            } padding;
         } button;
     } dialog;
 

@@ -1,5 +1,5 @@
 /**
- * @file desktop.h
+ * @file defs/desktop.h
  *
  * @brief Capacity limits and identifiers for desktops, and timing for
  *        the desktop-switch notification

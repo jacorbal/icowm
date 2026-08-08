@@ -1,5 +1,5 @@
 /**
- * @file client.h
+ * @file defs/client.h
  *
  * @brief Dimensions, timing, and other numeric limits for a managed
  *        client window and its decoration

@@ -1,5 +1,5 @@
 /**
- * @file rules/rules.h
+ * @file rules.h
  *
  * @brief Window matching rules loader and applier
  *

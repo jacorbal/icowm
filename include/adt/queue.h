@@ -1,5 +1,5 @@
 /**
- * @file queue.h
+ * @file adt/queue.h
  *
  * @brief Queue (FIFO) data structure declaration as linked list
  *

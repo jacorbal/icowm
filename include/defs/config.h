@@ -1,5 +1,5 @@
 /**
- * @file config.h
+ * @file defs/config.h
  *
  * @brief Definitions related to the configuration structure
  */

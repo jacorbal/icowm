@@ -1,5 +1,5 @@
 /**
- * @file wm/action.c
+ * @file wm/actions.c
  *
  * @brief Window manager action dispatchers implementation
  */

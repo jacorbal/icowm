@@ -137,7 +137,8 @@ void notify_popup_show_centered(xcb_connection_t *connection,
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, state->window,
             surface->screen->root, x, y, (uint16_t) width,
-            (uint16_t) height, 1, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            (uint16_t) height, (uint16_t) cfg->theme.overlay.border.width,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT, mask, values);
     xcb_map_window(connection, state->window);
     xcb_flush(connection);

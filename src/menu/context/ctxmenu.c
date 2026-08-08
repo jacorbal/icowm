@@ -82,7 +82,7 @@ static int s_entry_top_y(const ctxmenu_state_td *state, int idx)
         return state->entry_top_y[idx];
     }
 
-    y = WM_CTXMENU_PAD_Y;
+    y = (int) state->config->theme.menu.padding.vertical;
     for (int i = 0; i < idx && i < state->entry_count; ++i) {
         y += s_row_height(state->entries[i].type);
     }
@@ -110,7 +110,7 @@ static int s_entry_top_y(const ctxmenu_state_td *state, int idx)
  */
 static uint16_t s_build_layout(ctxmenu_state_td *state)
 {
-    int y = WM_CTXMENU_PAD_Y;
+    int y = (int) state->config->theme.menu.padding.vertical;
 
     for (int i = 0; i < state->entry_count; ++i) {
         if (state->entry_top_y != NULL) {
@@ -119,7 +119,7 @@ static uint16_t s_build_layout(ctxmenu_state_td *state)
         y += s_row_height(state->entries[i].type);
     }
 
-    return (uint16_t) (y + WM_CTXMENU_PAD_Y);
+    return (uint16_t) (y + (int) state->config->theme.menu.padding.vertical);
 }
 
 
@@ -153,7 +153,7 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
         }
 
         w = (uint16_t) (menu_draw_measure(entries[i].label) +
-                (uint16_t) (WM_CTXMENU_PAD_X * 2));
+                (uint16_t) (config->theme.menu.padding.horizontal * 2u));
 
         /* Add space for the submenu arrow indicator */
         if (entries[i].type == CTXMENU_SUBMENU) {
@@ -218,7 +218,7 @@ static int s_entry_at_y(const ctxmenu_state_td *state, int y)
     }
 
     /* Fallback linear scan when no cache is available */
-    cur_y = WM_CTXMENU_PAD_Y;
+    cur_y = (int) state->config->theme.menu.padding.vertical;
     for (int i = 0; i < state->entry_count; ++i) {
         row_h = s_row_height(state->entries[i].type);
         if (y >= cur_y && y < cur_y + row_h) {
@@ -328,6 +328,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     bool is_sel;
     uint32_t bg;
     uint32_t fg;
+    uint32_t border_color;
+    uint32_t border_width;
     char label_buf[WM_CTXMENU_LABEL_MAX_LEN + 4];
     uint16_t arrow_w;
     int16_t arrow_x;
@@ -352,8 +354,10 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
 
     if (e->type == CTXMENU_LABEL) {
-        bg = state->config->theme.menu.unselected.color.background;
-        fg = state->config->theme.menu.unselected.color.foreground;
+        bg = state->config->theme.menu.label.color.background;
+        fg = state->config->theme.menu.label.color.foreground;
+        border_color = state->config->theme.menu.label.border.color;
+        border_width = state->config->theme.menu.label.border.width;
     } else {
         bg = (is_sel)
             ? state->config->theme.menu.selected.color.background
@@ -363,10 +367,39 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
             : (is_sel)
                 ? state->config->theme.menu.selected.color.foreground
                 : state->config->theme.menu.unselected.color.foreground;
+        border_color = (is_sel)
+            ? state->config->theme.menu.selected.border.color
+            : state->config->theme.menu.unselected.border.color;
+        border_width = (is_sel)
+            ? state->config->theme.menu.selected.border.width
+            : state->config->theme.menu.unselected.border.width;
     }
 
     menu_draw_row_bg(conn, state->window, bg,
             (int16_t) top_y, (uint16_t) row_h, state->width);
+
+    /* Every style's 'border' is drawn if 'border.width' is greater
+     * than 0; the built-in default theme sets it to a subtle 1px for
+     * 'unselected'/'selected' (matching the border already drawn
+     * around the whole cycle-menu window, which reuses
+     * 'menu.unselected.border' for its own frame) and to 0 for
+     * 'label', so heading rows stay plain by default. */
+    if (e->type != CTXMENU_SEPARATOR && border_width > 0u) {
+        xcb_gcontext_t border_gc = xcb_generate_id(conn);
+        xcb_rectangle_t border_rect;
+
+        xcb_create_gc(conn, border_gc, state->window,
+                XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH,
+                (const uint32_t[]) { border_color, border_width });
+        border_rect.x = (int16_t) (border_width / 2u);
+        border_rect.y = (int16_t) (top_y + (int) (border_width / 2u));
+        border_rect.width = (uint16_t) ((uint32_t) state->width -
+                border_width);
+        border_rect.height = (uint16_t) ((uint32_t) row_h - border_width);
+        xcb_poly_rectangle(conn, state->window, border_gc, 1,
+                &border_rect);
+        xcb_free_gc(conn, border_gc);
+    }
 
     if (e->type == CTXMENU_SEPARATOR) {
         /* Draw a centered horizontal line for the separator */
@@ -374,10 +407,10 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         gc_vals[0] = state->config->theme.menu.separator_color;
         xcb_create_gc(conn, gc, state->window,
                 XCB_GC_FOREGROUND, gc_vals);
-        rect.x = (int16_t) WM_CTXMENU_PAD_X;
+        rect.x = (int16_t) state->config->theme.menu.padding.horizontal;
         rect.y = (int16_t) (top_y + WM_CTXMENU_SEP_HEIGHT / 2);
         rect.width = (uint16_t) (state->width -
-                (uint16_t) (WM_CTXMENU_PAD_X * 2));
+                (uint16_t) (state->config->theme.menu.padding.horizontal * 2u));
         rect.height = 1;
         xcb_poly_fill_rectangle(conn, state->window, gc, 1, &rect);
         xcb_free_gc(conn, gc);
@@ -386,18 +419,21 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
     (void) snprintf(label_buf, sizeof(label_buf), "%s", e->label);
 
-    text_renderer_init(conn, (is_sel)
-            ? state->config->theme.menu.selected.font
-            : state->config->theme.menu.unselected.font);
+    text_renderer_init(conn, (e->type == CTXMENU_LABEL)
+            ? state->config->theme.menu.label.font
+            : (is_sel)
+                ? state->config->theme.menu.selected.font
+                : state->config->theme.menu.unselected.font);
     text_renderer_set_color(fg, bg);
     menu_draw_label(conn, state->window,
-            (int16_t) WM_CTXMENU_PAD_X,
+            (int16_t) state->config->theme.menu.padding.horizontal,
             (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
             label_buf);
 
     if (e->type == CTXMENU_SUBMENU) {
         arrow_w = menu_draw_measure(MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
-        arrow_x = (int16_t) (state->width - (uint16_t) WM_CTXMENU_PAD_X -
+        arrow_x = (int16_t) (state->width -
+                (uint16_t) state->config->theme.menu.padding.horizontal -
                 arrow_w);
         menu_draw_label(conn, state->window,
                 arrow_x,

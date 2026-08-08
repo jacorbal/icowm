@@ -1,5 +1,5 @@
 /**
- * @file menu/confirm.c
+ * @file menu/dialog/quit.c
  *
  * @brief Quit-confirmation dialog thin wrapper implementation
  */

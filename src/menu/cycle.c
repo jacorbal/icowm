@@ -259,16 +259,22 @@ void cycle_open(list_td *surfaces,
                     g_cycle_menu.clients[idx] = c;
 
                     /* Encode window state directly in the menu label:
-                     *  - hidden -> "{name}"
                      *  - icon   -> "(name)"
-                     *  - normal ->  "name" */
-                    if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
-                        snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LEN, "{%s}", name);
-                    } else if (c->properties.state ==
+                     *  - hidden -> "<name>"
+                     *  - normal ->  "name"
+                     * 'CLIENT_FLAG_HIDDEN' is set for BOTH an
+                     * iconified and a genuinely hidden client (see
+                     * 'client_set_hidden', called from both paths), so
+                     * the more specific iconified state has to be
+                     * checked first; the hidden flag is only checked
+                     * once iconified has already been ruled out. */
+                    if (c->properties.state ==
                             (uint16_t) CLIENT_STATE_ICONIFIED) {
                         snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "(%s)", name);
+                    } else if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
+                        snprintf(g_cycle_menu.labels[idx],
+                                WM_CYCLE_MENU_ENTRY_LEN, "<%s>", name);
                     } else {
                         snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
@@ -304,12 +310,13 @@ void cycle_open(list_td *surfaces,
         if (w > max_w) { max_w = w; }
     }
 
-    menu_w = (uint16_t) (max_w + (uint16_t) (WM_CYCLE_MENU_PAD_X * 2));
+    menu_w = (uint16_t) (max_w +
+            (uint16_t) (cfg->theme.menu.padding.horizontal * 2u));
 
     /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERC' of screen */
     screen_h_pct = surface->properties.dim.h *
         (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERC / 100u;
-    pad2 = (uint32_t) (WM_CYCLE_MENU_PAD_Y * 2);
+    pad2 = cfg->theme.menu.padding.vertical * 2u;
     avail = (screen_h_pct > pad2) ? (screen_h_pct - pad2) : 0u;
     vp_rows = (int) (avail / (uint32_t) WM_CYCLE_MENU_ROW_HEIGHT);
 
@@ -323,8 +330,9 @@ void cycle_open(list_td *surfaces,
     g_cycle_menu.scroll_offset = 0;
     s_cycle_scroll_to_selection();
 
-    menu_h = (uint16_t) (WM_CYCLE_MENU_PAD_Y * 2 +
-            g_cycle_menu.viewport_rows * WM_CYCLE_MENU_ROW_HEIGHT);
+    menu_h = (uint16_t) (cfg->theme.menu.padding.vertical * 2u +
+            (uint32_t) (g_cycle_menu.viewport_rows *
+                WM_CYCLE_MENU_ROW_HEIGHT));
 
     g_cycle_menu.width = menu_w;
 
@@ -353,7 +361,7 @@ void cycle_open(list_td *surfaces,
             surface->screen->root,
             menu_x, menu_y,
             menu_w, menu_h,
-            1,
+            (uint16_t) cfg->theme.menu.unselected.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);

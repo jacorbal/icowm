@@ -1,5 +1,5 @@
 /**
- * @file utils/json.c
+ * @file utils/config/json.c
  *
  * @brief Low-level JSON helper implementation
  */

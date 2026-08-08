@@ -1,5 +1,5 @@
 /**
- * @file session/session.h
+ * @file session.h
  *
  * @brief Session hook loader and dispatcher
  *

@@ -915,13 +915,21 @@ icons the clock counts as being docked.
 
 Applies to every context menu (root menu, per-window menu, the
 all-desktops window list, and their submenus) and to the Alt+Tab-style
-cycle menu's own window chrome.  The cycle menu's individual icon
-cells keep using `icon.active` / `icon.inactive` (section 4.2) instead
-of this, since that already themes "the icon currently selected while
-cycling" specifically; likewise, the border drawn around the actual
-window or icon being previewed while cycling uses `window.active` /
+cycle menu's own window chrome (its per-row entries in list mode use
+this too).  The cycle menu's individual icon cells keep using
+`icon.active` / `icon.inactive` (section 4.2) instead of this, since
+that already themes "the icon currently selected while cycling"
+specifically; likewise, the border drawn around the actual window or
+icon being previewed while cycling uses `window.active` /
 `window.inactive` (section 4.1), since that is a highlight on the real
 window, not on the menu.
+
+`unselected.border` doubles as the frame drawn around the whole
+cycle-menu popup window itself, not just individual context-menu rows,
+which is why its default width is `1` rather than `0`: a context menu
+window currently has no frame of its own, so that same default also
+means every ordinary (non-label) row gets a subtle 1px outline unless
+lowered to `0`.
 
 | Key                        | Type    | Default     |
 |-----------------------------|---------|-------------|
@@ -935,11 +943,23 @@ window, not on the menu.
 | `selected.color.foreground` | string | `"#253040"` |
 | `selected.border.color`    | string  | `"#4A5566"` |
 | `selected.border.width`    | integer | `1`         |
+| `label.font`                | string | `"fixed"`   |
+| `label.color.background`   | string  | `"#D0D9E5"` |
+| `label.color.foreground`   | string  | `"#7F9AB6"` |
+| `label.border.color`       | string  | `"#7F9AB6"` |
+| `label.border.width`       | integer | `0`         |
 | `disabled.color.foreground` | string | `"#A0A8B0"` |
 | `separator.color`          | string  | `"#7F9AB6"` |
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
+`label` styles a non-interactive heading row: it never borrows
+`unselected` or `selected` even though it can look similar by default,
+so it can be told apart (e.g., dimmer text, no border) without also
+having to look like a normal, hoverable entry.  Any of the three
+styles' `border.width` can be raised above `0` to draw an outline
+around that kind of row; `unselected`/`selected` default to a subtle
+`1`, `label` to `0` so heading rows stay plain.
 `disabled.color.foreground` colors the text of an entry that cannot
 currently be activated (e.g., "maximize" on a client that cannot be
 resized); its background still comes from `unselected` or `selected`
@@ -958,6 +978,11 @@ entries.
         "font": "fixed bold",
         "color": { "background": "#9AAEC8", "foreground": "#253040" },
         "border": { "color": "#4A5566", "width": 1 }
+    },
+    "label": {
+        "font": "fixed",
+        "color": { "background": "#D0D9E5", "foreground": "#7F9AB6" },
+        "border": { "color": "#7F9AB6", "width": 0 }
     },
     "disabled": {
         "color": { "foreground": "#A0A8B0" }

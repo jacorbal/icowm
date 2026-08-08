@@ -1,5 +1,5 @@
 /**
- * @file loop.h
+ * @file defs/loop.h
  *
  * @brief Timing constants for the main event loop's @c poll wait
  */

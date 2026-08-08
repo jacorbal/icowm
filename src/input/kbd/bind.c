@@ -1,5 +1,5 @@
 /**
- * @file input/keyboard.c
+ * @file input/kbd/bind.c
  *
  * @brief Keyboard binding parsing, grab installation, and lookup
  *

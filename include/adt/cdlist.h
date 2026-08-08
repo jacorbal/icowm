@@ -1,5 +1,5 @@
 /**
- * @file cdlist.h
+ * @file adt/cdlist.h
  *
  * @brief Doubly linked circular list data structure declaration
  *

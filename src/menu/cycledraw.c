@@ -341,6 +341,8 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     uint32_t bg_sel;
     uint32_t fg_nor;
     uint32_t bg_nor;
+    int16_t pad_x;
+    int16_t pad_y;
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE) {
@@ -351,13 +353,15 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     bg_sel = config->theme.menu.selected.color.background;
     fg_nor = config->theme.menu.unselected.color.foreground;
     bg_nor = config->theme.menu.unselected.color.background;
+    pad_x = (int16_t) config->theme.menu.padding.horizontal;
+    pad_y = (int16_t) config->theme.menu.padding.vertical;
 
     text_renderer_init(connection, config->theme.menu.unselected.font);
 
     for (int i = g_cycle_menu.scroll_offset;
             i < g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows;
             ++i) {
-        int16_t row_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+        int16_t row_y = (int16_t) (pad_y +
                 (i - g_cycle_menu.scroll_offset) *
                 WM_CYCLE_MENU_ROW_HEIGHT);
 
@@ -374,7 +378,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
         }
 
         menu_draw_label(connection, g_cycle_menu.window,
-                (int16_t) WM_CYCLE_MENU_PAD_X,
+                (int16_t) pad_x,
                 (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
                 g_cycle_menu.labels[i]);
     }
@@ -385,41 +389,41 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
         /* Up arrow: entries exist above the viewport */
         if (g_cycle_menu.scroll_offset > 0) {
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    0, (uint16_t) pad_y,
                     g_cycle_menu.width);
             text_renderer_set_color(fg_sel, bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
-                    (int16_t) (WM_CYCLE_MENU_PAD_Y - 2),
+                    (int16_t) (pad_y - 2),
                     "---");
         } else {
             /* Clear the top padding area when no arrow is needed */
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    0, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    0, (uint16_t) pad_y,
                     g_cycle_menu.width);
         }
 
         /* Down arrow: entries exist below the viewport */
         if (g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows <
                 g_cycle_menu.count) {
-            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+            int16_t bot_y = (int16_t) (pad_y +
                     g_cycle_menu.viewport_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    bot_y, (uint16_t) pad_y,
                     g_cycle_menu.width);
             text_renderer_set_color(fg_sel, bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
-                    (int16_t) (bot_y + WM_CYCLE_MENU_PAD_Y - 2),
+                    (int16_t) (bot_y + pad_y - 2),
                     "---");
         } else {
             /* Clear the bottom padding area when no arrow is needed */
-            int16_t bot_y = (int16_t) (WM_CYCLE_MENU_PAD_Y +
+            int16_t bot_y = (int16_t) (pad_y +
                     g_cycle_menu.viewport_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
             menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    bot_y, (int16_t) WM_CYCLE_MENU_PAD_Y,
+                    bot_y, (uint16_t) pad_y,
                     g_cycle_menu.width);
         }
     }

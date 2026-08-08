@@ -1,5 +1,5 @@
 /**
- * @file input.h
+ * @file defs/input.h
  *
  * @brief Capacity limits and thresholds for keyboard/mouse bindings
  *        and pointer interaction

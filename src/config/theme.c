@@ -318,14 +318,19 @@ int config_load_theme(const char *filename,
     if (menu) {
         cJSON *unselected;
         cJSON *selected;
+        cJSON *label;
         cJSON *disabled;
         cJSON *separator;
+        cJSON *padding;
 
         unselected = cJSON_GetObjectItem(menu, "unselected");
         s_load_theme_colors(unselected, &config_theme->menu.unselected);
 
         selected = cJSON_GetObjectItem(menu, "selected");
         s_load_theme_colors(selected, &config_theme->menu.selected);
+
+        label = cJSON_GetObjectItem(menu, "label");
+        s_load_theme_colors(label, &config_theme->menu.label);
 
         disabled = cJSON_GetObjectItem(menu, "disabled");
         if (disabled) {
@@ -340,6 +345,14 @@ int config_load_theme(const char *filename,
         if (separator) {
             json_load_color(separator, "color",
                     &config_theme->menu.separator_color);
+        }
+
+        padding = cJSON_GetObjectItem(menu, "padding");
+        if (padding) {
+            json_load_uint(padding, "horizontal",
+                    &config_theme->menu.padding.horizontal);
+            json_load_uint(padding, "vertical",
+                    &config_theme->menu.padding.vertical);
         }
     }
 
@@ -367,6 +380,7 @@ int config_load_theme(const char *filename,
         label = cJSON_GetObjectItem(dialog, "label");
         if (label) {
             cJSON *label_color;
+            cJSON *label_padding;
 
             json_load_string(label, "font", config_theme->dialog.label.font,
                     CONFIG_MAX_LENGTH_FONTNAME);
@@ -375,6 +389,13 @@ int config_load_theme(const char *filename,
                 json_load_color(label_color, "foreground",
                         &config_theme->dialog.label.foreground);
             }
+            label_padding = cJSON_GetObjectItem(label, "padding");
+            if (label_padding) {
+                json_load_uint(label_padding, "horizontal",
+                        &config_theme->dialog.label.padding.horizontal);
+                json_load_uint(label_padding, "vertical",
+                        &config_theme->dialog.label.padding.vertical);
+            }
         }
 
         button = cJSON_GetObjectItem(dialog, "button");
@@ -382,11 +403,18 @@ int config_load_theme(const char *filename,
             cJSON *btn_unselected = cJSON_GetObjectItem(button,
                     "unselected");
             cJSON *btn_selected = cJSON_GetObjectItem(button, "selected");
+            cJSON *btn_padding = cJSON_GetObjectItem(button, "padding");
 
             s_load_theme_colors(btn_unselected,
                     &config_theme->dialog.button.unselected);
             s_load_theme_colors(btn_selected,
                     &config_theme->dialog.button.selected);
+            if (btn_padding) {
+                json_load_uint(btn_padding, "horizontal",
+                        &config_theme->dialog.button.padding.horizontal);
+                json_load_uint(btn_padding, "vertical",
+                        &config_theme->dialog.button.padding.vertical);
+            }
         }
     }
 

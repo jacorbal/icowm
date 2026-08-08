@@ -1,5 +1,5 @@
 /**
- * @file list.h
+ * @file adt/list.h
  *
  * @brief Linked list data structure declaration
  *

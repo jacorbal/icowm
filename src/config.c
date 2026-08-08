@@ -43,6 +43,9 @@
 #include <utils/config/path.h>
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/ctxmenu.h>
+
 /* Project includes */
 #include <logger.h>
 
@@ -425,8 +428,18 @@ void config_set_default_values(config_td *config)
     config->theme.menu.selected.border.color = json_hex2uint32("4A5566");
     config->theme.menu.selected.border.width = 1u;
 
+    safe_strcpy(config->theme.menu.label.font, "fixed");
+    config->theme.menu.label.color.background =
+        json_hex2uint32("D0D9E5");
+    config->theme.menu.label.color.foreground =
+        json_hex2uint32("7F9AB6");
+    config->theme.menu.label.border.color = json_hex2uint32("7F9AB6");
+    config->theme.menu.label.border.width = 0u;
+
     config->theme.menu.disabled_foreground = json_hex2uint32("A0A8B0");
     config->theme.menu.separator_color = json_hex2uint32("7F9AB6");
+    config->theme.menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
+    config->theme.menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
 
     config->theme.dialog.background = json_hex2uint32("D0D9E5");
     config->theme.dialog.border.color = json_hex2uint32("7F9AB6");
@@ -434,6 +447,8 @@ void config_set_default_values(config_td *config)
 
     safe_strcpy(config->theme.dialog.label.font, "fixed");
     config->theme.dialog.label.foreground = json_hex2uint32("4A5566");
+    config->theme.dialog.label.padding.horizontal = 12u;
+    config->theme.dialog.label.padding.vertical = 12u;
 
     safe_strcpy(config->theme.dialog.button.unselected.font, "fixed");
     config->theme.dialog.button.unselected.color.background =
@@ -452,6 +467,9 @@ void config_set_default_values(config_td *config)
     config->theme.dialog.button.selected.border.color =
         json_hex2uint32("4A5566");
     config->theme.dialog.button.selected.border.width = 1u;
+
+    config->theme.dialog.button.padding.horizontal = 12u;
+    config->theme.dialog.button.padding.vertical = 6u;
 
     safe_strcpy(config->theme.overlay.font, "fixed");
     config->theme.overlay.color.background = json_hex2uint32("D0D9E5");

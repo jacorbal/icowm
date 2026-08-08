@@ -1,5 +1,5 @@
 /**
- * @file popup.h
+ * @file defs/popup.h
  *
  * @brief Dimensions and timing for the client-info popup
  */

@@ -1,5 +1,5 @@
 /**
- * @file pqueue.h
+ * @file adt/pqueue.h
  *
  * @brief Priority queue declaration as a heap
  *

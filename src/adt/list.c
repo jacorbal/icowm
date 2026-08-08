@@ -1,5 +1,5 @@
 /**
- * @file list.c
+ * @file adt/list.c
  *
  * @brief Linked list data structure implementation
  */

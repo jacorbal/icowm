@@ -1,5 +1,5 @@
 /**
- * @file stack.h
+ * @file adt/stack.h
  *
  * @brief Stack (LIFO) data structure declaration as linked list
  *

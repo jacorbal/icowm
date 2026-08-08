@@ -1,5 +1,5 @@
 /**
- * @file utils/path.c
+ * @file utils/config/path.c
  *
  * @brief Implementation for path handling functions
  */

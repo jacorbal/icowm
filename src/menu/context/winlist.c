@@ -242,9 +242,15 @@ static void s_cb_focus_client(xcb_connection_t *connection,
 /**
  * @brief Format a window-list entry label according to the client state
  *
- * Wraps @p name in curly braces if the client is hidden, in parentheses
- * if iconified, or copies it verbatim otherwise.  The result is written
- * into @p buf.
+ * Wraps @p name in parentheses if the client is iconified, in angle
+ * brackets if hidden (but not iconified), or copies it verbatim
+ * otherwise.  The result is written into @p buf.
+ *
+ * @c CLIENT_FLAG_HIDDEN is set for both an iconified and a genuinely
+ * hidden client (see @c client_set_hidden, called from both paths),
+ * so the more specific iconified state has to be checked first; the
+ * hidden flag is only checked once iconified has already been ruled
+ * out.
  *
  * @param client   Client whose state determines the format
  * @param name     Base name string to format
@@ -260,10 +266,9 @@ static void s_format_client_label(const client_td *client,
     }
 
     if (client->properties.state == (uint16_t) CLIENT_STATE_ICONIFIED) {
-        (void) snprintf(buf, buf_size, "{%s}", name);
-    } else if (client->properties.flags &
-            CLIENT_FLAG_HIDDEN) {
         (void) snprintf(buf, buf_size, "(%s)", name);
+    } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        (void) snprintf(buf, buf_size, "<%s>", name);
     } else {
         (void) snprintf(buf, buf_size, "%s", name);
     }

@@ -1,5 +1,5 @@
 /**
- * @file cursor.h
+ * @file defs/cursor.h
  *
  * @brief Glyph indices into the X server's built-in "cursor" font
  */

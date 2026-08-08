@@ -1,5 +1,5 @@
 /**
- * @file ohtbl.c
+ * @file adt/ohtbl.c
  *
  * @brief Open-addressed hash table (closed hashing) implementation
  */

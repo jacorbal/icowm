@@ -1,5 +1,5 @@
 /**
- * @file heap.h
+ * @file adt/heap.h
  *
  * @brief Heap data structure declaration
  *

@@ -1,5 +1,5 @@
 /**
- * @file main.h
+ * @file defs/main.h
  *
  * @brief Main global definitions for the program
  */

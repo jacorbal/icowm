@@ -113,7 +113,7 @@ void popup_show(xcb_connection_t *connection,
             surface->screen->root,
             x, y,
             (uint16_t) width, (uint16_t) height,
-            1,
+            (uint16_t) cfg->theme.overlay.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);

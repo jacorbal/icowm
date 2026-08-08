@@ -1,5 +1,5 @@
 /**
- * @file cycle.h
+ * @file defs/cycle.h
  *
  * @brief Dimensions and capacity limits for the Alt+Tab-style client
  *        cycle menu

@@ -1,5 +1,5 @@
 /**
- * @file icon.h
+ * @file defs/icon.h
  *
  * @brief Dimensions for a client's iconified representation on the
  *        desktop
