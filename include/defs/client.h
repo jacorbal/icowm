@@ -59,5 +59,19 @@
  */
 #define WM_SYNC_MAX_WAIT_TICKS (2u)
 
+/**
+ * @brief Grace period in milliseconds after a shade or unshade during
+ *        which a client's own geometry 'ConfigureRequest' is ignored
+ *
+ * A shade/unshade transition briefly (and drastically) resizes the
+ * client's own content window, which some clients react to with a
+ * delayed 'ConfigureRequest' of their own once they catch up
+ * processing the resulting 'ConfigureNotify' sequence; if that
+ * request lands after the window manager has already restored the
+ * client's true geometry, honoring it silently undoes the shade or
+ * unshade the user just asked for.  See 'handler_configure_request'.
+ */
+#define WM_SHADE_CONFIGURE_COOLDOWN_MS (250)
+
 
 #endif  /* ! DEFS_CLIENT_H */

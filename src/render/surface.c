@@ -131,7 +131,7 @@ int surface_render_all_desktops(surface_td *surface)
          * inside the 'is_outdated' branch below is actually expensive,
          * and 'desktop_render_full' logs its own specifics once that
          * runs. */
-        LOGGER_DEBUG("Checking whether desktop %u ('%s') needs" \
+        LOGGER_DEBUG("Assessing whether desktop %u ('%s') needs" \
                 " rendering", rendered_count,
                 (desktop->name[0] != '\0') ? desktop->name : "unnamed");
 

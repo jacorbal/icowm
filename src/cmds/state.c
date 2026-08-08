@@ -18,11 +18,15 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdlib.h>     /* free */
+#include <time.h>       /* CLOCK_MONOTONIC, clock_gettime */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -265,6 +269,7 @@ void wcmd_client_shade(client_td *client)
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
     client_set_shade(client);
     client_sync_decoration_layout(client);
+    (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     wcmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
     wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -307,6 +312,7 @@ void wcmd_client_unshade(client_td *client)
 
     client_unset_shade(client);
     client_unset_hidden(client);
+    (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     wcmd_rem_states(client, 2,
             "_NET_WM_STATE_SHADED",

@@ -11,9 +11,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -160,7 +164,7 @@ void handler_configure_request(xcb_connection_t *connection,
     }
 
     if (client != NULL) {
-        LOGGER_TRACE("'ConfigureRequest' matched client window=0x%x:" \
+        LOGGER_DEBUG("'ConfigureRequest' matched client window=0x%x:" \
                 " frame=0x%x, decorated=%d, on_inner=%d, mask=0x%x," \
                 " requested=%ux%u+%d+%d, operation=%u",
                 client->window, client->frame,
@@ -210,6 +214,45 @@ void handler_configure_request(xcb_connection_t *connection,
                     xcb_flush(connection);
                 }
                 return;
+            }
+        }
+
+        /* Ignore a geometry request that lands shortly after the
+         * window manager itself just shaded or unshaded this client:
+         * see 'WM_SHADE_CONFIGURE_COOLDOWN_MS' for why such a request
+         * is far more likely to be the client's own delayed, stale
+         * reaction to that transition than an independent resize it
+         * actually wants. */
+        if (mask & geom_mask) {
+            struct timespec now;
+
+            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+                int64_t elapsed_ms =
+                    ((int64_t) now.tv_sec -
+                        (int64_t) client->shade_transition_time.tv_sec) *
+                        1000 +
+                    ((int64_t) now.tv_nsec -
+                        (int64_t) client->shade_transition_time.tv_nsec) /
+                        1000000;
+
+                if (elapsed_ms >= 0 &&
+                        elapsed_ms < WM_SHADE_CONFIGURE_COOLDOWN_MS) {
+                    LOGGER_DEBUG("Ignoring 'ConfigureRequest' for" \
+                            " window=0x%x: %lld ms after a shade" \
+                            " transition, within the" \
+                            " %u ms cooldown",
+                            client->window, (long long) elapsed_ms,
+                            (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS);
+                    mask = (uint16_t) (mask & ~geom_mask);
+                    if (mask == 0) {
+                        if (connection != NULL && is_reparented) {
+                            s_handler_send_synthetic_configure_notify(
+                                    connection, client);
+                            xcb_flush(connection);
+                        }
+                        return;
+                    }
+                }
             }
         }
 

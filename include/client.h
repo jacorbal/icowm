@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>  /* pid_t */
+#include <time.h>       /* struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -241,6 +242,17 @@ typedef struct client_s {
     int16_t icon_x;                 /**< Saved icon X (-1 = unset) */
     int16_t icon_y;                 /**< Saved icon Y (-1 = unset) */
     uint16_t title_height;          /**< Cached titlebar height */
+    struct timespec shade_transition_time; /**< Monotonic time of the
+                                                 client's last shade or
+                                                 unshade; used to
+                                                 recognize and ignore a
+                                                 client's own
+                                                 'ConfigureRequest' as a
+                                                 stale reaction to that
+                                                 transition rather than
+                                                 a genuine independent
+                                                 resize, see
+                                                 'handler_configure_request' */
 
     uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */
     uint32_t screen_id;             /**< Screen index */
@@ -500,7 +512,7 @@ void client_sync_decoration_layout(client_td *client);
  * @c window.inactive.border.width need not be equal; when they differ,
  * this grows or shrinks the frame's outer edge by the difference on
  * every side. @c window.titlebar.height can also have changed
- * (e.g. a configuration reload picked up an edited theme file), in
+ * (e.g., a configuration reload picked up an edited theme file), in
  * which case only the top edge grows or shrinks by that additional
  * amount. Either way the client's own content window never moves or
  * resizes (only how much frame surrounds it changes) and the client is
