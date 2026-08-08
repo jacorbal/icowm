@@ -1,5 +1,5 @@
 /**
- * @file input/mouse/internal.c
+ * @file input/mouse/bounds.c
  *
  * @brief Shared resize-border bounds computation implementation
  */
@@ -22,7 +22,7 @@
 #include <client.h>
 
 /* Local includes */
-#include <input/mouse/internal.h>
+#include <input/mouse/bounds.h>
 
 
 /**

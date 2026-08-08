@@ -91,6 +91,13 @@ static void s_loop_handle_leave_notify(wm_td *wm,
         return;
     }
 
+    /* Independent of focus-follows-mouse below: a resize-cursor poll
+     * target (see 'mouse_hover_poll_tick' in input/mouse.h) tracked
+     * for this window must stop being polled once the pointer has
+     * actually left it, regardless of whether hover also affects
+     * focus. */
+    mouse_hover_poll_clear(event->event);
+
     if (focus_is_follow_mouse(wm->config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&
             event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
@@ -162,6 +169,7 @@ void loop_run(wm_td *wm)
     int poll_timeout_ms;
     int clock_ms;
     int sn_ms;
+    int hover_ms;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -262,6 +270,15 @@ void loop_run(wm_td *wm)
             poll_timeout_ms = sn_ms;
         }
 
+        /* Shorter still while a resize-cursor poll target is being
+         * tracked (see 'mouse_hover_poll_tick' in input/mouse.h), so
+         * an undecorated client's cursor gets re-evaluated promptly
+         * as the pointer moves within it. */
+        hover_ms = mouse_hover_poll_ms_remaining();
+        if (hover_ms >= 0 && hover_ms < poll_timeout_ms) {
+            poll_timeout_ms = hover_ms;
+        }
+
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -271,6 +288,7 @@ void loop_run(wm_td *wm)
 
         systray_clock_tick();
         sn_tick(wm->connection, wm->surfaces);
+        mouse_hover_poll_tick(wm->connection, wm->surfaces);
 
         while ((event = (pending_event != NULL)
                     ? pending_event

@@ -48,7 +48,7 @@
 
 /* Local includes */
 #include <input/mouse/drag.h>
-#include <input/mouse/internal.h>
+#include <input/mouse/bounds.h>
 
 
 /**
@@ -594,7 +594,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
     /* For resize operations, make the visible corner handles define the
      * corner hit zones.  Outside those adaptive-margin corner zones
-     * (see 'im_resize_bounds' in input/mouse/internal.h), keep the
+     * (see 'im_resize_bounds' in input/mouse/bounds.h), keep the
      * existing center-based fallback so the rest of the border still
      * behaves as a resize handle. */
     if (operation == CLIENT_OPERATION_RESIZING) {

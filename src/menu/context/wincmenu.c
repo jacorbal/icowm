@@ -305,7 +305,7 @@ static void s_cb_move(xcb_connection_t *connection,
  * returns the coordinates of the opposite corner of the window frame,
  * one pixel inside each edge so @c drag_start recognizes it as
  * a corner handle (see @c im_resize_bounds in
- * input/mouse/internal.h):
+ * input/mouse/bounds.h):
  * - Window in the top-left quadrant    -> bottom-right corner.
  * - Window in the bottom-left quadrant -> top-right corner.
  * - Window in the bottom-right quadrant -> top-left corner.

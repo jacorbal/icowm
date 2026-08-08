@@ -42,6 +42,9 @@
 #include <systray.h>
 #include <wm.h>
 
+/* Input includes */
+#include <input/mouse.h>
+
 /* Local includes */
 #include <cmds/ccmd.h>
 #include <cmds/layer.h>
@@ -632,6 +635,22 @@ void wcmd_client_toggle_decoration(client_td *client)
     LOGGER_TRACE("Toggling decoration for client window=0x%x" \
             " (currently decorated=%d)", client->window,
             (int) client_is_decorated(client));
+
+    /* A resize-cursor poll target (see 'mouse_hover_poll_tick' in
+     * input/mouse.h) tracked for either of this client's windows
+     * would otherwise keep polling and re-applying a cursor to
+     * whichever one it was tracking before this toggle, oblivious to
+     * decoration having just changed underneath it: if it was
+     * tracking the client's own window because it was undecorated
+     * when hover-polling started, and this toggle adds a frame, the
+     * two would fight over the client window's cursor from then on,
+     * one correctly following the new frame's own border and the
+     * other still polling the client window directly on a stale
+     * assumption. */
+    mouse_hover_poll_clear(client->window);
+    if (client->frame != 0) {
+        mouse_hover_poll_clear(client->frame);
+    }
 
     bw = (client->theme != NULL)
         ? (int32_t) client->theme->window.active.border.width

@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free */
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -68,7 +69,7 @@
 
 /* Local includes */
 #include <input/mouse/drag.h>
-#include <input/mouse/internal.h>
+#include <input/mouse/bounds.h>
 #include <input/mouse.h>
 
 
@@ -116,7 +117,7 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  *
  * Returns @c true when the pointer's root coordinates fall within the
  * adaptive resize-grab margin (see @c im_resize_bounds in
- * input/mouse/internal.h) of any edge of the client's current
+ * input/mouse/bounds.h) of any edge of the client's current
  * bounding box, indicating that a border-drag resize should be
  * initiated.
  *
@@ -429,27 +430,36 @@ xcb_cursor_t mouse_plain_cursor(void)
  * @brief Recompute and apply the resize-border cursor for a client
  *        window at a given pointer position
  *
- * Shared by @c mouse_handle_motion_hover (every pointer motion) and
+ * Shared by @c mouse_handle_motion_hover (every pointer motion),
  * @c mouse_handle_enter (every time the pointer crosses into a new
- * window), since either kind of event can be the only one a given
- * transition actually generates: a client that selects
- * @c PointerMotion for its own purposes intercepts motion events
- * before they propagate to whichever window the resize-cursor logic
- * is watching, leaving @c EnterNotify as the only remaining signal
- * that the pointer has moved into that client's own content area and
- * the cursor needs re-evaluating there.
+ * window), and @c mouse_hover_poll_tick (a periodic fallback poll;
+ * see its own doc comment for why one is needed at all), since any
+ * one kind of event or poll can be the only signal a given transition
+ * actually produces: a client that selects @c PointerMotion for its
+ * own purposes (common in GTK/Qt applications tracking hover for
+ * their own UI) intercepts motion events before they propagate to
+ * whichever window this logic is watching, leaving @c EnterNotify as
+ * the only remaining signal for a decorated client (where hovering
+ * the frame's own border and then crossing into the client's own
+ * child window is what needs catching); an undecorated client has no
+ * separate frame to fall back on at all, so moving from its border to
+ * its interior happens within one single window with no crossing
+ * whatsoever, leaving periodic polling as the only remaining option.
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the client
  *                   @p window belongs to
- * @param window     Window the crossing or motion was reported on
+ * @param window     Window the crossing, motion, or poll was
+ *                   evaluated for
  * @param root_x     Pointer X position in root-window coordinates
  * @param root_y     Pointer Y position in root-window coordinates
  *
- * @note No-op if @p window does not belong to a resizable client
+ * @return The resolved client @p window belongs to, or @c NULL if it
+ *         does not belong to a resizable client
+ *
  * @note Complexity: @e O(1)
  */
-static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
+static client_td *s_mouse_update_resize_cursor(xcb_connection_t *connection,
         list_td *surfaces, xcb_window_t window, int16_t root_x,
         int16_t root_y)
 {
@@ -460,7 +470,7 @@ static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
 
     if (connection == NULL || surfaces == NULL ||
             s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
-        return;
+        return NULL;
     }
 
     client = lookup_find_client(surfaces, window, &surface, &desktop);
@@ -468,7 +478,7 @@ static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
         LOGGER_TRACE("Resize cursor: window=0x%x root=%d,%d ->" \
                 " no resizable client found (client=%p)",
                 window, root_x, root_y, (void *) client);
-        return;
+        return NULL;
     }
 
     zone = s_mouse_resize_zone(client, root_x, root_y);
@@ -482,6 +492,106 @@ static void s_mouse_update_resize_cursor(xcb_connection_t *connection,
             XCB_CW_CURSOR,
             (const uint32_t[]) { s_resize_cursors[zone] });
     xcb_flush(connection);
+
+    return client;
+}
+
+
+/**
+ * @brief Undecorated client whose resize cursor @c mouse_hover_poll_tick
+ *        should keep re-evaluating, or @c XCB_WINDOW_NONE for none
+ *
+ * Set by @c mouse_handle_enter, cleared by @c mouse_hover_poll_clear
+ * (called from the @c LeaveNotify handler in loop.c) or the next
+ * @c mouse_handle_enter into a window that does not itself warrant
+ * tracking.  Tracked by window id rather than a @c client_td pointer
+ * kept live across calls, so a client destroyed while still hovered
+ * simply stops resolving in @c lookup_find_client on the next poll
+ * rather than leaving a dangling pointer to clean up.
+ */
+static xcb_window_t s_hover_window = XCB_WINDOW_NONE;
+
+/** Absolute time of the next scheduled poll for 's_hover_window' */
+static struct timespec s_hover_next_poll;
+
+/** How often 's_hover_window', while set, gets re-evaluated */
+#define MOUSE_HOVER_POLL_INTERVAL_MS (100)
+
+
+/**
+ * @brief Schedule the next poll for 's_hover_window' to run
+ *        @c MOUSE_HOVER_POLL_INTERVAL_MS from now
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_hover_reschedule(void)
+{
+    if (clock_gettime(CLOCK_MONOTONIC, &s_hover_next_poll) != 0) {
+        return;
+    }
+
+    s_hover_next_poll.tv_nsec +=
+        (long) MOUSE_HOVER_POLL_INTERVAL_MS * 1000000L;
+    if (s_hover_next_poll.tv_nsec >= 1000000000L) {
+        s_hover_next_poll.tv_sec += 1;
+        s_hover_next_poll.tv_nsec -= 1000000000L;
+    }
+}
+
+
+/* Clear the tracked hover window if it currently matches 'window' */
+void mouse_hover_poll_clear(xcb_window_t window)
+{
+    if (window != XCB_WINDOW_NONE && window == s_hover_window) {
+        s_hover_window = XCB_WINDOW_NONE;
+    }
+}
+
+
+/* Milliseconds until 's_hover_window' should next be polled */
+int mouse_hover_poll_ms_remaining(void)
+{
+    struct timespec now;
+    long remaining_ms;
+
+    if (s_hover_window == XCB_WINDOW_NONE) {
+        return -1;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return -1;
+    }
+
+    remaining_ms =
+        (long) (s_hover_next_poll.tv_sec - now.tv_sec) * 1000L +
+        (s_hover_next_poll.tv_nsec - now.tv_nsec) / 1000000L;
+
+    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+}
+
+
+/* Re-evaluate the resize cursor for 's_hover_window', if due */
+void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces)
+{
+    xcb_query_pointer_reply_t *reply;
+
+    if (connection == NULL || surfaces == NULL ||
+            s_hover_window == XCB_WINDOW_NONE ||
+            mouse_hover_poll_ms_remaining() > 0) {
+        return;
+    }
+
+    reply = xcb_query_pointer_reply(connection,
+            xcb_query_pointer(connection, s_hover_window), NULL);
+    if (reply != NULL) {
+        if (reply->same_screen) {
+            (void) s_mouse_update_resize_cursor(connection, surfaces,
+                    s_hover_window, reply->root_x, reply->root_y);
+        }
+        free(reply);
+    }
+
+    s_hover_reschedule();
 }
 
 
@@ -493,8 +603,8 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
         return;
     }
 
-    s_mouse_update_resize_cursor(connection, surfaces, event->event,
-            event->root_x, event->root_y);
+    (void) s_mouse_update_resize_cursor(connection, surfaces,
+            event->event, event->root_x, event->root_y);
 }
 
 
@@ -1516,6 +1626,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
         const config_td *config)
 {
     client_td *client;
+    client_td *entered;
     desktop_td *desktop;
     surface_td *surface;
 
@@ -1543,8 +1654,22 @@ void mouse_handle_enter(xcb_connection_t *connection,
      * selected directly on this client's own window (see client.c),
      * giving the resize-cursor logic a second, independent chance to
      * catch what motion alone might have missed. */
-    s_mouse_update_resize_cursor(connection, surfaces, event->event,
-            event->root_x, event->root_y);
+    entered = s_mouse_update_resize_cursor(connection, surfaces,
+            event->event, event->root_x, event->root_y);
+
+    /* An undecorated client has no separate frame window to fall
+     * back on at all: moving from its border to its interior (or
+     * back) happens entirely within this one same window, with
+     * no crossing whatsoever for any further 'EnterNotify' to
+     * catch, and its own 'PointerMotion' may be just as
+     * intercepted as any other client's; only a periodic poll
+     * (see 'mouse_hover_poll_tick') can still catch that
+     * transition, so track it for one here. */
+    s_hover_window = (entered != NULL && entered->frame == 0)
+        ? event->event : XCB_WINDOW_NONE;
+    if (s_hover_window != XCB_WINDOW_NONE) {
+        s_hover_reschedule();
+    }
 
     if (event->detail == XCB_NOTIFY_DETAIL_INFERIOR) {
         return;

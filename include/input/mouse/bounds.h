@@ -1,7 +1,7 @@
 /**
- * @file input/mouse/internal.h
+ * @file input/mouse/bounds.h
  *
- * @brief Private helpers shared across mouse implementation modules
+ * @brief Shared resize-border and adaptive grab-margin computation
  *
  * Declares @c im_resize_bounds, used by both @c input/mouse/event.c
  * (border-hit detection and the resize-cursor display) and
@@ -21,8 +21,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INPUT_MOUSE_INTERNAL_H
-#define INPUT_MOUSE_INTERNAL_H
+#ifndef INPUT_MOUSE_BOUNDS_H
+#define INPUT_MOUSE_BOUNDS_H
 
 
 /* System includes */
@@ -92,4 +92,4 @@ typedef struct {
 im_resize_bounds_td im_resize_bounds(const client_td *client);
 
 
-#endif  /* ! INPUT_MOUSE_INTERNAL_H */
+#endif  /* ! INPUT_MOUSE_BOUNDS_H */
