@@ -791,11 +791,16 @@ void wincmenu_show(xcb_connection_t *connection,
                 client_is_fullscreen(client));
     ++n;
 
+    /* Never disabled, unlike maximize above: fullscreen is a
+     * WM-forced override of the client's own preferred geometry, not
+     * a user-convenience resize the client's own fixed size hints
+     * (client_is_resizable) have any say over; see
+     * 'wcmd_client_fullscreen''s own comment for the full reasoning. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
                 ? STR_WINCMENU_FULLSCREEN_EXIT
                 : STR_WINCMENU_FULLSCREEN_ENTER,
-            s_cb_fullscreen, NULL, !client_is_resizable(client));
+            s_cb_fullscreen, NULL, false);
     ++n;
 
     s_entry_command(&s_entries[n],

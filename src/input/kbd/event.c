@@ -642,7 +642,9 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_FULLSCREEN:
-            if (!client_is_resizable(client)) { return; }
+            /* No 'client_is_resizable' gate, unlike maximize above;
+             * see 'wcmd_client_fullscreen''s own comment for why
+             * fullscreen is deliberately exempt from it. */
             client_send_event(client, ACTION_CLIENT_TOGGLE_FULLSCREEN,
                     PRIORITY_NORMAL);
             return;

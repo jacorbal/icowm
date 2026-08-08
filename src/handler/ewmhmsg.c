@@ -142,10 +142,9 @@ static void s_handle_wm_state_atom(client_td *client,
     is_modal = (state_atom == ewmh->_NET_WM_STATE_MODAL);
 
     if (is_fullscreen) {
-        if (!client_is_resizable(client)) {
-            return;
-        }
-
+        /* No 'client_is_resizable' gate; see 'wcmd_client_fullscreen''s
+         * own comment for why fullscreen is deliberately exempt from
+         * it, unlike the maximize handling right below. */
         if (action == WM_STATE_ACTION_ADD) {
             wcmd_client_fullscreen(client);
         } else if (action == WM_STATE_ACTION_REMOVE) {

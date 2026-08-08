@@ -875,8 +875,20 @@ void wcmd_client_update_allowed_actions(client_td *client)
         actions[n++] = client->ewmh->_NET_WM_ACTION_RESIZE;
         actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
         actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
-        actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
     }
+
+    /* Not folded into the 'client_is_resizable' block above, unlike
+     * maximize: fullscreen is a WM-forced override of the client's
+     * own preferred geometry, not a user-convenience resize the
+     * client's own fixed size hints have any say over; see
+     * 'wcmd_client_fullscreen''s own comment for the full reasoning.
+     * A DOS-emulation or retro-game window that fixes its own size is
+     * exactly the case this matters for: some such clients check this
+     * very property before ever attempting '_NET_WM_STATE_FULLSCREEN'
+     * at all, so advertising it as disallowed here would have kept
+     * the fix in wcmd_client_fullscreen itself from ever being
+     * reached. */
+    actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
 
     if (client_is_focusable(client)) {
         actions[n++] = client->ewmh->_NET_WM_ACTION_MINIMIZE;

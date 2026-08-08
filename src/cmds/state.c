@@ -350,9 +350,15 @@ void wcmd_client_fullscreen(client_td *client)
         return;
     }
 
-    if (!client_is_resizable(client)) {
-        return;
-    }
+    /* Deliberately no 'client_is_resizable' gate here, unlike maximize:
+     * fullscreen is a WM-forced override of the client's own preferred
+     * geometry, not a user-convenience resize the client's own fixed
+     * size hints have any say over.  A DOS-emulation or retro-game
+     * window that fixes its own size (min == max in WM_NORMAL_HINTS,
+     * clearing CLIENT_FLAG_RESIZABLE; see client/props.c) still needs
+     * to enter fullscreen correctly when it requests
+     * '_NET_WM_STATE_FULLSCREEN' on its own alt+enter handling, which
+     * this check used to silently swallow. */
 
     LOGGER_TRACE("Entering fullscreen for client window=0x%x",
             client->window);
@@ -608,11 +614,8 @@ void wcmd_client_toggle_fullscreen(client_td *client)
         return;
     }
 
-    if (!client_is_resizable(client) &&
-            client->properties.state != CLIENT_STATE_FULLSCREEN) {
-        return;
-    }
-
+    /* No 'client_is_resizable' gate; see 'wcmd_client_fullscreen''s own
+     * comment for why fullscreen is deliberately exempt. */
     if (client->properties.state == CLIENT_STATE_FULLSCREEN) {
         wcmd_client_unfullscreen(client);
     } else {
