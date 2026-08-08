@@ -37,9 +37,31 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/ctxmenu.h>
+
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+
+
+/**
+ * @brief Number of fixed footer entries appended after the JSON
+ *        entries: separator, "Reload configuration", "Redraw all
+ *        windows", separator, "Exit"
+ */
+#define ROOTMENU_FOOTER_COUNT (5)
+
+/**
+ * @brief Maximum total number of root menu entries
+ */
+#define ROOTMENU_MAX_ENTRIES \
+    (WM_CTXMENU_MAX_ENTRIES + ROOTMENU_FOOTER_COUNT)
+
+/**
+ * @brief Maximum path length for the @c menu.json file path
+ */
+#define ROOTMENU_PATH_MAX (512)
 
 
 /* Public interface */

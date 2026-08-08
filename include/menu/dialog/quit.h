@@ -30,10 +30,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
 /* Project includes */
 #include <config.h>
 #include <surface.h>
-#include <ui_strings.h>
 
 
 /** Maximum prompt buffer length */

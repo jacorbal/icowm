@@ -19,6 +19,29 @@
 #define POLICY_INTERNAL_H
 
 
+/* Default initial values */
+#include <defs/icon.h>     /* WM_ICON_SQUARE_SIZE */
+
+
+/**
+ * @brief Cost weights for the smart window placement scorer
+ *
+ * These constants define the relative penalty of overlapping a visible
+ * window vs. overlapping an icon vs. being far from the workarea
+ * center.  Overlap penalties are multiplied by the intersection area
+ * (pixels), so even a 1-pixel overlap with a visible window is worth
+ * thousands of distance units, ensuring non-overlapping positions are
+ * always strongly preferred.
+ */
+#define SMART_WIN_COST_PER_WIN_PIXEL (8192u)
+#define SMART_WIN_COST_PER_ICON_PIXEL (1024u)
+
+/**
+ * @brief Fallback icon dimension used by the window scorer when the
+ *        exact icon size is not tracked in the client structure
+ */
+#define SMART_WIN_ICON_SIZE (WM_ICON_SQUARE_SIZE)
+
 /**
  * @brief Cost weights for the smart icon placement scorer
  *

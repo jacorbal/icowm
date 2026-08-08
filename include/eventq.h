@@ -8,6 +8,36 @@
  * = higher urgency) and extracted in urgency order by the main event
  * loop after each batch of X11 events is processed.
  *
+ * @par What goes through the queue, and what does not:
+ * Every one-shot command triggered by a menu click, keybinding, or
+ * EWMH request (move, resize, shade, maximize, iconify, and so on)
+ * goes through this queue: @c client_send_event_move,
+ * @c client_send_event_resize, and their siblings enqueue an
+ * @c ACTION_CLIENT_* event that @c eventq_process later dispatches to
+ * the matching @c wcmd_client_* command.  Doing so gives every such
+ * command a uniform priority, deferred execution relative to the X
+ * event batch that triggered it, and, incidentally, the test-replay
+ * and named-macro recording described below, since both only ever
+ * observe events that actually pass through @a eventq_add.
+ *
+ * The one deliberate exception is interactive mouse move and resize:
+ * while a drag is in progress (@c client->properties.operation is
+ * @c CLIENT_OPERATION_MOVING or @c CLIENT_OPERATION_RESIZING),
+ * @c client_send_event_move and @c client_send_event_resize apply the
+ * new geometry immediately via a direct @c xcb_configure_window call
+ * instead of enqueuing anything, and return before reaching the
+ * enqueue step at all.  This is intentional, not an oversight: a drag
+ * needs the window to visually track the pointer with the lowest
+ * latency achievable, and every added layer of indirection (enqueue,
+ * wait for the next @a eventq_process pass, dequeue, dispatch) would
+ * make the window measurably lag behind the pointer, particularly for
+ * a large or heavily decorated one, which is already the more
+ * expensive case per motion event (see the motion-coalescing comment
+ * in @c loop.c's main loop for the related fix to that same problem
+ * at the X event level).  Routing every geometry change through this
+ * queue unconditionally, drag or not, was considered and rejected for
+ * exactly that reason.
+ *
  * All public functions that insert events into the queue are
  * thread-safe: @a eventq_add acquires a mutex before modifying the
  * heap, so external threads may post events safely while the main loop

@@ -28,6 +28,16 @@
 #include <surface.h>
 
 
+/** Horizontal padding, in pixels, inside the drag-position overlay */
+#define WM_DRAG_OVERLAY_PAD_X (8u)
+
+/** Height, in pixels, of the drag-position overlay window */
+#define WM_DRAG_OVERLAY_HEIGHT (22u)
+
+/** Minimum width, in pixels, of the drag-position overlay window */
+#define WM_DRAG_OVERLAY_MIN_WIDTH (40u)
+
+
 /* Public interface */
 /**
  * @brief Begin a drag operation for a managed client window

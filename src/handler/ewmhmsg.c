@@ -55,24 +55,8 @@
 #include <surface.h>
 #include <wm.h>
 
-
-/* '_NET_WM_STATE' action values (EWMH §5.8) */
-#define WM_STATE_ACTION_REMOVE (0)
-#define WM_STATE_ACTION_ADD    (1)
-#define WM_STATE_ACTION_TOGGLE (2)
-
-/* '_NET_MOVERESIZE_WINDOW' flag bits (EWMH §5.11) */
-#define MOVERESIZE_FLAG_X      (1u << 8)
-#define MOVERESIZE_FLAG_Y      (1u << 9)
-#define MOVERESIZE_FLAG_WIDTH  (1u << 10)
-#define MOVERESIZE_FLAG_HEIGHT (1u << 11)
-
-/* '_NET_RESTACK_WINDOW' detail values (EWMH §4.3) */
-#define RESTACK_DETAIL_ABOVE     (0u)
-#define RESTACK_DETAIL_BELOW     (1u)
-#define RESTACK_DETAIL_TOP_IF    (2u)
-#define RESTACK_DETAIL_BOTTOM_IF (3u)
-#define RESTACK_DETAIL_OPPOSITE  (4u)
+/* Default initial values */
+#include <defs/ewmh.h>
 
 
 /**

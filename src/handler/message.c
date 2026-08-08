@@ -46,13 +46,10 @@
 #include <invalidate.h>
 #include <logger.h>
 #include <lookup.h>
+#include <sn.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
-
-
-/* ICCCM 'WM_CHANGE_STATE' 'IconicState' value */
-#define ICCCM_ICONIC_STATE (3)
 
 
 /**
@@ -93,6 +90,16 @@ void handler_client_message(wm_td *wm,
 
     LOGGER_TRACE("Client message: window=0x%x, type=%u",
             event->window, event->type);
+
+    /* Startup-notification messages are broadcast on a root window by
+     * whichever application is signaling its own launch progress, not
+     * tied to any window this window manager itself owns or manages,
+     * so this is checked unconditionally rather than gated behind an
+     * ownership check the way the systray dispatch below is; the
+     * function itself is cheap to call when the message type does not
+     * match, since it just compares two already-interned atoms and
+     * returns. */
+    sn_handle_client_message(wm->connection, wm->surfaces, event);
 
     if (systray_owns_window(event->window)) {
         systray_handle_client_message(wm, event);

@@ -42,12 +42,6 @@
 #include <session.h>
 
 
-/** Maximum length of a single command string (shared with path limit) */
-#define SESSION_MAX_CMD_LEN (CONFIG_MAX_LENGTH_PATH_BASE)
-
-/** Maximum number of child PIDs tracked simultaneously */
-#define SESSION_TRACKED_PIDS_MAX (256u)
-
 
 /** Session table holding the three hook command lists */
 struct session_s {

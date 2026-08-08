@@ -30,6 +30,16 @@
 #include <render/surface.h>
 
 
+/* Keysym constants (X11 keyboard symbols) */
+#define KS_LEFT 0xff51u
+#define KS_UP 0xff52u
+#define KS_RIGHT 0xff53u
+#define KS_DOWN 0xff54u
+#define KS_RETURN 0xff0du
+#define KS_KP_ENTER 0xff8du
+#define KS_ESCAPE 0xff1bu
+
+
 /* Public interface */
 
 /**

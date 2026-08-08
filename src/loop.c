@@ -62,6 +62,7 @@
 #include <lifecycle.h>
 #include <lookup.h>
 #include <logger.h>
+#include <sn.h>
 #include <startup.h>
 #include <surface.h>
 #include <systray.h>
@@ -160,6 +161,7 @@ void loop_run(wm_td *wm)
     int poll_status;
     int poll_timeout_ms;
     int clock_ms;
+    int sn_ms;
     bool any_outdated;
 
     if (wm == NULL || !wm->is_running) {
@@ -255,6 +257,11 @@ void loop_run(wm_td *wm)
             poll_timeout_ms = clock_ms;
         }
 
+        sn_ms = sn_ms_remaining();
+        if (sn_ms >= 0 && sn_ms < poll_timeout_ms) {
+            poll_timeout_ms = sn_ms;
+        }
+
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -263,6 +270,7 @@ void loop_run(wm_td *wm)
         }
 
         systray_clock_tick();
+        sn_tick(wm->connection, wm->surfaces);
 
         while ((event = (pending_event != NULL)
                     ? pending_event

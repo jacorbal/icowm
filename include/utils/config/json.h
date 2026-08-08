@@ -29,6 +29,10 @@
 #include <cjson/cJSON.h>
 
 
+/** Maximum length for normalized field-name buffers */
+#define JSON_FIELD_MAX (256)
+
+
 /* Public interface */
 /**
  * @brief Convert a hexadecimal color string to an unsigned 32-bit

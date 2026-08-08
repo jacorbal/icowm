@@ -29,34 +29,6 @@
 #include <input/kbd/modal.h>
 
 
-/* Keysym constants (X11 keyboard symbols) */
-#ifndef KS_LEFT
-#define KS_LEFT     0xff51u
-#endif
-
-#ifndef KS_UP
-#define KS_UP       0xff52u
-#endif
-
-#ifndef KS_RIGHT
-#define KS_RIGHT    0xff53u
-#endif
-
-#ifndef KS_DOWN
-#define KS_DOWN     0xff54u
-#endif
-
-#ifndef KS_RETURN
-#define KS_RETURN   0xff0du
-#endif
-
-#ifndef KS_KP_ENTER
-#define KS_KP_ENTER 0xff8du
-#endif
-
-#ifndef KS_ESCAPE
-#define KS_ESCAPE   0xff1bu
-#endif
 
 
 /* Internal mode and edge enumerations */

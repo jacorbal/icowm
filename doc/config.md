@@ -19,7 +19,6 @@ values, and built-in default value.
    - [2.7 `enable-emergency-shortcut` / `enable-fortune-shortcut`](#27-enable-emergency-shortcut--enable-fortune-shortcut)
    - [2.8 `menus`](#28-menus)
    - [2.9 `systray`](#29-systray)
-   - [2.10 `xsettings`](#210-xsettings)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -591,51 +590,6 @@ tray) is a theme setting rather than a behavior one; see
         "order": [ "battery", "clock" ],
         "position": "right"
     }
-}
-```
-
-### 2.10 `xsettings`
-
-| Key                           | Type    | Default     |
-|-------------------------------|---------|-------------|
-| `xsettings.is-enabled`        | boolean | `false`     |
-| `xsettings.gtk-theme-name`    | string  | `"Adwaita"` |
-| `xsettings.icon-theme-name`   | string  | `"Adwaita"` |
-| `xsettings.cursor-theme-name` | string  | `"Adwaita"` |
-| `xsettings.cursor-theme-size` | integer | `24`        |
-| `xsettings.dpi`               | integer | `96`        |
-
-Built-in XSETTINGS manager, implementing the freedesktop.org XSETTINGS
-specification.  Many GTK and Qt applications have a "use theme colors"
-or "use system settings" option that only takes effect if some XSETTINGS
-manager is running to tell them what the theme, icon theme, cursor
-theme, and display DPI actually are; without one, those applications
-silently fall back to their own built-in defaults regardless of what
-this option is set to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn`
-manager selection on the first managed screen and publishes
-`Net/ThemeName`, `Net/IconThemeName`, `Gtk/CursorThemeName`,
-`Gtk/CursorThemeSize`, and `Xft/DPI` (as `dpi * 1024`, per the
-specification) from the values below.
-
-Changing any of these values and reloading the configuration updates the
-published settings immediately for every application watching them,
-without needing to restart them.  As with the systray, if another
-settings manager (e.g., `xsettingsd`, or a desktop environment's own)
-already owns the selection, IcoWM's built-in one steps aside rather than
-fighting over ownership, for only one settings manager can be active at
-a time.  This does not give applications a full theme (GTK/Qt themes are
-CSS-like stylesheets, not something conveyed over XSETTINGS); it gives
-them the *name* of a theme they already have installed to switch to,
-exactly as a dedicated XSETTINGS daemon would.
-
-```json
-"xsettings": {
-    "is-enabled": false,
-    "gtk-theme-name": "Adwaita",
-    "icon-theme-name": "Adwaita",
-    "cursor-theme-name": "Adwaita",
-    "cursor-theme-size": 24,
-    "dpi": 96
 }
 ```
 
@@ -1212,7 +1166,57 @@ overlays with no selected/unselected state to distinguish.
 }
 ```
 
-### 4.7 Configuration reload and already-open windows
+### 4.7 `xsettings`
+
+| Key                           | Type    | Default     |
+|-------------------------------|---------|-------------|
+| `xsettings.is-enabled`        | boolean | `false`     |
+| `xsettings.gtk-theme-name`    | string  | `"Adwaita"` |
+| `xsettings.icon-theme-name`   | string  | `"Adwaita"` |
+| `xsettings.cursor-theme-name` | string  | `"Adwaita"` |
+| `xsettings.cursor-theme-size` | integer | `24`        |
+| `xsettings.dpi`               | integer | `96`        |
+
+Built-in XSETTINGS manager, implementing the freedesktop.org XSETTINGS
+specification.  Lives in the theme rather than in `config.json`: every
+value it publishes (a theme name, an icon theme, a cursor theme and
+size, a display DPI) is an appearance choice, not a behavior one, even
+though `is-enabled` still controls whether the manager runs at all.
+
+Many GTK and Qt applications have a "use theme colors" or "use system
+settings" option that only takes effect if some XSETTINGS manager is
+running to tell them what the theme, icon theme, cursor theme, and
+display DPI actually are; without one, those applications silently
+fall back to their own built-in defaults regardless of what this
+option is set to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn`
+manager selection on the first managed screen and publishes
+`Net/ThemeName`, `Net/IconThemeName`, `Gtk/CursorThemeName`,
+`Gtk/CursorThemeSize`, and `Xft/DPI` (as `dpi * 1024`, per the
+specification) from the values below.
+
+Changing any of these values and reloading the configuration updates the
+published settings immediately for every application watching them,
+without needing to restart them.  As with the systray, if another
+settings manager (e.g., `xsettingsd`, or a desktop environment's own)
+already owns the selection, IcoWM's built-in one steps aside rather than
+fighting over ownership, for only one settings manager can be active at
+a time.  This does not give applications a full theme (GTK/Qt themes are
+CSS-like stylesheets, not something conveyed over XSETTINGS); it gives
+them the *name* of a theme they already have installed to switch to,
+exactly as a dedicated XSETTINGS daemon would.
+
+```json
+"xsettings": {
+    "is-enabled": false,
+    "gtk-theme-name": "Adwaita",
+    "icon-theme-name": "Adwaita",
+    "cursor-theme-name": "Adwaita",
+    "cursor-theme-size": 24,
+    "dpi": 96
+}
+```
+
+### 4.8 Configuration reload and already-open windows
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names

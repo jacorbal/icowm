@@ -88,14 +88,6 @@
             "position": "right"
         }
     },
-    "xsettings": {
-        "is-enabled": false,
-        "gtk-theme-name": "Adwaita",
-        "icon-theme-name": "Adwaita",
-        "cursor-theme-name": "Adwaita",
-        "cursor-theme-size": 24,
-        "dpi": 96
-    },
     "show-desktop-overlay": true,
     "enable-emergency-shortcut": true,
     "enable-fortune-shortcut": false

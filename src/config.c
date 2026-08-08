@@ -201,16 +201,6 @@ void config_set_default_values(config_td *config)
     config->base.systray.text.order_count = 2u;
     config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_RIGHT;
 
-    config->base.xsettings.is_enabled = false;
-    safe_strncpy(config->base.xsettings.gtk_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->base.xsettings.icon_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->base.xsettings.cursor_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    config->base.xsettings.cursor_theme_size = 24u;
-    config->base.xsettings.dpi = 96u;
-
     /* Predetermined values for RandR output profile management */
     LOGGER_TRACE("Setting default RandR configuration", L_NARG);
     config->randr.is_enabled = false;
@@ -496,6 +486,16 @@ void config_set_default_values(config_td *config)
     config->theme.overlay.color.foreground = json_hex2uint32("4A5566");
     config->theme.overlay.border.color = json_hex2uint32("7F9AB6");
     config->theme.overlay.border.width = 1u;
+
+    config->theme.xsettings.is_enabled = false;
+    safe_strncpy(config->theme.xsettings.gtk_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->theme.xsettings.icon_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->theme.xsettings.cursor_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    config->theme.xsettings.cursor_theme_size = 24u;
+    config->theme.xsettings.dpi = 96u;
 }
 
 

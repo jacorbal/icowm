@@ -24,6 +24,7 @@
 
 /* Default initial values */
 #include <defs/ctxmenu.h>
+#include <defs/uistr.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -32,7 +33,6 @@
 #include <config.h>
 #include <logger.h>
 #include <surface.h>
-#include <ui_strings.h>
 #include <wm.h>
 
 /* Def includes */
@@ -50,25 +50,6 @@ static surface_td *s_surface = NULL;
 
 /** Config stored at open time (needed by the exit callback) */
 static const config_td *s_config = NULL;
-
-
-/**
- * @brief Number of fixed footer entries appended after the JSON
- *        entries: separator, "Reload configuration", "Redraw all
- *        windows", separator, "Exit"
- */
-#define ROOTMENU_FOOTER_COUNT (5)
-
-/**
- * @brief Maximum total number of root menu entries
- */
-#define ROOTMENU_MAX_ENTRIES \
-    (WM_CTXMENU_MAX_ENTRIES + ROOTMENU_FOOTER_COUNT)
-
-/**
- * @brief Maximum path length for the @c menu.json file path
- */
-#define ROOTMENU_PATH_MAX (512)
 
 
 /** Singleton root menu state */

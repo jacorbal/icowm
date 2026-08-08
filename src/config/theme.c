@@ -220,6 +220,7 @@ int config_load_theme(const char *filename,
     cJSON *menu;
     cJSON *dialog;
     cJSON *overlay;
+    cJSON *xsettings;
 
     LOGGER_TRACE("Parsing theme configuration from file '%s'",
             filename);
@@ -436,6 +437,31 @@ int config_load_theme(const char *filename,
 
     overlay = cJSON_GetObjectItem(json, "overlay");
     s_load_theme_colors(overlay, &config_theme->overlay);
+
+    xsettings = cJSON_GetObjectItem(json, "xsettings");
+    if (xsettings) {
+        unsigned int dpi_val;
+        unsigned int cursor_size_val;
+
+        json_load_bool(xsettings, "is-enabled",
+                &config_theme->xsettings.is_enabled);
+        json_load_string(xsettings, "gtk-theme-name",
+                config_theme->xsettings.gtk_theme_name,
+                CONFIG_MAX_LENGTH_NAME);
+        json_load_string(xsettings, "icon-theme-name",
+                config_theme->xsettings.icon_theme_name,
+                CONFIG_MAX_LENGTH_NAME);
+        json_load_string(xsettings, "cursor-theme-name",
+                config_theme->xsettings.cursor_theme_name,
+                CONFIG_MAX_LENGTH_NAME);
+        if (json_load_uint(xsettings, "cursor-theme-size",
+                    &cursor_size_val) == 0) {
+            config_theme->xsettings.cursor_theme_size = cursor_size_val;
+        }
+        if (json_load_uint(xsettings, "dpi", &dpi_val) == 0) {
+            config_theme->xsettings.dpi = dpi_val;
+        }
+    }
 
     cJSON_Delete(json);
 

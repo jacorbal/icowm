@@ -27,6 +27,7 @@
 
 /* Default initial values */
 #include <defs/input.h>
+#include <defs/uistr.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -42,7 +43,6 @@
 #include <lookup.h>
 #include <priority.h>
 #include <surface.h>
-#include <ui_strings.h>
 #include <wm.h>
 
 /* CMD includes */
@@ -58,34 +58,6 @@
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/wincmenu.h>
-
-
-/**
- * @brief Maximum number of desktops shown in the "Send to desktop"
- *        submenu (capped to avoid oversized menus)
- */
-#define WINCMENU_MAX_DESKTOPS (32)
-
-/**
- * @brief Number of fixed entries in the "Layer" submenu
- */
-#define WINCMENU_LAYER_COUNT (3)
-
-/**
- * @brief Number of fixed top-level entries in the window context menu:
- *        TWO submenus (Send to desktop, Layer) + ONE separator + NINE
- *        commands (Restore, Move, Resize, Iconify, Hide, Maximize,
- *        Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
- *        ONE command (Close) = FOURTEEN total
- */
-#define WINCMENU_FIXED_ENTRIES (14)
-
-/**
- * @brief Total top-level entry slots:
- *        @c (WINCMENU_FIXED_ENTRIES + 2) extra slots reserved for
- *        future or dynamic entries
- */
-#define WINCMENU_TOTAL_ENTRIES (WINCMENU_FIXED_ENTRIES + 2)
 
 
 /**
@@ -505,7 +477,7 @@ static void s_cb_maximize(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback for the "Un/fullscreen" entry
+ * @brief Callback for the "Fullscreen" / "Exit Fullscreen" entry
  */
 static void s_cb_fullscreen(xcb_connection_t *connection,
         void *userdata)
@@ -815,15 +787,22 @@ void wincmenu_show(xcb_connection_t *connection,
                 client_is_fullscreen(client));
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_FULLSCREEN,
+    s_entry_command(&s_entries[n],
+            (client_is_fullscreen(client))
+                ? STR_WINCMENU_FULLSCREEN_EXIT
+                : STR_WINCMENU_FULLSCREEN_ENTER,
             s_cb_fullscreen, NULL, !client_is_resizable(client));
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_SHADE,
+    s_entry_command(&s_entries[n],
+            (client_is_shaded(client)) ? STR_WINCMENU_UNSHADE
+                : STR_WINCMENU_SHADE,
             s_cb_shade, NULL, !can_shade);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_UNDECORATE,
+    s_entry_command(&s_entries[n],
+            (client_is_decorated(client)) ? STR_WINCMENU_UNDECORATE
+                : STR_WINCMENU_DECORATE,
             s_cb_decorate, NULL, client_is_fullscreen(client));
     ++n;
 

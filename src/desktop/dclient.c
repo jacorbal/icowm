@@ -40,6 +40,8 @@
 /* Project includes */
 #include <client.h>
 #include <logger.h>
+#include <sn.h>
+#include <wm.h>
 
 /* Local includes */
 #include <desktop.h>
@@ -619,6 +621,8 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     int err_pipe[2];
     int exec_errno;
     ssize_t nread;
+    char startup_id[128];
+    bool have_startup_id;
 
     if (desktop == NULL || executable_path == NULL ||
             executable_path[0] == '\0') {
@@ -629,6 +633,14 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
 
     LOGGER_TRACE("Launching process for '%s' on desktop %u ('%s')",
             executable_path, desktop->id, desktop->name);
+
+    /* Begin startup notification before forking, so the child can be
+     * handed the resulting ID as 'DESKTOP_STARTUP_ID' below; a
+     * startup-notification-aware application reads that variable and
+     * broadcasts its own completion once its main window is ready. */
+    have_startup_id = (desktop->connection != NULL) &&
+        sn_begin(desktop->connection, wm_get_surfaces(),
+                executable_path, startup_id, sizeof(startup_id));
 
     /* Create a close-on-exec pipe so the parent can detect 'execvp'
      * failures.  If 'exec' succeeds the write end is closed by the
@@ -664,6 +676,21 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
             close(xcb_get_file_descriptor(desktop->connection));
         }
 
+        /* Environment variables have to be set here, in the child,
+         * before 'execvp' replaces its image: 'setenv' only ever
+         * affects the calling process's own environment, so calling
+         * it in the parent after 'fork' (as this used to do for
+         * 'RESOURCE_NAME'/'RESOURCE_CLASS') has no effect at all on
+         * the child, which already has its own independent copy of
+         * the environment from the moment 'fork' returns. */
+        if (have_startup_id) {
+            (void) setenv("DESKTOP_STARTUP_ID", startup_id, 1);
+        }
+        if (class_name != NULL && class_name[0] != '\0') {
+            (void) setenv("RESOURCE_NAME", class_name, 1);
+            (void) setenv("RESOURCE_CLASS", class_name, 1);
+        }
+
         wordexp_flags = WRDE_NOCMD;
 #ifdef WRDE_NOENV
         wordexp_flags |= WRDE_NOENV;
@@ -685,11 +712,6 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         _exit(127);
     }
 
-    if (class_name != NULL && class_name[0] != '\0') {
-        (void) setenv("RESOURCE_NAME", class_name, 1);
-        (void) setenv("RESOURCE_CLASS", class_name, 1);
-    }
-
     /* Parent: close write end and read exec result */
     close(err_pipe[1]);
     exec_errno = 0;
@@ -700,6 +722,9 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         /* 'execvp' failed in the child */
         LOGGER_WARNING("Failed to launch '%s': %s",
                 executable_path, strerror(exec_errno));
+        if (have_startup_id) {
+            sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
+        }
         return -2;
     }
 

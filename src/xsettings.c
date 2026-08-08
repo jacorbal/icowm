@@ -37,17 +37,6 @@
 #include <xsettings.h>
 
 
-/** XSETTINGS setting-value type codes, per the specification */
-#define XS_TYPE_INTEGER (0u)
-#define XS_TYPE_STRING  (1u)
-
-/**
- * Byte-order code for a little-endian-encoded property (used
- * unconditionally here, as every byte is written explicitly
- * least-significant-first below, regardless of host endianness) */
-#define XS_BYTE_ORDER_LSB (0u)
-
-
 /**
  * @brief Module-level built-in XSETTINGS manager state
  *
@@ -349,16 +338,16 @@ static void s_xs_publish(void)
 static void s_xs_load_config(wm_td *wm)
 {
     safe_strncpy(s_xs.gtk_theme_name,
-            wm->config->base.xsettings.gtk_theme_name,
+            wm->config->theme.xsettings.gtk_theme_name,
             sizeof(s_xs.gtk_theme_name));
     safe_strncpy(s_xs.icon_theme_name,
-            wm->config->base.xsettings.icon_theme_name,
+            wm->config->theme.xsettings.icon_theme_name,
             sizeof(s_xs.icon_theme_name));
     safe_strncpy(s_xs.cursor_theme_name,
-            wm->config->base.xsettings.cursor_theme_name,
+            wm->config->theme.xsettings.cursor_theme_name,
             sizeof(s_xs.cursor_theme_name));
-    s_xs.cursor_theme_size = wm->config->base.xsettings.cursor_theme_size;
-    s_xs.dpi = wm->config->base.xsettings.dpi;
+    s_xs.cursor_theme_size = wm->config->theme.xsettings.cursor_theme_size;
+    s_xs.dpi = wm->config->theme.xsettings.dpi;
 }
 
 
@@ -373,14 +362,14 @@ static void s_xs_load_config(wm_td *wm)
 static bool s_xs_config_changed(const wm_td *wm)
 {
     return safe_strcmp(s_xs.gtk_theme_name,
-                wm->config->base.xsettings.gtk_theme_name) != 0 ||
+                wm->config->theme.xsettings.gtk_theme_name) != 0 ||
         safe_strcmp(s_xs.icon_theme_name,
-                wm->config->base.xsettings.icon_theme_name) != 0 ||
+                wm->config->theme.xsettings.icon_theme_name) != 0 ||
         safe_strcmp(s_xs.cursor_theme_name,
-                wm->config->base.xsettings.cursor_theme_name) != 0 ||
+                wm->config->theme.xsettings.cursor_theme_name) != 0 ||
         s_xs.cursor_theme_size !=
-            wm->config->base.xsettings.cursor_theme_size ||
-        s_xs.dpi != wm->config->base.xsettings.dpi;
+            wm->config->theme.xsettings.cursor_theme_size ||
+        s_xs.dpi != wm->config->theme.xsettings.dpi;
 }
 
 
@@ -533,7 +522,7 @@ static void s_xs_release_selection(void)
 void xsettings_init(wm_td *wm)
 {
     if (wm == NULL || wm->config == NULL ||
-            !wm->config->base.xsettings.is_enabled) {
+            !wm->config->theme.xsettings.is_enabled) {
         return;
     }
 
@@ -577,7 +566,7 @@ void xsettings_reload(wm_td *wm)
         return;
     }
 
-    should_be_enabled = wm->config->base.xsettings.is_enabled;
+    should_be_enabled = wm->config->theme.xsettings.is_enabled;
 
     if (s_xs.selection_owned && !should_be_enabled) {
         LOGGER_INFO("XSETTINGS disabled by configuration reload", L_NARG);

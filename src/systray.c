@@ -47,29 +47,6 @@
 #include <systray/battery.h>
 
 
-/** Side length in pixels of each docked icon's embed window */
-#define SYSTRAY_ICON_SIZE (24u)
-
-/** Padding in pixels around and between icons */
-#define SYSTRAY_ICON_PAD (4u)
-
-/**
- * Upper bound on simultaneously docked icons; a plain fixed array is
- * enough for a systray and keeps this module allocation-free
- */
-#define SYSTRAY_MAX_ICONS (32u)
-
-/**
- * XEMBED opcode sent to a newly docked icon (@c XEMBED_EMBEDDED_NOTIFY)
- */
-#define SYSTRAY_XEMBED_EMBEDDED_NOTIFY (0u)
-
-/**
- * @c _NET_SYSTEM_TRAY_OPCODE opcode requesting an icon be docked
- */
-#define SYSTRAY_OPCODE_REQUEST_DOCK (0u)
-
-
 /**
  * @brief One docked icon window
  */

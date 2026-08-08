@@ -38,6 +38,34 @@
 #include <surface.h>
 
 
+/**
+ * @brief Maximum number of desktops shown in the "Send to desktop"
+ *        submenu (capped to avoid oversized menus)
+ */
+#define WINCMENU_MAX_DESKTOPS (32)
+
+/**
+ * @brief Number of fixed entries in the "Layer" submenu
+ */
+#define WINCMENU_LAYER_COUNT (3)
+
+/**
+ * @brief Number of fixed top-level entries in the window context menu:
+ *        TWO submenus (Send to desktop, Layer) + ONE separator + NINE
+ *        commands (Restore, Move, Resize, Iconify, Hide, Maximize,
+ *        Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
+ *        ONE command (Close) = FOURTEEN total
+ */
+#define WINCMENU_FIXED_ENTRIES (14)
+
+/**
+ * @brief Total top-level entry slots:
+ *        @c (WINCMENU_FIXED_ENTRIES + 2) extra slots reserved for
+ *        future or dynamic entries
+ */
+#define WINCMENU_TOTAL_ENTRIES (WINCMENU_FIXED_ENTRIES + 2)
+
+
 /* Public interface */
 /**
  * @brief Open the window context menu for a client

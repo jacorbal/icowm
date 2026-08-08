@@ -298,29 +298,6 @@ struct config_base_s {
             } position;
         } text;
     } systray;
-
-    /**
-     * @brief Configuration for the built-in XSETTINGS manager
-     *
-     * Implements the freedesktop.org XSETTINGS specification (a
-     * @c _XSETTINGS_Sn manager selection publishing a
-     * @c _XSETTINGS_SETTINGS property) so that GTK/Qt applications
-     * requesting to "use theme colors"/system settings pick up a real
-     * theme, icon theme, cursor theme, and DPI instead of falling back
-     * to their own built-in defaults.
-     */
-    struct {
-        bool is_enabled;                /**< Enable the built-in
-                                             XSETTINGS manager */
-        unsigned int cursor_theme_size; /**< Cursor size in pixels */
-        unsigned int dpi;               /**< Display resolution, in dots
-                                             per inch; published as
-                                             'Xft/DPI' (times 1024, per
-                                             the XSETTINGS convention) */
-        char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
-        char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
-        char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
-    } xsettings;
 };
 
 
@@ -707,6 +684,34 @@ struct config_theme_s {
      * @c menu and @c dialog above.
      */
     struct config_theme_style_s overlay;
+
+    /**
+     * @brief Theme settings published through the built-in XSETTINGS
+     *        manager
+     *
+     * Implements the freedesktop.org XSETTINGS specification (a
+     * @c _XSETTINGS_Sn manager selection publishing a
+     * @c _XSETTINGS_SETTINGS property) so that GTK/Qt applications
+     * requesting to "use theme colors"/system settings pick up a real
+     * theme, icon theme, cursor theme, and DPI instead of falling back
+     * to their own built-in defaults.  This is purely a theme concern,
+     * not a behavior one, hence living here rather than in
+     * @c config_base_s: whether the manager runs at all is still
+     * controlled by @c is_enabled below, but everything it publishes
+     * is an appearance choice.
+     */
+    struct {
+        bool is_enabled;                /**< Enable the built-in
+                                             XSETTINGS manager */
+        unsigned int cursor_theme_size; /**< Cursor size in pixels */
+        unsigned int dpi;               /**< Display resolution, in dots
+                                             per inch; published as
+                                             'Xft/DPI' (times 1024, per
+                                             the XSETTINGS convention) */
+        char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
+        char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
+        char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
+    } xsettings;
 };
 
 

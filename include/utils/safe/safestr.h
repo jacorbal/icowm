@@ -135,7 +135,7 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
  * @warning This function does not receive destination size and cannot
  *          enforce bounds on @p dst
  * @note Use @a safe_strncpy in new code.
- * @note This could have been donde referencing @a safe_strncpty with
+ * @note This could have been done by referencing @a safe_strncpy with
  *       @c "return safe_strncpy(dst, src, safe_strlen(src) + 1);", but
  *       it was done otherwise to reduce coupling
  * @note Complexity: @e O(n), where @e n is the length of the string

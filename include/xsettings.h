@@ -26,10 +26,22 @@
 #include <wm.h>
 
 
+/** XSETTINGS setting-value type codes, per the specification */
+#define XS_TYPE_INTEGER (0u)
+#define XS_TYPE_STRING (1u)
+
+/**
+ * Byte-order code for a little-endian-encoded property (used
+ * unconditionally in xsettings.c, since every byte there is written
+ * explicitly least-significant-first, regardless of host endianness)
+ */
+#define XS_BYTE_ORDER_LSB (0u)
+
+
 /**
  * @brief Acquire the XSETTINGS selection and publish the settings
  *
- * A no-op when @c wm->config->base.xsettings.is_enabled is @c false,
+ * A no-op when @c wm->config->theme.xsettings.is_enabled is @c false,
  * when @p wm has no managed surfaces yet, or when another settings
  * manager already owns the @c _XSETTINGS_Sn selection on the first
  * surface's screen.
@@ -60,7 +72,7 @@ void xsettings_shutdown(wm_td *wm);
  * @brief React to a configuration reload
  *
  * Reconciles the live manager with the just-reloaded
- * @c wm->config->base.xsettings settings:
+ * @c wm->config->theme.xsettings settings:
  * - Was enabled, now disabled: releases the selection right away,
  *   keeping the window itself (nothing to preserve on it besides the
  *   property, which simply becomes stale and unread once no client

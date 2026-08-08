@@ -26,6 +26,16 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/config.h>   /* CONFIG_MAX_LENGTH_PATH_BASE */
+
+
+/** Maximum length of a single command string (shared with path limit) */
+#define SESSION_MAX_CMD_LEN (CONFIG_MAX_LENGTH_PATH_BASE)
+
+/** Maximum number of child PIDs tracked simultaneously */
+#define SESSION_TRACKED_PIDS_MAX (256u)
+
 
 /**
  * @brief Lifecycle event that triggers a set of session hook commands

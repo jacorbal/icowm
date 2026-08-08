@@ -203,5 +203,13 @@
             "color": "#7f9ab6",
             "width": 1
         }
+    },
+    "xsettings": {
+        "is-enabled": false,
+        "gtk-theme-name": "Adwaita",
+        "icon-theme-name": "Adwaita",
+        "cursor-theme-name": "Adwaita",
+        "cursor-theme-size": 24,
+        "dpi": 96
     }
 }

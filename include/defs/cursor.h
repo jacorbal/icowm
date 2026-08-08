@@ -48,5 +48,17 @@
 #define WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH  (12u)
 #define WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH (14u)
 
+/**
+ * @brief Glyph index of @c XC_watch (source) in the X cursor font
+ *
+ * The "busy" cursor shown while a startup-notification sequence is
+ * pending; its mask is, as with every other glyph here, the very next
+ * index.
+ */
+#define WM_CURSOR_WATCH_GLYPH (150u)
+
+/** Glyph index of the mask for @c XC_watch in the X cursor font */
+#define WM_CURSOR_WATCH_MASK_GLYPH (151u)
+
 
 #endif  /* ! DEFS_CURSOR_H */

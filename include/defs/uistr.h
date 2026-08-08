@@ -1,5 +1,5 @@
 /**
- * @file ui_strings.h
+ * @file defs/uistr.h
  *
  * @brief Every user-facing text string in the window manager, in one
  *        place
@@ -26,8 +26,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef UI_STRINGS_H
-#define UI_STRINGS_H
+#ifndef DEFS_UISTR_H
+#define DEFS_UISTR_H
 
 
 /* Root menu (src/menu/context/rootmenu.c): the fixed footer entries
@@ -50,9 +50,12 @@
 #define STR_WINCMENU_ICONIFY         ("Iconify")
 #define STR_WINCMENU_HIDE            ("Hide")
 #define STR_WINCMENU_MAXIMIZE        ("Maximize")
-#define STR_WINCMENU_FULLSCREEN      ("Un/fullscreen")
-#define STR_WINCMENU_SHADE           ("Un/shade")
-#define STR_WINCMENU_UNDECORATE      ("Un/decorate")
+#define STR_WINCMENU_FULLSCREEN_ENTER ("Fullscreen")
+#define STR_WINCMENU_FULLSCREEN_EXIT  ("Exit Fullscreen")
+#define STR_WINCMENU_SHADE            ("Shade")
+#define STR_WINCMENU_UNSHADE          ("Unshade")
+#define STR_WINCMENU_DECORATE         ("Decorate")
+#define STR_WINCMENU_UNDECORATE       ("Undecorate")
 #define STR_WINCMENU_CLOSE           ("Close")
 
 /* All-desktops window list (src/menu/context/winlist.c) */
@@ -66,4 +69,4 @@
 #define STR_DIALOG_QUIT_EXIT         ("[ Exit ]")
 
 
-#endif  /* ! UI_STRINGS_H */
+#endif  /* ! DEFS_UISTR_H */

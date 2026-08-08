@@ -442,7 +442,6 @@ int config_load_base(const char *filename,
     cJSON *icons;
     cJSON *menus;
     cJSON *systray;
-    cJSON *xsettings;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
@@ -845,32 +844,6 @@ int config_load_base(const char *filename,
                 }
                 config_base->systray.text.order_count = out_count;
             }
-        }
-    }
-
-    /* Load XSETTINGS manager configuration */
-    xsettings = cJSON_GetObjectItem(json, "xsettings");
-    if (xsettings) {
-        unsigned int dpi_val;
-        unsigned int cursor_size_val;
-
-        json_load_bool(xsettings, "is-enabled",
-                &config_base->xsettings.is_enabled);
-        json_load_string(xsettings, "gtk-theme-name",
-                config_base->xsettings.gtk_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        json_load_string(xsettings, "icon-theme-name",
-                config_base->xsettings.icon_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        json_load_string(xsettings, "cursor-theme-name",
-                config_base->xsettings.cursor_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        if (json_load_uint(xsettings, "cursor-theme-size",
-                    &cursor_size_val) == 0) {
-            config_base->xsettings.cursor_theme_size = cursor_size_val;
-        }
-        if (json_load_uint(xsettings, "dpi", &dpi_val) == 0) {
-            config_base->xsettings.dpi = dpi_val;
         }
     }
 

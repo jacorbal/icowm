@@ -31,10 +31,6 @@
 #include <utils/config/json.h>
 
 
-/* Maximum length for normalized field-name buffers */
-#define JSON_FIELD_MAX (256)
-
-
 /* Convert a hexadecimal color string to an unsigned 32-bit integer */
 uint32_t json_hex2uint32(const char *hex_color)
 {

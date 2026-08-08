@@ -113,11 +113,6 @@ static struct {
 };
 
 
-#define WM_DRAG_OVERLAY_PAD_X (8u)
-#define WM_DRAG_OVERLAY_HEIGHT (22u)
-#define WM_DRAG_OVERLAY_MIN_WIDTH (40u)
-
-
 /**
  * @brief Synchronizes the active visual of the drag icon window.
  *

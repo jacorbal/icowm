@@ -30,9 +30,6 @@
 /* Utils includes */
 #include <utils/geom.h>
 
-/* Default initial values */
-#include <defs/icon.h>     /* WM_ICON_SQUARE_SIZE */
-
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -43,25 +40,6 @@
 #include <policy/internal.h>
 #include <policy/placement.h>
 
-
-/**
- * @brief Cost weights for the smart window placement scorer
- *
- * These constants define the relative penalty of overlapping a visible
- * window vs. overlapping an icon vs. being far from the workarea
- * center.  Overlap penalties are multiplied by the intersection area
- * (pixels), so even a 1-pixel overlap with a visible window is worth
- * thousands of distance units, ensuring non-overlapping positions are
- * always strongly preferred.
- */
-#define SMART_WIN_COST_PER_WIN_PIXEL (8192u)
-#define SMART_WIN_COST_PER_ICON_PIXEL (1024u)
-
-/**
- * @brief Fallback icon dimension used by the window scorer when the
- *        exact icon size is not tracked in the client structure
- */
-#define SMART_WIN_ICON_SIZE (WM_ICON_SQUARE_SIZE)
 
 
 /* Compute the icon window position for a newly iconified client */

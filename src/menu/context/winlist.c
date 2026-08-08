@@ -25,6 +25,9 @@
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
@@ -36,7 +39,6 @@
 #include <desktop.h>
 #include <priority.h>
 #include <surface.h>
-#include <ui_strings.h>
 #include <wm.h>
 
 /* Command includes */
@@ -52,53 +54,6 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/winlist.h>
 
-
-/**
- * @brief Maximum desktops shown as top-level entries
- *
- * A generous cap on how many per-desktop submenus can exist at once;
- * far above any realistic desktop count.
- */
-#define WINLIST_MAX_DESKTOPS (16)
-
-/**
- * @brief Maximum entries (windows and application-group submenus
- *        combined) inside a single desktop's submenu
- */
-#define WINLIST_MAX_ENTRIES_PER_DESKTOP (64)
-
-/**
- * @brief Maximum simultaneously open application-group submenus, summed
- *        across every desktop submenu
- *
- * Only applications with two or more windows on the same desktop get
- * one of these; single-window applications are listed directly.
- */
-#define WINLIST_MAX_APPGROUPS (32)
-
-/**
- * @brief Maximum windows listed inside a single application-group
- *        submenu
- */
-#define WINLIST_MAX_APPGROUP_SIZE (32)
-
-/**
- * @brief Size of the scratch buffer used to collect a desktop's
- *        candidate clients before grouping them by application
- */
-#define WINLIST_MAX_COLLECTED (128)
-
-/**
- * @brief Size of the shared pool of per-entry userdata records
- *
- * Sized to cover the worst case at every level: one per desktop (for
- * its "Go there..." entry), one per entry in every desktop submenu, and
- * one per window in every application-group submenu.
- */
-#define WINLIST_MAX_ENTRY_DATA \
-    (WINLIST_MAX_DESKTOPS + \
-     WINLIST_MAX_DESKTOPS * WINLIST_MAX_ENTRIES_PER_DESKTOP + \
-     WINLIST_MAX_APPGROUPS * WINLIST_MAX_APPGROUP_SIZE)
 
 /** Singleton root menu state: one @c CTXMENU_SUBMENU entry per desktop */
 static ctxmenu_state_td s_root;

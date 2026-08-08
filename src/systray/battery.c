@@ -25,16 +25,6 @@
 #include <systray/battery.h>
 
 
-/** Base sysfs directory the Linux ACPI battery interface lives under */
-#define BATTERY_ACPI_BASE_DIR "/sys/class/power_supply"
-
-/** Legacy APM battery/AC status pseudo-file */
-#define BATTERY_APM_PROC_FILE "/proc/apm"
-
-/** Maximum bytes read from any one single-line sysfs/procfs file */
-#define BATTERY_LINE_MAX_LEN (64)
-
-
 /**
  * @brief Read one small text file into @p out, trimming the trailing
  *        newline if present

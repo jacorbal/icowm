@@ -33,6 +33,10 @@
 #include <wm.h>
 
 
+/** ICCCM 'WM_CHANGE_STATE' 'IconicState' value */
+#define ICCCM_ICONIC_STATE (3)
+
+
 /* Public interface */
 /**
  * @brief Handle a @c CONFIGURE_REQUEST event
