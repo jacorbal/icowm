@@ -122,6 +122,7 @@ static struct {
     uint32_t battery_backend_number;
     enum config_systray_text_position_e text_position;
     enum config_systray_text_valign_e text_valign;
+    uint16_t text_gap;
     enum config_systray_text_item_e text_order[2];
     uint8_t text_order_count;
     const struct config_theme_s *theme; /**< Shared pointer into
@@ -282,7 +283,7 @@ static uint16_t s_systray_text_width(void)
             continue;
         }
         if (shown > 0u) {
-            total = (uint16_t) (total + SYSTRAY_ICON_PAD);
+            total = (uint16_t) (total + s_tray.text_gap);
         }
         total = (uint16_t) (total + text_measure_string(text));
         ++shown;
@@ -578,7 +579,7 @@ static void s_systray_reflow(void)
                     pen_x, item_y, text);
             pen_x = (int16_t) (pen_x +
                     (int16_t) text_measure_string(text) +
-                    (int16_t) SYSTRAY_ICON_PAD);
+                    (int16_t) s_tray.text_gap);
         }
     }
 
@@ -1060,7 +1061,8 @@ void systray_init(wm_td *wm)
     s_tray.battery_backend_number =
         wm->config->base.systray.battery.backend.number;
     s_tray.text_position = wm->config->base.systray.text.position;
-    s_tray.text_valign = wm->config->base.systray.text.valign;
+    s_tray.text_valign = wm->config->theme.systray.text.valign;
+    s_tray.text_gap = (uint16_t) wm->config->theme.systray.text.gap;
     s_tray.text_order[0] = wm->config->base.systray.text.order[0];
     s_tray.text_order[1] = wm->config->base.systray.text.order[1];
     s_tray.text_order_count = wm->config->base.systray.text.order_count;
@@ -1297,7 +1299,8 @@ void systray_reload(wm_td *wm)
     s_tray.battery_backend_number =
         wm->config->base.systray.battery.backend.number;
     s_tray.text_position = wm->config->base.systray.text.position;
-    s_tray.text_valign = wm->config->base.systray.text.valign;
+    s_tray.text_valign = wm->config->theme.systray.text.valign;
+    s_tray.text_gap = (uint16_t) wm->config->theme.systray.text.gap;
     s_tray.text_order[0] = wm->config->base.systray.text.order[0];
     s_tray.text_order[1] = wm->config->base.systray.text.order[1];
     s_tray.text_order_count = wm->config->base.systray.text.order_count;

@@ -389,6 +389,13 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * open the desktop menu and the all-desktops window list;
          * this opens the context menu of one specific window. */
         { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
+        /* Fortune easter egg (grabbed only if enabled); mirrors
+         * emergency exit's own combination below but with 'Mod4' in
+         * place of 'Mod1', keeping the two visually and mnemonically
+         * distinct while both stay clear of 'Ctrl+Mod1+F10', which is
+         * commonly reserved by the system for switching to a text
+         * console */
+        { "Ctrl+Mod4+BackSpace", KEYBIND_WM_FORTUNE },
         /* Hardcoded emergency exit (grabbed only if enabled) */
         { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }
@@ -410,6 +417,15 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         { KEYBIND_CLIENT_CYCLE_NEXT, KEYBIND_CLIENT_CYCLE_PREV },
         { KEYBIND_DESKTOP_ICON_NEXT, KEYBIND_DESKTOP_ICON_PREV }
     };
+
+    /* Resolved up front (only when the emergency exit is actually
+     * enabled, since there is nothing to protect when it is off), so
+     * every other binding below can be checked against it and skipped
+     * on a collision, guaranteeing the emergency exit always wins its
+     * own key combination no matter what a user's 'bindings.json'
+     * happens to say. */
+    xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
+    uint16_t emergency_modmask = 0;
 
     s_keybindings_count = 0;
 
@@ -433,19 +449,58 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
                 surface->screen->root, XCB_MOD_MASK_ANY);
     }
 
+    /* Resolve the emergency exit combo now that all declarations are
+     * in place above */
+    if (config->base.enable_emergency_shortcut) {
+        (void) s_parse_binding(config, "Ctrl+Mod1+BackSpace",
+                &emergency_modmask, &emergency_keysym);
+    }
+
     for (int i = 0; defs[i].binding != NULL; ++i) {
         xcb_keysym_t keysym;
         uint16_t modmask;
         xcb_keycode_t *keycodes;
 
-        /* Skip emergency exit grab when disabled in configuration */
-        if (defs[i].type == KEYBIND_NONE &&
+        /* Skip emergency exit grab when disabled in configuration.
+         * ('defs[i].type == KEYBIND_NONE' would never match here:
+         * that value only ever appears on the array's own NULL
+         * terminator, which the loop condition above already stops
+         * before reaching, so this has to name the emergency exit
+         * entry's own type directly or the grab happens regardless
+         * of the flag below.) */
+        if (defs[i].type == KEYBIND_WM_EMERGENCY_EXIT &&
                 !config->base.enable_emergency_shortcut) {
+            continue;
+        }
+
+        /* Skip the fortune easter egg grab the same way, when
+         * disabled in configuration */
+        if (defs[i].type == KEYBIND_WM_FORTUNE &&
+                !config->base.enable_fortune_shortcut) {
             continue;
         }
 
         if (!s_parse_binding(config, defs[i].binding,
                     &modmask, &keysym)) {
+            continue;
+        }
+
+        /* Any OTHER binding that happens to resolve to the exact same
+         * key combination as the (enabled) emergency exit shortcut is
+         * ignored in its favor: two bindings sharing one combo would
+         * otherwise both end up grabbed, and whichever happened to be
+         * checked first at dispatch time would silently win, which
+         * for this one combination must always be the emergency exit
+         * and never something a configuration file could override,
+         * intentionally or by accident. */
+        if (defs[i].type != KEYBIND_WM_EMERGENCY_EXIT &&
+                emergency_keysym != XCB_NO_SYMBOL &&
+                keysym == emergency_keysym &&
+                modmask == emergency_modmask) {
+            LOGGER_WARNING("Binding '%s' collides with the emergency" \
+                    " exit shortcut (Ctrl+Mod1+BackSpace); ignoring" \
+                    " it so the emergency exit keeps that combination" \
+                    " to itself", defs[i].binding);
             continue;
         }
 

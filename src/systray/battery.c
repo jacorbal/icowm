@@ -280,7 +280,7 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
     }
 
     if (percent >= threshold_charged) {
-        (void) snprintf(out, out_size, "%s", ac ? "Full AC" : "Full");
+        (void) snprintf(out, out_size, "%s", (ac) ? "Full AC" : "Full");
         return;
     }
 

@@ -77,8 +77,8 @@
  * @brief Score a candidate window position against existing clients
  *
  * Iterates visible clients on @p desktop and accumulates an overlap
- * penalty weighted by intersection area.  A small distance-to-centre
- * penalty breaks ties in favour of the workarea centre.
+ * penalty weighted by intersection area.  A small distance-to-center
+ * penalty breaks ties in favor of the workarea center.
  *
  * @param desktop     Desktop whose clients are inspected
  * @param skip_client Client to ignore (the one being placed)
@@ -86,8 +86,8 @@
  * @param y           Candidate top coordinate
  * @param fw          Candidate width
  * @param fh          Candidate height
- * @param center_x    X coordinate of the workarea centre
- * @param center_y    Y coordinate of the workarea centre
+ * @param center_x    X coordinate of the workarea center
+ * @param center_y    Y coordinate of the workarea center
  *
  * @return Aggregate cost; lower is better; 0 means a perfect position
  *
@@ -147,7 +147,7 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
         }
     }
 
-    /* Secondary tie-breaker: Manhattan distance from workarea centre.
+    /* Secondary tie-breaker: Manhattan distance from workarea center.
      * Stays much smaller than any window-overlap penalty, so it only
      * matters when two positions have equal overlap cost. */
     dx = (x + (int32_t) (fw / 2u)) - center_x;
@@ -310,7 +310,7 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     max_x = (wa_w > fw) ? wa_x + (int32_t) (wa_w - fw) : wa_x;
     max_y = (wa_h > fh) ? wa_y + (int32_t) (wa_h - fh) : wa_y;
 
-    /* Workarea centre used as the distance tie-breaker reference */
+    /* Workarea center used as the distance tie-breaker reference */
     center_x = wa_x + (int32_t) (wa_w / 2u);
     center_y = wa_y + (int32_t) (wa_h / 2u);
 
@@ -594,7 +594,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             wa_y + (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
         s_cascade_seq++;
     } else if (policy == CONFIG_PLACEMENT_POLICY_CENTERED) {
-        /* Centre on the workarea, not on the full screen. */
+        /* Center on the workarea, not on the full screen. */
         new_x = wa_x + ((int32_t) wa_w - (int32_t) fw) / 2;
         new_y = wa_y + ((int32_t) wa_h - (int32_t) fh) / 2;
         if (new_x < wa_x) { new_x = wa_x; }

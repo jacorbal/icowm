@@ -837,15 +837,15 @@ client_td *client_manage(xcb_connection_t *connection,
     }
 
     /* Read the pre-existing '_NET_WM_STATE' property so that states an
-     * application sets on itself before ever mapping (i.e. before the
-     * window manager has a chance to intervene) are honoured from the
+     * application sets on itself before ever mapping (i.e., before the
+     * window manager has a chance to intervene) are honored from the
      * start, instead of only taking effect the first time the
      * application happens to resend the same state later via a
-     * '_NET_WM_STATE' 'ClientMessage' (e.g. toggling a "skip taskbar"
+     * '_NET_WM_STATE' 'ClientMessage' (e.g., toggling a "skip taskbar"
      * preference off and back on in xpad's settings): panels and dock
-     * windows that set '_NET_WM_STATE_BELOW' (e.g. tint2) get the
+     * windows that set '_NET_WM_STATE_BELOW' (e.g., tint2) get the
      * BELOW layer, and applications that set '_NET_WM_STATE_SKIP_
-     * TASKBAR'/'_NET_WM_STATE_SKIP_PAGER' (e.g. xpad's "hide from
+     * TASKBAR'/'_NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from
      * taskbar" option, enabled from its own startup) are excluded from
      * the cycle menu and window list immediately rather than only
      * after the user re-toggles the same preference in that

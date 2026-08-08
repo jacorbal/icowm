@@ -89,7 +89,11 @@
             "color": "#7f9ab6",
             "width": 1
         },
-        "height": 32
+        "height": 32,
+        "text": {
+            "gap": 4,
+            "valign": "center"
+        }
     },
 
     "menu": {

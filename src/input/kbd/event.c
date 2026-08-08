@@ -38,6 +38,7 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog.h>
 #include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
 #include <menu/popup.h>
@@ -260,7 +261,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
  *
  * Applies the resize synchronously without going through the event
  * queue.  This mirrors the interactive (mouse-drag) resize path so that
- * both input methods share identical behaviour: the geometry is
+ * both input methods share identical behavior: the geometry is
  * constrained per-axis, applied to the correct X window (frame for
  * decorated clients, content window for undecorated clients), and
  * followed by a synthetic @c ConfigureNotify so the application learns
@@ -450,8 +451,8 @@ static void s_handle_dialog_quit_key(xcb_keysym_t keysym,
         return;
     }
 
-    /* Enter / KP_Enter: confirm */
-    if (keysym == 0xff0du || keysym == 0xff8du) {
+    /* Enter / KP_Enter / Space: confirm */
+    if (keysym == 0xff0du || keysym == 0xff8du || keysym == 0x0020u) {
         if (conn != NULL) { dialog_quit_accept(conn); }
         return;
     }
@@ -590,6 +591,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
         case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_FORTUNE:
             return;
 
         case KEYBIND_CLIENT_INFO:
@@ -731,6 +733,7 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
         case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_FORTUNE:
             return;
 
         case KEYBIND_LAUNCH_TERMINAL:
@@ -849,6 +852,7 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
         case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_FORTUNE:
             return;
 
         case KEYBIND_CLIENT_MOVE_LEFT:
@@ -997,6 +1001,7 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_WM_RELOAD:
         case KEYBIND_WM_QUIT:
         case KEYBIND_WM_EMERGENCY_EXIT:
+        case KEYBIND_WM_FORTUNE:
             return;
 
         case KEYBIND_CLIENT_RESIZE_LEFT:
@@ -1099,12 +1104,25 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /* Info dialog: any Enter or Escape closes it */
+    /* Info dialog: any Enter, Space, or Escape closes it */
     if (dialog_info_is_open()) {
         if (keysym == 0xff0du || keysym == 0xff8du ||
-                keysym == 0xff1bu) {
+                keysym == 0x0020u || keysym == 0xff1bu) {
             if (surface != NULL && surface->connection != NULL) {
                 dialog_info_close(surface->connection);
+            }
+        }
+        return;
+    }
+
+    /* Message dialog (warnings, errors, info messages, the 'fortune'
+     * easter egg): a single "OK" button, so Enter, Space, or Escape
+     * all just dismiss it the same way clicking that button would */
+    if (menu_message_dialog_is_open()) {
+        if (keysym == 0xff0du || keysym == 0xff8du ||
+                keysym == 0x0020u || keysym == 0xff1bu) {
+            if (surface != NULL && surface->connection != NULL) {
+                menu_message_dialog_close(surface->connection);
             }
         }
         return;
@@ -1234,6 +1252,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_EMERGENCY_EXIT:
                 /* Already handled above via the hardcoded shortcut */
+                return;
+
+            case KEYBIND_WM_FORTUNE:
+                if (config->base.enable_fortune_shortcut &&
+                        surface != NULL && surface->connection != NULL) {
+                    dialog_fortune_show(surface->connection, surface,
+                            config);
+                }
                 return;
 
             case KEYBIND_WM_REDRAW:

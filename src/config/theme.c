@@ -142,6 +142,34 @@ static enum config_titlebar_alignment_e s_parse_titlebar_alignment(
 
 
 /**
+ * @brief Parse systray clock/battery text vertical alignment into
+ *        configuration
+ *
+ * @param value Alignment text from configuration, e.g., @c "top"
+ *
+ * @return Parsed systray text vertical alignment enumeration value
+ *
+ * @note Supported values are @c center, @c top, and @c bottom
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_text_valign_e s_parse_systray_text_valign(
+        const char *value)
+{
+    if (value == NULL) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+    }
+    if (safe_strcmp(value, "top") == 0) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_TOP;
+    }
+    if (safe_strcmp(value, "bottom") == 0) {
+        return CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM;
+    }
+
+    return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+}
+
+
+/**
  * @brief Load one @c { font, color: {background, foreground},
  *        border: {color, width} } block, the shape shared by every
  *        themeable surface (window active/inactive, icon
@@ -282,7 +310,22 @@ int config_load_theme(const char *filename,
     systray = cJSON_GetObjectItem(json, "systray");
     s_load_theme_colors(systray, &config_theme->systray.style);
     if (systray) {
+        cJSON *text_obj;
+
         json_load_uint(systray, "height", &config_theme->systray.height);
+
+        text_obj = cJSON_GetObjectItem(systray, "text");
+        if (text_obj) {
+            cJSON *valign_item;
+
+            json_load_uint(text_obj, "gap",
+                    &config_theme->systray.text.gap);
+            valign_item = json_get_item(text_obj, "valign");
+            if (valign_item != NULL && cJSON_IsString(valign_item)) {
+                config_theme->systray.text.valign =
+                    s_parse_systray_text_valign(valign_item->valuestring);
+            }
+        }
     }
 
     menu = cJSON_GetObjectItem(json, "menu");

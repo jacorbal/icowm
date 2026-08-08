@@ -246,37 +246,6 @@ static enum config_systray_text_position_e
 
 
 /**
- * @brief Parse systray clock/battery text vertical alignment into
- *        configuration
- *
- * @param value Alignment text from configuration, e.g., @c "top"
- *
- * @return Parsed systray text vertical alignment enumeration value
- *
- * @note Supported values are @c center, @c top, and @c bottom
- * @note Complexity: @e O(n), where @e n is the length of @p value
- */
-static enum config_systray_text_valign_e
-    s_config_parse_systray_text_valign(const char *value)
-{
-    char value_norm[CONFIG_MAX_LENGTH_OPTION];
-
-    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
-    }
-
-    if (safe_strcmp(value_norm, "top") == 0) {
-        return CONFIG_SYSTRAY_TEXT_VALIGN_TOP;
-    }
-    if (safe_strcmp(value_norm, "bottom") == 0) {
-        return CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM;
-    }
-
-    return CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
-}
-
-
-/**
  * @brief Parse one systray text item name ("clock" or "battery") into
  *        configuration
  *
@@ -736,6 +705,8 @@ int config_load_base(const char *filename,
 
     json_load_bool(json, "enable-emergency-shortcut",
             &config_base->enable_emergency_shortcut);
+    json_load_bool(json, "enable-fortune-shortcut",
+            &config_base->enable_fortune_shortcut);
     json_load_bool(json, "show-desktop-overlay",
             &config_base->show_desktop_overlay);
 
@@ -843,7 +814,6 @@ int config_load_base(const char *filename,
         text_item = cJSON_GetObjectItem(systray, "text");
         if (text_item) {
             cJSON *text_position_item;
-            cJSON *text_valign_item;
             cJSON *text_order_item;
 
             text_position_item = json_get_item(text_item, "position");
@@ -852,14 +822,6 @@ int config_load_base(const char *filename,
                 config_base->systray.text.position =
                     s_config_parse_systray_text_position(
                             text_position_item->valuestring);
-            }
-
-            text_valign_item = json_get_item(text_item, "valign");
-            if (text_valign_item != NULL &&
-                    cJSON_IsString(text_valign_item)) {
-                config_base->systray.text.valign =
-                    s_config_parse_systray_text_valign(
-                            text_valign_item->valuestring);
             }
 
             text_order_item = cJSON_GetObjectItem(text_item, "order");

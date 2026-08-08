@@ -85,8 +85,7 @@
         },
         "text": {
             "order": [ "battery", "clock" ],
-            "position": "right",
-            "valign": "center"
+            "position": "right"
         }
     },
     "xsettings": {
@@ -98,5 +97,6 @@
         "dpi": 96
     },
     "show-desktop-overlay": true,
-    "enable-emergency-shortcut": true
+    "enable-emergency-shortcut": true,
+    "enable-fortune-shortcut": false
 }

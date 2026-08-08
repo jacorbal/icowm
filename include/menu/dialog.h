@@ -212,6 +212,30 @@ void menu_message_dialog_show(xcb_connection_t *connection,
 void menu_message_dialog_close(xcb_connection_t *connection);
 
 /**
+ * @brief Open a message dialog showing the output of the @c fortune
+ *        command, or an invitation to install it if unavailable
+ *
+ * Runs @c fortune and shows its output through
+ * @c menu_message_dialog_show, which already wraps arbitrarily long
+ * or multi-line text across several lines, so a long fortune (or a
+ * one-word-short one) is handled the same general way any other
+ * message would be.  If @c fortune is not installed or exits without
+ * producing output, shows a fixed, deliberately archaic message
+ * inviting the person to install it instead of silently doing
+ * nothing.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface on which to center the dialog
+ * @param config     Active configuration (theme colors and font)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the
+ *       @c fortune output actually read (bounded, see
+ *       @c DIALOG_FORTUNE_MAX_LEN in dialog.c)
+ */
+void dialog_fortune_show(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config);
+
+/**
  * @brief Repaint the message dialog from current state
  *
  * Called from the expose handler.  Redraws the message text and the

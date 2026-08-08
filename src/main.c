@@ -118,7 +118,7 @@ static inline void s_show_help(FILE *fp)
 
     /* Show options by category */
     fprintf(fp, "\nMain options:\n");
-    fprintf(fp, "   -d <display>    Set X server display (e.g.: ':0')\n");
+    fprintf(fp, "   -d <display>    Set X server display (e.g., ':0')\n");
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",

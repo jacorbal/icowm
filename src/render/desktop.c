@@ -260,13 +260,13 @@ static uint32_t s_titlebar_button_color(
         return bg_fill;
     }
     if (button == CONFIG_TITLEBAR_BUTTON_PIN) {
-        return is_sticky ? color_active : color_inactive;
+        return (is_sticky) ? color_active : color_inactive;
     }
     if (button == CONFIG_TITLEBAR_BUTTON_LAYER) {
-        return is_layered ? color_active : color_inactive;
+        return (is_layered) ? color_active : color_inactive;
     }
 
-    return is_focused ? color_active : color_inactive;
+    return (is_focused) ? color_active : color_inactive;
 }
 
 
@@ -355,7 +355,7 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
 
 /**
  * @brief Draw a titlebar's text, clipped to the space the buttons leave
- *        available, honouring the theme's chosen alignment
+ *        available, honoring the theme's chosen alignment
  *
  * A title too wide for the available space is truncated one character
  * at a time until it fits, rather than letting it draw underneath the

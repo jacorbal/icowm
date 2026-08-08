@@ -921,9 +921,9 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
  * @brief Test whether a click on the titlebar landed on a configured
  *        button and dispatch its action
  *
- * Uses @c client_titlebar_layout to find each button's position --
- * the exact same computation @c desktop_draw_titlebar_buttons uses to
- * paint them -- so a click can never land "between" where a button
+ * Uses @c client_titlebar_layout to find each button's position, the
+ * exact same computation @c desktop_draw_titlebar_buttons uses to
+ * paint them, so a click can never land "between" where a button
  * looks like it is and where this function thinks it is.  If the
  * click lands on a button its action is dispatched and the function
  * returns @c true.  Scroll-wheel events (buttons 4 and 5) on the
@@ -971,7 +971,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_resizable(client);
 
-    /* Same layout the render pass just painted from -- computed first
+    /* Same layout the render pass just painted from, computed first
      * (not just when the click Y already looks close) since it is what
      * determines 'btn_y' now that button rows can be vertically inset
      * by 'padding.vertical', not just centered in the full titlebar

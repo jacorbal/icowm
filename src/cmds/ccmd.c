@@ -720,7 +720,7 @@ void wcmd_client_unhide(client_td *client)
 
     /* Raise the unhidden client to the top of the desktop stacking
      * order and give it real input focus, matching the deiconify
-     * behaviour, so that clicking a hidden window in the window menu
+     * behavior, so that clicking a hidden window in the window menu
      * immediately activates it for keyboard input */
     if (client_is_focusable(client)) {
         desktop_td *desktop = wm_get_client_desktop(client);

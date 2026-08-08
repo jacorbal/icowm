@@ -547,7 +547,7 @@ int ci_create_decorations(client_td *client)
      * Scroll-wheel buttons 4 and 5 are intentionally excluded.  A sync
      * passive grab on those buttons intercepts scroll events before the
      * application can receive them; even though 'ReplayPointer' is
-     * issued, some applications (e.g. Chromium, pcmanfm) use their own
+     * issued, some applications (e.g., Chromium, pcmanfm) use their own
      * grabs internally and the event is not re-delivered correctly.
      * Leaving 4 and 5 ungrabbed here allows the X server to deliver
      * scroll events directly to the focused application window. */

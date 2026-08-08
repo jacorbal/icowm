@@ -9,10 +9,10 @@
  * the caller fills in before calling @c ctxmenu_show.
  *
  * Entry types:
- *   - @c CTXMENU_COMMAND  -- clickable item with a label and a command.
- *   - @c CTXMENU_SUBMENU  -- entry that opens a nested child menu.
- *   - @c CTXMENU_SEPARATOR -- non-clickable horizontal rule.
- *   - @c CTXMENU_LABEL    -- non-clickable heading text.
+ *   - @c CTXMENU_COMMAND: clickable item with a label and a command.
+ *   - @c CTXMENU_SUBMENU: entry that opens a nested child menu.
+ *   - @c CTXMENU_SEPARATOR: non-clickable horizontal rule.
+ *   - @c CTXMENU_LABEL: non-clickable heading text.
  *
  * At most one context menu (at any nesting level) can be visible at
  * a time.  Opening a new menu always closes the currently open one

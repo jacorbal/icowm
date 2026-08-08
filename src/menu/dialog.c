@@ -11,9 +11,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* popen, pclose */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf, popen, pclose */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -53,6 +57,34 @@
 /** Maximum text length for dialogs (prompt + level prefix) */
 #define DIALOG_TEXT_MAX_LEN (256u)
 
+/**
+ * @brief Maximum number of wrapped lines the message dialog will show
+ *
+ * A hard cap so a pathologically long message cannot grow the dialog
+ * (and the fixed-size arrays backing it) without bound; text past
+ * this many lines is simply not shown.
+ */
+#define DIALOG_MSG_MAX_LINES (12u)
+
+/** Maximum length of the raw message text before wrapping, prefix
+ *  included */
+#define DIALOG_MSG_RAW_MAX_LEN (1024u)
+
+/** Maximum length of a single already-wrapped line */
+#define DIALOG_MSG_LINE_MAX_LEN (160u)
+
+/**
+ * @brief Pixel width the message text wraps at
+ *
+ * The dialog itself can still end up narrower than this: it is sized
+ * to the widest line the wrap actually produces, not to this bound
+ * directly, so a short one-line message stays compact.
+ */
+#define DIALOG_MSG_WRAP_WIDTH (480u)
+
+/** Vertical gap between wrapped message lines, in pixels */
+#define DIALOG_MSG_LINE_GAP (4u)
+
 /** Label for the dismiss button in the message dialog */
 #define DIALOG_MSG_LABEL_OK ("[ OK ]")
 
@@ -64,6 +96,20 @@
 
 /** Prefix for error-level messages */
 #define DIALOG_MSG_PREFIX_ERROR ("[X] ")
+
+/** Maximum bytes read from the @c fortune command's output */
+#define DIALOG_FORTUNE_MAX_LEN (1024u)
+
+/** Shown instead when @c fortune is missing or produces no output;
+ *  deliberately overwrought and archaic, per its whole point being a
+ *  small joke rather than a plain error message */
+#define DIALOG_FORTUNE_FALLBACK_MSG \
+    "Alack! The oracle 'fortune' abideth not upon this machine, " \
+    "wherefore no wisdom of the ancients may this day be divined. " \
+    "Prithee, entreat thy package steward with an incantation " \
+    "such as 'sudo apt install fortune-mod' (or whate'er charm " \
+    "thy distribution demandeth), that the sages of yore might " \
+    "once more speak through this humble dialog."
 
 
 /**
@@ -583,11 +629,17 @@ typedef struct {
     uint16_t btn_h;
     int16_t msg_x;
     int16_t msg_y;
+    int16_t line_height;    /**< Pixel height (ascent + descent) of
+                                  one wrapped line in the label font */
     int16_t btn_x;
     int16_t btn_y;
     int16_t btn_label_x;
     int16_t btn_label_y;
-    char message[DIALOG_TEXT_MAX_LEN];
+    char raw_message[DIALOG_MSG_RAW_MAX_LEN]; /**< Prefix + caller's
+                                                     text, before
+                                                     wrapping */
+    char lines[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LEN];
+    uint8_t line_count;
 } s_message_layout_td;
 
 
@@ -596,6 +648,107 @@ static xcb_window_t s_message_window = XCB_WINDOW_NONE;
 
 /** Cached layout used for both creation and repaint */
 static s_message_layout_td s_message_layout;
+
+
+/**
+ * @brief Word-wrap @p raw into @p lines, each at most
+ *        @c DIALOG_MSG_WRAP_WIDTH pixels wide in whichever font
+ *        @c text_renderer_init last selected
+ *
+ * A general-purpose wrap usable for any message dialog text, not
+ * specific to any one caller: explicit @c '\n' characters in @p raw
+ * force a line break (so a caller that already knows its own
+ * paragraph structure is respected exactly), and within each such
+ * paragraph, words are packed onto a line up to the wrap width before
+ * moving to the next one.  A single word wider than the wrap width on
+ * its own is placed on its own line and allowed to overflow rather
+ * than being split mid-word, since breaking a word arbitrarily reads
+ * worse than a rare, slightly-too-wide line.  Stops after
+ * @c DIALOG_MSG_MAX_LINES lines regardless of how much text remains,
+ * silently dropping the rest, so a pathologically long message can
+ * never grow the dialog (or the fixed-size @p lines array) without
+ * bound.
+ *
+ * @param raw        Null-terminated text to wrap
+ * @param lines       Array of @c DIALOG_MSG_MAX_LINES buffers, each
+ *                    @c DIALOG_MSG_LINE_MAX_LEN bytes, to receive the
+ *                    wrapped lines
+ * @param out_count   Receives the number of lines actually produced
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p raw
+ */
+static void s_message_wrap_text(const char *raw,
+        char lines[][DIALOG_MSG_LINE_MAX_LEN], uint8_t *out_count)
+{
+    size_t raw_len;
+    size_t i = 0u;
+    uint8_t count = 0u;
+
+    if (out_count != NULL) {
+        *out_count = 0u;
+    }
+    if (raw == NULL || lines == NULL || out_count == NULL) {
+        return;
+    }
+
+    raw_len = safe_strlen(raw);
+
+    while (i < raw_len && count < (uint8_t) DIALOG_MSG_MAX_LINES) {
+        char line[DIALOG_MSG_LINE_MAX_LEN];
+        size_t line_len = 0u;
+
+        line[0] = '\0';
+
+        while (i < raw_len && raw[i] == ' ') {
+            ++i;
+        }
+
+        while (i < raw_len && raw[i] != '\n') {
+            size_t word_start = i;
+            size_t word_len = 0u;
+            char candidate[DIALOG_MSG_LINE_MAX_LEN];
+            uint16_t candidate_w;
+
+            while (i < raw_len && raw[i] != ' ' && raw[i] != '\n') {
+                ++i;
+                ++word_len;
+            }
+
+            (void) snprintf(candidate, sizeof(candidate), "%s%s%.*s",
+                    line, (line_len > 0u) ? " " : "",
+                    (int) word_len, &raw[word_start]);
+            candidate_w = text_measure_string(candidate);
+
+            if (candidate_w <= (uint16_t) DIALOG_MSG_WRAP_WIDTH ||
+                    line_len == 0u) {
+                (void) safe_strncpy(line, candidate, sizeof(line) - 1u);
+                line[sizeof(line) - 1u] = '\0';
+                line_len = safe_strlen(line);
+            } else {
+                /* Does not fit and the line already has something on
+                 * it: rewind to re-process this same word as the
+                 * start of the next line instead. */
+                i = word_start;
+                break;
+            }
+
+            while (i < raw_len && raw[i] == ' ') {
+                ++i;
+            }
+        }
+
+        (void) safe_strncpy(lines[count], line,
+                DIALOG_MSG_LINE_MAX_LEN - 1u);
+        lines[count][DIALOG_MSG_LINE_MAX_LEN - 1u] = '\0';
+        ++count;
+
+        if (i < raw_len && raw[i] == '\n') {
+            ++i;
+        }
+    }
+
+    *out_count = count;
+}
 
 
 /**
@@ -616,7 +769,7 @@ static s_message_layout_td s_message_layout;
 static void s_message_compute_layout(xcb_connection_t *connection,
         const config_td *config, s_message_layout_td *layout)
 {
-    uint16_t msg_w;
+    uint16_t msg_w = 0u;
     uint16_t ok_w;
     uint16_t msg_span_w;
     uint16_t ok_span_w;
@@ -624,6 +777,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     uint16_t pad_y;
     uint16_t btn_text_h;
     uint16_t label_pad_x;
+    uint16_t extra_lines_h;
 
     if (connection == NULL || config == NULL || layout == NULL) {
         return;
@@ -634,7 +788,17 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     pad_y = (uint16_t) config->theme.dialog.button.padding.vertical;
 
     text_renderer_init(connection, config->theme.dialog.label.font);
-    msg_w = menu_draw_measure(layout->message);
+    s_message_wrap_text(layout->raw_message, layout->lines,
+            &layout->line_count);
+    layout->line_height = (int16_t) (text_font_ascent() +
+            text_font_descent());
+    for (uint8_t i = 0u; i < layout->line_count; ++i) {
+        uint16_t w = menu_draw_measure(layout->lines[i]);
+
+        if (w > msg_w) {
+            msg_w = w;
+        }
+    }
 
     text_renderer_init(connection, config->theme.dialog.button.selected.font);
     ok_w = menu_draw_measure(DIALOG_MSG_LABEL_OK);
@@ -645,12 +809,22 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     layout->btn_h = (uint16_t) (btn_text_h + (pad_y * 2u));
 
     msg_span_w = (uint16_t) (msg_w + (label_pad_x * 2u));
-    ok_span_w  = (uint16_t) (layout->btn_w + (label_pad_x * 2u));
+    ok_span_w = (uint16_t) (layout->btn_w + (label_pad_x * 2u));
+
+    /* Every wrapped line past the first extends the dialog by one
+     * more line height plus the inter-line gap; a single-line message
+     * (the common case) adds nothing here, matching the previous
+     * fixed layout exactly. */
+    extra_lines_h = (layout->line_count > 1u)
+        ? (uint16_t) ((layout->line_count - 1u) *
+                ((uint16_t) layout->line_height + DIALOG_MSG_LINE_GAP))
+        : 0u;
 
     layout->w = s_u16max(DIALOG_MIN_W,
             s_u16max(msg_span_w, ok_span_w));
     layout->h = s_u16max(DIALOG_MIN_H,
             (uint16_t) (DIALOG_PROMPT_BASELINE_Y +
+                extra_lines_h +
                 DIALOG_PROMPT_TO_BTN_GAP +
                 layout->btn_h +
                 DIALOG_PAD_BOTTOM));
@@ -731,11 +905,21 @@ static void s_message_draw(xcb_connection_t *connection,
             config->theme.dialog.button.selected.border.width,
             lo->btn_x, lo->btn_y, lo->btn_w, lo->btn_h);
 
-    /* Message text */
+    /* Message text, one call per wrapped line; each line uses the
+     * same 'msg_x' (computed from the widest line) rather than being
+     * individually re-centered, so the whole block reads as one
+     * left-aligned paragraph rather than each line jittering
+     * sideways relative to the others. */
     text_renderer_init(connection, config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
-    menu_draw_label(connection, s_message_window,
-            lo->msg_x, lo->msg_y, lo->message);
+    for (uint8_t i = 0u; i < lo->line_count; ++i) {
+        int16_t line_y = (int16_t) (lo->msg_y +
+                (int16_t) i * (lo->line_height +
+                    (int16_t) DIALOG_MSG_LINE_GAP));
+
+        menu_draw_label(connection, s_message_window,
+                lo->msg_x, line_y, lo->lines[i]);
+    }
 
     /* OK label */
     text_renderer_init(connection, config->theme.dialog.button.selected.font);
@@ -782,16 +966,17 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             break;
     }
 
-    (void) safe_strncpy(s_message_layout.message, prefix,
-            sizeof(s_message_layout.message) - 1u);
-    s_message_layout.message[sizeof(s_message_layout.message) - 1u] = '\0';
+    (void) safe_strncpy(s_message_layout.raw_message, prefix,
+            sizeof(s_message_layout.raw_message) - 1u);
+    s_message_layout.raw_message[
+        sizeof(s_message_layout.raw_message) - 1u] = '\0';
 
     if (message != NULL) {
-        size_t plen = safe_strlen(s_message_layout.message);
-        (void) safe_strncpy(s_message_layout.message + plen, message,
-                sizeof(s_message_layout.message) - 1u - plen);
-        s_message_layout.message[
-            sizeof(s_message_layout.message) - 1u] = '\0';
+        size_t plen = safe_strlen(s_message_layout.raw_message);
+        (void) safe_strncpy(s_message_layout.raw_message + plen, message,
+                sizeof(s_message_layout.raw_message) - 1u - plen);
+        s_message_layout.raw_message[
+            sizeof(s_message_layout.raw_message) - 1u] = '\0';
     }
 
     s_message_compute_layout(connection, config, &s_message_layout);
@@ -917,4 +1102,48 @@ void menu_dialog_center(const surface_td *surface,
             ? (surface->properties.dim.w - width) / 2u : 0u);
     *out_y = (int16_t) ((surface->properties.dim.h > height)
             ? (surface->properties.dim.h - height) / 2u : 0u);
+}
+
+
+/* Show the output of 'fortune', or an invitation to install it */
+void dialog_fortune_show(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config)
+{
+    char buffer[DIALOG_FORTUNE_MAX_LEN];
+    FILE *pipe;
+    size_t len;
+    const char *text;
+
+    if (connection == NULL || surface == NULL || config == NULL) {
+        return;
+    }
+
+    buffer[0] = '\0';
+
+    /* Redirect stderr to /dev/null so a missing binary's shell
+     * "command not found" complaint never ends up as this dialog's
+     * text; an empty read is exactly what should fall through to the
+     * fallback message below regardless of why it came up empty. */
+    pipe = popen("fortune 2>/dev/null", "r");
+    if (pipe != NULL) {
+        size_t n = fread(buffer, 1u, sizeof(buffer) - 1u, pipe);
+
+        buffer[n] = '\0';
+        (void) pclose(pipe);
+    }
+
+    /* Trim the trailing newline(s) 'fortune' output typically ends
+     * with, so wrapping does not leave a visibly blank final line at
+     * the bottom of the dialog. */
+    len = safe_strlen(buffer);
+    while (len > 0u &&
+            (buffer[len - 1u] == '\n' || buffer[len - 1u] == '\r' ||
+             buffer[len - 1u] == ' ' || buffer[len - 1u] == '\t')) {
+        buffer[--len] = '\0';
+    }
+
+    text = (len > 0u) ? buffer : DIALOG_FORTUNE_FALLBACK_MSG;
+
+    menu_message_dialog_show(connection, surface, config, text,
+            MENU_MSG_LEVEL_INFO);
 }

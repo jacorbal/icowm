@@ -268,7 +268,7 @@ static void s_cb_restore(xcb_connection_t *connection,
  *   does for keyboard activation.  Arrow keys move the window,
  *   @c Return confirms, @c Escape restores the original position.
  * - Activated with the mouse (a click on the entry): warps the pointer
- *   to the window's centre and starts a pointer-driven move drag, so
+ *   to the window's center and starts a pointer-driven move drag, so
  *   the window then follows the mouse until the button is released.
  */
 static void s_cb_move(xcb_connection_t *connection,
@@ -329,7 +329,7 @@ static void s_cb_move(xcb_connection_t *connection,
  * @brief Pick the resize-drag corner diagonally opposite the window's
  *        screen quadrant
  *
- * Determines which screen quadrant the window's centre falls in and
+ * Determines which screen quadrant the window's center falls in and
  * returns the coordinates of the opposite corner of the window frame,
  * one pixel inside each edge so @c drag_start recognizes it as
  * a corner handle (see @c WM_RESIZE_CORNER_SIZE):
@@ -377,8 +377,8 @@ static void s_resize_grab_corner(const client_td *client,
     is_left = win_center_x < screen_center_x;
     is_top = win_center_y < screen_center_y;
 
-    *out_x = is_left ? right : left;
-    *out_y = is_top ? bottom : top;
+    *out_x = (is_left) ? right : left;
+    *out_y = (is_top) ? bottom : top;
 }
 
 

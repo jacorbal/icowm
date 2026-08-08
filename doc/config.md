@@ -16,7 +16,7 @@ values, and built-in default value.
    - [2.4 `windows`](#24-windows)
    - [2.5 `icons`](#25-icons)
    - [2.6 `show-desktop-overlay`](#26-show-desktop-overlay)
-   - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
+   - [2.7 `enable-emergency-shortcut` / `enable-fortune-shortcut`](#27-enable-emergency-shortcut--enable-fortune-shortcut)
    - [2.8 `menus`](#28-menus)
    - [2.9 `systray`](#29-systray)
    - [2.10 `xsettings`](#210-xsettings)
@@ -357,20 +357,38 @@ name.  Set to `false` to suppress the popup entirely.
 "show-desktop-overlay": true
 ```
 
-### 2.7 `enable-emergency-shortcut`
+### 2.7 `enable-emergency-shortcut` / `enable-fortune-shortcut`
 
 | Key                          | Type    | Default  |
 |------------------------------|---------|----------|
 | `enable-emergency-shortcut`  | boolean | `false`  |
+| `enable-fortune-shortcut`    | boolean | `false`  |
 
-When `true`, the hardcoded emergency exit shortcut `Ctrl+Mod1+BackSpace`
-is active and immediately terminates the window manager ignoring peding
-session hooks.  Set to `false` to disable that shortcut, for example on
-systems where the key combination might be triggered accidentally.
+Two hardcoded shortcuts, each off by default and each independently
+gated by its own boolean here rather than being configurable via
+`bindings.json` like a normal keybinding.
+
+When `true`, `enable-emergency-shortcut` activates
+`Ctrl+Mod1+BackSpace`, which immediately terminates the window manager
+ignoring pending session hooks.  Set to `false` (the default) to
+disable that shortcut, for example on systems where the key
+combination might be triggered accidentally.  While enabled, that
+exact key combination cannot be reused by any binding in
+`bindings.json`, whether that would happen intentionally or by
+accident: any such binding is ignored (with a warning logged) so the
+emergency exit always keeps `Ctrl+Mod1+BackSpace` to itself.
+
+When `true`, `enable-fortune-shortcut` activates `Ctrl+Mod4+BackSpace`
+(mirroring the emergency exit combination above but with `Mod4` in
+place of `Mod1`, keeping the two visually and mnemonically distinct),
+which opens a small dialog showing the output of the `fortune`
+command, or, if `fortune` is not installed, an in-joke message
+suggesting it should be.  Purely for fun; harmless to leave off, and
+harmless to turn on.
 
 ```json
-
-"enable-emergency-shortcut": true
+"enable-emergency-shortcut": true,
+"enable-fortune-shortcut": true
 ```
 
 ### 2.8 `menu`
@@ -530,25 +548,22 @@ positioned and aligned is shared with `systray.clock` above; see
 |-----------------------------|-----------------|-----------------------------|
 | `systray.text.order`      | array of string | `[ "battery", "clock" ]`   |
 | `systray.text.position`   | string          | `"right"`                  |
-| `systray.text.valign`     | string          | `"center"`                 |
 
 Shared placement for the clock and battery status text: which of the
-two show, in what left-to-right order, and how both line up within
-the tray.  `order` lists the enabled items to show, by name (`"clock"`
-and/or `"battery"`); an item absent from this list never shows even if
-its own `is-enabled` is `true`, and one with `is-enabled` set to
-`false` is skipped even when listed here.  Both entries are optional;
-an empty list shows neither, regardless of their individual
-`is-enabled` settings.
+two show, in what left-to-right order.  `order` lists the enabled
+items to show, by name (`"clock"` and/or `"battery"`); an item absent
+from this list never shows even if its own `is-enabled` is `true`,
+and one with `is-enabled` set to `false` is skipped even when listed
+here.  Both entries are optional; an empty list shows neither,
+regardless of their individual `is-enabled` settings.
 
 `position` (`"left"` or `"right"`) controls whether the whole text
 block sits before or after the icons, in dock order; it does not
 affect which corner of the screen the tray itself sits in, which is
-still `systray.position` above.  `valign` (`"center"`, `"top"`, or
-`"bottom"`) controls where the text sits vertically within the tray's
-own height (`systray.height` in the theme); with the theme's default
-height there is little spare room for this to matter, since an icon
-already fills nearly the whole row.
+still `systray.position` above.  How the text looks once shown (the
+gap between the two items, and their vertical alignment within the
+tray) is a theme setting rather than a behavior one; see
+`systray.text` in the theme documentation (section 4.3).
 
 ```json
 "systray": {
@@ -574,8 +589,7 @@ already fills nearly the whole row.
     },
     "text": {
         "order": [ "battery", "clock" ],
-        "position": "right",
-        "valign": "center"
+        "position": "right"
     }
 }
 ```
@@ -960,7 +974,8 @@ Same shape as `window.active` / `window.inactive` above (`font`,
 ### 4.3 `systray`
 
 A `font` / `color` / `border` block, the same shape as `window.active`
-above, applied to the systray dock itself, plus its own height.
+above, applied to the systray dock itself, plus its own height and
+the placement of the clock/battery text within it.
 
 | Key                 | Type    | Default     |
 |---------------------|---------|-------------|
@@ -970,27 +985,39 @@ above, applied to the systray dock itself, plus its own height.
 | `border.color`      | string  | `"#7F9AB6"` |
 | `border.width`      | integer | `1`         |
 | `height`            | integer | `32`        |
+| `text.gap`          | integer | `4`         |
+| `text.valign`       | string  | `"center"`  |
 
 `height` is the tray dock's own height in pixels; icons and the clock
 and/or battery status text (when either is enabled, see
 `systray.clock`/`systray.battery` in `config.json`) are positioned
-within it according to `systray.text.valign` in `config.json` for the
-text, and centered for icons.  It must be at least tall enough to fit
-one icon or icons get clipped.  With the default `height` of `32`, an
-icon already fills nearly the whole row, so `systray.text.valign` has
-little visible effect; raising `height` gives it actual room to work
-with.  Where the text sits horizontally (`systray.text.position` in
-`config.json`, before or after the icons) stays a behavior setting
-rather than an appearance one, since it changes where among the icons
-the text counts as being docked; only its own vertical alignment
-within this height is a theme concern.
+within it according to `text.valign`, and centered for icons.  It
+must be at least tall enough to fit one icon or icons get clipped.
+With the default `height` of `32`, an icon already fills nearly the
+whole row, so `text.valign` has little visible effect; raising
+`height` gives it actual room to work with.
+
+`text.gap` is the horizontal space, in pixels, between the clock and
+battery text when both are shown (see `systray.text.order` in
+`config.json`); without it the two would run together as if they
+were one string, e.g., "N/A Fri 23:39" instead of "N/A   Fri 23:39".
+It has no effect on the inset between the text block as a whole and
+the tray's own edges, which is fixed.  Which side of the icons the
+text sits on (`systray.text.position` in `config.json`) stays a
+behavior setting rather than an appearance one, since it changes
+where among the icons the text counts as being docked; only its
+internal spacing and vertical alignment are theme concerns.
 
 ```json
 "systray": {
     "font": "fixed",
     "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
     "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 32
+    "height": 32,
+    "text": {
+        "gap": 4,
+        "valign": "center"
+    }
 }
 ```
 
@@ -1674,7 +1701,8 @@ Sub-menus can be nested to the depth limit defined by
     },
 
     "show-desktop-overlay": true,
-    "enable-emergency-shortcut": false    
+    "enable-emergency-shortcut": false,
+    "enable-fortune-shortcut": false
 }
 ```
 

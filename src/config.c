@@ -178,6 +178,7 @@ void config_set_default_values(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
+    config->base.enable_fortune_shortcut = false;
     config->base.show_desktop_overlay = true;
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
@@ -199,7 +200,6 @@ void config_set_default_values(config_td *config)
     config->base.systray.text.order[1] = CONFIG_SYSTRAY_TEXT_CLOCK;
     config->base.systray.text.order_count = 2u;
     config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_RIGHT;
-    config->base.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
     config->base.xsettings.is_enabled = false;
     safe_strncpy(config->base.xsettings.gtk_theme_name, "Adwaita",
@@ -428,6 +428,8 @@ void config_set_default_values(config_td *config)
      * 'systray.text.valign' has no visible effect until this is
      * raised. */
     config->theme.systray.height = 32u;
+    config->theme.systray.text.gap = 4u;
+    config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
     safe_strcpy(config->theme.menu.unselected.font, "fixed");
     config->theme.menu.unselected.color.background =

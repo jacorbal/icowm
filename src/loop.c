@@ -148,6 +148,14 @@ void loop_run(wm_td *wm)
 {
     xcb_key_symbols_t *keysyms;
     xcb_generic_event_t *event;
+    xcb_generic_event_t *pending_event = NULL; /**< One-event lookahead
+                                                     used to coalesce a
+                                                     run of consecutive
+                                                     'MotionNotify'
+                                                     events; see the
+                                                     comment at the
+                                                     'XCB_MOTION_NOTIFY'
+                                                     case below */
     struct pollfd pfd;
     int poll_status;
     int poll_timeout_ms;
@@ -256,10 +264,14 @@ void loop_run(wm_td *wm)
 
         systray_clock_tick();
 
-        while ((event = xcb_poll_for_event(wm->connection)) != NULL) {
+        while ((event = (pending_event != NULL)
+                    ? pending_event
+                    : xcb_poll_for_event(wm->connection)) != NULL) {
             xcb_motion_notify_event_t *me;
-            uint8_t event_type =
-                (uint8_t) (event->response_type & ~0x80u);
+            uint8_t event_type;
+
+            pending_event = NULL;
+            event_type = (uint8_t) (event->response_type & ~0x80u);
 
             if (wm->randr_available &&
                     (event_type == (uint8_t) (wm->randr_base_event +
@@ -306,6 +318,37 @@ void loop_run(wm_td *wm)
 
                 case XCB_MOTION_NOTIFY:
                     me = (xcb_motion_notify_event_t *) event;
+
+                    /* Coalesce a run of consecutive pending
+                     * 'MotionNotify' events into just the latest one.
+                     * The X server can queue many of these faster
+                     * than one round of window-move (or resize) plus
+                     * 'xcb_flush' can be processed, especially for a
+                     * large or decorated window whose move is more
+                     * expensive per event (the frame itself repaints,
+                     * and reparented-child bookkeeping adds further
+                     * server-side cost on top of a plain top-level
+                     * window's move); reacting to every stale
+                     * intermediate position instead of jumping
+                     * straight to the newest one is what makes a drag
+                     * visibly lag behind the pointer, worse the more
+                     * expensive that per-event work is.  A non-motion
+                     * event found while peeking ahead is kept in
+                     * 'pending_event' rather than dropped, so it is
+                     * still handled, on the very next iteration of
+                     * this same loop. */
+                    while ((pending_event =
+                                xcb_poll_for_event(wm->connection)) !=
+                            NULL) {
+                        if ((uint8_t) (pending_event->response_type &
+                                    ~0x80u) != XCB_MOTION_NOTIFY) {
+                            break;
+                        }
+                        free(event);
+                        event = pending_event;
+                        me = (xcb_motion_notify_event_t *) event;
+                    }
+
                     drag_update(wm->connection, me->root_x, me->root_y);
                     if (wincmenu_is_open()) {
                         wincmenu_handle_motion(me->event,

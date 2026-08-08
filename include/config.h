@@ -137,6 +137,8 @@ struct config_base_s {
 
     bool show_desktop_overlay;       /**< Show desktop name on switch */
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
+    bool enable_fortune_shortcut;   /**< Allow 'Ctrl+Mod4+BackSpace'
+                                          fortune dialog */
 
     /* Context-menu placement, per menu type */
     struct {
@@ -294,15 +296,6 @@ struct config_base_s {
                 CONFIG_SYSTRAY_TEXT_RIGHT      /**< After the icons,
                                                     in dock order */
             } position;
-
-            enum config_systray_text_valign_e {
-                CONFIG_SYSTRAY_TEXT_VALIGN_CENTER = 0, /**< Centered in
-                                                             the tray's
-                                                             full
-                                                             height */
-                CONFIG_SYSTRAY_TEXT_VALIGN_TOP,
-                CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM
-            } valign;
         } text;
     } systray;
 
@@ -581,12 +574,39 @@ struct config_theme_s {
         struct config_theme_style_s style;
         uint32_t height;    /**< Tray dock height in pixels; icons and
                                   the clock/battery text (if enabled,
-                                  see 'config_base_s.systray.text.valign')
+                                  see 'config_base_s.systray.text' for
+                                  which are shown and in what order)
                                   are vertically centered or aligned
-                                  within it; must be at least tall
-                                  enough to fit an icon, see
-                                  'SYSTRAY_ICON_SIZE' in systray.c, or
-                                  icons get clipped */
+                                  within it, per 'text.valign' for the
+                                  text and centered for icons; must be
+                                  at least tall enough to fit an icon,
+                                  see 'SYSTRAY_ICON_SIZE' in systray.c,
+                                  or icons get clipped */
+
+        /**
+         * @brief Appearance-only placement for the clock/battery
+         *        text, as opposed to which items show and in what
+         *        order (a behavior setting, see
+         *        'config_base_s.systray.text')
+         */
+        struct {
+            /** Horizontal gap, in pixels, between adjacent text
+             *  items (e.g., between the battery status and the
+             *  clock) when more than one is shown; has no effect on
+             *  the inset between the text block as a whole and the
+             *  tray's own edges, which is fixed (see
+             *  'SYSTRAY_ICON_PAD' in systray.c) */
+            uint32_t gap;
+
+            enum config_systray_text_valign_e {
+                CONFIG_SYSTRAY_TEXT_VALIGN_CENTER = 0, /**< Centered in
+                                                             the tray's
+                                                             full
+                                                             height */
+                CONFIG_SYSTRAY_TEXT_VALIGN_TOP,
+                CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM
+            } valign;
+        } text;
     } systray;
 
     /**

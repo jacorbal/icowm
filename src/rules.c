@@ -180,7 +180,7 @@ static void s_rules_apply_layer(client_td *client,
  * Position (@p apply->x, @p apply->y, or @p apply->position_centered)
  * and size (@p apply->w, @p apply->h) are applied independently: only
  * the fields that are flagged as present are touched.  When both are
- * set the behaviour is identical to the previous all-or-nothing mode.
+ * set the behavior is identical to the previous all-or-nothing mode.
  * When the client has a decoration frame, the synchronisation helper is
  * called to keep the inner window aligned.  The function is a no-op
  * when neither @p apply->has_position nor @p apply->has_size is
@@ -336,7 +336,7 @@ void rules_destroy(rules_td *rules)
  * neither a string nor an array.
  *
  * @param match_json   Parsed @c match JSON object
- * @param key          Field name to read (e.g. @c title)
+ * @param key          Field name to read (e.g., @c title)
  * @param dest         Destination fixed-size string array
  * @param count_out    Receives the number of values actually stored
  * @param has_flag_out Set to @c true when at least one value was

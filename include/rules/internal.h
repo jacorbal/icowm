@@ -44,8 +44,8 @@
  *
  * A window matches the criterion if it matches *any* one of these
  * (an "or" within the field); a rule with several different criteria
- * present (e.g. both @c title and @c class) still requires *all* of
- * them to match (an "and" across fields) -- see @c ri_client_matches.
+ * present (e.g., both @c title and @c class) still requires *all* of
+ * them to match (an "and" across fields), see @c ri_client_matches.
  */
 #define RULES_MATCH_MAX_VALUES (6u)
 
