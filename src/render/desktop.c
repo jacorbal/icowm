@@ -73,12 +73,14 @@ static const char *const s_bg_prop_names[3] = {
  * None of these ever changes once interned (an atom, once assigned by
  * the X server, is permanent for the life of the connection), so
  * resolving them again on every lookup would be pure waste; resolved
- * lazily by @c s_resolve_bg_atoms on first use.
+ * lazily by @c s_resolve_bg_atoms on first use, retried on any later
+ * call for whichever of the three are still unresolved (see that
+ * function's own comment for why a resolution failure, unlike a
+ * success, is not permanent here).
  */
 static xcb_atom_t s_bg_atoms[3] = {
     XCB_ATOM_NONE, XCB_ATOM_NONE, XCB_ATOM_NONE
 };
-static bool s_bg_atoms_resolved = false;
 
 /**
  * @brief Cached resolution of the root window's background pixmap
@@ -145,14 +147,36 @@ static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
  */
 static void s_resolve_bg_atoms(xcb_connection_t *connection)
 {
-    if (s_bg_atoms_resolved) {
+    bool any_unresolved = false;
+
+    /* Re-attempts only whichever of the three atoms are still
+     * XCB_ATOM_NONE, rather than giving up on all three permanently
+     * the moment any single attempt is made: 'only_if_exists=1' in
+     * 's_intern_atom' means a name that does not exist yet on the X
+     * server resolves to none, which is correct at that moment, but
+     * unlike a successful resolution (an atom, once it exists, is
+     * permanent for the life of the connection) that failure is not
+     * itself permanent: a wallpaper tool run for the first time
+     * after this module's own first lookup, before any of these
+     * three names had ever been interned by anyone, would otherwise
+     * be watched for forever using an atom id that was cached as
+     * none before it ever existed. */
+    for (size_t i = 0; i < 3u; ++i) {
+        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
+            any_unresolved = true;
+            break;
+        }
+    }
+
+    if (!any_unresolved) {
         return;
     }
 
     for (size_t i = 0; i < 3u; ++i) {
-        s_bg_atoms[i] = s_intern_atom(connection, s_bg_prop_names[i]);
+        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
+            s_bg_atoms[i] = s_intern_atom(connection, s_bg_prop_names[i]);
+        }
     }
-    s_bg_atoms_resolved = true;
 }
 
 
@@ -182,6 +206,8 @@ static xcb_pixmap_t
             xcb_window_t root)
 {
     if (s_bg_pixmap_resolved) {
+        LOGGER_TRACE("Root background pixmap cache hit: 0x%x",
+                s_bg_pixmap_cache);
         return s_bg_pixmap_cache;
     }
 
@@ -223,6 +249,9 @@ static xcb_pixmap_t
      * is itself a stable outcome worth caching too, not just a
      * successful resolution, so a desktop with no such tool running
      * does not keep paying for this same negative lookup either */
+    LOGGER_TRACE("No external root pixmap property found" \
+            " (checked atoms 0x%x, 0x%x, 0x%x); using configured" \
+            " color", s_bg_atoms[0], s_bg_atoms[1], s_bg_atoms[2]);
     s_bg_pixmap_cache = XCB_NONE;
     s_bg_pixmap_resolved = true;
     return XCB_NONE;
