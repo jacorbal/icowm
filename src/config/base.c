@@ -441,6 +441,7 @@ int config_load_base(const char *filename,
     cJSON *screen_settings;
     cJSON *icons;
     cJSON *menus;
+    cJSON *startup_notification_item;
     cJSON *systray;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
@@ -709,6 +710,13 @@ int config_load_base(const char *filename,
     json_load_bool(json, "show-desktop-overlay",
             &config_base->show_desktop_overlay);
 
+    startup_notification_item = cJSON_GetObjectItem(json,
+            "startup-notification");
+    if (startup_notification_item) {
+        json_load_uint(startup_notification_item, "timeout-seconds",
+                &config_base->startup_notification.timeout_seconds);
+    }
+
     /* Load per-menu-type context menu configuration */
     menus = cJSON_GetObjectItem(json, "menus");
     if (menus) {
@@ -808,6 +816,9 @@ int config_load_base(const char *filename,
                 json_load_uint(backend_item, "number",
                         &config_base->systray.battery.backend.number);
             }
+
+            json_load_uint(battery_item, "poll-seconds",
+                    &config_base->systray.battery.poll_seconds);
         }
 
         text_item = cJSON_GetObjectItem(systray, "text");

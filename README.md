@@ -136,7 +136,11 @@ back to a fixed link line for the same set of libraries).
     `xcb-cursor`, `xcb-render`, and `xcb-renderutil`.
 
   - **FreeType2** and **fontconfig**, for TrueType/OpenType text
-    rendering when a theme's font does not resolve to an X core font.
+    rendering when a theme's font does not resolve to an X core font
+    (e.g., `"DejaVu Sans Mono:size=8"` instead of an X bitmap font
+    description such as `"fixed bold 13"`; see the font format note
+    at the end of section 4 in [`doc/config.md`](doc/config.md) for
+    the full syntax of both).
 
   - **cJSON**, for reading every JSON configuration file.
 

@@ -80,6 +80,7 @@ static s_pending_td s_pending[SN_MAX_PENDING];
 static uint8_t s_pending_count = 0;
 static s_reassembly_td s_reassembly[SN_MAX_REASSEMBLY];
 static uint32_t s_id_counter = 0;
+static uint32_t s_timeout_seconds = SN_TIMEOUT_SECONDS;
 static bool s_cursor_busy = false;
 static xcb_atom_t s_atom_begin = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_info = XCB_ATOM_NONE;
@@ -498,7 +499,7 @@ int sn_ms_remaining(void)
             ((int64_t) now.tv_nsec -
                 (int64_t) s_pending[i].started_at.tv_nsec) / 1000000;
         int64_t remaining_ms =
-            ((int64_t) SN_TIMEOUT_SECONDS * 1000) - elapsed_ms;
+            ((int64_t) s_timeout_seconds * 1000) - elapsed_ms;
 
         if (remaining_ms < 0) {
             remaining_ms = 0;
@@ -534,7 +535,7 @@ void sn_tick(xcb_connection_t *connection, list_td *surfaces)
             ((int64_t) now.tv_nsec -
                 (int64_t) s_pending[i].started_at.tv_nsec) / 1000000;
 
-        if (elapsed_ms >= (int64_t) SN_TIMEOUT_SECONDS * 1000) {
+        if (elapsed_ms >= (int64_t) s_timeout_seconds * 1000) {
             LOGGER_DEBUG("Startup-notification sequence '%s' timed out",
                     s_pending[i].id);
             s_pending[i] = s_pending[s_pending_count - 1u];
@@ -559,4 +560,15 @@ void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
     }
 
     s_complete_by_id(connection, surfaces, id, "cancelled");
+}
+
+
+/* Override how many seconds a sequence waits before being expired */
+void sn_set_timeout_seconds(uint32_t seconds)
+{
+    if (seconds == 0u) {
+        return;
+    }
+
+    s_timeout_seconds = seconds;
 }

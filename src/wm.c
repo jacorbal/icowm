@@ -46,6 +46,7 @@
 #include <loop.h>
 #include <startup.h>
 #include <surface.h>
+#include <sn.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -329,6 +330,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     systray_init(wm);
     xsettings_init(wm);
+    sn_set_timeout_seconds(
+            wm->config->base.startup_notification.timeout_seconds);
 
     LOGGER_DEBUG("Setting running status flag to" \
             " an unquestionable 'true'", L_NARG);

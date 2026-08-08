@@ -97,6 +97,7 @@ static struct {
     uint32_t battery_threshold_critical;
     enum config_battery_backend_type_e battery_backend_type;
     uint32_t battery_backend_number;
+    uint32_t battery_poll_seconds;
     enum config_systray_text_position_e text_position;
     enum config_systray_text_valign_e text_valign;
     uint16_t text_gap;
@@ -1037,6 +1038,8 @@ void systray_init(wm_td *wm)
         wm->config->base.systray.battery.backend.type;
     s_tray.battery_backend_number =
         wm->config->base.systray.battery.backend.number;
+    s_tray.battery_poll_seconds =
+        wm->config->base.systray.battery.poll_seconds;
     s_tray.text_position = wm->config->base.systray.text.position;
     s_tray.text_valign = wm->config->theme.systray.text.valign;
     s_tray.text_gap = (uint16_t) wm->config->theme.systray.text.gap;
@@ -1200,7 +1203,7 @@ int systray_clock_ms_remaining(void)
     }
     if (s_tray.battery_enabled &&
             (now - s_tray.battery_last_poll) >=
-                (time_t) WM_SYSTRAY_BATTERY_POLL_SECONDS) {
+                (time_t) s_tray.battery_poll_seconds) {
         return 0;
     }
 
@@ -1233,7 +1236,7 @@ void systray_clock_tick(void)
     }
     if (s_tray.battery_enabled &&
             (now - s_tray.battery_last_poll) >=
-                (time_t) WM_SYSTRAY_BATTERY_POLL_SECONDS) {
+                (time_t) s_tray.battery_poll_seconds) {
         s_systray_battery_refresh_text();
         changed = true;
     }
@@ -1275,6 +1278,8 @@ void systray_reload(wm_td *wm)
         wm->config->base.systray.battery.backend.type;
     s_tray.battery_backend_number =
         wm->config->base.systray.battery.backend.number;
+    s_tray.battery_poll_seconds =
+        wm->config->base.systray.battery.poll_seconds;
     s_tray.text_position = wm->config->base.systray.text.position;
     s_tray.text_valign = wm->config->theme.systray.text.valign;
     s_tray.text_gap = (uint16_t) wm->config->theme.systray.text.gap;

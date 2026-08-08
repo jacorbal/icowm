@@ -34,6 +34,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <sn.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -78,6 +79,9 @@ int wm_action_config_reload(void)
 
     /* Reload also XSETTINGS */
     xsettings_reload(wm);
+
+    sn_set_timeout_seconds(
+            wm->config->base.startup_notification.timeout_seconds);
 
     if (wm->rules != NULL) {
         (void) rules_load(wm->rules, wm->config_dir_prefix);

@@ -42,6 +42,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -51,8 +52,10 @@
 
 
 /**
- * @brief Seconds a startup-notification sequence waits before being
- *        expired automatically
+ * @brief Default seconds a startup-notification sequence waits before
+ *        being expired automatically, overridable via
+ *        @c startup-notification.timeout-seconds in @c config.json
+ *        (see @c sn_set_timeout_seconds)
  *
  * Not every launched application is startup-notification aware, so
  * this is what keeps the busy cursor from staying on indefinitely
@@ -62,6 +65,22 @@
 
 
 /* Public interface */
+/**
+ * @brief Override how many seconds a startup-notification sequence
+ *        waits before being expired automatically
+ *
+ * Called once after loading or reloading configuration; every
+ * sequence already pending keeps whichever timeout was in effect when
+ * it began, only sequences started after this call use the new value.
+ *
+ * @param seconds New timeout in seconds; @c 0 is ignored and leaves
+ *                the previous value (or the @c SN_TIMEOUT_SECONDS
+ *                built-in default, if this is never called) in effect
+ *
+ * @note Complexity: @e O(1)
+ */
+void sn_set_timeout_seconds(uint32_t seconds);
+
 /**
  * @brief Begin a startup-notification sequence for a process about to
  *        be launched

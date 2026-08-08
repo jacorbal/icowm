@@ -22,7 +22,10 @@
  *  wall-clock second before the systray clock is due its next redraw */
 #define WM_SYSTRAY_CLOCK_POLL_MS (250)
 
-/** Seconds between re-reading the systray battery status
+/**
+ * @brief Default seconds between re-reading the systray battery
+ *        status, overridable via @c systray.battery.poll-seconds in
+ *        @c config.json
  *
  * Far coarser than the clock's own per-second redraw: a percentage
  * does not need per-second freshness, and every poll costs a handful

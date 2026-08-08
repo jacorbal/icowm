@@ -140,6 +140,16 @@ struct config_base_s {
     bool enable_fortune_shortcut;   /**< Allow 'Ctrl+Mod4+BackSpace'
                                           fortune dialog */
 
+    /**
+     * @brief Startup-notification sequence timeout
+     *
+     * See @c sn_set_timeout_seconds and @c SN_TIMEOUT_SECONDS in
+     * sn.h for what this controls and its built-in default.
+     */
+    struct {
+        uint32_t timeout_seconds;
+    } startup_notification;
+
     /* Context-menu placement, per menu type */
     struct {
         struct {
@@ -273,6 +283,11 @@ struct config_base_s {
                  *  aggregate battery */
                 uint32_t number;
             } backend;
+
+            /** Seconds between re-reading the battery status; see
+             *  @c WM_SYSTRAY_BATTERY_POLL_SECONDS in defs/loop.h for
+             *  the built-in default this overrides */
+            uint32_t poll_seconds;
         } battery;
 
         /**

@@ -17,8 +17,9 @@ values, and built-in default value.
    - [2.5 `icons`](#25-icons)
    - [2.6 `show-desktop-overlay`](#26-show-desktop-overlay)
    - [2.7 `enable-emergency-shortcut` / `enable-fortune-shortcut`](#27-enable-emergency-shortcut--enable-fortune-shortcut)
-   - [2.8 `menus`](#28-menus)
-   - [2.9 `systray`](#29-systray)
+   - [2.8 `startup-notification`](#28-startup-notification)
+   - [2.9 `menu`](#29-menu)
+   - [2.10 `systray`](#210-systray)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -390,7 +391,29 @@ harmless to turn on.
 "enable-fortune-shortcut": true
 ```
 
-### 2.8 `menu`
+### 2.8 `startup-notification`
+
+| Key                                      | Type    | Default |
+|--------------------------------------------|---------|---------|
+| `startup-notification.timeout-seconds`   | integer | `20`    |
+
+How long a startup-notification sequence (the busy cursor shown while
+a launched application is starting up, see the freedesktop.org
+Startup Notification specification) waits before being expired
+automatically.  Not every application is startup-notification aware,
+so this is what keeps the busy cursor from staying on indefinitely
+when a launched process never signals that it is ready.  Raise it for
+applications that are slow to show their first window (some office
+suites, for example); lower it if 20 seconds feels like it lingers
+too long for the applications actually launched day to day.
+
+```json
+"startup-notification": {
+    "timeout-seconds": 20
+}
+```
+
+### 2.9 `menu`
 
 | Key                        | Type   | Default         |
 |----------------------------|--------|-----------------|
@@ -422,7 +445,7 @@ under the pointer in that case.
 }
 ```
 
-### 2.9 `systray`
+### 2.10 `systray`
 
 | Key                  | Type    | Default            |
 |----------------------|---------|--------------------|
@@ -507,6 +530,7 @@ text every second, which is harmless.
 | `systray.battery.threshold.critical`     | integer | `5`      |
 | `systray.battery.backend.type`           | string  | `"acpi"` |
 | `systray.battery.backend.number`         | integer | `0`      |
+| `systray.battery.poll-seconds`           | integer | `30`     |
 
 An optional battery/AC status drawn inside the systray dock, read
 directly from the kernel rather than through any external daemon.
@@ -517,6 +541,11 @@ kernels without ACPI.  `backend.number` selects which battery to read
 when a system has more than one (0-indexed, e.g., `1` for `BAT1`);
 it is ignored under `"apm"`, which only ever exposes one aggregate
 battery regardless of how many cells the system actually has.
+`poll-seconds` is how often the status is re-read; a percentage does
+not need per-second freshness the way a clock does, so raise it to
+poll less often (saving the handful of file reads each poll costs) or
+lower it for a battery that drains quickly enough that 30 seconds
+feels stale.
 
 The status text's exact shape depends on both AC power and how the
 battery's charge compares to `threshold`:
@@ -1687,7 +1716,7 @@ Sub-menus can be nested to the depth limit defined by
                     "inaugural": 0,
                     "settings": [
                         { "name": "Desktop A", "background-color": "#4c5b6b" },
-                        { "name": "Desktop B", "background-color": "#8a8f94" },
+                        { "name": "Desktop B", "background-color": "#8a8f94" }
                     ]
                 }
             ]
@@ -1739,18 +1768,29 @@ Sub-menus can be nested to the depth limit defined by
         "layer": "above",
         "clock": {
             "is-enabled": true,
-            "format": "%F %R",
+            "format": "%a %R"
+        },
+        "battery": {
+            "is-enabled": true,
+            "threshold": {
+                "charged": 100,
+                "low": 20,
+                "critical": 5
+            },
+            "backend": {
+                "type": "acpi",
+                "number": 0
+            },
+            "poll-seconds": 30
+        },
+        "text": {
+            "order": [ "battery", "clock" ],
             "position": "right"
         }
     },
 
-    "xsettings": {
-        "is-enabled": false,
-        "gtk-theme-name": "Adwaita",
-        "icon-theme-name": "Adwaita",
-        "cursor-theme-name": "Adwaita",
-        "cursor-theme-size": 24,
-        "dpi": 96
+    "startup-notification": {
+        "timeout-seconds": 20
     },
 
     "show-desktop-overlay": true,
@@ -1905,6 +1945,15 @@ Sub-menus can be nested to the depth limit defined by
             "grip-color": "#4A5566",
             "font": "fixed"
         }
+    },
+
+    "xsettings": {
+        "is-enabled": false,
+        "gtk-theme-name": "Adwaita",
+        "icon-theme-name": "Adwaita",
+        "cursor-theme-name": "Adwaita",
+        "cursor-theme-size": 24,
+        "dpi": 96
     }
 }
 ```

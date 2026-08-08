@@ -45,9 +45,11 @@
 
 /* Default initial values */
 #include <defs/ctxmenu.h>
+#include <defs/loop.h>
 
 /* Project includes */
 #include <logger.h>
+#include <sn.h>
 
 /* Local includes */
 #include <config.h>
@@ -179,6 +181,8 @@ void config_set_default_values(config_td *config)
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
     config->base.enable_fortune_shortcut = false;
+    config->base.startup_notification.timeout_seconds =
+        (uint32_t) SN_TIMEOUT_SECONDS;
     config->base.show_desktop_overlay = true;
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
@@ -195,6 +199,8 @@ void config_set_default_values(config_td *config)
     config->base.systray.battery.threshold.critical = 5u;
     config->base.systray.battery.backend.type = CONFIG_BATTERY_BACKEND_ACPI;
     config->base.systray.battery.backend.number = 0u;
+    config->base.systray.battery.poll_seconds =
+        (uint32_t) WM_SYSTRAY_BATTERY_POLL_SECONDS;
 
     config->base.systray.text.order[0] = CONFIG_SYSTRAY_TEXT_BATTERY;
     config->base.systray.text.order[1] = CONFIG_SYSTRAY_TEXT_CLOCK;
