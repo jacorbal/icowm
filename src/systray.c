@@ -297,16 +297,80 @@ static uint16_t s_systray_content_width(void)
 
 
 /**
+ * @brief Find the topmost currently fullscreen client's own stacking
+ *        target, if any
+ *
+ * @return The last fullscreen client found's frame (or window, if it
+ *         has no frame), scanning every desktop on every surface, or
+ *         @c XCB_WINDOW_NONE if none is currently fullscreen
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       managed clients across every desktop and surface
+ */
+static xcb_window_t s_systray_find_fullscreen_target(void)
+{
+    list_td *surfaces;
+    xcb_window_t target = XCB_WINDOW_NONE;
+
+    surfaces = wm_get_surfaces();
+    if (surfaces == NULL) {
+        return XCB_WINDOW_NONE;
+    }
+
+    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+            snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        cdlist_item_td *dinitial;
+
+        if (surface == NULL || surface->desktops == NULL) {
+            continue;
+        }
+        dnode = cdlist_head(surface->desktops);
+        if (dnode == NULL) {
+            continue;
+        }
+        dinitial = dnode;
+        do {
+            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+            void *elem;
+
+            if (desktop != NULL && desktop->clients != NULL) {
+                ohtbl_foreach(desktop->clients, elem) {
+                    client_td *client = (client_td *) elem;
+
+                    if (client->properties.state !=
+                            (uint16_t) CLIENT_STATE_FULLSCREEN) {
+                        continue;
+                    }
+                    target = (client->frame != 0)
+                        ? client->frame : client->window;
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    }
+
+    return target;
+}
+
+
+/**
  * @brief Apply the configured @c systray.layer stacking rule
  *
  * - @c CONFIG_SYSTRAY_LAYER_BELOW: stacks the tray window at the very
  *   bottom, behind every client window.
  * - @c CONFIG_SYSTRAY_LAYER_ABOVE (the default): stacks it at the top,
- *   then lowers it just below any client that is currently fullscreen,
- *   so a fullscreen window still covers it; the same way a taskbar or
- *   panel gets covered by a fullscreen window in most desktop
- *   environments, instead of a systray floating above literally
- *   everything regardless of what the user is doing.
+ *   unless a client is currently fullscreen, in which case it stacks
+ *   just below that client instead, so a fullscreen window still
+ *   covers it; the same way a taskbar or panel gets covered by a
+ *   fullscreen window in most desktop environments, instead of a
+ *   systray floating above literally everything regardless of what
+ *   the user is doing.  Always resolved to its final position in one
+ *   single 'ConfigureWindow' call (see @c s_systray_find_fullscreen_
+ *   target above), never by raising to the top and only then lowering
+ *   in a second, separate request, which would flash the tray above
+ *   fullscreen content for the brief moment between the two.
  * - @c CONFIG_SYSTRAY_LAYER_ABOVE_ALL: stacks it at the top and leaves
  *   it there unconditionally, even over fullscreen windows.
  *
@@ -318,6 +382,8 @@ static uint16_t s_systray_content_width(void)
  */
 static void s_systray_restack(void)
 {
+    xcb_window_t fullscreen_target;
+
     if (!s_tray.window_ready || s_tray.connection == NULL) {
         return;
     }
@@ -330,58 +396,27 @@ static void s_systray_restack(void)
         return;
     }
 
-    xcb_configure_window(s_tray.connection, s_tray.window,
-            XCB_CONFIG_WINDOW_STACK_MODE,
-            (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+    fullscreen_target = (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE)
+        ? s_systray_find_fullscreen_target() : XCB_WINDOW_NONE;
 
-    if (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE) {
-        list_td *surfaces;
-
-        surfaces = wm_get_surfaces();
-        if (surfaces != NULL) {
-            for (list_item_td *snode = list_head(surfaces);
-                    snode != NULL; snode = list_next(snode)) {
-                surface_td *surface = (surface_td *) list_data(snode);
-                cdlist_item_td *dnode;
-                cdlist_item_td *dinitial;
-
-                if (surface == NULL || surface->desktops == NULL) {
-                    continue;
-                }
-                dnode = cdlist_head(surface->desktops);
-                if (dnode == NULL) {
-                    continue;
-                }
-                dinitial = dnode;
-                do {
-                    desktop_td *desktop =
-                        (desktop_td *) cdlist_data(dnode);
-                    void *elem;
-
-                    if (desktop != NULL && desktop->clients != NULL) {
-                        ohtbl_foreach(desktop->clients, elem) {
-                            client_td *client = (client_td *) elem;
-                            xcb_window_t target;
-
-                            if (client->properties.state !=
-                                    (uint16_t) CLIENT_STATE_FULLSCREEN) {
-                                continue;
-                            }
-                            target = (client->frame != 0)
-                                ? client->frame : client->window;
-                            xcb_configure_window(s_tray.connection,
-                                    s_tray.window,
-                                    XCB_CONFIG_WINDOW_SIBLING |
-                                    XCB_CONFIG_WINDOW_STACK_MODE,
-                                    (const uint32_t[]) {
-                                        target, XCB_STACK_MODE_BELOW
-                                    });
-                        }
-                    }
-                    dnode = cdlist_next(dnode);
-                } while (dnode != NULL && dnode != dinitial);
-            }
-        }
+    /* A single 'ConfigureWindow' call straight to the final position,
+     * rather than unconditionally raising to the very top first and
+     * only then lowering below a fullscreen client in a second,
+     * separate request: that two-step sequence briefly left the tray
+     * stacked above the fullscreen content between the two requests,
+     * visible as a flash on every restack (every reflow, and every
+     * fullscreen toggle) rather than only when actually needed. */
+    if (fullscreen_target != XCB_WINDOW_NONE) {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_SIBLING |
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) {
+                    fullscreen_target, XCB_STACK_MODE_BELOW
+                });
+    } else {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
     }
 
     xcb_flush(s_tray.connection);

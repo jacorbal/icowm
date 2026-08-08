@@ -562,6 +562,15 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
                     (uint16_t) CLIENT_TYPE_NOTIFICATION) {
             /* Dock and notification windows must never have a WM border */
             border_width = 0u;
+        } else if (client_is_fullscreen(client)) {
+            /* A fullscreen client is undecorated (see 'hide_decoration'
+             * above), so it falls to the same 'not decorated' branch a
+             * plain undecorated window would, which would otherwise
+             * apply the theme's regular window border directly to its
+             * own raw window: a border painted over video or other
+             * fullscreen content, not just an unwanted frame around an
+             * ordinary window. */
+            border_width = 0u;
         } else if (client_is_decorated(client) && client->frame != 0) {
             border_width = (has_extra_window_border)
                 ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
