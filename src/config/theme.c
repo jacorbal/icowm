@@ -409,6 +409,8 @@ int config_load_theme(const char *filename,
                     &config_theme->dialog.button.unselected);
             s_load_theme_colors(btn_selected,
                     &config_theme->dialog.button.selected);
+            json_load_uint(button, "gap",
+                    &config_theme->dialog.button.gap);
             if (btn_padding) {
                 json_load_uint(btn_padding, "horizontal",
                         &config_theme->dialog.button.padding.horizontal);

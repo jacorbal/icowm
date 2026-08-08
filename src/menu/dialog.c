@@ -32,9 +32,6 @@
 
 
 /* Shared layout constants */
-/** Horizontal dialog padding (pixels) */
-#define DIALOG_PAD_X (12u)
-
 /** Bottom padding below buttons (pixels) */
 #define DIALOG_PAD_BOTTOM (8u)
 
@@ -47,23 +44,11 @@
 /** Minimum button width (pixels) */
 #define DIALOG_BTN_MIN_W (60u)
 
-/** Button height (pixels) */
-#define DIALOG_BTN_H (24u)
-
-/** Gap between buttons in a two-button dialog (pixels) */
-#define DIALOG_BTN_GAP (12u)
-
-/** Horizontal padding between button border and label (pixels) */
-#define DIALOG_BTN_LABEL_PAD_X (6u)
-
 /** Prompt baseline position from dialog top (pixels) */
 #define DIALOG_PROMPT_BASELINE_Y (22u)
 
 /** Vertical gap between prompt baseline and button top (pixels) */
 #define DIALOG_PROMPT_TO_BTN_GAP (34u)
-
-/** Baseline offset for button labels from button top (pixels) */
-#define DIALOG_BTN_LABEL_BASELINE_Y (17u)
 
 /** Maximum text length for dialogs (prompt + level prefix) */
 #define DIALOG_TEXT_MAX_LEN (256u)
@@ -102,10 +87,6 @@ typedef struct {
     int16_t btn_y;
     int16_t cancel_x;
     int16_t confirm_x;
-    int16_t cancel_label_x;
-    int16_t cancel_label_y;
-    int16_t confirm_label_x;
-    int16_t confirm_label_y;
     char prompt[DIALOG_TEXT_MAX_LEN];
     char cancel_label[DIALOG_TEXT_MAX_LEN];
     char confirm_label[DIALOG_TEXT_MAX_LEN];
@@ -132,10 +113,22 @@ static s_confirm_layout_td s_confirm_layout;
  * in @c layout->prompt, @c layout->cancel_label, and
  * @c layout->confirm_label.
  *
- * @param layout Layout structure containing input text and receiving
- *               the computed dialog geometry
+ * Button sizing measures every label in both @c button.unselected and
+ * @c button.selected fonts and keeps the wider/taller of the two, so
+ * the button is always big enough for whichever one actually ends up
+ * selected; the exact label position within that button is computed
+ * separately at draw time (see @c s_confirm_draw), using whichever
+ * font is actually being drawn, so the text stays centered even when
+ * @c selected is bold and therefore wider than @c unselected.
+ *
+ * @param connection XCB connection, needed to measure text in each
+ *                   candidate font
+ * @param config     Theme providing button fonts and padding
+ * @param layout     Layout structure containing input text and
+ *                   receiving the computed dialog geometry
  */
-static void s_confirm_compute_layout(s_confirm_layout_td *layout)
+static void s_confirm_compute_layout(xcb_connection_t *connection,
+        const config_td *config, s_confirm_layout_td *layout)
 {
     uint16_t prompt_w;
     uint16_t cancel_w;
@@ -144,24 +137,50 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
     uint16_t btns_group_w;
     uint16_t btns_span_w;
     uint16_t prompt_span_w;
+    uint16_t btn_text_h;
+    uint16_t pad_x;
+    uint16_t pad_y;
+    uint16_t gap;
+    uint16_t label_pad_x;
 
-    if (layout == NULL) {
+    if (connection == NULL || config == NULL || layout == NULL) {
         return;
     }
 
+    pad_x = (uint16_t) config->theme.dialog.button.padding.horizontal;
+    pad_y = (uint16_t) config->theme.dialog.button.padding.vertical;
+    gap = (uint16_t) config->theme.dialog.button.gap;
+    label_pad_x = (uint16_t) config->theme.dialog.label.padding.horizontal;
+
+    text_renderer_init(connection, config->theme.dialog.label.font);
     prompt_w = menu_draw_measure(layout->prompt);
+
+    /* Measure both labels in both fonts and keep the widest/tallest
+     * result: whichever button ends up selected renders in
+     * 'button.selected.font' (bold by default), and sizing off only
+     * 'unselected' would leave no room for that, causing the
+     * off-center look this whole function exists to avoid. */
+    text_renderer_init(connection, config->theme.dialog.button.unselected.font);
     cancel_w = menu_draw_measure(layout->cancel_label);
     confirm_w = menu_draw_measure(layout->confirm_label);
+    btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
+
+    text_renderer_init(connection, config->theme.dialog.button.selected.font);
+    cancel_w = s_u16max(cancel_w, menu_draw_measure(layout->cancel_label));
+    confirm_w = s_u16max(confirm_w, menu_draw_measure(layout->confirm_label));
+    btn_text_h = s_u16max(btn_text_h,
+            (uint16_t) (text_font_ascent() + text_font_descent()));
+
     btn_label_w = s_u16max(cancel_w, confirm_w);
 
     layout->btn_w = s_u16max(DIALOG_BTN_MIN_W,
-            (uint16_t) (btn_label_w + (DIALOG_BTN_LABEL_PAD_X * 2u)));
-    layout->btn_h = DIALOG_BTN_H;
+            (uint16_t) (btn_label_w + (pad_x * 2u)));
+    layout->btn_h = (uint16_t) (btn_text_h + (pad_y * 2u));
 
-    btns_group_w = (uint16_t) ((layout->btn_w * 2u) + DIALOG_BTN_GAP);
-    btns_span_w = (uint16_t) (btns_group_w + (DIALOG_PAD_X * 2u));
+    btns_group_w = (uint16_t) ((layout->btn_w * 2u) + gap);
+    btns_span_w = (uint16_t) (btns_group_w + (label_pad_x * 2u));
 
-    prompt_span_w = (uint16_t) (prompt_w + (DIALOG_PAD_X * 2u));
+    prompt_span_w = (uint16_t) (prompt_w + (label_pad_x * 2u));
 
     layout->w = s_u16max(DIALOG_MIN_W,
             s_u16max(btns_span_w, prompt_span_w));
@@ -173,26 +192,24 @@ static void s_confirm_compute_layout(s_confirm_layout_td *layout)
     layout->cancel_x = (int16_t) ((layout->w - btns_group_w) / 2u);
     layout->confirm_x = (int16_t) (layout->cancel_x +
             (int16_t) layout->btn_w +
-            (int16_t) DIALOG_BTN_GAP);
+            (int16_t) gap);
     layout->btn_y = (int16_t) ((int16_t) layout->h -
             (int16_t) DIALOG_PAD_BOTTOM -
             (int16_t) layout->btn_h);
     layout->prompt_x = (int16_t) ((layout->w > prompt_w)
-            ? (layout->w - prompt_w) / 2u : DIALOG_PAD_X);
+            ? (layout->w - prompt_w) / 2u : label_pad_x);
 
-    if (layout->prompt_x < (int16_t) DIALOG_PAD_X) {
-        layout->prompt_x = (int16_t) DIALOG_PAD_X;
+    if (layout->prompt_x < (int16_t) label_pad_x) {
+        layout->prompt_x = (int16_t) label_pad_x;
     }
 
     layout->prompt_y = (int16_t) DIALOG_PROMPT_BASELINE_Y;
-    layout->cancel_label_x = (int16_t) (layout->cancel_x +
-            (int16_t) ((layout->btn_w - cancel_w) / 2u));
-    layout->cancel_label_y = (int16_t) (layout->btn_y +
-            (int16_t) DIALOG_BTN_LABEL_BASELINE_Y);
-    layout->confirm_label_x = (int16_t) (layout->confirm_x +
-            (int16_t) ((layout->btn_w - confirm_w) / 2u));
-    layout->confirm_label_y = (int16_t) (layout->btn_y +
-            (int16_t) DIALOG_BTN_LABEL_BASELINE_Y);
+
+    /* Each button label's own X/Y depends on which font actually ends
+     * up drawing it (unselected or selected), which can change every
+     * repaint as the user tabs between buttons; see 's_confirm_draw',
+     * which computes both freshly right before drawing instead of
+     * relying on a value fixed here. */
 }
 
 
@@ -255,6 +272,9 @@ static void s_confirm_draw(xcb_connection_t *connection,
     uint32_t bg_sel;
     uint32_t fg_nor;
     uint32_t bg_nor;
+    uint16_t label_w;
+    int16_t label_x;
+    int16_t label_y;
     const s_confirm_layout_td *lo = &s_confirm_layout;
 
     if (connection == NULL || config == NULL ||
@@ -330,27 +350,47 @@ static void s_confirm_draw(xcb_connection_t *connection,
     menu_draw_label(connection, s_confirm_window,
             lo->prompt_x, lo->prompt_y, lo->prompt);
 
-    /* Cancel label */
+    /* Cancel label: font, and therefore width, depends on whether
+     * this button is the current selection, so both are recomputed
+     * fresh on every repaint (see the doc comment on
+     * 's_confirm_compute_layout') rather than using a fixed position;
+     * the vertical centering the same way, using the active font's
+     * own ascent/descent against 'btn_h' so it stays centered
+     * regardless of which font is taller. */
     text_renderer_init(connection, (s_confirm_selected == 0)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
+    label_w = menu_draw_measure(lo->cancel_label);
+    label_x = (int16_t) (lo->cancel_x +
+            (int16_t) ((lo->btn_w - label_w) / 2u));
+    label_y = (int16_t) (lo->btn_y +
+            (int16_t) ((lo->btn_h -
+                    (uint16_t) (text_font_ascent() +
+                        text_font_descent())) / 2u) +
+            text_font_ascent());
     text_renderer_set_color(
             (s_confirm_selected == 0) ? fg_sel : fg_nor,
             (s_confirm_selected == 0) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            lo->cancel_label_x, lo->cancel_label_y,
-            lo->cancel_label);
+            label_x, label_y, lo->cancel_label);
 
-    /* Confirm label */
+    /* Confirm label: same reasoning as the cancel label above */
     text_renderer_init(connection, (s_confirm_selected == 1)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
+    label_w = menu_draw_measure(lo->confirm_label);
+    label_x = (int16_t) (lo->confirm_x +
+            (int16_t) ((lo->btn_w - label_w) / 2u));
+    label_y = (int16_t) (lo->btn_y +
+            (int16_t) ((lo->btn_h -
+                    (uint16_t) (text_font_ascent() +
+                        text_font_descent())) / 2u) +
+            text_font_ascent());
     text_renderer_set_color(
             (s_confirm_selected == 1) ? fg_sel : fg_nor,
             (s_confirm_selected == 1) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            lo->confirm_label_x, lo->confirm_label_y,
-            lo->confirm_label);
+            label_x, label_y, lo->confirm_label);
 
     xcb_flush(connection);
 }
@@ -394,8 +434,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     s_confirm_layout.confirm_label[
         sizeof(s_confirm_layout.confirm_label) - 1u] = '\0';
 
-    text_renderer_init(connection, config->theme.dialog.label.font);
-    s_confirm_compute_layout(&s_confirm_layout);
+    s_confirm_compute_layout(connection, config, &s_confirm_layout);
     s_confirm_selected = 0;
     s_confirm_callback = on_confirm;
 
@@ -562,28 +601,51 @@ static s_message_layout_td s_message_layout;
 /**
  * @brief Compute layout geometry for the message dialog
  *
- * Uses the message text already stored in @p layout->message.
+ * Uses the message text already stored in @p layout->message.  The
+ * "OK" button always renders in @c button.selected.font (it has no
+ * unselected state to switch to), so its width and label position are
+ * measured directly in that font, avoiding the same off-center risk
+ * @c s_confirm_compute_layout guards against for the two-button
+ * confirm dialog.
+ *
+ * @param connection XCB connection, needed to measure the label text
+ * @param config     Theme providing button font and padding
+ * @param layout     Layout structure containing input text and
+ *                   receiving the computed dialog geometry
  */
-static void s_message_compute_layout(s_message_layout_td *layout)
+static void s_message_compute_layout(xcb_connection_t *connection,
+        const config_td *config, s_message_layout_td *layout)
 {
     uint16_t msg_w;
     uint16_t ok_w;
     uint16_t msg_span_w;
     uint16_t ok_span_w;
+    uint16_t pad_x;
+    uint16_t pad_y;
+    uint16_t btn_text_h;
+    uint16_t label_pad_x;
 
-    if (layout == NULL) {
+    if (connection == NULL || config == NULL || layout == NULL) {
         return;
     }
 
+    label_pad_x = (uint16_t) config->theme.dialog.label.padding.horizontal;
+    pad_x = (uint16_t) config->theme.dialog.button.padding.horizontal;
+    pad_y = (uint16_t) config->theme.dialog.button.padding.vertical;
+
+    text_renderer_init(connection, config->theme.dialog.label.font);
     msg_w = menu_draw_measure(layout->message);
-    ok_w  = menu_draw_measure(DIALOG_MSG_LABEL_OK);
+
+    text_renderer_init(connection, config->theme.dialog.button.selected.font);
+    ok_w = menu_draw_measure(DIALOG_MSG_LABEL_OK);
+    btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
     layout->btn_w = s_u16max(DIALOG_BTN_MIN_W,
-            (uint16_t) (ok_w + (DIALOG_BTN_LABEL_PAD_X * 2u)));
-    layout->btn_h = DIALOG_BTN_H;
+            (uint16_t) (ok_w + (pad_x * 2u)));
+    layout->btn_h = (uint16_t) (btn_text_h + (pad_y * 2u));
 
-    msg_span_w = (uint16_t) (msg_w + (DIALOG_PAD_X * 2u));
-    ok_span_w  = (uint16_t) (layout->btn_w + (DIALOG_PAD_X * 2u));
+    msg_span_w = (uint16_t) (msg_w + (label_pad_x * 2u));
+    ok_span_w  = (uint16_t) (layout->btn_w + (label_pad_x * 2u));
 
     layout->w = s_u16max(DIALOG_MIN_W,
             s_u16max(msg_span_w, ok_span_w));
@@ -599,16 +661,17 @@ static void s_message_compute_layout(s_message_layout_td *layout)
             (int16_t) layout->btn_h);
 
     layout->msg_x = (int16_t) ((layout->w > msg_w)
-            ? (layout->w - msg_w) / 2u : DIALOG_PAD_X);
-    if (layout->msg_x < (int16_t) DIALOG_PAD_X) {
-        layout->msg_x = (int16_t) DIALOG_PAD_X;
+            ? (layout->w - msg_w) / 2u : label_pad_x);
+    if (layout->msg_x < (int16_t) label_pad_x) {
+        layout->msg_x = (int16_t) label_pad_x;
     }
     layout->msg_y = (int16_t) DIALOG_PROMPT_BASELINE_Y;
 
     layout->btn_label_x = (int16_t) (layout->btn_x +
             (int16_t) ((layout->btn_w - ok_w) / 2u));
     layout->btn_label_y = (int16_t) (layout->btn_y +
-            (int16_t) DIALOG_BTN_LABEL_BASELINE_Y);
+            (int16_t) ((layout->btn_h - btn_text_h) / 2u) +
+            text_font_ascent());
 }
 
 
@@ -731,8 +794,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             sizeof(s_message_layout.message) - 1u] = '\0';
     }
 
-    text_renderer_init(connection, config->theme.dialog.label.font);
-    s_message_compute_layout(&s_message_layout);
+    s_message_compute_layout(connection, config, &s_message_layout);
 
     menu_dialog_center(surface, s_message_layout.w,
             s_message_layout.h, &x, &y);

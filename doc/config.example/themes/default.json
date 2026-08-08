@@ -151,6 +151,10 @@
             "font": "fixed",
             "color": {
                 "foreground": "#4a5566"
+            },
+            "padding": {
+                "horizontal": 12,
+                "vertical": 12
             }
         },
         "button": {
@@ -175,6 +179,11 @@
                     "color": "#4a5566",
                     "width": 1
                 }
+            },
+            "gap": 12,
+            "padding": {
+                "horizontal": 12,
+                "vertical": 6
             }
         }
     },

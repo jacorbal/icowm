@@ -135,7 +135,7 @@ struct config_base_s {
         } placement_policy;
     } icons;
 
-    bool show_desktop_notify;       /**< Show desktop name on switch */
+    bool show_desktop_overlay;       /**< Show desktop name on switch */
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
 
     /* Context-menu placement, per menu type */
@@ -578,6 +578,9 @@ struct config_theme_s {
         struct {
             struct config_theme_style_s unselected;
             struct config_theme_style_s selected;
+
+            /** Horizontal gap, in pixels, between adjacent buttons */
+            uint32_t gap;
 
             /** Inset, in pixels, between a button's own edges and its
              *  label; shared by @c unselected and @c selected on

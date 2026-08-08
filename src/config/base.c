@@ -643,8 +643,8 @@ int config_load_base(const char *filename,
 
     json_load_bool(json, "enable-emergency-shortcut",
             &config_base->enable_emergency_shortcut);
-    json_load_bool(json, "show-desktop-notify",
-            &config_base->show_desktop_notify);
+    json_load_bool(json, "show-desktop-overlay",
+            &config_base->show_desktop_overlay);
 
     /* Load per-menu-type context menu configuration */
     menus = cJSON_GetObjectItem(json, "menus");

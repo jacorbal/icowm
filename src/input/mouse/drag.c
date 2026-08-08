@@ -720,27 +720,35 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
 
 
 /* Snap a resized client against peer windows and screen edges */
-static void s_drag_snap_resize(int32_t x, int32_t y,
+static void s_drag_snap_resize(int32_t *x, int32_t *y,
         uint32_t *width, uint32_t *height)
 {
     int32_t snap;
     int32_t right;
     int32_t bottom;
 
-    if (width == NULL || height == NULL || s_drag.snap == 0) {
+    if (x == NULL || y == NULL || width == NULL || height == NULL ||
+            s_drag.snap == 0) {
         return;
     }
 
     snap = (int32_t) s_drag.snap;
-    right = x + (int32_t) *width;
-    bottom = y + (int32_t) *height;
+    right = *x + (int32_t) *width;
+    bottom = *y + (int32_t) *height;
 
+    /* Which edge actually moves as the pointer moves depends on which
+     * corner or side the user grabbed: 'anchor_right' means the LEFT
+     * edge is the one being dragged (the right edge stays put), and
+     * symmetrically for 'anchor_bottom' and the top edge.  Every delta
+     * and snap check below has to target whichever edge that is, not
+     * always assume it is the right/bottom edge the way a
+     * left-edge-fixed resize would. */
     if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
         cdlist_item_td *initial;
-        int32_t dw = snap;
-        int32_t dh = snap;
+        int32_t d_horiz = snap;
+        int32_t d_vert = snap;
 
         node = cdlist_head(s_drag.desktop->stacking);
         initial = node;
@@ -759,41 +767,87 @@ static void s_drag_snap_resize(int32_t x, int32_t y,
                     int32_t obottom = oy +
                         (int32_t) other->layout.geometry.cur.dim.h;
 
-                    if (s_drag_ranges_close(y, bottom,
+                    if (s_drag_ranges_close(*y, bottom,
                                 oy, obottom, snap)) {
-                        dw = s_drag_closer_delta(dw, oright - right);
-                        dw = s_drag_closer_delta(dw, ox - right);
+                        if (s_drag.anchor_right) {
+                            d_horiz = s_drag_closer_delta(d_horiz,
+                                    oright - *x);
+                            d_horiz = s_drag_closer_delta(d_horiz,
+                                    ox - *x);
+                        } else {
+                            d_horiz = s_drag_closer_delta(d_horiz,
+                                    oright - right);
+                            d_horiz = s_drag_closer_delta(d_horiz,
+                                    ox - right);
+                        }
                     }
 
-                    if (s_drag_ranges_close(x, right,
+                    if (s_drag_ranges_close(*x, right,
                                 ox, oright, snap)) {
-                        dh = s_drag_closer_delta(dh, obottom - bottom);
-                        dh = s_drag_closer_delta(dh, oy - bottom);
+                        if (s_drag.anchor_bottom) {
+                            d_vert = s_drag_closer_delta(d_vert,
+                                    obottom - *y);
+                            d_vert = s_drag_closer_delta(d_vert,
+                                    oy - *y);
+                        } else {
+                            d_vert = s_drag_closer_delta(d_vert,
+                                    obottom - bottom);
+                            d_vert = s_drag_closer_delta(d_vert,
+                                    oy - bottom);
+                        }
                     }
                 }
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
         }
 
-        if (s_drag_abs_i32(dw) <= snap) {
-            *width = geom_clamp_dim((int32_t) *width + dw);
-            right = x + (int32_t) *width;
+        if (s_drag_abs_i32(d_horiz) <= snap) {
+            if (s_drag.anchor_right) {
+                *x += d_horiz;
+                *width = geom_clamp_dim((int32_t) *width - d_horiz);
+            } else {
+                *width = geom_clamp_dim((int32_t) *width + d_horiz);
+            }
+            right = *x + (int32_t) *width;
         }
 
-        if (s_drag_abs_i32(dh) <= snap) {
-            *height = geom_clamp_dim((int32_t) *height + dh);
-            bottom = y + (int32_t) *height;
+        if (s_drag_abs_i32(d_vert) <= snap) {
+            if (s_drag.anchor_bottom) {
+                *y += d_vert;
+                *height = geom_clamp_dim((int32_t) *height - d_vert);
+            } else {
+                *height = geom_clamp_dim((int32_t) *height + d_vert);
+            }
+            bottom = *y + (int32_t) *height;
         }
     }
 
-    if (s_drag.screen_w > 0 &&
-            s_drag_abs_i32(right - (int32_t) s_drag.screen_w) <= snap) {
-        *width = geom_clamp_dim((int32_t) s_drag.screen_w - x);
+    if (s_drag.screen_w > 0) {
+        if (s_drag.anchor_right) {
+            /* Dragging the left edge: it can snap to the screen's own
+             * left edge, which a resize never checked for before. */
+            if (s_drag_abs_i32(*x) <= snap) {
+                *width = geom_clamp_dim((int32_t) *width + *x);
+                *x = 0;
+            }
+        } else if (s_drag_abs_i32(right -
+                    (int32_t) s_drag.screen_w) <= snap) {
+            *width = geom_clamp_dim((int32_t) s_drag.screen_w - *x);
+        }
     }
 
-    if (s_drag.screen_h > 0 &&
-            s_drag_abs_i32(bottom - (int32_t) s_drag.screen_h) <= snap) {
-        *height = geom_clamp_dim((int32_t) s_drag.screen_h - y);
+    if (s_drag.screen_h > 0) {
+        if (s_drag.anchor_bottom) {
+            /* Dragging the top edge: same reasoning as the left edge
+             * above, snapping to the screen's own top edge. */
+            if (s_drag_abs_i32(*y) <= snap) {
+                *height = geom_clamp_dim((int32_t) *height + *y);
+                *y = 0;
+            }
+        } else if (s_drag_abs_i32(bottom -
+                    (int32_t) s_drag.screen_h) <= snap) {
+            *height = geom_clamp_dim((int32_t) s_drag.screen_h - *y);
+        }
     }
 }
 
@@ -920,7 +974,7 @@ void drag_update(xcb_connection_t *connection,
                     (int32_t) s_drag.client_start_h + dy);
         }
 
-        s_drag_snap_resize(new_x, new_y, &new_w, &new_h);
+        s_drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;

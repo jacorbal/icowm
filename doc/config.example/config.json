@@ -81,6 +81,6 @@
         "cursor-theme-size": 24,
         "dpi": 96
     },
-    "show-desktop-notify": true,
+    "show-desktop-overlay": true,
     "enable-emergency-shortcut": true
 }

@@ -451,6 +451,15 @@ void wcmd_client_iconify(client_td *client)
         wcmd_client_unshade(client);
     }
 
+    /* Un-fullscreen first, the same reasoning as unshading above: an
+     * iconified client's geometry is meant to be restored to its
+     * pre-iconify size later (see the 'client_geometry_save' call
+     * just below), and while still fullscreen that size is the whole
+     * screen, not the window's real one. */
+    if (client_is_fullscreen(client)) {
+        wcmd_client_unfullscreen(client);
+    }
+
     target = wcmd_target_win(client);
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: iconifying a maximized window must

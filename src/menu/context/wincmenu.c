@@ -75,7 +75,7 @@
  * @brief Number of fixed top-level entries in the window context menu:
  *        TWO submenus (Send to desktop, Layer) + ONE separator + NINE
  *        commands (Restore, Move, Resize, Iconify, Hide, Maximize,
- *        Un/fullscreen, Roll up/down, Un/decorate) + ONE separator +
+ *        Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
  *        ONE command (Close) = FOURTEEN total
  */
 #define WINCMENU_FIXED_ENTRIES (14)
@@ -742,7 +742,8 @@ void wincmenu_show(xcb_connection_t *connection,
         && !client_is_maximized(client)
         && !client_is_fullscreen(client);
     can_shade = (client->properties.flags &
-            CLIENT_FLAG_DECORATED) != 0u;
+            CLIENT_FLAG_DECORATED) != 0u
+        && !client_is_fullscreen(client);
 
     /* Build 'Send to desktop' submenu */
     memset(s_desk_entries, 0, sizeof(s_desk_entries));
@@ -817,12 +818,12 @@ void wincmenu_show(xcb_connection_t *connection,
             s_cb_fullscreen, NULL, !client_is_resizable(client));
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_ROLL_UP_DOWN,
+    s_entry_command(&s_entries[n], STR_WINCMENU_SHADE,
             s_cb_shade, NULL, !can_shade);
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_UNDECORATE,
-            s_cb_decorate, NULL, false);
+            s_cb_decorate, NULL, client_is_fullscreen(client));
     ++n;
 
     /* Separator before Close */

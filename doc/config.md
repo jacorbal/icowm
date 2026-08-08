@@ -15,7 +15,7 @@ values, and built-in default value.
    - [2.3 `programs`](#23-programs)
    - [2.4 `windows`](#24-windows)
    - [2.5 `icons`](#25-icons)
-   - [2.6 `show-desktop-notify`](#26-show-desktop-notify)
+   - [2.6 `show-desktop-overlay`](#26-show-desktop-overlay)
    - [2.7 `enable-emergency-shortcut`](#27-enable-emergency-shortcut)
    - [2.8 `menus`](#28-menus)
    - [2.9 `systray`](#29-systray)
@@ -341,11 +341,11 @@ Accepted icon placement values:
 }
 ```
 
-### 2.6 `show-desktop-notify`
+### 2.6 `show-desktop-overlay`
 
 | Key                    | Type    | Default |
 |------------------------|---------|---------|
-| `show-desktop-notify`  | boolean | `true`  |
+| `show-desktop-overlay`  | boolean | `true`  |
 
 When `true`, a small notification popup is displayed in the center of
 the screen for approximately 400 ms whenever the active virtual desktop
@@ -354,7 +354,7 @@ changes.  The popup shows the desktop index and name in the format
 name.  Set to `false` to suppress the popup entirely.
 
 ```json
-"show-desktop-notify": true
+"show-desktop-overlay": true
 ```
 
 ### 2.7 `enable-emergency-shortcut`
@@ -1018,6 +1018,8 @@ dialog.
 | `border.width`                | integer | `2`         |
 | `label.font`                  | string  | `"fixed"`   |
 | `label.color.foreground`     | string  | `"#4A5566"` |
+| `label.padding.horizontal`   | integer | `12`        |
+| `label.padding.vertical`     | integer | `12`        |
 | `button.unselected.font`     | string  | `"fixed"`   |
 | `button.unselected.color.background` | string | `"#D0D9E5"` |
 | `button.unselected.color.foreground` | string | `"#4A5566"` |
@@ -1028,15 +1030,27 @@ dialog.
 | `button.selected.color.foreground` | string | `"#253040"` |
 | `button.selected.border.color` | string | `"#4A5566"` |
 | `button.selected.border.width` | integer | `1`     |
+| `button.gap`                  | integer | `12`        |
+| `button.padding.horizontal`  | integer | `12`        |
+| `button.padding.vertical`    | integer | `6`         |
 
 `color.background` and `border` are the dialog window's own background
 and frame.  `label` styles the prompt or message text (e.g., "Are you
-sure you want to exit IcoWM?").  `button.unselected` and
+sure you want to exit IcoWM?"); `label.padding` is the inset between
+the dialog window's own edges and that text.  `button.unselected` and
 `button.selected` style the dialog's buttons (e.g., "Cancel" / "Exit"),
 the same not-selected/keyboard-navigated-choice distinction as `menu`
 above; the message dialog's single "OK" button always uses
 `button.selected`, since there is nothing else it could be navigated
-away from.
+away from.  `button.gap` is the horizontal space between adjacent
+buttons.  `button.padding` is the inset between a button's own edges
+and its label, shared by both `unselected` and `selected` so a button
+does not change size (and shove its neighbor sideways) as the
+highlight moves onto or off of it; each button is still sized wide and
+tall enough for whichever of the two fonts is larger, and its label
+stays centered within that fixed size regardless of which font ends
+up drawn, so switching to a wider `selected` font (bold by default)
+never looks off-center.
 
 ```json
 "dialog": {
@@ -1044,7 +1058,8 @@ away from.
     "border": { "color": "#7F9AB6", "width": 2 },
     "label": {
         "font": "fixed",
-        "color": { "foreground": "#4A5566" }
+        "color": { "foreground": "#4A5566" },
+        "padding": { "horizontal": 12, "vertical": 12 }
     },
     "button": {
         "unselected": {
@@ -1056,7 +1071,9 @@ away from.
             "font": "fixed bold",
             "color": { "background": "#9AAEC8", "foreground": "#253040" },
             "border": { "color": "#4A5566", "width": 1 }
-        }
+        },
+        "gap": 12,
+        "padding": { "horizontal": 12, "vertical": 6 }
     }
 }
 ```
@@ -1573,7 +1590,7 @@ Sub-menus can be nested to the depth limit defined by
         "dpi": 96
     },
 
-    "show-desktop-notify": true,
+    "show-desktop-overlay": true,
     "enable-emergency-shortcut": false    
 }
 ```

@@ -124,6 +124,17 @@ static uint16_t s_build_layout(ctxmenu_state_td *state)
 
 
 /**
+ * @brief Larger of two @c uint16_t values
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_u16max(uint16_t a, uint16_t b)
+{
+    return (a > b) ? a : b;
+}
+
+
+/**
  * @brief Compute the pixel width required to display all menu entries
  *
  * Iterates over all entries and measures each label, adding space for
@@ -143,8 +154,15 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
         const config_td *config)
 {
     uint16_t max_w = WM_CTXMENU_MIN_WIDTH;
+    uint16_t pad2 = (uint16_t) (config->theme.menu.padding.horizontal * 2u);
 
-    text_renderer_init(connection, config->theme.menu.unselected.font);
+    /* Every entry is measured in whichever font(s) it could actually
+     * end up drawn in: a 'CTXMENU_LABEL' heading only ever uses
+     * 'menu.label.font', but an ordinary entry switches between
+     * 'unselected.font' and 'selected.font' (bold by default) as the
+     * highlight moves over it, so sizing the menu off only one of the
+     * two would leave no room for the other, clipping or crowding the
+     * text whichever one turns out wider. */
     for (int i = 0; i < entry_count; ++i) {
         uint16_t w;
 
@@ -152,8 +170,23 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
             continue;
         }
 
-        w = (uint16_t) (menu_draw_measure(entries[i].label) +
-                (uint16_t) (config->theme.menu.padding.horizontal * 2u));
+        if (entries[i].type == CTXMENU_LABEL) {
+            text_renderer_init(connection, config->theme.menu.label.font);
+            w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
+        } else {
+            uint16_t w_unsel;
+            uint16_t w_sel;
+
+            text_renderer_init(connection,
+                    config->theme.menu.unselected.font);
+            w_unsel = menu_draw_measure(entries[i].label);
+
+            text_renderer_init(connection,
+                    config->theme.menu.selected.font);
+            w_sel = menu_draw_measure(entries[i].label);
+
+            w = (uint16_t) (s_u16max(w_unsel, w_sel) + pad2);
+        }
 
         /* Add space for the submenu arrow indicator */
         if (entries[i].type == CTXMENU_SUBMENU) {

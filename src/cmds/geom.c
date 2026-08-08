@@ -41,7 +41,8 @@ void wcmd_client_move(client_td *client,
 {
     xcb_window_t target;
 
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL || client_data == NULL ||
+            client_is_maximized(client) || client_is_fullscreen(client)) {
         return;
     }
 
@@ -67,7 +68,9 @@ void wcmd_client_center(client_td *client)
     int32_t y;
     xcb_window_t target;
 
-    if (client == NULL || !wcmd_screen_dim(client, &sw, &sh)) {
+    if (client == NULL || client_is_maximized(client) ||
+            client_is_fullscreen(client) ||
+            !wcmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 

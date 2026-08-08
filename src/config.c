@@ -178,7 +178,7 @@ void config_set_default_values(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
-    config->base.show_desktop_notify = true;
+    config->base.show_desktop_overlay = true;
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
@@ -468,6 +468,7 @@ void config_set_default_values(config_td *config)
         json_hex2uint32("4A5566");
     config->theme.dialog.button.selected.border.width = 1u;
 
+    config->theme.dialog.button.gap = 12u;
     config->theme.dialog.button.padding.horizontal = 12u;
     config->theme.dialog.button.padding.vertical = 6u;
 

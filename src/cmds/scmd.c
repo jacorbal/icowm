@@ -43,7 +43,7 @@
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       the surface
  */
-static void s_show_desktop_notify(surface_td *surface)
+static void s_show_desktop_overlay(surface_td *surface)
 {
     desktop_td *desktop;
 
@@ -112,7 +112,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
     surface_clients_sticky_transfer_all(surface, new_id);
     surface_clients_show(surface, new_id);
 
-    s_show_desktop_notify(surface);
+    s_show_desktop_overlay(surface);
 
     surface->is_outdated = true;
     xcb_flush(surface->connection);
@@ -140,7 +140,7 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
         surface_clients_sticky_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
-        s_show_desktop_notify(surface);
+        s_show_desktop_overlay(surface);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
     } else {
@@ -171,7 +171,7 @@ void scmd_surface_desktop_switch_prev(surface_td *surface)
         surface_clients_sticky_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
-        s_show_desktop_notify(surface);
+        s_show_desktop_overlay(surface);
         surface->is_outdated = true;
         xcb_flush(surface->connection);
     } else {
