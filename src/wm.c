@@ -44,11 +44,18 @@
 #include <logger.h>
 #include <lookup.h>
 #include <loop.h>
+#include <memguard.h>
 #include <startup.h>
 #include <surface.h>
 #include <sn.h>
 #include <systray.h>
 #include <xsettings.h>
+
+/* Utils includes */
+#include <utils/sysmem.h>
+
+/* Menu includes */
+#include <menu/dialog/message.h>
 
 /* Input includes */
 #include <input/mouse.h>
@@ -141,7 +148,8 @@ static void s_wm_cleanup(void)
 
 
 /* Initialize a window manager instance */
-int wm_start(const char *display_name, const char *config_dir_prefix)
+int wm_start(const char *display_name, const char *config_dir_prefix,
+        uint32_t restricted_memory_mib)
 {
     uint32_t screens_detected;
     uint32_t screens_managed;
@@ -151,6 +159,29 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     if (wm != NULL) {
         return -1;
+    }
+
+    /* Checked before allocating anything at all, so refusing to start
+     * costs as little as possible: restricted-memory mode promises a
+     * ceiling on this process's own future usage (see
+     * 'memguard.h'), and that promise is meaningless if the system
+     * does not even have that much memory free right now for this
+     * process to grow into in the first place. */
+    if (restricted_memory_mib > 0u) {
+        uint32_t available_mib;
+
+        LOGGER_NOTICE("Entering mode of restricted memory" \
+                " (ceiling=%u MiB)", (unsigned int) restricted_memory_mib);
+
+        if (sysmem_available_mib(&available_mib) &&
+                available_mib < restricted_memory_mib) {
+            LOGGER_FATAL("Restricted-memory mode: only %u MiB of" \
+                    " system memory is available, less than the" \
+                    " configured %u MiB ceiling; refusing to start",
+                    (unsigned int) available_mib,
+                    (unsigned int) restricted_memory_mib);
+            return 11;
+        }
     }
 
     wm = malloc(sizeof(wm_td));
@@ -175,6 +206,14 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     wm->sync_available = false;
     wm->sync_base_event = 0u;
     wm->is_emergency_exit = false;
+    wm->restricted_memory_mib = restricted_memory_mib;
+
+    /* Called this early, before any surface or desktop gets set up
+     * below, specifically so 'memguard_max_clients' already has a
+     * real answer by the time 'desktop_init' asks it how many
+     * positions to size a desktop's own client hash table to; see
+     * 'desktop_init' itself in desktop.c. */
+    memguard_init(wm->restricted_memory_mib);
 
     LOGGER_DEBUG("Opening X display", L_NARG);
     wm->connection = xcb_connect(display_name,
@@ -208,7 +247,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
         return 10;
     }
 
-    wm->config = config_init();
+    wm->config = config_init(wm->restricted_memory_mib);
     if (wm->config == NULL) {
         s_wm_cleanup();
         return 3;
@@ -216,7 +255,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
 
     LOGGER_DEBUG("Loading configuration into window manager", L_NARG);
     wm->config_dir_prefix = config_dir_prefix;
-    config_load(wm->config, wm->config_dir_prefix);
+    config_load(wm->config, wm->config_dir_prefix,
+            wm->restricted_memory_mib);
 
     wm->rules = rules_init();
     if (wm->rules != NULL) {
@@ -339,6 +379,26 @@ int wm_start(const char *display_name, const char *config_dir_prefix)
     if (wm->session != NULL) {
         session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
     }
+
+    /* Restricted-memory mode's own presence is announced once, right
+     * before entering the main loop, so it is never a silent surprise
+     * to whoever is sitting at the keyboard: only the log otherwise
+     * says anything about it. */
+    if (wm->restricted_memory_mib > 0u && wm->surfaces != NULL &&
+            !list_is_empty(wm->surfaces)) {
+        menu_message_dialog_show(wm->connection,
+                (surface_td *) list_data(list_head(wm->surfaces)),
+                wm->config,
+                "IcoWM is running in restricted-memory mode.  In" \
+                " this mode: application icons are shown without" \
+                " their own picture, text is drawn with simpler" \
+                " fonts, and there is a limit on how many windows" \
+                " can be open at once.  All of this trades some" \
+                " visual polish for keeping memory use low and" \
+                " predictable.",
+                MENU_MSG_LEVEL_INFO);
+    }
+
     loop_run(wm);
 
     return 0;

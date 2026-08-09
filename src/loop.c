@@ -50,7 +50,7 @@
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
-#include <menu/dialog.h>
+#include <menu/dialog/confirm.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
@@ -63,6 +63,7 @@
 #include <lifecycle.h>
 #include <lookup.h>
 #include <logger.h>
+#include <memguard.h>
 #include <sn.h>
 #include <startup.h>
 #include <surface.h>
@@ -344,8 +345,8 @@ void loop_run(wm_td *wm)
 
         /* Shorter still while a confirm-dialog click's deferred
          * close/accept is pending (see 'menu_confirm_dialog_tick' in
-         * menu/dialog.h), so it happens promptly once its short
-         * delay elapses. */
+         * menu/dialog/confirm.h), so it happens promptly once its
+         * short delay elapses. */
         confirm_ms = menu_confirm_dialog_ms_remaining();
         if (confirm_ms >= 0 && confirm_ms < poll_timeout_ms) {
             poll_timeout_ms = confirm_ms;
@@ -362,6 +363,12 @@ void loop_run(wm_td *wm)
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection);
+        if (wm->restricted_memory_mib > 0u &&
+                wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
+            memguard_tick(wm->connection,
+                    (surface_td *) list_data(list_head(wm->surfaces)),
+                    wm->config);
+        }
 
         while ((event = (pending_event != NULL)
                     ? pending_event

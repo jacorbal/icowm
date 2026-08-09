@@ -27,8 +27,8 @@
 #include <surface.h>
 
 /* Local includes */
-#include <menu/dialog.h>
 #include <menu/dialog/shortcuts.h>
+#include <menu/dialog/message.h>
 
 
 /**
@@ -254,7 +254,9 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.wm.menus.windows);
     s_append_binding(text, sizeof(text), &offset, "Show desktop",
             config->bindings.keyboard.wm.show_desktop);
-    s_append_goto_desktop(text, sizeof(text), &offset, config);
+    if (surface->desktop_count > 1u) {
+        s_append_goto_desktop(text, sizeof(text), &offset, config);
+    }
     s_append_binding(text, sizeof(text), &offset, "Redraw",
             config->bindings.keyboard.wm.redraw);
     s_append_binding(text, sizeof(text), &offset, "Reload config",
@@ -343,12 +345,14 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
 
     s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "[Cycle]");
-    s_append_group(text, sizeof(text), &offset, "Desktops",
-            (const char *const []) {"prev", "next"},
-            (const char *const []) {
-                config->bindings.keyboard.cycle.desktop.prev,
-                config->bindings.keyboard.cycle.desktop.next
-            }, 2u);
+    if (surface->desktop_count > 1u) {
+        s_append_group(text, sizeof(text), &offset, "Desktops",
+                (const char *const []) {"prev", "next"},
+                (const char *const []) {
+                    config->bindings.keyboard.cycle.desktop.prev,
+                    config->bindings.keyboard.cycle.desktop.next
+                }, 2u);
+    }
     s_append_group(text, sizeof(text), &offset, "Icons",
             (const char *const []) {"prev", "next"},
             (const char *const []) {

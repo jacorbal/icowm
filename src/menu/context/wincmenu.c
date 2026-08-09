@@ -838,14 +838,23 @@ void wincmenu_show(xcb_connection_t *connection,
             CLIENT_FLAG_DECORATED) != 0u
         && !client_is_fullscreen(client);
 
-    /* Build 'Send to desktop' submenu */
-    memset(s_desk_entries, 0, sizeof(s_desk_entries));
-    desk_count = s_build_desk_entries(surface, desktop, client);
+    /* Build 'Send to desktop' submenu, only meaningful (and only
+     * shown at all, see below) on a surface with more than one
+     * desktop; this is also where the "all desktops" sticky toggle
+     * lives, so hiding the whole submenu on a single-desktop surface
+     * (as in restricted-memory mode; see 'memguard.h') correctly
+     * hides that too, since sticking to every desktop means nothing
+     * when there is only the one. */
+    desk_count = 0;
+    if (surface->desktop_count > 1u) {
+        memset(s_desk_entries, 0, sizeof(s_desk_entries));
+        desk_count = s_build_desk_entries(surface, desktop, client);
 
-    memset(&s_desk_state, 0, sizeof(s_desk_state));
-    s_desk_state.window = XCB_WINDOW_NONE;
-    s_desk_state.entries = s_desk_entries;
-    s_desk_state.entry_count = desk_count;
+        memset(&s_desk_state, 0, sizeof(s_desk_state));
+        s_desk_state.window = XCB_WINDOW_NONE;
+        s_desk_state.entries = s_desk_entries;
+        s_desk_state.entry_count = desk_count;
+    }
 
     /* Build "Send to monitor" submenu, only meaningful (and only
      * shown at all, see below) on a surface with more than one
@@ -874,14 +883,17 @@ void wincmenu_show(xcb_connection_t *connection,
     memset(s_entries, 0, sizeof(s_entries));
     n = 0;
 
-    /* Send to desktop (submenu) */
-    s_entries[n].type = CTXMENU_SUBMENU;
-    safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_DESKTOP,
-            sizeof(s_entries[n].label) - 1u);
-    s_entries[n].items = s_desk_entries;
-    s_entries[n].item_count = desk_count;
-    s_entries[n].userdata = &s_desk_state;
-    ++n;
+    /* Send to desktop (submenu); omitted entirely, not just disabled,
+     * on a surface with only one desktop */
+    if (desk_count > 0) {
+        s_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_DESKTOP,
+                sizeof(s_entries[n].label) - 1u);
+        s_entries[n].items = s_desk_entries;
+        s_entries[n].item_count = desk_count;
+        s_entries[n].userdata = &s_desk_state;
+        ++n;
+    }
 
     /* Send to monitor (submenu); omitted entirely, not just disabled,
      * on a surface with only one monitor */

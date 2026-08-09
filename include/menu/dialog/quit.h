@@ -3,10 +3,10 @@
  *
  * @brief Quit-confirmation dialog (text content and wrappers)
  *
- * Defines only the visible text used by the quit-confirmation dialog:
+  * Defines only the visible text used by the quit-confirmation dialog:
  * the prompt format string, the cancel and exit button labels, and the
  * maximum prompt buffer size.  All layout and rendering logic lives in
- * the generic confirm-dialog infrastructure (@c menu/dialog.h).
+ * the generic confirm-dialog infrastructure (@c menu/confirm.h).
  *
  * The thin wrapper functions declared here are the public entry points
  * for opening, interacting with, and closing the quit-confirmation

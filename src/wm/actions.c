@@ -53,7 +53,8 @@ int wm_action_config_reload(void)
         return 1;
     }
 
-    if (config_load(wm->config, wm->config_dir_prefix) != 0) {
+    if (config_load(wm->config, wm->config_dir_prefix,
+                wm->restricted_memory_mib) != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         return 1;
     }
@@ -106,10 +107,26 @@ int wm_action_config_reload(void)
                 continue;
             }
 
+            /* A desktop that set its own 'background-color' in the
+             * just-reloaded 'config.json' keeps it; one that did not
+             * (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the same
+             * sentinel every entry starts with) falls back to the
+             * just-reloaded theme's own 'desktop.color.background'
+             * instead, mirroring 'desktop_init''s own fallback
+             * exactly.  Assigning the sentinel value itself as though
+             * it were a real color (as this block used to, before
+             * this check existed) renders as black, since its low 24
+             * bits are all zero: only the top byte, some other flag,
+             * is actually set. */
             if (!d->background.is_image &&
                     !d->background.use_root_pixmap) {
+                uint32_t new_color = cb->screens[s->id].desktops[i]
+                    .settings.background.color;
+
                 d->background.bg.color =
-                    cb->screens[s->id].desktops[i].settings.background.color;
+                    (new_color == WM_DESKTOP_BG_COLOR_UNSET)
+                    ? wm->config->theme.desktop.color.background
+                    : new_color;
             }
 
             /* Resize every already-decorated client's frame to match

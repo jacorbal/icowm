@@ -292,6 +292,29 @@ static bool s_any_surface_has_multiple_monitors(list_td *surfaces)
 }
 
 
+/**
+ * @brief Check whether any surface has more than one virtual desktop
+ *
+ * @param surfaces List of surfaces to check
+ *
+ * @return @c true if at least one surface has more than one desktop
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static bool s_any_surface_has_multiple_desktops(list_td *surfaces)
+{
+    for (list_item_td *node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+
+        if (surface != NULL && surface->desktop_count > 1u) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /* Parse configured key bindings and install passive grabs */
 void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const config_td *config)
@@ -464,6 +487,12 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     bool has_multi_monitor_surface =
         s_any_surface_has_multiple_monitors(surfaces);
 
+    /* Same reasoning as 'has_multi_monitor_surface' just above, for
+     * the desktop-cycling and go-to-desktop-N grabs instead of the
+     * move-to-next-monitor one. */
+    bool has_multi_desktop_surface =
+        s_any_surface_has_multiple_desktops(surfaces);
+
     s_keybindings_count = 0;
 
     /* Release every key grab this window manager previously made on
@@ -522,6 +551,18 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * 'has_multi_monitor_surface' above */
         if (defs[i].type == KEYBIND_CLIENT_MOVE_NEXT_MONITOR &&
                 !has_multi_monitor_surface) {
+            continue;
+        }
+
+        /* Skip every desktop-cycling and go-to-desktop-N grab the
+         * same way, when no surface actually has more than one
+         * desktop to switch to; see 'has_multi_desktop_surface'
+         * above */
+        if ((defs[i].type == KEYBIND_DESKTOP_NEXT ||
+                    defs[i].type == KEYBIND_DESKTOP_PREV ||
+                    (defs[i].type >= KEYBIND_DESKTOP_GOTO_0 &&
+                     defs[i].type <= KEYBIND_DESKTOP_GOTO_9)) &&
+                !has_multi_desktop_surface) {
             continue;
         }
 

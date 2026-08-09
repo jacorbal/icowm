@@ -15,8 +15,16 @@
 #define DEFS_SURFACE_H
 
 
-/** Maximum number of physical monitors tracked per surface */
+/** Maximum number of physical monitors tracked per surface
+ *
+ * Smaller under @c LOWMEM (see @c defs/lowmem.h): a
+ * target that build is meant for is unlikely to drive many monitors
+ * at once regardless. */
+#ifdef LOWMEM
+#define WM_SURFACE_MAX_MONITORS (2)
+#else
 #define WM_SURFACE_MAX_MONITORS (8)
+#endif
 
 
 #endif  /* ! DEFS_SURFACE_H */

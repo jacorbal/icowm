@@ -41,6 +41,7 @@
 #include <client.h>
 #include <eventq.h>
 #include <logger.h>
+#include <memguard.h>
 
 /* Local includes */
 #include <desktop.h>
@@ -239,11 +240,30 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
 
-    /* Initialize hash table for quick client lookup */
-    desktop->clients =
-        ohtbl_init(WM_DESKTOP_INITIAL_CAPACITY, 0,
-                s_h1, s_h2, s_client_match,
-                (void(*)(void *)) client_destroy);
+    /* Initialize hash table for quick client lookup.  In restricted-
+     * memory mode, sized to what 'memguard_max_clients' actually
+     * expects this desktop to ever hold instead of the usual, much
+     * larger 'WM_DESKTOP_INITIAL_CAPACITY': that default is meant for
+     * an ordinary session where the number of windows someone might
+     * open is not meaningfully bounded, which defeats the whole
+     * point of a mode meant to keep memory use predictable.  Doubled
+     * rather than sized to the cap exactly, since 'ohtbl_insert'
+     * resizes once occupancy reaches OHTBL_MAX_LOAD_FACTOR (75%) of
+     * positions; sizing to the cap exactly would mean hitting that
+     * threshold, and doubling the table anyway, before the cap itself
+     * is ever reached. */
+    {
+        uint32_t initial_positions = memguard_max_clients();
+
+        initial_positions = (initial_positions > 0u)
+            ? (initial_positions * 2u)
+            : WM_DESKTOP_INITIAL_CAPACITY;
+
+        desktop->clients =
+            ohtbl_init(initial_positions, 0,
+                    s_h1, s_h2, s_client_match,
+                    (void(*)(void *)) client_destroy);
+    }
     if (desktop->clients == NULL) {
         LOGGER_ERROR("Failed to allocate memory for" \
                 " client hash table on desktop %u ('%s') on screen %u",

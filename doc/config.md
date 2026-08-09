@@ -54,6 +54,13 @@ values, and built-in default value.
    - [8.2 Entry types](#82-entry-types)
    - [8.3 Entry fields reference](#83-entry-fields-reference)
 9. [Full examples](#9-full-examples)
+10. [Restricted-memory mode (`icowm -M <mib>`)](#10-restricted-memory-mode-icowm--m-mib)
+    - [10.1 What this mode changes, and what it leaves alone](#101-what-this-mode-changes-and-what-it-leaves-alone)
+    - [10.2 Refusing to start, and warning while running](#102-refusing-to-start-and-warning-while-running)
+    - [10.3 How many windows it will manage at once](#103-how-many-windows-it-will-manage-at-once)
+    - [10.4 Warning and error dialogs cannot be dismissed by accident](#104-warning-and-error-dialogs-cannot-be-dismissed-by-accident)
+    - [10.5 Building an even lighter version](#105-building-an-even-lighter-version)
+    - [10.6 Default values compared](#106-default-values-compared)
 
 ---
 
@@ -2226,3 +2233,164 @@ This example shows three complete rules:
 This example starts a compositor and tray applets when IcoWM launches,
 reloads or notifies companion processes after configuration changes, and
 emits a final notification on exit.
+
+## 10. Restricted-memory mode (`icowm -M <mib>`)
+
+`icowm -M <mib>` runs IcoWM in a mode aimed at genuinely memory-
+constrained systems: an old machine, a low-power single-board
+computer, a virtual machine given only a small amount of RAM.  `<mib>`
+is a number of mebibytes, and must be at least 48; IcoWM refuses a
+smaller value outright, since it could not realistically run in less
+than that regardless of anything else this mode does.
+
+### 10.1 What this mode changes, and what it leaves alone
+
+Two things, and only two, are always turned off in this mode,
+regardless of what your own configuration says:
+
+- **Icon pictures.** A minimized window still shows a small icon you
+  can click to restore it, but that icon is plain, without the
+  application's own picture drawn on it.
+- **Modern font rendering.** Text is drawn using plain, traditional X
+  fonts instead of the sharper, more flexible rendering IcoWM normally
+  uses for names and text, which comes with a real, ongoing memory
+  cost of its own.
+
+Everything else about how IcoWM looks and behaves is exactly what you
+have configured, the same as it would be without `-M <mib>` at all:
+your theme (including a desktop's own background color, and the theme
+color it falls back to when a desktop does not set one of its own),
+your system tray settings (including whether it is shown at all),
+your default terminal and launcher, your window rules, your session
+start/reload/exit commands, how your menus and window placement
+behave, and how many screens and desktops you have.  If you want a
+lighter setup with fewer desktops or a single screen, set that up
+yourself the same way you would in an ordinary session; restricted-
+memory mode does not decide that for you, though see section 10.6 for
+the *default* it starts from when you have not set up a configuration
+of your own at all.
+
+One thing does change on its own with how many desktops you actually
+end up with, whether restricted-memory mode is involved or not: with
+only one desktop configured, the window-list menu and the "send
+window to..." option skip straight to that desktop's own windows
+instead of first asking you to pick a desktop you do not have a
+choice about anyway.  With two or more desktops, both work exactly as
+they always have.
+
+### 10.2 Refusing to start, and warning while running
+
+Before doing anything else, IcoWM checks how much memory the system
+actually has free right now.  If that is less than the `<mib>` you
+gave `-M <mib>`, IcoWM will not start at all, and says why in its log:
+promising to stay under a ceiling is not meaningful if the system
+cannot even spare that much to begin with.
+
+Once running, IcoWM keeps an eye on its own memory use, checking every
+few seconds.  If it ever reaches the ceiling you set, a dialog appears
+telling you how much it is using and what the ceiling is, and
+suggesting you close a window or two before opening anything else.
+This is a warning, not a hard wall enforced by the operating system:
+IcoWM does not forcibly cut itself off at that number, since doing so
+reliably would mean guaranteeing every single thing it might ever try
+to allocate handles running out of memory gracefully, and getting that
+wrong would mean a window manager that crashes instead of one that
+merely warns you in time to act.
+
+### 10.3 How many windows it will manage at once
+
+Restricted-memory mode also limits how many application windows it
+will actually manage at the same time, since nothing about a screen or
+desktop count limits that on its own, and each window IcoWM manages
+carries its own real, ongoing cost regardless of anything else.  This
+limit is worked out from the ceiling you chose with `-M <mib>`,
+roughly like this:
+
+1. A small slice of the ceiling (8 MiB) is set aside for IcoWM itself,
+   before counting any windows at all.
+2. Whatever is left over is divided up, generously, at about half a
+   mebibyte per window.
+3. The result is never fewer than one window, and never more than 64.
+
+In practice, because of how generous that per-window allowance is,
+this works out to the 64-window ceiling already at `-M <mib>`'s own
+smallest accepted value (48 MiB), and stays there for anything more
+generous than that too; it only drops below 64 for a smaller value
+than `-M <mib>` currently allows at all.  Once you are at that limit,
+opening another application shows a warning dialog explaining that a
+window has to be closed first; the new window's own application is
+left waiting rather than being handed something broken to work with.
+
+### 10.4 Warning and error dialogs cannot be dismissed by accident
+
+The two dialogs this mode shows (the memory-ceiling warning in section
+10.2, the too-many-windows warning in section 10.3) behave a little
+differently from IcoWM's other dialogs, on purpose: pressing Escape
+does nothing at all, and pressing Enter or Space does nothing either
+until you have actually selected the "OK" button first, either by
+clicking it directly or by pressing Tab to select it and then Enter or
+Space.  A message serious enough to use one of these two dialogs is
+not meant to be dismissed by the same reflexive key press that closes
+whatever else happened to have focus a moment before.
+
+### 10.5 Building an even lighter version
+
+Everything above is a choice you make each time you start IcoWM, with
+the `-M <mib>` flag.  It cannot make a few things smaller that are
+fixed once IcoWM itself is built (how many screens, desktops, or
+monitors IcoWM can ever track at once, mainly), since those are not
+something any flag can change afterward, only how many of them you
+actually use at once.
+
+If you know you are always going to run on a severely memory-
+constrained machine, you can build IcoWM itself with that in mind:
+
+```
+make LOWMEM=1
+```
+
+This produces a separate build (you would need to rebuild without it
+to go back to the ordinary one) that starts with smaller allowances
+for several things throughout: fewer screens, desktops, and monitors
+than it could otherwise ever track at once; a smaller starting
+allowance for how many windows a desktop is initially prepared for;
+and a smaller allowance for how long a message dialog's own text can
+be.
+
+**`LOWMEM` and `-M <mib>` are entirely independent of each other.**
+`LOWMEM` only changes those fixed, compiled-in ceilings; it does not
+turn restricted-memory mode on by itself, and it does not choose a
+`<mib>` value for `-M <mib>` on its own either.  A `LOWMEM` build
+launched without `-M <mib>` at all runs a perfectly ordinary,
+unrestricted session: no memory-ceiling warning, no window-count
+limit, icon pictures and modern font rendering both still on, exactly
+as an ordinary build would behave without `-M <mib>` — just one with
+smaller compiled-in ceilings on screens, desktops, and monitors.
+Restricted-memory mode's own behavior (sections 10.1 through 10.4)
+only ever happens when you actually pass `-M <mib>` at the time you
+start IcoWM, in either kind of build.  The two are meant to complement
+each other for a build genuinely sized for a memory-constrained target
+from the ground up, but each also works perfectly well entirely
+without the other.
+
+### 10.6 Default values compared
+
+The table below assumes no configuration file changes any of these; if
+yours does, your configuration wins over the defaults shown here
+either way, in either kind of build.
+
+| Setting                                              | Ordinary build | `LOWMEM` build |
+|-------------------------------------------------------|---------------:|----------------:|
+| Desktops per screen, with no configuration file at all, ordinary session | 4 | 4 |
+| Desktops per screen, with no configuration file at all, `-M <mib>` given | 2 | 2 |
+| Most screens IcoWM can ever track at once             |              6 |               1 |
+| Most desktops per screen IcoWM can ever track at once |             10 |               4 |
+| Most physical monitors IcoWM can ever track at once   |              8 |               2 |
+| Most XRandR output profiles you can configure at once |             16 |               2 |
+
+`-M <mib>`'s own smallest accepted value (48 MiB), the memory set
+aside for IcoWM itself before dividing up the rest among windows (8
+MiB), the rough cost assumed per window (half a mebibyte), and the
+hard ceiling on how many windows it will ever manage regardless of a
+very generous `-M <mib>` value (64) do not change between the two
+kinds of build; see section 10.3 for how those combine.

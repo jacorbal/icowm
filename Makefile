@@ -108,6 +108,16 @@ CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 
+# Optional: 'make ICOWM_LOW_MEMORY_BUILD=1' shrinks several
+# compile-time array capacities throughout the codebase, for building
+# specifically for a severely memory-constrained target; see
+# include/defs/lowmem.h.  Off by default, and purely additive to
+# CCFLAGS above when it is set, so leaving it unset changes nothing.
+ICOWM_LOW_MEMORY_BUILD ?=
+ifneq ($(ICOWM_LOW_MEMORY_BUILD),)
+CCFLAGS += -D ICOWM_LOW_MEMORY_BUILD
+endif
+
 
 ## Options on `make`
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`

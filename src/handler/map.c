@@ -43,6 +43,7 @@
 #include <desktop.h>
 #include <invalidate.h>
 #include <logger.h>
+#include <memguard.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -160,6 +161,38 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         xcb_map_window(wm->connection, event->window);
         xcb_flush(wm->connection);
         return;
+    }
+
+    /* Checked before 'client_manage' does any of its own (comparatively
+     * expensive) setup work, so a client refused here never pays for
+     * work that would just be thrown away.  Deliberately left
+     * unmapped, unlike every other early-return path in this function
+     * that declines to manage a window: an unmanaged-but-mapped
+     * window is genuinely broken, not merely undecorated, since it
+     * has no frame, is not tracked in any client list, and cannot be
+     * moved or closed through IcoWM at all; if it somehow ends up
+     * with keyboard focus regardless (a real, mapped top-level window
+     * can still receive it, even one IcoWM never decided to manage),
+     * later code that assumes "whatever currently has focus is a
+     * tracked client" has nothing valid to find, which is exactly
+     * what produced the abrupt, broken behavior this comment used to
+     * defend against creating in the first place.  Simply never
+     * mapping the window instead means the requesting application is
+     * left waiting for a MapNotify that will not come, rather than
+     * being handed a window it cannot use through the one channel
+     * (the window manager) applications normally rely on for that.
+     * 'memguard_max_clients' already reads 0 as "restricted-memory
+     * mode is off, no cap", so nothing else needs to check that
+     * separately here. */
+    {
+        uint32_t max_clients = memguard_max_clients();
+
+        if (max_clients > 0u &&
+                ohtbl_size(desktop->clients) >= max_clients) {
+            memguard_warn_client_cap(wm->connection, surface,
+                    wm->config);
+            return;
+        }
     }
 
     client = client_manage(wm->connection, wm->ewmh,

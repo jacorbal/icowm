@@ -891,6 +891,11 @@ typedef struct {
  * Allocates memory for a new @c config_td structure and initializes its
  * fields to default values.
  *
+ * @param restricted_memory_mib Restricted-memory mode's ceiling in
+ *                          mebibytes, or @c 0 when the mode is off
+ *                          (see @c -M in @c main.c); passed straight
+ *                          through to @c config_set_default_values
+ *
  * @return Pointer to the initialized configuration structure, or @c NULL
  *         on failure
  *
@@ -899,7 +904,7 @@ typedef struct {
  *
  * @see @c config_td
  */
-config_td *config_init(void);
+config_td *config_init(uint32_t restricted_memory_mib);
 
 /**
  * @brief Destroy a configuration structure and free resources
@@ -922,13 +927,32 @@ void config_destroy(config_td *config);
  *
  * @param config Pointer to the configuration structure to set the
  *               default values for
+ * @param restricted_memory_mib Restricted-memory mode's ceiling in
+ *                          mebibytes, or @c 0 when the mode is off
+ *                          (see @c -M in @c main.c).  The only default
+ *                          this changes is how many desktops each
+ *                          screen starts with (2 instead of the
+ *                          ordinary 4); a `config.json` that specifies
+ *                          its own `desktops.count` still overrides
+ *                          this either way, since `config_load_base`
+ *                          runs after this function and simply
+ *                          replaces whatever default this leaves in
+ *                          place.  Desktop count does not affect
+ *                          memory use directly (fixed-size arrays are
+ *                          the same size regardless), only how much
+ *                          there is to render and switch between, so
+ *                          a smaller default here is about that, not
+ *                          about the memory-ceiling behavior the rest
+ *                          of restricted-memory mode is concerned
+ *                          with.
  *
  * @note This function is loaded before user configuration, as
  *       a fail-safe for fields not yet configured manually
  * @note Complexity: @e O(n), where @e n is the number of fields that
  *       need to be set
  */
-void config_set_default_values(config_td *config);
+void config_set_default_values(config_td *config,
+        uint32_t restricted_memory_mib);
 
 /**
  * @brief Load all the configuration
@@ -942,6 +966,20 @@ void config_set_default_values(config_td *config);
  *                          to load the data
  * @param config_dir_prefix Configuration directory, or @c NULL to use
  *                          default value
+ * @param restricted_memory_mib Restricted-memory mode's ceiling in
+ *                          mebibytes, or @c 0 when the mode is off
+ *                          (see @c -M in @c main.c).  When non-zero,
+ *                          the theme file is not read at all, so
+ *                          @c config->theme keeps its compiled-in
+ *                          defaults except for @c icon.use_pixmap,
+ *                          forced to @c false regardless of what that
+ *                          compiled-in default is; and after the base
+ *                          configuration loads normally,
+ *                          @c screens.count, each screen's own
+ *                          @c desktops.count, and @c enable-fortune
+ *                          -shortcut are forced to @c 1, @c 1, and
+ *                          @c false respectively, overriding whatever
+ *                          @c config.json itself set them to
  *
  * @return 0 on success, or otherwise
  *
@@ -954,7 +992,8 @@ void config_set_default_values(config_td *config);
  *      @a config_load_bindings,
  *      @a config_load_theme
  */
-int config_load(config_td *config, const char *config_dir_prefix);
+int config_load(config_td *config, const char *config_dir_prefix,
+        uint32_t restricted_memory_mib);
 
 /**
  * @brief Resolve the configuration directory from a prefix, or from

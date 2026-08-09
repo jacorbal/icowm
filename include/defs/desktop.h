@@ -22,8 +22,19 @@
  * Number of windows that the desktop is initialized with.  A higher
  * initial capacity may reduce the need for resizing the underlying data
  * structure as windows are added to the open-addressed hash table.
+ *
+ * Only the fallback used when restricted-memory mode is not active at
+ * all (see @c memguard_max_clients, which @c desktop_init prefers
+ * over this whenever @c -M is given); smaller under
+ * @c LOWMEM (see @c defs/lowmem.h) regardless, so a
+ * low-memory build run without @c -M still starts with a more modest
+ * initial allocation than an ordinary build would.
  */
-#define WM_DESKTOP_INITIAL_CAPACITY (256)  /* (512) ? */
+#ifdef LOWMEM
+#define WM_DESKTOP_INITIAL_CAPACITY (32)
+#else
+#define WM_DESKTOP_INITIAL_CAPACITY (256)
+#endif
 
 /**
  * @brief Maximum number of characters allowed in the name of the

@@ -8,8 +8,8 @@
  * dialog has only one button ("OK") to dismiss it.
  *
  * The implementation is a thin wrapper around the generic
- * @c menu_message_dialog API declared in @c menu/dialog.h; all layout
- * and rendering logic lives there.
+ * @c menu_message_dialog API declared in @c menu/dialog/message.h;
+ * all layout and rendering logic lives there.
  *
  * Example usage:
  * @code
@@ -41,7 +41,7 @@
 #include <surface.h>
 
 /* Menu includes */
-#include <menu/dialog.h>    /* menu_msg_level_e */
+#include <menu/dialog/message.h>    /* menu_msg_level_e */
 
 
 /* Public interface */

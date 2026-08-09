@@ -42,8 +42,8 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
-#include <menu/dialog.h>
 #include <menu/dialog/info.h>
+#include <menu/dialog/message.h>
 #include <menu/dialog/quit.h>
 #include <menu/popup.h>
 

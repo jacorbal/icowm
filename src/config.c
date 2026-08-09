@@ -47,6 +47,7 @@
 #include <defs/ctxmenu.h>
 #include <defs/desktop.h>
 #include <defs/loop.h>
+#include <defs/memguard.h>
 #include <defs/sn.h>
 
 /* Project includes */
@@ -92,7 +93,7 @@ void config_resolve_dir(const char *config_dir_prefix,
 
 
 /* Initialize a new configuration structure */
-config_td *config_init(void)
+config_td *config_init(uint32_t restricted_memory_mib)
 {
     config_td *config;
 
@@ -106,7 +107,7 @@ config_td *config_init(void)
     }
 
     LOGGER_DEBUG("Setting configuration to default values", L_NARG);
-    config_set_default_values(config);
+    config_set_default_values(config, restricted_memory_mib);
 
     return config;
 }
@@ -123,18 +124,50 @@ void config_destroy(config_td *config)
 
 
 /* Populate the configuration structure with default values */
-void config_set_default_values(config_td *config)
+void config_set_default_values(config_td *config,
+        uint32_t restricted_memory_mib)
 {
     /* Assign predetermined values for base configuration */
     config->base.theme[0] = '\0';
     config->base.screen_count = 1;
 
+    /* Every screen and desktop slot the fixed-size 'screens' and
+     * 'desktops' arrays can ever hold gets the sentinel here, not
+     * just the ones this function is about to treat as active by
+     * default below: 'config_load_base' can fill in far more screens
+     * or desktops than that default, straight into these same
+     * arrays, and a slot it does not itself set a color for would
+     * otherwise still be sitting at zero from this whole structure's
+     * initial 'calloc' rather than at the sentinel, which reads as an
+     * opaque black background instead of falling back to the theme's
+     * own color the way an genuinely unset one should. */
+    LOGGER_TRACE("Setting background-color sentinel for every" \
+            " possible screen and desktop slot", L_NARG);
+    for (unsigned int i = 0; i < CONFIG_MAX_SCREENS; ++i) {
+        for (unsigned int j = 0; j < CONFIG_MAX_DESKTOPS; ++j) {
+            config->base.screens[i].desktops[j].settings.background.color
+                = WM_DESKTOP_BG_COLOR_UNSET;
+        }
+    }
+
     LOGGER_TRACE("Setting configuration for each screen", L_NARG);
     for (unsigned int i = 0; i < config->base.screen_count; ++i) {
-        /* 4 desktops by default, unless 'CONFIG_MAX_DESKTOPS' itself
-         * is smaller than that */
+        /* 4 desktops by default (2 under restricted-memory mode,
+         * since there is less to gain from starting with the
+         * ordinary default when nothing else about this mode changes
+         * desktop count's effect on memory use directly; see this
+         * function's own doc comment in config.h), unless
+         * 'CONFIG_MAX_DESKTOPS' itself is smaller than that.  A
+         * 'config.json' that specifies its own 'desktops.count'
+         * still overrides whichever of the two this leaves in place,
+         * since 'config_load_base' runs after this and simply
+         * replaces it. */
+        uint32_t desktop_default =
+            (restricted_memory_mib > 0u) ? 2u : 4u;
+
         config->base.screens[i].desktop_count =
-            (CONFIG_MAX_DESKTOPS < 4u) ? CONFIG_MAX_DESKTOPS : 4u;
+            (CONFIG_MAX_DESKTOPS < desktop_default)
+                ? CONFIG_MAX_DESKTOPS : desktop_default;
         config->base.screens[i].desktop_inaugural = 0;
 
         /* All desktop settings */
@@ -147,9 +180,6 @@ void config_set_default_values(config_td *config)
                     "Desktop %u", j);
             safe_strncpy(config->base.screens[i].desktops[j].name,
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
-
-            config->base.screens[i].desktops[j].settings.background.color
-                = WM_DESKTOP_BG_COLOR_UNSET;
         }
     }
 
@@ -526,8 +556,68 @@ void config_set_default_values(config_td *config)
 }
 
 
+/**
+ * @brief Force icon pixmaps off and every theme text style's own font
+ *        to a plain X core font, when restricted-memory mode is
+ *        active
+ *
+ * The only two things this mode ever forces, applied unconditionally
+ * on top of @c config->theme regardless of whether a theme file was
+ * actually found or even attempted (a missing @c config.json, and so
+ * a @c config->base.theme left empty, still means this needs to run):
+ * a compiled-in theme occupies the exact same memory as one read from
+ * @c *.json files in the @c themes directory, so skipping the file
+ * itself saves nothing, but pixmaps and the heavier
+ * xcb-render/FreeType2/fontconfig text rendering backend a
+ * TrueType/OpenType font name would otherwise select both carry a
+ * real, ongoing cost regardless of where the theme came from.
+ *
+ * @param config Configuration structure whose already-loaded (or
+ *               still at compiled-in defaults) theme this overrides
+ * @param restricted_memory_mib Restricted-memory mode's ceiling in
+ *               mebibytes, or @c 0 to leave @p config untouched
+ *
+ * @note Complexity: @e O(1), a fixed number of fields
+ */
+static void s_config_apply_restricted_memory_overrides(config_td *config,
+        uint32_t restricted_memory_mib)
+{
+    if (restricted_memory_mib == 0u) {
+        return;
+    }
+
+    LOGGER_NOTICE("Restricted-memory mode: disabling icon" \
+            " pixmaps and forcing plain X core fonts", L_NARG);
+    config->theme.icon.use_pixmap = false;
+    {
+        char *const font_fields[] = {
+            config->theme.dialog.button.selected.font,
+            config->theme.dialog.button.unselected.font,
+            config->theme.dialog.label.font,
+            config->theme.icon.active.font,
+            config->theme.icon.inactive.font,
+            config->theme.menu.label.font,
+            config->theme.menu.selected.font,
+            config->theme.menu.unselected.font,
+            config->theme.overlay.font,
+            config->theme.systray.style.font,
+            config->theme.window.active.font,
+            config->theme.window.inactive.font,
+        };
+        size_t i;
+
+        for (i = 0u; i < sizeof(font_fields) / sizeof(font_fields[0]);
+                ++i) {
+            safe_strncpy(font_fields[i], MEMGUARD_FONT_NAME,
+                    CONFIG_MAX_LENGTH_FONTNAME);
+        }
+    }
+}
+
+
 /* Load all the configuration */
-int config_load(config_td *config, const char *config_prefix)
+int config_load(config_td *config, const char *config_prefix,
+        uint32_t restricted_memory_mib)
 {
     char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
     char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
@@ -548,6 +638,8 @@ int config_load(config_td *config, const char *config_prefix)
     if (config_load_base(config_base_file, &(config->base)) != 0) {
         LOGGER_WARNING("Base configuration could not be loaded;" \
                 " default values will be used", L_NARG);
+        s_config_apply_restricted_memory_overrides(config,
+                restricted_memory_mib);
         return 1;
     }
     LOGGER_DEBUG("Loaded base configuration from '%s'", config_base_file);
@@ -606,6 +698,15 @@ int config_load(config_td *config, const char *config_prefix)
                 (int) config->randr.is_enabled,
                 config->randr.output_count);
     }
+
+    /* Restricted-memory mode leaves everything above exactly as
+     * loaded (theme included: a compiled-in theme occupies the same
+     * memory as one read from '*.json' files in 'themes/', so there
+     * is nothing to save by skipping the file); see
+     * 's_config_apply_restricted_memory_overrides' for the only two
+     * things it ever forces regardless. */
+    s_config_apply_restricted_memory_overrides(config,
+            restricted_memory_mib);
 
     return 0;
 }

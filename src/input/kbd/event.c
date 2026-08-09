@@ -38,8 +38,9 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
-#include <menu/dialog.h>
+#include <menu/dialog/fortune.h>
 #include <menu/dialog/info.h>
+#include <menu/dialog/message.h>
 #include <menu/dialog/quit.h>
 #include <menu/dialog/shortcuts.h>
 #include <menu/popup.h>
@@ -1149,10 +1150,32 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                         config, (int32_t) DIALOG_MSG_MAX_LINES);
                 return;
             }
+            if (keysym == 0xff09u) {          /* Tab */
+                menu_message_dialog_select_ok(surface->connection,
+                        config);
+                return;
+            }
         }
+        /* Warning and error dialogs (see 'menu_message_dialog_
+         * requires_selection') cannot be reflex-dismissed: Escape
+         * does nothing at all, and Enter/Space only activate "OK"
+         * once it has actually been selected (Tab, just above, or a
+         * direct click; see 'menu_message_dialog_handle_click' in
+         * input/mouse/event.c, which is not gated the same way, since
+         * a deliberate click already demonstrates the same intent
+         * selecting first and then pressing Enter/Space would).
+         * Every other level keeps the previous, quicker-to-dismiss
+         * behavior, where all four keys always just close it. */
         if (keysym == 0xff0du || keysym == 0xff8du ||
-                keysym == 0x0020u || keysym == 0xff1bu) {
-            if (surface != NULL && surface->connection != NULL) {
+                keysym == 0x0020u) {          /* Return, KP_Enter, Space */
+            if (surface != NULL && surface->connection != NULL &&
+                    (!menu_message_dialog_requires_selection() ||
+                     menu_message_dialog_ok_selected())) {
+                dialog_info_close(surface->connection);
+            }
+        } else if (keysym == 0xff1bu) {       /* Escape */
+            if (surface != NULL && surface->connection != NULL &&
+                    !menu_message_dialog_requires_selection()) {
                 dialog_info_close(surface->connection);
             }
         }
@@ -1160,14 +1183,27 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     }
 
     /* Message dialog (warnings, errors, info messages, the 'fortune'
-     * easter egg): a single "OK" button, so Enter, Space, or Escape
-     * all just dismiss it the same way clicking that button would */
+     * easter egg): dead code today, since 'dialog_info_is_open()'
+     * above already covers the exact same underlying state and always
+     * returns first; kept in the same up-to-date shape as that block
+     * regardless, rather than left to visibly rot, in case a future
+     * change to the block above ever makes this one reachable again. */
     if (menu_message_dialog_is_open()) {
         if (keysym == 0xff0du || keysym == 0xff8du ||
-                keysym == 0x0020u || keysym == 0xff1bu) {
-            if (surface != NULL && surface->connection != NULL) {
+                keysym == 0x0020u) {          /* Return, KP_Enter, Space */
+            if (surface != NULL && surface->connection != NULL &&
+                    (!menu_message_dialog_requires_selection() ||
+                     menu_message_dialog_ok_selected())) {
                 menu_message_dialog_close(surface->connection);
             }
+        } else if (keysym == 0xff1bu) {       /* Escape */
+            if (surface != NULL && surface->connection != NULL &&
+                    !menu_message_dialog_requires_selection()) {
+                menu_message_dialog_close(surface->connection);
+            }
+        } else if (keysym == 0xff09u &&       /* Tab */
+                surface != NULL && surface->connection != NULL) {
+            menu_message_dialog_select_ok(surface->connection, config);
         }
         return;
     }

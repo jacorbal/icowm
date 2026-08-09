@@ -548,98 +548,133 @@ void winlist_show(xcb_connection_t *connection,
     desktop_count = (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
         ? (int) surface->desktop_count : WINLIST_MAX_DESKTOPS;
 
-    for (did = 0; (int) did < desktop_count; ++did) {
-        winlist_entry_data_td *data;
-        int desktop_n;
-        bool is_cur;
-
-        desktop = surface_desktop_get(surface, did);
-        if (desktop == NULL) {
-            continue;
+    /* A single desktop has nothing to choose between, so the usual
+     * per-desktop submenu layer below would only ever wrap around one
+     * disabled "Go there..." entry (always disabled, since the one
+     * desktop that exists is always already the current one) sitting
+     * above the window list itself.  Skipped entirely for that case:
+     * 's_desktop_entries[0]' is filled directly below instead of
+     * going through the per-desktop submenu wrapping the loop in the
+     * 'else' branch does, and 's_root' is pointed at it directly near
+     * the end of this function instead of at 's_root_entries'
+     * (correctly sized for one entry per desktop, not for a whole
+     * desktop's own window list, so it must never be the target
+     * 's_build_desktop_entries' writes into).
+     * The same general behavior (keyed off the real desktop count,
+     * not specific to restricted-memory mode) already used elsewhere
+     * for "Send to desktop" and desktop-cycling key bindings; see
+     * 'wincmenu.c' and 'input/kbd/bind.c'. */
+    if (desktop_count <= 1) {
+        desktop = surface_desktop_get(surface, 0u);
+        if (desktop != NULL) {
+            s_build_desktop_entries(surface, 0u, s_desktop_entries[0],
+                    &n);
         }
+    } else {
+        for (did = 0; (int) did < desktop_count; ++did) {
+            winlist_entry_data_td *data;
+            int desktop_n;
+            bool is_cur;
 
-        desktop_n = 0;
-        s_build_desktop_entries(surface, did, s_desktop_entries[did],
-                &desktop_n);
-
-        is_cur = did == cur_did;
-
-        /* Always add a "Go there..." entry at the top of the desktop's
-         * own submenu, same as before, so picking the desktop itself
-         * (with no particular window) still works */
-        if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
-            data = s_alloc_entry_data();
-            if (data != NULL) {
-                /* Shift existing entries down by one to make room at
-                 * the front; desktop_n is always small enough for this
-                 * to be cheap */
-                for (int i = desktop_n; i > 0; --i) {
-                    s_desktop_entries[did][i] =
-                        s_desktop_entries[did][i - 1];
-                }
-                s_desktop_entries[did][0].type = CTXMENU_COMMAND;
-                safe_strncpy(s_desktop_entries[did][0].label,
-                        STR_WINLIST_GO_THERE,
-                        sizeof(s_desktop_entries[did][0].label) - 1u);
-                s_desktop_entries[did][0].is_disabled = is_cur;
-                s_desktop_entries[did][0].on_activate = NULL;
-                s_desktop_entries[did][0].userdata = NULL;
-                if (!is_cur) {
-                    data->surface = surface;
-                    data->client = NULL;
-                    data->desktop_id = did;
-                    s_desktop_entries[did][0].on_activate =
-                        s_cb_goto_desktop;
-                    s_desktop_entries[did][0].userdata = data;
-                }
-                desktop_n++;
+            desktop = surface_desktop_get(surface, did);
+            if (desktop == NULL) {
+                continue;
             }
+
+            desktop_n = 0;
+            s_build_desktop_entries(surface, did, s_desktop_entries[did],
+                    &desktop_n);
+
+            is_cur = did == cur_did;
+
+            /* Always add a "Go there..." entry at the top of the desktop's
+             * own submenu, same as before, so picking the desktop itself
+             * (with no particular window) still works */
+            if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+                data = s_alloc_entry_data();
+                if (data != NULL) {
+                    /* Shift existing entries down by one to make room at
+                     * the front; desktop_n is always small enough for this
+                     * to be cheap */
+                    for (int i = desktop_n; i > 0; --i) {
+                        s_desktop_entries[did][i] =
+                            s_desktop_entries[did][i - 1];
+                    }
+                    s_desktop_entries[did][0].type = CTXMENU_COMMAND;
+                    safe_strncpy(s_desktop_entries[did][0].label,
+                            STR_WINLIST_GO_THERE,
+                            sizeof(s_desktop_entries[did][0].label) - 1u);
+                    s_desktop_entries[did][0].is_disabled = is_cur;
+                    s_desktop_entries[did][0].on_activate = NULL;
+                    s_desktop_entries[did][0].userdata = NULL;
+                    if (!is_cur) {
+                        data->surface = surface;
+                        data->client = NULL;
+                        data->desktop_id = did;
+                        s_desktop_entries[did][0].on_activate =
+                            s_cb_goto_desktop;
+                        s_desktop_entries[did][0].userdata = data;
+                    }
+                    desktop_n++;
+                }
+            }
+
+            if (desktop_n == 0) {
+                continue;
+            }
+
+            memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
+            s_desktop_state[did].window = XCB_WINDOW_NONE;
+            s_desktop_state[did].entries = s_desktop_entries[did];
+            s_desktop_state[did].entry_count = desktop_n;
+
+            label_fmt = (desktop->name[0] != '\0')
+                ? "%s[%u] -- %s%s"
+                : "%s[%u]%s";
+            if (desktop->name[0] != '\0') {
+                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did, desktop->name,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            } else {
+                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            }
+
+            s_root_entries[n].type = CTXMENU_SUBMENU;
+            safe_strncpy(s_root_entries[n].label, label_buf,
+                    sizeof(s_root_entries[n].label) - 1u);
+            s_root_entries[n].items = s_desktop_entries[did];
+            s_root_entries[n].item_count = desktop_n;
+            s_root_entries[n].userdata = &s_desktop_state[did];
+            ++n;
         }
-
-        if (desktop_n == 0) {
-            continue;
-        }
-
-        memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
-        s_desktop_state[did].window = XCB_WINDOW_NONE;
-        s_desktop_state[did].entries = s_desktop_entries[did];
-        s_desktop_state[did].entry_count = desktop_n;
-
-        label_fmt = (desktop->name[0] != '\0')
-            ? "%s[%u] -- %s%s"
-            : "%s[%u]%s";
-        if (desktop->name[0] != '\0') {
-            (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
-                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                    did, desktop->name,
-                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-        } else {
-            (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
-                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                    did,
-                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-        }
-
-        s_root_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_root_entries[n].label, label_buf,
-                sizeof(s_root_entries[n].label) - 1u);
-        s_root_entries[n].items = s_desktop_entries[did];
-        s_root_entries[n].item_count = desktop_n;
-        s_root_entries[n].userdata = &s_desktop_state[did];
-        ++n;
     }
 
-    if (n == 0) {
-        s_root_entries[n].type = CTXMENU_LABEL;
-        safe_strncpy(s_root_entries[n].label, "(no windows)",
-                sizeof(s_root_entries[n].label) - 1u);
-        ++n;
-    }
+    /* Whichever of the two buffers above 'n' actually counts entries
+     * in: 's_desktop_entries[0]' directly for the flattened, single-
+     * desktop case, 's_root_entries' (one entry per desktop, each a
+     * submenu) otherwise.  Both are used below instead of just
+     * 's_root_entries', so the "no windows" fallback and the final
+     * root assignment land on the right one either way. */
+    {
+        ctxmenu_entry_td *root_target =
+            (desktop_count <= 1) ? s_desktop_entries[0] : s_root_entries;
 
-    memset(&s_root, 0, sizeof(s_root));
-    s_root.window = XCB_WINDOW_NONE;
-    s_root.entries = s_root_entries;
-    s_root.entry_count = n;
+        if (n == 0) {
+            root_target[n].type = CTXMENU_LABEL;
+            safe_strncpy(root_target[n].label, "(no windows)",
+                    sizeof(root_target[n].label) - 1u);
+            ++n;
+        }
+
+        memset(&s_root, 0, sizeof(s_root));
+        s_root.window = XCB_WINDOW_NONE;
+        s_root.entries = root_target;
+        s_root.entry_count = n;
+    }
 
     ctxmenu_show(connection, surface, &s_root, x, y, config);
 }

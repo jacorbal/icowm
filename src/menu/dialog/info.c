@@ -22,8 +22,8 @@
 #include <surface.h>
 
 /* Local includes */
-#include <menu/dialog.h>
 #include <menu/dialog/info.h>
+#include <menu/dialog/message.h>
 
 
 /* Open the informational message dialog */

@@ -27,7 +27,7 @@
 #include <wm.h>
 
 /* Local includes */
-#include <menu/dialog.h>
+#include <menu/dialog/confirm.h>
 #include <menu/dialog/quit.h>
 #include <menu/draw.h>
 

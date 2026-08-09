@@ -95,6 +95,19 @@ typedef struct {
     bool is_emergency_exit;         /**< Set when an emergency exit is
                                          requested; suppresses pending
                                          session hooks on shutdown */
+
+    /**
+     * @brief Restricted-memory mode's available-memory ceiling, in
+     *        mebibytes, or @c 0 when the mode is not active
+     *
+     * Set once at startup from the @c -M command-line option (see
+     * @c main.c) and never changed afterward.  Consulted by @a
+     * loop_run's periodic low-memory check, which warns once system-
+     * wide available memory (see @c utils/sysmem.h) drops below it.
+     *
+     * @see @c wm_start
+     */
+    uint32_t restricted_memory_mib;
 } wm_td;
 
 
@@ -107,16 +120,33 @@ typedef struct {
  * windows array and initializes the current desktop index and running
  * state.
  *
+ * When @p restricted_memory_mib is non-zero, restricted-memory mode
+ * is active (see @c -M in @c main.c): available system memory is
+ * checked before doing anything else, refusing to start at all if it
+ * is already below that many mebibytes; theme, window rules, and
+ * session hooks are not loaded at all, falling back to their compiled
+ * -in defaults; and the loaded base configuration is forced to a
+ * single screen with a single desktop, icon pixmaps disabled, and the
+ * @c fortune easter egg disabled, regardless of what @c config.json
+ * itself says.  See @c config_load's own @p restricted_memory_mib
+ * parameter for exactly which fields that forces.
+ *
  * @param display_name      Name of the display, or @c NULL for default
  * @param config_dir_prefix Configuration directory, or @c NULL to use
  *                          the default value
+ * @param restricted_memory_mib Restricted-memory mode's available-
+ *                          memory ceiling in mebibytes, or @c 0 to
+ *                          leave the mode off
  *
  * @return Status of the initialization
  * @retval  0 Success
  * @retval  1 Failed to allocate memory
  * @retval  2 Cannot open X connection
  * @retval  3 Cannot open load configuration
- * @retval >3 Failed to initialize data structures
+ * @retval  4 to @c 10 Failed to initialize other internal data
+ *            structures (event queue, surfaces, RandR, and so on)
+ * @retval 11 Restricted-memory mode's ceiling is already below
+ *            available system memory; refused to start at all
  * @retval -1 Singleton was already initialized; no action taken
  *
  * @note If @p display_name is @c NULL, the initialization attempts to
@@ -126,7 +156,8 @@ typedef struct {
  *       to initialize, and @e m the number of desktops per window, as
  *       for the initialization requires iterate over a list of lists
  */
-int wm_start(const char *display_name, const char *config_dir_prefix);
+int wm_start(const char *display_name, const char *config_dir_prefix,
+        uint32_t restricted_memory_mib);
 
 /**
  * @brief Destroy window manager instance

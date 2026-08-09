@@ -1,0 +1,124 @@
+/**
+ * @file defs/memguard.h
+ *
+ * @brief Tunable constants for restricted-memory mode (@c icowm -M)
+ *
+ * Every number restricted-memory mode's behavior depends on lives
+ * here, edited and recompiled to retune the mode, rather than spread
+ * across @c memguard.c itself; see @c memguard.h for the module that
+ * actually uses them.
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#ifndef DEFS_MEMGUARD_H
+#define DEFS_MEMGUARD_H
+
+
+/** How often the runtime watchdog actually re-reads this process's
+ *  own memory usage, in seconds; checking on every single main-loop
+ *  iteration would mean a file read many times a second for no
+ *  benefit, since usage cannot realistically climb meaningfully
+ *  faster than this */
+#define MEMGUARD_CHECK_INTERVAL_SECONDS (5)
+
+/** Once a warning has been shown for climbing at or above the
+ *  configured ceiling, usage has to drop back below this fraction of
+ *  it before a renewed climb can warn again; without this hysteresis,
+ *  usage hovering right at the ceiling would show the same dialog
+ *  repeatedly every check interval */
+#define MEMGUARD_HYSTERESIS_PERCENT (90u)
+
+/**
+ * @brief Mebibytes of the @c -M ceiling reserved for this process's
+ *        own baseline overhead, before any of it is divided up among
+ *        managed clients
+ *
+ * A ceiling entirely divided up among clients with nothing held back
+ * would let @c memguard_max_clients compute a number that leaves no
+ * headroom at all for IcoWM's own connection, event queue, surface
+ * and desktop state, and every other piece of it that exists
+ * regardless of how many windows are open.
+ *
+ * @see @c memguard_max_clients
+ */
+#define MEMGUARD_BASELINE_MIB (8u)
+
+/**
+ * @brief Smallest @c -M ceiling IcoWM will actually accept
+ *
+ * @c MEMGUARD_BASELINE_MIB alone (8 MiB) is only this module's own
+ * estimate of IcoWM's baseline overhead, not a measured figure; real
+ * font rendering (FreeType, fontconfig), XCB, and EWMH support in
+ * practice tend to need more than that estimate alone suggests.
+ * Rather than let @c -M accept a value so low the process could not
+ * realistically run at all regardless of what @c memguard_max_clients
+ * computes from it, @c -M rejects anything below this floor outright
+ * (see @c main.c), with a healthy margin above @c MEMGUARD_BASELINE_
+ * MIB to absorb that estimate being wrong, while still leaving room
+ * for a handful of actual clients once running.
+ */
+#define MEMGUARD_MIN_CEILING_MIB (48u)
+
+/**
+ * @brief Font name every theme text style is redirected to under
+ *        restricted-memory mode
+ *
+ * "fixed" is an X core bitmap font alias present on effectively every
+ * X server, so redirecting to it (see @c config_load) reliably keeps
+ * text rendering on @c render/text.c's own, lighter X-core-font path
+ * rather than falling back to the xcb-render/FreeType2/fontconfig
+ * backend a TrueType/OpenType family name (what most themes actually
+ * specify) would otherwise select.
+ */
+#define MEMGUARD_FONT_NAME "fixed"
+
+/**
+ * @brief Estimated resident memory cost of one additional managed
+ *        client, in kibibytes
+ *
+ * A deliberately generous (i.e., large) round estimate covering a
+ * client's own tracked state (geometry and hint tracking, a
+ * decoration frame, an icon window if iconified, its entry in a
+ * desktop's client hash table and stacking list) together with a
+ * margin for the underlying application's own memory footprint, which
+ * restricted-memory mode has no way to measure or control directly
+ * but which competes for the same system memory regardless.  Erring
+ * generous here means @c memguard_max_clients underestimates rather
+ * than overestimates how many clients actually fit in a given
+ * ceiling, which is the safer of the two mistakes to make.
+ *
+ * @see @c memguard_max_clients
+ */
+#define MEMGUARD_KIB_PER_CLIENT (512u)
+
+/**
+ * @brief Lower bound @c memguard_max_clients will ever return
+ *
+ * Even an extremely tight ceiling still allows managing at least this
+ * many clients: a window manager that could refuse to manage any
+ * window at all would not be a usable one.
+ *
+ * @see @c memguard_max_clients
+ */
+#define MEMGUARD_MIN_CLIENTS (1u)
+
+/**
+ * @brief Upper bound @c memguard_max_clients will ever return
+ *
+ * A generous @c -M ceiling should still not compute an arbitrarily
+ * large client cap: past some point the mode's own point (bounding
+ * resource usage predictably) is better served by a fixed, sane
+ * ceiling than by an ever-growing one.
+ *
+ * @see @c memguard_max_clients
+ */
+#define MEMGUARD_ABSOLUTE_MAX_CLIENTS (64u)
+
+
+#endif  /* ! DEFS_MEMGUARD_H */

@@ -36,8 +36,9 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>      /* FILE, fprintf */
-#include <stdlib.h>     /* NULL, atoi, getenv, srand */
+#include <stdlib.h>     /* NULL, atoi, atol, getenv, srand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* optarg, getopt, getpid */
 
@@ -48,6 +49,7 @@
 /* Default initial values */
 #include <defs/config.h>
 #include <defs/main.h>
+#include <defs/memguard.h>
 
 /* Project includes */
 #include <config.h>
@@ -124,6 +126,8 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "   -C              Check configuration files under" \
                 " <config_dir>, and exit\n");
+    fprintf(fp, "   -M <mib>        Restricted-memory mode: single" \
+                " screen and desktop, no theme\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -154,6 +158,12 @@ static inline void s_show_help(FILE *fp)
     } else {
         fprintf(fp, "'%s'\n", CONFIG_DIR_BASE);
     }
+
+    /* Restricted-memory information */
+    fprintf(fp, "Restricted-mem.: <mib> must be at least %u; also" \
+            " refuses to start if less\n" \
+            "                 than <mib> of system memory is free\n",
+            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
 
     /* Show default logging information */
     fprintf(fp, "Logging mode is set to '%s'; log level" \
@@ -311,6 +321,7 @@ int main(int argc, char *const argv[])
     bool log_is_tracking = false;
     bool verbose = true;
     bool lint_requested = false;
+    uint32_t restricted_memory_mib = 0u;
     int opt;
 
     /* Generate a random seed (windows are in a hash table and the seeds
@@ -318,7 +329,7 @@ int main(int argc, char *const argv[])
     srand((unsigned int) (time(NULL) ^ getpid()));
 
     /* Get user options */
-    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qt")) != -1) {
+    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qtM:")) != -1) {
         int opt_level;
 
         switch (opt) {
@@ -394,6 +405,26 @@ int main(int argc, char *const argv[])
                 log_is_tracking = true;
                 break;
 
+            case 'M':
+                {
+                    long mib = atol(optarg);
+
+                    if (mib >= (long) MEMGUARD_MIN_CEILING_MIB) {
+                        restricted_memory_mib = (uint32_t) mib;
+                    } else {
+                        fprintf(stderr, "Invalid memory ceiling" \
+                                " for '-M': must be at least %u" \
+                                " mebibytes; IcoWM cannot realistically" \
+                                " run in less than that\n",
+                                (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+                        s_deallocate_buffers(&log_filename,
+                                             &display_name,
+                                             &config_dir);
+                        return -1;
+                    }
+                }
+                break;
+
             default:
                 s_show_help(stderr);
                 s_deallocate_buffers(&log_filename,
@@ -428,7 +459,7 @@ int main(int argc, char *const argv[])
 
     /* Window manager "magic" */
     LOGGER_INFO("Starting up window manager", L_NARG);
-    if (wm_start(display_name, config_dir) != 0) {
+    if (wm_start(display_name, config_dir, restricted_memory_mib) != 0) {
         logger_stop();
         s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 1;

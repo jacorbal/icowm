@@ -41,12 +41,34 @@
 #define CONFIG_FILENAME_SESSION "session.json"
 #define CONFIG_FILENAME_MENU "menu.json"
 
-/* Default values when no value is given */
+/* Default values when no value is given
+ *
+ * Smaller under LOWMEM (see defs/lowmem.h): each
+ * screen's own worth of desktops nests inside every screen slot, so
+ * this pair sizes a genuinely multiplicative chunk of config_base_s,
+ * not just two independent numbers. */
+#ifdef LOWMEM
+#define CONFIG_MAX_SCREENS (1)      /**< Initial max. number of screens */
+#define CONFIG_MAX_DESKTOPS (4)     /**< Initial max. desktops per screen */
+#else
 #define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */
 #define CONFIG_MAX_DESKTOPS (10)    /**< Initial max. desktops per screen */
+#endif
 
-/* XRandR output profile configuration limits */
-#define CONFIG_RANDR_MAX_OUTPUTS (8)      /**< Max. per-output profiles */
+/* XRandR output profile configuration limits
+ *
+ * CONFIG_RANDR_MAX_OUTPUTS is also smaller under LOWMEM, for the same
+ * reason as CONFIG_MAX_SCREENS above: a target that build is meant
+ * for is unlikely to drive many outputs at once regardless.  The
+ * ordinary value covers real setups with several outputs across
+ * multiple GPUs (a common shape in control rooms, digital signage,
+ * or multi-card workstations), not just a typical single-GPU
+ * laptop or desktop. */
+#ifdef LOWMEM
+#define CONFIG_RANDR_MAX_OUTPUTS (2)      /**< Max. per-output profiles */
+#else
+#define CONFIG_RANDR_MAX_OUTPUTS (16)     /**< Max. per-output profiles */
+#endif
 #define CONFIG_RANDR_OUTPUT_NAME_LEN (64) /**< Max. output name length */
 
 
