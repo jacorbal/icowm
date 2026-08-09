@@ -741,7 +741,7 @@ static void s_message_wrap_text(const char *raw,
      * persistent, static buffer (reused call to call, never
      * reallocated), so a slot a previous, longer call wrote into but
      * this call's own (possibly shorter) output never touches again
-     * would otherwise still hold that stale content — harmless as
+     * would otherwise still hold that stale content -- harmless as
      * long as every reader stops at 'line_count', but cheap enough to
      * rule out entirely rather than rely on that holding everywhere
      * text ever gets read from this array. */

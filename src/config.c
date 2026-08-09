@@ -47,9 +47,11 @@
 #include <defs/ctxmenu.h>
 #include <defs/desktop.h>
 #include <defs/loop.h>
+#include <defs/sn.h>
 
 /* Project includes */
 #include <logger.h>
+
 #include <sn.h>
 
 /* Local includes */
@@ -129,8 +131,10 @@ void config_set_default_values(config_td *config)
 
     LOGGER_TRACE("Setting configuration for each screen", L_NARG);
     for (unsigned int i = 0; i < config->base.screen_count; ++i) {
-        /* Set number of desktops per screen */
-        config->base.screens[i].desktop_count = CONFIG_MAX_DESKTOPS;
+        /* 4 desktops by default, unless 'CONFIG_MAX_DESKTOPS' itself
+         * is smaller than that */
+        config->base.screens[i].desktop_count =
+            (CONFIG_MAX_DESKTOPS < 4u) ? CONFIG_MAX_DESKTOPS : 4u;
         config->base.screens[i].desktop_inaugural = 0;
 
         /* All desktop settings */
@@ -168,17 +172,17 @@ void config_set_default_values(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
-    config->base.enable_fortune_shortcut = false;
+    config->base.enable_fortune_shortcut = true;
     config->base.startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
     config->base.show_desktop_overlay = true;
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
-    config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
+    config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
-    config->base.systray.clock.is_enabled = false;
+    config->base.systray.clock.is_enabled = true;
     safe_strcpy(config->base.systray.clock.format, "%a %R");
 
     config->base.systray.battery.is_enabled = false;
@@ -190,10 +194,10 @@ void config_set_default_values(config_td *config)
     config->base.systray.battery.poll_seconds =
         (uint32_t) WM_SYSTRAY_BATTERY_POLL_SECONDS;
 
-    config->base.systray.text.order[0] = CONFIG_SYSTRAY_TEXT_BATTERY;
-    config->base.systray.text.order[1] = CONFIG_SYSTRAY_TEXT_CLOCK;
+    config->base.systray.text.order[0] = CONFIG_SYSTRAY_TEXT_CLOCK;
+    config->base.systray.text.order[1] = CONFIG_SYSTRAY_TEXT_BATTERY;
     config->base.systray.text.order_count = 2u;
-    config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_RIGHT;
+    config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_LEFT;
 
     /* Predetermined values for RandR output profile management */
     LOGGER_TRACE("Setting default RandR configuration", L_NARG);
@@ -338,8 +342,8 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->theme.name, "Default (builtin)");
 
     config->theme.window.is_decorated = true;
-    config->theme.window.titlebar.height = 19u;
-    config->theme.window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_LEFT;
+    config->theme.window.titlebar.height = 22u;
+    config->theme.window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_CENTER;
     config->theme.window.titlebar.padding.horizontal = 2u;
     config->theme.window.titlebar.padding.vertical = 2u;
 
@@ -350,23 +354,19 @@ void config_set_default_values(config_td *config)
     config->theme.window.titlebar.buttons.left_count = 2u;
 
     config->theme.window.titlebar.buttons.right[0] =
-        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+        CONFIG_TITLEBAR_BUTTON_CLOSE;
     config->theme.window.titlebar.buttons.right[1] =
-        CONFIG_TITLEBAR_BUTTON_HIDE;
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
     config->theme.window.titlebar.buttons.right[2] =
         CONFIG_TITLEBAR_BUTTON_SHADE;
     config->theme.window.titlebar.buttons.right[3] =
-        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
-    config->theme.window.titlebar.buttons.right[4] =
-        CONFIG_TITLEBAR_BUTTON_FULLSCREEN;
-    config->theme.window.titlebar.buttons.right[5] =
-        CONFIG_TITLEBAR_BUTTON_CLOSE;
-    config->theme.window.titlebar.buttons.right_count = 6u;
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    config->theme.window.titlebar.buttons.right_count = 4u;
 
     config->theme.window.titlebar.buttons.color.on =
-        json_hex2uint32("253040");
+        json_hex2uint32("253F60");
     config->theme.window.titlebar.buttons.color.off =
-        json_hex2uint32("4A5566");
+        json_hex2uint32("7086A0");
 
     safe_strcpy(config->theme.window.active.font, "fixed bold");
     config->theme.window.active.color.background =
@@ -385,7 +385,7 @@ void config_set_default_values(config_td *config)
     config->theme.window.inactive.border.width = 2u;
 
     config->theme.icon.is_captioned = true;
-    config->theme.icon.use_pixmap = false;
+    config->theme.icon.use_pixmap = true;
 
     safe_strcpy(config->theme.icon.active.font, "fixed bold");
     config->theme.icon.active.color.background =
@@ -403,7 +403,7 @@ void config_set_default_values(config_td *config)
     config->theme.icon.inactive.border.color = json_hex2uint32("7F9AB6");
     config->theme.icon.inactive.border.width = 1u;
 
-    safe_strcpy(config->theme.systray.style.font, "fixed");
+    safe_strcpy(config->theme.systray.style.font, "fixed bold");
     config->theme.systray.style.color.background =
         json_hex2uint32("D0D9E5");
     config->theme.systray.style.color.foreground =
@@ -414,20 +414,21 @@ void config_set_default_values(config_td *config)
      * exactly tall enough for one icon row with no extra room, so
      * 'systray.text.valign' has no visible effect until this is
      * raised. */
-    config->theme.systray.height = 32u;
-    config->theme.systray.text.gap = 4u;
+    config->theme.systray.height = 22u;
+    config->theme.systray.text.gap = 12u;
     config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
-    /* Deliberately darker than the D0D9E5/4A5566-family colors used
-     * for menus, the systray, and other UI chrome above and below:
-     * a desktop background is a large, full-screen area rather than
-     * a small UI element, so it wants a more neutral, less
-     * attention-grabbing tone that still reads as the same overall
-     * blue-gray palette (close to the existing 4A5566 foreground
-     * color used elsewhere) rather than an unrelated new hue, and
-     * gives windows placed on top of it more contrast to stand out
-     * against than a light background would. */
-    config->theme.desktop.color.background = json_hex2uint32("4C5B6B");
+    /* Same hue family (~213 degrees) as the rest of the theme's
+     * D0D9E5/4A5566-family colors, but deliberately darker than the
+     * UI chrome: a desktop background is a large, full-screen area
+     * rather than a small UI element, so it wants a more neutral,
+     * less attention-grabbing tone, and staying darker gives windows
+     * placed on top of it more contrast to stand out against than a
+     * light background would.  Landed on this specific value (rather
+     * than an even darker one first tried) so it does not sit almost
+     * as dark as the theme's own text/border colors, which left it
+     * feeling heavier than a full-screen area calls for. */
+    config->theme.desktop.color.background = json_hex2uint32("5F7186");
 
     safe_strcpy(config->theme.menu.unselected.font, "fixed");
     config->theme.menu.unselected.color.background =
@@ -435,28 +436,39 @@ void config_set_default_values(config_td *config)
     config->theme.menu.unselected.color.foreground =
         json_hex2uint32("4A5566");
     config->theme.menu.unselected.border.color = json_hex2uint32("7F9AB6");
-    config->theme.menu.unselected.border.width = 1u;
+    config->theme.menu.unselected.border.width = 0u;
 
-    safe_strcpy(config->theme.menu.selected.font, "fixed bold");
+    safe_strcpy(config->theme.menu.selected.font, "fixed");
     config->theme.menu.selected.color.background =
         json_hex2uint32("9AAEC8");
     config->theme.menu.selected.color.foreground =
         json_hex2uint32("253040");
     config->theme.menu.selected.border.color = json_hex2uint32("4A5566");
-    config->theme.menu.selected.border.width = 1u;
+    config->theme.menu.selected.border.width = 0u;
 
     safe_strcpy(config->theme.menu.label.font, "fixed");
     config->theme.menu.label.color.background =
         json_hex2uint32("D0D9E5");
+    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
+     * background (the same bar as any other normal-weight text in
+     * the theme): the border color this used to reuse only reached
+     * ~2:1 against the same background, too low for text meant to
+     * be read normally rather than treated as a de-emphasized
+     * secondary state. */
     config->theme.menu.label.color.foreground =
-        json_hex2uint32("7F9AB6");
+        json_hex2uint32("48607F");
     config->theme.menu.label.border.color = json_hex2uint32("7F9AB6");
     config->theme.menu.label.border.width = 0u;
 
-    config->theme.menu.disabled_foreground = json_hex2uint32("A0A8B0");
+    /* Picked for a WCAG contrast ratio of ~3:1 against the menu's own
+     * background: low enough to still read as visibly de-emphasized
+     * (this is disabled, secondary text, not meant to compete with
+     * normal menu text), but not the ~1.7:1 the previous color gave,
+     * which was too low to reliably read as text at all. */
+    config->theme.menu.disabled_foreground = json_hex2uint32("717B88");
     config->theme.menu.separator_color = json_hex2uint32("7F9AB6");
     config->theme.menu.border.color = json_hex2uint32("7F9AB6");
-    config->theme.menu.border.width = 1u;
+    config->theme.menu.border.width = 2u;
     config->theme.menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
     config->theme.menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
 
@@ -487,7 +499,7 @@ void config_set_default_values(config_td *config)
         json_hex2uint32("4A5566");
     config->theme.dialog.button.selected.border.width = 1u;
 
-    config->theme.dialog.button.gap = 12u;
+    config->theme.dialog.button.gap = 24u;
     config->theme.dialog.button.padding.horizontal = 12u;
     config->theme.dialog.button.padding.vertical = 6u;
 
@@ -498,14 +510,14 @@ void config_set_default_values(config_td *config)
     config->theme.overlay.border.width = 1u;
 
     config->theme.xsettings.is_enabled = false;
-    safe_strncpy(config->theme.xsettings.gtk_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->theme.xsettings.icon_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->theme.xsettings.cursor_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    config->theme.xsettings.cursor_theme_size = 24u;
     config->theme.xsettings.dpi = 96u;
+    safe_strncpy(config->theme.xsettings.theme.gtk_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->theme.xsettings.theme.icon_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(config->theme.xsettings.theme.cursor_theme_name,
+            "Adwaita", CONFIG_MAX_LENGTH_NAME);
+    config->theme.xsettings.theme.cursor_theme_size = 24u;
 }
 
 

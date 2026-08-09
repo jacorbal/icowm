@@ -276,7 +276,7 @@ int startup_randr_init(wm_td *wm)
         crtcs =
             xcb_randr_get_screen_resources_current_crtcs(res_reply);
 
-        for (int ci = 0; ci < crtc_count; ci++) {
+        for (int ci = 0; ci < crtc_count; ++ci) {
             xcb_randr_get_crtc_info_cookie_t ci_cookie;
             xcb_randr_get_crtc_info_reply_t *crtc_info;
 

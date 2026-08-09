@@ -338,15 +338,16 @@ static void s_xs_publish(void)
 static void s_xs_load_config(wm_td *wm)
 {
     safe_strncpy(s_xs.gtk_theme_name,
-            wm->config->theme.xsettings.gtk_theme_name,
+            wm->config->theme.xsettings.theme.gtk_theme_name,
             sizeof(s_xs.gtk_theme_name));
     safe_strncpy(s_xs.icon_theme_name,
-            wm->config->theme.xsettings.icon_theme_name,
+            wm->config->theme.xsettings.theme.icon_theme_name,
             sizeof(s_xs.icon_theme_name));
     safe_strncpy(s_xs.cursor_theme_name,
-            wm->config->theme.xsettings.cursor_theme_name,
+            wm->config->theme.xsettings.theme.cursor_theme_name,
             sizeof(s_xs.cursor_theme_name));
-    s_xs.cursor_theme_size = wm->config->theme.xsettings.cursor_theme_size;
+    s_xs.cursor_theme_size =
+        wm->config->theme.xsettings.theme.cursor_theme_size;
     s_xs.dpi = wm->config->theme.xsettings.dpi;
 }
 
@@ -362,13 +363,13 @@ static void s_xs_load_config(wm_td *wm)
 static bool s_xs_config_changed(const wm_td *wm)
 {
     return safe_strcmp(s_xs.gtk_theme_name,
-                wm->config->theme.xsettings.gtk_theme_name) != 0 ||
+                wm->config->theme.xsettings.theme.gtk_theme_name) != 0 ||
         safe_strcmp(s_xs.icon_theme_name,
-                wm->config->theme.xsettings.icon_theme_name) != 0 ||
+                wm->config->theme.xsettings.theme.icon_theme_name) != 0 ||
         safe_strcmp(s_xs.cursor_theme_name,
-                wm->config->theme.xsettings.cursor_theme_name) != 0 ||
+                wm->config->theme.xsettings.theme.cursor_theme_name) != 0 ||
         s_xs.cursor_theme_size !=
-            wm->config->theme.xsettings.cursor_theme_size ||
+            wm->config->theme.xsettings.theme.cursor_theme_size ||
         s_xs.dpi != wm->config->theme.xsettings.dpi;
 }
 

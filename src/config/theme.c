@@ -465,24 +465,30 @@ int config_load_theme(const char *filename,
     if (xsettings) {
         unsigned int dpi_val;
         unsigned int cursor_size_val;
+        cJSON *xs_theme;
 
         json_load_bool(xsettings, "is-enabled",
                 &config_theme->xsettings.is_enabled);
-        json_load_string(xsettings, "gtk-theme-name",
-                config_theme->xsettings.gtk_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        json_load_string(xsettings, "icon-theme-name",
-                config_theme->xsettings.icon_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        json_load_string(xsettings, "cursor-theme-name",
-                config_theme->xsettings.cursor_theme_name,
-                CONFIG_MAX_LENGTH_NAME);
-        if (json_load_uint(xsettings, "cursor-theme-size",
-                    &cursor_size_val) == 0) {
-            config_theme->xsettings.cursor_theme_size = cursor_size_val;
-        }
         if (json_load_uint(xsettings, "dpi", &dpi_val) == 0) {
             config_theme->xsettings.dpi = dpi_val;
+        }
+
+        xs_theme = cJSON_GetObjectItem(xsettings, "theme");
+        if (xs_theme) {
+            json_load_string(xs_theme, "gtk-theme-name",
+                    config_theme->xsettings.theme.gtk_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            json_load_string(xs_theme, "icon-theme-name",
+                    config_theme->xsettings.theme.icon_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            json_load_string(xs_theme, "cursor-theme-name",
+                    config_theme->xsettings.theme.cursor_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            if (json_load_uint(xs_theme, "cursor-theme-size",
+                        &cursor_size_val) == 0) {
+                config_theme->xsettings.theme.cursor_theme_size =
+                    cursor_size_val;
+            }
         }
     }
 

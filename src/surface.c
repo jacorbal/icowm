@@ -20,6 +20,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+#include <xcb/randr.h>
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
@@ -161,6 +162,11 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Update surface properties */
     s_update_properties(surface, surface->screen);
 
+    /* Discover this surface's own physical monitors, now that its
+     * combined dimensions (the RandR-unavailable fallback) are
+     * known */
+    surface_refresh_monitors(surface);
+
     /* Handle desktops */
     LOGGER_DEBUG("Setting up all %u desktops", desktop_count);
 
@@ -276,6 +282,117 @@ void surface_resize(surface_td *surface,
     }
 
     /* Dimensions are updated lazily by render/update paths. */
+}
+
+
+/**
+ * @brief Whole-surface fallback for the monitor list
+ *
+ * Fills @p surface->monitors with a single entry spanning @p
+ * surface->properties.dim, used whenever RandR cannot supply a real
+ * monitor list.
+ *
+ * @param surface Pointer to the surface to fall back
+ */
+static void s_surface_monitors_fallback(surface_td *surface)
+{
+    surface->monitors[0].pos.x = 0;
+    surface->monitors[0].pos.y = 0;
+    surface->monitors[0].dim.w = surface->properties.dim.w;
+    surface->monitors[0].dim.h = surface->properties.dim.h;
+    surface->monitor_count = 1u;
+}
+
+
+/* Refresh the surface's own list of physical monitors */
+void surface_refresh_monitors(surface_td *surface)
+{
+    xcb_randr_get_monitors_cookie_t cookie;
+    xcb_randr_get_monitors_reply_t *reply;
+    xcb_randr_monitor_info_iterator_t it;
+
+    if (surface == NULL || surface->connection == NULL ||
+            surface->screen == NULL) {
+        return;
+    }
+
+    cookie = xcb_randr_get_monitors(surface->connection,
+            surface->screen->root, 1u);
+    reply = xcb_randr_get_monitors_reply(surface->connection,
+            cookie, NULL);
+    if (reply == NULL) {
+        LOGGER_NOTICE("Failed to query RandR monitors for surface" \
+                " %u; treating it as one monitor", surface->id);
+        s_surface_monitors_fallback(surface);
+        return;
+    }
+
+    surface->monitor_count = 0u;
+    it = xcb_randr_get_monitors_monitors_iterator(reply);
+    while (it.rem > 0 &&
+            surface->monitor_count < WM_SURFACE_MAX_MONITORS) {
+        xcb_randr_monitor_info_t *info = it.data;
+        struct geometry_s *slot =
+            &surface->monitors[surface->monitor_count];
+
+        slot->pos.x = info->x;
+        slot->pos.y = info->y;
+        slot->dim.w = info->width;
+        slot->dim.h = info->height;
+        ++surface->monitor_count;
+
+        xcb_randr_monitor_info_next(&it);
+    }
+    free(reply);
+
+    if (surface->monitor_count == 0u) {
+        LOGGER_NOTICE("RandR reported no monitors for surface %u;" \
+                " treating it as one monitor", surface->id);
+        s_surface_monitors_fallback(surface);
+        return;
+    }
+
+    LOGGER_DEBUG("Surface %u has %u monitor(s)",
+            surface->id, surface->monitor_count);
+}
+
+
+/* Find which of the surface's monitors contains a point */
+struct geometry_s surface_monitor_for_point(const surface_td *surface,
+        int32_t x, int32_t y)
+{
+    struct geometry_s fallback =
+        {.pos = {.x = 0, .y = 0}, .dim = {.w = 0, .h = 0}};
+    uint32_t closest = 0u;
+    int64_t closest_dist = -1;
+
+    if (surface == NULL || surface->monitor_count == 0u) {
+        return fallback;
+    }
+
+    for (uint32_t i = 0; i < surface->monitor_count; ++i) {
+        const struct geometry_s *m = &surface->monitors[i];
+        int32_t mright = m->pos.x + (int32_t) m->dim.w;
+        int32_t mbottom = m->pos.y + (int32_t) m->dim.h;
+        int64_t cx;
+        int64_t cy;
+        int64_t dist;
+
+        if (x >= m->pos.x && x < mright &&
+                y >= m->pos.y && y < mbottom) {
+            return *m;
+        }
+
+        cx = m->pos.x + (int32_t) (m->dim.w / 2u) - x;
+        cy = m->pos.y + (int32_t) (m->dim.h / 2u) - y;
+        dist = cx * cx + cy * cy;
+        if (closest_dist < 0 || dist < closest_dist) {
+            closest_dist = dist;
+            closest = i;
+        }
+    }
+
+    return surface->monitors[closest];
 }
 
 

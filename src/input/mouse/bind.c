@@ -320,7 +320,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
          * still dispatched to the desktop-cycle handler.  Events over
          * managed client windows are caught by the per-frame sync grab
          * (ANY button, ANY modifier) and reach this handler via that
-         * path, where 'ReplayPointer¡ correctly thaws the pointer and
+         * path, where 'ReplayPointer' correctly thaws the pointer and
          * re-delivers the event to the application. */
         if (defs[i].type == MOUSEBIND_DESKTOP_PREV ||
                 defs[i].type == MOUSEBIND_DESKTOP_NEXT) {

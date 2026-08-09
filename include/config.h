@@ -770,14 +770,17 @@ struct config_theme_s {
     struct {
         bool is_enabled;                /**< Enable the built-in
                                              XSETTINGS manager */
-        unsigned int cursor_theme_size; /**< Cursor size in pixels */
         unsigned int dpi;               /**< Display resolution, in dots
                                              per inch; published as
                                              'Xft/DPI' (times 1024, per
                                              the XSETTINGS convention) */
-        char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
-        char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
-        char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
+        struct {
+            char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
+            char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
+            char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
+            unsigned int cursor_theme_size; /**< Cursor size in
+                                                 pixels */
+        } theme;
     } xsettings;
 };
 

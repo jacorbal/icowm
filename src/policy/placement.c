@@ -241,11 +241,14 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     int32_t cy;
     uint64_t cost;
     bool found;
-
-    (void) wm; /* reserved for future use */
+    xcb_query_pointer_cookie_t ptr_cookie;
+    xcb_query_pointer_reply_t *ptr_reply;
+    struct geometry_s monitor;
+    struct geometry_s clipped;
 
     if (surface == NULL || client == NULL ||
-            out_x == NULL || out_y == NULL) {
+            out_x == NULL || out_y == NULL || wm == NULL ||
+            wm->connection == NULL) {
         return false;
     }
 
@@ -269,6 +272,37 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         wa_y = 0;
         wa_w = surface->properties.dim.w;
         wa_h = surface->properties.dim.h;
+    }
+
+    /* Clip the workarea down to whichever physical monitor is under
+     * the pointer, on a surface made of more than one (the common
+     * case of several monitors sharing one combined X screen): a new
+     * window should land within one monitor, not be scored against
+     * the whole combined area, which could place it straddling the
+     * seam between two of them.  Falls back to the unclipped
+     * workarea above if the pointer query fails, there is only one
+     * monitor, or clipping would leave nothing to place into (e.g.,
+     * a monitor entirely covered by a strut). */
+    if (surface->monitor_count > 1u) {
+        ptr_cookie = xcb_query_pointer(wm->connection,
+                surface->screen->root);
+        ptr_reply = xcb_query_pointer_reply(wm->connection,
+                ptr_cookie, NULL);
+        if (ptr_reply != NULL) {
+            monitor = surface_monitor_for_point(surface,
+                    ptr_reply->root_x, ptr_reply->root_y);
+            free(ptr_reply);
+
+            clipped = geom_intersect_rect(wa_x, wa_y, wa_w, wa_h,
+                    monitor.pos.x, monitor.pos.y,
+                    monitor.dim.w, monitor.dim.h);
+            if (clipped.dim.w > 0u && clipped.dim.h > 0u) {
+                wa_x = clipped.pos.x;
+                wa_y = clipped.pos.y;
+                wa_w = clipped.dim.w;
+                wa_h = clipped.dim.h;
+            }
+        }
     }
 
     /* Candidate range keeps the window fully inside the workarea */
@@ -362,6 +396,75 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
 }
 
 
+/**
+ * @brief Clip a workarea and screen bound down to one monitor
+ *
+ * Resolves which of @p surface's monitors contains @p point_x/@p
+ * point_y, then intersects @p wa_x/@p wa_y/@p wa_w/@p wa_h with it.
+ * Every output defaults to the corresponding input unchanged (so the
+ * two are safe to alias) whenever @p surface has one monitor or
+ * none, or the point falls on a monitor whose intersection with the
+ * workarea is empty, matching the behavior from before per-monitor
+ * placement existed.
+ *
+ * @param surface   Surface whose monitor list to search
+ * @param wa_x      Unclipped workarea left edge
+ * @param wa_y      Unclipped workarea top edge
+ * @param wa_w      Unclipped workarea width
+ * @param wa_h      Unclipped workarea height
+ * @param sw        Unclipped screen bound width (right-edge origin)
+ * @param sh        Unclipped screen bound height (bottom-edge origin)
+ * @param point_x   X coordinate of the point to resolve a monitor for
+ * @param point_y   Y coordinate of the point to resolve a monitor for
+ * @param out_wa_x  Receives the clipped workarea left edge
+ * @param out_wa_y  Receives the clipped workarea top edge
+ * @param out_wa_w  Receives the clipped workarea width
+ * @param out_wa_h  Receives the clipped workarea height
+ * @param out_sw    Receives the resolved monitor's own right edge
+ * @param out_sh    Receives the resolved monitor's own bottom edge
+ *
+ * @note Complexity: @e O(n), where @e n is the number of monitors
+ *       on @p surface
+ */
+static void s_resolve_monitor_bounds(surface_td *surface,
+        int32_t wa_x, int32_t wa_y, uint32_t wa_w, uint32_t wa_h,
+        uint32_t sw, uint32_t sh,
+        int32_t point_x, int32_t point_y,
+        int32_t *out_wa_x, int32_t *out_wa_y,
+        uint32_t *out_wa_w, uint32_t *out_wa_h,
+        uint32_t *out_sw, uint32_t *out_sh)
+{
+    struct geometry_s monitor;
+    struct geometry_s clipped;
+
+    *out_wa_x = wa_x;
+    *out_wa_y = wa_y;
+    *out_wa_w = wa_w;
+    *out_wa_h = wa_h;
+    *out_sw = sw;
+    *out_sh = sh;
+
+    if (surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    monitor = surface_monitor_for_point(surface, point_x, point_y);
+    clipped = geom_intersect_rect(wa_x, wa_y, wa_w, wa_h,
+            monitor.pos.x, monitor.pos.y,
+            monitor.dim.w, monitor.dim.h);
+    if (clipped.dim.w == 0u || clipped.dim.h == 0u) {
+        return;
+    }
+
+    *out_wa_x = clipped.pos.x;
+    *out_wa_y = clipped.pos.y;
+    *out_wa_w = clipped.dim.w;
+    *out_wa_h = clipped.dim.h;
+    *out_sw = (uint32_t) monitor.pos.x + monitor.dim.w;
+    *out_sh = (uint32_t) monitor.pos.y + monitor.dim.h;
+}
+
+
 /* Apply the configured placement policy to a newly mapped client */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 {
@@ -379,6 +482,12 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     int32_t wa_y;
     uint32_t wa_w;
     uint32_t wa_h;
+    int32_t mon_wa_x;
+    int32_t mon_wa_y;
+    uint32_t mon_wa_w;
+    uint32_t mon_wa_h;
+    uint32_t mon_sw;
+    uint32_t mon_sh;
     int32_t new_x;
     int32_t new_y;
     xcb_window_t target;
@@ -457,13 +566,31 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         }
 
         if (placed_as_transient) {
-            if (new_x < 0) { new_x = 0; }
-            if (new_y < wa_y) { new_y = wa_y; }
-            if ((uint32_t) new_x + fw > sw) {
-                new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
+            int32_t t_wa_x;
+            int32_t t_wa_y;
+            uint32_t t_wa_w;
+            uint32_t t_wa_h;
+            uint32_t t_sw;
+            uint32_t t_sh;
+
+            /* Resolved from the dialog's own proposed center, not the
+             * pointer: it is meant to sit with its parent, wherever
+             * that is, regardless of where the pointer happens to be
+             * right now. */
+            s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
+                    sw, sh,
+                    new_x + (int32_t) (fw / 2u), new_y + (int32_t) (fh / 2u),
+                    &t_wa_x, &t_wa_y, &t_wa_w, &t_wa_h, &t_sw, &t_sh);
+            (void) t_wa_w; /* only the edges are needed here */
+            (void) t_wa_h;
+
+            if (new_x < t_wa_x) { new_x = t_wa_x; }
+            if (new_y < t_wa_y) { new_y = t_wa_y; }
+            if ((uint32_t) new_x + fw > t_sw) {
+                new_x = (t_sw > fw) ? (int32_t) (t_sw - fw) : t_wa_x;
             }
-            if ((uint32_t) new_y + fh > sh) {
-                new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
+            if ((uint32_t) new_y + fh > t_sh) {
+                new_y = (t_sh > fh) ? (int32_t) (t_sh - fh) : t_wa_y;
             }
 
             target = (client_is_decorated(client) && client->frame != 0)
@@ -525,26 +652,72 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         }
     }
 
+    /* Clip the workarea (and the screen bound used for edge-clamping)
+     * down to whichever physical monitor is under the pointer, on a
+     * surface made of more than one: cascade, centered, and
+     * under-mouse below all score or clamp against these two, and
+     * without this they would do so against the whole combined area
+     * instead of one monitor.  Falls back to the unclipped values
+     * (identical to previous behavior) when there is only one
+     * monitor, the pointer query fails, or clipping would leave
+     * nothing to place into. */
+    mon_wa_x = wa_x;
+    mon_wa_y = wa_y;
+    mon_wa_w = wa_w;
+    mon_wa_h = wa_h;
+    mon_sw = sw;
+    mon_sh = sh;
+    if (surface->monitor_count > 1u) {
+        pointer_cookie = xcb_query_pointer(wm->connection,
+                surface->screen->root);
+        pointer_reply = xcb_query_pointer_reply(wm->connection,
+                pointer_cookie, NULL);
+        if (pointer_reply != NULL) {
+            s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
+                    sw, sh, pointer_reply->root_x, pointer_reply->root_y,
+                    &mon_wa_x, &mon_wa_y, &mon_wa_w, &mon_wa_h,
+                    &mon_sw, &mon_sh);
+            free(pointer_reply);
+        }
+    }
+
     if (placed_as_sibling) {
+        int32_t s_wa_x;
+        int32_t s_wa_y;
+        uint32_t s_wa_w;
+        uint32_t s_wa_h;
+        uint32_t s_sw;
+        uint32_t s_sh;
+
+        /* Resolved from the offset position next to the anchor
+         * sibling, not the pointer: a related window is meant to
+         * stay with its group, wherever that is. */
+        s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
+                sw, sh,
+                new_x + (int32_t) (fw / 2u), new_y + (int32_t) (fh / 2u),
+                &s_wa_x, &s_wa_y, &s_wa_w, &s_wa_h, &s_sw, &s_sh);
+        (void) s_wa_w; /* only the edges are needed here */
+        (void) s_wa_h;
+
         /* Clamp to the workarea/screen the same way the cascade policy
          * below does, so a sibling near the edge does not push the new
          * window off-screen */
-        if (new_x < wa_x) { new_x = wa_x; }
-        if (new_y < wa_y) { new_y = wa_y; }
-        if ((uint32_t) new_x + fw > sw) {
-            new_x = (sw > fw) ? (int32_t) (sw - fw) : wa_x;
+        if (new_x < s_wa_x) { new_x = s_wa_x; }
+        if (new_y < s_wa_y) { new_y = s_wa_y; }
+        if ((uint32_t) new_x + fw > s_sw) {
+            new_x = (s_sw > fw) ? (int32_t) (s_sw - fw) : s_wa_x;
         }
-        if ((uint32_t) new_y + fh > sh) {
-            new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
+        if ((uint32_t) new_y + fh > s_sh) {
+            new_y = (s_sh > fh) ? (int32_t) (s_sh - fh) : s_wa_y;
         }
     } else if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
             place_smart(wm, surface, client, &new_x, &new_y)) {
         /* Placement chosen by smart scan */
     } else if (policy == CONFIG_PLACEMENT_POLICY_CASCADE ||
             policy == CONFIG_PLACEMENT_POLICY_SMART) {
-        max_steps = (sw > fw) ? (sw - fw) / cascade_step : 1u;
-        if (sh > fh) {
-            my = (sh - fh) / cascade_step;
+        max_steps = (mon_sw > fw) ? (mon_sw - fw) / cascade_step : 1u;
+        if (mon_sh > fh) {
+            my = (mon_sh - fh) / cascade_step;
             if (my < max_steps) {
                 max_steps = my;
             }
@@ -556,17 +729,17 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 
         /* Cascade starts at the workarea origin, not at (0, 0), so
          * the title bar is never hidden behind a panel or dock */
-        new_x =
-            wa_x + (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-        new_y =
-            wa_y + (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+        new_x = mon_wa_x +
+            (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+        new_y = mon_wa_y +
+            (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
         s_cascade_seq++;
     } else if (policy == CONFIG_PLACEMENT_POLICY_CENTERED) {
         /* Center on the workarea, not on the full screen. */
-        new_x = wa_x + ((int32_t) wa_w - (int32_t) fw) / 2;
-        new_y = wa_y + ((int32_t) wa_h - (int32_t) fh) / 2;
-        if (new_x < wa_x) { new_x = wa_x; }
-        if (new_y < wa_y) { new_y = wa_y; }
+        new_x = mon_wa_x + ((int32_t) mon_wa_w - (int32_t) fw) / 2;
+        new_y = mon_wa_y + ((int32_t) mon_wa_h - (int32_t) fh) / 2;
+        if (new_x < mon_wa_x) { new_x = mon_wa_x; }
+        if (new_y < mon_wa_y) { new_y = mon_wa_y; }
     } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
         pointer_cookie = xcb_query_pointer(wm->connection,
                 surface->screen->root);
@@ -582,15 +755,15 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 
         new_x = (int32_t) pointer_reply->root_x - (int32_t) (fw / 2u);
         new_y = (int32_t) pointer_reply->root_y - (int32_t) (fh / 2u);
-        if (new_x < 0) {
-            new_x = 0;
-        } else if ((uint32_t) new_x + fw > sw) {
-            new_x = (sw > fw) ? (int32_t) (sw - fw) : 0;
+        if (new_x < mon_wa_x) {
+            new_x = mon_wa_x;
+        } else if ((uint32_t) new_x + fw > mon_sw) {
+            new_x = (mon_sw > fw) ? (int32_t) (mon_sw - fw) : mon_wa_x;
         }
-        if (new_y < wa_y) {
-            new_y = wa_y;
-        } else if ((uint32_t) new_y + fh > sh) {
-            new_y = (sh > fh) ? (int32_t) (sh - fh) : wa_y;
+        if (new_y < mon_wa_y) {
+            new_y = mon_wa_y;
+        } else if ((uint32_t) new_y + fh > mon_sh) {
+            new_y = (mon_sh > fh) ? (int32_t) (mon_sh - fh) : mon_wa_y;
         }
 
         free(pointer_reply);

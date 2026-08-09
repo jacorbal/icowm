@@ -39,6 +39,9 @@
 #include <config.h>
 #include <desktop.h>
 
+/* Default initial values */
+#include <defs/surface.h>
+
 
 /**
  * @brief Structure to hold properties of the visual
@@ -97,6 +100,20 @@ typedef struct surface_s {
     uint32_t desktop_count;         /**< No. of desktops for this surface */
     uint32_t desktop_cur;           /**< Index of current desktop */
     cdlist_td *desktops;            /**< Circular list of desktops */
+
+    /**
+     * @brief Physical monitors within this surface's combined area
+     *
+     * Populated from the RandR 1.5 monitor list (@c
+     * surface_refresh_monitors), or a single entry spanning the whole
+     * surface when RandR is unavailable or reports none.  Lets
+     * placement and maximize resolve which physical monitor a point
+     * or window falls on, instead of always treating the surface's
+     * whole combined area (every monitor sharing this one X screen,
+     * the common case in a modern multi-monitor setup) as one block.
+     */
+    struct geometry_s monitors[WM_SURFACE_MAX_MONITORS];
+    uint32_t monitor_count;         /**< No. of entries in 'monitors' */
 
     config_td *config;              /**< Configuration */
 
@@ -164,6 +181,42 @@ void surface_update_full(surface_td *surface);
  */
 void surface_resize(surface_td *surface,
         uint32_t width, uint32_t height);
+
+/**
+ * @brief Refresh the surface's own list of physical monitors
+ *
+ * Queries the RandR 1.5 monitor list (@c xcb_randr_get_monitors) for
+ * @p surface's root window and rebuilds @p surface->monitors from the
+ * reply, clamped to @c WM_SURFACE_MAX_MONITORS entries.  Falls back
+ * to a single entry spanning @p surface->properties.dim (the whole
+ * combined surface) when RandR is unavailable, the query fails, or
+ * the reply lists no monitors, so @p surface->monitor_count is never
+ * left at zero.
+ *
+ * @param surface Pointer to the surface whose monitor list to refresh
+ *
+ * @note Complexity: @e O(n), where @e n is the number of monitors
+ *       RandR reports
+ */
+void surface_refresh_monitors(surface_td *surface);
+
+/**
+ * @brief Find which of the surface's monitors contains a point
+ *
+ * @param surface Pointer to the surface to search
+ * @param x       X coordinate, in the surface's own space
+ * @param y       Y coordinate, in the surface's own space
+ *
+ * @return Geometry of the containing monitor, or, if the point falls
+ *         outside every known monitor (e.g., a stale coordinate after
+ *         a monitor was unplugged), the closest one by center-point
+ *         distance.  Spans the whole surface if @p surface has no
+ *         monitors of its own or @p surface is @c NULL.
+ *
+ * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
+ */
+struct geometry_s surface_monitor_for_point(const surface_td *surface,
+        int32_t x, int32_t y);
 
 /**
  * @brief Add a new desktop to the list

@@ -21,6 +21,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Type includes */
+#include <types/pair.h> /* geometry_s */
+
 /* Default initial values */
 #include <defs/client.h>
 
@@ -87,6 +90,30 @@ bool geom_rect_overlap(int32_t ax, int32_t ay,
  * @note Complexity: @e O(1)
  */
 uint32_t geom_intersection_area(int32_t ax, int32_t ay,
+        uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by,
+        uint32_t bw, uint32_t bh);
+
+/**
+ * @brief Compute the intersection rectangle of two axis-aligned
+ *        rectangles
+ *
+ * @param ax Left coordinate of the first rectangle
+ * @param ay Top coordinate of the first rectangle
+ * @param aw Width of the first rectangle
+ * @param ah Height of the first rectangle
+ * @param bx Left coordinate of the second rectangle
+ * @param by Top coordinate of the second rectangle
+ * @param bw Width of the second rectangle
+ * @param bh Height of the second rectangle
+ *
+ * @return The overlapping rectangle, or a rectangle with zero width
+ *         and height (position otherwise unspecified) if the two do
+ *         not overlap
+ *
+ * @note Complexity: @e O(1)
+ */
+struct geometry_s geom_intersect_rect(int32_t ax, int32_t ay,
         uint32_t aw, uint32_t ah,
         int32_t bx, int32_t by,
         uint32_t bw, uint32_t bh);

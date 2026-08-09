@@ -50,18 +50,8 @@
 /* ADT includes */
 #include <adt/list.h>
 
-
-/**
- * @brief Default seconds a startup-notification sequence waits before
- *        being expired automatically, overridable via
- *        @c startup-notification.timeout-seconds in @c config.json
- *        (see @c sn_set_timeout_seconds)
- *
- * Not every launched application is startup-notification aware, so
- * this is what keeps the busy cursor from staying on indefinitely
- * when nothing ever broadcasts a "remove:" message.
- */
-#define SN_TIMEOUT_SECONDS (20)
+/* Default initial values */
+#include <defs/sn.h>
 
 
 /* Public interface */

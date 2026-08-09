@@ -82,3 +82,43 @@ uint32_t geom_intersection_area(int32_t ax, int32_t ay,
 
     return (uint32_t) (ix2 - ix1) * (uint32_t) (iy2 - iy1);
 }
+
+
+/* Compute the intersection rectangle of two axis-aligned rectangles */
+struct geometry_s geom_intersect_rect(int32_t ax, int32_t ay,
+        uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by,
+        uint32_t bw, uint32_t bh)
+{
+    struct geometry_s result =
+        {.pos = {.x = 0, .y = 0}, .dim = {.w = 0u, .h = 0u}};
+    int32_t ix1;
+    int32_t iy1;
+    int32_t ix2;
+    int32_t iy2;
+    int32_t ax_end;
+    int32_t ay_end;
+    int32_t bx_end;
+    int32_t by_end;
+
+    ax_end = ax + (int32_t) aw;
+    ay_end = ay + (int32_t) ah;
+    bx_end = bx + (int32_t) bw;
+    by_end = by + (int32_t) bh;
+
+    ix1 = (ax > bx) ? ax : bx;
+    iy1 = (ay > by) ? ay : by;
+    ix2 = (ax_end < bx_end) ? ax_end : bx_end;
+    iy2 = (ay_end < by_end) ? ay_end : by_end;
+
+    if (ix2 <= ix1 || iy2 <= iy1) {
+        return result;
+    }
+
+    result.pos.x = ix1;
+    result.pos.y = iy1;
+    result.dim.w = (uint32_t) (ix2 - ix1);
+    result.dim.h = (uint32_t) (iy2 - iy1);
+
+    return result;
+}

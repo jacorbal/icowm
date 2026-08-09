@@ -176,10 +176,10 @@ Per-screen layout fields:
 
 | Key                           | Type    | Default      | Description |
 |-------------------------------|---------|--------------|-------------|
-| `count`                       | integer | `10`         | Number of virtual desktops for this screen. Maximum is `10`. |
+| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`). Maximum is `10`. |
 | `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
 | `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
-| `settings[].background-color` | string  | `"#C0CCD8"`  | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| `settings[].background-color` | string  | none         | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset, a desktop falls back to `theme.desktop.color.background` (section 4.4). |
 
 ### 2.3 `programs`
 
@@ -1257,14 +1257,14 @@ overlays with no selected/unselected state to distinguish.
 
 ### 4.8 `xsettings`
 
-| Key                           | Type    | Default     |
-|-------------------------------|---------|-------------|
-| `xsettings.is-enabled`        | boolean | `false`     |
-| `xsettings.gtk-theme-name`    | string  | `"Adwaita"` |
-| `xsettings.icon-theme-name`   | string  | `"Adwaita"` |
-| `xsettings.cursor-theme-name` | string  | `"Adwaita"` |
-| `xsettings.cursor-theme-size` | integer | `24`        |
-| `xsettings.dpi`               | integer | `96`        |
+| Key                                 | Type    | Default     |
+|-------------------------------------|---------|-------------|
+| `xsettings.is-enabled`              | boolean | `false`     |
+| `xsettings.dpi`                     | integer | `96`        |
+| `xsettings.theme.gtk-theme-name`    | string  | `"Adwaita"` |
+| `xsettings.theme.icon-theme-name`   | string  | `"Adwaita"` |
+| `xsettings.theme.cursor-theme-name` | string  | `"Adwaita"` |
+| `xsettings.theme.cursor-theme-size` | integer | `24`        |
 
 Built-in XSETTINGS manager, implementing the freedesktop.org XSETTINGS
 specification.  Lives in the theme rather than in `config.json`: every
@@ -1297,11 +1297,13 @@ exactly as a dedicated XSETTINGS daemon would.
 ```json
 "xsettings": {
     "is-enabled": false,
-    "gtk-theme-name": "Adwaita",
-    "icon-theme-name": "Adwaita",
-    "cursor-theme-name": "Adwaita",
-    "cursor-theme-size": 24,
-    "dpi": 96
+    "dpi": 96,
+    "theme": {
+        "gtk-theme-name": "Adwaita",
+        "icon-theme-name": "Adwaita",
+        "cursor-theme-name": "Adwaita",
+        "cursor-theme-size": 24
+    }
 }
 ```
 
@@ -2010,11 +2012,13 @@ Sub-menus can be nested to the depth limit defined by
 
     "xsettings": {
         "is-enabled": false,
-        "gtk-theme-name": "Adwaita",
-        "icon-theme-name": "Adwaita",
-        "cursor-theme-name": "Adwaita",
-        "cursor-theme-size": 24,
-        "dpi": 96
+        "dpi": 96,
+        "theme": {
+            "gtk-theme-name": "Adwaita",
+            "icon-theme-name": "Adwaita",
+            "cursor-theme-name": "Adwaita",
+            "cursor-theme-size": 24
+        }
     }
 }
 ```

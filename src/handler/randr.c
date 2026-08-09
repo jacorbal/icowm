@@ -37,6 +37,7 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
         return;
     }
 
+    surface_refresh_monitors(surface);
     surface_refresh_workareas(surface);
     surface_reflow_clients(surface);
     wm_invalidate_surface(surface);

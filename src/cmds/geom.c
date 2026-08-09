@@ -21,13 +21,20 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/sync.h>
 
+/* ADT includes */
+#include <adt/list.h>
+
 /* Default initial values */
 #include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
+#include <desktop.h>
+#include <surface.h>
+#include <utils/geom.h>
 #include <wm.h>
+#include <wm/internal.h>     /* the global 'wm' singleton */
 
 /* Local includes */
 #include <cmds/ccmd.h>
@@ -345,14 +352,110 @@ void wcmd_client_resize_flush_pending(client_td *client)
 }
 
 
+/**
+ * @brief Find the maximize target area for a client's own monitor
+ *
+ * Resolves @p client's surface and desktop from the global @c wm
+ * singleton, then clips the desktop's workarea (already adjusted for
+ * panel/dock struts) down to whichever physical monitor @p client's
+ * own center point currently falls on.  A client pinned to every
+ * desktop uses its surface's currently shown desktop instead, since
+ * it has no single desktop of its own.
+ *
+ * @param client Client to find the maximize target area for
+ * @param out_x  Receives the target area's left edge (may be @c NULL)
+ * @param out_y  Receives the target area's top edge (may be @c NULL)
+ * @param out_w  Receives the target area's width
+ * @param out_h  Receives the target area's height
+ *
+ * @return @c true on success, @c false if any part of the lookup
+ *         fails (surface not found, desktop not found, no workarea
+ *         known yet, or the clipped area is empty); callers fall
+ *         back to @c wcmd_screen_dim's raw screen size in that case
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static bool s_client_monitor_workarea(client_td *client,
+        int32_t *out_x, int32_t *out_y,
+        uint16_t *out_w, uint16_t *out_h)
+{
+    surface_td *surface = NULL;
+    desktop_td *desktop;
+    struct geometry_s monitor;
+    struct geometry_s clipped;
+    int32_t center_x;
+    int32_t center_y;
+    uint32_t did;
+
+    if (client == NULL || out_w == NULL || out_h == NULL ||
+            wm == NULL || wm->surfaces == NULL) {
+        return false;
+    }
+
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *s = (surface_td *) list_data(node);
+
+        if (s != NULL && s->id == client->screen_id) {
+            surface = s;
+            break;
+        }
+    }
+    if (surface == NULL) {
+        return false;
+    }
+
+    did = (client->desktop_id == WM_DESKTOP_ID_ALL) ?
+        surface->desktop_cur : client->desktop_id;
+    desktop = surface_desktop_get(surface, did);
+    if (desktop == NULL || desktop->workarea.dim.w == 0u ||
+            desktop->workarea.dim.h == 0u) {
+        return false;
+    }
+
+    center_x = client->layout.geometry.cur.pos.x +
+        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
+    center_y = client->layout.geometry.cur.pos.y +
+        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
+    monitor = surface_monitor_for_point(surface, center_x, center_y);
+
+    clipped = geom_intersect_rect(
+            desktop->workarea.pos.x, desktop->workarea.pos.y,
+            desktop->workarea.dim.w, desktop->workarea.dim.h,
+            monitor.pos.x, monitor.pos.y,
+            monitor.dim.w, monitor.dim.h);
+    if (clipped.dim.w == 0u || clipped.dim.h == 0u) {
+        return false;
+    }
+
+    if (out_x != NULL) {
+        *out_x = clipped.pos.x;
+    }
+    if (out_y != NULL) {
+        *out_y = clipped.pos.y;
+    }
+    *out_w = geom_clamp_dim((int32_t) clipped.dim.w);
+    *out_h = geom_clamp_dim((int32_t) clipped.dim.h);
+
+    return true;
+}
+
+
 /* Maximize the client horizontally, or restore if already horizontally
  * maximized */
 void wcmd_client_maximize_horz(client_td *client)
 {
+    int32_t mx = 0;
     uint16_t sw;
+    uint16_t unused_h;
     xcb_window_t target;
 
-    if (client == NULL || !wcmd_screen_dim(client, &sw, NULL)) {
+    if (client == NULL) {
+        return;
+    }
+
+    if (!s_client_monitor_workarea(client, &mx, NULL, &sw, &unused_h) &&
+            !wcmd_screen_dim(client, &sw, NULL)) {
         return;
     }
 
@@ -397,12 +500,12 @@ void wcmd_client_maximize_horz(client_td *client)
             XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH,
             (const uint32_t[]) {
-                0,
+                (uint32_t) mx,
                 (uint32_t) client->layout.geometry.cur.pos.y,
                 (uint32_t) sw
             });
 
-    client->layout.geometry.cur.pos.x = 0;
+    client->layout.geometry.cur.pos.x = mx;
     client->layout.geometry.cur.dim.w = sw;
     client->properties.state = CLIENT_STATE_MAXIMIZED_HORZ;
 
@@ -417,10 +520,17 @@ void wcmd_client_maximize_horz(client_td *client)
  * maximized */
 void wcmd_client_maximize_vert(client_td *client)
 {
+    int32_t my = 0;
     uint16_t sh;
+    uint16_t unused_w;
     xcb_window_t target;
 
-    if (client == NULL || !wcmd_screen_dim(client, NULL, &sh)) {
+    if (client == NULL) {
+        return;
+    }
+
+    if (!s_client_monitor_workarea(client, NULL, &my, &unused_w, &sh) &&
+            !wcmd_screen_dim(client, NULL, &sh)) {
         return;
     }
 
@@ -470,11 +580,11 @@ void wcmd_client_maximize_vert(client_td *client)
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) {
                 (uint32_t) client->layout.geometry.cur.pos.x,
-                0,
+                (uint32_t) my,
                 (uint32_t) sh
             });
 
-    client->layout.geometry.cur.pos.y = 0;
+    client->layout.geometry.cur.pos.y = my;
     client->layout.geometry.cur.dim.h = sh;
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
 
@@ -488,6 +598,8 @@ void wcmd_client_maximize_vert(client_td *client)
 /* Maximize the client entirely, or restore it if already maximized */
 void wcmd_client_maximize(client_td *client)
 {
+    int32_t mx = 0;
+    int32_t my = 0;
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
@@ -530,7 +642,8 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
-    if (!wcmd_screen_dim(client, &sw, &sh)) {
+    if (!s_client_monitor_workarea(client, &mx, &my, &sw, &sh) &&
+            !wcmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
@@ -551,9 +664,12 @@ void wcmd_client_maximize(client_td *client)
             XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT,
-            (const uint32_t[]) {0, 0, (uint32_t) sw, (uint32_t) sh});
-    client->layout.geometry.cur.pos.x = 0;
-    client->layout.geometry.cur.pos.y = 0;
+            (const uint32_t[]) {
+                (uint32_t) mx, (uint32_t) my,
+                (uint32_t) sw, (uint32_t) sh
+            });
+    client->layout.geometry.cur.pos.x = mx;
+    client->layout.geometry.cur.pos.y = my;
     client->layout.geometry.cur.dim.w = (uint32_t) sw;
     client->layout.geometry.cur.dim.h = (uint32_t) sh;
     client->properties.state = CLIENT_STATE_MAXIMIZED;

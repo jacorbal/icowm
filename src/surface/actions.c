@@ -312,7 +312,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 cnode = cdlist_next(cnode);
             } while (cnode != NULL && cnode != cinitial);
 
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < n; ++i) {
                 bool was_active =
                     (from_desktop->client_active_id == sticky[i]->id);
                 if (was_active) {
@@ -490,7 +490,7 @@ int surface_action_set_resolution(surface_td *surface,
         xcb_randr_get_screen_resources_current_modes_length(res_reply);
     modes = xcb_randr_get_screen_resources_current_modes(res_reply);
 
-    for (int mi = 0; mi < nmodes; mi++) {
+    for (int mi = 0; mi < nmodes; ++mi) {
         if (modes[mi].width == (uint16_t)resolution.w &&
             modes[mi].height == (uint16_t)resolution.h) {
             target_mode = modes[mi].id;

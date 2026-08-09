@@ -120,7 +120,7 @@ int config_load_randr(const char *filename,
 
     config_randr->output_count = 0u;
 
-    for (int i = 0; i < arr_len; i++) {
+    for (int i = 0; i < arr_len; ++i) {
         cJSON *entry = cJSON_GetArrayItem(outputs_arr, i);
         cJSON *rot_item;
         cJSON *res_obj;
