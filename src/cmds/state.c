@@ -40,6 +40,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <systray.h>
+#include <utils/geom.h>
 #include <wm.h>
 
 /* Input includes */
@@ -339,12 +340,15 @@ void wcmd_client_toggle_shade(client_td *client)
 /* Set full screen mode */
 void wcmd_client_fullscreen(client_td *client)
 {
+    int32_t mx = 0;
+    int32_t my = 0;
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
     uint32_t border_width;
     bool was_decorated;
     desktop_td *desktop;
+    monitor_td monitor;
 
     if (client == NULL) {
         return;
@@ -367,7 +371,16 @@ void wcmd_client_fullscreen(client_td *client)
         wcmd_client_unshade(client);
     }
 
-    if (!wcmd_screen_dim(client, &sw, &sh)) {
+    /* Fullscreen deliberately targets the raw monitor rect, not the
+     * workarea 'wcmd_client_monitor_workarea' (maximize's own helper)
+     * would give: it is meant to cover panels and docks too, not stop
+     * at their struts the way maximize does. */
+    if (wcmd_client_monitor(client, NULL, &monitor)) {
+        mx = monitor.x;
+        my = monitor.y;
+        sw = geom_clamp_dim((int32_t) monitor.w);
+        sh = geom_clamp_dim((int32_t) monitor.h);
+    } else if (!wcmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
@@ -390,7 +403,7 @@ void wcmd_client_fullscreen(client_td *client)
                 XCB_CONFIG_WINDOW_HEIGHT |
                 XCB_CONFIG_WINDOW_BORDER_WIDTH,
                 (const uint32_t[]) {
-                0u, 0u,
+                (uint32_t) mx, (uint32_t) my,
                 (uint32_t) sw, (uint32_t) sh,
                 0u
                 });
@@ -416,14 +429,14 @@ void wcmd_client_fullscreen(client_td *client)
             XCB_CONFIG_WINDOW_HEIGHT |
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) {
-                0u, 0u,
+                (uint32_t) mx, (uint32_t) my,
                 (uint32_t) sw,
                 (uint32_t) sh,
                 0u
             });
 
-    client->layout.geometry.cur.pos.x = 0;
-    client->layout.geometry.cur.pos.y = 0;
+    client->layout.geometry.cur.pos.x = mx;
+    client->layout.geometry.cur.pos.y = my;
     client->layout.geometry.cur.dim.w = (uint32_t) sw;
     client->layout.geometry.cur.dim.h = (uint32_t) sh;
 
@@ -432,8 +445,9 @@ void wcmd_client_fullscreen(client_td *client)
      * resizing their rendering surface/viewport, and it must carry the
      * true screen-relative geometry.  The real 'ConfigureNotify' the
      * X server sends for the frame/window configure above already
-     * happens to be screen-relative here since fullscreen always starts
-     * at (0,0), so this was not strictly required for the client's OWN
+     * carries that geometry (including the monitor's own origin, not
+     * necessarily (0,0), on a surface made of more than one monitor),
+     * so this was not strictly required for the client's OWN
      * 'ConfigureNotify'; but the frame reparenting above still delivers
      * one relative to the *frame*, and without an explicit synthetic
      * one afterward some clients only apply the next size they are told

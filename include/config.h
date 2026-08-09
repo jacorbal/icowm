@@ -111,6 +111,23 @@ struct config_base_s {
         } placement_policy;
 
         /**
+         * Which physical monitor a placement decision is resolved
+         * against, on a surface made of more than one sharing the
+         * same combined X screen: @c pointer (default) picks whichever
+         * monitor the pointer is currently on (not necessarily where
+         * on that monitor the pointer actually is; the window can
+         * still land far from the cursor within it, depending on the
+         * placement policy), @c primary always picks the one RandR
+         * reports as primary.
+         *
+         * @see @c place_apply, @c place_smart
+         */
+        enum config_placement_monitor_e {
+            CONFIG_PLACEMENT_MONITOR_POINTER = 0,
+            CONFIG_PLACEMENT_MONITOR_PRIMARY
+        } monitor_policy;
+
+        /**
          * Cluster a newly placed window next to others sharing its
          * @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g., several
          * windows of the same application) instead of running the
@@ -181,6 +198,37 @@ struct config_base_s {
             CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT,
             CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT
         } position;         /**< Corner of the screen to dock it in */
+
+        /**
+         * @brief Which physical monitor the tray dock is anchored to,
+         *        on a surface made of more than one sharing the same
+         *        combined X screen
+         *
+         * @c anchor picks the strategy: @c surface (default) anchors
+         * @c position's corner to the whole combined surface, exactly
+         * as if there were only one monitor; @c primary anchors it to
+         * the monitor RandR reports as primary; @c index anchors it
+         * to @c monitor.index specifically, a zero-based index into
+         * that surface's own monitor list (falls back to monitor 0 if
+         * it does not exist, logging a warning, the same as
+         * @c rules.json's own @c apply.monitor).  Only one tray dock
+         * ever exists at a time regardless of this setting: the
+         * @c _NET_SYSTEM_TRAY_Sn manager selection this implements is
+         * one per screen by its own specification, so more than one
+         * independent tray on the same screen is not something any
+         * tray implementation can offer, this one included.
+         *
+         * @see @c systray.c
+         */
+        struct {
+            enum config_systray_monitor_anchor_e {
+                CONFIG_SYSTRAY_MONITOR_SURFACE = 0,
+                CONFIG_SYSTRAY_MONITOR_PRIMARY,
+                CONFIG_SYSTRAY_MONITOR_INDEX
+            } anchor;
+            uint32_t index; /**< Only meaningful when @c anchor is
+                                  @c CONFIG_SYSTRAY_MONITOR_INDEX */
+        } monitor;
 
         enum config_systray_order_e {
             CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0, /**< New icons are
@@ -385,6 +433,9 @@ struct config_bindings_s {
             char layer[CONFIG_MAX_LENGTH_BINDING];
             char kill[CONFIG_MAX_LENGTH_BINDING];
             char maximize[CONFIG_MAX_LENGTH_BINDING];
+            char next_monitor[CONFIG_MAX_LENGTH_BINDING]; /**< Move
+                                        focused client to the next
+                                        monitor */
             char pin[CONFIG_MAX_LENGTH_BINDING];
             char shade[CONFIG_MAX_LENGTH_BINDING];
 

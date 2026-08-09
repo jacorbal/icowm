@@ -1008,6 +1008,17 @@ void client_props_refresh_normal_hints(client_td *client);
 
 /**
  * @brief Macro that performs the action that initializes an event to
+ *        move the specified client to the next monitor on its own
+ *        surface
+ *
+ * @see @a client_send_event
+ */
+#define client_send_event_move_next_monitor(w) \
+    client_send_event(w, ACTION_CLIENT_MOVE_NEXT_MONITOR, \
+            CLIENT_PRIORITY_DEFAULT)
+
+/**
+ * @brief Macro that performs the action that initializes an event to
  *        raise the specified client
  *
  * @see @a client_send_event

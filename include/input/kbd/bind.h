@@ -62,6 +62,8 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
     KEYBIND_CLIENT_CENTER,              /**< Center focused client */
+    KEYBIND_CLIENT_MOVE_NEXT_MONITOR,   /**< Move focused client to the
+                                              next monitor */
     KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
     KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle foc. client fullscreen */
     KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */

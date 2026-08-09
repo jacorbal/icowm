@@ -31,6 +31,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <surface.h>
 
 
 #define WCMD_WM_STATE_WITHDRAWN (0u)
@@ -93,6 +94,28 @@ xcb_window_t wcmd_target_win(client_td *client);
  */
 bool wcmd_screen_dim(client_td *client,
         uint16_t *out_w, uint16_t *out_h);
+
+/**
+ * @brief Find which monitor a client is currently on
+ *
+ * Resolves @p client's surface from the global @c wm singleton, then
+ * finds whichever of that surface's monitors @p client's own center
+ * point currently falls on.
+ *
+ * @param client      Client to resolve a monitor for
+ * @param out_surface Receives the resolved surface (may be @c NULL)
+ * @param out_monitor Receives the resolved monitor's raw geometry
+ *                     (screen edges, not adjusted for panel/dock
+ *                     struts)
+ *
+ * @return @c true on success, @c false if the client's surface could
+ *         not be found; callers fall back to @c wcmd_screen_dim's raw
+ *         screen size in that case
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+bool wcmd_client_monitor(client_td *client, surface_td **out_surface,
+        monitor_td *out_monitor);
 
 /**
  * @brief Passively grab all mouse buttons on an undecorated client

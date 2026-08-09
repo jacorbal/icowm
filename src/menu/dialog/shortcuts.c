@@ -60,7 +60,7 @@ static void s_append_line(char *buf, size_t buf_size, size_t *offset,
     written = vsnprintf(buf + *offset, buf_size - *offset, fmt, args);
     va_end(args);
 
-    if (written <= 0) {
+    if (written < 0) {
         return;
     }
     if ((size_t) written >= buf_size - *offset) {
@@ -78,6 +78,21 @@ static void s_append_line(char *buf, size_t buf_size, size_t *offset,
         buf[*offset] = '\n';
         *offset += 1u;
     }
+}
+
+
+/**
+ * @brief Append one blank line, for visual separation between sections
+ *
+ * @param buf     Buffer being built
+ * @param buf_size Size of @p buf in bytes
+ * @param offset  Current write offset into @p buf
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_append_blank_line(char *buf, size_t buf_size, size_t *offset)
+{
+    s_append_line(buf, buf_size, offset, "%s", "");
 }
 
 
@@ -226,6 +241,12 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
 
     text[0] = '\0';
 
+    s_append_line(text, sizeof(text), &offset,
+            "modc=%s, mods=%s, mod1=%s, mod4=%s",
+            config->bindings.modc, config->bindings.mods,
+            config->bindings.mod1, config->bindings.mod4);
+    s_append_blank_line(text, sizeof(text), &offset);
+
     s_append_line(text, sizeof(text), &offset, "[Window Manager]");
     s_append_binding(text, sizeof(text), &offset, "Root menu",
             config->bindings.keyboard.wm.menus.root);
@@ -251,6 +272,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 "Fortune: Ctrl+Mod4+BackSpace");
     }
 
+    s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "[Launch]");
     s_append_binding(text, sizeof(text), &offset, "Terminal",
             config->bindings.keyboard.launch.terminal);
@@ -263,6 +285,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(text, sizeof(text), &offset, "Editor",
             config->bindings.keyboard.launch.editor);
 
+    s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "[Window]");
     s_append_binding(text, sizeof(text), &offset, "Close",
             config->bindings.keyboard.window.close);
@@ -282,6 +305,10 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.window.layer);
     s_append_binding(text, sizeof(text), &offset, "Maximize",
             config->bindings.keyboard.window.maximize);
+    if (surface->monitor_count > 1u) {
+        s_append_binding(text, sizeof(text), &offset, "NextMonitor",
+                config->bindings.keyboard.window.next_monitor);
+    }
     s_append_binding(text, sizeof(text), &offset, "Pin",
             config->bindings.keyboard.window.pin);
     s_append_binding(text, sizeof(text), &offset, "Shade",
@@ -314,6 +341,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.window.resize.down
             }, 4u);
 
+    s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "[Cycle]");
     s_append_group(text, sizeof(text), &offset, "Desktops",
             (const char *const []) {"prev", "next"},

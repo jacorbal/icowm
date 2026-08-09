@@ -44,6 +44,39 @@ void wcmd_client_move(client_td *client,
 void wcmd_client_center(client_td *client);
 
 /**
+ * @brief Move the client to a specific monitor on its own surface
+ *
+ * Keeps the client's offset from its current monitor's own top-left
+ * corner (not a resize, not a re-centering), translated onto the
+ * target monitor's own top-left corner instead, then clamped so the
+ * window stays fully on that monitor even if it is smaller than the
+ * one the client came from.  A no-op if @p client is already on the
+ * target monitor.
+ *
+ * @param client        Window to move
+ * @param monitor_index Zero-based index into the client's own
+ *                       surface's monitor list; out of range falls
+ *                       back to monitor 0, logging a warning
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index);
+
+/**
+ * @brief Move the client to the next monitor on its own surface
+ *
+ * Resolves @p client's current monitor, then calls @c
+ * wcmd_client_move_to_monitor with the next index in the surface's
+ * monitor list, wrapping back to @c 0 after the last one.  A no-op on
+ * a surface with one monitor or none.
+ *
+ * @param client Window to move
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+void wcmd_client_move_to_next_monitor(client_td *client);
+
+/**
  * @brief Resize the client to new dimensions
  *
  * @param client      Window to resize

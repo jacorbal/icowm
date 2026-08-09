@@ -636,6 +636,11 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
                     PRIORITY_NORMAL);
             return;
 
+        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
+            client_send_event(client, ACTION_CLIENT_MOVE_NEXT_MONITOR,
+                    PRIORITY_NORMAL);
+            return;
+
         case KEYBIND_CLIENT_SHADE:
             client_send_event(client, ACTION_CLIENT_TOGGLE_SHADE,
                     PRIORITY_NORMAL);
@@ -701,6 +706,7 @@ static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_KILL:
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
@@ -824,6 +830,7 @@ static void s_handle_kbd_move(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_KILL:
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
@@ -970,6 +977,7 @@ static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_KILL:
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
+        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
@@ -1115,8 +1123,33 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /* Info dialog: any Enter, Space, or Escape closes it */
+    /* Info dialog: Up/Down scroll by one line, PageUp/PageDown by a
+     * whole page (harmless no-ops when the message already fits
+     * without scrolling; see 'menu_message_dialog_scroll'), and
+     * Enter, Space, or Escape close it same as clicking "OK" would */
     if (dialog_info_is_open()) {
+        if (surface != NULL && surface->connection != NULL) {
+            if (keysym == 0xff52u) {          /* Up */
+                menu_message_dialog_scroll(surface->connection,
+                        config, -1);
+                return;
+            }
+            if (keysym == 0xff54u) {          /* Down */
+                menu_message_dialog_scroll(surface->connection,
+                        config, 1);
+                return;
+            }
+            if (keysym == 0xff55u) {          /* Page_Up */
+                menu_message_dialog_scroll(surface->connection,
+                        config, -(int32_t) DIALOG_MSG_MAX_LINES);
+                return;
+            }
+            if (keysym == 0xff56u) {          /* Page_Down */
+                menu_message_dialog_scroll(surface->connection,
+                        config, (int32_t) DIALOG_MSG_MAX_LINES);
+                return;
+            }
+        }
         if (keysym == 0xff0du || keysym == 0xff8du ||
                 keysym == 0x0020u || keysym == 0xff1bu) {
             if (surface != NULL && surface->connection != NULL) {
@@ -1383,6 +1416,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_KILL:
             case KEYBIND_CLIENT_MAXIMIZE:
             case KEYBIND_CLIENT_CENTER:
+            case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
             case KEYBIND_CLIENT_SHADE:
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:

@@ -28,6 +28,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <input/kbd/bind.h>
 
 
 /* Mark every desktop in a surface as outdated and refresh workareas */
@@ -83,6 +84,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
                 (uint32_t) randr_event->config_timestamp;
             s_handler_randr_refresh_surface(surface);
             systray_handle_surface_resize(wm);
+            keyboard_load(wm->surfaces, wm->keysyms, wm->config);
 
             LOGGER_INFO("XRandR screen change on surface %u: %ux%u",
                     surface->id,
@@ -127,6 +129,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
                 s_handler_randr_refresh_surface(
                         (surface_td *) list_data(node));
             }
+            keyboard_load(wm->surfaces, wm->keysyms, wm->config);
 
             LOGGER_DEBUG("Processed XRandR notify subcode=%u",
                     (unsigned int) randr_event->subCode);

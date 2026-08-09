@@ -296,11 +296,12 @@ void surface_resize(surface_td *surface,
  */
 static void s_surface_monitors_fallback(surface_td *surface)
 {
-    surface->monitors[0].pos.x = 0;
-    surface->monitors[0].pos.y = 0;
-    surface->monitors[0].dim.w = surface->properties.dim.w;
-    surface->monitors[0].dim.h = surface->properties.dim.h;
+    surface->monitors[0].x = 0;
+    surface->monitors[0].y = 0;
+    surface->monitors[0].w = surface->properties.dim.w;
+    surface->monitors[0].h = surface->properties.dim.h;
     surface->monitor_count = 1u;
+    surface->primary_monitor_index = 0u;
 }
 
 
@@ -328,17 +329,21 @@ void surface_refresh_monitors(surface_td *surface)
     }
 
     surface->monitor_count = 0u;
+    surface->primary_monitor_index = 0u;
     it = xcb_randr_get_monitors_monitors_iterator(reply);
     while (it.rem > 0 &&
             surface->monitor_count < WM_SURFACE_MAX_MONITORS) {
         xcb_randr_monitor_info_t *info = it.data;
-        struct geometry_s *slot =
+        monitor_td *slot =
             &surface->monitors[surface->monitor_count];
 
-        slot->pos.x = info->x;
-        slot->pos.y = info->y;
-        slot->dim.w = info->width;
-        slot->dim.h = info->height;
+        slot->x = info->x;
+        slot->y = info->y;
+        slot->w = info->width;
+        slot->h = info->height;
+        if (info->primary) {
+            surface->primary_monitor_index = surface->monitor_count;
+        }
         ++surface->monitor_count;
 
         xcb_randr_monitor_info_next(&it);
@@ -358,33 +363,37 @@ void surface_refresh_monitors(surface_td *surface)
 
 
 /* Find which of the surface's monitors contains a point */
-struct geometry_s surface_monitor_for_point(const surface_td *surface,
+monitor_td surface_monitor_for_point(const surface_td *surface,
         int32_t x, int32_t y)
 {
-    struct geometry_s fallback =
-        {.pos = {.x = 0, .y = 0}, .dim = {.w = 0, .h = 0}};
+    monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
     uint32_t closest = 0u;
     int64_t closest_dist = -1;
 
-    if (surface == NULL || surface->monitor_count == 0u) {
+    if (surface == NULL) {
+        return fallback;
+    }
+    if (surface->monitor_count == 0u) {
+        fallback.w = surface->properties.dim.w;
+        fallback.h = surface->properties.dim.h;
         return fallback;
     }
 
     for (uint32_t i = 0; i < surface->monitor_count; ++i) {
-        const struct geometry_s *m = &surface->monitors[i];
-        int32_t mright = m->pos.x + (int32_t) m->dim.w;
-        int32_t mbottom = m->pos.y + (int32_t) m->dim.h;
+        const monitor_td *m = &surface->monitors[i];
+        int32_t mright = m->x + (int32_t) m->w;
+        int32_t mbottom = m->y + (int32_t) m->h;
         int64_t cx;
         int64_t cy;
         int64_t dist;
 
-        if (x >= m->pos.x && x < mright &&
-                y >= m->pos.y && y < mbottom) {
+        if (x >= m->x && x < mright &&
+                y >= m->y && y < mbottom) {
             return *m;
         }
 
-        cx = m->pos.x + (int32_t) (m->dim.w / 2u) - x;
-        cy = m->pos.y + (int32_t) (m->dim.h / 2u) - y;
+        cx = m->x + (int32_t) (m->w / 2u) - x;
+        cy = m->y + (int32_t) (m->h / 2u) - y;
         dist = cx * cx + cy * cy;
         if (closest_dist < 0 || dist < closest_dist) {
             closest_dist = dist;
@@ -393,6 +402,24 @@ struct geometry_s surface_monitor_for_point(const surface_td *surface,
     }
 
     return surface->monitors[closest];
+}
+
+
+/* Get the surface's primary monitor, if RandR flagged one */
+monitor_td surface_primary_monitor(const surface_td *surface)
+{
+    monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
+
+    if (surface == NULL) {
+        return fallback;
+    }
+    if (surface->monitor_count == 0u) {
+        fallback.w = surface->properties.dim.w;
+        fallback.h = surface->properties.dim.h;
+        return fallback;
+    }
+
+    return surface->monitors[surface->primary_monitor_index];
 }
 
 

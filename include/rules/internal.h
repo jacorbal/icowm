@@ -93,6 +93,8 @@ struct rules_match_s {
  */
 struct rules_apply_s {
     bool has_desktop;
+    bool has_monitor;        /**< Target monitor within the client's
+                                  own surface; see 'monitor' below */
     bool has_layer;
     bool has_focus;
     bool has_position;      /**< @c x & @c y, or @c position_centered,
@@ -107,6 +109,18 @@ struct rules_apply_s {
     bool has_decorated;
 
     uint32_t desktop;
+    /**
+     * @brief Index into the client's own surface's monitor list
+     *
+     * Named 'monitor', not 'screen': this project's own @c screen_id/
+     * @c screens[] terminology refers to a whole X screen, and this
+     * codebase has no notion of moving a client between X screens at
+     * all, desktop reassignment above included, so a rule field with
+     * that name would misleadingly suggest a capability that does not
+     * exist.  Scoped to one physical monitor within the client's
+     * current surface only.
+     */
+    uint32_t monitor;
     uint16_t layer;
     bool focus;
     int32_t x;

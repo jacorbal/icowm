@@ -22,11 +22,18 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* ADT includes */
+#include <adt/list.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>
+#include <surface.h>
+
+/* Internal includes */
+#include <wm/internal.h>     /* the global 'wm' singleton */
 
 /* Local includes */
 #include <cmds/util.h>
@@ -202,6 +209,46 @@ bool wcmd_screen_dim(client_td *client, uint16_t *out_w, uint16_t *out_h)
     if (out_h != NULL) {
         *out_h = iter.data->height_in_pixels;
     }
+    return true;
+}
+
+
+/* Find which monitor a client is currently on */
+bool wcmd_client_monitor(client_td *client, surface_td **out_surface,
+        monitor_td *out_monitor)
+{
+    surface_td *surface = NULL;
+    int32_t center_x;
+    int32_t center_y;
+
+    if (client == NULL || out_monitor == NULL ||
+            wm == NULL || wm->surfaces == NULL) {
+        return false;
+    }
+
+    for (list_item_td *node = list_head(wm->surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *s = (surface_td *) list_data(node);
+
+        if (s != NULL && s->id == client->screen_id) {
+            surface = s;
+            break;
+        }
+    }
+    if (surface == NULL) {
+        return false;
+    }
+
+    center_x = client->layout.geometry.cur.pos.x +
+        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
+    center_y = client->layout.geometry.cur.pos.y +
+        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
+    *out_monitor = surface_monitor_for_point(surface, center_x, center_y);
+
+    if (out_surface != NULL) {
+        *out_surface = surface;
+    }
+
     return true;
 }
 

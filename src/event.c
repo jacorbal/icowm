@@ -148,6 +148,8 @@ event_td *event_clone(const event_td *src)
                 case ACTION_CLIENT_RESIZE:
                 case ACTION_CLIENT_MOVE:
                 case ACTION_CLIENT_CENTER:
+                case ACTION_CLIENT_MOVE_NEXT_MONITOR:
+                case ACTION_CLIENT_MOVE_TO_MONITOR:
                 case ACTION_CLIENT_MAXIMIZE:
                 case ACTION_CLIENT_MAXIMIZE_HORZ:
                 case ACTION_CLIENT_MAXIMIZE_VERT:

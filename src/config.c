@@ -166,6 +166,7 @@ void config_set_default_values(config_td *config)
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
+    config->base.windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
     config->base.windows.group_related = true;
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
@@ -180,6 +181,8 @@ void config_set_default_values(config_td *config)
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
+    config->base.systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_SURFACE;
+    config->base.systray.monitor.index = 0u;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
     config->base.systray.clock.is_enabled = true;
@@ -247,6 +250,8 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+Escape");
     safe_strcpy(config->bindings.keyboard.window.maximize,
             "modc+mod1+m");
+    safe_strcpy(config->bindings.keyboard.window.next_monitor,
+            "modc+mod1+mods+n");
     safe_strcpy(config->bindings.keyboard.window.pin,
             "modc+mod1+p");
     safe_strcpy(config->bindings.keyboard.window.layer,

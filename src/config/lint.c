@@ -272,6 +272,7 @@ static const config_lint_key_td s_schema_kb_window[] = {
     {"kill", NULL, 0u},
     {"layer", NULL, 0u},
     {"maximize", NULL, 0u},
+    {"next-monitor", NULL, 0u},
     {"pin", NULL, 0u},
     {"shade", NULL, 0u},
     {"show-desktop", NULL, 0u},

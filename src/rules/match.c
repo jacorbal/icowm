@@ -26,6 +26,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <logger.h>
 #include <utils/safe/safestr.h>
 
 /* Local includes */
@@ -240,6 +241,11 @@ uint16_t ri_parse_layer(const char *layer)
     if (safe_strcmp(layer, "below") == 0) {
         return (uint16_t) CLIENT_LAYER_BELOW;
     }
+    if (safe_strcmp(layer, "normal") == 0) {
+        return (uint16_t) CLIENT_LAYER_NORMAL;
+    }
 
+    LOGGER_WARNING("Unrecognized rule layer '%s'; using 'normal'",
+            layer);
     return (uint16_t) CLIENT_LAYER_NORMAL;
 }

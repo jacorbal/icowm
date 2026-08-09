@@ -90,6 +90,33 @@ static enum config_placement_policy_e
 
 
 /**
+ * @brief Parse placement monitor text into configuration enumeration
+ *
+ * @param value Placement monitor string from configuration
+ *
+ * @return Parsed placement monitor enumeration value
+ *
+ * @note Supported values are @c pointer and @c primary
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_placement_monitor_e
+    s_config_parse_placement_monitor(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_PLACEMENT_MONITOR_POINTER;
+    }
+
+    if (safe_strcmp(value_norm, "primary") == 0) {
+        return CONFIG_PLACEMENT_MONITOR_PRIMARY;
+    }
+
+    return CONFIG_PLACEMENT_MONITOR_POINTER;
+}
+
+
+/**
  * @brief Parse desktop menu position text into configuration
  *        enumeration
  *
@@ -149,6 +176,37 @@ static enum config_systray_position_e
     }
 
     return CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
+}
+
+
+/**
+ * @brief Parse systray monitor anchor text into configuration
+ *        enumeration
+ *
+ * @param value Systray monitor anchor string from configuration
+ *
+ * @return Parsed systray monitor anchor enumeration value
+ *
+ * @note Supported values are @c surface, @c primary, and @c index
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_systray_monitor_anchor_e
+    s_config_parse_systray_monitor_anchor(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SYSTRAY_MONITOR_SURFACE;
+    }
+
+    if (safe_strcmp(value_norm, "primary") == 0) {
+        return CONFIG_SYSTRAY_MONITOR_PRIMARY;
+    }
+    if (safe_strcmp(value_norm, "index") == 0) {
+        return CONFIG_SYSTRAY_MONITOR_INDEX;
+    }
+
+    return CONFIG_SYSTRAY_MONITOR_SURFACE;
 }
 
 
@@ -654,6 +712,7 @@ int config_load_base(const char *filename,
         placement = cJSON_GetObjectItem(windows, "placement");
         if (placement) {
             cJSON *placement_policy_item;
+            cJSON *placement_monitor_item;
 
             placement_policy_item = json_get_item(
                     placement, "policy");
@@ -662,6 +721,14 @@ int config_load_base(const char *filename,
                 config_base->windows.placement_policy =
                     s_config_parse_placement_policy(
                             placement_policy_item->valuestring);
+            }
+            placement_monitor_item = json_get_item(
+                    placement, "monitor");
+            if (placement_monitor_item != NULL &&
+                    cJSON_IsString(placement_monitor_item)) {
+                config_base->windows.monitor_policy =
+                    s_config_parse_placement_monitor(
+                            placement_monitor_item->valuestring);
             }
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);
@@ -750,6 +817,7 @@ int config_load_base(const char *filename,
     systray = cJSON_GetObjectItem(json, "systray");
     if (systray) {
         cJSON *position_item;
+        cJSON *monitor_item;
         cJSON *order_item;
         cJSON *layer_item;
         cJSON *clock_item;
@@ -763,6 +831,23 @@ int config_load_base(const char *filename,
             config_base->systray.position =
                 s_config_parse_systray_position(
                         position_item->valuestring);
+        }
+        monitor_item = cJSON_GetObjectItem(systray, "monitor");
+        if (monitor_item) {
+            cJSON *anchor_item;
+            cJSON *index_item;
+
+            anchor_item = json_get_item(monitor_item, "anchor");
+            if (anchor_item != NULL && cJSON_IsString(anchor_item)) {
+                config_base->systray.monitor.anchor =
+                    s_config_parse_systray_monitor_anchor(
+                            anchor_item->valuestring);
+            }
+            index_item = json_get_item(monitor_item, "index");
+            if (cJSON_IsNumber(index_item) && index_item->valueint >= 0) {
+                config_base->systray.monitor.index =
+                    (uint32_t) index_item->valueint;
+            }
         }
         order_item = json_get_item(systray, "order");
         if (order_item != NULL && cJSON_IsString(order_item)) {

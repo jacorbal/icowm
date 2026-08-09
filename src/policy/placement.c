@@ -216,6 +216,114 @@ static void s_place_apply_gravity(const surface_td *surface,
 }
 
 
+/**
+ * @brief Clip a workarea and screen bound down to one monitor
+ *
+ * Intersects @p wa_x/@p wa_y/@p wa_w/@p wa_h with @p monitor. Every
+ * output defaults to the corresponding input unchanged (so the two
+ * are safe to alias) whenever @p surface has one monitor or none, or
+ * the intersection with the workarea is empty, matching the behavior
+ * from before per-monitor placement existed.
+ *
+ * @param surface   Surface @p monitor belongs to, only consulted for
+ *                  its monitor count
+ * @param wa_x      Unclipped workarea left edge
+ * @param wa_y      Unclipped workarea top edge
+ * @param wa_w      Unclipped workarea width
+ * @param wa_h      Unclipped workarea height
+ * @param sw        Unclipped screen bound width (right-edge origin)
+ * @param sh        Unclipped screen bound height (bottom-edge origin)
+ * @param monitor   Already-resolved monitor geometry to clip against
+ * @param out_wa_x  Receives the clipped workarea left edge
+ * @param out_wa_y  Receives the clipped workarea top edge
+ * @param out_wa_w  Receives the clipped workarea width
+ * @param out_wa_h  Receives the clipped workarea height
+ * @param out_sw    Receives @p monitor's own right edge
+ * @param out_sh    Receives @p monitor's own bottom edge
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_clip_to_monitor(const surface_td *surface,
+        int32_t wa_x, int32_t wa_y, uint32_t wa_w, uint32_t wa_h,
+        uint32_t sw, uint32_t sh, monitor_td monitor,
+        int32_t *out_wa_x, int32_t *out_wa_y,
+        uint32_t *out_wa_w, uint32_t *out_wa_h,
+        uint32_t *out_sw, uint32_t *out_sh)
+{
+    struct geometry_s clipped;
+
+    *out_wa_x = wa_x;
+    *out_wa_y = wa_y;
+    *out_wa_w = wa_w;
+    *out_wa_h = wa_h;
+    *out_sw = sw;
+    *out_sh = sh;
+
+    if (surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    clipped = geom_intersect_rect(wa_x, wa_y, wa_w, wa_h,
+            monitor.x, monitor.y,
+            monitor.w, monitor.h);
+    if (clipped.dim.w == 0u || clipped.dim.h == 0u) {
+        return;
+    }
+
+    *out_wa_x = clipped.pos.x;
+    *out_wa_y = clipped.pos.y;
+    *out_wa_w = clipped.dim.w;
+    *out_wa_h = clipped.dim.h;
+    *out_sw = (uint32_t) monitor.x + monitor.w;
+    *out_sh = (uint32_t) monitor.y + monitor.h;
+}
+
+
+/**
+ * @brief Resolve the monitor a placement decision should target
+ *
+ * Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns @p
+ * surface's primary monitor.  Under @c
+ * CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries the
+ * pointer and returns whichever monitor it is currently over,
+ * or a degenerate (zero-area) geometry if the query fails; passing
+ * that on to @c s_clip_to_monitor is safe, since its own intersection
+ * against a zero-area rectangle is always empty, which is exactly
+ * what makes it leave its inputs unclipped.
+ *
+ * @param wm             Window manager state, for the pointer query
+ * @param surface        Surface to resolve a monitor on
+ * @param monitor_policy Which strategy to resolve with
+ *
+ * @return The resolved monitor's geometry
+ *
+ * @note Complexity: @e O(n), where @e n is the number of monitors
+ *       on @p surface
+ */
+static monitor_td s_reference_monitor(wm_td *wm,
+        surface_td *surface,
+        enum config_placement_monitor_e monitor_policy)
+{
+    xcb_query_pointer_cookie_t cookie;
+    xcb_query_pointer_reply_t *reply;
+    monitor_td result = {.x = 0, .y = 0, .w = 0u, .h = 0u};
+
+    if (monitor_policy == CONFIG_PLACEMENT_MONITOR_PRIMARY) {
+        return surface_primary_monitor(surface);
+    }
+
+    cookie = xcb_query_pointer(wm->connection, surface->screen->root);
+    reply = xcb_query_pointer_reply(wm->connection, cookie, NULL);
+    if (reply != NULL) {
+        result = surface_monitor_for_point(surface, reply->root_x,
+                reply->root_y);
+        free(reply);
+    }
+
+    return result;
+}
+
+
 /* Find the best-scoring smart position for a newly mapped client */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         int32_t *out_x, int32_t *out_y)
@@ -241,14 +349,13 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     int32_t cy;
     uint64_t cost;
     bool found;
-    xcb_query_pointer_cookie_t ptr_cookie;
-    xcb_query_pointer_reply_t *ptr_reply;
-    struct geometry_s monitor;
-    struct geometry_s clipped;
+    monitor_td ref_monitor;
+    uint32_t unused_sw;
+    uint32_t unused_sh;
 
     if (surface == NULL || client == NULL ||
             out_x == NULL || out_y == NULL || wm == NULL ||
-            wm->connection == NULL) {
+            wm->connection == NULL || wm->config == NULL) {
         return false;
     }
 
@@ -274,36 +381,22 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         wa_h = surface->properties.dim.h;
     }
 
-    /* Clip the workarea down to whichever physical monitor is under
-     * the pointer, on a surface made of more than one (the common
-     * case of several monitors sharing one combined X screen): a new
-     * window should land within one monitor, not be scored against
-     * the whole combined area, which could place it straddling the
-     * seam between two of them.  Falls back to the unclipped
-     * workarea above if the pointer query fails, there is only one
-     * monitor, or clipping would leave nothing to place into (e.g.,
-     * a monitor entirely covered by a strut). */
-    if (surface->monitor_count > 1u) {
-        ptr_cookie = xcb_query_pointer(wm->connection,
-                surface->screen->root);
-        ptr_reply = xcb_query_pointer_reply(wm->connection,
-                ptr_cookie, NULL);
-        if (ptr_reply != NULL) {
-            monitor = surface_monitor_for_point(surface,
-                    ptr_reply->root_x, ptr_reply->root_y);
-            free(ptr_reply);
-
-            clipped = geom_intersect_rect(wa_x, wa_y, wa_w, wa_h,
-                    monitor.pos.x, monitor.pos.y,
-                    monitor.dim.w, monitor.dim.h);
-            if (clipped.dim.w > 0u && clipped.dim.h > 0u) {
-                wa_x = clipped.pos.x;
-                wa_y = clipped.pos.y;
-                wa_w = clipped.dim.w;
-                wa_h = clipped.dim.h;
-            }
-        }
-    }
+    /* Clip the workarea down to whichever physical monitor
+     * 'windows.placement.monitor' resolves to, on a surface made of
+     * more than one (the common case of several monitors sharing one
+     * combined X screen): a new window should land within one
+     * monitor, not be scored against the whole combined area, which
+     * could place it straddling the seam between two of them.  Falls
+     * back to the unclipped workarea above when there is only one
+     * monitor or clipping would leave nothing to place into (e.g., a
+     * monitor entirely covered by a strut). */
+    ref_monitor = s_reference_monitor(wm, surface,
+            wm->config->base.windows.monitor_policy);
+    s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h, wa_w, wa_h,
+            ref_monitor, &wa_x, &wa_y, &wa_w, &wa_h,
+            &unused_sw, &unused_sh);
+    (void) unused_sw; /* only the clipped workarea is needed here */
+    (void) unused_sh;
 
     /* Candidate range keeps the window fully inside the workarea */
     min_x = wa_x;
@@ -395,74 +488,6 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     return true;
 }
 
-
-/**
- * @brief Clip a workarea and screen bound down to one monitor
- *
- * Resolves which of @p surface's monitors contains @p point_x/@p
- * point_y, then intersects @p wa_x/@p wa_y/@p wa_w/@p wa_h with it.
- * Every output defaults to the corresponding input unchanged (so the
- * two are safe to alias) whenever @p surface has one monitor or
- * none, or the point falls on a monitor whose intersection with the
- * workarea is empty, matching the behavior from before per-monitor
- * placement existed.
- *
- * @param surface   Surface whose monitor list to search
- * @param wa_x      Unclipped workarea left edge
- * @param wa_y      Unclipped workarea top edge
- * @param wa_w      Unclipped workarea width
- * @param wa_h      Unclipped workarea height
- * @param sw        Unclipped screen bound width (right-edge origin)
- * @param sh        Unclipped screen bound height (bottom-edge origin)
- * @param point_x   X coordinate of the point to resolve a monitor for
- * @param point_y   Y coordinate of the point to resolve a monitor for
- * @param out_wa_x  Receives the clipped workarea left edge
- * @param out_wa_y  Receives the clipped workarea top edge
- * @param out_wa_w  Receives the clipped workarea width
- * @param out_wa_h  Receives the clipped workarea height
- * @param out_sw    Receives the resolved monitor's own right edge
- * @param out_sh    Receives the resolved monitor's own bottom edge
- *
- * @note Complexity: @e O(n), where @e n is the number of monitors
- *       on @p surface
- */
-static void s_resolve_monitor_bounds(surface_td *surface,
-        int32_t wa_x, int32_t wa_y, uint32_t wa_w, uint32_t wa_h,
-        uint32_t sw, uint32_t sh,
-        int32_t point_x, int32_t point_y,
-        int32_t *out_wa_x, int32_t *out_wa_y,
-        uint32_t *out_wa_w, uint32_t *out_wa_h,
-        uint32_t *out_sw, uint32_t *out_sh)
-{
-    struct geometry_s monitor;
-    struct geometry_s clipped;
-
-    *out_wa_x = wa_x;
-    *out_wa_y = wa_y;
-    *out_wa_w = wa_w;
-    *out_wa_h = wa_h;
-    *out_sw = sw;
-    *out_sh = sh;
-
-    if (surface == NULL || surface->monitor_count <= 1u) {
-        return;
-    }
-
-    monitor = surface_monitor_for_point(surface, point_x, point_y);
-    clipped = geom_intersect_rect(wa_x, wa_y, wa_w, wa_h,
-            monitor.pos.x, monitor.pos.y,
-            monitor.dim.w, monitor.dim.h);
-    if (clipped.dim.w == 0u || clipped.dim.h == 0u) {
-        return;
-    }
-
-    *out_wa_x = clipped.pos.x;
-    *out_wa_y = clipped.pos.y;
-    *out_wa_w = clipped.dim.w;
-    *out_wa_h = clipped.dim.h;
-    *out_sw = (uint32_t) monitor.pos.x + monitor.dim.w;
-    *out_sh = (uint32_t) monitor.pos.y + monitor.dim.h;
-}
 
 
 /* Apply the configured placement policy to a newly mapped client */
@@ -577,9 +602,10 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
              * pointer: it is meant to sit with its parent, wherever
              * that is, regardless of where the pointer happens to be
              * right now. */
-            s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
-                    sw, sh,
-                    new_x + (int32_t) (fw / 2u), new_y + (int32_t) (fh / 2u),
+            s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h, sw, sh,
+                    surface_monitor_for_point(surface,
+                            new_x + (int32_t) (fw / 2u),
+                            new_y + (int32_t) (fh / 2u)),
                     &t_wa_x, &t_wa_y, &t_wa_w, &t_wa_h, &t_sw, &t_sh);
             (void) t_wa_w; /* only the edges are needed here */
             (void) t_wa_h;
@@ -653,33 +679,18 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     }
 
     /* Clip the workarea (and the screen bound used for edge-clamping)
-     * down to whichever physical monitor is under the pointer, on a
-     * surface made of more than one: cascade, centered, and
-     * under-mouse below all score or clamp against these two, and
-     * without this they would do so against the whole combined area
-     * instead of one monitor.  Falls back to the unclipped values
-     * (identical to previous behavior) when there is only one
-     * monitor, the pointer query fails, or clipping would leave
-     * nothing to place into. */
-    mon_wa_x = wa_x;
-    mon_wa_y = wa_y;
-    mon_wa_w = wa_w;
-    mon_wa_h = wa_h;
-    mon_sw = sw;
-    mon_sh = sh;
-    if (surface->monitor_count > 1u) {
-        pointer_cookie = xcb_query_pointer(wm->connection,
-                surface->screen->root);
-        pointer_reply = xcb_query_pointer_reply(wm->connection,
-                pointer_cookie, NULL);
-        if (pointer_reply != NULL) {
-            s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
-                    sw, sh, pointer_reply->root_x, pointer_reply->root_y,
-                    &mon_wa_x, &mon_wa_y, &mon_wa_w, &mon_wa_h,
-                    &mon_sw, &mon_sh);
-            free(pointer_reply);
-        }
-    }
+     * down to whichever physical monitor 'windows.placement.monitor'
+     * resolves to, on a surface made of more than one: cascade,
+     * centered, and under-mouse below all score or clamp against
+     * these two, and without this they would do so against the whole
+     * combined area instead of one monitor.  Falls back to the
+     * unclipped values (identical to previous behavior) when there is
+     * only one monitor or clipping would leave nothing to place
+     * into. */
+    s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h, sw, sh,
+            s_reference_monitor(wm, surface,
+                    wm->config->base.windows.monitor_policy),
+            &mon_wa_x, &mon_wa_y, &mon_wa_w, &mon_wa_h, &mon_sw, &mon_sh);
 
     if (placed_as_sibling) {
         int32_t s_wa_x;
@@ -692,9 +703,10 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         /* Resolved from the offset position next to the anchor
          * sibling, not the pointer: a related window is meant to
          * stay with its group, wherever that is. */
-        s_resolve_monitor_bounds(surface, wa_x, wa_y, wa_w, wa_h,
-                sw, sh,
-                new_x + (int32_t) (fw / 2u), new_y + (int32_t) (fh / 2u),
+        s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h, sw, sh,
+                surface_monitor_for_point(surface,
+                        new_x + (int32_t) (fw / 2u),
+                        new_y + (int32_t) (fh / 2u)),
                 &s_wa_x, &s_wa_y, &s_wa_w, &s_wa_h, &s_sw, &s_sh);
         (void) s_wa_w; /* only the edges are needed here */
         (void) s_wa_h;

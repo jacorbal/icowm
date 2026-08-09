@@ -86,6 +86,10 @@ static struct {
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     enum config_systray_position_e position;
+    struct {
+        enum config_systray_monitor_anchor_e anchor;
+        uint32_t index;
+    } monitor;
     uint16_t height;
     enum config_systray_order_e order;
     enum config_systray_layer_e layer;
@@ -424,6 +428,53 @@ static void s_systray_restack(void)
 
 
 /**
+ * @brief Resolve the rectangle the tray dock's corner is anchored to
+ *
+ * Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
+ * @c s_tray.surface's own combined dimensions, exactly the previous,
+ * always-whole-surface behavior, treated as one virtual monitor
+ * spanning it (the same fallback @c s_surface_monitors_fallback uses
+ * when RandR itself cannot supply a real monitor list).  Under @c
+ * CONFIG_SYSTRAY_MONITOR_PRIMARY, returns whichever monitor RandR
+ * reports as primary.  Under @c CONFIG_SYSTRAY_MONITOR_INDEX, returns
+ * @c s_tray.monitor.index specifically (out of range falls back to
+ * monitor 0, logging a warning).
+ *
+ * @return The resolved anchor monitor
+ *
+ * @note Complexity: @e O(1)
+ */
+static monitor_td s_systray_anchor_rect(void)
+{
+    monitor_td rect = {.x = 0, .y = 0,
+        .w = s_tray.surface->properties.dim.w,
+        .h = s_tray.surface->properties.dim.h};
+
+    if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_PRIMARY) {
+        return surface_primary_monitor(s_tray.surface);
+    }
+
+    if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_INDEX) {
+        uint32_t idx = s_tray.monitor.index;
+
+        if (s_tray.surface->monitor_count == 0u) {
+            return rect;
+        }
+        if (idx >= s_tray.surface->monitor_count) {
+            LOGGER_WARNING("Systray targets monitor %u, which does" \
+                    " not exist on surface %u (%u monitor(s));" \
+                    " falling back to monitor 0", s_tray.monitor.index,
+                    s_tray.surface->id, s_tray.surface->monitor_count);
+            idx = 0u;
+        }
+        return s_tray.surface->monitors[idx];
+    }
+
+    return rect;
+}
+
+
+/**
  * @brief Reposition the tray window and lay out its docked icons
  *
  * Unmaps the tray window while empty or while the selection is not
@@ -445,6 +496,7 @@ static void s_systray_reflow(void)
     int16_t y = 0;
     int32_t border2;
     uint32_t geom_values[4];
+    monitor_td anchor;
 
     if (!s_tray.window_ready || s_tray.surface == NULL) {
         return;
@@ -477,29 +529,31 @@ static void s_systray_reflow(void)
     border2 = (s_tray.theme != NULL)
         ? (int32_t) (2u * s_tray.theme->systray.style.border.width) : 0;
 
+    anchor = s_systray_anchor_rect();
+
     switch (s_tray.position) {
         case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
-            x = 0;
-            y = 0;
+            x = (int16_t) anchor.x;
+            y = (int16_t) anchor.y;
             break;
 
         case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
-            x = 0;
-            y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
+            x = (int16_t) anchor.x;
+            y = (int16_t) (anchor.y + (int32_t) anchor.h -
                     (int32_t) h - border2);
             break;
 
         case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
-            x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
+            x = (int16_t) (anchor.x + (int32_t) anchor.w -
                     (int32_t) w - border2);
-            y = (int16_t) ((int32_t) s_tray.surface->properties.dim.h -
+            y = (int16_t) (anchor.y + (int32_t) anchor.h -
                     (int32_t) h - border2);
             break;
 
         case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
-            x = (int16_t) ((int32_t) s_tray.surface->properties.dim.w -
+            x = (int16_t) (anchor.x + (int32_t) anchor.w -
                     (int32_t) w - border2);
-            y = 0;
+            y = (int16_t) anchor.y;
             break;
     }
 
@@ -1053,6 +1107,8 @@ void systray_init(wm_td *wm)
     }
 
     s_tray.position = wm->config->base.systray.position;
+    s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
+    s_tray.monitor.index = wm->config->base.systray.monitor.index;
     s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
             SYSTRAY_ICON_SIZE)
         ? wm->config->theme.systray.height : SYSTRAY_ICON_SIZE);
@@ -1293,6 +1349,8 @@ void systray_reload(wm_td *wm)
 
     should_be_enabled = wm->config->base.systray.is_enabled;
     s_tray.position = wm->config->base.systray.position;
+    s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
+    s_tray.monitor.index = wm->config->base.systray.monitor.index;
     s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
             SYSTRAY_ICON_SIZE)
         ? wm->config->theme.systray.height : SYSTRAY_ICON_SIZE);

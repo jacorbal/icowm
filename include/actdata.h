@@ -51,9 +51,11 @@ typedef struct action_data_client_s {
 
     union {
         struct geometry_s geometry;
+        uint32_t uvalue;    /**< Generic unsigned value (e.g., target
+                                  monitor index for
+                                  @c ACTION_CLIENT_MOVE_TO_MONITOR) */
 /*
         int32_t svalue;
-        uint32_t uvalue;
 */
         struct {
             char *str0;

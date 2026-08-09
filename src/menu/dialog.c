@@ -17,7 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* popen, pclose */
+#include <stdio.h>      /* popen, pclose, snprintf */
 #include <string.h>     /* memcpy, memset */
 #include <time.h>       /* clock_gettime, struct timespec */
 
@@ -428,7 +428,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     s_confirm_selected = 0;
     s_confirm_callback = on_confirm;
 
-    menu_dialog_center(surface, s_confirm_layout.w,
+    menu_dialog_center(connection, surface, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
 
     /* XCB requires attribute values to be listed in ascending bit order
@@ -685,6 +685,10 @@ typedef struct {
                                                      wrapping */
     char lines[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LEN];
     uint8_t line_count;
+    uint8_t visible_lines;  /**< How many of 'lines' fit within 'h' at
+                                  once; the rest scroll */
+    uint8_t scroll_offset;  /**< Index into 'lines' of the first
+                                  currently visible line */
 } s_message_layout_td;
 
 
@@ -856,7 +860,58 @@ static void s_message_wrap_text(const char *raw,
  * @param layout     Layout structure containing input text and
  *                   receiving the computed dialog geometry
  */
+/**
+ * @brief Resolve the monitor a dialog should size and center itself
+ *        against
+ *
+ * Whichever monitor the pointer currently sits on, the same default
+ * @c CONFIG_PLACEMENT_MONITOR_POINTER uses for window placement,
+ * since a dialog has no window of its own to anchor a monitor
+ * resolution to the way client placement does.  Falls back to a
+ * monitor spanning the whole surface if the pointer query fails or
+ * @p surface has no monitors of its own.
+ *
+ * @param connection XCB connection, for the pointer query
+ * @param surface    Surface to resolve a monitor on
+ *
+ * @return The resolved monitor
+ *
+ * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
+ */
+static monitor_td s_resolve_dialog_monitor(xcb_connection_t *connection,
+        const surface_td *surface)
+{
+    xcb_query_pointer_cookie_t cookie;
+    xcb_query_pointer_reply_t *reply;
+    monitor_td monitor = {.x = 0, .y = 0, .w = 0u, .h = 0u};
+
+    if (surface == NULL) {
+        return monitor;
+    }
+
+    if (connection != NULL && surface->screen != NULL) {
+        cookie = xcb_query_pointer(connection, surface->screen->root);
+        reply = xcb_query_pointer_reply(connection, cookie, NULL);
+        if (reply != NULL) {
+            monitor = surface_monitor_for_point(surface,
+                    reply->root_x, reply->root_y);
+            free(reply);
+        }
+    }
+
+    if (monitor.w == 0u || monitor.h == 0u) {
+        monitor.x = 0;
+        monitor.y = 0;
+        monitor.w = surface->properties.dim.w;
+        monitor.h = surface->properties.dim.h;
+    }
+
+    return monitor;
+}
+
+
 static void s_message_compute_layout(xcb_connection_t *connection,
+        const surface_td *surface,
         const config_td *config, s_message_layout_td *layout)
 {
     uint16_t msg_w = 0u;
@@ -868,6 +923,9 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     uint16_t btn_text_h;
     uint16_t label_pad_x;
     uint16_t extra_lines_h;
+    uint16_t reserved_h;
+    uint16_t max_h;
+    monitor_td monitor;
 
     if (connection == NULL || config == NULL || layout == NULL) {
         return;
@@ -910,14 +968,49 @@ static void s_message_compute_layout(xcb_connection_t *connection,
                 ((uint16_t) layout->line_height + DIALOG_MSG_LINE_GAP))
         : 0u;
 
+    /* Everything the message area's own height competes with: the
+     * padding above it, the gap and button below it, and the bottom
+     * padding.  Used both to size the unclamped 'natural' height below
+     * and, if that would be too tall, to work out how much of it is
+     * actually left over for message lines once the monitor cap is
+     * applied. */
+    reserved_h = (uint16_t) (DIALOG_PROMPT_BASELINE_Y +
+            DIALOG_PROMPT_TO_BTN_GAP +
+            layout->btn_h +
+            DIALOG_PAD_BOTTOM);
+
     layout->w = s_u16max(DIALOG_MIN_W,
             s_u16max(msg_span_w, ok_span_w));
     layout->h = s_u16max(DIALOG_MIN_H,
-            (uint16_t) (DIALOG_PROMPT_BASELINE_Y +
-                extra_lines_h +
-                DIALOG_PROMPT_TO_BTN_GAP +
-                layout->btn_h +
-                DIALOG_PAD_BOTTOM));
+            (uint16_t) (reserved_h + extra_lines_h));
+
+    /* Cap the dialog to a fraction of its target monitor's own
+     * height, well short of covering it edge to edge, and scroll
+     * whatever does not fit instead of ever growing past that; see
+     * 's_message_draw' for how 'scroll_offset' and the one-line
+     * status/scroll-hint row it reserves when active are used. */
+    monitor = s_resolve_dialog_monitor(connection, surface);
+    max_h = (uint16_t) ((monitor.h * 70u) / 100u);
+    if (max_h > 0u && layout->h > max_h) {
+        uint16_t avail_lines_h;
+        uint16_t avail_lines;
+
+        layout->h = s_u16max(DIALOG_MIN_H, max_h);
+        avail_lines_h = (layout->h > reserved_h)
+            ? (uint16_t) (layout->h - reserved_h) : 0u;
+        avail_lines = (uint16_t) (avail_lines_h /
+                ((uint16_t) layout->line_height + DIALOG_MSG_LINE_GAP));
+        /* Reserve the last visible row for the "more above/below"
+         * status line whenever scrolling is actually needed (i.e.,
+         * whenever this branch is reached at all), so it never
+         * displaces a row of real content instead of sitting below
+         * it. */
+        layout->visible_lines = (avail_lines > 1u)
+            ? (uint8_t) (avail_lines - 1u) : 1u;
+    } else {
+        layout->visible_lines = layout->line_count;
+    }
+    layout->scroll_offset = 0u;
 
     layout->btn_x = (int16_t) ((layout->w - layout->btn_w) / 2u);
     layout->btn_y = (int16_t) ((int16_t) layout->h -
@@ -999,16 +1092,45 @@ static void s_message_draw(xcb_connection_t *connection,
      * same 'msg_x' (computed from the widest line) rather than being
      * individually re-centered, so the whole block reads as one
      * left-aligned paragraph rather than each line jittering
-     * sideways relative to the others. */
+     * sideways relative to the others.  Only 'visible_lines' worth of
+     * 'lines', starting at 'scroll_offset', are ever drawn: the rest
+     * exist off-screen in the buffer and are reached by scrolling. */
     text_renderer_init(connection, config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
-    for (uint8_t i = 0u; i < lo->line_count; ++i) {
-        int16_t line_y = (int16_t) (lo->msg_y +
-                (int16_t) i * (lo->line_height +
-                    (int16_t) DIALOG_MSG_LINE_GAP));
+    {
+        uint8_t shown = (uint8_t) (lo->line_count - lo->scroll_offset);
 
-        menu_draw_label(connection, s_message_window,
-                lo->msg_x, line_y, lo->lines[i]);
+        if (shown > lo->visible_lines) {
+            shown = lo->visible_lines;
+        }
+        for (uint8_t i = 0u; i < shown; ++i) {
+            int16_t line_y = (int16_t) (lo->msg_y +
+                    (int16_t) i * (lo->line_height +
+                        (int16_t) DIALOG_MSG_LINE_GAP));
+
+            menu_draw_label(connection, s_message_window,
+                    lo->msg_x, line_y, lo->lines[lo->scroll_offset + i]);
+        }
+
+        /* Scroll status/hint row, right below the last content row
+         * shown above: only drawn when there is more of the message
+         * than fits at once, i.e., exactly when 'visible_lines' was
+         * computed with room for this row reserved in the first
+         * place (see 's_message_compute_layout'). */
+        if (lo->line_count > lo->visible_lines) {
+            char status[DIALOG_MSG_LINE_MAX_LEN];
+            int16_t status_y = (int16_t) (lo->msg_y +
+                    (int16_t) shown * (lo->line_height +
+                        (int16_t) DIALOG_MSG_LINE_GAP));
+
+            (void) snprintf(status, sizeof(status),
+                    "-- %u-%u/%u: Up/Down, PgUp/PgDn, wheel --",
+                    (unsigned int) lo->scroll_offset + 1u,
+                    (unsigned int) lo->scroll_offset + shown,
+                    (unsigned int) lo->line_count);
+            menu_draw_label(connection, s_message_window,
+                    lo->msg_x, status_y, status);
+        }
     }
 
     /* OK label */
@@ -1074,9 +1196,10 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             sizeof(s_message_layout.raw_message) - 1u] = '\0';
     }
 
-    s_message_compute_layout(connection, config, &s_message_layout);
+    s_message_compute_layout(connection, surface, config,
+            &s_message_layout);
 
-    menu_dialog_center(surface, s_message_layout.w,
+    menu_dialog_center(connection, surface, s_message_layout.w,
             s_message_layout.h, &x, &y);
 
     /* XCB requires attribute values to be listed in ascending bit order
@@ -1164,6 +1287,37 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
 }
 
 
+/* Scroll the message dialog's text by the given number of lines */
+void menu_message_dialog_scroll(xcb_connection_t *connection,
+        const config_td *config, int32_t delta)
+{
+    s_message_layout_td *lo = &s_message_layout;
+    int32_t max_offset;
+    int32_t new_offset;
+
+    if (connection == NULL || config == NULL ||
+            s_message_window == XCB_WINDOW_NONE ||
+            lo->line_count <= lo->visible_lines) {
+        return;
+    }
+
+    max_offset = (int32_t) lo->line_count - (int32_t) lo->visible_lines;
+    new_offset = (int32_t) lo->scroll_offset + delta;
+    if (new_offset < 0) {
+        new_offset = 0;
+    } else if (new_offset > max_offset) {
+        new_offset = max_offset;
+    }
+
+    if ((uint8_t) new_offset == lo->scroll_offset) {
+        return;
+    }
+    lo->scroll_offset = (uint8_t) new_offset;
+
+    s_message_draw(connection, config);
+}
+
+
 /* Check if the message dialog is visible */
 bool menu_message_dialog_is_open(void)
 {
@@ -1179,10 +1333,24 @@ xcb_window_t menu_message_dialog_window(void)
 
 
 /* Centering helper */
-/* Compute centered coordinates for a dialog on a surface */
-void menu_dialog_center(const surface_td *surface,
+/**
+ * @brief Center a dialog of the given size on its target monitor
+ *
+ * @param connection XCB connection, for the pointer query
+ * @param surface    Surface to center within
+ * @param width      Dialog width in pixels
+ * @param height     Dialog height in pixels
+ * @param out_x      Receives the dialog's left edge
+ * @param out_y      Receives the dialog's top edge
+ *
+ * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
+ */
+void menu_dialog_center(xcb_connection_t *connection,
+        const surface_td *surface,
         uint16_t width, uint16_t height, int16_t *out_x, int16_t *out_y)
 {
+    monitor_td monitor;
+
     if (out_x == NULL || out_y == NULL) {
         return;
     }
@@ -1193,10 +1361,12 @@ void menu_dialog_center(const surface_td *surface,
         return;
     }
 
-    *out_x = (int16_t) ((surface->properties.dim.w > width)
-            ? (surface->properties.dim.w - width) / 2u : 0u);
-    *out_y = (int16_t) ((surface->properties.dim.h > height)
-            ? (surface->properties.dim.h - height) / 2u : 0u);
+    monitor = s_resolve_dialog_monitor(connection, surface);
+
+    *out_x = (int16_t) (monitor.x + (int32_t) ((monitor.w > width)
+            ? (monitor.w - width) / 2u : 0u));
+    *out_y = (int16_t) (monitor.y + (int32_t) ((monitor.h > height)
+            ? (monitor.h - height) / 2u : 0u));
 }
 
 

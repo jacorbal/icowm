@@ -127,6 +127,17 @@ static void s_event_handle_client(event_td *event)
             wcmd_client_center(client);
             break;
 
+        case ACTION_CLIENT_MOVE_NEXT_MONITOR:
+            wcmd_client_move_to_next_monitor(client);
+            break;
+
+        case ACTION_CLIENT_MOVE_TO_MONITOR:
+            if (client_data != NULL) {
+                wcmd_client_move_to_monitor(client,
+                        client_data->new_data.uvalue);
+            }
+            break;
+
         case ACTION_CLIENT_RESIZE:
             wcmd_client_resize(client, client_data);
             break;

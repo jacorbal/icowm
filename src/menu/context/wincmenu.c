@@ -70,6 +70,15 @@ typedef struct {
 } wincmenu_send_data_td;
 
 
+/**
+ * @brief Userdata structure passed to the "Send to monitor" callbacks
+ */
+typedef struct {
+    client_td *client;      /**< Target client */
+    uint32_t monitor_index; /**< Destination monitor index */
+} wincmenu_send_monitor_data_td;
+
+
 /** Singleton root menu state */
 static ctxmenu_state_td s_root;
 
@@ -82,6 +91,12 @@ static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 1];
 /** State for the "Send to desktop" child menu */
 static ctxmenu_state_td s_desk_state;
 
+/** Entries for the "Send to monitor" submenu */
+static ctxmenu_entry_td s_monitor_entries[WINCMENU_MAX_MONITORS];
+
+/** State for the "Send to monitor" child menu */
+static ctxmenu_state_td s_monitor_state;
+
 /** Entries for the "Layer" submenu */
 static ctxmenu_entry_td s_layer_entries[WINCMENU_LAYER_COUNT];
 
@@ -90,6 +105,10 @@ static ctxmenu_state_td s_layer_state;
 
 /** Per-desktop userdata pool for "Send to desktop" callbacks */
 static wincmenu_send_data_td s_send_data[WINCMENU_MAX_DESKTOPS + 1];
+
+/** Per-monitor userdata pool for "Send to monitor" callbacks */
+static wincmenu_send_monitor_data_td
+    s_send_monitor_data[WINCMENU_MAX_MONITORS];
 
 /** Pointer to the target client (valid while the menu is open) */
 static client_td *s_target_client = NULL;
@@ -142,6 +161,49 @@ static void s_cb_send_to_desktop(xcb_connection_t *connection,
             action, PRIORITY_NORMAL);
     if (event == NULL) {
         action_data_desktop_destroy(data);
+        return;
+    }
+    (void) eventq_add(event);
+}
+
+
+/**
+ * @brief Callback: send client to a specific monitor
+ *
+ * @param connection XCB connection (unused; dispatch is via event queue)
+ * @param userdata   Pointer to @c wincmenu_send_monitor_data_td
+ */
+static void s_cb_send_to_monitor(xcb_connection_t *connection,
+        void *userdata)
+{
+    wincmenu_send_monitor_data_td *d;
+    action_td action;
+    action_data_client_td *data;
+    event_td *event;
+
+    (void) connection;
+
+    if (userdata == NULL) {
+        return;
+    }
+    d = (wincmenu_send_monitor_data_td *) userdata;
+    if (d->client == NULL) {
+        return;
+    }
+
+    action.type = ACTION_TYPE_CLIENT;
+    action.object.client = ACTION_CLIENT_MOVE_TO_MONITOR;
+
+    data = action_data_client_init(d->client, action.object.client);
+    if (data == NULL) {
+        return;
+    }
+    data->new_data.uvalue = d->monitor_index;
+
+    event = event_init((void *) d->client, (void *) data,
+            action, PRIORITY_NORMAL);
+    if (event == NULL) {
+        action_data_client_destroy(data);
         return;
     }
     (void) eventq_add(event);
@@ -652,6 +714,60 @@ static int s_build_desk_entries(surface_td *surface,
 
 
 /**
+ * @brief Build the "Send to monitor" submenu entries
+ *
+ * @param surface Surface that owns the monitors
+ * @param client  Target client
+ *
+ * @return Number of entries filled in @a s_monitor_entries
+ *
+ * @note Complexity: @e O(n), where @e n is the number of monitors
+ */
+static int s_build_monitor_entries(surface_td *surface, client_td *client)
+{
+    int n = 0;
+    uint32_t m_idx;
+    monitor_td cur_monitor;
+    int32_t center_x;
+    int32_t center_y;
+    bool is_cur;
+
+    center_x = client->layout.geometry.cur.pos.x +
+        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
+    center_y = client->layout.geometry.cur.pos.y +
+        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
+    cur_monitor = surface_monitor_for_point(surface, center_x, center_y);
+
+    for (m_idx = 0; m_idx < surface->monitor_count &&
+            n < WINCMENU_MAX_MONITORS; ++m_idx) {
+        const monitor_td *m = &surface->monitors[m_idx];
+
+        is_cur = (m->x == cur_monitor.x &&
+                m->y == cur_monitor.y);
+
+        (void) snprintf(s_monitor_entries[n].label,
+                sizeof(s_monitor_entries[n].label),
+                "%s[%u] %ux%u @ %d,%d%s%s",
+                MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                m_idx, m->w, m->h, m->x, m->y,
+                (m_idx == surface->primary_monitor_index)
+                    ? " (primary)" : "",
+                MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+
+        s_monitor_entries[n].type = CTXMENU_COMMAND;
+        s_monitor_entries[n].is_disabled = is_cur;
+        s_send_monitor_data[n].client = client;
+        s_send_monitor_data[n].monitor_index = m_idx;
+        s_monitor_entries[n].on_activate = s_cb_send_to_monitor;
+        s_monitor_entries[n].userdata = &s_send_monitor_data[n];
+        ++n;
+    }
+
+    return n;
+}
+
+
+/**
  * @brief Build the @c Layer submenu entries
  *
  * @param client Target client (used to disable the current layer)
@@ -685,6 +801,7 @@ void wincmenu_show(xcb_connection_t *connection,
 {
     int n;
     int desk_count;
+    int monitor_count;
     bool can_restore;
     bool can_move;
     bool can_resize;
@@ -730,6 +847,20 @@ void wincmenu_show(xcb_connection_t *connection,
     s_desk_state.entries = s_desk_entries;
     s_desk_state.entry_count = desk_count;
 
+    /* Build "Send to monitor" submenu, only meaningful (and only
+     * shown at all, see below) on a surface with more than one
+     * monitor */
+    monitor_count = 0;
+    if (surface->monitor_count > 1u) {
+        memset(s_monitor_entries, 0, sizeof(s_monitor_entries));
+        monitor_count = s_build_monitor_entries(surface, client);
+
+        memset(&s_monitor_state, 0, sizeof(s_monitor_state));
+        s_monitor_state.window = XCB_WINDOW_NONE;
+        s_monitor_state.entries = s_monitor_entries;
+        s_monitor_state.entry_count = monitor_count;
+    }
+
     /* Build "Layer" submenu */
     memset(s_layer_entries, 0, sizeof(s_layer_entries));
     s_build_layer_entries(client);
@@ -751,6 +882,18 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].item_count = desk_count;
     s_entries[n].userdata = &s_desk_state;
     ++n;
+
+    /* Send to monitor (submenu); omitted entirely, not just disabled,
+     * on a surface with only one monitor */
+    if (monitor_count > 0) {
+        s_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_MONITOR,
+                sizeof(s_entries[n].label) - 1u);
+        s_entries[n].items = s_monitor_entries;
+        s_entries[n].item_count = monitor_count;
+        s_entries[n].userdata = &s_monitor_state;
+        ++n;
+    }
 
     /* Layer (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;

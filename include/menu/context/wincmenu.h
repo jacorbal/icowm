@@ -45,18 +45,30 @@
 #define WINCMENU_MAX_DESKTOPS (32)
 
 /**
+ * @brief Maximum number of monitors shown in the "Send to monitor"
+ *        submenu; matches @c WM_SURFACE_MAX_MONITORS, the real cap
+ *        on how many a surface can ever report
+ */
+#define WINCMENU_MAX_MONITORS (WM_SURFACE_MAX_MONITORS)
+
+/**
  * @brief Number of fixed entries in the "Layer" submenu
  */
 #define WINCMENU_LAYER_COUNT (3)
 
 /**
  * @brief Number of fixed top-level entries in the window context menu:
- *        TWO submenus (Send to desktop, Layer) + ONE separator + NINE
- *        commands (Restore, Move, Resize, Iconify, Hide, Maximize,
- *        Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
- *        ONE command (Close) = FOURTEEN total
+ *        THREE submenus (Send to desktop, Send to monitor, Layer) +
+ *        ONE separator + NINE commands (Restore, Move, Resize,
+ *        Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
+ *        Un/decorate) + ONE separator + ONE command (Close) = FIFTEEN
+ *        total.  "Send to monitor" only actually appears on a
+ *        surface with more than one monitor, so this counts it as
+ *        always present for a simple, constant capacity bound rather
+ *        than optimizing the array size for the common single-monitor
+ *        case.
  */
-#define WINCMENU_FIXED_ENTRIES (14)
+#define WINCMENU_FIXED_ENTRIES (15)
 
 /**
  * @brief Total top-level entry slots:

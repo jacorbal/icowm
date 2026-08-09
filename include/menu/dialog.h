@@ -146,17 +146,21 @@ typedef enum {
 
 /* Centering helper */
 /**
- * @brief Compute centered coordinates for a dialog on a surface
+ * @brief Compute centered coordinates for a dialog on its target
+ *        monitor
  *
+ * @param connection XCB connection, for the pointer query used to
+ *                    resolve which monitor to center on
  * @param surface Surface where the dialog will be shown
  * @param width   Dialog width in pixels
  * @param height  Dialog height in pixels
  * @param out_x   Receives centered X coordinate
  * @param out_y   Receives centered Y coordinate
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is @p surface's monitor count
  */
-void menu_dialog_center(const surface_td *surface,
+void menu_dialog_center(xcb_connection_t *connection,
+        const surface_td *surface,
         uint16_t width, uint16_t height, int16_t *out_x, int16_t *out_y);
 
 /**
@@ -385,6 +389,27 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
  */
 void menu_message_dialog_handle_click(xcb_connection_t *connection,
         int x, int y);
+
+/**
+ * @brief Scroll the message dialog's text by a number of lines
+ *
+ * A no-op when the whole message already fits without scrolling, when
+ * @p delta would not actually move @c scroll_offset (already at
+ * either end), or when the dialog is not open.  Repaints immediately
+ * when it does move.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration, for the repaint
+ * @param delta      Lines to scroll by; negative scrolls up (toward
+ *                   the start), positive scrolls down (toward the
+ *                   end).  Clamped to the valid range, so passing an
+ *                   arbitrarily large magnitude is a safe way to
+ *                   scroll all the way to either end in one call
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_message_dialog_scroll(xcb_connection_t *connection,
+        const config_td *config, int32_t delta);
 
 /**
  * @brief Query whether the message dialog is currently visible

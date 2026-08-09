@@ -38,6 +38,7 @@
 
 /* Per-window context menu (src/menu/context/wincmenu.c) */
 #define STR_WINCMENU_SEND_TO_DESKTOP       ("Send to desktop")
+#define STR_WINCMENU_SEND_TO_MONITOR       ("Send to monitor")
 #define STR_WINCMENU_LAYER                 ("Layer")
 #define STR_WINCMENU_LAYER_ALWAYS_ON_TOP    ("Always on top")
 #define STR_WINCMENU_LAYER_NORMAL           ("Normal")

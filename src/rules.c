@@ -92,9 +92,11 @@ static void s_rules_config_dir_set(const char *config_dir_prefix,
  * Removes @p client from the desktop pointed to by @p desktop_io, adds
  * it to the target desktop identified by @p apply->desktop, and updates
  * @p client->desktop_id and the EWMH @c _NET_WM_DESKTOP property.  If
- * the target desktop does not exist or is the same as the current one
- * the function returns without doing anything.  On failure to add the
- * client to the target desktop it is re-added to the original one.
+ * the target desktop does not exist, falls back to desktop 0 (logging
+ * a warning); if it is the same as the current one, or desktop 0 does
+ * not exist either, the function returns without doing anything.  On
+ * failure to add the client to the target desktop it is re-added to
+ * the original one.
  *
  * @param wm         Window manager instance (used for the connection
  *                   and EWMH handle)
@@ -122,7 +124,16 @@ static void s_rules_apply_desktop(wm_td *wm, client_td *client,
 
     cur = *desktop_io;
     target = surface_desktop_get(surface, apply->desktop);
-    if (target == NULL || target == cur) {
+    if (target == NULL) {
+        LOGGER_WARNING("Rule targets desktop %u, which does not" \
+                " exist on surface %u; falling back to desktop 0",
+                apply->desktop, surface->id);
+        target = surface_desktop_get(surface, 0u);
+        if (target == NULL) {
+            return;
+        }
+    }
+    if (target == cur) {
         return;
     }
 
@@ -177,23 +188,33 @@ static void s_rules_apply_layer(client_td *client,
 /**
  * @brief Apply the geometry rule to a client
  *
- * Position (@p apply->x, @p apply->y, or @p apply->position_centered)
- * and size (@p apply->w, @p apply->h) are applied independently: only
- * the fields that are flagged as present are touched.  When both are
- * set the behavior is identical to the previous all-or-nothing mode.
- * When the client has a decoration frame, the synchronisation helper is
- * called to keep the inner window aligned.  The function is a no-op
- * when neither @p apply->has_position nor @p apply->has_size is
- * @c true.
+ * Position (@p apply->x, @p apply->y, or @p apply->position_centered),
+ * size (@p apply->w, @p apply->h), and monitor (@p apply->monitor) are
+ * applied independently: only the fields flagged as present are
+ * touched.  When the client has a decoration frame, the
+ * synchronisation helper is called to keep the inner window aligned.
+ * The function is a no-op when none of @p apply->has_position, @p
+ * apply->has_size, or @p apply->has_monitor is @c true.
  *
  * Size is resolved before position so that a rule combining
  * @c ("position": "center") with an explicit @c size centers the client
  * at its @e new size, not whatever size it happened to have already been
  * placed at.
  *
+ * When @p apply->has_monitor is set, @p apply->monitor selects a
+ * monitor within @p surface's own monitor list (out of range falls
+ * back to monitor 0, logging a warning), and every position below
+ * becomes relative to that monitor's own top-left corner instead of
+ * the whole surface's: explicit @c x/@c y are offset by it, and
+ * centering targets that monitor instead of the whole surface.  A
+ * rule that sets @c monitor without an explicit @c position centers
+ * on that monitor by default, since otherwise @c monitor alone would
+ * have no visible effect at all.
+ *
  * @param connection XCB connection used to send the configure request
  * @param surface    Surface the client is on, used to compute the
- *                   center point for @p apply->position_centered
+ *                   center point for @p apply->position_centered and
+ *                   to resolve @p apply->monitor
  * @param client     Client whose geometry is to be set
  * @param apply      Action descriptor
  *
@@ -214,8 +235,10 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     int32_t y = 0;
     bool set_pos = false;
     bool set_size = false;
+    bool has_monitor = false;
+    monitor_td monitor_rect = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 
-    if (!apply->has_position && !apply->has_size) {
+    if (!apply->has_position && !apply->has_size && !apply->has_monitor) {
         return;
     }
 
@@ -231,18 +254,43 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         set_size = true;
     }
 
-    if (apply->has_position) {
-        if (apply->position_centered && surface != NULL) {
-            uint32_t screen_w = surface->properties.dim.w;
-            uint32_t screen_h = surface->properties.dim.h;
+    if (apply->has_monitor && surface != NULL &&
+            surface->monitor_count > 0u) {
+        uint32_t monitor_idx = apply->monitor;
 
-            x = (screen_w > width)
-                ? (int32_t) ((screen_w - width) / 2u) : 0;
-            y = (screen_h > height)
-                ? (int32_t) ((screen_h - height) / 2u) : 0;
+        if (monitor_idx >= surface->monitor_count) {
+            LOGGER_WARNING("Rule targets monitor %u, which does not" \
+                    " exist on surface %u (%u monitor(s)); falling" \
+                    " back to monitor 0", apply->monitor, surface->id,
+                    surface->monitor_count);
+            monitor_idx = 0u;
+        }
+        monitor_rect = surface->monitors[monitor_idx];
+        has_monitor = true;
+    }
+
+    if (apply->has_position || has_monitor) {
+        bool center = apply->has_position ? apply->position_centered
+            : true;
+
+        if (center) {
+            uint32_t area_w = has_monitor ? monitor_rect.w
+                : (surface != NULL ? surface->properties.dim.w : 0u);
+            uint32_t area_h = has_monitor ? monitor_rect.h
+                : (surface != NULL ? surface->properties.dim.h : 0u);
+
+            x = (area_w > width)
+                ? (int32_t) ((area_w - width) / 2u) : 0;
+            y = (area_h > height)
+                ? (int32_t) ((area_h - height) / 2u) : 0;
         } else {
             x = apply->x;
             y = (apply->y < 0) ? 0 : apply->y;
+        }
+
+        if (has_monitor) {
+            x += monitor_rect.x;
+            y += monitor_rect.y;
         }
 
         client->layout.geometry.cur.pos.x = x;
@@ -475,6 +523,12 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             rule->apply.desktop = (uint32_t) item->valueint;
         }
 
+        item = json_get_item(apply_json, "monitor");
+        if (cJSON_IsNumber(item) && item->valueint >= 0) {
+            rule->apply.has_monitor = true;
+            rule->apply.monitor = (uint32_t) item->valueint;
+        }
+
         item = json_get_item(apply_json, "layer");
         if (cJSON_IsString(item) && item->valuestring != NULL) {
             rule->apply.has_layer = true;
@@ -579,6 +633,10 @@ bool rules_apply(wm_td *wm, client_td *client,
             merged.has_desktop = true;
             merged.desktop = rule->apply.desktop;
         }
+        if (rule->apply.has_monitor) {
+            merged.has_monitor = true;
+            merged.monitor = rule->apply.monitor;
+        }
         if (rule->apply.has_layer) {
             merged.has_layer = true;
             merged.layer = rule->apply.layer;
@@ -640,9 +698,9 @@ bool rules_apply(wm_td *wm, client_td *client,
                 client, true, wm->config);
     }
 
-    changed = merged.has_desktop || merged.has_layer ||
-        merged.has_focus || merged.has_position || merged.has_size ||
-        merged.has_sticky || merged.has_decorated;
+    changed = merged.has_desktop || merged.has_monitor ||
+        merged.has_layer || merged.has_focus || merged.has_position ||
+        merged.has_size || merged.has_sticky || merged.has_decorated;
 
     return changed;
 }

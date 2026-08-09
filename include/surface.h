@@ -38,6 +38,7 @@
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
+#include <monitor.h>
 
 /* Default initial values */
 #include <defs/surface.h>
@@ -112,8 +113,12 @@ typedef struct surface_s {
      * whole combined area (every monitor sharing this one X screen,
      * the common case in a modern multi-monitor setup) as one block.
      */
-    struct geometry_s monitors[WM_SURFACE_MAX_MONITORS];
+    monitor_td monitors[WM_SURFACE_MAX_MONITORS];
     uint32_t monitor_count;         /**< No. of entries in 'monitors' */
+    uint32_t primary_monitor_index; /**< Index into 'monitors' RandR
+                                         reports as primary, or 0 (the
+                                         first monitor) if none was
+                                         flagged */
 
     config_td *config;              /**< Configuration */
 
@@ -207,7 +212,7 @@ void surface_refresh_monitors(surface_td *surface);
  * @param x       X coordinate, in the surface's own space
  * @param y       Y coordinate, in the surface's own space
  *
- * @return Geometry of the containing monitor, or, if the point falls
+ * @return The containing monitor, or, if the point falls
  *         outside every known monitor (e.g., a stale coordinate after
  *         a monitor was unplugged), the closest one by center-point
  *         distance.  Spans the whole surface if @p surface has no
@@ -215,8 +220,23 @@ void surface_refresh_monitors(surface_td *surface);
  *
  * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
  */
-struct geometry_s surface_monitor_for_point(const surface_td *surface,
+monitor_td surface_monitor_for_point(const surface_td *surface,
         int32_t x, int32_t y);
+
+/**
+ * @brief Get the surface's primary monitor, if RandR flagged one
+ *
+ * @param surface Pointer to the surface to query
+ *
+ * @return The monitor RandR reports as primary.  Falls
+ *         back to @p surface->monitors[0] if none was flagged as
+ *         primary, and to a monitor spanning the whole surface if
+ *         @p surface has no monitors of its own or @p surface is
+ *         @c NULL.
+ *
+ * @note Complexity: @e O(1)
+ */
+monitor_td surface_primary_monitor(const surface_td *surface);
 
 /**
  * @brief Add a new desktop to the list

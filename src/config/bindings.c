@@ -153,6 +153,9 @@ int config_load_bindings(const char *filename,
             json_load_string(window, "maximize",
                     config_bindings->keyboard.window.maximize,
                     CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "next-monitor",
+                    config_bindings->keyboard.window.next_monitor,
+                    CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "pin",
                     config_bindings->keyboard.window.pin,
                     CONFIG_MAX_LENGTH_BINDING);

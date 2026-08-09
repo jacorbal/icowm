@@ -497,13 +497,21 @@ void wcmd_client_iconify(client_td *client)
             uint16_t screen_h;
             int16_t ix;
             int16_t iy;
+            int32_t mx = 0;
+            int32_t my = 0;
+            monitor_td monitor;
             enum config_icon_placement_e policy =
                 CONFIG_ICON_PLACEMENT_BOTTOM;
 
             screen_w = 1024u;
             screen_h = 768u;
 
-            if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
+            if (wcmd_client_monitor(client, NULL, &monitor)) {
+                mx = monitor.x;
+                my = monitor.y;
+                screen_w = geom_clamp_dim((int32_t) monitor.w);
+                screen_h = geom_clamp_dim((int32_t) monitor.h);
+            } else if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
                 /* dimensions updated */
             }
 
@@ -530,6 +538,13 @@ void wcmd_client_iconify(client_td *client)
                         WM_ICON_SQUARE_SIZE, icon_h_out,
                         screen_w, screen_h,
                         &ix, &iy);
+                /* 'place_icon' works in a (0,0)-relative coordinate
+                 * space bounded by 'screen_w'/'screen_h' alone; offset
+                 * by the target monitor's own origin so the icon lands
+                 * on that monitor within the combined surface, not
+                 * always in its top-left corner. */
+                ix = (int16_t) (ix + mx);
+                iy = (int16_t) (iy + my);
                 client->icon_x = ix;
                 client->icon_y = iy;
             }

@@ -537,9 +537,13 @@ int surface_action_set_resolution(surface_td *surface,
     free(res_reply);
 
     /* The resulting 'XCB_RANDR_SCREEN_CHANGE_NOTIFY' event will trigger
-     * surface_resize and 'surface_refresh_workareas' via the event
-     * loop; mark outdated proactively to keep the frame rate smooth */
+     * 'surface_refresh_workareas' via the event loop too; 'surface_
+     * resize' and 'surface_refresh_monitors' are called proactively
+     * here instead of waiting for that round-trip, to keep the frame
+     * rate smooth and avoid a window where 'surface->monitors' still
+     * reflects the pre-change layout */
     surface_resize(surface, resolution.w, resolution.h);
+    surface_refresh_monitors(surface);
     surface->is_outdated = true;
 
     return 0;
@@ -620,6 +624,12 @@ int surface_action_set_orientation(surface_td *surface, int orientation)
     surface->randr.rotation = rotation;
     free(cfg_reply);
 
+    /* A rotation swaps width and height entirely, so 'surface->
+     * monitors' is refreshed proactively here too, for the same
+     * reason 'surface_action_set_resolution' does: to avoid a window
+     * where it still reflects the pre-rotation layout while waiting
+     * for the 'XCB_RANDR_SCREEN_CHANGE_NOTIFY' round-trip */
+    surface_refresh_monitors(surface);
     surface->is_outdated = true;
 
     return 0;

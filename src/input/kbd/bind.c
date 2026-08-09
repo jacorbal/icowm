@@ -269,6 +269,29 @@ static bool s_parse_binding(const config_td *config,
 }
 
 
+/**
+ * @brief Check whether any surface has more than one physical monitor
+ *
+ * @param surfaces List of surfaces to check
+ *
+ * @return @c true if at least one surface has more than one monitor
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static bool s_any_surface_has_multiple_monitors(list_td *surfaces)
+{
+    for (list_item_td *node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *surface = (surface_td *) list_data(node);
+
+        if (surface != NULL && surface->monitor_count > 1u) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /* Parse configured key bindings and install passive grabs */
 void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const config_td *config)
@@ -310,6 +333,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_KILL },
         { config->bindings.keyboard.window.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
+        { config->bindings.keyboard.window.next_monitor,
+          KEYBIND_CLIENT_MOVE_NEXT_MONITOR },
         { config->bindings.keyboard.window.shade,
           KEYBIND_CLIENT_SHADE },
         { config->bindings.keyboard.window.fullscreen,
@@ -429,6 +454,16 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
     uint16_t emergency_modmask = 0;
 
+    /* Resolved up front too: whether the "move to next monitor" grab
+     * below is worth installing at all.  This is a global check (any
+     * surface with more than one monitor unlocks it everywhere), not
+     * a genuinely per-surface one, since every grab in this function
+     * is already installed on every surface uniformly; a surface with
+     * only one monitor sitting alongside another with several is rare
+     * enough not to be worth restructuring the grab loop over. */
+    bool has_multi_monitor_surface =
+        s_any_surface_has_multiple_monitors(surfaces);
+
     s_keybindings_count = 0;
 
     /* Release every key grab this window manager previously made on
@@ -479,6 +514,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * disabled in configuration */
         if (defs[i].type == KEYBIND_WM_FORTUNE &&
                 !config->base.enable_fortune_shortcut) {
+            continue;
+        }
+
+        /* Skip the "move to next monitor" grab the same way, when no
+         * surface actually has more than one monitor to move to; see
+         * 'has_multi_monitor_surface' above */
+        if (defs[i].type == KEYBIND_CLIENT_MOVE_NEXT_MONITOR &&
+                !has_multi_monitor_surface) {
             continue;
         }
 

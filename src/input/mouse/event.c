@@ -42,6 +42,7 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog.h>
 #include <menu/dialog/info.h>
 #include <menu/dialog/quit.h>
 #include <menu/popup.h>
@@ -663,8 +664,16 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
     if (dialog_info_is_open()) {
         if (event->event == dialog_info_window() ||
                 event->child == dialog_info_window()) {
-            dialog_info_handle_click(connection,
-                    (int) event->event_x, (int) event->event_y);
+            if ((xcb_button_index_t) event->detail ==
+                    XCB_BUTTON_INDEX_4) {
+                menu_message_dialog_scroll(connection, config, -3);
+            } else if ((xcb_button_index_t) event->detail ==
+                    XCB_BUTTON_INDEX_5) {
+                menu_message_dialog_scroll(connection, config, 3);
+            } else {
+                dialog_info_handle_click(connection,
+                        (int) event->event_x, (int) event->event_y);
+            }
         }
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);

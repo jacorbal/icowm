@@ -48,6 +48,12 @@ enum action_client_e {
     ACTION_CLIENT_RESIZE,               /**< Resize window */
     ACTION_CLIENT_MOVE,                 /**< Move window */
     ACTION_CLIENT_CENTER,               /**< Center window */
+    ACTION_CLIENT_MOVE_NEXT_MONITOR,    /**< Move window to the next
+                                              monitor */
+    ACTION_CLIENT_MOVE_TO_MONITOR,      /**< Move window to a specific
+                                              monitor index, carried in
+                                              @c action_data_client_td's
+                                              @c new_data.uvalue */
     ACTION_CLIENT_RECLASS,              /**< Change window class */
     ACTION_CLIENT_REROLE,               /**< Change window role */
     ACTION_CLIENT_RENAME,               /**< Rename window */

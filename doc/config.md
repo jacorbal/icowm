@@ -271,10 +271,11 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 
 #### `windows.placement`
 
-| Key                         | Type    | Default   | Description |
-|-----------------------------|---------|-----------|-------------|
-| `placement.policy`          | string  | `"smart"` | How newly mapped windows are placed. |
-| `placement.group-related`   | boolean | `true`    | Cluster windows of the same application together. |
+| Key                         | Type    | Default        | Description |
+|-----------------------------|---------|----------------|-------------|
+| `placement.policy`          | string  | `"smart"`      | How newly mapped windows are placed. |
+| `placement.monitor`         | string  | `"pointer"`    | Which physical monitor a placement decision targets, on a surface with more than one. |
+| `placement.group-related`   | boolean | `true`         | Cluster windows of the same application together. |
 
 Accepted placement policy values:
 
@@ -285,8 +286,22 @@ Accepted placement policy values:
 | `"under-mouse"` | Places the window under the current pointer position. |
 | `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 
+Accepted placement monitor values (only meaningful on a surface made up
+of more than one physical monitor sharing the same combined X screen;
+has no effect otherwise):
+
+| Value       | Behavior |
+|-------------|----------|
+| `"pointer"` | Targets whichever monitor the pointer is currently on: not necessarily where on that monitor the pointer actually is, only which one it is on, so the window can still land far from the cursor within it depending on `placement.policy`. |
+| `"primary"` | Always targets the monitor RandR reports as primary. |
+
 Transient (dialog) windows are always centered over their parent window,
-regardless of this setting.
+regardless of `placement.policy`, and windows clustered by
+`group-related` (below) are always placed next to the sibling they are
+grouped with; both also always target whichever monitor that parent or
+sibling is actually on, regardless of `placement.monitor`, since neither
+case is about picking a monitor for a window with no better signal to
+go on -- they already have one.
 
 When `group-related` is `true` (the default), a newly mapped window
 whose `WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
@@ -306,6 +321,7 @@ name.
 "windows": {
     "placement": {
         "policy": "smart",
+        "monitor": "pointer",
         "group-related": true
     }
 }
@@ -458,12 +474,42 @@ under the pointer in that case.
 |----------------------|---------|--------------------|
 | `systray.is-enabled` | boolean | `false`            |
 | `systray.position`   | string  | `"top-right"`      |
+| `systray.monitor`    | object  | see below          |
 | `systray.order`      | string  | `"left-to-right"`  |
 | `systray.layer`      | string  | `"below"`          |
 
 Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
 `"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
-selects which corner of the first managed screen it docks in.
+selects which corner it docks in; which area that corner is measured
+against is `monitor`'s job, described next.
+
+`monitor` selects which physical monitor `position`'s corner is
+measured against, on a surface made up of more than one sharing the
+same combined X screen; it has no effect otherwise.  It is an object
+with an `anchor` field and, only when `anchor` is `"index"`, an
+`index` field:
+
+| Value            | Behavior |
+|------------------|----------|
+| `"surface"`      | Measures `position` against the whole combined surface, exactly as if there were only one monitor (default). |
+| `"primary"`      | Measures `position` against whichever monitor RandR reports as primary. |
+| `"index"`        | Measures `position` against `monitor.index` specifically, a zero-based index into that surface's own monitor list.  Falls back to monitor `0` if it does not exist, logging a warning. |
+
+```json
+"systray": {
+    "is-enabled": true,
+    "position": "top-right",
+    "monitor": { "anchor": "primary" }
+}
+```
+
+Only one tray dock ever exists at a time, regardless of `monitor`: the
+`_NET_SYSTEM_TRAY_Sn` manager selection this implements is one per
+screen by its own specification (see below), so a genuinely
+independent tray dock per monitor, each accepting its own icons, is
+not something any implementation of this protocol can offer, IcoWM
+included.  `monitor` only changes which single monitor the one dock
+IcoWM does provide sits on.
 
 The key `order` controls where a newly docked icon is placed relative to
 the ones already there: `"left-to-right"` appends it after the last
@@ -711,6 +757,7 @@ Actions performed on the currently focused window.
 | `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
 | `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
+| `next-monitor` | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
 | `fullscreen`   | `modc+mod1+f`           | Toggle true fullscreen mode. |
 | `shade`        | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
 | `pin`          | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
@@ -1612,14 +1659,15 @@ matching rule for each property are applied.
 
 | Key                     | Type                 | Default | Description |
 |-------------------------|----------------------|---------|-------------|
-| `apply.desktop`         | integer              | unset   | Zero-based desktop index to move the window to. |
-| `apply.layer`           | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`. |
+| `apply.desktop`         | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
+| `apply.monitor`         | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `apply.layer`           | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
 | `apply.focus`           | boolean              | unset   | Whether the matched window should receive focus. |
 | `apply.sticky`          | boolean              | unset   | Whether the window should be visible on all desktops. |
 | `apply.decorated`       | boolean              | unset   | Whether the window should keep its decorations. |
 | `apply.position`        | object or `"center"` | unset   | Where to place the window; see below. |
-| `apply.position.x`      | integer              | unset   | Absolute X position in pixels (when `position` is an object). |
-| `apply.position.y`      | integer              | unset   | Absolute Y position in pixels (when `position` is an object). |
+| `apply.position.x`      | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
+| `apply.position.y`      | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
 | `apply.size.width`      | integer              | unset   | Window width in pixels; must be greater than `0`. |
 | `apply.size.height`     | integer              | unset   | Window height in pixels; must be greater than `0`. |
 
@@ -1642,6 +1690,36 @@ a fixed point:
 
 Combining `"position": "center"` with a `size` object centers the window
 at that new size, not whatever size it happened to already have.
+
+`monitor` selects one physical monitor within the window's own surface
+(only meaningful on a surface made up of more than one monitor sharing
+the same combined X screen; not named `screen`, since this project's
+own `screens[]`/`screen_id` terminology refers to a whole X screen, and
+this codebase has no notion of moving a window to a *different* surface
+at all, so a field with that name would misleadingly suggest a
+capability that does not exist).  It changes what `position` is
+relative to rather than being a placement action of its own: explicit
+`x`/`y` become offsets from that monitor's own top-left corner instead
+of the whole surface's, and `"center"` centers on that monitor instead
+of the whole surface.  A rule that sets `monitor` without also setting
+`position` still centers the window on that monitor by default, since
+otherwise `monitor` alone would have no visible effect at all:
+
+```json
+"apply": {
+    "monitor": 1
+}
+```
+
+```json
+"apply": {
+    "monitor": 1,
+    "position": { "x": 20, "y": 20 }
+}
+```
+
+The second example places the window 20 pixels from the top-left corner
+of monitor `1`, not of the whole surface.
 
 ## 7. `session.json` -- Session lifecycle hooks
 

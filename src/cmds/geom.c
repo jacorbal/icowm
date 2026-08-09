@@ -21,9 +21,6 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/sync.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
 /* Default initial values */
 #include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
@@ -31,10 +28,10 @@
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <surface.h>
 #include <utils/geom.h>
 #include <wm.h>
-#include <wm/internal.h>     /* the global 'wm' singleton */
 
 /* Local includes */
 #include <cmds/ccmd.h>
@@ -71,13 +68,24 @@ void wcmd_client_center(client_td *client)
 {
     uint16_t sw;
     uint16_t sh;
+    int32_t mx = 0;
+    int32_t my = 0;
     int32_t x;
     int32_t y;
     xcb_window_t target;
+    monitor_td monitor;
 
     if (client == NULL || client_is_maximized(client) ||
-            client_is_fullscreen(client) ||
-            !wcmd_screen_dim(client, &sw, &sh)) {
+            client_is_fullscreen(client)) {
+        return;
+    }
+
+    if (wcmd_client_monitor(client, NULL, &monitor)) {
+        mx = monitor.x;
+        my = monitor.y;
+        sw = geom_clamp_dim((int32_t) monitor.w);
+        sh = geom_clamp_dim((int32_t) monitor.h);
+    } else if (!wcmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
@@ -90,6 +98,8 @@ void wcmd_client_center(client_td *client)
     if (y < 0) {
         y = 0;
     }
+    x += mx;
+    y += my;
 
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
@@ -97,6 +107,107 @@ void wcmd_client_center(client_td *client)
     client->layout.geometry.cur.pos.x = x;
     client->layout.geometry.cur.pos.y = y;
     client->rule_position_locked = false;
+}
+
+
+/* Move the client to a specific monitor on its own surface */
+void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
+{
+    surface_td *surface = NULL;
+    monitor_td cur_monitor;
+    monitor_td target_monitor;
+    xcb_window_t target;
+    int32_t new_x;
+    int32_t new_y;
+    uint32_t idx;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (!wcmd_client_monitor(client, &surface, &cur_monitor) ||
+            surface == NULL || surface->monitor_count == 0u) {
+        return;
+    }
+
+    idx = monitor_index;
+    if (idx >= surface->monitor_count) {
+        LOGGER_WARNING("Move-to-monitor targets monitor %u, which" \
+                " does not exist on surface %u (%u monitor(s));" \
+                " falling back to monitor 0", monitor_index,
+                surface->id, surface->monitor_count);
+        idx = 0u;
+    }
+    target_monitor = surface->monitors[idx];
+
+    if (target_monitor.x == cur_monitor.x &&
+            target_monitor.y == cur_monitor.y) {
+        return;
+    }
+
+    new_x = client->layout.geometry.cur.pos.x -
+        cur_monitor.x + target_monitor.x;
+    new_y = client->layout.geometry.cur.pos.y -
+        cur_monitor.y + target_monitor.y;
+
+    /* Clamp so the window stays fully on the target monitor even if
+     * it is smaller than the one the client came from */
+    if (new_x < target_monitor.x) {
+        new_x = target_monitor.x;
+    } else if ((uint32_t) (new_x - target_monitor.x) +
+            client->layout.geometry.cur.dim.w > target_monitor.w) {
+        new_x = (target_monitor.w > client->layout.geometry.cur.dim.w)
+            ? target_monitor.x + (int32_t) (target_monitor.w -
+                    client->layout.geometry.cur.dim.w)
+            : target_monitor.x;
+    }
+    if (new_y < target_monitor.y) {
+        new_y = target_monitor.y;
+    } else if ((uint32_t) (new_y - target_monitor.y) +
+            client->layout.geometry.cur.dim.h > target_monitor.h) {
+        new_y = (target_monitor.h > client->layout.geometry.cur.dim.h)
+            ? target_monitor.y + (int32_t) (target_monitor.h -
+                    client->layout.geometry.cur.dim.h)
+            : target_monitor.y;
+    }
+
+    target = wcmd_target_win(client);
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+            (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
+    client->layout.geometry.cur.pos.x = new_x;
+    client->layout.geometry.cur.pos.y = new_y;
+    client->rule_position_locked = false;
+    wm_request_client_redraw(client);
+}
+
+
+/* Move the client to the next monitor on its own surface */
+void wcmd_client_move_to_next_monitor(client_td *client)
+{
+    surface_td *surface = NULL;
+    monitor_td cur_monitor;
+    uint32_t cur_idx = 0u;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (!wcmd_client_monitor(client, &surface, &cur_monitor) ||
+            surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == cur_monitor.x &&
+                surface->monitors[i].y == cur_monitor.y) {
+            cur_idx = i;
+            break;
+        }
+    }
+
+    wcmd_client_move_to_monitor(client,
+            (cur_idx + 1u) % surface->monitor_count);
 }
 
 
@@ -381,27 +492,15 @@ static bool s_client_monitor_workarea(client_td *client,
 {
     surface_td *surface = NULL;
     desktop_td *desktop;
-    struct geometry_s monitor;
+    monitor_td monitor;
     struct geometry_s clipped;
-    int32_t center_x;
-    int32_t center_y;
     uint32_t did;
 
-    if (client == NULL || out_w == NULL || out_h == NULL ||
-            wm == NULL || wm->surfaces == NULL) {
+    if (client == NULL || out_w == NULL || out_h == NULL) {
         return false;
     }
 
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *s = (surface_td *) list_data(node);
-
-        if (s != NULL && s->id == client->screen_id) {
-            surface = s;
-            break;
-        }
-    }
-    if (surface == NULL) {
+    if (!wcmd_client_monitor(client, &surface, &monitor)) {
         return false;
     }
 
@@ -413,17 +512,11 @@ static bool s_client_monitor_workarea(client_td *client,
         return false;
     }
 
-    center_x = client->layout.geometry.cur.pos.x +
-        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
-    center_y = client->layout.geometry.cur.pos.y +
-        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    monitor = surface_monitor_for_point(surface, center_x, center_y);
-
     clipped = geom_intersect_rect(
             desktop->workarea.pos.x, desktop->workarea.pos.y,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
-            monitor.pos.x, monitor.pos.y,
-            monitor.dim.w, monitor.dim.h);
+            monitor.x, monitor.y,
+            monitor.w, monitor.h);
     if (clipped.dim.w == 0u || clipped.dim.h == 0u) {
         return false;
     }

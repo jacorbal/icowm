@@ -107,8 +107,8 @@ int rules_load(rules_td *rules, const char *config_dir_prefix);
  * all entries that match the client's current properties and whose
  * @c when condition is compatible with @p trigger.  Later rules take
  * precedence for each individual field.  The merged action set is then
- * applied: desktop assignment, stacking layer, geometry, flags, and
- * focus.
+ * applied: desktop assignment, monitor assignment, stacking layer,
+ * geometry, flags, and focus.
  *
  * @param wm         Pointer to the window manager singleton instance
  * @param client     Client to evaluate rules against
