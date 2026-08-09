@@ -1,0 +1,12 @@
+{
+    "on-start": [
+        "xsetbg -fullscreen ~/.background",
+        "redshift-gtk"
+    ],
+    "on-reload": [
+        "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
+    ],
+    "on-exit": [
+        "notify-send -e -i 'exit' 'IcoWM' 'Shutting down session hooks'"
+    ]
+}

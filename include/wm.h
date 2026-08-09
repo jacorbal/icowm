@@ -160,6 +160,31 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         uint32_t restricted_memory_mib);
 
 /**
+ * @brief Warn through a message dialog if any JSON file loaded since
+ *        the last call to @c json_syntax_errors_reset failed to
+ *        parse
+ *
+ * A no-op if @c json_syntax_errors_count is @c 0 (see @c utils/
+ * config/json.h): a JSON file simply not existing is an ordinary,
+ * silent reason to fall back to defaults, and produces no entry there
+ * at all, only a file that was found but could not actually be
+ * parsed does.  One combined warning dialog lists every such file
+ * recorded since the last reset, rather than one dialog per file.
+ * Also a no-op if the singleton window manager instance is not
+ * running, or has no surface to show the dialog on.
+ *
+ * Once shown, the recorded list is cleared (see @c json_syntax_
+ * errors_reset), so calling this again without a fresh @c config_
+ * load or @c menujson_load in between finds nothing left to warn
+ * about; a menu.json still broken the next time the root menu is
+ * opened records and warns about it again on its own.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of files
+ *       recorded
+ */
+void wm_warn_json_syntax_errors(void);
+
+/**
  * @brief Destroy window manager instance
  *
  * Deallocates the memory used by the @p wm_td structure, including the

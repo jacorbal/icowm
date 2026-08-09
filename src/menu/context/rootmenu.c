@@ -162,6 +162,12 @@ void rootmenu_show(xcb_connection_t *connection,
     /* Try to load entries from the JSON file (failure is non-fatal) */
     (void) menujson_load(menu_path, &json_entries, &json_count);
 
+    /* A no-op unless 'menu_path' was actually found but failed to
+     * parse; see 'wm_warn_json_syntax_errors' itself for why this is
+     * safe to call every time the root menu opens, not just the first
+     * time it is broken. */
+    wm_warn_json_syntax_errors();
+
     /* Total entries: JSON entries + footer */
     /* The leading separator is only added when JSON entries are present
      * so the footer is not preceded by a bare separator when

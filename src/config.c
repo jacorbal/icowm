@@ -157,13 +157,16 @@ void config_set_default_values(config_td *config,
          * ordinary default when nothing else about this mode changes
          * desktop count's effect on memory use directly; see this
          * function's own doc comment in config.h), unless
-         * 'CONFIG_MAX_DESKTOPS' itself is smaller than that.  A
-         * 'config.json' that specifies its own 'desktops.count'
-         * still overrides whichever of the two this leaves in place,
-         * since 'config_load_base' runs after this and simply
-         * replaces it. */
+         * 'CONFIG_MAX_DESKTOPS' itself is smaller than that.  Purely
+         * a fallback for when nothing else specifies a count at all:
+         * a 'config.json' that specifies its own 'desktops.count'
+         * always overrides this default, restricted-memory mode
+         * included, since 'config_load_base' runs after this and
+         * simply replaces it; nothing caps that value back down
+         * afterward. */
         uint32_t desktop_default =
-            (restricted_memory_mib > 0u) ? 2u : 4u;
+            (restricted_memory_mib > 0u)
+                ? MEMGUARD_DEFAULT_DESKTOPS : 4u;
 
         config->base.screens[i].desktop_count =
             (CONFIG_MAX_DESKTOPS < desktop_default)
@@ -482,7 +485,7 @@ void config_set_default_values(config_td *config,
     config->theme.menu.selected.border.width = 0u;
 
     safe_strcpy(config->theme.menu.label.font, "fixed");
-    config->theme.menu.label.color.background =
+    config->theme.menu.label.color.foreground =
         json_hex2uint32("D0D9E5");
     /* Picked for a WCAG contrast ratio of ~4.5:1 against this
      * background (the same bar as any other normal-weight text in
@@ -490,7 +493,7 @@ void config_set_default_values(config_td *config,
      * ~2:1 against the same background, too low for text meant to
      * be read normally rather than treated as a de-emphasized
      * secondary state. */
-    config->theme.menu.label.color.foreground =
+    config->theme.menu.label.color.background =
         json_hex2uint32("48607F");
     config->theme.menu.label.border.color = json_hex2uint32("7F9AB6");
     config->theme.menu.label.border.width = 0u;
@@ -511,7 +514,7 @@ void config_set_default_values(config_td *config,
     config->theme.dialog.border.color = json_hex2uint32("7F9AB6");
     config->theme.dialog.border.width = 2u;
 
-    safe_strcpy(config->theme.dialog.label.font, "fixed");
+    safe_strcpy(config->theme.dialog.label.font, "fixed bold");
     config->theme.dialog.label.foreground = json_hex2uint32("4A5566");
     config->theme.dialog.label.padding.horizontal = 12u;
     config->theme.dialog.label.padding.vertical = 12u;
@@ -556,6 +559,28 @@ void config_set_default_values(config_td *config,
 }
 
 
+/** Path of the theme file 'config_load' most recently found specified
+ *  by 'config.json' but missing; empty when none is currently
+ *  missing */
+static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
+
+
+/* Clear whichever theme file config_load last recorded as specified
+ * but not actually found */
+void config_missing_theme_reset(void)
+{
+    s_missing_theme_file[0] = '\0';
+}
+
+
+/* The theme file path config_load most recently found specified but
+ * missing, if any */
+const char *config_missing_theme_get(void)
+{
+    return (s_missing_theme_file[0] != '\0') ? s_missing_theme_file : NULL;
+}
+
+
 /**
  * @brief Force icon pixmaps off and every theme text style's own font
  *        to a plain X core font, when restricted-memory mode is
@@ -571,6 +596,14 @@ void config_set_default_values(config_td *config,
  * xcb-render/FreeType2/fontconfig text rendering backend a
  * TrueType/OpenType font name would otherwise select both carry a
  * real, ongoing cost regardless of where the theme came from.
+ *
+ * Screen and desktop count are never touched here, or anywhere else
+ * in restricted-memory mode: @c MEMGUARD_DEFAULT_DESKTOPS is only ever
+ * used as a smaller default (see @c config_set_default_values) for
+ * when nothing else specifies a count at all, never as a cap forced
+ * on top of an explicit @c config.json value.  A configuration that
+ * defines, say, 6 desktops gets 6 desktops, restricted-memory mode
+ * included.
  *
  * @param config Configuration structure whose already-loaded (or
  *               still at compiled-in defaults) theme this overrides
@@ -612,6 +645,7 @@ static void s_config_apply_restricted_memory_overrides(config_td *config,
                     CONFIG_MAX_LENGTH_FONTNAME);
         }
     }
+
 }
 
 
@@ -670,6 +704,18 @@ int config_load(config_td *config, const char *config_prefix,
         LOGGER_NOTICE("No theme specified in base configuration;" \
                 " default will be used", L_NARG);
     } else {
+        /* Snapshot the syntax-error count before attempting the load,
+         * so a load failure can be told apart from one that
+         * 'json_load_config' (via 'config_load_theme') already
+         * recorded there itself: a theme file that exists but fails
+         * to parse is a syntax error like any other JSON file's, and
+         * already covered that way; a theme file that simply is not
+         * there at all is a different, narrower case, worth its own
+         * note (see 'config_missing_theme_get') precisely because
+         * that one, unlike a syntax error, is otherwise silent by
+         * design. */
+        uint32_t syntax_errors_before = json_syntax_errors_count();
+
         LOGGER_DEBUG("Loading theme '%s' from '%s'",
                 config->base.theme, config_theme_file);
         if (config_load_theme(config_theme_file,
@@ -677,6 +723,10 @@ int config_load(config_td *config, const char *config_prefix,
             LOGGER_WARNING("Failed to load theme from:" \
                     " '%s'; default theme will be used",
                     config_theme_file);
+            if (json_syntax_errors_count() == syntax_errors_before) {
+                safe_strncpy(s_missing_theme_file, config_theme_file,
+                        sizeof(s_missing_theme_file));
+            }
         } else {
             LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",
                     config->base.theme, config->theme.name,

@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* FILE, fopen, fseek, ftell, fread, fclose */
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <string.h>     /* strcmp */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -25,6 +26,7 @@
 #include <utils/safe/safestr.h>
 
 /* Project includes */
+#include <defs/config.h>
 #include <logger.h>
 
 /* Local includes */
@@ -277,6 +279,7 @@ int json_load_config(const char *filename, cJSON **json_out)
         LOGGER_WARNING("Failed to parse file '%s';" \
                 " default configuration will be used", filename);
         LOGGER_TRACE("JSON parse error: %s", cJSON_GetErrorPtr());
+        json_syntax_errors_record(filename);
         free(data);
         return 2;
     }
@@ -303,6 +306,7 @@ int json_load_config(const char *filename, cJSON **json_out)
                 LOGGER_WARNING("Invalid top-level JSON in '%s';" \
                         " expected an object and default" \
                         " configuration will be used", filename);
+                json_syntax_errors_record(filename);
                 cJSON_Delete(json_root);
                 free(data);
                 return 2;
@@ -311,6 +315,7 @@ int json_load_config(const char *filename, cJSON **json_out)
             LOGGER_WARNING("Invalid top-level JSON in '%s'; expected" \
                     " an object and default configuration will be used",
                     filename);
+            json_syntax_errors_record(filename);
             cJSON_Delete(json_root);
             free(data);
             return 2;
@@ -320,4 +325,67 @@ int json_load_config(const char *filename, cJSON **json_out)
     free(data);
     *json_out = json;
     return 0;
+}
+
+
+/** Files recorded so far as having failed to parse */
+static char s_syntax_error_files[JSON_SYNTAX_ERROR_MAX_FILES]
+    [CONFIG_MAX_LENGTH_PATH_CONFIG];
+
+/** Number of entries currently in 's_syntax_error_files' */
+static uint32_t s_syntax_error_count = 0u;
+
+
+/* Clear the list of files json_load_config has recorded a syntax
+ * error for */
+void json_syntax_errors_reset(void)
+{
+    s_syntax_error_count = 0u;
+}
+
+
+/* Record that 'filename' failed to parse as JSON */
+void json_syntax_errors_record(const char *filename)
+{
+    uint32_t i;
+
+    if (filename == NULL) {
+        return;
+    }
+
+    /* Do not record the same file twice: 'json_load_config' can be
+     * called more than once for the same path within a single load
+     * (e.g., a lint pass that re-checks a file already loaded once),
+     * and a repeated entry would just be noise in the eventual
+     * warning dialog rather than new information. */
+    for (i = 0u; i < s_syntax_error_count; ++i) {
+        if (strcmp(s_syntax_error_files[i], filename) == 0) {
+            return;
+        }
+    }
+
+    if (s_syntax_error_count >= JSON_SYNTAX_ERROR_MAX_FILES) {
+        return;
+    }
+
+    safe_strncpy(s_syntax_error_files[s_syntax_error_count], filename,
+            sizeof(s_syntax_error_files[s_syntax_error_count]));
+    ++s_syntax_error_count;
+}
+
+
+/* Number of files currently recorded as having failed to parse */
+uint32_t json_syntax_errors_count(void)
+{
+    return s_syntax_error_count;
+}
+
+
+/* Retrieve one recorded filename by index */
+const char *json_syntax_errors_get(uint32_t index)
+{
+    if (index >= s_syntax_error_count) {
+        return NULL;
+    }
+    return s_syntax_error_files[index];
 }

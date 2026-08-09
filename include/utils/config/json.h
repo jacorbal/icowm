@@ -199,5 +199,64 @@ int json_load_file(const char *filename, char **data);
  */
 int json_load_config(const char *filename, cJSON **json_out);
 
+/** Maximum number of files whose syntax errors can be tracked across
+ *  one full configuration-loading sequence; comfortably above the
+ *  actual number of JSON files IcoWM ever reads in a single run
+ *  (config.json, bindings.json, a theme file, randr.json, rules.json,
+ *  session.json, menu.json) */
+#define JSON_SYNTAX_ERROR_MAX_FILES (8)
+
+/**
+ * @brief Clear the list of files @c json_load_config has recorded a
+ *        syntax error for
+ *
+ * Called once at the start of a full configuration-loading sequence
+ * (see @c wm_start and @c wm_action_config_reload), so a warning
+ * shown for a previous load or reload is never repeated for a file
+ * that has since been fixed, or attributed to the wrong one.
+ *
+ * @note Complexity: @e O(1)
+ */
+void json_syntax_errors_reset(void);
+
+/**
+ * @brief Record that @p filename failed to parse as JSON
+ *
+ * Called internally by @c json_load_config itself when a file was
+ * read successfully but @c cJSON_Parse could not make sense of its
+ * contents, distinct from the file simply not existing at all (an
+ * ordinary, silent reason to fall back to defaults; see @c
+ * json_load_file).  A no-op once @c JSON_SYNTAX_ERROR_MAX_FILES has
+ * already been reached, or if @p filename is already recorded.
+ *
+ * @param filename Path of the file that failed to parse
+ *
+ * @note Complexity: @e O(n), where @e n is the number of files
+ *       already recorded
+ */
+void json_syntax_errors_record(const char *filename);
+
+/**
+ * @brief Number of files currently recorded as having failed to parse
+ *
+ * @return The count, capped at @c JSON_SYNTAX_ERROR_MAX_FILES
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t json_syntax_errors_count(void);
+
+/**
+ * @brief Retrieve one recorded filename by index
+ *
+ * @param index Index, from @c 0 up to (but not including) whatever
+ *              @c json_syntax_errors_count returns
+ *
+ * @return The filename at @p index, or @c NULL if @p index is out of
+ *         range
+ *
+ * @note Complexity: @e O(1)
+ */
+const char *json_syntax_errors_get(uint32_t index);
+
 
 #endif  /* ! UTILS_CONFIG_JSON_H */

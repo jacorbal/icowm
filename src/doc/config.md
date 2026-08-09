@@ -98,14 +98,7 @@ Inside that directory the expected file tree is:
   or the moment `menu.json` is actually read, which only happens the
   first time the root menu is opened) together, rather than one
   dialog per file.  A missing file is an ordinary, silent choice to
-  use the defaults; a broken one is worth knowing about.  A theme file
-  named by a correctly-parsed `config.json` is treated the same way as
-  any other file for this purpose (a syntax error in it joins that
-  same combined dialog); one that is simply not found at all follows
-  the ordinary missing-file rule and says nothing on its own, but if a
-  dialog is already being shown for some other file's syntax error
-  regardless, it adds one further line naming the missing theme file
-  and confirming the built-in default is being used instead.
+  use the defaults; a broken one is worth knowing about.
 - Theme files are loaded from the `themes/` sub-directory.  The theme
   name field in `config.json` must match the filename without the
   `.json` extension.

@@ -996,6 +996,37 @@ int config_load(config_td *config, const char *config_dir_prefix,
         uint32_t restricted_memory_mib);
 
 /**
+ * @brief Clear whichever theme file @c config_load last recorded as
+ *        specified by @c config.json but not actually found
+ *
+ * Called once at the start of a full configuration-loading sequence
+ * (see @c wm_start and @c wm_action_config_reload), the same as
+ * @c json_syntax_errors_reset (see @c utils/config/json.h), so a note
+ * from a previous load or reload is never repeated for a theme that
+ * has since been fixed, or attributed to the wrong one.
+ *
+ * @note Complexity: @e O(1)
+ */
+void config_missing_theme_reset(void);
+
+/**
+ * @brief The theme file path @c config_load most recently found
+ *        specified by @c config.json but missing, if any
+ *
+ * Distinct from a theme file that was found but failed to parse as
+ * JSON (that case is already covered by @c json_syntax_errors_get,
+ * since @c config_load_theme goes through @c json_load_config the
+ * same as any other configuration file); this is specifically for
+ * @c config.json parsing successfully, naming a theme, and that
+ * theme's own file simply not existing.
+ *
+ * @return The path, or @c NULL if no theme is currently missing
+ *
+ * @note Complexity: @e O(1)
+ */
+const char *config_missing_theme_get(void);
+
+/**
  * @brief Resolve the configuration directory from a prefix, or from
  *        environment variables when none is given
  *

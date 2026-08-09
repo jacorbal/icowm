@@ -52,6 +52,7 @@
 #include <xsettings.h>
 
 /* Utils includes */
+#include <utils/config/json.h>
 #include <utils/sysmem.h>
 
 /* Menu includes */
@@ -255,6 +256,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
 
     LOGGER_DEBUG("Loading configuration into window manager", L_NARG);
     wm->config_dir_prefix = config_dir_prefix;
+    json_syntax_errors_reset();
+    config_missing_theme_reset();
     config_load(wm->config, wm->config_dir_prefix,
             wm->restricted_memory_mib);
 
@@ -380,6 +383,18 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
     }
 
+    /* Any JSON file that failed to parse during the load just above
+     * (config.json, bindings.json, a theme file, randr.json, rules.
+     * json, session.json) gets a combined warning dialog here, ahead
+     * of restricted-memory mode's own announcement right below: a
+     * configuration silently reverted to defaults is more urgent to
+     * know about than which mode is active.  menu_message_dialog_show
+     * only ever shows one dialog at a time, so if this one fires, the
+     * one below simply does not, for this run; nothing else about
+     * that mode's own announcement is lost by that, only delayed to
+     * whenever it is checked again (another load or reload). */
+    wm_warn_json_syntax_errors();
+
     /* Restricted-memory mode's own presence is announced once, right
      * before entering the main loop, so it is never a silent surprise
      * to whoever is sitting at the keyboard: only the log otherwise
@@ -402,6 +417,80 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     loop_run(wm);
 
     return 0;
+}
+
+
+/* Warn through a message dialog if any JSON file loaded during the
+ * last configuration load or reload failed to parse */
+void wm_warn_json_syntax_errors(void)
+{
+    uint32_t count;
+    char message[DIALOG_MSG_RAW_MAX_LEN];
+    size_t offset;
+    uint32_t i;
+
+    count = json_syntax_errors_count();
+    if (count == 0u || wm == NULL || wm->connection == NULL ||
+            wm->surfaces == NULL || list_is_empty(wm->surfaces)) {
+        return;
+    }
+
+    LOGGER_WARNING("Configuration: %u file(s) failed to parse;" \
+            " reverted to default values for each", count);
+
+    offset = (size_t) snprintf(message, sizeof(message),
+            (count == 1u)
+                ? "Error parsing '%s'; possible syntax error." \
+                  "  Reverted to default values."
+                : "Error parsing the following file(s); possible" \
+                  " syntax error(s).  Reverted to default values" \
+                  " for each: '%s'",
+            json_syntax_errors_get(0u));
+    for (i = 1u; i < count && offset < sizeof(message); ++i) {
+        int written = snprintf(message + offset, sizeof(message) - offset,
+                ", '%s'", json_syntax_errors_get(i));
+        if (written < 0) {
+            break;
+        }
+        offset += (size_t) written;
+    }
+
+    /* A theme file config.json names but that turns out not to exist
+     * at all is never worth a dialog on its own (an ordinary, silent
+     * reason to fall back to the built-in default, the same as any
+     * other missing file), but is worth mentioning here as an extra
+     * line, since a dialog is already being shown for some other
+     * parse failure regardless.  Deliberately not added when 'count'
+     * itself is 0: this function would not even reach this point in
+     * that case (see the early return above), so this is really just
+     * documenting why nothing needs to special-case that here. */
+    if (offset < sizeof(message)) {
+        const char *missing_theme = config_missing_theme_get();
+
+        if (missing_theme != NULL) {
+            int written = snprintf(message + offset,
+                    sizeof(message) - offset,
+                    "  Additionally, the theme file '%s' named by" \
+                    " config.json was not found; using the built-in" \
+                    " default theme instead.", missing_theme);
+            if (written > 0) {
+                offset += (size_t) written;
+            }
+        }
+    }
+
+    menu_message_dialog_show(wm->connection,
+            (surface_td *) list_data(list_head(wm->surfaces)),
+            wm->config, message, MENU_MSG_LEVEL_WARNING);
+
+    /* Cleared once shown, so reopening the root menu (or reloading
+     * configuration) with the same still-broken file does not show
+     * the exact same dialog again on every attempt; a fresh problem,
+     * in this file or another, starts a fresh list of its own the
+     * next time something calls 'json_syntax_errors_reset' before
+     * loading. */
+    json_syntax_errors_reset();
+    config_missing_theme_reset();
 }
 
 

@@ -18,6 +18,9 @@
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
+/* Utils includes */
+#include <utils/config/json.h>
+
 /* Session includes */
 #include <session.h>
 
@@ -53,9 +56,18 @@ int wm_action_config_reload(void)
         return 1;
     }
 
+    json_syntax_errors_reset();
+    config_missing_theme_reset();
     if (config_load(wm->config, wm->config_dir_prefix,
                 wm->restricted_memory_mib) != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
+        /* Whatever caused 'config_load' to fail outright is far more
+         * likely to be a syntax error introduced while editing an
+         * already-working 'config.json' than the file simply not
+         * existing at all, unlike at first startup; worth surfacing
+         * here even on this early-failure path, not just after a
+         * successful reload below. */
+        wm_warn_json_syntax_errors();
         return 1;
     }
 
@@ -172,6 +184,7 @@ int wm_action_config_reload(void)
     }
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
+    wm_warn_json_syntax_errors();
     if (wm->session != NULL) {
         session_run_hook(wm->session, wm->connection,
                 SESSION_HOOK_RELOAD);
