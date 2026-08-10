@@ -43,8 +43,7 @@
 #include <wm.h>
 
 /* Default initial values */
-#include <defs/systray.h> /* WM_SYSTRAY_ICON_SIZE, WM_SYSTRAY_ICON_PAD,
-                              WM_SYSTRAY_MAX_ICONS */
+#include <defs/systray.h> /* WM_SYSTRAY_MAX_ICONS */
 
 
 /**
@@ -167,16 +166,16 @@ const struct strut_partial_s *systray_get_reserved_strut(
 
 /**
  * @brief Query whether @p window is a currently docked icon, and if
- *        so, force it back to the tray's fixed icon size
+ *        so, force it back to the tray's configured icon size
  *
  * Meant to be called from the @c ConfigureRequest handler for any
  * window not otherwise recognized as a managed client: a docked
  * icon's own resize attempt on itself reaches the window manager as a
  * @c ConfigureRequest only because the tray window now sets
  * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
- * actively overriding it back to @c WM_SYSTRAY_ICON_SIZE, that redirect
- * alone would just let the request through unchanged, which is no
- * better than not redirecting at all.
+ * actively overriding it back to @c theme.systray.pixmap.size, that
+ * redirect alone would just let the request through unchanged, which
+ * is no better than not redirecting at all.
  *
  * @param window Window to test
  *

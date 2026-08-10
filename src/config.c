@@ -533,11 +533,14 @@ void config_set_default_values(config_td *config,
         json_hex2uint32("4A5566");
     config->theme.systray.style.border.color = json_hex2uint32("7F9AB6");
     config->theme.systray.style.border.width = 1u;
-    /* Matches 'WM_SYSTRAY_ICON_SIZE + 2 * WM_SYSTRAY_ICON_PAD' in
-     * defs/systray.h: exactly tall enough for one icon row with no
-     * extra room, so 'systray.text.valign' has no visible effect
-     * until this is raised. */
     config->theme.systray.height = 22u;
+    config->theme.systray.pixmap.size = 24u;
+    config->theme.systray.pixmap.padding = 4u;
+    /* 'height' (22) actually sits below 'pixmap.size' (24) here: per
+     * 's_systray_apply_config' in systray.c, the tray's own real,
+     * effective height is clamped up to whichever of the two is
+     * larger, so 24 -- not 22 -- is what actually applies, leaving no
+     * room for 'systray.text.valign' to have any visible effect. */
     config->theme.systray.text.gap = 12u;
     config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 

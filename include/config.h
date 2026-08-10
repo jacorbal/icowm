@@ -683,9 +683,24 @@ struct config_theme_s {
                                   within it, per 'text.valign' for the
                                   text and centered for icons; must be
                                   at least tall enough to fit an icon,
-                                  see 'WM_SYSTRAY_ICON_SIZE' in
-                                  defs/systray.h, or icons get
-                                  clipped */
+                                  see 'pixmap.size' below, or icons
+                                  get clipped */
+
+        /**
+         * @brief Sizing for each docked icon's own embed window
+         *
+         * Every docked icon is forced to exactly @c size by @c size
+         * pixels regardless of whatever size it originally requested
+         * (see 'systray_enforce_icon_size' in systray.c), with
+         * @c padding pixels of breathing room around and between
+         * icons.
+         */
+        struct {
+            uint32_t size;      /**< Side length in pixels of each
+                                      docked icon's embed window */
+            uint32_t padding;   /**< Padding in pixels around and
+                                      between icons */
+        } pixmap;
 
         /**
          * @brief Appearance-only placement for the clock/battery
@@ -698,8 +713,8 @@ struct config_theme_s {
              *  items (e.g., between the battery status and the
              *  clock) when more than one is shown; has no effect on
              *  the inset between the text block as a whole and the
-             *  tray's own edges, which is fixed (see
-             *  'WM_SYSTRAY_ICON_PAD' in defs/systray.h) */
+             *  tray's own edges, which is fixed (see 'pixmap.padding'
+             *  above) */
             uint32_t gap;
 
             enum config_systray_text_valign_e {

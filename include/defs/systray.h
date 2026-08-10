@@ -1,7 +1,7 @@
 /**
  * @file defs/systray.h
  *
- * @brief Dimensions and capacity limits for the built-in systray dock
+ * @brief Capacity limit for the built-in systray dock
  *
  * @ingroup defs
  */
@@ -17,17 +17,14 @@
 #define DEFS_SYSTRAY_H
 
 
-/** Side length in pixels of each docked icon's embed window */
-#define WM_SYSTRAY_ICON_SIZE (24u)
-
-/** Padding in pixels around and between icons */
-#define WM_SYSTRAY_ICON_PAD (4u)
-
 /**
  * @brief Upper bound on simultaneously docked icons
  *
  * A plain fixed array is enough for a systray and keeps this module
- * allocation-free.
+ * allocation-free.  Unlike a docked icon's own pixel size and padding
+ * (@c theme.systray.pixmap.size/padding, configurable per theme since
+ * this array's own capacity is fixed at compile time), this stays a
+ * compile-time constant on purpose.
  */
 #define WM_SYSTRAY_MAX_ICONS (32u)
 

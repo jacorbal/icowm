@@ -70,9 +70,20 @@ static void s_systray_apply_config(wm_td *wm)
     s_tray.strut_margins.left = wm->config->base.systray.margins.left;
     s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
     s_tray.monitor.index = wm->config->base.systray.monitor.index;
+
+    /* A configured '0' (or anything absurdly small) would otherwise
+     * make every docked icon invisible, or divide the icon row's own
+     * layout math by a near-zero step; clamped to '1' at the very
+     * least, the same defensive floor 'height' below already applied
+     * against the old fixed 'WM_SYSTRAY_ICON_SIZE' constant. */
+    s_tray.pixmap_size = (uint16_t)
+        ((wm->config->theme.systray.pixmap.size > 0u)
+            ? wm->config->theme.systray.pixmap.size : 1u);
+    s_tray.pixmap_pad = (uint16_t) wm->config->theme.systray.pixmap.padding;
+
     s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
-            WM_SYSTRAY_ICON_SIZE)
-        ? wm->config->theme.systray.height : WM_SYSTRAY_ICON_SIZE);
+            s_tray.pixmap_size)
+        ? wm->config->theme.systray.height : s_tray.pixmap_size);
     s_tray.order = wm->config->base.systray.order;
     s_tray.layer = wm->config->base.systray.layer;
     s_tray.clock_enabled = wm->config->base.systray.clock.is_enabled;
@@ -201,7 +212,7 @@ bool systray_enforce_icon_size(xcb_window_t window)
             xcb_configure_window(s_tray.connection, window,
                     XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
-                        WM_SYSTRAY_ICON_SIZE, WM_SYSTRAY_ICON_SIZE
+                        s_tray.pixmap_size, s_tray.pixmap_size
                     });
             xcb_flush(s_tray.connection);
             return true;

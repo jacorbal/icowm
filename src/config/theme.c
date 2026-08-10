@@ -316,9 +316,18 @@ int config_load_theme(const char *filename,
     systray = cJSON_GetObjectItem(json, "systray");
     s_load_theme_colors(systray, &config_theme->systray.style);
     if (systray) {
+        cJSON *pixmap_obj;
         cJSON *text_obj;
 
         json_load_uint(systray, "height", &config_theme->systray.height);
+
+        pixmap_obj = cJSON_GetObjectItem(systray, "pixmap");
+        if (pixmap_obj) {
+            json_load_uint(pixmap_obj, "size",
+                    &config_theme->systray.pixmap.size);
+            json_load_uint(pixmap_obj, "padding",
+                    &config_theme->systray.pixmap.padding);
+        }
 
         text_obj = cJSON_GetObjectItem(systray, "text");
         if (text_obj) {

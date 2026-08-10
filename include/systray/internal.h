@@ -112,6 +112,12 @@ struct systray_state_s {
         uint32_t index;
     } monitor;
     uint16_t height;
+    uint16_t pixmap_size;           /**< See @c
+                                          config.theme.systray.pixmap.
+                                          size */
+    uint16_t pixmap_pad;            /**< See @c
+                                          config.theme.systray.pixmap.
+                                          padding */
     enum config_systray_order_e order;
     enum config_systray_layer_e layer;
     bool clock_enabled;

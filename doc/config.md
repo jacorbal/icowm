@@ -1135,8 +1135,9 @@ Same shape as `window.active` / `window.inactive` above (`font`,
 ### 4.3 `systray`
 
 A `font` / `color` / `border` block, the same shape as `window.active`
-above, applied to the systray dock itself, plus its own height and
-the placement of the clock/battery text within it.
+above, applied to the systray dock itself, plus its own height, each
+docked icon's own size and padding, and the placement of the
+clock/battery text within it.
 
 | Key                 | Type    | Default     |
 |---------------------|---------|-------------|
@@ -1145,38 +1146,51 @@ the placement of the clock/battery text within it.
 | `color.foreground`  | string  | `"#4A5566"` |
 | `border.color`      | string  | `"#7F9AB6"` |
 | `border.width`      | integer | `1`         |
-| `height`            | integer | `32`        |
-| `text.gap`          | integer | `4`         |
+| `height`            | integer | `22`        |
+| `pixmap.size`       | integer | `24`        |
+| `pixmap.padding`    | integer | `4`         |
+| `text.gap`          | integer | `12`        |
 | `text.valign`       | string  | `"center"`  |
+
+`pixmap.size` is the side length, in pixels, every docked icon's own
+embed window is forced to regardless of whatever size it originally
+requested; `pixmap.padding` is the space, in pixels, kept around and
+between icons.
 
 `height` is the tray dock's own height in pixels; icons and the clock
 and/or battery status text (when either is enabled, see
 `systray.clock`/`systray.battery` in `config.json`) are positioned
-within it according to `text.valign`, and centered for icons.  It
-must be at least tall enough to fit one icon or icons get clipped.
-With the default `height` of `32`, an icon already fills nearly the
-whole row, so `text.valign` has little visible effect; raising
-`height` gives it actual room to work with.
+within it according to `text.valign`, and centered for icons.  It is
+clamped up to at least `pixmap.size` if set any smaller, so a single
+icon never gets clipped; with the default `height` of `22` actually
+sitting below the default `pixmap.size` of `24`, that clamp is exactly
+what applies in practice, leaving `text.valign` no visible room to
+work with until `height` is raised past `pixmap.size`.
 
 `text.gap` is the horizontal space, in pixels, between the clock and
 battery text when both are shown (see `systray.text.order` in
 `config.json`); without it the two would run together as if they
 were one string, e.g., "N/A Fri 23:39" instead of "N/A   Fri 23:39".
 It has no effect on the inset between the text block as a whole and
-the tray's own edges, which is fixed.  Which side of the icons the
-text sits on (`systray.text.position` in `config.json`) stays a
-behavior setting rather than an appearance one, since it changes
-where among the icons the text counts as being docked; only its
-internal spacing and vertical alignment are theme concerns.
+the tray's own edges, which is fixed to `pixmap.padding` above.
+Which side of the icons the text sits on (`systray.text.position` in
+`config.json`) stays a behavior setting rather than an appearance
+one, since it changes where among the icons the text counts as being
+docked; only its internal spacing and vertical alignment are theme
+concerns.
 
 ```json
 "systray": {
     "font": "fixed",
     "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
     "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 32,
+    "height": 22,
+    "pixmap": {
+        "size": 24,
+        "padding": 4
+    },
     "text": {
-        "gap": 4,
+        "gap": 12,
         "valign": "center"
     }
 }
@@ -1190,7 +1204,7 @@ applies.
 
 | Key               | Type   | Default     |
 |-------------------|--------|-------------|
-| `color.background`| string | `"#4C5B6B"` |
+| `color.background`| string | `"#5F7187"` |
 
 This is deliberately not the same tone as `systray.color.background`
 or the other UI-chrome colors above (`"#D0D9E5"`-family): a desktop
@@ -1213,7 +1227,7 @@ never overwrites an externally set wallpaper with either one.
 
 ```json
 "desktop": {
-    "color": { "background": "#4C5B6B" }
+    "color": { "background": "#5F7187" }
 }
 ```
 
@@ -2319,6 +2333,10 @@ Sub-menus can be nested to the depth limit defined by
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
         "height": 22,
+        "pixmap": {
+            "size": 24,
+            "padding": 4
+        },
         "text": {
             "gap": 12,
             "valign": "center"

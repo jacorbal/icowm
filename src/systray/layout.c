@@ -56,8 +56,8 @@
 static uint16_t s_systray_content_width(void)
 {
     uint16_t icons_w = (s_tray.icon_count == 0u) ? 0u
-        : (uint16_t) (WM_SYSTRAY_ICON_PAD +
-            s_tray.icon_count * (WM_SYSTRAY_ICON_SIZE + WM_SYSTRAY_ICON_PAD));
+        : (uint16_t) (s_tray.pixmap_pad +
+            s_tray.icon_count * (s_tray.pixmap_size + s_tray.pixmap_pad));
 
     return (uint16_t) (icons_w + systray_text_width());
 }
@@ -515,14 +515,14 @@ void systray_layout_reflow(void)
     icons_base_x = (text_w > 0u &&
             s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
         ? text_w : 0u;
-    icon_y = (h > (uint16_t) WM_SYSTRAY_ICON_SIZE)
-        ? (uint16_t) ((h - WM_SYSTRAY_ICON_SIZE) / 2u) : 0u;
+    icon_y = (h > (uint16_t) s_tray.pixmap_size)
+        ? (uint16_t) ((h - s_tray.pixmap_size) / 2u) : 0u;
 
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         uint32_t icon_pos[2];
 
-        icon_pos[0] = icons_base_x + WM_SYSTRAY_ICON_PAD +
-            i * (WM_SYSTRAY_ICON_SIZE + WM_SYSTRAY_ICON_PAD);
+        icon_pos[0] = icons_base_x + s_tray.pixmap_pad +
+            i * (s_tray.pixmap_size + s_tray.pixmap_pad);
         icon_pos[1] = icon_y;
         xcb_configure_window(s_tray.connection, s_tray.icons[i].window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);
@@ -558,12 +558,12 @@ void systray_layout_reflow(void)
 
         switch (s_tray.text_valign) {
             case CONFIG_SYSTRAY_TEXT_VALIGN_TOP:
-                item_y = (int16_t) ((int32_t) WM_SYSTRAY_ICON_PAD + ascent);
+                item_y = (int16_t) ((int32_t) s_tray.pixmap_pad + ascent);
                 break;
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM:
                 item_y = (int16_t) ((int32_t) h -
-                        (int32_t) WM_SYSTRAY_ICON_PAD - descent);
+                        (int32_t) s_tray.pixmap_pad - descent);
                 break;
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_CENTER:
@@ -573,7 +573,7 @@ void systray_layout_reflow(void)
                 break;
         }
 
-        pen_x = (int16_t) (block_x + (int16_t) WM_SYSTRAY_ICON_PAD);
+        pen_x = (int16_t) (block_x + (int16_t) s_tray.pixmap_pad);
         for (uint8_t i = 0u; i < s_tray.text_order_count; ++i) {
             bool enabled = false;
             const char *text = systray_text_for_item(
