@@ -7,6 +7,8 @@
  * window-manager startup and during normal event processing: adopting
  * pre-existing windows, refreshing a client's name from the X server,
  * and dispatching program-launch events to the event queue.
+ *
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

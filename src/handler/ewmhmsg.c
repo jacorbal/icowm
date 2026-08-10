@@ -22,7 +22,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stddef.h>     /* NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -42,7 +42,10 @@
 #include <policy/focus.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
+
+/* Render includes */
+#include <render/outdate.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -52,7 +55,6 @@
 #include <client.h>
 #include <desktop.h>
 #include <handler/internal.h>
-#include <invalidate.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -63,35 +65,29 @@
 
 
 /**
- * @brief Intern a custom atom and return @c XCB_ATOM_NONE on failure
+ * @brief Resolve a @c _NET_WM_STATE action into "should this state
+ *        end up set"
  *
- * @param connection XCB connection used to intern the atom
- * @param name       Atom name string to intern
+ * Shared by every state @c s_handle_wm_state_atom below reacts to:
+ * @c WM_STATE_ACTION_ADD always resolves to @c true, @c WM_STATE_
+ * ACTION_REMOVE always to @c false, and @c WM_STATE_ACTION_TOGGLE
+ * resolves to whichever @p already_set is not; each caller only
+ * differs in how @p already_set itself is determined (a @c state or
+ * @c layer comparison, a flag bit, or an existing @c client_is_*
+ * predicate), which stays inline at each call site rather than
+ * becoming yet another small function pointer to thread through.
  *
- * @return Interned atom identifier, or @c XCB_ATOM_NONE on failure
+ * @param action      One of @c WM_STATE_ACTION_ADD/REMOVE/TOGGLE
+ * @param already_set Whether the state in question is currently set
+ *
+ * @return @c true if the state should end up set
  *
  * @note Complexity: @e O(1)
  */
-static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
-        const char *name)
+static bool s_wm_state_resolve_add(uint32_t action, bool already_set)
 {
-    xcb_intern_atom_reply_t *ia;
-    xcb_atom_t atom = XCB_ATOM_NONE;
-
-    if (connection == NULL || name == NULL) {
-        return XCB_ATOM_NONE;
-    }
-
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 0,
-                (uint16_t) safe_strlen(name), name),
-            NULL);
-    if (ia != NULL) {
-        atom = ia->atom;
-        free(ia);
-    }
-
-    return atom;
+    return (action == WM_STATE_ACTION_ADD) ||
+        (action == WM_STATE_ACTION_TOGGLE && !already_set);
 }
 
 
@@ -113,7 +109,6 @@ static void s_handle_wm_state_atom(client_td *client,
         xcb_atom_t state_atom, uint32_t action,
         xcb_ewmh_connection_t *ewmh)
 {
-    bool is_add;
     bool is_fullscreen;
     bool is_max_h;
     bool is_max_v;
@@ -163,10 +158,9 @@ static void s_handle_wm_state_atom(client_td *client,
             return;
         }
 
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             client->properties.state != CLIENT_STATE_MAXIMIZED_HORZ);
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    client->properties.state ==
+                        CLIENT_STATE_MAXIMIZED_HORZ)) {
             wcmd_client_maximize_horz(client);
         } else {
             wcmd_client_restore(client);
@@ -179,10 +173,9 @@ static void s_handle_wm_state_atom(client_td *client,
             return;
         }
 
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             client->properties.state != CLIENT_STATE_MAXIMIZED_VERT);
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    client->properties.state ==
+                        CLIENT_STATE_MAXIMIZED_VERT)) {
             wcmd_client_maximize_vert(client);
         } else {
             wcmd_client_restore(client);
@@ -191,10 +184,8 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_above) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             client->properties.layer != CLIENT_LAYER_ABOVE);
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    client->properties.layer == CLIENT_LAYER_ABOVE)) {
             wcmd_client_layer_above(client);
         } else {
             wcmd_client_layer_normal(client);
@@ -203,10 +194,8 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_below) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             client->properties.layer != CLIENT_LAYER_BELOW);
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    client->properties.layer == CLIENT_LAYER_BELOW)) {
             wcmd_client_layer_below(client);
         } else {
             wcmd_client_layer_normal(client);
@@ -215,10 +204,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_sticky) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_STICKY));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_STICKY) != 0u)) {
             wcmd_client_sticky(client);
         } else {
             wcmd_client_unsticky(client);
@@ -227,10 +215,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_shaded) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_SHADED));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_SHADED) != 0u)) {
             wcmd_client_shade(client);
         } else {
             wcmd_client_unshade(client);
@@ -239,10 +226,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_hidden) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_HIDDEN));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_HIDDEN) != 0u)) {
             wcmd_client_iconify(client);
         } else {
             wcmd_client_restore(client);
@@ -251,10 +237,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_urgent) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_URGENT));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_URGENT) != 0u)) {
             wcmd_client_set_urgent(client);
         } else {
             wcmd_client_clear_urgent(client);
@@ -263,10 +248,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_skip_taskbar) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_SKIP_TASKBAR) != 0u)) {
             client_set_skip_taskbar(client);
         } else {
             client_unset_skip_taskbar(client);
@@ -275,10 +259,9 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_skip_pager) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !(client->properties.flags & CLIENT_FLAG_SKIP_PAGER));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action,
+                    (client->properties.flags &
+                        CLIENT_FLAG_SKIP_PAGER) != 0u)) {
             client_set_skip_pager(client);
         } else {
             client_unset_skip_pager(client);
@@ -287,10 +270,7 @@ static void s_handle_wm_state_atom(client_td *client,
     }
 
     if (is_modal) {
-        is_add = (action == WM_STATE_ACTION_ADD) ||
-            (action == WM_STATE_ACTION_TOGGLE &&
-             !client_is_modal(client));
-        if (is_add) {
+        if (s_wm_state_resolve_add(action, client_is_modal(client))) {
             client_set_modal(client);
             wcmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
         } else {
@@ -325,8 +305,8 @@ void hi_handle_net_wm_state(client_td *client,
         s_handle_wm_state_atom(client, atom2, action, ewmh);
     }
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
 }
 
 
@@ -351,7 +331,7 @@ void hi_handle_net_current_desktop(wm_td *wm,
     surface_data.new_data.uvalue = event->data.data32[0];
 
     scmd_surface_desktop_switch(surface, &surface_data);
-    wm_invalidate_surface(surface);
+    wm_outdate_surface(surface);
 }
 
 
@@ -406,9 +386,9 @@ void hi_handle_net_wm_desktop(wm_td *wm,
                 XCB_ATOM_CARDINAL, 32, 1, &target_id);
     }
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(src_desktop);
-    wm_invalidate_desktop(tgt_desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(src_desktop);
+    wm_outdate_desktop(tgt_desktop);
 }
 
 
@@ -438,13 +418,13 @@ void hi_handle_net_moveresize_window(wm_td *wm,
     req_w = (uint32_t) event->data.data32[3];
     req_h = (uint32_t) event->data.data32[4];
 
-    if ((flags & MOVERESIZE_FLAG_WIDTH) &&
+    if ((flags & WM_MOVERESIZE_FLAG_WIDTH) &&
             client_is_decorated(client) && client->frame != 0) {
         req_w += (uint32_t) client->layout.frame_extents.left
                + (uint32_t) client->layout.frame_extents.right;
     }
 
-    if ((flags & MOVERESIZE_FLAG_HEIGHT) &&
+    if ((flags & WM_MOVERESIZE_FLAG_HEIGHT) &&
             client_is_decorated(client) && client->frame != 0) {
         req_h += (uint32_t) client->layout.frame_extents.top
                + (uint32_t) client->layout.frame_extents.bottom;
@@ -456,13 +436,13 @@ void hi_handle_net_moveresize_window(wm_td *wm,
     size_changed = false;
     i = 0;
 
-    if (flags & MOVERESIZE_FLAG_X) {
+    if (flags & WM_MOVERESIZE_FLAG_X) {
         target_values[i++] = (uint32_t) req_x;
         target_mask |= XCB_CONFIG_WINDOW_X;
         client->layout.geometry.cur.pos.x = req_x;
     }
 
-    if (flags & MOVERESIZE_FLAG_Y) {
+    if (flags & WM_MOVERESIZE_FLAG_Y) {
         if (req_y < 0) {
             req_y = 0;
         }
@@ -471,7 +451,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
         client->layout.geometry.cur.pos.y = req_y;
     }
 
-    if (flags & MOVERESIZE_FLAG_WIDTH) {
+    if (flags & WM_MOVERESIZE_FLAG_WIDTH) {
         if (req_w < WM_MIN_WINDOW_DIMENSION) {
             req_w = WM_MIN_WINDOW_DIMENSION;
         }
@@ -481,7 +461,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
         size_changed = true;
     }
 
-    if (flags & MOVERESIZE_FLAG_HEIGHT) {
+    if (flags & WM_MOVERESIZE_FLAG_HEIGHT) {
         if (req_h < WM_MIN_WINDOW_DIMENSION) {
             req_h = WM_MIN_WINDOW_DIMENSION;
         }
@@ -501,8 +481,8 @@ void hi_handle_net_moveresize_window(wm_td *wm,
             client_sync_decoration_layout(client);
         }
         xcb_flush(wm->connection);
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
     }
 }
 
@@ -511,6 +491,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
 void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     desktop_td *desktop;
+    cdlist_item_td *stacking_head;
     cdlist_item_td *node;
     cdlist_item_td *initial;
     bool any_visible;
@@ -527,9 +508,14 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 
     any_visible = false;
     changed_hidden_state = false;
-    node = (desktop->stacking != NULL)
+    /* 'desktop->stacking' is only ever iterated below, never modified,
+     * so its head is stable across the whole function; computed once
+     * here rather than re-deriving the same conditional expression
+     * every time a fresh pass over the list is about to start. */
+    stacking_head = (desktop->stacking != NULL)
         ? cdlist_head(desktop->stacking)
         : NULL;
+    node = stacking_head;
     if (node != NULL) {
         initial = node;
         do {
@@ -546,18 +532,14 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     }
 
     if (show && !surface->showing_desktop) {
-        node = (desktop->stacking != NULL)
-            ? cdlist_head(desktop->stacking)
-            : NULL;
+        node = stacking_head;
         if (node == NULL || !any_visible) {
             show = false;
         }
     }
 
     if (!show && surface->showing_desktop) {
-        node = (desktop->stacking != NULL)
-            ? cdlist_head(desktop->stacking)
-            : NULL;
+        node = stacking_head;
         if (node == NULL) {
             return;
         }
@@ -579,9 +561,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         } while (node != NULL && node != initial);
         surface_clients_show(surface, surface->desktop_cur);
     } else {
-        node = (desktop->stacking != NULL)
-            ? cdlist_head(desktop->stacking)
-            : NULL;
+        node = stacking_head;
         if (node == NULL) {
             return;
         }
@@ -614,8 +594,8 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     }
 
     surface->showing_desktop = show && changed_hidden_state;
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
 }
 
 
@@ -645,16 +625,16 @@ void hi_handle_net_restack_window(wm_td *wm,
         values[i++] = sibling;
     }
 
-    if (detail == RESTACK_DETAIL_BELOW) {
+    if (detail == WM_RESTACK_DETAIL_BELOW) {
         mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         values[i++] = XCB_STACK_MODE_BELOW;
-    } else if (detail == RESTACK_DETAIL_TOP_IF) {
+    } else if (detail == WM_RESTACK_DETAIL_TOP_IF) {
         mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         values[i++] = XCB_STACK_MODE_TOP_IF;
-    } else if (detail == RESTACK_DETAIL_BOTTOM_IF) {
+    } else if (detail == WM_RESTACK_DETAIL_BOTTOM_IF) {
         mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         values[i++] = XCB_STACK_MODE_BOTTOM_IF;
-    } else if (detail == RESTACK_DETAIL_OPPOSITE) {
+    } else if (detail == WM_RESTACK_DETAIL_OPPOSITE) {
         mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         values[i++] = XCB_STACK_MODE_OPPOSITE;
     } else {
@@ -666,8 +646,8 @@ void hi_handle_net_restack_window(wm_td *wm,
 
     xcb_configure_window(wm->connection, target, mask, values);
     xcb_flush(wm->connection);
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
 }
 
 
@@ -690,8 +670,8 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
 
     xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
             client->window,
-            s_intern_atom(wm->connection,
-                "_NET_WM_FULLSCREEN_MONITORS"),
+            atom_intern(wm->connection,
+                "_NET_WM_FULLSCREEN_MONITORS", false),
             XCB_ATOM_CARDINAL, 32, 4, monitors);
 
     if (client->properties.state ==
@@ -699,8 +679,8 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
         wcmd_client_fullscreen(client);
     }
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
 }
 
 

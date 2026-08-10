@@ -4,7 +4,8 @@
  * @brief Functions on executions over clients using the XCB interface
  *        with needed EWMH and ICCCM updates
  *
- * @ingroup cmds Client commands subsystem
+ * @defgroup cmds Client, desktop, and surface commands
+ * @ingroup eventq
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -130,6 +131,8 @@ void wcmd_client_unsticky(client_td *client);
  *
  * @param client Window to toggle sticky state
  *
+ * @note No-op on a surface with only one desktop: stickiness has
+ *       nothing to actually toggle when there is only the one
  * @note Complexity: @e O(1)
  */
 void wcmd_client_toggle_sticky(client_td *client);

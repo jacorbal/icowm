@@ -2,6 +2,8 @@
  * @file defs/cursor.h
  *
  * @brief Glyph indices into the X server's built-in "cursor" font
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -47,6 +49,15 @@
 #define WM_CURSOR_TOP_RIGHT_CORNER_GLYPH    (136u)
 #define WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH  (12u)
 #define WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH (14u)
+
+/**
+ * @brief Glyph index of @c XC_fleur (source) in the X cursor font
+ *
+ * The four-way move cursor, shown for the duration of an interactive
+ * window move (see @c drag_start in input/mouse/drag.c); its mask is,
+ * as with every other glyph here, the very next index.
+ */
+#define WM_CURSOR_FLEUR_GLYPH (52u)
 
 /**
  * @brief Glyph index of @c XC_watch (source) in the X cursor font

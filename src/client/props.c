@@ -17,6 +17,7 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memcpy, memset */
@@ -27,7 +28,7 @@
 #include <xcb/xcb_icccm.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Command includes */
 #include <cmds/ccmd.h>
@@ -167,12 +168,65 @@ int ci_get_wm_class(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Read a legacy Latin-1 ICCCM string property into up to two
+ *        destination buffers
+ *
+ * Shared fallback path for @c client_props_refresh_icon_name and
+ * @c client_props_refresh_name: both first try the UTF-8 EWMH
+ * property (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall
+ * back to this ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that
+ * fails.
+ *
+ * @param client         Client whose window property is read
+ * @param atom           ICCCM atom to read
+ * @param dest1          First destination buffer (always written when
+ *                        the property is present; at least 255 bytes)
+ * @param dest2          Second destination buffer kept in sync with
+ *                        @p dest1, or @c NULL when there is only one
+ * @param clear_on_empty When @c true, an empty or missing property
+ *                        clears @p dest1 to an empty string; when
+ *                        @c false, @p dest1 (and @p dest2) are left
+ *                        unchanged so a transient property removal
+ *                        does not blank an already-known name
+ *
+ * @note Complexity: @e O(1), a single round trip
+ */
+static void s_client_read_legacy_name_prop(client_td *client,
+        xcb_atom_t atom, char *dest1, char *dest2, bool clear_on_empty)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+
+    cookie = xcb_get_property(client->connection, 0, client->window,
+            atom, XCB_ATOM_STRING, 0, 255);
+    reply = xcb_get_property_reply(client->connection, cookie, NULL);
+
+    if (reply != NULL && reply->value_len > 0) {
+        size_t len = (reply->value_len < 255u)
+            ? reply->value_len : 254u;
+        char *value = (char *) xcb_get_property_value(reply);
+
+        memcpy(dest1, value, len);
+        dest1[len] = '\0';
+        if (dest2 != NULL) {
+            memcpy(dest2, value, len);
+            dest2[len] = '\0';
+        }
+    } else if (clear_on_empty) {
+        dest1[0] = '\0';
+    }
+
+    if (reply != NULL) {
+        free(reply);
+    }
+}
+
+
 /* Update a managed client's icon name from the X server */
 void client_props_refresh_icon_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
-    xcb_get_property_cookie_t cookie;
-    xcb_get_property_reply_t *reply;
 
     if (client == NULL) {
         return;
@@ -196,24 +250,8 @@ void client_props_refresh_icon_name(client_td *client)
     }
 
     /* Fall back to 'WM_ICON_NAME' */
-    cookie = xcb_get_property(client->connection, 0, client->window,
-            XCB_ATOM_WM_ICON_NAME, XCB_ATOM_STRING, 0, 255);
-    reply = xcb_get_property_reply(client->connection, cookie, NULL);
-
-    if (reply != NULL && reply->value_len > 0) {
-        size_t len = (reply->value_len < 255u)
-            ? reply->value_len : 254u;
-        char *value = (char *) xcb_get_property_value(reply);
-
-        memcpy(client->icon_info.visible_icon_name, value, len);
-        client->icon_info.visible_icon_name[len] = '\0';
-    } else {
-        client->icon_info.visible_icon_name[0] = '\0';
-    }
-
-    if (reply != NULL) {
-        free(reply);
-    }
+    s_client_read_legacy_name_prop(client, XCB_ATOM_WM_ICON_NAME,
+            client->icon_info.visible_icon_name, NULL, true);
 }
 
 
@@ -221,8 +259,6 @@ void client_props_refresh_icon_name(client_td *client)
 void client_props_refresh_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
-    xcb_get_property_cookie_t cookie;
-    xcb_get_property_reply_t *reply;
 
     if (client == NULL) {
         return;
@@ -247,67 +283,31 @@ void client_props_refresh_name(client_td *client)
         return;
     }
 
-    /* Fall back to 'WM_NAME' */
-    cookie = xcb_get_property(client->connection, 0, client->window,
-            XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 0, 255);
-    reply = xcb_get_property_reply(client->connection, cookie, NULL);
-
-    if (reply != NULL && reply->value_len > 0) {
-        size_t len = (reply->value_len < 255u)
-            ? reply->value_len : 254u;
-        char *value = (char *) xcb_get_property_value(reply);
-
-        memcpy(client->info.name, value, len);
-        memcpy(client->info.visible_name, value, len);
-        client->info.name[len] = '\0';
-        client->info.visible_name[len] = '\0';
-    }
-
-    if (reply != NULL) {
-        free(reply);
-    }
+    /* Fall back to 'WM_NAME'; a transient removal of both properties
+     * should not blank an already-known name, so nothing is cleared
+     * here when the property is absent or empty. */
+    s_client_read_legacy_name_prop(client, XCB_ATOM_WM_NAME,
+            client->info.name, client->info.visible_name, false);
 }
 
 
 /* Update a managed client's role from 'WM_WINDOW_ROLE' */
 void client_props_refresh_role(client_td *client)
 {
-    xcb_intern_atom_reply_t *role_atom_reply;
-    xcb_get_property_cookie_t cookie;
-    xcb_get_property_reply_t *reply;
+    xcb_atom_t role_atom;
 
     if (client == NULL || client->info.role_name == NULL) {
         return;
     }
 
-    role_atom_reply = xcb_intern_atom_reply(client->connection,
-            xcb_intern_atom(client->connection, 1,
-                (uint16_t) safe_strlen("WM_WINDOW_ROLE"),
-                "WM_WINDOW_ROLE"), NULL);
-    if (role_atom_reply == NULL) {
+    role_atom = atom_intern(client->connection, "WM_WINDOW_ROLE", true);
+    if (role_atom == XCB_ATOM_NONE) {
         client->info.role_name[0] = '\0';
         return;
     }
 
-    cookie = xcb_get_property(client->connection, 0, client->window,
-            role_atom_reply->atom, XCB_ATOM_STRING, 0, 255);
-    reply = xcb_get_property_reply(client->connection, cookie, NULL);
-
-    if (reply != NULL && reply->value_len > 0) {
-        size_t len = (reply->value_len < 255u) ? reply->value_len : 254u;
-        char *value = (char *) xcb_get_property_value(reply);
-
-        memcpy(client->info.role_name, value, len);
-        client->info.role_name[len] = '\0';
-    } else {
-        client->info.role_name[0] = '\0';
-    }
-
-    if (reply != NULL) {
-        free(reply);
-    }
-
-    free(role_atom_reply);
+    s_client_read_legacy_name_prop(client, role_atom,
+            client->info.role_name, NULL, true);
 }
 
 
@@ -391,7 +391,7 @@ void client_props_refresh_normal_hints(client_td *client)
     /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
      * one axis.  Some applications (e.g., gmrun) constrain only height,
      * leaving width free; the window is still effectively non-resizable
-     * from the WM's perspective and must not be maximised or resized. */
+     * from the WM's perspective and must not be maximized or resized. */
     if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
             (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
         bool fixed_w = (hints.min_width > 0 &&

@@ -18,6 +18,9 @@
  * @c types/pair.h's own file comment for the project's established
  * stance on repeating a small struct shape for clarity instead of
  * typedef'ing one shared one.
+ *
+ * @defgroup monitor Physical monitor geometry
+ * @ingroup surface
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

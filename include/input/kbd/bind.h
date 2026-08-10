@@ -11,6 +11,8 @@
  * This module has no knowledge of the window manager singleton; every
  * function receives explicit parameters for the XCB connection,
  * surface list, and configuration pointer.
+ *
+ * @ingroup input_kbd
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -35,11 +37,11 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Default initial values */
+#include <defs/kbd.h>
+
 /* Project includes */
 #include <config.h>
-
-/* Local includes */
-#include <input/kbd/keycodes.h>
 
 
 /**

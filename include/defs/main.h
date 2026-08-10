@@ -2,6 +2,8 @@
  * @file defs/main.h
  *
  * @brief Main global definitions for the program
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

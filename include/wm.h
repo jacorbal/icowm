@@ -2,6 +2,8 @@
  * @file wm.h
  *
  * @brief Declaration of window manager structure and main functions
+ *
+ * @defgroup wm Window manager
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -49,16 +51,15 @@ typedef struct session_s session_td;
  *
  * Core components of a window manager, maintaining the state of the
  * program as well as the relationships between different screens and
- * their respective windows.  It includes functionality for managing
- * configurations and handling events that affect window behavior and
- * user interactions.
+ * their respective windows.
  *
  * The @p is_running flag indicates whether the window manager is
  * currently operational, while the @p surfaces linked list holds
  * references to all surfaces being managed.  The @p config pointer
- * allows for customization of the window manager's settings, and the
- * @p event_handler is responsible for processing user inputs and system
- * events, keeping the window manager responsive and interactive.
+ * allows for customization of the window manager's settings; events
+ * that affect window behavior and user interactions are dispatched
+ * from @c loop_run instead (see @c loop.h), not tracked as a field
+ * here.
  */
 typedef struct {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
@@ -123,13 +124,15 @@ typedef struct {
  * When @p restricted_memory_mib is non-zero, restricted-memory mode
  * is active (see @c -M in @c main.c): available system memory is
  * checked before doing anything else, refusing to start at all if it
- * is already below that many mebibytes; theme, window rules, and
- * session hooks are not loaded at all, falling back to their compiled
- * -in defaults; and the loaded base configuration is forced to a
- * single screen with a single desktop, icon pixmaps disabled, and the
- * @c fortune easter egg disabled, regardless of what @c config.json
- * itself says.  See @c config_load's own @p restricted_memory_mib
- * parameter for exactly which fields that forces.
+ * is already below that many mebibytes; icon pixmaps and modern font
+ * rendering are forced off regardless of what the theme itself says;
+ * and each screen's desktop count defaults to a smaller number than
+ * an ordinary session's when nothing else specifies one, though an
+ * explicit @c config.json value is never overridden.  Everything else
+ * (theme, window rules, session hooks, screen count) loads exactly as
+ * it would without @p restricted_memory_mib at all.  See
+ * @c config_load's own @p restricted_memory_mib parameter for the
+ * precise details.
  *
  * @param display_name      Name of the display, or @c NULL for default
  * @param config_dir_prefix Configuration directory, or @c NULL to use
@@ -222,6 +225,11 @@ int wm_request_stop(void);
  *
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       saved because it involves reading from the configuration file
+ * @note Reloads @c config->randr from @c randr.json but does not call
+ *       @c surface_action_apply_randr_profiles; an edited profile
+ *       takes effect at the next call to that function (startup, or
+ *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
+ *       not from this reload alone
  */
 int wm_action_config_reload(void);
 

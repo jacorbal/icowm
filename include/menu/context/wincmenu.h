@@ -11,6 +11,8 @@
  *
  * The menu is a singleton: at most one instance is open at a time.
  * Opening a new one closes the previous one automatically.
+ *
+ * @ingroup menu_context
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

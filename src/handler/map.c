@@ -38,10 +38,12 @@
 #include <input/mouse.h>
 #include <input/mouse/drag.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <invalidate.h>
 #include <logger.h>
 #include <memguard.h>
 #include <surface.h>
@@ -58,6 +60,29 @@
 
 /* Local includes */
 #include <handler.h>
+
+
+/**
+ * @brief Map a window without adopting it under window manager control
+ *
+ * Shared by every early-return path in @c handler_map_request below
+ * that declines to manage the window (an unresolvable surface or
+ * current desktop, @c client_manage itself failing, or the client
+ * failing to be added to its desktop): the requesting application
+ * gets its window on screen either way, just without a frame or any
+ * window-manager tracking.
+ *
+ * @param connection XCB connection
+ * @param window     Window to map as-is
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_map_unmanaged(xcb_connection_t *connection,
+        xcb_window_t window)
+{
+    xcb_map_window(connection, window);
+    xcb_flush(connection);
+}
 
 
 /**
@@ -97,8 +122,8 @@ static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
                             XCB_INPUT_FOCUS_PARENT,
                             c->window, XCB_CURRENT_TIME);
                 }
-                wm_invalidate_desktop(desktop);
-                wm_invalidate_surface(surface);
+                wm_outdate_desktop(desktop);
+                wm_outdate_surface(surface);
                 focus_set = true;
                 break;
             }
@@ -111,8 +136,8 @@ static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_CURRENT_TIME);
-        wm_invalidate_desktop(desktop);
-        wm_invalidate_surface(surface);
+        wm_outdate_desktop(desktop);
+        wm_outdate_surface(surface);
     }
 }
 
@@ -123,6 +148,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     surface_td *surface;
     desktop_td *desktop;
     client_td *client;
+    uint32_t max_clients;
 
     if (wm == NULL || event == NULL) {
         LOGGER_ERROR("Received null pointer in map request handler",
@@ -138,8 +164,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         LOGGER_TRACE("Window %#x already managed; mapping directly",
                 event->window);
 
-        xcb_map_window(wm->connection, event->window);
-        xcb_flush(wm->connection);
+        s_map_unmanaged(wm->connection, event->window);
         return;
     }
 
@@ -158,8 +183,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         LOGGER_ERROR("No current desktop on surface %u; mapping without"
                 " management", surface->id);
 
-        xcb_map_window(wm->connection, event->window);
-        xcb_flush(wm->connection);
+        s_map_unmanaged(wm->connection, event->window);
         return;
     }
 
@@ -184,22 +208,19 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
      * 'memguard_max_clients' already reads 0 as "restricted-memory
      * mode is off, no cap", so nothing else needs to check that
      * separately here. */
-    {
-        uint32_t max_clients = memguard_max_clients();
+    max_clients = memguard_max_clients();
 
-        if (max_clients > 0u &&
-                ohtbl_size(desktop->clients) >= max_clients) {
-            memguard_warn_client_cap(wm->connection, surface,
-                    wm->config);
-            return;
-        }
+    if (max_clients > 0u &&
+            ohtbl_size(desktop->clients) >= max_clients) {
+        memguard_warn_client_cap(wm->connection, surface,
+                wm->config);
+        return;
     }
 
     client = client_manage(wm->connection, wm->ewmh,
             event->window, &wm->config->theme, &wm->config->base);
     if (client == NULL) {
-        xcb_map_window(wm->connection, event->window);
-        xcb_flush(wm->connection);
+        s_map_unmanaged(wm->connection, event->window);
         return;
     }
 
@@ -211,8 +232,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
                 event->window, desktop->id);
         client->window = 0;
         client_destroy(client);
-        xcb_map_window(wm->connection, event->window);
-        xcb_flush(wm->connection);
+        s_map_unmanaged(wm->connection, event->window);
         return;
     }
 
@@ -232,8 +252,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     /* Apply map-time rules before placement so explicit rule geometry
      * can lock the client position and exempt it from policy placement */
     if (rules_apply(wm, client, &surface, &desktop, RULES_TRIGGER_MAP)) {
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
     }
 
     /* Dock/panel windows self-position; do not override their geometry */
@@ -292,8 +312,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
      * clients already assigned to the above layer */
     wcmd_desktop_enforce_layers(desktop);
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
     xcb_flush(wm->connection);
 
     LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
@@ -442,8 +462,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
     }
     client_destroy(client);
 
-    wm_invalidate_surface(surface);
-    wm_invalidate_desktop(desktop);
+    wm_outdate_surface(surface);
+    wm_outdate_desktop(desktop);
 
     LOGGER_DEBUG("Removed destroyed window %#x", event->window);
 }
@@ -576,7 +596,7 @@ void handler_circulate_notify(xcb_connection_t *connection,
     /* The stacking order changed; mark the surface so 'wm_ewmh_sync'
      * updates '_NET_CLIENT_LIST_STACKING' on the next iteration */
     surface = lookup_surface_for_root(surfaces, event->event);
-    wm_invalidate_surface(surface);
+    wm_outdate_surface(surface);
 }
 
 

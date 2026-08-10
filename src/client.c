@@ -3,7 +3,7 @@
  *
  * @brief Client structure management
  *
- * Owns allocation, initialisation, adoption (manage), update and
+ * Owns allocation, initialization, adoption (manage), update and
  * destruction of @c client_td instances.  X11 property reading lives in
  * @c client/props.c; geometry and decoration helpers in
  * @c client/geom.c; outgoing event senders in @c client/event.c.
@@ -33,6 +33,7 @@
 #include <utils/safe/safemem.h>
 #include <utils/safe/safestr.h>
 #include <utils/safe/safeflg.h>
+#include <utils/xcb/atom.h>
 
 /* Type includes */
 #include <types/pair.h>
@@ -116,7 +117,7 @@ static void s_client_init_common(client_td *client,
     client->icon_x = -1;
     client->icon_y = -1;
     client->layout.gravity =
-        (uint16_t) (config_base != NULL
+        (uint16_t) ((config_base != NULL)
                 ? config_base->windows.gravity
                 : CONFIG_GRAVITY_NORTH_WEST);
     client->properties.flags =
@@ -339,7 +340,7 @@ void client_destroy(client_td *client)
     }
     /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
      * (see render/wmicon.h), if any; a no-op if nothing was ever
-     * cached, e.g., a client that never had 'theme.icon.use-pixmap'
+     * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
      * draw anything for it in the first place */
     wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
     if (client->connection != NULL && client->frame != 0) {
@@ -354,151 +355,42 @@ void client_destroy(client_td *client)
 }
 
 
-/* Adopt an existing X window under window manager control */
-client_td *client_manage(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
-        xcb_window_t window,
-        struct config_theme_s *theme,
-        const struct config_base_s *config_base)
+/**
+ * @brief Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support
+ *
+ * Interns 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS', and '_NET_WM_PING',
+ * caches which of those (plus '_NET_WM_SYNC_REQUEST') the window
+ * advertises support for, and, when '_NET_WM_SYNC_REQUEST' is both
+ * advertised and the XSync extension is available, reads the
+ * client-set counter and creates the alarm watching it (see
+ * 'wcmd_client_resize' and 'handler_sync_event' for how that alarm is
+ * consumed later).
+ *
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection, for 'WM_PROTOCOLS' and
+ *                   '_NET_WM_SYNC_REQUEST_COUNTER'
+ * @param window     Window being adopted
+ * @param client     Client being initialized; its protocol-support
+ *                   flags, 'sync_counter', and 'sync_alarm' fields
+ *                   are set here
+ *
+ * @note Complexity: @e O(n), where @e n is the number of protocols
+ *       'WM_PROTOCOLS' advertises
+ */
+static void s_client_read_wm_protocols(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        client_td *client)
 {
-    client_td *client;
-    xcb_get_geometry_reply_t *geom_reply;
-    xcb_get_window_attributes_reply_t *attr_reply;
-    uint32_t values[2];
-    char wm_name[256];
-    char wm_class[256];
-    char wm_instance[256];
-    char net_wm_name[256];
-    xcb_window_t transient = XCB_WINDOW_NONE;
-    xcb_ewmh_get_extents_reply_t strut;
-    xcb_ewmh_wm_strut_partial_t partial;
-    xcb_ewmh_get_atoms_reply_t type_reply;
-    xcb_intern_atom_reply_t *ia;
-    xcb_atom_t wm_delete_atom = XCB_ATOM_NONE;
-    xcb_atom_t wm_take_focus_atom = XCB_ATOM_NONE;
-    xcb_atom_t net_wm_ping_atom = XCB_ATOM_NONE;
-    xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
-    xcb_get_property_cookie_t motif_ck;
-    xcb_get_property_reply_t *motif_r;
-    xcb_atom_t client_leader_atom = XCB_ATOM_NONE;
-    xcb_get_property_cookie_t client_leader_cookie;
-    xcb_get_property_reply_t *client_leader_reply;
+    xcb_atom_t wm_delete_atom;
+    xcb_atom_t wm_take_focus_atom;
+    xcb_atom_t net_wm_ping_atom;
     xcb_icccm_get_wm_protocols_reply_t proto;
-    xcb_icccm_wm_hints_t wm_hints;
-    uint32_t bw[1];
-    uint32_t ewmh_pid;
-    uint32_t utime;
-
-    LOGGER_TRACE("Attempting to manage existing window %#x", window);
-
-    /* Reject override-redirect windows, for they manage themselves */
-    attr_reply = xcb_get_window_attributes_reply(connection,
-            xcb_get_window_attributes(connection, window), NULL);
-    if (attr_reply != NULL) {
-        bool skip = attr_reply->override_redirect;
-        free(attr_reply);
-        if (skip) {
-            LOGGER_TRACE("Skipping override-redirect window %#x",
-                    window);
-            return NULL;
-        }
-    }
-
-    client = calloc(1, sizeof(client_td));
-    if (client == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for managed client",
-                L_NARG);
-        return NULL;
-    }
-
-    s_client_init_common(client, connection, ewmh, theme, config_base);
-
-    /* Use the X window ID as both window handle and hash/lookup key */
-    client->window = window;
-    client->id = window;
-
-    /* Query existing geometry */
-    geom_reply = xcb_get_geometry_reply(connection,
-            xcb_get_geometry(connection, window), NULL);
-    if (geom_reply != NULL) {
-        client->parent_id = geom_reply->root;
-        client->layout.geometry.cur.pos.x = geom_reply->x;
-        client->layout.geometry.cur.pos.y = geom_reply->y;
-        client->layout.geometry.cur.dim.w = geom_reply->width;
-        client->layout.geometry.cur.dim.h = geom_reply->height;
-        free(geom_reply);
-    } else {
-        client->layout.geometry.cur.pos.x = 0;
-        client->layout.geometry.cur.pos.y = 0;
-        client->layout.geometry.cur.dim.w = WM_CLIENT_DEFAULT_DIM;
-        client->layout.geometry.cur.dim.h = WM_CLIENT_DEFAULT_DIM;
-    }
-    client->layout.geometry.old = client->layout.geometry.cur;
-
-    /* Allocate string buffers */
-    if (ci_alloc_strings(client) != 0) {
-        LOGGER_ERROR("Failed to allocate string buffers"
-                " for managed client", L_NARG);
-        free(client);
-        return NULL;
-    }
-
-    /* Default string values */
-    snprintf(client->info.name,
-            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
-    snprintf(client->info.visible_name,
-            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
-
-    /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
-    ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
-    if (net_wm_name[0] != '\0') {
-        s_client_set_display_name(client, net_wm_name);
-    } else {
-        ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
-        s_client_set_display_name(client, wm_name);
-    }
-
-    /* Read '_NET_WM_ICON_NAME'/'WM_ICON_NAME' for iconified caption */
-    client_props_refresh_icon_name(client);
-
-    /* Read 'WM_CLASS' */
-    ci_get_wm_class(connection, window,
-            wm_class, sizeof(wm_class),
-            wm_instance, sizeof(wm_instance));
-    if (wm_class[0] != '\0') {
-        safe_strncpy(client->info.class_name[1], wm_class,
-                CONFIG_MAX_LENGTH_NAME - 1);
-    }
-    if (wm_instance[0] != '\0') {
-        safe_strncpy(client->info.class_name[0], wm_instance,
-                CONFIG_MAX_LENGTH_NAME - 1);
-    }
 
     /* Read 'WM_PROTOCOLS': cache 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS',
      * and '_NET_WM_PING' support */
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 16, "WM_DELETE_WINDOW"),
-            NULL);
-    if (ia != NULL) {
-        wm_delete_atom = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 14, "WM_TAKE_FOCUS"),
-            NULL);
-    if (ia != NULL) {
-        wm_take_focus_atom = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 12, "_NET_WM_PING"),
-            NULL);
-    if (ia != NULL) {
-        net_wm_ping_atom = ia->atom;
-        free(ia);
-    }
+    wm_delete_atom = atom_intern(connection, "WM_DELETE_WINDOW", true);
+    wm_take_focus_atom = atom_intern(connection, "WM_TAKE_FOCUS", true);
+    net_wm_ping_atom = atom_intern(connection, "_NET_WM_PING", true);
 
     client->wm_delete_atom = wm_delete_atom;
     client->has_wm_delete_window = false;
@@ -605,6 +497,34 @@ client_td *client_manage(xcb_connection_t *connection,
             client->has_net_wm_sync_request = false;
         }
     }
+}
+
+
+/**
+ * @brief Read 'WM_HINTS', 'WM_CLIENT_LEADER', and 'WM_TRANSIENT_FOR'
+ *
+ * @c WM_HINTS supplies the input model, initial iconic state, window
+ * group, and urgency; @c WM_CLIENT_LEADER (ICCCM §5.1) and
+ * @c WM_HINTS' own window group together let @c client_group_leader
+ * and @c place_apply cluster windows belonging to the same
+ * application; @c WM_TRANSIENT_FOR identifies dialogs and their
+ * parent.
+ *
+ * @param connection XCB connection
+ * @param window     Window being adopted
+ * @param client     Client being initialized; every field these three
+ *                   properties feed is set here
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
+        xcb_window_t window, client_td *client)
+{
+    xcb_atom_t client_leader_atom;
+    xcb_get_property_cookie_t client_leader_cookie;
+    xcb_get_property_reply_t *client_leader_reply;
+    xcb_icccm_wm_hints_t wm_hints;
+    xcb_window_t transient = XCB_WINDOW_NONE;
 
     /* Read 'WM_HINTS': input model and window group */
     memset(&wm_hints, 0, sizeof(wm_hints));
@@ -631,13 +551,7 @@ client_td *client_manage(xcb_connection_t *connection,
      * to the same application for placement (see 'client_group_leader'
      * and 'place_apply') */
     client->client_leader = XCB_WINDOW_NONE;
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1, 16, "WM_CLIENT_LEADER"),
-            NULL);
-    if (ia != NULL) {
-        client_leader_atom = ia->atom;
-        free(ia);
-    }
+    client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
     if (client_leader_atom != XCB_ATOM_NONE) {
         client_leader_cookie = xcb_get_property(connection, 0, window,
                 client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
@@ -662,11 +576,30 @@ client_td *client_manage(xcb_connection_t *connection,
                 &transient, NULL)) {
         client->transient_for = transient;
     }
+}
 
-    /* Read 'WM_NORMAL_HINTS': size constraints and increment grid */
-    client_props_refresh_normal_hints(client);
 
-    /* Read '_NET_WM_STRUT_PARTIAL' for dock/panel windows */
+/**
+ * @brief Read '_NET_WM_STRUT_PARTIAL', falling back to legacy
+ *        '_NET_WM_STRUT', for dock/panel windows
+ *
+ * @c _NET_WM_STRUT_PARTIAL additionally carries the start/end range
+ * each edge's reservation applies to; the legacy, coordinate-less
+ * '_NET_WM_STRUT' is only consulted when the partial form is absent.
+ *
+ * @param ewmh   EWMH connection
+ * @param window Window being adopted
+ * @param client Client being initialized; its
+ *               @c layout.strut_partial fields are set here
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
+        xcb_window_t window, client_td *client)
+{
+    xcb_ewmh_get_extents_reply_t strut;
+    xcb_ewmh_wm_strut_partial_t partial;
+
     memset(&strut, 0, sizeof(strut));
     memset(&partial, 0, sizeof(partial));
     if (xcb_ewmh_get_wm_strut_partial_reply(ewmh,
@@ -713,24 +646,44 @@ client_td *client_manage(xcb_connection_t *connection,
         client->layout.strut_partial.sides.bottom =
             (int32_t) strut.bottom;
     }
+}
 
-    /* Read '_NET_WM_WINDOW_TYPE' to determine client type and
-     * decoration */
+
+/**
+ * @brief Read '_NET_WM_WINDOW_TYPE' to determine client type and
+ *        decoration
+ *
+ * Dock and notification windows are additionally stripped of frame
+ * extents, made sticky (dock only), excluded from taskbar/pager, and
+ * unfocusable, on top of the type itself; every other recognized type
+ * only sets @c properties.type, undecorating menu/splash windows.
+ * The first recognized type in @c type_reply wins; an unrecognized
+ * type leaves @c properties.type at whatever @c client_init already
+ * defaulted it to.
+ *
+ * @param connection XCB connection, to intern
+ *                   @c _NET_WM_WINDOW_TYPE_NOTIFICATION
+ * @param ewmh       EWMH connection
+ * @param window     Window being adopted
+ * @param client     Client being initialized; its type, decoration,
+ *                   frame extents, and several property flags are
+ *                   set here
+ *
+ * @note Complexity: @e O(n), where @e n is the number of atoms
+ *       '_NET_WM_WINDOW_TYPE' lists
+ */
+static void s_client_read_window_type(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        client_td *client)
+{
+    xcb_ewmh_get_atoms_reply_t type_reply;
+
     memset(&type_reply, 0, sizeof(type_reply));
     if (xcb_ewmh_get_wm_window_type_reply(ewmh,
                 xcb_ewmh_get_wm_window_type(ewmh, window),
                 &type_reply, NULL)) {
-        xcb_atom_t atom_notification = XCB_ATOM_NONE;
-        xcb_intern_atom_reply_t *notif_ia;
-
-        notif_ia = xcb_intern_atom_reply(connection,
-                xcb_intern_atom(connection, 1,
-                    sizeof("_NET_WM_WINDOW_TYPE_NOTIFICATION") - 1u,
-                    "_NET_WM_WINDOW_TYPE_NOTIFICATION"), NULL);
-        if (notif_ia != NULL) {
-            atom_notification = notif_ia->atom;
-            free(notif_ia);
-        }
+        xcb_atom_t atom_notification = atom_intern(connection,
+                "_NET_WM_WINDOW_TYPE_NOTIFICATION", true);
 
         for (uint32_t ti = 0; ti < type_reply.atoms_len; ++ti) {
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DOCK) {
@@ -790,31 +743,48 @@ client_td *client_manage(xcb_connection_t *connection,
         }
         xcb_ewmh_get_atoms_reply_wipe(&type_reply);
     }
+}
 
-    /* Read '_MOTIF_WM_HINTS': the long-standing de-facto convention
-     * several toolkits and applications (e.g., Xpad) still use to
-     * explicitly request no window decorations, predating
-     * '_NET_WM_WINDOW_TYPE'.
-     *
-     * Format: 5x CARD32
-     *      { flags, functions, decorations, input_mode, status };
-     *
-     * only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations'
-     * are consulted here.
-     *
-     * An explicit request to turn decorations off overrides whatever
-     * the type-based defaults above chose; a request to turn them on is
-     * honored only if the theme itself decorates windows by default, so
-     * this never re-decorates a client type (dock, splash, menu, &c.)
-     * that is unconditionally undecorated above. */
-    ia = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1,
-                sizeof("_MOTIF_WM_HINTS") - 1u, "_MOTIF_WM_HINTS"),
-            NULL);
-    if (ia != NULL) {
-        motif_hints_atom = ia->atom;
-        free(ia);
-    }
+
+/**
+ * @brief Read '_MOTIF_WM_HINTS' to honor a client's own decoration
+ *        request
+ *
+ * The long-standing de-facto convention several toolkits and
+ * applications (e.g., Xpad) still use to explicitly request no window
+ * decorations, predating '_NET_WM_WINDOW_TYPE'.
+ *
+ * Format: 5x CARD32
+ *      { flags, functions, decorations, input_mode, status };
+ *
+ * only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations' are
+ * consulted here.
+ *
+ * An explicit request to turn decorations off overrides whatever the
+ * type-based defaults @c s_client_read_window_type already chose; a
+ * request to turn them on is honored only if the theme itself
+ * decorates windows by default, so this never re-decorates a client
+ * type (dock, splash, menu, &c.) that is unconditionally undecorated
+ * there.
+ *
+ * @param connection XCB connection
+ * @param window     Window being adopted
+ * @param theme      Active theme, to check @c window.is_decorated
+ *                   before honoring a request to turn decorations on
+ * @param client     Client being initialized; its decoration flag and
+ *                   frame extents may be changed here
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_read_motif_hints(xcb_connection_t *connection,
+        xcb_window_t window, struct config_theme_s *theme,
+        client_td *client)
+{
+    xcb_atom_t motif_hints_atom;
+    xcb_get_property_cookie_t motif_ck;
+    xcb_get_property_reply_t *motif_r;
+
+    motif_hints_atom = atom_intern(connection, "_MOTIF_WM_HINTS", true);
     if (motif_hints_atom != XCB_ATOM_NONE) {
         motif_ck = xcb_get_property(connection, 0, window,
                 motif_hints_atom, motif_hints_atom, 0, 5);
@@ -844,61 +814,52 @@ client_td *client_manage(xcb_connection_t *connection,
             free(motif_r);
         }
     }
+}
 
-    if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
-            client->ewmh != NULL) {
-        wcmd_add_states(client, 3,
-                "_NET_WM_STATE_STICKY",
-                "_NET_WM_STATE_SKIP_TASKBAR",
-                "_NET_WM_STATE_SKIP_PAGER");
-    }
 
-    /* Read the pre-existing '_NET_WM_STATE' property so that states an
-     * application sets on itself before ever mapping (i.e., before the
-     * window manager has a chance to intervene) are honored from the
-     * start, instead of only taking effect the first time the
-     * application happens to resend the same state later via a
-     * '_NET_WM_STATE' 'ClientMessage' (e.g., toggling a "skip taskbar"
-     * preference off and back on in xpad's settings): panels and dock
-     * windows that set '_NET_WM_STATE_BELOW' (e.g., tint2) get the
-     * BELOW layer, and applications that set '_NET_WM_STATE_SKIP_
-     * TASKBAR'/'_NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from
-     * taskbar" option, enabled from its own startup) are excluded from
-     * the cycle menu and window list immediately rather than only
-     * after the user re-toggles the same preference in that
-     * application once the window manager is already running. */
+/**
+ * @brief Read the pre-existing '_NET_WM_STATE' property so that
+ *        states an application sets on itself before ever mapping
+ *        are honored from the start
+ *
+ * Without this, such a state would only take effect the first time
+ * the application happens to resend it later via a '_NET_WM_STATE'
+ * 'ClientMessage' (i.e., before the window manager has a chance to
+ * intervene; e.g., toggling a "skip taskbar" preference off and back
+ * on in xpad's settings): panels and dock windows that set
+ * '_NET_WM_STATE_BELOW' (e.g., tint2) get the BELOW layer, and
+ * applications that set '_NET_WM_STATE_SKIP_TASKBAR'/'_NET_WM_STATE_
+ * SKIP_PAGER' (e.g., xpad's "hide from taskbar" option, enabled from
+ * its own startup) are excluded from the cycle menu and window list
+ * immediately rather than only after the user re-toggles the same
+ * preference in that application once the window manager is already
+ * running.
+ *
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection; a no-op if @c NULL
+ * @param window     Window being adopted
+ * @param client     Client being initialized; its layer and
+ *                   skip-taskbar/skip-pager flags may be set here
+ *
+ * @note Complexity: @e O(n), where @e n is the number of atoms
+ *       '_NET_WM_STATE' lists
+ */
+static void s_client_read_pre_existing_state(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        client_td *client)
+{
     if (ewmh != NULL) {
         xcb_get_property_cookie_t state_ck;
         xcb_get_property_reply_t *state_r;
-        xcb_atom_t atom_below = XCB_ATOM_NONE;
-        xcb_atom_t atom_skip_taskbar = XCB_ATOM_NONE;
-        xcb_atom_t atom_skip_pager = XCB_ATOM_NONE;
-        xcb_intern_atom_reply_t *ia_state;
+        xcb_atom_t atom_below;
+        xcb_atom_t atom_skip_taskbar;
+        xcb_atom_t atom_skip_pager;
 
-        ia_state = xcb_intern_atom_reply(connection,
-                xcb_intern_atom(connection, 1,
-                    sizeof("_NET_WM_STATE_BELOW") - 1u,
-                    "_NET_WM_STATE_BELOW"), NULL);
-        if (ia_state != NULL) {
-            atom_below = ia_state->atom;
-            free(ia_state);
-        }
-        ia_state = xcb_intern_atom_reply(connection,
-                xcb_intern_atom(connection, 1,
-                    sizeof("_NET_WM_STATE_SKIP_TASKBAR") - 1u,
-                    "_NET_WM_STATE_SKIP_TASKBAR"), NULL);
-        if (ia_state != NULL) {
-            atom_skip_taskbar = ia_state->atom;
-            free(ia_state);
-        }
-        ia_state = xcb_intern_atom_reply(connection,
-                xcb_intern_atom(connection, 1,
-                    sizeof("_NET_WM_STATE_SKIP_PAGER") - 1u,
-                    "_NET_WM_STATE_SKIP_PAGER"), NULL);
-        if (ia_state != NULL) {
-            atom_skip_pager = ia_state->atom;
-            free(ia_state);
-        }
+        atom_below = atom_intern(connection, "_NET_WM_STATE_BELOW", true);
+        atom_skip_taskbar = atom_intern(connection,
+                "_NET_WM_STATE_SKIP_TASKBAR", true);
+        atom_skip_pager = atom_intern(connection,
+                "_NET_WM_STATE_SKIP_PAGER", true);
 
         if (atom_below != XCB_ATOM_NONE ||
                 atom_skip_taskbar != XCB_ATOM_NONE ||
@@ -931,34 +892,58 @@ client_td *client_manage(xcb_connection_t *connection,
             } /* ! if (!state_r) */
         } /* ! if (atom_below) */
     } /* ! if (!ewmh) */
+}
 
 
-    /* Read '_NET_WM_PID': associate X window with its owning process */
-    ewmh_pid = 0u;
-    if (xcb_ewmh_get_wm_pid_reply(ewmh,
-                xcb_ewmh_get_wm_pid(ewmh, window),
-                &ewmh_pid, NULL)) {
-        client->process.pid = (int) ewmh_pid;
-    }
+/**
+ * @brief Subscribe to events on the adopted window, apply its border
+ *        width, and set its default cursor
+ *
+ * For dock and notification windows, preserves the application's own
+ * event mask (which includes 'ButtonPress'/'ButtonRelease' needed for
+ * systray interaction) and ORs in only the window manager's required
+ * events; replacing the mask wholesale would strip 'ButtonPress',
+ * making systray icons non-interactive after a 'PassiveGrab' replay.
+ * Every other client type gets a fresh mask covering focus, geometry,
+ * and pointer tracking.
+ *
+ * The border width is applied before subscribing to
+ * 'STRUCTURE_NOTIFY' so the resulting 'ConfigureNotify' is not
+ * delivered to the window manager: at this point the window has not
+ * yet been placed, so the event would carry the X-server-initial
+ * position (typically (0,0)), and 'handler_configure_notify' would
+ * overwrite the placement position computed later by 'place_apply',
+ * causing an undecorated window to flicker back to the origin on
+ * every render cycle.  Dock windows always get zero border width.
+ *
+ * The explicit plain-pointer cursor set here, once, is what makes the
+ * resize cursor set while hovering the frame's own border reliably
+ * give way to a plain pointer the instant the pointer crosses into
+ * this client's own content: X11 always prefers the nearest explicit
+ * cursor over an inherited one, resolved by the server itself on
+ * every crossing, with no window-manager-side event handling
+ * required.  A purely event-driven reset (motion, or even
+ * enter-notify) can be preempted by a client that intercepts pointer
+ * motion for its own purposes (e.g., GTK/Qt applications tracking
+ * hover for their own UI), which stops those events from ever
+ * reaching this window manager at all; this static default has no
+ * such dependency.
+ *
+ * @param connection XCB connection
+ * @param window     Window being adopted
+ * @param theme      Active theme, for the border width; a @c NULL
+ *                   theme (or a dock window) gets a zero-width border
+ * @param client     Client being initialized, for its @c properties.type
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_subscribe_events(xcb_connection_t *connection,
+        xcb_window_t window, struct config_theme_s *theme,
+        client_td *client)
+{
+    uint32_t values[2];
+    uint32_t bw[1];
 
-    /* Read '_NET_WM_USER_TIME': used for initial focus policy */
-    utime = 0u;
-    if (xcb_ewmh_get_wm_user_time_reply(ewmh,
-                xcb_ewmh_get_wm_user_time(ewmh, window),
-                &utime, NULL)) {
-        client->user_time = utime;
-    }
-
-    /* Publish initial '_NET_WM_ALLOWED_ACTIONS' */
-    wcmd_client_update_allowed_actions(client);
-
-    /* Subscribe to events on the adopted window.
-     * For dock and notification windows, preserve the application's
-     * event mask (which includes 'ButtonPress'/'ButtonRelease' needed
-     * for systray interaction) and OR in only the window manager's
-     * required events.  Replacing the mask wholesale would strip
-     * 'ButtonPress', making systray icons non-interactive after
-     * a 'PassiveGrab replay. */
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
             client->properties.type ==
                 (uint16_t) CLIENT_TYPE_NOTIFICATION) {
@@ -983,39 +968,177 @@ client_td *client_manage(xcb_connection_t *connection,
                     XCB_EVENT_MASK_POINTER_MOTION;
     }
 
-    /* Apply border width before subscribing to 'STRUCTURE_NOTIFY' so
-     * the resulting 'ConfigureNotify' is not delivered to the window
-     * manager.  At this point the window has not yet been placed; the
-     * event would carry the X-server-initial position, typically (0,0),
-     * and 'handler_configure_notify' would overwrite the placement
-     * position computed later by place_apply, causing an undecorated
-     * window to flicker back to the origin on every render cycle.
-     * Dock windows always get zero border width. */
-
-    /* Apply border width from theme; dock windows always get 0 */
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
         ? 0u
         : ((theme != NULL) ? theme->window.active.border.width : 0u);
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 
-    /* An explicit plain-pointer cursor here, set once, is what makes
-     * the resize cursor set while hovering the frame's own border
-     * reliably give way to a plain pointer the instant the pointer
-     * crosses into this client's own content: X11 always prefers the
-     * nearest explicit cursor over an inherited one, resolved by the
-     * server itself on every crossing, with no window-manager-side
-     * event handling required.  A purely event-driven reset (motion,
-     * or even enter-notify) can be preempted by a client that
-     * intercepts pointer motion for its own purposes (e.g., GTK/Qt
-     * applications tracking hover for their own UI), which stops
-     * those events from ever reaching this window manager at all;
-     * this static default has no such dependency. */
     values[1] = mouse_plain_cursor();
     xcb_change_window_attributes(connection, window,
             XCB_CW_EVENT_MASK | XCB_CW_CURSOR, values);
     LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)", window,
             values[1]);
+}
+
+
+/* Adopt an existing X window under window manager control */
+client_td *client_manage(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh,
+        xcb_window_t window,
+        struct config_theme_s *theme,
+        const struct config_base_s *config_base)
+{
+    client_td *client;
+    xcb_get_geometry_reply_t *geom_reply;
+    xcb_get_window_attributes_reply_t *attr_reply;
+    char wm_name[256];
+    char wm_class[256];
+    char wm_instance[256];
+    char net_wm_name[256];
+    uint32_t ewmh_pid;
+    uint32_t utime;
+
+    LOGGER_TRACE("Attempting to manage existing window %#x", window);
+
+    /* Reject override-redirect windows, for they manage themselves */
+    attr_reply = xcb_get_window_attributes_reply(connection,
+            xcb_get_window_attributes(connection, window), NULL);
+    if (attr_reply != NULL) {
+        bool skip = attr_reply->override_redirect;
+        free(attr_reply);
+        if (skip) {
+            LOGGER_TRACE("Skipping override-redirect window %#x",
+                    window);
+            return NULL;
+        }
+    }
+
+    client = calloc(1, sizeof(client_td));
+    if (client == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for managed client",
+                L_NARG);
+        return NULL;
+    }
+
+    s_client_init_common(client, connection, ewmh, theme, config_base);
+
+    /* Use the X window ID as both window handle and hash/lookup key */
+    client->window = window;
+    client->id = window;
+
+    /* Query existing geometry */
+    geom_reply = xcb_get_geometry_reply(connection,
+            xcb_get_geometry(connection, window), NULL);
+    if (geom_reply != NULL) {
+        client->parent_id = geom_reply->root;
+        client->layout.geometry.cur.pos.x = geom_reply->x;
+        client->layout.geometry.cur.pos.y = geom_reply->y;
+        client->layout.geometry.cur.dim.w = geom_reply->width;
+        client->layout.geometry.cur.dim.h = geom_reply->height;
+        free(geom_reply);
+    } else {
+        client->layout.geometry.cur.pos.x = 0;
+        client->layout.geometry.cur.pos.y = 0;
+        client->layout.geometry.cur.dim.w = WM_CLIENT_DEFAULT_DIM;
+        client->layout.geometry.cur.dim.h = WM_CLIENT_DEFAULT_DIM;
+    }
+    client->layout.geometry.old = client->layout.geometry.cur;
+
+    /* Allocate string buffers */
+    if (ci_alloc_strings(client) != 0) {
+        LOGGER_ERROR("Failed to allocate string buffers"
+                " for managed client", L_NARG);
+        free(client);
+        return NULL;
+    }
+
+    /* Default string values */
+    snprintf(client->info.name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
+    snprintf(client->info.visible_name,
+            CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
+
+    /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
+    ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
+    if (net_wm_name[0] != '\0') {
+        s_client_set_display_name(client, net_wm_name);
+    } else {
+        ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
+        s_client_set_display_name(client, wm_name);
+    }
+
+    /* Read '_NET_WM_ICON_NAME'/'WM_ICON_NAME' for iconified caption */
+    client_props_refresh_icon_name(client);
+
+    /* Read 'WM_CLASS' */
+    ci_get_wm_class(connection, window,
+            wm_class, sizeof(wm_class),
+            wm_instance, sizeof(wm_instance));
+    if (wm_class[0] != '\0') {
+        safe_strncpy(client->info.class_name[1], wm_class,
+                CONFIG_MAX_LENGTH_NAME - 1);
+    }
+    if (wm_instance[0] != '\0') {
+        safe_strncpy(client->info.class_name[0], wm_instance,
+                CONFIG_MAX_LENGTH_NAME - 1);
+    }
+
+    /* Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support */
+    s_client_read_wm_protocols(connection, ewmh, window, client);
+
+    /* Read 'WM_HINTS', 'WM_CLIENT_LEADER', and 'WM_TRANSIENT_FOR' */
+    s_client_read_wm_hints_and_leader(connection, window, client);
+
+    /* Read 'WM_NORMAL_HINTS': size constraints and increment grid */
+    client_props_refresh_normal_hints(client);
+
+    /* Read '_NET_WM_STRUT_PARTIAL' for dock/panel windows */
+    s_client_read_struts(ewmh, window, client);
+
+    /* Read '_NET_WM_WINDOW_TYPE' to determine client type and
+     * decoration */
+    s_client_read_window_type(connection, ewmh, window, client);
+
+    /* Read '_MOTIF_WM_HINTS': see the sibling function's own doc
+     * comment for the full rationale. */
+    s_client_read_motif_hints(connection, window, theme, client);
+
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
+            client->ewmh != NULL) {
+        wcmd_add_states(client, 3,
+                "_NET_WM_STATE_STICKY",
+                "_NET_WM_STATE_SKIP_TASKBAR",
+                "_NET_WM_STATE_SKIP_PAGER");
+    }
+
+    /* Read the pre-existing '_NET_WM_STATE' property; see the sibling
+     * function's own doc comment for the full rationale. */
+    s_client_read_pre_existing_state(connection, ewmh, window, client);
+
+    /* Read '_NET_WM_PID': associate X window with its owning process */
+    ewmh_pid = 0u;
+    if (xcb_ewmh_get_wm_pid_reply(ewmh,
+                xcb_ewmh_get_wm_pid(ewmh, window),
+                &ewmh_pid, NULL)) {
+        client->process.pid = (int) ewmh_pid;
+    }
+
+    /* Read '_NET_WM_USER_TIME': used for initial focus policy */
+    utime = 0u;
+    if (xcb_ewmh_get_wm_user_time_reply(ewmh,
+                xcb_ewmh_get_wm_user_time(ewmh, window),
+                &utime, NULL)) {
+        client->user_time = utime;
+    }
+
+    /* Publish initial '_NET_WM_ALLOWED_ACTIONS' */
+    wcmd_client_update_allowed_actions(client);
+
+    /* Subscribe to events, apply border width, and set the default
+     * cursor; see the sibling function's own doc comment for the
+     * full rationale. */
+    s_client_subscribe_events(connection, window, theme, client);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

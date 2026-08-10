@@ -25,12 +25,14 @@
 
 /* Default initial values */
 #include <defs/ctxmenu.h>
+#include <defs/kbd.h>
 
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
 #include <lifecycle.h>
 #include <render/text.h>
+#include <render/wmicon.h>
 #include <surface.h>
 
 /* Menu includes */
@@ -124,10 +126,62 @@ static uint16_t s_build_layout(ctxmenu_state_td *state)
 
 
 /**
+ * @brief Maximum measured width among non-label, non-separator
+ *        entries, in whichever font is currently active
+ *
+ * Shared by @c s_compute_width's own second and third measuring
+ * passes (@c unselected.font and @c selected.font respectively): the
+ * two are otherwise identical, differing only in which font is active
+ * when each is called; see @c s_compute_width's own doc comment for
+ * why those stay two separate passes rather than one combined loop.
+ *
+ * @param entries     Entries to measure
+ * @param entry_count Number of entries in @p entries
+ * @param pad2        Horizontal padding to add on both sides
+ * @param icon_offset Extra width to add for an entry with an
+ *                    associated @c icon_window (0 when
+ *                    @c theme.menu.show-pixmaps is off); see
+ *                    @c s_compute_width
+ * @param max_w       Current running maximum, carried in so the two
+ *                    passes contribute to one shared result
+ *
+ * @return The greater of @p max_w and every measured entry's own width
+ *
+ * @note Complexity: @e O(n), where @e n is @p entry_count
+ */
+static uint16_t s_max_width_for_selectable(const ctxmenu_entry_td *entries,
+        int entry_count, uint16_t pad2, uint16_t icon_offset,
+        uint16_t max_w)
+{
+    for (int i = 0; i < entry_count; ++i) {
+        uint16_t w;
+
+        if (entries[i].type == CTXMENU_SEPARATOR ||
+                entries[i].type == CTXMENU_LABEL) {
+            continue;
+        }
+
+        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
+        if (entries[i].icon_window != XCB_WINDOW_NONE) {
+            w = (uint16_t) (w + icon_offset);
+        }
+        if (entries[i].type == CTXMENU_SUBMENU) {
+            w = (uint16_t) (w + 16u);
+        }
+        if (w > max_w) {
+            max_w = w;
+        }
+    }
+    return max_w;
+}
+
+
+/**
  * @brief Compute the pixel width required to display all menu entries
  *
  * Iterates over all entries and measures each label, adding space for
- * the left padding and the submenu indicator.
+ * the left padding, the submenu indicator, and, for an entry with an
+ * associated @c icon_window, its own application icon.
  *
  * @param connection  XCB connection
  * @param entries     Array of menu entries
@@ -144,6 +198,26 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
 {
     uint16_t max_w = WM_CTXMENU_MIN_WIDTH;
     uint16_t pad2 = (uint16_t) (config->theme.menu.padding.horizontal * 2u);
+    uint16_t icon_offset = 0u;
+
+    /* Space reserved for an entry's own icon plus one more gap (the
+     * same width as the menu's own left padding) before its label;
+     * see 'theme.menu.show-pixmaps''s own doc comment in config.h. */
+    if (config->theme.menu.show_pixmaps) {
+        /* '#if', not a runtime ternary: both operands are fixed
+         * compile-time constants, so a ternary here left one branch
+         * provably unreachable to the compiler (-Wunreachable-code).
+         * Still guards the arithmetic against a future edit to either
+         * constant that would otherwise underflow silently. */
+#if WM_CTXMENU_ROW_HEIGHT > WM_MENU_ICON_INSET
+        uint16_t icon_size = (uint16_t)
+            (WM_CTXMENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
+#else
+        uint16_t icon_size = 0u;
+#endif
+        icon_offset = (uint16_t)
+            (icon_size + config->theme.menu.padding.horizontal);
+    }
 
     /* Measured in three passes, one font each, rather than switching
      * between 'unselected.font' and 'selected.font' on every regular
@@ -171,40 +245,12 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
     }
 
     text_renderer_init(connection, config->theme.menu.unselected.font);
-    for (int i = 0; i < entry_count; ++i) {
-        uint16_t w;
-
-        if (entries[i].type == CTXMENU_SEPARATOR ||
-                entries[i].type == CTXMENU_LABEL) {
-            continue;
-        }
-
-        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
-        if (entries[i].type == CTXMENU_SUBMENU) {
-            w = (uint16_t) (w + 16u);
-        }
-        if (w > max_w) {
-            max_w = w;
-        }
-    }
+    max_w = s_max_width_for_selectable(entries, entry_count, pad2,
+            icon_offset, max_w);
 
     text_renderer_init(connection, config->theme.menu.selected.font);
-    for (int i = 0; i < entry_count; ++i) {
-        uint16_t w;
-
-        if (entries[i].type == CTXMENU_SEPARATOR ||
-                entries[i].type == CTXMENU_LABEL) {
-            continue;
-        }
-
-        w = (uint16_t) (menu_draw_measure(entries[i].label) + pad2);
-        if (entries[i].type == CTXMENU_SUBMENU) {
-            w = (uint16_t) (w + 16u);
-        }
-        if (w > max_w) {
-            max_w = w;
-        }
-    }
+    max_w = s_max_width_for_selectable(entries, entry_count, pad2,
+            icon_offset, max_w);
 
     return max_w;
 }
@@ -368,13 +414,15 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     int top_y;
     int row_h;
     bool is_sel;
+    bool draw_icon;
     uint32_t bg;
     uint32_t fg;
     uint32_t border_color;
     uint32_t border_width;
-    char label_buf[WM_CTXMENU_LABEL_MAX_LEN + 4];
+    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH + 4];
     uint16_t arrow_w;
     int16_t arrow_x;
+    int16_t text_x;
     xcb_gcontext_t gc;
     uint32_t gc_vals[1];
     xcb_rectangle_t rect;
@@ -393,6 +441,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         ? WM_CTXMENU_SEP_HEIGHT : WM_CTXMENU_ROW_HEIGHT;
     is_sel = (idx == state->selected) && !e->is_disabled
         && (e->type == CTXMENU_COMMAND || e->type == CTXMENU_SUBMENU);
+    draw_icon = state->config->theme.menu.show_pixmaps &&
+        e->icon_window != XCB_WINDOW_NONE;
 
 
     if (e->type == CTXMENU_LABEL) {
@@ -459,6 +509,37 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         return;
     }
 
+    text_x = (int16_t) state->config->theme.menu.padding.horizontal;
+
+    /* An entry with an associated client (see 'icon_window''s own doc
+     * comment in ctxmenu.h) reserves this same square of space
+     * whether or not a real icon is actually drawn into it: a client
+     * with no icon of its own to draw still leaves every row's text
+     * aligned in the same column. */
+    if (draw_icon) {
+        /* '#if', not a runtime ternary: both operands are fixed
+         * compile-time constants, so a ternary here left one branch
+         * provably unreachable to the compiler (-Wunreachable-code).
+         * Still guards the arithmetic against a future edit to either
+         * constant that would otherwise underflow silently. */
+#if WM_CTXMENU_ROW_HEIGHT > WM_MENU_ICON_INSET
+        uint16_t icon_size = (uint16_t)
+            (WM_CTXMENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
+#else
+        uint16_t icon_size = 0u;
+#endif
+        int16_t icon_y = (int16_t)
+            (top_y + (row_h - (int) icon_size) / 2);
+
+        if (icon_size > 0u && state->surface != NULL) {
+            wmicon_draw_at(conn, state->surface->ewmh, e->icon_window,
+                    state->window, text_x, icon_y, icon_size,
+                    e->icon_cache);
+        }
+        text_x = (int16_t) (text_x + icon_size +
+                (int16_t) state->config->theme.menu.padding.horizontal);
+    }
+
     (void) snprintf(label_buf, sizeof(label_buf), "%s", e->label);
 
     text_renderer_init(conn, (e->type == CTXMENU_LABEL)
@@ -468,7 +549,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
                 : state->config->theme.menu.unselected.font);
     text_renderer_set_color(fg, bg);
     menu_draw_label(conn, state->window,
-            (int16_t) state->config->theme.menu.padding.horizontal,
+            text_x,
             (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
             label_buf);
 
@@ -485,6 +566,84 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 }
 
 
+/**
+ * @brief Repaint only the given one or two entry indices, not the
+ *        whole menu
+ *
+ * @c s_draw_entry already paints its own row's full background before
+ * its label (see its own body), so redrawing just the row(s) that
+ * actually changed selection is self-contained: no separate clear
+ * step is needed first, and nothing else in the menu window is
+ * touched.  A single deselect (e.g. the pointer leaving every entry)
+ * passes @c -1 for @p idx_b.
+ *
+ * @param state Menu state the entries belong to
+ * @param idx_a First index to redraw, or @c -1 for none
+ * @param idx_b Second index to redraw, or @c -1 for none; skipped if
+ *              equal to @p idx_a
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ctxmenu_repaint_entries(ctxmenu_state_td *state,
+        int idx_a, int idx_b)
+{
+    if (state == NULL || state->connection == NULL ||
+            state->window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    if (idx_a >= 0 && idx_a < state->entry_count) {
+        s_draw_entry(state, idx_a);
+    }
+    if (idx_b >= 0 && idx_b < state->entry_count && idx_b != idx_a) {
+        s_draw_entry(state, idx_b);
+    }
+
+    xcb_flush(state->connection);
+}
+
+
+/**
+ * @brief Move a menu's selection one step in a direction, skipping
+ *        separators, labels, and disabled entries
+ *
+ * Shared by the Up and Down arrow handling in @c ctxmenu_handle_
+ * keypress, which only differ in @p step's sign and where an
+ * initially-unselected state (@c selected @c < @c 0) starts scanning
+ * from; everything else (wrapping around either end of the entry
+ * list, skipping unselectable entries, repainting once a valid one is
+ * found) is identical between the two.
+ *
+ * @param state Menu state whose selection to move
+ * @param step  @c +1 to move down/forward, @c -1 to move up/backward
+ *
+ * @note Complexity: @e O(n), where @e n is @c state->entry_count
+ */
+static void s_ctxmenu_move_selection(ctxmenu_state_td *state, int step)
+{
+    int prev_sel = state->selected;
+    int next = (prev_sel < 0)
+        ? ((step > 0) ? 0 : state->entry_count - 1)
+        : prev_sel + step;
+    int i;
+
+    for (i = 0; i < state->entry_count; ++i) {
+        if (next < 0) { next = state->entry_count - 1; }
+        if (next >= state->entry_count) { next = 0; }
+        if (state->entries[next].type != CTXMENU_SEPARATOR &&
+                state->entries[next].type != CTXMENU_LABEL &&
+                !state->entries[next].is_disabled) {
+            break;
+        }
+        next += step;
+    }
+    if (i < state->entry_count) {
+        state->selected = next;
+        s_ctxmenu_repaint_entries(state, prev_sel, next);
+    }
+}
+
+
 /* Handle a key-press event while a context menu is open */
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
@@ -494,9 +653,6 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     int match_count;
     int match_idx;
     int sel;
-    int i;
-    int step;
-    int next;
     ctxmenu_state_td *root;
     ctxmenu_state_td *child_state;
     int16_t sub_x;
@@ -507,51 +663,19 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     }
 
     /* Up arrow: move selection to previous selectable entry */
-    if (keysym == 0xff52u) {
-        sel = state->selected;
-        step = -1;
-        next = (sel < 0) ? state->entry_count - 1 : sel + step;
-        for (i = 0; i < state->entry_count; ++i) {
-            if (next < 0) { next = state->entry_count - 1; }
-            if (next >= state->entry_count) { next = 0; }
-            if (state->entries[next].type != CTXMENU_SEPARATOR &&
-                    state->entries[next].type != CTXMENU_LABEL &&
-                    !state->entries[next].is_disabled) {
-                break;
-            }
-            next += step;
-        }
-        if (i < state->entry_count) {
-            state->selected = next;
-            ctxmenu_repaint(state);
-        }
+    if (keysym == KS_UP) {
+        s_ctxmenu_move_selection(state, -1);
         return true;
     }
 
     /* Down arrow: move selection to next selectable entry */
-    if (keysym == 0xff54u) {
-        sel = state->selected;
-        step = 1;
-        next = (sel < 0) ? 0 : sel + step;
-        for (i = 0; i < state->entry_count; ++i) {
-            if (next < 0) { next = state->entry_count - 1; }
-            if (next >= state->entry_count) { next = 0; }
-            if (state->entries[next].type != CTXMENU_SEPARATOR &&
-                    state->entries[next].type != CTXMENU_LABEL &&
-                    !state->entries[next].is_disabled) {
-                break;
-            }
-            next += step;
-        }
-        if (i < state->entry_count) {
-            state->selected = next;
-            ctxmenu_repaint(state);
-        }
+    if (keysym == KS_DOWN) {
+        s_ctxmenu_move_selection(state, 1);
         return true;
     }
 
     /* Right arrow: open submenu for the selected entry */
-    if (keysym == 0xff53u) {
+    if (keysym == KS_RIGHT) {
         sel = state->selected;
         if (sel >= 0 && sel < state->entry_count &&
                 state->entries[sel].type == CTXMENU_SUBMENU) {
@@ -581,23 +705,29 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     }
 
     /* Left arrow: close this submenu and return to parent */
-    if (keysym == 0xff51u) {
+    if (keysym == KS_LEFT) {
         if (state->parent != NULL) {
+            /* No explicit repaint needed here: submenus open clear of
+             * the parent's own area (see 'sub_x' above), and on the
+             * rare occasion one gets clamped close enough to overlap
+             * it anyway, destroying it (just below) already makes the
+             * X server generate its own 'Expose' for whatever area of
+             * the parent that uncovers, which 'ctxmenu_repaint_window'
+             * already handles. */
             ctxmenu_close(state);
             state->parent->child = NULL;
-            ctxmenu_repaint(state->parent);
         }
         return true;
     }
 
     /* Return / KP_Enter: activate selected entry */
-    if (keysym == 0xff0du || keysym == 0xff8du) {
+    if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
         sel = state->selected;
         if (sel >= 0 && sel < state->entry_count) {
             if (state->entries[sel].type == CTXMENU_SUBMENU) {
                 /* Open submenu on Enter, same as Right arrow */
                 return ctxmenu_handle_keypress(connection, surface,
-                        state, 0xff53u, config);
+                        state, KS_RIGHT, config);
             }
             s_activated_by_keyboard = true;
             return s_ctxmenu_activate_entry(state, sel);
@@ -606,7 +736,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     }
 
     /* Escape: close the entire menu hierarchy */
-    if (keysym == 0xff1bu) {
+    if (keysym == KS_ESCAPE) {
         root = state;
         while (root->parent != NULL) {
             root = root->parent;
@@ -623,7 +753,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     target = (char) tolower((int) ((unsigned char) keysym));
     match_count = 0;
     match_idx = -1;
-    for (i = 0; i < state->entry_count; ++i) {
+    for (int i = 0; i < state->entry_count; ++i) {
         const ctxmenu_entry_td *e = &state->entries[i];
         unsigned char c;
 
@@ -643,15 +773,15 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         return false;
     }
 
+    sel = state->selected;
     state->selected = match_idx;
-    ctxmenu_repaint(state);
+    s_ctxmenu_repaint_entries(state, sel, match_idx);
     if (match_count == 1) {
         s_activated_by_keyboard = true;
         return s_ctxmenu_activate_entry(state, match_idx);
     }
 
     return true;
-
 }
 
 
@@ -912,6 +1042,20 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
             state->child = NULL;
         }
 
+        /* Mark this entry selected (a click may land here with no
+         * prior hover over this exact row, e.g. the pointer already
+         * resting here when the menu first mapped) so it stays
+         * visibly highlighted for as long as its own submenu is
+         * open, the same as the keyboard path already shows via
+         * whatever row 'state->selected' was left on by prior
+         * up/down navigation. */
+        if (state->selected != idx) {
+            int prev_sel = state->selected;
+
+            state->selected = idx;
+            s_ctxmenu_repaint_entries(state, prev_sel, idx);
+        }
+
         child_state->entries = state->entries[idx].items;
         child_state->entry_count = state->entries[idx].item_count;
         child_state->parent = state;
@@ -949,6 +1093,7 @@ bool ctxmenu_last_activation_was_keyboard(void)
 void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
 {
     int idx;
+    int prev_sel;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return;
@@ -976,8 +1121,9 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
             state->entries[idx].type == CTXMENU_LABEL ||
             state->entries[idx].is_disabled) {
         if (state->selected >= 0) {
+            prev_sel = state->selected;
             state->selected = -1;
-            ctxmenu_repaint(state);
+            s_ctxmenu_repaint_entries(state, prev_sel, -1);
         }
         return;
     }
@@ -986,8 +1132,9 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
         return;
     }
 
+    prev_sel = state->selected;
     state->selected = idx;
-    ctxmenu_repaint(state);
+    s_ctxmenu_repaint_entries(state, prev_sel, idx);
 }
 
 
@@ -1046,4 +1193,136 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state)
     }
 
     ctxmenu_close(root);
+}
+
+
+/**
+ * @brief Repaint whichever submenu under @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_repaint (root menu, window
+ * menu, window list): each one only differs in which @c root state it
+ * passes, so this one function replaces an identical lookup-then-
+ * repaint sequence that used to be copied into each of them.
+ *
+ * @param root Top-level state of the concrete menu's own submenu tree
+ * @param win  Window the repaint request arrived for
+ *
+ * @note No-op if @p win does not belong to any submenu under @p root
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win)
+{
+    ctxmenu_state_td *state;
+
+    state = ctxmenu_find_state_for_window(root, win);
+    if (state != NULL) {
+        ctxmenu_repaint(state);
+    }
+}
+
+
+/**
+ * @brief Forward a pointer-motion event to whichever submenu under
+ *        @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_handle_motion; see
+ * @c ctxmenu_repaint_window's own doc comment for the general
+ * reasoning.
+ *
+ * @param root Top-level state of the concrete menu's own submenu tree
+ * @param win  Window the motion event arrived for
+ * @param x    Pointer X position, in @p win's own coordinates
+ * @param y    Pointer Y position, in @p win's own coordinates
+ *
+ * @note No-op if @p win does not belong to any submenu under @p root
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
+        xcb_window_t win, int x, int y)
+{
+    ctxmenu_state_td *state;
+
+    state = ctxmenu_find_state_for_window(root, win);
+    if (state != NULL) {
+        ctxmenu_handle_motion(state, x, y);
+    }
+}
+
+
+/**
+ * @brief Forward a click, translated to menu-local coordinates, to
+ *        whichever submenu under @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_handle_click; see
+ * @c ctxmenu_repaint_window's own doc comment for the general
+ * reasoning.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface the click occurred on
+ * @param root       Top-level state of the concrete menu's own
+ *                   submenu tree
+ * @param win        Window the click event arrived for
+ * @param x          Pointer X position, in @p win's own coordinates
+ * @param y          Pointer Y position, in @p win's own coordinates
+ * @param config     Active configuration
+ *
+ * @return @c true if @p win belonged to a submenu under @p root and
+ *         the click was forwarded, @c false otherwise
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+bool ctxmenu_handle_click_window(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        int x, int y, const config_td *config)
+{
+    ctxmenu_state_td *state;
+
+    state = ctxmenu_find_state_for_window(root, win);
+    if (state == NULL) {
+        return false;
+    }
+
+    x -= state->origin_x;
+    y -= state->origin_y;
+    return ctxmenu_handle_click(connection, surface, state, x, y,
+            config);
+}
+
+
+/**
+ * @brief Forward a keypress to the deepest currently open submenu
+ *        under @p root
+ *
+ * Applies the keypress to the deepest open submenu, not always
+ * @p root itself: without this, arrow keys would keep moving the
+ * selection in a top-level list even while a nested submenu was open
+ * in front of it, making that submenu look unresponsive to the
+ * keyboard.  Shared by every concrete menu's own
+ * @c X_handle_keypress.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface the key press occurred on
+ * @param root       Top-level state of the concrete menu's own
+ *                   submenu tree
+ * @param keysym     Keysym of the pressed key
+ * @param config     Active configuration
+ *
+ * @return @c true if the key was consumed, @c false otherwise
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+bool ctxmenu_handle_keypress_deepest(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *root,
+        xcb_keysym_t keysym, const config_td *config)
+{
+    ctxmenu_state_td *deepest;
+
+    deepest = ctxmenu_find_state_for_window(root,
+            ctxmenu_deepest_window(root));
+    if (deepest == NULL) {
+        deepest = root;
+    }
+
+    return ctxmenu_handle_keypress(connection, surface, deepest,
+            keysym, config);
 }

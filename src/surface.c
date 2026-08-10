@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
+#include <strings.h>    /* strcasecmp */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -24,6 +25,9 @@
 
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
+
+/* Utils includes */
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <config.h>
@@ -305,6 +309,48 @@ static void s_surface_monitors_fallback(surface_td *surface)
 }
 
 
+/**
+ * @brief Whether a RandR output should be recognized as a monitor
+ *        IcoWM manages windows on
+ *
+ * Looks up @p name among the configured RandR output profiles (see
+ * @c config_randr_s, loaded from @c randr.json); a matching profile
+ * that is explicitly disabled excludes that output from
+ * @c surface->monitors entirely, as if it were not connected at all,
+ * letting a person with more physical outputs than they want IcoWM
+ * to place windows on limit it to specific ones by name (e.g., an
+ * always-connected "HDMI-1" projector meant only for mirroring, never
+ * for managing windows).  With RandR profile management off
+ * altogether, or with no profile configured for this particular
+ * output name, every detected output is used, unchanged from before
+ * this existed.
+ *
+ * @param config Active configuration, or @c NULL to always allow
+ * @param name   Resolved RandR output name (e.g. @c "HDMI-1")
+ *
+ * @return @c false only when a matching profile exists and is
+ *         explicitly disabled; @c true otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of configured
+ *       output profiles
+ */
+static bool s_surface_output_is_used(const config_td *config,
+        const char *name)
+{
+    if (config == NULL || !config->randr.is_enabled) {
+        return true;
+    }
+
+    for (uint32_t i = 0u; i < config->randr.output_count; ++i) {
+        if (strcasecmp(config->randr.outputs[i].name, name) == 0) {
+            return config->randr.outputs[i].is_enabled;
+        }
+    }
+
+    return true;
+}
+
+
 /* Refresh the surface's own list of physical monitors */
 void surface_refresh_monitors(surface_td *surface)
 {
@@ -334,9 +380,22 @@ void surface_refresh_monitors(surface_td *surface)
     while (it.rem > 0 &&
             surface->monitor_count < WM_SURFACE_MAX_MONITORS) {
         xcb_randr_monitor_info_t *info = it.data;
-        monitor_td *slot =
-            &surface->monitors[surface->monitor_count];
+        char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];
+        monitor_td *slot;
+        bool name_resolved;
 
+        name_resolved = atom_name(surface->connection, info->name,
+                output_name, sizeof(output_name));
+        if (name_resolved && !s_surface_output_is_used(surface->config,
+                    output_name)) {
+            LOGGER_DEBUG("Excluding RandR output '%s' from surface" \
+                    " %u: disabled by its configured profile",
+                    output_name, surface->id);
+            xcb_randr_monitor_info_next(&it);
+            continue;
+        }
+
+        slot = &surface->monitors[surface->monitor_count];
         slot->x = info->x;
         slot->y = info->y;
         slot->w = info->width;
@@ -426,7 +485,7 @@ monitor_td surface_primary_monitor(const surface_td *surface)
 /* Add a new desktop to the list */
 int surface_desktop_add(surface_td *surface, desktop_td *desktop)
 {
-    if (surface == NULL|| desktop == NULL) {
+    if (surface == NULL || desktop == NULL) {
         return -1;
     }
 

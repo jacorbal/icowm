@@ -15,7 +15,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>     /* strtol */
 #include <string.h>
 
 /* Utils includes */
@@ -170,7 +170,7 @@ static bool s_battery_acpi_ac_online(void)
 static bool s_battery_acpi_read(uint32_t backend_number,
         uint32_t *out_percent)
 {
-    char path[256];
+    char path[BATTERY_PATH_MAX_LEN];
 
     (void) snprintf(path, sizeof(path), "%s/BAT%u/capacity",
             BATTERY_ACPI_BASE_DIR, backend_number);
@@ -198,7 +198,7 @@ static bool s_battery_acpi_read(uint32_t backend_number,
  */
 static bool s_battery_apm_read(uint32_t *out_percent, bool *out_ac)
 {
-    char line[BATTERY_LINE_MAX_LEN * 2];
+    char line[BATTERY_APM_LINE_MAX_LEN];
     char driver_version[16];
     char apm_version[16];
     char apm_flags[16];

@@ -2,6 +2,8 @@
  * @file render/text.h
  *
  * @brief Basic XCB text rendering helpers
+ *
+ * @ingroup render
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

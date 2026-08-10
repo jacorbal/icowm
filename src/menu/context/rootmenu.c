@@ -15,7 +15,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <stdlib.h>     /* malloc, free, calloc */
+#include <stdlib.h>     /* free, calloc, getenv */
 #include <string.h>     /* memset, snprintf */
 #include <stdio.h>      /* snprintf */
 
@@ -116,29 +116,21 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 }
 
 
-/* Load and display the root desktop menu */
-void rootmenu_show(xcb_connection_t *connection,
-        surface_td *surface, int16_t x, int16_t y,
-        const config_td *config, const char *config_dir)
+/* Load (or reload) 'menu.json''s own entries; see this function's
+ * own doc comment in menu/context/rootmenu.h */
+void rootmenu_load_menu_json(const char *config_dir)
 {
     char menu_path[ROOTMENU_PATH_MAX];
-    int n;
-    int copy_count;
-    int fi;
     ctxmenu_entry_td *json_entries = NULL;
     int json_count = 0;
     const char *xdg;
     const char *home;
 
-    if (connection == NULL || surface == NULL || config == NULL) {
-        return;
+    if (s_json_entries != NULL) {
+        menujson_free(s_json_entries, s_json_count);
+        s_json_entries = NULL;
+        s_json_count = 0;
     }
-
-    rootmenu_close();
-
-    /* Cache surface and config for use by the exit callback */
-    s_surface = surface;
-    s_config = config;
 
     /* Build path to menu.json */
     if (config_dir != NULL && config_dir[0] != '\0') {
@@ -159,20 +151,59 @@ void rootmenu_show(xcb_connection_t *connection,
         }
     }
 
-    /* Try to load entries from the JSON file (failure is non-fatal) */
+    /* Failure is non-fatal: an absent or unparsable 'menu.json' just
+     * leaves the root menu showing its own fixed footer with no JSON
+     * entries above it.  Not followed by 'wm_warn_json_syntax_errors'
+     * here: both of this function's own callers (startup, in wm.c;
+     * reload, in wm/actions.c) already call it themselves once
+     * everything for that pass has finished loading, so calling it
+     * here too would just show the same warning dialog for the same
+     * pass a second time. */
     (void) menujson_load(menu_path, &json_entries, &json_count);
 
-    /* A no-op unless 'menu_path' was actually found but failed to
-     * parse; see 'wm_warn_json_syntax_errors' itself for why this is
-     * safe to call every time the root menu opens, not just the first
-     * time it is broken. */
-    wm_warn_json_syntax_errors();
+    s_json_entries = json_entries;
+    s_json_count = json_count;
+}
+
+
+/* Free the entries loaded by 'rootmenu_load_menu_json'; see this
+ * function's own doc comment in menu/context/rootmenu.h */
+void rootmenu_free_menu_json(void)
+{
+    if (s_json_entries != NULL) {
+        menujson_free(s_json_entries, s_json_count);
+        s_json_entries = NULL;
+        s_json_count = 0;
+    }
+}
+
+
+/* Display the root desktop menu; see this function's own doc comment
+ * in menu/context/rootmenu.h */
+void rootmenu_show(xcb_connection_t *connection,
+        surface_td *surface, int16_t x, int16_t y,
+        const config_td *config)
+{
+    int n;
+    int copy_count;
+    int fi;
+
+    if (connection == NULL || surface == NULL || config == NULL) {
+        return;
+    }
+
+    rootmenu_close();
+
+    /* Cache surface and config for use by the exit callback */
+    s_surface = surface;
+    s_config = config;
 
     /* Total entries: JSON entries + footer */
     /* The leading separator is only added when JSON entries are present
      * so the footer is not preceded by a bare separator when
      * 'menu.json' is missing or empty */
-    n = json_count + ROOTMENU_FOOTER_COUNT - (json_count == 0 ? 1 : 0);
+    n = s_json_count + ROOTMENU_FOOTER_COUNT -
+        ((s_json_count == 0) ? 1 : 0);
     if (n > ROOTMENU_MAX_ENTRIES) {
         n = ROOTMENU_MAX_ENTRIES;
     }
@@ -180,17 +211,14 @@ void rootmenu_show(xcb_connection_t *connection,
     s_entries = (ctxmenu_entry_td *) calloc((size_t) n,
             sizeof(ctxmenu_entry_td));
     if (s_entries == NULL) {
-        menujson_free(json_entries, json_count);
         return;
     }
 
-    /* Copy JSON-loaded entries */
-    copy_count = json_count;
+    /* Copy the already-loaded JSON entries */
+    copy_count = s_json_count;
     for (int i = 0; i < copy_count; ++i) {
-        s_entries[i] = json_entries[i];
+        s_entries[i] = s_json_entries[i];
     }
-    s_json_entries = json_entries;
-    s_json_count = json_count;
 
     /* Footer: [<separator> if JSON is present], Reload, Redraw,
      * <separator>, Exit */
@@ -238,12 +266,10 @@ void rootmenu_close(void)
 {
     ctxmenu_close(&s_root);
 
-    if (s_json_entries != NULL) {
-        menujson_free(s_json_entries, s_json_count);
-        s_json_entries = NULL;
-        s_json_count = 0;
-    }
-
+    /* Deliberately not freed here: 's_json_entries' persists across
+     * opens/closes, and is only ever replaced (on reload) or freed
+     * (at shutdown) by 'rootmenu_load_menu_json'/
+     * 'rootmenu_free_menu_json'; see their own doc comments. */
     if (s_entries != NULL) {
         free(s_entries);
         s_entries = NULL;
@@ -258,12 +284,7 @@ void rootmenu_close(void)
 /* Repaint the root desktop menu */
 void rootmenu_repaint(xcb_window_t win)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_repaint(state);
-    }
+    ctxmenu_repaint_window(&s_root, win);
 }
 
 
@@ -272,17 +293,8 @@ bool rootmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int x, int y,
         const config_td *config)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state == NULL) {
-        return false;
-    }
-
-    x -= state->origin_x;
-    y -= state->origin_y;
-    return ctxmenu_handle_click(connection, surface, state,
-            x, y, config);
+    return ctxmenu_handle_click_window(connection, surface, &s_root,
+            win, x, y, config);
 }
 
 
@@ -312,26 +324,13 @@ bool rootmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    ctxmenu_state_td *deepest;
-    deepest = ctxmenu_find_state_for_window(&s_root,
-            ctxmenu_deepest_window(&s_root));
-
-    if (deepest == NULL) {
-        deepest = &s_root;
-    }
-
-    return ctxmenu_handle_keypress(connection, surface, deepest,
-            keysym, config);
+    return ctxmenu_handle_keypress_deepest(connection, surface,
+            &s_root, keysym, config);
 }
 
 
 /* Handle a pointer-motion event over the root desktop menu */
 void rootmenu_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_handle_motion(state, x, y);
-    }
+    ctxmenu_handle_motion_window(&s_root, win, x, y);
 }

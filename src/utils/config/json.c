@@ -45,8 +45,8 @@ uint32_t json_hex2uint32(const char *hex_color)
         hex_color++;
     }
     if (sscanf(hex_color, "%x", &color) != 1) {
-        LOGGER_DEBUG("JSON hex-encoded RGB color for key '%s' is" \
-                " missing; defaulting to '#000000'", hex_color);
+        LOGGER_DEBUG("Could not parse '%s' as a hex-encoded RGB" \
+                " color; defaulting to '#000000'", hex_color);
         return 0;
     }
 
@@ -347,8 +347,6 @@ void json_syntax_errors_reset(void)
 /* Record that 'filename' failed to parse as JSON */
 void json_syntax_errors_record(const char *filename)
 {
-    uint32_t i;
-
     if (filename == NULL) {
         return;
     }
@@ -358,7 +356,7 @@ void json_syntax_errors_record(const char *filename)
      * (e.g., a lint pass that re-checks a file already loaded once),
      * and a repeated entry would just be noise in the eventual
      * warning dialog rather than new information. */
-    for (i = 0u; i < s_syntax_error_count; ++i) {
+    for (uint32_t i = 0u; i < s_syntax_error_count; ++i) {
         if (strcmp(s_syntax_error_files[i], filename) == 0) {
             return;
         }

@@ -56,7 +56,7 @@
 /**
  * @brief Parse a rotation string into the corresponding XRandR mask
  *
- * Recognized values (case-insensitive after normalisation):
+ * Recognized values (case-insensitive after normalization):
  * @c normal, @c left, @c right, @c inverted.
  *
  * @param value Rotation string from the JSON file
@@ -135,7 +135,7 @@ int config_load_randr(const char *filename,
         memset(out, 0, sizeof(*out));
 
         json_load_string(entry, "name",
-                out->name, CONFIG_RANDR_OUTPUT_NAME_LEN);
+                out->name, CONFIG_RANDR_OUTPUT_NAME_LENGTH);
         json_load_bool(entry, "is-enabled", &out->is_enabled);
         json_load_bool(entry, "is-primary",  &out->is_primary);
 

@@ -3,7 +3,7 @@
  *
  * @brief Queue (FIFO) data structure declaration as linked list
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef QUEUE_H

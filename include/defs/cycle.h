@@ -3,6 +3,8 @@
  *
  * @brief Dimensions and capacity limits for the Alt+Tab-style client
  *        cycle menu
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -20,7 +22,7 @@
 #define WM_CYCLE_MENU_MAX_ENTRIES (128)
 
 /** Maximum label length for a cycle menu entry */
-#define WM_CYCLE_MENU_ENTRY_LEN (128)
+#define WM_CYCLE_MENU_ENTRY_LENGTH (128)
 
 /** Height of each row in the cycle menu, in pixels */
 #define WM_CYCLE_MENU_ROW_HEIGHT (20)
@@ -39,7 +41,7 @@
  * the menu window is capped at this height and a scroll viewport is
  * used so the user can reach every entry with the cycle keys.
  */
-#define WM_CYCLE_MENU_MAX_HEIGHT_PERC (80)
+#define WM_CYCLE_MENU_MAX_HEIGHT_PERCENT (80)
 
 /**
  * @brief Text shown at the top of the cycle-menu viewport when there

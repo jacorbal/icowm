@@ -16,6 +16,7 @@
  */
 
 /* System includes */
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
@@ -66,7 +67,6 @@
  *
  * @note Complexity: @e O(1)
  */
-/* Check if two inclusive integer ranges overlap */
 static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
         int32_t b_start, int32_t b_end)
 {
@@ -145,7 +145,18 @@ static size_t s_h2(const void *data)
     /* Stable secondary hash using a different fixed seed (0x85EBCA6B)
      * to reduce correlation with 'h1'.  The result is forced to be
      * non-zero to guarantee a valid step size in double hashing. */
-    return (hash2 == 0u) ? 1u : hash2;
+    hash2 = (hash2 == 0u) ? 1u : hash2;
+
+    /* Internal invariant, not external input validation: verifies
+     * this function's own documented postcondition (never zero) holds
+     * after the line just above, so a future edit to that forcing
+     * logic that accidentally breaks it is caught immediately in a
+     * debug build (see DEBUG=1/2 in the Makefile) rather than
+     * silently producing an invalid double-hashing step size.
+     * Compiled out entirely in the default release build (NDEBUG). */
+    assert(hash2 != 0u);
+
+    return hash2;
 }
 
 
@@ -170,6 +181,17 @@ static bool s_client_match(const void *key1, const void *key2)
     const client_td *client1 = (const client_td *) key1;
     const client_td *client2 = (const client_td *) key2;
 
+    /* Internal invariant, not external input validation: this is an
+     * ohtbl comparator, called only by ohtbl.c's own internals with
+     * entries already stored in the table, never with attacker- or
+     * user-controlled input.  Catches a future bug in that internal
+     * calling logic immediately in a debug build (see DEBUG=1/2 in
+     * the Makefile) instead of the bare, unexplained segfault the
+     * dereferences just below would otherwise produce.  Compiled out
+     * entirely in the default release build (NDEBUG). */
+    assert(key1 != NULL);
+    assert(key2 != NULL);
+
     return client1->id == client2->id;
 }
 
@@ -184,6 +206,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop_td *desktop;
     xcb_screen_t *screen;
     xcb_screen_iterator_t iter;
+    uint32_t initial_positions;
 
     LOGGER_DEBUG("Initializing desktop %u on screen %u",
             desktop_id, screen_id);
@@ -208,10 +231,10 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     /* Set desktop name.  The config-provided name is copied with
      * 'safe_strncpy' instead of 'snprintf("%s", ...)' because its
-     * source field is wider than 'desktop->name'*/
-    /* GCC's option '-Wformat-truncation' cannot prove the copy never
-     * truncates, and truncating a name that does not fit is the
-     * desired, harmless behavior here anyway. */
+     * source field is wider than 'desktop->name'.  GCC's own
+     * '-Wformat-truncation' cannot prove the copy never truncates,
+     * and truncating a name that does not fit is the desired,
+     * harmless behavior here anyway. */
     if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
         snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
@@ -252,18 +275,15 @@ desktop_td *desktop_init(xcb_connection_t *connection,
      * positions; sizing to the cap exactly would mean hitting that
      * threshold, and doubling the table anyway, before the cap itself
      * is ever reached. */
-    {
-        uint32_t initial_positions = memguard_max_clients();
+    initial_positions = memguard_max_clients();
+    initial_positions = (initial_positions > 0u)
+        ? (initial_positions * 2u)
+        : WM_DESKTOP_INITIAL_CAPACITY;
 
-        initial_positions = (initial_positions > 0u)
-            ? (initial_positions * 2u)
-            : WM_DESKTOP_INITIAL_CAPACITY;
-
-        desktop->clients =
-            ohtbl_init(initial_positions, 0,
-                    s_h1, s_h2, s_client_match,
-                    (void(*)(void *)) client_destroy);
-    }
+    desktop->clients =
+        ohtbl_init(initial_positions, 0,
+                s_h1, s_h2, s_client_match,
+                (void(*)(void *)) client_destroy);
     if (desktop->clients == NULL) {
         LOGGER_ERROR("Failed to allocate memory for" \
                 " client hash table on desktop %u ('%s') on screen %u",
@@ -472,8 +492,9 @@ void desktop_destroy(desktop_td *desktop)
 /* Soft desktop update */
 void desktop_update(desktop_td *desktop)
 {
-//    LOGGER_TRACE("Updating desktop %u ('%s')",
-//            desktop->id, desktop->name);
+    if (desktop == NULL) {
+        return;
+    }
 
     /* Establish that this desktop is already updated */
     desktop->is_outdated = false;
@@ -484,6 +505,10 @@ void desktop_update(desktop_td *desktop)
 void desktop_update_full(desktop_td *desktop)
 {
     void *elem;
+
+    if (desktop == NULL) {
+        return;
+    }
 
     LOGGER_TRACE("Fully updating desktop %u ('%s')",
             desktop->id, desktop->name);
@@ -537,12 +562,13 @@ void desktop_clear(desktop_td *desktop)
 /* Rename the desktop */
 int desktop_action_rename(desktop_td *desktop, const char *name)
 {
-    LOGGER_DEBUG("Renaming desktop %u ('%s') to '%s'",
-            desktop->id, desktop->name, name);
     if (desktop == NULL || name == NULL) {
         LOGGER_ERROR("Invalid desktop or name pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Renaming desktop %u ('%s') to '%s'",
+            desktop->id, desktop->name, name);
 
     snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME, "%s", name);
     desktop->name[WM_DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
@@ -555,12 +581,12 @@ int desktop_action_rename(desktop_td *desktop, const char *name)
 /* Update the desktop background color */
 int desktop_action_background_update(desktop_td *desktop, uint32_t color)
 {
-    LOGGER_DEBUG("Updating background color of desktop %u ('%s')"
-            " to 0x%08x", desktop->id, desktop->name, color);
-
     if (desktop == NULL) {
         return -1;
     }
+
+    LOGGER_DEBUG("Updating background color of desktop %u ('%s')"
+            " to 0x%08x", desktop->id, desktop->name, color);
 
     desktop->background.is_image = false;
     desktop->background.use_root_pixmap = false;

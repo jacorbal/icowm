@@ -9,7 +9,8 @@
  * evaluated in declaration order; when multiple entries match the same
  * client, later ones take precedence for each individual field.
  *
- * @ingroup rules Window matching rules
+ * @defgroup rules Window matching rules
+ * @ingroup client
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -53,7 +54,7 @@ typedef struct rules_s rules_td;
 
 /* Public interface */
 /**
- * @brief Allocate and zero-initialise a rules table
+ * @brief Allocate and zero-initialize a rules table
  *
  * Allocates a new @c rules_td structure and returns it ready for use
  * with @a rules_load.

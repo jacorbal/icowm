@@ -2,6 +2,8 @@
  * @file menu/notify/desktop.h
  *
  * @brief Desktop-switch notification popup interface
+ *
+ * @ingroup menu_notify
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

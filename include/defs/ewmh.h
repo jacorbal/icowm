@@ -7,6 +7,8 @@
  * Hints protocol, keeping them separate from the other, domain-specific
  * constant headers under @c defs/ so that EWMH compliance can be
  * audited and maintained in one place.
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -89,7 +91,7 @@
 /**
  * @brief Interval between successive @c _NET_WM_PING probes (seconds)
  */
-#define WM_EWMH_PING_INTERVAL (5)
+#define WM_EWMH_PING_INTERVAL_SECONDS (5)
 
 /**
  * @brief Seconds without a ping reply before marking a client as
@@ -98,31 +100,31 @@
  * Set to three times the probe interval so a single missed reply does
  * not immediately flag the client.
  */
-#define WM_EWMH_PING_TIMEOUT (15)
+#define WM_EWMH_PING_TIMEOUT_SECONDS (15)
 
 /**
- * @brief '_NET_WM_STATE' action values, per EWMH section 5.8
+ * @brief '_NET_WM_STATE' action values, per EWMH §5.8
  */
 #define WM_STATE_ACTION_REMOVE (0)
 #define WM_STATE_ACTION_ADD (1)
 #define WM_STATE_ACTION_TOGGLE (2)
 
 /**
- * @brief '_NET_MOVERESIZE_WINDOW' flag bits, per EWMH section 5.11
+ * @brief '_NET_MOVERESIZE_WINDOW' flag bits, per EWMH §5.11
  */
-#define MOVERESIZE_FLAG_X (1u << 8)
-#define MOVERESIZE_FLAG_Y (1u << 9)
-#define MOVERESIZE_FLAG_WIDTH (1u << 10)
-#define MOVERESIZE_FLAG_HEIGHT (1u << 11)
+#define WM_MOVERESIZE_FLAG_X (1u << 8)
+#define WM_MOVERESIZE_FLAG_Y (1u << 9)
+#define WM_MOVERESIZE_FLAG_WIDTH (1u << 10)
+#define WM_MOVERESIZE_FLAG_HEIGHT (1u << 11)
 
 /**
- * @brief '_NET_RESTACK_WINDOW' detail values, per EWMH section 4.3
+ * @brief '_NET_RESTACK_WINDOW' detail values, per EWMH §4.3
  */
-#define RESTACK_DETAIL_ABOVE (0u)
-#define RESTACK_DETAIL_BELOW (1u)
-#define RESTACK_DETAIL_TOP_IF (2u)
-#define RESTACK_DETAIL_BOTTOM_IF (3u)
-#define RESTACK_DETAIL_OPPOSITE (4u)
+#define WM_RESTACK_DETAIL_ABOVE (0u)
+#define WM_RESTACK_DETAIL_BELOW (1u)
+#define WM_RESTACK_DETAIL_TOP_IF (2u)
+#define WM_RESTACK_DETAIL_BOTTOM_IF (3u)
+#define WM_RESTACK_DETAIL_OPPOSITE (4u)
 
 
 #endif  /* ! DEFS_EWMH_H */

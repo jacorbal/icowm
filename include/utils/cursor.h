@@ -13,6 +13,8 @@
  * "cursor" font.  The X core font is used only as an automatic
  * fallback, for a cursor name the active theme happens not to
  * provide.
+ *
+ * @ingroup utils
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -3,6 +3,9 @@
  *
  * @brief Dimensions, timing, and other numeric limits for a managed
  *        client window and its decoration
+ *
+ * @defgroup defs Protocol and theme constants
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

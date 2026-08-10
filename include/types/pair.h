@@ -7,6 +7,8 @@
  *       of the code when trying not to use 'typedef'.  I could use
  *       a common structure for those, but readability is important.
  *       Maybe in the future there will be some refactoring...
+ *
+ * @defgroup types Generic reusable types
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

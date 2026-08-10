@@ -7,6 +7,8 @@
  * paint row backgrounds and text inside an XCB window.  This module
  * has no knowledge of menu state; it only performs raw drawing
  * operations.
+ *
+ * @ingroup menu
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

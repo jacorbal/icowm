@@ -3,7 +3,7 @@
  *
  * @brief Priority queue declaration as a heap
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef PQUEUE_H

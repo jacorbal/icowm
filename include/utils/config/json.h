@@ -6,7 +6,8 @@
  * Provides generic helpers for loading typed values from cJSON objects
  * and for reading and parsing JSON configuration files.
  *
- * @ingroup json JSON utils
+ * @defgroup utils_config Generic configuration file parsing
+ * @ingroup utils
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

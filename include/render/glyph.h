@@ -15,6 +15,8 @@
  * This is not a public-facing API: it exists purely as the internal
  * implementation @c render/text.c dispatches to, and is not meant to
  * be called directly from anywhere else in the project.
+ *
+ * @ingroup render
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

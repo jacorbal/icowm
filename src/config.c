@@ -59,6 +59,71 @@
 #include <config.h>
 
 
+/**
+ * @brief Force icon pixmaps off and every theme text style's own font
+ *        to a plain X core font, when restricted-memory mode is
+ *        active
+ *
+ * The only two things this mode ever forces, applied unconditionally
+ * on top of @c config->theme regardless of whether a theme file was
+ * actually found or even attempted (a missing @c config.json, and so
+ * a @c config->base.theme left empty, still means this needs to run):
+ * a compiled-in theme occupies the exact same memory as one read from
+ * @c *.json files in the @c themes directory, so skipping the file
+ * itself saves nothing, but pixmaps and the heavier
+ * xcb-render/FreeType2/fontconfig text rendering backend a
+ * TrueType/OpenType font name would otherwise select both carry a
+ * real, ongoing cost regardless of where the theme came from.
+ *
+ * Screen and desktop count are never touched here, or anywhere else
+ * in restricted-memory mode: @c MEMGUARD_DEFAULT_DESKTOPS is only ever
+ * used as a smaller default (see @c config_set_default_values) for
+ * when nothing else specifies a count at all, never as a cap forced
+ * on top of an explicit @c config.json value.  A configuration that
+ * defines, say, 6 desktops gets 6 desktops, restricted-memory mode
+ * included.
+ *
+ * @param config Configuration structure whose already-loaded (or
+ *               still at compiled-in defaults) theme this overrides
+ * @param restricted_memory_mib Restricted-memory mode's ceiling in
+ *               mebibytes, or @c 0 to leave @p config untouched
+ *
+ * @note Complexity: @e O(1), a fixed number of fields
+ */
+static void s_config_apply_restricted_memory_overrides(config_td *config,
+        uint32_t restricted_memory_mib)
+{
+    char *const font_fields[] = {
+        config->theme.dialog.button.selected.font,
+        config->theme.dialog.button.unselected.font,
+        config->theme.dialog.label.font,
+        config->theme.icon.active.font,
+        config->theme.icon.inactive.font,
+        config->theme.menu.label.font,
+        config->theme.menu.selected.font,
+        config->theme.menu.unselected.font,
+        config->theme.overlay.font,
+        config->theme.systray.style.font,
+        config->theme.window.active.font,
+        config->theme.window.inactive.font,
+    };
+
+    if (restricted_memory_mib == 0u) {
+        return;
+    }
+
+    LOGGER_NOTICE("Restricted-memory mode: disabling icon" \
+            " pixmaps and forcing plain X core fonts", L_NARG);
+    config->theme.icon.show_pixmaps = false;
+
+    for (size_t i = 0u; i < sizeof(font_fields) / sizeof(font_fields[0]);
+            ++i) {
+        safe_strncpy(font_fields[i], MEMGUARD_FONT_NAME,
+                CONFIG_MAX_LENGTH_FONTNAME);
+    }
+}
+
+
 /* Resolve the configuration directory from a prefix, or environment
  * variables when none is given (see config.h for the fallback order) */
 void config_resolve_dir(const char *config_dir_prefix,
@@ -193,7 +258,8 @@ void config_set_default_values(config_td *config,
     safe_strcpy(config->base.programs.editor, "gvim");
     safe_strcpy(config->base.programs.web_browser, "firefox");
     config->base.windows.move_step = 10;
-    config->base.windows.resize_step = 20;  /* usually overriden by hints */
+    /* usually overridden by hints */
+    config->base.windows.resize_step = 20;
     config->base.windows.snap = 4;
     config->base.windows.show_geom = true;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
@@ -423,7 +489,8 @@ void config_set_default_values(config_td *config,
     config->theme.window.inactive.border.width = 2u;
 
     config->theme.icon.is_captioned = true;
-    config->theme.icon.use_pixmap = true;
+    config->theme.icon.show_pixmaps = true;
+    config->theme.icon.show_hints = true;
 
     safe_strcpy(config->theme.icon.active.font, "fixed bold");
     config->theme.icon.active.color.background =
@@ -485,16 +552,18 @@ void config_set_default_values(config_td *config,
     config->theme.menu.selected.border.width = 0u;
 
     safe_strcpy(config->theme.menu.label.font, "fixed");
-    config->theme.menu.label.color.foreground =
-        json_hex2uint32("D0D9E5");
-    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
-     * background (the same bar as any other normal-weight text in
-     * the theme): the border color this used to reuse only reached
-     * ~2:1 against the same background, too low for text meant to
-     * be read normally rather than treated as a de-emphasized
-     * secondary state. */
     config->theme.menu.label.color.background =
         json_hex2uint32("48607F");
+    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
+     * background (the same bar as any other normal-weight text in
+     * the theme): the border color this foreground used to reuse
+     * only reached ~2:1 against a light background, too low for
+     * text meant to be read normally rather than treated as a
+     * de-emphasized secondary state; the ratio itself is the same
+     * either way around, since contrast between two colors does not
+     * depend on which one is foreground and which is background. */
+    config->theme.menu.label.color.foreground =
+        json_hex2uint32("D0D9E5");
     config->theme.menu.label.border.color = json_hex2uint32("7F9AB6");
     config->theme.menu.label.border.width = 0u;
 
@@ -509,6 +578,7 @@ void config_set_default_values(config_td *config,
     config->theme.menu.border.width = 2u;
     config->theme.menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
     config->theme.menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
+    config->theme.menu.show_pixmaps = true;
 
     config->theme.dialog.background = json_hex2uint32("D0D9E5");
     config->theme.dialog.border.color = json_hex2uint32("7F9AB6");
@@ -578,74 +648,6 @@ void config_missing_theme_reset(void)
 const char *config_missing_theme_get(void)
 {
     return (s_missing_theme_file[0] != '\0') ? s_missing_theme_file : NULL;
-}
-
-
-/**
- * @brief Force icon pixmaps off and every theme text style's own font
- *        to a plain X core font, when restricted-memory mode is
- *        active
- *
- * The only two things this mode ever forces, applied unconditionally
- * on top of @c config->theme regardless of whether a theme file was
- * actually found or even attempted (a missing @c config.json, and so
- * a @c config->base.theme left empty, still means this needs to run):
- * a compiled-in theme occupies the exact same memory as one read from
- * @c *.json files in the @c themes directory, so skipping the file
- * itself saves nothing, but pixmaps and the heavier
- * xcb-render/FreeType2/fontconfig text rendering backend a
- * TrueType/OpenType font name would otherwise select both carry a
- * real, ongoing cost regardless of where the theme came from.
- *
- * Screen and desktop count are never touched here, or anywhere else
- * in restricted-memory mode: @c MEMGUARD_DEFAULT_DESKTOPS is only ever
- * used as a smaller default (see @c config_set_default_values) for
- * when nothing else specifies a count at all, never as a cap forced
- * on top of an explicit @c config.json value.  A configuration that
- * defines, say, 6 desktops gets 6 desktops, restricted-memory mode
- * included.
- *
- * @param config Configuration structure whose already-loaded (or
- *               still at compiled-in defaults) theme this overrides
- * @param restricted_memory_mib Restricted-memory mode's ceiling in
- *               mebibytes, or @c 0 to leave @p config untouched
- *
- * @note Complexity: @e O(1), a fixed number of fields
- */
-static void s_config_apply_restricted_memory_overrides(config_td *config,
-        uint32_t restricted_memory_mib)
-{
-    if (restricted_memory_mib == 0u) {
-        return;
-    }
-
-    LOGGER_NOTICE("Restricted-memory mode: disabling icon" \
-            " pixmaps and forcing plain X core fonts", L_NARG);
-    config->theme.icon.use_pixmap = false;
-    {
-        char *const font_fields[] = {
-            config->theme.dialog.button.selected.font,
-            config->theme.dialog.button.unselected.font,
-            config->theme.dialog.label.font,
-            config->theme.icon.active.font,
-            config->theme.icon.inactive.font,
-            config->theme.menu.label.font,
-            config->theme.menu.selected.font,
-            config->theme.menu.unselected.font,
-            config->theme.overlay.font,
-            config->theme.systray.style.font,
-            config->theme.window.active.font,
-            config->theme.window.inactive.font,
-        };
-        size_t i;
-
-        for (i = 0u; i < sizeof(font_fields) / sizeof(font_fields[0]);
-                ++i) {
-            safe_strncpy(font_fields[i], MEMGUARD_FONT_NAME,
-                    CONFIG_MAX_LENGTH_FONTNAME);
-        }
-    }
-
 }
 
 

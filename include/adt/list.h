@@ -3,7 +3,7 @@
  *
  * @brief Linked list data structure declaration
  *
- * @ingroup ADT
+ * @defgroup adt Abstract data types
  */
 
 #ifndef LIST_H

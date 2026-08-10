@@ -2,6 +2,8 @@
  * @file event.h
  *
  * @brief Event structure declaration
+ *
+ * @ingroup eventq
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

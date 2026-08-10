@@ -55,6 +55,9 @@
  * actions, then call @a eventq_macro_end.  The macro persists in an
  * internal registry until @a eventq_macro_clear is called.  Use
  * @a eventq_macro_play to replay a macro by name.
+ *
+ * @defgroup eventq Event priority queue and dispatch
+ * @ingroup loop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -17,6 +17,9 @@
  * At most one context menu (at any nesting level) can be visible at
  * a time.  Opening a new menu always closes the currently open one
  * first.
+ *
+ * @defgroup menu_context Context menus
+ * @ingroup menu
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,6 +44,7 @@
 
 /* Project includes */
 #include <config.h>
+#include <render/wmicon.h>
 #include <surface.h>
 
 /* Default initial values */
@@ -96,11 +100,11 @@ typedef enum {
  * to @c CTXMENU_COMMAND and @c CTXMENU_SUBMENU entries only.
  */
 typedef struct ctxmenu_entry_s {
-    ctxmenu_entry_type_e type;                  /**< Entry kind */
-    char label[WM_CTXMENU_LABEL_MAX_LEN];       /**< Visible text */
-    char command[WM_CTXMENU_CMD_MAX_LEN];       /**< Shell command (COMMAND) */
-    char class_name[CONFIG_MAX_LENGTH_NAME];    /**< 'WM_CLASS' override */
-    bool is_disabled;                           /**< Grayed-out when true */
+    ctxmenu_entry_type_e type;               /**< Entry kind */
+    char label[WM_CTXMENU_LABEL_MAX_LENGTH]; /**< Visible text */
+    char command[WM_CTXMENU_CMD_MAX_LENGTH]; /**< Shell command (COMMAND) */
+    char class_name[CONFIG_MAX_LENGTH_NAME]; /**< 'WM_CLASS' override */
+    bool is_disabled;                        /**< Grayed-out when true */
 
     /** Optional callback invoked when the entry is activated */
     void (*on_activate)(xcb_connection_t *, void *userdata);
@@ -109,6 +113,32 @@ typedef struct ctxmenu_entry_s {
     /** Child entries for @c CTXMENU_SUBMENU */
     struct ctxmenu_entry_s *items;
     int item_count;
+
+    /**
+     * @brief Client window whose own icon to draw to this entry's
+     *        left, or @c XCB_WINDOW_NONE for an entry with no
+     *        associated client (the common case: the root menu, a
+     *        window's own command entries, and so on)
+     *
+     * Only ever set by a caller whose entries genuinely represent
+     * client windows (@c menu/context/winlist.c); left at its default
+     * of @c XCB_WINDOW_NONE elsewhere, which reserves no icon space
+     * and draws no icon regardless of @c theme.menu.show-pixmaps.  See
+     * that setting's own doc comment in config.h for the full
+     * behavior.
+     */
+    xcb_window_t icon_window;
+
+    /**
+     * @brief That client's own icon cache slot (e.g.
+     *        @c &client->icon_pixmap_cache), reused across repaints
+     *        the same way the client's own desktop icon does
+     *
+     * Ignored when @p icon_window is @c XCB_WINDOW_NONE.  A pointer
+     * into storage this struct does not own, since the client (and
+     * its cache slot) outlives any one menu that happens to list it.
+     */
+    wmicon_cache_td *icon_cache;
 } ctxmenu_entry_td;
 
 
@@ -356,6 +386,93 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_last_activation_was_keyboard(void);
+
+/**
+ * @brief Repaint whichever submenu under @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_repaint (root menu, window
+ * menu, window list): each one only differs in which @c root state it
+ * passes, so this one function replaces an identical lookup-then-
+ * repaint sequence that used to be copied into each of them.
+ *
+ * @param root Top-level state of the concrete menu's own submenu tree
+ * @param win  Window the repaint request arrived for
+ *
+ * @note No-op if @p win does not belong to any submenu under @p root
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win);
+
+/**
+ * @brief Forward a pointer-motion event to whichever submenu under
+ *        @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_handle_motion; see
+ * @c ctxmenu_repaint_window's own doc comment for the general
+ * reasoning.
+ *
+ * @param root Top-level state of the concrete menu's own submenu tree
+ * @param win  Window the motion event arrived for
+ * @param x    Pointer X position, in @p win's own coordinates
+ * @param y    Pointer Y position, in @p win's own coordinates
+ *
+ * @note No-op if @p win does not belong to any submenu under @p root
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
+        xcb_window_t win, int x, int y);
+
+/**
+ * @brief Forward a click, translated to menu-local coordinates, to
+ *        whichever submenu under @p root currently owns @p win
+ *
+ * Shared by every concrete menu's own @c X_handle_click; see
+ * @c ctxmenu_repaint_window's own doc comment for the general
+ * reasoning.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface the click occurred on
+ * @param root       Top-level state of the concrete menu's own
+ *                   submenu tree
+ * @param win        Window the click event arrived for
+ * @param x          Pointer X position, in @p win's own coordinates
+ * @param y          Pointer Y position, in @p win's own coordinates
+ * @param config     Active configuration
+ *
+ * @return @c true if @p win belonged to a submenu under @p root and
+ *         the click was forwarded, @c false otherwise
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+bool ctxmenu_handle_click_window(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        int x, int y, const config_td *config);
+
+/**
+ * @brief Forward a keypress to the deepest currently open submenu
+ *        under @p root
+ *
+ * Applies the keypress to the deepest open submenu, not always
+ * @p root itself: without this, arrow keys would keep moving the
+ * selection in a top-level list even while a nested submenu was open
+ * in front of it, making that submenu look unresponsive to the
+ * keyboard.  Shared by every concrete menu's own
+ * @c X_handle_keypress.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface the key press occurred on
+ * @param root       Top-level state of the concrete menu's own
+ *                   submenu tree
+ * @param keysym     Keysym of the pressed key
+ * @param config     Active configuration
+ *
+ * @return @c true if the key was consumed, @c false otherwise
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ */
+bool ctxmenu_handle_keypress_deepest(xcb_connection_t *connection,
+        surface_td *surface, ctxmenu_state_td *root,
+        xcb_keysym_t keysym, const config_td *config);
 
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */

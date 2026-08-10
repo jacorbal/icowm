@@ -65,23 +65,42 @@ int client_send_event(client_td *client,
 }
 
 
-/* Send an event to rename a specified client */
-int client_send_event_rename(client_td *client, const char *new_name)
+/**
+ * @brief Enqueue a client action carrying one new string value
+ *
+ * Shared by @c client_send_event_rename, @c client_send_event_reclass,
+ * and @c client_send_event_set_icon below, which only differ in which
+ * @c action_client_e to send and the verb their own log message uses.
+ *
+ * @param client        Target client
+ * @param value         New string value; duplicated into the queued
+ *                      event's own data
+ * @param action_client One of @c ACTION_CLIENT_RENAME/RECLASS/
+ *                      SET_ICON
+ * @param log_verb      Present-participle verb for the trace log
+ *                      message, e.g., @c "Renaming"
+ *
+ * @return @c 0 on success, @c -1 otherwise
+ *
+ * @note Complexity: @e O(log n), where @e n is the number of events
+ *       in the priority queue
+ */
+static int s_client_send_str_event(client_td *client, const char *value,
+        enum action_client_e action_client, const char *log_verb)
 {
     event_td *event;
     action_td action;
     action_data_client_td *data;
 
-    if (client == NULL || new_name == NULL) {
+    if (client == NULL || value == NULL) {
         LOGGER_ERROR("Received null pointer", L_NARG);
         return -1;
     }
 
-    LOGGER_TRACE("Renaming client %p to '%s'",
-            (void *) client, new_name);
+    LOGGER_TRACE("%s client %p to '%s'", log_verb, (void *) client, value);
 
     action.type = ACTION_TYPE_CLIENT;
-    action.object.client = ACTION_CLIENT_RENAME;
+    action.object.client = action_client;
 
     data = action_data_client_init(client, action.object.client);
     if (data == NULL) {
@@ -89,7 +108,7 @@ int client_send_event_rename(client_td *client, const char *new_name)
         return -1;
     }
 
-    data->new_data.str.str0 = safe_strdup(new_name);
+    data->new_data.str.str0 = safe_strdup(value);
 
     event = event_init((void *) client, (void *) data,
             action, CLIENT_PRIORITY_DEFAULT);
@@ -103,41 +122,19 @@ int client_send_event_rename(client_td *client, const char *new_name)
 }
 
 
+/* Send an event to rename a specified client */
+int client_send_event_rename(client_td *client, const char *new_name)
+{
+    return s_client_send_str_event(client, new_name,
+            ACTION_CLIENT_RENAME, "Renaming");
+}
+
+
 /* Send an event to change the class of a specified client */
 int client_send_event_reclass(client_td *client, const char *new_class)
 {
-    event_td *event;
-    action_td action;
-    action_data_client_td *data;
-
-    if (client == NULL || new_class == NULL) {
-        LOGGER_ERROR("Received null pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_TRACE("Reclassifying client %p to '%s'",
-            (void *) client, new_class);
-
-    action.type = ACTION_TYPE_CLIENT;
-    action.object.client = ACTION_CLIENT_RECLASS;
-
-    data = action_data_client_init(client, action.object.client);
-    if (data == NULL) {
-        LOGGER_ERROR("Failed to create action data", L_NARG);
-        return -1;
-    }
-
-    data->new_data.str.str0 = safe_strdup(new_class);
-
-    event = event_init((void *) client, (void *) data,
-            action, CLIENT_PRIORITY_DEFAULT);
-    if (event == NULL) {
-        LOGGER_ERROR("Failed to create event", L_NARG);
-        action_data_client_destroy(data);
-        return -1;
-    }
-
-    return eventq_add(event);
+    return s_client_send_str_event(client, new_class,
+            ACTION_CLIENT_RECLASS, "Reclassifying");
 }
 
 
@@ -363,36 +360,6 @@ int client_send_event_resize(client_td *client,
 /* Send an event to change the icon of a specified client */
 int client_send_event_set_icon(client_td *client, const char *icon_name)
 {
-    event_td *event;
-    action_td action;
-    action_data_client_td *data;
-
-    if (client == NULL || icon_name == NULL) {
-        LOGGER_ERROR("Received null pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_TRACE("Setting icon for client %p to '%s'",
-            (void *) client, icon_name);
-
-    action.type = ACTION_TYPE_CLIENT;
-    action.object.client = ACTION_CLIENT_SET_ICON;
-
-    data = action_data_client_init(client, action.object.client);
-    if (data == NULL) {
-        LOGGER_ERROR("Failed to create action data", L_NARG);
-        return -1;
-    }
-
-    data->new_data.str.str0 = safe_strdup(icon_name);
-
-    event = event_init((void *) client, (void *) data,
-            action, CLIENT_PRIORITY_DEFAULT);
-    if (event == NULL) {
-        LOGGER_ERROR("Failed to create event", L_NARG);
-        action_data_client_destroy(data);
-        return -1;
-    }
-
-    return eventq_add(event);
+    return s_client_send_str_event(client, icon_name,
+            ACTION_CLIENT_SET_ICON, "Setting icon for");
 }

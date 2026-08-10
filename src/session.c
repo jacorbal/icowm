@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>     /* free, calloc */
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -34,6 +34,7 @@
 #include <defs/config.h>
 
 /* Project includes */
+#include <config.h>
 #include <logger.h>
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
@@ -77,43 +78,6 @@ static void s_session_command_destroy(void *data)
 
 
 /**
- * @brief Resolve the configuration directory base path for session
- *        files
- *
- * Writes the effective configuration directory path into
- * @p config_dir_base.  The resolution order is: @p config_dir_prefix
- * (when non-empty) > @c $XDG_CONFIG_HOME/icowm > @c $HOME/.icowm >
- * @c ./icowm.
- *
- * @param config_dir_prefix Caller-supplied prefix, or @c NULL to use
- *                          the environment-based default
- * @param config_dir_base   Buffer that receives the resolved path;
- *                          should be at least
- *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long
- */
-static void s_session_config_dir_set(const char *config_dir_prefix,
-        char *config_dir_base)
-{
-    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
-    const char *config_home = getenv("HOME");
-
-    if (config_dir_prefix != NULL && config_dir_prefix[0] != '\0') {
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s", config_dir_prefix);
-    } else if (config_xdg_config_home != NULL) {
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s/%s", config_xdg_config_home, CONFIG_DIR_BASE);
-    } else if (config_home != NULL) {
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s/.%s", config_home, CONFIG_DIR_BASE);
-    } else {
-        snprintf(config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE,
-                "./%s", CONFIG_DIR_BASE);
-    }
-}
-
-
-/**
  * @brief Return the JSON key name used for a session hook
  *
  * Maps each @c session_hook_e value to the string key present in the
@@ -122,7 +86,7 @@ static void s_session_config_dir_set(const char *config_dir_prefix,
  * @param hook Lifecycle hook identifier
  *
  * @return A null-terminated string literal naming @p hook; @c on-exit
- *         is returned for any unrecognised value
+ *         is returned for any unrecognized value
  *
  * @note Complexity: @e O(1)
  */
@@ -146,7 +110,7 @@ static const char *s_session_hook_name(enum session_hook_e hook)
  * @param hook    Lifecycle hook identifier
  *
  * @return Pointer to the mutable @c list_td pointer for @p hook; the
- *         @c on_exit list is returned for any unrecognised value
+ *         @c on_exit list is returned for any unrecognized value
  *
  * @note Complexity: @e O(1)
  */
@@ -171,7 +135,7 @@ static list_td **s_session_hook_list(session_td *session,
  * @param hook    Lifecycle hook identifier
  *
  * @return Pointer to the read-only @c list_td for @p hook; the
- *         @c on_exit list is returned for any unrecognised value
+ *         @c on_exit list is returned for any unrecognized value
  *
  * @note Complexity: @e O(1)
  */
@@ -307,7 +271,7 @@ static int s_session_spawn_command(xcb_connection_t *connection,
 }
 
 
-/* Allocate and zero-initialise a new session table */
+/* Allocate and zero-initialize a new session table */
 session_td *session_init(void)
 {
     session_td *session = calloc(1, sizeof(session_td));
@@ -362,7 +326,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
         return 1;
     }
 
-    s_session_config_dir_set(config_dir_prefix, config_dir);
+    config_resolve_dir(config_dir_prefix, config_dir);
     snprintf(session_file, sizeof(session_file), "%s/%s",
             config_dir, CONFIG_FILENAME_SESSION);
 
@@ -451,11 +415,13 @@ void session_reap_children(void)
 
         if (tracked != NULL) {
             if (WIFEXITED(status)) {
-                LOGGER_DEBUG("Session hook '%s' PID %d ('%s') exited with status %d",
+                LOGGER_DEBUG("Session hook '%s' PID %d ('%s') exited" \
+                        " with status %d",
                         tracked->hook, (int) pid, tracked->command,
                         WEXITSTATUS(status));
             } else if (WIFSIGNALED(status)) {
-                LOGGER_WARNING("Session hook '%s' PID %d ('%s') terminated by signal %d",
+                LOGGER_WARNING("Session hook '%s' PID %d ('%s')" \
+                        " terminated by signal %d",
                         tracked->hook, (int) pid, tracked->command,
                         WTERMSIG(status));
             }

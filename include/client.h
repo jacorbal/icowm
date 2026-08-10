@@ -9,6 +9,9 @@
  * visual and operational properties of the window, including its
  * identifier, name, state, graphical attributes, geometry, and behavior
  * preferences.
+ *
+ * @defgroup client Managed client windows
+ * @ingroup desktop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -175,6 +178,23 @@ struct client_properties_s {
     uint16_t type;       /**< Type (normal, notification...) */
     uint16_t operation;  /**< Operation (moving, resizing...) */
     uint16_t focusing;   /**< Focusing (focused, unfocused) */
+
+    /**
+     * @brief The @c state this client was in right before it was last
+     *        iconified, so @c wcmd_client_restore can re-enter that
+     *        exact state (normal, maximized in any of its three
+     *        variants, or fullscreen) instead of always landing back
+     *        on plain @c CLIENT_STATE_NORMAL
+     *
+     * Only meaningful while @c state is @c CLIENT_STATE_ICONIFIED;
+     * @c CLIENT_STATE_NORMAL otherwise.  Also drives the icon's own
+     * state-hint letter (see @c ri_draw_icon_hints in
+     * render/icon.c): none for @c CLIENT_STATE_NORMAL, 'f' for
+     * @c CLIENT_STATE_FULLSCREEN, 'm' for @c CLIENT_STATE_MAXIMIZED,
+     * 'h' for @c CLIENT_STATE_MAXIMIZED_HORZ, and 'v' for
+     * @c CLIENT_STATE_MAXIMIZED_VERT.
+     */
+    uint16_t pre_iconify_state;
 };
 
 
@@ -414,6 +434,18 @@ typedef struct client_s {
                                      'client_manage' so the very first
                                      render always applies the real
                                      value regardless of what it is */
+    bool icon_last_cycle_sel;   /**< Whether the icon window was drawn
+                                     with cycle-selection styling on
+                                     its own most recent render, so
+                                     'ri_render_client_icon' can skip
+                                     its own work (window attributes,
+                                     border, caption, pixmap, hints)
+                                     when neither that nor 'is_outdated'
+                                     changed since; safe to default to
+                                     'false' uninitialized, since a
+                                     freshly iconified client is always
+                                     'is_outdated' on its first render
+                                     regardless of this field's value */
 } client_td;
 
 
@@ -472,6 +504,8 @@ static inline xcb_window_t client_group_leader(const client_td *client)
  * The client is initialized in a hidden state.
  *
  * @param connection Pointer to the XCB connection
+ * @param ewmh       EWMH connection, for reading initial state and
+ *                   properties from the X server
  * @param parent_id  Pointer to the parent client index
  * @param w          Width of the client in pixels
  * @param h          Height of the client in pixels
@@ -590,6 +624,11 @@ struct titlebar_button_layout_s {
  * @param frame_w     Total frame width in pixels
  * @param title_h     Titlebar height in pixels, used to vertically
  *                    center the buttons
+ * @param hide_pin    When @c true, the pin button (if configured) is
+ *                    skipped entirely rather than placed and drawn:
+ *                    the row closes the gap and shifts the following
+ *                    buttons over, exactly as if the theme had never
+ *                    listed it, rather than leaving it in place inert
  * @param out_left    Receives up to @c CONFIG_MAX_TITLEBAR_BUTTONS
  *                    entries for the left side, in the theme's order
  * @param out_left_n  Receives the number of entries written to
@@ -605,7 +644,7 @@ struct titlebar_button_layout_s {
  * @note Complexity: @e O(1)
  */
 void client_titlebar_layout(const struct config_theme_s *theme,
-        uint16_t frame_w, uint16_t title_h,
+        uint16_t frame_w, uint16_t title_h, bool hide_pin,
         struct titlebar_button_layout_s *out_left,
         uint8_t *out_left_n,
         struct titlebar_button_layout_s *out_right,
@@ -775,6 +814,8 @@ int client_send_event_move(client_td *client,
  * event data.
  *
  * @param client Pointer to the client to be resized
+ * @param new_x  New @e x coordinate for the client
+ * @param new_y  New @e y coordinate for the client
  * @param new_w  New width for the client
  * @param new_h  New height for the client
  *

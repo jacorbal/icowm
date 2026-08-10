@@ -7,6 +7,8 @@
  * here, edited and recompiled to retune the mode, rather than spread
  * across @c memguard.c itself; see @c memguard.h for the module that
  * actually uses them.
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

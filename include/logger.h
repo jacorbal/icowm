@@ -52,7 +52,8 @@
  *      +-------+
  * @endverbatim
  *
- * @ingroup logger Logger
+ * @defgroup logger Logger
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -271,7 +272,8 @@ void logger_tracking_off(void);
     logger_msg(level, __func__, (const char *) msg, __VA_ARGS__)
 
 /**
- * @defgroup Logger Logger macros
+ * @defgroup logger_macros Logger macros
+ * @ingroup logger
  *
  * Macros that evaluate to the logger message sender severity for
  * simplicity of the code.

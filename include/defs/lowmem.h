@@ -20,8 +20,7 @@
  *   @c desktops[CONFIG_MAX_DESKTOPS] each, @c surface_td's own
  *   @c monitors[WM_SURFACE_MAX_MONITORS], and the message dialog's
  *   own @c lines[DIALOG_MSG_MAX_LINES] are three examples; see
- *   @c config.md section 10 for the fuller list and the exact size of
- *   each.
+ *   @c config.md §10 for the fuller list and the exact size of each.
  * - @c LOWMEM is a compile-time choice: defining it (@c make
  *   LOWMEM=1, which the top-level Makefile turns into @c -D LOWMEM)
  *   shrinks exactly those compile-time capacities instead, in a
@@ -53,6 +52,8 @@
  * variant of.  This file exists purely so the mechanism as a whole
  * has one place documenting what it is, since no single constant's
  * own file is the right place for that.
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

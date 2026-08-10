@@ -10,6 +10,9 @@
  * such as the workspace name, workspace dimensions, and the available
  * area for clients.  It also contains references to hash tables and
  * lists that manage the stacking of clients within that workspace.
+ *
+ * @defgroup desktop Virtual desktop management
+ * @ingroup surface
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -80,6 +83,11 @@ typedef struct desktop_s {
             char *image_path;               /**< Background image */
         } bg;                               /**< Background information */
     } background;
+    /* No 'bg_applied_once'/'bg_color_applied' cache here: the root
+     * window a solid-color background actually paints is one single X
+     * resource shared by every desktop on the same screen, so that
+     * cache lives per screen instead (see 's_root_bg_applied_once' in
+     * render/desktop.c), not per desktop. */
 
     ohtbl_td *clients;                      /**< Clients hash table */
     cdlist_td *stacking;                    /**< Stacking list */
@@ -104,6 +112,7 @@ typedef struct desktop_s {
 /**
  * @brief Initialize a new desktop
  *
+ * @param connection   Pointer to the XCB connection
  * @param screen_id    Screen identifier where this desktop belongs
  * @param desktop_id   Desktop identifier
  * @param ewmh         EWMH connection pointer

@@ -6,6 +6,9 @@
  *
  * Nothing here is a dialog on its own; @c menu/dialog/confirm.h and
  * @c menu/dialog/message.h are the two dialog types that use it.
+ *
+ * @defgroup menu_dialog Modal dialogs
+ * @ingroup menu
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -21,6 +21,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
@@ -76,7 +77,33 @@ void wcmd_client_lower(client_td *client)
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
         xcb_flush(client->connection);
     }
+}
 
+
+/**
+ * @brief Enforce layer stacking and request a redraw after a client's
+ *        layer changes
+ *
+ * Shared by @c wcmd_client_layer_above, @c wcmd_client_layer_normal,
+ * and @c wcmd_client_layer_below below, which only differ in the new
+ * @c client->properties.layer value and which @c _NET_WM_STATE atoms
+ * to add or remove for it.
+ *
+ * @param client  Client whose layer just changed
+ * @param desktop Desktop @p client is on, or @c NULL to skip
+ *                re-enforcing layer stacking
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop (see @c wcmd_desktop_enforce_layers)
+ */
+static void s_client_layer_finish(client_td *client, desktop_td *desktop)
+{
+    if (desktop != NULL) {
+        wcmd_desktop_enforce_layers(desktop);
+    }
+
+    wm_request_client_redraw(client);
+    xcb_flush(client->connection);
 }
 
 
@@ -97,12 +124,7 @@ void wcmd_client_layer_above(client_td *client)
     wcmd_add_states(client, 1, "_NET_WM_STATE_ABOVE");
 
     desktop = wm_get_client_desktop(client);
-    if (desktop != NULL) {
-        wcmd_desktop_enforce_layers(desktop);
-    }
-
-    wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    s_client_layer_finish(client, desktop);
 }
 
 
@@ -124,12 +146,7 @@ void wcmd_client_layer_normal(client_td *client)
             "_NET_WM_STATE_BELOW");
 
     desktop = wm_get_client_desktop(client);
-    if (desktop != NULL) {
-        wcmd_desktop_enforce_layers(desktop);
-    }
-
-    wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    s_client_layer_finish(client, desktop);
 }
 
 
@@ -150,12 +167,7 @@ void wcmd_client_layer_below(client_td *client)
     wcmd_add_states(client, 1, "_NET_WM_STATE_BELOW");
 
     desktop = wm_get_client_desktop(client);
-    if (desktop != NULL) {
-        wcmd_desktop_enforce_layers(desktop);
-    }
-
-    wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    s_client_layer_finish(client, desktop);
 }
 
 
@@ -213,11 +225,43 @@ void wcmd_desktop_enforce_layers(desktop_td *desktop)
                 if (target != XCB_WINDOW_NONE) {
 
                     if (prev_target == XCB_WINDOW_NONE) {
-                        xcb_configure_window(c->connection, target,
-                                XCB_CONFIG_WINDOW_STACK_MODE,
-                                (const uint32_t[]) {
-                                XCB_STACK_MODE_BELOW
-                                });
+                        /* The first client found across the whole
+                         * loop, whichever layer it happens to be in:
+                         * anchor it explicitly just above the tray
+                         * (if any) rather than an unqualified 'below'
+                         * with no sibling.  An unqualified 'below'
+                         * claims the absolute bottom of the entire
+                         * sibling stack, out from under the desktop
+                         * icons and tray already sitting there --
+                         * this was previously only done when that
+                         * first client was genuinely in the BELOW
+                         * layer (on the mistaken assumption that a
+                         * desktop with no BELOW-layer clients at all
+                         * had "no business" anchoring to the tray),
+                         * which left every desktop with no BELOW
+                         * clients (the common case) sending its first
+                         * NORMAL-layer client to the absolute bottom
+                         * instead, visibly shoving the icons and tray
+                         * up out of the way on every call (client
+                         * creation, raise/lower, and desktop
+                         * activation all call this). */
+                        xcb_window_t tray_below = systray_below_window();
+
+                        if (tray_below != XCB_WINDOW_NONE) {
+                            xcb_configure_window(c->connection, target,
+                                    XCB_CONFIG_WINDOW_SIBLING |
+                                    XCB_CONFIG_WINDOW_STACK_MODE,
+                                    (const uint32_t[]) {
+                                    tray_below,
+                                    XCB_STACK_MODE_ABOVE
+                                    });
+                        } else {
+                            xcb_configure_window(c->connection, target,
+                                    XCB_CONFIG_WINDOW_STACK_MODE,
+                                    (const uint32_t[]) {
+                                    XCB_STACK_MODE_BELOW
+                                    });
+                        }
                     } else {
                         xcb_configure_window(c->connection, target,
                                 XCB_CONFIG_WINDOW_SIBLING |

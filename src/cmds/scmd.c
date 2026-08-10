@@ -119,8 +119,23 @@ void scmd_surface_desktop_switch(surface_td *surface,
 }
 
 
-/* Switch to the next desktop */
-void scmd_surface_desktop_switch_next(surface_td *surface)
+/**
+ * @brief Switch a surface to the next or previous desktop, in
+ *        cyclic order
+ *
+ * Shared by @c scmd_surface_desktop_switch_next and @c scmd_surface_
+ * desktop_switch_prev below, which only differ in direction: which
+ * of @c surface_desktop_select_next/prev to call, and the log
+ * message's own wording.
+ *
+ * @param surface Surface to switch
+ * @param forward @c true to advance to the next desktop, @c false to
+ *                go back to the previous one
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktops involved
+ */
+static void s_switch_cyclic(surface_td *surface, bool forward)
 {
     uint32_t old_id;
 
@@ -130,11 +145,15 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
 
     old_id = surface->desktop_cur;
 
-    LOGGER_DEBUG("Switching to next desktop on surface %u",
-            surface->id);
+    LOGGER_DEBUG("Switching to %s desktop on surface %u",
+            (forward) ? "next" : "previous", surface->id);
 
     surface_clients_hide(surface, old_id);
-    surface_desktop_select_next(surface, true);
+    if (forward) {
+        surface_desktop_select_next(surface, true);
+    } else {
+        surface_desktop_select_prev(surface, true);
+    }
 
     if (surface->desktop_cur != old_id) {
         surface_clients_sticky_transfer_all(surface,
@@ -150,34 +169,17 @@ void scmd_surface_desktop_switch_next(surface_td *surface)
 }
 
 
+/* Switch to the next desktop */
+void scmd_surface_desktop_switch_next(surface_td *surface)
+{
+    s_switch_cyclic(surface, true);
+}
+
+
 /* Switch to the previous desktop */
 void scmd_surface_desktop_switch_prev(surface_td *surface)
 {
-    uint32_t old_id;
-
-    if (surface == NULL) {
-        return;
-    }
-
-    old_id = surface->desktop_cur;
-
-    LOGGER_DEBUG("Switching to previous desktop on surface %u",
-            surface->id);
-
-    surface_clients_hide(surface, old_id);
-    surface_desktop_select_prev(surface, true);
-
-    if (surface->desktop_cur != old_id) {
-        surface_clients_sticky_transfer_all(surface,
-                surface->desktop_cur);
-        surface_clients_show(surface, surface->desktop_cur);
-        s_show_desktop_overlay(surface);
-        surface->is_outdated = true;
-        xcb_flush(surface->connection);
-    } else {
-        /* No switch happened; restore visibility */
-        surface_clients_show(surface, old_id);
-    }
+    s_switch_cyclic(surface, false);
 }
 
 

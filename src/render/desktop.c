@@ -16,7 +16,7 @@
  */
 
 /* System includes */
-#include <stdlib.h>
+#include <stdlib.h>     /* free */
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -37,14 +37,18 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <client.h>
 #include <logger.h>
 #include <render/text.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <render/desktop.h>
+#include <render/icon.h>
 #include <render/internal.h>
 
 
@@ -100,43 +104,6 @@ static xcb_pixmap_t s_bg_pixmap_cache = XCB_NONE;
 
 
 /**
- * @brief Intern a custom atom and return @c XCB_ATOM_NONE on failure
- *
- * Performs an @c XCBInternAtom request for the given atom name and
- * returns the resulting atom identifier, or @c XCB_ATOM_NONE if the
- * request fails or the connection/name is invalid.
- *
- * @param connection XCB connection used to intern the atom
- * @param name       Atom name string to intern
- *
- * @return Interned atom identifier, or @c XCB_ATOM_NONE on failure
- *
- * @note Complexity: @e O(1)
- */
-static xcb_atom_t s_intern_atom(xcb_connection_t *connection,
-        const char *name)
-{
-    xcb_intern_atom_reply_t *reply;
-    xcb_atom_t atom = XCB_ATOM_NONE;
-
-    if (connection == NULL || name == NULL) {
-        return XCB_ATOM_NONE;
-    }
-
-    reply = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 1,
-                (uint16_t) safe_strlen(name), name), NULL);
-
-    if (reply != NULL) {
-        atom = reply->atom;
-        free(reply);
-    }
-
-    return atom;
-}
-
-
-/**
  * @brief Resolve @c s_bg_prop_names into @c s_bg_atoms, once
  *
  * @param connection XCB connection used to intern any atom not
@@ -151,8 +118,8 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
 
     /* Re-attempts only whichever of the three atoms are still
      * XCB_ATOM_NONE, rather than giving up on all three permanently
-     * the moment any single attempt is made: 'only_if_exists=1' in
-     * 's_intern_atom' means a name that does not exist yet on the X
+     * the moment any single attempt is made: 'only_if_exists=true' in
+     * 'atom_intern' means a name that does not exist yet on the X
      * server resolves to none, which is correct at that moment, but
      * unlike a successful resolution (an atom, once it exists, is
      * permanent for the life of the connection) that failure is not
@@ -174,7 +141,8 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
 
     for (size_t i = 0; i < 3u; ++i) {
         if (s_bg_atoms[i] == XCB_ATOM_NONE) {
-            s_bg_atoms[i] = s_intern_atom(connection, s_bg_prop_names[i]);
+            s_bg_atoms[i] = atom_intern(connection, s_bg_prop_names[i],
+                    true);
         }
     }
 }
@@ -287,6 +255,22 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
 }
 
 
+/* Per-screen (not per-desktop) cache of the root window's own last
+ * solid-color fill, indexed by 'screen_id': every virtual desktop on
+ * a given screen shares that one same root window as an X resource,
+ * so whether it still shows a particular desktop's own configured
+ * color has to be tracked per screen too, not per desktop.  A field
+ * on 'desktop_td' itself (as this used to be) instead lets each
+ * desktop believe its own color remains applied purely because it was
+ * the last one *that desktop* painted, even after some other desktop
+ * sharing the same root window repainted over it with a different
+ * one -- and, since a config reload does not reset any of this,
+ * leaves that other, now-stale color on screen indefinitely, with no
+ * further repaint ever believing there is anything left to fix. */
+static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
+static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
+
+
 /* Draw the background of a desktop */
 int desktop_render_background(desktop_td *desktop)
 {
@@ -297,6 +281,13 @@ int desktop_render_background(desktop_td *desktop)
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received null desktop pointer", L_NARG);
+        return 1;
+    }
+
+    if (desktop->screen_id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        LOGGER_ERROR("Desktop %u ('%s') has an out-of-range screen_id" \
+                " %u; cannot render its background",
+                desktop->id, desktop->name, desktop->screen_id);
         return 1;
     }
 
@@ -333,7 +324,7 @@ int desktop_render_background(desktop_td *desktop)
             screen->root);
     if (root_pixmap != XCB_NONE) {
         /* An external tool ('xsetbg', 'feh', 'xsetroot', 'nitrogen',
-         * painted the root window and recorded the pixmap ID in
+         * etc.) painted the root window and recorded the pixmap ID in
          * a well-known atom.  Record that fact so that subsequent
          * repaints do not overwrite the wallpaper with our color.
          */
@@ -345,6 +336,15 @@ int desktop_render_background(desktop_td *desktop)
          *       'xcb_clear_area', and leading to a 'BadPixmap' or
          *       'BadDrawable' X error and an abrupt crash. */
         desktop->background.use_root_pixmap = true;
+        /* So that if the WM ever owns the background again later (the
+         * external pixmap atom disappears), the solid-color path
+         * below always re-applies at least once even if that color
+         * happens to equal whatever it last applied before this
+         * external pixmap appeared -- otherwise this screen's shared
+         * root window would be left showing the stale external
+         * wallpaper under the mistaken belief that the WM's own color
+         * was already correctly in place. */
+        s_root_bg_applied_once[desktop->screen_id] = false;
         LOGGER_TRACE("External root pixmap 0x%x detected for" \
                 " desktop %u ('%s'); skipping color fill",
                 root_pixmap, desktop->id, desktop->name);
@@ -363,13 +363,34 @@ int desktop_render_background(desktop_td *desktop)
 
     /* No external background detected and the window manager owns the
      * background: apply the configured color and clear the root window
-     * to make it visible */
+     * to make it visible.  Only actually do so when the color changed
+     * since the last time this ran, or on the very first pass: this
+     * function runs on every 'is_current' full-desktop render (every
+     * client gaining focus marks its own desktop 'is_outdated', not
+     * just an actual background change), so without this check every
+     * such render would repeat the same full-screen
+     * 'xcb_change_window_attributes' + 'xcb_clear_area' for a color
+     * that never actually changed.  Checked and updated per screen
+     * (see 's_root_bg_applied_once' above), not per desktop: every
+     * desktop sharing this screen's one root window can otherwise
+     * repaint over whichever color another one on the same screen
+     * applied, without either ever detecting that the color actually
+     * showing has changed since its own last render. */
+    if (s_root_bg_applied_once[desktop->screen_id] &&
+            s_root_bg_color_applied[desktop->screen_id] ==
+                desktop->background.bg.color) {
+        return 0;
+    }
+
     values[0] = XCB_BACK_PIXMAP_NONE;
     values[1] = desktop->background.bg.color;
     xcb_change_window_attributes(desktop->connection, screen->root,
             XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
     xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
             screen->width_in_pixels, screen->height_in_pixels);
+    s_root_bg_applied_once[desktop->screen_id] = true;
+    s_root_bg_color_applied[desktop->screen_id] =
+        desktop->background.bg.color;
 
     LOGGER_TRACE("Background rendered for desktop %u ('%s')",
             desktop->id, desktop->name);
@@ -558,11 +579,16 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     int16_t btn_y;
     int16_t text_y;
     bool can_maximize;
+    bool hide_pin;
+    surface_td *surface;
 
     if (connection == NULL || client == NULL || theme == NULL ||
             client->titlebar == 0) {
         return;
     }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    hide_pin = surface != NULL && surface->desktop_count <= 1u;
 
     xcb_change_window_attributes(connection,
             client->titlebar, XCB_CW_BACK_PIXEL,
@@ -585,8 +611,8 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
                 ? theme->window.active.color.background
                 : theme->window.inactive.color.background);
 
-    client_titlebar_layout(theme, inner_w, title_h, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     text_y =
         (int16_t) ((title_h > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
@@ -607,13 +633,31 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
 
 /* Draw all clients on a desktop */
-int desktop_render_clients(desktop_td *desktop, bool is_current)
+/**
+ * @brief Render, position, and decorate a single already-non-hidden
+ *        client during a stacking-order render pass
+ *
+ * Applies the client's own border width (only when it actually
+ * changed, to avoid needless server round trips), maps or unmaps its
+ * frame/titlebar/content window as appropriate for whether @p desktop
+ * is the surface's currently displayed one, and either reconfigures
+ * its full geometry and decoration (when @c is_outdated) or, more
+ * cheaply, only refreshes focus-sensitive decoration colors (when
+ * only @p desktop's own @c focus_dirty changed).  See the caller's
+ * own stacking-order iteration for how this fits into a full render
+ * pass.
+ *
+ * @param desktop    Desktop the client belongs to
+ * @param client     Client to render; assumed non-@c NULL and not
+ *                   currently hidden
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_render_one_client(desktop_td *desktop,
+        client_td *client, bool is_current)
 {
-    cdlist_item_td *stacking_node;
-    cdlist_item_td *stacking_initial;
-    client_td *client;
-    int client_count = 0;
-    size_t stacking_size;
     uint16_t mask;
     int32_t values[4];
     xcb_window_t target;
@@ -628,6 +672,246 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
     bool hide_decoration;
     bool has_extra_window_border;
     uint32_t border_width;
+
+    is_focused = (desktop->client_active_id == client->id);
+
+    hide_decoration =
+        (client->properties.state ==
+             (uint16_t) CLIENT_STATE_FULLSCREEN &&
+         client->was_decorated_fullscreen);
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+
+    has_extra_window_border =
+        cycle_client_has_extra_border(client, false);
+
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
+            client->properties.type ==
+                (uint16_t) CLIENT_TYPE_NOTIFICATION) {
+        /* Dock and notification windows must never have a WM border */
+        border_width = 0u;
+    } else if (client_is_fullscreen(client)) {
+        /* A fullscreen client is undecorated (see 'hide_decoration'
+         * above), so it falls to the same 'not decorated' branch a
+         * plain undecorated window would, which would otherwise
+         * apply the theme's regular window border directly to its
+         * own raw window: a border painted over video or other
+         * fullscreen content, not just an unwanted frame around an
+         * ordinary window. */
+        border_width = 0u;
+    } else if (client_is_decorated(client) && client->frame != 0) {
+        border_width = (has_extra_window_border)
+            ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
+    } else {
+        border_width = client->theme->window.active.border.width;
+        if (has_extra_window_border) {
+            border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
+        }
+    }
+
+    /* Only actually send the request when the value would change:
+     * an unconditional 'ConfigureWindow' here on every render pass
+     * for every client (needed so an icon-cycle selection border
+     * appears/disappears promptly) was extra server round-trip
+     * traffic for the common case where nothing about this
+     * particular client changed at all (e.g., a keyboard resize of
+     * one window previously still re-sent border width for every
+     * other window on the desktop each time). */
+    if (border_width != client->last_border_width) {
+        xcb_configure_window(desktop->connection, target,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+        client->last_border_width = border_width;
+    }
+
+    /* Map the window to make it visible.
+     * Only do this when 'desktop' is the surface's currently
+     * displayed desktop.
+     *
+     * Its also invoked as part of a general
+     * 'surface_render_all_desktops' refresh pass whenever ANY
+     * desktop's 'is_outdated' flag is set (e.g., after moving or
+     * resizing a client, which marks its own desktop outdated).
+     *
+     * If that pass unconditionally mapped clients on a desktop that
+     * is not currently shown, it could race with (and undo) an
+     * explicit 'surface_clients_hide' issued by a desktop switch,
+     * making a client reappear on top of the desktop the user just
+     * switched to.
+     *
+     * Visibility of non-current desktops must be governed solely by
+     * 'surface_clients_hide'/'surface_clients_show' */
+    if (is_current) {
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(desktop->connection,
+                    client->icon_window);
+            client->is_icon_mapped = false;
+        }
+        if (client->titlebar != 0 && !hide_decoration) {
+            xcb_map_window(desktop->connection, client->titlebar);
+        } else if (client->titlebar != 0) {
+            xcb_unmap_window(desktop->connection, client->titlebar);
+        }
+        xcb_map_window(desktop->connection, target);
+
+        /* Do not re-map the content window for shaded clients: the
+         * shade operation explicitly unmaps it, and mapping it here
+         * would undo the shade and prevent the titlebar-only view
+         * from being painted correctly, especially for inactive
+         * windows that receive no 'FocusOut'-triggered repaint */
+        if (target != client->window && !client_is_shaded(client)) {
+            xcb_map_window(desktop->connection, client->window);
+        }
+    }
+
+    if (client->is_outdated) {
+        /* Configure position and size; only when the client's
+         * geometry or decoration changed.  Skipping this for
+         * up-to-date clients prevents the server from generating
+         * spurious 'ConfigureNotify' and 'Expose' events that cause
+         * other windows to unnecessarily redraw, which appears as
+         * flicker during keyboard resize of an unrelated client. */
+        LOGGER_TRACE("Render pass applying outdated geometry for" \
+                " window=0x%x: target=0x%x (%s frame), %ux%u+%d+%d",
+                client->window, target,
+                (target != client->window) ? "has" : "no",
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h,
+                client->layout.geometry.cur.pos.x,
+                client->layout.geometry.cur.pos.y);
+
+        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+               XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        values[0] = client->layout.geometry.cur.pos.x;
+        values[1] = client->layout.geometry.cur.pos.y;
+        values[2] = (int32_t) client->layout.geometry.cur.dim.w;
+        values[3] = (int32_t) client->layout.geometry.cur.dim.h;
+
+        xcb_configure_window(desktop->connection, target, mask,
+                (uint32_t *) values);
+        if (target != client->window) {
+            left = (uint16_t) client->layout.frame_extents.left;
+            right = (uint16_t) client->layout.frame_extents.right;
+            top = (uint16_t) client->layout.frame_extents.top;
+            bottom = (uint16_t) client->layout.frame_extents.bottom;
+            title_h = client->title_height;
+            inner_w = (client->layout.geometry.cur.dim.w > left + right)
+                ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                        left - right)
+                : 1;
+            inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
+                ? (uint16_t) (client->layout.geometry.cur.dim.h -
+                        top - bottom)
+                : 1;
+
+            xcb_configure_window(desktop->connection, client->window,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    (const uint32_t[]) {
+                        left, top, inner_w, inner_h
+                    });
+
+            /* ICCCM §4.2.3: the xcb_configure_window above positions
+             * the inner window relative to the frame (x=left, y=top),
+             * so the X server delivers a 'ConfigureNotify' to the
+             * client with those frame-relative coordinates.  Override
+             * it immediately with a synthetic 'ConfigureNotify'
+             * carrying the true screen-relative position so the
+             * client's last geometry notification is always correct.
+             * Without this a decorated client sees a frame-relative
+             * 'ConfigureNotify' as its final event on every render
+             * pass, causing misaligned popups and a content area
+             * that appears not to fill the frame until the next
+             * user-triggered repaint. */
+            client_send_synthetic_configure_notify(desktop->connection,
+                    client);
+
+            /* Force a repaint AFTER the synthetic 'ConfigureNotify'
+             * so the client always redraws at its correct
+             * screen-relative geometry.  Some programs do not
+             * redraw on 'ConfigureNotify' alone; this 'Expose'
+             * ensures the drawing happens at the right size and
+             * position after every render pass, including the
+             * initial map and post-resize redraws.  Setting
+             * 'exposures=1' causes the X server to generate an
+             * 'Expose' event, which arrives in the client's queue
+             * after both the 'xcb_configure_window' and the
+             * synthetic 'ConfigureNotify' above. */
+            xcb_clear_area(desktop->connection, 1,
+                    client->window, 0, 0, 0, 0);
+            desktop_repaint_frame_decoration(desktop->connection,
+                    client, is_focused, desktop->config_theme);
+
+            if (client->titlebar != 0 && !hide_decoration) {
+                xcb_configure_window(desktop->connection,
+                        client->titlebar,
+                        XCB_CONFIG_WINDOW_X     |
+                        XCB_CONFIG_WINDOW_Y     |
+                        XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                            left,
+                            (top > title_h) ? top - title_h : 0,
+                            inner_w, title_h
+                        });
+                desktop_repaint_titlebar_content(
+                        desktop->connection, client, is_focused,
+                        inner_w, title_h, desktop->config_theme);
+            } else if (client->titlebar != 0) {
+                xcb_unmap_window(desktop->connection, client->titlebar);
+            }
+        }
+
+        client->is_outdated = false;
+    } else if (target != client->window && desktop->focus_dirty) {
+        /* The client geometry has not changed; only refresh the
+         * focus-sensitive decoration colors (border and titlebar
+         * background/text) when the active client actually changed.
+         * Skipping this repaint when focus is unchanged avoids
+         * spurious 'xcb_clear_area + text-draw' calls on every
+         * render pass during resize, which was the source of the
+         * desktop-wide flickering visible on all non-resized
+         * windows. */
+        left = (uint16_t) client->layout.frame_extents.left;
+        right = (uint16_t) client->layout.frame_extents.right;
+        top = (uint16_t) client->layout.frame_extents.top;
+        bottom = (uint16_t) client->layout.frame_extents.bottom;
+        title_h = client->title_height;
+        inner_w = (client->layout.geometry.cur.dim.w > left + right)
+            ? (uint16_t) (client->layout.geometry.cur.dim.w -
+                    left - right)
+            : 1;
+
+        desktop_repaint_frame_decoration(desktop->connection, client,
+                is_focused, desktop->config_theme);
+
+        if (client->titlebar != 0 && !hide_decoration) {
+            desktop_repaint_titlebar_content(desktop->connection,
+                    client, is_focused, inner_w, title_h,
+                    desktop->config_theme);
+        } else if (client->titlebar != 0) {
+            xcb_unmap_window(desktop->connection, client->titlebar);
+        }
+    }
+
+    LOGGER_TRACE("Rendered client 0x%08x with" \
+                 " geometry (%ux%u%+u%+u)",
+            client->id,
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y);
+}
+
+
+int desktop_render_clients(desktop_td *desktop, bool is_current)
+{
+    cdlist_item_td *stacking_node;
+    cdlist_item_td *stacking_initial;
+    client_td *client;
+    int client_count = 0;
+    size_t stacking_size;
 
     if (desktop == NULL) {
         LOGGER_ERROR("Received null desktop pointer", L_NARG);
@@ -683,235 +967,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             continue;
         }
 
-        is_focused = (desktop->client_active_id == client->id);
-
-        hide_decoration =
-            (client->properties.state ==
-                 (uint16_t) CLIENT_STATE_FULLSCREEN &&
-             client->was_decorated_fullscreen);
-
-        target = (client_is_decorated(client) && client->frame != 0)
-            ? client->frame
-            : client->window;
-
-        has_extra_window_border =
-            cycle_client_has_extra_border(client, false);
-
-        if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
-                client->properties.type ==
-                    (uint16_t) CLIENT_TYPE_NOTIFICATION) {
-            /* Dock and notification windows must never have a WM border */
-            border_width = 0u;
-        } else if (client_is_fullscreen(client)) {
-            /* A fullscreen client is undecorated (see 'hide_decoration'
-             * above), so it falls to the same 'not decorated' branch a
-             * plain undecorated window would, which would otherwise
-             * apply the theme's regular window border directly to its
-             * own raw window: a border painted over video or other
-             * fullscreen content, not just an unwanted frame around an
-             * ordinary window. */
-            border_width = 0u;
-        } else if (client_is_decorated(client) && client->frame != 0) {
-            border_width = (has_extra_window_border)
-                ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
-        } else {
-            border_width = client->theme->window.active.border.width;
-            if (has_extra_window_border) {
-                border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-            }
-        }
-
-        /* Only actually send the request when the value would change:
-         * an unconditional 'ConfigureWindow' here on every render pass
-         * for every client (needed so an icon-cycle selection border
-         * appears/disappears promptly) was extra server round-trip
-         * traffic for the common case where nothing about this
-         * particular client changed at all (e.g., a keyboard resize of
-         * one window previously still re-sent border width for every
-         * other window on the desktop each time). */
-        if (border_width != client->last_border_width) {
-            xcb_configure_window(desktop->connection, target,
-                    XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
-            client->last_border_width = border_width;
-        }
-
-        /* Map the window to make it visible */
-        /* Only do this when 'desktop' is the surface's currently
-         * displayed desktop.
-         *
-         * Its also invoked as part of a general
-         * 'surface_render_all_desktops' refresh pass whenever ANY
-         * desktop's 'is_outdated' flag is set (e.g., after moving or
-         * resizing a client, which marks its own desktop outdated).
-         *
-         * If that pass unconditionally mapped clients on a desktop that
-         * is not currently shown, it could race with (and undo) an
-         * explicit 'surface_clients_hide' issued by a desktop switch,
-         * making a client reappear on top of the desktop the user just
-         * switched to.
-         *
-         * Visibility of non-current desktops must be governed solely by
-         * 'surface_clients_hide'/'surface_clients_show' */
-        if (is_current) {
-            if (client->icon_window != 0 && client->is_icon_mapped) {
-                xcb_unmap_window(desktop->connection,
-                        client->icon_window);
-                client->is_icon_mapped = false;
-            }
-            if (client->titlebar != 0 && !hide_decoration) {
-                xcb_map_window(desktop->connection, client->titlebar);
-            } else if (client->titlebar != 0) {
-                xcb_unmap_window(desktop->connection, client->titlebar);
-            }
-            xcb_map_window(desktop->connection, target);
-
-            /* Do not re-map the content window for shaded clients: the
-             * shade operation explicitly unmaps it, and mapping it here
-             * would undo the shade and prevent the titlebar-only view
-             * from being painted correctly, especially for inactive
-             * windows that receive no 'FocusOut'-triggered repaint */
-            if (target != client->window && !client_is_shaded(client)) {
-                xcb_map_window(desktop->connection, client->window);
-            }
-        }
-
-        if (client->is_outdated) {
-            /* Configure position and size; only when the client's
-             * geometry or decoration changed.  Skipping this for
-             * up-to-date clients prevents the server from generating
-             * spurious 'ConfigureNotify' and 'Expose' events that cause
-             * other windows to unnecessarily redraw, which appears as
-             * flicker during keyboard resize of an unrelated client. */
-            LOGGER_TRACE("Render pass applying outdated geometry for" \
-                    " window=0x%x: target=0x%x (%s frame), %ux%u+%d+%d",
-                    client->window, target,
-                    (target != client->window) ? "has" : "no",
-                    client->layout.geometry.cur.dim.w,
-                    client->layout.geometry.cur.dim.h,
-                    client->layout.geometry.cur.pos.x,
-                    client->layout.geometry.cur.pos.y);
-
-            mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                   XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-            values[0] = client->layout.geometry.cur.pos.x;
-            values[1] = client->layout.geometry.cur.pos.y;
-            values[2] = (int32_t) client->layout.geometry.cur.dim.w;
-            values[3] = (int32_t) client->layout.geometry.cur.dim.h;
-
-            xcb_configure_window(desktop->connection, target, mask,
-                    (uint32_t *) values);
-            if (target != client->window) {
-                left = (uint16_t) client->layout.frame_extents.left;
-                right = (uint16_t) client->layout.frame_extents.right;
-                top = (uint16_t) client->layout.frame_extents.top;
-                bottom = (uint16_t) client->layout.frame_extents.bottom;
-                title_h = client->title_height;
-                inner_w = (client->layout.geometry.cur.dim.w > left + right)
-                    ? (uint16_t) (client->layout.geometry.cur.dim.w -
-                            left - right)
-                    : 1;
-                inner_h = (client->layout.geometry.cur.dim.h > top + bottom)
-                    ? (uint16_t) (client->layout.geometry.cur.dim.h -
-                            top - bottom)
-                    : 1;
-
-                xcb_configure_window(desktop->connection, client->window,
-                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                        (const uint32_t[]) {
-                            left, top, inner_w, inner_h
-                        });
-
-                /* ICCCM §4.2.3: the xcb_configure_window above positions
-                 * the inner window relative to the frame (x=left, y=top),
-                 * so the X server delivers a 'ConfigureNotify' to the
-                 * client with those frame-relative coordinates.  Override
-                 * it immediately with a synthetic 'ConfigureNotify'
-                 * carrying the true screen-relative position so the
-                 * client's last geometry notification is always correct.
-                 * Without this a decorated client sees a frame-relative
-                 * 'ConfigureNotify' as its final event on every render
-                 * pass, causing misaligned popups and a content area
-                 * that appears not to fill the frame until the next
-                 * user-triggered repaint. */
-                client_send_synthetic_configure_notify(desktop->connection,
-                        client);
-
-                /* Force a repaint AFTER the synthetic 'ConfigureNotify'
-                 * so the client always redraws at its correct
-                 * screen-relative geometry.  Some programs do not
-                 * redraw on 'ConfigureNotify' alone; this 'Expose'
-                 * ensures the drawing happens at the right size and
-                 * position after every render pass, including the
-                 * initial map and post-resize redraws.  Setting
-                 * 'exposures=1' causes the X server to generate an
-                 * 'Expose' event, which arrives in the client's queue
-                 * after both the 'xcb_configure_window' and the
-                 * synthetic 'ConfigureNotify' above. */
-                xcb_clear_area(desktop->connection, 1,
-                        client->window, 0, 0, 0, 0);
-                desktop_repaint_frame_decoration(desktop->connection,
-                        client, is_focused, desktop->config_theme);
-
-                if (client->titlebar != 0 && !hide_decoration) {
-                    xcb_configure_window(desktop->connection,
-                            client->titlebar,
-                            XCB_CONFIG_WINDOW_X     |
-                            XCB_CONFIG_WINDOW_Y     |
-                            XCB_CONFIG_WINDOW_WIDTH |
-                            XCB_CONFIG_WINDOW_HEIGHT,
-                            (const uint32_t[]) {
-                                left,
-                                (top > title_h) ? top - title_h : 0,
-                                inner_w, title_h
-                            });
-                    desktop_repaint_titlebar_content(
-                            desktop->connection, client, is_focused,
-                            inner_w, title_h, desktop->config_theme);
-                } else if (client->titlebar != 0) {
-                    xcb_unmap_window(desktop->connection, client->titlebar);
-                }
-            }
-
-            client->is_outdated = false;
-        } else if (target != client->window && desktop->focus_dirty) {
-            /* The client geometry has not changed; only refresh the
-             * focus-sensitive decoration colors (border and titlebar
-             * background/text) when the active client actually changed.
-             * Skipping this repaint when focus is unchanged avoids
-             * spurious 'xcb_clear_area + text-draw' calls on every
-             * render pass during resize, which was the source of the
-             * desktop-wide flickering visible on all non-resized
-             * windows. */
-            left = (uint16_t) client->layout.frame_extents.left;
-            right = (uint16_t) client->layout.frame_extents.right;
-            top = (uint16_t) client->layout.frame_extents.top;
-            bottom = (uint16_t) client->layout.frame_extents.bottom;
-            title_h = client->title_height;
-            inner_w = (client->layout.geometry.cur.dim.w > left + right)
-                ? (uint16_t) (client->layout.geometry.cur.dim.w -
-                        left - right)
-                : 1;
-
-            desktop_repaint_frame_decoration(desktop->connection, client,
-                    is_focused, desktop->config_theme);
-
-            if (client->titlebar != 0 && !hide_decoration) {
-                desktop_repaint_titlebar_content(desktop->connection,
-                        client, is_focused, inner_w, title_h,
-                        desktop->config_theme);
-            } else if (client->titlebar != 0) {
-                xcb_unmap_window(desktop->connection, client->titlebar);
-            }
-        }
-
-        LOGGER_TRACE("Rendered client 0x%08x with" \
-                     " geometry (%ux%u%+u%+u)",
-                client->id,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h,
-                client->layout.geometry.cur.pos.x,
-                client->layout.geometry.cur.pos.y);
+        s_desktop_render_one_client(desktop, client, is_current);
 
         stacking_node = cdlist_next(stacking_node);
     } while (stacking_node != NULL &&
@@ -960,7 +1016,18 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
     /* Mark desktop as up-to-date */
     desktop->is_outdated = false;
-    desktop->focus_dirty = true;
+
+    /* Every client just had its chance, in the loop above, to compare
+     * itself against 'focus_dirty' and refresh its own decoration
+     * colors if the active client changed since the last full render;
+     * clearing it here consumes that signal so the next pass (e.g. a
+     * later resize of one otherwise-unrelated client, with focus
+     * unchanged since) does not see it still set and re-trigger the
+     * exact spurious 'xcb_clear_area + text-draw' repaint on every
+     * other window this flag exists to avoid.  See its own doc
+     * comment in desktop.h ("since last render pass") and the
+     * 'focus_dirty' branch in 's_desktop_render_one_client' above. */
+    desktop->focus_dirty = false;
 
     /* NOTE: Do NOT flush here!  Let the surface handle the flushing */
 

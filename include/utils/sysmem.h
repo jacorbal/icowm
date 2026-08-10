@@ -10,6 +10,8 @@
  * all, and @c sysmem_self_rss_mib later watches this process's own
  * usage against the configured ceiling once running; see
  * @c defs/main.h and @c wm.c for how the two are wired together.
+ *
+ * @ingroup utils
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,18 +33,14 @@
 /** Path to the Linux kernel's system memory statistics pseudo-file */
 #define SYSMEM_MEMINFO_FILE "/proc/meminfo"
 
-/** Maximum bytes read from @c SYSMEM_MEMINFO_FILE in one call; the
- *  real file is a few hundred bytes on any actual Linux kernel, this
- *  is generous headroom, not a value tuned to today's exact size */
-#define SYSMEM_MEMINFO_MAX_LEN (4096)
-
-
 /** Path to the calling process's own status pseudo-file */
 #define SYSMEM_SELF_STATUS_FILE "/proc/self/status"
 
-/** Maximum bytes read from @c SYSMEM_SELF_STATUS_FILE in one call;
- *  generous headroom, not a value tuned to today's exact size */
-#define SYSMEM_SELF_STATUS_MAX_LEN (4096)
+/** Maximum bytes read from either @c SYSMEM_MEMINFO_FILE or
+ *  @c SYSMEM_SELF_STATUS_FILE in one call; either real file is a few
+ *  hundred bytes on any actual Linux kernel, this is generous
+ *  headroom, not a value tuned to today's exact size of either */
+#define SYSMEM_LINE_MAX_LEN (4096)
 
 
 /**

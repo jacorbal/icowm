@@ -14,7 +14,7 @@
 
 /* System includes */
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stddef.h>     /* NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>

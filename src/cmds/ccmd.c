@@ -15,7 +15,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc */
+#include <stdlib.h>     /* NULL, free */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -39,14 +39,16 @@
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
 #include <cmds/ccmd.h>
-#include <cmds/util.h>
 #include <cmds/geom.h>
 #include <cmds/layer.h>
 #include <cmds/meta.h>
+#include <cmds/state.h>
+#include <cmds/util.h>
 
 
 /**
@@ -224,6 +226,37 @@ void wcmd_client_restore(client_td *client)
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
+
+    /* Re-enter whichever state this client was in right before it was
+     * iconified (see 'pre_iconify_state''s own comment in client.h and
+     * where it is captured in 'wcmd_client_iconify'), rather than
+     * always settling for plain normal.  Each of these re-computes
+     * its own geometry fresh against the current workarea/monitor
+     * rather than replaying a stale saved one, since the screen
+     * layout may have changed while this client sat iconified. */
+    if (was_iconified) {
+        uint16_t pre_iconify_state = client->properties.pre_iconify_state;
+
+        client->properties.pre_iconify_state =
+            (uint16_t) CLIENT_STATE_NORMAL;
+
+        switch (pre_iconify_state) {
+            case CLIENT_STATE_MAXIMIZED:
+                wcmd_client_maximize(client);
+                break;
+            case CLIENT_STATE_MAXIMIZED_HORZ:
+                wcmd_client_maximize_horz(client);
+                break;
+            case CLIENT_STATE_MAXIMIZED_VERT:
+                wcmd_client_maximize_vert(client);
+                break;
+            case CLIENT_STATE_FULLSCREEN:
+                wcmd_client_fullscreen(client);
+                break;
+            default:
+                break;
+        }
+    }
 
     /* When restoring from an icon, raise the client to the top of the
      * desktop stacking order and give it real input focus so that
@@ -427,11 +460,122 @@ static bool s_icon_slot_is_taken(const client_td *client,
 
 
 /* Move client */
+/**
+ * @brief Create the client's icon window if it does not exist yet, or
+ *        reposition the existing one at its saved coordinates
+ *
+ * A new window is placed either at the client's own remembered
+ * @c icon_x/icon_y (if any, and not since claimed by another icon;
+ * see @c s_icon_slot_is_taken) or via @c place_icon otherwise, then
+ * created with the theme's inactive icon colors.  An already-existing
+ * icon window is simply re-configured to its saved position, which
+ * may have changed since if the user dragged it.
+ *
+ * @param client     Client whose icon window to create or reposition
+ * @param icon_h_out Icon window height, including the caption band if
+ *                   the theme captions icons
+ *
+ * @note Complexity: @e O(n), where @e n is the number of already-
+ *       iconified clients on the same desktop (see
+ *       @c s_icon_slot_is_taken)
+ */
+static void s_client_ensure_icon_window(client_td *client,
+        uint16_t icon_h_out)
+{
+    if (client->icon_window == 0) {
+        uint16_t screen_w;
+        uint16_t screen_h;
+        int16_t ix;
+        int16_t iy;
+        int32_t mx = 0;
+        int32_t my = 0;
+        monitor_td monitor;
+        enum config_icon_placement_e policy =
+            CONFIG_ICON_PLACEMENT_BOTTOM;
+        uint32_t mask;
+        uint32_t values[3];
+
+        screen_w = 1024u;
+        screen_h = 768u;
+
+        if (wcmd_client_monitor(client, NULL, &monitor)) {
+            mx = monitor.x;
+            my = monitor.y;
+            screen_w = geom_clamp_dim((int32_t) monitor.w);
+            screen_h = geom_clamp_dim((int32_t) monitor.h);
+        } else if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
+            /* dimensions updated */
+        }
+
+        if (client->config_base != NULL) {
+            policy = client->config_base->icons.placement_policy;
+        }
+
+        /* Re-use the saved position when the client was already
+         * iconified once (and possibly manually repositioned by the
+         * user), UNLESS another client's icon has since claimed
+         * that exact spot (e.g., it was free when this client was
+         * last iconified, but has since been taken by a window that
+         * got iconified while this one was restored).  In that case
+         * fall through to 'place_icon' just like a client with no
+         * remembered position at all, so the two icons never
+         * overlap. */
+        if (client->icon_x >= 0 && client->icon_y >= 0 &&
+                !s_icon_slot_is_taken(client, WM_ICON_SQUARE_SIZE,
+                    icon_h_out)) {
+            ix = client->icon_x;
+            iy = client->icon_y;
+        } else {
+            place_icon(client, wm_get_client_desktop(client), policy,
+                    WM_ICON_SQUARE_SIZE, icon_h_out,
+                    screen_w, screen_h,
+                    &ix, &iy);
+            /* 'place_icon' works in a (0,0)-relative coordinate
+             * space bounded by 'screen_w'/'screen_h' alone; offset
+             * by the target monitor's own origin so the icon lands
+             * on that monitor within the combined surface, not
+             * always in its top-left corner. */
+            ix = (int16_t) (ix + mx);
+            iy = (int16_t) (iy + my);
+            client->icon_x = ix;
+            client->icon_y = iy;
+        }
+
+        client->icon_window = xcb_generate_id(client->connection);
+        mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
+            XCB_CW_EVENT_MASK;
+
+        values[0] = client->theme->icon.inactive.color.background;
+        values[1] = client->theme->icon.inactive.border.color;
+        values[2] = XCB_EVENT_MASK_EXPOSURE |
+            XCB_EVENT_MASK_BUTTON_PRESS |
+            XCB_EVENT_MASK_BUTTON_MOTION;
+
+        xcb_create_window(client->connection,
+                XCB_COPY_FROM_PARENT,
+                client->icon_window,
+                client->parent_id,
+                ix, iy,
+                (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
+                (uint16_t) client->theme->icon.active.border.width,
+                XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                XCB_COPY_FROM_PARENT,
+                mask, values);
+    } else {
+        /* Re-map at the saved position (may have been dragged) */
+        xcb_configure_window(client->connection, client->icon_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                (const uint32_t[]) {
+                (uint32_t) client->icon_x,
+                (uint32_t) client->icon_y
+                });
+    }
+}
+
+
 void wcmd_client_iconify(client_td *client)
 {
     xcb_window_t target;
-    uint32_t mask;
-    uint32_t values[3];
     xcb_get_property_reply_t *handled_reply;
     xcb_atom_t handled_atom;
     xcb_atom_t wm_state_atom;
@@ -445,6 +589,22 @@ void wcmd_client_iconify(client_td *client)
 
     if (client == NULL) {
         return;
+    }
+
+    /* Remember the state this client is in right now (normal,
+     * maximized in any of its three variants, or fullscreen) so
+     * 'wcmd_client_restore' can later re-enter that exact state
+     * instead of always landing back on plain normal: "A window
+     * manager may implement [additional states] as proper substates
+     * of NormalState and IconicState, or it may treat them as
+     * independent flags, allowing e.g. a maximized window to be
+     * iconified and to re-appear as maximized upon de-iconification"
+     * (X Desktop Group, 2013, "Extended Window Manager Hints", v1.5,
+     * §2.1.1).  Guarded against an already-iconified client calling
+     * this again, which would otherwise overwrite the real remembered
+     * state with 'CLIENT_STATE_ICONIFIED' itself. */
+    if (client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
+        client->properties.pre_iconify_state = client->properties.state;
     }
 
     if (client_is_shaded(client)) {
@@ -485,99 +645,16 @@ void wcmd_client_iconify(client_td *client)
 
     free(handled_reply);
 
-    /* Compute icon height once for use in both branches */
+    /* Compute icon height once, shared by icon window creation
+     * below and the '_NET_WM_ICON_GEOMETRY' property published
+     * further down */
     icon_h_out = (uint16_t) (WM_ICON_SQUARE_SIZE +
             ((client->theme->icon.is_captioned)
              ? WM_ICON_CAPTION_HEIGHT
              : 0u));
 
     if (!skip_icon_win) {
-        if (client->icon_window == 0) {
-            uint16_t screen_w;
-            uint16_t screen_h;
-            int16_t ix;
-            int16_t iy;
-            int32_t mx = 0;
-            int32_t my = 0;
-            monitor_td monitor;
-            enum config_icon_placement_e policy =
-                CONFIG_ICON_PLACEMENT_BOTTOM;
-
-            screen_w = 1024u;
-            screen_h = 768u;
-
-            if (wcmd_client_monitor(client, NULL, &monitor)) {
-                mx = monitor.x;
-                my = monitor.y;
-                screen_w = geom_clamp_dim((int32_t) monitor.w);
-                screen_h = geom_clamp_dim((int32_t) monitor.h);
-            } else if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
-                /* dimensions updated */
-            }
-
-            if (client->config_base != NULL) {
-                policy = client->config_base->icons.placement_policy;
-            }
-
-            /* Re-use the saved position when the client was already
-             * iconified once (and possibly manually repositioned by the
-             * user), UNLESS another client's icon has since claimed
-             * that exact spot (e.g., it was free when this client was
-             * last iconified, but has since been taken by a window that
-             * got iconified while this one was restored).  In that case
-             * fall through to 'place_icon' just like a client with no
-             * remembered position at all, so the two icons never
-             * overlap. */
-            if (client->icon_x >= 0 && client->icon_y >= 0 &&
-                    !s_icon_slot_is_taken(client, WM_ICON_SQUARE_SIZE,
-                        icon_h_out)) {
-                ix = client->icon_x;
-                iy = client->icon_y;
-            } else {
-                place_icon(client, wm_get_client_desktop(client), policy,
-                        WM_ICON_SQUARE_SIZE, icon_h_out,
-                        screen_w, screen_h,
-                        &ix, &iy);
-                /* 'place_icon' works in a (0,0)-relative coordinate
-                 * space bounded by 'screen_w'/'screen_h' alone; offset
-                 * by the target monitor's own origin so the icon lands
-                 * on that monitor within the combined surface, not
-                 * always in its top-left corner. */
-                ix = (int16_t) (ix + mx);
-                iy = (int16_t) (iy + my);
-                client->icon_x = ix;
-                client->icon_y = iy;
-            }
-
-            client->icon_window = xcb_generate_id(client->connection);
-            mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
-                XCB_CW_EVENT_MASK;
-
-            values[0] = client->theme->icon.inactive.color.background;
-            values[1] = client->theme->icon.inactive.border.color;
-            values[2] = XCB_EVENT_MASK_EXPOSURE |
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_MOTION;
-
-            xcb_create_window(client->connection,
-                    XCB_COPY_FROM_PARENT,
-                    client->icon_window,
-                    client->parent_id,
-                    ix, iy,
-                    (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
-                    (uint16_t) client->theme->icon.active.border.width,
-                    XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                    XCB_COPY_FROM_PARENT,
-                    mask, values);
-        } else {
-            /* Re-map at the saved position (may have been dragged) */
-            xcb_configure_window(client->connection, client->icon_window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                    (const uint32_t[]) {
-                    (uint32_t) client->icon_x,
-                    (uint32_t) client->icon_y
-                    });
-        }
+        s_client_ensure_icon_window(client, icon_h_out);
     }
 
     if (client->titlebar != 0) {
@@ -590,10 +667,31 @@ void wcmd_client_iconify(client_td *client)
     }
 
     if (!skip_icon_win) {
+        xcb_window_t tray_below;
+
         xcb_map_window(client->connection, client->icon_window);
-        xcb_configure_window(client->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+
+        /* Icons are meant to sit even lower than the tray whenever it
+         * is in the 'below' layer, "stuck to the desktop": stack just
+         * below it explicitly, rather than via an unqualified 'below'
+         * with no sibling, which would only put the icon under the
+         * tray by coincidence of restack order rather than guarantee
+         * it.  The other direction (the tray restacking after icons
+         * already exist) is handled on the tray's own side; see
+         * 'systray_layout_restack'. */
+        tray_below = systray_below_window();
+        if (tray_below != XCB_WINDOW_NONE) {
+            xcb_configure_window(client->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_SIBLING |
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) {
+                    tray_below, XCB_STACK_MODE_BELOW
+                    });
+        } else {
+            xcb_configure_window(client->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        }
         client->is_icon_mapped = true;
 
         /* ICCCM §4.1.3: mark the WM icon window as Withdrawn so pagers
@@ -835,7 +933,22 @@ void wcmd_client_unsticky(client_td *client)
 /* Toggle stickiness */
 void wcmd_client_toggle_sticky(client_td *client)
 {
+    surface_td *surface;
+
     if (client == NULL) {
+        return;
+    }
+
+    /* Meaningless with only one desktop: "visible on every desktop"
+     * and "visible on this one desktop" are the exact same thing when
+     * there is only the one, so there is nothing to actually toggle.
+     * The menu entry for this is already hidden in that case (see
+     * 'wincmenu.c', which omits the whole "Send to desktop" submenu
+     * it lives in), but the keyboard shortcut has no such menu to
+     * hide behind, so it is guarded here instead, at the one place
+     * both of them ultimately call through. */
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface != NULL && surface->desktop_count <= 1u) {
         return;
     }
 

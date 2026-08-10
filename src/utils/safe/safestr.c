@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <stdint.h>     /* SIZE_MAX */
 #include <stdlib.h>     /* size_t, malloc */
 #include <string.h>     /* memcpy */
 
@@ -44,19 +45,7 @@ size_t safe_strnlen(const char *str, size_t maxlen)
 /* Calculate the length of a string */
 size_t safe_strlen(const char *str)
 {
-    const char *s;
-
-    if (str == NULL) {
-        return 0;
-    }
-
-    s = str;
-
-    while (*s) {
-        s++;
-    }
-
-    return (size_t) (s - str);
+    return safe_strnlen(str, SIZE_MAX);
 }
 
 
@@ -90,22 +79,7 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
 /* Legacy unsized copy helper (prefer 'safe_strncpy' for bounded writes) */
 char *safe_strcpy(char *restrict dst, const char *restrict src)
 {
-    char *dst_s;
-
-    if (dst == NULL || src == NULL) {
-        return dst;
-    }
-
-    dst_s = dst;
-
-    while (*src != '\0') {
-        *dst = *src;
-        dst++;
-        src++;
-    }
-    *dst = '\0';
-
-    return dst_s;
+    return safe_strncpy(dst, src, SIZE_MAX);
 }
 
 
@@ -134,21 +108,7 @@ char *safe_strndup(const char *s, size_t n)
 /* Safely duplicates a string */
 char *safe_strdup(const char *s)
 {
-    size_t len;
-    char *copy;
-
-    if (s == NULL) {
-        return NULL;
-    }
-
-    len = safe_strlen(s) + 1;
-    copy = (char *) malloc(len);
-
-    if (copy) {
-        memcpy(copy, s, len);
-    }
-
-    return copy;
+    return safe_strndup(s, SIZE_MAX);
 }
 
 
@@ -188,24 +148,7 @@ char *safe_strncat(char *restrict dst, const char *restrict src,
 /* Legacy unsized concatenation helper (prefer 'safe_strncat') */
 char *safe_strcat(char *restrict dst, const char *restrict src)
 {
-    size_t dst_len;
-    size_t i;
-
-    if (dst == NULL || src == NULL) {
-        return dst; /* Return 'dst' if there's nothing to concatenate */
-    }
-
-    dst_len = safe_strlen(dst);
-
-    /* Concatenate characters from 'src' to 'dst' */
-    for (i = 0; src[i] != '\0'; ++i) {
-        dst[dst_len + i] = src[i];  /* Copy every character */
-    }
-
-    /* Ensure that 'dst' is null-terminated */
-    dst[dst_len + i] = '\0';
-
-    return dst;
+    return safe_strncat(dst, src, SIZE_MAX);
 }
 
 
@@ -217,7 +160,7 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
         return 0;
     }
 
-     /* Both strings are equal if both are null */
+    /* Both strings are equal if both are null */
     if (s1 == NULL && s2 == NULL) {
         return 0;
     }
@@ -246,26 +189,9 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
 /* Safely compares two strings */
 int safe_strcmp(const char *s1, const char *s2)
 {
-    /* Both strings are equal if both are null */
-    if (s1 == NULL && s2 == NULL) {
-        return 0;
-    }
-
-    /* Null is less than any non-null string */
-    if (s1 == NULL) {
-        return -1;
-    }
-
-    /* Any non-null string is greater than null */
-    if (s2 == NULL) {
-        return 1;
-    }
-
-    /* Standard string comparison */
-    while (*s1 && (*s1 == *s2)) {
-        s1++;
-        s2++;
-    }
-
-    return *(const unsigned char *) s1 - *(const unsigned char *) s2;
+    /* 'n == (size_t) -1' in 'safe_strncmp' only signals its own
+     * limit was reached without finding a difference, which cannot
+     * happen here: exhausting 'SIZE_MAX' comparisons would require a
+     * string that size, far beyond any real allocation. */
+    return safe_strncmp(s1, s2, SIZE_MAX);
 }

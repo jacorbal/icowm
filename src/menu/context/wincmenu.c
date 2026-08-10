@@ -19,7 +19,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <stdlib.h>     /* malloc, free, calloc */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -86,7 +85,7 @@ static ctxmenu_state_td s_root;
 static ctxmenu_entry_td s_entries[WINCMENU_TOTAL_ENTRIES];
 
 /** Entries for the "Send to desktop" submenu */
-static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 1];
+static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 2];
 
 /** State for the "Send to desktop" child menu */
 static ctxmenu_state_td s_desk_state;
@@ -207,89 +206,6 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
         return;
     }
     (void) eventq_add(event);
-}
-
-
-/**
- * @brief Callback: send client to all desktops (sticky)
- *
- * @param connection XCB connection
- * @param userdata   Unused
- */
-static void s_cb_sticky(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_TOGGLE_STICKY, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: set layer to @c above
- */
-static void s_cb_layer_above(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_LAYER_ABOVE, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: set layer to @c normal
- */
-static void s_cb_layer_normal(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_LAYER_NORMAL, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: set layer to @c below
- */
-static void s_cb_layer_below(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_LAYER_BELOW, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: restore the client
- */
-static void s_cb_restore(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_RESTORE, PRIORITY_NORMAL);
-    }
 }
 
 
@@ -492,81 +408,31 @@ static void s_cb_resize(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback: iconify the client
+ * @brief Callback: send the client action encoded in @p userdata
+ *
+ * Shared by every entry below whose activation is nothing more than
+ * "send this one @c action_client_e to the target client": iconify,
+ * hide, maximize, fullscreen, shade, and close.  The action itself
+ * travels through @p userdata (see @c s_entry_command's own callers
+ * for each, cast through @c intptr_t the same way any small integer
+ * value is conventionally threaded through a @c void* callback
+ * parameter), rather than each action needing its own near-identical
+ * one-line wrapper.  @c s_cb_decorate stays separate below since it
+ * has an extra unshade step first, not just a different action
+ * constant.
+ *
+ * @param connection Unused; kept for the callback's required signature
+ * @param userdata   The @c enum @c action_client_e to send, cast to
+ *                   @c void*
  */
-static void s_cb_iconify(xcb_connection_t *connection,
-        void *userdata)
+static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
 {
+    enum action_client_e action = (enum action_client_e) (intptr_t) userdata;
+
     (void) connection;
-    (void) userdata;
 
     if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_ICONIFY, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: hide the client
- */
-static void s_cb_hide(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_HIDE, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: maximize the client
- */
-static void s_cb_maximize(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_MAXIMIZE, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback for the "Fullscreen" / "Exit Fullscreen" entry
- */
-static void s_cb_fullscreen(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_TOGGLE_FULLSCREEN, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: toggle shade (roll up/down)
- */
-static void s_cb_shade(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_TOGGLE_SHADE, PRIORITY_NORMAL);
+        (void) client_send_event(s_target_client, action, PRIORITY_NORMAL);
     }
 }
 
@@ -590,22 +456,6 @@ static void s_cb_decorate(xcb_connection_t *connection,
         }
         (void) client_send_event(s_target_client,
                 ACTION_CLIENT_TOGGLE_DECORATION, PRIORITY_NORMAL);
-    }
-}
-
-
-/**
- * @brief Callback: close the client
- */
-static void s_cb_close(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_CLOSE, PRIORITY_NORMAL);
     }
 }
 
@@ -647,14 +497,13 @@ static int s_build_desk_entries(surface_td *surface,
         desktop_td *desktop, client_td *client)
 {
     int n = 0;
-    uint32_t d_idx;
     desktop_td *d;
     bool is_cur;
     bool is_sticky;
 
     is_sticky = (client->properties.flags & CLIENT_FLAG_STICKY) != 0u;
 
-    for (d_idx = 0; d_idx < surface->desktop_count &&
+    for (uint32_t d_idx = 0; d_idx < surface->desktop_count &&
             n < WINCMENU_MAX_DESKTOPS; ++d_idx) {
         d = surface_desktop_get(surface, d_idx);
         if (d == NULL) {
@@ -688,10 +537,20 @@ static int s_build_desk_entries(surface_td *surface,
         ++n;
     }
 
+    /* Separates the numbered-desktop entries above from the pin/unpin
+     * one below, only when there actually are any: with none (an
+     * empty or single-surface edge case), a bare separator would lead
+     * nowhere. */
+    if (n > 0) {
+        s_desk_entries[n].type = CTXMENU_SEPARATOR;
+        ++n;
+    }
+
     /* "All desktops" entry for sticky support: when the client is
      * already sticky, relabel it as an active un-pin action instead of
-     * disabling it, since 's_cb_sticky' already toggles both ways and
-     * there is otherwise no menu entry to remove a pin once set */
+     * disabling it, since toggling stickiness on this entry already
+     * works both ways and there is otherwise no menu entry to remove
+     * a pin once set */
     if (is_sticky) {
         safe_strncpy(s_desk_entries[n].label,
                 STR_WINCMENU_THIS_DESKTOP_UNPIN,
@@ -705,8 +564,9 @@ static int s_build_desk_entries(surface_td *surface,
     /* 'All desktops' entry for sticky support */
     s_desk_entries[n].type = CTXMENU_COMMAND;
     s_desk_entries[n].is_disabled = false/*is_sticky*/;
-    s_desk_entries[n].on_activate = s_cb_sticky;
-    s_desk_entries[n].userdata = NULL;
+    s_desk_entries[n].on_activate = s_cb_send_action;
+    s_desk_entries[n].userdata =
+        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY;
     ++n;
 
     return n;
@@ -726,7 +586,6 @@ static int s_build_desk_entries(surface_td *surface,
 static int s_build_monitor_entries(surface_td *surface, client_td *client)
 {
     int n = 0;
-    uint32_t m_idx;
     monitor_td cur_monitor;
     int32_t center_x;
     int32_t center_y;
@@ -738,7 +597,7 @@ static int s_build_monitor_entries(surface_td *surface, client_td *client)
         (int32_t) (client->layout.geometry.cur.dim.h / 2u);
     cur_monitor = surface_monitor_for_point(surface, center_x, center_y);
 
-    for (m_idx = 0; m_idx < surface->monitor_count &&
+    for (uint32_t m_idx = 0; m_idx < surface->monitor_count &&
             n < WINCMENU_MAX_MONITORS; ++m_idx) {
         const monitor_td *m = &surface->monitors[m_idx];
 
@@ -786,11 +645,14 @@ static void s_build_layer_entries(const client_td *client)
             (uint16_t) CLIENT_LAYER_BELOW);
 
     s_entry_command(&s_layer_entries[0], STR_WINCMENU_LAYER_ALWAYS_ON_TOP,
-            s_cb_layer_above, NULL, is_above);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_LAYER_ABOVE, is_above);
     s_entry_command(&s_layer_entries[1], STR_WINCMENU_LAYER_NORMAL,
-            s_cb_layer_normal, NULL, is_normal);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_LAYER_NORMAL, is_normal);
     s_entry_command(&s_layer_entries[2], STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM,
-            s_cb_layer_below, NULL, is_below);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_LAYER_BELOW, is_below);
 }
 
 
@@ -921,7 +783,8 @@ void wincmenu_show(xcb_connection_t *connection,
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_RESTORE,
-            s_cb_restore, NULL, !can_restore);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_RESTORE, !can_restore);
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_MOVE,
@@ -933,15 +796,18 @@ void wincmenu_show(xcb_connection_t *connection,
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_ICONIFY,
-            s_cb_iconify, NULL, false);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_ICONIFY, false);
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_HIDE,
-            s_cb_hide, NULL, false);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_HIDE, false);
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_MAXIMIZE,
-            s_cb_maximize, NULL,
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_MAXIMIZE,
             !client_is_resizable(client) || client_is_maximized(client) ||
                 client_is_fullscreen(client));
     ++n;
@@ -955,13 +821,15 @@ void wincmenu_show(xcb_connection_t *connection,
             (client_is_fullscreen(client))
                 ? STR_WINCMENU_FULLSCREEN_EXIT
                 : STR_WINCMENU_FULLSCREEN_ENTER,
-            s_cb_fullscreen, NULL, false);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN, false);
     ++n;
 
     s_entry_command(&s_entries[n],
             (client_is_shaded(client)) ? STR_WINCMENU_UNSHADE
                 : STR_WINCMENU_SHADE,
-            s_cb_shade, NULL, !can_shade);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_SHADE, !can_shade);
     ++n;
 
     s_entry_command(&s_entries[n],
@@ -975,7 +843,8 @@ void wincmenu_show(xcb_connection_t *connection,
     ++n;
 
     s_entry_command(&s_entries[n], STR_WINCMENU_CLOSE,
-            s_cb_close, NULL, false);
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_CLOSE, false);
     ++n;
 
     memset(&s_root, 0, sizeof(s_root));
@@ -1001,12 +870,7 @@ void wincmenu_close(void)
 /* Repaint the window context menu */
 void wincmenu_repaint(xcb_window_t win)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_repaint(state);
-    }
+    ctxmenu_repaint_window(&s_root, win);
 }
 
 
@@ -1015,18 +879,8 @@ bool wincmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int x, int y,
         const config_td *config)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state == NULL) {
-        return false;
-    }
-
-    x -= state->origin_x;
-    y -= state->origin_y;
-
-    return ctxmenu_handle_click(connection, surface, state,
-            x, y, config);
+    return ctxmenu_handle_click_window(connection, surface, &s_root,
+            win, x, y, config);
 }
 
 
@@ -1056,26 +910,13 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    ctxmenu_state_td *deepest;
-    deepest = ctxmenu_find_state_for_window(&s_root,
-            ctxmenu_deepest_window(&s_root));
-
-    if (deepest == NULL) {
-        deepest = &s_root;
-    }
-
-    return ctxmenu_handle_keypress(connection, surface, deepest,
-            keysym, config);
+    return ctxmenu_handle_keypress_deepest(connection, surface,
+            &s_root, keysym, config);
 }
 
 
 /* Handle a pointer-motion event over the window context menu */
 void wincmenu_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_handle_motion(state, x, y);
-    }
+    ctxmenu_handle_motion_window(&s_root, win, x, y);
 }

@@ -17,6 +17,7 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
@@ -145,64 +146,6 @@ int surface_action_desktop_switch(surface_td *surface,
     surface_clients_show(surface, desktop_id);
     surface->is_outdated = true;
     xcb_flush(surface->connection);
-
-    return 0;
-}
-
-
-/* Switch to the next desktop */
-int surface_action_desktop_switch_next(surface_td *surface)
-{
-    uint32_t old_id;
-
-    LOGGER_DEBUG("Switching to next desktop on surface %u",
-            surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    old_id = surface->desktop_cur;
-    surface_clients_hide(surface, old_id);
-    surface_desktop_select_next(surface, true);
-
-    if (surface->desktop_cur != old_id) {
-        surface_clients_show(surface, surface->desktop_cur);
-        surface->is_outdated = true;
-        xcb_flush(surface->connection);
-    } else {
-        surface_clients_show(surface, old_id);
-    }
-
-    return 0;
-}
-
-
-/* Switch to the previous desktop */
-int surface_action_desktop_switch_prev(surface_td *surface)
-{
-    uint32_t old_id;
-
-    LOGGER_DEBUG("Switching to previous desktop on surface %u",
-            surface->id);
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    old_id = surface->desktop_cur;
-    surface_clients_hide(surface, old_id);
-    surface_desktop_select_prev(surface, true);
-
-    if (surface->desktop_cur != old_id) {
-        surface_clients_show(surface, surface->desktop_cur);
-        surface->is_outdated = true;
-        xcb_flush(surface->connection);
-    } else {
-        surface_clients_show(surface, old_id);
-    }
 
     return 0;
 }

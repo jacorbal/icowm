@@ -18,7 +18,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stddef.h>     /* NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -26,6 +26,9 @@
 
 /* ADT includes */
 #include <adt/list.h>
+
+/* Utils includes */
+#include <utils/xcb/atom.h>
 
 /* Command includes */
 #include <cmds/ccmd.h>
@@ -37,19 +40,57 @@
 /* Policy includes */
 #include <policy/focus.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
 /* Project includes */
 #include <actdata.h>
 #include <client.h>
 #include <desktop.h>
 #include <handler.h>
 #include <handler/internal.h>
-#include <invalidate.h>
 #include <logger.h>
 #include <lookup.h>
 #include <sn.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
+
+
+/**
+ * @brief Look up the client owning a client-message event and, if
+ *        found, forward it to a per-message handler
+ *
+ * Shared by every @c _NET_* client-message case in
+ * @c handler_client_message below whose handler takes the same
+ * @c (wm, event, client, surface, desktop) shape: only the target
+ * atom and the handler function differ between them.
+ *
+ * @param wm      Window manager state
+ * @param event   Client-message event to resolve the target client for
+ * @param handler Per-message handler to call once the client, its
+ *                surface, and its desktop are resolved; not called at
+ *                all when no managed client owns @c event->window
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients (for the @c lookup_find_client walk)
+ */
+static void s_dispatch_to_client_handler(wm_td *wm,
+        xcb_client_message_event_t *event,
+        void (*handler)(wm_td *wm, xcb_client_message_event_t *event,
+                client_td *client, surface_td *surface,
+                desktop_td *desktop))
+{
+    client_td *client;
+    surface_td *surface;
+    desktop_td *desktop;
+
+    client = lookup_find_client(wm->surfaces, event->window,
+            &surface, &desktop);
+    if (client != NULL) {
+        handler(wm, event, client, surface, desktop);
+    }
+}
 
 
 /**
@@ -84,7 +125,6 @@ void handler_client_message(wm_td *wm,
     xcb_atom_t net_restack_window;
     xcb_atom_t net_wm_fullscreen_monitors;
     xcb_atom_t net_wm_moveresize;
-    xcb_intern_atom_reply_t *ia;
 
     if (wm == NULL || event == NULL || wm->ewmh == NULL) {
         return;
@@ -108,24 +148,12 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                20, "_NET_RESTACK_WINDOW"), NULL);
-    net_restack_window = (ia != NULL) ? ia->atom : XCB_ATOM_NONE;
-    free(ia);
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                27, "_NET_WM_FULLSCREEN_MONITORS"), NULL);
-    net_wm_fullscreen_monitors = (ia != NULL) ? ia->atom : XCB_ATOM_NONE;
-    free(ia);
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_WM_MOVERESIZE") - 1u,
-                "_NET_WM_MOVERESIZE"), NULL);
-    net_wm_moveresize = (ia != NULL) ? ia->atom : XCB_ATOM_NONE;
-    free(ia);
+    net_restack_window = atom_intern(wm->connection,
+            "_NET_RESTACK_WINDOW", false);
+    net_wm_fullscreen_monitors = atom_intern(wm->connection,
+            "_NET_WM_FULLSCREEN_MONITORS", false);
+    net_wm_moveresize = atom_intern(wm->connection,
+            "_NET_WM_MOVERESIZE", false);
 
     if (event->type == wm->ewmh->_NET_WM_STATE) {
         client = lookup_find_client(wm->surfaces, event->window,
@@ -138,32 +166,20 @@ void handler_client_message(wm_td *wm,
     }
 
     if (event->type == net_restack_window) {
-        client = lookup_find_client(wm->surfaces, event->window,
-                &surface, &desktop);
-        if (client != NULL) {
-            hi_handle_net_restack_window(wm, event, client,
-                    surface, desktop);
-        }
+        s_dispatch_to_client_handler(wm, event,
+                hi_handle_net_restack_window);
         return;
     }
 
     if (event->type == net_wm_fullscreen_monitors) {
-        client = lookup_find_client(wm->surfaces, event->window,
-                &surface, &desktop);
-        if (client != NULL) {
-            hi_handle_net_wm_fullscreen_monitors(wm, event, client,
-                    surface, desktop);
-        }
+        s_dispatch_to_client_handler(wm, event,
+                hi_handle_net_wm_fullscreen_monitors);
         return;
     }
 
     if (event->type == net_wm_moveresize) {
-        client = lookup_find_client(wm->surfaces, event->window,
-                &surface, &desktop);
-        if (client != NULL) {
-            hi_handle_net_wm_moveresize(wm, event, client,
-                    surface, desktop);
-        }
+        s_dispatch_to_client_handler(wm, event,
+                hi_handle_net_wm_moveresize);
         return;
     }
 
@@ -171,7 +187,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
-            /* A hidden client (e.g., minimised to systray) should be
+            /* A hidden client (e.g., minimized to systray) should be
              * restored on the current desktop, not by switching to the
              * desktop where it was originally opened.  For all other
              * non-sticky clients on a different desktop, the
@@ -244,8 +260,8 @@ void handler_client_message(wm_td *wm,
                         true, wm->config);
             }
 
-            wm_invalidate_surface(surface);
-            wm_invalidate_desktop(desktop);
+            wm_outdate_surface(surface);
+            wm_outdate_desktop(desktop);
         }
         return;
     }
@@ -260,12 +276,7 @@ void handler_client_message(wm_td *wm,
     }
 
     if (event->type == wm->ewmh->_NET_WM_DESKTOP) {
-        client = lookup_find_client(wm->surfaces, event->window,
-                &surface, &desktop);
-        if (client != NULL) {
-            hi_handle_net_wm_desktop(wm, event, client,
-                    surface, desktop);
-        }
+        s_dispatch_to_client_handler(wm, event, hi_handle_net_wm_desktop);
         return;
     }
 
@@ -275,12 +286,8 @@ void handler_client_message(wm_td *wm,
     }
 
     if (event->type == wm->ewmh->_NET_MOVERESIZE_WINDOW) {
-        client = lookup_find_client(wm->surfaces, event->window,
-                &surface, &desktop);
-        if (client != NULL) {
-            hi_handle_net_moveresize_window(wm, event, client,
-                    surface, desktop);
-        }
+        s_dispatch_to_client_handler(wm, event,
+                hi_handle_net_moveresize_window);
         return;
     }
 
@@ -336,27 +343,21 @@ void handler_client_message(wm_td *wm,
         if (client != NULL) {
             client->last_ping_reply = event->data.data32[1];
             client_unset_unresponsive(client);
-            wm_invalidate_surface(surface);
-            wm_invalidate_desktop(desktop);
+            wm_outdate_surface(surface);
+            wm_outdate_desktop(desktop);
         }
         return;
     }
 
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 1, 15, "WM_CHANGE_STATE"),
-            NULL);
-    if (ia != NULL) {
-        wm_change_state = ia->atom;
-        free(ia);
-        if (event->type == wm_change_state &&
-                event->data.data32[0] == ICCCM_ICONIC_STATE) {
-            client = lookup_find_client(wm->surfaces, event->window,
-                    &surface, &desktop);
-            if (client != NULL) {
-                wcmd_client_iconify(client);
-                wm_invalidate_surface(surface);
-                wm_invalidate_desktop(desktop);
-            }
+    wm_change_state = atom_intern(wm->connection, "WM_CHANGE_STATE", true);
+    if (event->type == wm_change_state &&
+            event->data.data32[0] == ICCCM_ICONIC_STATE) {
+        client = lookup_find_client(wm->surfaces, event->window,
+                &surface, &desktop);
+        if (client != NULL) {
+            wcmd_client_iconify(client);
+            wm_outdate_surface(surface);
+            wm_outdate_desktop(desktop);
         }
     }
 }

@@ -36,6 +36,8 @@
  * list with the file repeated on every line: with as many files as
  * IcoWM reads, telling at a glance which file a given finding belongs
  * to matters more than it would for just one.
+ *
+ * @ingroup config
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -4,6 +4,8 @@
  * @brief Battery status reading and formatting, compatible with
  *        either the Linux ACPI (@c /sys/class/power_supply) or the
  *        legacy APM (@c /proc/apm) kernel interface
+ *
+ * @ingroup systray
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -33,6 +35,18 @@
 
 /** Maximum bytes read from any one single-line sysfs/procfs file */
 #define BATTERY_LINE_MAX_LEN (64)
+
+/**
+ * @brief Buffer size for one line read from @c BATTERY_APM_PROC_FILE
+ *
+ * @c /proc/apm holds several whitespace-separated fields on one line
+ * (driver version, APM version, flags, AC line status, battery
+ * status, battery flags, and battery percentage), unlike the single
+ * bare value @c BATTERY_LINE_MAX_LEN is sized for; generous enough
+ * for that field list with real-world values, well short of actually
+ * needing to be.
+ */
+#define BATTERY_APM_LINE_MAX_LEN (128)
 
 /**
  * @brief Buffer size for one constructed sysfs path under

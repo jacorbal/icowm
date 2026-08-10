@@ -289,9 +289,22 @@ bool kbd_modal_is_active(void)
 }
 
 
-/* Enter keyboard modal move mode for the given client */
-void kbd_modal_move_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client)
+/**
+ * @brief Enter a keyboard modal session (move or resize) for a client
+ *
+ * Shared by @c kbd_modal_move_start and @c kbd_modal_resize_start
+ * below, which only differ in which @c s_mode_e the session enters.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface @p client is on, for the keyboard grab's
+ *                   own root window
+ * @param client     Client entering the modal session
+ * @param mode       @c KBD_MODAL_MOVING or @c KBD_MODAL_RESIZING
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_enter_modal(xcb_connection_t *connection,
+        surface_td *surface, client_td *client, s_mode_e mode)
 {
     xcb_window_t root_win;
 
@@ -306,7 +319,7 @@ void kbd_modal_move_start(xcb_connection_t *connection,
     s_saved_w = client->layout.geometry.cur.dim.w;
     s_saved_h = client->layout.geometry.cur.dim.h;
     s_edge = KBD_EDGE_NONE;
-    s_mode = KBD_MODAL_MOVING;
+    s_mode = mode;
 
     root_win = (surface->screen != NULL)
         ? surface->screen->root
@@ -324,38 +337,19 @@ void kbd_modal_move_start(xcb_connection_t *connection,
 }
 
 
+/* Enter keyboard modal move mode for the given client */
+void kbd_modal_move_start(xcb_connection_t *connection,
+        surface_td *surface, client_td *client)
+{
+    s_enter_modal(connection, surface, client, KBD_MODAL_MOVING);
+}
+
+
 /* Enter keyboard modal resize mode for the given client */
 void kbd_modal_resize_start(xcb_connection_t *connection,
         surface_td *surface, client_td *client)
 {
-    xcb_window_t root_win;
-
-    if (connection == NULL || client == NULL || surface == NULL) {
-        return;
-    }
-
-    s_conn = connection;
-    s_client = client;
-    s_saved_x = client->layout.geometry.cur.pos.x;
-    s_saved_y = client->layout.geometry.cur.pos.y;
-    s_saved_w = client->layout.geometry.cur.dim.w;
-    s_saved_h = client->layout.geometry.cur.dim.h;
-    s_edge = KBD_EDGE_NONE;
-    s_mode = KBD_MODAL_RESIZING;
-
-    root_win = (surface->screen != NULL)
-        ? surface->screen->root
-        : XCB_WINDOW_NONE;
-
-    if (root_win != XCB_WINDOW_NONE) {
-        xcb_grab_keyboard(connection,
-                0,
-                root_win,
-                XCB_CURRENT_TIME,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_GRAB_MODE_ASYNC);
-        xcb_flush(connection);
-    }
+    s_enter_modal(connection, surface, client, KBD_MODAL_RESIZING);
 }
 
 

@@ -2,6 +2,9 @@
  * @file menu/notify.h
  *
  * @brief Generic notification interfaces
+ *
+ * @defgroup menu_notify Desktop notifications
+ * @ingroup menu
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

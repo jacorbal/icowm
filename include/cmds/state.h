@@ -9,7 +9,7 @@
  * shade/unshade, fullscreen/unfullscreen, and decoration toggle.
  * Focus and visibility commands are declared in @c cmds/ccmd.h.
  *
- * @ingroup cmds Client commands subsystem
+ * @ingroup cmds
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

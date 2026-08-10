@@ -21,6 +21,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
 /* Util includes */
 #include <utils/safe/safestr.h>
 
@@ -49,10 +52,10 @@ typedef struct {
                                   one wrapped line in the label font */
     int16_t btn_x;
     int16_t btn_y;
-    char raw_message[DIALOG_MSG_RAW_MAX_LEN]; /**< Prefix + caller's
+    char raw_message[DIALOG_MSG_RAW_MAX_LENGTH]; /**< Prefix + caller's
                                                      text, before
                                                      wrapping */
-    char lines[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LEN];
+    char lines[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
     uint8_t line_count;
     uint8_t visible_lines;  /**< How many of 'lines' fit within 'h' at
                                   once; the rest scroll */
@@ -76,8 +79,7 @@ static s_message_layout_td s_message_layout;
 
 /**
  * @brief Word-wrap @p raw into @p lines, each at most
- *        @c DIALOG_MSG_WRAP_WIDTH pixels wide in whichever font
- *        @c text_renderer_init last selected
+ *        @c DIALOG_MSG_WRAP_LENGTH bytes wide
  *
  * A general-purpose wrap usable for any message dialog text, not
  * specific to any one caller: explicit @c '\n' characters in @p raw
@@ -91,18 +93,23 @@ static s_message_layout_td s_message_layout;
  * @c DIALOG_MSG_MAX_LINES lines regardless of how much text remains,
  * silently dropping the rest, so a pathologically long message can
  * never grow the dialog (or the fixed-size @p lines array) without
- * bound.
+ * bound.  A @c '\r' is treated exactly like a space (dropped as a
+ * word separator, never copied into a line): callers on a platform
+ * that terminates lines with @c "\r\n" would otherwise leave that
+ * @c '\r' attached to the end of a word, where an X core (non-Xft)
+ * bitmap font typically has a visible glyph for it instead of
+ * treating it as whitespace.
  *
  * @param raw        Null-terminated text to wrap
  * @param lines       Array of @c DIALOG_MSG_MAX_LINES buffers, each
- *                    @c DIALOG_MSG_LINE_MAX_LEN bytes, to receive the
+ *                    @c DIALOG_MSG_LINE_MAX_LENGTH bytes, to receive the
  *                    wrapped lines
  * @param out_count   Receives the number of lines actually produced
  *
  * @note Complexity: @e O(n), where @e n is the length of @p raw
  */
 static void s_message_wrap_text(const char *raw,
-        char lines[][DIALOG_MSG_LINE_MAX_LEN], uint8_t *out_count)
+        char lines[][DIALOG_MSG_LINE_MAX_LENGTH], uint8_t *out_count)
 {
     size_t raw_len;
     size_t i = 0u;
@@ -125,32 +132,32 @@ static void s_message_wrap_text(const char *raw,
      * rule out entirely rather than rely on that holding everywhere
      * text ever gets read from this array. */
     memset(lines, 0, (size_t) DIALOG_MSG_MAX_LINES *
-            (size_t) DIALOG_MSG_LINE_MAX_LEN);
+            (size_t) DIALOG_MSG_LINE_MAX_LENGTH);
 
     raw_len = safe_strlen(raw);
 
     while (i < raw_len && count < (uint8_t) DIALOG_MSG_MAX_LINES) {
-        char line[DIALOG_MSG_LINE_MAX_LEN];
+        char line[DIALOG_MSG_LINE_MAX_LENGTH];
         size_t line_len = 0u;
 
         line[0] = '\0';
 
-        while (i < raw_len && raw[i] == ' ') {
+        while (i < raw_len && (raw[i] == ' ' || raw[i] == '\r')) {
             ++i;
         }
 
         while (i < raw_len && raw[i] != '\n') {
             size_t word_start = i;
             size_t word_len = 0u;
-            char candidate[DIALOG_MSG_LINE_MAX_LEN];
-            uint16_t candidate_w;
+            char candidate[DIALOG_MSG_LINE_MAX_LENGTH];
             size_t space_len;
             size_t used;
             size_t avail;
             size_t fit_len;
             size_t candidate_pos;
 
-            while (i < raw_len && raw[i] != ' ' && raw[i] != '\n') {
+            while (i < raw_len && raw[i] != ' ' && raw[i] != '\n' &&
+                    raw[i] != '\r') {
                 ++i;
                 ++word_len;
             }
@@ -186,9 +193,7 @@ static void s_message_wrap_text(const char *raw,
             candidate_pos += fit_len;
             candidate[candidate_pos] = '\0';
 
-            candidate_w = text_measure_string(candidate);
-
-            if (candidate_w <= (uint16_t) DIALOG_MSG_WRAP_WIDTH ||
+            if (candidate_pos <= (size_t) DIALOG_MSG_WRAP_LENGTH ||
                     line_len == 0u) {
                 (void) safe_strncpy(line, candidate, sizeof(line) - 1u);
                 line[sizeof(line) - 1u] = '\0';
@@ -201,14 +206,14 @@ static void s_message_wrap_text(const char *raw,
                 break;
             }
 
-            while (i < raw_len && raw[i] == ' ') {
+            while (i < raw_len && (raw[i] == ' ' || raw[i] == '\r')) {
                 ++i;
             }
         }
 
         (void) safe_strncpy(lines[count], line,
-                DIALOG_MSG_LINE_MAX_LEN - 1u);
-        lines[count][DIALOG_MSG_LINE_MAX_LEN - 1u] = '\0';
+                DIALOG_MSG_LINE_MAX_LENGTH - 1u);
+        lines[count][DIALOG_MSG_LINE_MAX_LENGTH - 1u] = '\0';
         ++count;
 
         if (i < raw_len && raw[i] == '\n') {
@@ -292,11 +297,11 @@ static void s_message_compute_layout(xcb_connection_t *connection,
      * other one is actually the one drawn. */
     text_renderer_init(connection,
             config->theme.dialog.button.unselected.font);
-    ok_w = menu_draw_measure(DIALOG_MSG_LABEL_OK);
+    ok_w = menu_draw_measure(STR_DIALOG_MSG_LABEL_OK);
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
     text_renderer_init(connection, config->theme.dialog.button.selected.font);
-    ok_w = dlgutil_u16max(ok_w, menu_draw_measure(DIALOG_MSG_LABEL_OK));
+    ok_w = dlgutil_u16max(ok_w, menu_draw_measure(STR_DIALOG_MSG_LABEL_OK));
     btn_text_h = dlgutil_u16max(btn_text_h,
             (uint16_t) (text_font_ascent() + text_font_descent()));
 
@@ -395,6 +400,7 @@ static void s_message_draw(xcb_connection_t *connection,
     int16_t label_x;
     int16_t label_y;
     const s_message_layout_td *lo = &s_message_layout;
+    uint8_t shown;
 
     if (connection == NULL || config == NULL ||
             s_message_window == XCB_WINDOW_NONE) {
@@ -430,7 +436,7 @@ static void s_message_draw(xcb_connection_t *connection,
      * of the previous, always-true behavior), the same selected/
      * unselected distinction 's_confirm_draw' already draws between
      * its own two buttons. */
-    gc_vals[0] = lo->ok_selected ? bg_sel : bg_btn_nor;
+    gc_vals[0] = (lo->ok_selected) ? bg_sel : bg_btn_nor;
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, gc_vals);
     rect.x = lo->btn_x;
     rect.y = lo->btn_y;
@@ -440,10 +446,10 @@ static void s_message_draw(xcb_connection_t *connection,
     xcb_free_gc(connection, gc);
 
     dlgutil_draw_button_border(connection, s_message_window,
-            lo->ok_selected
+            (lo->ok_selected)
                 ? config->theme.dialog.button.selected.border.color
                 : config->theme.dialog.button.unselected.border.color,
-            lo->ok_selected
+            (lo->ok_selected)
                 ? config->theme.dialog.button.selected.border.width
                 : config->theme.dialog.button.unselected.border.width,
             lo->btn_x, lo->btn_y, lo->btn_w, lo->btn_h);
@@ -457,65 +463,63 @@ static void s_message_draw(xcb_connection_t *connection,
      * exist off-screen in the buffer and are reached by scrolling. */
     text_renderer_init(connection, config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
-    {
-        uint8_t shown = (uint8_t) (lo->line_count - lo->scroll_offset);
+    shown = (uint8_t) (lo->line_count - lo->scroll_offset);
 
-        if (shown > lo->visible_lines) {
-            shown = lo->visible_lines;
-        }
-        for (uint8_t i = 0u; i < shown; ++i) {
-            int16_t line_y = (int16_t) (lo->msg_y +
-                    (int16_t) i * (lo->line_height +
-                        (int16_t) DIALOG_MSG_LINE_GAP));
+    if (shown > lo->visible_lines) {
+        shown = lo->visible_lines;
+    }
+    for (uint8_t i = 0u; i < shown; ++i) {
+        int16_t line_y = (int16_t) (lo->msg_y +
+                (int16_t) i * (lo->line_height +
+                    (int16_t) DIALOG_MSG_LINE_GAP));
 
-            menu_draw_label(connection, s_message_window,
-                    lo->msg_x, line_y, lo->lines[lo->scroll_offset + i]);
-        }
+        menu_draw_label(connection, s_message_window,
+                lo->msg_x, line_y, lo->lines[lo->scroll_offset + i]);
+    }
 
-        /* Footer, right below the last content row shown above: only
-         * drawn when there is more of the message than fits at once,
-         * i.e., exactly when 'visible_lines' was computed with room
-         * for it reserved in the first place (see
-         * 's_message_compute_layout').  Three rows: a blank spacer so
-         * the footer reads as clearly separate from the message
-         * above it, a drawn horizontal rule for the same reason
-         * (matching how 'ctxmenu.c' draws a context-menu separator,
-         * not a row of dashed text), and the "more above/below"
-         * status/scroll-hint line itself. */
-        if (lo->line_count > lo->visible_lines) {
-            char status[DIALOG_MSG_LINE_MAX_LEN];
-            int16_t row_step = (int16_t) (lo->line_height +
-                    (int16_t) DIALOG_MSG_LINE_GAP);
-            int16_t separator_row_y = (int16_t) (lo->msg_y +
-                    (int16_t) (shown + 1u) * row_step);
-            int16_t status_y = (int16_t) (separator_row_y + row_step);
-            xcb_gcontext_t sep_gc;
-            uint32_t sep_gc_vals[1];
-            xcb_rectangle_t sep_rect;
+    /* Footer, right below the last content row shown above: only
+     * drawn when there is more of the message than fits at once,
+     * i.e., exactly when 'visible_lines' was computed with room
+     * for it reserved in the first place (see
+     * 's_message_compute_layout').  Three rows: a blank spacer so
+     * the footer reads as clearly separate from the message
+     * above it, a drawn horizontal rule for the same reason
+     * (matching how 'ctxmenu.c' draws a context-menu separator,
+     * not a row of dashed text), and the "more above/below"
+     * status/scroll-hint line itself. */
+    if (lo->line_count > lo->visible_lines) {
+        char status[DIALOG_MSG_LINE_MAX_LENGTH];
+        int16_t row_step = (int16_t) (lo->line_height +
+                (int16_t) DIALOG_MSG_LINE_GAP);
+        int16_t separator_row_y = (int16_t) (lo->msg_y +
+                (int16_t) (shown + 1u) * row_step);
+        int16_t status_y = (int16_t) (separator_row_y + row_step);
+        xcb_gcontext_t sep_gc;
+        uint32_t sep_gc_vals[1];
+        xcb_rectangle_t sep_rect;
 
-            sep_gc = xcb_generate_id(connection);
-            sep_gc_vals[0] = config->theme.dialog.border.color;
-            xcb_create_gc(connection, sep_gc, s_message_window,
-                    XCB_GC_FOREGROUND, sep_gc_vals);
-            sep_rect.x = lo->msg_x;
-            sep_rect.y = (int16_t) (separator_row_y -
-                    (lo->line_height / 2));
-            sep_rect.width = (lo->w > (uint16_t) (lo->msg_x * 2))
-                ? (uint16_t) (lo->w - (uint16_t) (lo->msg_x * 2))
-                : 0u;
-            sep_rect.height = 1u;
-            xcb_poly_fill_rectangle(connection, s_message_window,
-                    sep_gc, 1, &sep_rect);
-            xcb_free_gc(connection, sep_gc);
+        sep_gc = xcb_generate_id(connection);
+        sep_gc_vals[0] = config->theme.dialog.border.color;
+        xcb_create_gc(connection, sep_gc, s_message_window,
+                XCB_GC_FOREGROUND, sep_gc_vals);
+        sep_rect.x = lo->msg_x;
+        sep_rect.y = (int16_t) (separator_row_y -
+                (lo->line_height / 2));
+        sep_rect.width = (lo->w > (uint16_t) (lo->msg_x * 2))
+            ? (uint16_t) (lo->w - (uint16_t) (lo->msg_x * 2))
+            : 0u;
+        sep_rect.height = 1u;
+        xcb_poly_fill_rectangle(connection, s_message_window,
+                sep_gc, 1, &sep_rect);
+        xcb_free_gc(connection, sep_gc);
 
-            (void) snprintf(status, sizeof(status),
-                    "%u-%u/%u: Up/Down, PgUp/PgDn, wheel",
-                    (unsigned int) lo->scroll_offset + 1u,
-                    (unsigned int) lo->scroll_offset + shown,
-                    (unsigned int) lo->line_count);
-            menu_draw_label(connection, s_message_window,
-                    lo->msg_x, status_y, status);
-        }
+        (void) snprintf(status, sizeof(status),
+                "%u-%u/%u: Up/Down, PgUp/PgDn, wheel",
+                (unsigned int) lo->scroll_offset + 1u,
+                (unsigned int) lo->scroll_offset + shown,
+                (unsigned int) lo->line_count);
+        menu_draw_label(connection, s_message_window,
+                lo->msg_x, status_y, status);
     }
 
     /* OK label: font, and therefore width, depends on whether the
@@ -526,10 +530,10 @@ static void s_message_draw(xcb_connection_t *connection,
      * descent against 'btn_h' so it stays centered regardless of
      * which font is taller.  Same reasoning as the cancel/confirm
      * labels in 's_confirm_draw' (menu/dialog/confirm.c). */
-    text_renderer_init(connection, lo->ok_selected
+    text_renderer_init(connection, (lo->ok_selected)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
-    label_w = menu_draw_measure(DIALOG_MSG_LABEL_OK);
+    label_w = menu_draw_measure(STR_DIALOG_MSG_LABEL_OK);
     label_x = (int16_t) (lo->btn_x +
             (int16_t) ((lo->btn_w - label_w) / 2u));
     label_y = (int16_t) (lo->btn_y +
@@ -538,10 +542,10 @@ static void s_message_draw(xcb_connection_t *connection,
                         text_font_descent())) / 2u) +
             text_font_ascent());
     text_renderer_set_color(
-            lo->ok_selected ? fg_sel : fg_btn_nor,
-            lo->ok_selected ? bg_sel : bg_btn_nor);
+            (lo->ok_selected) ? fg_sel : fg_btn_nor,
+            (lo->ok_selected) ? bg_sel : bg_btn_nor);
     menu_draw_label(connection, s_message_window,
-            label_x, label_y, DIALOG_MSG_LABEL_OK);
+            label_x, label_y, STR_DIALOG_MSG_LABEL_OK);
 
     xcb_flush(connection);
 }
@@ -624,7 +628,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     /* XCB requires attribute values to be listed in ascending bit order
      * of their mask.
      *
-     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) < EVENT_MASK(2048)
+     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) <
+     * EVENT_MASK(2048)
      * */
     mask = XCB_CW_BACK_PIXEL        |
         XCB_CW_BORDER_PIXEL         |
@@ -683,6 +688,10 @@ void menu_message_dialog_close(xcb_connection_t *connection)
 void menu_message_dialog_repaint(xcb_connection_t *connection,
         const config_td *config)
 {
+    if (connection == NULL || config == NULL ||
+            s_message_window == XCB_WINDOW_NONE) {
+        return;
+    }
     s_message_draw(connection, config);
 }
 
@@ -779,5 +788,3 @@ xcb_window_t menu_message_dialog_window(void)
 {
     return s_message_window;
 }
-
-

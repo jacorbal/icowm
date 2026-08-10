@@ -27,12 +27,14 @@
 #include <render/wmicon.h>
 
 /* Default initial values */
+#include <defs/ctxmenu.h>
 #include <defs/cycle.h>
 #include <defs/icon.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <systray.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -93,7 +95,7 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  * Computes the border width to use for a preview target in the cycle
  * interface, selecting the icon border width for icon previews, no
  * border for decorated client frames, and the normal window border
- * width for undecorated window targets. When the target is highlighted,
+ * width for undecorated window targets.  When the target is highlighted,
  * an extra selection width is added.
  *
  * @param client         Pointer to the client associated with the target
@@ -198,7 +200,8 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
  * @param config     Pointer to the configuration containing theme data
  *
  * @note No-op if required state (connection, config, menu, or
- *       selection) is invalid or incomplete
+ *       selection) is invalid or incomplete, or if the selected
+ *       client is the same one already previewed (nothing to change)
  * @note Restores the previous preview client's border color before
  *       applying the new selection highlight
  * @note Ensures the selected target window is raised above others
@@ -213,6 +216,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     client_td *previous;
     xcb_window_t selected_target;
     xcb_window_t previous_target;
+    xcb_window_t tray_below;
     uint32_t values[2];
     uint32_t selected_border;
     uint32_t previous_border;
@@ -234,7 +238,19 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     }
 
     previous = g_cycle_menu.preview_client;
-    if (previous != NULL && previous != selected) {
+
+    /* Selection unchanged since this same client was last previewed
+     * (e.g. re-called for an 'Expose' on the menu window itself, or
+     * navigating with only one client in the cycle, which always
+     * "changes" the index back to the same single entry): nothing
+     * about the preview differs from what is already applied, so
+     * skip repeating every border/background/stacking request below
+     * for no visible change. */
+    if (previous == selected) {
+        return;
+    }
+
+    if (previous != NULL) {
         previous_target = mi_cycle_preview_target(previous,
                 g_cycle_menu.is_icon_menu);
 
@@ -255,10 +271,24 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                     previous_border, false);
 
             if (g_cycle_menu.is_icon_menu) {
-                xcb_configure_window(connection, previous_target,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-
+                /* Icons stay lower than the tray even within the
+                 * shared 'below' layer, "stuck to the desktop"; see
+                 * 'wcmd_client_iconify' for the fuller explanation of
+                 * why an unqualified 'below' with no sibling is not
+                 * enough to guarantee that on its own. */
+                tray_below = systray_below_window();
+                if (tray_below != XCB_WINDOW_NONE) {
+                    xcb_configure_window(connection, previous_target,
+                            XCB_CONFIG_WINDOW_SIBLING |
+                            XCB_CONFIG_WINDOW_STACK_MODE,
+                            (const uint32_t[]) {
+                            tray_below, XCB_STACK_MODE_BELOW
+                            });
+                } else {
+                    xcb_configure_window(connection, previous_target,
+                            XCB_CONFIG_WINDOW_STACK_MODE,
+                            (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+                }
                 values[0] = config->theme.icon.inactive.color.background;
                 values[1] = config->theme.icon.inactive.border.color;
 
@@ -266,7 +296,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                         XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
                 xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
 
-                if (config->theme.icon.use_pixmap) {
+                if (config->theme.icon.show_pixmaps) {
                     wmicon_draw(connection, previous->ewmh,
                             previous->window, previous_target,
                             WM_ICON_SQUARE_SIZE,
@@ -311,7 +341,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
         xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
 
-        if (config->theme.icon.use_pixmap) {
+        if (config->theme.icon.show_pixmaps) {
             wmicon_draw(connection, selected->ewmh,
                     selected->window, selected_target,
                     WM_ICON_SQUARE_SIZE,
@@ -351,57 +381,178 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 }
 
 
-/* Repaint all menu entries */
-void cycle_draw(xcb_connection_t *connection, const config_td *config)
-{
+/**
+ * @brief Per-call drawing constants shared by every row @c cycle_draw
+ *        paints in one call, computed once up front rather than
+ *        re-derived from @c config on each row
+ */
+struct s_cycle_row_style_s {
     uint32_t fg_sel;
     uint32_t bg_sel;
     uint32_t fg_nor;
     uint32_t bg_nor;
     int16_t pad_x;
+    int16_t icon_offset;
+    uint16_t icon_size;
+};
+
+
+/**
+ * @brief Resolve the current theme's cycle-row drawing constants
+ *
+ * @param config Active configuration
+ * @param style  Receives the resolved constants
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_row_style(const config_td *config,
+        struct s_cycle_row_style_s *style)
+{
+    style->fg_sel = config->theme.menu.selected.color.foreground;
+    style->bg_sel = config->theme.menu.selected.color.background;
+    style->fg_nor = config->theme.menu.unselected.color.foreground;
+    style->bg_nor = config->theme.menu.unselected.color.background;
+    style->pad_x = (int16_t) config->theme.menu.padding.horizontal;
+    style->icon_offset = 0;
+    style->icon_size = 0u;
+
+    /* Space reserved for a row's own client icon plus one more gap
+     * (the same width as the menu's own left padding) before its
+     * label; see 'theme.menu.show-pixmaps''s own doc comment in
+     * config.h and 'WM_MENU_ICON_INSET' in defs/ctxmenu.h. */
+    if (config->theme.menu.show_pixmaps) {
+        /* '#if', not a runtime ternary: both operands are fixed
+         * compile-time constants, so a ternary here left one branch
+         * provably unreachable to the compiler (-Wunreachable-code).
+         * Still guards the arithmetic against a future edit to either
+         * constant that would otherwise underflow silently. */
+#if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
+        style->icon_size = (uint16_t)
+            (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
+#else
+        style->icon_size = 0u;
+#endif
+        style->icon_offset =
+            (int16_t) (style->icon_size + style->pad_x);
+    }
+}
+
+
+/**
+ * @brief Paint one row of the cycle menu, background through label
+ *
+ * Self-contained: callers need no separate clear step first, whether
+ * repainting the whole viewport or just this one row on its own (see
+ * @c cycle_draw's own doc comment for when each happens).
+ *
+ * @param connection XCB connection
+ * @param i          Absolute entry index to draw (not viewport-
+ *                    relative); must fall within the current viewport
+ * @param pad_y       Vertical padding, for this row's own Y offset
+ * @param style      Drawing constants from @c s_cycle_row_style
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_draw_row(xcb_connection_t *connection, int i,
+        int16_t pad_y, const struct s_cycle_row_style_s *style)
+{
+    int16_t row_y = (int16_t) (pad_y +
+            (i - g_cycle_menu.scroll_offset) * WM_CYCLE_MENU_ROW_HEIGHT);
+    client_td *row_client = (i >= 0 && i < g_cycle_menu.count)
+        ? g_cycle_menu.clients[i] : NULL;
+    int16_t text_x = style->pad_x;
+
+    if (i == g_cycle_menu.selected) {
+        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_sel,
+                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                g_cycle_menu.width);
+        text_renderer_set_color(style->fg_sel, style->bg_sel);
+    } else {
+        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_nor,
+                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                g_cycle_menu.width);
+        text_renderer_set_color(style->fg_nor, style->bg_nor);
+    }
+
+    /* A row with no client of its own (should not normally happen,
+     * but 's_cycle_close_and_apply' and similar guard against it
+     * elsewhere too) simply gets no icon and no reserved space, same
+     * as 'icon_offset' being 0 when 'show-pixmaps' is off. */
+    if (style->icon_size > 0u && row_client != NULL &&
+            g_cycle_menu.surface != NULL) {
+        int16_t icon_y = (int16_t) (row_y +
+                (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2);
+
+        wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
+                row_client->window, g_cycle_menu.window,
+                style->pad_x, icon_y, style->icon_size,
+                &row_client->icon_pixmap_cache);
+        text_x = (int16_t) (style->pad_x + style->icon_offset);
+    }
+
+    menu_draw_label(connection, g_cycle_menu.window,
+            text_x,
+            (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
+            g_cycle_menu.labels[i]);
+}
+
+
+/* Repaint all menu entries */
+void cycle_draw(xcb_connection_t *connection, const config_td *config)
+{
+    struct s_cycle_row_style_s style;
     int16_t pad_y;
+    bool need_full_repaint;
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE) {
         return;
     }
 
-    fg_sel = config->theme.menu.selected.color.foreground;
-    bg_sel = config->theme.menu.selected.color.background;
-    fg_nor = config->theme.menu.unselected.color.foreground;
-    bg_nor = config->theme.menu.unselected.color.background;
-    pad_x = (int16_t) config->theme.menu.padding.horizontal;
+    s_cycle_row_style(config, &style);
     pad_y = (int16_t) config->theme.menu.padding.vertical;
 
     text_renderer_init(connection, config->theme.menu.unselected.font);
 
-    for (int i = g_cycle_menu.scroll_offset;
-            i < g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows;
-            ++i) {
-        int16_t row_y = (int16_t) (pad_y +
-                (i - g_cycle_menu.scroll_offset) *
-                WM_CYCLE_MENU_ROW_HEIGHT);
+    /* A viewport shift (scrolling) changes every row actually shown,
+     * so it still needs the full loop below; otherwise selection
+     * moved between two rows already on screen, and only those two
+     * actually changed which color/text they show -- repainting the
+     * rest would be identical to what is already there. */
+    need_full_repaint = !g_cycle_menu.has_drawn_once ||
+        g_cycle_menu.last_drawn_scroll_offset != g_cycle_menu.scroll_offset;
 
-        if (i == g_cycle_menu.selected) {
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_sel,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    g_cycle_menu.width);
-            text_renderer_set_color(fg_sel, bg_sel);
-        } else {
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                    g_cycle_menu.width);
-            text_renderer_set_color(fg_nor, bg_nor);
+    if (need_full_repaint) {
+        for (int i = g_cycle_menu.scroll_offset;
+                i < g_cycle_menu.scroll_offset +
+                    g_cycle_menu.viewport_rows;
+                ++i) {
+            s_cycle_draw_row(connection, i, pad_y, &style);
         }
-
-        menu_draw_label(connection, g_cycle_menu.window,
-                (int16_t) pad_x,
-                (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
-                g_cycle_menu.labels[i]);
+    } else if (g_cycle_menu.last_drawn_selected != g_cycle_menu.selected) {
+        if (g_cycle_menu.last_drawn_selected >= g_cycle_menu.scroll_offset &&
+                g_cycle_menu.last_drawn_selected < g_cycle_menu.scroll_offset +
+                    g_cycle_menu.viewport_rows) {
+            s_cycle_draw_row(connection, g_cycle_menu.last_drawn_selected,
+                    pad_y, &style);
+        }
+        if (g_cycle_menu.selected >= g_cycle_menu.scroll_offset &&
+                g_cycle_menu.selected < g_cycle_menu.scroll_offset +
+                    g_cycle_menu.viewport_rows) {
+            s_cycle_draw_row(connection, g_cycle_menu.selected,
+                    pad_y, &style);
+        }
     }
 
+    g_cycle_menu.last_drawn_selected = g_cycle_menu.selected;
+    g_cycle_menu.last_drawn_scroll_offset = g_cycle_menu.scroll_offset;
+    g_cycle_menu.has_drawn_once = true;
+
     /* Draw scroll-indicator arrows in the top/bottom padding areas when
-     * there are hidden entries above or below the viewport.
+     * there are hidden entries above or below the viewport.  Only
+     * meaningful as part of a full repaint: their content depends
+     * solely on 'scroll_offset' and 'count', neither of which changes
+     * on a same-viewport selection move.
      * 'menu_draw_label' positions text by its baseline, and the
      * top/bottom padding strips are each only 'pad_y' pixels tall
      * (the default theme's 4px is smaller than most fonts' own
@@ -411,23 +562,23 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
      * keeping it below the window's top edge; the bottom indicator's
      * sits 'descent' pixels above the window's bottom edge (see
      * 'text_font_descent'), keeping it above that edge instead. */
-    if (g_cycle_menu.count > g_cycle_menu.viewport_rows) {
+    if (need_full_repaint && g_cycle_menu.count > g_cycle_menu.viewport_rows) {
         int16_t top_baseline_y = text_font_ascent();
 
         /* Up arrow: entries exist above the viewport */
         if (g_cycle_menu.scroll_offset > 0) {
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    0, (uint16_t) pad_y,
+            menu_draw_row_bg(connection, g_cycle_menu.window,
+                    style.bg_nor, 0, (uint16_t) pad_y,
                     g_cycle_menu.width);
-            text_renderer_set_color(fg_sel, bg_nor);
+            text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
                     top_baseline_y,
                     WM_CYCLE_MENU_SCROLL_UP_INDICATOR);
         } else {
             /* Clear the top padding area when no arrow is needed */
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    0, (uint16_t) pad_y,
+            menu_draw_row_bg(connection, g_cycle_menu.window,
+                    style.bg_nor, 0, (uint16_t) pad_y,
                     g_cycle_menu.width);
         }
 
@@ -437,10 +588,10 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             int16_t bot_y = (int16_t) (pad_y +
                     g_cycle_menu.viewport_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    bot_y, (uint16_t) pad_y,
+            menu_draw_row_bg(connection, g_cycle_menu.window,
+                    style.bg_nor, bot_y, (uint16_t) pad_y,
                     g_cycle_menu.width);
-            text_renderer_set_color(fg_sel, bg_nor);
+            text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (int16_t) (g_cycle_menu.width / 2u - 4u),
                     (int16_t) (bot_y + pad_y - text_font_descent()),
@@ -450,8 +601,8 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             int16_t bot_y = (int16_t) (pad_y +
                     g_cycle_menu.viewport_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
-            menu_draw_row_bg(connection, g_cycle_menu.window, bg_nor,
-                    bot_y, (uint16_t) pad_y,
+            menu_draw_row_bg(connection, g_cycle_menu.window,
+                    style.bg_nor, bot_y, (uint16_t) pad_y,
                     g_cycle_menu.width);
         }
     }

@@ -15,6 +15,8 @@
  * not here.
  *
  * @see @c -M in @c main.c, @c wm_start in @c wm.h
+ *
+ * @ingroup loop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

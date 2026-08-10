@@ -6,6 +6,9 @@
  * Declares the functions for showing, closing, and repainting the
  * small popup that displays basic information about the currently
  * focused client.  All popup state is private to the implementation.
+ *
+ * @defgroup menu Popup menu system
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -22,6 +22,7 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <defs/dialog.h>
 #include <defs/memguard.h>
 
 /* Project includes */
@@ -58,6 +59,9 @@ static bool s_warned = false;
  * cap that ceiling affords */
 void memguard_init(uint32_t ceiling_mib)
 {
+    uint32_t budget_mib;
+    uint32_t n;
+
     s_ceiling_mib = ceiling_mib;
     s_warned = false;
     if (clock_gettime(CLOCK_MONOTONIC, &s_last_check) != 0) {
@@ -70,18 +74,16 @@ void memguard_init(uint32_t ceiling_mib)
         return;
     }
 
-    {
-        uint32_t budget_mib = (ceiling_mib > MEMGUARD_BASELINE_MIB)
-            ? (ceiling_mib - MEMGUARD_BASELINE_MIB) : 0u;
-        uint32_t n = (budget_mib * 1024u) / MEMGUARD_KIB_PER_CLIENT;
+    budget_mib = (ceiling_mib > MEMGUARD_BASELINE_MIB)
+        ? (ceiling_mib - MEMGUARD_BASELINE_MIB) : 0u;
+    n = (budget_mib * 1024u) / MEMGUARD_KIB_PER_CLIENT;
 
-        if (n < MEMGUARD_MIN_CLIENTS) {
-            n = MEMGUARD_MIN_CLIENTS;
-        } else if (n > MEMGUARD_ABSOLUTE_MAX_CLIENTS) {
-            n = MEMGUARD_ABSOLUTE_MAX_CLIENTS;
-        }
-        s_max_clients = n;
+    if (n < MEMGUARD_MIN_CLIENTS) {
+        n = MEMGUARD_MIN_CLIENTS;
+    } else if (n > MEMGUARD_ABSOLUTE_MAX_CLIENTS) {
+        n = MEMGUARD_ABSOLUTE_MAX_CLIENTS;
     }
+    s_max_clients = n;
 
     LOGGER_NOTICE("Restricted-memory mode: computed a client cap of" \
             " %u window(s) for a %u MiB ceiling",
@@ -97,6 +99,36 @@ uint32_t memguard_max_clients(void)
 }
 
 
+/**
+ * @brief Show a message dialog on this module's behalf, unless one is
+ *        already open or a required parameter is missing
+ *
+ * Both @c memguard_tick and @c memguard_warn_client_cap need exactly
+ * this same guard-then-show sequence around a message that is
+ * otherwise entirely their own (built with a different format and
+ * arguments, logged with a different message); this is the part that
+ * was actually identical between the two.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface to center the dialog on
+ * @param config     Active configuration, for the dialog
+ * @param level      Alert level to show the dialog at
+ * @param message    Already-built message text
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_memguard_show_dialog(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        menu_msg_level_e level, const char *message)
+{
+    if (connection == NULL || surface == NULL || config == NULL ||
+            menu_message_dialog_is_open()) {
+        return;
+    }
+    menu_message_dialog_show(connection, surface, config, message, level);
+}
+
+
 /* Periodically check memory usage against the configured ceiling */
 void memguard_tick(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)
@@ -104,7 +136,7 @@ void memguard_tick(xcb_connection_t *connection,
     struct timespec now;
     uint32_t rss_mib;
     uint32_t hysteresis_floor_mib;
-    char message[DIALOG_MSG_RAW_MAX_LEN];
+    char message[DIALOG_MSG_RAW_MAX_LENGTH];
 
     if (s_ceiling_mib == 0u || connection == NULL || surface == NULL ||
             config == NULL) {
@@ -113,8 +145,11 @@ void memguard_tick(xcb_connection_t *connection,
 
     /* Never compete with a dialog already on screen, restricted-
      * memory warning or otherwise: showing a second one on top would
-     * be confusing, and menu_message_dialog_show would just silently
-     * refuse it anyway (only one instance at a time). */
+     * be confusing, and 's_memguard_show_dialog' below would just
+     * silently refuse it anyway (only one instance at a time); caught
+     * here too, ahead of that, so the whole rest of this function
+     * (the clock read, the RSS read) is skipped as well, not just the
+     * dialog itself. */
     if (menu_message_dialog_is_open()) {
         return;
     }
@@ -153,8 +188,8 @@ void memguard_tick(xcb_connection_t *connection,
             " option).  Close some windows to free up memory before" \
             " opening more.",
             (unsigned int) rss_mib, (unsigned int) s_ceiling_mib);
-    menu_message_dialog_show(connection, surface, config, message,
-            MENU_MSG_LEVEL_ERROR);
+    s_memguard_show_dialog(connection, surface, config,
+            MENU_MSG_LEVEL_ERROR, message);
     s_warned = true;
 }
 
@@ -164,10 +199,9 @@ void memguard_tick(xcb_connection_t *connection,
 void memguard_warn_client_cap(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)
 {
-    char message[DIALOG_MSG_RAW_MAX_LEN];
+    char message[DIALOG_MSG_RAW_MAX_LENGTH];
 
-    if (connection == NULL || surface == NULL || config == NULL ||
-            menu_message_dialog_is_open()) {
+    if (connection == NULL || surface == NULL || config == NULL) {
         return;
     }
 
@@ -181,6 +215,6 @@ void memguard_warn_client_cap(xcb_connection_t *connection,
             " command-line option).  Close a window before opening" \
             " another.",
             (unsigned int) s_max_clients);
-    menu_message_dialog_show(connection, surface, config, message,
-            MENU_MSG_LEVEL_WARNING);
+    s_memguard_show_dialog(connection, surface, config,
+            MENU_MSG_LEVEL_WARNING, message);
 }

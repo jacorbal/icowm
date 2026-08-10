@@ -11,6 +11,8 @@
  * for content that is not itself an alert.
  *
  * @note Only one instance may be visible at a time
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,72 +33,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/dialog.h>
+
 /* Project includes */
 #include <config.h>
 #include <surface.h>
-
-
-/**
- * @brief Maximum number of wrapped lines the message dialog can ever
- *        hold, backing the fixed-size @c lines array
- *
- * A hard cap purely to bound the fixed-size arrays this backs, not a
- * display limit: unlike before scrolling existed, text past this many
- * lines is not simply cut off from view, it never enters @c lines at
- * all, so scrolling could not reach it regardless of how generous the
- * dialog's own monitor-height cap is (see @c menu/dialog/message.c's
- * @c s_message_compute_layout for that separate, on-screen limit).
- * Kept comfortably above what the keyboard-shortcuts list (see
- * @c menu/dialog/shortcuts.h) actually produces, plus headroom for it
- * growing over time, rather than tuned tightly to today's exact line
- * count.  Smaller under @c LOWMEM (see
- * @c defs/lowmem.h), though not as small as restricted-memory mode's
- * own shorter shortcuts list alone would allow: this build flag and
- * @c -M are meant to be combined but are not strictly coupled, so
- * this still comfortably covers the full, non-restricted shortcuts
- * list in case a low-memory build is ever run without @c -M too.
- */
-#ifdef LOWMEM
-#define DIALOG_MSG_MAX_LINES (64u)
-#else
-#define DIALOG_MSG_MAX_LINES (96u)
-#endif
-
-/** Maximum length of the raw message text before wrapping, prefix
- *  included; see @c DIALOG_MSG_MAX_LINES for the same headroom
- *  reasoning, low-memory build included */
-#ifdef LOWMEM
-#define DIALOG_MSG_RAW_MAX_LEN (2560u)
-#else
-#define DIALOG_MSG_RAW_MAX_LEN (4096u)
-#endif
-
-/** Maximum length of a single already-wrapped line */
-#define DIALOG_MSG_LINE_MAX_LEN (160u)
-
-/**
- * @brief Pixel width the message text wraps at
- *
- * The dialog itself can still end up narrower than this: it is sized
- * to the widest line the wrap actually produces, not to this bound
- * directly, so a short one-line message stays compact.
- */
-#define DIALOG_MSG_WRAP_WIDTH (480u)
-
-/** Vertical gap between wrapped message lines, in pixels */
-#define DIALOG_MSG_LINE_GAP (4u)
-
-/** Label for the dismiss button in the message dialog */
-#define DIALOG_MSG_LABEL_OK ("[ OK ]")
-
-/** Prefix for info-level messages */
-#define DIALOG_MSG_PREFIX_INFO ("[i] ")
-
-/** Prefix for warning-level messages */
-#define DIALOG_MSG_PREFIX_WARNING ("[!] ")
-
-/** Prefix for error-level messages */
-#define DIALOG_MSG_PREFIX_ERROR ("[X] ")
 
 
 /**

@@ -51,7 +51,7 @@
 struct cycle_menu_state_s {
     xcb_window_t window;
     client_td *clients[WM_CYCLE_MENU_MAX_ENTRIES];
-    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LEN];
+    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LENGTH];
     int count;
     int selected;
     uint16_t width;
@@ -68,6 +68,21 @@ struct cycle_menu_state_s {
     const config_td *config;
     int scroll_offset;
     int viewport_rows;
+    int last_drawn_selected;    /**< 'selected' as of 'cycle_draw''s
+                                      own most recent call, so it can
+                                      redraw only the rows that
+                                      actually changed selection
+                                      instead of the whole viewport
+                                      when 'scroll_offset' did not
+                                      also change; meaningless until
+                                      'has_drawn_once' */
+    int last_drawn_scroll_offset; /**< See 'last_drawn_selected' */
+    bool has_drawn_once;         /**< Whether 'last_drawn_selected'/
+                                      'last_drawn_scroll_offset' hold a
+                                      real prior draw yet; false right
+                                      after 'cycle_open' so its first
+                                      'cycle_draw' always paints the
+                                      whole viewport regardless */
 };
 
 

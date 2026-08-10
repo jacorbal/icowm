@@ -116,7 +116,7 @@ static struct {
  * @param output  Buffer for the resulting XLFD pattern
  * @param outsize Size of @p output in bytes
  */
-static void font_config_to_xlfd(const char *input, char *output,
+static void s_font_config_to_xlfd(const char *input, char *output,
         size_t outsize)
 {
     char tokens[8][64];
@@ -367,7 +367,7 @@ int text_renderer_init(xcb_connection_t *connection,
 
     /* Convert the config-style font description (e.g., "fixed bold 9")
      * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
-    font_config_to_xlfd(raw, xlfd, sizeof(xlfd));
+    s_font_config_to_xlfd(raw, xlfd, sizeof(xlfd));
 
     s_text.connection = connection;
     safe_strncpy(s_text.raw_font_name, raw, sizeof(s_text.raw_font_name));
@@ -470,6 +470,7 @@ void text_draw_string(xcb_connection_t *connection,
 {
     size_t len;
     xcb_generic_error_t *draw_error;
+    char sanitized[512];
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL) {
         return;
@@ -481,12 +482,32 @@ void text_draw_string(xcb_connection_t *connection,
         }
     }
 
+    /* Replace any control character (a stray newline in a window
+     * title set by a misbehaving client, most commonly) with a plain
+     * space before drawing, rather than passing it through as-is.
+     * Xft/FreeType glyphs happen not to draw anything visible for
+     * most control codes, which is what makes this go unnoticed with
+     * an Xft font; a bitmap X core font like 'fixed' has an actual
+     * glyph at nearly every code point in its table, including the
+     * control range, so the same character shows up as a visible box
+     * there instead.  Sanitizing once here, ahead of either backend,
+     * means neither depends on that difference in font behavior to
+     * look right. */
+    len = safe_strlen(text);
+    if (len >= sizeof(sanitized)) {
+        len = sizeof(sanitized) - 1u;
+    }
+    for (size_t i = 0; i < len; ++i) {
+        unsigned char c = (unsigned char) text[i];
+        sanitized[i] = (c < 0x20u || c == 0x7Fu) ? ' ' : text[i];
+    }
+    sanitized[len] = '\0';
+
     if (s_text.backend == S_BACKEND_GLYPH) {
-        glyph_draw_string(connection, drawable, x, y, text);
+        glyph_draw_string(connection, drawable, x, y, sanitized);
         return;
     }
 
-    len = safe_strlen(text);
     if (len == 0) {
         return;
     }
@@ -498,7 +519,7 @@ void text_draw_string(xcb_connection_t *connection,
             xcb_image_text_8_checked(connection, (uint8_t) len,
                 drawable, (gc == XCB_NONE)
                     ? s_text.gc
-                    : gc, x, y, text));
+                    : gc, x, y, sanitized));
     if (draw_error != NULL) {
         LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
                 " (error=%u)",

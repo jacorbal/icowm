@@ -2,6 +2,8 @@
  * @file defs/loop.h
  *
  * @brief Timing constants for the main event loop's @c poll wait
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

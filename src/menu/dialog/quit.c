@@ -49,14 +49,14 @@ static void s_on_quit_confirm(xcb_connection_t *connection)
 void dialog_quit_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *cfg)
 {
-    char prompt[DIALOG_QUIT_PROMPT_MAX_LEN];
+    char prompt[DIALOG_QUIT_PROMPT_MAX_LENGTH];
 
     (void) snprintf(prompt, sizeof(prompt),
             STR_DIALOG_QUIT_PROMPT_FMT, WM_EWMH_NAME);
 
     menu_confirm_dialog_show(connection, surface, cfg,
             prompt, STR_DIALOG_QUIT_CANCEL, STR_DIALOG_QUIT_EXIT,
-            s_on_quit_confirm);
+            s_on_quit_confirm, NULL, 0u);
 
 }
 
@@ -94,7 +94,7 @@ void dialog_quit_toggle_selection(void)
 /* Activate the currently selected button */
 void dialog_quit_accept(xcb_connection_t *connection)
 {
-    menu_confirm_dialog_accept(connection, s_on_quit_confirm);
+    menu_confirm_dialog_accept(connection);
 }
 
 

@@ -27,17 +27,12 @@
 /* Render includes */
 #include <render/surface.h>
 
-/* Utils includes */
-#include <utils/geom.h>
-
-/* Windows & icons policy includes */
-#include <policy/focus.h>
-
 /* Menu includes */
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog/confirm.h>
 #include <menu/dialog/fortune.h>
 #include <menu/dialog/info.h>
 #include <menu/dialog/message.h>
@@ -53,6 +48,8 @@
 #include <cmds/scmd.h>
 
 /* Default initial values */
+#include <defs/dialog.h>
+#include <defs/kbd.h>
 
 /* Project includes */
 #include <action.h>
@@ -61,7 +58,6 @@
 #include <desktop.h>
 #include <event.h>
 #include <eventq.h>
-#include <lifecycle.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -70,6 +66,7 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
+#include <input/kbd/internal.h>
 #include <input/kbd/modal.h>
 
 
@@ -108,258 +105,6 @@ static surface_td *s_lookup_surface_fallback(list_td *surfaces,
 }
 
 
-/* Active-client lookup helper */
-
-/**
- * @brief Resolve the currently focused client on a surface
- *
- * Looks up the current desktop for @p surface and returns the active
- * client on that desktop.  Optionally returns the owning surface and
- * desktop pointers through @p cs_out and @p cd_out.
- *
- * @param surface  Surface to query
- * @param surfaces Full surface list (for @c lookup_find_client)
- * @param cs_out   Receives the client's owning surface (may be null)
- * @param cd_out   Receives the client's owning desktop (may be null)
- *
- * @return Active client, or @c NULL when none is focused
- *
- * @note Complexity: @e O(n) for the client list walk
- */
-static client_td *s_get_active_client(surface_td *surface,
-        list_td *surfaces,
-        surface_td **cs_out,
-        desktop_td **cd_out)
-{
-    desktop_td *desktop;
-
-    if (cs_out != NULL) { *cs_out = NULL; }
-    if (cd_out != NULL) { *cd_out = NULL; }
-
-    if (surface == NULL) {
-        return NULL;
-    }
-
-    desktop = lookup_current_desktop(surface);
-    if (desktop == NULL || desktop->client_active_id == 0) {
-        return NULL;
-    }
-
-    return lookup_find_client(surfaces, desktop->client_active_id,
-            cs_out, cd_out);
-}
-
-
-/* Keyboard resize helpers */
-
-/**
- * @brief Compute a keyboard resize target for one axis
- *
- * Calculates the next frame size for either the horizontal or vertical
- * axis when resizing a @c client_td via keyboard, taking into account
- * frame extents and window manager size hints such as base size,
- * minimum size and resize increment.  When valid size hints are
- * present, the inner size is snapped to the nearest increment starting
- * from the base (or minimum) size; otherwise a fixed keyboard resize
- * step is applied.
- *
- * @param client     Pointer to the client whose geometry is being
- *                   resized; may be null, in which case @p cur_frame is
- *                   returned
- * @param step       Amount of pixels to resize every step
- * @param horizontal @c true to operate on the horizontal axis (width),
- *                   @c false for the vertical axis (height)
- * @param cur_frame  Current outer frame size (including extents) for
- *                   the selected axis
- * @param grow       @c true to grow (increase) the size, @c false to
- *                   shrink (decrease) it
- *
- * @return The target outer frame size for the selected axis after
- *         applying keyboard resize semantics and clamping via
- *         @c geom_clamp_dim.
- *
- * @note With this, it's honored @c WM_NORMAL_HINTS increments when
- *       available, ensuring that keyboard resizing respects the
- *       client's preferred resize granularity.
- */
-static uint32_t s_kb_resize_axis_target(const client_td *client,
-        uint32_t step, bool horizontal, uint32_t cur_frame, bool grow)
-{
-    uint32_t ext_a;
-    uint32_t ext_b;
-    uint32_t cur_inner;
-    int32_t base_i;
-    int32_t min_i;
-    int32_t inc_i;
-    int32_t target;
-
-    if (client == NULL) {
-        return cur_frame;
-    }
-
-    if (horizontal) {
-        ext_a = (uint32_t) client->layout.frame_extents.left;
-        ext_b = (uint32_t) client->layout.frame_extents.right;
-    } else {
-        ext_a = (uint32_t) client->layout.frame_extents.top;
-        ext_b = (uint32_t) client->layout.frame_extents.bottom;
-    }
-
-    cur_inner = (cur_frame > ext_a + ext_b)
-        ? cur_frame - ext_a - ext_b : 0u;
-    if (!client->size_hints.valid) {
-        int32_t resize_step = (step > 0u) ? (int32_t) step : 1;
-        target = grow
-            ? (int32_t) cur_frame + resize_step
-            : (int32_t) cur_frame - resize_step;
-        return geom_clamp_dim(target);
-    }
-
-    if (horizontal) {
-        base_i = client->size_hints.base_w;
-        min_i = client->size_hints.min_w;
-        inc_i = client->size_hints.inc_w;
-    } else {
-        base_i = client->size_hints.base_h;
-        min_i = client->size_hints.min_h;
-        inc_i = client->size_hints.inc_h;
-    }
-
-    if (inc_i > 1) {
-        uint32_t base = (base_i > 0)
-            ? (uint32_t) base_i
-            : ((min_i > 0) ? (uint32_t) min_i : 0u);
-        uint32_t inc = (uint32_t) inc_i;
-        uint32_t over;
-        uint32_t snapped;
-        uint32_t target_inner;
-
-        if (cur_inner < base) {
-            cur_inner = base;
-        }
-
-        over = (cur_inner > base) ? (cur_inner - base) : 0u;
-        snapped = base + (over / inc) * inc;
-
-        if (grow) {
-            target_inner = snapped + inc;
-        } else {
-            target_inner = (snapped > base) ? (snapped - inc) : base;
-        }
-
-        return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
-    }
-
-    target = (grow)
-        ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
-        : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
-
-    return geom_clamp_dim(target);
-}
-
-
-/**
- * @brief Directly apply a keyboard resize to a client
- *
- * Applies the resize synchronously without going through the event
- * queue.  This mirrors the interactive (mouse-drag) resize path so that
- * both input methods share identical behavior: the geometry is
- * constrained per-axis, applied to the correct X window (frame for
- * decorated clients, content window for undecorated clients), and
- * followed by a synthetic @c ConfigureNotify so the application learns
- * its new geometry immediately.
- *
- * @param client Pointer to the client to resize
- * @param new_x  New frame X position (screen-relative)
- * @param new_y  New frame Y position (screen-relative)
- * @param new_w  New frame width
- * @param new_h  New frame height
- *
- * @note This function flushes the XCB connection before returning.
- */
-static void s_kbd_resize_apply(client_td *client,
-        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h)
-{
-    bool pos_changed;
-    uint16_t mask;
-    uint32_t values[4];
-    xcb_window_t target_win;
-
-    if (client == NULL) {
-        return;
-    }
-
-    /* A shaded client shows only the titlebar; restore the full window
-     * before applying the new dimensions */
-    if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
-    }
-
-    /* The caller ('s_handle_kbd_resize' via 's_kb_resize_axis_target')
-     * already produced fully snapped, increment-aligned frame
-     * dimensions.  Re-applying 'client_constrain_size' here would snap
-     * the values a second time and could produce a size different from
-     * what the position correction ('new_y += old_h - new_h') was
-     * computed for, causing the top edge of the window to shift by the
-     * wrong amount on 'RESIZE_UP'. */
-    pos_changed = (new_x != client->layout.geometry.cur.pos.x ||
-                   new_y != client->layout.geometry.cur.pos.y);
-
-    /* Apply the new geometry to the correct X window.  Decorated
-     * clients are reparented into a frame; undecorated clients are
-     * direct children of the root. */
-    target_win = (client->frame != 0 && client_is_decorated(client))
-        ? client->frame : client->window;
-
-    if (pos_changed) {
-        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-               XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = (uint32_t) new_x;
-        values[1] = (uint32_t) new_y;
-        values[2] = new_w;
-        values[3] = new_h;
-    } else {
-        mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = new_w;
-        values[1] = new_h;
-    }
-    xcb_configure_window(client->connection, target_win, mask, values);
-
-    /* Update the stored geometry after configuring X so that
-     * 'client_sync_decoration_layout' and the synthetic
-     * 'ConfigureNotify' both see the final values */
-    client->layout.geometry.cur.pos.x = new_x;
-    client->layout.geometry.cur.pos.y = new_y;
-    client->layout.geometry.cur.dim.w = new_w;
-    client->layout.geometry.cur.dim.h = new_h;
-
-    /* Reposition and resize the inner window and titlebar to match the
-     * new frame dimensions (no-op for undecorated clients) */
-    client_sync_decoration_layout(client);
-
-    /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
-     * screen-relative coordinates so the application always knows its
-     * true on-screen position and content-area size, regardless of
-     * reparenting. */
-    client_send_synthetic_configure_notify(client->connection, client);
-
-    /* Force a repaint AFTER the synthetic 'ConfigureNotify' so the
-     * application draws at the correct screen-relative geometry.
-     * Placing the 'Expose' here ensures it arrives in the client's
-     * event queue after both the xcb_configure_window (from
-     * 'client_sync_decoration_layout') and the synthetic
-     * 'ConfigureNotify', giving programs that rely on size and position
-     * before their 'Expose' handler runs the correct geometry. */
-    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
-
-    xcb_flush(client->connection);
-
-    /* Mark the desktop as needing a repaint so frame decorations are
-     * refreshed at the correct new dimensions */
-    wm_request_client_redraw(client);
-}
-
-
 /* Cycle-menu key handling */
 
 /**
@@ -384,27 +129,27 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
                                                : NULL;
 
     /* Up arrow: go to previous entry */
-    if (keysym == 0xff52u) {
+    if (keysym == KS_UP) {
         cycle_navigate_prev();
         if (conn != NULL) { cycle_draw(conn, config); }
         return;
     }
 
     /* Down arrow: go to next entry */
-    if (keysym == 0xff54u) {
+    if (keysym == KS_DOWN) {
         cycle_navigate_next();
         if (conn != NULL) { cycle_draw(conn, config); }
         return;
     }
 
     /* Enter / KP_Enter: confirm selection */
-    if (keysym == 0xff0du || keysym == 0xff8du) {
+    if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
         if (conn != NULL) { cycle_confirm(conn, surfaces, config); }
         return;
     }
 
     /* Escape: cancel without activating */
-    if (keysym == 0xff1bu) {
+    if (keysym == KS_ESCAPE) {
         if (conn != NULL) { cycle_close(conn); }
         return;
     }
@@ -435,42 +180,87 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 /* Confirmation dialog key handling */
 
 /**
- * @brief Handle a key press while the quit-confirmation dialog is open
+ * @brief Handle a key press while the generic confirm dialog is open
+ *        (backs both the quit-confirmation dialog and any other
+ *        two-button confirm dialog built on 'menu/dialog/confirm.h',
+ *        e.g. 'menu/dialog/rrsafe.h')
  *
  * @c Tab / @c Left / @c Right toggle the selected button; @c Enter
- * activates it; @c Escape cancels the dialog.
+ * activates it; @c Escape always cancels the dialog, regardless of
+ * which button happens to be selected at the time (see @c
+ * menu_confirm_dialog_cancel).
  *
  * @param keysym  Keysym of the pressed key
  * @param surface Surface for drawing (may be null)
  * @param config  Active configuration
  */
-static void s_handle_dialog_quit_key(xcb_keysym_t keysym,
+static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         surface_td *surface, const config_td *config)
 {
     xcb_connection_t *conn = (surface != NULL) ? surface->connection
                                                : NULL;
 
     /* Tab, Left arrow, Right arrow: toggle selected button */
-    if (keysym == 0xff09u || keysym == 0xff51u || keysym == 0xff53u) {
-        dialog_quit_toggle_selection();
-        if (conn != NULL) { dialog_quit_repaint(conn, config); }
+    if (keysym == KS_TAB || keysym == KS_LEFT || keysym == KS_RIGHT) {
+        menu_confirm_dialog_toggle_selection();
+        if (conn != NULL) { menu_confirm_dialog_repaint(conn, config); }
         return;
     }
 
-    /* Enter / KP_Enter / Space: confirm */
-    if (keysym == 0xff0du || keysym == 0xff8du || keysym == 0x0020u) {
-        if (conn != NULL) { dialog_quit_accept(conn); }
+    /* Enter / KP_Enter / Space: activate the currently selected button */
+    if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
+            keysym == KS_SPACE) {
+        if (conn != NULL) { menu_confirm_dialog_accept(conn); }
         return;
     }
 
-    /* Escape: dismiss without action */
-    if (keysym == 0xff1bu) {
-        if (conn != NULL) { dialog_quit_close(conn); }
+    /* Escape: always cancels, whichever button is currently selected */
+    if (keysym == KS_ESCAPE) {
+        if (conn != NULL) { menu_confirm_dialog_cancel(conn); }
     }
 }
 
 
 /* Context-menu key handling */
+
+/**
+ * @brief Resolve where a keyboard-triggered root/window-list menu
+ *        should open: centered on the surface, or under the current
+ *        pointer position
+ *
+ * Shared by @c KEYBIND_WM_ROOT_MENU and @c KEYBIND_WM_WINDOWS_MENU in
+ * @c keyboard_handle_press, which only differ in which configuration
+ * field selects "under mouse" and which function they go on to call
+ * with the resolved position.  Falls back to the surface center if
+ * @p under_mouse is @c true but the pointer query itself fails.
+ *
+ * @param surface     Surface the menu will open on
+ * @param under_mouse Whether to query the pointer at all, rather than
+ *                    always using the surface center
+ * @param out_x       Receives the resolved X position
+ * @param out_y       Receives the resolved Y position
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_resolve_menu_position(surface_td *surface, bool under_mouse,
+        int16_t *out_x, int16_t *out_y)
+{
+    *out_x = (int16_t) (surface->properties.dim.w / 2u);
+    *out_y = (int16_t) (surface->properties.dim.h / 2u);
+
+    if (under_mouse && surface->screen != NULL) {
+        xcb_query_pointer_cookie_t qc =
+            xcb_query_pointer(surface->connection, surface->screen->root);
+        xcb_query_pointer_reply_t *qr =
+            xcb_query_pointer_reply(surface->connection, qc, NULL);
+        if (qr != NULL) {
+            *out_x = qr->root_x;
+            *out_y = qr->root_y;
+            free(qr);
+        }
+    }
+}
+
 
 /**
  * @brief Dispatch a key-press event to the currently open context menu
@@ -548,7 +338,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         return;
     }
 
-    client = s_get_active_client(surface, surfaces, NULL, NULL);
+    client = ik_get_active_client(surface, surfaces, NULL, NULL);
     if (client == NULL) {
         return;
     }
@@ -678,378 +468,6 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 }
 
 
-/* Program launch dispatch */
-
-/**
- * @brief Launch a configured program for the given binding type
- *
- * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @c lifecycle_dispatch_launch.
- *
- * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
- *                constants)
- * @param surface Current surface passed to @c lifecycle_dispatch_launch
- * @param config  Active configuration holding the program paths
- */
-static void s_handle_kbd_launch(enum wm_keybind_type_e btype,
-        surface_td *surface, const config_td *config)
-{
-    const char *program = NULL;
-
-    switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
-        case KEYBIND_NONE:
-        case KEYBIND_DESKTOP_NEXT:
-        case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_CLIENT_MOVE_LEFT:
-        case KEYBIND_CLIENT_MOVE_RIGHT:
-        case KEYBIND_CLIENT_MOVE_UP:
-        case KEYBIND_CLIENT_MOVE_DOWN:
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_LEFT:
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_UP:
-        case KEYBIND_CLIENT_RESIZE_DOWN:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_LAUNCH_TERMINAL:
-            program = config->base.programs.terminal;
-            break;
-        case KEYBIND_LAUNCH_LAUNCHER:
-            program = config->base.programs.launcher;
-            break;
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-            program = config->base.programs.file_manager;
-            break;
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-            program = config->base.programs.web_browser;
-            break;
-        case KEYBIND_LAUNCH_EDITOR:
-            program = config->base.programs.editor;
-            break;
-    }
-
-    lifecycle_dispatch_launch(surface, program, NULL);
-}
-
-
-/* Keyboard move dispatch */
-
-/**
- * @brief Move the focused client by keyboard
- *
- * Resolves the active client and computes a new position based on
- * @p btype: relative steps (@c KEYBIND_CLIENT_MOVE_LEFT / @c RIGHT /
- * @c UP / @c DOWN) or absolute corner snaps
- * (@c KEYBIND_CLIENT_MOVE_TOP_LEFT...).
- *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_MOVE_*
- *                 constants)
- * @param surface  Current surface
- * @param surfaces Full surface list
- * @param config   Active configuration (for the move step size)
- */
-static void s_handle_kbd_move(enum wm_keybind_type_e btype,
-        surface_td *surface, list_td *surfaces,
-        const config_td *config)
-{
-    surface_td *cs = NULL;
-    client_td *client;
-    int32_t move_step;
-    int32_t new_x;
-    int32_t new_y;
-    int32_t max_x;
-    int32_t max_y;
-
-    client = s_get_active_client(surface, surfaces, &cs, NULL);
-    if (client == NULL) {
-        return;
-    }
-
-    move_step = (int32_t) ((config->base.windows.move_step > 0u)
-            ? config->base.windows.move_step : 1u);
-    new_x = client->layout.geometry.cur.pos.x;
-    new_y = client->layout.geometry.cur.pos.y;
-    max_x = (cs != NULL)
-        ? (int32_t) cs->properties.dim.w -
-          (int32_t) client->layout.geometry.cur.dim.w
-        : new_x;
-    max_y = (cs != NULL)
-        ? (int32_t) cs->properties.dim.h -
-          (int32_t) client->layout.geometry.cur.dim.h
-        : new_y;
-
-    switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
-        case KEYBIND_NONE:
-        case KEYBIND_DESKTOP_NEXT:
-        case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_LAUNCH_TERMINAL:
-        case KEYBIND_LAUNCH_LAUNCHER:
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-        case KEYBIND_LAUNCH_EDITOR:
-        case KEYBIND_CLIENT_RESIZE_LEFT:
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_UP:
-        case KEYBIND_CLIENT_RESIZE_DOWN:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_CLIENT_MOVE_LEFT:
-            new_x -= move_step;
-            break;
-        case KEYBIND_CLIENT_MOVE_RIGHT:
-            new_x += move_step;
-            break;
-        case KEYBIND_CLIENT_MOVE_UP:
-            new_y -= move_step;
-            break;
-        case KEYBIND_CLIENT_MOVE_DOWN:
-            new_y += move_step;
-            break;
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-            new_x = 0;
-            new_y = 0;
-            break;
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-            new_x = max_x;
-            new_y = 0;
-            break;
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-            new_x = 0;
-            new_y = max_y;
-            break;
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-            new_x = max_x;
-            new_y = max_y;
-            break;
-    }
-
-    (void) client_send_event_move(client, new_x, new_y);
-}
-
-
-/* Keyboard resize dispatch */
-
-/**
- * @brief Resize the focused client by keyboard
- *
- * Resolves the active client, checks that it is resizable and not in a
- * state that prevents resizing (fullscreen, maximized), and applies an
- * increment-aware size change in the direction indicated by @p btype.
- * @c Left / @c Up shrink from the right/bottom edge; @c Right / @c Down
- * grow that edge.
- *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_RESIZE_* constants)
- * @param surface  Current surface
- * @param surfaces Full surface list
- * @param config   Active configuration (for the resize step size)
- */
-static void s_handle_kbd_resize(enum wm_keybind_type_e btype,
-        surface_td *surface, list_td *surfaces,
-        const config_td *config)
-{
-    client_td *client;
-    uint32_t resize_step;
-    int32_t new_x;
-    int32_t new_y;
-    uint32_t old_w;
-    uint32_t old_h;
-    int32_t new_w;
-    int32_t new_h;
-
-    client = s_get_active_client(surface, surfaces, NULL, NULL);
-    if (client == NULL || !client_is_resizable(client)) {
-        return;
-    }
-
-    /* Refuse to resize clients in a fixed-size state */
-    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
-            client->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT) {
-        return;
-    }
-
-    resize_step = (config->base.windows.resize_step > 0u)
-        ? config->base.windows.resize_step : 1u;
-    new_x = client->layout.geometry.cur.pos.x;
-    new_y = client->layout.geometry.cur.pos.y;
-
-    /* Operate in frame space (outer dimensions including decoration
-     * extents).  's_kbd_resize_apply' converts to inner space
-     * internally when applying size hints. */
-    old_w = client->layout.geometry.cur.dim.w;
-    old_h = client_is_shaded(client)
-        ? client->layout.geometry.old.dim.h
-        : client->layout.geometry.cur.dim.h;
-    new_w = (int32_t) old_w;
-    new_h = (int32_t) old_h;
-
-    switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
-        case KEYBIND_NONE:
-        case KEYBIND_DESKTOP_NEXT:
-        case KEYBIND_DESKTOP_PREV:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_LAUNCH_TERMINAL:
-        case KEYBIND_LAUNCH_LAUNCHER:
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-        case KEYBIND_LAUNCH_EDITOR:
-        case KEYBIND_CLIENT_MOVE_LEFT:
-        case KEYBIND_CLIENT_MOVE_RIGHT:
-        case KEYBIND_CLIENT_MOVE_UP:
-        case KEYBIND_CLIENT_MOVE_DOWN:
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_CLIENT_RESIZE_LEFT:
-            new_w = (int32_t) s_kb_resize_axis_target(client,
-                    resize_step, true, old_w, false);
-            new_x += (int32_t) old_w - new_w;
-            break;
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
-            new_w = (int32_t) s_kb_resize_axis_target(client,
-                    resize_step, true, old_w, true);
-            break;
-        case KEYBIND_CLIENT_RESIZE_UP:
-            new_h = (int32_t) s_kb_resize_axis_target(client,
-                    resize_step, false, old_h, false);
-            new_y += (int32_t) old_h - new_h;
-            break;
-        case KEYBIND_CLIENT_RESIZE_DOWN:
-            new_h = (int32_t) s_kb_resize_axis_target(client,
-                    resize_step, false, old_h, true);
-            break;
-    }
-
-    s_kbd_resize_apply(client,
-            new_x, new_y,
-            geom_clamp_dim(new_w),
-            geom_clamp_dim(new_h));
-}
-
 
 /* Public event handlers */
 
@@ -1118,9 +536,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         return;
     }
 
-    /* Quit-confirmation dialog intercepts all keys while open */
-    if (dialog_quit_is_open()) {
-        s_handle_dialog_quit_key(keysym, surface, config);
+    /* Generic confirm dialog intercepts all keys while open, whether
+     * it is currently showing as the quit-confirmation dialog or
+     * something else built on 'menu/dialog/confirm.h' (see
+     * 's_handle_menu_confirm_dialog_key'); only one instance of it
+     * can ever be open at a time, so which wrapper opened it does not
+     * matter here. */
+    if (menu_confirm_dialog_is_open()) {
+        s_handle_menu_confirm_dialog_key(keysym, surface, config);
         return;
     }
 
@@ -1130,27 +553,27 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
      * Enter, Space, or Escape close it same as clicking "OK" would */
     if (dialog_info_is_open()) {
         if (surface != NULL && surface->connection != NULL) {
-            if (keysym == 0xff52u) {          /* Up */
+            if (keysym == KS_UP) {
                 menu_message_dialog_scroll(surface->connection,
                         config, -1);
                 return;
             }
-            if (keysym == 0xff54u) {          /* Down */
+            if (keysym == KS_DOWN) {
                 menu_message_dialog_scroll(surface->connection,
                         config, 1);
                 return;
             }
-            if (keysym == 0xff55u) {          /* Page_Up */
+            if (keysym == KS_PAGE_UP) {
                 menu_message_dialog_scroll(surface->connection,
                         config, -(int32_t) DIALOG_MSG_MAX_LINES);
                 return;
             }
-            if (keysym == 0xff56u) {          /* Page_Down */
+            if (keysym == KS_PAGE_DOWN) {
                 menu_message_dialog_scroll(surface->connection,
                         config, (int32_t) DIALOG_MSG_MAX_LINES);
                 return;
             }
-            if (keysym == 0xff09u) {          /* Tab */
+            if (keysym == KS_TAB) {
                 menu_message_dialog_select_ok(surface->connection,
                         config);
                 return;
@@ -1166,14 +589,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
          * selecting first and then pressing Enter/Space would).
          * Every other level keeps the previous, quicker-to-dismiss
          * behavior, where all four keys always just close it. */
-        if (keysym == 0xff0du || keysym == 0xff8du ||
-                keysym == 0x0020u) {          /* Return, KP_Enter, Space */
+        if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
+                keysym == KS_SPACE) {
             if (surface != NULL && surface->connection != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
                 dialog_info_close(surface->connection);
             }
-        } else if (keysym == 0xff1bu) {       /* Escape */
+        } else if (keysym == KS_ESCAPE) {
             if (surface != NULL && surface->connection != NULL &&
                     !menu_message_dialog_requires_selection()) {
                 dialog_info_close(surface->connection);
@@ -1189,19 +612,19 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
      * regardless, rather than left to visibly rot, in case a future
      * change to the block above ever makes this one reachable again. */
     if (menu_message_dialog_is_open()) {
-        if (keysym == 0xff0du || keysym == 0xff8du ||
-                keysym == 0x0020u) {          /* Return, KP_Enter, Space */
+        if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
+                keysym == KS_SPACE) {
             if (surface != NULL && surface->connection != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
                 menu_message_dialog_close(surface->connection);
             }
-        } else if (keysym == 0xff1bu) {       /* Escape */
+        } else if (keysym == KS_ESCAPE) {
             if (surface != NULL && surface->connection != NULL &&
                     !menu_message_dialog_requires_selection()) {
                 menu_message_dialog_close(surface->connection);
             }
-        } else if (keysym == 0xff09u &&       /* Tab */
+        } else if (keysym == KS_TAB &&
                 surface != NULL && surface->connection != NULL) {
             menu_message_dialog_select_ok(surface->connection, config);
         }
@@ -1217,7 +640,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
     /* Emergency exit 'Ctrl+Mod1+BackSpace' */
     if (config->base.enable_emergency_shortcut &&
-            keysym == 0xff08u &&
+            keysym == KS_BACKSPACE &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
         LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
@@ -1243,27 +666,16 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
         }
 
         switch (btype) {
-            case KEYBIND_DESKTOP_NEXT: {
-                if (surface != NULL) {
-                    event_td *ev;
-                    action_td action;
-                    action.type = ACTION_TYPE_SURFACE;
-                    action.object.surface =
-                        ACTION_SURFACE_DESKTOP_SWITCH_NEXT;
-                    ev = event_init((void *) surface, NULL, action,
-                            PRIORITY_NORMAL);
-                    if (ev != NULL) { eventq_add(ev); }
-                }
-                return;
-            }
-
+            case KEYBIND_DESKTOP_NEXT:
             case KEYBIND_DESKTOP_PREV: {
                 if (surface != NULL) {
                     event_td *ev;
                     action_td action;
                     action.type = ACTION_TYPE_SURFACE;
                     action.object.surface =
-                        ACTION_SURFACE_DESKTOP_SWITCH_PREV;
+                        (btype == KEYBIND_DESKTOP_NEXT)
+                            ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
+                            : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
                     ev = event_init((void *) surface, NULL, action,
                             PRIORITY_NORMAL);
                     if (ev != NULL) { eventq_add(ev); }
@@ -1366,60 +778,38 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_ROOT_MENU:
                 if (surface != NULL && surface->connection != NULL) {
-                    int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
-                    int16_t my = (int16_t) (surface->properties.dim.h / 2u);
+                    int16_t mx;
+                    int16_t my;
 
                     /* When configured to appear under the cursor
                      * instead of always centered, query the current
                      * pointer position and use it, falling back to the
                      * screen center if the query fails */
-                    if (config != NULL &&
-                            config->base.menus.root.position ==
-                                CONFIG_MENU_POSITION_UNDER_MOUSE &&
-                            surface->screen != NULL) {
-                        xcb_query_pointer_cookie_t qc =
-                            xcb_query_pointer(surface->connection,
-                                    surface->screen->root);
-                        xcb_query_pointer_reply_t *qr =
-                            xcb_query_pointer_reply(surface->connection,
-                                    qc, NULL);
-                        if (qr != NULL) {
-                            mx = qr->root_x;
-                            my = qr->root_y;
-                            free(qr);
-                        }
-                    }
+                    s_resolve_menu_position(surface,
+                            config != NULL &&
+                                config->base.menus.root.position ==
+                                    CONFIG_MENU_POSITION_UNDER_MOUSE,
+                            &mx, &my);
 
                     rootmenu_show(surface->connection, surface,
-                            mx, my, config, wm_get_config_dir());
+                            mx, my, config);
                 }
                 return;
 
             case KEYBIND_WM_WINDOWS_MENU:
                 if (surface != NULL && surface->connection != NULL) {
-                    int16_t mx = (int16_t) (surface->properties.dim.w / 2u);
-                    int16_t my = (int16_t) (surface->properties.dim.h / 2u);
+                    int16_t mx;
+                    int16_t my;
 
                     /* Same "under the cursor instead of a fixed point"
                      * behavior as the root menu (see
                      * 'KEYBIND_WM_ROOT_MENU' above), just governed by
                      * its own 'menus.windows.position' setting */
-                    if (config != NULL &&
-                            config->base.menus.windows.position ==
-                                CONFIG_MENU_POSITION_UNDER_MOUSE &&
-                            surface->screen != NULL) {
-                        xcb_query_pointer_cookie_t qc =
-                            xcb_query_pointer(surface->connection,
-                                    surface->screen->root);
-                        xcb_query_pointer_reply_t *qr =
-                            xcb_query_pointer_reply(surface->connection,
-                                    qc, NULL);
-                        if (qr != NULL) {
-                            mx = qr->root_x;
-                            my = qr->root_y;
-                            free(qr);
-                        }
-                    }
+                    s_resolve_menu_position(surface,
+                            config != NULL &&
+                                config->base.menus.windows.position ==
+                                    CONFIG_MENU_POSITION_UNDER_MOUSE,
+                            &mx, &my);
 
                     winlist_show(surface->connection, surface,
                             mx, my, config);
@@ -1430,7 +820,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 /* Hardcoded 'Alt+Space': opens the context menu of the
                  * currently active client, anchored at its own position
                  * (unrelated to 'KEYBIND_WM_WINDOWS_MENU') */
-                client_td *client = s_get_active_client(surface,
+                client_td *client = ik_get_active_client(surface,
                         surfaces, NULL, NULL);
                 if (client != NULL && surface != NULL &&
                         surface->connection != NULL) {
@@ -1468,7 +858,7 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_LAUNCH_FILE_MANAGER:
             case KEYBIND_LAUNCH_WEB_BROWSER:
             case KEYBIND_LAUNCH_EDITOR:
-                s_handle_kbd_launch(btype, surface, config);
+                ik_handle_launch(btype, surface, config);
                 return;
 
             case KEYBIND_CLIENT_MOVE_LEFT:
@@ -1479,14 +869,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
             case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
             case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-                s_handle_kbd_move(btype, surface, surfaces, config);
+                ik_handle_move(btype, surface, surfaces, config);
                 return;
 
             case KEYBIND_CLIENT_RESIZE_LEFT:
             case KEYBIND_CLIENT_RESIZE_RIGHT:
             case KEYBIND_CLIENT_RESIZE_UP:
             case KEYBIND_CLIENT_RESIZE_DOWN:
-                s_handle_kbd_resize(btype, surface, surfaces, config);
+                ik_handle_resize(btype, surface, surfaces, config);
                 return;
 
             case KEYBIND_NONE:

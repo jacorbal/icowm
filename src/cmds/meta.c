@@ -22,6 +22,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <actdata.h>
@@ -116,8 +117,7 @@ void wcmd_client_reclass(client_td *client,
 void wcmd_client_rerole(client_td *client,
         action_data_client_td *client_data)
 {
-    xcb_intern_atom_cookie_t role_atom_cookie;
-    xcb_intern_atom_reply_t *role_atom_reply;
+    xcb_atom_t role_atom;
 
     if (client == NULL || client_data == NULL) {
         return;
@@ -130,25 +130,19 @@ void wcmd_client_rerole(client_td *client,
     client->info.role_name =
         safe_strdup(client_data->new_data.str.str0);
 
-    role_atom_cookie = xcb_intern_atom(client->connection, 0,
-            (uint16_t) safe_strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-    role_atom_reply = xcb_intern_atom_reply(client->connection,
-            role_atom_cookie, NULL);
-
-    if (!role_atom_reply) {
+    role_atom = atom_intern(client->connection, "WM_WINDOW_ROLE", false);
+    if (role_atom == XCB_ATOM_NONE) {
         return;
     }
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,
             client->window,
-            role_atom_reply->atom,
+            role_atom,
             XCB_ATOM_STRING,
             8,
             (uint32_t) safe_strlen(client->info.role_name),
             client->info.role_name);
-
-    free(role_atom_reply);
 }
 
 

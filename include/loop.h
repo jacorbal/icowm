@@ -5,6 +5,9 @@
  *
  * Declares the three functions that run the window manager's main event
  * loop and maintain surface rendering state.
+ *
+ * @defgroup loop Main event loop and startup
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

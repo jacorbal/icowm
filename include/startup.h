@@ -6,6 +6,8 @@
  * Declares helpers for subscribing to root-window events, installing
  * signal handlers, and querying deferred signal work that the main loop
  * must process in normal execution context.
+ *
+ * @ingroup loop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

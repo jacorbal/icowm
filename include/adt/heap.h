@@ -3,7 +3,7 @@
  *
  * @brief Heap data structure declaration
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef HEAP_H

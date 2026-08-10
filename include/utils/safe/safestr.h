@@ -24,7 +24,7 @@
  *  - @c 'int safe_strncmp(const char *s1, const char *s2)'
  *  - @c 'int safe_strcmp(const char *s1, const char *s2)'
  *
- * @ingroup str Safe string utils
+ * @ingroup utils_safe
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

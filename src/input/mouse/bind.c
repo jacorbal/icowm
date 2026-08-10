@@ -19,7 +19,6 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free */
 #include <string.h>     /* memcpy */
 #include <strings.h>    /* strcasecmp */
 
@@ -41,6 +40,7 @@
 #include <surface.h>
 
 /* Local includes */
+#include <input/modifier.h>
 #include <input/mouse.h>
 
 
@@ -50,93 +50,6 @@ static wm_mousebinding_td s_mousebindings[WM_MAX_MOUSEBINDINGS];
 
 /** Number of active mouse bindings */
 static int s_mousebindings_count = 0;
-
-
-/**
- * @brief Resolve configured modifier aliases
- *
- * @param config Configuration holding the alias strings
- * @param tok Token to resolve
- *
- * @return Resolved string, or @p tok unchanged if no alias matches
- *
- * @note Complexity: @e O(1)
- */
-static const char *s_resolve_modifier_token(const config_td *config,
-        const char *tok)
-{
-    if (tok == NULL || config == NULL) {
-        return tok;
-    }
-
-    if (strcasecmp(tok, "modc") == 0) { return config->bindings.modc; }
-    if (strcasecmp(tok, "mods") == 0) { return config->bindings.mods; }
-    if (strcasecmp(tok, "modl") == 0) { return config->bindings.modl; }
-    if (strcasecmp(tok, "mod1") == 0) { return config->bindings.mod1; }
-    if (strcasecmp(tok, "mod2") == 0) { return config->bindings.mod2; }
-    if (strcasecmp(tok, "mod3") == 0) { return config->bindings.mod3; }
-    if (strcasecmp(tok, "mod4") == 0) { return config->bindings.mod4; }
-    if (strcasecmp(tok, "mod5") == 0) { return config->bindings.mod5; }
-
-    return tok;
-}
-
-
-/**
- * @brief Map a single modifier token to an XCB modifier mask
- *
- * @param config Configuration holding the alias strings
- * @param tok Modifier token to parse
- *
- * @return XCB modifier mask, or 0 if not recognized
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_parse_modifier_token(const config_td *config,
-        const char *tok)
-{
-    const char *resolved = s_resolve_modifier_token(config, tok);
-
-    if (resolved == NULL || resolved[0] == '\0') {
-        return 0;
-    }
-
-    if (strcasecmp(resolved, "mod1") == 0 ||
-            strcasecmp(resolved, "alt") == 0) {
-        return XCB_MOD_MASK_1;
-    }
-    if (strcasecmp(resolved, "mod2") == 0 ||
-            strcasecmp(resolved, "num_lock") == 0 ||
-            strcasecmp(resolved, "num-lock") == 0) {
-        return XCB_MOD_MASK_2;
-    }
-    if (strcasecmp(resolved, "mod3") == 0) {
-        return XCB_MOD_MASK_3;
-    }
-    if (strcasecmp(resolved, "mod4") == 0 ||
-            strcasecmp(resolved, "super") == 0 ||
-            strcasecmp(resolved, "win") == 0) {
-        return XCB_MOD_MASK_4;
-    }
-    if (strcasecmp(resolved, "mod5") == 0 ||
-            strcasecmp(resolved, "hyper") == 0) {
-        return XCB_MOD_MASK_5;
-    }
-    if (strcasecmp(resolved, "ctrl") == 0 ||
-            strcasecmp(resolved, "control") == 0) {
-        return XCB_MOD_MASK_CONTROL;
-    }
-    if (strcasecmp(resolved, "shift") == 0) {
-        return XCB_MOD_MASK_SHIFT;
-    }
-    if (strcasecmp(resolved, "lock") == 0 ||
-            strcasecmp(resolved, "caps_lock") == 0 ||
-            strcasecmp(resolved, "caps-lock") == 0) {
-        return XCB_MOD_MASK_LOCK;
-    }
-
-    return 0;
-}
 
 
 /**
@@ -210,7 +123,7 @@ static bool s_parse_mouse_binding(const config_td *config,
     tok = strtok_r(buf, "+", &save);
     while (tok != NULL) {
         if (prev_tok != NULL) {
-            uint16_t mod = s_parse_modifier_token(config, prev_tok);
+            uint16_t mod = im_parse_modifier_token(config, prev_tok);
             if (mod != 0) {
                 *modmask |= mod;
             }

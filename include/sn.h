@@ -26,6 +26,8 @@
  *       startup sequence that produced it, e.g., for placement or
  *       focus decisions) is not, since ending the busy cursor is the
  *       only user-visible behavior that currently depends on it.
+ *
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

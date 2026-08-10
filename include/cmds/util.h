@@ -7,7 +7,7 @@
  * Helpers that provide low-level XCB and EWMH plumbing used by the
  * client-command modules (@c ccmd, @c geom, @c layer, @c meta).
  *
- * @ingroup cmds Client commands subsystem
+ * @ingroup cmds
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -3,7 +3,7 @@
  *
  * @brief Quit-confirmation dialog (text content and wrappers)
  *
-  * Defines only the visible text used by the quit-confirmation dialog:
+ * Defines only the visible text used by the quit-confirmation dialog:
  * the prompt format string, the cancel and exit button labels, and the
  * maximum prompt buffer size.  All layout and rendering logic lives in
  * the generic confirm-dialog infrastructure (@c menu/confirm.h).
@@ -11,6 +11,8 @@
  * The thin wrapper functions declared here are the public entry points
  * for opening, interacting with, and closing the quit-confirmation
  * dialog; they delegate directly to the generic confirm-dialog API.
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,15 +33,12 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <defs/dialog.h>
 #include <defs/uistr.h>
 
 /* Project includes */
 #include <config.h>
 #include <surface.h>
-
-
-/** Maximum prompt buffer length */
-#define DIALOG_QUIT_PROMPT_MAX_LEN (128u)
 
 
 /* Thin wrapper interface */

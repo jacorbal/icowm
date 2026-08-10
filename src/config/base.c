@@ -490,35 +490,68 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
 }
 
 
-/* Load base configuration */
-int config_load_base(const char *filename,
-        struct config_base_s *config_base)
+/**
+ * @brief Enforce a minimum on a just-loaded configuration count field,
+ *        logging and correcting it in place if it falls short
+ *
+ * A handful of configuration count fields (number of screens, number
+ * of desktops on a screen) are meaningless below 1: a window manager
+ * with 0 screens or 0 desktops has nowhere to put a single window.
+ * Centralizes the "warn and default to the floor" behavior every one
+ * of them needs, rather than repeating the same check at each call
+ * site.
+ *
+ * @param value       Field to check and, if needed, correct in place
+ * @param minimum     Smallest value considered valid; typically 1
+ * @param field_label Human-readable name for the log message
+ * @param filename    Path the value was loaded from, for the log
+ *                     message only
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
+        const char *field_label, const char *filename)
 {
-    cJSON *json;
-    cJSON *programs;
-    cJSON *windows;
+    if (*value >= minimum) {
+        return;
+    }
+
+    LOGGER_WARNING("'%s' in '%s' is %u, below the minimum of %u;" \
+            " defaulting to %u",
+            field_label, filename, *value, minimum, minimum);
+    *value = minimum;
+}
+
+
+/**
+ * @brief Load @c "screens" (screen count, and each screen's desktop
+ *        count/inaugural desktop/desktop entries) from parsed
+ *        @c config.json
+ *
+ * Accepts two on-disk shapes for the @c "screens.settings.desktops"
+ * array: a flat list of desktop entries applied to screen 0 (the
+ * common, single-screen case), or, when any entry in that array
+ * itself carries its own @c "settings"/"count"/"inaugural" fields, a
+ * nested layout where each entry instead describes one whole screen
+ * (multi-screen configurations).  Which shape is in use is detected
+ * from the first array entry alone.  A missing @c "screens" object,
+ * or a missing/non-array @c "desktops" within it, leaves whatever
+ * @p config_base already held (its compiled-in or previously-loaded
+ * defaults) untouched, logging why.
+ *
+ * @param json        Parsed root of @c config.json
+ * @param config_base Destination structure; its @c screen_count and
+ *                    each screen's own desktop settings are updated
+ *                    here
+ * @param filename    Path @p json was read from, for log messages only
+ *
+ * @note Complexity: @e O(s * d), where @e s is the number of screens
+ *       and @e d the number of desktops described
+ */
+static void s_config_load_screens(cJSON *json,
+        struct config_base_s *config_base, const char *filename)
+{
     cJSON *screen_settings;
-    cJSON *icons;
-    cJSON *menus;
-    cJSON *startup_notification_item;
-    cJSON *systray;
-
-    LOGGER_TRACE("Preparing to parse base configuration from file" \
-            " '%s'", filename);
-
-    /* Load file, or exit */
-    if (json_load_config(filename, &json) != 0) {
-        return 1;
-    }
-
-    /* Theme name */
-    if (json_load_string(json, "theme", config_base->theme,
-                CONFIG_MAX_LENGTH_FILENAME) != 0) {
-        LOGGER_WARNING("Invalid theme specified:" \
-                " '%s'; default configuration will be used",
-                config_base->theme);
-        config_base->theme[0] = '\0';
-    }
 
     screen_settings = cJSON_GetObjectItem(json, "screens");
     if (screen_settings == NULL) {
@@ -532,6 +565,8 @@ int config_load_base(const char *filename,
         /* Load total number of screen */
         json_load_uint(screen_settings, "count",
                 &config_base->screen_count);
+        s_config_enforce_min_count(&config_base->screen_count, 1u,
+                "screens.count", filename);
 
         /* Get 'desktop' array inside 'settings' */
         settings =
@@ -565,6 +600,9 @@ int config_load_base(const char *filename,
 
             if (!uses_nested_screen_layout) {
                 config_base->screens[0].desktop_count = desktop_count;
+                s_config_enforce_min_count(
+                        &config_base->screens[0].desktop_count, 1u,
+                        "screens.settings.desktops (count)", filename);
 
                 for (unsigned int i = 0;
                         i < desktop_count && i < CONFIG_MAX_DESKTOPS;
@@ -598,6 +636,9 @@ int config_load_base(const char *filename,
                         /* Load desktop 'count' and 'inaugural' */
                         json_load_uint(desktop_item, "count",
                                 &config_base->screens[i].desktop_count);
+                        s_config_enforce_min_count(
+                                &config_base->screens[i].desktop_count,
+                                1u, "screens[].count", filename);
                         json_load_uint(desktop_item, "inaugural",
                                 &config_base->screens[i].desktop_inaugural);
 
@@ -646,6 +687,191 @@ int config_load_base(const char *filename,
                     " keep their default values", filename);
         } /* ! if (desktops_array) */
     } /* ! if (screen_settings) */
+}
+
+
+/* Load base configuration */
+/**
+ * @brief Load @c "systray" (dock position/monitor/order/layer, and
+ *        its nested @c "clock", @c "battery", and @c "text" objects)
+ *        from parsed @c config.json
+ *
+ * A no-op, leaving @p config_base's own systray fields at whatever
+ * they already held, if @c "systray" itself is absent.  Each of the
+ * three nested objects is likewise only consulted if present.
+ *
+ * @param json        Parsed root of @c config.json
+ * @param config_base Destination structure; its @c systray fields are
+ *                    updated here
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_load_systray(cJSON *json,
+        struct config_base_s *config_base)
+{
+    cJSON *systray;
+    cJSON *position_item;
+    cJSON *monitor_item;
+    cJSON *order_item;
+    cJSON *layer_item;
+    cJSON *clock_item;
+    cJSON *battery_item;
+    cJSON *text_item;
+
+    systray = cJSON_GetObjectItem(json, "systray");
+    if (!systray) {
+        return;
+    }
+
+    json_load_bool(systray, "is-enabled",
+            &config_base->systray.is_enabled);
+    position_item = json_get_item(systray, "position");
+    if (position_item != NULL && cJSON_IsString(position_item)) {
+        config_base->systray.position =
+            s_config_parse_systray_position(
+                    position_item->valuestring);
+    }
+    monitor_item = cJSON_GetObjectItem(systray, "monitor");
+    if (monitor_item) {
+        cJSON *anchor_item;
+        cJSON *index_item;
+
+        anchor_item = json_get_item(monitor_item, "anchor");
+        if (anchor_item != NULL && cJSON_IsString(anchor_item)) {
+            config_base->systray.monitor.anchor =
+                s_config_parse_systray_monitor_anchor(
+                        anchor_item->valuestring);
+        }
+        index_item = json_get_item(monitor_item, "index");
+        if (cJSON_IsNumber(index_item) && index_item->valueint >= 0) {
+            config_base->systray.monitor.index =
+                (uint32_t) index_item->valueint;
+        }
+    }
+    order_item = json_get_item(systray, "order");
+    if (order_item != NULL && cJSON_IsString(order_item)) {
+        config_base->systray.order =
+            s_config_parse_systray_order(order_item->valuestring);
+    }
+    layer_item = json_get_item(systray, "layer");
+    if (layer_item != NULL && cJSON_IsString(layer_item)) {
+        config_base->systray.layer =
+            s_config_parse_systray_layer(layer_item->valuestring);
+    }
+
+    clock_item = cJSON_GetObjectItem(systray, "clock");
+    if (clock_item) {
+        json_load_bool(clock_item, "is-enabled",
+                &config_base->systray.clock.is_enabled);
+        json_load_string(clock_item, "format",
+                config_base->systray.clock.format,
+                sizeof(config_base->systray.clock.format));
+    }
+
+    battery_item = cJSON_GetObjectItem(systray, "battery");
+    if (battery_item) {
+        cJSON *threshold_item;
+        cJSON *backend_item;
+
+        json_load_bool(battery_item, "is-enabled",
+                &config_base->systray.battery.is_enabled);
+
+        threshold_item = cJSON_GetObjectItem(battery_item,
+                "threshold");
+        if (threshold_item) {
+            json_load_uint(threshold_item, "charged",
+                    &config_base->systray.battery.threshold.charged);
+            json_load_uint(threshold_item, "low",
+                    &config_base->systray.battery.threshold.low);
+            json_load_uint(threshold_item, "critical",
+                    &config_base->systray.battery.threshold.critical);
+        }
+
+        backend_item = cJSON_GetObjectItem(battery_item, "backend");
+        if (backend_item) {
+            cJSON *backend_type_item = json_get_item(backend_item,
+                    "type");
+
+            if (backend_type_item != NULL &&
+                    cJSON_IsString(backend_type_item)) {
+                config_base->systray.battery.backend.type =
+                    s_config_parse_battery_backend_type(
+                            backend_type_item->valuestring);
+            }
+            json_load_uint(backend_item, "number",
+                    &config_base->systray.battery.backend.number);
+        }
+
+        json_load_uint(battery_item, "poll-seconds",
+                &config_base->systray.battery.poll_seconds);
+    }
+
+    text_item = cJSON_GetObjectItem(systray, "text");
+    if (text_item) {
+        cJSON *text_position_item;
+        cJSON *text_order_item;
+
+        text_position_item = json_get_item(text_item, "position");
+        if (text_position_item != NULL &&
+                cJSON_IsString(text_position_item)) {
+            config_base->systray.text.position =
+                s_config_parse_systray_text_position(
+                        text_position_item->valuestring);
+        }
+
+        text_order_item = cJSON_GetObjectItem(text_item, "order");
+        if (text_order_item != NULL &&
+                cJSON_IsArray(text_order_item)) {
+            uint8_t out_count = 0u;
+            int arr_size = cJSON_GetArraySize(text_order_item);
+
+            for (int i = 0;
+                    i < arr_size && out_count < 2u; ++i) {
+                cJSON *elem = cJSON_GetArrayItem(text_order_item, i);
+                enum config_systray_text_item_e parsed;
+
+                if (elem != NULL && cJSON_IsString(elem) &&
+                        s_config_parse_systray_text_item(
+                                elem->valuestring, &parsed)) {
+                    config_base->systray.text.order[out_count] =
+                        parsed;
+                    ++out_count;
+                }
+            }
+            config_base->systray.text.order_count = out_count;
+        }
+    }
+}
+
+
+int config_load_base(const char *filename,
+        struct config_base_s *config_base)
+{
+    cJSON *json;
+    cJSON *programs;
+    cJSON *windows;
+    cJSON *icons;
+    cJSON *menus;
+    cJSON *startup_notification_item;
+
+    LOGGER_TRACE("Preparing to parse base configuration from file" \
+            " '%s'", filename);
+
+    /* Load file, or exit */
+    if (json_load_config(filename, &json) != 0) {
+        return 1;
+    }
+
+    /* Theme name */
+    if (json_load_string(json, "theme", config_base->theme,
+                CONFIG_MAX_LENGTH_FILENAME) != 0) {
+        LOGGER_WARNING("Invalid theme specified:" \
+                " '%s'; default configuration will be used",
+                config_base->theme);
+        config_base->theme[0] = '\0';
+    }
+
+    s_config_load_screens(json, config_base, filename);
 
     /* Load default programs */
     programs = cJSON_GetObjectItem(json, "programs");
@@ -733,7 +959,6 @@ int config_load_base(const char *filename,
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);
         }
-
     }
 
     /* Load icon policy configuration */
@@ -814,135 +1039,7 @@ int config_load_base(const char *filename,
     }
 
     /* Load systray dock configuration */
-    systray = cJSON_GetObjectItem(json, "systray");
-    if (systray) {
-        cJSON *position_item;
-        cJSON *monitor_item;
-        cJSON *order_item;
-        cJSON *layer_item;
-        cJSON *clock_item;
-        cJSON *battery_item;
-        cJSON *text_item;
-
-        json_load_bool(systray, "is-enabled",
-                &config_base->systray.is_enabled);
-        position_item = json_get_item(systray, "position");
-        if (position_item != NULL && cJSON_IsString(position_item)) {
-            config_base->systray.position =
-                s_config_parse_systray_position(
-                        position_item->valuestring);
-        }
-        monitor_item = cJSON_GetObjectItem(systray, "monitor");
-        if (monitor_item) {
-            cJSON *anchor_item;
-            cJSON *index_item;
-
-            anchor_item = json_get_item(monitor_item, "anchor");
-            if (anchor_item != NULL && cJSON_IsString(anchor_item)) {
-                config_base->systray.monitor.anchor =
-                    s_config_parse_systray_monitor_anchor(
-                            anchor_item->valuestring);
-            }
-            index_item = json_get_item(monitor_item, "index");
-            if (cJSON_IsNumber(index_item) && index_item->valueint >= 0) {
-                config_base->systray.monitor.index =
-                    (uint32_t) index_item->valueint;
-            }
-        }
-        order_item = json_get_item(systray, "order");
-        if (order_item != NULL && cJSON_IsString(order_item)) {
-            config_base->systray.order =
-                s_config_parse_systray_order(order_item->valuestring);
-        }
-        layer_item = json_get_item(systray, "layer");
-        if (layer_item != NULL && cJSON_IsString(layer_item)) {
-            config_base->systray.layer =
-                s_config_parse_systray_layer(layer_item->valuestring);
-        }
-
-        clock_item = cJSON_GetObjectItem(systray, "clock");
-        if (clock_item) {
-            json_load_bool(clock_item, "is-enabled",
-                    &config_base->systray.clock.is_enabled);
-            json_load_string(clock_item, "format",
-                    config_base->systray.clock.format,
-                    sizeof(config_base->systray.clock.format));
-        }
-
-        battery_item = cJSON_GetObjectItem(systray, "battery");
-        if (battery_item) {
-            cJSON *threshold_item;
-            cJSON *backend_item;
-
-            json_load_bool(battery_item, "is-enabled",
-                    &config_base->systray.battery.is_enabled);
-
-            threshold_item = cJSON_GetObjectItem(battery_item,
-                    "threshold");
-            if (threshold_item) {
-                json_load_uint(threshold_item, "charged",
-                        &config_base->systray.battery.threshold.charged);
-                json_load_uint(threshold_item, "low",
-                        &config_base->systray.battery.threshold.low);
-                json_load_uint(threshold_item, "critical",
-                        &config_base->systray.battery.threshold.critical);
-            }
-
-            backend_item = cJSON_GetObjectItem(battery_item, "backend");
-            if (backend_item) {
-                cJSON *backend_type_item = json_get_item(backend_item,
-                        "type");
-
-                if (backend_type_item != NULL &&
-                        cJSON_IsString(backend_type_item)) {
-                    config_base->systray.battery.backend.type =
-                        s_config_parse_battery_backend_type(
-                                backend_type_item->valuestring);
-                }
-                json_load_uint(backend_item, "number",
-                        &config_base->systray.battery.backend.number);
-            }
-
-            json_load_uint(battery_item, "poll-seconds",
-                    &config_base->systray.battery.poll_seconds);
-        }
-
-        text_item = cJSON_GetObjectItem(systray, "text");
-        if (text_item) {
-            cJSON *text_position_item;
-            cJSON *text_order_item;
-
-            text_position_item = json_get_item(text_item, "position");
-            if (text_position_item != NULL &&
-                    cJSON_IsString(text_position_item)) {
-                config_base->systray.text.position =
-                    s_config_parse_systray_text_position(
-                            text_position_item->valuestring);
-            }
-
-            text_order_item = cJSON_GetObjectItem(text_item, "order");
-            if (text_order_item != NULL &&
-                    cJSON_IsArray(text_order_item)) {
-                uint8_t out_count = 0u;
-                int arr_size = cJSON_GetArraySize(text_order_item);
-
-                for (int i = 0;
-                        i < arr_size && out_count < 2u; ++i) {
-                    cJSON *elem = cJSON_GetArrayItem(text_order_item, i);
-                    enum config_systray_text_item_e parsed;
-
-                    if (elem != NULL && cJSON_IsString(elem) &&
-                            s_config_parse_systray_text_item(
-                                    elem->valuestring, &parsed)) {
-                        config_base->systray.text.order[out_count] =
-                            parsed;
-                        ++out_count;
-                    }
-                }
-                config_base->systray.text.order_count = out_count;
-            }
-        }
-    }
+    s_config_load_systray(json, config_base);
 
     /* Free memory */
     cJSON_Delete(json);

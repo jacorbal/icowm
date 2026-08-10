@@ -7,6 +7,8 @@
  * manager processes after the input and menu events have been filtered
  * out.  Each handler receives the XCB connection, the managed surfaces
  * list, the active configuration, and the specific event pointer.
+ *
+ * @ingroup loop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

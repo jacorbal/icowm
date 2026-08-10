@@ -7,7 +7,7 @@
  *  - @c 'void safe_free(void **ptr)'
  *  - @c 'int safe_free_var(void **first, ...)'
  *
- * @ingroup mem Safe memory management utils
+ * @ingroup utils_safe
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -26,7 +26,7 @@
 #include <adt/list.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <client.h>
@@ -60,19 +60,7 @@ xcb_window_t wcmd_active_win(xcb_ewmh_connection_t *ewmh,
 xcb_atom_t wcmd_intern_atom(xcb_connection_t *connection,
         const char *name)
 {
-    xcb_intern_atom_cookie_t cookie =
-        xcb_intern_atom(connection, 0,
-                (uint16_t) safe_strlen(name), name);
-    xcb_intern_atom_reply_t *reply =
-        xcb_intern_atom_reply(connection, cookie, NULL);
-
-    if (reply) {
-        xcb_atom_t atom = reply->atom;
-        free(reply);
-        return atom;
-    }
-
-    return XCB_ATOM_NONE;
+    return atom_intern(connection, name, false);
 }
 
 

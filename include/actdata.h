@@ -8,6 +8,8 @@
  * events management is more uniform receiving only "packets of data"
  * and a object (client, desktop, surface,...) that will be "itemized"
  * in a general sense.
+ *
+ * @ingroup eventq
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

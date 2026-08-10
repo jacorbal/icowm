@@ -18,7 +18,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <stdlib.h>     /* NULL, free */
 #include <string.h>     /* memset, memcpy, strncpy */
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, time */
 #include <unistd.h>     /* getpid */
@@ -35,6 +34,7 @@
 /* Utils includes */
 #include <utils/cursor.h>
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <logger.h>
@@ -84,31 +84,6 @@ static uint32_t s_timeout_seconds = SN_TIMEOUT_SECONDS;
 static bool s_cursor_busy = false;
 static xcb_atom_t s_atom_begin = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_info = XCB_ATOM_NONE;
-
-
-/**
- * @brief Intern an atom by name and return it, or @c XCB_ATOM_NONE
- *
- * @param connection X connection
- * @param name       Null-terminated atom name
- *
- * @return The interned atom, or @c XCB_ATOM_NONE on failure
- *
- * @note Complexity: @e O(1), a single round trip
- */
-static xcb_atom_t s_intern(xcb_connection_t *connection, const char *name)
-{
-    xcb_intern_atom_reply_t *reply;
-    xcb_atom_t atom;
-
-    reply = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 0,
-                (uint16_t) safe_strlen(name), name), NULL);
-    atom = (reply != NULL) ? reply->atom : XCB_ATOM_NONE;
-    free(reply);
-
-    return atom;
-}
 
 
 /**
@@ -302,7 +277,7 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
  * @param surfaces   Managed surfaces, one root window per screen
  * @param id         Startup ID to remove
  * @param reason     Short reason logged at debug level (e.g.,
- *                   @c "completed by application", @c "cancelled")
+ *                   @c "completed by application", @c "canceled")
  *
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
@@ -384,10 +359,11 @@ bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
     }
 
     if (s_atom_begin == XCB_ATOM_NONE) {
-        s_atom_begin = s_intern(connection, "_NET_STARTUP_INFO_BEGIN");
+        s_atom_begin = atom_intern(connection,
+                "_NET_STARTUP_INFO_BEGIN", false);
     }
     if (s_atom_info == XCB_ATOM_NONE) {
-        s_atom_info = s_intern(connection, "_NET_STARTUP_INFO");
+        s_atom_info = atom_intern(connection, "_NET_STARTUP_INFO", false);
     }
     if (s_atom_begin == XCB_ATOM_NONE || s_atom_info == XCB_ATOM_NONE) {
         return false;
@@ -559,7 +535,7 @@ void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
         return;
     }
 
-    s_complete_by_id(connection, surfaces, id, "cancelled");
+    s_complete_by_id(connection, surfaces, id, "canceled");
 }
 
 

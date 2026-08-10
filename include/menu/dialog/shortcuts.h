@@ -17,6 +17,8 @@
  * each rather than listed individually, both for readability and to
  * keep the dialog within a height that fits a typical screen; see
  * @c DIALOG_MSG_MAX_LINES in menu/dialog/message.h.
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

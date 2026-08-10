@@ -26,6 +26,8 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
+#include <utils/xcb/selection.h>
 
 /* Project includes */
 #include <config.h>
@@ -63,29 +65,6 @@ static struct {
     unsigned int dpi;
 } s_xs;
 
-
-/**
- * @brief Intern an atom by name and return it, or @c XCB_ATOM_NONE
- *
- * @param connection X connection
- * @param name       Atom name
- * @param len        Length of @p name in bytes
- *
- * @return The interned atom, or @c XCB_ATOM_NONE on failure
- */
-static xcb_atom_t s_xs_intern(xcb_connection_t *connection,
-        const char *name, uint16_t len)
-{
-    xcb_intern_atom_reply_t *reply;
-    xcb_atom_t atom;
-
-    reply = xcb_intern_atom_reply(connection,
-            xcb_intern_atom(connection, 0, len, name), NULL);
-    atom = (reply != NULL) ? reply->atom : XCB_ATOM_NONE;
-    free(reply);
-
-    return atom;
-}
 
 
 /**
@@ -167,13 +146,12 @@ static void s_xs_put_padded_bytes(uint8_t *buf, size_t *off,
         const char *src, size_t len)
 {
     size_t padded;
-    size_t i;
 
     memcpy(buf + *off, src, len);
     *off += len;
 
     padded = s_xs_padded_len(len);
-    for (i = len; i < padded; ++i) {
+    for (size_t i = len; i < padded; ++i) {
         buf[*off] = 0u;
         *off += 1u;
     }
@@ -389,7 +367,6 @@ static bool s_xs_ensure_window(wm_td *wm)
 {
     surface_td *surface;
     char selection_name[24];
-    int selection_name_len;
     uint32_t mask;
     uint32_t values[1];
 
@@ -409,15 +386,13 @@ static bool s_xs_ensure_window(wm_td *wm)
     s_xs.connection = wm->connection;
     s_xs.surface = surface;
 
-    selection_name_len = snprintf(selection_name,
-            sizeof(selection_name),
+    (void) snprintf(selection_name, sizeof(selection_name),
             "_XSETTINGS_S%u", (unsigned int) surface->id);
-    s_xs.selection_atom = s_xs_intern(wm->connection, selection_name,
-            (selection_name_len > 0) ? (uint16_t) selection_name_len
-                                      : 0u);
-    s_xs.settings_atom = s_xs_intern(wm->connection,
-            "_XSETTINGS_SETTINGS", 20u);
-    s_xs.manager_atom = s_xs_intern(wm->connection, "MANAGER", 7u);
+    s_xs.selection_atom = atom_intern(wm->connection, selection_name,
+            false);
+    s_xs.settings_atom = atom_intern(wm->connection,
+            "_XSETTINGS_SETTINGS", false);
+    s_xs.manager_atom = atom_intern(wm->connection, "MANAGER", false);
 
     if (s_xs.selection_atom == XCB_ATOM_NONE ||
             s_xs.settings_atom == XCB_ATOM_NONE) {
@@ -451,10 +426,6 @@ static bool s_xs_ensure_window(wm_td *wm)
  */
 static bool s_xs_acquire_selection(void)
 {
-    xcb_get_selection_owner_cookie_t owner_cookie;
-    xcb_get_selection_owner_reply_t *owner_reply;
-    xcb_client_message_event_t manager_ev;
-
     if (s_xs.selection_owned) {
         return true;
     }
@@ -462,34 +433,14 @@ static bool s_xs_acquire_selection(void)
         return false;
     }
 
-    xcb_set_selection_owner(s_xs.connection, s_xs.window,
-            s_xs.selection_atom, XCB_CURRENT_TIME);
-
-    owner_cookie = xcb_get_selection_owner(s_xs.connection,
-            s_xs.selection_atom);
-    owner_reply = xcb_get_selection_owner_reply(s_xs.connection,
-            owner_cookie, NULL);
-    if (owner_reply == NULL || owner_reply->owner != s_xs.window) {
+    if (!util_xcb_acquire_manager_selection(s_xs.connection,
+                s_xs.window, s_xs.selection_atom, s_xs.manager_atom,
+                s_xs.surface->screen->root)) {
         LOGGER_NOTICE("Another XSETTINGS manager already owns the" \
                 " settings selection; built-in one stays disabled",
                 L_NARG);
-        free(owner_reply);
         return false;
     }
-    free(owner_reply);
-
-    /* ICCCM manager-selection convention: announce ownership on the
-     * root window so other tools notice a settings manager appeared */
-    memset(&manager_ev, 0, sizeof(manager_ev));
-    manager_ev.response_type = XCB_CLIENT_MESSAGE;
-    manager_ev.format = 32;
-    manager_ev.window = s_xs.surface->screen->root;
-    manager_ev.type = s_xs.manager_atom;
-    manager_ev.data.data32[0] = XCB_CURRENT_TIME;
-    manager_ev.data.data32[1] = s_xs.selection_atom;
-    manager_ev.data.data32[2] = s_xs.window;
-    xcb_send_event(s_xs.connection, 0, s_xs.surface->screen->root,
-            XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &manager_ev);
 
     s_xs.selection_owned = true;
 

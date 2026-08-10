@@ -18,8 +18,10 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
 /* Project includes */
-#include <invalidate.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -41,9 +43,9 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
     surface_refresh_monitors(surface);
     surface_refresh_workareas(surface);
     surface_reflow_clients(surface);
-    wm_invalidate_surface(surface);
+    wm_outdate_surface(surface);
     for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        wm_invalidate_desktop(surface_desktop_get(surface, did));
+        wm_outdate_desktop(surface_desktop_get(surface, did));
     }
 }
 
@@ -121,6 +123,22 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
                         s->randr.mode_id = (uint32_t) cc->mode;
                         s->randr.rotation = cc->rotation;
                     }
+                }
+            }
+
+            /* Only for 'OUTPUT_CHANGE' (an output actually connected,
+             * disconnected, or otherwise changed identity), not for
+             * every 'CRTC_CHANGE': applying a profile itself issues
+             * 'xcb_randr_set_crtc_config', which raises a CRTC_CHANGE
+             * of its own, so reacting to CRTC_CHANGE here too would
+             * risk retriggering itself.  Lets a profile for an output
+             * that was not yet connected at startup still get applied
+             * once it is (e.g., a docked laptop's external monitor). */
+            if (randr_event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
+                for (list_item_td *node = list_head(wm->surfaces);
+                        node != NULL; node = list_next(node)) {
+                    (void) surface_action_apply_randr_profiles(
+                            (surface_td *) list_data(node), false);
                 }
             }
 

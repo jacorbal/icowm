@@ -195,7 +195,7 @@ static void s_append_group(char *buf, size_t buf_size, size_t *offset,
         const char *label, const char *const *names,
         const char *const *combos, uint8_t count)
 {
-    char line[DIALOG_MSG_LINE_MAX_LEN];
+    char line[DIALOG_MSG_LINE_MAX_LENGTH];
     size_t line_offset = 0u;
     bool any = false;
 
@@ -232,7 +232,7 @@ static void s_append_group(char *buf, size_t buf_size, size_t *offset,
 void dialog_shortcuts_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)
 {
-    char text[DIALOG_MSG_RAW_MAX_LEN];
+    char text[DIALOG_MSG_RAW_MAX_LENGTH];
     size_t offset = 0u;
 
     if (connection == NULL || surface == NULL || config == NULL) {
@@ -311,8 +311,10 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_binding(text, sizeof(text), &offset, "NextMonitor",
                 config->bindings.keyboard.window.next_monitor);
     }
-    s_append_binding(text, sizeof(text), &offset, "Pin",
-            config->bindings.keyboard.window.pin);
+    if (surface->desktop_count > 1u) {
+        s_append_binding(text, sizeof(text), &offset, "Pin",
+                config->bindings.keyboard.window.pin);
+    }
     s_append_binding(text, sizeof(text), &offset, "Shade",
             config->bindings.keyboard.window.shade);
 

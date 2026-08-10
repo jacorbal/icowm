@@ -6,6 +6,8 @@
  * Smart-placement search and the policy dispatcher used when a new
  * client is mapped.  Both functions receive the window manager context
  * explicitly so they remain independent compilation units.
+ *
+ * @ingroup policy
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

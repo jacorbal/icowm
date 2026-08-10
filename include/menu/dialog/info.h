@@ -17,6 +17,8 @@
  *         "Cannot launch 'xterm': command not found",
  *         MENU_MSG_LEVEL_WARNING);
  * @endcode
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

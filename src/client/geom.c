@@ -17,7 +17,7 @@
 /* System includes */
 #include <limits.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc */
+#include <stdlib.h>     /* NULL, malloc */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -187,7 +187,7 @@ void client_resync_theme_layout(client_td *client, bool is_active)
 
 /* Compute where every configured titlebar button goes */
 void client_titlebar_layout(const struct config_theme_s *theme,
-        uint16_t frame_w, uint16_t title_h,
+        uint16_t frame_w, uint16_t title_h, bool hide_pin,
         struct titlebar_button_layout_s *out_left,
         uint8_t *out_left_n,
         struct titlebar_button_layout_s *out_right,
@@ -199,8 +199,11 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
     uint16_t pad_h;
     uint16_t pad_v;
+    uint8_t configured_left_n;
+    uint8_t configured_right_n;
     uint8_t left_n;
     uint8_t right_n;
+    enum config_titlebar_button_e btn_kind;
     int32_t x;
     int32_t left_extent;
     int32_t right_extent;
@@ -239,29 +242,47 @@ void client_titlebar_layout(const struct config_theme_s *theme,
             ? (int16_t) ((title_h - btn) / 2u) : 0;
     }
 
-    left_n = theme->window.titlebar.buttons.left_count;
-    if (left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
-        left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
+    /* A pin button dropped here (single-desktop surface, see
+     * 'hide_pin') is skipped entirely rather than drawn inert: the
+     * output index only advances for a button actually placed, so the
+     * next configured button slides into its slot and the extent
+     * below reflects the real, possibly-shorter row -- the same as if
+     * the theme itself had never listed pin at all. */
+    configured_left_n = theme->window.titlebar.buttons.left_count;
+    if (configured_left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
+        configured_left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
     }
     x = (int32_t) pad_h;
-    for (uint8_t i = 0u; i < left_n; ++i) {
-        out_left[i].button = theme->window.titlebar.buttons.left[i];
-        out_left[i].x = (int16_t) x;
+    left_n = 0u;
+    for (uint8_t i = 0u; i < configured_left_n; ++i) {
+        btn_kind = theme->window.titlebar.buttons.left[i];
+        if (hide_pin && btn_kind == CONFIG_TITLEBAR_BUTTON_PIN) {
+            continue;
+        }
+        out_left[left_n].button = btn_kind;
+        out_left[left_n].x = (int16_t) x;
         x += (int32_t) (btn + gap);
+        ++left_n;
     }
     *out_left_n = left_n;
     left_extent = (left_n == 0u) ? 0
         : (int32_t) (left_n * btn + (left_n - 1u) * gap);
 
-    right_n = theme->window.titlebar.buttons.right_count;
-    if (right_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
-        right_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
+    configured_right_n = theme->window.titlebar.buttons.right_count;
+    if (configured_right_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
+        configured_right_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
     }
     x = (int32_t) frame_w - (int32_t) pad_h - (int32_t) btn;
-    for (uint8_t i = 0u; i < right_n; ++i) {
-        out_right[i].button = theme->window.titlebar.buttons.right[i];
-        out_right[i].x = (int16_t) x;
+    right_n = 0u;
+    for (uint8_t i = 0u; i < configured_right_n; ++i) {
+        btn_kind = theme->window.titlebar.buttons.right[i];
+        if (hide_pin && btn_kind == CONFIG_TITLEBAR_BUTTON_PIN) {
+            continue;
+        }
+        out_right[right_n].button = btn_kind;
+        out_right[right_n].x = (int16_t) x;
         x -= (int32_t) (btn + gap);
+        ++right_n;
     }
     *out_right_n = right_n;
     right_extent = (right_n == 0u) ? 0
@@ -382,7 +403,7 @@ void client_constrain_size(const client_td *client,
              * serves as the base for the increment grid */
             base = (client->size_hints.base_w > 0)
                 ? (uint32_t) client->size_hints.base_w
-                : (client->size_hints.min_w > 0
+                : ((client->size_hints.min_w > 0)
                         ? (uint32_t) client->size_hints.min_w
                         : 0u);
             inc = (uint32_t) client->size_hints.inc_w;
@@ -398,7 +419,7 @@ void client_constrain_size(const client_td *client,
              * serves as the base for the increment grid */
             base = (client->size_hints.base_h > 0)
                 ? (uint32_t) client->size_hints.base_h
-                : (client->size_hints.min_h > 0
+                : ((client->size_hints.min_h > 0)
                         ? (uint32_t) client->size_hints.min_h
                         : 0u);
             inc = (uint32_t) client->size_hints.inc_h;
@@ -440,6 +461,14 @@ int ci_create_decorations(client_td *client)
     uint16_t inner_w;
     uint16_t title_h;
     uint16_t title_y;
+    static const xcb_button_index_t s_grab_buttons[] = {
+        XCB_BUTTON_INDEX_1,
+        XCB_BUTTON_INDEX_2,
+        XCB_BUTTON_INDEX_3,
+        6,   /* extra side buttons */
+        7
+    };
+    size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
 
     if (client == NULL || !client_is_decorated(client) ||
             client->theme == NULL || client->parent_id == 0) {
@@ -554,28 +583,18 @@ int ci_create_decorations(client_td *client)
     /* Root-level 'MOD1+button' grabs are more specific (specific
      * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
      * priority for move/resize interactions. */
-    {
-        static const xcb_button_index_t s_grab_buttons[] = {
-            XCB_BUTTON_INDEX_1,
-            XCB_BUTTON_INDEX_2,
-            XCB_BUTTON_INDEX_3,
-            6,   /* extra side buttons */
-            7
-        };
-        size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
-        for (size_t bi = 0; bi < nb; ++bi) {
-            xcb_grab_button(client->connection,
-                    0,                              /* owner_events */
-                    client->frame,
-                    XCB_EVENT_MASK_BUTTON_PRESS |
-                    XCB_EVENT_MASK_BUTTON_RELEASE,
-                    XCB_GRAB_MODE_SYNC,             /* freeze until allow_events */
-                    XCB_GRAB_MODE_ASYNC,
-                    XCB_NONE,
-                    XCB_NONE,
-                    (uint8_t) s_grab_buttons[bi],
-                    XCB_MOD_MASK_ANY);
-        }
+    for (size_t bi = 0; bi < nb; ++bi) {
+        xcb_grab_button(client->connection,
+                0,                              /* owner_events */
+                client->frame,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE,
+                XCB_GRAB_MODE_SYNC,             /* freeze until allowed */
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,
+                XCB_NONE,
+                (uint8_t) s_grab_buttons[bi],
+                XCB_MOD_MASK_ANY);
     }
 
     client->layout.geometry.cur.pos.x = frame_x;

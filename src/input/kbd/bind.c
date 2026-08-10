@@ -22,7 +22,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* free, strtol */
 #include <string.h>     /* memcpy */
 #include <strings.h>    /* strcasecmp, strncasecmp */
 
@@ -32,6 +32,7 @@
 
 /* Default initial values */
 #include <defs/input.h>
+#include <defs/kbd.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -46,7 +47,7 @@
 
 /* Local includes */
 #include <input/kbd/bind.h>
-#include <input/kbd/keycodes.h>
+#include <input/modifier.h>
 
 
 /** Resolved key bindings loaded from configuration */
@@ -54,102 +55,6 @@ static wm_keybinding_td s_keybindings[WM_MAX_KEYBINDINGS];
 
 /** Number of active key bindings */
 static int s_keybindings_count = 0;
-
-
-/**
- * @brief Resolve configured modifier aliases such as @c modc or @c mods
- *
- * Expands symbolic modifier aliases from the configuration into their
- * actual configured string values.  If the token does not match a known
- * alias, the original token is returned unchanged.
- *
- * @param config Configuration holding the alias strings
- * @param token  Modifier token to resolve
- *
- * @return Resolved modifier string, or the original token if no alias
- *         matches
- *
- * @note Complexity: @e O(1)
- */
-static const char *s_resolve_modifier_token(const config_td *config,
-        const char *token)
-{
-    if (token == NULL || config == NULL) {
-        return token;
-    }
-
-    if (strcasecmp(token, "modc") == 0) { return config->bindings.modc; }
-    if (strcasecmp(token, "mods") == 0) { return config->bindings.mods; }
-    if (strcasecmp(token, "modl") == 0) { return config->bindings.modl; }
-    if (strcasecmp(token, "mod1") == 0) { return config->bindings.mod1; }
-    if (strcasecmp(token, "mod2") == 0) { return config->bindings.mod2; }
-    if (strcasecmp(token, "mod3") == 0) { return config->bindings.mod3; }
-    if (strcasecmp(token, "mod4") == 0) { return config->bindings.mod4; }
-    if (strcasecmp(token, "mod5") == 0) { return config->bindings.mod5; }
-
-    return token;
-}
-
-
-/**
- * @brief Map a single modifier token to an XCB modifier mask
- *
- * Converts a textual modifier name into the corresponding XCB modifier
- * mask.  Supports configured aliases, common modifier names, and some
- * alternative spellings.
- *
- * @param config Configuration holding the alias strings
- * @param token  Modifier token to parse
- *
- * @return Matching XCB modifier mask, or 0 if not recognized
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_parse_modifier_token(const config_td *config,
-        const char *token)
-{
-    const char *resolved = s_resolve_modifier_token(config, token);
-
-    if (resolved == NULL || resolved[0] == '\0') {
-        return 0;
-    }
-
-    if (strcasecmp(resolved, "mod1") == 0 ||
-            strcasecmp(resolved, "alt") == 0) {
-        return XCB_MOD_MASK_1;
-    }
-    if (strcasecmp(resolved, "mod2") == 0 ||
-            strcasecmp(resolved, "num_lock") == 0 ||
-            strcasecmp(resolved, "num-lock") == 0) {
-        return XCB_MOD_MASK_2;
-    }
-    if (strcasecmp(resolved, "mod3") == 0) {
-        return XCB_MOD_MASK_3;
-    }
-    if (strcasecmp(resolved, "mod4") == 0 ||
-            strcasecmp(resolved, "super") == 0 ||
-            strcasecmp(resolved, "win") == 0) {
-        return XCB_MOD_MASK_4;
-    }
-    if (strcasecmp(resolved, "mod5") == 0 ||
-            strcasecmp(resolved, "hyper") == 0) {
-        return XCB_MOD_MASK_5;
-    }
-    if (strcasecmp(resolved, "ctrl") == 0 ||
-            strcasecmp(resolved, "control") == 0) {
-        return XCB_MOD_MASK_CONTROL;
-    }
-    if (strcasecmp(resolved, "shift") == 0) {
-        return XCB_MOD_MASK_SHIFT;
-    }
-    if (strcasecmp(resolved, "lock") == 0 ||
-            strcasecmp(resolved, "caps_lock") == 0 ||
-            strcasecmp(resolved, "caps-lock") == 0) {
-        return XCB_MOD_MASK_LOCK;
-    }
-
-    return 0;
-}
 
 
 /**
@@ -182,30 +87,45 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
         char *end = NULL;
         long n = strtol(token + 1, &end, 10);
         if (end != NULL && *end == '\0' && n >= 1 && n <= 12) {
-            return (xcb_keysym_t) (0xffbdu + (unsigned long) n);
+            return (xcb_keysym_t) (KS_FKEY_BASE + (unsigned long) n);
         }
     }
 
     /* Named keys */
     if (strcasecmp(token, "return") == 0 ||
-            strcasecmp(token, "enter") == 0)  { return 0xff0du; }
-    if (strcasecmp(token, "space") == 0)      { return 0x0020u; }
-    if (strcasecmp(token, "tab") == 0)        { return 0xff09u; }
+            strcasecmp(token, "enter") == 0)  { return KS_RETURN; }
+    if (strcasecmp(token, "space") == 0)      { return KS_SPACE; }
+    if (strcasecmp(token, "tab") == 0)        { return KS_TAB; }
     if (strcasecmp(token, "escape") == 0 ||
-            strcasecmp(token, "esc") == 0)    { return 0xff1bu; }
-    if (strcasecmp(token, "backspace") == 0)  { return 0xff08u; }
+            strcasecmp(token, "esc") == 0)    { return KS_ESCAPE; }
+    if (strcasecmp(token, "backspace") == 0)  { return KS_BACKSPACE; }
     if (strcasecmp(token, "delete") == 0 ||
-            strcasecmp(token, "del") == 0)    { return 0xffffu; }
-    if (strcasecmp(token, "left") == 0)       { return 0xff51u; }
-    if (strcasecmp(token, "up") == 0)         { return 0xff52u; }
-    if (strcasecmp(token, "right") == 0)      { return 0xff53u; }
-    if (strcasecmp(token, "down") == 0)       { return 0xff54u; }
-    if (strcasecmp(token, "home") == 0)       { return 0xff50u; }
-    if (strcasecmp(token, "end") == 0)        { return 0xff57u; }
+            strcasecmp(token, "del") == 0)    { return KS_DELETE; }
+    if (strcasecmp(token, "insert") == 0 ||
+            strcasecmp(token, "ins") == 0)    { return KS_INSERT; }
+    if (strcasecmp(token, "left") == 0)       { return KS_LEFT; }
+    if (strcasecmp(token, "up") == 0)         { return KS_UP; }
+    if (strcasecmp(token, "right") == 0)      { return KS_RIGHT; }
+    if (strcasecmp(token, "down") == 0)       { return KS_DOWN; }
+    if (strcasecmp(token, "home") == 0)       { return KS_HOME; }
+    if (strcasecmp(token, "end") == 0)        { return KS_END; }
     if (strcasecmp(token, "pageup") == 0 ||
-            strcasecmp(token, "prior") == 0)  { return 0xff55u; }
+            strcasecmp(token, "prior") == 0 ||
+            strcasecmp(token, "pgup") == 0)   { return KS_PAGE_UP; }
     if (strcasecmp(token, "pagedown") == 0 ||
-            strcasecmp(token, "next") == 0)   { return 0xff56u; }
+            strcasecmp(token, "next") == 0 ||
+            strcasecmp(token, "pgdn") == 0)   { return KS_PAGE_DOWN; }
+    if (strcasecmp(token, "pause") == 0)      { return KS_PAUSE; }
+    if (strcasecmp(token, "sysreq") == 0 ||
+            strcasecmp(token, "sysrq") == 0)  { return KS_SYS_REQ; }
+    if (strcasecmp(token, "break") == 0)      { return KS_BREAK; }
+    if (strcasecmp(token, "print") == 0 ||
+            strcasecmp(token, "prntscr") == 0 ||
+            strcasecmp(token, "prntscrn") == 0 ||
+            strcasecmp(token, "prtsc") == 0 ||
+            strcasecmp(token, "prtscn") == 0 ||
+            strcasecmp(token, "prtscrn") == 0 ||
+            strcasecmp(token, "ps") == 0)     { return KS_PRINT; }
 
     return XCB_NO_SYMBOL;
 }
@@ -252,7 +172,7 @@ static bool s_parse_binding(const config_td *config,
     token = strtok_r(buf, "+", &save);
     while (token != NULL) {
         if (prev_tok != NULL) {
-            uint16_t mod = s_parse_modifier_token(config, prev_tok);
+            uint16_t mod = im_parse_modifier_token(config, prev_tok);
             if (mod != 0) {
                 *modmask |= mod;
             }
@@ -270,21 +190,33 @@ static bool s_parse_binding(const config_td *config,
 
 
 /**
- * @brief Check whether any surface has more than one physical monitor
+ * @brief Check whether any surface in a list matches a per-surface
+ *        predicate
  *
- * @param surfaces List of surfaces to check
+ * Shared by every "is this keybind even meaningful given the current
+ * setup" check below (multiple monitors, multiple desktops, and any
+ * future one of the same shape): each only differs in which single
+ * field of a surface it looks at, so that one field comparison is the
+ * only part that actually needs its own function; the list traversal
+ * and null-surface skip around it do not.
  *
- * @return @c true if at least one surface has more than one monitor
+ * @param surfaces  List of surfaces to check
+ * @param predicate Called with each non-@c NULL surface in turn;
+ *                  returns @c true to stop and report a match
+ *
+ * @return @c true if @p predicate returned @c true for at least one
+ *         surface in @p surfaces
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-static bool s_any_surface_has_multiple_monitors(list_td *surfaces)
+static bool s_any_surface_matches(list_td *surfaces,
+        bool (*predicate)(const surface_td *surface))
 {
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
 
-        if (surface != NULL && surface->monitor_count > 1u) {
+        if (surface != NULL && predicate(surface)) {
             return true;
         }
     }
@@ -293,25 +225,34 @@ static bool s_any_surface_has_multiple_monitors(list_td *surfaces)
 
 
 /**
- * @brief Check whether any surface has more than one virtual desktop
+ * @brief Predicate: does this surface have more than one physical
+ *        monitor?
  *
- * @param surfaces List of surfaces to check
+ * @param surface Surface to check
  *
- * @return @c true if at least one surface has more than one desktop
+ * @return @c true if @p surface has more than one monitor
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(1)
  */
-static bool s_any_surface_has_multiple_desktops(list_td *surfaces)
+static bool s_surface_has_multiple_monitors(const surface_td *surface)
 {
-    for (list_item_td *node = list_head(surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+    return surface->monitor_count > 1u;
+}
 
-        if (surface != NULL && surface->desktop_count > 1u) {
-            return true;
-        }
-    }
-    return false;
+
+/**
+ * @brief Predicate: does this surface have more than one virtual
+ *        desktop?
+ *
+ * @param surface Surface to check
+ *
+ * @return @c true if @p surface has more than one desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_surface_has_multiple_desktops(const surface_td *surface)
+{
+    return surface->desktop_count > 1u;
 }
 
 
@@ -485,13 +426,13 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
      * only one monitor sitting alongside another with several is rare
      * enough not to be worth restructuring the grab loop over. */
     bool has_multi_monitor_surface =
-        s_any_surface_has_multiple_monitors(surfaces);
+        s_any_surface_matches(surfaces, s_surface_has_multiple_monitors);
 
     /* Same reasoning as 'has_multi_monitor_surface' just above, for
      * the desktop-cycling and go-to-desktop-N grabs instead of the
      * move-to-next-monitor one. */
     bool has_multi_desktop_surface =
-        s_any_surface_has_multiple_desktops(surfaces);
+        s_any_surface_matches(surfaces, s_surface_has_multiple_desktops);
 
     s_keybindings_count = 0;
 
@@ -731,36 +672,36 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
 {
     /* Shift_L (0xffe1), Shift_R (0xffe2) */
     if ((mask & XCB_MOD_MASK_SHIFT) &&
-            (keysym == 0xffe1u || keysym == 0xffe2u)) {
+            (keysym == KS_SHIFT_L || keysym == KS_SHIFT_R)) {
         return true;
     }
 
     /* Control_L (0xffe3), Control_R (0xffe4) */
     if ((mask & XCB_MOD_MASK_CONTROL) &&
-            (keysym == 0xffe3u || keysym == 0xffe4u)) {
+            (keysym == KS_CONTROL_L || keysym == KS_CONTROL_R)) {
         return true;
     }
 
     /* Meta/Alt: 0xffe7 to 0xffea */
     if ((mask & XCB_MOD_MASK_1) &&
-            keysym >= 0xffe7u && keysym <= 0xffeau) {
+            keysym >= KS_META_L && keysym <= KS_ALT_R) {
         return true;
     }
 
     /* Num_Lock (0xff7f) */
-    if ((mask & XCB_MOD_MASK_2) && keysym == 0xff7fu) {
+    if ((mask & XCB_MOD_MASK_2) && keysym == KS_NUM_LOCK) {
         return true;
     }
 
     /* Super_L (0xffeb), Super_R (0xffec) */
     if ((mask & XCB_MOD_MASK_4) &&
-            (keysym == 0xffebu || keysym == 0xffecu)) {
+            (keysym == KS_SUPER_L || keysym == KS_SUPER_R)) {
         return true;
     }
 
     /* Hyper_L (0xffed), Hyper_R (0xffee) */
     if ((mask & XCB_MOD_MASK_5) &&
-            (keysym == 0xffedu || keysym == 0xffeeu)) {
+            (keysym == KS_HYPER_L || keysym == KS_HYPER_R)) {
         return true;
     }
 

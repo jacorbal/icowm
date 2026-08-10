@@ -7,6 +7,9 @@
  * events into window manager actions, including cycle menu navigation,
  * client operations, desktop switching, program launches, and emergency
  * exit.
+ *
+ * @defgroup input_kbd Keyboard input
+ * @ingroup input
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

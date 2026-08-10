@@ -14,10 +14,14 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 #include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Default initial values */
+#include <defs/uistr.h>
 
 /* Util includes */
 #include <utils/safe/safestr.h>
@@ -45,6 +49,7 @@ typedef struct {
     int16_t btn_y;
     int16_t cancel_x;
     int16_t confirm_x;
+    int16_t timeout_y;
     char prompt[DIALOG_TEXT_MAX_LEN];
     char cancel_label[DIALOG_TEXT_MAX_LEN];
     char confirm_label[DIALOG_TEXT_MAX_LEN];
@@ -59,6 +64,10 @@ static int s_confirm_selected = 0;
 
 /** Callback invoked when the confirm button is activated */
 static void (*s_confirm_callback)(xcb_connection_t *) = NULL;
+
+/** Callback invoked when the cancel button is activated, by a
+ *  person, by Escape, or by 's_confirm_timeout_active' elapsing */
+static void (*s_confirm_cancel_callback)(xcb_connection_t *) = NULL;
 
 /** Cached layout used for both creation and repaint */
 static s_confirm_layout_td s_confirm_layout;
@@ -78,9 +87,27 @@ static struct timespec s_confirm_deferred_due;
  */
 static bool s_confirm_deferred_pending = false;
 
+/** Whether a countdown timeout is currently running (see
+ *  'timeout_seconds' on 'menu_confirm_dialog_show') */
+static bool s_confirm_timeout_active = false;
+
+/** Absolute time the running countdown fully elapses, valid only
+ *  while 's_confirm_timeout_active' is true */
+static struct timespec s_confirm_timeout_due;
+
+/** Whole seconds remaining last shown in the countdown line, so
+ *  's_confirm_tick_timeout' only repaints when that number actually
+ *  changes rather than on every main-loop iteration; -1 before the
+ *  first paint so that one always happens */
+static int s_confirm_timeout_last_shown = -1;
+
 /** How long the newly selected button stays visible before a
  *  mouse-click-triggered close/accept actually happens */
 #define DIALOG_CONFIRM_CLICK_DELAY_MS (150)
+
+/** Vertical gap, in pixels, between the prompt and the countdown
+ *  line beneath it, when a timeout is running */
+#define DIALOG_CONFIRM_TIMEOUT_LINE_GAP (6)
 
 
 /**
@@ -119,6 +146,8 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
     uint16_t pad_y;
     uint16_t gap;
     uint16_t label_pad_x;
+    uint16_t timeout_line_h;
+    int16_t timeout_ascent;
 
     if (connection == NULL || config == NULL || layout == NULL) {
         return;
@@ -131,6 +160,18 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
 
     text_renderer_init(connection, config->theme.dialog.label.font);
     prompt_w = menu_draw_measure(layout->prompt);
+
+    /* Room for the countdown line, in the same font as the prompt
+     * (measured here, while it is still the active font, rather than
+     * re-selecting it later): only reserved while a timeout is
+     * actually running, so a plain confirm dialog with none (every
+     * existing caller, e.g. 'dialog_quit_show') is laid out exactly
+     * as before this existed. */
+    timeout_ascent = text_font_ascent();
+    timeout_line_h = s_confirm_timeout_active
+        ? (uint16_t) (timeout_ascent + text_font_descent() +
+                DIALOG_CONFIRM_TIMEOUT_LINE_GAP)
+        : 0u;
 
     /* Measure both labels in both fonts and keep the widest/tallest
      * result: whichever button ends up selected renders in
@@ -165,6 +206,7 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
             dlgutil_u16max(btns_span_w, prompt_span_w));
     layout->h = dlgutil_u16max(DIALOG_MIN_H,
             (uint16_t) (DIALOG_PROMPT_BASELINE_Y +
+                timeout_line_h +
                 DIALOG_PROMPT_TO_BTN_GAP +
                 layout->btn_h +
                 DIALOG_PAD_BOTTOM));
@@ -183,6 +225,8 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
     }
 
     layout->prompt_y = (int16_t) DIALOG_PROMPT_BASELINE_Y;
+    layout->timeout_y = (int16_t) (DIALOG_PROMPT_BASELINE_Y +
+            DIALOG_CONFIRM_TIMEOUT_LINE_GAP + (uint16_t) timeout_ascent);
 
     /* Each button label's own X/Y depends on which font actually ends
      * up drawing it (unselected or selected), which can change every
@@ -190,6 +234,20 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
      * which computes both freshly right before drawing instead of
      * relying on a value fixed here. */
 }
+
+
+/**
+ * @brief Milliseconds remaining until the running countdown timeout
+ *        fully elapses; forward-declared here so 's_confirm_draw'
+ *        (defined ahead of it, closer to the layout it renders) can
+ *        show the live countdown number
+ *
+ * @return Milliseconds remaining (never negative), or -1 if no
+ *         timeout is currently running
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_confirm_timeout_ms_remaining(void);
 
 
 /**
@@ -215,6 +273,19 @@ static void s_confirm_draw(xcb_connection_t *connection,
     uint16_t label_w;
     int16_t label_x;
     int16_t label_y;
+    /* Sized well beyond 'DIALOG_TEXT_MAX_LEN' rather than exactly
+     * that: 'cancel_label' (itself up to that size) is only one part
+     * of what this formats (see 'STR_DIALOG_CONFIRM_TIMEOUT_FMT'),
+     * plus the fixed wording around it and the seconds count, so
+     * matching that size exactly leaves GCC's own static bound
+     * analysis unable to rule out '-Wformat-truncation' -- this
+     * headroom, together with that format string's own explicit
+     * '%.255s' precision (capping the part GCC cannot otherwise
+     * prove is bounded to the cancel label's own declared array
+     * size, rather than the rest of the struct after it), is what
+     * lets it actually prove 'snprintf' below can never truncate,
+     * not just widen the margin informally. */
+    char timeout_text[DIALOG_TEXT_MAX_LEN + 96u];
     const s_confirm_layout_td *lo = &s_confirm_layout;
 
     if (connection == NULL || config == NULL ||
@@ -290,6 +361,27 @@ static void s_confirm_draw(xcb_connection_t *connection,
     menu_draw_label(connection, s_confirm_window,
             lo->prompt_x, lo->prompt_y, lo->prompt);
 
+    /* Countdown line, only while a timeout is actually running; same
+     * font as the prompt, sharing its own horizontal centering
+     * (recomputed here since the text itself changes every second,
+     * unlike the prompt's fixed 'prompt_x'). */
+    if (s_confirm_timeout_active) {
+        int timeout_ms = s_confirm_timeout_ms_remaining();
+        int seconds = (timeout_ms >= 0) ? (timeout_ms + 999) / 1000 : 0;
+        int16_t timeout_x;
+        uint16_t timeout_w;
+
+        (void) snprintf(timeout_text, sizeof(timeout_text),
+                STR_DIALOG_CONFIRM_TIMEOUT_FMT, lo->cancel_label,
+                seconds);
+        timeout_w = menu_draw_measure(timeout_text);
+        timeout_x = (int16_t) ((lo->w > timeout_w)
+                ? (lo->w - timeout_w) / 2u
+                : config->theme.dialog.label.padding.horizontal);
+        menu_draw_label(connection, s_confirm_window,
+                timeout_x, lo->timeout_y, timeout_text);
+    }
+
     /* Cancel label: font, and therefore width, depends on whether
      * this button is the current selection, so both are recomputed
      * fresh on every repaint (see the doc comment on
@@ -341,7 +433,9 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *prompt,
         const char *cancel_label, const char *confirm_label,
-        void (*on_confirm)(xcb_connection_t *))
+        void (*on_confirm)(xcb_connection_t *),
+        void (*on_cancel)(xcb_connection_t *),
+        uint32_t timeout_seconds)
 {
     int16_t x;
     int16_t y;
@@ -374,9 +468,27 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     s_confirm_layout.confirm_label[
         sizeof(s_confirm_layout.confirm_label) - 1u] = '\0';
 
-    s_confirm_compute_layout(connection, config, &s_confirm_layout);
     s_confirm_selected = 0;
     s_confirm_callback = on_confirm;
+    s_confirm_cancel_callback = on_cancel;
+    s_confirm_timeout_last_shown = -1;
+
+    s_confirm_timeout_active = timeout_seconds > 0u;
+    if (s_confirm_timeout_active) {
+        if (clock_gettime(CLOCK_MONOTONIC, &s_confirm_timeout_due) != 0) {
+            /* Could not read the clock to schedule the countdown at
+             * all: safer to run with no timeout (the dialog just
+             * waits indefinitely, same as before this feature
+             * existed) than to silently skip showing one while a
+             * caller believes it is protected by an automatic
+             * revert. */
+            s_confirm_timeout_active = false;
+        } else {
+            s_confirm_timeout_due.tv_sec += (time_t) timeout_seconds;
+        }
+    }
+
+    s_confirm_compute_layout(connection, config, &s_confirm_layout);
 
     menu_dialog_center(connection, surface, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
@@ -384,7 +496,8 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     /* XCB requires attribute values to be listed in ascending bit order
      * of their mask.
      *
-     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) < EVENT_MASK(2048)
+     * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) <
+     * EVENT_MASK(2048)
      * */
     mask = XCB_CW_BACK_PIXEL        |
         XCB_CW_BORDER_PIXEL         |
@@ -439,12 +552,15 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     s_confirm_window= XCB_WINDOW_NONE;
     s_confirm_selected = 0;
     s_confirm_callback = NULL;
+    s_confirm_cancel_callback = NULL;
     /* Also cancels any click-triggered close/accept still scheduled
      * (see 's_confirm_defer_action'), so 'menu_confirm_dialog_tick'
      * has nothing left to do once this dialog is gone through some
      * other path (e.g., Escape) before that delay elapsed on its
      * own. */
     s_confirm_deferred_pending = false;
+    s_confirm_timeout_active = false;
+    s_confirm_timeout_last_shown = -1;
 }
 
 
@@ -453,6 +569,40 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
         const config_td *config)
 {
     s_confirm_draw(connection, config);
+}
+
+
+/**
+ * @brief Milliseconds remaining until an absolute deadline, floored
+ *        at zero rather than going negative once past it
+ *
+ * The one request/reply-free clock computation
+ * 's_confirm_timeout_ms_remaining', 'menu_confirm_dialog_ms_
+ * remaining', and 'menu_confirm_dialog_tick' all need against their
+ * own absolute deadline; this is the part that was actually
+ * identical between them.
+ *
+ * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
+ *
+ * @return Milliseconds remaining (never negative), or @c 0 if the
+ *         clock itself could not be read
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_confirm_ms_until(const struct timespec *due)
+{
+    struct timespec now;
+    long remaining_ms;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return 0;
+    }
+
+    remaining_ms =
+        (long) (due->tv_sec - now.tv_sec) * 1000L +
+        (due->tv_nsec - now.tv_nsec) / 1000000L;
+
+    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
 }
 
 
@@ -493,11 +643,7 @@ static void s_confirm_defer_action(xcb_connection_t *connection,
          * better to act immediately than to leave the dialog stuck
          * open with a pending action that can never become due. */
         s_confirm_deferred_pending = false;
-        if (s_confirm_selected == 1) {
-            menu_confirm_dialog_accept(connection, s_confirm_callback);
-        } else {
-            menu_confirm_dialog_close(connection);
-        }
+        menu_confirm_dialog_accept(connection);
         return;
     }
 
@@ -511,42 +657,106 @@ static void s_confirm_defer_action(xcb_connection_t *connection,
 }
 
 
-/* Milliseconds until the deferred confirm-dialog click action is due */
-int menu_confirm_dialog_ms_remaining(void)
+/**
+ * @brief Milliseconds remaining until a pending click-triggered
+ *        close/accept becomes due
+ *
+ * @return Milliseconds remaining (never negative), or -1 if none is
+ *         currently pending
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_confirm_click_ms_remaining(void)
 {
-    struct timespec now;
-    long remaining_ms;
-
     if (!s_confirm_deferred_pending) {
         return -1;
     }
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (s_confirm_deferred_due.tv_sec - now.tv_sec) * 1000L +
-        (s_confirm_deferred_due.tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+    return s_confirm_ms_until(&s_confirm_deferred_due);
 }
 
 
-/* Perform the deferred confirm-dialog click action, if due */
-void menu_confirm_dialog_tick(xcb_connection_t *connection)
+/**
+ * @brief Milliseconds remaining until the running countdown timeout
+ *        fully elapses
+ *
+ * @return Milliseconds remaining (never negative), or -1 if no
+ *         timeout is currently running
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_confirm_timeout_ms_remaining(void)
 {
-    if (!s_confirm_deferred_pending ||
-            menu_confirm_dialog_ms_remaining() > 0) {
+    if (!s_confirm_timeout_active) {
+        return -1;
+    }
+    return s_confirm_ms_until(&s_confirm_timeout_due);
+}
+
+
+/* Milliseconds until the next thing this dialog needs to wake up for */
+int menu_confirm_dialog_ms_remaining(void)
+{
+    int click_ms = s_confirm_click_ms_remaining();
+    int timeout_ms = s_confirm_timeout_ms_remaining();
+    int wake_ms;
+    int shown_seconds;
+
+    if (timeout_ms >= 0) {
+        /* Wake at the countdown's own final expiry, or sooner still
+         * at whenever the whole seconds shown next decreases by one
+         * (so the visible number counts down instead of only
+         * changing once, from its starting value straight to
+         * vanishing), whichever comes first. */
+        shown_seconds = (timeout_ms + 999) / 1000;
+        wake_ms = timeout_ms - ((shown_seconds - 1) * 1000);
+        if (wake_ms < 0) {
+            wake_ms = 0;
+        }
+        timeout_ms = (wake_ms < timeout_ms) ? wake_ms : timeout_ms;
+    }
+
+    if (click_ms < 0) {
+        return timeout_ms;
+    }
+    if (timeout_ms < 0) {
+        return click_ms;
+    }
+    return (click_ms < timeout_ms) ? click_ms : timeout_ms;
+}
+
+
+/* Service whichever timer is due */
+void menu_confirm_dialog_tick(xcb_connection_t *connection,
+        const config_td *config)
+{
+    int timeout_ms;
+    int shown_seconds;
+
+    if (s_confirm_click_ms_remaining() == 0) {
+        s_confirm_deferred_pending = false;
+        menu_confirm_dialog_accept(connection);
+        /* The dialog this timer belonged to is gone now that it just
+         * accepted; nothing left below to service. */
         return;
     }
 
-    s_confirm_deferred_pending = false;
+    timeout_ms = s_confirm_timeout_ms_remaining();
+    if (timeout_ms < 0) {
+        return;
+    }
 
-    if (s_confirm_selected == 1) {
-        menu_confirm_dialog_accept(connection, s_confirm_callback);
-    } else {
-        menu_confirm_dialog_close(connection);
+    if (timeout_ms == 0) {
+        menu_confirm_dialog_cancel(connection);
+        return;
+    }
+
+    shown_seconds = (timeout_ms + 999) / 1000;
+    if (shown_seconds != s_confirm_timeout_last_shown) {
+        s_confirm_timeout_last_shown = shown_seconds;
+        if (config != NULL) {
+            s_confirm_draw(connection, config);
+            xcb_flush(connection);
+        }
     }
 }
 
@@ -589,13 +799,31 @@ void menu_confirm_dialog_toggle_selection(void)
 
 
 /* Activate current button */
-void menu_confirm_dialog_accept(xcb_connection_t *connection,
-        void (*on_confirm)(xcb_connection_t *))
+void menu_confirm_dialog_accept(xcb_connection_t *connection)
 {
     int selected = s_confirm_selected;
+    void (*confirm_cb)(xcb_connection_t *) = s_confirm_callback;
+    void (*cancel_cb)(xcb_connection_t *) = s_confirm_cancel_callback;
+
     menu_confirm_dialog_close(connection);
-    if (selected == 1 && on_confirm != NULL) {
-        on_confirm(connection);
+    if (selected == 1) {
+        if (confirm_cb != NULL) {
+            confirm_cb(connection);
+        }
+    } else if (cancel_cb != NULL) {
+        cancel_cb(connection);
+    }
+}
+
+
+/* Cancel the dialog regardless of which button is selected */
+void menu_confirm_dialog_cancel(xcb_connection_t *connection)
+{
+    void (*cancel_cb)(xcb_connection_t *) = s_confirm_cancel_callback;
+
+    menu_confirm_dialog_close(connection);
+    if (cancel_cb != NULL) {
+        cancel_cb(connection);
     }
 }
 

@@ -7,6 +7,8 @@
  * without modifying any state.  No module at a lower layer may depend
  * on this header; all higher-layer modules that need a lookup must
  * include it directly.
+ *
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -98,6 +98,29 @@ static int s_entry_data_used = 0;
 
 
 /**
+ * @brief Request a desktop switch on the given surface
+ *
+ * Shared by @c s_cb_goto_desktop and @c s_cb_focus_client below, both
+ * of which switch @p surface to a target desktop by ID before doing
+ * anything else specific to their own entry type.
+ *
+ * @param surface    Surface to switch
+ * @param desktop_id Target desktop ID
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_switch_to_desktop(surface_td *surface, uint32_t desktop_id)
+{
+    action_data_surface_td sdata;
+
+    sdata.surface = surface;
+    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
+    sdata.new_data.uvalue = desktop_id;
+    scmd_surface_desktop_switch(surface, &sdata);
+}
+
+
+/**
  * @brief Switch to a desktop from the window list
  *
  * Callback invoked when a desktop entry in the window list is
@@ -112,7 +135,6 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
         void *userdata)
 {
     winlist_entry_data_td *data;
-    action_data_surface_td sdata;
 
     (void) connection;
 
@@ -121,10 +143,7 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
         return;
     }
 
-    sdata.surface = data->surface;
-    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    sdata.new_data.uvalue = data->desktop_id;
-    scmd_surface_desktop_switch(data->surface, &sdata);
+    s_switch_to_desktop(data->surface, data->desktop_id);
 }
 
 
@@ -150,7 +169,6 @@ static void s_cb_focus_client(xcb_connection_t *connection,
         void *userdata)
 {
     winlist_entry_data_td *data;
-    action_data_surface_td sdata;
     uint32_t target_did;
     desktop_td *target_desktop;
 
@@ -165,10 +183,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
         ? data->client->desktop_id
         : data->desktop_id;
 
-    sdata.surface = data->surface;
-    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    sdata.new_data.uvalue = target_did;
-    scmd_surface_desktop_switch(data->surface, &sdata);
+    s_switch_to_desktop(data->surface, target_did);
     if (data->client == NULL) {
         return;
     }
@@ -268,7 +283,7 @@ static void s_append_client_entry(client_td *client, uint32_t did,
         int out_cap, int *out_count)
 {
     const char *cname;
-    char name_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    char name_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     winlist_entry_data_td *data;
     int n;
 
@@ -298,6 +313,8 @@ static void s_append_client_entry(client_td *client, uint32_t did,
     data->desktop_id = did;
     out_entries[n].on_activate = s_cb_focus_client;
     out_entries[n].userdata = data;
+    out_entries[n].icon_window = client->window;
+    out_entries[n].icon_cache = &client->icon_pixmap_cache;
     *out_count = n + 1;
 }
 
@@ -342,6 +359,35 @@ static void s_appgroup_label(client_td * const *members, int member_n,
 
 
 /**
+ * @brief Append a client to the collected-for-this-desktop array, if
+ *        there is room
+ *
+ * Shared by @c s_build_desktop_entries' own two collection passes
+ * below (this desktop's own clients, and sticky clients physically
+ * stored on other desktops), which otherwise repeated the same
+ * bounds-checked append.
+ *
+ * @param client     Client to append
+ * @param collected  Destination array
+ * @param placed     Parallel "already grouped" array; the new slot is
+ *                   initialized to @c false
+ * @param collected_n Current count in @p collected; incremented on
+ *                    success
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_collect_client(client_td *client,
+        client_td **collected, bool *placed, int *collected_n)
+{
+    if (*collected_n < WINLIST_MAX_COLLECTED) {
+        collected[*collected_n] = client;
+        placed[*collected_n] = false;
+        (*collected_n)++;
+    }
+}
+
+
+/**
  * @brief Build one desktop's submenu entries
  *
  * Collects every client that belongs to @p did (physically stored
@@ -373,7 +419,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     cdlist_item_td *dinitial;
     int group_idx;
     int group_n;
-    char label_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     int n;
 
     if (surface == NULL || out_entries == NULL || out_count == NULL) {
@@ -400,11 +446,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                         client->desktop_id != did)) {
                 continue;
             }
-            if (collected_n < WINLIST_MAX_COLLECTED) {
-                collected[collected_n] = client;
-                placed[collected_n] = false;
-                collected_n++;
-            }
+            s_collect_client(client, collected, placed, &collected_n);
         }
     }
 
@@ -422,11 +464,8 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                                     CLIENT_FLAG_SKIP_TASKBAR)) {
                             continue;
                         }
-                        if (collected_n < WINLIST_MAX_COLLECTED) {
-                            collected[collected_n] = client;
-                            placed[collected_n] = false;
-                            collected_n++;
-                        }
+                        s_collect_client(client, collected, placed,
+                                &collected_n);
                     } /* ! ohtbl_foreach */
                 }
                 dnode = cdlist_next(dnode);
@@ -514,6 +553,8 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
         out_entries[n].items = s_appgroup_entries[group_idx];
         out_entries[n].item_count = group_n;
         out_entries[n].userdata = &s_appgroup_state[group_idx];
+        out_entries[n].icon_window = members[0]->window;
+        out_entries[n].icon_cache = &members[0]->icon_pixmap_cache;
         *out_count = n + 1;
     }
 }
@@ -524,13 +565,13 @@ void winlist_show(xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
         const config_td *config)
 {
-    uint32_t did;
     uint32_t cur_did;
     desktop_td *desktop;
     int n;
     int desktop_count;
     const char *label_fmt;
-    char label_buf[WM_CTXMENU_LABEL_MAX_LEN];
+    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
+    ctxmenu_entry_td *root_target;
 
     if (connection == NULL || surface == NULL || config == NULL) {
         return;
@@ -571,7 +612,7 @@ void winlist_show(xcb_connection_t *connection,
                     &n);
         }
     } else {
-        for (did = 0; (int) did < desktop_count; ++did) {
+        for (uint32_t did = 0; (int) did < desktop_count; ++did) {
             winlist_entry_data_td *data;
             int desktop_n;
             bool is_cur;
@@ -589,16 +630,26 @@ void winlist_show(xcb_connection_t *connection,
 
             /* Always add a "Go there..." entry at the top of the desktop's
              * own submenu, same as before, so picking the desktop itself
-             * (with no particular window) still works */
+             * (with no particular window) still works.  Followed by a
+             * separator before the real client entries below it, but
+             * only when this desktop actually has any: with none,
+             * "Go there..." would otherwise be followed by a bare
+             * separator leading nowhere. */
             if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+                int shift_count = (desktop_n > 0 &&
+                        desktop_n + 1 < WINLIST_MAX_ENTRIES_PER_DESKTOP)
+                    ? 2 : 1;
+
                 data = s_alloc_entry_data();
                 if (data != NULL) {
-                    /* Shift existing entries down by one to make room at
-                     * the front; desktop_n is always small enough for this
-                     * to be cheap */
-                    for (int i = desktop_n; i > 0; --i) {
+                    /* Shift existing entries down to make room at the
+                     * front for "Go there..." (and the separator, if
+                     * one fits); desktop_n is always small enough for
+                     * this to be cheap */
+                    for (int i = desktop_n + shift_count - 1;
+                            i >= shift_count; --i) {
                         s_desktop_entries[did][i] =
-                            s_desktop_entries[did][i - 1];
+                            s_desktop_entries[did][i - shift_count];
                     }
                     s_desktop_entries[did][0].type = CTXMENU_COMMAND;
                     safe_strncpy(s_desktop_entries[did][0].label,
@@ -607,6 +658,13 @@ void winlist_show(xcb_connection_t *connection,
                     s_desktop_entries[did][0].is_disabled = is_cur;
                     s_desktop_entries[did][0].on_activate = NULL;
                     s_desktop_entries[did][0].userdata = NULL;
+                    /* Never inherited from whichever real client entry
+                     * used to occupy this same slot before the shift
+                     * above: without this, "Go there..." would show
+                     * that client's own icon. */
+                    s_desktop_entries[did][0].icon_window =
+                        XCB_WINDOW_NONE;
+                    s_desktop_entries[did][0].icon_cache = NULL;
                     if (!is_cur) {
                         data->surface = surface;
                         data->client = NULL;
@@ -615,7 +673,15 @@ void winlist_show(xcb_connection_t *connection,
                             s_cb_goto_desktop;
                         s_desktop_entries[did][0].userdata = data;
                     }
-                    desktop_n++;
+
+                    if (shift_count == 2) {
+                        s_desktop_entries[did][1].type = CTXMENU_SEPARATOR;
+                        s_desktop_entries[did][1].icon_window =
+                            XCB_WINDOW_NONE;
+                        s_desktop_entries[did][1].icon_cache = NULL;
+                    }
+
+                    desktop_n += shift_count;
                 }
             }
 
@@ -659,22 +725,20 @@ void winlist_show(xcb_connection_t *connection,
      * submenu) otherwise.  Both are used below instead of just
      * 's_root_entries', so the "no windows" fallback and the final
      * root assignment land on the right one either way. */
-    {
-        ctxmenu_entry_td *root_target =
-            (desktop_count <= 1) ? s_desktop_entries[0] : s_root_entries;
+    root_target =
+        (desktop_count <= 1) ? s_desktop_entries[0] : s_root_entries;
 
-        if (n == 0) {
-            root_target[n].type = CTXMENU_LABEL;
-            safe_strncpy(root_target[n].label, "(no windows)",
-                    sizeof(root_target[n].label) - 1u);
-            ++n;
-        }
-
-        memset(&s_root, 0, sizeof(s_root));
-        s_root.window = XCB_WINDOW_NONE;
-        s_root.entries = root_target;
-        s_root.entry_count = n;
+    if (n == 0) {
+        root_target[n].type = CTXMENU_LABEL;
+        safe_strncpy(root_target[n].label, "(no windows)",
+                sizeof(root_target[n].label) - 1u);
+        ++n;
     }
+
+    memset(&s_root, 0, sizeof(s_root));
+    s_root.window = XCB_WINDOW_NONE;
+    s_root.entries = root_target;
+    s_root.entry_count = n;
 
     ctxmenu_show(connection, surface, &s_root, x, y, config);
 }
@@ -690,12 +754,7 @@ void winlist_close(void)
 /* Repaint the window list menu */
 void winlist_repaint(xcb_window_t win)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_repaint(state);
-    }
+    ctxmenu_repaint_window(&s_root, win);
 }
 
 
@@ -704,17 +763,8 @@ bool winlist_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int x, int y,
         const config_td *config)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state == NULL) {
-        return false;
-    }
-    x -= state->origin_x;
-    y -= state->origin_y;
-
-    return ctxmenu_handle_click(connection, surface, state,
-            x, y, config);
+    return ctxmenu_handle_click_window(connection, surface, &s_root,
+            win, x, y, config);
 }
 
 
@@ -744,31 +794,13 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    ctxmenu_state_td *deepest;
-
-    /* Apply the keypress to the deepest currently open submenu, not
-     * always the top-level (per-desktop) one: without this, arrow keys
-     * kept moving the selection in the desktop list even while an
-     * application-group submenu was open in front of it, making that
-     * submenu look unresponsive to the keyboard. */
-    deepest = ctxmenu_find_state_for_window(&s_root,
-            ctxmenu_deepest_window(&s_root));
-    if (deepest == NULL) {
-        deepest = &s_root;
-    }
-
-    return ctxmenu_handle_keypress(connection, surface, deepest,
-            keysym, config);
+    return ctxmenu_handle_keypress_deepest(connection, surface,
+            &s_root, keysym, config);
 }
 
 
 /* Handle a pointer-motion event over the window list menu */
 void winlist_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_state_td *state;
-
-    state = ctxmenu_find_state_for_window(&s_root, win);
-    if (state != NULL) {
-        ctxmenu_handle_motion(state, x, y);
-    }
+    ctxmenu_handle_motion_window(&s_root, win, x, y);
 }

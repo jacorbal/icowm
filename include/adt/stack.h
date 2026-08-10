@@ -3,7 +3,7 @@
  *
  * @brief Stack (LIFO) data structure declaration as linked list
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef STACK_H

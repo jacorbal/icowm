@@ -9,7 +9,7 @@
  * resizing process involves doubling or halving the current capacity
  * and rehashing existing items to the new storage arrangement.
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef OHTBL_H

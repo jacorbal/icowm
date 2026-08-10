@@ -2,6 +2,8 @@
  * @file defs/sn.h
  *
  * @brief Default values for the startup-notification subsystem
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

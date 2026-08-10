@@ -2,6 +2,8 @@
  * @file defs/popup.h
  *
  * @brief Dimensions and timing for the client-info popup
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -16,7 +18,7 @@
 
 
 /** Maximum length of each info popup text line */
-#define WM_INFO_POPUP_LINE_MAX_LEN (256)
+#define WM_INFO_POPUP_LINE_MAX_LENGTH (256)
 
 /**
  * @brief Duration in milliseconds before the info popup auto-closes

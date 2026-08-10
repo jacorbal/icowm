@@ -3,7 +3,7 @@
  *
  * @brief Pure geometry utility declarations
  *
- * @ingroup geom Geometry utils
+ * @defgroup utils Generic utilities
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -30,15 +30,15 @@
 #include <rules.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <invalidate.h>
 #include <logger.h>
 #include <render/desktop.h>
+#include <render/outdate.h>
 #include <render/surface.h>
 #include <render/wmicon.h>
 #include <surface.h>
@@ -100,7 +100,6 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
     xcb_get_property_cookie_t motif_ck;
     xcb_get_property_reply_t *motif_r;
-    xcb_intern_atom_reply_t *ia;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in property handler",
@@ -168,15 +167,22 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
              event->atom == client->ewmh->_NET_WM_NAME)) {
         client_props_refresh_name(client);
 
-        if (surface != NULL && desktop != NULL &&
-                rules_apply(wm, client, &surface, &desktop,
-                    RULES_TRIGGER_PROPERTY)) {
-            wm_invalidate_surface(surface);
-            wm_invalidate_desktop(desktop);
+        if (surface != NULL && desktop != NULL) {
+            (void) rules_apply(wm, client, &surface, &desktop,
+                    RULES_TRIGGER_PROPERTY);
         }
 
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        /* The client's own titlebar text is what actually changed:
+         * without marking the client itself outdated too, the render
+         * pass's per-client skip check ('client->is_outdated' in
+         * 's_desktop_render_one_client', render/desktop.c) means its
+         * titlebar keeps showing the old title until some unrelated
+         * event (focus change, move, resize...) happens to mark that
+         * client outdated for a different reason -- rather than
+         * updating the moment this property notify itself arrives. */
+        wm_outdate_client(client);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
         return;
     }
 
@@ -184,8 +190,9 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
             (client->ewmh != NULL &&
              event->atom == client->ewmh->_NET_WM_ICON_NAME)) {
         client_props_refresh_icon_name(client);
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_client(client);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
         return;
     }
 
@@ -196,23 +203,24 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
      * needed is throwing away whatever it cached from the property's
      * old value, which would otherwise keep being reused (that is the
      * entire point of the cache) even though it no longer matches what
-     * the application just published. */
-    if (client->ewmh != NULL &&
-            event->atom == client->ewmh->_NET_WM_ICON) {
+     * the application just published.  'WM_HINTS' is included here
+     * too: 'wmicon_draw' falls back to its own 'icon_pixmap'/
+     * 'icon_mask' fields when '_NET_WM_ICON' is absent (see
+     * render/wmicon.c), so a client updating those at runtime needs
+     * the exact same cache invalidation, even though most of
+     * 'WM_HINTS' otherwise unrelated to icons (input model, urgency,
+     * window group) is not itself re-read here. */
+    if ((client->ewmh != NULL &&
+                event->atom == client->ewmh->_NET_WM_ICON) ||
+            event->atom == XCB_ATOM_WM_HINTS) {
         wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
         return;
     }
 
-    ia = xcb_intern_atom_reply(client->connection,
-            xcb_intern_atom(client->connection, 1,
-                (uint16_t) safe_strlen("WM_WINDOW_ROLE"),
-                "WM_WINDOW_ROLE"), NULL);
-    if (ia != NULL) {
-        wm_window_role = ia->atom;
-        free(ia);
-    }
+    wm_window_role = atom_intern(client->connection, "WM_WINDOW_ROLE",
+            true);
 
     if (event->atom == XCB_ATOM_WM_CLASS ||
             event->atom == wm_window_role) {
@@ -222,8 +230,8 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         if (surface != NULL && desktop != NULL &&
                 rules_apply(wm, client, &surface, &desktop,
                     RULES_TRIGGER_PROPERTY)) {
-            wm_invalidate_surface(surface);
-            wm_invalidate_desktop(desktop);
+            wm_outdate_surface(surface);
+            wm_outdate_desktop(desktop);
         }
         return;
     }
@@ -234,14 +242,8 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
      * freaking de-facto hint 'client_manage' already reads once at
      * initial map time (see there for the field layout), just applied
      * live here whenever it actually changes. */
-    ia = xcb_intern_atom_reply(client->connection,
-            xcb_intern_atom(client->connection, 1,
-                (uint16_t) safe_strlen("_MOTIF_WM_HINTS"),
-                "_MOTIF_WM_HINTS"), NULL);
-    if (ia != NULL) {
-        motif_hints_atom = ia->atom;
-        free(ia);
-    }
+    motif_hints_atom = atom_intern(client->connection, "_MOTIF_WM_HINTS",
+            true);
     if (motif_hints_atom != XCB_ATOM_NONE &&
             event->atom == motif_hints_atom) {
         motif_ck = xcb_get_property(client->connection, 0,
@@ -329,16 +331,16 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
 
         s_handler_refresh_workareas(surface);
 
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
         return;
     }
 
     if (surface != NULL && desktop != NULL &&
             rules_apply(wm, client, &surface, &desktop,
                 RULES_TRIGGER_PROPERTY)) {
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
     }
 }
 

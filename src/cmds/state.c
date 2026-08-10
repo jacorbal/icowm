@@ -77,6 +77,14 @@ static void s_client_enable_decoration(client_td *client,
     int32_t frame_h;
     uint32_t border_color;
     uint32_t bg_color;
+    static const xcb_button_index_t s_grab_buttons[] = {
+        XCB_BUTTON_INDEX_1,
+        XCB_BUTTON_INDEX_2,
+        XCB_BUTTON_INDEX_3,
+        6,
+        7
+    };
+    size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
 
     if (client == NULL || client->parent_id == 0) {
         return;
@@ -163,28 +171,18 @@ static void s_client_enable_decoration(client_td *client,
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0u});
 
-    {
-        static const xcb_button_index_t s_grab_buttons[] = {
-            XCB_BUTTON_INDEX_1,
-            XCB_BUTTON_INDEX_2,
-            XCB_BUTTON_INDEX_3,
-            6,
-            7
-        };
-        size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
-        for (size_t bi = 0; bi < nb; ++bi) {
-            xcb_grab_button(client->connection,
-                    0,
-                    client->frame,
-                    XCB_EVENT_MASK_BUTTON_PRESS |
-                    XCB_EVENT_MASK_BUTTON_RELEASE,
-                    XCB_GRAB_MODE_SYNC,
-                    XCB_GRAB_MODE_ASYNC,
-                    XCB_NONE,
-                    XCB_NONE,
-                    (uint8_t) s_grab_buttons[bi],
-                    XCB_MOD_MASK_ANY);
-        }
+    for (size_t bi = 0; bi < nb; ++bi) {
+        xcb_grab_button(client->connection,
+                0,
+                client->frame,
+                XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE,
+                XCB_GRAB_MODE_SYNC,
+                XCB_GRAB_MODE_ASYNC,
+                XCB_NONE,
+                XCB_NONE,
+                (uint8_t) s_grab_buttons[bi],
+                XCB_MOD_MASK_ANY);
     }
 
     xcb_map_window(client->connection, client->frame);
@@ -589,7 +587,6 @@ void wcmd_client_unfullscreen(client_td *client)
                     });
             xcb_map_window(client->connection, client->titlebar);
         }
-
     }
     client->was_decorated_fullscreen = false;
 

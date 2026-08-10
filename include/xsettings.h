@@ -9,6 +9,9 @@
  * watch for changes on) to learn the current theme name, icon theme,
  * cursor theme, and display DPI; the same mechanism a standalone daemon
  * like @c xsettingsd provides, gated by @c config.xsettings.is_enabled.
+ *
+ * @defgroup xsettings XSETTINGS protocol
+ * @ingroup surface
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

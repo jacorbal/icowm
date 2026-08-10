@@ -14,7 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
-#include <stdlib.h>     /* malloc, free, calloc */
+#include <stdlib.h>     /* free, calloc */
 
 /* JSON includes */
 #include <cjson/cJSON.h>

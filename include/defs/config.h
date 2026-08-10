@@ -2,6 +2,8 @@
  * @file defs/config.h
  *
  * @brief Definitions related to the configuration structure
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -65,11 +67,11 @@
  * or multi-card workstations), not just a typical single-GPU
  * laptop or desktop. */
 #ifdef LOWMEM
-#define CONFIG_RANDR_MAX_OUTPUTS (2)      /**< Max. per-output profiles */
+#define CONFIG_RANDR_MAX_OUTPUTS (2)         /**< Max. per-output profiles */
 #else
-#define CONFIG_RANDR_MAX_OUTPUTS (16)     /**< Max. per-output profiles */
+#define CONFIG_RANDR_MAX_OUTPUTS (16)        /**< Max. per-output profiles */
 #endif
-#define CONFIG_RANDR_OUTPUT_NAME_LEN (64) /**< Max. output name length */
+#define CONFIG_RANDR_OUTPUT_NAME_LENGTH (64) /**< Max. output name length */
 
 
 #endif  /* ! DEFS_CONFIG_H */

@@ -6,6 +6,8 @@
  * Declares the public API for the keyboard cycle menu that lets the
  * user switch between windows or iconified clients.  All menu state is
  * private to the implementation.
+ *
+ * @ingroup menu
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -76,16 +78,40 @@ void cycle_open(list_td *surfaces,
 void cycle_close(xcb_connection_t *connection);
 
 /**
- * @brief Repaint all menu entries
+ * @brief Repaint whatever changed in the menu since its own last call
  *
- * Renders all rows, highlighting the currently selected one.
+ * Renders every row when the viewport itself shifted (scrolling) or
+ * this is the first call since @c cycle_open; otherwise only the row
+ * that lost the selection and the one that gained it actually show
+ * anything different, so only those two are redrawn.  Call
+ * @c cycle_force_full_repaint first to force the full-viewport path
+ * regardless (e.g. after an 'Expose' event, where the window's whole
+ * prior content may be gone).
  *
  * @param connection XCB connection
  * @param cfg        Active configuration (for theme colors and font)
  *
- * @note Complexity: @e O(n), where @e n is the number of menu entries
+ * @note Complexity: @e O(n) when repainting the full viewport (where
+ *       @e n is @c viewport_rows), @e O(1) otherwise
  */
 void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
+
+/**
+ * @brief Force the next @c cycle_draw call to repaint the whole
+ *        viewport, not just whatever selection change it can tell
+ *        happened on its own
+ *
+ * For any redraw need @c cycle_draw cannot infer from its own
+ * @c selected/scroll_offset bookkeeping alone, in particular an
+ * 'Expose' event: the window's own prior content may be gone
+ * regardless of whether either of those changed.  A no-op the menu
+ * itself already accounts for on every other path (opening it fresh,
+ * or a viewport-shifting navigation), so callers only need this for
+ * that one remaining case.
+ *
+ * @note Complexity: @e O(1)
+ */
+void cycle_force_full_repaint(void);
 
 /**
  * @brief Confirm the currently selected cycle menu entry

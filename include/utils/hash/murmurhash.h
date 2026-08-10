@@ -47,6 +47,9 @@
  * small changes in the input lead to significant changes in the output
  * hash (known as the avalanche effect), optimizing the distribution of
  * the hash values.
+ *
+ * @defgroup utils_hash Hashing utilities
+ * @ingroup utils
  */
 
 #ifndef MURMURHASH_H

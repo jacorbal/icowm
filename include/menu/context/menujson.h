@@ -23,6 +23,8 @@
  * Memory allocation: @a menujson_load allocates the entry array and all
  * sub-arrays.  The caller must free them with @a menujson_free when
  * done.
+ *
+ * @ingroup menu_context
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

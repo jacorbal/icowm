@@ -1,14 +1,21 @@
 /**
  * @file menu/dialog/confirm.h
  *
- * @brief Two-button confirm/cancel modal dialog
+ * @brief Two-button confirm/cancel modal dialog, with an optional
+ *        countdown that automatically activates whichever button is
+ *        currently selected once it elapses
  *
  * Presents a prompt and two choices (cancel and confirm).  The caller
  * supplies all visible text at show time; no compiled-in strings are
- * used.  An optional callback is invoked when the user activates the
- * confirm button.
+ * used.  Optional callbacks are invoked when the user (or, with a
+ * countdown running, the dialog itself once it elapses) activates
+ * either button; both are stored internally from @c
+ * menu_confirm_dialog_show, so nothing else in this file needs to be
+ * told which one is in play again.
  *
  * @note Only one instance may be visible at a time
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,6 +31,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -37,7 +45,7 @@
  * @brief Open the confirm dialog centered on the screen
  *
  * Creates and maps a modal dialog window with @p prompt, a cancel
- * button labelled @p cancel_label, and a confirm button labelled
+ * button labeled @p cancel_label, and a confirm button labeled
  * @p confirm_label.  The cancel button is selected by default.  Any
  * previously open confirm dialog is ignored (only one instance is
  * allowed at a time).
@@ -49,8 +57,22 @@
  * @param cancel_label  Null-terminated cancel button label
  * @param confirm_label Null-terminated confirm button label
  * @param on_confirm    Optional callback invoked when the confirm
- *                      button is activated; receives the XCB connection
- *                      (may be null)
+ *                      button is activated; receives the XCB
+ *                      connection (may be null)
+ * @param on_cancel     Optional callback invoked when the cancel
+ *                      button is activated -- by a person clicking
+ *                      it, selecting it and pressing Enter/Space,
+ *                      pressing Escape (which always acts as
+ *                      cancel, regardless of which button happens to
+ *                      be selected at the time), or @p timeout_seconds
+ *                      elapsing while it is the selected one; receives
+ *                      the XCB connection (may be null)
+ * @param timeout_seconds Seconds before the dialog automatically acts
+ *                      as though its currently-selected button were
+ *                      activated, showing a live countdown under the
+ *                      prompt while it runs; @c 0 disables this
+ *                      entirely, leaving the dialog open indefinitely
+ *                      exactly as before this parameter existed
  *
  * @note Complexity: @e O(n), where @e n is the total text length
  */
@@ -58,12 +80,16 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *prompt,
         const char *cancel_label, const char *confirm_label,
-        void (*on_confirm)(xcb_connection_t *));
+        void (*on_confirm)(xcb_connection_t *),
+        void (*on_cancel)(xcb_connection_t *),
+        uint32_t timeout_seconds);
 
 /**
  * @brief Destroy the currently visible confirm dialog
  *
- * Closes the dialog window if it is open and resets all internal state.
+ * Closes the dialog window if it is open and resets all internal
+ * state.  Neither callback is invoked; use @c menu_confirm_dialog_
+ * cancel instead for a close that should count as cancelling.
  *
  * @param connection XCB connection
  *
@@ -74,8 +100,8 @@ void menu_confirm_dialog_close(xcb_connection_t *connection);
 /**
  * @brief Repaint the confirm dialog from current state
  *
- * Called from the expose handler.  Redraws the prompt and both buttons,
- * highlighting the currently selected one.
+ * Called from the expose handler.  Redraws the prompt, both buttons,
+ * and the countdown line if a timeout is running.
  *
  * @param connection XCB connection
  * @param config     Active configuration (theme colors and font)
@@ -112,29 +138,44 @@ bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
         const config_td *config, int x, int y);
 
 /**
- * @brief Milliseconds until a pending click-triggered close/accept
- *        (see @c menu_confirm_dialog_handle_click) becomes due
+ * @brief Milliseconds until the next thing this dialog needs the main
+ *        loop to wake it up for becomes due
  *
- * For the main loop to fold into its own @c poll timeout computation,
- * the same way @c popup_ms_remaining and similar already are.
+ * Folds together three independent timers this dialog can have
+ * running at once: a pending click-triggered close/accept (see
+ * @c menu_confirm_dialog_handle_click), the once-a-second countdown
+ * repaint while a timeout is running, and the timeout's own final
+ * expiry.  For the main loop to fold into its own @c poll timeout
+ * computation, the same way @c popup_ms_remaining and similar
+ * already are.
  *
- * @return Milliseconds remaining (never negative), or -1 if no such
- *         action is currently pending
+ * @return Milliseconds remaining until the soonest of these (never
+ *         negative), or -1 if none is currently pending
  *
  * @note Complexity: @e O(1)
  */
 int menu_confirm_dialog_ms_remaining(void);
 
 /**
- * @brief Perform the deferred click-triggered close/accept, if one is
- *        pending and due
+ * @brief Service whichever of this dialog's timers (see
+ *        @c menu_confirm_dialog_ms_remaining) is due
+ *
+ * Performs a pending click-triggered close/accept once its short
+ * delay elapses; repaints to advance the visible countdown once a
+ * second while a timeout is running; calls @c menu_confirm_dialog_
+ * cancel once the timeout itself fully elapses.  A safe, cheap no-op
+ * when nothing this dialog owns is due yet, including when no dialog
+ * is open at all.
  *
  * @param connection XCB connection
+ * @param config     Active configuration, for the once-a-second
+ *                   countdown repaint; that repaint is skipped (the
+ *                   rest of this function still runs) if @c NULL
  *
- * @note No-op if nothing is pending, or pending but not yet due
  * @note Complexity: @e O(1)
  */
-void menu_confirm_dialog_tick(xcb_connection_t *connection);
+void menu_confirm_dialog_tick(xcb_connection_t *connection,
+        const config_td *config);
 
 /**
  * @brief Move selection to the next button (wraps around)
@@ -148,17 +189,33 @@ void menu_confirm_dialog_toggle_selection(void);
 /**
  * @brief Activate the currently selected button
  *
- * Closes the dialog.  If the confirm button was selected, @p on_confirm
- * is called after closing, if non-null.
+ * Closes the dialog, then calls whichever of @c on_confirm /
+ * @c on_cancel (given to @c menu_confirm_dialog_show) matches the
+ * button that was selected, if that one is non-null.
  *
  * @param connection XCB connection
- * @param on_confirm Optional callback invoked when the confirm button
- *                   is activated; receives the XCB connection
  *
  * @note Complexity: @e O(1)
  */
-void menu_confirm_dialog_accept(xcb_connection_t *connection,
-        void (*on_confirm)(xcb_connection_t *));
+void menu_confirm_dialog_accept(xcb_connection_t *connection);
+
+/**
+ * @brief Cancel the dialog regardless of which button is currently
+ *        selected
+ *
+ * Closes the dialog and calls @c on_cancel (given to @c
+ * menu_confirm_dialog_show), if non-null, the same as selecting the
+ * cancel button and activating it would, without disturbing which
+ * button was actually selected first (irrelevant, since this always
+ * takes the cancel path).  Meant for Escape and for a countdown
+ * timeout, both of which are "back out of this" regardless of
+ * whatever a person may have tabbed the selection to in the meantime.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_confirm_dialog_cancel(xcb_connection_t *connection);
 
 /**
  * @brief Query whether the confirm dialog is currently visible

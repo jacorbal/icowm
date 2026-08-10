@@ -8,6 +8,9 @@
  * the environment variables: @c XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
  * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
  * classic @c HOME/.ICOWM_NAME_PROG.
+ *
+ * @defgroup config Configuration loading
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -311,19 +314,12 @@ struct config_base_s {
              */
             struct {
                 enum config_battery_backend_type_e {
-                    CONFIG_BATTERY_BACKEND_ACPI = 0, /**< Linux sysfs
-                                                           @c
-                                                           /sys/class/power_supply,
-                                                           the modern,
-                                                           near-universal
-                                                           interface */
-                    CONFIG_BATTERY_BACKEND_APM       /**< Legacy
-                                                           @c /proc/apm,
-                                                           for older
-                                                           hardware or
-                                                           kernels
-                                                           without ACPI
-                                                           */
+                    /** Linux sysfs @c /sys/class/power_supply, the
+                     *  modern, near-universal interface */
+                    CONFIG_BATTERY_BACKEND_ACPI = 0,
+                    /** Legacy @c /proc/apm, for older hardware or
+                     *  kernels without ACPI */
+                    CONFIG_BATTERY_BACKEND_APM
                 } type;
 
                 /** Which battery to read when a system has more than
@@ -564,7 +560,7 @@ struct config_theme_s {
          *
          * @see @c client_is_decorated / @c ci_set_decoration_defaults
          *      for where that equivalence is applied, since a theme
-         *      only needs to specify one or the other)
+         *      only needs to specify one or the other
          */
         bool is_decorated;
 
@@ -620,7 +616,16 @@ struct config_theme_s {
          *  since the caption has its own separate strip below that
          *  square (see 'WM_ICON_SQUARE_SIZE' and
          *  'WM_ICON_CAPTION_HEIGHT' in defs/icon.h) */
-        bool use_pixmap;
+        bool show_pixmaps;
+
+        /** Draw the small state-hint indicators in the icon's own top
+         *  corners: a filled square in the top-left when the client
+         *  is sticky/pinned, and a single letter in the top-right for
+         *  whichever maximize/fullscreen state it was in right before
+         *  being iconified ('f'/'m'/'h'/'v'; none for plain normal;
+         *  see 'client_properties_s.pre_iconify_state' in client.h
+         *  and 'ri_draw_icon_hints' in render/icon.c) */
+        bool show_hints;
 
         struct config_theme_style_s active;
         struct config_theme_style_s inactive;
@@ -743,6 +748,26 @@ struct config_theme_s {
             uint32_t horizontal;
             uint32_t vertical;
         } padding;
+
+        /**
+         * @brief Draw the application's own icon to the left of the
+         *        name, for whichever rows represent an actual client
+         *        window
+         *
+         * Applies to the Alt+Tab-style cycle menu (both the window
+         * and the icon variant; see @c menu/cycledraw.c) and to the
+         * all-desktops window list (see @c menu/context/winlist.c);
+         * a no-op for context menu entries that do not represent a
+         * client at all (the root menu, ordinary command entries),
+         * which never reserve icon space regardless of this setting.
+         * The icon is sized to fit within the row, minus
+         * @c WM_MENU_ICON_INSET (see defs/ctxmenu.h) on top and
+         * bottom.  A row whose client has no icon of its own to draw
+         * (see @c wmicon_draw_at) still reserves that same square of
+         * blank space, so every row's own text stays aligned in the
+         * same column regardless of which rows happen to have one.
+         */
+        bool show_pixmaps;
     } menu;
 
     /**
@@ -839,22 +864,46 @@ struct config_theme_s {
 /**
  * @brief Per-output RandR profile configuration
  *
- * Stores the user-defined settings for a single physical output.
- * When @p enabled is @c true the output profile is applied at startup
- * and whenever the output is reconnected.
+ * Stores the user-defined settings for a single physical output,
+ * applied via 'surface_action_apply_randr_profiles' (see
+ * 'surface.h') at startup and whenever that output is (re)connected.
  */
 struct config_randr_output_s {
-    char name[CONFIG_RANDR_OUTPUT_NAME_LEN];    /**< Output name
+    char name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];    /**< Output name
                                                      ("HDMI-1",
                                                      "VESA-1",...) */
 
-    bool is_enabled;    /**< Whether this profile is active */
-    bool is_primary;    /**< Mark output as primary */
+    /** Whether this output is used at all.  @c true applies
+     *  'preferred_res', 'position', and 'rotation' below to the
+     *  output's own CRTC (see 'surface_action_apply_randr_profiles'),
+     *  and also lets IcoWM manage windows on it (see
+     *  'surface_refresh_monitors').  @c false instead turns the
+     *  output's own CRTC off if it has one, blanking it, and
+     *  excludes it from window management entirely, as if physically
+     *  disconnected -- useful for a permanently-connected output (a
+     *  projector for mirroring, say) that should never receive
+     *  windows. */
+    bool is_enabled;
 
-    struct dimensions_s preferred_res;  /**< Preferred resolution */
-    struct position_s position;         /**< Output position (x, y) */
+    /** Mark this output as RandR's primary one, applied as a separate
+     *  request right after the rest of this profile; only meaningful
+     *  when @c is_enabled is @c true. */
+    bool is_primary;
+
+    /** Preferred resolution; matched against the screen's own mode
+     *  list, falling back to whatever mode the output's CRTC already
+     *  has (or its first preferred mode, if none) when left at @c 0
+     *  or when no mode matches exactly.  Only applied when @c
+     *  is_enabled is @c true. */
+    struct dimensions_s preferred_res;
+
+    /** Output position (x, y) in the virtual screen; only applied
+     *  when @c is_enabled is @c true. */
+    struct position_s position;
+
     uint16_t rotation;                  /**< Preferred rotation
-                                             (XRandR mask) */
+                                             (XRandR mask); see
+                                             @c is_enabled */
 };
 
 
@@ -862,9 +911,22 @@ struct config_randr_output_s {
  * @brief XRandR layout configuration
  *
  * Holds a list of per-output profiles and a global on/off switch.
+ *
+ * @note One instance per @c config_td, shared by every managed X
+ *       screen (@c surface_td), not scoped per-screen: matching in
+ *       @c surface_action_apply_randr_profiles is by @c
+ *       config_randr_output_s.name alone, queried independently
+ *       against each screen's own RandR resources. On a multi-GPU
+ *       setup with two X screens exposing an output of the same
+ *       name, the matching profile applies to both identically.
  */
 struct config_randr_s {
-    bool is_enabled;        /**< Enable RandR profile management */
+    /** Master switch for the whole per-output profile system (see
+     *  'config_randr_output_s'); false ignores every profile in
+     *  'outputs' and every detected RandR output is used, same as
+     *  before this system existed. */
+    bool is_enabled;
+
     uint32_t output_count;  /**< Number of populated output profiles */
     struct config_randr_output_s outputs[CONFIG_RANDR_MAX_OUTPUTS];
 };
@@ -971,7 +1033,7 @@ void config_set_default_values(config_td *config,
  *                          (see @c -M in @c main.c).  When non-zero,
  *                          the theme file is not read at all, so
  *                          @c config->theme keeps its compiled-in
- *                          defaults except for @c icon.use_pixmap,
+ *                          defaults except for @c icon.show_pixmaps,
  *                          forced to @c false regardless of what that
  *                          compiled-in default is; and after the base
  *                          configuration loads normally,

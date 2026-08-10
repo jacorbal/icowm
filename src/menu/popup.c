@@ -46,7 +46,7 @@ static uint16_t s_popup_modifier = 0;
 static xcb_keycode_t s_popup_keycode = 0;
 
 /** Cached text lines; reused when the popup receives an expose event */
-static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LEN];
+static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LENGTH];
 
 /** Monotonic timestamp when the popup was last shown */
 static struct timespec s_popup_open_time = { 0, 0 };

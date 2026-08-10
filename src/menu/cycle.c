@@ -26,6 +26,7 @@
 #include <adt/list.h>
 
 /* Render includes */
+#include <render/icon.h>
 #include <render/surface.h>
 
 /* Render includes */
@@ -38,6 +39,7 @@
 #include <policy/focus.h>
 
 /* Default initial values */
+#include <defs/ctxmenu.h>
 #include <defs/cycle.h>
 
 /* Project includes */
@@ -70,7 +72,10 @@ struct cycle_menu_state_s g_cycle_menu = {
     .preview_client = NULL,
     .config = NULL,
     .scroll_offset = 0,
-    .viewport_rows = 0
+    .viewport_rows = 0,
+    .last_drawn_selected = 0,
+    .last_drawn_scroll_offset = 0,
+    .has_drawn_once = false
 };
 
 
@@ -271,13 +276,13 @@ void cycle_open(list_td *surfaces,
                     if (c->properties.state ==
                             (uint16_t) CLIENT_STATE_ICONIFIED) {
                         snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LEN, "(%s)", name);
+                                WM_CYCLE_MENU_ENTRY_LENGTH, "(%s)", name);
                     } else if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
                         snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LEN, "<%s>", name);
+                                WM_CYCLE_MENU_ENTRY_LENGTH, "<%s>", name);
                     } else {
                         snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LEN, "%s", name);
+                                WM_CYCLE_MENU_ENTRY_LENGTH, "%s", name);
                     }
 
                     if (c->id == desktop->client_active_id) {
@@ -323,9 +328,29 @@ void cycle_open(list_td *surfaces,
     menu_w = (uint16_t) (max_w +
             (uint16_t) (cfg->theme.menu.padding.horizontal * 2u));
 
-    /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERC' of screen */
+    /* Widen for a row's own client icon, the same reservation
+     * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s own
+     * doc comment in config.h. */
+    if (cfg->theme.menu.show_pixmaps) {
+        /* '#if', not a runtime ternary: both operands are fixed
+         * compile-time constants, so a ternary here left one branch
+         * provably unreachable to the compiler (-Wunreachable-code).
+         * Still guards the arithmetic against a future edit to either
+         * constant that would otherwise underflow silently. */
+#if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
+        uint16_t icon_size = (uint16_t)
+            (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
+#else
+        uint16_t icon_size = 0u;
+#endif
+
+        menu_w = (uint16_t) (menu_w + icon_size +
+                cfg->theme.menu.padding.horizontal);
+    }
+
+    /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERCENT' of screen */
     screen_h_pct = surface->properties.dim.h *
-        (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERC / 100u;
+        (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERCENT / 100u;
     pad2 = cfg->theme.menu.padding.vertical * 2u;
     avail = (screen_h_pct > pad2) ? (screen_h_pct - pad2) : 0u;
     vp_rows = (int) (avail / (uint32_t) WM_CYCLE_MENU_ROW_HEIGHT);
@@ -338,6 +363,7 @@ void cycle_open(list_td *surfaces,
     }
     g_cycle_menu.viewport_rows = vp_rows;
     g_cycle_menu.scroll_offset = 0;
+    g_cycle_menu.has_drawn_once = false;
     s_cycle_scroll_to_selection();
 
     menu_h = (uint16_t) (cfg->theme.menu.padding.vertical * 2u +
@@ -477,9 +503,47 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
 }
 
 
+/**
+ * @brief Repaint a client's real desktop icon (not the cycle menu's
+ *        own preview), so its border color and hint indicators
+ *        reflect a just-changed cycle-selection state right away
+ *
+ * 'cycle_navigate_to'/'_next'/'_prev' only ever touch the floating
+ * cycle menu's own selection state; nothing about the real icon
+ * window sitting on the desktop underneath it is otherwise told to
+ * repaint when that selection moves on, so a client that was
+ * highlighted and then passed over stays visually stuck showing that
+ * highlight (border color, and the hint indicators in 'ri_draw_icon_
+ * hints', both keyed off 'is_cycle_sel') until something unrelated
+ * (e.g. 'cycle_close') eventually forces a full desktop repaint.
+ * Called for both the previously- and newly-selected client on every
+ * navigation, this keeps their real icons in sync with the menu
+ * immediately instead.
+ *
+ * A no-op for a client that is not actually an iconified icon (or
+ * @c NULL, or with no cycle menu open at all); 'ri_render_client_
+ * icon' itself already guards the former safely.
+ *
+ * @param client Client whose real desktop icon to repaint
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_repaint_icon(client_td *client)
+{
+    if (client == NULL || g_cycle_menu.desktop == NULL) {
+        return;
+    }
+
+    ri_render_client_icon(g_cycle_menu.desktop, client, true);
+    xcb_flush(g_cycle_menu.desktop->connection);
+}
+
+
 /* Set the selection directly to a given index */
 void cycle_navigate_to(unsigned int idx)
 {
+    client_td *prev_client;
+
     if (g_cycle_menu.count <= 0) {
         return;
     }
@@ -488,35 +552,61 @@ void cycle_navigate_to(unsigned int idx)
         idx = (unsigned int)(g_cycle_menu.count - 1);
     }
 
+    prev_client = cycle_get_selected_client();
     g_cycle_menu.selected = (int) idx;
     s_cycle_scroll_to_selection();
+
+    if (prev_client != cycle_get_selected_client()) {
+        s_cycle_repaint_icon(prev_client);
+        s_cycle_repaint_icon(cycle_get_selected_client());
+    }
+}
+
+
+/* Force the next 'cycle_draw' call to repaint the whole viewport; see
+ * this function's own doc comment in menu/cycle.h */
+void cycle_force_full_repaint(void)
+{
+    g_cycle_menu.has_drawn_once = false;
 }
 
 
 /* Advance the selection by one entry */
 void cycle_navigate_next(void)
 {
+    client_td *prev_client;
+
     if (g_cycle_menu.count <= 0) {
         return;
     }
 
+    prev_client = cycle_get_selected_client();
     g_cycle_menu.selected =
         (g_cycle_menu.selected + 1) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
+
+    s_cycle_repaint_icon(prev_client);
+    s_cycle_repaint_icon(cycle_get_selected_client());
 }
 
 
 /* Retreat the selection by one entry */
 void cycle_navigate_prev(void)
 {
+    client_td *prev_client;
+
     if (g_cycle_menu.count <= 0) {
         return;
     }
 
+    prev_client = cycle_get_selected_client();
     g_cycle_menu.selected =
         (g_cycle_menu.selected - 1 +
          g_cycle_menu.count) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
+
+    s_cycle_repaint_icon(prev_client);
+    s_cycle_repaint_icon(cycle_get_selected_client());
 }
 
 

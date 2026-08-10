@@ -4,6 +4,8 @@
  * @brief Dimensions and capacity limits for the generic context menu
  *        implementation (root menu, window menu, window list, and
  *        their submenus)
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,10 +26,10 @@
 #define WM_CTXMENU_MAX_DEPTH (4)
 
 /** Maximum length of a context menu entry label */
-#define WM_CTXMENU_LABEL_MAX_LEN (128)
+#define WM_CTXMENU_LABEL_MAX_LENGTH (128)
 
 /** Maximum length of a context menu entry command string */
-#define WM_CTXMENU_CMD_MAX_LEN (256)
+#define WM_CTXMENU_CMD_MAX_LENGTH (256)
 
 /** Row height in pixels for a context menu entry */
 #define WM_CTXMENU_ROW_HEIGHT (20)
@@ -43,6 +45,18 @@
 
 /** Height of a separator row in pixels */
 #define WM_CTXMENU_SEP_HEIGHT (8)
+
+/**
+ * @brief Margin, in pixels, kept between a menu row's own icon square
+ *        and the top/bottom edges of that row
+ *
+ * Shared with the Alt+Tab-style cycle menu (see @c defs/cycle.h and
+ * @c menu/cycledraw.c), not just this file's own context menu: both
+ * size their per-row application icon (see @c theme.menu.show-pixmaps
+ * in config.h) as @c (row_height @c - @c WM_MENU_ICON_INSET) square,
+ * so the icon never quite touches the row's own top and bottom edges.
+ */
+#define WM_MENU_ICON_INSET (4)
 
 
 #endif  /* ! DEFS_CTXMENU_H */

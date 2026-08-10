@@ -18,6 +18,7 @@
 #include <errno.h>      /* EINTR */
 #include <poll.h>       /* poll */
 #include <stdbool.h>
+#include <stddef.h>     /* size_t */
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* strerror */
@@ -154,6 +155,70 @@ static void s_loop_handle_focus_out(wm_td *wm,
 
 
 /**
+ * @brief Tighten a poll timeout to a candidate deadline, if sooner
+ *
+ * Shared by every "shorten the poll timeout so some pending countdown
+ * (a popup's auto-close, a startup-notification busy cursor's expiry,
+ * a hover-triggered cursor re-check, ...) fires promptly" check in
+ * @c loop_run below, which otherwise each repeated the same "is this
+ * candidate both valid and sooner than what we already have" test.
+ *
+ * @param poll_timeout_ms Current timeout, in milliseconds; lowered in
+ *                        place when @p candidate_ms is sooner
+ * @param candidate_ms    A countdown's own remaining time, or a
+ *                        negative value when that countdown is not
+ *                        currently active at all
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_loop_tighten_poll_timeout(int *poll_timeout_ms,
+        int candidate_ms)
+{
+    if (candidate_ms >= 0 && candidate_ms < *poll_timeout_ms) {
+        *poll_timeout_ms = candidate_ms;
+    }
+}
+
+
+/**
+ * @brief Close a single-instance overlay dialog and repaint whichever
+ *        surface is first in the surface list
+ *
+ * Shared by @c loop_run's own timed auto-close for the info popup and
+ * the desktop-switch notification below: both close a dialog that,
+ * unlike a per-client one, is not tied to any one particular surface,
+ * so any surface's own current-desktop repaint is enough to clear its
+ * remnants from the screen.
+ *
+ * @param connection XCB connection
+ * @param surfaces   Surface list to find a repaint target in
+ * @param close_fn   The dialog's own @c X_close function
+ *
+ * @note Complexity: @e O(1), since only the first surface is needed
+ */
+static void s_loop_close_and_repaint_first_surface(
+        xcb_connection_t *connection, list_td *surfaces,
+        void (*close_fn)(xcb_connection_t *))
+{
+    surface_td *found = NULL;
+
+    for (list_item_td *node = list_head(surfaces); node != NULL;
+            node = list_next(node)) {
+        surface_td *s = (surface_td *) list_data(node);
+        if (s != NULL) {
+            found = s;
+            break;
+        }
+    }
+
+    close_fn(connection);
+    if (found != NULL) {
+        surface_render_current_desktop_repaint(found);
+    }
+}
+
+
+/**
  * @brief Human-readable description for an @c xcb_connection_has_error
  *        return value
  *
@@ -221,10 +286,6 @@ void loop_run(wm_td *wm)
     struct pollfd pfd;
     int poll_status;
     int poll_timeout_ms;
-    int clock_ms;
-    int sn_ms;
-    int hover_ms;
-    int confirm_ms;
     int conn_error;
     const xcb_generic_error_t *proto_error;
     bool any_outdated;
@@ -311,46 +372,34 @@ void loop_run(wm_td *wm)
          * it closes promptly at the configured expiry time. */
         poll_timeout_ms = WM_EVENT_POLL_TIMEOUT_MS;
         if (popup_is_open()) {
-            int ms = popup_ms_remaining();
-            if (ms >= 0 && ms < poll_timeout_ms) {
-                poll_timeout_ms = ms;
-            }
+            s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                    popup_ms_remaining());
         }
 
         if (notify_desktop_is_open()) {
-            int ms = notify_desktop_ms_remaining();
-            if (ms >= 0 && ms < poll_timeout_ms) {
-                poll_timeout_ms = ms;
-            }
+            s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                    notify_desktop_ms_remaining());
         }
 
-        clock_ms = systray_clock_ms_remaining();
-        if (clock_ms >= 0 && clock_ms < poll_timeout_ms) {
-            poll_timeout_ms = clock_ms;
-        }
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                systray_clock_ms_remaining());
 
-        sn_ms = sn_ms_remaining();
-        if (sn_ms >= 0 && sn_ms < poll_timeout_ms) {
-            poll_timeout_ms = sn_ms;
-        }
+        s_loop_tighten_poll_timeout(&poll_timeout_ms, sn_ms_remaining());
 
         /* Shorter still while a resize-cursor poll target is being
          * tracked (see 'mouse_hover_poll_tick' in input/mouse.h), so
          * an undecorated client's cursor gets re-evaluated promptly
          * as the pointer moves within it. */
-        hover_ms = mouse_hover_poll_ms_remaining();
-        if (hover_ms >= 0 && hover_ms < poll_timeout_ms) {
-            poll_timeout_ms = hover_ms;
-        }
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                mouse_hover_poll_ms_remaining());
 
-        /* Shorter still while a confirm-dialog click's deferred
-         * close/accept is pending (see 'menu_confirm_dialog_tick' in
-         * menu/dialog/confirm.h), so it happens promptly once its
-         * short delay elapses. */
-        confirm_ms = menu_confirm_dialog_ms_remaining();
-        if (confirm_ms >= 0 && confirm_ms < poll_timeout_ms) {
-            poll_timeout_ms = confirm_ms;
-        }
+        /* Shorter still while a confirm dialog has a timer of its own
+         * running (see 'menu_confirm_dialog_tick' in menu/dialog/
+         * confirm.h): a pending click-triggered close/accept, or a
+         * countdown timeout that needs its visible number to advance
+         * once a second and, once it fully elapses, to act. */
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                menu_confirm_dialog_ms_remaining());
 
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
@@ -362,7 +411,7 @@ void loop_run(wm_td *wm)
         systray_clock_tick();
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
-        menu_confirm_dialog_tick(wm->connection);
+        menu_confirm_dialog_tick(wm->connection, wm->config);
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
             memguard_tick(wm->connection,
@@ -579,29 +628,106 @@ void loop_run(wm_td *wm)
                      * creation; a created window may never be mapped */
                     break;
 
-                case 0:
+                case 0: {
                     /* A protocol error, not a real event type (X has
                      * no named constant for it; 0 never collides with
-                     * a real event type, since those start at 1).  Not
-                     * inherently fatal on its own, unlike an actual
-                     * connection failure (see 'xcb_connection_has_error'
-                     * above): logged at WARNING rather than this
-                     * switch's usual TRACE-level default below so it
-                     * is not lost among routine unhandled-event
-                     * traffic, since a request against a resource a
-                     * misbehaving client just destroyed (e.g., a crash
-                     * mid-startup) is exactly the kind of detail worth
-                     * having on hand afterward. */
+                     * a real event type, since those start at 1).
+                     * Not inherently fatal on its own, unlike an
+                     * actual connection failure (see
+                     * 'xcb_connection_has_error' above).
+                     *
+                     * X11's request/reply model is asynchronous: a
+                     * window this window manager just sent a routine
+                     * request against (reconfigure it, change or
+                     * delete one of its properties, query its
+                     * geometry, give it input focus, ...) can
+                     * legitimately have been destroyed by whichever
+                     * client owned it before the server gets around
+                     * to processing that request, and nothing on this
+                     * side can prevent that race without a
+                     * synchronous round trip before every single such
+                     * request, far too costly to do routinely.
+                     * 'BadWindow'/'BadDrawable' (the resource itself
+                     * is simply gone by then) and 'BadMatch' (ICCCM's
+                     * own defined failure for, e.g., 'SetInputFocus'
+                     * on a target that is no longer viewable) against
+                     * one of the request codes in
+                     * 's_routine_target_ops' below are exactly that
+                     * expected race, not a sign of anything actually
+                     * wrong on this window manager's own end, so they
+                     * are logged at DEBUG instead, e.g.:
+                     *
+                     * +-------+-----------------+-----------+--------+
+                     * | major | request         | error     | result |
+                     * +-------+-----------------+-----------+--------+
+                     * | 12    | ConfigureWindow | BadWindow | DEBUG  |
+                     * | 18    | ChangeProperty  | BadWindow | DEBUG  |
+                     * | 19    | DeleteProperty  | BadWindow | DEBUG  |
+                     * | 42    | SetInputFocus   | BadMatch  | DEBUG  |
+                     * +-------+-----------------+-----------+--------+
+                     *
+                     * Any other error ('BadValue', 'BadAlloc',
+                     * 'BadAccess', or even 'BadWindow'/'BadMatch' on a
+                     * request outside that "routine" set) still gets
+                     * WARNING (rather than this switch's usual
+                     * TRACE-level default below), so it is not lost
+                     * among routine unhandled-event traffic, since it
+                     * is far more likely to be a genuine bug worth
+                     * noticing. */
+                    static const uint8_t s_routine_target_ops[] = {
+                        2u,  /* X_ChangeWindowAttributes */
+                        3u,  /* X_GetWindowAttributes */
+                        4u,  /* X_DestroyWindow */
+                        8u,  /* X_MapWindow */
+                        10u, /* X_UnmapWindow */
+                        12u, /* X_ConfigureWindow */
+                        14u, /* X_GetGeometry */
+                        15u, /* X_QueryTree */
+                        18u, /* X_ChangeProperty */
+                        19u, /* X_DeleteProperty */
+                        20u, /* X_GetProperty */
+                        42u  /* X_SetInputFocus */
+                    };
+                    bool is_routine_target_op = false;
+                    bool is_vanished_resource_error;
+
                     proto_error = (const xcb_generic_error_t *) event;
-                    LOGGER_WARNING("X protocol error (code=%u," \
-                            " resource=0x%x, major=%u, minor=%u," \
-                            " sequence=%u)",
-                            proto_error->error_code,
-                            proto_error->resource_id,
-                            proto_error->major_code,
-                            proto_error->minor_code,
-                            proto_error->sequence);
+
+                    for (size_t oi = 0u; oi < sizeof(s_routine_target_ops) /
+                            sizeof(s_routine_target_ops[0]); ++oi) {
+                        if (proto_error->major_code ==
+                                s_routine_target_ops[oi]) {
+                            is_routine_target_op = true;
+                            break;
+                        }
+                    }
+
+                    is_vanished_resource_error = is_routine_target_op &&
+                        (proto_error->error_code == 3u  /* BadWindow */ ||
+                         proto_error->error_code == 9u  /* BadDrawable */ ||
+                         proto_error->error_code == 8u  /* BadMatch */);
+
+                    if (is_vanished_resource_error) {
+                        LOGGER_DEBUG("X protocol error (code=%u," \
+                                " resource=0x%x, major=%u, minor=%u," \
+                                " sequence=%u)",
+                                proto_error->error_code,
+                                proto_error->resource_id,
+                                proto_error->major_code,
+                                proto_error->minor_code,
+                                proto_error->sequence);
+                    } else {
+                        LOGGER_WARNING("X protocol error (code=%u," \
+                                " resource=0x%x, major=%u, minor=%u," \
+                                " sequence=%u)",
+                                proto_error->error_code,
+                                proto_error->resource_id,
+                                proto_error->major_code,
+                                proto_error->minor_code,
+                                proto_error->sequence);
+                    }
                     break;
+                }
 
                 default:
                     LOGGER_TRACE("Unhandled X event type: %d",
@@ -619,41 +745,15 @@ void loop_run(wm_td *wm)
          * update triggered by the close is handled in the same
          * iteration. */
         if (popup_is_open() && popup_ms_remaining() == 0) {
-            surface_td *popup_surface = NULL;
-
-            for (list_item_td *ps_node = list_head(wm->surfaces);
-                    ps_node != NULL; ps_node = list_next(ps_node)) {
-                surface_td *s = (surface_td *) list_data(ps_node);
-                if (s != NULL) {
-                    popup_surface = s;
-                    break;
-                }
-            }
-
-            popup_close(wm->connection);
-            if (popup_surface != NULL) {
-                surface_render_current_desktop_repaint(popup_surface);
-            }
+            s_loop_close_and_repaint_first_surface(wm->connection,
+                    wm->surfaces, popup_close);
         }
 
         /* Auto-close the desktop notify when its timeout has elapsed */
         if (notify_desktop_is_open() &&
                 notify_desktop_ms_remaining() == 0) {
-            surface_td *notify_surface = NULL;
-
-            for (list_item_td *ps_node = list_head(wm->surfaces);
-                    ps_node != NULL; ps_node = list_next(ps_node)) {
-                surface_td *s = (surface_td *) list_data(ps_node);
-                if (s != NULL) {
-                    notify_surface = s;
-                    break;
-                }
-            }
-
-            notify_desktop_close(wm->connection);
-            if (notify_surface != NULL) {
-                surface_render_current_desktop_repaint(notify_surface);
-            }
+            s_loop_close_and_repaint_first_surface(wm->connection,
+                    wm->surfaces, notify_desktop_close);
         }
 
         /* Only sync EWMH root properties when state actually changed.

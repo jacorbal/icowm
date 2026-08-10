@@ -3,7 +3,7 @@
  *
  * @brief Client stacking-order command declarations
  *
- * @ingroup cmds Client commands subsystem
+ * @ingroup cmds
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

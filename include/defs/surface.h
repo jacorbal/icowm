@@ -2,6 +2,8 @@
  * @file defs/surface.h
  *
  * @brief Capacity limits for a surface's own RandR monitor list
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

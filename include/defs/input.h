@@ -3,6 +3,8 @@
  *
  * @brief Capacity limits and thresholds for keyboard/mouse bindings
  *        and pointer interaction
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

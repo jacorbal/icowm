@@ -16,6 +16,9 @@
  *       of blending into the tray.  Full visual negotiation was left
  *       out to keep this a contained, verifiable first implementation
  *       (vid. @c _NET_SYSTEM_TRAY_VISUAL in the specification).
+ *
+ * @defgroup systray System tray
+ * @ingroup surface
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -114,11 +117,34 @@ void systray_shutdown(wm_td *wm);
 bool systray_owns_window(xcb_window_t window);
 
 /**
+ * @brief Return the tray window when it is visible and stacked in the
+ *        'below' layer, or @c XCB_WINDOW_NONE otherwise
+ *
+ * Lets any code that needs to stack itself just below the tray (see
+ * @c wcmd_client_iconify, which stacks a newly iconified client's icon
+ * window here, since icons are meant to sit lower than the tray even
+ * within the 'below' layer) target it directly instead of competing
+ * with it for the absolute bottom of the sibling stack via an
+ * unqualified @c XCB_STACK_MODE_BELOW: two things both asking to be
+ * "as low as possible" with no window to stack relative to just take
+ * turns displacing each other, so whichever restacked more recently
+ * wins, leaving the other one wrong until it happens to restack
+ * again.
+ *
+ * @return The tray's own @c xcb_window_t, or @c XCB_WINDOW_NONE when
+ *         the tray is not currently shown, or is shown in a layer
+ *         other than 'below'
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t systray_below_window(void);
+
+/**
  * @brief Query whether @p window is a currently docked icon, and if
  *        so, force it back to the tray's fixed icon size
  *
  * Meant to be called from the @c ConfigureRequest handler for any
- * window not otherwise recognised as a managed client: a docked
+ * window not otherwise recognized as a managed client: a docked
  * icon's own resize attempt on itself reaches the window manager as a
  * @c ConfigureRequest only because the tray window now sets
  * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
@@ -258,7 +284,7 @@ int systray_clock_ms_remaining(void);
  * no-op when the clock is disabled, the tray does not own the systray
  * selection, or less than a second has passed since the last redraw.
  *
- * @note Complexity: @e O(1) plus whatever @c s_systray_reflow costs
+ * @note Complexity: @e O(1) plus whatever the tray's own reflow costs
  *       when a redraw actually happens (see its own complexity note)
  */
 void systray_clock_tick(void);

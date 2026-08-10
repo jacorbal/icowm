@@ -4,7 +4,7 @@
  * @brief Functions on executions over desktops using the XCB interface
  *        with needed EWMH and ICCCM updates
  *
- * @ingroup cmds Client commands subsystem
+ * @ingroup cmds
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

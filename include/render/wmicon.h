@@ -1,7 +1,8 @@
 /**
  * @file render/wmicon.h
  *
- * @brief Client-supplied @c _NET_WM_ICON rendering
+ * @brief Client-supplied icon rendering: @c _NET_WM_ICON (EWMH), with
+ *        an ICCCM @c WM_HINTS fallback
  *
  * A single entry point, @c wmicon_draw, that fetches a client's own
  * @c _NET_WM_ICON (the EWMH property most applications publish so a
@@ -10,13 +11,16 @@
  * size is closest to the target it will be drawn at, and composites
  * it there via the X RENDER extension, so translucent edges in the
  * source icon blend correctly instead of leaving a hard square
- * artifact.
+ * artifact.  A client that never published @c _NET_WM_ICON at all
+ * (some still don't; @c xterm is the canonical example, offering only
+ * its own @c iconHint resource) falls back to whatever @c WM_HINTS
+ * icon hint it did set instead of drawing nothing.
  *
  * Scaled to a consistent size regardless of whatever size the source
- * image happened to be (see @c WM_ICON_PIXMAP_SCALE in defs/icon.h),
- * since applications publish wildly differing icon sizes and drawing
- * each one at its own natural size would leave icons looking
- * inconsistent next to one another.
+ * image happened to be (see @c WM_ICON_PIXMAP_SCALE_PERCENT in
+ * defs/icon.h), since applications publish wildly differing icon
+ * sizes and drawing each one at its own natural size would leave
+ * icons looking inconsistent next to one another.
  *
  * The built Picture is cached by the caller (see @c wmicon_cache_td
  * below) across calls, since the same icon is very often redrawn
@@ -29,6 +33,8 @@
  * premultiply, and pixmap upload; every draw after that just
  * composites the same already-built Picture again.  See
  * @c wmicon_invalidate for when that cache needs to be thrown away.
+ *
+ * @ingroup render
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -52,7 +58,7 @@
 
 
 /**
- * @brief One client's cached, already built @c _NET_WM_ICON Picture
+ * @brief One client's cached, already built icon Picture
  *
  * Every field is opaque to the caller and managed entirely by
  * @c wmicon_draw and @c wmicon_invalidate; a caller only needs to
@@ -62,6 +68,13 @@
  */
 typedef struct {
     xcb_render_picture_t picture; /**< 0 when nothing is cached yet */
+    xcb_render_picture_t mask_picture; /**< 0 unless the cached
+                                             @c picture came from the
+                                             ICCCM @c WM_HINTS fallback
+                                             and that client also set
+                                             an @c icon_mask; composited
+                                             as the RENDER mask
+                                             alongside @c picture */
     uint16_t draw_size;  /**< Side length 'picture' was built to fit
                                within; a mismatch against a later call
                                forces a rebuild */
@@ -77,18 +90,37 @@ typedef struct {
 
 /* Public interface */
 /**
- * @brief Fetch and draw a client's own @c _NET_WM_ICON, centered in
- *        and clipped to a square area of the given drawable
+ * @brief Fetch and draw a client's own icon, centered in and clipped
+ *        to a square area of the given drawable
  *
- * A no-op, silently, when the client has not set @c _NET_WM_ICON at
- * all: not every application publishes one, and this is not an error
- * condition the icon window rendering pipeline needs to know about.
+ * Prefers the EWMH @c _NET_WM_ICON property (an array of ARGB32
+ * images at several sizes, letting the closest one to @p area_size be
+ * picked); when a client has not published that, falls back to the
+ * older ICCCM @c WM_HINTS icon hint instead, since a number of
+ * still-common applications (@c xterm among them, via its own
+ * @c iconHint resource) only ever set the latter.  That fallback
+ * supports both forms ICCCM allows: a 1-bit-deep @c icon_pixmap,
+ * rendered as a solid-color stencil (ICCCM's own literal
+ * specification), and a full-depth one (what @c xterm itself actually
+ * publishes, despite ICCCM specifying depth 1), rendered as a plain
+ * color image; either is clipped to @c icon_mask's own shape when the
+ * client also set one.  A silent no-op when neither property is set
+ * at all: not every application publishes an icon, and this is not an
+ * error condition the icon window rendering pipeline needs to know
+ * about.
+ *
+ * A thin wrapper over @c wmicon_draw_at with its offset fixed at
+ * @c (0, @c 0): the drawable this draws into is assumed to belong to
+ * this one icon alone (e.g., an iconified client's own icon window),
+ * as opposed to @c wmicon_draw_at's own use case of one icon among
+ * several sharing a single larger drawable.
  *
  * @param connection XCB connection
  * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
  *                   property getter
- * @param window     Client's own window, whose @c _NET_WM_ICON
- *                   property is read (not the icon window itself)
+ * @param window     Client's own window, whose @c _NET_WM_ICON and
+ *                   @c WM_HINTS properties are read (not the icon
+ *                   window itself)
  * @param drawable   Icon window (or other drawable) to composite onto
  * @param area_size  Side length, in pixels, of the square area the
  *                   icon is centered in and clipped to
@@ -108,19 +140,57 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
         wmicon_cache_td *cache);
 
 /**
+ * @brief Like @c wmicon_draw, but composites at an explicit offset
+ *        within @p drawable instead of always at its own origin
+ *
+ * For a caller that draws several icons into one shared window at
+ * different positions (e.g., one per row of a menu listing), rather
+ * than each icon owning its own dedicated drawable the way an
+ * iconified client's own icon window does.  Everything else -- the
+ * EWMH/ICCCM fallback, the cache, the centering and clipping within
+ * the @p area_size square -- behaves exactly as in @c wmicon_draw;
+ * @p x and @p y are simply where that square's own top-left corner
+ * sits within @p drawable instead of always @c (0, @c 0).
+ *
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
+ *                   property getter
+ * @param window     Client's own window, whose @c _NET_WM_ICON and
+ *                   @c WM_HINTS properties are read (not the icon
+ *                   window itself)
+ * @param drawable   Drawable to composite onto
+ * @param x          X offset, within @p drawable, of the icon
+ *                   square's own top-left corner
+ * @param y          Y offset, within @p drawable, of the icon
+ *                   square's own top-left corner
+ * @param area_size  Side length, in pixels, of the square area the
+ *                   icon is centered in and clipped to
+ * @param cache      This client's cache slot; see @c wmicon_draw
+ *
+ * @note Complexity: @e O(1) on a cache hit; @e O(p) on a cache miss,
+ *       where @e p is the pixel count of whichever icon size is
+ *       chosen to draw
+ */
+void wmicon_draw_at(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        xcb_drawable_t drawable, int16_t x, int16_t y,
+        uint16_t area_size, wmicon_cache_td *cache);
+
+/**
  * @brief Invalidate a cache slot, freeing its cached Picture's X
  *        server resource
  *
- * Call this whenever the @c _NET_WM_ICON property a cache slot was
- * built from might have changed (see the @c PropertyNotify handler in
- * handler/focus.c) or when the client owning the cache slot is being
- * destroyed (see @c client_destroy), so a stale image is never either
- * still drawn or leaked as an unreachable server-side resource.  A
- * no-op if nothing is currently cached in @p cache.
+ * Call this whenever the @c _NET_WM_ICON or @c WM_HINTS property a
+ * cache slot was built from might have changed (see the
+ * @c PropertyNotify handler in handler/focus.c) or when the client
+ * owning the cache slot is being destroyed (see @c client_destroy),
+ * so a stale image is never either still drawn or leaked as an
+ * unreachable server-side resource.  A no-op if nothing is currently
+ * cached in @p cache.
  *
  * @param connection XCB connection
- * @param cache      Cache slot to invalidate; its @c picture is freed
- *                   and reset to 0
+ * @param cache      Cache slot to invalidate; its @c picture and
+ *                   @c mask_picture are freed and reset to 0
  *
  * @note Complexity: @e O(1)
  */

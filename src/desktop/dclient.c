@@ -20,7 +20,7 @@
 #include <fcntl.h>      /* fcntl, F_SETFD, FD_CLOEXEC */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL */
+#include <stdlib.h>     /* NULL, setenv */
 #include <string.h>     /* strerror */
 #include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
@@ -120,6 +120,157 @@ static bool s_desktop_layout_supported(const char *layout)
     }
 
     return false;
+}
+
+
+/**
+ * @brief Focus the next (or previous) non-iconified client in the
+ *        stacking order after (or before) the currently active one
+ *
+ * Shared by @c desktop_action_cycle_clients_active and @c desktop_
+ * action_cycle_clients_prev below, which only differ in direction:
+ * both first locate the node holding @p desktop's own @c client_
+ * active_id, then walk from there, wrapping around the circular
+ * stacking list, until a non-iconified client is found to focus.
+ * Assumes @p desktop is already known non-@c NULL; the caller's own
+ * guard and log message stay at each call site since their wording
+ * differs by direction.
+ *
+ * @param desktop Desktop to cycle clients on
+ * @param forward @c true to search forward (@c cdlist_next, wrapping
+ *                from the list head), @c false to search backward
+ *                (@c cdlist_prev, wrapping from the list tail)
+ *
+ * @return @c 0 whether or not a client was found to focus (an empty
+ *         or all-iconified stacking list is not an error)
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static int s_desktop_cycle_clients(desktop_td *desktop, bool forward)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *initial;
+    cdlist_item_td *active_node = NULL;
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return 0;
+    }
+
+    /* Find the node holding the currently active client */
+    initial = node;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && c->id == desktop->client_active_id) {
+            active_node = node;
+            break;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    /* Start searching from the node after (or before) the active one.
+     * Since the list is circular, 'cdlist_prev(head) == tail'. */
+    if (forward) {
+        node = (active_node != NULL)
+            ? cdlist_next(active_node)
+            : cdlist_head(desktop->stacking);
+        if (node == NULL) {
+            node = cdlist_head(desktop->stacking);
+        }
+    } else {
+        node = (active_node != NULL)
+            ? cdlist_prev(active_node)
+            : cdlist_tail(desktop->stacking);
+        if (node == NULL) {
+            node = cdlist_tail(desktop->stacking);
+        }
+    }
+
+    /* Find the next (or previous) non-iconified client */
+    initial = node;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && !client_is_iconified(c)) {
+            client_send_event_focus(c);
+            return 0;
+        }
+        node = (forward) ? cdlist_next(node) : cdlist_prev(node);
+    } while (node != NULL && node != initial);
+
+    return 0;
+}
+
+
+/**
+ * @brief Move a client to the front or back of the desktop's window
+ *        stack
+ *
+ * Shared by @c desktop_action_client_send_front and @c desktop_
+ * action_client_send_back below, which only differ in which end of
+ * the stacking list the client is reinserted at and the wording of
+ * their own log message.
+ *
+ * @param desktop  Desktop whose stacking order is changed
+ * @param client   Client to move
+ * @param to_front @c true to move to the front (top of the stack),
+ *                 @c false to move to the back (bottom)
+ *
+ * @return @c 0 on success, @c -1 on failure
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop
+ */
+static int s_desktop_client_send_to_end(desktop_td *desktop,
+        client_td *client, bool to_front)
+{
+    cdlist_item_td *node;
+
+    if (desktop == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        return -1;
+    }
+
+    LOGGER_DEBUG("Sending client 0x%08x ('%s') to %s of desktop %u" \
+            " ('%s')",
+            client->id, client->info.name,
+            (to_front) ? "front" : "back", desktop->id, desktop->name);
+
+    /* Find the client in the stacking list */
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        cdlist_item_td *initial = node;
+        do {
+            if (cdlist_data(node) == (void *) client) {
+                /* Found it, move to tail (front/top) or head
+                 * (back/bottom) of the stack */
+                if (cdlist_rem_next(desktop->stacking,
+                            cdlist_prev(node), NULL) != 0) {
+                    LOGGER_ERROR("Failed to remove client from stacking",
+                            L_NARG);
+                    return -1;
+                }
+
+                if (cdlist_ins_next(desktop->stacking,
+                            (to_front)
+                                ? cdlist_tail(desktop->stacking)
+                                : NULL /* cdlist_head(desktop->stacking) */,
+                            (void *) client) != 0) {
+                    LOGGER_ERROR("Failed to insert client to stacking",
+                            L_NARG);
+                    return -1;
+                }
+
+                wcmd_desktop_enforce_layers(desktop);
+                desktop->is_outdated = true;
+                return 0;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
+    return -1;
 }
 
 
@@ -240,49 +391,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 int desktop_action_client_send_front(desktop_td *desktop,
         client_td *client)
 {
-    cdlist_item_td *node;
-
-    if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_DEBUG("Sending client 0x%08x ('%s') to front" \
-            " of desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
-
-    /* Find the client in the stacking list */
-    node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        cdlist_item_td *initial = node;
-        do {
-            if (cdlist_data(node) == (void *) client) {
-                /* Found it, move to tail (front/top of stack) */
-                if (cdlist_rem_next(desktop->stacking,
-                            cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ERROR("Failed to remove client from stacking",
-                            L_NARG);
-                    return -1;
-                }
-
-                if (cdlist_ins_next(desktop->stacking,
-                            cdlist_tail(desktop->stacking),
-                            (void *) client) != 0) {
-                    LOGGER_ERROR("Failed to insert client to stacking",
-                            L_NARG);
-                    return -1;
-                }
-
-                wcmd_desktop_enforce_layers(desktop);
-                desktop->is_outdated = true;
-                return 0;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
-
-    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
-    return -1;
+    return s_desktop_client_send_to_end(desktop, client, true);
 }
 
 
@@ -290,49 +399,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
 int desktop_action_client_send_back(desktop_td *desktop,
         client_td *client)
 {
-    cdlist_item_td *node;
-
-    if (desktop == NULL || client == NULL) {
-        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_DEBUG("Sending client 0x%08x ('%s') to back" \
-            " of desktop %u ('%s')",
-            client->id, client->info.name, desktop->id, desktop->name);
-
-    /* Find the client in the stacking list */
-    node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        cdlist_item_td *initial = node;
-        do {
-            if (cdlist_data(node) == (void *) client) {
-                /* Found it, move to head (back/bottom of stack) */
-                if (cdlist_rem_next(desktop->stacking,
-                            cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ERROR("Failed to remove client from stacking",
-                            L_NARG);
-                    return -1;
-                }
-
-                if (cdlist_ins_next(desktop->stacking,
-                            NULL/* cdlist_head(desktop->stacking) */,
-                            (void *) client) != 0) {
-                    LOGGER_ERROR("Failed to insert client to stacking",
-                            L_NARG);
-                    return -1;
-                }
-
-                wcmd_desktop_enforce_layers(desktop);
-                desktop->is_outdated = true;
-                return 0;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
-
-    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
-    return -1;
+    return s_desktop_client_send_to_end(desktop, client, false);
 }
 
 
@@ -383,10 +450,6 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
 /* Cycle through active clients on the desktop */
 int desktop_action_cycle_clients_active(desktop_td *desktop)
 {
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    cdlist_item_td *active_node = NULL;
-
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
@@ -395,53 +458,13 @@ int desktop_action_cycle_clients_active(desktop_td *desktop)
     LOGGER_DEBUG("Cycling through active clients on desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return 0;
-    }
-
-    /* Find the node holding the currently active client */
-    initial = node;
-    active_node = NULL;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL && c->id == desktop->client_active_id) {
-            active_node = node;
-            break;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    /* Start searching from the node after the active one */
-    node = (active_node != NULL)
-        ? cdlist_next(active_node)
-        : cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        node = cdlist_head(desktop->stacking);
-    }
-
-    /* Find next non-iconified client */
-    initial = node;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL && !client_is_iconified(c)) {
-            client_send_event_focus(c);
-            return 0;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    return 0;
+    return s_desktop_cycle_clients(desktop, true);
 }
 
 
 /* Cycle through active clients in reverse order on the desktop */
 int desktop_action_cycle_clients_prev(desktop_td *desktop)
 {
-    cdlist_item_td *node;
-    cdlist_item_td *initial;
-    cdlist_item_td *active_node = NULL;
-
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
         return -1;
@@ -450,44 +473,7 @@ int desktop_action_cycle_clients_prev(desktop_td *desktop)
     LOGGER_DEBUG("Cycling to previous active client on desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return 0;
-    }
-
-    /* Find the node holding the currently active client */
-    initial = node;
-    active_node = NULL;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL && c->id == desktop->client_active_id) {
-            active_node = node;
-            break;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    /* Start searching from the node before the active one.
-     * Since the list is circular, cdlist_prev(head) == tail. */
-    node = (active_node != NULL)
-        ? cdlist_prev(active_node)
-        : cdlist_tail(desktop->stacking);
-    if (node == NULL) {
-        node = cdlist_tail(desktop->stacking);
-    }
-
-    /* Find previous non-iconified client */
-    initial = node;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL && !client_is_iconified(c)) {
-            client_send_event_focus(c);
-            return 0;
-        }
-        node = cdlist_prev(node);
-    } while (node != NULL && node != initial);
-
-    return 0;
+    return s_desktop_cycle_clients(desktop, false);
 }
 
 
@@ -580,7 +566,6 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout)
         LOGGER_ERROR("Invalid desktop or layout pointer", L_NARG);
         return -1;
     }
-
 
     LOGGER_DEBUG("Setting layout '%s' on desktop %u ('%s')",
             layout, desktop->id, desktop->name);

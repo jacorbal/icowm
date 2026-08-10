@@ -37,7 +37,7 @@
 void dialog_fortune_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)
 {
-    char buffer[DIALOG_FORTUNE_MAX_LEN];
+    char buffer[DIALOG_FORTUNE_MAX_LENGTH];
     FILE *pipe;
     size_t len;
     const char *text;

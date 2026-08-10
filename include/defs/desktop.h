@@ -3,6 +3,8 @@
  *
  * @brief Capacity limits and identifiers for desktops, and timing for
  *        the desktop-switch notification
+ *
+ * @ingroup defs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

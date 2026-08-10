@@ -3,6 +3,8 @@
  *
  * @brief Enumeration for all possible actions regarding clients,
  *        desktops and surfaces, and action structure
+ *
+ * @ingroup eventq
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

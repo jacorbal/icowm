@@ -29,6 +29,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Default initial values */
 #include <defs/ewmh.h>
@@ -336,7 +337,6 @@ int wm_ewmh_init(void)
     xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
     xcb_window_t support;
-    xcb_intern_atom_reply_t *ia;
     xcb_atom_t net_wm_state_focused = XCB_ATOM_NONE;
     xcb_atom_t net_wm_win_type_notif = XCB_ATOM_NONE;
     xcb_atom_t net_wm_icon_geometry = XCB_ATOM_NONE;
@@ -352,81 +352,21 @@ int wm_ewmh_init(void)
     }
 
     /* Intern atoms not exposed directly by 'xcb_ewmh_connection_t' */
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0, 20,
-                "_NET_WM_STATE_FOCUSED"),
-            NULL);
-    if (ia != NULL) {
-        net_wm_state_focused = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_WM_WINDOW_TYPE_NOTIFICATION") - 1u,
-                "_NET_WM_WINDOW_TYPE_NOTIFICATION"), NULL);
-
-    if (ia != NULL) {
-        net_wm_win_type_notif = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_WM_ICON_GEOMETRY") - 1u,
-                "_NET_WM_ICON_GEOMETRY"), NULL);
-
-    if (ia != NULL) {
-        net_wm_icon_geometry = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("WM_ICON_SIZE") - 1u, "WM_ICON_SIZE"), NULL);
-
-    if (ia != NULL) {
-        wm_icon_size_atom = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_RESTACK_WINDOW") - 1u,
-                "_NET_RESTACK_WINDOW"), NULL);
-
-    if (ia != NULL) {
-        net_restack_window = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_WM_FULLSCREEN_MONITORS") - 1u,
-                "_NET_WM_FULLSCREEN_MONITORS"), NULL);
-
-    if (ia != NULL) {
-        net_wm_fullscreen_monitors = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("_NET_WM_MOVERESIZE") - 1u,
-                "_NET_WM_MOVERESIZE"), NULL);
-
-    if (ia != NULL) {
-        net_wm_moveresize = ia->atom;
-        free(ia);
-    }
-
-    ia = xcb_intern_atom_reply(wm->connection,
-            xcb_intern_atom(wm->connection, 0,
-                sizeof("MANAGER") - 1u, "MANAGER"), NULL);
-    if (ia != NULL) {
-        manager_atom = ia->atom;
-        free(ia);
-    }
+    net_wm_state_focused = atom_intern(wm->connection,
+            "_NET_WM_STATE_FOCUSED", false);
+    net_wm_win_type_notif = atom_intern(wm->connection,
+            "_NET_WM_WINDOW_TYPE_NOTIFICATION", false);
+    net_wm_icon_geometry = atom_intern(wm->connection,
+            "_NET_WM_ICON_GEOMETRY", false);
+    wm_icon_size_atom = atom_intern(wm->connection,
+            "WM_ICON_SIZE", false);
+    net_restack_window = atom_intern(wm->connection,
+            "_NET_RESTACK_WINDOW", false);
+    net_wm_fullscreen_monitors = atom_intern(wm->connection,
+            "_NET_WM_FULLSCREEN_MONITORS", false);
+    net_wm_moveresize = atom_intern(wm->connection,
+            "_NET_WM_MOVERESIZE", false);
+    manager_atom = atom_intern(wm->connection, "MANAGER", false);
 
     /* ICCCM §4.1.3: announce the fixed icon dimensions to clients */
     icon_size_hints[0] = WM_ICON_SQUARE_SIZE;   /* min_width */
@@ -548,14 +488,8 @@ int wm_ewmh_init(void)
 
             snprintf(selection_name, sizeof(selection_name),
                     "WM_S%u", surface->id);
-            ia = xcb_intern_atom_reply(wm->connection,
-                    xcb_intern_atom(wm->connection, 0,
-                        (uint16_t) safe_strlen(selection_name),
-                        selection_name), NULL);
-            if (ia != NULL) {
-                selection_atom = ia->atom;
-                free(ia);
-            }
+            selection_atom = atom_intern(wm->connection,
+                    selection_name, false);
 
             if (selection_atom != XCB_ATOM_NONE) {
                 xcb_set_selection_owner(wm->connection, support,
@@ -691,7 +625,8 @@ static void s_wm_ping_client(client_td *client,
 
     if (client->last_ping_sent != 0u &&
             now >= client->last_ping_sent &&
-            now - client->last_ping_sent < (uint32_t) WM_EWMH_PING_INTERVAL) {
+            now - client->last_ping_sent <
+                (uint32_t) WM_EWMH_PING_INTERVAL_SECONDS) {
         return;
     }
 
@@ -722,7 +657,7 @@ void wm_ewmh_tick(void)
     }
 
     now = (uint32_t) time(NULL);
-    timeout = (uint32_t) WM_EWMH_PING_TIMEOUT;
+    timeout = (uint32_t) WM_EWMH_PING_TIMEOUT_SECONDS;
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);

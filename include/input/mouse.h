@@ -7,6 +7,9 @@
  * three public functions that load mouse bindings from configuration,
  * dispatch button-press events, and apply focus-follows-mouse on
  * enter-notify events.
+ *
+ * @defgroup input_mouse Mouse input
+ * @ingroup input
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -316,6 +319,52 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection);
  * @note Complexity: @e O(1)
  */
 xcb_cursor_t mouse_plain_cursor(void);
+
+/**
+ * @brief The four-way move cursor, shown for the duration of an
+ *        interactive window move
+ *
+ * Passed as @c xcb_grab_pointer's own cursor argument by
+ * @c drag_start (see input/mouse/drag.c) so the cursor stays the move
+ * shape for the whole drag regardless of which window the pointer
+ * happens to be over, rather than left to whatever cursor that
+ * window's own attribute is separately set to.
+ *
+ * @return The move cursor, or 0 if @c mouse_create_resize_cursors has
+ *         not run yet
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_cursor_t mouse_move_cursor(void);
+
+/**
+ * @brief The border-resize cursor matching a given resize drag's own
+ *        axis/anchor combination
+ *
+ * Passed as @c xcb_grab_pointer's own cursor argument by
+ * @c drag_start for a resize drag, the same way @c mouse_move_cursor
+ * is for a move: @p resize_w / @p resize_h say which axis (or both,
+ * for a corner) the drag actually changes, and @p anchor_right /
+ * @p anchor_bottom say which edge of that axis stays fixed (see
+ * @c drag_start_directed's own doc comment in input/mouse/drag.h for
+ * their exact meaning), together resolving to exactly one of the
+ * eight border cursors @c mouse_create_resize_cursors already loaded.
+ *
+ * @param resize_w      Whether this drag changes the width
+ * @param resize_h      Whether this drag changes the height
+ * @param anchor_right  Whether the right edge stays fixed (only
+ *                      meaningful when @p resize_w is @c true)
+ * @param anchor_bottom Whether the bottom edge stays fixed (only
+ *                      meaningful when @p resize_h is @c true)
+ *
+ * @return The matching resize cursor, or the plain-pointer cursor
+ *         (see @c mouse_plain_cursor) when neither @p resize_w nor
+ *         @p resize_h is @c true
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
+        bool anchor_right, bool anchor_bottom);
 
 /**
  * @brief Update the pointer cursor to match a window's resize border

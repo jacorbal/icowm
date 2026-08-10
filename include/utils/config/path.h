@@ -3,7 +3,7 @@
  *
  * @brief Declarations of path handling functions
  *
- * @ingroup path Path management utils
+ * @ingroup utils_config
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -89,7 +89,7 @@ static bool s_match_str_list(
  *
  * Compares the lower-case EWMH type name @p type against @p client_type
  * and returns @c true only when they correspond.  Returns @c false for
- * null or unrecognised type names.
+ * null or unrecognized type names.
  *
  * @param type        Lower-case EWMH type name from the configuration
  * @param client_type @c client_type_e value cast to @c uint16_t from
@@ -97,7 +97,7 @@ static bool s_match_str_list(
  *
  * @return Whether @p type names the same window type as @p client_type
  * @retval  true The names are equivalent
- * @retval false @p type is @c NULL, unrecognised, or does not match
+ * @retval false @p type is @c NULL, unrecognized, or does not match
  *
  * @note Complexity: @e O(1)
  */

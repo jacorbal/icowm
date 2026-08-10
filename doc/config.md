@@ -42,6 +42,8 @@ values, and built-in default value.
 5. [`randr.json` -- XRandR output profiles](#5-randrjson----xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
+   - [5.3 Scope: per-X-screen, not per-`outputs[]`-entry](#53-scope-per-x-screen-not-per-outputs-entry)
+   - [5.4 Reload behavior](#54-reload-behavior)
 6. [`rules.json` -- Per-window rules](#6-rulesjson----per-window-rules)
    - [6.1 Rule file shape](#61-rule-file-shape)
    - [6.2 Rule entry fields](#62-rule-entry-fields)
@@ -1023,7 +1025,8 @@ Appearance settings for iconified windows.
 | Key            | Type    | Default | Description |
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
-| `use-pixmap`   | boolean | `false` | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another; see `WM_ICON_PIXMAP_SCALE` in `defs/icon.h` for that fraction of the icon square the image is scaled to fill (not currently configurable from a JSON file, only at compile time). The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again. |
+| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another; see `WM_ICON_PIXMAP_SCALE` in `defs/icon.h` for that fraction of the icon square the image is scaled to fill (not currently configurable from a JSON file, only at compile time). The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
+| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's own top corners: a filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
 
 #### `icon.active` / `icon.inactive`
 
@@ -1170,6 +1173,7 @@ whatever an entry's own border happens to be set to.
 | `border.width`             | integer | `1`         |
 | `padding.horizontal`       | integer | `12`        |
 | `padding.vertical`         | integer | `4`         |
+| `show-pixmaps`             | boolean | `true`      |
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
@@ -1197,6 +1201,13 @@ space above the first row and below the last for `padding.vertical`.
 Both apply to every context menu and to the Alt+Tab-style cycle menu
 alike, and equally to `unselected`, `selected`, and `label` rows.
 
+`show-pixmaps` controls whether an entry that represents a client
+window (the per-window context menu, and the cycle menu's own list
+mode) draws that client's own `_NET_WM_ICON` image beside its label,
+the same `icon.show-pixmaps` (section 4.2) controls for iconified
+windows; entries that do not represent a specific client (labels,
+separators, submenu headers) are unaffected either way.
+
 ```json
 "menu": {
     "unselected": {
@@ -1223,7 +1234,9 @@ alike, and equally to `unselected`, `selected`, and `label` rows.
     "padding": {
         "horizontal": 12,
         "vertical": 4
-    }
+    },
+    "border": { "color": "#7F9AB6", "width": 1 },
+    "show-pixmaps": true
 }
 ```
 
@@ -1497,7 +1510,11 @@ extension.  This file is **optional**.  If absent, XRandR hot-plug
 event handling still works (screen-change notifications are processed),
 but no output profiles are configured.
 
-Up to **8** output entries are supported.
+Up to **16** output entries are supported (**2** in a
+low-memory build; see `CONFIG_RANDR_MAX_OUTPUTS` in `defs/config.h`).
+
+Applied at startup, and again whenever an output connects or
+disconnects afterward (e.g., plugging in an external monitor).
 
 ### 5.1 Top-level fields
 
@@ -1508,20 +1525,77 @@ Up to **8** output entries are supported.
 ### 5.2 `outputs[]` entries
 
 Each entry in the `outputs` array describes one physical display output.
+A profile whose `name` does not match any currently-connected output
+is simply skipped until one by that name appears.
 
 | Key            | Type    | Default    | Description |
 |----------------|---------|------------|-------------|
 | `name`         | string  | `""`       | Output connector name as reported by the X server (e.g., `"HDMI-1"`, `"eDP-1"`, `"DP-2"`).  Run `xrandr` in a terminal to list available names. |
-| `is-enabled`   | boolean | `false`    | Whether this output should be active. |
-| `is-primary`   | boolean | `false`    | Mark this output as the primary display. |
-| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels. |
-| `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels. |
-| `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen. |
-| `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen. |
-| `rotation`     | string  | `"normal"` | Screen rotation. |
+| `is-enabled`   | boolean | `false`    | Whether this output is used at all.  `true` applies `resolution`, `position`, and `rotation` below to the output, and lets IcoWM manage windows on it.  `false` instead turns the output off (blanking it, the same as unplugging it) and excludes it from window placement entirely -- useful for a permanently-connected output (a projector for mirroring, say) that should never receive windows. |
+| `is-primary`   | boolean | `false`    | Mark this output as the primary display.  Only applied when `is-enabled` is `true`; applied as a separate step right after the rest of this profile. |
+| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels.  Matched against the modes the screen currently reports; if `0`, `0`, or no exact match exists, the output's own already-active mode is kept instead (or its first preferred mode, if it had none) -- and, since nothing was actually requested in that case, its resolution plays no part in deciding whether this profile changed anything on a later reload, or in what a `[ Revert ]` on the confirm dialog restores (see `position`/`rotation`/`is-primary` above and below, which always do). Only applied when `is-enabled` is `true`. |
+| `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels.  See `resolution.w` above. |
+| `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
+| `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
+| `rotation`     | string  | `"normal"` | Screen rotation.  Only applied when `is-enabled` is `true`. |
 
 Accepted `rotation` values are: `"normal"`, `"left"` (90°),
 `"right"` (270°), `"inverted"` (180°).
+
+### 5.3 Scope: per-X-screen, not per-`outputs[]`-entry
+
+RandR is scoped to a single X screen: CRTCs, outputs, and modes are
+queried and configured against one screen's root window, with no
+cross-screen notion at the protocol level. `surface_action_
+apply_randr_profiles` is called once per surface (X screen managed),
+querying and applying RandR state independently for each. `outputs[]`
+itself, however, is a single list in `config_randr_s`, shared by
+every surface, with no per-screen field. On a multi-GPU setup where
+two X screens each expose an output of the same name, the matching
+profile is applied identically to both, with no way to scope it to
+one screen only. Not applicable to the common case of one X screen
+managing several outputs via RandR 1.5 monitors, nor in practice to
+most multi-screen setups either, since output names are driver/GPU-
+assigned and are not normally reused across independent GPUs.
+
+### 5.4 Reload behavior
+
+`randr.json` is re-read on configuration reload (`KEYBIND_WM_RELOAD` /
+`ACTION_WM_RELOAD`), updating `config->randr` in memory, and
+`wm_action_config_reload` immediately applies it (`surface_action_
+apply_randr_profiles`), before rules, keyboard/mouse bindings, or any
+other reload step -- so a resync of clients or desktops elsewhere in
+the same reload already reflects the new screen geometry if RandR
+itself just changed it.
+
+If that application actually changed anything, a confirm dialog
+appears, centered on the affected screen: "The 'randr.json'
+configuration has been applied. Keep it, or revert to the previous
+one?", with `[ Revert ]` selected by default and a live countdown
+underneath. Pressing `[ Keep ]` (or Tab/arrow then Enter/Space) keeps
+the just-applied profile; pressing `[ Revert ]`, Escape, or letting
+the countdown reach zero undoes it, restoring every changed output's
+prior mode, position, rotation, and primary status exactly. The
+countdown defaults to 10 seconds (`DIALOG_RANDR_CONFIRM_TIMEOUT_
+SECONDS` in `defs/dialog.h`). No dialog appears at all when nothing
+actually changed (see the comparison below), nor at startup or on a
+hotplug event -- only a reload, the one moment a person is at the
+keyboard to have triggered it, offers this.
+
+With more than one screen, every screen still gets its own profiles
+applied on the same reload even when more than one changes, but only
+the first screen to actually change is offered the dialog: only one
+confirm dialog can be open at a time, and only the single most recent
+change is remembered well enough to revert.
+
+Every call to `surface_action_apply_randr_profiles` compares each
+configured profile against the matching output's actual current
+state first (resolution, position, rotation, primary status) and
+issues an XRandR write for it only when at least one of them
+genuinely differs. A `randr.json` whose profiles already match reality
+therefore issues no XRandR requests at all -- including on a reload
+triggered by an unrelated file (e.g. `config.json`), and on a hotplug
+event for an output some other profile targets.
 
 ```json
 {
@@ -2070,43 +2144,119 @@ Sub-menus can be nested to the depth limit defined by
     "name": "Default",
 
     "window": {
-        "general": {
-            "border-width": 2,
-            "is-decorated": true
+        "is-decorated": true,
+        "titlebar": {
+            "height": 19,
+            "alignment": "left",
+            "padding": { "horizontal": 2, "vertical": 2 },
+            "buttons": {
+                "left": ["pin", "layer"],
+                "right": ["iconize", "hide", "shade", "maximize",
+                          "fullscreen", "close"],
+                "color": { "on": "#253040", "off": "#4A5566" }
+            }
         },
         "active": {
-            "background-color": "#9AAEC8",
-            "foreground-color": "#253040",
-            "border-color": "#4A5566",
-            "font": "fixed"
+            "font": "fixed bold",
+            "color": { "background": "#9AAEC8", "foreground": "#253040" },
+            "border": { "color": "#4A5566", "width": 2 }
         },
         "inactive": {
-            "background-color": "#D0D9E5",
-            "foreground-color": "#4A5566",
-            "border-color": "#7F9AB6",
-            "font": "fixed"
+            "font": "fixed",
+            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+            "border": { "color": "#7F9AB6", "width": 2 }
         }
     },
 
     "icon": {
-        "general": {
-            "border-width": 2,
-            "is-captioned": true
-        },
+        "is-captioned": true,
+        "show-pixmaps": true,
+        "show-hints": true,
         "active": {
-            "background-color": "#9AAEC8",
-            "foreground-color": "#253040",
-            "border-color": "#4A5566",
-            "grip-color": "#9AAEC8",
-            "font": "fixed"
+            "font": "fixed bold",
+            "color": { "background": "#9AAEC8", "foreground": "#253040" },
+            "border": { "color": "#4A5566", "width": 1 }
         },
         "inactive": {
-            "background-color": "#D0D9E5",
-            "foreground-color": "#4A5566",
-            "border-color": "#7F9AB6",
-            "grip-color": "#4A5566",
-            "font": "fixed"
+            "font": "fixed",
+            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+            "border": { "color": "#7F9AB6", "width": 1 }
         }
+    },
+
+    "systray": {
+        "font": "fixed",
+        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+        "border": { "color": "#7F9AB6", "width": 1 },
+        "height": 32,
+        "text": {
+            "gap": 4,
+            "valign": "center"
+        }
+    },
+
+    "desktop": {
+        "color": { "background": "#4C5B6B" }
+    },
+
+    "menu": {
+        "unselected": {
+            "font": "fixed",
+            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+            "border": { "color": "#7F9AB6", "width": 1 }
+        },
+        "selected": {
+            "font": "fixed bold",
+            "color": { "background": "#9AAEC8", "foreground": "#253040" },
+            "border": { "color": "#4A5566", "width": 1 }
+        },
+        "label": {
+            "font": "fixed",
+            "color": { "background": "#D0D9E5", "foreground": "#7F9AB6" },
+            "border": { "color": "#7F9AB6", "width": 0 }
+        },
+        "disabled": {
+            "color": { "foreground": "#A0A8B0" }
+        },
+        "separator": {
+            "color": "#7F9AB6"
+        },
+        "border": { "color": "#7F9AB6", "width": 1 },
+        "padding": {
+            "horizontal": 12,
+            "vertical": 4
+        },
+        "show-pixmaps": true
+    },
+
+    "dialog": {
+        "color": { "background": "#D0D9E5" },
+        "border": { "color": "#7F9AB6", "width": 2 },
+        "label": {
+            "font": "fixed",
+            "color": { "foreground": "#4A5566" },
+            "padding": { "horizontal": 12, "vertical": 12 }
+        },
+        "button": {
+            "unselected": {
+                "font": "fixed",
+                "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+                "border": { "color": "#7F9AB6", "width": 1 }
+            },
+            "selected": {
+                "font": "fixed bold",
+                "color": { "background": "#9AAEC8", "foreground": "#253040" },
+                "border": { "color": "#4A5566", "width": 1 }
+            },
+            "gap": 12,
+            "padding": { "horizontal": 12, "vertical": 6 }
+        }
+    },
+
+    "overlay": {
+        "font": "fixed",
+        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
+        "border": { "color": "#7F9AB6", "width": 1 }
     },
 
     "xsettings": {

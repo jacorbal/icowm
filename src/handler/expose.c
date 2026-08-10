@@ -30,6 +30,7 @@
 
 /* Render includes */
 #include <render/desktop.h>
+#include <render/icon.h>
 #include <render/text.h>
 #include <render/wmicon.h>
 
@@ -38,8 +39,8 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
+#include <menu/dialog/confirm.h>
 #include <menu/dialog/info.h>
-#include <menu/dialog/quit.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
@@ -106,13 +107,18 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Cycle menu repaint */
     if (cycle_is_open() && event->window == cycle_window()) {
+        cycle_force_full_repaint();
         cycle_draw(connection, cfg);
         return;
     }
 
-    /* Confirmation dialog repaint */
-    if (dialog_quit_is_open() && event->window == dialog_quit_window()) {
-        dialog_quit_repaint(connection, cfg);
+    /* Generic confirm dialog repaint (quit-confirmation or any other
+     * dialog built on 'menu/dialog/confirm.h'; only one instance can
+     * ever be open at a time, so which wrapper opened it does not
+     * matter here) */
+    if (menu_confirm_dialog_is_open() &&
+            event->window == menu_confirm_dialog_window()) {
+        menu_confirm_dialog_repaint(connection, cfg);
         return;
     }
 
@@ -180,7 +186,7 @@ void handler_expose(xcb_connection_t *connection,
          * the pixmap this same repaint just cleared, bringing it back
          * for the rest of the drag despite the drag itself never
          * wanting it shown in the first place. */
-        if (cfg->theme.icon.use_pixmap && !is_icon_dragging) {
+        if (cfg->theme.icon.show_pixmaps && !is_icon_dragging) {
             wmicon_draw(connection, client->ewmh, client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
                     &client->icon_pixmap_cache);
@@ -211,6 +217,9 @@ void handler_expose(xcb_connection_t *connection,
                         WM_ICON_CAPTION_HEIGHT - 2u),
                     caption);
         }
+
+        ri_draw_icon_hints(connection, client, is_active_visual,
+                &cfg->theme);
 
         xcb_flush(connection);
         return;

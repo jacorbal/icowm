@@ -12,6 +12,8 @@
  *
  * @note This header is private to the mouse subsystem and must not be
  *       included outside of @c src/input/mouse/
+ *
+ * @ingroup input_mouse
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

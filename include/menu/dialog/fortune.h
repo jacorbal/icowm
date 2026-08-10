@@ -2,6 +2,8 @@
  * @file menu/dialog/fortune.h
  *
  * @brief The @c fortune easter egg, shown through the message dialog
+ *
+ * @ingroup menu_dialog
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -18,24 +20,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/dialog.h>
+
 /* Project includes */
 #include <config.h>
 #include <surface.h>
-
-
-/** Maximum bytes read from the @c fortune command's output */
-#define DIALOG_FORTUNE_MAX_LEN (1024u)
-
-/** Shown instead when @c fortune is missing or produces no output;
- *  deliberately overwrought and archaic, per its whole point being a
- *  small joke rather than a plain error message */
-#define DIALOG_FORTUNE_FALLBACK_MSG \
-    "Alack!  The oracle 'fortune' abideth not upon this machine, " \
-    "wherefore no wisdom of the ancients may this day be divined.  " \
-    "Prithee, entreat thy package steward with an incantation " \
-    "such as 'sudo apt install fortune-mod' (or whate'er charm " \
-    "thy distribution demandeth), that the sages of yore might " \
-    "once more speak through this humble dialog."
 
 
 /**
@@ -57,7 +47,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the length of the
  *       @c fortune output actually read (bounded, see
- *       @c DIALOG_FORTUNE_MAX_LEN above)
+ *       @c DIALOG_FORTUNE_MAX_LENGTH above)
  */
 void dialog_fortune_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config);

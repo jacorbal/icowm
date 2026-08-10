@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* ADT includes */
@@ -41,68 +42,32 @@
 #include <systray.h>
 #include <xsettings.h>
 
+/* Menu includes */
+#include <menu/context/rootmenu.h>
+#include <menu/dialog/rrsafe.h>
+
 /* Local includes */
 #include <wm.h>
 #include <wm/internal.h>
 
 
-/* Reload the configuration */
-int wm_action_config_reload(void)
+/**
+ * @brief Resynchronize every already-managed surface, desktop, and
+ *        client after a configuration reload
+ *
+ * A configuration reload updates @c wm->config in place, but anything
+ * already derived from it before the reload (a desktop's resolved
+ * background color, a client's cached frame dimensions) has to be
+ * explicitly recomputed or repainted; nothing else does that on its
+ * own just because the underlying configuration changed underneath
+ * it.
+ *
+ * @note Complexity: @e O(s * d * c), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e c
+ *       the number of clients per desktop
+ */
+static void s_resync_after_reload(void)
 {
-    LOGGER_DEBUG("Reloading configuration", L_NARG);
-
-    if (wm == NULL || wm->config == NULL) {
-        LOGGER_ERROR("Window manager is not initialized", L_NARG);
-        return 1;
-    }
-
-    json_syntax_errors_reset();
-    config_missing_theme_reset();
-    if (config_load(wm->config, wm->config_dir_prefix,
-                wm->restricted_memory_mib) != 0) {
-        LOGGER_ERROR("Failed to reload configuration", L_NARG);
-        /* Whatever caused 'config_load' to fail outright is far more
-         * likely to be a syntax error introduced while editing an
-         * already-working 'config.json' than the file simply not
-         * existing at all, unlike at first startup; worth surfacing
-         * here even on this early-failure path, not just after a
-         * successful reload below. */
-        wm_warn_json_syntax_errors();
-        return 1;
-    }
-
-    /* Re-establish keyboard/mouse binding grabs from the just-reloaded
-     * 'wm->config->bindings': 'config_load' above already refreshed
-     * that in-memory data (it loads 'bindings.json' too, not just
-     * 'config.json'), but the X server grabs 'keyboard_load' and
-     * 'mouse_load' set up at startup are a separate, one-time action
-     * that nothing was re-running on reload, so a changed binding had
-     * no actual effect until the window manager was restarted.
-     *
-     * Both functions release every grab they previously made before
-     * re-grabbing, so a binding that changed does not end up with both
-     * its old and new key/button combination active at once. */
-    if (wm->keysyms != NULL) {
-        keyboard_load(wm->surfaces, wm->keysyms, wm->config);
-    }
-    mouse_load(wm->surfaces, wm->config);
-
-    /* Reload the systray reacting to config. reload */
-    systray_reload(wm);
-
-    /* Reload also XSETTINGS */
-    xsettings_reload(wm);
-
-    sn_set_timeout_seconds(
-            wm->config->base.startup_notification.timeout_seconds);
-
-    if (wm->rules != NULL) {
-        (void) rules_load(wm->rules, wm->config_dir_prefix);
-    }
-    if (wm->session != NULL) {
-        (void) session_load(wm->session, wm->config_dir_prefix);
-    }
-
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *s = (surface_td *) list_data(snode);
@@ -182,6 +147,96 @@ int wm_action_config_reload(void)
 
         s->is_outdated = true;
     }
+}
+
+
+/* Reload the configuration */
+int wm_action_config_reload(void)
+{
+    LOGGER_DEBUG("Reloading configuration", L_NARG);
+
+    if (wm == NULL || wm->config == NULL) {
+        LOGGER_ERROR("Window manager is not initialized", L_NARG);
+        return 1;
+    }
+
+    json_syntax_errors_reset();
+    config_missing_theme_reset();
+    if (config_load(wm->config, wm->config_dir_prefix,
+                wm->restricted_memory_mib) != 0) {
+        LOGGER_ERROR("Failed to reload configuration", L_NARG);
+        /* Whatever caused 'config_load' to fail outright is far more
+         * likely to be a syntax error introduced while editing an
+         * already-working 'config.json' than the file simply not
+         * existing at all, unlike at first startup; worth surfacing
+         * here even on this early-failure path, not just after a
+         * successful reload below. */
+        wm_warn_json_syntax_errors();
+        return 1;
+    }
+
+    /* Apply any 'randr.json' output profile that changed since the
+     * last load, offering a chance to revert it (see 'dialog_rrsafe_
+     * show') before 's_resync_after_reload' below, so any surface or
+     * client resync there already reflects the new screen geometry if
+     * RandR itself just changed it.  Every surface still gets its own
+     * profiles applied even when more than one changes, but only the
+     * first one to actually change is snapshotted and offered the
+     * confirm dialog: 'menu_confirm_dialog' allows only one instance
+     * open at a time, and 'surface_action_revert_randr_profiles'
+     * itself remembers only the single most recent snapshot, so a
+     * second surface changing in the same reload has no dialog of its
+     * own to revert through regardless. */
+    if (wm->surfaces != NULL) {
+        bool dialog_shown = false;
+
+        for (list_item_td *node = list_head(wm->surfaces);
+                node != NULL; node = list_next(node)) {
+            surface_td *s = (surface_td *) list_data(node);
+            bool changed = surface_action_apply_randr_profiles(s,
+                    !dialog_shown);
+
+            if (changed && !dialog_shown) {
+                dialog_rrsafe_show(wm->connection, s, wm->config);
+                dialog_shown = true;
+            }
+        }
+    }
+
+    /* Re-establish keyboard/mouse binding grabs from the just-reloaded
+     * 'wm->config->bindings': 'config_load' above already refreshed
+     * that in-memory data (it loads 'bindings.json' too, not just
+     * 'config.json'), but the X server grabs 'keyboard_load' and
+     * 'mouse_load' set up at startup are a separate, one-time action
+     * that nothing was re-running on reload, so a changed binding had
+     * no actual effect until the window manager was restarted.
+     *
+     * Both functions release every grab they previously made before
+     * re-grabbing, so a binding that changed does not end up with both
+     * its old and new key/button combination active at once. */
+    if (wm->keysyms != NULL) {
+        keyboard_load(wm->surfaces, wm->keysyms, wm->config);
+    }
+    mouse_load(wm->surfaces, wm->config);
+
+    /* Reload the systray reacting to config. reload */
+    systray_reload(wm);
+
+    /* Reload also XSETTINGS */
+    xsettings_reload(wm);
+
+    sn_set_timeout_seconds(
+            wm->config->base.startup_notification.timeout_seconds);
+
+    if (wm->rules != NULL) {
+        (void) rules_load(wm->rules, wm->config_dir_prefix);
+    }
+    if (wm->session != NULL) {
+        (void) session_load(wm->session, wm->config_dir_prefix);
+    }
+    rootmenu_load_menu_json(wm->config_dir_prefix);
+
+    s_resync_after_reload();
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
     wm_warn_json_syntax_errors();

@@ -16,7 +16,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>      /* fprintf, snprintf */
-#include <stdlib.h>     /* NULL */
 
 /* Third-party includes */
 #include <cjson/cJSON.h>

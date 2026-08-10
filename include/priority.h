@@ -7,6 +7,8 @@
  * Events are created with an initial priority level, in this case, zero
  * or @c PRIORITY_NORMAL.  This enumeration just shows possible initial
  * values to standard events that always will use the same priorirty.
+ *
+ * @ingroup eventq
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

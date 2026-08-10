@@ -6,6 +6,9 @@
  * Declares the focus-policy predicate and the function that applies
  * input focus to a managed client, handling the previous focus,
  * optional raise, and surface/desktop outdated marking.
+ *
+ * @defgroup policy Client focus and placement policy
+ * @ingroup client
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

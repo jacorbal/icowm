@@ -30,6 +30,7 @@
 
 /* Render includes */
 #include <render/desktop.h>
+#include <render/outdate.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -37,7 +38,6 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <invalidate.h>
 #include <logger.h>
 #include <surface.h>
 #include <systray.h>
@@ -78,7 +78,7 @@ static void s_handler_send_synthetic_configure_notify(
  * @p gravity after the frame changes from (@p old_w x @p old_h) t
  * (@p new_w x @p new_h) and adds it to @p *out_x and @p *out_y.
  * No-op for @c CLIENT_GRAVITY_NORTH_WEST and @c CLIENT_GRAVITY_STATIC.
- * See ICCCM §4.1.2.3 and §4.1.5.
+ * See ICCCM §§4.1.2.3 and 4.1.5.
  *
  * @param out_x   Frame x to adjust in place
  * @param out_y   Frame y to adjust in place
@@ -366,7 +366,7 @@ void handler_configure_request(xcb_connection_t *connection,
             target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
         }
 
-        /* Honor win_gravity (ICCCM §4.1.2.3 and §4.1.5): when only the
+        /* Honor win_gravity (ICCCM §§4.1.2.3 and 4.1.5): when only the
          * size changes without an explicit new position, keep the
          * gravity anchor point fixed by adjusting the frame position.
          * X/Y have lower mask bits than W/H, so the values array must
@@ -475,11 +475,11 @@ void handler_configure_request(xcb_connection_t *connection,
                     client->layout.geometry.cur.dim.h,
                     client->layout.geometry.cur.pos.x,
                     client->layout.geometry.cur.pos.y);
-            wm_invalidate_client(client);
+            wm_outdate_client(client);
         }
 
-        wm_invalidate_surface(surface);
-        wm_invalidate_desktop(desktop);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
     }
 }
 
@@ -534,7 +534,7 @@ void handler_configure_notify(xcb_connection_t *connection,
              *    in client_manage.  That pre-placement event carries
              *    the application's initial position, often (0,0), which
              *    can arrive late (after place_apply already stored the
-             *    centred coordinates) and corrupt the stored position.
+             *    centered coordinates) and corrupt the stored position.
              *    When the subsequent render uses the corrupted
              *    coordinates the window is moved to the wrong position,
              *    which in turn queues another stale
@@ -606,8 +606,8 @@ void handler_configure_notify(xcb_connection_t *connection,
                 }
             }
             if (geom_changed) {
-                wm_invalidate_surface(surface);
-                wm_invalidate_desktop(desktop);
+                wm_outdate_surface(surface);
+                wm_outdate_desktop(desktop);
             } /* ! if (geom_changed) */
         } else if (is_inner &&
                 client->frame != 0 &&

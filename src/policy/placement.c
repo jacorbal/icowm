@@ -219,7 +219,7 @@ static void s_place_apply_gravity(const surface_td *surface,
 /**
  * @brief Clip a workarea and screen bound down to one monitor
  *
- * Intersects @p wa_x/@p wa_y/@p wa_w/@p wa_h with @p monitor. Every
+ * Intersects @p wa_x/@p wa_y/@p wa_w/@p wa_h with @p monitor.  Every
  * output defaults to the corresponding input unchanged (so the two
  * are safe to alias) whenever @p surface has one monitor or none, or
  * the intersection with the workarea is empty, matching the behavior
@@ -324,6 +324,133 @@ static monitor_td s_reference_monitor(wm_td *wm,
 }
 
 
+/**
+ * @brief Center a client over its ICCCM §4.1.2.6 @c WM_TRANSIENT_FOR
+ *        parent, clamped to that parent's own monitor, and configure
+ *        its window
+ *
+ * A no-op, returning @c false, when @p client is not transient for
+ * anything, or its declared parent's geometry could not be resolved
+ * at all (neither an already-managed client entry nor a raw
+ * @c xcb_get_geometry reply).  On success, this fully places the
+ * client (configures its window and updates its stored geometry) and
+ * returns @c true, so @c place_apply has nothing further to do.
+ *
+ * @param wm      Window manager state
+ * @param surface Surface @p client is on
+ * @param client  Client being placed
+ * @param wa_x    Surface-wide workarea origin X, for the fallback
+ *                monitor clip below
+ * @param wa_y    Surface-wide workarea origin Y
+ * @param wa_w    Surface-wide workarea width
+ * @param wa_h    Surface-wide workarea height
+ *
+ * @return @c true if @p client was transient and got placed here
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients (see @c lookup_find_client)
+ */
+static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
+        client_td *client, int32_t wa_x, int32_t wa_y,
+        uint32_t wa_w, uint32_t wa_h)
+{
+    uint32_t fw;
+    uint32_t fh;
+    int32_t new_x = 0;
+    int32_t new_y = 0;
+    bool placed_as_transient = false;
+    xcb_window_t target;
+    client_td *parent;
+    int32_t t_wa_x;
+    int32_t t_wa_y;
+    uint32_t t_wa_w;
+    uint32_t t_wa_h;
+    uint32_t t_sw;
+    uint32_t t_sh;
+
+    if (client->transient_for == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    fw = client->layout.geometry.cur.dim.w;
+    fh = client->layout.geometry.cur.dim.h;
+
+    /* Prefer the WM's stored frame geometry over
+     * 'xcb_get_geometry': after reparenting the parent's inner
+     * window lives inside the frame, so 'xcb_get_geometry' would
+     * return its position relative to the frame (left, top); not
+     * the frame's root-relative screen position.  Using the stored
+     * geometry correctly centers the dialog wherever the parent
+     * window is on screen. */
+    parent = lookup_find_client(wm->surfaces,
+            client->transient_for, NULL, NULL);
+    if (parent != NULL) {
+        int32_t px = parent->layout.geometry.cur.pos.x;
+        int32_t py = parent->layout.geometry.cur.pos.y;
+        uint32_t pw = parent->layout.geometry.cur.dim.w;
+        uint32_t ph = parent->layout.geometry.cur.dim.h;
+
+        new_x = px + ((int32_t) pw - (int32_t) fw) / 2;
+        new_y = py + ((int32_t) ph - (int32_t) fh) / 2;
+        placed_as_transient = true;
+    } else {
+        /* Parent not yet managed (or unmanaged window): fall back
+         * to 'xcb_get_geometry' on the declared transient-for
+         * window */
+        xcb_get_geometry_cookie_t pgc;
+        xcb_get_geometry_reply_t *pgr;
+        pgc = xcb_get_geometry(wm->connection, client->transient_for);
+        pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+        if (pgr != NULL) {
+            new_x = (int32_t) pgr->x +
+                    ((int32_t) pgr->width - (int32_t) fw) / 2;
+            new_y = (int32_t) pgr->y +
+                    ((int32_t) pgr->height - (int32_t) fh) / 2;
+            free(pgr);
+            placed_as_transient = true;
+        }
+    }
+
+    if (!placed_as_transient) {
+        return false;
+    }
+
+    /* Resolved from the dialog's own proposed center, not the
+     * pointer: it is meant to sit with its parent, wherever
+     * that is, regardless of where the pointer happens to be
+     * right now. */
+    s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h,
+            surface->properties.dim.w, surface->properties.dim.h,
+            surface_monitor_for_point(surface,
+                    new_x + (int32_t) (fw / 2u),
+                    new_y + (int32_t) (fh / 2u)),
+            &t_wa_x, &t_wa_y, &t_wa_w, &t_wa_h, &t_sw, &t_sh);
+    (void) t_wa_w; /* only the edges are needed here */
+    (void) t_wa_h;
+
+    if (new_x < t_wa_x) { new_x = t_wa_x; }
+    if (new_y < t_wa_y) { new_y = t_wa_y; }
+    if ((uint32_t) new_x + fw > t_sw) {
+        new_x = (t_sw > fw) ? (int32_t) (t_sw - fw) : t_wa_x;
+    }
+    if ((uint32_t) new_y + fh > t_sh) {
+        new_y = (t_sh > fh) ? (int32_t) (t_sh - fh) : t_wa_y;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame : client->window;
+    xcb_configure_window(wm->connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+            (const uint32_t[]) {
+                (uint32_t) new_x,
+                (uint32_t) new_y
+            });
+    client->layout.geometry.cur.pos.x = new_x;
+    client->layout.geometry.cur.pos.y = new_y;
+    return true;
+}
+
+
 /* Find the best-scoring smart position for a newly mapped client */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         int32_t *out_x, int32_t *out_y)
@@ -408,7 +535,7 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     center_x = wa_x + (int32_t) (wa_w / 2u);
     center_y = wa_y + (int32_t) (wa_h / 2u);
 
-    /* Seed with the centred position so an empty desktop still lands
+    /* Seed with the centered position so an empty desktop still lands
      * the first window in the middle of the screen */
     cx = center_x - (int32_t) (fw / 2u);
     cy = center_y - (int32_t) (fh / 2u);
@@ -489,7 +616,6 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
 }
 
 
-
 /* Apply the configured placement policy to a newly mapped client */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 {
@@ -551,86 +677,9 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     }
 
     /* ICCCM §4.1.2.6: center transient dialogs over their parent */
-    if (client->transient_for != XCB_WINDOW_NONE) {
-        bool placed_as_transient = false;
-
-        /* Prefer the WM's stored frame geometry over
-         * 'xcb_get_geometry': after reparenting the parent's inner
-         * window lives inside the frame, so 'xcb_get_geometry' would
-         * return its position relative to the frame (left, top); not
-         * the frame's root-relative screen position.  Using the stored
-         * geometry correctly centres the dialog wherever the parent
-         * window is on screen. */
-        client_td *parent = lookup_find_client(wm->surfaces,
-                client->transient_for, NULL, NULL);
-        if (parent != NULL) {
-            int32_t px = parent->layout.geometry.cur.pos.x;
-            int32_t py = parent->layout.geometry.cur.pos.y;
-            uint32_t pw = parent->layout.geometry.cur.dim.w;
-            uint32_t ph = parent->layout.geometry.cur.dim.h;
-
-            new_x = px + ((int32_t) pw - (int32_t) fw) / 2;
-            new_y = py + ((int32_t) ph - (int32_t) fh) / 2;
-            placed_as_transient = true;
-        } else {
-            /* Parent not yet managed (or unmanaged window): fall back
-             * to 'xcb_get_geometry' on the declared transient-for
-             * window */
-            xcb_get_geometry_cookie_t pgc;
-            xcb_get_geometry_reply_t *pgr;
-            pgc = xcb_get_geometry(wm->connection, client->transient_for);
-            pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
-            if (pgr != NULL) {
-                new_x = (int32_t) pgr->x +
-                        ((int32_t) pgr->width - (int32_t) fw) / 2;
-                new_y = (int32_t) pgr->y +
-                        ((int32_t) pgr->height - (int32_t) fh) / 2;
-                free(pgr);
-                placed_as_transient = true;
-            }
-        }
-
-        if (placed_as_transient) {
-            int32_t t_wa_x;
-            int32_t t_wa_y;
-            uint32_t t_wa_w;
-            uint32_t t_wa_h;
-            uint32_t t_sw;
-            uint32_t t_sh;
-
-            /* Resolved from the dialog's own proposed center, not the
-             * pointer: it is meant to sit with its parent, wherever
-             * that is, regardless of where the pointer happens to be
-             * right now. */
-            s_clip_to_monitor(surface, wa_x, wa_y, wa_w, wa_h, sw, sh,
-                    surface_monitor_for_point(surface,
-                            new_x + (int32_t) (fw / 2u),
-                            new_y + (int32_t) (fh / 2u)),
-                    &t_wa_x, &t_wa_y, &t_wa_w, &t_wa_h, &t_sw, &t_sh);
-            (void) t_wa_w; /* only the edges are needed here */
-            (void) t_wa_h;
-
-            if (new_x < t_wa_x) { new_x = t_wa_x; }
-            if (new_y < t_wa_y) { new_y = t_wa_y; }
-            if ((uint32_t) new_x + fw > t_sw) {
-                new_x = (t_sw > fw) ? (int32_t) (t_sw - fw) : t_wa_x;
-            }
-            if ((uint32_t) new_y + fh > t_sh) {
-                new_y = (t_sh > fh) ? (int32_t) (t_sh - fh) : t_wa_y;
-            }
-
-            target = (client_is_decorated(client) && client->frame != 0)
-                ? client->frame : client->window;
-            xcb_configure_window(wm->connection, target,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                    (const uint32_t[]) {
-                        (uint32_t) new_x,
-                        (uint32_t) new_y
-                    });
-            client->layout.geometry.cur.pos.x = new_x;
-            client->layout.geometry.cur.pos.y = new_y;
-            return;
-        }
+    if (s_place_transient_centered(wm, surface, client, wa_x, wa_y,
+                wa_w, wa_h)) {
+        return;
     }
 
     /* Cluster windows of the same application: if another currently

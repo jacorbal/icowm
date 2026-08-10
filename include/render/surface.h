@@ -2,6 +2,8 @@
  * @file render/surface.h
  *
  * @brief Surface rendering and drawing functions
+ *
+ * @ingroup render
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

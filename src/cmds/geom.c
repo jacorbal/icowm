@@ -296,7 +296,7 @@ static void s_wcmd_resize_configure(client_td *client,
      * unconditionally so every client always receives the definitive
      * geometry notification. */
     client_send_synthetic_configure_notify(client->connection, client);
-    }
+}
 
 
 /**
@@ -534,8 +534,40 @@ static bool s_client_monitor_workarea(client_td *client,
 }
 
 
-/* Maximize the client horizontally, or restore if already horizontally
- * maximized */
+/**
+ * @brief Precondition checks shared by @c wcmd_client_maximize_horz
+ *        and @c wcmd_client_maximize_vert, unshading the client along
+ *        the way
+ *
+ * @param client Client about to be maximized on one axis
+ *
+ * @return @c true if the caller should proceed (the client is
+ *         resizable, not fullscreen, and any shade state has already
+ *         been cleared); @c false if @p client is @c NULL or the
+ *         maximize should be refused outright
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_wcmd_maximize_precheck(client_td *client)
+{
+    if (client == NULL) {
+        return false;
+    }
+
+    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
+        return false;
+    }
+
+    if (client_is_shaded(client)) {
+        wcmd_client_unshade(client);
+    }
+
+    return true;
+}
+
+
+/* Maximize the client horizontally, or restore/demote/complete
+ * depending on its current maximize state */
 void wcmd_client_maximize_horz(client_td *client)
 {
     int32_t mx = 0;
@@ -552,31 +584,63 @@ void wcmd_client_maximize_horz(client_td *client)
         return;
     }
 
-    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
+    if (!s_wcmd_maximize_precheck(client)) {
         return;
     }
 
-    if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
-    }
+    target = wcmd_target_win(client);
 
-    /* Toggle: if already maximized horizontally, restore saved geometry */
-    if (client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ) {
-        target = wcmd_target_win(client);
-        client_geometry_restore(client);
+    /* Toggling the horizontal axis off restores just that axis from
+     * 'layout.geometry.old', leaving the vertical one exactly as it
+     * currently is, rather than the full 'client_geometry_restore'
+     * the pure horizontal-only case used to call, which would
+     * overwrite a still-maximized vertical axis too: fully maximized
+     * demotes to vertical-only, and horizontal-only demotes to
+     * normal. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
+            client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ) {
+        bool was_full =
+            (client->properties.state == CLIENT_STATE_MAXIMIZED);
+
+        client->layout.geometry.cur.pos.x =
+            client->layout.geometry.old.pos.x;
+        client->layout.geometry.cur.dim.w =
+            client->layout.geometry.old.dim.w;
         xcb_configure_window(client->connection, target,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH,
                 (const uint32_t[]) {
                     (uint32_t) client->layout.geometry.cur.pos.x,
                     client->layout.geometry.cur.dim.w
                 });
-        client->properties.state = CLIENT_STATE_NORMAL;
+        client->properties.state = (was_full)
+            ? CLIENT_STATE_MAXIMIZED_VERT : CLIENT_STATE_NORMAL;
         wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
         wm_request_client_redraw(client);
         return;
     }
 
-    target = wcmd_target_win(client);
+    /* Already vertically maximized: complete to full maximize instead
+     * of overwriting the state with a fresh horizontal-only one,
+     * which would otherwise strand the vertical maximize's own
+     * Y/height with no state left recording it, and announce only
+     * 'MAXIMIZED_HORZ' over EWMH despite the window ending up
+     * covering the workarea on both axes. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+        xcb_configure_window(client->connection, target,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH,
+                (const uint32_t[]) {
+                    (uint32_t) mx,
+                    (uint32_t) sw
+                });
+        client->layout.geometry.cur.pos.x = mx;
+        client->layout.geometry.cur.dim.w = sw;
+        client->properties.state = CLIENT_STATE_MAXIMIZED;
+        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+        wm_request_client_redraw(client);
+        return;
+    }
+
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: switching from vertical-only
      * maximize to horizontal must not overwrite the true pre-maximize
@@ -609,8 +673,8 @@ void wcmd_client_maximize_horz(client_td *client)
 }
 
 
-/* Maximize the client vertically, or restore if already vertically
- * maximized */
+/* Maximize the client vertically, or restore/demote/complete
+ * depending on its current maximize state */
 void wcmd_client_maximize_vert(client_td *client)
 {
     int32_t my = 0;
@@ -627,35 +691,62 @@ void wcmd_client_maximize_vert(client_td *client)
         return;
     }
 
-    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
+    if (!s_wcmd_maximize_precheck(client)) {
         return;
     }
 
-    if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
-    }
+    target = wcmd_target_win(client);
 
-    if (client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
-        target = wcmd_target_win(client);
-        client_geometry_restore(client);
+    /* Toggling the vertical axis off restores just that axis from
+     * 'layout.geometry.old', leaving the horizontal one exactly as it
+     * currently is, rather than the full 'client_geometry_restore'
+     * the pure vertical-only case used to call, which would overwrite
+     * a still-maximized horizontal axis too: fully maximized demotes
+     * to horizontal-only, and vertical-only demotes to normal. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
+            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+        bool was_full =
+            (client->properties.state == CLIENT_STATE_MAXIMIZED);
+
+        client->layout.geometry.cur.pos.y =
+            client->layout.geometry.old.pos.y;
+        client->layout.geometry.cur.dim.h =
+            client->layout.geometry.old.dim.h;
         xcb_configure_window(client->connection, target,
-                XCB_CONFIG_WINDOW_X     |
-                XCB_CONFIG_WINDOW_Y     |
-                XCB_CONFIG_WINDOW_WIDTH |
-                XCB_CONFIG_WINDOW_HEIGHT,
+                XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT,
                 (const uint32_t[]) {
-                    (uint32_t) client->layout.geometry.cur.pos.x,
                     (uint32_t) client->layout.geometry.cur.pos.y,
-                    client->layout.geometry.cur.dim.w,
                     client->layout.geometry.cur.dim.h
                 });
-        client->properties.state = CLIENT_STATE_NORMAL;
+        client->properties.state = (was_full)
+            ? CLIENT_STATE_MAXIMIZED_HORZ : CLIENT_STATE_NORMAL;
         wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
         wm_request_client_redraw(client);
         return;
     }
 
-    target = wcmd_target_win(client);
+    /* Already horizontally maximized: complete to full maximize
+     * instead of overwriting the state with a fresh vertical-only
+     * one, which would otherwise strand the horizontal maximize's own
+     * X/width with no state left recording it, and announce only
+     * 'MAXIMIZED_VERT' over EWMH despite the window ending up
+     * covering the workarea on both axes. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ) {
+        xcb_configure_window(client->connection, target,
+                XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                    (uint32_t) my,
+                    (uint32_t) sh
+                });
+        client->layout.geometry.cur.pos.y = my;
+        client->layout.geometry.cur.dim.h = sh;
+        client->properties.state = CLIENT_STATE_MAXIMIZED;
+        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+        wm_request_client_redraw(client);
+        return;
+    }
+
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: switching from horizontal-only
      * maximize to vertical must not overwrite the true pre-maximize
@@ -701,12 +792,8 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
-    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
+    if (!s_wcmd_maximize_precheck(client)) {
         return;
-    }
-
-    if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
     }
 
     /* Toggle: only restore if already fully maximized; a window

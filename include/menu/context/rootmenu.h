@@ -17,6 +17,8 @@
  *
  * "Reload configuration", "Redraw all windows", and "Exit" map directly
  * to the corresponding window manager keyboard actions.
+ *
+ * @ingroup menu_context
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -66,32 +68,69 @@
 
 /* Public interface */
 /**
- * @brief Load and display the root desktop menu
+ * @brief Load (or reload) @c menu.json's own entries
  *
- * Parses @c menu.json (located in the active configuration directory),
- * appends the fixed footer entries, and shows the menu at (@p x, @p y).
- * Any previously open root menu is closed first.
+ * Parses @c menu.json (located in the active configuration directory)
+ * once into a persistent buffer that every subsequent @c rootmenu_show
+ * reuses as-is, rather than re-parsing the file from disk on every
+ * single menu open the way every other one of this window manager's
+ * own JSON configuration files is not.  Call once at startup (see
+ * @c wm_init) and again on every configuration reload (see
+ * @c wm_action_config_reload) -- never from @c rootmenu_show itself.
+ * Safe to call again later: a previous call's own entries, if any,
+ * are freed first.
+ *
+ * @param config_dir Path to the configuration directory (used to
+ *                    locate @c menu.json)
+ *
+ * @note A no-op, not a failure, if @c menu.json does not exist or
+ *       fails to parse: the root menu simply shows its own fixed
+ *       footer with no JSON entries above it, the same as before this
+ *       function's own introduction
+ * @note Complexity: @e O(n), where @e n is the total number of menu
+ *       entries in @c menu.json
+ */
+void rootmenu_load_menu_json(const char *config_dir);
+
+/**
+ * @brief Free the entries loaded by @c rootmenu_load_menu_json
+ *
+ * Call at window-manager shutdown.  Safe to call even if nothing was
+ * ever loaded.
+ *
+ * @note Complexity: @e O(1)
+ */
+void rootmenu_free_menu_json(void);
+
+/**
+ * @brief Display the root desktop menu
+ *
+ * Combines the entries @c rootmenu_load_menu_json already parsed with
+ * the fixed footer entries, and shows the result at (@p x, @p y).  Any
+ * previously open root menu is closed first.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
  * @param x          Requested X origin (root coordinates)
  * @param y          Requested Y origin (root coordinates)
  * @param config     Active configuration
- * @param config_dir Path to the configuration directory (used to locate
- *                   @c menu.json)
  *
  * @note Complexity: @e O(n), where @e n is the total number of menu
- *       entries in @c menu.json
+ *       entries
  */
 void rootmenu_show(xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
-        const config_td *config, const char *config_dir);
+        const config_td *config);
 
 /**
  * @brief Close the root desktop menu
  *
- * Destroys the menu window and frees all resources allocated for the
- * JSON-loaded entries.
+ * Destroys the menu window and frees the combined entry buffer built
+ * for this particular open (JSON entries plus footer).  The
+ * underlying JSON-loaded entries themselves are untouched: they stay
+ * loaded for the next @c rootmenu_show, and are only freed by
+ * @c rootmenu_load_menu_json (on the next reload) or
+ * @c rootmenu_free_menu_json (at shutdown).
  *
  * @note Complexity: @e O(n)
  */

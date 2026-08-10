@@ -48,6 +48,7 @@
 #include <wm.h>
 
 /* Local includes */
+#include <input/mouse.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/bounds.h>
 
@@ -87,6 +88,23 @@ static struct {
     char overlay_text[32];      /**< Current overlay text */
     bool icon_was_mapped;       /**< Original icon mapped state before
                                      drag */
+    int16_t last_root_x;        /**< Root-relative pointer position
+                                     'drag_update' last actually acted
+                                     on, so a duplicate 'MotionNotify'
+                                     reporting the same position (the X
+                                     server can deliver one right after
+                                     a grab starts under an
+                                     already-resting pointer) is
+                                     skipped rather than repeating the
+                                     same 'xcb_configure_window' and
+                                     'xcb_flush' for no visible change;
+                                     meaningless until 'has_last_pos' */
+    int16_t last_root_y;        /**< See 'last_root_x' */
+    bool has_last_pos;          /**< Whether 'last_root_x'/'last_root_y'
+                                     hold a real prior position yet;
+                                     false right after 'drag_start' so
+                                     its first 'drag_update' always
+                                     runs regardless of position */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -111,7 +129,10 @@ static struct {
     .overlay_window = XCB_WINDOW_NONE,
     .overlay_is_icon = false,
     .overlay_text = {'\0'},
-    .icon_was_mapped = false
+    .icon_was_mapped = false,
+    .last_root_x = 0,
+    .last_root_y = 0,
+    .has_last_pos = false
 };
 
 
@@ -205,7 +226,7 @@ static uint16_t s_drag_icon_height(const client_td *client)
     }
 
     return (uint16_t) (WM_ICON_SQUARE_SIZE +
-            (client->theme->icon.is_captioned
+            ((client->theme->icon.is_captioned)
                 ? WM_ICON_CAPTION_HEIGHT
                 : 0u));
 }
@@ -603,6 +624,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.screen_w = screen_w;
     s_drag.screen_h = screen_h;
     s_drag.snap = snap;
+    s_drag.has_last_pos = false;
 
     /* For resize operations, make the visible corner handles define the
      * corner hit zones.  Outside those adaptive-margin corner zones
@@ -669,7 +691,11 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             XCB_GRAB_MODE_ASYNC,
             XCB_GRAB_MODE_ASYNC,
             XCB_NONE,
-            XCB_NONE,
+            (operation == CLIENT_OPERATION_MOVING)
+                ? mouse_move_cursor()
+                : mouse_resize_cursor_for_axes(s_drag.resize_w,
+                        s_drag.resize_h, s_drag.anchor_right,
+                        s_drag.anchor_bottom),
             event_time);
     xcb_flush(connection);
 }
@@ -698,6 +724,67 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
     s_drag.anchor_bottom = anchor_bottom;
     s_drag.resize_w = resize_w;
     s_drag.resize_h = resize_h;
+
+    /* The grab 'drag_start' already holds was given a cursor matching
+     * its own inferred anchor/axes, which the overrides just above
+     * may have replaced with a different direction entirely; update
+     * the already-active grab's cursor to match rather than leave it
+     * showing the wrong one for the rest of this drag. */
+    xcb_change_active_pointer_grab(connection,
+            mouse_resize_cursor_for_axes(resize_w, resize_h,
+                    anchor_right, anchor_bottom),
+            event_time,
+            XCB_EVENT_MASK_BUTTON_RELEASE |
+            XCB_EVENT_MASK_POINTER_MOTION);
+}
+
+
+/* Begin a resize drag, locking out whichever axis (or axes)
+ * 'axis_w_locked'/'axis_h_locked' mark as unavailable; see this
+ * function's own Doxygen comment in drag.h for the ICCCM/traditional
+ * WM reasoning and its bibliographic citation */
+void drag_start_resize_axis_locked(xcb_connection_t *connection,
+        xcb_window_t root, client_td *client, desktop_td *desktop,
+        xcb_timestamp_t event_time,
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap,
+        bool axis_w_locked, bool axis_h_locked)
+{
+    drag_start(connection, root, client, desktop,
+            CLIENT_OPERATION_RESIZING, event_time, root_x, root_y,
+            screen_w, screen_h, snap);
+
+    if (!s_drag.active) {
+        return;
+    }
+
+    if (axis_w_locked) {
+        s_drag.resize_w = false;
+    }
+    if (axis_h_locked) {
+        s_drag.resize_h = false;
+    }
+
+    if (!s_drag.resize_w && !s_drag.resize_h) {
+        /* The only edge the grab point was near belongs to the axis
+         * this maximize state has locked: cancel outright rather than
+         * leave an inert resize drag running that visibly does
+         * nothing while held. */
+        drag_cancel(connection, client);
+        return;
+    }
+
+    /* One of the two axes above may have just been locked out of a
+     * grab that started as a corner (both axes); update the
+     * already-active grab's cursor to match whichever single-axis
+     * shape is left, the same reasoning as 'drag_start_directed'. */
+    xcb_change_active_pointer_grab(connection,
+            mouse_resize_cursor_for_axes(s_drag.resize_w, s_drag.resize_h,
+                    s_drag.anchor_right, s_drag.anchor_bottom),
+            event_time,
+            XCB_EVENT_MASK_BUTTON_RELEASE |
+            XCB_EVENT_MASK_POINTER_MOTION);
 }
 
 
@@ -731,6 +818,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.anchor_bottom = false;
     s_drag.resize_w = false;
     s_drag.resize_h = false;
+    s_drag.has_last_pos = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
@@ -904,6 +992,22 @@ void drag_update(xcb_connection_t *connection,
         return;
     }
 
+    /* A duplicate 'MotionNotify' reporting the exact same root
+     * position as the one already acted on is a real occurrence, not
+     * just theoretical: the X server can deliver one right after the
+     * pointer grab starts under an already-resting pointer (the same
+     * kind of spurious repeat already handled for menu selection in
+     * 'ctxmenu_handle_motion', menu/context/ctxmenu.c).  Skipping it
+     * here avoids repeating the same 'xcb_configure_window' and
+     * 'xcb_flush' for a position that produces no visible change. */
+    if (s_drag.has_last_pos && root_x == s_drag.last_root_x &&
+            root_y == s_drag.last_root_y) {
+        return;
+    }
+    s_drag.last_root_x = root_x;
+    s_drag.last_root_y = root_y;
+    s_drag.has_last_pos = true;
+
     client = s_drag.client;
     dx = (int32_t) root_x - (int32_t) s_drag.pointer_start_x;
     dy = (int32_t) root_y - (int32_t) s_drag.pointer_start_y;
@@ -960,7 +1064,6 @@ void drag_update(xcb_connection_t *connection,
         } else {
             s_drag_overlay_hide(connection);
         }
-
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         char geom_buf[24];
         bool show_geom = client->config_base != NULL &&
@@ -1021,8 +1124,37 @@ void drag_update(xcb_connection_t *connection,
         (void) client_send_event_resize(client, new_x, new_y,
                 new_w, new_h);
         if (show_geom) {
-            (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
-                    new_w, new_h);
+            if (client->size_hints.inc_w > 1 &&
+                    client->size_hints.inc_h > 1) {
+                /* ICCCM 4.1.2.3: falls back to MIN_SIZE as the grid base */
+                uint32_t base_w = (client->size_hints.base_w > 0)
+                    ? (uint32_t) client->size_hints.base_w
+                    : ((client->size_hints.min_w > 0)
+                            ? (uint32_t) client->size_hints.min_w : 0u);
+                uint32_t base_h = (client->size_hints.base_h > 0)
+                    ? (uint32_t) client->size_hints.base_h
+                    : ((client->size_hints.min_h > 0)
+                            ? (uint32_t) client->size_hints.min_h : 0u);
+                uint32_t inc_w = (uint32_t) client->size_hints.inc_w;
+                uint32_t inc_h = (uint32_t) client->size_hints.inc_h;
+                uint32_t cols = ((new_w > base_w)
+                        ? (new_w - base_w) : 0u) / inc_w;
+                uint32_t lines = ((new_h > base_h)
+                        ? (new_h - base_h) : 0u) / inc_h;
+
+                /* Cell count ('cols x lines') for a terminal-like client */
+                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                        cols, lines);
+                /* Raw pixel dimensions */
+                /*
+                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                        new_w, new_h);
+                */
+            } else {
+                /* Raw pixel dimensions */
+                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                        new_w, new_h);
+            }
             s_drag_overlay_show(connection, false,
                     new_x, new_y,
                     s_drag_u16_sat(new_w), s_drag_u16_sat(new_h),

@@ -30,23 +30,4 @@
 #include <desktop.h>
 
 
-/**
- * @brief Render the icon window for a hidden (iconified) client
- *
- * Applies icon window attributes (background, border color and width,
- * stacking) and optionally draws a caption label.  Called from
- * @c desktop_render_clients for clients with @c CLIENT_FLAG_HIDDEN set.
- *
- * @param desktop    Desktop whose rendering context and theme are used
- * @param client     The iconified client to render
- * @param is_current @c true when @p desktop is the currently visible one
- *
- * @note No-op when @p client has no icon window or is not icon-mapped
- * @note Implemented in @c render/icon.c
- * @note Complexity: @e O(1)
- */
-void ri_render_client_icon(desktop_td *desktop, client_td *client,
-        bool is_current);
-
-
 #endif  /* ! RENDER_INTERNAL_H */

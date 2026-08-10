@@ -9,7 +9,8 @@
  * via @c fork / @c execvp.  Child process accounting lets the main loop
  * reap zombies cleanly through @a session_reap_children.
  *
- * @ingroup session Session lifecycle hooks
+ * @defgroup session Session lifecycle hooks
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

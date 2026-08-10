@@ -32,7 +32,6 @@
 /* Allocate client data structure */
 action_data_client_td *action_data_client_init(client_td *client,
         enum action_client_e action_client)
-
 {
     action_data_client_td *action_data_client;
 

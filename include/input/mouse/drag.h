@@ -2,6 +2,8 @@
  * @file input/mouse/drag.h
  *
  * @brief Mouse drag-operation state and interface
+ *
+ * @ingroup input_mouse
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -113,6 +115,51 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
         uint32_t snap,
         bool anchor_right, bool anchor_bottom,
         bool resize_w, bool resize_h);
+
+/**
+ * @brief Begin a resize drag, locking out whichever axis (or axes)
+ *        @p axis_w_locked / @p axis_h_locked mark as unavailable
+ *
+ * For a client maximized on one axis only (horizontal or vertical;
+ * see @c client_is_maximized_horz / @c client_is_maximized_vert): that
+ * axis is snapped exactly to its workarea edge, so it has nothing
+ * left to drag it wider or narrower with, the same way a fully
+ * maximized or fullscreen client cannot be resized at all (Karp,
+ * O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed.,
+ * ch. 2: "Maximized windows can't be moved or resized").  The other,
+ * still-free axis keeps working exactly as a normal border drag
+ * would.  Calls @c drag_start for everything else (state recording,
+ * the pointer grab, and its own normal per-axis inference from
+ * @p root_x / @p root_y), then clears whichever axis flag(s) @p
+ * axis_w_locked / @p axis_h_locked ask for; if that leaves neither
+ * axis resizable at all (the grab point was only ever near the locked
+ * edge), the drag is cancelled outright via @c drag_cancel rather
+ * than left running inert.
+ *
+ * @param connection    XCB connection
+ * @param root          Root window on which to grab the pointer
+ * @param client        Client being resized
+ * @param desktop       Desktop that owns @p client (may be null)
+ * @param event_time    Timestamp from the triggering request
+ * @param root_x        Root-relative X of the pointer at request time
+ * @param root_y        Root-relative Y of the pointer at request time
+ * @param screen_w      Screen width in pixels (0 to disable snap)
+ * @param screen_h      Screen height in pixels (0 to disable snap)
+ * @param snap          Snap distance in pixels (0 to disable snap)
+ * @param axis_w_locked @c true to force the width axis unresizable
+ *                      regardless of where @p root_x fell
+ * @param axis_h_locked @c true to force the height axis unresizable
+ *                      regardless of where @p root_y fell
+ *
+ * @note Complexity: @e O(1)
+ */
+void drag_start_resize_axis_locked(xcb_connection_t *connection,
+        xcb_window_t root, client_td *client, desktop_td *desktop,
+        xcb_timestamp_t event_time,
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h,
+        uint32_t snap,
+        bool axis_w_locked, bool axis_h_locked);
 
 /**
  * @brief Begin a drag operation for an icon window

@@ -3,7 +3,7 @@
  *
  * @brief Doubly linked circular list data structure declaration
  *
- * @ingroup ADT
+ * @ingroup adt
  */
 
 #ifndef CDLIST_H

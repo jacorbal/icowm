@@ -3,7 +3,7 @@
  *
  * @brief Declaration of actions related to screen surface management
  *
- * @ingroup cmds Client commands subsystem
+ * @ingroup cmds
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

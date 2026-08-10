@@ -1,12 +1,14 @@
 /**
- * @file invalidate.h
+ * @file render/outdate.h
  *
-* @brief Centralized redraw-invalidation helpers
+ * @brief Centralized redraw-outdating helpers
  *
  * Provides thin inline helpers that mark a @c surface_td or
  * @c desktop_td as requiring a repaint on the next render cycle.
  * Centralizing the pattern here prevents ad-hoc @c is_outdated
  * assignments from spreading across unrelated modules.
+ *
+ * @ingroup render
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -16,8 +18,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef INVALIDATE_H
-#define INVALIDATE_H
+#ifndef RENDER_OUTDATE_H
+#define RENDER_OUTDATE_H
 
 
 /* Project includes */
@@ -37,11 +39,11 @@
  * redraws (and visible flicker) in other windows during a keyboard
  * resize or any operation that affects only a single client.
  *
- * @param c Client to invalidate, or @c NULL (no-op)
+ * @param c Client to mark outdated, or @c NULL (no-op)
  *
  * @note Complexity: @e O(1)
  */
-static inline void wm_invalidate_client(client_td *c)
+static inline void wm_outdate_client(client_td *c)
 {
     if (c != NULL) {
         c->is_outdated = true;
@@ -52,11 +54,11 @@ static inline void wm_invalidate_client(client_td *c)
 /**
  * @brief Mark a surface as needing a repaint
  *
- * @param s Surface to invalidate, or @c NULL (no-op)
+ * @param s Surface to mark outdated, or @c NULL (no-op)
  *
  * @note Complexity: @e O(1)
  */
-static inline void wm_invalidate_surface(surface_td *s)
+static inline void wm_outdate_surface(surface_td *s)
 {
     if (s != NULL) {
         s->is_outdated = true;
@@ -67,11 +69,11 @@ static inline void wm_invalidate_surface(surface_td *s)
 /**
  * @brief Mark a desktop as needing a repaint
  *
- * @param d Desktop to invalidate, or @c NULL (no-op)
+ * @param d Desktop to mark outdated, or @c NULL (no-op)
  *
  * @note Complexity: @e O(1)
  */
-static inline void wm_invalidate_desktop(desktop_td *d)
+static inline void wm_outdate_desktop(desktop_td *d)
 {
     if (d != NULL) {
         d->is_outdated = true;
@@ -79,4 +81,4 @@ static inline void wm_invalidate_desktop(desktop_td *d)
 }
 
 
-#endif  /* ! INVALIDATE_H */
+#endif  /* ! RENDER_OUTDATE_H */

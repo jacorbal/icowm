@@ -2,6 +2,9 @@
  * @file render/desktop.h
  *
  * @brief Desktop rendering and drawing functions
+ *
+ * @defgroup render Rendering and repaint
+ * @ingroup wm
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

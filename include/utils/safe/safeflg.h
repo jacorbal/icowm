@@ -1,7 +1,7 @@
 /**
  * @file utils/safe/safeflg.h
  *
-  * @brief Safe flag management
+ * @brief Safe flag management
  *
  * A set of functions for managing and manipulating flags represented as
  * single bits within an unsigned integer.  These functions provide
@@ -15,6 +15,9 @@
  * @note These functions are designed to be used with a variety of
  *       enumerations and provide a reusable mechanism for safe flag
  *       manipulation across different contexts within an application
+ *
+ * @defgroup utils_safe Safe string, memory, and flag helpers
+ * @ingroup utils
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -31,9 +31,9 @@
  * @param name  Button name as it appears in a theme's
  *              @c window.titlebar.buttons.left / .right list
  * @param out   Receives the parsed value; untouched if @p name is not
- *              a recognised button name
+ *              a recognized button name
  *
- * @return @c true if @p name was recognised
+ * @return @c true if @p name was recognized
  *
  * @note Complexity: @e O(1)
  */
@@ -68,8 +68,8 @@ static bool s_parse_titlebar_button(const char *name,
  * @brief Load a titlebar button list (@c "left" or @c "right") from
  *        @c window.titlebar.buttons
  *
- * A button name the theme repeats, or does not recognise, is silently
- * skipped rather than aborting the whole list; recognised names beyond
+ * A button name the theme repeats, or does not recognize, is silently
+ * skipped rather than aborting the whole list; recognized names beyond
  * @c CONFIG_MAX_TITLEBAR_BUTTONS are also silently dropped.  Omitting
  * a side entirely (or listing zero buttons on it) simply means no
  * buttons are drawn there.
@@ -119,7 +119,7 @@ static void s_load_button_list(cJSON *buttons_json, const char *key,
  * @param value Alignment string from configuration
  *
  * @return The parsed alignment, or @c CONFIG_TITLEBAR_ALIGN_LEFT (the
- *         default) for an unrecognised or missing value
+ *         default) for an unrecognized or missing value
  *
  * @note Supported values are @c left, @c center, and @c right
  * @note Complexity: @e O(n), where @e n is the length of @p value
@@ -301,8 +301,10 @@ int config_load_theme(const char *filename,
 
         json_load_bool(icon, "is-captioned",
                 &config_theme->icon.is_captioned);
-        json_load_bool(icon, "use-pixmap",
-                &config_theme->icon.use_pixmap);
+        json_load_bool(icon, "show-pixmaps",
+                &config_theme->icon.show_pixmaps);
+        json_load_bool(icon, "show-hints",
+                &config_theme->icon.show_hints);
 
         active = cJSON_GetObjectItem(icon, "active");
         s_load_theme_colors(active, &config_theme->icon.active);
@@ -392,6 +394,9 @@ int config_load_theme(const char *filename,
             json_load_uint(padding, "vertical",
                     &config_theme->menu.padding.vertical);
         }
+
+        json_load_bool(menu, "show-pixmaps",
+                &config_theme->menu.show_pixmaps);
     }
 
     dialog = cJSON_GetObjectItem(json, "dialog");

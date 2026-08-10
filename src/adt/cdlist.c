@@ -126,8 +126,7 @@ int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
         new_item->prev = new_item;  /* Point to itself */
         cdlist->head = new_item;
         cdlist->tail = new_item;
-    }
-    else if (item == NULL) {
+    } else if (item == NULL) {
         new_item->next = cdlist->head;
         new_item->prev = cdlist->tail;
         cdlist->tail->next = new_item;

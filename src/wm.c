@@ -35,6 +35,7 @@
 #include <render/text.h>
 
 /* Default initial values */
+#include <defs/dialog.h>
 #include <defs/ewmh.h>
 
 /* Project includes */
@@ -56,6 +57,7 @@
 #include <utils/sysmem.h>
 
 /* Menu includes */
+#include <menu/context/rootmenu.h>
 #include <menu/dialog/message.h>
 
 /* Input includes */
@@ -83,7 +85,6 @@ wm_td *wm = NULL;   /**< Singleton window manager instance */
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       surfaces currently stored in @c wm->surfaces
  */
-/* Safe cleanup of the wm structure; safe to call at any point */
 static void s_wm_cleanup(void)
 {
     if (wm == NULL) {
@@ -120,6 +121,8 @@ static void s_wm_cleanup(void)
         session_destroy(wm->session);
         wm->session = NULL;
     }
+
+    rootmenu_free_menu_json();
 
     eventq_stop();  /* Safe even if eventq was never started */
 
@@ -271,6 +274,13 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         (void) session_load(wm->session, wm->config_dir_prefix);
     }
 
+    /* menu.json has no dedicated 'struct' of its own the way rules
+     * and session do (nothing else in the window manager needs it
+     * outside of the root menu itself), so it is owned by
+     * menu/context/rootmenu.c and loaded directly rather than through
+     * an 'init' handle here. */
+    rootmenu_load_menu_json(wm->config_dir_prefix);
+
     if (eventq_start() != 0) {
         LOGGER_FATAL("Failed to initialize event queue", L_NARG);
         s_wm_cleanup();
@@ -385,14 +395,15 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
 
     /* Any JSON file that failed to parse during the load just above
      * (config.json, bindings.json, a theme file, randr.json, rules.
-     * json, session.json) gets a combined warning dialog here, ahead
-     * of restricted-memory mode's own announcement right below: a
-     * configuration silently reverted to defaults is more urgent to
-     * know about than which mode is active.  menu_message_dialog_show
-     * only ever shows one dialog at a time, so if this one fires, the
-     * one below simply does not, for this run; nothing else about
-     * that mode's own announcement is lost by that, only delayed to
-     * whenever it is checked again (another load or reload). */
+     * json, session.json, menu.json) gets a combined warning dialog
+     * here, ahead of restricted-memory mode's own announcement right
+     * below: a configuration silently reverted to defaults is more
+     * urgent to know about than which mode is active.
+     * menu_message_dialog_show only ever shows one dialog at a time,
+     * so if this one fires, the one below simply does not, for this
+     * run; nothing else about that mode's own announcement is lost by
+     * that, only delayed to whenever it is checked again (another
+     * load or reload). */
     wm_warn_json_syntax_errors();
 
     /* Restricted-memory mode's own presence is announced once, right
@@ -425,9 +436,8 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
 void wm_warn_json_syntax_errors(void)
 {
     uint32_t count;
-    char message[DIALOG_MSG_RAW_MAX_LEN];
+    char message[DIALOG_MSG_RAW_MAX_LENGTH];
     size_t offset;
-    uint32_t i;
 
     count = json_syntax_errors_count();
     if (count == 0u || wm == NULL || wm->connection == NULL ||
@@ -446,13 +456,28 @@ void wm_warn_json_syntax_errors(void)
                   " syntax error(s).  Reverted to default values" \
                   " for each: '%s'",
             json_syntax_errors_get(0u));
-    for (i = 1u; i < count && offset < sizeof(message); ++i) {
+    for (uint32_t i = 1u; i < count && offset < sizeof(message); ++i) {
         int written = snprintf(message + offset, sizeof(message) - offset,
                 ", '%s'", json_syntax_errors_get(i));
         if (written < 0) {
             break;
         }
         offset += (size_t) written;
+    }
+
+    /* The 'count == 1' message above already ends in its own
+     * sentence-closing period; the 'count > 1' one does not, since
+     * its file list (built by the loop just above) has no fixed end
+     * to attach one to ahead of time.  Closing it here, only in that
+     * second case, keeps whatever gets appended after this point (the
+     * missing-theme note below) starting a properly new sentence
+     * rather than running directly into the last filename. */
+    if (count > 1u && offset < sizeof(message)) {
+        int written = snprintf(message + offset, sizeof(message) - offset,
+                ".");
+        if (written > 0) {
+            offset += (size_t) written;
+        }
     }
 
     /* A theme file config.json names but that turns out not to exist
@@ -471,8 +496,8 @@ void wm_warn_json_syntax_errors(void)
             int written = snprintf(message + offset,
                     sizeof(message) - offset,
                     "  Additionally, the theme file '%s' named by" \
-                    " config.json was not found; using the built-in" \
-                    " default theme instead.", missing_theme);
+                    " 'config.json' was not found; using the" \
+                    " built-in default theme instead.", missing_theme);
             if (written > 0) {
                 offset += (size_t) written;
             }
@@ -646,5 +671,8 @@ void wm_request_full_redraw(void)
 /* Set the emergency exit flag to true */
 void wm_enable_emergency_exit(void)
 {
+    if (wm == NULL) {
+        return;
+    }
     wm->is_emergency_exit = true;
 }
