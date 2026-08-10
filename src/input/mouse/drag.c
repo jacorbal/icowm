@@ -49,6 +49,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Menu includes */
+#include <menu/notify/desktop.h>
+
 /* Local includes */
 #include <input/mouse.h>
 #include <input/mouse/drag.h>
@@ -1425,12 +1428,47 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     text_renderer_set_color(fg, bg);
 
     text_w = text_measure_string(s_drag.overlay_text);
-    text_x = (text_w < WM_DRAG_OVERLAY_MIN_WIDTH)
-        ? (int16_t) ((WM_DRAG_OVERLAY_MIN_WIDTH - text_w) / 2u)
-        : (int16_t) WM_DRAG_OVERLAY_PAD_X;
+    /* Horizontally centered within the overlay window's own actual
+     * width, computed with the exact same formula 's_drag_overlay_
+     * show' used to size that window in the first place, rather than
+     * a separately hardcoded threshold that happened to only agree
+     * with it for a wide-enough or narrow-enough string.  Those two
+     * thresholds ('text_w + 2*PAD_X < MIN_WIDTH' here versus 'text_w
+     * < MIN_WIDTH' in the box-sizing formula) disagreeing for a
+     * string in between the two -- long enough to push the box wider
+     * than 'MIN_WIDTH', but still short enough of 'MIN_WIDTH' itself
+     * to take the "narrow" branch here -- is what left text looking
+     * pinned to the left with a lopsided gap on the right (worst for
+     * a string a few pixels short of exactly 'MIN_WIDTH', which could
+     * end up with zero left margin at all): computing the box's own
+     * width the same way here removes the mismatch entirely, for any
+     * string length, not just the ones on either side of it that
+     * happened not to expose the bug. */
+    {
+        uint16_t overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
 
-    text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
-            text_x, 15, s_drag.overlay_text);
+        if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
+            overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
+        }
+        text_x = (int16_t) ((overlay_w - text_w) / 2u);
+    }
+
+    /* Vertically centered baseline for whatever font this theme
+     * actually configures, rather than a single Y hardcoded for one
+     * particular font size: see 'text_font_ascent's own doc comment
+     * in render/text.h for the derivation (ascent placed 'top' pixels
+     * below the box's own top edge, here with 'top' itself computed
+     * from ascent/descent so half the leftover vertical space sits on
+     * each side). */
+    {
+        int16_t ascent = text_font_ascent();
+        int16_t descent = text_font_descent();
+        int16_t text_y = (int16_t)
+            (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
+
+        text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
+                text_x, text_y, s_drag.overlay_text);
+    }
 }
 
 
@@ -1530,6 +1568,14 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface_clients_show(surface, new_desktop->id);
     surface->is_outdated = true;
 
+    /* Same desktop-switch notification a normal (non-warp) switch
+     * shows (see 's_show_desktop_overlay' in cmds/scmd.c, whose own
+     * thin wrapper over this same call this mirrors): without it, a
+     * warp is the one way to switch desktops that never shows which
+     * one just became active. */
+    notify_desktop_show(surface->connection, surface,
+            surface->desktop_cur, new_desktop->name, surface->config);
+
     /* Reposition the pointer to the opposite edge, one pixel in from
      * it rather than exactly on it, so the very next motion notify
      * does not immediately re-arm another warp back the way it just
@@ -1558,10 +1604,29 @@ void drag_warp_tick(xcb_connection_t *connection)
     {
         int32_t new_window_x = s_drag.client_cur_x +
             ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
+        bool show_geom = s_drag.client->config_base != NULL &&
+            s_drag.client->config_base->windows.show_geom;
 
         s_drag.client_cur_x = new_window_x;
         (void) client_send_event_move(s_drag.client, new_window_x,
                 s_drag.client_cur_y);
+
+        /* Same geometry overlay 'drag_update' keeps current on every
+         * real motion notify: without this, it would stay painted at
+         * the position the window had right before the warp -- on
+         * the old desktop's own edge -- until whatever real pointer
+         * motion happens to come next, rather than following the
+         * window across immediately. */
+        if (show_geom) {
+            char geom_buf[24];
+
+            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                    (int) new_window_x, (int) s_drag.client_cur_y);
+            s_drag_overlay_show(connection, false,
+                    new_window_x, s_drag.client_cur_y,
+                    s_drag.client_start_w, s_drag.client_start_h,
+                    geom_buf);
+        }
     }
 
     xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,

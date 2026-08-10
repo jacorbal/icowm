@@ -1,20 +1,20 @@
 {
     "rules": [
     {
-        "when": "property",
+        "when": "map",
         "match": {
-            "class": [ "Xconsole" ]
+            "type": "splash"
         },
         "apply": {
-            "desktop": 2,
-            "focus": true,
-            "layer": "above"
+            "layer": "above",
+            "position": "center"
         }
     },
     {
         "when": "map",
         "match": {
-            "title": [ "*Sonata" ]
+            "title": [ "*Sonata*" ],
+            "type": "normal"
         },
         "apply": {
             "sticky": true,
@@ -35,6 +35,17 @@
             "sticky": true,
             "decorated": false,
             "layer": "above",
+            "position": "center"
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "title": [ "*mplayer", "*mpv", "*VLC media player" ]
+        },
+        "apply": {
+            "sticky": false,
+            "decorated": false,
             "position": "center"
         }
     }
