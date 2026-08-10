@@ -178,15 +178,20 @@ void handler_expose(xcb_connection_t *connection,
                 });
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
 
-        /* Deliberately skipped while this same icon is being dragged
-         * ('s_drag_sync_icon_active_visual' in input/mouse/drag.c
-         * clears the icon window without drawing its pixmap when the
-         * drag starts, on purpose): without this check, an Expose
-         * from passing behind another window mid-drag would redraw
-         * the pixmap this same repaint just cleared, bringing it back
-         * for the rest of the drag despite the drag itself never
+        /* Deliberately skipped while this same icon is either being
+         * dragged ('s_drag_sync_icon_active_visual' in input/mouse/
+         * drag.c clears the icon window without drawing its pixmap
+         * when the drag starts, on purpose) or currently selected in
+         * the icon cycle menu ('ri_render_client_icon_selected' in
+         * render/icon.c does the exact same thing when a cycle
+         * selection lands on it) -- both cases already folded into
+         * 'is_active_visual' above. Without this check, an Expose
+         * from passing behind another window (or the cycle menu's
+         * own floating window happening to overlap it) mid-drag or
+         * mid-selection would redraw the pixmap this same repaint
+         * just cleared, bringing it back despite neither one ever
          * wanting it shown in the first place. */
-        if (cfg->theme.icon.show_pixmaps && !is_icon_dragging) {
+        if (cfg->theme.icon.show_pixmaps && !is_active_visual) {
             wmicon_draw(connection, client->ewmh, client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
                     &client->icon_pixmap_cache);

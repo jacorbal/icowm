@@ -408,7 +408,15 @@ void cycle_open(list_td *surfaces,
             g_cycle_menu.window,
             XCB_CURRENT_TIME);
 
+    /* Already applies the same "selected" icon render (active colors,
+     * caption and hints, no pixmap) that every later navigation call
+     * gets via 's_cycle_repaint_icon' -- see 'mi_cycle_preview_apply'
+     * 's own implementation in menu/cycledraw.c, which calls
+     * 'ri_render_client_icon_selected' directly for exactly this
+     * reason -- so the cycle's own initial preselection needs no
+     * separate call here to match it. */
     mi_cycle_preview_apply(connection, cfg);
+
     xcb_flush(connection);
 }
 
@@ -505,36 +513,55 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
 
 /**
  * @brief Repaint a client's real desktop icon (not the cycle menu's
- *        own preview), so its border color and hint indicators
- *        reflect a just-changed cycle-selection state right away
+ *        own preview), so it reflects a just-changed cycle-selection
+ *        state right away
  *
  * 'cycle_navigate_to'/'_next'/'_prev' only ever touch the floating
  * cycle menu's own selection state; nothing about the real icon
  * window sitting on the desktop underneath it is otherwise told to
  * repaint when that selection moves on, so a client that was
  * highlighted and then passed over stays visually stuck showing that
- * highlight (border color, and the hint indicators in 'ri_draw_icon_
- * hints', both keyed off 'is_cycle_sel') until something unrelated
- * (e.g. 'cycle_close') eventually forces a full desktop repaint.
- * Called for both the previously- and newly-selected client on every
- * navigation, this keeps their real icons in sync with the menu
- * immediately instead.
+ * highlight until something unrelated (e.g. 'cycle_close') eventually
+ * forces a full desktop repaint.  Called for both the previously- and
+ * newly-selected client on every navigation, this keeps their real
+ * icons in sync with the menu immediately instead.  (The cycle's own
+ * initial preselection at 'cycle_open' time needs no separate call
+ * here: see 'mi_cycle_preview_apply' in menu/cycledraw.c, which
+ * already applies the very same "selected" render this function
+ * itself calls below.)
+ *
+ * @p is_selected picks which of the two very different renders that
+ * sync actually needs: the client this cycle just selected gets @c
+ * ri_render_client_icon_selected -- active colors, its caption, and
+ * its own hint indicators, but deliberately no pixmap (see that
+ * function's own doc comment in render/icon.h for why) -- while the
+ * client just passed over gets a full @c ri_render_client_icon render
+ * instead, back to its ordinary inactive appearance, pixmap, caption,
+ * and hint indicators all included.
  *
  * A no-op for a client that is not actually an iconified icon (or
- * @c NULL, or with no cycle menu open at all); 'ri_render_client_
- * icon' itself already guards the former safely.
+ * @c NULL, or with no cycle menu open at all); both render functions
+ * already guard that safely on their own.
  *
- * @param client Client whose real desktop icon to repaint
+ * @param client      Client whose real desktop icon to repaint
+ * @param is_selected Whether @p client is the cycle's own newly
+ *                     selected entry (@c true), or the one just
+ *                     passed over (@c false)
  *
  * @note Complexity: @e O(1)
  */
-static void s_cycle_repaint_icon(client_td *client)
+static void s_cycle_repaint_icon(client_td *client, bool is_selected)
 {
     if (client == NULL || g_cycle_menu.desktop == NULL) {
         return;
     }
 
-    ri_render_client_icon(g_cycle_menu.desktop, client, true);
+    if (is_selected) {
+        ri_render_client_icon_selected(g_cycle_menu.desktop->connection,
+                client);
+    } else {
+        ri_render_client_icon(g_cycle_menu.desktop, client, true);
+    }
     xcb_flush(g_cycle_menu.desktop->connection);
 }
 
@@ -557,8 +584,8 @@ void cycle_navigate_to(unsigned int idx)
     s_cycle_scroll_to_selection();
 
     if (prev_client != cycle_get_selected_client()) {
-        s_cycle_repaint_icon(prev_client);
-        s_cycle_repaint_icon(cycle_get_selected_client());
+        s_cycle_repaint_icon(prev_client, false);
+        s_cycle_repaint_icon(cycle_get_selected_client(), true);
     }
 }
 
@@ -585,8 +612,8 @@ void cycle_navigate_next(void)
         (g_cycle_menu.selected + 1) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 
-    s_cycle_repaint_icon(prev_client);
-    s_cycle_repaint_icon(cycle_get_selected_client());
+    s_cycle_repaint_icon(prev_client, false);
+    s_cycle_repaint_icon(cycle_get_selected_client(), true);
 }
 
 
@@ -605,8 +632,8 @@ void cycle_navigate_prev(void)
          g_cycle_menu.count) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 
-    s_cycle_repaint_icon(prev_client);
-    s_cycle_repaint_icon(cycle_get_selected_client());
+    s_cycle_repaint_icon(prev_client, false);
+    s_cycle_repaint_icon(cycle_get_selected_client(), true);
 }
 
 

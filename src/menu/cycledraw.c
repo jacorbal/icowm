@@ -23,6 +23,7 @@
 #include <xcb/xcb.h>
 
 /* Render includes */
+#include <render/icon.h>
 #include <render/text.h>
 #include <render/wmicon.h>
 
@@ -34,7 +35,6 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
-#include <systray.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -216,7 +216,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     client_td *previous;
     xcb_window_t selected_target;
     xcb_window_t previous_target;
-    xcb_window_t tray_below;
     uint32_t values[2];
     uint32_t selected_border;
     uint32_t previous_border;
@@ -271,57 +270,19 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                     previous_border, false);
 
             if (g_cycle_menu.is_icon_menu) {
-                /* Icons stay lower than the tray even within the
-                 * shared 'below' layer, "stuck to the desktop"; see
-                 * 'wcmd_client_iconify' for the fuller explanation of
-                 * why an unqualified 'below' with no sibling is not
-                 * enough to guarantee that on its own. */
-                tray_below = systray_below_window();
-                if (tray_below != XCB_WINDOW_NONE) {
-                    xcb_configure_window(connection, previous_target,
-                            XCB_CONFIG_WINDOW_SIBLING |
-                            XCB_CONFIG_WINDOW_STACK_MODE,
-                            (const uint32_t[]) {
-                            tray_below, XCB_STACK_MODE_BELOW
-                            });
-                } else {
-                    xcb_configure_window(connection, previous_target,
-                            XCB_CONFIG_WINDOW_STACK_MODE,
-                            (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-                }
-                values[0] = config->theme.icon.inactive.color.background;
-                values[1] = config->theme.icon.inactive.border.color;
-
-                xcb_change_window_attributes(connection, previous_target,
-                        XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
-                xcb_clear_area(connection, 0, previous_target, 0, 0, 0, 0);
-
-                if (config->theme.icon.show_pixmaps) {
-                    wmicon_draw(connection, previous->ewmh,
-                            previous->window, previous_target,
-                            WM_ICON_SQUARE_SIZE,
-                            &previous->icon_pixmap_cache);
-                }
-
-                if (config->theme.icon.is_captioned &&
-                        previous->info.name != NULL) {
-                    const char *caption =
-                        (previous->icon_info.visible_icon_name != NULL &&
-                         previous->icon_info.visible_icon_name[0] != '\0')
-                            ? previous->icon_info.visible_icon_name
-                            : previous->info.name;
-
-                    text_renderer_init(connection,
-                            config->theme.icon.inactive.font);
-                    text_renderer_set_color(
-                            config->theme.icon.inactive.color.foreground,
-                            config->theme.icon.inactive.color.background);
-                    text_draw_string(connection, previous_target, XCB_NONE,
-                            2,
-                            (int16_t) (WM_ICON_SQUARE_SIZE +
-                                WM_ICON_CAPTION_HEIGHT - 2u),
-                            caption);
-                }
+                /* Full render (stacking below the tray, colors,
+                 * pixmap, caption, and hint indicators all included)
+                 * via the same shared function every other place a
+                 * deselected icon needs repainting already uses (see
+                 * 's_cycle_repaint_icon' in menu/cycle.c), rather
+                 * than this function's own separate, previously
+                 * duplicated implementation of the same thing --
+                 * duplication that is exactly how this and that
+                 * other one drifted out of sync in the first place
+                 * (this one never learned to omit the pixmap for a
+                 * newly *selected* icon, below). */
+                ri_render_client_icon(g_cycle_menu.desktop, previous,
+                        true);
             } /* ! if (g_cycle_menu.is_icon_menu) */
         } /* ! if (previous_target) */
     }
@@ -334,39 +295,14 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
             selected_border, true);
 
     if (g_cycle_menu.is_icon_menu) {
-        values[0] = config->theme.icon.active.color.background;
-        values[1] = config->theme.icon.active.border.color;
-
-        xcb_change_window_attributes(connection, selected_target,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL, values);
-        xcb_clear_area(connection, 0, selected_target, 0, 0, 0, 0);
-
-        if (config->theme.icon.show_pixmaps) {
-            wmicon_draw(connection, selected->ewmh,
-                    selected->window, selected_target,
-                    WM_ICON_SQUARE_SIZE,
-                    &selected->icon_pixmap_cache);
-        }
-
-        if (config->theme.icon.is_captioned &&
-                selected->info.name != NULL) {
-            const char *caption =
-                (selected->icon_info.visible_icon_name != NULL &&
-                 selected->icon_info.visible_icon_name[0] != '\0')
-                    ? selected->icon_info.visible_icon_name
-                    : selected->info.name;
-
-            text_renderer_init(connection,
-                    config->theme.icon.active.font);
-            text_renderer_set_color(
-                    config->theme.icon.active.color.foreground,
-                    config->theme.icon.active.color.background);
-            text_draw_string(connection, selected_target, XCB_NONE,
-                    2,
-                    (int16_t) (WM_ICON_SQUARE_SIZE +
-                        WM_ICON_CAPTION_HEIGHT - 2u),
-                    caption);
-        }
+        /* Same "selected" render every other place a newly selected
+         * icon needs it already uses (see 's_cycle_repaint_icon' in
+         * menu/cycle.c): active colors, caption, and hint indicators
+         * all included, deliberately just the pixmap left out,
+         * rather than this function's own separate, previously
+         * duplicated implementation, which (unlike that shared one)
+         * never learned to omit the pixmap here at all. */
+        ri_render_client_icon_selected(connection, selected);
     }
 
     values[0] = g_cycle_menu.window;

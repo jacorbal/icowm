@@ -48,7 +48,7 @@
  * hash (known as the avalanche effect), optimizing the distribution of
  * the hash values.
  *
- * @defgroup utils_hash Hashing utilities
+ * @defgroup hash Hashing utilities
  * @ingroup utils
  */
 

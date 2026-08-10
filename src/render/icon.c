@@ -189,6 +189,65 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
 }
 
 
+/* Render an iconified client's icon window in its "currently
+ * selected" state: active colors, its own caption only, no pixmap
+ * and no hint indicators */
+void ri_render_client_icon_selected(xcb_connection_t *connection,
+        client_td *client)
+{
+    if (connection == NULL || client == NULL || client->theme == NULL ||
+            !client->is_icon_mapped || client->icon_window == 0) {
+        return;
+    }
+
+    /* Kept in sync with 'ri_render_client_icon''s own use of this
+     * same field: left untouched here, a client selected through this
+     * function (rather than a full 'ri_render_client_icon' render)
+     * would still read as 'icon_last_cycle_sel == false' the moment
+     * it is later deselected, matching the freshly computed
+     * 'is_cycle_sel == false' there and wrongly tripping that
+     * function's own skip-check -- silently discarding the full
+     * render (pixmap, caption, hint indicators) deselecting is
+     * supposed to restore. */
+    client->icon_last_cycle_sel = true;
+
+    xcb_change_window_attributes(connection, client->icon_window,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                client->theme->icon.active.color.background,
+                client->theme->icon.active.border.color
+            });
+    xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
+
+    if (client->theme->icon.is_captioned && client->info.name != NULL) {
+        const char *caption =
+            (client->icon_info.visible_icon_name != NULL &&
+             client->icon_info.visible_icon_name[0] != '\0')
+                ? client->icon_info.visible_icon_name
+                : client->info.name;
+
+        text_renderer_init(connection, client->theme->icon.active.font);
+        text_renderer_set_color(
+                client->theme->icon.active.color.foreground,
+                client->theme->icon.active.color.background);
+        text_draw_string(connection, client->icon_window, XCB_NONE,
+                2,
+                (int16_t) (WM_ICON_SQUARE_SIZE +
+                    WM_ICON_CAPTION_HEIGHT - 2u),
+                caption);
+    }
+
+    /* Only the pixmap is deliberately omitted here (that is the
+     * entire point of this function, as opposed to a full
+     * 'ri_render_client_icon' render): the caption above, and these
+     * hint indicators, both stay exactly as visible as they would in
+     * any ordinary render, just drawn against the plain active-color
+     * background this function already cleared to instead of over
+     * whatever pixmap would otherwise sit underneath them. */
+    ri_draw_icon_hints(connection, client, true, client->theme);
+}
+
+
 /* Draw the state-hint indicators in an iconified client's own top
  * corners */
 void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,

@@ -68,6 +68,36 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         bool is_current);
 
 /**
+ * @brief Render an iconified client's icon window in its "currently
+ *        selected" state: active colors, its own caption, and its
+ *        hint indicators, but no pixmap
+ *
+ * Clears the icon window, redraws only its caption (when @c
+ * theme.icon.is-captioned is set) and its hint indicators (@c
+ * ri_draw_icon_hints below), all in the client's own active colors --
+ * deliberately omitting only the pixmap a full render (@c ri_render_
+ * client_icon above) would otherwise draw.  Originally mirrored the
+ * exact same simplified look an icon gets the moment it starts being
+ * dragged (see @c s_drag_sync_icon_active_visual in input/mouse/
+ * drag.c, a separate, deliberately independent implementation of the
+ * same idea rather than a shared call, so a change meant for one
+ * never risks the other), which hides its caption too and stays that
+ * way for the rest of the drag; this one differs on purpose, keeping
+ * caption and hints visible, since a busy icon being cycled through
+ * only needs its pixmap out of the way to read clearly, not its name
+ * or state hints as well.
+ *
+ * @param connection XCB connection
+ * @param client     The iconified client to render
+ *
+ * @note No-op when @p client has no icon window, is not icon-mapped,
+ *       or its own @c theme is unset
+ * @note Complexity: @e O(1)
+ */
+void ri_render_client_icon_selected(xcb_connection_t *connection,
+        client_td *client);
+
+/**
  * @brief Draw the state-hint indicators in an iconified client's own
  *        top corners
  *
