@@ -223,6 +223,54 @@ bool systray_enforce_icon_size(xcb_window_t window)
 }
 
 
+/**
+ * @brief Force every already-docked icon back to the tray's current
+ *        @c pixmap.size
+ *
+ * A docked icon's own size is otherwise only ever set once, at dock
+ * time (see 'systray_protocol_dock' in systray/protocol.c): reparent,
+ * resize, only then map -- the icon is never actually visible at its
+ * old size in the first place, so it never needs to redraw itself to
+ * fit a new one either.  Nothing about reloading the configuration on
+ * its own revisits an icon that was already docked (and already
+ * mapped, already painted once) under a previous, possibly different
+ * @c pixmap.size.  'systray_layout_reflow', called separately, does
+ * reposition every icon using the newly reloaded size and padding for
+ * its own spacing math, but repositioning is not resizing.
+ *
+ * Unmapping first, then resizing, then remapping mirrors that same
+ * dock-time sequence as closely as possible, rather than resizing the
+ * icon in place while still mapped and already painted: many minimal
+ * XEmbed tray-icon implementations paint themselves once at whatever
+ * size they were first mapped at and never repaint in response to a
+ * later live 'ConfigureNotify' the way a full GTK/Qt widget would --
+ * an in-place resize left the icon showing as a blank square in at
+ * least one real client, not a correctly rescaled one, since nothing
+ * in that client ever repainted it.  Briefly unmapping first, so the
+ * icon is invisible precisely while it does not yet have its new
+ * size, and only remapping once it does, gives it the same "resized
+ * before ever visible at the new size" situation dock time already
+ * relies on -- though, without XEmbed guaranteeing this, an
+ * individual client could still fail to repaint correctly here too.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of docked icons
+ */
+static void s_systray_resize_docked_icons(void)
+{
+    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+        xcb_window_t icon = s_tray.icons[i].window;
+
+        xcb_unmap_window(s_tray.connection, icon);
+        xcb_configure_window(s_tray.connection, icon,
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                    s_tray.pixmap_size, s_tray.pixmap_size
+                });
+        xcb_map_window(s_tray.connection, icon);
+    }
+}
+
+
 /* Handle a 'ClientMessage' addressed to the tray window */
 void systray_handle_client_message(wm_td *wm,
         const xcb_client_message_event_t *event)
@@ -304,6 +352,16 @@ void systray_reload(wm_td *wm)
     should_be_enabled = wm->config->base.systray.is_enabled;
     s_systray_apply_config(wm);
     systray_protocol_apply_theme_style();
+
+    /* Unconditional, before the enabled/disabled branches below: an
+     * icon already docked before this reload keeps whatever size it
+     * was forced to at dock time otherwise (see this function's own
+     * doc comment), regardless of whether the tray ends up enabled,
+     * disabled, or unchanged by this same reload -- so a size picked
+     * up while momentarily disabled is still correct the next time
+     * the tray is shown again, without needing every application to
+     * re-dock itself. */
+    s_systray_resize_docked_icons();
 
     if (s_tray.selection_owned && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \
