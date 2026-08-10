@@ -534,7 +534,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         if (icon_size > 0u && state->surface != NULL) {
             wmicon_draw_at(conn, state->surface->ewmh, e->icon_window,
                     state->window, text_x, icon_y, icon_size,
-                    e->icon_cache);
+                    fg, bg, e->icon_cache);
         }
         text_x = (int16_t) (text_x + icon_size +
                 (int16_t) state->config->theme.menu.padding.horizontal);

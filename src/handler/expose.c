@@ -192,8 +192,14 @@ void handler_expose(xcb_connection_t *connection,
          * just cleared, bringing it back despite neither one ever
          * wanting it shown in the first place. */
         if (cfg->theme.icon.show_pixmaps && !is_active_visual) {
+            /* Always 'inactive' here, never a ternary against
+             * 'is_active_visual': this whole block is already gated
+             * on '!is_active_visual' above, so it is always false by
+             * the time this runs. */
             wmicon_draw(connection, client->ewmh, client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
+                    cfg->theme.icon.inactive.color.foreground,
+                    cfg->theme.icon.inactive.color.background,
                     &client->icon_pixmap_cache);
         }
 

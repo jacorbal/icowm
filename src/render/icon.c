@@ -147,6 +147,12 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     if (desktop->config_theme->icon.show_pixmaps) {
         wmicon_draw(desktop->connection, client->ewmh, client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
+                (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.color.foreground
+                    : desktop->config_theme->icon.inactive.color.foreground,
+                (is_cycle_sel)
+                    ? desktop->config_theme->icon.active.color.background
+                    : desktop->config_theme->icon.inactive.color.background,
                 &client->icon_pixmap_cache);
     }
 

@@ -95,19 +95,21 @@ typedef struct {
  *
  * Prefers the EWMH @c _NET_WM_ICON property (an array of ARGB32
  * images at several sizes, letting the closest one to @p area_size be
- * picked); when a client has not published that, falls back to the
+ * picked).  When a client has not published that, falls back to the
  * older ICCCM @c WM_HINTS icon hint instead, since a number of
  * still-common applications (@c xterm among them, via its own
  * @c iconHint resource) only ever set the latter.  That fallback
- * supports both forms ICCCM allows: a 1-bit-deep @c icon_pixmap,
+ * supports both forms ICCCM allows, a 1-bit-deep @c icon_pixmap
  * rendered as a solid-color stencil (ICCCM's own literal
  * specification), and a full-depth one (what @c xterm itself actually
- * publishes, despite ICCCM specifying depth 1), rendered as a plain
- * color image; either is clipped to @c icon_mask's own shape when the
- * client also set one.  A silent no-op when neither property is set
- * at all: not every application publishes an icon, and this is not an
- * error condition the icon window rendering pipeline needs to know
- * about.
+ * publishes, despite ICCCM specifying depth 1) rendered as a plain
+ * color image.  Either is clipped to @c icon_mask's own shape when
+ * the client also set one.  When neither property is set at all (not
+ * every application publishes an icon, and that is not an error
+ * condition the icon window rendering pipeline needs to know about),
+ * draws a small default icon instead of leaving the square blank.
+ * See @c wmicon_draw_at's own doc comment below for what that
+ * default icon looks like and why.
  *
  * A thin wrapper over @c wmicon_draw_at with its offset fixed at
  * @c (0, @c 0): the drawable this draws into is assumed to belong to
@@ -115,21 +117,28 @@ typedef struct {
  * as opposed to @c wmicon_draw_at's own use case of one icon among
  * several sharing a single larger drawable.
  *
- * @param connection XCB connection
- * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
- *                   property getter
- * @param window     Client's own window, whose @c _NET_WM_ICON and
- *                   @c WM_HINTS properties are read (not the icon
- *                   window itself)
- * @param drawable   Icon window (or other drawable) to composite onto
- * @param area_size  Side length, in pixels, of the square area the
- *                   icon is centered in and clipped to
- * @param cache      This client's cache slot (e.g.,
- *                   @c &client->icon_pixmap_cache); read first to
- *                   check for a usable cached Picture before doing
- *                   any of the fetch/premultiply/upload work, and
- *                   updated whenever that work does end up running,
- *                   so the next call can skip it
+ * @param connection   XCB connection
+ * @param ewmh         EWMH connection, for the typed @c _NET_WM_ICON
+ *                     property getter
+ * @param window       Client's own window, whose @c _NET_WM_ICON and
+ *                     @c WM_HINTS properties are read (not the icon
+ *                     window itself)
+ * @param drawable     Icon window (or other drawable) to composite
+ *                     onto
+ * @param area_size    Side length, in pixels, of the square area the
+ *                     icon is centered in and clipped to
+ * @param frame_color  Default icon's frame/titlebar color, used only
+ *                     when @p window has no usable icon of its own.
+ *                     See @c wmicon_draw_at's own doc comment for why
+ *                     this is the caller's call rather than something
+ *                     resolved here
+ * @param bg_color     Default icon's body color, same caveat
+ * @param cache        This client's cache slot (e.g.,
+ *                     @c &client->icon_pixmap_cache); read first to
+ *                     check for a usable cached Picture before doing
+ *                     any of the fetch/premultiply/upload work, and
+ *                     updated whenever that work does end up running,
+ *                     so the next call can skip it
  *
  * @note Complexity: @e O(1) on a cache hit; @e O(p) on a cache miss,
  *       where @e p is the pixel count of whichever icon size is
@@ -137,7 +146,7 @@ typedef struct {
  */
 void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
         xcb_window_t window, xcb_drawable_t drawable, uint16_t area_size,
-        wmicon_cache_td *cache);
+        uint32_t frame_color, uint32_t bg_color, wmicon_cache_td *cache);
 
 /**
  * @brief Like @c wmicon_draw, but composites at an explicit offset
@@ -146,26 +155,45 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
  * For a caller that draws several icons into one shared window at
  * different positions (e.g., one per row of a menu listing), rather
  * than each icon owning its own dedicated drawable the way an
- * iconified client's own icon window does.  Everything else -- the
+ * iconified client's own icon window does.  Everything else, the
  * EWMH/ICCCM fallback, the cache, the centering and clipping within
- * the @p area_size square -- behaves exactly as in @c wmicon_draw;
+ * the @p area_size square, behaves exactly as in @c wmicon_draw.
  * @p x and @p y are simply where that square's own top-left corner
  * sits within @p drawable instead of always @c (0, @c 0).
  *
- * @param connection XCB connection
- * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
- *                   property getter
- * @param window     Client's own window, whose @c _NET_WM_ICON and
- *                   @c WM_HINTS properties are read (not the icon
- *                   window itself)
- * @param drawable   Drawable to composite onto
- * @param x          X offset, within @p drawable, of the icon
- *                   square's own top-left corner
- * @param y          Y offset, within @p drawable, of the icon
- *                   square's own top-left corner
- * @param area_size  Side length, in pixels, of the square area the
- *                   icon is centered in and clipped to
- * @param cache      This client's cache slot; see @c wmicon_draw
+ * When @p window has no usable @c _NET_WM_ICON or @c WM_HINTS icon of
+ * its own, draws a small default icon instead of leaving the square
+ * blank.  It represents a generic window, an outer frame in
+ * @p frame_color, with a titlebar-like strip along its top edge in
+ * that same color, and a body in @p bg_color between the two.  It is
+ * drawn procedurally, with plain filled rectangles only, rather than
+ * from an embedded image, so it costs no extra storage or loading
+ * and stays legible at every size this ends up drawn at, from a
+ * handful of pixels in a menu row up to a full desktop icon square.
+ * @p frame_color and @p bg_color are deliberately taken from the
+ * caller rather than from a theme pointer resolved here.  Which
+ * colors count as active versus inactive (or a menu row's own
+ * selected/unselected pair, not even the same
+ * @c config_theme_style_s shape) is already worked out at every call
+ * site, and duplicating that logic in a module with no theme access
+ * of its own would only risk drifting out of sync with it.
+ *
+ * @param connection   XCB connection
+ * @param ewmh         EWMH connection, for the typed @c _NET_WM_ICON
+ *                     property getter
+ * @param window       Client's own window, whose @c _NET_WM_ICON and
+ *                     @c WM_HINTS properties are read (not the icon
+ *                     window itself)
+ * @param drawable     Drawable to composite onto
+ * @param x            X offset, within @p drawable, of the icon
+ *                     square's own top-left corner
+ * @param y            Y offset, within @p drawable, of the icon
+ *                     square's own top-left corner
+ * @param area_size    Side length, in pixels, of the square area the
+ *                     icon is centered in and clipped to
+ * @param frame_color  Default icon's frame/titlebar color
+ * @param bg_color     Default icon's body color
+ * @param cache        This client's cache slot; see @c wmicon_draw
  *
  * @note Complexity: @e O(1) on a cache hit; @e O(p) on a cache miss,
  *       where @e p is the pixel count of whichever icon size is
@@ -174,7 +202,8 @@ void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
 void wmicon_draw_at(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         xcb_drawable_t drawable, int16_t x, int16_t y,
-        uint16_t area_size, wmicon_cache_td *cache);
+        uint16_t area_size, uint32_t frame_color, uint32_t bg_color,
+        wmicon_cache_td *cache);
 
 /**
  * @brief Invalidate a cache slot, freeing its cached Picture's X

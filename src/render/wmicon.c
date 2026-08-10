@@ -569,12 +569,111 @@ static void s_composite_cached(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Draw a small default icon for a client with no usable icon
+ *        of its own
+ *
+ * It represents a generic window, three plain filled rectangles, no
+ * text or curves, an outer frame in @p frame_color, a titlebar-like
+ * strip along its top edge in that same color, and a body in
+ * @p bg_color filling the rest.  Drawn procedurally, from plain XCB
+ * fill-rectangle requests, rather than from an embedded bitmap image,
+ * so it costs no extra storage in the binary and no image load at
+ * startup.  The shape is also chosen for that same reason, plain
+ * rectangles scale to any size without looking distorted or
+ * blurred, unlike a bitmap that would need scaling, and stay legible
+ * at any size this ends up drawn at, from a handful of pixels in a
+ * menu row up to a full desktop icon square.  It reads unmistakably
+ * as a placeholder rather than a broken real icon.  See
+ * @c wmicon_draw_at's own doc comment in render/wmicon.h for why
+ * @p frame_color and @p bg_color come from the caller instead of
+ * being resolved here.
+ *
+ * @param connection   XCB connection
+ * @param drawable     Drawable to draw into
+ * @param x            X offset within @p drawable of the icon's own
+ *                     top-left corner
+ * @param y            Y offset within @p drawable of the icon's own
+ *                     top-left corner
+ * @param size         Side length, in pixels, of the (square) icon
+ * @param frame_color  Frame/titlebar color
+ * @param bg_color     Body color
+ *
+ * @note No-op when @p size is @c 0
+ * @note Complexity: @e O(1)
+ */
+static void s_draw_default_icon(xcb_connection_t *connection,
+        xcb_drawable_t drawable, int16_t x, int16_t y, uint16_t size,
+        uint32_t frame_color, uint32_t bg_color)
+{
+    xcb_gcontext_t gc;
+    uint16_t margin;
+    uint16_t titlebar_h;
+    xcb_rectangle_t frame_rect;
+
+    if (size == 0u) {
+        return;
+    }
+
+    /* A proportion of 'size', not a fixed pixel count, so the frame
+     * stays visible as a distinct ring even at the smallest sizes
+     * this icon is ever drawn at.  A fixed 1px margin would all but
+     * vanish at, say, 12px, without eating a disproportionate share
+     * of a large desktop icon square either.  Halved and clamped so
+     * two margins (left and right, or top and bottom) never meet or
+     * cross, even at a 1-2px 'size' too small to fit both a visible
+     * frame and any body at all. */
+    margin = (uint16_t) ((size + 9u) / 10u);
+    if (margin == 0u) {
+        margin = 1u;
+    }
+    if ((uint16_t) (margin * 2u) >= size) {
+        margin = (uint16_t) (size / 2u);
+    }
+
+    gc = xcb_generate_id(connection);
+    xcb_create_gc(connection, gc, drawable, XCB_GC_FOREGROUND,
+            (const uint32_t[]) { frame_color });
+
+    frame_rect.x = x;
+    frame_rect.y = y;
+    frame_rect.width = size;
+    frame_rect.height = size;
+    xcb_poly_fill_rectangle(connection, drawable, gc, 1, &frame_rect);
+
+    if (size > (uint16_t) (2u * margin)) {
+        xcb_rectangle_t body_rect;
+        uint16_t inner = (uint16_t) (size - 2u * margin);
+
+        /* Roughly a titlebar's own proportion of a real decorated
+         * window, not an exact match to any theme value.  This icon
+         * is drawn well below the size 'window.titlebar.height'
+         * itself assumes, and staying purely proportional to 'size'
+         * keeps it looking right at every size rather than just the
+         * one or two it might have been tuned against. */
+        titlebar_h = (uint16_t) ((inner * 3u) / 10u);
+
+        xcb_change_gc(connection, gc, XCB_GC_FOREGROUND,
+                (const uint32_t[]) { bg_color });
+        body_rect.x = (int16_t) (x + margin);
+        body_rect.y = (int16_t) (y + margin + titlebar_h);
+        body_rect.width = inner;
+        body_rect.height = (uint16_t) (inner - titlebar_h);
+        xcb_poly_fill_rectangle(connection, drawable, gc, 1,
+                &body_rect);
+    }
+
+    xcb_free_gc(connection, gc);
+}
+
+
 /* Fetch and draw a client's own icon, EWMH first, ICCCM as fallback,
  * at an explicit offset within 'drawable' */
 void wmicon_draw_at(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         xcb_drawable_t drawable, int16_t x, int16_t y,
-        uint16_t area_size, wmicon_cache_td *cache)
+        uint16_t area_size, uint32_t frame_color, uint32_t bg_color,
+        wmicon_cache_td *cache)
 {
     xcb_ewmh_get_wm_icon_reply_t reply;
     xcb_ewmh_wm_icon_iterator_t iter;
@@ -659,6 +758,19 @@ void wmicon_draw_at(xcb_connection_t *connection,
     }
 
     if (built == XCB_NONE) {
+        /* Neither property gave a usable icon.  Draw the default
+         * icon instead of leaving the square blank, centered the
+         * same way a real icon's own 'draw_size' square would be
+         * (see 's_composite_cached' above), so it occupies the same
+         * proportion of 'area_size' a real icon would. */
+        s_draw_default_icon(connection, drawable,
+                (int16_t) (x + ((area_size > draw_size)
+                        ? (int16_t) ((area_size - draw_size) / 2u)
+                        : 0)),
+                (int16_t) (y + ((area_size > draw_size)
+                        ? (int16_t) ((area_size - draw_size) / 2u)
+                        : 0)),
+                draw_size, frame_color, bg_color);
         return;
     }
 
@@ -678,10 +790,10 @@ void wmicon_draw_at(xcb_connection_t *connection,
  * see this function's own Doxygen comment in wmicon.h */
 void wmicon_draw(xcb_connection_t *connection, xcb_ewmh_connection_t *ewmh,
         xcb_window_t window, xcb_drawable_t drawable, uint16_t area_size,
-        wmicon_cache_td *cache)
+        uint32_t frame_color, uint32_t bg_color, wmicon_cache_td *cache)
 {
     wmicon_draw_at(connection, ewmh, window, drawable, 0, 0, area_size,
-            cache);
+            frame_color, bg_color, cache);
 }
 
 

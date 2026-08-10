@@ -422,6 +422,10 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
                 row_client->window, g_cycle_menu.window,
                 style->pad_x, icon_y, style->icon_size,
+                (i == g_cycle_menu.selected) ? style->fg_sel
+                    : style->fg_nor,
+                (i == g_cycle_menu.selected) ? style->bg_sel
+                    : style->bg_nor,
                 &row_client->icon_pixmap_cache);
         text_x = (int16_t) (style->pad_x + style->icon_offset);
     }
