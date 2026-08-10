@@ -42,6 +42,7 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+#include <types/pair.h> /* strut_partial_s */
 #include <wm.h>
 
 /* Local includes */
@@ -82,6 +83,9 @@ struct systray_state_s {
                                          dock requests and showing the
                                          window at all */
     xcb_connection_t *connection;
+    xcb_ewmh_connection_t *ewmh;    /**< For publishing the tray's own
+                                          reserved-space strut; see
+                                          @c systray_get_reserved_strut */
     surface_td *surface;            /**< Surface the tray is docked on */
     xcb_window_t window;            /**< Tray dock window */
     xcb_atom_t selection_atom;      /**< @c _NET_SYSTEM_TRAY_Sn */
@@ -91,6 +95,9 @@ struct systray_state_s {
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     enum config_systray_position_e position;
+    bool reserve_space;             /**< Whether the tray publishes its
+                                          own strut; see @c
+                                          config.systray.reserve-space */
     struct {
         enum config_systray_monitor_anchor_e anchor;
         uint32_t index;
@@ -132,6 +139,21 @@ struct systray_state_s {
                                       reads */
     systray_icon_td icons[SYSTRAY_MAX_ICONS];
     uint16_t icon_count;
+
+    /**
+     * @brief Space this tray currently reserves for itself via
+     *        @c _NET_WM_STRUT_PARTIAL/@c _NET_WM_STRUT, kept here so
+     *        @c desktop_update_workarea can fold it in the same way
+     *        it already folds a real client's own published strut,
+     *        via @c systray_get_reserved_strut
+     *
+     * Every side left at zero (the same all-zero shape @c memset
+     * leaves this in before the tray is ever positioned) when the
+     * tray is unmapped -- disabled, empty, or another tray manager
+     * owns the selection -- reserving nothing in that case, same as
+     * not existing at all.
+     */
+    struct strut_partial_s reserved_strut;
 };
 
 extern struct systray_state_s s_tray;

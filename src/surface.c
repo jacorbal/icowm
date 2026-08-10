@@ -33,6 +33,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
+#include <systray.h>
 
 /* Local includes */
 #include <surface.h>
@@ -733,7 +734,8 @@ void surface_refresh_workareas(surface_td *surface)
                     surface->properties.dim.w,
                     surface->properties.dim.h,
                     (surface->config != NULL)
-                        ? &surface->config->desktop : NULL);
+                        ? &surface->config->desktops : NULL,
+                    systray_get_reserved_strut(surface));
         }
     }
 }

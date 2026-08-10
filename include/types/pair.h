@@ -57,6 +57,26 @@ struct sides_s {
 
 
 /**
+ * @brief EWMH-style partial strut: reserved space on each of the
+ *        four screen edges, plus the along-edge range each
+ *        reservation spans (see @c _NET_WM_STRUT_PARTIAL)
+ *
+ * @note A traditional, non-partial strut (@c _NET_WM_STRUT) is
+ *       represented the same way, with @c start and @c end both left
+ *       at zero on every side -- whatever reads this treats 0..0 as
+ *       unbounded for exactly that reason (e.g. @c s_ranges_overlap
+ *       in desktop.c).
+ */
+struct strut_partial_s {
+    struct sides_s sides;       /* [left, right, top, bottom] */
+    struct sides_s start;       /* [left_start_y, right_start_y,
+                                    top_start_x, bottom_start_x] */
+    struct sides_s end;         /* [left_end_y, right_end_y,
+                                    top_end_x, bottom_end_x] */
+};
+
+
+/**
  * @brief DPI structure
  *
  * @note DPI is always positive

@@ -251,6 +251,25 @@ struct config_base_s {
         bool is_enabled;    /**< Enable the built-in systray dock */
 
         /**
+         * @brief Whether the tray publishes its own
+         *        @c _NET_WM_STRUT_PARTIAL/@c _NET_WM_STRUT, reserving
+         *        its own on-screen area so maximized windows and
+         *        placement leave it alone (see @c
+         *        systray_get_reserved_strut and @c
+         *        desktop_update_workarea)
+         *
+         * @c true by default, per the specification's own
+         * recommendation for a docking area, a taskbar, or a panel.
+         * Setting this @c false publishes an all-zero strut instead
+         * -- reserving nothing, the same as if the tray were not
+         * there at all for placement purposes -- for anyone who wants
+         * windows free to maximize over or under it, e.g. because
+         * @c layer is already @c above or @c overlay and the tray
+         * visually stays on top regardless.
+         */
+        bool reserve_space;
+
+        /**
          * @brief Where the tray dock window sits in the stacking order
          *        relative to normal client windows and fullscreen ones
          */
@@ -942,7 +961,7 @@ struct config_randr_s {
  * much of each desktop's own area stays reserved regardless of what
  * any client itself publishes via @c _NET_WM_STRUT_PARTIAL (see @c
  * desktop_update_workarea).  Loaded from @c config.json's own top-
- * level @c "desktop" object, a sibling of @c "topology", not nested
+ * level @c "desktops" object, a sibling of @c "topology", not nested
  * inside it: unlike topology, every field here does take effect on a
  * configuration reload.
  */
@@ -984,7 +1003,7 @@ typedef struct {
     struct config_bindings_s bindings;
     struct config_theme_s theme;
     struct config_randr_s randr;
-    struct config_desktop_s desktop;
+    struct config_desktop_s desktops;
 } config_td;
 
 
@@ -1154,7 +1173,7 @@ void config_resolve_dir(const char *config_dir_prefix,
  *
  * Loads base configuration settings into the provided @c config_base_s
  * structure from the specified file, and desktop-navigation/reserved-
- * space behavior (@c "desktop" -- @c warp, @c cycle, @c margins; see
+ * space behavior (@c "desktops" -- @c warp, @c cycle, @c margins; see
  * @c config_desktop_s) into @p config_desktop from that same file,
  * since both live in @c config.json.
  *

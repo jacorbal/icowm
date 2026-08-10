@@ -202,12 +202,12 @@ void config_set_default_values(config_td *config,
      * only one desktop for 'warp'/'cycle', but set regardless of how
      * many desktops end up configured, the same as every other
      * default here. */
-    config->desktop.warp = true;
-    config->desktop.cycle = true;
-    config->desktop.margins.top = 0u;
-    config->desktop.margins.right = 0u;
-    config->desktop.margins.bottom = 0u;
-    config->desktop.margins.left = 0u;
+    config->desktops.warp = true;
+    config->desktops.cycle = true;
+    config->desktops.margins.top = 0u;
+    config->desktops.margins.right = 0u;
+    config->desktops.margins.bottom = 0u;
+    config->desktops.margins.left = 0u;
 
     /* Every screen and desktop slot the fixed-size 'screens' and
      * 'desktops' arrays can ever hold gets the sentinel here, not
@@ -292,6 +292,7 @@ void config_set_default_values(config_td *config,
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
+    config->base.systray.reserve_space = true;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     config->base.systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_SURFACE;
     config->base.systray.monitor.index = 0u;
@@ -685,7 +686,7 @@ int config_load(config_td *config, const char *config_prefix,
 
     /* Load base configuration */
     if (config_load_base(config_base_file, &(config->base),
-                &(config->desktop)) != 0) {
+                &(config->desktops)) != 0) {
         LOGGER_WARNING("Base configuration could not be loaded;" \
                 " default values will be used", L_NARG);
         s_config_apply_restricted_memory_overrides(config,

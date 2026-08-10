@@ -146,6 +146,20 @@ static void s_resync_after_reload(void)
         }
 
         s->is_outdated = true;
+
+        /* 'config->desktops.margins' just reloaded above (config_load,
+         * called from 'wm_action_config_reload' before this function
+         * runs) is not something anything else here re-derives on its
+         * own: 'desktop->workarea' -- what maximize and placement
+         * actually use -- is only otherwise recomputed on its own
+         * trigger (a client mapping/unmapping, a RandR change...),
+         * none of which a reload is. Without this, a changed margin
+         * would stay invisible until one of those unrelated triggers
+         * happened to fire, e.g. by switching desktops (switching
+         * away and back hides and shows clients, an unmap/map pair
+         * that reaches 'surface_refresh_workareas' as a side effect
+         * of something else entirely). */
+        surface_refresh_workareas(s);
     }
 }
 

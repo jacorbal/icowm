@@ -436,25 +436,30 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
 int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
 
 /**
- * @brief Recompute the desktop work area from active client struts
- *        and configured margins
+ * @brief Recompute the desktop work area from active client struts,
+ *        the systray's own reservation, and configured margins
  *
  * Scans all clients in the stacking list for non-zero @c _NET_WM_STRUT
- * / @c _NET_WM_STRUT_PARTIAL values, adds @p config_desktop's own
- * @c margins on top of that (see @c config_desktop_s in config.h, for
- * a program that reserves screen space without publishing either
- * property itself), and subtracts the combined maximum reservation on
- * each edge from the full screen dimensions.  For partial struts, the
- * corresponding start/end range is honored so reservations that do
- * not overlap the screen edge span are ignored; configured margins
- * always apply along the whole edge, having no start/end range of
- * their own to honor.  The result is stored in @p desktop->workarea
- * and broadcast to the X server as @c _NET_WORKAREA.
+ * / @c _NET_WM_STRUT_PARTIAL values, folds in @p systray_strut (the
+ * window manager's own built-in systray reservation, aggregated
+ * exactly like a client's strut since the systray's own dock window
+ * is never itself a managed client -- see @c systray_get_reserved_
+ * strut) the same way, adds @p config_desktop's own @c margins on top
+ * of that (see @c config_desktop_s in config.h, for a program that
+ * reserves screen space without publishing either property itself),
+ * and subtracts the combined maximum reservation on each edge from
+ * the full screen dimensions.  For partial struts, the corresponding
+ * start/end range is honored so reservations that do not overlap the
+ * screen edge span are ignored; configured margins always apply along
+ * the whole edge, having no start/end range of their own to honor.
+ * The result is stored in @p desktop->workarea and broadcast to the
+ * X server as @c _NET_WORKAREA.
  *
- * Call this after a panel (strut client) is mapped or unmapped, and
- * after a configuration reload that may have changed @c margins, so
- * that maximize and smart-placement work on the correct available
- * area.
+ * Call this after a panel (strut client) is mapped or unmapped, after
+ * the systray's own reservation changes (reposition, resize, or being
+ * shown/hidden), and after a configuration reload that may have
+ * changed @c margins, so that maximize and smart-placement work on
+ * the correct available area.
  *
  * @param desktop        Desktop whose work area should be refreshed
  * @param screen_w       Full screen width in pixels
@@ -462,13 +467,18 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  * @param config_desktop Active desktop-behavior configuration, for
  *                       its @c margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
+ * @param systray_strut  The systray's own current reservation on
+ *                       @p desktop's surface (see @c systray_get_
+ *                       reserved_strut); a @c NULL folds in nothing,
+ *                       same as if the systray reserved no space
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop
  */
 void desktop_update_workarea(desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h,
-        const struct config_desktop_s *config_desktop);
+        const struct config_desktop_s *config_desktop,
+        const struct strut_partial_s *systray_strut);
 
 /**
  * @brief Macro that evaluates to the active client of the desktop

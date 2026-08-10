@@ -145,7 +145,7 @@ static void s_switch_cyclic(surface_td *surface, bool forward)
     }
 
     old_id = surface->desktop_cur;
-    cycle = (surface->config != NULL) ? surface->config->desktop.cycle
+    cycle = (surface->config != NULL) ? surface->config->desktops.cycle
                                        : true;
 
     LOGGER_DEBUG("Switching to %s desktop on surface %u",

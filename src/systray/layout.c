@@ -22,6 +22,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>     /* memset */
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -301,6 +302,97 @@ static monitor_td s_systray_anchor_rect(void)
 }
 
 
+/**
+ * @brief Publish (or clear) the tray's own reserved-space strut on
+ *        its dock window, and mirror the same values into
+ *        's_tray.reserved_strut' for 'systray_get_reserved_strut'
+ *
+ * Per the specification's own recommendation for a docking area, a
+ * taskbar, or a panel (see config.md, section 2.9), the tray
+ * publishes '_NET_WM_STRUT_PARTIAL' -- and, for compatibility with
+ * anything that only understands the legacy property, plain
+ * '_NET_WM_STRUT' alongside it -- covering the exact strip of screen
+ * its own configured corner and current size occupy, so a maximized
+ * window (and this window manager's own placement logic, via
+ * 'desktop_update_workarea') both leave that strip alone the same
+ * way they already do for an external panel or dock.  Publishes an
+ * all-zero strut instead when 'config.systray.reserve-space' is
+ * false, for anyone who would rather windows stayed free to maximize
+ * over or under the tray.
+ *
+ * @param x       Tray's own configured X position (root coordinates)
+ * @param y       Tray's own configured Y position (root coordinates)
+ * @param w       Tray's own current width, border excluded; zero
+ *                clears the strut (the tray itself is unmapped)
+ * @param h       Tray's own current height, border excluded
+ * @param border2 Total border thickness, both sides combined
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
+        uint16_t h, int32_t border2)
+{
+    xcb_ewmh_wm_strut_partial_t partial;
+    uint32_t screen_h;
+
+    memset(&partial, 0, sizeof(partial));
+
+    /* 'reserve_space == false' leaves 'partial' at the all-zero shape
+     * 'memset' above already set it to -- an explicit '{0, 0, 0, 0}'
+     * strut, published and stored exactly like any other, rather than
+     * simply skipping the publish/store below: a caller that reads
+     * 's_tray.reserved_strut' should see "reserves nothing" the same
+     * way it would for a real client with no strut of its own, not a
+     * stale value left over from whenever reservation was last
+     * enabled. */
+    if (s_tray.reserve_space && s_tray.surface != NULL &&
+            w > 0u && h > 0u) {
+        screen_h = s_tray.surface->properties.dim.h;
+
+        switch (s_tray.position) {
+            case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
+            case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
+                partial.top = (uint32_t) ((int32_t) y + (int32_t) h +
+                        border2);
+                partial.top_start_x = (uint32_t) x;
+                partial.top_end_x = (uint32_t) ((int32_t) x +
+                        (int32_t) w + border2);
+                break;
+
+            case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
+            case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
+                partial.bottom = (screen_h > (uint32_t) y)
+                    ? screen_h - (uint32_t) y : 0u;
+                partial.bottom_start_x = (uint32_t) x;
+                partial.bottom_end_x = (uint32_t) ((int32_t) x +
+                        (int32_t) w + border2);
+                break;
+        }
+    }
+
+    if (s_tray.ewmh != NULL && s_tray.window != XCB_WINDOW_NONE) {
+        (void) xcb_ewmh_set_wm_strut_partial(s_tray.ewmh, s_tray.window,
+                partial);
+        (void) xcb_ewmh_set_wm_strut(s_tray.ewmh, s_tray.window,
+                0u, 0u, partial.top, partial.bottom);
+    }
+
+    s_tray.reserved_strut.sides.left = 0;
+    s_tray.reserved_strut.sides.right = 0;
+    s_tray.reserved_strut.sides.top = (int32_t) partial.top;
+    s_tray.reserved_strut.sides.bottom = (int32_t) partial.bottom;
+    s_tray.reserved_strut.start.left = 0;
+    s_tray.reserved_strut.start.right = 0;
+    s_tray.reserved_strut.start.top = (int32_t) partial.top_start_x;
+    s_tray.reserved_strut.start.bottom =
+        (int32_t) partial.bottom_start_x;
+    s_tray.reserved_strut.end.left = 0;
+    s_tray.reserved_strut.end.right = 0;
+    s_tray.reserved_strut.end.top = (int32_t) partial.top_end_x;
+    s_tray.reserved_strut.end.bottom = (int32_t) partial.bottom_end_x;
+}
+
+
 /* Reposition the tray window and lay out its docked icons
  *
  * Unmaps the tray window while empty or while the selection is not
@@ -332,6 +424,7 @@ void systray_layout_reflow(void)
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
+        s_systray_update_strut(0, 0, 0u, 0u, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -341,6 +434,7 @@ void systray_layout_reflow(void)
     w = s_systray_content_width();
     if (w == 0u) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
+        s_systray_update_strut(0, 0, 0u, 0u, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -393,6 +487,7 @@ void systray_layout_reflow(void)
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT,
             geom_values);
+    s_systray_update_strut(x, y, w, h, border2);
 
     /* Icons sit after the text block when it is on the left, or right
      * at the tray's own left edge otherwise (text block on the
@@ -479,4 +574,12 @@ void systray_layout_reflow(void)
     xcb_flush(s_tray.connection);
 
     systray_layout_restack();
+
+    /* The strut just published (or cleared) above changes what every
+     * desktop on this same surface considers its own available
+     * 'workarea' -- recomputed here rather than left for whatever
+     * unrelated trigger happens to call this next, the same reasoning
+     * 'wm_action_config_reload' already applies to a changed
+     * 'desktops.margins' (see its own comment in wm/actions.c). */
+    surface_refresh_workareas(s_tray.surface);
 }

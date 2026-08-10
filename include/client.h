@@ -221,13 +221,7 @@ struct client_layout_s {
      * @note Traditional strut property will be @p strut_partial.sides
      *       when @p .start and @p .end are zero
      */
-    struct {
-        struct sides_s sides;       /* [left, right, top, bottom] */
-        struct sides_s start;       /* [left_start_y, right_start_y,
-                                        top_start_x, bottom_start_x] */
-        struct sides_s end;         /* [left_end_y, right_end_y,
-                                        top_end_x, bottom_end_x] */
-    } strut_partial;
+    struct strut_partial_s strut_partial;
     uint16_t gravity;               /* Window gravity */
     struct sides_s frame_extents;   /* [left, right, top, bottom] */
 };

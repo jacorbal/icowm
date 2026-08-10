@@ -305,7 +305,7 @@ void drag_current_pos(int32_t *x, int32_t *y);
  * @brief Milliseconds until a pointer held against a warp-eligible
  *        screen edge is due to switch desktops
  *
- * Tracked by @c drag_update as the pointer moves (see @c desktop.warp
+ * Tracked by @c drag_update as the pointer moves (see @c desktops.warp
  * in config.json, @c config_desktop_s); serviced by @c drag_warp_tick.
  *
  * @return Milliseconds remaining (never negative), or -1 if the
@@ -320,13 +320,13 @@ int drag_warp_ms_remaining(void);
  *
  * Meant to be called on every main-loop iteration, the same way @c
  * menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
- * resting against a screen edge during a window move still switches
- * desktops even with no further @c MotionNotify arriving to drive it.
- * A no-op when no warp is currently pending, its countdown has not
- * yet elapsed, the drag it belonged to is no longer a plain window
- * move, warping is disabled, there is only one desktop, or (with
- * @c desktop.cycle off) the edge held is already the first or last
- * desktop.
+ * resting against a screen edge during a window or icon move still
+ * switches desktops even with no further @c MotionNotify arriving to
+ * drive it.  A no-op when no warp is currently pending, its countdown
+ * has not yet elapsed, the drag it belonged to is no longer a plain
+ * window or icon move, warping is disabled, there is only one
+ * desktop, or (with @c desktops.cycle off) the edge held is already
+ * the first or last desktop.
  *
  * Moves the dragged client to the adjacent desktop without unmapping
  * it at any point (it must stay visible throughout), switches the

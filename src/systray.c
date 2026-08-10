@@ -62,6 +62,7 @@ struct systray_state_s s_tray;
 static void s_systray_apply_config(wm_td *wm)
 {
     s_tray.position = wm->config->base.systray.position;
+    s_tray.reserve_space = wm->config->base.systray.reserve_space;
     s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
     s_tray.monitor.index = wm->config->base.systray.monitor.index;
     s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
@@ -158,6 +159,27 @@ xcb_window_t systray_below_window(void)
         return XCB_WINDOW_NONE;
     }
     return s_tray.window;
+}
+
+
+/* Return the space the tray currently reserves for itself on
+ * 'surface', or 'NULL' when 'surface' is not the one it is docked
+ * on */
+const struct strut_partial_s *systray_get_reserved_strut(
+        const surface_td *surface)
+{
+    if (surface == NULL || !s_tray.window_ready ||
+            s_tray.surface != surface) {
+        return NULL;
+    }
+
+    /* 'reserved_strut' is kept at all-zero sides by
+     * 'systray_layout_reflow' itself whenever the tray is unmapped
+     * (disabled, empty, or another tray manager owns the selection),
+     * so no separate check for that is needed here: a caller adding
+     * an all-zero strut to a workarea calculation is a no-op either
+     * way. */
+    return &s_tray.reserved_strut;
 }
 
 

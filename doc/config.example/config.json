@@ -20,9 +20,9 @@
         }
     },
 
-    "desktop": {
-        "warp": true,
+    "desktops": {
         "cycle": true,
+        "warp": true,
         "margins": {
             "top": 0,
             "right": 0,

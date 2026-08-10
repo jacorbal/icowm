@@ -78,19 +78,19 @@ static const config_lint_key_td s_schema_topology[] = {
         sizeof(s_schema_screens) / sizeof(s_schema_screens[0])}
 };
 
-static const config_lint_key_td s_schema_desktop_margins[] = {
+static const config_lint_key_td s_schema_desktops_margins[] = {
     {"top", NULL, 0u},
     {"right", NULL, 0u},
     {"bottom", NULL, 0u},
     {"left", NULL, 0u}
 };
 
-static const config_lint_key_td s_schema_desktop[] = {
+static const config_lint_key_td s_schema_desktops[] = {
     {"warp", NULL, 0u},
     {"cycle", NULL, 0u},
-    {"margins", s_schema_desktop_margins,
-        sizeof(s_schema_desktop_margins) /
-            sizeof(s_schema_desktop_margins[0])}
+    {"margins", s_schema_desktops_margins,
+        sizeof(s_schema_desktops_margins) /
+            sizeof(s_schema_desktops_margins[0])}
 };
 
 static const config_lint_key_td s_schema_programs[] = {
@@ -188,6 +188,7 @@ static const config_lint_key_td s_schema_systray_text[] = {
 
 static const config_lint_key_td s_schema_systray[] = {
     {"is-enabled", NULL, 0u},
+    {"reserve-space", NULL, 0u},
     {"position", NULL, 0u},
     {"order", NULL, 0u},
     {"layer", NULL, 0u},
@@ -203,8 +204,8 @@ static const config_lint_key_td s_schema_config[] = {
     {"theme", NULL, 0u},
     {"topology", s_schema_topology,
         sizeof(s_schema_topology) / sizeof(s_schema_topology[0])},
-    {"desktop", s_schema_desktop,
-        sizeof(s_schema_desktop) / sizeof(s_schema_desktop[0])},
+    {"desktops", s_schema_desktops,
+        sizeof(s_schema_desktops) / sizeof(s_schema_desktops[0])},
     {"programs", s_schema_programs,
         sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
     {"windows", s_schema_windows,

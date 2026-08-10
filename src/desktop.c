@@ -93,6 +93,66 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
 
 
 /**
+ * @brief Fold one more strut into a running maximum reservation on
+ *        each of the four screen edges
+ *
+ * Shared by @c desktop_update_workarea for both a stacked client's
+ * own @c layout.strut_partial and the systray's own reservation (see
+ * @c systray_get_reserved_strut): the two are struts from
+ * icowm's point of view either way, aggregated identically -- each
+ * edge keeps whichever single source reserves the most there, the
+ * struts are not summed together (unlike @c config_desktop_s's own
+ * @c margins, a deliberately different, additive case; see the
+ * comment where those are applied in @c desktop_update_workarea for
+ * why).
+ *
+ * @param strut        Strut to fold in; a no-op when @c NULL
+ * @param screen_max_x Screen's own maximum X coordinate, for the
+ *                      top/bottom range overlap check
+ * @param screen_max_y Screen's own maximum Y coordinate, for the
+ *                      left/right range overlap check
+ * @param left         Running left reservation, updated in place
+ * @param right        Running right reservation, updated in place
+ * @param top          Running top reservation, updated in place
+ * @param bottom       Running bottom reservation, updated in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_fold_strut(const struct strut_partial_s *strut,
+        int32_t screen_max_x, int32_t screen_max_y,
+        int32_t *left, int32_t *right, int32_t *top, int32_t *bottom)
+{
+    if (strut == NULL) {
+        return;
+    }
+
+    if (strut->sides.left > *left &&
+            s_ranges_overlap(strut->start.left, strut->end.left,
+                0, screen_max_y)) {
+        *left = strut->sides.left;
+    }
+
+    if (strut->sides.right > *right &&
+            s_ranges_overlap(strut->start.right, strut->end.right,
+                0, screen_max_y)) {
+        *right = strut->sides.right;
+    }
+
+    if (strut->sides.top > *top &&
+            s_ranges_overlap(strut->start.top, strut->end.top,
+                0, screen_max_x)) {
+        *top = strut->sides.top;
+    }
+
+    if (strut->sides.bottom > *bottom &&
+            s_ranges_overlap(strut->start.bottom, strut->end.bottom,
+                0, screen_max_x)) {
+        *bottom = strut->sides.bottom;
+    }
+}
+
+
+/**
  * @brief Primary stable hash function for client entries
  *
  * Computes a reproducible 32-bit MurmurHash3 value using the client's
@@ -355,7 +415,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 /* Recompute work area from client struts */
 void desktop_update_workarea(desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h,
-        const struct config_desktop_s *config_desktop)
+        const struct config_desktop_s *config_desktop,
+        const struct strut_partial_s *systray_strut)
 {
     cdlist_item_td *node;
     cdlist_item_td *initial;
@@ -372,11 +433,11 @@ void desktop_update_workarea(desktop_td *desktop,
         return;
     }
 
+    screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
+    screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
+
     if (desktop->stacking != NULL &&
             cdlist_size(desktop->stacking) > 0) {
-        screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
-        screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
-
         /* Aggregate maximum strut on each edge across all stacked
          * clients */
         initial = cdlist_head(desktop->stacking);
@@ -385,43 +446,24 @@ void desktop_update_workarea(desktop_td *desktop,
             client_td *c = (client_td *) cdlist_data(node);
 
             if (c != NULL) {
-                if (c->layout.strut_partial.sides.left > left &&
-                        s_ranges_overlap(
-                            c->layout.strut_partial.start.left,
-                            c->layout.strut_partial.end.left,
-                            0, screen_max_y)) {
-                    left = c->layout.strut_partial.sides.left;
-                }
-
-                if (c->layout.strut_partial.sides.right > right &&
-                        s_ranges_overlap(
-                            c->layout.strut_partial.start.right,
-                            c->layout.strut_partial.end.right,
-                            0, screen_max_y)) {
-                    right = c->layout.strut_partial.sides.right;
-                }
-
-                if (c->layout.strut_partial.sides.top > top &&
-                        s_ranges_overlap(
-                            c->layout.strut_partial.start.top,
-                            c->layout.strut_partial.end.top,
-                            0, screen_max_x)) {
-                    top = c->layout.strut_partial.sides.top;
-                }
-
-                if (c->layout.strut_partial.sides.bottom > bottom &&
-                        s_ranges_overlap(
-                            c->layout.strut_partial.start.bottom,
-                            c->layout.strut_partial.end.bottom,
-                            0, screen_max_x)) {
-                    bottom = c->layout.strut_partial.sides.bottom;
-                }
+                s_fold_strut(&c->layout.strut_partial,
+                        screen_max_x, screen_max_y,
+                        &left, &right, &top, &bottom);
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
     }
 
-    /* Configured margins (config.json's own 'desktop.margins') add on
+    /* The window manager's own built-in systray is not a managed
+     * client (its dock window is override-redirect; see
+     * 'systray_protocol_ensure_window'), so it never appears in
+     * 'desktop->stacking' above and needs folding in separately here
+     * -- aggregated the exact same way, since it is a strut source
+     * like any other from this function's own point of view. */
+    s_fold_strut(systray_strut, screen_max_x, screen_max_y,
+            &left, &right, &top, &bottom);
+
+    /* Configured margins (config.json's own 'desktops.margins') add on
      * top of whatever clients themselves already reserve on each edge
      * above, rather than only keeping whichever of the two is larger:
      * they cover a distinct case -- a program that reserves screen

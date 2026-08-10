@@ -739,6 +739,8 @@ static void s_config_load_systray(cJSON *json,
 
     json_load_bool(systray, "is-enabled",
             &config_base->systray.is_enabled);
+    json_load_bool(systray, "reserve-space",
+            &config_base->systray.reserve_space);
     position_item = json_get_item(systray, "position");
     if (position_item != NULL && cJSON_IsString(position_item)) {
         config_base->systray.position =
@@ -859,7 +861,7 @@ static void s_config_load_systray(cJSON *json,
 
 
 /**
- * @brief Load @c "desktop" (desktop-navigation and reserved-space
+ * @brief Load @c "desktops" (desktop-navigation and reserved-space
  *        behavior: @c warp, @c cycle, @c margins) from parsed
  *        @c config.json
  *
@@ -869,7 +871,7 @@ static void s_config_load_systray(cJSON *json,
  * meant to take effect again on a configuration reload, so
  * @c s_config_load_screens and this function are deliberately kept
  * separate despite both being called from @c config_load_base.  A
- * missing @c "desktop" object, or a missing @c "margins" within it,
+ * missing @c "desktops" object, or a missing @c "margins" within it,
  * leaves whatever @p config_desktop already held untouched.
  *
  * @param json           Parsed root of @c config.json
@@ -885,9 +887,9 @@ static void s_config_load_desktop_behavior(cJSON *json,
     cJSON *desktop_settings;
     cJSON *margins;
 
-    desktop_settings = cJSON_GetObjectItem(json, "desktop");
+    desktop_settings = cJSON_GetObjectItem(json, "desktops");
     if (desktop_settings == NULL) {
-        LOGGER_TRACE("No 'desktop' object found in '%s'; warp," \
+        LOGGER_TRACE("No 'desktops' object found in '%s'; warp," \
                 " cycle, and margins keep their default values",
                 filename);
         return;

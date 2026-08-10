@@ -42,6 +42,7 @@
 #include <render/surface.h>
 #include <render/wmicon.h>
 #include <surface.h>
+#include <systray.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>
@@ -83,7 +84,8 @@ static void s_handler_refresh_workareas(surface_td *surface)
                     surface->properties.dim.w,
                     surface->properties.dim.h,
                     (surface->config != NULL)
-                        ? &surface->config->desktop : NULL);
+                        ? &surface->config->desktops : NULL,
+                    systray_get_reserved_strut(surface));
         }
     }
 }

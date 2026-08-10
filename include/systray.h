@@ -39,6 +39,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
+#include <types/pair.h> /* strut_partial_s */
 #include <wm.h>
 
 
@@ -138,6 +139,39 @@ bool systray_owns_window(xcb_window_t window);
  * @note Complexity: @e O(1)
  */
 xcb_window_t systray_below_window(void);
+
+/**
+ * @brief Return the space this window manager's own systray currently
+ *        reserves for itself on @p surface, via
+ *        @c _NET_WM_STRUT_PARTIAL/@c _NET_WM_STRUT published on its
+ *        own dock window
+ *
+ * Lets @c desktop_update_workarea fold the tray's own reservation into
+ * a desktop's @c workarea the exact same way it already folds a real
+ * client's own published strut -- maximized windows and initial
+ * placement stay off the tray's own area, the same protection any
+ * other panel or dock gets by publishing a strut of its own, per the
+ * specification's own recommendation (see @c config.md, section 2.9).
+ *
+ * The tray is a single, not-per-surface instance (@c config.systray is
+ * one global setting; see @c systray_state_s's own doc comment for
+ * why), docked on exactly one surface at a time: this returns @c NULL
+ * for every other surface, so a multi-screen setup never reserves the
+ * tray's space on a screen it does not actually occupy.
+ *
+ * @param surface Surface to query the tray's reservation for
+ *
+ * @return A pointer to the tray's currently reserved strut when
+ *         @p surface is the one it is docked on and it is currently
+ *         visible (mapped, non-empty, owning the tray selection); on
+ *         every other surface, or while unmapped, @c NULL rather than
+ *         a strut with every side at zero, so a caller need not treat
+ *         "not this surface" and "reserving nothing" as the same case
+ *
+ * @note Complexity: @e O(1)
+ */
+const struct strut_partial_s *systray_get_reserved_strut(
+        const surface_td *surface);
 
 /**
  * @brief Query whether @p window is a currently docked icon, and if

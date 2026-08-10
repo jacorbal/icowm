@@ -317,6 +317,7 @@ bool systray_protocol_ensure_window(wm_td *wm)
     }
 
     s_tray.connection = wm->connection;
+    s_tray.ewmh = wm->ewmh;
     s_tray.surface = surface;
 
     (void) snprintf(selection_name, sizeof(selection_name),

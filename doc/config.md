@@ -20,7 +20,7 @@ values, and built-in default value.
    - [2.8 `startup-notification`](#28-startup-notification)
    - [2.9 `menu`](#29-menu)
    - [2.10 `systray`](#210-systray)
-   - [2.11 `desktop`](#211-desktop)
+   - [2.11 `desktops`](#211-desktops)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -143,7 +143,7 @@ assigned to each.  **Takes effect at startup only**: changing anything
 under `topology` and reloading the configuration has no effect on an
 already-running window manager (see section 4.9).  For desktop
 behavior that *does* reload -- warp, cycle, and reserved margins --
-see section 2.11 (`desktop`) instead, a deliberately separate,
+see section 2.11 (`desktops`) instead, a deliberately separate,
 sibling section for exactly that reason.
 
 #### `topology.screens.count`
@@ -511,6 +511,7 @@ under the pointer in that case.
 | Key                  | Type    | Default            |
 |----------------------|---------|--------------------|
 | `systray.is-enabled` | boolean | `false`            |
+| `systray.reserve-space` | boolean | `true`          |
 | `systray.position`   | string  | `"top-right"`      |
 | `systray.monitor`    | object  | see below          |
 | `systray.order`      | string  | `"left-to-right"`  |
@@ -520,6 +521,16 @@ Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
 `"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
 selects which corner it docks in; which area that corner is measured
 against is `monitor`'s job, described next.
+
+`reserve-space` controls whether the tray publishes its own
+`_NET_WM_STRUT_PARTIAL`/`_NET_WM_STRUT`, reserving its own on-screen
+area the same way an external panel or dock does, so maximized windows
+and this window manager's own placement logic both leave it alone --
+per the specification's own recommendation for a docking area, a
+taskbar, or a panel.  Set to `false` for a `{0, 0, 0, 0}` strut
+instead, reserving nothing, if windows should stay free to maximize
+over or under the tray (e.g. because `layer` is already `"above"` or
+`"overlay"` and the tray visually stays on top regardless).
 
 `monitor` selects which physical monitor `position`'s corner is
 measured against, on a surface made up of more than one sharing the
@@ -713,7 +724,7 @@ tray) is a theme setting rather than a behavior one; see
 }
 ```
 
-### 2.11 `desktop`
+### 2.11 `desktops`
 
 Desktop-navigation and reserved-space behavior: how switching between
 desktops behaves at the two ends, whether dragging a window past a
@@ -726,7 +737,7 @@ reload (see section 4.9).
 
 | Key                  | Type    | Default | Description |
 |----------------------|---------|---------|-------------|
-| `warp`                | boolean | `true`  | While dragging a window to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window both carried across, after a short delay. Meaningless with only one desktop. |
+| `warp`                | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
 | `cycle`                | boolean | `true`  | Whether switching past the first or last desktop -- however it is triggered (keyboard binding, mouse scroll, or otherwise) -- wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
 | `margins.top`          | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
 | `margins.right`        | integer | `0`     | Extra space reserved on the right, in pixels. |
@@ -745,7 +756,7 @@ to every desktop on every screen; there is no per-desktop or
 per-screen override.
 
 ```json
-"desktop": {
+"desktops": {
     "warp": true,
     "cycle": true,
     "margins": {
@@ -1471,7 +1482,7 @@ The other exception is `config.json`'s own `topology.*` section
 (screen count, and how many desktops each screen has, along with each
 desktop's own `name`/`background-color`; see section 2.2): changing
 any of these and reloading has no effect on an already-running window
-manager.  This does not extend to the separate, sibling `desktop`
+manager.  This does not extend to the separate, sibling `desktops`
 section (section 2.11: `warp`, `cycle`, `margins`) despite the similar
 name -- that one describes navigation behavior and reserved space, not
 topology, and does take effect on reload, same as everything else.
@@ -2034,7 +2045,7 @@ Sub-menus can be nested to the depth limit defined by
         }
     },
 
-    "desktop": {
+    "desktops": {
         "warp": true,
         "cycle": true,
         "margins": {
