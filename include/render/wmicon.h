@@ -22,17 +22,22 @@
  * sizes and drawing each one at its own natural size would leave
  * icons looking inconsistent next to one another.
  *
- * The built Picture is cached by the caller (see @c wmicon_cache_td
- * below) across calls, since the same icon is very often redrawn
- * several times in a row without its underlying property ever
- * changing (an unrelated client on the same desktop moving marks the
- * whole desktop for a full repaint, redrawing every other icon on it
- * too; an @c Expose event after a virtual terminal switch; cycling
- * selection away from a client): only the first draw after the
- * property last actually changed does the full fetch, per-pixel
- * premultiply, and pixmap upload; every draw after that just
- * composites the same already-built Picture again.  See
- * @c wmicon_invalidate for when that cache needs to be thrown away.
+ * The built Picture is cached by the caller across calls, since the
+ * same icon is very often redrawn several times in a row without its
+ * underlying property ever changing (an unrelated client on the same
+ * desktop moving marks the whole desktop for a full repaint,
+ * redrawing every other icon on it too, an @c Expose event after a
+ * virtual terminal switch, cycling selection away from a client).
+ * Only the first draw after the property last actually changed does
+ * the full fetch, per-pixel premultiply, and pixmap upload.  Every
+ * draw after that just composites the same already-built Picture
+ * again.  A client confirmed to have neither icon property set is
+ * cached the same way, so its default icon gets redrawn on every
+ * later call without repeating either property fetch.
+ *
+ * @see @c wmicon_cache_td below, for the cache itself
+ * @see @a wmicon_invalidate, for when that cache needs to be thrown
+ *      away
  *
  * @ingroup render
  */
@@ -49,6 +54,7 @@
 
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
@@ -58,10 +64,11 @@
 
 
 /**
- * @brief One client's cached, already built icon Picture
+ * @brief One client's cached icon state, an already built Picture or
+ *        a confirmed absence of one
  *
  * Every field is opaque to the caller and managed entirely by
- * @c wmicon_draw and @c wmicon_invalidate; a caller only needs to
+ * @a wmicon_draw and @a wmicon_invalidate; a caller only needs to
  * hold one of these per client (zero-initialized, e.g., by @c calloc,
  * same as every other @c client_td field) and pass a pointer to it
  * into both functions.
@@ -76,8 +83,10 @@ typedef struct {
                                              as the RENDER mask
                                              alongside @c picture */
     uint16_t draw_size;  /**< Side length 'picture' was built to fit
-                               within; a mismatch against a later call
-                               forces a rebuild */
+                               within, or the default icon was last
+                               drawn at when @c has_no_icon is set; a
+                               mismatch against a later call forces a
+                               rebuild either way */
     uint16_t dest_w;     /**< Actual drawn width, after fitting the
                                source's own aspect ratio within
                                'draw_size'; needed again on every cache
@@ -85,6 +94,13 @@ typedef struct {
                                property and so has no other way left to
                                know the source's own dimensions */
     uint16_t dest_h;     /**< Actual drawn height; see 'dest_w' */
+    bool has_no_icon;    /**< Set once a fetch confirms @c window has
+                               neither a usable @c _NET_WM_ICON nor a
+                               usable @c WM_HINTS icon, so the next
+                               call can redraw the default icon
+                               straight away instead of repeating both
+                               property fetches only to reach the same
+                               answer again */
 } wmicon_cache_td;
 
 
@@ -210,16 +226,18 @@ void wmicon_draw_at(xcb_connection_t *connection,
  *        server resource
  *
  * Call this whenever the @c _NET_WM_ICON or @c WM_HINTS property a
- * cache slot was built from might have changed (see the
- * @c PropertyNotify handler in handler/focus.c) or when the client
- * owning the cache slot is being destroyed (see @c client_destroy),
- * so a stale image is never either still drawn or leaked as an
- * unreachable server-side resource.  A no-op if nothing is currently
- * cached in @p cache.
+ * cache slot was built from might have changed, or when the client
+ * owning the cache slot is being destroyed, so a stale image is never
+ * either still drawn or leaked as an unreachable server-side
+ * resource.  A no-op if nothing is currently cached in @p cache.
  *
  * @param connection XCB connection
  * @param cache      Cache slot to invalidate; its @c picture and
- *                   @c mask_picture are freed and reset to 0
+ *                   @c mask_picture are freed and reset to 0, and
+ *                   @c has_no_icon is reset to @c false
+ *
+ * @see The @c PropertyNotify handler in handler/focus.c
+ * @see @a client_destroy
  *
  * @note Complexity: @e O(1)
  */

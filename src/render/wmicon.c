@@ -46,12 +46,14 @@
  * @brief Cached picture-format query, reused across calls
  *
  * @c xcb_render_util_query_formats is a genuine round trip to the X
- * server (see @c render/glyph.c, which caches it the same way, for
- * the same reason), and the set of supported picture formats a
- * connection offers never changes for the life of that connection, so
- * querying it again on every icon rebuilt is pure waste.  Never freed:
- * held for the life of the process, the same as @c render/glyph.c's
- * own copy of this same cache.
+ * server, and the set of supported picture formats a connection
+ * offers never changes for the life of that connection, so querying
+ * it again on every icon rebuilt is pure waste.  Never freed: held
+ * for the life of the process, the same as @c render/glyph.c's own
+ * copy of this same cache.
+ *
+ * @see @c render/glyph.c, which caches it the same way, for the same
+ *      reason
  */
 static const xcb_render_query_pict_formats_reply_t *s_formats = NULL;
 static xcb_connection_t *s_formats_connection = NULL;
@@ -131,11 +133,11 @@ static uint32_t s_premultiply(uint32_t argb)
  * @brief Set the aspect-preserving scale transform and bilinear
  *        filter on an already-built source Picture
  *
- * Shared by @c s_build_icon_picture (the @c _NET_WM_ICON path, source
+ * Shared by @a s_build_icon_picture (the @c _NET_WM_ICON path, source
  * pixels just uploaded into a freshly created Picture) and
- * @c s_build_icccm_icon_picture (the @c WM_HINTS fallback path,
- * source Picture wrapping a pixmap the client itself already owns):
- * both need the exact same "fit within @p draw_size, preserving
+ * @a s_build_icccm_icon_picture (the @c WM_HINTS fallback path,
+ * source Picture wrapping a pixmap the client itself already owns).
+ * Both need the exact same "fit within @p draw_size, preserving
  * aspect ratio" transform applied afterward, so a non-square source
  * is letterboxed rather than stretched, and every icon ends up the
  * same size on screen regardless of whatever size the source image
@@ -213,12 +215,11 @@ static void s_apply_icon_scale(xcb_connection_t *connection,
  *
  * Scaled to fit within a @p draw_size by @p draw_size box, preserving
  * its own aspect ratio (so a non-square source is letterboxed rather
- * than stretched); @p draw_size smaller than the icon-graphic area it
- * will later be centered and clipped within (see @c s_composite_cache)
- * is what leaves the small margin around every icon (see
- * @c WM_ICON_PIXMAP_SCALE_PERCENT in defs/icon.h), and is also what
- * makes every icon the same size on screen regardless of whatever
- * size the source image happened to be.
+ * than stretched).  @p draw_size smaller than the icon-graphic area it
+ * will later be centered and clipped within is what leaves the small
+ * margin around every icon (@c WM_ICON_PIXMAP_SCALE_PERCENT in
+ * defs/icon.h), and is also what makes every icon the same size on
+ * screen regardless of whatever size the source image happened to be.
  *
  * @param connection XCB connection
  * @param pixels     Straight-alpha @c 0xAARRGGBB pixels, @p width
@@ -232,9 +233,12 @@ static void s_apply_icon_scale(xcb_connection_t *connection,
  * @param out_dest_h Receives the actual scaled height; see
  *                   @p out_dest_w
  *
- * @return The built Picture, owned by the caller from this point on
- *         (see @c wmicon_invalidate to free it), or @c XCB_NONE on
- *         failure
+ * @return The built Picture, owned by the caller from this point on,
+ *         or @c XCB_NONE on failure
+ *
+ * @see @a wmicon_invalidate, to free the returned Picture
+ * @see @a s_composite_cached, which this Picture is later composited
+ *      through
  *
  * @note Assumes the X server's own image byte order matches the
  *       host's, true of virtually every system this window manager
@@ -309,7 +313,7 @@ static xcb_render_picture_t s_build_icon_picture(
 
 
 /**
- * @brief Result of a successful @c s_build_icccm_icon_picture call
+ * @brief Result of a successful @a s_build_icccm_icon_picture call
  */
 typedef struct {
     xcb_render_picture_t src;   /**< Color source: either the client's
@@ -347,7 +351,7 @@ typedef struct {
  * pixmap like this virtually always uses), clipped to @c icon_mask's
  * shape when the client also set one.
  *
- * Unlike @c s_build_icon_picture, @p icon_pixmap (and @p icon_mask)
+ * Unlike @a s_build_icon_picture, @p icon_pixmap (and @p icon_mask)
  * are pixmaps the client itself owns, not ones this function
  * allocates: they are wrapped in a Picture directly, with no upload
  * of their own, and never freed here.
@@ -355,19 +359,21 @@ typedef struct {
  * @param connection XCB connection
  * @param window     Client window whose @c WM_HINTS is read
  * @param draw_size  Side length of the box the image is scaled to fit
- *                   within; see @c s_apply_icon_scale
+ *                   within; see @a s_apply_icon_scale
  * @param out_dest_w Receives the actual scaled width; see
- *                   @c s_apply_icon_scale
+ *                   @a s_apply_icon_scale
  * @param out_dest_h Receives the actual scaled height; see
- *                   @c s_apply_icon_scale
+ *                   @a s_apply_icon_scale
  *
  * @return The built source and (optional) mask Pictures, both owned
- *         by the caller from this point on (see @c wmicon_invalidate
- *         to free them); @c result.src is @c XCB_NONE if the client
- *         set no usable @c icon_pixmap at all
+ *         by the caller from this point on; @c result.src is
+ *         @c XCB_NONE if the client set no usable @c icon_pixmap at
+ *         all
+ *
+ * @see @a wmicon_invalidate, to free the returned Pictures
  *
  * @note Complexity: @e O(1); no per-pixel work happens here, unlike
- *       @c s_build_icon_picture, since the source pixmap already
+ *       @a s_build_icon_picture, since the source pixmap already
  *       lives server-side
  */
 static s_icccm_icon_td s_build_icccm_icon_picture(
@@ -488,12 +494,12 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  *        of @p drawable, centered and clipped
  *
  * @param connection XCB connection
- * @param src_picture Already built Picture (see @c s_build_icon_picture
- *                   or a cache hit); left untouched, still owned by
+ * @param src_picture Already built Picture, from @a s_build_icon_picture
+ *                   or a cache hit; left untouched, still owned by
  *                   whichever cache slot it came from
  * @param mask_picture RENDER mask to composite @p src_picture through,
  *                   or @c XCB_NONE to composite it as a fully opaque
- *                   rectangle; see @c s_icccm_icon_td
+ *                   rectangle
  * @param dest_w     Width @p src_picture was built to draw at
  * @param dest_h     Height @p src_picture was built to draw at
  * @param drawable   Drawable to composite onto
@@ -503,6 +509,8 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  *                   area's own top-left corner
  * @param area_size  Side length of the square area to center in and
  *                   clip to
+ *
+ * @see @c s_icccm_icon_td, for when @p mask_picture comes from
  *
  * @note Complexity: @e O(1); the expensive per-pixel work already
  *       happened whenever @p src_picture was originally built
@@ -569,6 +577,46 @@ static void s_composite_cached(xcb_connection_t *connection,
 }
 
 
+static xcb_gcontext_t s_default_icon_gc = XCB_NONE;
+static xcb_connection_t *s_default_icon_gc_connection = NULL;
+
+
+/**
+ * @brief Get the persistent graphics context the default icon is
+ *        drawn with, creating it first if this is the first call for
+ *        @p connection
+ *
+ * Never freed: held for the life of the process, the same as
+ * @a s_get_formats's own cached query above.  Its foreground color is
+ * set fresh before every single fill (see @a s_draw_default_icon), so
+ * reusing this same graphics context across calls never leaves a
+ * stale color behind even when the caller's own theme colors change
+ * between one call and the next.  Only the underlying X server
+ * resource itself is what gets reused here, never any color state on
+ * it.
+ *
+ * @param connection XCB connection
+ * @param drawable   Any drawable of the depth this graphics context
+ *                   will later be used against; only consulted the
+ *                   first time this is called for @p connection
+ *
+ * @return The cached graphics context
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_gcontext_t s_get_default_icon_gc(xcb_connection_t *connection,
+        xcb_drawable_t drawable)
+{
+    if (s_default_icon_gc == XCB_NONE ||
+            s_default_icon_gc_connection != connection) {
+        s_default_icon_gc = xcb_generate_id(connection);
+        xcb_create_gc(connection, s_default_icon_gc, drawable, 0u, NULL);
+        s_default_icon_gc_connection = connection;
+    }
+    return s_default_icon_gc;
+}
+
+
 /**
  * @brief Draw a small default icon for a client with no usable icon
  *        of its own
@@ -584,10 +632,13 @@ static void s_composite_cached(xcb_connection_t *connection,
  * blurred, unlike a bitmap that would need scaling, and stay legible
  * at any size this ends up drawn at, from a handful of pixels in a
  * menu row up to a full desktop icon square.  It reads unmistakably
- * as a placeholder rather than a broken real icon.  See
- * @c wmicon_draw_at's own doc comment in render/wmicon.h for why
- * @p frame_color and @p bg_color come from the caller instead of
- * being resolved here.
+ * as a placeholder rather than a broken real icon.
+ *
+ * @see @a wmicon_draw_at's own doc comment in render/wmicon.h, for
+ *      why @p frame_color and @p bg_color come from the caller
+ *      instead of being resolved here
+ * @see @a s_get_default_icon_gc, for the graphics context this draws
+ *      with
  *
  * @param connection   XCB connection
  * @param drawable     Drawable to draw into
@@ -631,8 +682,8 @@ static void s_draw_default_icon(xcb_connection_t *connection,
         margin = (uint16_t) (size / 2u);
     }
 
-    gc = xcb_generate_id(connection);
-    xcb_create_gc(connection, gc, drawable, XCB_GC_FOREGROUND,
+    gc = s_get_default_icon_gc(connection, drawable);
+    xcb_change_gc(connection, gc, XCB_GC_FOREGROUND,
             (const uint32_t[]) { frame_color });
 
     frame_rect.x = x;
@@ -663,7 +714,47 @@ static void s_draw_default_icon(xcb_connection_t *connection,
                 &body_rect);
     }
 
-    xcb_free_gc(connection, gc);
+    /* No 'xcb_free_gc' here: 'gc' is the persistent cache from
+     * 's_get_default_icon_gc', reused across every call rather than
+     * freed after this one. */
+}
+
+
+/**
+ * @brief Draw the default icon centered within @p area_size, the
+ *        same way @a s_composite_cached centers a real icon's own
+ *        @p draw_size square within it
+ *
+ * A thin wrapper over @a s_draw_default_icon, factored out since both
+ * @a wmicon_draw_at's own cache-hit path and its cache-miss path need
+ * this exact same centering arithmetic.
+ *
+ * @param connection   XCB connection
+ * @param drawable     Drawable to draw into
+ * @param x            X offset, within @p drawable, of the icon
+ *                     square's own top-left corner
+ * @param y            Y offset, within @p drawable, of the icon
+ *                     square's own top-left corner
+ * @param area_size    Side length of the square the icon is centered
+ *                     within
+ * @param draw_size    Side length of the (square) icon itself
+ * @param frame_color  Frame/titlebar color
+ * @param bg_color     Body color
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_draw_default_icon_centered(xcb_connection_t *connection,
+        xcb_drawable_t drawable, int16_t x, int16_t y,
+        uint16_t area_size, uint16_t draw_size, uint32_t frame_color,
+        uint32_t bg_color)
+{
+    int16_t offset_x = (int16_t) (x + ((area_size > draw_size)
+            ? (int16_t) ((area_size - draw_size) / 2u) : 0));
+    int16_t offset_y = (int16_t) (y + ((area_size > draw_size)
+            ? (int16_t) ((area_size - draw_size) / 2u) : 0));
+
+    s_draw_default_icon(connection, drawable, offset_x, offset_y,
+            draw_size, frame_color, bg_color);
 }
 
 
@@ -706,6 +797,16 @@ void wmicon_draw_at(xcb_connection_t *connection,
         s_composite_cached(connection, cache->picture,
                 cache->mask_picture, cache->dest_w, cache->dest_h,
                 drawable, x, y, area_size);
+        return;
+    }
+
+    /* Cache hit for the "no icon" case: a previous call already
+     * fetched both properties and found neither usable, so this
+     * redraws the default icon straight away instead of repeating
+     * both fetches only to reach that same answer again. */
+    if (cache->has_no_icon && cache->draw_size == draw_size) {
+        s_draw_default_icon_centered(connection, drawable, x, y,
+                area_size, draw_size, frame_color, bg_color);
         return;
     }
 
@@ -758,19 +859,15 @@ void wmicon_draw_at(xcb_connection_t *connection,
     }
 
     if (built == XCB_NONE) {
-        /* Neither property gave a usable icon.  Draw the default
-         * icon instead of leaving the square blank, centered the
-         * same way a real icon's own 'draw_size' square would be
-         * (see 's_composite_cached' above), so it occupies the same
-         * proportion of 'area_size' a real icon would. */
-        s_draw_default_icon(connection, drawable,
-                (int16_t) (x + ((area_size > draw_size)
-                        ? (int16_t) ((area_size - draw_size) / 2u)
-                        : 0)),
-                (int16_t) (y + ((area_size > draw_size)
-                        ? (int16_t) ((area_size - draw_size) / 2u)
-                        : 0)),
-                draw_size, frame_color, bg_color);
+        /* Neither property gave a usable icon.  Cache that fact (see
+         * 'has_no_icon''s own doc comment in render/wmicon.h) before
+         * drawing the default icon, so the next call redraws it
+         * straight away instead of repeating both fetches. */
+        wmicon_invalidate(connection, cache);
+        cache->draw_size = draw_size;
+        cache->has_no_icon = true;
+        s_draw_default_icon_centered(connection, drawable, x, y,
+                area_size, draw_size, frame_color, bg_color);
         return;
     }
 
@@ -818,4 +915,5 @@ void wmicon_invalidate(xcb_connection_t *connection, wmicon_cache_td *cache)
     cache->draw_size = 0u;
     cache->dest_w = 0u;
     cache->dest_h = 0u;
+    cache->has_no_icon = false;
 }

@@ -81,18 +81,19 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
 
     /* Nothing about this icon changed since its own last render (no
      * geometry/decoration change on the client itself, and its
-     * cycle-selection styling is unchanged): skip re-sending every
-     * X request below.  This desktop's own outdated flag can be set
-     * by an entirely unrelated client (see 'wm_request_client_redraw'
-     * marking the whole desktop), so without this check every
-     * iconified client on it would otherwise repeat this same work on
-     * every such render pass regardless of whether it, itself,
-     * changed at all -- the same needless-repaint reasoning already
-     * applied to normal windows in 's_desktop_render_one_client'
-     * (render/desktop.c), just not previously extended to icons.  A
-     * genuinely damaged icon (covered and uncovered by another
-     * window, say) still repaints correctly on its own via
-     * 'handler_expose', independent of this. */
+     * cycle-selection styling is unchanged), so this skips
+     * re-sending every X request below.  This desktop's own outdated
+     * flag can be set by an entirely unrelated client (see
+     * 'wm_request_client_redraw' marking the whole desktop), so
+     * without this check every iconified client on it would
+     * otherwise repeat this same work on every such render pass
+     * regardless of whether it, itself, changed at all.  This is the
+     * same needless-repaint reasoning already applied to normal
+     * windows in 's_desktop_render_one_client' (render/desktop.c),
+     * just not previously extended to icons.  A genuinely damaged
+     * icon (covered and uncovered by another window, say) still
+     * repaints correctly on its own via 'handler_expose', independent
+     * of this. */
     if (!client->is_outdated &&
             is_cycle_sel == client->icon_last_cycle_sel) {
         return;
@@ -185,9 +186,9 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     ri_draw_icon_hints(desktop->connection, client, is_cycle_sel,
             desktop->config_theme);
 
-    /* Not reset anywhere else for a hidden/iconified client: only
-     * 's_desktop_render_one_client' (render/desktop.c) clears this
-     * flag, and that function is never reached for one (see
+    /* This is not reset anywhere else for a hidden/iconified client.
+     * Only 's_desktop_render_one_client' (render/desktop.c) clears
+     * this flag, and that function is never reached for one (see
      * 'desktop_render_clients', which routes a hidden client here
      * instead).  Left uncleared, it would stay 'true' forever once
      * set, permanently defeating the skip check above. */
@@ -196,8 +197,8 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
 
 
 /* Render an iconified client's icon window in its "currently
- * selected" state: active colors, its own caption only, no pixmap
- * and no hint indicators */
+ * selected" state.  Active colors, its own caption, and its hint
+ * indicators all stay visible.  Only the pixmap is left out. */
 void ri_render_client_icon_selected(xcb_connection_t *connection,
         client_td *client)
 {
@@ -207,14 +208,14 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
     }
 
     /* Kept in sync with 'ri_render_client_icon''s own use of this
-     * same field: left untouched here, a client selected through this
-     * function (rather than a full 'ri_render_client_icon' render)
-     * would still read as 'icon_last_cycle_sel == false' the moment
-     * it is later deselected, matching the freshly computed
+     * same field.  Left untouched here, a client selected through
+     * this function (rather than a full 'ri_render_client_icon'
+     * render) would still read as 'icon_last_cycle_sel == false' the
+     * moment it is later deselected, matching the freshly computed
      * 'is_cycle_sel == false' there and wrongly tripping that
-     * function's own skip-check -- silently discarding the full
-     * render (pixmap, caption, hint indicators) deselecting is
-     * supposed to restore. */
+     * function's own skip-check, silently discarding the full render
+     * (pixmap, caption, hint indicators) deselecting is supposed to
+     * restore. */
     client->icon_last_cycle_sel = true;
 
     xcb_change_window_attributes(connection, client->icon_window,
@@ -243,9 +244,9 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
                 caption);
     }
 
-    /* Only the pixmap is deliberately omitted here (that is the
-     * entire point of this function, as opposed to a full
-     * 'ri_render_client_icon' render): the caption above, and these
+    /* Only the pixmap is deliberately omitted here, which is the
+     * entire point of this function as opposed to a full
+     * 'ri_render_client_icon' render.  The caption above, and these
      * hint indicators, both stay exactly as visible as they would in
      * any ordinary render, just drawn against the plain active-color
      * background this function already cleared to instead of over
@@ -274,13 +275,13 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
         /* Sized from 'WM_ICON_SQUARE_SIZE' and
          * 'WM_ICON_PIXMAP_SCALE_PERCENT' rather than picked by eye or
          * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' own
-         * size, too large here relative to a 48px icon): when
+         * size, too large here relative to a 48px icon).  When
          * 'theme.icon.show-pixmaps' is on, the client's own pixmap is
          * centered and scaled to 'WM_ICON_PIXMAP_SCALE_PERCENT' of
          * the icon square, leaving an equal margin free on all four
-         * sides -- 6 pixels at the built-in theme's own defaults --
-         * and that margin is exactly the space available in this
-         * corner before the square would start covering the pixmap
+         * sides, 6 pixels at the built-in theme's own defaults, and
+         * that margin is exactly the space available in this corner
+         * before the square would start covering the pixmap
          * itself. */
         uint16_t pin_size = (uint16_t)
             ((WM_ICON_SQUARE_SIZE *
