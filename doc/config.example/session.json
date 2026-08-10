@@ -1,5 +1,6 @@
 {
     "on-start": [
+        "xsetbg -fullscreen ~/.background",
         "redshift-gtk"
     ],
     "on-reload": [

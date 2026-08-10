@@ -179,9 +179,23 @@ static void s_cb_focus_client(xcb_connection_t *connection,
         return;
     }
 
-    target_did = (data->client != NULL)
-        ? data->client->desktop_id
-        : data->desktop_id;
+    /* Always the desktop this entry was actually listed under (see
+     * 's_append_client_entry''s own doc comment for 'did'), never
+     * 'data->client->desktop_id': for a plain client the two agree
+     * anyway, since it can only ever be listed under its own
+     * desktop, but for a sticky one they routinely do not -- a sticky
+     * client's own 'desktop_id' is nominal at best (see the "sticky
+     * clients live wherever the desktop switch last put them" comment
+     * in 's_build_desktop_entries') and does not track
+     * which of the (six shown as its own submenu here) desktops this
+     * particular entry actually came from.  Using it instead of
+     * 'data->desktop_id' meant activating a sticky client's entry
+     * under a desktop other than the current one silently did
+     * nothing: since a sticky client already stays visible wherever
+     * the desktop switch last left it, 'target_did' would resolve to
+     * that same already-current desktop regardless of which
+     * desktop's own submenu the entry was actually picked from. */
+    target_did = data->desktop_id;
 
     s_switch_to_desktop(data->surface, target_did);
     if (data->client == NULL) {

@@ -510,8 +510,9 @@ under the pointer in that case.
 
 | Key                  | Type    | Default            |
 |----------------------|---------|--------------------|
-| `systray.is-enabled` | boolean | `false`            |
-| `systray.reserve-space` | boolean | `true`          |
+| `systray.is-enabled` | boolean | `true`             |
+| `systray.reserve-space` | boolean | `false`         |
+| `systray.margins`    | object  | see below          |
 | `systray.position`   | string  | `"top-right"`      |
 | `systray.monitor`    | object  | see below          |
 | `systray.order`      | string  | `"left-to-right"`  |
@@ -527,10 +528,28 @@ against is `monitor`'s job, described next.
 area the same way an external panel or dock does, so maximized windows
 and this window manager's own placement logic both leave it alone --
 per the specification's own recommendation for a docking area, a
-taskbar, or a panel.  Set to `false` for a `{0, 0, 0, 0}` strut
-instead, reserving nothing, if windows should stay free to maximize
-over or under the tray (e.g. because `layer` is already `"above"` or
-`"overlay"` and the tray visually stays on top regardless).
+taskbar, or a panel.  `false` by default -- an explicit `{0, 0, 0, 0}`
+strut, reserving nothing, the same as if the tray were not there at
+all for placement purposes.  Set to `true` for the tray to reserve its
+own space instead, e.g. for a `layer` other than `"above"` or
+`"overlay"`, where nothing else already keeps windows off the tray
+visually.
+
+`margins` (an object with `top`/`right`/`bottom`/`left` integers, all
+`0` by default) adds extra reserved space on top of whatever the
+tray's own actual size and position already reserve -- mirroring
+`desktops.margins` (section 2.11) exactly, including that it is not
+restricted to whichever edge the tray currently docks at: a `left` or
+`right` value still reserves space on that side even while the tray
+itself sits at the top or bottom.  Has no effect while `reserve-space`
+is `false`.
+
+```json
+"systray": {
+    "reserve-space": false,
+    "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+}
+```
 
 `monitor` selects which physical monitor `position`'s corner is
 measured against, on a surface made up of more than one sharing the
@@ -599,7 +618,7 @@ tray.
 
 | Key                        | Type    | Default    |
 |-----------------------------|---------|------------|
-| `systray.clock.is-enabled` | boolean | `false`    |
+| `systray.clock.is-enabled` | boolean | `true`     |
 | `systray.clock.format`     | string  | `"%H:%M"`  |
 
 An optional clock drawn inside the systray dock.  `is-enabled` turns
@@ -2068,18 +2087,21 @@ Sub-menus can be nested to the depth limit defined by
         "gravity": "north-west",
         "move-step": 10,
         "snap": 4,
-        "group-related": true,
+        "show-geom": true,
         "focus": {
             "policy": "click",
             "is-new-focused": true,
             "is-raised-on-focus": false
         },
         "placement": {
-            "policy": "smart"
+            "policy": "smart",
+            "monitor": "pointer",
+            "group-related": true
         }
     },
 
     "icons": {
+        "show-geom": false,
         "placement": {
             "policy": "smart"
         }
@@ -2096,7 +2118,18 @@ Sub-menus can be nested to the depth limit defined by
 
     "systray": {
         "is-enabled": true,
+        "reserve-space": false,
+        "margins": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+        },
         "position": "top-right",
+        "monitor": {
+            "anchor": "surface",
+            "index": 0
+        },
         "order": "left-to-right",
         "layer": "below",
         "clock": {
@@ -2239,30 +2272,29 @@ Sub-menus can be nested to the depth limit defined by
 
 ```json
 {
-    "name": "Default",
+    "name": "Default theme",
 
     "window": {
         "is-decorated": true,
         "titlebar": {
-            "height": 19,
-            "alignment": "left",
+            "height": 22,
+            "alignment": "center",
             "padding": { "horizontal": 2, "vertical": 2 },
             "buttons": {
                 "left": ["pin", "layer"],
-                "right": ["iconize", "hide", "shade", "maximize",
-                          "fullscreen", "close"],
-                "color": { "on": "#253040", "off": "#4A5566" }
+                "right": ["close", "maximize", "shade", "iconize"],
+                "color": { "on": "#253f60", "off": "#7086a0" }
             }
         },
         "active": {
             "font": "fixed bold",
-            "color": { "background": "#9AAEC8", "foreground": "#253040" },
-            "border": { "color": "#4A5566", "width": 2 }
+            "color": { "background": "#9aaec8", "foreground": "#253040" },
+            "border": { "color": "#4a5566", "width": 2 }
         },
         "inactive": {
             "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-            "border": { "color": "#7F9AB6", "width": 2 }
+            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+            "border": { "color": "#7f9ab6", "width": 2 }
         }
     },
 
@@ -2272,54 +2304,54 @@ Sub-menus can be nested to the depth limit defined by
         "show-hints": true,
         "active": {
             "font": "fixed bold",
-            "color": { "background": "#9AAEC8", "foreground": "#253040" },
-            "border": { "color": "#4A5566", "width": 1 }
+            "color": { "background": "#9aaec8", "foreground": "#253040" },
+            "border": { "color": "#4a5566", "width": 1 }
         },
         "inactive": {
             "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-            "border": { "color": "#7F9AB6", "width": 1 }
+            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+            "border": { "color": "#7f9ab6", "width": 1 }
         }
     },
 
     "systray": {
-        "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-        "border": { "color": "#7F9AB6", "width": 1 },
-        "height": 32,
+        "font": "fixed bold",
+        "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+        "border": { "color": "#7f9ab6", "width": 1 },
+        "height": 22,
         "text": {
-            "gap": 4,
+            "gap": 12,
             "valign": "center"
         }
     },
 
     "desktop": {
-        "color": { "background": "#4C5B6B" }
+        "color": { "background": "#5f7187" }
     },
 
     "menu": {
         "unselected": {
             "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-            "border": { "color": "#7F9AB6", "width": 1 }
+            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+            "border": { "color": "#7f9ab6", "width": 0 }
         },
         "selected": {
-            "font": "fixed bold",
-            "color": { "background": "#9AAEC8", "foreground": "#253040" },
-            "border": { "color": "#4A5566", "width": 1 }
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" },
+            "border": { "color": "#4a5566", "width": 0 }
         },
         "label": {
             "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#7F9AB6" },
-            "border": { "color": "#7F9AB6", "width": 0 }
+            "color": { "background": "#48607f", "foreground": "#d0d9e5" },
+            "border": { "color": "#7f9ab6", "width": 0 }
         },
         "disabled": {
-            "color": { "foreground": "#A0A8B0" }
+            "color": { "foreground": "#717b88" }
         },
         "separator": {
-            "color": "#7F9AB6"
+            "color": "#7f9ab6"
         },
-        "border": { "color": "#7F9AB6", "width": 1 },
+        "border": { "color": "#7f9ab6", "width": 2 },
         "padding": {
             "horizontal": 12,
             "vertical": 4
@@ -2328,33 +2360,33 @@ Sub-menus can be nested to the depth limit defined by
     },
 
     "dialog": {
-        "color": { "background": "#D0D9E5" },
-        "border": { "color": "#7F9AB6", "width": 2 },
+        "color": { "background": "#d0d9e5" },
+        "border": { "color": "#7f9ab6", "width": 2 },
         "label": {
-            "font": "fixed",
-            "color": { "foreground": "#4A5566" },
+            "font": "fixed bold",
+            "color": { "foreground": "#4a5566" },
             "padding": { "horizontal": 12, "vertical": 12 }
         },
         "button": {
             "unselected": {
                 "font": "fixed",
-                "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-                "border": { "color": "#7F9AB6", "width": 1 }
+                "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+                "border": { "color": "#7f9ab6", "width": 1 }
             },
             "selected": {
                 "font": "fixed bold",
-                "color": { "background": "#9AAEC8", "foreground": "#253040" },
-                "border": { "color": "#4A5566", "width": 1 }
+                "color": { "background": "#9aaec8", "foreground": "#253040" },
+                "border": { "color": "#4a5566", "width": 1 }
             },
-            "gap": 12,
+            "gap": 24,
             "padding": { "horizontal": 12, "vertical": 6 }
         }
     },
 
     "overlay": {
         "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-        "border": { "color": "#7F9AB6", "width": 1 }
+        "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
+        "border": { "color": "#7f9ab6", "width": 1 }
     },
 
     "xsettings": {

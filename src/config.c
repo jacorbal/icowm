@@ -292,7 +292,11 @@ void config_set_default_values(config_td *config,
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
-    config->base.systray.reserve_space = true;
+    config->base.systray.reserve_space = false;
+    config->base.systray.margins.top = 0u;
+    config->base.systray.margins.right = 0u;
+    config->base.systray.margins.bottom = 0u;
+    config->base.systray.margins.left = 0u;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     config->base.systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_SURFACE;
     config->base.systray.monitor.index = 0u;
@@ -457,7 +461,7 @@ void config_set_default_values(config_td *config,
 
     /* Predetermined values for a default theme */
     LOGGER_TRACE("Setting default theme", L_NARG);
-    safe_strcpy(config->theme.name, "Default (builtin)");
+    safe_strcpy(config->theme.name, "Default theme");
 
     config->theme.window.is_decorated = true;
     config->theme.window.titlebar.height = 22u;
@@ -529,10 +533,10 @@ void config_set_default_values(config_td *config,
         json_hex2uint32("4A5566");
     config->theme.systray.style.border.color = json_hex2uint32("7F9AB6");
     config->theme.systray.style.border.width = 1u;
-    /* Matches 'SYSTRAY_ICON_SIZE + 2 * SYSTRAY_ICON_PAD' in systray.c:
-     * exactly tall enough for one icon row with no extra room, so
-     * 'systray.text.valign' has no visible effect until this is
-     * raised. */
+    /* Matches 'WM_SYSTRAY_ICON_SIZE + 2 * WM_SYSTRAY_ICON_PAD' in
+     * defs/systray.h: exactly tall enough for one icon row with no
+     * extra room, so 'systray.text.valign' has no visible effect
+     * until this is raised. */
     config->theme.systray.height = 22u;
     config->theme.systray.text.gap = 12u;
     config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
@@ -547,7 +551,7 @@ void config_set_default_values(config_td *config,
      * than an even darker one first tried) so it does not sit almost
      * as dark as the theme's own text/border colors, which left it
      * feeling heavier than a full-screen area calls for. */
-    config->theme.desktop.color.background = json_hex2uint32("5F7186");
+    config->theme.desktop.color.background = json_hex2uint32("5F7187");
 
     safe_strcpy(config->theme.menu.unselected.font, "fixed");
     config->theme.menu.unselected.color.background =

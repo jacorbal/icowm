@@ -63,11 +63,16 @@ static void s_systray_apply_config(wm_td *wm)
 {
     s_tray.position = wm->config->base.systray.position;
     s_tray.reserve_space = wm->config->base.systray.reserve_space;
+    s_tray.strut_margins.top = wm->config->base.systray.margins.top;
+    s_tray.strut_margins.right = wm->config->base.systray.margins.right;
+    s_tray.strut_margins.bottom =
+        wm->config->base.systray.margins.bottom;
+    s_tray.strut_margins.left = wm->config->base.systray.margins.left;
     s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
     s_tray.monitor.index = wm->config->base.systray.monitor.index;
     s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
-            SYSTRAY_ICON_SIZE)
-        ? wm->config->theme.systray.height : SYSTRAY_ICON_SIZE);
+            WM_SYSTRAY_ICON_SIZE)
+        ? wm->config->theme.systray.height : WM_SYSTRAY_ICON_SIZE);
     s_tray.order = wm->config->base.systray.order;
     s_tray.layer = wm->config->base.systray.layer;
     s_tray.clock_enabled = wm->config->base.systray.clock.is_enabled;
@@ -196,7 +201,7 @@ bool systray_enforce_icon_size(xcb_window_t window)
             xcb_configure_window(s_tray.connection, window,
                     XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
-                        SYSTRAY_ICON_SIZE, SYSTRAY_ICON_SIZE
+                        WM_SYSTRAY_ICON_SIZE, WM_SYSTRAY_ICON_SIZE
                     });
             xcb_flush(s_tray.connection);
             return true;

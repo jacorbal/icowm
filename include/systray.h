@@ -42,18 +42,10 @@
 #include <types/pair.h> /* strut_partial_s */
 #include <wm.h>
 
+/* Default initial values */
+#include <defs/systray.h> /* WM_SYSTRAY_ICON_SIZE, WM_SYSTRAY_ICON_PAD,
+                              WM_SYSTRAY_MAX_ICONS */
 
-/** Side length in pixels of each docked icon's embed window */
-#define SYSTRAY_ICON_SIZE (24u)
-
-/** Padding in pixels around and between icons */
-#define SYSTRAY_ICON_PAD (4u)
-
-/**
- * Upper bound on simultaneously docked icons; a plain fixed array is
- * enough for a systray and keeps this module allocation-free
- */
-#define SYSTRAY_MAX_ICONS (32u)
 
 /**
  * XEMBED opcode sent to a newly docked icon (@c XEMBED_EMBEDDED_NOTIFY)
@@ -182,7 +174,7 @@ const struct strut_partial_s *systray_get_reserved_strut(
  * icon's own resize attempt on itself reaches the window manager as a
  * @c ConfigureRequest only because the tray window now sets
  * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
- * actively overriding it back to @c SYSTRAY_ICON_SIZE, that redirect
+ * actively overriding it back to @c WM_SYSTRAY_ICON_SIZE, that redirect
  * alone would just let the request through unchanged, which is no
  * better than not redirecting at all.
  *

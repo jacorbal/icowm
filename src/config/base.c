@@ -724,6 +724,7 @@ static void s_config_load_systray(cJSON *json,
         struct config_base_s *config_base)
 {
     cJSON *systray;
+    cJSON *margins;
     cJSON *position_item;
     cJSON *monitor_item;
     cJSON *order_item;
@@ -741,6 +742,18 @@ static void s_config_load_systray(cJSON *json,
             &config_base->systray.is_enabled);
     json_load_bool(systray, "reserve-space",
             &config_base->systray.reserve_space);
+
+    margins = cJSON_GetObjectItem(systray, "margins");
+    if (margins != NULL) {
+        json_load_uint(margins, "top", &config_base->systray.margins.top);
+        json_load_uint(margins, "right",
+                &config_base->systray.margins.right);
+        json_load_uint(margins, "bottom",
+                &config_base->systray.margins.bottom);
+        json_load_uint(margins, "left",
+                &config_base->systray.margins.left);
+    }
+
     position_item = json_get_item(systray, "position");
     if (position_item != NULL && cJSON_IsString(position_item)) {
         config_base->systray.position =

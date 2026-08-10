@@ -3,7 +3,7 @@
     { "type": "command", "name": "Terminal", "command": "xterm" },
     { "type": "command", "name": "Editor",   "command": "gvim" },
     { "type": "separator" },
-    { "type": "command", "name": "WWW Browser",  "command": "firefox" },
+    { "type": "command", "name": "Browser",  "command": "firefox" },
     { "type": "command", "name": "Mail",     "command": "thunderbird" },
     { "type": "separator" },
     { "type": "submenu",

@@ -109,6 +109,7 @@ static const config_lint_key_td s_schema_windows_focus[] = {
 
 static const config_lint_key_td s_schema_windows_placement[] = {
     {"policy", NULL, 0u},
+    {"monitor", NULL, 0u},
     {"group-related", NULL, 0u}
 };
 
@@ -189,6 +190,12 @@ static const config_lint_key_td s_schema_systray_text[] = {
 static const config_lint_key_td s_schema_systray[] = {
     {"is-enabled", NULL, 0u},
     {"reserve-space", NULL, 0u},
+    /* Reuses 'desktops.margins''s own schema array: identical shape
+     * (top/right/bottom/left), so no separate one is needed just for
+     * this section. */
+    {"margins", s_schema_desktops_margins,
+        sizeof(s_schema_desktops_margins) /
+            sizeof(s_schema_desktops_margins[0])},
     {"position", NULL, 0u},
     {"order", NULL, 0u},
     {"layer", NULL, 0u},
@@ -367,6 +374,7 @@ static const config_lint_key_td s_schema_theme[] = {
     {"window", NULL, 0u},
     {"icon", NULL, 0u},
     {"systray", NULL, 0u},
+    {"desktop", NULL, 0u},
     {"menu", NULL, 0u},
     {"dialog", NULL, 0u},
     {"overlay", NULL, 0u},

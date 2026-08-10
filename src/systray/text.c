@@ -131,7 +131,7 @@ uint16_t systray_text_width(void)
         return 0u;
     }
 
-    return (uint16_t) (total + 2u * SYSTRAY_ICON_PAD);
+    return (uint16_t) (total + 2u * WM_SYSTRAY_ICON_PAD);
 }
 
 

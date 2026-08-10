@@ -357,6 +357,16 @@ void hi_handle_net_wm_desktop(wm_td *wm,
     desktop_action_client_rem(src_desktop, client);
     desktop_action_client_add(tgt_desktop, client);
 
+    /* Same reasoning as the desktop-warp fix in input/mouse/drag.c:
+     * 'desktop_action_client_rem'/'_add' alone never touch the
+     * client's own recorded 'desktop_id', so anything reading a
+     * client's desktop from that field directly (the window list
+     * menu's own per-desktop grouping foremost among them; see
+     * winlist.c) would keep showing this client under the desktop it
+     * just left, even though a pager or taskbar sending this very
+     * message already expects it moved. */
+    client->desktop_id = target_id;
+
     if (surface->desktop_cur != target_id) {
         xcb_window_t target =
             (client_is_decorated(client) && client->frame != 0)

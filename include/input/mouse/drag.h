@@ -170,20 +170,37 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param root       Root window on which to grab the pointer
  * @param client     Client whose icon window is being dragged
+ * @param desktop    Desktop @p client currently sits on; needed for
+ *                    @c desktops.warp (see @c drag_warp_tick), the
+ *                    same as @a drag_start's own @p desktop parameter
  * @param icon_x     Current icon window X (screen-relative)
  * @param icon_y     Current icon window Y (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
  * @param root_x     Root-relative X of the pointer at press time
  * @param root_y     Root-relative Y of the pointer at press time
+ * @param screen_w   Surface width, for edge snapping and @c desktops.
+ *                    warp's own edge detection (see @c
+ *                    s_drag_check_warp_edge); left unset before this
+ *                    parameter existed, an icon drag's warp-edge check
+ *                    ran against whatever @c s_drag.screen_w happened
+ *                    to still hold from an earlier window drag, or
+ *                    zero if none had happened yet -- either stale or
+ *                    zero, comparing the pointer's real position
+ *                    against it read as "past the right edge" far too
+ *                    often, re-arming the warp repeatedly and
+ *                    dragging the pointer back left on every
+ *                    countdown
+ * @param screen_h   Surface height, for the same reason
  *
  * @note Complexity: @e O(1)
  */
 void drag_start_icon(xcb_connection_t *connection,
         xcb_window_t root,
-        client_td *client,
+        client_td *client, desktop_td *desktop,
         int32_t icon_x, int32_t icon_y,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y);
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h);
 
 /**
  * @brief Update the in-progress drag on a motion-notify event

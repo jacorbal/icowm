@@ -390,6 +390,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         xcb_get_geometry_reply_t *gr;
         int32_t icon_x;
         int32_t icon_y;
+        surface_td *surface;
 
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, NULL);
@@ -401,9 +402,12 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
             free(gr);
         }
 
-        drag_start_icon(connection, event->root, client,
+        surface = wm_get_surface_by_id(client->screen_id);
+        drag_start_icon(connection, event->root, client, desktop,
                 icon_x, icon_y,
-                event->time, event->root_x, event->root_y);
+                event->time, event->root_x, event->root_y,
+                (surface != NULL) ? surface->properties.dim.w : 0u,
+                (surface != NULL) ? surface->properties.dim.h : 0u);
     } else {
         /* Non-left-click: restore and focus */
         surface_td *surface;

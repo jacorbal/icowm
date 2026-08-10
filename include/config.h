@@ -258,16 +258,38 @@ struct config_base_s {
          *        systray_get_reserved_strut and @c
          *        desktop_update_workarea)
          *
-         * @c true by default, per the specification's own
-         * recommendation for a docking area, a taskbar, or a panel.
-         * Setting this @c false publishes an all-zero strut instead
-         * -- reserving nothing, the same as if the tray were not
-         * there at all for placement purposes -- for anyone who wants
-         * windows free to maximize over or under it, e.g. because
-         * @c layer is already @c above or @c overlay and the tray
-         * visually stays on top regardless.
+         * @c false by default: nothing reserved, an explicit
+         * @c {0, 0, 0, 0} strut published, the same as if the tray
+         * were not there at all for placement purposes.  Setting this
+         * @c true instead makes the tray reserve its own on-screen
+         * area, per the specification's own recommendation for a
+         * docking area, a taskbar, or a panel.
          */
         bool reserve_space;
+
+        /**
+         * @brief Extra space added on top of whatever @c reserve_space
+         *        already reserves for the tray itself, on each of the
+         *        four screen edges
+         *
+         * Mirrors @c config_desktop_s's own @c margins exactly: added
+         * to the tray's own computed strut (see @c
+         * s_systray_update_strut in systray/layout.c) rather than
+         * replacing it, so a taller reservation than the tray's own
+         * exact visual footprint is possible without having to fake
+         * it by inflating @c height instead.  All zero by default,
+         * same as no extra margin at all.  Has no effect when
+         * @c reserve_space is @c false: an all-zero strut plus a
+         * margin is still all zero from @c desktop_update_workarea's
+         * own point of view, so there is nothing meaningful to add
+         * to.
+         */
+        struct {
+            uint32_t top;
+            uint32_t right;
+            uint32_t bottom;
+            uint32_t left;
+        } margins;
 
         /**
          * @brief Where the tray dock window sits in the stacking order
@@ -661,8 +683,9 @@ struct config_theme_s {
                                   within it, per 'text.valign' for the
                                   text and centered for icons; must be
                                   at least tall enough to fit an icon,
-                                  see 'SYSTRAY_ICON_SIZE' in systray.c,
-                                  or icons get clipped */
+                                  see 'WM_SYSTRAY_ICON_SIZE' in
+                                  defs/systray.h, or icons get
+                                  clipped */
 
         /**
          * @brief Appearance-only placement for the clock/battery
@@ -676,7 +699,7 @@ struct config_theme_s {
              *  clock) when more than one is shown; has no effect on
              *  the inset between the text block as a whole and the
              *  tray's own edges, which is fixed (see
-             *  'SYSTRAY_ICON_PAD' in systray.c) */
+             *  'WM_SYSTRAY_ICON_PAD' in defs/systray.h) */
             uint32_t gap;
 
             enum config_systray_text_valign_e {

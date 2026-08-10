@@ -45,6 +45,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
+#include <render/icon.h>
 #include <render/text.h>
 #include <surface.h>
 #include <wm.h>
@@ -157,53 +158,20 @@ static struct {
 /**
  * @brief Synchronizes the active visual of the drag icon window.
  *
- * Updates the background and border colors of the drag icon window so
- * that they match the active icon theme, and then clears the window to
- * force a visual refresh.  If the connection, client, theme, or icon
- * window are not valid, the function returns without doing anything.
+ * Thin wrapper over @c ri_render_client_icon_selected (render/icon.c),
+ * the same "currently selected" render the icon cycle menu uses for
+ * exactly this reason: active colors, caption, and hint indicators,
+ * pixmap deliberately left out.  Kept as its own named function here
+ * (rather than calling that one directly from every drag-start call
+ * site) purely for the descriptive name at each call site; no logic
+ * of its own remains to drift out of sync with the shared one now
+ * that both need the exact same render.
  *
- * @param connection XCB connection used to issue window attribute and
- *                   clear-area requests
+ * @param connection XCB connection
  */
 static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
 {
-    const char *caption;
-
-    if (connection == NULL || s_drag.client == NULL ||
-            s_drag.client->theme == NULL ||
-            s_drag.client->icon_window == 0) {
-        return;
-    }
-
-    xcb_change_window_attributes(connection,
-            s_drag.client->icon_window,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) {
-                s_drag.client->theme->icon.active.color.background,
-                s_drag.client->theme->icon.active.border.color
-            });
-    xcb_clear_area(connection, 0,
-            s_drag.client->icon_window, 0, 0, 0, 0);
-
-    if (!s_drag.client->theme->icon.is_captioned ||
-            s_drag.client->info.name == NULL) {
-        return;
-    }
-
-    caption = (s_drag.client->icon_info.visible_icon_name != NULL &&
-            s_drag.client->icon_info.visible_icon_name[0] != '\0')
-        ? s_drag.client->icon_info.visible_icon_name
-        : s_drag.client->info.name;
-
-    text_renderer_init(connection,
-            s_drag.client->theme->icon.active.font);
-    text_renderer_set_color(
-            s_drag.client->theme->icon.active.color.foreground,
-            s_drag.client->theme->icon.active.color.background);
-    text_draw_string(connection, s_drag.client->icon_window, XCB_NONE,
-            2,
-            (int16_t) (WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u),
-            caption);
+    ri_render_client_icon_selected(connection, s_drag.client);
 }
 
 
@@ -809,10 +777,11 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
 
 /* Begin a drag operation for an icon window */
 void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
-        client_td *client,
+        client_td *client, desktop_td *desktop,
         int32_t icon_x, int32_t icon_y,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y)
+        int16_t root_x, int16_t root_y,
+        uint32_t screen_w, uint32_t screen_h)
 {
     if (connection == NULL || client == NULL) {
         return;
@@ -821,7 +790,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag_overlay_hide(connection);
     s_drag.active = true;
     s_drag.client = client;
-    s_drag.desktop = NULL;
+    s_drag.desktop = desktop;
     s_drag.drag_window = client->icon_window;
     s_drag.operation = CLIENT_OPERATION_MOVING;
     s_drag.pointer_start_x = root_x;
@@ -832,6 +801,8 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_h = 0;
     s_drag.client_cur_x = icon_x;
     s_drag.client_cur_y = icon_y;
+    s_drag.screen_w = screen_w;
+    s_drag.screen_h = screen_h;
     s_drag.icon_was_mapped = client->is_icon_mapped;
     s_drag.anchor_right  = false;
     s_drag.anchor_bottom = false;
@@ -1567,6 +1538,20 @@ void drag_warp_tick(xcb_connection_t *connection)
         (void) desktop_action_client_rem(old_desktop, s_drag.client);
     }
     (void) desktop_action_client_add(new_desktop, s_drag.client);
+
+    /* 'desktop_action_client_rem'/'_add' above only move the client
+     * between each desktop's own stacking list and lookup table;
+     * neither one touches the client's own recorded 'desktop_id'
+     * (unlike 'desktop_action_send_client', the normal "send to
+     * another desktop" path, which does).  Left stale here, anything
+     * that reads a client's desktop from that field directly instead
+     * of from whichever desktop's stacking list it is actually in --
+     * the window list menu's own per-desktop grouping foremost among
+     * them (see 'winlist.c') -- would keep showing the just-warped
+     * client under the desktop it left, or drop it from view
+     * entirely, even though the warp itself already moved it
+     * correctly everywhere else. */
+    s_drag.client->desktop_id = new_desktop->id;
 
     surface->desktop_cur = new_desktop->id;
     surface_clients_hide(surface, old_desktop_id);

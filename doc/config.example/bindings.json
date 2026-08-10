@@ -19,6 +19,7 @@
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",
+            "shortcuts": "modc+mod4+F1",
             "go-to": {
                 "desktop0": "modc+mod1+0",
                 "desktop1": "modc+mod1+1",

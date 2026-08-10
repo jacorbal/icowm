@@ -99,6 +99,15 @@ struct systray_state_s {
                                           own strut; see @c
                                           config.systray.reserve-space */
     struct {
+        uint32_t top;
+        uint32_t right;
+        uint32_t bottom;
+        uint32_t left;
+    } strut_margins;                /**< Extra space added to the
+                                          tray's own computed strut;
+                                          see @c
+                                          config.systray.margins */
+    struct {
         enum config_systray_monitor_anchor_e anchor;
         uint32_t index;
     } monitor;
@@ -137,7 +146,7 @@ struct systray_state_s {
                                       per-second freshness and every
                                       poll costs a handful of file
                                       reads */
-    systray_icon_td icons[SYSTRAY_MAX_ICONS];
+    systray_icon_td icons[WM_SYSTRAY_MAX_ICONS];
     uint16_t icon_count;
 
     /**

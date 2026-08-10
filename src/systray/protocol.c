@@ -163,7 +163,7 @@ static uint16_t s_systray_insert_index(const char *sort_key)
  * they were.
  *
  * Complexity: O(n^2), where n is 's_tray.icon_count'; fine at the
- * tray's small fixed icon-count ceiling (SYSTRAY_MAX_ICONS). */
+ * tray's small fixed icon-count ceiling (WM_SYSTRAY_MAX_ICONS). */
 void systray_protocol_resort(void)
 {
     if (s_tray.order != CONFIG_SYSTRAY_ORDER_ASCENDING &&
@@ -202,7 +202,7 @@ void systray_protocol_dock(xcb_window_t icon)
         return;
     }
 
-    if (s_tray.icon_count >= SYSTRAY_MAX_ICONS) {
+    if (s_tray.icon_count >= WM_SYSTRAY_MAX_ICONS) {
         LOGGER_NOTICE("Systray is full; ignoring dock request for" \
                 " window 0x%x", icon);
         return;
@@ -216,8 +216,8 @@ void systray_protocol_dock(xcb_window_t icon)
 
     xcb_reparent_window(s_tray.connection, icon, s_tray.window, 0, 0);
 
-    size_values[0] = SYSTRAY_ICON_SIZE;
-    size_values[1] = SYSTRAY_ICON_SIZE;
+    size_values[0] = WM_SYSTRAY_ICON_SIZE;
+    size_values[1] = WM_SYSTRAY_ICON_SIZE;
     xcb_configure_window(s_tray.connection, icon,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             size_values);
@@ -354,7 +354,7 @@ bool systray_protocol_ensure_window(wm_td *wm)
          * (many apps resize their tray icon for DPI or content
          * reasons) is applied by the server directly with no
          * 'ConfigureRequest' ever generated, silently undoing the
-         * fixed 'SYSTRAY_ICON_SIZE' this module forces on it at dock
+         * fixed 'WM_SYSTRAY_ICON_SIZE' this module forces on it at dock
          * time; see 'systray_enforce_icon_size' in systray.c. */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
 

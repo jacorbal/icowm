@@ -56,8 +56,8 @@
 static uint16_t s_systray_content_width(void)
 {
     uint16_t icons_w = (s_tray.icon_count == 0u) ? 0u
-        : (uint16_t) (SYSTRAY_ICON_PAD +
-            s_tray.icon_count * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD));
+        : (uint16_t) (WM_SYSTRAY_ICON_PAD +
+            s_tray.icon_count * (WM_SYSTRAY_ICON_SIZE + WM_SYSTRAY_ICON_PAD));
 
     return (uint16_t) (icons_w + systray_text_width());
 }
@@ -315,7 +315,8 @@ static monitor_td s_systray_anchor_rect(void)
  * its own configured corner and current size occupy, so a maximized
  * window (and this window manager's own placement logic, via
  * 'desktop_update_workarea') both leave that strip alone the same
- * way they already do for an external panel or dock.  Publishes an
+ * way they already do for an external panel or dock, plus
+ * 'config.systray.margins' added on top of that strip.  Publishes an
  * all-zero strut instead when 'config.systray.reserve-space' is
  * false, for anyone who would rather windows stayed free to maximize
  * over or under the tray.
@@ -360,34 +361,53 @@ static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
                 break;
 
             case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
-            case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
-                partial.bottom = (screen_h > (uint32_t) y)
-                    ? screen_h - (uint32_t) y : 0u;
+            case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT: {
+                uint32_t y_u = (uint32_t) y;
+
+                partial.bottom = (screen_h > y_u)
+                    ? screen_h - y_u : 0u;
                 partial.bottom_start_x = (uint32_t) x;
                 partial.bottom_end_x = (uint32_t) ((int32_t) x +
                         (int32_t) w + border2);
                 break;
+            }
         }
+
+        /* 'config.systray.margins': added on top of whatever the
+         * switch above just computed from the tray's own actual
+         * geometry, the same way 'config_desktop_s''s own 'margins'
+         * adds on top of a client's published strut in
+         * 'desktop_update_workarea' -- not restricted to the edge the
+         * tray currently docks at (left/right add to a screen side
+         * the tray itself never reserves on its own), left with no
+         * start/end range of their own to honor (0..0), so they apply
+         * along the whole edge unconditionally, exactly like
+         * 'config_desktop_s''s own margins do. */
+        partial.top += s_tray.strut_margins.top;
+        partial.right += s_tray.strut_margins.right;
+        partial.bottom += s_tray.strut_margins.bottom;
+        partial.left += s_tray.strut_margins.left;
     }
 
     if (s_tray.ewmh != NULL && s_tray.window != XCB_WINDOW_NONE) {
         (void) xcb_ewmh_set_wm_strut_partial(s_tray.ewmh, s_tray.window,
                 partial);
         (void) xcb_ewmh_set_wm_strut(s_tray.ewmh, s_tray.window,
-                0u, 0u, partial.top, partial.bottom);
+                partial.left, partial.right, partial.top,
+                partial.bottom);
     }
 
-    s_tray.reserved_strut.sides.left = 0;
-    s_tray.reserved_strut.sides.right = 0;
+    s_tray.reserved_strut.sides.left = (int32_t) partial.left;
+    s_tray.reserved_strut.sides.right = (int32_t) partial.right;
     s_tray.reserved_strut.sides.top = (int32_t) partial.top;
     s_tray.reserved_strut.sides.bottom = (int32_t) partial.bottom;
-    s_tray.reserved_strut.start.left = 0;
-    s_tray.reserved_strut.start.right = 0;
+    s_tray.reserved_strut.start.left = (int32_t) partial.left_start_y;
+    s_tray.reserved_strut.start.right = (int32_t) partial.right_start_y;
     s_tray.reserved_strut.start.top = (int32_t) partial.top_start_x;
     s_tray.reserved_strut.start.bottom =
         (int32_t) partial.bottom_start_x;
-    s_tray.reserved_strut.end.left = 0;
-    s_tray.reserved_strut.end.right = 0;
+    s_tray.reserved_strut.end.left = (int32_t) partial.left_end_y;
+    s_tray.reserved_strut.end.right = (int32_t) partial.right_end_y;
     s_tray.reserved_strut.end.top = (int32_t) partial.top_end_x;
     s_tray.reserved_strut.end.bottom = (int32_t) partial.bottom_end_x;
 }
@@ -495,14 +515,14 @@ void systray_layout_reflow(void)
     icons_base_x = (text_w > 0u &&
             s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
         ? text_w : 0u;
-    icon_y = (h > (uint16_t) SYSTRAY_ICON_SIZE)
-        ? (uint16_t) ((h - SYSTRAY_ICON_SIZE) / 2u) : 0u;
+    icon_y = (h > (uint16_t) WM_SYSTRAY_ICON_SIZE)
+        ? (uint16_t) ((h - WM_SYSTRAY_ICON_SIZE) / 2u) : 0u;
 
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         uint32_t icon_pos[2];
 
-        icon_pos[0] = icons_base_x + SYSTRAY_ICON_PAD +
-            i * (SYSTRAY_ICON_SIZE + SYSTRAY_ICON_PAD);
+        icon_pos[0] = icons_base_x + WM_SYSTRAY_ICON_PAD +
+            i * (WM_SYSTRAY_ICON_SIZE + WM_SYSTRAY_ICON_PAD);
         icon_pos[1] = icon_y;
         xcb_configure_window(s_tray.connection, s_tray.icons[i].window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);
@@ -538,12 +558,12 @@ void systray_layout_reflow(void)
 
         switch (s_tray.text_valign) {
             case CONFIG_SYSTRAY_TEXT_VALIGN_TOP:
-                item_y = (int16_t) ((int32_t) SYSTRAY_ICON_PAD + ascent);
+                item_y = (int16_t) ((int32_t) WM_SYSTRAY_ICON_PAD + ascent);
                 break;
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM:
                 item_y = (int16_t) ((int32_t) h -
-                        (int32_t) SYSTRAY_ICON_PAD - descent);
+                        (int32_t) WM_SYSTRAY_ICON_PAD - descent);
                 break;
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_CENTER:
@@ -553,7 +573,7 @@ void systray_layout_reflow(void)
                 break;
         }
 
-        pen_x = (int16_t) (block_x + (int16_t) SYSTRAY_ICON_PAD);
+        pen_x = (int16_t) (block_x + (int16_t) WM_SYSTRAY_ICON_PAD);
         for (uint8_t i = 0u; i < s_tray.text_order_count; ++i) {
             bool enabled = false;
             const char *text = systray_text_for_item(
