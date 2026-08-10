@@ -11,7 +11,7 @@ values, and built-in default value.
 1. [Directory layout](#1-directory-layout)
 2. [`config.json` -- Base configuration](#2-configjson----base-configuration)
    - [2.1 `theme`](#21-theme)
-   - [2.2 `screens`](#22-screens)
+   - [2.2 `topology`](#22-topology)
    - [2.3 `programs`](#23-programs)
    - [2.4 `windows`](#24-windows)
    - [2.5 `icons`](#25-icons)
@@ -20,6 +20,7 @@ values, and built-in default value.
    - [2.8 `startup-notification`](#28-startup-notification)
    - [2.9 `menu`](#29-menu)
    - [2.10 `systray`](#210-systray)
+   - [2.11 `desktop`](#211-desktop)
 3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -135,29 +136,35 @@ be used.
 "theme": "default"
 ```
 
-### 2.2 `screens`
+### 2.2 `topology`
 
 Configures the number of physical screens and the virtual desktops
-assigned to each.
+assigned to each.  **Takes effect at startup only**: changing anything
+under `topology` and reloading the configuration has no effect on an
+already-running window manager (see section 4.9).  For desktop
+behavior that *does* reload -- warp, cycle, and reserved margins --
+see section 2.11 (`desktop`) instead, a deliberately separate,
+sibling section for exactly that reason.
 
-#### `screens.count`
+#### `topology.screens.count`
 
-| Key             | Type    | Default |
-|-----------------|---------|---------|
-| `screens.count` | integer | `1`     |
+| Key                      | Type    | Default |
+|--------------------------|---------|---------|
+| `topology.screens.count` | integer | `1`     |
 
 Number of physical screens (monitors) to manage.  Maximum is `6`.
 
-#### `screens.settings.desktops[]`
+#### `topology.screens.desktops[]`
 
-The `desktops` array inside `screens.settings` accepts two layouts:
+The `desktops` array sits directly under `topology.screens` -- there
+is no intervening `settings` object.  It accepts two layouts:
 
 **Simple layout** (one screen, desktops listed directly):
 
 ```json
-"screens": {
-    "count": 1,
-    "settings": {
+"topology": {
+    "screens": {
+        "count": 1,
         "desktops": [
             { "name": "Desktop 0", "background-color": "#1a1a2e" },
             { "name": "Desktop 1", "background-color": "#16213e" }
@@ -169,9 +176,9 @@ The `desktops` array inside `screens.settings` accepts two layouts:
 **Per-screen layout** (each array entry represents one screen):
 
 ```json
-"screens": {
-    "count": 2,
-    "settings": {
+"topology": {
+    "screens": {
+        "count": 2,
         "desktops": [
             {
                 "count": 4,
@@ -194,6 +201,14 @@ The `desktops` array inside `screens.settings` accepts two layouts:
     }
 }
 ```
+
+Which shape is in use is detected from the first array entry alone
+(whether it carries its own `settings`/`count`/`inaugural` fields).
+Note that the per-screen layout's own per-desktop `settings[]` array
+(holding `name`/`background-color`) is a different, unrelated thing
+from the `topology.screens.settings` object this schema no longer
+has: that inner `settings[]` was never removed, only the outer one
+that used to wrap `desktops` was.
 
 Per-screen layout fields:
 
@@ -698,6 +713,50 @@ tray) is a theme setting rather than a behavior one; see
 }
 ```
 
+### 2.11 `desktop`
+
+Desktop-navigation and reserved-space behavior: how switching between
+desktops behaves at the two ends, whether dragging a window past a
+screen edge switches desktops with it, and how much of every
+desktop's own area stays reserved regardless of what any client
+itself publishes.  A sibling of `topology` (section 2.2) at the root
+of `config.json`, not nested inside it -- deliberately, since unlike
+`topology`, everything here **does** take effect on a configuration
+reload (see section 4.9).
+
+| Key                  | Type    | Default | Description |
+|----------------------|---------|---------|-------------|
+| `warp`                | boolean | `true`  | While dragging a window to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window both carried across, after a short delay. Meaningless with only one desktop. |
+| `cycle`                | boolean | `true`  | Whether switching past the first or last desktop -- however it is triggered (keyboard binding, mouse scroll, or otherwise) -- wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
+| `margins.top`          | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
+| `margins.right`        | integer | `0`     | Extra space reserved on the right, in pixels. |
+| `margins.bottom`       | integer | `0`     | Extra space reserved at the bottom, in pixels. |
+| `margins.left`         | integer | `0`     | Extra space reserved on the left, in pixels. |
+
+`margins` adds on top of whatever space a client already reserves for
+itself via `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` (a panel or dock,
+say) rather than overriding it -- the two are meant to coexist, not
+compete. It exists for a program that reserves screen space without
+publishing either property itself (a desktop widget like Conky is the
+classic example): configuring a margin here reserves that space for
+it, the same way maximizing a window or its initial placement already
+respects a panel's own published strut. `margins` applies identically
+to every desktop on every screen; there is no per-desktop or
+per-screen override.
+
+```json
+"desktop": {
+    "warp": true,
+    "cycle": true,
+    "margins": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+    }
+}
+```
+
 ## 3. `bindings.json` -- Keyboard and mouse bindings
 
 Defines all keyboard shortcuts and mouse button bindings.  This file is
@@ -1114,7 +1173,7 @@ close to `window.active.color.foreground`'s own `"#4A5566"`, rather
 than an unrelated new hue.
 
 This value is used only when a desktop's own entry in
-`screens.settings.desktops` (`config.json`, section 2.2) does not
+`topology.screens.desktops` (`config.json`, section 2.2) does not
 set its own `background-color`; a desktop that does set one always
 keeps it, regardless of this.  It is also only ever used when no
 external tool (`xsetbg`, `feh`, `nitrogen`, `hsetroot`, and so on)
@@ -1407,6 +1466,23 @@ and windows whose decoration is toggled by hand, pick up that setting.
 This is deliberate: undoing a decoration choice a person made for a
 specific window just because the theme file changed would be a
 surprising, unrequested side effect.
+
+The other exception is `config.json`'s own `topology.*` section
+(screen count, and how many desktops each screen has, along with each
+desktop's own `name`/`background-color`; see section 2.2): changing
+any of these and reloading has no effect on an already-running window
+manager.  This does not extend to the separate, sibling `desktop`
+section (section 2.11: `warp`, `cycle`, `margins`) despite the similar
+name -- that one describes navigation behavior and reserved space, not
+topology, and does take effect on reload, same as everything else.
+Every other field in `config.json` -- and every other configuration
+file (`bindings.json`, `menus.json`, `randr.json`, `rules.json`,
+`session.json`, and the active theme) -- does take effect on reload,
+as documented throughout this file.  Growing or shrinking the number
+of screens or desktops at runtime would mean deciding what happens to
+whatever clients, focus, and EWMH state already live on a desktop
+being removed, none of which reload does today; restart the window
+manager to pick up a `topology.*` change instead.
 
 ---
 
@@ -1932,9 +2008,9 @@ Sub-menus can be nested to the depth limit defined by
 {
     "theme": "default",
 
-    "screens": {
-        "count": 2,
-        "settings": {
+    "topology": {
+        "screens": {
+            "count": 2,
             "desktops": [
                 {
                     "count": 4,
@@ -1955,6 +2031,17 @@ Sub-menus can be nested to the depth limit defined by
                     ]
                 }
             ]
+        }
+    },
+
+    "desktop": {
+        "warp": true,
+        "cycle": true,
+        "margins": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
         }
     },
 

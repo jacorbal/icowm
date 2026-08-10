@@ -66,5 +66,12 @@
 /** Duration in milliseconds for the desktop-switch notification */
 #define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)
 
+/** How long, in milliseconds, a window drag has to hold the pointer
+ *  against a screen edge before 'desktop.warp' (config.json; see
+ *  config_desktop_s) switches to the adjacent desktop with the drag
+ *  still held.  Long enough that merely passing through the edge on
+ *  the way to a normal drop elsewhere does not trigger it. */
+#define WM_DESKTOP_WARP_DELAY_MS (500)
+
 
 #endif  /* ! DEFS_DESKTOP_H */

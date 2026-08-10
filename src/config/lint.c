@@ -68,15 +68,29 @@ typedef struct {
 
 /* --- config.json schema --- */
 
-static const config_lint_key_td s_schema_screens_settings[] = {
+static const config_lint_key_td s_schema_screens[] = {
+    {"count", NULL, 0u},
     {"desktops", NULL, 0u}
 };
 
-static const config_lint_key_td s_schema_screens[] = {
-    {"count", NULL, 0u},
-    {"settings", s_schema_screens_settings,
-        sizeof(s_schema_screens_settings) /
-            sizeof(s_schema_screens_settings[0])}
+static const config_lint_key_td s_schema_topology[] = {
+    {"screens", s_schema_screens,
+        sizeof(s_schema_screens) / sizeof(s_schema_screens[0])}
+};
+
+static const config_lint_key_td s_schema_desktop_margins[] = {
+    {"top", NULL, 0u},
+    {"right", NULL, 0u},
+    {"bottom", NULL, 0u},
+    {"left", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_desktop[] = {
+    {"warp", NULL, 0u},
+    {"cycle", NULL, 0u},
+    {"margins", s_schema_desktop_margins,
+        sizeof(s_schema_desktop_margins) /
+            sizeof(s_schema_desktop_margins[0])}
 };
 
 static const config_lint_key_td s_schema_programs[] = {
@@ -187,8 +201,10 @@ static const config_lint_key_td s_schema_systray[] = {
 
 static const config_lint_key_td s_schema_config[] = {
     {"theme", NULL, 0u},
-    {"screens", s_schema_screens,
-        sizeof(s_schema_screens) / sizeof(s_schema_screens[0])},
+    {"topology", s_schema_topology,
+        sizeof(s_schema_topology) / sizeof(s_schema_topology[0])},
+    {"desktop", s_schema_desktop,
+        sizeof(s_schema_desktop) / sizeof(s_schema_desktop[0])},
     {"programs", s_schema_programs,
         sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
     {"windows", s_schema_windows,

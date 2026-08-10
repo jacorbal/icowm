@@ -933,6 +933,47 @@ struct config_randr_s {
 
 
 /**
+ * @brief Global desktop-navigation and reserved-space behavior
+ *
+ * Unlike @c config_base_s (screen and desktop topology: how many
+ * screens and desktops exist, and their own names/colors), none of
+ * this describes topology at all -- only how navigation between
+ * whatever desktops @c config_base_s already defines behaves, and how
+ * much of each desktop's own area stays reserved regardless of what
+ * any client itself publishes via @c _NET_WM_STRUT_PARTIAL (see @c
+ * desktop_update_workarea).  Loaded from @c config.json's own top-
+ * level @c "desktop" object, a sibling of @c "topology", not nested
+ * inside it: unlike topology, every field here does take effect on a
+ * configuration reload.
+ */
+struct config_desktop_s {
+    /** Whether dragging a window past a screen edge, held there past
+     *  @c WM_DESKTOP_WARP_DELAY_MS (defs/desktop.h), switches to the
+     *  adjacent desktop with the drag still held.  Meaningless with
+     *  only one desktop. */
+    bool warp;
+
+    /** Whether switching past the first or last desktop wraps around
+     *  to the other end, rather than stopping there.  Meaningless
+     *  with only one desktop. */
+    bool cycle;
+
+    /** Extra space reserved on each edge of every desktop's own
+     *  workarea, on top of whatever @c _NET_WM_STRUT_PARTIAL clients
+     *  already reserve there (see @c desktop_update_workarea);
+     *  useful for a program that does not publish that property
+     *  itself (e.g. Conky).  Applies identically to every desktop on
+     *  every screen; there is no per-desktop or per-screen override. */
+    struct {
+        uint32_t top;
+        uint32_t right;
+        uint32_t bottom;
+        uint32_t left;
+    } margins;
+};
+
+
+/**
  * @brief Main configuration structure
  *
  * Encapsulates the main configuration, including base settings,
@@ -943,6 +984,7 @@ typedef struct {
     struct config_bindings_s bindings;
     struct config_theme_s theme;
     struct config_randr_s randr;
+    struct config_desktop_s desktop;
 } config_td;
 
 
@@ -1111,11 +1153,16 @@ void config_resolve_dir(const char *config_dir_prefix,
  * @brief Load base configuration settings from a JSON file
  *
  * Loads base configuration settings into the provided @c config_base_s
- * structure from the specified file.
+ * structure from the specified file, and desktop-navigation/reserved-
+ * space behavior (@c "desktop" -- @c warp, @c cycle, @c margins; see
+ * @c config_desktop_s) into @p config_desktop from that same file,
+ * since both live in @c config.json.
  *
- * @param filename    The path to the configuration file
- * @param config_base Pointer to the base configuration structure to
- *                    populate
+ * @param filename       The path to the configuration file
+ * @param config_base    Pointer to the base configuration structure
+ *                       to populate
+ * @param config_desktop Pointer to the desktop-behavior structure to
+ *                       populate
  *
  * @return 0 on success, or otherwise
  *
@@ -1123,9 +1170,11 @@ void config_resolve_dir(const char *config_dir_prefix,
  *       configuration file being read
  *
  * @see @c config_base_s
+ * @see @c config_desktop_s
  */
 int config_load_base(const char *filename,
-        struct config_base_s *config_base);
+        struct config_base_s *config_base,
+        struct config_desktop_s *config_desktop);
 
 /**
  * @brief Load key bindings from a JSON file

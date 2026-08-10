@@ -301,5 +301,47 @@ void drag_repaint_overlay(xcb_connection_t *connection);
  */
 void drag_current_pos(int32_t *x, int32_t *y);
 
+/**
+ * @brief Milliseconds until a pointer held against a warp-eligible
+ *        screen edge is due to switch desktops
+ *
+ * Tracked by @c drag_update as the pointer moves (see @c desktop.warp
+ * in config.json, @c config_desktop_s); serviced by @c drag_warp_tick.
+ *
+ * @return Milliseconds remaining (never negative), or -1 if the
+ *         pointer is not currently held against an eligible edge
+ *
+ * @note Complexity: @e O(1)
+ */
+int drag_warp_ms_remaining(void);
+
+/**
+ * @brief Perform the pending edge warp, if its countdown has elapsed
+ *
+ * Meant to be called on every main-loop iteration, the same way @c
+ * menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
+ * resting against a screen edge during a window move still switches
+ * desktops even with no further @c MotionNotify arriving to drive it.
+ * A no-op when no warp is currently pending, its countdown has not
+ * yet elapsed, the drag it belonged to is no longer a plain window
+ * move, warping is disabled, there is only one desktop, or (with
+ * @c desktop.cycle off) the edge held is already the first or last
+ * desktop.
+ *
+ * Moves the dragged client to the adjacent desktop without unmapping
+ * it at any point (it must stay visible throughout), switches the
+ * surface's own current desktop to match, and repositions the pointer
+ * to the opposite edge -- adjusting the drag's own internal state so
+ * that jump does not make the dragged window visually snap on the
+ * next @c MotionNotify.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       either desktop involved (from @c surface_clients_hide/@c
+ *       _show)
+ */
+void drag_warp_tick(xcb_connection_t *connection);
+
 
 #endif  /* ! INPUT_MOUSE_DRAG_H */

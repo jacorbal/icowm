@@ -8,6 +8,19 @@
  * with that surface and an index indicating which workspace is
  * currently active.
  *
+ * Named "surface" rather than "screen" specifically to avoid a
+ * conceptual collision with @c xcb_screen_t, XCB's own raw protocol
+ * struct for a screen: @c surface_td is a wrapper around one (see its
+ * own @c screen field) that adds everything the window manager itself
+ * tracks about it -- desktops, monitors, RandR state, and a reference
+ * to the active configuration -- so the two names stay distinct even
+ * though, conceptually, one @c surface_td corresponds to exactly one
+ * X screen.  @c config.json's own @c screens section (see @c
+ * config_base_s, config.h) refers to this same thing under its more
+ * X11-familiar name instead, deliberately: that name is for whoever
+ * writes @c config.json, not for this header's own internal
+ * implementation detail.
+ *
  * @defgroup surface Physical surface (screen) management
  * @ingroup wm
  */

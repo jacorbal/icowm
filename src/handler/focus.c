@@ -81,7 +81,9 @@ static void s_handler_refresh_workareas(surface_td *surface)
         if (d != NULL) {
             desktop_update_workarea(d,
                     surface->properties.dim.w,
-                    surface->properties.dim.h);
+                    surface->properties.dim.h,
+                    (surface->config != NULL)
+                        ? &surface->config->desktop : NULL);
         }
     }
 }

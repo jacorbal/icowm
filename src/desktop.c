@@ -354,7 +354,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
 /* Recompute work area from client struts */
 void desktop_update_workarea(desktop_td *desktop,
-        uint32_t screen_w, uint32_t screen_h)
+        uint32_t screen_w, uint32_t screen_h,
+        const struct config_desktop_s *config_desktop)
 {
     cdlist_item_td *node;
     cdlist_item_td *initial;
@@ -367,62 +368,75 @@ void desktop_update_workarea(desktop_td *desktop,
     int32_t screen_max_x;
     int32_t screen_max_y;
 
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
-        if (desktop != NULL) {
-            desktop->workarea.pos.x = 0;
-            desktop->workarea.pos.y = 0;
-            desktop->workarea.dim.w = screen_w;
-            desktop->workarea.dim.h = screen_h;
-        }
-
+    if (desktop == NULL) {
         return;
     }
 
-    screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
-    screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
+    if (desktop->stacking != NULL &&
+            cdlist_size(desktop->stacking) > 0) {
+        screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
+        screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
 
-    /* Aggregate maximum strut on each edge across all stacked clients */
-    initial = cdlist_head(desktop->stacking);
-    node = initial;
-    do {
-        client_td *c = (client_td *) cdlist_data(node);
+        /* Aggregate maximum strut on each edge across all stacked
+         * clients */
+        initial = cdlist_head(desktop->stacking);
+        node = initial;
+        do {
+            client_td *c = (client_td *) cdlist_data(node);
 
-        if (c != NULL) {
-            if (c->layout.strut_partial.sides.left > left &&
-                    s_ranges_overlap(
-                        c->layout.strut_partial.start.left,
-                        c->layout.strut_partial.end.left,
-                        0, screen_max_y)) {
-                left = c->layout.strut_partial.sides.left;
+            if (c != NULL) {
+                if (c->layout.strut_partial.sides.left > left &&
+                        s_ranges_overlap(
+                            c->layout.strut_partial.start.left,
+                            c->layout.strut_partial.end.left,
+                            0, screen_max_y)) {
+                    left = c->layout.strut_partial.sides.left;
+                }
+
+                if (c->layout.strut_partial.sides.right > right &&
+                        s_ranges_overlap(
+                            c->layout.strut_partial.start.right,
+                            c->layout.strut_partial.end.right,
+                            0, screen_max_y)) {
+                    right = c->layout.strut_partial.sides.right;
+                }
+
+                if (c->layout.strut_partial.sides.top > top &&
+                        s_ranges_overlap(
+                            c->layout.strut_partial.start.top,
+                            c->layout.strut_partial.end.top,
+                            0, screen_max_x)) {
+                    top = c->layout.strut_partial.sides.top;
+                }
+
+                if (c->layout.strut_partial.sides.bottom > bottom &&
+                        s_ranges_overlap(
+                            c->layout.strut_partial.start.bottom,
+                            c->layout.strut_partial.end.bottom,
+                            0, screen_max_x)) {
+                    bottom = c->layout.strut_partial.sides.bottom;
+                }
             }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
 
-            if (c->layout.strut_partial.sides.right > right &&
-                    s_ranges_overlap(
-                        c->layout.strut_partial.start.right,
-                        c->layout.strut_partial.end.right,
-                        0, screen_max_y)) {
-                right = c->layout.strut_partial.sides.right;
-            }
-
-            if (c->layout.strut_partial.sides.top > top &&
-                    s_ranges_overlap(
-                        c->layout.strut_partial.start.top,
-                        c->layout.strut_partial.end.top,
-                        0, screen_max_x)) {
-                top = c->layout.strut_partial.sides.top;
-            }
-
-            if (c->layout.strut_partial.sides.bottom > bottom &&
-                    s_ranges_overlap(
-                        c->layout.strut_partial.start.bottom,
-                        c->layout.strut_partial.end.bottom,
-                        0, screen_max_x)) {
-                bottom = c->layout.strut_partial.sides.bottom;
-            }
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    /* Configured margins (config.json's own 'desktop.margins') add on
+     * top of whatever clients themselves already reserve on each edge
+     * above, rather than only keeping whichever of the two is larger:
+     * they cover a distinct case -- a program that reserves screen
+     * space without publishing '_NET_WM_STRUT'/'_NET_WM_STRUT_PARTIAL'
+     * itself (e.g. Conky) -- so both are meant to coexist, not
+     * override one another.  Applied even with no clients at all
+     * (the early return this replaced never used to reach here), so a
+     * configured margin still reserves its space on an empty
+     * desktop. */
+    if (config_desktop != NULL) {
+        left += (int32_t) config_desktop->margins.left;
+        right += (int32_t) config_desktop->margins.right;
+        top += (int32_t) config_desktop->margins.top;
+        bottom += (int32_t) config_desktop->margins.bottom;
+    }
 
     new_w = (int32_t) screen_w - left - right;
     new_h = (int32_t) screen_h - top  - bottom;

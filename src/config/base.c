@@ -524,20 +524,29 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
- * @brief Load @c "screens" (screen count, and each screen's desktop
- *        count/inaugural desktop/desktop entries) from parsed
+ * @brief Load @c "topology.screens" (screen count, and each screen's
+ *        desktop count/inaugural desktop/desktop entries) from parsed
  *        @c config.json
  *
- * Accepts two on-disk shapes for the @c "screens.settings.desktops"
+ * Accepts two on-disk shapes for the @c "topology.screens.desktops"
  * array: a flat list of desktop entries applied to screen 0 (the
  * common, single-screen case), or, when any entry in that array
  * itself carries its own @c "settings"/"count"/"inaugural" fields, a
  * nested layout where each entry instead describes one whole screen
  * (multi-screen configurations).  Which shape is in use is detected
- * from the first array entry alone.  A missing @c "screens" object,
- * or a missing/non-array @c "desktops" within it, leaves whatever
- * @p config_base already held (its compiled-in or previously-loaded
- * defaults) untouched, logging why.
+ * from the first array entry alone.  A missing @c "topology" or
+ * @c "screens" object, or a missing/non-array @c "desktops" within
+ * it, leaves whatever @p config_base already held (its compiled-in or
+ * previously-loaded defaults) untouched, logging why.
+ *
+ * @c "topology" (and everything under it, including @c "screens")
+ * only ever takes effect at startup: unlike the rest of @c
+ * config.json, a configuration reload does not re-run this function,
+ * since changing screen or desktop counts at runtime would mean
+ * deciding what happens to whatever clients, focus, and EWMH state
+ * already live on a desktop being removed, which nothing in the
+ * window manager currently does (see the "Reload behavior" note in
+ * doc/config.md, section 2.2).
  *
  * @param json        Parsed root of @c config.json
  * @param config_base Destination structure; its @c screen_count and
@@ -551,28 +560,32 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 static void s_config_load_screens(cJSON *json,
         struct config_base_s *config_base, const char *filename)
 {
+    cJSON *topology;
     cJSON *screen_settings;
 
-    screen_settings = cJSON_GetObjectItem(json, "screens");
+    topology = cJSON_GetObjectItem(json, "topology");
+    screen_settings = (topology != NULL)
+        ? cJSON_GetObjectItem(topology, "screens") : NULL;
     if (screen_settings == NULL) {
-        LOGGER_WARNING("No 'screens' object found in '%s';" \
+        LOGGER_WARNING("No 'topology.screens' object found in '%s';" \
                 " desktop settings, including background colors," \
                 " will keep their default values", filename);
     } else {
-        cJSON *settings;
         cJSON *desktops_array;
 
         /* Load total number of screen */
         json_load_uint(screen_settings, "count",
                 &config_base->screen_count);
         s_config_enforce_min_count(&config_base->screen_count, 1u,
-                "screens.count", filename);
+                "topology.screens.count", filename);
 
-        /* Get 'desktop' array inside 'settings' */
-        settings =
-            cJSON_GetObjectItem(screen_settings, "settings");
+        /* 'desktops' sits directly under 'topology.screens' -- no
+         * intervening 'settings' object (unlike each individual
+         * screen entry's own per-desktop 'settings[]' array below,
+         * which is a different, unrelated thing this schema keeps as
+         * it already was). */
         desktops_array =
-            cJSON_GetObjectItem(settings, "desktops");
+            cJSON_GetObjectItem(screen_settings, "desktops");
 
         /* NOTE: Whilst I recognize this maze of if statements could
          *       benefit from finesse, I am stuck with it for now.
@@ -602,7 +615,7 @@ static void s_config_load_screens(cJSON *json,
                 config_base->screens[0].desktop_count = desktop_count;
                 s_config_enforce_min_count(
                         &config_base->screens[0].desktop_count, 1u,
-                        "screens.settings.desktops (count)", filename);
+                        "topology.screens.desktops (count)", filename);
 
                 for (unsigned int i = 0;
                         i < desktop_count && i < CONFIG_MAX_DESKTOPS;
@@ -638,7 +651,8 @@ static void s_config_load_screens(cJSON *json,
                                 &config_base->screens[i].desktop_count);
                         s_config_enforce_min_count(
                                 &config_base->screens[i].desktop_count,
-                                1u, "screens[].count", filename);
+                                1u, "topology.screens.desktops[].count",
+                                filename);
                         json_load_uint(desktop_item, "inaugural",
                                 &config_base->screens[i].desktop_inaugural);
 
@@ -682,7 +696,7 @@ static void s_config_load_screens(cJSON *json,
             } /* ! if (!uses_nested_screen_layout) */
         } else {
             LOGGER_WARNING("No 'desktops' array found under" \
-                    " 'screens.settings' in '%s'; desktop" \
+                    " 'topology.screens' in '%s'; desktop" \
                     " settings, including background colors, will" \
                     " keep their default values", filename);
         } /* ! if (desktops_array) */
@@ -844,8 +858,58 @@ static void s_config_load_systray(cJSON *json,
 }
 
 
+/**
+ * @brief Load @c "desktop" (desktop-navigation and reserved-space
+ *        behavior: @c warp, @c cycle, @c margins) from parsed
+ *        @c config.json
+ *
+ * A sibling of @c "topology" at the root of @c config.json, not
+ * nested inside it (see @c config_desktop_s's own doc comment in
+ * config.h for why): unlike @c "topology", every field this loads is
+ * meant to take effect again on a configuration reload, so
+ * @c s_config_load_screens and this function are deliberately kept
+ * separate despite both being called from @c config_load_base.  A
+ * missing @c "desktop" object, or a missing @c "margins" within it,
+ * leaves whatever @p config_desktop already held untouched.
+ *
+ * @param json           Parsed root of @c config.json
+ * @param config_desktop Destination structure to populate
+ * @param filename       Path @p json was read from, for log messages
+ *                       only
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_load_desktop_behavior(cJSON *json,
+        struct config_desktop_s *config_desktop, const char *filename)
+{
+    cJSON *desktop_settings;
+    cJSON *margins;
+
+    desktop_settings = cJSON_GetObjectItem(json, "desktop");
+    if (desktop_settings == NULL) {
+        LOGGER_TRACE("No 'desktop' object found in '%s'; warp," \
+                " cycle, and margins keep their default values",
+                filename);
+        return;
+    }
+
+    json_load_bool(desktop_settings, "warp", &config_desktop->warp);
+    json_load_bool(desktop_settings, "cycle", &config_desktop->cycle);
+
+    margins = cJSON_GetObjectItem(desktop_settings, "margins");
+    if (margins != NULL) {
+        json_load_uint(margins, "top", &config_desktop->margins.top);
+        json_load_uint(margins, "right", &config_desktop->margins.right);
+        json_load_uint(margins, "bottom",
+                &config_desktop->margins.bottom);
+        json_load_uint(margins, "left", &config_desktop->margins.left);
+    }
+}
+
+
 int config_load_base(const char *filename,
-        struct config_base_s *config_base)
+        struct config_base_s *config_base,
+        struct config_desktop_s *config_desktop)
 {
     cJSON *json;
     cJSON *programs;
@@ -872,6 +936,7 @@ int config_load_base(const char *filename,
     }
 
     s_config_load_screens(json, config_base, filename);
+    s_config_load_desktop_behavior(json, config_desktop, filename);
 
     /* Load default programs */
     programs = cJSON_GetObjectItem(json, "programs");

@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -35,6 +36,7 @@
 
 /* Default initial values */
 #include <defs/client.h>
+#include <defs/desktop.h>
 #include <defs/icon.h>
 #include <defs/input.h>
 
@@ -105,6 +107,16 @@ static struct {
                                      false right after 'drag_start' so
                                      its first 'drag_update' always
                                      runs regardless of position */
+    bool warp_pending;          /**< Whether the pointer is currently
+                                     held against a warp-eligible
+                                     screen edge, counting down to a
+                                     desktop switch (see 'desktop.warp'
+                                     in config.json, config_desktop_s) */
+    bool warp_is_left;          /**< Which edge, only meaningful when
+                                     'warp_pending' */
+    struct timespec warp_due;   /**< When the held edge becomes due to
+                                     warp, only meaningful when
+                                     'warp_pending' */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -132,7 +144,10 @@ static struct {
     .icon_was_mapped = false,
     .last_root_x = 0,
     .last_root_y = 0,
-    .has_last_pos = false
+    .has_last_pos = false,
+    .warp_pending = false,
+    .warp_is_left = false,
+    .warp_due = {0}
 };
 
 
@@ -625,6 +640,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.screen_h = screen_h;
     s_drag.snap = snap;
     s_drag.has_last_pos = false;
+    s_drag.warp_pending = false;
 
     /* For resize operations, make the visible corner handles define the
      * corner hit zones.  Outside those adaptive-margin corner zones
@@ -819,6 +835,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.resize_w = false;
     s_drag.resize_h = false;
     s_drag.has_last_pos = false;
+    s_drag.warp_pending = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
@@ -980,6 +997,73 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
 }
 
 
+/**
+ * @brief Update the pending warp state from the pointer's current
+ *        root-relative X position during a window move
+ *
+ * Starts (or keeps running, without restarting it) a countdown to
+ * switching desktops when the pointer is held against the left or
+ * right screen edge, per @c desktop.warp in config.json (see @c
+ * config_desktop_s and @c drag_warp_tick, which actually performs the
+ * switch once the countdown elapses); cancels it the moment the
+ * pointer leaves either edge, or when warping is disabled, there is
+ * only one desktop, or no configuration can be resolved at all.
+ *
+ * @param root_x Pointer's current root-relative X position
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_check_warp_edge(int16_t root_x)
+{
+    surface_td *surface;
+    bool at_left;
+    bool at_right;
+
+    if (s_drag.client == NULL) {
+        s_drag.warp_pending = false;
+        return;
+    }
+
+    surface = wm_get_surface_by_id(s_drag.client->screen_id);
+    if (surface == NULL || surface->config == NULL ||
+            !surface->config->desktop.warp ||
+            surface->desktop_count <= 1u) {
+        s_drag.warp_pending = false;
+        return;
+    }
+
+    at_left = root_x <= 0;
+    at_right = (int32_t) root_x >= (int32_t) s_drag.screen_w - 1;
+
+    if (!at_left && !at_right) {
+        s_drag.warp_pending = false;
+        return;
+    }
+
+    if (s_drag.warp_pending && s_drag.warp_is_left == at_left) {
+        /* Same edge still held: let the existing countdown keep
+         * running rather than restarting it on every motion event. */
+        return;
+    }
+
+    s_drag.warp_pending = true;
+    s_drag.warp_is_left = at_left;
+    if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
+        s_drag.warp_due.tv_nsec +=
+            (long) WM_DESKTOP_WARP_DELAY_MS * 1000000L;
+        if (s_drag.warp_due.tv_nsec >= 1000000000L) {
+            s_drag.warp_due.tv_sec += 1;
+            s_drag.warp_due.tv_nsec -= 1000000000L;
+        }
+    } else {
+        /* Could not read the clock to schedule the countdown; safer
+         * to not warp at all than to warp immediately on every edge
+         * touch. */
+        s_drag.warp_pending = false;
+    }
+}
+
+
 /* Update the in-progress drag on a motion-notify event */
 void drag_update(xcb_connection_t *connection,
         int16_t root_x, int16_t root_y)
@@ -1064,6 +1148,7 @@ void drag_update(xcb_connection_t *connection,
         } else {
             s_drag_overlay_hide(connection);
         }
+        s_drag_check_warp_edge(root_x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         char geom_buf[24];
         bool show_geom = client->config_base != NULL &&
@@ -1232,6 +1317,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.icon_was_mapped = false;
+    s_drag.warp_pending = false;
 
     if (connection != NULL) {
         xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
@@ -1250,6 +1336,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
     s_drag_overlay_hide(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
+    s_drag.warp_pending = false;
     if (s_drag.client != NULL) {
         /* The module-level 's_drag' bookkeeping above is reset either
          * way, but without this the client's OWN operation flag stays
@@ -1356,4 +1443,132 @@ void drag_current_pos(int32_t *x, int32_t *y)
     if (y != NULL) {
         *y = s_drag.client_cur_y;
     }
+}
+
+
+/* Milliseconds until the pending warp is due */
+int drag_warp_ms_remaining(void)
+{
+    struct timespec now;
+    long remaining_ms;
+
+    if (!s_drag.warp_pending) {
+        return -1;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return 0;
+    }
+
+    remaining_ms =
+        (long) (s_drag.warp_due.tv_sec - now.tv_sec) * 1000L +
+        (s_drag.warp_due.tv_nsec - now.tv_nsec) / 1000000L;
+
+    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+}
+
+
+/* Perform the pending warp, if due */
+void drag_warp_tick(xcb_connection_t *connection)
+{
+    surface_td *surface;
+    desktop_td *old_desktop;
+    desktop_td *new_desktop;
+    uint32_t old_desktop_id;
+    int16_t new_root_x;
+    bool cycle;
+
+    if (connection == NULL || !s_drag.warp_pending ||
+            drag_warp_ms_remaining() > 0) {
+        return;
+    }
+
+    s_drag.warp_pending = false;
+
+    if (s_drag.client == NULL ||
+            s_drag.operation != CLIENT_OPERATION_MOVING ||
+            s_drag.drag_window != XCB_WINDOW_NONE) {
+        /* Not (or no longer) a plain window move; nothing to warp
+         * for -- an icon drag or a resize never sets 'warp_pending'
+         * in the first place (see 's_drag_check_warp_edge'), but this
+         * still guards against it having somehow become stale. */
+        return;
+    }
+
+    surface = wm_get_surface_by_id(s_drag.client->screen_id);
+    if (surface == NULL || surface->screen == NULL ||
+            surface->config == NULL ||
+            !surface->config->desktop.warp ||
+            surface->desktop_count <= 1u) {
+        return;
+    }
+
+    old_desktop_id = surface->desktop_cur;
+    old_desktop = surface_desktop_get(surface, old_desktop_id);
+    cycle = surface->config->desktop.cycle;
+
+    new_desktop = s_drag.warp_is_left
+        ? surface_desktop_prev(surface, old_desktop_id, cycle)
+        : surface_desktop_next(surface, old_desktop_id, cycle);
+    if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
+        /* Already at the end and 'cycle' is off: nothing to warp to. */
+        return;
+    }
+
+    /* Move the dragged client itself to the new desktop without
+     * touching its mapped state at all: unlike a normal desktop
+     * switch, it must stay visible and uninterrupted throughout the
+     * whole warp, not hidden with the rest of the old desktop's
+     * clients below. */
+    if (old_desktop != NULL) {
+        (void) desktop_action_client_rem(old_desktop, s_drag.client);
+    }
+    (void) desktop_action_client_add(new_desktop, s_drag.client);
+
+    surface->desktop_cur = new_desktop->id;
+    surface_clients_hide(surface, old_desktop_id);
+    surface_clients_show(surface, new_desktop->id);
+    surface->is_outdated = true;
+
+    /* Reposition the pointer to the opposite edge, one pixel in from
+     * it rather than exactly on it, so the very next motion notify
+     * does not immediately re-arm another warp back the way it just
+     * came from. */
+    new_root_x = s_drag.warp_is_left
+        ? (int16_t) ((s_drag.screen_w > 1u)
+                ? (s_drag.screen_w - 2u) : 0u)
+        : (int16_t) 1;
+
+    /* Move the dragged window by the exact same delta the pointer
+     * itself is about to jump, so it stays under the cursor across
+     * the warp instead of being left behind on the old desktop's own
+     * edge.  Shifting 'client_cur_x' (the position 'drag_update' last
+     * actually applied, which already folds in any edge-snapping) is
+     * what 'pointer_start_x'/'client_start_x' being left untouched
+     * below relies on: with both of those unchanged, the very next
+     * real motion notify's own 'new_x = client_start_x + (root_x -
+     * pointer_start_x)' is a plain linear function of 'root_x', so it
+     * naturally reflects the same shift automatically -- adjusting
+     * either baseline here instead would cancel that shift back out
+     * (the bug an earlier version of this function actually had:
+     * shifting 'pointer_start_x' to compensate for the pointer jump
+     * made the computed position identical before and after the
+     * warp, keeping the window pinned at its old spot rather than
+     * following the pointer to the new one). */
+    {
+        int32_t new_window_x = s_drag.client_cur_x +
+            ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
+
+        s_drag.client_cur_x = new_window_x;
+        (void) client_send_event_move(s_drag.client, new_window_x,
+                s_drag.client_cur_y);
+    }
+
+    xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
+            0, 0, 0, 0, new_root_x, s_drag.last_root_y);
+
+    s_drag.last_root_x = new_root_x;
+    s_drag.desktop = new_desktop;
+
+    xcb_flush(connection);
 }

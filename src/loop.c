@@ -401,6 +401,14 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 menu_confirm_dialog_ms_remaining());
 
+        /* Shorter still while a window drag is holding the pointer
+         * against a warp-eligible screen edge (see 'drag_warp_tick'
+         * in input/mouse/drag.h), so it still switches desktops once
+         * its own countdown elapses even with no further
+         * 'MotionNotify' arriving to drive it. */
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                drag_warp_ms_remaining());
+
         poll_status = poll(&pfd, 1, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -412,6 +420,7 @@ void loop_run(wm_td *wm)
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection, wm->config);
+        drag_warp_tick(wm->connection);
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
             memguard_tick(wm->connection,

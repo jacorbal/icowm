@@ -138,21 +138,24 @@ void scmd_surface_desktop_switch(surface_td *surface,
 static void s_switch_cyclic(surface_td *surface, bool forward)
 {
     uint32_t old_id;
+    bool cycle;
 
     if (surface == NULL) {
         return;
     }
 
     old_id = surface->desktop_cur;
+    cycle = (surface->config != NULL) ? surface->config->desktop.cycle
+                                       : true;
 
     LOGGER_DEBUG("Switching to %s desktop on surface %u",
             (forward) ? "next" : "previous", surface->id);
 
     surface_clients_hide(surface, old_id);
     if (forward) {
-        surface_desktop_select_next(surface, true);
+        surface_desktop_select_next(surface, cycle);
     } else {
-        surface_desktop_select_prev(surface, true);
+        surface_desktop_select_prev(surface, cycle);
     }
 
     if (surface->desktop_cur != old_id) {

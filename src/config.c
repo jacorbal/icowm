@@ -196,6 +196,19 @@ void config_set_default_values(config_td *config,
     config->base.theme[0] = '\0';
     config->base.screen_count = 1;
 
+    /* Desktop-navigation and reserved-space behavior (config.json's
+     * own top-level 'desktop', a sibling of 'topology'; see config_
+     * desktop_s's own doc comment in config.h) -- meaningless with
+     * only one desktop for 'warp'/'cycle', but set regardless of how
+     * many desktops end up configured, the same as every other
+     * default here. */
+    config->desktop.warp = true;
+    config->desktop.cycle = true;
+    config->desktop.margins.top = 0u;
+    config->desktop.margins.right = 0u;
+    config->desktop.margins.bottom = 0u;
+    config->desktop.margins.left = 0u;
+
     /* Every screen and desktop slot the fixed-size 'screens' and
      * 'desktops' arrays can ever hold gets the sentinel here, not
      * just the ones this function is about to treat as active by
@@ -671,7 +684,8 @@ int config_load(config_td *config, const char *config_prefix,
             "%s/%s", config_dir, CONFIG_FILENAME_BASE);
 
     /* Load base configuration */
-    if (config_load_base(config_base_file, &(config->base)) != 0) {
+    if (config_load_base(config_base_file, &(config->base),
+                &(config->desktop)) != 0) {
         LOGGER_WARNING("Base configuration could not be loaded;" \
                 " default values will be used", L_NARG);
         s_config_apply_restricted_memory_overrides(config,
