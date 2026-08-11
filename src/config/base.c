@@ -26,6 +26,7 @@
 
 /* Local includes */
 #include <config.h>
+#include <config/internal.h>
 
 
 /**
@@ -705,22 +706,10 @@ static void s_config_load_screens(cJSON *json,
 
 
 /* Load base configuration */
-/**
- * @brief Load @c "systray" (dock position/monitor/order/layer, and
- *        its nested @c "clock", @c "battery", and @c "text" objects)
- *        from parsed @c config.json
- *
- * A no-op, leaving @p config_base's own systray fields at whatever
- * they already held, if @c "systray" itself is absent.  Each of the
- * three nested objects is likewise only consulted if present.
- *
- * @param json        Parsed root of @c config.json
- * @param config_base Destination structure; its @c systray fields are
- *                    updated here
- *
- * @note Complexity: @e O(1)
- */
-static void s_config_load_systray(cJSON *json,
+/* Load "systray" (dock position/monitor/order/layer, and its nested
+ * "clock", "battery", and "text" objects) from a parsed config.json
+ * or memguard.json */
+void ci_config_load_systray(cJSON *json,
         struct config_base_s *config_base)
 {
     cJSON *systray;
@@ -1086,6 +1075,8 @@ int config_load_base(const char *filename,
     startup_notification_item = cJSON_GetObjectItem(json,
             "startup-notification");
     if (startup_notification_item) {
+        json_load_bool(startup_notification_item, "is-enabled",
+                &config_base->startup_notification.is_enabled);
         json_load_uint(startup_notification_item, "timeout-seconds",
                 &config_base->startup_notification.timeout_seconds);
     }
@@ -1119,7 +1110,7 @@ int config_load_base(const char *filename,
     }
 
     /* Load systray dock configuration */
-    s_config_load_systray(json, config_base);
+    ci_config_load_systray(json, config_base);
 
     /* Free memory */
     cJSON_Delete(json);

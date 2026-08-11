@@ -23,8 +23,14 @@
 #define CONFIG_INTERNAL_H
 
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Default initial values */
 #include <defs/config.h>
+
+/* Project includes */
+#include <config.h>
 
 
 /**
@@ -45,6 +51,30 @@
  */
 void ci_config_dir_set(const char *config_dir_prefix,
         char *config_dir_base);
+
+/**
+ * @brief Load @c "systray" (dock position/monitor/order/layer, and
+ *        its nested @c "clock", @c "battery", and @c "text" objects)
+ *        from a parsed @c config.json or @c memguard.json
+ *
+ * A no-op, leaving @p config_base's own systray fields at whatever
+ * they already held, if @c "systray" itself is absent.  Each of the
+ * three nested objects is likewise only consulted if present.
+ * Declared here rather than kept private to @c config/base.c since
+ * both it and @c config/memguard.c need this exact same parsing (the
+ * @c "systray" object itself is identical between the two files), and
+ * duplicating it would risk the two drifting apart over some future
+ * change to one without the other.
+ *
+ * @param json        Parsed root of @c config.json or @c
+ *                    memguard.json
+ * @param config_base Destination structure; its @c systray fields are
+ *                    updated here
+ *
+ * @note Implemented in @c config/base.c
+ * @note Complexity: @e O(1)
+ */
+void ci_config_load_systray(cJSON *json, struct config_base_s *config_base);
 
 
 #endif  /* ! CONFIG_INTERNAL_H */

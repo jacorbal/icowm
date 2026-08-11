@@ -622,8 +622,13 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     /* Begin startup notification before forking, so the child can be
      * handed the resulting ID as 'DESKTOP_STARTUP_ID' below; a
      * startup-notification-aware application reads that variable and
-     * broadcasts its own completion once its main window is ready. */
+     * broadcasts its own completion once its main window is ready.
+     * Skipped entirely when 'startup_notification.is_enabled' is
+     * false: 'have_startup_id' then stays false too, so the rest of
+     * this function's own logic (skipping 'DESKTOP_STARTUP_ID' below)
+     * needs no separate check of its own. */
     have_startup_id = (desktop->connection != NULL) &&
+        desktop->config_base->startup_notification.is_enabled &&
         sn_begin(desktop->connection, wm_get_surfaces(),
                 executable_path, startup_id, sizeof(startup_id));
 

@@ -42,6 +42,7 @@
 #define CONFIG_FILENAME_RULES "rules.json"
 #define CONFIG_FILENAME_SESSION "session.json"
 #define CONFIG_FILENAME_MENU "menu.json"
+#define CONFIG_FILENAME_MEMGUARD "memguard.json"
 
 /* Default values when no value is given
  *

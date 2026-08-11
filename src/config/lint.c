@@ -141,6 +141,7 @@ static const config_lint_key_td s_schema_icons[] = {
 };
 
 static const config_lint_key_td s_schema_startup_notification[] = {
+    {"is-enabled", NULL, 0u},
     {"timeout-seconds", NULL, 0u}
 };
 

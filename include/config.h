@@ -161,12 +161,16 @@ struct config_base_s {
                                           fortune dialog */
 
     /**
-     * @brief Startup-notification sequence timeout
+     * @brief Whether launching a program begins a startup-
+     *        notification sequence at all, and that sequence's own
+     *        timeout
      *
-     * See @c sn_set_timeout_seconds and @c SN_TIMEOUT_SECONDS in
-     * sn.h for what this controls and its built-in default.
+     * See @c sn_begin (its only call site checks @c is_enabled first)
+     * and @c sn_set_timeout_seconds/@c SN_TIMEOUT_SECONDS in sn.h for
+     * what @c timeout_seconds controls and its built-in default.
      */
     struct {
+        bool is_enabled;
         uint32_t timeout_seconds;
     } startup_notification;
 
