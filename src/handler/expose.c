@@ -244,8 +244,18 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
-        desktop_repaint_frame_decoration(connection, client,
-                use_active_style, &cfg->theme);
+        /* A fullscreen client's own frame can still receive an
+         * Expose (e.g. a click landing on it while it happens to
+         * still exist as an X window underneath, even though it is
+         * never shown decorated), and this path used to repaint the
+         * theme's regular border onto it unconditionally regardless;
+         * same condition 's_desktop_render_one_client' (render/
+         * desktop.c) already uses for its own 'hide_decoration'. */
+        if (!(client_is_fullscreen(client) &&
+                    client->was_decorated_fullscreen)) {
+            desktop_repaint_frame_decoration(connection, client,
+                    use_active_style, &cfg->theme);
+        }
         xcb_flush(connection);
         return;
     }

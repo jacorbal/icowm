@@ -317,7 +317,23 @@ void wcmd_client_focus(client_td *client)
 
     xcb_map_window(client->connection, client->window);
     if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->theme != NULL) {
+            client->theme != NULL && !client_is_fullscreen(client)) {
+        /* Skipped outright for a fullscreen client, decorated or not:
+         * unconditionally applying the theme's own real border width
+         * here on every single focus change (this function runs on
+         * every click, via 'focus_apply') undid the zero width
+         * 'wcmd_client_fullscreen' (cmds/state.c) had already set,
+         * putting a real, visible border back on an undecorated
+         * fullscreen client's own window -- confirmed directly from
+         * runtime diagnostics: an undecorated client (e.g. mpv, which
+         * requests no decoration of its own from the very start, so
+         * 'client_is_decorated' is already false before it ever goes
+         * fullscreen, unlike a client that only loses decoration
+         * because it went fullscreen) has no separate frame at all
+         * ('client->frame' stays 0 throughout, this branch's own
+         * 'hide_decoration' equivalent everywhere else in the project
+         * never even applies to it), so this branch was the only
+         * place actually restoring its border on focus. */
         border_color = client->theme->window.active.border.color;
         xcb_change_window_attributes(client->connection, client->window,
                 XCB_CW_BORDER_PIXEL, &border_color);
@@ -376,7 +392,11 @@ void wcmd_client_unfocus(client_td *client)
     }
 
     if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->theme != NULL) {
+            client->theme != NULL && !client_is_fullscreen(client)) {
+        /* Same reasoning as the matching block in 'wcmd_client_focus'
+         * just above: skipped for a fullscreen client so a losing-
+         * focus repaint cannot put a real border back on an
+         * undecorated fullscreen client's own window either. */
         border_color = client->theme->window.inactive.border.color;
         xcb_change_window_attributes(client->connection, client->window,
                 XCB_CW_BORDER_PIXEL, &border_color);

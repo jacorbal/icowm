@@ -1,6 +1,6 @@
 # Makefile (for GNU Make)
 #
-# Project: IcoWM (`icowm`), Iconifying Window Manager
+# Project: IcoWM ('icowm'), Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
 
 # Copyright (c) 2026, J. A. Corbal
@@ -109,8 +109,8 @@ CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 
 
-## Options on `make`
-# Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`
+## Options on 'make'
+# Compiler: 'make clean && make CC=clang' or 'make clean && make CC=gcc'
 CC = clang
 ifeq ($(CC), clang)
 	CCWARN += $(CCWARN_CLANG)
@@ -120,8 +120,8 @@ else
     $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
 
-# Use `make clean && make DEBUG=1` to add debugging information
-# Use `make clean && make DEBUG=2` to compile & link with address sanitizer
+# Use 'make clean && make DEBUG=1' to add debugging information
+# Use 'make clean && make DEBUG=2' to compile & link with address sanitizer
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
 	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
@@ -135,10 +135,25 @@ else
 	CCFLAGS += -DNDEBUG -O$(CCOPT)
 endif
 
-# Use `make clean && make STRIP=1` to discard symbols from object files
+# Use 'make clean && make STRIP=1' to discard symbols from object files
 STRIP ?= 0
 ifeq ($(STRIP), 1)
 	LDFLAGS += -s
+endif
+
+# Use 'make LOWMEM=1' to shrink several compile-time array capacities
+# throughout the codebase, for building specifically for a severely
+# memory-constrained target.
+#
+# Independent of restricted-memory mode ('icowm -M <mib>').
+# It does not turn that mode on by itself, and it does not supply
+# a default for '-M  <mib>' when that flag is left off at run time
+# either.
+#
+# See 'defs/lowmem.h' for a broader explanation.
+LOWMEM ?=
+ifneq ($(LOWMEM),)
+CCFLAGS += -D LOWMEM
 endif
 
 

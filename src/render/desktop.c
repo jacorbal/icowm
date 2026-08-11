@@ -799,10 +799,28 @@ static void s_desktop_render_one_client(desktop_td *desktop,
         xcb_configure_window(desktop->connection, target, mask,
                 (uint32_t *) values);
         if (target != client->window) {
-            left = (uint16_t) client->layout.frame_extents.left;
-            right = (uint16_t) client->layout.frame_extents.right;
-            top = (uint16_t) client->layout.frame_extents.top;
-            bottom = (uint16_t) client->layout.frame_extents.bottom;
+            /* Forced to zero outright for a fullscreen client, rather
+             * than trusting 'frame_extents' to already be zero: this
+             * is the exact geometry a click or a losing-focus repaint
+             * used to leave stuck at whatever non-zero theme padding
+             * 'frame_extents' happened to hold, showing the frame's
+             * own background (set to the theme's border color by
+             * 'desktop_repaint_frame_decoration') through the gap left
+             * along the content window's own top and left edges --
+             * visually indistinguishable from a real border, though
+             * neither an X11 border nor that repaint function was
+             * ever actually involved. */
+            if (hide_decoration) {
+                left = 0;
+                right = 0;
+                top = 0;
+                bottom = 0;
+            } else {
+                left = (uint16_t) client->layout.frame_extents.left;
+                right = (uint16_t) client->layout.frame_extents.right;
+                top = (uint16_t) client->layout.frame_extents.top;
+                bottom = (uint16_t) client->layout.frame_extents.bottom;
+            }
             title_h = client->title_height;
             inner_w = (client->layout.geometry.cur.dim.w > left + right)
                 ? (uint16_t) (client->layout.geometry.cur.dim.w -
@@ -848,8 +866,10 @@ static void s_desktop_render_one_client(desktop_td *desktop,
              * synthetic 'ConfigureNotify' above. */
             xcb_clear_area(desktop->connection, 1,
                     client->window, 0, 0, 0, 0);
-            desktop_repaint_frame_decoration(desktop->connection,
-                    client, is_focused, desktop->config_theme);
+            if (!hide_decoration) {
+                desktop_repaint_frame_decoration(desktop->connection,
+                        client, is_focused, desktop->config_theme);
+            }
 
             if (client->titlebar != 0 && !hide_decoration) {
                 xcb_configure_window(desktop->connection,

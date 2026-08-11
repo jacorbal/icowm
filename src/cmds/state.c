@@ -343,7 +343,6 @@ void wcmd_client_fullscreen(client_td *client)
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
-    uint32_t border_width;
     bool was_decorated;
     desktop_td *desktop;
     monitor_td monitor;
@@ -387,13 +386,45 @@ void wcmd_client_fullscreen(client_td *client)
     client->was_decorated_fullscreen = was_decorated;
     target = wcmd_target_win(client);
 
+    /* Resized to fill the screen FIRST, before the content window
+     * below (when there is a separate one, i.e. 'target' is the
+     * frame): reversing this order used to leave a real, if brief,
+     * window between the two separate 'ConfigureWindow' requests
+     * where the content window already had its own full-screen size
+     * while its parent frame still had its old, smaller one, which
+     * X11 clips a child window to regardless of what size the child
+     * itself was just given.  A fast-redrawing client (e.g. xterm)
+     * never showed it, redrawing its own content well before a human
+     * could perceive the gap; a client buffering its own rendering
+     * (e.g. a GL/Vulkan video player like mpv, already special-cased
+     * below for exactly this kind of timing sensitivity) could catch
+     * that intermediate geometry and paint a frame reflecting it,
+     * leaving the frame's own background (set to the theme's border
+     * color by 'desktop_repaint_frame_decoration', render/desktop.c)
+     * visible through the gap along the content's own top and left
+     * edges until its next redraw happened to catch up -- visually
+     * indistinguishable from a real border, though neither an X11
+     * border nor that repaint function was ever actually involved.
+     * Configuring the parent first removes the gap outright: the
+     * child is never given a size its own parent does not already
+     * accommodate, however briefly. */
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_X      |
+            XCB_CONFIG_WINDOW_Y      |
+            XCB_CONFIG_WINDOW_WIDTH  |
+            XCB_CONFIG_WINDOW_HEIGHT |
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) {
+                (uint32_t) mx, (uint32_t) my,
+                (uint32_t) sw,
+                (uint32_t) sh,
+                0u
+            });
+
     if (was_decorated && client->frame != 0) {
-        border_width = 0u;
         if (client->titlebar != 0) {
             xcb_unmap_window(client->connection, client->titlebar);
         }
-        xcb_configure_window(client->connection, client->frame,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
         xcb_configure_window(client->connection, client->window,
                 XCB_CONFIG_WINDOW_X |
                 XCB_CONFIG_WINDOW_Y |
@@ -410,28 +441,6 @@ void wcmd_client_fullscreen(client_td *client)
         client->layout.frame_extents.top = 0;
         client->layout.frame_extents.bottom = 0;
     }
-
-    /* Resize the visible target to fill screen.  'BORDER_WIDTH' is
-     * always included here, not just inside the 'was_decorated' block
-     * above: for an undecorated client, 'target' is the client's own
-     * window (there is no frame to have already cleared the border
-     * on), and it may well have a real border of its own (the theme's
-     * border width is applied directly to undecorated windows).
-     * Leaving that out only for undecorated clients was exactly why
-     * they kept a visible border in fullscreen while decorated ones
-     * did not. */
-    xcb_configure_window(client->connection, target,
-            XCB_CONFIG_WINDOW_X      |
-            XCB_CONFIG_WINDOW_Y      |
-            XCB_CONFIG_WINDOW_WIDTH  |
-            XCB_CONFIG_WINDOW_HEIGHT |
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            (const uint32_t[]) {
-                (uint32_t) mx, (uint32_t) my,
-                (uint32_t) sw,
-                (uint32_t) sh,
-                0u
-            });
 
     client->layout.geometry.cur.pos.x = mx;
     client->layout.geometry.cur.pos.y = my;
@@ -508,29 +517,20 @@ void wcmd_client_unfullscreen(client_td *client)
     border_width = (client->theme != NULL)
         ? (uint16_t) client->theme->window.active.border.width : 0u;
 
-    /* 'BORDER_WIDTH' is included here too, not just inside the
-     * 'was_decorated_fullscreen' block below: for an undecorated
-     * client, 'target' is its own window and this is the only place
-     * its border gets restored at all, since there is no separate
-     * frame for a later step to set it on.  Restore the real theme
-     * width directly; for a decorated client this 0-or-real value is
-     * immediately superseded by the frame's own border configure just
-     * below, so it is harmless there, just redundant. */
-    xcb_configure_window(client->connection, target,
-            XCB_CONFIG_WINDOW_X      |
-            XCB_CONFIG_WINDOW_Y      |
-            XCB_CONFIG_WINDOW_WIDTH  |
-            XCB_CONFIG_WINDOW_HEIGHT |
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            (const uint32_t[]) {
-                (uint32_t) client->layout.geometry.cur.pos.x,
-                (uint32_t) client->layout.geometry.cur.pos.y,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h,
-                (client->was_decorated_fullscreen)
-                    ? 0u : (uint32_t) border_width
-            });
-
+    /* Configured BEFORE the frame/target itself shrinks further down,
+     * for the same reason 'wcmd_client_fullscreen' now configures its
+     * own outer target before the inner content window: reversing
+     * this order used to leave a real, if brief, window between two
+     * separate 'ConfigureWindow' requests where the frame already had
+     * its own smaller, restored size while the content window still
+     * had its old, larger fullscreen one, which X11 clips a child
+     * window to regardless of what size the child itself still
+     * claims.  A smaller child always fits within a still-larger
+     * parent with no clipping at all, so configuring the child first
+     * here removes that gap outright, the same as configuring the
+     * parent first does for the opposite (shrinking a parent that
+     * would otherwise still be smaller than an as-yet-unshrunk
+     * child) case there. */
     if (client->was_decorated_fullscreen && client->frame != 0) {
         title_height = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w >
@@ -588,6 +588,27 @@ void wcmd_client_unfullscreen(client_td *client)
             xcb_map_window(client->connection, client->titlebar);
         }
     }
+
+    /* 'BORDER_WIDTH' is included here too, not just inside the
+     * 'was_decorated_fullscreen' block above: for an undecorated
+     * client, 'target' is its own window and this is the only place
+     * its border gets restored at all, since there is no separate
+     * frame for an earlier step to already have set it on. */
+    xcb_configure_window(client->connection, target,
+            XCB_CONFIG_WINDOW_X      |
+            XCB_CONFIG_WINDOW_Y      |
+            XCB_CONFIG_WINDOW_WIDTH  |
+            XCB_CONFIG_WINDOW_HEIGHT |
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) {
+                (uint32_t) client->layout.geometry.cur.pos.x,
+                (uint32_t) client->layout.geometry.cur.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h,
+                (client->was_decorated_fullscreen)
+                    ? 0u : (uint32_t) border_width
+            });
+
     client->was_decorated_fullscreen = false;
 
     /* Same reasoning as the matching call in 'wcmd_client_fullscreen':

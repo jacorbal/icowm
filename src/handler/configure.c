@@ -597,10 +597,13 @@ void handler_configure_notify(xcb_connection_t *connection,
                  * for a full titlebar repaint (clear, background,
                  * font-rendered title text, three button glyphs) that
                  * a move never actually needed. */
-                desktop_repaint_frame_decoration(connection, client,
-                        is_focused,
-                        (desktop != NULL) ? desktop->config_theme
-                                          : client->theme);
+                if (!(client_is_fullscreen(client) &&
+                            client->was_decorated_fullscreen)) {
+                    desktop_repaint_frame_decoration(connection, client,
+                            is_focused,
+                            (desktop != NULL) ? desktop->config_theme
+                                              : client->theme);
+                }
                 if (connection != NULL) {
                     xcb_flush(connection);
                 }
