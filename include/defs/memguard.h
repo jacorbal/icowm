@@ -59,7 +59,7 @@
 
 /**
  * @brief Smallest @c -M ceiling IcoWM will actually accept, and the
- *        default ceiling a @c LOWMEM build enables on its own when
+ *        default ceiling a @c COMPACT build enables on its own when
  *        @c -M is not given
  *
  * Derived from @c MEMGUARD_BASELINE_MIB and @c MEMGUARD_HYSTERESIS_

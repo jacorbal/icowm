@@ -92,16 +92,19 @@ void dialog_info_repaint(xcb_connection_t *connection,
 /**
  * @brief Handle a mouse click inside the informational dialog
  *
- * Closes the dialog when the pointer lands inside the "OK" button.
+ * Selects and repaints the "OK" button when the pointer lands inside
+ * it, then defers the actual close for shortly after; see @c
+ * menu_message_dialog_handle_click for the full reasoning.
  *
  * @param connection XCB connection
+ * @param config     Active configuration, for the repaint
  * @param x          Pointer X coordinate relative to the dialog
  * @param y          Pointer Y coordinate relative to the dialog
  *
  * @note Complexity: @e O(1)
  */
 void dialog_info_handle_click(xcb_connection_t *connection,
-        int x, int y);
+        const config_td *config, int x, int y);
 
 /**
  * @brief Query whether the informational dialog is currently visible

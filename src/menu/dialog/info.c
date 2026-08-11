@@ -53,9 +53,9 @@ void dialog_info_repaint(xcb_connection_t *connection,
 
 /* Handle a mouse click inside the informational dialog */
 void dialog_info_handle_click(xcb_connection_t *connection,
-        int x, int y)
+        const config_td *config, int x, int y)
 {
-    menu_message_dialog_handle_click(connection, x, y);
+    menu_message_dialog_handle_click(connection, config, x, y);
 }
 
 

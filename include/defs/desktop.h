@@ -28,11 +28,11 @@
  * Only the fallback used when restricted-memory mode is not active at
  * all (see @c memguard_max_clients, which @c desktop_init prefers
  * over this whenever @c -M is given); smaller under
- * @c LOWMEM (see @c defs/lowmem.h) regardless, so a
- * low-memory build run without @c -M still starts with a more modest
+ * @c COMPACT (see @c defs/compact.h) regardless, so a
+ * compact build run without @c -M still starts with a more modest
  * initial allocation than an ordinary build would.
  */
-#ifdef LOWMEM
+#ifdef COMPACT
 #define WM_DESKTOP_INITIAL_CAPACITY (32)
 #else
 #define WM_DESKTOP_INITIAL_CAPACITY (256)

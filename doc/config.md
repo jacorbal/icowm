@@ -2666,7 +2666,7 @@ If you know you are always going to run on a severely memory-
 constrained machine, you can build IcoWM itself with that in mind:
 
 ```
-make LOWMEM=1
+make COMPACT=1
 ```
 
 This produces a separate build (you would need to rebuild without it
@@ -2677,10 +2677,10 @@ allowance for how many windows a desktop is initially prepared for;
 and a smaller allowance for how long a message dialog's own text can
 be.
 
-**`LOWMEM` and `-M <mib>` are entirely independent of each other.**
-`LOWMEM` only changes those fixed, compiled-in ceilings; it does not
+**`COMPACT` and `-M <mib>` are entirely independent of each other.**
+`COMPACT` only changes those fixed, compiled-in ceilings; it does not
 turn restricted-memory mode on by itself, and it does not choose a
-`<mib>` value for `-M <mib>` on its own either.  A `LOWMEM` build
+`<mib>` value for `-M <mib>` on its own either.  A `COMPACT` build
 launched without `-M <mib>` at all runs a perfectly ordinary,
 unrestricted session: no memory-ceiling warning, no window-count
 limit, icon pictures and modern font rendering both still on, exactly
@@ -2700,7 +2700,7 @@ if yours does, your own configuration always wins over the defaults
 shown here, in every row, in either kind of build, restricted-memory
 mode included.
 
-| Setting                                              | Ordinary build | `LOWMEM` build |
+| Setting                                              | Ordinary build | `COMPACT` build |
 |-------------------------------------------------------|---------------:|----------------:|
 | Desktops per screen, with no configuration file at all, ordinary session | 4 | 4 |
 | Desktops per screen, with no configuration file at all, `-M <mib>` given | 2 | 2 |

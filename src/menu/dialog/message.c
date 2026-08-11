@@ -35,6 +35,7 @@
 
 /* Local includes */
 #include <menu/dialog.h>
+#include <menu/dialog/defer.h>
 #include <menu/dialog/message.h>
 #include <menu/draw.h>
 
@@ -735,6 +736,13 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     xcb_flush(connection);
     s_message_window = XCB_WINDOW_NONE;
 
+    /* Also cancels any click-triggered close still scheduled (see
+     * 'menu_dialog_defer_schedule' in menu_message_dialog_handle_
+     * click), so 'menu_dialog_defer_tick' has nothing left to do once
+     * this dialog is gone through some other path (e.g., Escape)
+     * before that delay elapsed on its own. */
+    menu_dialog_defer_cancel();
+
     /* Given back immediately on close, rather than held until the
      * next 'menu_message_dialog_show' reuses or replaces it: nothing
      * stays reserved for this dialog's own text while no dialog is
@@ -760,7 +768,7 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
 
 /* Handle a click in the message dialog */
 void menu_message_dialog_handle_click(xcb_connection_t *connection,
-        int x, int y)
+        const config_td *config, int x, int y)
 {
     const s_message_layout_td *lo = &s_message_layout;
 
@@ -772,8 +780,33 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
             y < (int) lo->btn_y + (int) lo->btn_h &&
             x >= (int) lo->btn_x &&
             x < (int) lo->btn_x + (int) lo->btn_w) {
-        menu_message_dialog_close(connection);
+        /* Selected and repainted first, the same as
+         * 'menu_confirm_dialog_handle_click' already does for its own
+         * two buttons, so a person actually sees the click land on
+         * the "OK" button before the deferred close below makes the
+         * dialog go away. */
+        s_message_layout.ok_selected = true;
+        if (config != NULL) {
+            s_message_draw(connection, config);
+        }
+        menu_dialog_defer_schedule(connection,
+                DIALOG_CLICK_FEEDBACK_DELAY_MS,
+                menu_message_dialog_close);
     }
+}
+
+
+/* Milliseconds until a pending click-triggered close becomes due */
+int menu_message_dialog_ms_remaining(void)
+{
+    return menu_dialog_defer_ms_remaining();
+}
+
+
+/* Close the dialog if a click-triggered close is due */
+void menu_message_dialog_tick(xcb_connection_t *connection)
+{
+    menu_dialog_defer_tick(connection);
 }
 
 

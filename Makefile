@@ -13,7 +13,7 @@
 PROJECT_NAME_PROG = icowm
 PROJECT_NAME_SHORT = "IcoWM"
 PROJECT_NAME_LONG = "Iconifying Window Manager"
-PROJECT_VERSION = "1.0.1b1"
+PROJECT_VERSION = "1.0.1-beta.2"
 PROJECT_VERSION_CODENAME = "'ovelya"
 LICENSE = "ISC License"
 COPYRIGHT = "Copyright (c) 2026"
@@ -32,7 +32,7 @@ B_DIR = $(PWD)/bin
 SHELL=/bin/sh
 JOBS ?= $(shell nproc)
 PKGCONF ?= $(shell command -v pkgconf 2>/dev/null || \
-		command -v pkg-config 2>/dev/null || echo pkgconf)
+           command -v pkg-config 2>/dev/null || echo pkgconf)
 
 
 ## Compiler & linker options
@@ -43,56 +43,60 @@ CCEXTRA = -fdiagnostics-color=always -fdiagnostics-show-location=once
 
 CCWARN_POSIX = -D _POSIX_C_SOURCE=200112L  #-D __STRICT_ANSI__
 
-CCWARN_TINY = $(CCWARN_POSIX) -Wpedantic -Wall -Wextra -Wshadow -Wundef -Werror
+CCWARN_TINY = $(CCWARN_POSIX) -Wpedantic -Wall -Wextra -Wshadow -Wundef \
+              -Werror
 
 CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
-				-Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
-				-Wunreachable-code -Wmissing-format-attribute \
-				-Wdeprecated \
-				-Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
+              -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
+              -Wunreachable-code -Wmissing-format-attribute \
+              -Wdeprecated \
+              -Wno-padded -Wno-unused-parameter -Wno-format-nonliteral
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
-				-Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-				-Wno-suggest-attribute=format   -fwrapv
+             -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
+             -Wno-suggest-attribute=format   -fwrapv
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
-				-Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
-				-Wdeclaration-after-statement -Wsometimes-uninitialized \
-				-Wno-fortify-source -Wno-cast-align -Wno-cast-qual \
-				-Wdocumentation
+               -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
+               -Wdeclaration-after-statement -Wsometimes-uninitialized \
+               -Wno-fortify-source -Wno-cast-align -Wno-cast-qual \
+               -Wdocumentation
 
 CCWARN = $(CCWARN_TINY) $(CCWARN_MORE) $(CCWARN_MOST)
 
 CCDEPS = -MMD -MP
 
 XCB_CFLAGS = $(shell $(PKGCONF) --cflags \
-		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
-		xcb-cursor xcb-render xcb-renderutil 2>/dev/null)
+        xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
+        xcb-cursor xcb-render xcb-renderutil 2>/dev/null)
 FONT_CFLAGS = $(shell $(PKGCONF) --cflags freetype2 fontconfig 2>/dev/null | \
-		sed 's/-I/-isystem /g')
+        sed 's/-I/-isystem /g')
 JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
-		$(PKGCONF) --cflags cjson 2>/dev/null)
+        $(PKGCONF) --cflags cjson 2>/dev/null)
 CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
-		$(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
+          $(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
 XCB_LFLAGS = $(shell $(PKGCONF) --libs \
-		xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
-		xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \
-		printf '%s' '-lxcb -lxcb-keysyms -lxcb-util -lxcb-icccm -lxcb-ewmh -lxcb-randr -lxcb-sync -lxcb-cursor -lxcb-render -lxcb-render-util')
+        xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
+        xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \
+        printf '%s ' '-lxcb' '-lxcb-keysyms' '-lxcb-util' '-lxcb-icccm' \
+        '-lxcb-ewmh' '-lxcb-randr' '-lxcb-sync' \
+        '-lxcb-cursor' '-lxcb-render' '-lxcb-render-util')
 FONT_LFLAGS = $(shell $(PKGCONF) --libs freetype2 fontconfig 2>/dev/null || \
-		printf '%s' '-lfreetype -lfontconfig')
+        printf '%s' '-lfreetype -lfontconfig')
 JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
-		$(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
+        $(PKGCONF) --libs cjson 2>/dev/null || printf '%s' '-lcjson')
 OTHR_LFLAGS = -lpthread
-LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) $(OTHR_LFLAGS)
+LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) \
+          $(OTHR_LFLAGS)
 
 
 ## Data & build information
 BUILD_NUMBER_FILE = Build
 ifneq (,$(wildcard $(BUILD_NUMBER_FILE)))
-	LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
+    LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
 else
-	LAST_BUILD_NUMBER := 0
+    LAST_BUILD_NUMBER := 0
 endif
 BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
 
@@ -113,9 +117,9 @@ CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 # Compiler: 'make clean && make CC=clang' or 'make clean && make CC=gcc'
 CC = clang
 ifeq ($(CC), clang)
-	CCWARN += $(CCWARN_CLANG)
+    CCWARN += $(CCWARN_CLANG)
 else ifeq ($(CC), gcc)
-	CCWARN += $(CCWARN_GCC)
+    CCWARN += $(CCWARN_GCC)
 else
     $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
@@ -124,24 +128,25 @@ endif
 # Use 'make clean && make DEBUG=2' to compile & link with address sanitizer
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
+    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
-	CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 -fsanitize=address -fno-omit-frame-pointer
-	LDFLAGS += -fsanitize=address -fPIE
-	ifeq ($(CC), gcc)
-	    CCFLAGS += -fanalyzer
-	endif
+    CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 \
+               -fsanitize=address -fno-omit-frame-pointer
+    LDFLAGS += -fsanitize=address -fPIE
+    ifeq ($(CC), gcc)
+        CCFLAGS += -fanalyzer
+    endif
 else
-	CCFLAGS += -DNDEBUG -O$(CCOPT)
+    CCFLAGS += -DNDEBUG -O$(CCOPT)
 endif
 
 # Use 'make clean && make STRIP=1' to discard symbols from object files
 STRIP ?= 0
 ifeq ($(STRIP), 1)
-	LDFLAGS += -s
+    LDFLAGS += -s
 endif
 
-# Use 'make LOWMEM=1' to shrink several compile-time array capacities
+# Use 'make COMPACT=1' to shrink several compile-time array capacities
 # throughout the codebase, for building specifically for a severely
 # memory-constrained target.
 #
@@ -150,10 +155,10 @@ endif
 # a default for '-M  <mib>' when that flag is left off at run time
 # either.
 #
-# See 'defs/lowmem.h' for a broader explanation.
-LOWMEM ?=
-ifneq ($(LOWMEM),)
-CCFLAGS += -D LOWMEM
+# See 'defs/compact.h' for a broader explanation.
+COMPACT ?=
+ifneq ($(COMPACT),)
+CCFLAGS += -D COMPACT
 endif
 
 
@@ -168,8 +173,8 @@ ARGS ?=
 
 # Sources, objects and auto-generated dependencies
 SRCS = $(wildcard $(S_DIR)/*.c) \
-		$(wildcard $(S_DIR)/*/*.c) \
-		$(wildcard $(S_DIR)/*/*/*.c)
+       $(wildcard $(S_DIR)/*/*.c) \
+       $(wildcard $(S_DIR)/*/*/*.c)
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
@@ -259,6 +264,8 @@ help:
 	@echo "  Use 'JOBS=<n>' to compile with 'n' parallel jobs using 'parallel'"
 	@echo "  Use 'DEBUG=1' to generate detailed debug information"
 	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
+	@echo "  Use 'STRIP=1' to build and discard symbols from object files"
+	@echo "  Use 'COMPACT=1' to build using smaller arrays"
 	@echo
 	@echo "Binary will be placed in '$(TARGET)'"
 
@@ -268,4 +275,4 @@ help:
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
-		hard hard-run doxygen ccflags ldflags parallel help
+        hard hard-run doxygen ccflags ldflags parallel help

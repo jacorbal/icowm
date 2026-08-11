@@ -161,7 +161,7 @@ static inline void s_show_help(FILE *fp)
     }
 
     /* Restricted-memory information */
-#ifdef LOWMEM
+#ifdef COMPACT
     fprintf(fp, "Restricted memory: enabled in this build by default," \
             " with a ceiling of %u MiB;\n" \
             "                    it also refuses to start if less" \
@@ -333,10 +333,10 @@ int main(int argc, char *const argv[])
     bool log_is_tracking = false;
     bool verbose = true;
     bool lint_requested = false;
-#ifdef LOWMEM
-    /* A LOWMEM build enables restricted-memory mode on its own, at
+#ifdef COMPACT
+    /* A COMPACT build enables restricted-memory mode on its own, at
      * the minimum ceiling, unless '-M' below overrides it with a
-     * higher one; a non-LOWMEM build stays off unless '-M' is given
+     * higher one; a non-COMPACT build stays off unless '-M' is given
      * explicitly. */
     uint32_t restricted_memory_mib = MEMGUARD_MIN_CEILING_MIB;
 #else

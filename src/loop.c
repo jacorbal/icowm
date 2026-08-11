@@ -52,6 +52,7 @@
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/dialog/confirm.h>
+#include <menu/dialog/message.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 
@@ -401,6 +402,12 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 menu_confirm_dialog_ms_remaining());
 
+        /* Shorter still while the message dialog has a
+         * click-triggered close of its own pending (see
+         * 'menu_message_dialog_tick' in menu/dialog/message.h). */
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                menu_message_dialog_ms_remaining());
+
         /* Shorter still while a window drag is holding the pointer
          * against a warp-eligible screen edge (see 'drag_warp_tick'
          * in input/mouse/drag.h), so it still switches desktops once
@@ -420,6 +427,7 @@ void loop_run(wm_td *wm)
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection, wm->config);
+        menu_message_dialog_tick(wm->connection);
         drag_warp_tick(wm->connection);
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {

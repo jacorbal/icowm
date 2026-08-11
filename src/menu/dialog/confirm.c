@@ -21,6 +21,7 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <defs/dialog.h>
 #include <defs/uistr.h>
 
 /* Util includes */
@@ -34,6 +35,7 @@
 /* Local includes */
 #include <menu/dialog.h>
 #include <menu/dialog/confirm.h>
+#include <menu/dialog/defer.h>
 #include <menu/draw.h>
 
 
@@ -72,21 +74,6 @@ static void (*s_confirm_cancel_callback)(xcb_connection_t *) = NULL;
 /** Cached layout used for both creation and repaint */
 static s_confirm_layout_td s_confirm_layout;
 
-/**
- * @brief Absolute time the deferred click action (see
- *        's_confirm_defer_action') becomes due, valid only while
- *        's_confirm_deferred_pending' is true
- */
-static struct timespec s_confirm_deferred_due;
-
-/**
- * @brief Whether a mouse click on the confirm dialog is waiting to
- *        actually close/accept it, deferred so the newly selected
- *        button is visible for a moment first; see
- *        's_confirm_defer_action' for the full reasoning
- */
-static bool s_confirm_deferred_pending = false;
-
 /** Whether a countdown timeout is currently running (see
  *  'timeout_seconds' on 'menu_confirm_dialog_show') */
 static bool s_confirm_timeout_active = false;
@@ -100,10 +87,6 @@ static struct timespec s_confirm_timeout_due;
  *  changes rather than on every main-loop iteration; -1 before the
  *  first paint so that one always happens */
 static int s_confirm_timeout_last_shown = -1;
-
-/** How long the newly selected button stays visible before a
- *  mouse-click-triggered close/accept actually happens */
-#define DIALOG_CONFIRM_CLICK_DELAY_MS (150)
 
 /** Vertical gap, in pixels, between the prompt and the countdown
  *  line beneath it, when a timeout is running */
@@ -554,11 +537,11 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     s_confirm_callback = NULL;
     s_confirm_cancel_callback = NULL;
     /* Also cancels any click-triggered close/accept still scheduled
-     * (see 's_confirm_defer_action'), so 'menu_confirm_dialog_tick'
-     * has nothing left to do once this dialog is gone through some
-     * other path (e.g., Escape) before that delay elapsed on its
-     * own. */
-    s_confirm_deferred_pending = false;
+     * (see 'menu_dialog_defer_schedule' in menu_confirm_dialog_
+     * handle_click), so 'menu_dialog_defer_tick' has nothing left to
+     * do once this dialog is gone through some other path (e.g.,
+     * Escape) before that delay elapsed on its own. */
+    menu_dialog_defer_cancel();
     s_confirm_timeout_active = false;
     s_confirm_timeout_last_shown = -1;
 }
@@ -576,11 +559,12 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  * @brief Milliseconds remaining until an absolute deadline, floored
  *        at zero rather than going negative once past it
  *
- * The one request/reply-free clock computation
- * 's_confirm_timeout_ms_remaining', 'menu_confirm_dialog_ms_
- * remaining', and 'menu_confirm_dialog_tick' all need against their
- * own absolute deadline; this is the part that was actually
- * identical between them.
+ * The request/reply-free clock computation
+ * 's_confirm_timeout_ms_remaining' needs against the running
+ * countdown's own absolute deadline (see 'timeout_seconds' on
+ * 'menu_confirm_dialog_show'); the equivalent computation for the
+ * click-triggered close/accept lives in 'menu/dialog/defer.c' instead,
+ * shared with every other dialog that defers one the same way.
  *
  * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
  *
@@ -608,20 +592,16 @@ static int s_confirm_ms_until(const struct timespec *due)
 
 /**
  * @brief Repaint the confirm dialog with its newly clicked selection,
- *        then schedule the actual close/accept for shortly after
+ *        then defer the actual close/accept for shortly after
  *
  * A mouse click on the button that was not already selected changes
  * 's_confirm_selected' and needs that to actually be visible before
  * the dialog goes away, or the click reads as though it did not
- * register at the right spot even though it did; closing on the very
- * same repaint that shows the new selection would not give a person
- * any real chance to perceive it (screen updates and human perception
- * both take a moment neither this function nor the repaint it just
- * issued can shortcut), and blocking here with a sleep to wait one
- * out would freeze the whole window manager's event loop for that
- * long.  'menu_confirm_dialog_tick', called every main-loop iteration,
- * performs the deferred close/accept once 's_confirm_deferred_due'
- * arrives instead.
+ * register at the right spot even though it did.  The deferral itself
+ * is 'menu_dialog_defer_schedule' (menu/dialog/defer.h), shared with
+ * every other dialog that closes itself in response to a button
+ * click; this just repaints first so what it defers has something new
+ * to show.
  *
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint; the
@@ -630,7 +610,7 @@ static int s_confirm_ms_until(const struct timespec *due)
  *
  * @note Complexity: @e O(1)
  */
-static void s_confirm_defer_action(xcb_connection_t *connection,
+static void s_confirm_defer_click(xcb_connection_t *connection,
         const config_td *config)
 {
     if (config != NULL) {
@@ -638,40 +618,8 @@ static void s_confirm_defer_action(xcb_connection_t *connection,
         xcb_flush(connection);
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &s_confirm_deferred_due) != 0) {
-        /* Could not read the clock to schedule the delay; still
-         * better to act immediately than to leave the dialog stuck
-         * open with a pending action that can never become due. */
-        s_confirm_deferred_pending = false;
-        menu_confirm_dialog_accept(connection);
-        return;
-    }
-
-    s_confirm_deferred_due.tv_nsec +=
-        (long) DIALOG_CONFIRM_CLICK_DELAY_MS * 1000000L;
-    if (s_confirm_deferred_due.tv_nsec >= 1000000000L) {
-        s_confirm_deferred_due.tv_sec += 1;
-        s_confirm_deferred_due.tv_nsec -= 1000000000L;
-    }
-    s_confirm_deferred_pending = true;
-}
-
-
-/**
- * @brief Milliseconds remaining until a pending click-triggered
- *        close/accept becomes due
- *
- * @return Milliseconds remaining (never negative), or -1 if none is
- *         currently pending
- *
- * @note Complexity: @e O(1)
- */
-static int s_confirm_click_ms_remaining(void)
-{
-    if (!s_confirm_deferred_pending) {
-        return -1;
-    }
-    return s_confirm_ms_until(&s_confirm_deferred_due);
+    menu_dialog_defer_schedule(connection, DIALOG_CLICK_FEEDBACK_DELAY_MS,
+            menu_confirm_dialog_accept);
 }
 
 
@@ -696,7 +644,7 @@ static int s_confirm_timeout_ms_remaining(void)
 /* Milliseconds until the next thing this dialog needs to wake up for */
 int menu_confirm_dialog_ms_remaining(void)
 {
-    int click_ms = s_confirm_click_ms_remaining();
+    int click_ms = menu_dialog_defer_ms_remaining();
     int timeout_ms = s_confirm_timeout_ms_remaining();
     int wake_ms;
     int shown_seconds;
@@ -732,11 +680,10 @@ void menu_confirm_dialog_tick(xcb_connection_t *connection,
     int timeout_ms;
     int shown_seconds;
 
-    if (s_confirm_click_ms_remaining() == 0) {
-        s_confirm_deferred_pending = false;
-        menu_confirm_dialog_accept(connection);
-        /* The dialog this timer belonged to is gone now that it just
-         * accepted; nothing left below to service. */
+    menu_dialog_defer_tick(connection);
+    if (s_confirm_window == XCB_WINDOW_NONE) {
+        /* A click-triggered close/accept just closed this dialog;
+         * nothing left below to service. */
         return;
     }
 
@@ -776,13 +723,13 @@ bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
         if (x >= (int) lo->cancel_x &&
                 x < (int) lo->cancel_x + (int) lo->btn_w) {
             s_confirm_selected = 0;
-            s_confirm_defer_action(connection, config);
+            s_confirm_defer_click(connection, config);
             return true;
         }
         if (x >= (int) lo->confirm_x &&
                 x < (int) lo->confirm_x + (int) lo->btn_w) {
             s_confirm_selected = 1;
-            s_confirm_defer_action(connection, config);
+            s_confirm_defer_click(connection, config);
             return true;
         }
     }

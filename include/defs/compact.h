@@ -1,11 +1,11 @@
 /**
- * @file defs/lowmem.h
+ * @file defs/compact.h
  *
- * @brief Documents @c LOWMEM, a compile-time (not run-time) option
+ * @brief Documents @c COMPACT, a compile-time (not run-time) option
  *        that shrinks several fixed-size array capacities throughout
  *        the codebase
  *
- * @c LOWMEM and restricted-memory mode (@c icowm -M <mib>, see
+ * @c COMPACT and restricted-memory mode (@c icowm -M <mib>, see
  * @c memguard.h) are two entirely independent mechanisms that happen
  * to be designed to complement each other, not one triggering the
  * other:
@@ -21,13 +21,13 @@
  *   @c monitors[WM_SURFACE_MAX_MONITORS], and the message dialog's
  *   own @c lines[DIALOG_MSG_MAX_LINES] are three examples; see
  *   @c config.md §10 for the fuller list and the exact size of each.
- * - @c LOWMEM is a compile-time choice: defining it (@c make
- *   LOWMEM=1, which the top-level Makefile turns into @c -D LOWMEM)
+ * - @c COMPACT is a compile-time choice: defining it (@c make
+ *   COMPACT=1, which the top-level Makefile turns into @c -D COMPACT)
  *   shrinks exactly those compile-time capacities instead, in a
  *   separate binary that has to be rebuilt to change.  It does
  *   nothing else: it does not turn restricted-memory mode on by
  *   itself, and it does not supply any default for @c -M <mib> when
- *   that flag is left off.  A @c LOWMEM binary launched without
+ *   that flag is left off.  A @c COMPACT binary launched without
  *   @c -M <mib> at all runs an entirely ordinary, unrestricted
  *   session, just one whose compiled-in ceilings on screens,
  *   desktops, monitors, and so on happen to be smaller; restricted-
@@ -45,9 +45,9 @@
  * perfectly well without the other too.
  *
  * Nothing is declared here: each affected constant's own file defines
- * both its ordinary and its low-memory value, conditioned on whether
+ * both its ordinary and its compact value, conditioned on whether
  * this macro is defined, right where the constant already lived
- * before this option existed, rather than centralizing the low-memory
+ * before this option existed, rather than centralizing the compact
  * values somewhere separate from the ordinary ones they are each a
  * variant of.  This file exists purely so the mechanism as a whole
  * has one place documenting what it is, since no single constant's
@@ -63,8 +63,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef DEFS_LOWMEM_H
-#define DEFS_LOWMEM_H
+#ifndef DEFS_COMPACT_H
+#define DEFS_COMPACT_H
 
 
-#endif  /* ! DEFS_LOWMEM_H */
+#endif  /* ! DEFS_COMPACT_H */

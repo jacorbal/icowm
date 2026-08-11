@@ -256,7 +256,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
                     XCB_BUTTON_INDEX_5) {
                 menu_message_dialog_scroll(connection, config, 3);
             } else {
-                dialog_info_handle_click(connection,
+                dialog_info_handle_click(connection, config,
                         (int) event->event_x, (int) event->event_y);
             }
         }

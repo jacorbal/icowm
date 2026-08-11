@@ -31,14 +31,14 @@
  * Kept comfortably above what the keyboard-shortcuts list (see
  * @c menu/dialog/shortcuts.h) actually produces, plus headroom for it
  * growing over time, rather than tuned tightly to today's exact line
- * count.  Smaller under @c LOWMEM (see
- * @c defs/lowmem.h), though not as small as restricted-memory mode's
+ * count.  Smaller under @c COMPACT (see
+ * @c defs/compact.h), though not as small as restricted-memory mode's
  * own shorter shortcuts list alone would allow: this build flag and
  * @c -M are meant to be combined but are not strictly coupled, so
  * this still comfortably covers the full, non-restricted shortcuts
- * list in case a low-memory build is ever run without @c -M too.
+ * list in case a compact build is ever run without @c -M too.
  */
-#ifdef LOWMEM
+#ifdef COMPACT
 #define DIALOG_MSG_MAX_LINES (64u)
 #else
 #define DIALOG_MSG_MAX_LINES (96u)
@@ -46,8 +46,8 @@
 
 /** Maximum length of the raw message text before wrapping, prefix
  *  included; see @c DIALOG_MSG_MAX_LINES for the same headroom
- *  reasoning, low-memory build included */
-#ifdef LOWMEM
+ *  reasoning, compact build included */
+#ifdef COMPACT
 #define DIALOG_MSG_RAW_MAX_LENGTH (2560u)
 #else
 #define DIALOG_MSG_RAW_MAX_LENGTH (4096u)
@@ -90,6 +90,20 @@
 
 /** Maximum prompt buffer length for the quit-confirmation dialog */
 #define DIALOG_QUIT_PROMPT_MAX_LENGTH (128u)
+
+/**
+ * @brief How long a dialog's newly clicked button stays visibly
+ *        selected before a mouse click actually closes/accepts the
+ *        dialog it belongs to
+ *
+ * Shared by every dialog that defers its own click-triggered close
+ * this way (see @c menu/dialog/defer.h): closing on the very same
+ * repaint that shows the new selection would not give a person any
+ * real chance to perceive it, since screen updates and human
+ * perception both take a moment neither the repaint nor the close
+ * itself can shortcut.
+ */
+#define DIALOG_CLICK_FEEDBACK_DELAY_MS (150)
 
 /**
  * @brief Seconds the RandR output-profile confirm dialog (see

@@ -110,17 +110,49 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
 /**
  * @brief Handle a mouse click inside the message dialog
  *
- * Closes the dialog when the pointer lands inside the "OK" button.
- * Clicks outside the button are not handled.
+ * Selects the "OK" button and repaints when the pointer lands inside
+ * it, then defers the actual close for shortly after (see @c
+ * menu_dialog_defer_schedule, menu/dialog/defer.h) so that newly
+ * selected state is visible for a moment first, the same reasoning @c
+ * menu_confirm_dialog_handle_click already applies to its own two
+ * buttons.  Clicks outside the button are not handled.
  *
  * @param connection XCB connection
+ * @param config     Active configuration, for the repaint
  * @param x          Pointer X coordinate relative to the dialog
  * @param y          Pointer Y coordinate relative to the dialog
  *
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_handle_click(xcb_connection_t *connection,
-        int x, int y);
+        const config_td *config, int x, int y);
+
+/**
+ * @brief Milliseconds remaining until a pending click-triggered close
+ *        becomes due
+ *
+ * For the main loop to fold into its own @c poll timeout computation,
+ * the same way @c popup_ms_remaining and similar already are.
+ *
+ * @return Milliseconds remaining (never negative), or -1 if none is
+ *         currently pending
+ *
+ * @note Complexity: @e O(1)
+ */
+int menu_message_dialog_ms_remaining(void);
+
+/**
+ * @brief Close the message dialog if a click-triggered close is
+ *        pending and its own deadline has arrived
+ *
+ * A safe, cheap no-op when nothing is pending, including when no
+ * dialog is open at all.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+void menu_message_dialog_tick(xcb_connection_t *connection);
 
 /**
  * @brief Query whether the currently visible message dialog requires
