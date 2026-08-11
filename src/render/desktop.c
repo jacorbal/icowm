@@ -891,8 +891,18 @@ static void s_desktop_render_one_client(desktop_td *desktop,
                     left - right)
             : 1;
 
-        desktop_repaint_frame_decoration(desktop->connection, client,
-                is_focused, desktop->config_theme);
+        /* Skipped entirely, not just recolored, for the same reason
+         * the full-repaint branch above never gives a fullscreen
+         * client a border in the first place (see its own comment by
+         * 'client_is_fullscreen' there): a focus change alone must
+         * not paint one back in over fullscreen content just because
+         * this lighter branch only meant to refresh existing colors,
+         * not decide from scratch whether a border belongs here at
+         * all. */
+        if (!hide_decoration) {
+            desktop_repaint_frame_decoration(desktop->connection,
+                    client, is_focused, desktop->config_theme);
+        }
 
         if (client->titlebar != 0 && !hide_decoration) {
             desktop_repaint_titlebar_content(desktop->connection,
