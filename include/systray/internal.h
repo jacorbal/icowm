@@ -77,11 +77,27 @@ struct systray_state_s {
                                          toggles so docked icons are
                                          never evicted just because the
                                          tray was disabled */
+    bool is_active;                 /**< Whether the tray should be
+                                         showing anything at all right
+                                         now (@c is-enabled, kept in
+                                         sync across a reload); gates
+                                         the window's own visibility
+                                         and the clock/battery text
+                                         refresh, independent of
+                                         @c selection_owned, so a
+                                         restricted-memory session
+                                         (which never sets that) still
+                                         shows its own status text */
     bool selection_owned;           /**< Currently owns the
                                          @c _NET_SYSTEM_TRAY_Sn
                                          selection; gates accepting new
-                                         dock requests and showing the
-                                         window at all */
+                                         dock requests only, not the
+                                         window's own visibility (see
+                                         @c is_active for that): never
+                                         even attempted at all when
+                                         @c config_td.base.systray.
+                                         is_embedding_enabled is
+                                         @c false */
     xcb_connection_t *connection;
     xcb_ewmh_connection_t *ewmh;    /**< For publishing the tray's own
                                           reserved-space strut; see

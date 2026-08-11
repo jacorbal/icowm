@@ -614,10 +614,18 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
             &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
-    text_y =
-        (int16_t) ((title_h > (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD)
-            ? title_h - (uint16_t) WM_TITLEBAR_TEXT_BOTTOM_PAD
-            : title_h);
+    /* Vertically centered against the titlebar's own font ascent and
+     * descent, the same way 'client_titlebar_layout' above already
+     * centers 'btn_y' against the button size, rather than a fixed
+     * pixel offset from the bottom: a fixed offset only happens to
+     * look centered for whichever font it was tuned against, and
+     * drifts visibly off-center for any other (a restricted-memory
+     * session's own plain X core font included, since that swap
+     * changes the font's own ascent/descent without this titlebar's
+     * own height changing to match). */
+    text_y = (int16_t) (((int16_t) title_h -
+                (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
+            text_font_ascent());
     s_titlebar_draw_title(connection, client->titlebar,
             title_x, title_w, text_y, client->info.name,
             theme->window.titlebar.alignment);

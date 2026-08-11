@@ -165,6 +165,40 @@ const struct strut_partial_s *systray_get_reserved_strut(
         const surface_td *surface);
 
 /**
+ * @brief Return the tray's own current on-screen rectangle on
+ *        @p surface
+ *
+ * A synchronous @c xcb_get_geometry round trip, unlike every other
+ * accessor in this header: nothing about the tray's own current
+ * position and size is cached anywhere else in this module (only its
+ * configured @c height is; the rest follows from wherever @c
+ * systray_layout_reflow last placed the window itself), so this is
+ * the only way to answer "where exactly is the tray sitting right
+ * now" precisely.  Meant for infrequent, one-off checks (e.g. an icon
+ * settling into its final dropped position after a drag), not
+ * anything called on every frame of a render or drag loop.
+ *
+ * @param surface Surface to query the tray's rectangle on
+ * @param out_x   Receives the rectangle's left edge, root-relative
+ *                (same coordinate space every top-level window this
+ *                project creates, icon windows included, already
+ *                shares)
+ * @param out_y   Receives the rectangle's top edge, root-relative
+ * @param out_w   Receives the rectangle's width
+ * @param out_h   Receives the rectangle's height
+ *
+ * @return @c true and the rectangle filled in when @p surface is the
+ *         one the tray is docked on and it is currently showing
+ *         there; @c false otherwise, with none of the output
+ *         parameters touched
+ *
+ * @note Complexity: @e O(1), plus one synchronous round trip to the
+ *       X server
+ */
+bool systray_get_geometry(const surface_td *surface, int32_t *out_x,
+        int32_t *out_y, uint16_t *out_w, uint16_t *out_h);
+
+/**
  * @brief Query whether @p window is a currently docked icon, and if
  *        so, force it back to the tray's configured icon size
  *

@@ -71,6 +71,11 @@ static struct {
                                bottom of a line of text */
     enum s_text_backend_e backend;
     bool initialized;
+    bool glyph_backend_disabled; /**< Set once, for the life of the
+                                       process, by @c text_renderer_
+                                       disable_glyph_backend; see that
+                                       function's own doc comment for
+                                       why */
 } s_text = {
     .connection = NULL,
     .font = XCB_NONE,
@@ -81,7 +86,8 @@ static struct {
     .ascent = 10,
     .descent = 3,
     .backend = S_BACKEND_NONE,
-    .initialized = false
+    .initialized = false,
+    .glyph_backend_disabled = false
 };
 
 
@@ -344,6 +350,14 @@ static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
 }
 
 
+/* Permanently disable the glyph (xcb-render/FreeType2/fontconfig)
+ * backend for the life of the process */
+void text_renderer_disable_glyph_backend(void)
+{
+    s_text.glyph_backend_disabled = true;
+}
+
+
 /* Initialize the text renderer using the specified font */
 int text_renderer_init(xcb_connection_t *connection,
         const char *font_name)
@@ -385,8 +399,12 @@ int text_renderer_init(xcb_connection_t *connection,
      * rendering it through xcb-render/FreeType2/fontconfig instead,
      * handing fontconfig the caller's original string rather than the
      * XLFD pattern just built for X11, since fontconfig has its own,
-     * different pattern syntax. */
-    if (glyph_renderer_init(connection, raw) == 0) {
+     * different pattern syntax.  Never even attempted at all once
+     * 'text_renderer_disable_glyph_backend' has been called: falls
+     * straight through to the "fixed" fallback below instead, the
+     * same as if this attempt had failed. */
+    if (!s_text.glyph_backend_disabled &&
+            glyph_renderer_init(connection, raw) == 0) {
         s_text.ascent = glyph_font_ascent();
         s_text.descent = glyph_font_descent();
         s_text.backend = S_BACKEND_GLYPH;

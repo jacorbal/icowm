@@ -415,10 +415,12 @@ static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
 
 /* Reposition the tray window and lay out its docked icons
  *
- * Unmaps the tray window while empty or while the selection is not
- * currently owned (e.g., disabled by configuration, or another tray
- * manager is active), so it never shows on screen in either case;
- * otherwise sizes and moves it to the configured corner of
+ * Unmaps the tray window while empty (nothing docked and neither the
+ * clock nor the battery text enabled) or while the tray is not
+ * currently active at all (disabled by configuration; see
+ * 'is_active''s own doc comment in include/systray/internal.h), so it
+ * never shows on screen in either case; otherwise sizes and moves it
+ * to the configured corner of
  * 's_tray.surface' and arranges icons in a single horizontal row
  * inside it, in 's_tray.icons' order (see 'systray_protocol_dock' in
  * systray/protocol.c for how that order is maintained per the
@@ -440,7 +442,7 @@ void systray_layout_reflow(void)
         return;
     }
 
-    if (!s_tray.selection_owned ||
+    if (!s_tray.is_active ||
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);

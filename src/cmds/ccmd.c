@@ -490,6 +490,7 @@ static void s_client_ensure_icon_window(client_td *client,
         int32_t mx = 0;
         int32_t my = 0;
         monitor_td monitor;
+        surface_td *surface = NULL;
         enum config_icon_placement_e policy =
             CONFIG_ICON_PLACEMENT_BOTTOM;
         uint32_t mask;
@@ -498,13 +499,63 @@ static void s_client_ensure_icon_window(client_td *client,
         screen_w = 1024u;
         screen_h = 768u;
 
-        if (wcmd_client_monitor(client, NULL, &monitor)) {
+        if (wcmd_client_monitor(client, &surface, &monitor)) {
             mx = monitor.x;
             my = monitor.y;
             screen_w = geom_clamp_dim((int32_t) monitor.w);
             screen_h = geom_clamp_dim((int32_t) monitor.h);
         } else if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
             /* dimensions updated */
+        }
+
+        /* 'monitor' above is deliberately raw (see wcmd_client_
+         * monitor's own doc comment), the same as 'desktop_update_
+         * workarea' (desktop.c) starts from before folding in
+         * 'desktops.margins' and the systray's own reservation for
+         * windows; applied here the same way, per monitor rather than
+         * once across the whole surface: top/left shift this
+         * monitor's own placement origin inward, and right/bottom
+         * shrink the available area, so the icon grid never lands
+         * within a margin a window's own maximize and placement
+         * already stay clear of, nor under the systray's own dock
+         * window (which would otherwise sit right on top of a
+         * restored icon left behind there, blocking that dock
+         * window's own repaint). */
+        if (surface != NULL) {
+            const struct strut_partial_s *tray_strut =
+                systray_get_reserved_strut(surface);
+            uint32_t margin_left = 0u;
+            uint32_t margin_right = 0u;
+            uint32_t margin_top = 0u;
+            uint32_t margin_bottom = 0u;
+            uint32_t horiz;
+            uint32_t vert;
+
+            if (surface->config != NULL) {
+                const struct config_desktop_s *cd =
+                    &surface->config->desktops;
+
+                margin_left += cd->margins.left;
+                margin_right += cd->margins.right;
+                margin_top += cd->margins.top;
+                margin_bottom += cd->margins.bottom;
+            }
+            if (tray_strut != NULL) {
+                margin_left += (uint32_t) tray_strut->sides.left;
+                margin_right += (uint32_t) tray_strut->sides.right;
+                margin_top += (uint32_t) tray_strut->sides.top;
+                margin_bottom += (uint32_t) tray_strut->sides.bottom;
+            }
+
+            horiz = margin_left + margin_right;
+            vert = margin_top + margin_bottom;
+
+            mx += (int32_t) margin_left;
+            my += (int32_t) margin_top;
+            screen_w = ((uint32_t) screen_w > horiz)
+                ? (uint16_t) ((uint32_t) screen_w - horiz) : 0u;
+            screen_h = ((uint32_t) screen_h > vert)
+                ? (uint16_t) ((uint32_t) screen_h - vert) : 0u;
         }
 
         if (client->config_base != NULL) {
@@ -531,10 +582,12 @@ static void s_client_ensure_icon_window(client_td *client,
                     screen_w, screen_h,
                     &ix, &iy);
             /* 'place_icon' works in a (0,0)-relative coordinate
-             * space bounded by 'screen_w'/'screen_h' alone; offset
-             * by the target monitor's own origin so the icon lands
-             * on that monitor within the combined surface, not
-             * always in its top-left corner. */
+             * space bounded by 'screen_w'/'screen_h' alone; offset by
+             * 'mx'/'my', the target monitor's own origin plus its
+             * top/left margin, so the icon lands on that monitor
+             * within the combined surface, past whatever margin is
+             * configured, rather than always in its raw top-left
+             * corner. */
             ix = (int16_t) (ix + mx);
             iy = (int16_t) (iy + my);
             client->icon_x = ix;

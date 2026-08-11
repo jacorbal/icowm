@@ -48,6 +48,7 @@
 #include <render/icon.h>
 #include <render/text.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -1256,10 +1257,72 @@ void drag_end(xcb_connection_t *connection,
                     focus_apply(NULL, surface, desktop, ic, true, NULL);
                 }
             } else {
-                s_drag.client->icon_x =
+                int16_t new_icon_x =
                     (int16_t) (s_drag.client_start_x + dx);
-                s_drag.client->icon_y =
+                int16_t new_icon_y =
                     (int16_t) (s_drag.client_start_y + dy);
+                int32_t tray_x;
+                int32_t tray_y;
+                uint16_t tray_w;
+                uint16_t tray_h;
+                bool pushed_out_of_tray = false;
+
+                /* Kept off the tray's own rectangle outright, rather
+                 * than left there and relying on stacking alone to
+                 * hide it: an icon dragged over the tray still left
+                 * the tray's own text missing in that exact span,
+                 * even though the icon itself stayed correctly
+                 * stacked below it throughout. */
+                if (surface != NULL &&
+                        systray_get_geometry(surface, &tray_x, &tray_y,
+                            &tray_w, &tray_h) &&
+                        geom_intersection_area(new_icon_x, new_icon_y,
+                            (uint32_t) WM_ICON_SQUARE_SIZE,
+                            (uint32_t) WM_ICON_SQUARE_SIZE,
+                            tray_x, tray_y, tray_w, tray_h) > 0u) {
+                    /* Pushed out past the tray's own bottom edge, the
+                     * same predictable direction 'place_icon' (policy/
+                     * tiling.c) already keeps automatically placed
+                     * icons clear of, rather than left wherever the
+                     * pointer happened to drop it inside the tray's
+                     * own rectangle. */
+                    new_icon_y =
+                        (int16_t) (tray_y + (int32_t) tray_h);
+                    pushed_out_of_tray = true;
+                }
+
+                s_drag.client->icon_x = new_icon_x;
+                s_drag.client->icon_y = new_icon_y;
+
+                /* The drag itself only ever moved the icon window as
+                 * far as the pointer's own last position (see
+                 * 'drag_update' above); an adjustment made here, after
+                 * that already stopped, needs its own explicit request
+                 * to actually reach the window, or the icon would stay
+                 * showing wherever the pointer dropped it while
+                 * 'icon_x'/'icon_y' above already disagree with what
+                 * is on screen. */
+                if (pushed_out_of_tray && connection != NULL) {
+                    uint32_t vals[2];
+
+                    vals[0] = (uint32_t) new_icon_x;
+                    vals[1] = (uint32_t) new_icon_y;
+                    xcb_configure_window(connection,
+                            s_drag.client->icon_window,
+                            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                            vals);
+                }
+
+                /* Restacking already happens on its own every second
+                 * or so, driven by the systray's own clock tick (see
+                 * 'systray_layout_restack''s own doc comment), so an
+                 * icon dropped over the tray's own area does not stay
+                 * visually on top of it for long either way.  Forced
+                 * here too, right as the icon settles into its final
+                 * position, so there is no window at all, however
+                 * brief, where it could still be showing over the
+                 * tray. */
+                systray_restack();
             }
         }
 

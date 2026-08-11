@@ -141,7 +141,7 @@ int systray_clock_ms_remaining(void)
 {
     time_t now;
 
-    if (!s_tray.selection_owned ||
+    if (!s_tray.is_active ||
             (!s_tray.clock_enabled && !s_tray.battery_enabled)) {
         return -1;
     }
@@ -173,7 +173,7 @@ void systray_clock_tick(void)
     time_t now;
     bool changed = false;
 
-    if (!s_tray.selection_owned ||
+    if (!s_tray.is_active ||
             (!s_tray.clock_enabled && !s_tray.battery_enabled)) {
         return;
     }

@@ -23,6 +23,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -129,14 +130,20 @@ void systray_init(wm_td *wm)
         return;
     }
 
+    s_tray.is_active = true;
+
     /* Never acquired at all when 'is_embedding_enabled' is false, own
-     * clock/battery text still shown regardless (already applied
-     * above by 's_systray_apply_config'): see that field's own doc
-     * comment in config.h for why restricted-memory mode is the one
-     * profile that always leaves it false. */
+     * clock/battery text still shown regardless via the explicit
+     * 'systray_layout_reflow' call below, since
+     * 'systray_protocol_acquire_selection' does not trigger one on
+     * its own: see 'is_embedding_enabled''s own doc comment in
+     * config.h for why restricted-memory mode is the one profile
+     * that always leaves it false. */
     if (wm->config->base.systray.is_embedding_enabled) {
         (void) systray_protocol_acquire_selection();
     }
+
+    systray_layout_reflow();
 }
 
 
@@ -177,7 +184,7 @@ bool systray_owns_window(xcb_window_t window)
  * or 'XCB_WINDOW_NONE' otherwise */
 xcb_window_t systray_below_window(void)
 {
-    if (!s_tray.window_ready || !s_tray.selection_owned ||
+    if (!s_tray.window_ready || !s_tray.is_active ||
             s_tray.layer != CONFIG_SYSTRAY_LAYER_BELOW) {
         return XCB_WINDOW_NONE;
     }
@@ -203,6 +210,42 @@ const struct strut_partial_s *systray_get_reserved_strut(
      * an all-zero strut to a workarea calculation is a no-op either
      * way. */
     return &s_tray.reserved_strut;
+}
+
+
+/* Return the tray's own current on-screen rectangle on 'surface', or
+ * 'false' when it is not currently showing there at all */
+bool systray_get_geometry(const surface_td *surface, int32_t *out_x,
+        int32_t *out_y, uint16_t *out_w, uint16_t *out_h)
+{
+    xcb_get_geometry_cookie_t cookie;
+    xcb_get_geometry_reply_t *reply;
+
+    if (surface == NULL || out_x == NULL || out_y == NULL ||
+            out_w == NULL || out_h == NULL ||
+            !s_tray.window_ready || !s_tray.is_active ||
+            s_tray.surface != surface) {
+        return false;
+    }
+
+    cookie = xcb_get_geometry(s_tray.connection, s_tray.window);
+    reply = xcb_get_geometry_reply(s_tray.connection, cookie, NULL);
+    if (reply == NULL) {
+        return false;
+    }
+
+    /* 'reply->x'/'reply->y' are relative to the tray window's own
+     * parent, the same root every other top-level window this
+     * project creates (icon windows included) shares, so directly
+     * comparable against an icon's own root-relative position with
+     * no extra translation needed. */
+    *out_x = (int32_t) reply->x;
+    *out_y = (int32_t) reply->y;
+    *out_w = reply->width;
+    *out_h = reply->height;
+
+    free(reply);
+    return true;
 }
 
 
@@ -351,12 +394,14 @@ void systray_restack(void)
 void systray_reload(wm_td *wm)
 {
     bool should_be_enabled;
+    bool was_active;
 
     if (wm == NULL || wm->config == NULL) {
         return;
     }
 
     should_be_enabled = wm->config->base.systray.is_enabled;
+    was_active = s_tray.is_active;
     s_systray_apply_config(wm);
     systray_protocol_apply_theme_style();
 
@@ -370,16 +415,30 @@ void systray_reload(wm_td *wm)
      * re-dock itself. */
     s_systray_resize_docked_icons();
 
-    if (s_tray.selection_owned && !should_be_enabled) {
+    if (was_active && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \
                 " releasing the selection (icons stay docked" \
                 " hidden in the background)", L_NARG);
-        systray_protocol_release_selection();
+        s_tray.is_active = false;
+
+        /* 'systray_protocol_release_selection' already triggers
+         * 'systray_layout_reflow' itself once it releases the
+         * selection, but only when 'selection_owned' was actually
+         * true to begin with; with embedding disabled, it was never
+         * acquired at all, so this still needs to unmap the window
+         * itself directly instead. */
+        if (s_tray.selection_owned) {
+            systray_protocol_release_selection();
+        } else {
+            systray_layout_reflow();
+        }
         return;
     }
 
-    if (!s_tray.selection_owned && should_be_enabled) {
+    if (!was_active && should_be_enabled) {
         bool ready = systray_protocol_ensure_window(wm);
+
+        s_tray.is_active = ready;
 
         /* Selection acquisition only even attempted, let alone
          * required for success here, when embedding is actually
@@ -387,7 +446,7 @@ void systray_reload(wm_td *wm)
          * showing its own clock/battery text via
          * 's_systray_apply_config' above) is enough on its own. */
         if (ready && wm->config->base.systray.is_embedding_enabled) {
-            ready = systray_protocol_acquire_selection();
+            (void) systray_protocol_acquire_selection();
         }
 
         LOGGER_INFO("Systray enabled by configuration reload", L_NARG);
@@ -398,8 +457,8 @@ void systray_reload(wm_td *wm)
         return;
     }
 
-    if (s_tray.selection_owned) {
-        /* Still enabled: pick up a possible 'position' change, and
+    if (was_active) {
+        /* Still active: pick up a possible 'position' change, and
          * re-sort already-docked icons for the alphabetical 'order'
          * policies (see 'systray_protocol_resort') without disturbing
          * anything for the two plain insertion-order policies. */

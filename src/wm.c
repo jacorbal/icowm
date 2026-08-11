@@ -220,6 +220,17 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
      * 'desktop_init' itself in desktop.c. */
     memguard_init(wm->restricted_memory_mib);
 
+    /* Restricted-memory mode already forces every theme font to some
+     * variant of "fixed" (config/memguard.h), which always resolves
+     * as an X core font on its own, so the heavier xcb-render/
+     * FreeType2/fontconfig backend is never actually needed for the
+     * rest of this process's own life; see 'text_renderer_disable_
+     * glyph_backend''s own doc comment for why this closes a gap that
+     * font-name matching alone could not. */
+    if (wm->restricted_memory_mib > 0u) {
+        text_renderer_disable_glyph_backend();
+    }
+
     LOGGER_DEBUG("Opening X display", L_NARG);
     wm->connection = xcb_connect(display_name,
             (int *) &(wm->screenp));

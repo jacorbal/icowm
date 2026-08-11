@@ -27,6 +27,30 @@
 
 /* Public interface */
 /**
+ * @brief Permanently disable the glyph (xcb-render/FreeType2/
+ *        fontconfig) rendering backend for the life of the process
+ *
+ * @a text_renderer_init never even attempts that backend afterward
+ * for any font name that fails to resolve to an X core font, falling
+ * straight through to its own "fixed" fallback instead, the same as
+ * if the attempt had simply failed.  Meant for restricted-memory mode
+ * specifically, called once at startup: that mode already forces
+ * every theme font to some variant of "fixed" (config/memguard.h),
+ * which always resolves as an X core font on its own, so the glyph
+ * backend is never actually needed there.  This closes the one
+ * remaining way it could still end up loaded anyway, a font name that
+ * happens to resolve to an X core font under a case-sensitive match
+ * but not under one that ignores case (e.g., a real Xft family
+ * literally named @c "Fixed Bold", capitalized, distinct from the
+ * plain lowercase @c "fixed bold" restricted-memory mode's own font
+ * substitution rule intentionally treats as the X core family instead)
+ * without relying on that font-name matching to be perfect.
+ *
+ * @note Complexity: @e O(1)
+ */
+void text_renderer_disable_glyph_backend(void);
+
+/**
  * @brief Initialize the text renderer using the specified font
  *
  * Opens the requested X font, creates the graphics context used for

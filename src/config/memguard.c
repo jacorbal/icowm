@@ -17,8 +17,7 @@
 #include <stddef.h>     /* NULL, size_t */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* calloc */
-#include <string.h>     /* strchr */
-#include <strings.h>    /* strncasecmp */
+#include <string.h>     /* strchr, strncmp */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -58,9 +57,16 @@
  * @param font Font field to check, e.g. @c
  *             config->theme.window.active.font
  *
- * @return @c true if @p font's own family is @c "fixed"
- *         (case-insensitive)
+ * @return @c true if @p font's own family is exactly the lowercase
+ *         @c "fixed", case-sensitive
  *
+ * @note Deliberately case-sensitive, not case-insensitive: a real
+ *       Xft-only family can be named e.g. @c "Fixed Bold", capitalized
+ *       and visually similar but a different, heavier font entirely,
+ *       distinct from the plain lowercase @c "fixed bold" this
+ *       restriction is actually meant to leave alone.  A case-
+ *       insensitive match would wrongly let that Xft family through
+ *       untouched instead of substituting it.
  * @note Complexity: @e O(n), where @e n is the length of @p font
  */
 static bool s_memguard_is_fixed_variant(const char *font)
@@ -91,7 +97,7 @@ static bool s_memguard_is_fixed_variant(const char *font)
         : safe_strlen(family_start);
 
     return (family_len == 5u) &&
-        (strncasecmp(family_start, "fixed", 5u) == 0);
+        (strncmp(family_start, "fixed", 5u) == 0);
 }
 
 
@@ -101,12 +107,14 @@ static bool s_memguard_is_fixed_variant(const char *font)
  *
  * Every font field not already naming some variant of @c "fixed" (see
  * @a s_memguard_is_fixed_variant) is replaced outright with plain
- * @c MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps, and
- * icon hint indicators are all forced off unconditionally.  Every
- * other theme field, colors, decoration, and @c is-captioned
- * included, is left exactly as the theme file specified: none of
- * those carry the ongoing memory cost the font backend and pixmap
- * compositing do.
+ * @c MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps
+ * (both the icon square's own, @c icon.show-pixmaps, and the menu
+ * row/cycle row icon shown alongside each entry, @c menu.show-
+ * pixmaps), and icon hint indicators are all forced off
+ * unconditionally.  Every other theme field, colors, decoration, and
+ * @c is-captioned included, is left exactly as the theme file
+ * specified: none of those carry the ongoing memory cost the font
+ * backend and pixmap compositing do.
  *
  * @param config Configuration structure whose already-loaded theme
  *               this restricts; must not be @c NULL
@@ -141,6 +149,7 @@ static void s_memguard_restrict_theme(config_td *config)
     config->theme.xsettings.is_enabled = false;
     config->theme.icon.show_pixmaps = false;
     config->theme.icon.show_hints = false;
+    config->theme.menu.show_pixmaps = false;
 }
 
 
@@ -150,11 +159,17 @@ static void s_memguard_restrict_theme(config_td *config)
  *
  * Everything restricted-memory mode still lets a person configure:
  * the active theme's name, launched programs, desktop margins, the
+ * window move step and placement policy (via @a
+ * ci_config_parse_placement_policy, shared verbatim with @c
+ * config.json's own identical parsing), the icon placement policy
+ * (via @a ci_config_parse_icon_placement, likewise shared), the
  * systray block (via @a ci_config_load_systray, shared verbatim with
- * @c config.json's own identical @c "systray" object), and the
- * emergency shortcut.  A no-op, leaving every field at whatever
- * @a config_set_default_values_memguard already set, for any of these
- * not present in the file.
+ * @c config.json's own identical @c "systray" object, minus its own
+ * @c text.position and @c order fields, which this mode always keeps
+ * at their own fixed defaults regardless of what the file specifies),
+ * and the emergency shortcut.  A no-op, leaving every field at
+ * whatever @a config_set_default_values_memguard already set, for any
+ * of these not present in the file.
  *
  * @param filename Path to @c memguard.json
  * @param config   Configuration structure to update
@@ -171,6 +186,9 @@ static int s_memguard_load_json(const char *filename, config_td *config)
     cJSON *programs;
     cJSON *desktops_item;
     cJSON *margins;
+    cJSON *windows_item;
+    cJSON *icons_item;
+    cJSON *systray_item;
 
     if (json_load_config(filename, &json) != 0) {
         return 1;
@@ -216,7 +234,68 @@ static int s_memguard_load_json(const char *filename, config_td *config)
         }
     }
 
+    windows_item = cJSON_GetObjectItem(json, "windows");
+    if (windows_item != NULL) {
+        cJSON *placement_item;
+
+        json_load_uint(windows_item, "move-step",
+                &config->base.windows.move_step);
+
+        placement_item = cJSON_GetObjectItem(windows_item, "placement");
+        if (placement_item != NULL) {
+            cJSON *policy_item = json_get_item(placement_item, "policy");
+
+            if (policy_item != NULL && cJSON_IsString(policy_item)) {
+                config->base.windows.placement_policy =
+                    ci_config_parse_placement_policy(
+                            policy_item->valuestring);
+            }
+        }
+    }
+
+    icons_item = cJSON_GetObjectItem(json, "icons");
+    if (icons_item != NULL) {
+        cJSON *placement_item = cJSON_GetObjectItem(icons_item,
+                "placement");
+
+        if (placement_item != NULL) {
+            cJSON *policy_item = json_get_item(placement_item, "policy");
+
+            if (policy_item != NULL && cJSON_IsString(policy_item)) {
+                config->base.icons.placement_policy =
+                    ci_config_parse_icon_placement(
+                            policy_item->valuestring);
+            }
+        }
+    }
+
     ci_config_load_systray(json, &config->base);
+
+    /* 'text.position' and 'order' deliberately not something
+     * memguard.json is allowed to configure, unlike an ordinary
+     * session's own config.json: both only ever affect docked pixmap
+     * icons (where the text block sits relative to them, and the
+     * order newly docked ones are placed in), and this mode never
+     * docks any (embedding is always off; see is_embedding_enabled's
+     * own doc comment in config.h), so neither has any visible
+     * effect here at all.  'ci_config_load_systray' just above still
+     * loads both (shared verbatim with config.json's own identical
+     * "systray" object), so this puts each back to its own fixed
+     * default afterward rather than duplicating that whole function
+     * just to omit two fields. */
+    systray_item = cJSON_GetObjectItem(json, "systray");
+    if (systray_item != NULL) {
+        cJSON *text_item = cJSON_GetObjectItem(systray_item, "text");
+
+        if (text_item != NULL &&
+                cJSON_GetObjectItem(text_item, "position") != NULL) {
+            config->base.systray.text.position = CONFIG_SYSTRAY_TEXT_LEFT;
+        }
+        if (cJSON_GetObjectItem(systray_item, "order") != NULL) {
+            config->base.systray.order =
+                CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
+        }
+    }
 
     json_load_bool(json, "enable-emergency-shortcut",
             &config->base.enable_emergency_shortcut);
@@ -293,7 +372,13 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.focus.is_new_focused = true;
     config->base.windows.focus.is_raised_on_focus = false;
 
-    config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_BOTTOM;
+    /* SMART's own cost is bounded (256 candidate slots, each checked
+     * against every already-docked icon, so O(256*n) at worst) and
+     * runs once per icon placed, not on any hot path, so it costs
+     * nothing meaningful to leave on by default here; overridable in
+     * memguard.json (see s_memguard_load_json) the same as an
+     * ordinary session's own icons.placement. */
+    config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
 
     config->base.enable_emergency_shortcut = false;
@@ -348,6 +433,16 @@ void config_set_default_values_memguard(config_td *config)
      * this mode, so this stays at its off/empty state regardless. */
     config->randr.is_enabled = false;
     config->randr.output_count = 0u;
+
+    /* Same reasoning as 'config_load''s own equivalent call: without
+     * this, a session with no theme named in 'memguard.json' at all
+     * would leave 'config->theme' entirely zeroed (every color black,
+     * every font an empty string) rather than falling back to a
+     * sensible compiled-in theme, and a reload that switched away
+     * from a theme specifying some field to one that does not would
+     * leave that field stuck at the old theme's own value instead of
+     * this default. */
+    config_set_default_theme_values(&config->theme);
 }
 
 
@@ -397,13 +492,22 @@ int config_load_memguard(config_td *config, const char *config_prefix)
     if (safe_strlen(config->base.theme) == 0u) {
         LOGGER_NOTICE("No theme specified in restricted-memory mode" \
                 " configuration; default will be used", L_NARG);
+        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+                false);
     } else {
+        bool theme_loaded;
+
         LOGGER_DEBUG("Loading theme '%s' from '%s'",
                 config->base.theme, config_theme_file);
-        if (config_load_theme(config_theme_file, &(config->theme)) != 0) {
+        theme_loaded = (config_load_theme(config_theme_file,
+                    &(config->theme)) == 0);
+        if (!theme_loaded) {
             LOGGER_WARNING("Failed to load theme from: '%s';" \
                     " default theme will be used", config_theme_file);
-        } else {
+        }
+        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+                theme_loaded);
+        if (theme_loaded) {
             LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",
                     config->base.theme, config->theme.name,
                     config_theme_file);

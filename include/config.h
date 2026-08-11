@@ -1121,6 +1121,29 @@ void config_destroy(config_td *config);
 void config_set_default_values(config_td *config);
 
 /**
+ * @brief Populate default values for one theme structure
+ *
+ * Used both as the compiled-in fallback theme (via @a
+ * config_set_default_values and @a config_set_default_values_memguard
+ * in config/memguard.h) and, before applying any theme file found, as
+ * the known-good starting point that file's own fields then overlay:
+ * @a config_load_theme only ever overwrites whichever fields a theme
+ * file specifies, never resets the rest on its own, so a caller that
+ * skips this first and reuses whatever @c theme already held from a
+ * previous load would leave a field the new file no longer specifies
+ * (e.g. a boolean like @c window.is-decorated) stuck at its old value
+ * instead of falling back to this default.  @a config_load calls this
+ * itself before loading a theme file on every call, not just the
+ * first, for exactly that reason.
+ *
+ * @param theme Theme structure to populate
+ *
+ * @note Complexity: @e O(n), where @e n is the number of fields that
+ *       need to be set
+ */
+void config_set_default_theme_values(struct config_theme_s *theme);
+
+/**
  * @brief Load all of an ordinary session's own configuration
  *
  * Loads configuration settings into the provided @c config_td

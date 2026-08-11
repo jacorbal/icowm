@@ -56,19 +56,9 @@ static enum config_focus_policy_e
 }
 
 
-/**
- * @brief Parse placement policy text into configuration enumeration
- *
- * @param value Placement policy string from configuration
- *
- * @return Parsed placement policy enumeration value
- *
- * @note Supported values are @c smart, @c cascade,
- *       @c centered, and @c under-mouse
- * @note Complexity: @e O(n), where @e n is the length of @p value
- */
-static enum config_placement_policy_e
-    s_config_parse_placement_policy(const char *value)
+/* Parse placement policy text into configuration enumeration */
+enum config_placement_policy_e
+    ci_config_parse_placement_policy(const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
@@ -421,18 +411,8 @@ static enum config_gravity_e
 }
 
 
-/**
- * @brief Parse icon placement policy text into configuration enumeration
- *
- * @param value Icon placement string from configuration
- *
- * @return Parsed icon placement policy enumeration value
- *
- * @note Supported values are @c bottom, @c top, @c left, @c right,
- *       and @c smart
- * @note Complexity: @e O(n), where @e n is the length of @p value
- */
-static enum config_icon_placement_e s_config_parse_icon_placement(
+/* Parse icon placement policy text into configuration enumeration */
+enum config_icon_placement_e ci_config_parse_icon_placement(
         const char *value)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
@@ -1014,7 +994,7 @@ int config_load_base(const char *filename,
             if (placement_policy_item != NULL &&
                     cJSON_IsString(placement_policy_item)) {
                 config_base->windows.placement_policy =
-                    s_config_parse_placement_policy(
+                    ci_config_parse_placement_policy(
                             placement_policy_item->valuestring);
             }
             placement_monitor_item = json_get_item(
@@ -1043,14 +1023,14 @@ int config_load_base(const char *filename,
             if (icon_policy_item != NULL &&
                     cJSON_IsString(icon_policy_item)) {
                 config_base->icons.placement_policy =
-                    s_config_parse_icon_placement(
+                    ci_config_parse_icon_placement(
                             icon_policy_item->valuestring);
             }
         } else {
             cJSON *ip = json_get_item(icons, "placement");
             if (ip != NULL && cJSON_IsString(ip)) {
                 config_base->icons.placement_policy =
-                    s_config_parse_icon_placement(ip->valuestring);
+                    ci_config_parse_icon_placement(ip->valuestring);
             }
         }
     } else if (windows) {
@@ -1060,7 +1040,7 @@ int config_load_base(const char *filename,
             cJSON *ip = json_get_item(icons_item, "placement");
             if (ip != NULL && cJSON_IsString(ip)) {
                 config_base->icons.placement_policy =
-                    s_config_parse_icon_placement(ip->valuestring);
+                    ci_config_parse_icon_placement(ip->valuestring);
             }
         }
     }

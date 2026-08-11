@@ -20,6 +20,7 @@
 #include <surface.h>
 
 /* Local includes */
+#include <cmds/ccmd.h>
 #include <policy/focus.h>
 
 
@@ -45,20 +46,39 @@ void focus_apply(list_td *surfaces,
         return;
     }
 
-    /* Unfocus previous active client */
+    /* Unfocus the previous active client, and focus this one,
+     * synchronously and in that exact order, rather than through the
+     * queued 'client_send_event_unfocus'/'client_send_event_focus'
+     * pair this used to use: 'wcmd_client_unfocus' redirects the X
+     * server's real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see
+     * its own doc comment in cmds/ccmd.c), on the assumption that a
+     * caller unfocusing a client to immediately focus another
+     * "harmlessly overrides this a moment later".  That assumption
+     * only holds if the override actually runs before anything else
+     * can observe or act on the intervening pointer-follows-focus
+     * state; queued through the same event queue a caller reached
+     * here from (e.g. 'wcmd_client_restore', which already
+     * synchronously focuses 'client' once before this function even
+     * runs, only for the queued unfocus below to then run afterward
+     * and undo it), nothing guarantees that ordering.  Calling both
+     * functions directly here removes the gap entirely: this
+     * function already holds both 'previous' and 'client' with a
+     * precise ordering requirement between them, so it needs neither
+     * the queue's own decoupling nor its reentrancy guarantees to
+     * begin with. */
     if (surfaces != NULL &&
             desktop->client_active_id != 0 &&
             desktop->client_active_id != client->id) {
         previous = lookup_find_client(surfaces,
                 desktop->client_active_id, NULL, NULL);
         if (previous != NULL) {
-            (void) client_send_event_unfocus(previous);
+            wcmd_client_unfocus(previous);
         }
     }
 
     desktop->client_active_id = client->id;
     desktop->focus_dirty = true;
-    (void) client_send_event_focus(client);
+    wcmd_client_focus(client);
 
     /* Mark outdated so the next update cycle repaints titlebars */
     desktop->is_outdated = true;

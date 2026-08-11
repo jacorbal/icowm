@@ -56,6 +56,7 @@
 
 /* Local includes */
 #include <config.h>
+#include <config/internal.h>
 
 
 /* Resolve the configuration directory from a prefix, or environment
@@ -91,6 +92,41 @@ void config_resolve_dir(const char *config_dir_prefix,
 }
 
 
+/* Settle a theme's own final display name, once it is known whether
+ * a theme file was actually loaded and whether that file itself set
+ * its own "name" */
+void ci_config_resolve_theme_name(struct config_theme_s *theme,
+        const char *theme_file_name, bool theme_loaded)
+{
+    char combined[sizeof(theme->name)];
+
+    if (theme == NULL) {
+        return;
+    }
+
+    if (theme_file_name == NULL || theme_file_name[0] == '\0' ||
+            !theme_loaded) {
+        safe_strncpy(theme->name, "Default (builtin)",
+                sizeof(theme->name));
+        return;
+    }
+
+    if (theme->name[0] == '\0') {
+        /* The loaded file set no "name" of its own: falls back to
+         * the file's own short name (the same string "theme":
+         * "<this>" in memguard.json/config.json names, not a path or
+         * the ".json" extension), same as if that had been its
+         * "name" all along. */
+        safe_strncpy(theme->name, theme_file_name, sizeof(theme->name));
+        return;
+    }
+
+    snprintf(combined, sizeof(combined), "%s (%s)",
+            theme->name, theme_file_name);
+    safe_strncpy(theme->name, combined, sizeof(theme->name));
+}
+
+
 /* Initialize a new configuration structure */
 config_td *config_init(void)
 {
@@ -119,6 +155,208 @@ void config_destroy(config_td *config)
     if (config != NULL) {
         free(config);
     }
+}
+
+
+/* Populate default values for one theme structure, used both as the
+ * compiled-in fallback theme and, before applying any theme file
+ * found, as the known-good starting point that file's own fields
+ * then overlay */
+void config_set_default_theme_values(struct config_theme_s *theme)
+{
+    LOGGER_TRACE("Setting default theme", L_NARG);
+    /* Left empty here on purpose, rather than a name like "Default
+     * theme" outright: 'ci_config_resolve_theme_name' (config.c)
+     * settles on the final name afterward, once it knows whether a
+     * theme file was actually loaded and whether that file set its
+     * own "name" (empty here means it did not), and this field
+     * staying empty is exactly the signal it checks for that. */
+    theme->name[0] = '\0';
+
+    theme->window.is_decorated = true;
+    theme->window.titlebar.height = 22u;
+    theme->window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_CENTER;
+    theme->window.titlebar.padding.horizontal = 2u;
+    theme->window.titlebar.padding.vertical = 2u;
+
+    theme->window.titlebar.buttons.left[0] =
+        CONFIG_TITLEBAR_BUTTON_PIN;
+    theme->window.titlebar.buttons.left[1] =
+        CONFIG_TITLEBAR_BUTTON_LAYER;
+    theme->window.titlebar.buttons.left_count = 2u;
+
+    theme->window.titlebar.buttons.right[0] =
+        CONFIG_TITLEBAR_BUTTON_CLOSE;
+    theme->window.titlebar.buttons.right[1] =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    theme->window.titlebar.buttons.right[2] =
+        CONFIG_TITLEBAR_BUTTON_SHADE;
+    theme->window.titlebar.buttons.right[3] =
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    theme->window.titlebar.buttons.right_count = 4u;
+
+    theme->window.titlebar.buttons.color.on =
+        json_hex2uint32("253F60");
+    theme->window.titlebar.buttons.color.off =
+        json_hex2uint32("7086A0");
+
+    safe_strcpy(theme->window.active.font, "fixed bold");
+    theme->window.active.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->window.active.color.foreground =
+        json_hex2uint32("253040");
+    theme->window.active.border.color = json_hex2uint32("4A5566");
+    theme->window.active.border.width = 2u;
+
+    safe_strcpy(theme->window.inactive.font, "fixed");
+    theme->window.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->window.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->window.inactive.border.color = json_hex2uint32("7F9AB6");
+    theme->window.inactive.border.width = 2u;
+
+    theme->icon.is_captioned = true;
+    theme->icon.show_pixmaps = true;
+    theme->icon.show_hints = true;
+
+    safe_strcpy(theme->icon.active.font, "fixed bold");
+    theme->icon.active.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->icon.active.color.foreground =
+        json_hex2uint32("253040");
+    theme->icon.active.border.color = json_hex2uint32("4A5566");
+    theme->icon.active.border.width = 1u;
+
+    safe_strcpy(theme->icon.inactive.font, "fixed");
+    theme->icon.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->icon.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->icon.inactive.border.color = json_hex2uint32("7F9AB6");
+    theme->icon.inactive.border.width = 1u;
+
+    safe_strcpy(theme->systray.style.font, "fixed bold");
+    theme->systray.style.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->systray.style.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->systray.style.border.color = json_hex2uint32("7F9AB6");
+    theme->systray.style.border.width = 1u;
+    theme->systray.height = 22u;
+    theme->systray.pixmap.size = 24u;
+    theme->systray.pixmap.padding = 4u;
+    /* 'height' (22) actually sits below 'pixmap.size' (24) here: per
+     * 's_systray_apply_config' in systray.c, the tray's own real,
+     * effective height is clamped up to whichever of the two is
+     * larger, so 24 -- not 22 -- is what actually applies, leaving no
+     * room for 'systray.text.valign' to have any visible effect. */
+    theme->systray.text.gap = 12u;
+    theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+
+    /* Same hue family (~213 degrees) as the rest of the theme's
+     * D0D9E5/4A5566-family colors, but deliberately darker than the
+     * UI chrome: a desktop background is a large, full-screen area
+     * rather than a small UI element, so it wants a more neutral,
+     * less attention-grabbing tone, and staying darker gives windows
+     * placed on top of it more contrast to stand out against than a
+     * light background would.  Landed on this specific value (rather
+     * than an even darker one first tried) so it does not sit almost
+     * as dark as the theme's own text/border colors, which left it
+     * feeling heavier than a full-screen area calls for. */
+    theme->desktop.color.background = json_hex2uint32("5F7187");
+
+    safe_strcpy(theme->menu.unselected.font, "fixed");
+    theme->menu.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->menu.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->menu.unselected.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.unselected.border.width = 0u;
+
+    safe_strcpy(theme->menu.selected.font, "fixed");
+    theme->menu.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->menu.selected.color.foreground =
+        json_hex2uint32("253040");
+    theme->menu.selected.border.color = json_hex2uint32("4A5566");
+    theme->menu.selected.border.width = 0u;
+
+    safe_strcpy(theme->menu.label.font, "fixed");
+    theme->menu.label.color.background =
+        json_hex2uint32("48607F");
+    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
+     * background (the same bar as any other normal-weight text in
+     * the theme): the border color this foreground used to reuse
+     * only reached ~2:1 against a light background, too low for
+     * text meant to be read normally rather than treated as a
+     * de-emphasized secondary state; the ratio itself is the same
+     * either way around, since contrast between two colors does not
+     * depend on which one is foreground and which is background. */
+    theme->menu.label.color.foreground =
+        json_hex2uint32("D0D9E5");
+    theme->menu.label.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.label.border.width = 0u;
+
+    /* Picked for a WCAG contrast ratio of ~3:1 against the menu's own
+     * background: low enough to still read as visibly de-emphasized
+     * (this is disabled, secondary text, not meant to compete with
+     * normal menu text), but not the ~1.7:1 the previous color gave,
+     * which was too low to reliably read as text at all. */
+    theme->menu.disabled_foreground = json_hex2uint32("717B88");
+    theme->menu.separator_color = json_hex2uint32("7F9AB6");
+    theme->menu.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.border.width = 2u;
+    theme->menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
+    theme->menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
+    theme->menu.show_pixmaps = true;
+
+    theme->dialog.background = json_hex2uint32("D0D9E5");
+    theme->dialog.border.color = json_hex2uint32("7F9AB6");
+    theme->dialog.border.width = 2u;
+
+    safe_strcpy(theme->dialog.label.font, "fixed bold");
+    theme->dialog.label.foreground = json_hex2uint32("4A5566");
+    theme->dialog.label.padding.horizontal = 12u;
+    theme->dialog.label.padding.vertical = 12u;
+
+    safe_strcpy(theme->dialog.button.unselected.font, "fixed");
+    theme->dialog.button.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->dialog.button.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->dialog.button.unselected.border.color =
+        json_hex2uint32("7F9AB6");
+    theme->dialog.button.unselected.border.width = 1u;
+
+    safe_strcpy(theme->dialog.button.selected.font, "fixed bold");
+    theme->dialog.button.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->dialog.button.selected.color.foreground =
+        json_hex2uint32("253040");
+    theme->dialog.button.selected.border.color =
+        json_hex2uint32("4A5566");
+    theme->dialog.button.selected.border.width = 1u;
+
+    theme->dialog.button.gap = 24u;
+    theme->dialog.button.padding.horizontal = 12u;
+    theme->dialog.button.padding.vertical = 6u;
+
+    safe_strcpy(theme->overlay.font, "fixed");
+    theme->overlay.color.background = json_hex2uint32("D0D9E5");
+    theme->overlay.color.foreground = json_hex2uint32("4A5566");
+    theme->overlay.border.color = json_hex2uint32("7F9AB6");
+    theme->overlay.border.width = 1u;
+
+    theme->xsettings.is_enabled = false;
+    theme->xsettings.dpi = 96u;
+    safe_strncpy(theme->xsettings.theme.gtk_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(theme->xsettings.theme.icon_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(theme->xsettings.theme.cursor_theme_name,
+            "Adwaita", CONFIG_MAX_LENGTH_NAME);
+    theme->xsettings.theme.cursor_theme_size = 24u;
 }
 
 
@@ -387,194 +625,7 @@ void config_set_default_values(config_td *config)
     safe_strcpy(config->bindings.mouse.cycle.desktop.prev, "button4");
     safe_strcpy(config->bindings.mouse.cycle.desktop.next, "button5");
 
-    /* Predetermined values for a default theme */
-    LOGGER_TRACE("Setting default theme", L_NARG);
-    safe_strcpy(config->theme.name, "Default theme");
-
-    config->theme.window.is_decorated = true;
-    config->theme.window.titlebar.height = 22u;
-    config->theme.window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_CENTER;
-    config->theme.window.titlebar.padding.horizontal = 2u;
-    config->theme.window.titlebar.padding.vertical = 2u;
-
-    config->theme.window.titlebar.buttons.left[0] =
-        CONFIG_TITLEBAR_BUTTON_PIN;
-    config->theme.window.titlebar.buttons.left[1] =
-        CONFIG_TITLEBAR_BUTTON_LAYER;
-    config->theme.window.titlebar.buttons.left_count = 2u;
-
-    config->theme.window.titlebar.buttons.right[0] =
-        CONFIG_TITLEBAR_BUTTON_CLOSE;
-    config->theme.window.titlebar.buttons.right[1] =
-        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
-    config->theme.window.titlebar.buttons.right[2] =
-        CONFIG_TITLEBAR_BUTTON_SHADE;
-    config->theme.window.titlebar.buttons.right[3] =
-        CONFIG_TITLEBAR_BUTTON_ICONIZE;
-    config->theme.window.titlebar.buttons.right_count = 4u;
-
-    config->theme.window.titlebar.buttons.color.on =
-        json_hex2uint32("253F60");
-    config->theme.window.titlebar.buttons.color.off =
-        json_hex2uint32("7086A0");
-
-    safe_strcpy(config->theme.window.active.font, "fixed bold");
-    config->theme.window.active.color.background =
-        json_hex2uint32("9AAEC8");
-    config->theme.window.active.color.foreground =
-        json_hex2uint32("253040");
-    config->theme.window.active.border.color = json_hex2uint32("4A5566");
-    config->theme.window.active.border.width = 2u;
-
-    safe_strcpy(config->theme.window.inactive.font, "fixed");
-    config->theme.window.inactive.color.background =
-        json_hex2uint32("D0D9E5");
-    config->theme.window.inactive.color.foreground =
-        json_hex2uint32("4A5566");
-    config->theme.window.inactive.border.color = json_hex2uint32("7F9AB6");
-    config->theme.window.inactive.border.width = 2u;
-
-    config->theme.icon.is_captioned = true;
-    config->theme.icon.show_pixmaps = true;
-    config->theme.icon.show_hints = true;
-
-    safe_strcpy(config->theme.icon.active.font, "fixed bold");
-    config->theme.icon.active.color.background =
-        json_hex2uint32("9AAEC8");
-    config->theme.icon.active.color.foreground =
-        json_hex2uint32("253040");
-    config->theme.icon.active.border.color = json_hex2uint32("4A5566");
-    config->theme.icon.active.border.width = 1u;
-
-    safe_strcpy(config->theme.icon.inactive.font, "fixed");
-    config->theme.icon.inactive.color.background =
-        json_hex2uint32("D0D9E5");
-    config->theme.icon.inactive.color.foreground =
-        json_hex2uint32("4A5566");
-    config->theme.icon.inactive.border.color = json_hex2uint32("7F9AB6");
-    config->theme.icon.inactive.border.width = 1u;
-
-    safe_strcpy(config->theme.systray.style.font, "fixed bold");
-    config->theme.systray.style.color.background =
-        json_hex2uint32("D0D9E5");
-    config->theme.systray.style.color.foreground =
-        json_hex2uint32("4A5566");
-    config->theme.systray.style.border.color = json_hex2uint32("7F9AB6");
-    config->theme.systray.style.border.width = 1u;
-    config->theme.systray.height = 22u;
-    config->theme.systray.pixmap.size = 24u;
-    config->theme.systray.pixmap.padding = 4u;
-    /* 'height' (22) actually sits below 'pixmap.size' (24) here: per
-     * 's_systray_apply_config' in systray.c, the tray's own real,
-     * effective height is clamped up to whichever of the two is
-     * larger, so 24 -- not 22 -- is what actually applies, leaving no
-     * room for 'systray.text.valign' to have any visible effect. */
-    config->theme.systray.text.gap = 12u;
-    config->theme.systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
-
-    /* Same hue family (~213 degrees) as the rest of the theme's
-     * D0D9E5/4A5566-family colors, but deliberately darker than the
-     * UI chrome: a desktop background is a large, full-screen area
-     * rather than a small UI element, so it wants a more neutral,
-     * less attention-grabbing tone, and staying darker gives windows
-     * placed on top of it more contrast to stand out against than a
-     * light background would.  Landed on this specific value (rather
-     * than an even darker one first tried) so it does not sit almost
-     * as dark as the theme's own text/border colors, which left it
-     * feeling heavier than a full-screen area calls for. */
-    config->theme.desktop.color.background = json_hex2uint32("5F7187");
-
-    safe_strcpy(config->theme.menu.unselected.font, "fixed");
-    config->theme.menu.unselected.color.background =
-        json_hex2uint32("D0D9E5");
-    config->theme.menu.unselected.color.foreground =
-        json_hex2uint32("4A5566");
-    config->theme.menu.unselected.border.color = json_hex2uint32("7F9AB6");
-    config->theme.menu.unselected.border.width = 0u;
-
-    safe_strcpy(config->theme.menu.selected.font, "fixed");
-    config->theme.menu.selected.color.background =
-        json_hex2uint32("9AAEC8");
-    config->theme.menu.selected.color.foreground =
-        json_hex2uint32("253040");
-    config->theme.menu.selected.border.color = json_hex2uint32("4A5566");
-    config->theme.menu.selected.border.width = 0u;
-
-    safe_strcpy(config->theme.menu.label.font, "fixed");
-    config->theme.menu.label.color.background =
-        json_hex2uint32("48607F");
-    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
-     * background (the same bar as any other normal-weight text in
-     * the theme): the border color this foreground used to reuse
-     * only reached ~2:1 against a light background, too low for
-     * text meant to be read normally rather than treated as a
-     * de-emphasized secondary state; the ratio itself is the same
-     * either way around, since contrast between two colors does not
-     * depend on which one is foreground and which is background. */
-    config->theme.menu.label.color.foreground =
-        json_hex2uint32("D0D9E5");
-    config->theme.menu.label.border.color = json_hex2uint32("7F9AB6");
-    config->theme.menu.label.border.width = 0u;
-
-    /* Picked for a WCAG contrast ratio of ~3:1 against the menu's own
-     * background: low enough to still read as visibly de-emphasized
-     * (this is disabled, secondary text, not meant to compete with
-     * normal menu text), but not the ~1.7:1 the previous color gave,
-     * which was too low to reliably read as text at all. */
-    config->theme.menu.disabled_foreground = json_hex2uint32("717B88");
-    config->theme.menu.separator_color = json_hex2uint32("7F9AB6");
-    config->theme.menu.border.color = json_hex2uint32("7F9AB6");
-    config->theme.menu.border.width = 2u;
-    config->theme.menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
-    config->theme.menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
-    config->theme.menu.show_pixmaps = true;
-
-    config->theme.dialog.background = json_hex2uint32("D0D9E5");
-    config->theme.dialog.border.color = json_hex2uint32("7F9AB6");
-    config->theme.dialog.border.width = 2u;
-
-    safe_strcpy(config->theme.dialog.label.font, "fixed bold");
-    config->theme.dialog.label.foreground = json_hex2uint32("4A5566");
-    config->theme.dialog.label.padding.horizontal = 12u;
-    config->theme.dialog.label.padding.vertical = 12u;
-
-    safe_strcpy(config->theme.dialog.button.unselected.font, "fixed");
-    config->theme.dialog.button.unselected.color.background =
-        json_hex2uint32("D0D9E5");
-    config->theme.dialog.button.unselected.color.foreground =
-        json_hex2uint32("4A5566");
-    config->theme.dialog.button.unselected.border.color =
-        json_hex2uint32("7F9AB6");
-    config->theme.dialog.button.unselected.border.width = 1u;
-
-    safe_strcpy(config->theme.dialog.button.selected.font, "fixed bold");
-    config->theme.dialog.button.selected.color.background =
-        json_hex2uint32("9AAEC8");
-    config->theme.dialog.button.selected.color.foreground =
-        json_hex2uint32("253040");
-    config->theme.dialog.button.selected.border.color =
-        json_hex2uint32("4A5566");
-    config->theme.dialog.button.selected.border.width = 1u;
-
-    config->theme.dialog.button.gap = 24u;
-    config->theme.dialog.button.padding.horizontal = 12u;
-    config->theme.dialog.button.padding.vertical = 6u;
-
-    safe_strcpy(config->theme.overlay.font, "fixed");
-    config->theme.overlay.color.background = json_hex2uint32("D0D9E5");
-    config->theme.overlay.color.foreground = json_hex2uint32("4A5566");
-    config->theme.overlay.border.color = json_hex2uint32("7F9AB6");
-    config->theme.overlay.border.width = 1u;
-
-    config->theme.xsettings.is_enabled = false;
-    config->theme.xsettings.dpi = 96u;
-    safe_strncpy(config->theme.xsettings.theme.gtk_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->theme.xsettings.theme.icon_theme_name, "Adwaita",
-            CONFIG_MAX_LENGTH_NAME);
-    safe_strncpy(config->theme.xsettings.theme.cursor_theme_name,
-            "Adwaita", CONFIG_MAX_LENGTH_NAME);
-    config->theme.xsettings.theme.cursor_theme_size = 24u;
+    config_set_default_theme_values(&config->theme);
 }
 
 
@@ -648,10 +699,21 @@ int config_load(config_td *config, const char *config_prefix)
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
 
+    /* Reset every field back to its own known default first, on every
+     * call here, not just the first: 'config_load_theme' below only
+     * ever overwrites whichever fields the theme file itself
+     * specifies, so without this a reload that switched to a theme
+     * missing some field the previous one did specify would leave
+     * that field stuck at the old theme's own value instead of
+     * falling back to this default. */
+    config_set_default_theme_values(&config->theme);
+
     /* Load theme if it's specified, i.e., not empty string */
     if (safe_strlen(config->base.theme) == 0) {
         LOGGER_NOTICE("No theme specified in base configuration;" \
                 " default will be used", L_NARG);
+        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+                false);
     } else {
         /* Snapshot the syntax-error count before attempting the load,
          * so a load failure can be told apart from one that
@@ -664,11 +726,13 @@ int config_load(config_td *config, const char *config_prefix)
          * that one, unlike a syntax error, is otherwise silent by
          * design. */
         uint32_t syntax_errors_before = json_syntax_errors_count();
+        bool theme_loaded;
 
         LOGGER_DEBUG("Loading theme '%s' from '%s'",
                 config->base.theme, config_theme_file);
-        if (config_load_theme(config_theme_file,
-                    &(config->theme)) != 0) {
+        theme_loaded = (config_load_theme(config_theme_file,
+                    &(config->theme)) == 0);
+        if (!theme_loaded) {
             LOGGER_WARNING("Failed to load theme from:" \
                     " '%s'; default theme will be used",
                     config_theme_file);
@@ -676,7 +740,10 @@ int config_load(config_td *config, const char *config_prefix)
                 safe_strncpy(s_missing_theme_file, config_theme_file,
                         sizeof(s_missing_theme_file));
             }
-        } else {
+        }
+        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+                theme_loaded);
+        if (theme_loaded) {
             LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",
                     config->base.theme, config->theme.name,
                     config_theme_file);

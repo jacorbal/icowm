@@ -427,7 +427,13 @@ void systray_protocol_release_selection(void)
     xcb_set_selection_owner(s_tray.connection, XCB_NONE,
             s_tray.selection_atom, XCB_CURRENT_TIME);
     s_tray.selection_owned = false;
-    systray_layout_reflow();   /* unmaps: 'selection_owned' is now false */
+    /* Actually unmaps only if 'is_active' is also already false by
+     * now: systray_reload's own 'disabled' path always sets that
+     * first, right before calling this.  Still safe to call from
+     * systray_shutdown instead, where 'is_active' may still be true
+     * here, since that caller destroys the window outright right
+     * after regardless of whether this unmapped it first. */
+    systray_layout_reflow();
 
     LOGGER_INFO("Systray selection released (%u icon(s) kept docked" \
             " in the background)", (unsigned int) s_tray.icon_count);

@@ -31,9 +31,6 @@
 /** Default titlebar height in pixels */
 #define WM_TITLEBAR_DEFAULT_HEIGHT (22u)
 
-/** Pixels between baseline and the bottom of the titlebar */
-#define WM_TITLEBAR_TEXT_BOTTOM_PAD (6)
-
 /** Decoration button side pixels */
 #define WM_DECOR_BTN_SIZE (12u)
 
