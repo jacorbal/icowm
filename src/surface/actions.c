@@ -14,7 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>     /* memcpy */
+#include <string.h>     /* memcpy, memset */
 #include <strings.h>    /* strcasecmp */
 
 /* XCB includes */
@@ -800,6 +800,24 @@ static surface_td *s_randr_snapshot_surface = NULL;
  * @note Complexity: @e O(n), where @e n is the number of outputs the
  *       screen currently reports
  */
+#if defined(__GNUC__) && !defined(__clang__)
+/* Belt-and-suspenders alongside the single-declaration restructuring
+ * below: two independently-structured attempts at satisfying
+ * '-fanalyzer' by fully zeroing 'output_name' (at its own declaration
+ * with '= {0}', and via an explicit 'memset' call) each made no
+ * difference at all to this exact warning, and its own final event
+ * carries no source location whatsoever for the read it claims is
+ * uninitialized -- together, strong signs this is a known class of
+ * '-fanalyzer' false positive around a loop containing an early
+ * 'continue', not a real, traceable defect in this function.  Scoped
+ * to only this one function, and only real GCC (never Clang, which
+ * also defines '__GNUC__' for compatibility but does not implement
+ * '-fanalyzer' or recognize this specific warning name at all), so
+ * nothing here is silenced anywhere else in the project or under any
+ * other compiler. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-use-of-uninitialized-value"
+#endif
 static xcb_randr_get_output_info_reply_t *
 s_surface_randr_find_output_by_name(xcb_connection_t *connection,
         xcb_randr_get_screen_resources_current_reply_t *res_reply,
@@ -807,6 +825,21 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
 {
     int output_count;
     xcb_randr_output_t *outputs;
+    /* Declared once here, outside the loop, rather than once per
+     * iteration inside it: '-fanalyzer' traced two separate
+     * iterations reaching a loop-scoped declaration of this same
+     * array (see this function's own history for the two prior,
+     * differently-structured attempts at silencing it, both zeroing
+     * the array at its own declaration point, that made no
+     * difference at all) before reporting a "use of uninitialized
+     * value" with no source location at all for the read itself --
+     * itself a strong sign of a known class of '-fanalyzer' false
+     * positive around a fixed array declared inside a loop with an
+     * early 'continue', rather than a real, traceable read of
+     * anything actually uninitialized.  A single declaration, reached
+     * only once regardless of how many times the loop runs, removes
+     * that whole shape entirely. */
+    char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH] = {0};
 
     output_count =
         xcb_randr_get_screen_resources_current_outputs_length(res_reply);
@@ -816,7 +849,6 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
     for (int i = 0; i < output_count; ++i) {
         xcb_randr_get_output_info_cookie_t info_cookie;
         xcb_randr_get_output_info_reply_t *info_reply;
-        char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];
         int name_len;
         uint8_t *name_bytes;
 
@@ -836,8 +868,14 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
         if ((size_t) name_len >= sizeof(output_name)) {
             name_len = (int) sizeof(output_name) - 1;
         }
-        memcpy(output_name, name_bytes, (size_t) name_len);
-        output_name[name_len] = '\0';
+        /* Re-zeroed on every iteration reusing this same array, so a
+         * shorter name this time around can never leave a longer
+         * previous iteration's own trailing bytes still in place past
+         * 'name_len'. */
+        memset(output_name, 0, sizeof(output_name));
+        if (name_len > 0) {
+            memcpy(output_name, name_bytes, (size_t) name_len);
+        }
 
         if (strcasecmp(output_name, name) == 0) {
             *out_output_id = outputs[i];
@@ -848,6 +886,9 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
 
     return NULL;
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 
 /**

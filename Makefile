@@ -108,19 +108,6 @@ CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 
-# Optional: 'make LOWMEM=1' shrinks several compile-time array
-# capacities throughout the codebase, for building specifically for a
-# severely memory-constrained target; see include/defs/lowmem.h.  Off
-# by default, and purely additive to CCFLAGS above when it is set, so
-# leaving it unset changes nothing.  Independent of restricted-memory
-# mode (icowm -M <mib>): it does not turn that mode on by itself, and
-# it does not supply a default for -M <mib> when that flag is left
-# off at run time either; see defs/lowmem.h for the full explanation.
-LOWMEM ?=
-ifneq ($(LOWMEM),)
-CCFLAGS += -D LOWMEM
-endif
-
 
 ## Options on `make`
 # Compiler: `make clean && make CC=clang` or `make clean && make CC=gcc`

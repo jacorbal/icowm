@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, calloc, free, getenv */
+#include <string.h>     /* memcpy */
 
 /* Utils includes */
 #include <utils/config/json.h>
@@ -99,6 +100,11 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
         const char *theme_file_name, bool theme_loaded)
 {
     char combined[sizeof(theme->name)];
+    size_t name_len;
+    size_t file_len;
+    size_t pos;
+    size_t avail;
+    size_t fit;
 
     if (theme == NULL) {
         return;
@@ -121,8 +127,45 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
         return;
     }
 
-    snprintf(combined, sizeof(combined), "%s (%s)",
-            theme->name, theme_file_name);
+    /* Built with explicit, provably bounded 'memcpy' calls rather
+     * than 'snprintf' with two '%s' arguments of a priori unknown
+     * length: GCC's own '-Wformat-truncation' analysis cannot trace
+     * that the combined length here can never exceed 'combined''s own
+     * size through reasoning this indirect, and warns as if the call
+     * could write past it even though it provably cannot -- the same
+     * issue, and the same fix, already applied in
+     * 's_message_wrap_text' (menu/dialog/message.c).  Truncates
+     * either string in turn (theme name first, then the file name)
+     * rather than failing outright when the two together would not
+     * fit: this is a display label, not something anything else
+     * parses back apart, so a truncated one is a fully acceptable
+     * outcome here, unlike it would be for, say, a file path. */
+    name_len = safe_strlen(theme->name);
+    file_len = safe_strlen(theme_file_name);
+
+    /* Reserves the 4 bytes " (" + ")" + '\0' need beyond whatever
+     * room the two strings themselves take up. */
+    avail = (sizeof(combined) > 4u) ? sizeof(combined) - 4u : 0u;
+    fit = (name_len > avail) ? avail : name_len;
+    memcpy(combined, theme->name, fit);
+    pos = fit;
+
+    combined[pos] = ' ';
+    ++pos;
+    combined[pos] = '(';
+    ++pos;
+
+    /* Reserves the 2 bytes ')' + '\0' still need beyond 'pos'. */
+    avail = (pos < sizeof(combined) - 2u) ? sizeof(combined) - 2u - pos
+        : 0u;
+    fit = (file_len > avail) ? avail : file_len;
+    memcpy(combined + pos, theme_file_name, fit);
+    pos += fit;
+
+    combined[pos] = ')';
+    ++pos;
+    combined[pos] = '\0';
+
     safe_strncpy(theme->name, combined, sizeof(theme->name));
 }
 
