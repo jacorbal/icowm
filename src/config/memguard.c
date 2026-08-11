@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
 #include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* calloc */
 #include <string.h>     /* strchr */
 #include <strings.h>    /* strncasecmp */
 
@@ -225,6 +226,24 @@ static int s_memguard_load_json(const char *filename, config_td *config)
 }
 
 
+/* Allocate a new configuration structure, without populating it */
+config_td *config_init_memguard(void)
+{
+    config_td *config;
+
+    LOGGER_DEBUG("Initializing restricted-memory mode configuration" \
+            " structure", L_NARG);
+
+    config = calloc(1, sizeof(config_td));
+    if (config == NULL) {
+        LOGGER_ERROR("Failed to allocate memory for restricted-" \
+                "memory mode configuration structure", L_NARG);
+    }
+
+    return config;
+}
+
+
 /* Populate a configuration structure with restricted-memory mode's
  * own fixed profile */
 void config_set_default_values_memguard(config_td *config)
@@ -295,6 +314,10 @@ void config_set_default_values_memguard(config_td *config)
      * check less often and since a stale battery reading for a few
      * extra seconds matters little either way. */
     config->base.systray.is_enabled = true;
+    /* Fixed false for this mode, deliberately not something
+     * memguard.json is allowed to configure; see is_embedding_
+     * enabled's own doc comment in config.h */
+    config->base.systray.is_embedding_enabled = false;
     config->base.systray.reserve_space = false;
     config->base.systray.margins.top = 0u;
     config->base.systray.margins.right = 0u;

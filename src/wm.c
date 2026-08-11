@@ -40,6 +40,7 @@
 
 /* Project includes */
 #include <config.h>
+#include <config/memguard.h>
 #include <desktop.h>
 #include <eventq.h>
 #include <logger.h>
@@ -251,7 +252,16 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         return 10;
     }
 
-    wm->config = config_init(wm->restricted_memory_mib);
+    /* Two entirely separate configuration paths, not one with
+     * restricted-memory branches woven through it: 'config_init'/
+     * 'config_load' know nothing about restricted-memory mode at all,
+     * and 'config_init_memguard'/'config_load_memguard' (config/
+     * memguard.h) know nothing about an ordinary session's own
+     * 'config.json'.  Only the choice of which pair to call lives
+     * here. */
+    wm->config = (wm->restricted_memory_mib > 0u)
+        ? config_init_memguard()
+        : config_init();
     if (wm->config == NULL) {
         s_wm_cleanup();
         return 3;
@@ -261,8 +271,11 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     wm->config_dir_prefix = config_dir_prefix;
     json_syntax_errors_reset();
     config_missing_theme_reset();
-    config_load(wm->config, wm->config_dir_prefix,
-            wm->restricted_memory_mib);
+    if (wm->restricted_memory_mib > 0u) {
+        config_load_memguard(wm->config, wm->config_dir_prefix);
+    } else {
+        config_load(wm->config, wm->config_dir_prefix);
+    }
 
     wm->rules = rules_init();
     if (wm->rules != NULL) {

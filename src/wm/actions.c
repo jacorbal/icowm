@@ -35,6 +35,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <config/memguard.h>
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
@@ -167,6 +168,8 @@ static void s_resync_after_reload(void)
 /* Reload the configuration */
 int wm_action_config_reload(void)
 {
+    int load_result;
+
     LOGGER_DEBUG("Reloading configuration", L_NARG);
 
     if (wm == NULL || wm->config == NULL) {
@@ -176,15 +179,21 @@ int wm_action_config_reload(void)
 
     json_syntax_errors_reset();
     config_missing_theme_reset();
-    if (config_load(wm->config, wm->config_dir_prefix,
-                wm->restricted_memory_mib) != 0) {
+    /* Same two entirely separate paths 'wm_start' chooses between
+     * (config/memguard.h); a reload takes the same one it started
+     * with, since 'wm->restricted_memory_mib' never changes for the
+     * life of the process. */
+    load_result = (wm->restricted_memory_mib > 0u)
+        ? config_load_memguard(wm->config, wm->config_dir_prefix)
+        : config_load(wm->config, wm->config_dir_prefix);
+    if (load_result != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
-        /* Whatever caused 'config_load' to fail outright is far more
+        /* Whatever caused the load to fail outright is far more
          * likely to be a syntax error introduced while editing an
-         * already-working 'config.json' than the file simply not
-         * existing at all, unlike at first startup; worth surfacing
-         * here even on this early-failure path, not just after a
-         * successful reload below. */
+         * already-working configuration file than the file simply
+         * not existing at all, unlike at first startup; worth
+         * surfacing here even on this early-failure path, not just
+         * after a successful reload below. */
         wm_warn_json_syntax_errors();
         return 1;
     }

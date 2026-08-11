@@ -21,6 +21,23 @@
 
 
 /**
+ * @brief Allocate a new configuration structure, without populating it
+ *
+ * A thin counterpart to @c config_init in config.h, for restricted-
+ * memory mode's own separate path: allocation only, deliberately not
+ * followed by @a config_set_default_values_memguard here, since
+ * @a config_load_memguard already calls that itself as its own first
+ * step.  Calling it here too would just mean setting every field
+ * twice for no reason.
+ *
+ * @return Pointer to the newly allocated (but not yet populated)
+ *         configuration structure, or @c NULL on failure
+ *
+ * @note Complexity: @e O(1)
+ */
+config_td *config_init_memguard(void);
+
+/**
  * @brief Populate @p config with restricted-memory mode's own fixed
  *        profile, the starting point @a config_load_memguard applies
  *        @c memguard.json on top of

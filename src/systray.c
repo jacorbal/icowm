@@ -129,7 +129,14 @@ void systray_init(wm_td *wm)
         return;
     }
 
-    (void) systray_protocol_acquire_selection();
+    /* Never acquired at all when 'is_embedding_enabled' is false, own
+     * clock/battery text still shown regardless (already applied
+     * above by 's_systray_apply_config'): see that field's own doc
+     * comment in config.h for why restricted-memory mode is the one
+     * profile that always leaves it false. */
+    if (wm->config->base.systray.is_embedding_enabled) {
+        (void) systray_protocol_acquire_selection();
+    }
 }
 
 
@@ -372,9 +379,19 @@ void systray_reload(wm_td *wm)
     }
 
     if (!s_tray.selection_owned && should_be_enabled) {
+        bool ready = systray_protocol_ensure_window(wm);
+
+        /* Selection acquisition only even attempted, let alone
+         * required for success here, when embedding is actually
+         * allowed; with it disabled the window alone (already
+         * showing its own clock/battery text via
+         * 's_systray_apply_config' above) is enough on its own. */
+        if (ready && wm->config->base.systray.is_embedding_enabled) {
+            ready = systray_protocol_acquire_selection();
+        }
+
         LOGGER_INFO("Systray enabled by configuration reload", L_NARG);
-        if (systray_protocol_ensure_window(wm) &&
-                systray_protocol_acquire_selection()) {
+        if (ready) {
             systray_protocol_resort();
             systray_layout_reflow();
         }

@@ -255,6 +255,24 @@ struct config_base_s {
         bool is_enabled;    /**< Enable the built-in systray dock */
 
         /**
+         * @brief Whether the tray ever acquires the
+         *        @c _NET_SYSTEM_TRAY_S0 selection at all, letting
+         *        third-party applications dock an icon in it
+         *
+         * Never loaded from any configuration file: an ordinary
+         * session's own @a config_set_default_values always sets this
+         * @c true, and restricted-memory mode's own @a
+         * config_set_default_values_memguard (config/memguard.h)
+         * always sets it @c false, as a fixed part of that mode's own
+         * profile rather than something @c memguard.json itself is
+         * allowed to configure.  With this @c false, the tray still
+         * shows its own clock and battery text when @c is_enabled is
+         * also @c true; only docking a third party's own icon is
+         * ever affected (see @c systray_init and @c systray_reload).
+         */
+        bool is_embedding_enabled;
+
+        /**
          * @brief Whether the tray publishes its own
          *        @c _NET_WM_STRUT_PARTIAL/@c _NET_WM_STRUT, reserving
          *        its own on-screen area so maximized windows and
@@ -1053,13 +1071,11 @@ typedef struct {
 /**
  * @brief Initialize a new structure for the configuration
  *
- * Allocates memory for a new @c config_td structure and initializes its
- * fields to default values.
- *
- * @param restricted_memory_mib Restricted-memory mode's ceiling in
- *                          mebibytes, or @c 0 when the mode is off
- *                          (see @c -M in @c main.c); passed straight
- *                          through to @c config_set_default_values
+ * Allocates memory for a new @c config_td structure and initializes
+ * its fields to an ordinary session's own default values.
+ * Restricted-memory mode never calls this: see @a
+ * config_init_memguard in config/memguard.h for its own completely
+ * separate path, which this function knows nothing about.
  *
  * @return Pointer to the initialized configuration structure, or @c NULL
  *         on failure
@@ -1069,7 +1085,7 @@ typedef struct {
  *
  * @see @c config_td
  */
-config_td *config_init(uint32_t restricted_memory_mib);
+config_td *config_init(void);
 
 /**
  * @brief Destroy a configuration structure and free resources
@@ -1085,66 +1101,42 @@ config_td *config_init(uint32_t restricted_memory_mib);
 void config_destroy(config_td *config);
 
 /**
- * @brief Populate the configuration structure with default values
+ * @brief Populate the configuration structure with an ordinary
+ *        session's own default values
  *
  * Sets default values for all fields in the given @c config_td
- * structure.
+ * structure.  Restricted-memory mode never calls this: see @a
+ * config_set_default_values_memguard in config/memguard.h for its own
+ * completely separate profile, which this function knows nothing
+ * about.
  *
  * @param config Pointer to the configuration structure to set the
  *               default values for
- * @param restricted_memory_mib Restricted-memory mode's ceiling in
- *                          mebibytes, or @c 0 when the mode is off
- *                          (see @c -M in @c main.c).  The only default
- *                          this changes is how many desktops each
- *                          screen starts with (2 instead of the
- *                          ordinary 4); a `config.json` that specifies
- *                          its own `desktops.count` still overrides
- *                          this either way, since `config_load_base`
- *                          runs after this function and simply
- *                          replaces whatever default this leaves in
- *                          place.  Desktop count does not affect
- *                          memory use directly (fixed-size arrays are
- *                          the same size regardless), only how much
- *                          there is to render and switch between, so
- *                          a smaller default here is about that, not
- *                          about the memory-ceiling behavior the rest
- *                          of restricted-memory mode is concerned
- *                          with.
  *
  * @note This function is loaded before user configuration, as
  *       a fail-safe for fields not yet configured manually
  * @note Complexity: @e O(n), where @e n is the number of fields that
  *       need to be set
  */
-void config_set_default_values(config_td *config,
-        uint32_t restricted_memory_mib);
+void config_set_default_values(config_td *config);
 
 /**
- * @brief Load all the configuration
+ * @brief Load all of an ordinary session's own configuration
  *
- * Loads configuration settings into the provided @c config_td structure
- * from predefined sources (configuration files) by invoking the
- * functions @a config_load_base, @a config_load_bindings and
- * @a config_load_theme.
+ * Loads configuration settings into the provided @c config_td
+ * structure from predefined sources (@c config.json, @c
+ * bindings.json, the named theme file, and @c randr.json), by
+ * invoking @a config_load_base, @a config_load_bindings, @a
+ * config_load_theme, and @a config_load_randr in that order.
+ * Restricted-memory mode never calls this: see @a config_load_memguard
+ * in config/memguard.h for its own completely separate path (@c
+ * memguard.json instead of @c config.json, @c randr.json never read
+ * at all), which this function knows nothing about.
  *
  * @param config            Pointer to the configuration structure where
  *                          to load the data
  * @param config_dir_prefix Configuration directory, or @c NULL to use
  *                          default value
- * @param restricted_memory_mib Restricted-memory mode's ceiling in
- *                          mebibytes, or @c 0 when the mode is off
- *                          (see @c -M in @c main.c).  When non-zero,
- *                          the theme file is not read at all, so
- *                          @c config->theme keeps its compiled-in
- *                          defaults except for @c icon.show_pixmaps,
- *                          forced to @c false regardless of what that
- *                          compiled-in default is; and after the base
- *                          configuration loads normally,
- *                          @c screens.count, each screen's own
- *                          @c desktops.count, and @c enable-fortune
- *                          -shortcut are forced to @c 1, @c 1, and
- *                          @c false respectively, overriding whatever
- *                          @c config.json itself set them to
  *
  * @return 0 on success, or otherwise
  *
@@ -1157,8 +1149,7 @@ void config_set_default_values(config_td *config,
  *      @a config_load_bindings,
  *      @a config_load_theme
  */
-int config_load(config_td *config, const char *config_dir_prefix,
-        uint32_t restricted_memory_mib);
+int config_load(config_td *config, const char *config_dir_prefix);
 
 /**
  * @brief Clear whichever theme file @c config_load last recorded as

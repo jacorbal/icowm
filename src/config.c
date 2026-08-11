@@ -47,7 +47,6 @@
 #include <defs/ctxmenu.h>
 #include <defs/desktop.h>
 #include <defs/loop.h>
-#include <defs/memguard.h>
 #include <defs/sn.h>
 
 /* Project includes */
@@ -57,71 +56,6 @@
 
 /* Local includes */
 #include <config.h>
-
-
-/**
- * @brief Force icon pixmaps off and every theme text style's own font
- *        to a plain X core font, when restricted-memory mode is
- *        active
- *
- * The only two things this mode ever forces, applied unconditionally
- * on top of @c config->theme regardless of whether a theme file was
- * actually found or even attempted (a missing @c config.json, and so
- * a @c config->base.theme left empty, still means this needs to run):
- * a compiled-in theme occupies the exact same memory as one read from
- * @c *.json files in the @c themes directory, so skipping the file
- * itself saves nothing, but pixmaps and the heavier
- * xcb-render/FreeType2/fontconfig text rendering backend a
- * TrueType/OpenType font name would otherwise select both carry a
- * real, ongoing cost regardless of where the theme came from.
- *
- * Screen and desktop count are never touched here, or anywhere else
- * in restricted-memory mode: @c MEMGUARD_DEFAULT_DESKTOPS is only ever
- * used as a smaller default (see @c config_set_default_values) for
- * when nothing else specifies a count at all, never as a cap forced
- * on top of an explicit @c config.json value.  A configuration that
- * defines, say, 6 desktops gets 6 desktops, restricted-memory mode
- * included.
- *
- * @param config Configuration structure whose already-loaded (or
- *               still at compiled-in defaults) theme this overrides
- * @param restricted_memory_mib Restricted-memory mode's ceiling in
- *               mebibytes, or @c 0 to leave @p config untouched
- *
- * @note Complexity: @e O(1), a fixed number of fields
- */
-static void s_config_apply_restricted_memory_overrides(config_td *config,
-        uint32_t restricted_memory_mib)
-{
-    char *const font_fields[] = {
-        config->theme.dialog.button.selected.font,
-        config->theme.dialog.button.unselected.font,
-        config->theme.dialog.label.font,
-        config->theme.icon.active.font,
-        config->theme.icon.inactive.font,
-        config->theme.menu.label.font,
-        config->theme.menu.selected.font,
-        config->theme.menu.unselected.font,
-        config->theme.overlay.font,
-        config->theme.systray.style.font,
-        config->theme.window.active.font,
-        config->theme.window.inactive.font,
-    };
-
-    if (restricted_memory_mib == 0u) {
-        return;
-    }
-
-    LOGGER_NOTICE("Restricted-memory mode: disabling icon" \
-            " pixmaps and forcing plain X core fonts", L_NARG);
-    config->theme.icon.show_pixmaps = false;
-
-    for (size_t i = 0u; i < sizeof(font_fields) / sizeof(font_fields[0]);
-            ++i) {
-        safe_strncpy(font_fields[i], MEMGUARD_FONT_NAME,
-                CONFIG_MAX_LENGTH_FONTNAME);
-    }
-}
 
 
 /* Resolve the configuration directory from a prefix, or environment
@@ -158,7 +92,7 @@ void config_resolve_dir(const char *config_dir_prefix,
 
 
 /* Initialize a new configuration structure */
-config_td *config_init(uint32_t restricted_memory_mib)
+config_td *config_init(void)
 {
     config_td *config;
 
@@ -172,7 +106,7 @@ config_td *config_init(uint32_t restricted_memory_mib)
     }
 
     LOGGER_DEBUG("Setting configuration to default values", L_NARG);
-    config_set_default_values(config, restricted_memory_mib);
+    config_set_default_values(config);
 
     return config;
 }
@@ -189,8 +123,7 @@ void config_destroy(config_td *config)
 
 
 /* Populate the configuration structure with default values */
-void config_set_default_values(config_td *config,
-        uint32_t restricted_memory_mib)
+void config_set_default_values(config_td *config)
 {
     /* Assign predetermined values for base configuration */
     config->base.theme[0] = '\0';
@@ -230,21 +163,14 @@ void config_set_default_values(config_td *config,
 
     LOGGER_TRACE("Setting configuration for each screen", L_NARG);
     for (unsigned int i = 0; i < config->base.screen_count; ++i) {
-        /* 4 desktops by default (2 under restricted-memory mode,
-         * since there is less to gain from starting with the
-         * ordinary default when nothing else about this mode changes
-         * desktop count's effect on memory use directly; see this
-         * function's own doc comment in config.h), unless
-         * 'CONFIG_MAX_DESKTOPS' itself is smaller than that.  Purely
-         * a fallback for when nothing else specifies a count at all:
-         * a 'config.json' that specifies its own 'desktops.count'
-         * always overrides this default, restricted-memory mode
-         * included, since 'config_load_base' runs after this and
+        /* 4 desktops by default, unless 'CONFIG_MAX_DESKTOPS' itself
+         * is smaller than that.  Purely a fallback for when nothing
+         * else specifies a count at all: a 'config.json' that
+         * specifies its own 'desktops.count' always overrides this
+         * default, since 'config_load_base' runs after this and
          * simply replaces it; nothing caps that value back down
          * afterward. */
-        uint32_t desktop_default =
-            (restricted_memory_mib > 0u)
-                ? MEMGUARD_DEFAULT_DESKTOPS : 4u;
+        uint32_t desktop_default = 4u;
 
         config->base.screens[i].desktop_count =
             (CONFIG_MAX_DESKTOPS < desktop_default)
@@ -293,6 +219,7 @@ void config_set_default_values(config_td *config,
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
+    config->base.systray.is_embedding_enabled = true;
     config->base.systray.reserve_space = false;
     config->base.systray.margins.top = 0u;
     config->base.systray.margins.right = 0u;
@@ -674,8 +601,7 @@ const char *config_missing_theme_get(void)
 
 
 /* Load all the configuration */
-int config_load(config_td *config, const char *config_prefix,
-        uint32_t restricted_memory_mib)
+int config_load(config_td *config, const char *config_prefix)
 {
     char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
     char config_base_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
@@ -697,8 +623,6 @@ int config_load(config_td *config, const char *config_prefix,
                 &(config->desktops)) != 0) {
         LOGGER_WARNING("Base configuration could not be loaded;" \
                 " default values will be used", L_NARG);
-        s_config_apply_restricted_memory_overrides(config,
-                restricted_memory_mib);
         return 1;
     }
     LOGGER_DEBUG("Loaded base configuration from '%s'", config_base_file);
@@ -773,15 +697,6 @@ int config_load(config_td *config, const char *config_prefix,
                 (int) config->randr.is_enabled,
                 config->randr.output_count);
     }
-
-    /* Restricted-memory mode leaves everything above exactly as
-     * loaded (theme included: a compiled-in theme occupies the same
-     * memory as one read from '*.json' files in 'themes/', so there
-     * is nothing to save by skipping the file); see
-     * 's_config_apply_restricted_memory_overrides' for the only two
-     * things it ever forces regardless. */
-    s_config_apply_restricted_memory_overrides(config,
-            restricted_memory_mib);
 
     return 0;
 }
