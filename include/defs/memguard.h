@@ -52,20 +52,21 @@
 #define MEMGUARD_BASELINE_MIB (8u)
 
 /**
- * @brief Smallest @c -M ceiling IcoWM will actually accept
+ * @brief Smallest @c -M ceiling IcoWM will actually accept, and the
+ *        default ceiling a @c LOWMEM build enables on its own when
+ *        @c -M is not given
  *
  * @c MEMGUARD_BASELINE_MIB alone (8 MiB) is only this module's own
- * estimate of IcoWM's baseline overhead, not a measured figure; real
- * font rendering (FreeType, fontconfig), XCB, and EWMH support in
- * practice tend to need more than that estimate alone suggests.
- * Rather than let @c -M accept a value so low the process could not
- * realistically run at all regardless of what @c memguard_max_clients
- * computes from it, @c -M rejects anything below this floor outright
- * (see @c main.c), with a healthy margin above @c MEMGUARD_BASELINE_
- * MIB to absorb that estimate being wrong, while still leaving room
- * for a handful of actual clients once running.
+ * estimate of IcoWM's overhead, not a measured figure; real font
+ * rendering, XCB, and EWMH support in practice tend to need a little
+ * more than that estimate alone suggests.  This floor sits a small
+ * margin above it, so @c memguard_max_clients still has some real
+ * budget left over once that baseline is subtracted rather than
+ * falling straight back to its own one-window minimum.  @c -M rejects
+ * anything below this floor outright (see @c main.c), since a
+ * ceiling that tight could not realistically run IcoWM at all.
  */
-#define MEMGUARD_MIN_CEILING_MIB (48u)
+#define MEMGUARD_MIN_CEILING_MIB (16u)
 
 /**
  * @brief Font name every theme text style is redirected to under

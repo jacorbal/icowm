@@ -520,9 +520,17 @@ void systray_layout_reflow(void)
 
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         uint32_t icon_pos[2];
+        uint32_t stride = (uint32_t)
+            (s_tray.pixmap_size + s_tray.pixmap_pad);
 
-        icon_pos[0] = icons_base_x + s_tray.pixmap_pad +
-            i * (s_tray.pixmap_size + s_tray.pixmap_pad);
+        /* Every operand here is a non-negative 'uint16_t' to begin
+         * with.  Plain 'uint16_t' arithmetic still promotes to 'int'
+         * before the addition though, which trips
+         * '-Wsign-conversion' on assignment to the 'uint32_t' array
+         * below.  The explicit casts keep every step of the
+         * arithmetic in 'uint32_t' instead. */
+        icon_pos[0] = (uint32_t) icons_base_x +
+            (uint32_t) s_tray.pixmap_pad + (uint32_t) i * stride;
         icon_pos[1] = icon_y;
         xcb_configure_window(s_tray.connection, s_tray.icons[i].window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);

@@ -126,8 +126,9 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "   -C              Check configuration files under" \
                 " <config_dir>, and exit\n");
-    fprintf(fp, "   -M <mib>        Restricted-memory mode: single" \
-                " screen and desktop, no theme\n");
+    fprintf(fp, "   -M <mib>        Set the ceiling for restricted" \
+                " memory (>= %u MiB)\n",
+            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -160,10 +161,21 @@ static inline void s_show_help(FILE *fp)
     }
 
     /* Restricted-memory information */
-    fprintf(fp, "Restricted-mem.: <mib> must be at least %u; also" \
-            " refuses to start if less\n" \
-            "                 than <mib> of system memory is free\n",
+#ifdef LOWMEM
+    fprintf(fp, "Restricted memory: enabled in this build by default," \
+            " with a ceiling of %u MiB;\n" \
+            "                    it also refuses to start if less" \
+            " than that much\n" \
+            "                    system memory is free\n",
             (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+#else
+    fprintf(fp, "Restricted memory: the minimum ceiling '-M' accepts" \
+            " is %u MiB; it also\n" \
+            "                    refuses to start if less than" \
+            " <mib> of system memory\n" \
+            "                    is free\n",
+            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+#endif
 
     /* Show default logging information */
     fprintf(fp, "Logging mode is set to '%s'; log level" \
@@ -321,7 +333,15 @@ int main(int argc, char *const argv[])
     bool log_is_tracking = false;
     bool verbose = true;
     bool lint_requested = false;
+#ifdef LOWMEM
+    /* A LOWMEM build enables restricted-memory mode on its own, at
+     * the minimum ceiling, unless '-M' below overrides it with a
+     * higher one; a non-LOWMEM build stays off unless '-M' is given
+     * explicitly. */
+    uint32_t restricted_memory_mib = MEMGUARD_MIN_CEILING_MIB;
+#else
     uint32_t restricted_memory_mib = 0u;
+#endif
     int opt;
 
     /* Generate a random seed (windows are in a hash table and the seeds

@@ -16,7 +16,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <string.h>     /* memcpy, memset */
+#include <stdlib.h>     /* free, malloc */
+#include <string.h>     /* memcpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -40,6 +41,10 @@
 
 /* Message dialog state and layout */
 
+/** One already-wrapped message line, at most
+ *  @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide */
+typedef char s_message_line_td[DIALOG_MSG_LINE_MAX_LENGTH];
+
 /** Internal layout record for the message dialog */
 typedef struct {
     uint16_t w;
@@ -52,10 +57,13 @@ typedef struct {
                                   one wrapped line in the label font */
     int16_t btn_x;
     int16_t btn_y;
-    char raw_message[DIALOG_MSG_RAW_MAX_LENGTH]; /**< Prefix + caller's
-                                                     text, before
-                                                     wrapping */
-    char lines[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
+    char *raw_message;      /**< Prefix + caller's text, before
+                                  wrapping; allocated to exactly what
+                                  this message needs, see
+                                  'menu_message_dialog_show' */
+    s_message_line_td *lines; /**< Wrapped lines; allocated to exactly
+                                    'line_count' of them, see
+                                    's_message_wrap_text' */
     uint8_t line_count;
     uint8_t visible_lines;  /**< How many of 'lines' fit within 'h' at
                                   once; the rest scroll */
@@ -78,13 +86,13 @@ static s_message_layout_td s_message_layout;
 
 
 /**
- * @brief Word-wrap @p raw into @p lines, each at most
- *        @c DIALOG_MSG_WRAP_LENGTH bytes wide
+ * @brief Word-wrap @p raw into a freshly allocated array of lines,
+ *        each at most @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide
  *
  * A general-purpose wrap usable for any message dialog text, not
- * specific to any one caller: explicit @c '\n' characters in @p raw
- * force a line break (so a caller that already knows its own
- * paragraph structure is respected exactly), and within each such
+ * specific to any one caller.  Explicit @c '\n' characters in @p raw
+ * force a line break, so a caller that already knows its own
+ * paragraph structure is respected exactly, and within each such
  * paragraph, words are packed onto a line up to the wrap width before
  * moving to the next one.  A single word wider than the wrap width on
  * its own is placed on its own line and allowed to overflow rather
@@ -92,7 +100,7 @@ static s_message_layout_td s_message_layout;
  * worse than a rare, slightly-too-wide line.  Stops after
  * @c DIALOG_MSG_MAX_LINES lines regardless of how much text remains,
  * silently dropping the rest, so a pathologically long message can
- * never grow the dialog (or the fixed-size @p lines array) without
+ * never grow the dialog, or this function's own allocation, without
  * bound.  A @c '\r' is treated exactly like a space (dropped as a
  * word separator, never copied into a line): callers on a platform
  * that terminates lines with @c "\r\n" would otherwise leave that
@@ -100,39 +108,42 @@ static s_message_layout_td s_message_layout;
  * bitmap font typically has a visible glyph for it instead of
  * treating it as whitespace.
  *
+ * Wraps into a fixed-size scratch buffer on this function's own
+ * stack first, sized to the @c DIALOG_MSG_MAX_LINES safety ceiling,
+ * then allocates and returns only the @c *out_count lines that
+ * actually got produced.  Reusing the same wrapping logic against a
+ * stack scratch buffer, rather than wrapping twice (once to count
+ * lines, once to fill an exactly-sized allocation), avoids
+ * duplicating it; the stack buffer itself costs nothing once this
+ * call returns, unlike a @c static one that stayed reserved for the
+ * life of the process regardless of whether a dialog was even open.
+ *
  * @param raw        Null-terminated text to wrap
- * @param lines       Array of @c DIALOG_MSG_MAX_LINES buffers, each
- *                    @c DIALOG_MSG_LINE_MAX_LENGTH bytes, to receive the
- *                    wrapped lines
- * @param out_count   Receives the number of lines actually produced
+ * @param out_count  Receives the number of lines actually produced,
+ *                   always set even on failure
+ *
+ * @return A @c malloc'd array of @c *out_count lines, for the caller
+ *         to @c free once done with it, or @c NULL if @p raw or
+ *         @p out_count is @c NULL, @p raw is empty, or the allocation
+ *         itself fails
  *
  * @note Complexity: @e O(n), where @e n is the length of @p raw
  */
-static void s_message_wrap_text(const char *raw,
-        char lines[][DIALOG_MSG_LINE_MAX_LENGTH], uint8_t *out_count)
+static s_message_line_td *s_message_wrap_text(const char *raw,
+        uint8_t *out_count)
 {
+    s_message_line_td scratch[DIALOG_MSG_MAX_LINES];
     size_t raw_len;
     size_t i = 0u;
     uint8_t count = 0u;
+    s_message_line_td *out;
 
     if (out_count != NULL) {
         *out_count = 0u;
     }
-    if (raw == NULL || lines == NULL || out_count == NULL) {
-        return;
+    if (raw == NULL || out_count == NULL) {
+        return NULL;
     }
-
-    /* Defensively blank every line slot up front, not just the ones
-     * this call ends up writing: 'lines' is the caller's own
-     * persistent, static buffer (reused call to call, never
-     * reallocated), so a slot a previous, longer call wrote into but
-     * this call's own (possibly shorter) output never touches again
-     * would otherwise still hold that stale content.  Harmless as
-     * long as every reader stops at 'line_count', but cheap enough to
-     * rule out entirely rather than rely on that holding everywhere
-     * text ever gets read from this array. */
-    memset(lines, 0, (size_t) DIALOG_MSG_MAX_LINES *
-            (size_t) DIALOG_MSG_LINE_MAX_LENGTH);
 
     raw_len = safe_strlen(raw);
 
@@ -211,9 +222,9 @@ static void s_message_wrap_text(const char *raw,
             }
         }
 
-        (void) safe_strncpy(lines[count], line,
+        (void) safe_strncpy(scratch[count], line,
                 DIALOG_MSG_LINE_MAX_LENGTH - 1u);
-        lines[count][DIALOG_MSG_LINE_MAX_LENGTH - 1u] = '\0';
+        scratch[count][DIALOG_MSG_LINE_MAX_LENGTH - 1u] = '\0';
         ++count;
 
         if (i < raw_len && raw[i] == '\n') {
@@ -221,7 +232,17 @@ static void s_message_wrap_text(const char *raw,
         }
     }
 
+    if (count == 0u) {
+        return NULL;
+    }
+
+    out = malloc((size_t) count * sizeof(s_message_line_td));
+    if (out == NULL) {
+        return NULL;
+    }
+    memcpy(out, scratch, (size_t) count * sizeof(s_message_line_td));
     *out_count = count;
+    return out;
 }
 
 
@@ -276,7 +297,14 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     pad_y = (uint16_t) config->theme.dialog.button.padding.vertical;
 
     text_renderer_init(connection, config->theme.dialog.label.font);
-    s_message_wrap_text(layout->raw_message, layout->lines,
+
+    /* Freed defensively before this call's own assignment below, the
+     * same as 'menu_message_dialog_show' already does for
+     * 'raw_message': a no-op in the normal one-open-dialog-at-a-time
+     * flow, but cheap enough to rule out a leak here too rather than
+     * rely on that flow never changing. */
+    free(layout->lines);
+    layout->lines = s_message_wrap_text(layout->raw_message,
             &layout->line_count);
     layout->line_height = (int16_t) (text_font_ascent() +
             text_font_descent());
@@ -561,6 +589,9 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     uint32_t mask;
     uint32_t values[4];
     const char *prefix = "\0";
+    size_t prefix_len;
+    size_t message_len;
+    size_t needed;
 
     if (connection == NULL || surface == NULL || config == NULL ||
             surface->screen == NULL) {
@@ -606,17 +637,39 @@ void menu_message_dialog_show(xcb_connection_t *connection,
         (level != MENU_MSG_LEVEL_WARNING &&
          level != MENU_MSG_LEVEL_ERROR);
 
-    (void) safe_strncpy(s_message_layout.raw_message, prefix,
-            sizeof(s_message_layout.raw_message) - 1u);
-    s_message_layout.raw_message[
-        sizeof(s_message_layout.raw_message) - 1u] = '\0';
+    /* Freed defensively here even though 'menu_message_dialog_close'
+     * already frees and nulls it, and the early return above already
+     * refuses a second 'show' while one dialog is still open: 'free'
+     * on a null pointer is a valid no-op, so this costs nothing when
+     * everything else already behaved, while still ruling out a leak
+     * if that ever stops being true. */
+    free(s_message_layout.raw_message);
+    s_message_layout.raw_message = NULL;
 
-    if (message != NULL) {
-        size_t plen = safe_strlen(s_message_layout.raw_message);
-        (void) safe_strncpy(s_message_layout.raw_message + plen, message,
-                sizeof(s_message_layout.raw_message) - 1u - plen);
-        s_message_layout.raw_message[
-            sizeof(s_message_layout.raw_message) - 1u] = '\0';
+    /* Allocated to exactly what this message needs, capped at
+     * 'DIALOG_MSG_RAW_MAX_LENGTH' as a safety ceiling against a
+     * pathologically long caller-supplied 'message' rather than as
+     * this allocation's default size. */
+    prefix_len = safe_strlen(prefix);
+    message_len = (message != NULL) ? safe_strlen(message) : 0u;
+    needed = prefix_len + message_len + 1u;
+    if (needed > (size_t) DIALOG_MSG_RAW_MAX_LENGTH) {
+        needed = (size_t) DIALOG_MSG_RAW_MAX_LENGTH;
+    }
+
+    s_message_layout.raw_message = malloc(needed);
+    if (s_message_layout.raw_message != NULL) {
+        (void) safe_strncpy(s_message_layout.raw_message, prefix,
+                needed - 1u);
+        s_message_layout.raw_message[needed - 1u] = '\0';
+
+        if (message != NULL) {
+            size_t plen = safe_strlen(s_message_layout.raw_message);
+
+            (void) safe_strncpy(s_message_layout.raw_message + plen,
+                    message, needed - 1u - plen);
+            s_message_layout.raw_message[needed - 1u] = '\0';
+        }
     }
 
     s_message_compute_layout(connection, surface, config,
@@ -681,6 +734,15 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     xcb_destroy_window(connection, s_message_window);
     xcb_flush(connection);
     s_message_window = XCB_WINDOW_NONE;
+
+    /* Given back immediately on close, rather than held until the
+     * next 'menu_message_dialog_show' reuses or replaces it: nothing
+     * stays reserved for this dialog's own text while no dialog is
+     * even open. */
+    free(s_message_layout.raw_message);
+    s_message_layout.raw_message = NULL;
+    free(s_message_layout.lines);
+    s_message_layout.lines = NULL;
 }
 
 

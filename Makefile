@@ -130,7 +130,7 @@ ifeq ($(CC), clang)
 else ifeq ($(CC), gcc)
 	CCWARN += $(CCWARN_GCC)
 else
-	$(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
+    $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
 
 # Use `make clean && make DEBUG=1` to add debugging information
