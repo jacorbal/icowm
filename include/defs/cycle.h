@@ -47,13 +47,13 @@
  * @brief Text shown at the top of the cycle-menu viewport when there
  *        are more entries above the ones currently visible
  */
-#define WM_CYCLE_MENU_SCROLL_UP_INDICATOR ("---")
+#define WM_CYCLE_MENU_SCROLL_UP_INDICATOR "---"
 
 /**
  * @brief Text shown at the bottom of the cycle-menu viewport when
  *        there are more entries below the ones currently visible
  */
-#define WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR ("---")
+#define WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR "---"
 
 
 #endif  /* ! DEFS_CYCLE_H */

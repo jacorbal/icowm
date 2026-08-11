@@ -45,28 +45,36 @@
  * would let @c memguard_max_clients compute a number that leaves no
  * headroom at all for IcoWM's own connection, event queue, surface
  * and desktop state, and every other piece of it that exists
- * regardless of how many windows are open.
+ * regardless of how many windows are open.  Set from an actual
+ * measurement (a fresh restricted-memory session's own @c VmRSS,
+ * sampled with no client windows open) rather than a guess: the
+ * highest reading seen was a little under 6 MiB, so this sits one
+ * MiB above that, both to round to a whole number and to leave a
+ * little slack for a system with somewhat heavier XCB, font, or libc
+ * overhead than whichever one that measurement was taken on.
  *
  * @see @c memguard_max_clients
  */
-#define MEMGUARD_BASELINE_MIB (8u)
+#define MEMGUARD_BASELINE_MIB (6u)
 
 /**
  * @brief Smallest @c -M ceiling IcoWM will actually accept, and the
  *        default ceiling a @c LOWMEM build enables on its own when
  *        @c -M is not given
  *
- * @c MEMGUARD_BASELINE_MIB alone (8 MiB) is only this module's own
- * estimate of IcoWM's overhead, not a measured figure; real font
- * rendering, XCB, and EWMH support in practice tend to need a little
- * more than that estimate alone suggests.  This floor sits a small
- * margin above it, so @c memguard_max_clients still has some real
- * budget left over once that baseline is subtracted rather than
- * falling straight back to its own one-window minimum.  @c -M rejects
+ * Derived from @c MEMGUARD_BASELINE_MIB and @c MEMGUARD_HYSTERESIS_
+ * PERCENT together, rather than picked independently of either: this
+ * floor is the smallest ceiling that still keeps the baseline alone,
+ * with no client windows open at all, comfortably under the
+ * hysteresis threshold (@c MEMGUARD_BASELINE_MIB @e / @c
+ * MEMGUARD_HYSTERESIS_PERCENT rounds up to 7 MiB exactly; this sits
+ * further above even that, at the baseline occupying 60% of the
+ * ceiling, so a session starts out well clear of the warning
+ * threshold rather than teetering right at its edge).  @c -M rejects
  * anything below this floor outright (see @c main.c), since a
  * ceiling that tight could not realistically run IcoWM at all.
  */
-#define MEMGUARD_MIN_CEILING_MIB (16u)
+#define MEMGUARD_MIN_CEILING_MIB (10u)
 
 /**
  * @brief Font name every theme text style is redirected to under
@@ -100,20 +108,31 @@
  * @brief Estimated resident memory cost of one additional managed
  *        client, in kibibytes
  *
- * A deliberately generous (i.e., large) round estimate covering a
- * client's own tracked state (geometry and hint tracking, a
- * decoration frame, an icon window if iconified, its entry in a
- * desktop's client hash table and stacking list) together with a
- * margin for the underlying application's own memory footprint, which
- * restricted-memory mode has no way to measure or control directly
- * but which competes for the same system memory regardless.  Erring
- * generous here means @c memguard_max_clients underestimates rather
- * than overestimates how many clients actually fit in a given
- * ceiling, which is the safer of the two mistakes to make.
+ * A generous round estimate of IcoWM's own per-client tracking state
+ * alone (geometry and hint tracking, a decoration frame, an icon
+ * window's cached picture handles if iconified, its entry in a
+ * desktop's client hash table and stacking list) -- deliberately not
+ * an attempt to also cover the underlying application's own memory
+ * footprint, unlike an earlier version of this estimate assumed:
+ * @c sysmem_self_rss_mib (utils/sysmem.c), what the runtime watchdog
+ * actually checks against the ceiling, only ever reads this process's
+ * own @c VmRSS, never anything belonging to a separate client
+ * process, so no per-client margin held back here could affect that
+ * process's own memory regardless of how large this constant is.  The
+ * tracked state above is itself small (a client's own struct fields,
+ * plus the fixed handful of bytes @c wmicon_cache_td holds, since the
+ * cached values there are X-server-side resource IDs, not image data
+ * living in this process's own heap) -- realistically well under this
+ * estimate -- but kept generous anyway as a margin against allocator
+ * fragmentation and any font/glyph or GC state that can grow with
+ * more simultaneously decorated windows.  Erring generous here means
+ * @c memguard_max_clients underestimates rather than overestimates
+ * how many clients actually fit in a given ceiling, which is the
+ * safer of the two mistakes to make.
  *
  * @see @c memguard_max_clients
  */
-#define MEMGUARD_KIB_PER_CLIENT (512u)
+#define MEMGUARD_KIB_PER_CLIENT (256u)
 
 /**
  * @brief Lower bound @c memguard_max_clients will ever return

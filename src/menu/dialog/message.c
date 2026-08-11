@@ -667,7 +667,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             size_t plen = safe_strlen(s_message_layout.raw_message);
 
             (void) safe_strncpy(s_message_layout.raw_message + plen,
-                    message, needed - 1u - plen);
+                    message, needed - plen);
             s_message_layout.raw_message[needed - 1u] = '\0';
         }
     }

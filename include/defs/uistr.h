@@ -35,46 +35,46 @@
 /* Message dialog (src/menu/dialog/message.c): its single dismiss
  * button, shared by every caller (an alert-level message, the
  * keyboard-shortcuts list, the fortune easter egg) */
-#define STR_DIALOG_MSG_LABEL_OK ("[ OK ]")
+#define STR_DIALOG_MSG_LABEL_OK "[ OK ]"
 
 /* Root menu (src/menu/context/rootmenu.c): the fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
-#define STR_ROOTMENU_RELOAD_CONFIG   ("Reload configuration")
-#define STR_ROOTMENU_REDRAW_ALL      ("Redraw all windows")
-#define STR_ROOTMENU_EXIT            ("Exit")
+#define STR_ROOTMENU_RELOAD_CONFIG   "Reload configuration"
+#define STR_ROOTMENU_REDRAW_ALL      "Redraw all windows"
+#define STR_ROOTMENU_EXIT            "Exit"
 
 /* Per-window context menu (src/menu/context/wincmenu.c) */
-#define STR_WINCMENU_SEND_TO_DESKTOP       ("Send to desktop")
-#define STR_WINCMENU_SEND_TO_MONITOR       ("Send to monitor")
-#define STR_WINCMENU_LAYER                 ("Layer")
-#define STR_WINCMENU_LAYER_ALWAYS_ON_TOP    ("Always on top")
-#define STR_WINCMENU_LAYER_NORMAL           ("Normal")
-#define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM ("Always on bottom")
-#define STR_WINCMENU_ALL_DESKTOPS_PIN       ("All desktops (pin)")
-#define STR_WINCMENU_THIS_DESKTOP_UNPIN     ("This desktop only (unpin)")
-#define STR_WINCMENU_RESTORE         ("Restore")
-#define STR_WINCMENU_MOVE            ("Move")
-#define STR_WINCMENU_RESIZE          ("Resize")
-#define STR_WINCMENU_ICONIFY         ("Iconify")
-#define STR_WINCMENU_HIDE            ("Hide")
-#define STR_WINCMENU_MAXIMIZE        ("Maximize")
-#define STR_WINCMENU_FULLSCREEN_ENTER ("Fullscreen")
-#define STR_WINCMENU_FULLSCREEN_EXIT  ("Exit Fullscreen")
-#define STR_WINCMENU_SHADE            ("Shade")
-#define STR_WINCMENU_UNSHADE          ("Unshade")
-#define STR_WINCMENU_DECORATE         ("Decorate")
-#define STR_WINCMENU_UNDECORATE       ("Undecorate")
-#define STR_WINCMENU_CLOSE           ("Close")
+#define STR_WINCMENU_SEND_TO_DESKTOP       "Send to desktop"
+#define STR_WINCMENU_SEND_TO_MONITOR       "Send to monitor"
+#define STR_WINCMENU_LAYER                 "Layer"
+#define STR_WINCMENU_LAYER_ALWAYS_ON_TOP    "Always on top"
+#define STR_WINCMENU_LAYER_NORMAL           "Normal"
+#define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
+#define STR_WINCMENU_ALL_DESKTOPS_PIN       "All desktops (pin)"
+#define STR_WINCMENU_THIS_DESKTOP_UNPIN     "This desktop only (unpin)"
+#define STR_WINCMENU_RESTORE         "Restore"
+#define STR_WINCMENU_MOVE            "Move"
+#define STR_WINCMENU_RESIZE          "Resize"
+#define STR_WINCMENU_ICONIFY         "Iconify"
+#define STR_WINCMENU_HIDE            "Hide"
+#define STR_WINCMENU_MAXIMIZE        "Maximize"
+#define STR_WINCMENU_FULLSCREEN_ENTER "Fullscreen"
+#define STR_WINCMENU_FULLSCREEN_EXIT  "Exit Fullscreen"
+#define STR_WINCMENU_SHADE            "Shade"
+#define STR_WINCMENU_UNSHADE          "Unshade"
+#define STR_WINCMENU_DECORATE         "Decorate"
+#define STR_WINCMENU_UNDECORATE       "Undecorate"
+#define STR_WINCMENU_CLOSE           "Close"
 
 /* All-desktops window list (src/menu/context/winlist.c) */
-#define STR_WINLIST_GO_THERE         ("Go there...")
+#define STR_WINLIST_GO_THERE         "Go there..."
 
 /* Quit-confirmation dialog (src/menu/dialog/quit.c); the prompt is a
  * format string taking the window manager's own display name (see
  * 'WM_EWMH_NAME' in defs/ewmh.h) */
-#define STR_DIALOG_QUIT_PROMPT_FMT   ("Are you sure you want to exit %s?")
-#define STR_DIALOG_QUIT_CANCEL       ("[ Cancel ]")
-#define STR_DIALOG_QUIT_EXIT         ("[ Exit ]")
+#define STR_DIALOG_QUIT_PROMPT_FMT   "Are you sure you want to exit %s?"
+#define STR_DIALOG_QUIT_CANCEL       "[ Cancel ]"
+#define STR_DIALOG_QUIT_EXIT         "[ Exit ]"
 
 /* Generic confirm dialog's own optional countdown line (src/menu/
  * dialog/confirm.c), shown under the prompt whenever a timeout was
@@ -104,8 +104,8 @@
 #define STR_DIALOG_RANDR_CONFIRM_PROMPT \
     ("The 'randr.json' configuration has been applied.  Keep it, " \
      "or revert to the previous one?")
-#define STR_DIALOG_RANDR_CONFIRM_CANCEL ("[ Revert ]")
-#define STR_DIALOG_RANDR_CONFIRM_OK     ("[ Keep ]")
+#define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
+#define STR_DIALOG_RANDR_CONFIRM_OK     "[ Keep ]"
 
 
 #endif  /* ! DEFS_UISTR_H */

@@ -79,10 +79,10 @@
  *        restores to on de-iconify (@c CLIENT_STATE_NORMAL draws
  *        none)
  */
-#define WM_ICON_HINT_FULLSCREEN      ('f')
-#define WM_ICON_HINT_MAXIMIZED       ('m')
-#define WM_ICON_HINT_MAXIMIZED_HORZ  ('h')
-#define WM_ICON_HINT_MAXIMIZED_VERT  ('v')
+#define WM_ICON_HINT_FULLSCREEN      'f'
+#define WM_ICON_HINT_MAXIMIZED       'm'
+#define WM_ICON_HINT_MAXIMIZED_HORZ  'h'
+#define WM_ICON_HINT_MAXIMIZED_VERT  'v'
 
 
 #endif  /* ! DEFS_ICON_H */

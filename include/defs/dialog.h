@@ -80,13 +80,13 @@
 #define DIALOG_MSG_LINE_GAP (4u)
 
 /** Prefix for info-level messages */
-#define DIALOG_MSG_PREFIX_INFO ("[i] ")
+#define DIALOG_MSG_PREFIX_INFO "[i] "
 
 /** Prefix for warning-level messages */
-#define DIALOG_MSG_PREFIX_WARNING ("[!] ")
+#define DIALOG_MSG_PREFIX_WARNING "[!] "
 
 /** Prefix for error-level messages */
-#define DIALOG_MSG_PREFIX_ERROR ("[X] ")
+#define DIALOG_MSG_PREFIX_ERROR "[X] "
 
 /** Maximum prompt buffer length for the quit-confirmation dialog */
 #define DIALOG_QUIT_PROMPT_MAX_LENGTH (128u)

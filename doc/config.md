@@ -2626,17 +2626,17 @@ carries its own real, ongoing cost regardless of anything else.  This
 limit is worked out from the ceiling you chose with `-M <mib>`,
 roughly like this:
 
-1. A small slice of the ceiling (8 MiB) is set aside for IcoWM itself,
+1. A small slice of the ceiling (6 MiB) is set aside for IcoWM itself,
    before counting any windows at all.
-2. Whatever is left over is divided up, generously, at about half a
+2. Whatever is left over is divided up, generously, at a quarter of a
    mebibyte per window.
 3. The result is never fewer than one window, and never more than 64.
 
 In practice, because of how generous that per-window allowance is,
-this works out to the 64-window ceiling already at `-M <mib>`'s own
-smallest accepted value (48 MiB), and stays there for anything more
-generous than that too; it only drops below 64 for a smaller value
-than `-M <mib>` currently allows at all.  Once you are at that limit,
+this reaches the 64-window ceiling by `-M 22`, and stays there for
+anything more generous than that too; it only drops below 64 for a
+smaller value than that, down to 16 windows at `-M <mib>`'s own
+smallest accepted value (10 MiB).  Once you are at that limit,
 opening another application shows a warning dialog explaining that a
 window has to be closed first; the new window's own application is
 left waiting rather than being handed something broken to work with.
@@ -2709,9 +2709,9 @@ mode included.
 | Most physical monitors IcoWM can ever track at once   |             16 |               2 |
 | Most XRandR output profiles you can configure at once |             16 |               2 |
 
-`-M <mib>`'s own smallest accepted value (48 MiB), the memory set
-aside for IcoWM itself before dividing up the rest among windows (8
-MiB), the rough cost assumed per window (half a mebibyte), and the
-hard ceiling on how many windows it will ever manage regardless of a
-very generous `-M <mib>` value (64) do not change between the two
+`-M <mib>`'s own smallest accepted value (10 MiB), the memory set
+aside for IcoWM itself before dividing up the rest among windows (6
+MiB), the rough cost assumed per window (a quarter of a mebibyte), and
+the hard ceiling on how many windows it will ever manage regardless of
+a very generous `-M <mib>` value (64) do not change between the two
 kinds of build; see section 10.3 for how those combine.
