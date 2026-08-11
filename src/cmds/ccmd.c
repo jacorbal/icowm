@@ -491,6 +491,7 @@ static void s_client_ensure_icon_window(client_td *client,
         int32_t my = 0;
         monitor_td monitor;
         surface_td *surface = NULL;
+        desktop_td *desktop;
         enum config_icon_placement_e policy =
             CONFIG_ICON_PLACEMENT_BOTTOM;
         uint32_t mask;
@@ -571,13 +572,14 @@ static void s_client_ensure_icon_window(client_td *client,
          * fall through to 'place_icon' just like a client with no
          * remembered position at all, so the two icons never
          * overlap. */
+        desktop = wm_get_client_desktop(client);
         if (client->icon_x >= 0 && client->icon_y >= 0 &&
                 !s_icon_slot_is_taken(client, WM_ICON_SQUARE_SIZE,
                     icon_h_out)) {
             ix = client->icon_x;
             iy = client->icon_y;
         } else {
-            place_icon(client, wm_get_client_desktop(client), policy,
+            place_icon(client, desktop, policy,
                     WM_ICON_SQUARE_SIZE, icon_h_out,
                     screen_w, screen_h,
                     &ix, &iy);
@@ -590,9 +592,40 @@ static void s_client_ensure_icon_window(client_td *client,
              * corner. */
             ix = (int16_t) (ix + mx);
             iy = (int16_t) (iy + my);
-            client->icon_x = ix;
-            client->icon_y = iy;
         }
+
+        /* The margin/strut-based shrink of 'screen_w'/'screen_h' above
+         * only ever accounts for the tray's own *reserved* strut,
+         * which stays all-zero whenever 'systray.reserve-space' is
+         * left at its own default of 'false' (see the comment right
+         * by 'partial' staying all-zero in 's_systray_update_strut',
+         * systray/layout.c): the tray still visually occupies real
+         * screen space either way, so a final check against its
+         * actual current rectangle, the same one a drag or a config
+         * reload already goes through (see 'icon_avoid_systray_
+         * overlap''s own doc comment), catches what that coarser
+         * shrink alone still misses -- a tray docked in a corner,
+         * reaching only partway along an edge, being the case that
+         * shrink cannot express at all: it only ever knows the
+         * tray's own side widths, nothing about how far along that
+         * edge it actually reaches. */
+        if (surface != NULL) {
+            int32_t tray_x;
+            int32_t tray_y;
+            uint16_t tray_w;
+            uint16_t tray_h;
+
+            if (systray_get_geometry(surface, &tray_x, &tray_y,
+                        &tray_w, &tray_h)) {
+                (void) icon_avoid_systray_overlap(&ix, &iy,
+                        (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
+                        tray_x, tray_y, tray_w, tray_h,
+                        (desktop != NULL) ? &desktop->workarea : NULL);
+            }
+        }
+
+        client->icon_x = ix;
+        client->icon_y = iy;
 
         client->icon_window = xcb_generate_id(client->connection);
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |

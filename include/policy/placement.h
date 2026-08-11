@@ -98,5 +98,53 @@ void place_icon(const client_td *client, desktop_td *desktop,
         uint16_t screen_w, uint16_t screen_h,
         int16_t *out_x, int16_t *out_y);
 
+/**
+ * @brief Push an icon's own proposed position away from the systray's
+ *        current rectangle, if the two would overlap there
+ *
+ * Direction-aware, unlike always pushing toward one fixed edge: pushes
+ * below the tray's own bottom edge when the tray sits in the upper
+ * half of @p workarea, or above its own top edge when the tray sits
+ * in the lower half, so the icon is never pushed toward whichever
+ * edge the tray already occupies (which, near a screen edge, could
+ * otherwise push the icon straight off the visible workarea entirely
+ * -- e.g. a tray docked at the bottom, pushing "further down" would
+ * leave the icon below the workarea's own bottom edge, off-screen or
+ * inside a reserved margin, rather than clear of the tray at all).
+ * A small fixed gap (@c WM_ICON_SYSTRAY_GAP, defs/icon.h) is left
+ * between the two either way, so the icon does not end up sitting
+ * flush against the tray's own edge.  The result is then clamped to
+ * stay fully within @p workarea's own vertical bounds regardless, in
+ * case the tray's own height leaves less room than the icon and its
+ * gap together need.
+ *
+ * @param io_x     Icon's proposed X position; read but never adjusted
+ *                 by this function (the tray's own width is not
+ *                 currently used to also push horizontally)
+ * @param io_y     Icon's proposed Y position; read, and overwritten
+ *                 with the adjusted position if pushed
+ * @param icon_w   Icon width, in pixels
+ * @param icon_h   Icon height, in pixels
+ * @param tray_x   Tray's own current rectangle, e.g. from @c
+ *                 systray_get_geometry
+ * @param tray_y   See @p tray_x
+ * @param tray_w   See @p tray_x
+ * @param tray_h   See @p tray_x
+ * @param workarea Desktop's own current work area (@c desktop->
+ *                 workarea); a @c NULL skips the final clamp and
+ *                 assumes the tray sits in the upper half, same as an
+ *                 unknown workarea would in practice always place it
+ *
+ * @return @c true if @p io_y was adjusted (the icon did overlap the
+ *         tray's own rectangle at its proposed position); @c false if
+ *         left untouched
+ *
+ * @note Complexity: @e O(1)
+ */
+bool icon_avoid_systray_overlap(int16_t *io_x, int16_t *io_y,
+        uint16_t icon_w, uint16_t icon_h,
+        int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,
+        const struct geometry_s *workarea);
+
 
 #endif  /* ! POLICY_PLACEMENT_H */

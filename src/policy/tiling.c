@@ -38,6 +38,9 @@
 /* Utils includes */
 #include <utils/geom.h>
 
+/* Default initial values */
+#include <defs/icon.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -183,7 +186,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
         uint16_t screen_w, uint16_t screen_h,
         int16_t *out_x, int16_t *out_y)
 {
-    const uint16_t margin = 8u;
+    const uint16_t margin = (uint16_t) WM_ICON_GRID_MARGIN;
     const uint16_t step_x = (uint16_t) (icon_w + margin);
     const uint16_t step_y = (uint16_t) (icon_h + margin);
     uint64_t border_twice_u64;
@@ -406,4 +409,56 @@ void place_icon(const client_td *client, desktop_td *desktop,
     if (*out_y < (int16_t) margin) {
         *out_y = (int16_t) margin;
     }
+}
+
+
+/* Push an icon's own proposed position away from the systray's
+ * current rectangle, if the two would overlap there */
+bool icon_avoid_systray_overlap(int16_t *io_x, int16_t *io_y,
+        uint16_t icon_w, uint16_t icon_h,
+        int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,
+        const struct geometry_s *workarea)
+{
+    int32_t workarea_top;
+    int32_t workarea_bottom;
+    int32_t tray_mid_y;
+    bool tray_in_upper_half;
+    int32_t new_y;
+
+    if (io_x == NULL || io_y == NULL) {
+        return false;
+    }
+
+    if (geom_intersection_area(*io_x, *io_y,
+                (uint32_t) icon_w, (uint32_t) icon_h,
+                tray_x, tray_y, tray_w, tray_h) == 0u) {
+        return false;
+    }
+
+    if (workarea != NULL) {
+        workarea_top = workarea->pos.y;
+        workarea_bottom = workarea->pos.y + (int32_t) workarea->dim.h;
+    } else {
+        workarea_top = INT32_MIN;
+        workarea_bottom = INT32_MAX;
+    }
+
+    tray_mid_y = tray_y + (int32_t) (tray_h / 2u);
+    tray_in_upper_half = (workarea != NULL)
+        ? (tray_mid_y < workarea_top + (int32_t) (workarea->dim.h / 2u))
+        : true;
+
+    new_y = (tray_in_upper_half)
+        ? tray_y + (int32_t) tray_h + (int32_t) WM_ICON_SYSTRAY_GAP
+        : tray_y - (int32_t) icon_h - (int32_t) WM_ICON_SYSTRAY_GAP;
+
+    if (new_y < workarea_top) {
+        new_y = workarea_top;
+    }
+    if (new_y + (int32_t) icon_h > workarea_bottom) {
+        new_y = workarea_bottom - (int32_t) icon_h;
+    }
+
+    *io_y = (int16_t) new_y;
+    return true;
 }

@@ -33,6 +33,7 @@
 
 /* Windows & icons policy includes */
 #include <policy/focus.h>
+#include <policy/placement.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -1275,20 +1276,13 @@ void drag_end(xcb_connection_t *connection,
                  * stacked below it throughout. */
                 if (surface != NULL &&
                         systray_get_geometry(surface, &tray_x, &tray_y,
-                            &tray_w, &tray_h) &&
-                        geom_intersection_area(new_icon_x, new_icon_y,
-                            (uint32_t) WM_ICON_SQUARE_SIZE,
-                            (uint32_t) WM_ICON_SQUARE_SIZE,
-                            tray_x, tray_y, tray_w, tray_h) > 0u) {
-                    /* Pushed out past the tray's own bottom edge, the
-                     * same predictable direction 'place_icon' (policy/
-                     * tiling.c) already keeps automatically placed
-                     * icons clear of, rather than left wherever the
-                     * pointer happened to drop it inside the tray's
-                     * own rectangle. */
-                    new_icon_y =
-                        (int16_t) (tray_y + (int32_t) tray_h);
-                    pushed_out_of_tray = true;
+                            &tray_w, &tray_h)) {
+                    pushed_out_of_tray = icon_avoid_systray_overlap(
+                            &new_icon_x, &new_icon_y,
+                            (uint16_t) WM_ICON_SQUARE_SIZE,
+                            (uint16_t) WM_ICON_SQUARE_SIZE,
+                            tray_x, tray_y, tray_w, tray_h,
+                            (desktop != NULL) ? &desktop->workarea : NULL);
                 }
 
                 s_drag.client->icon_x = new_icon_x;

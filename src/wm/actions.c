@@ -15,6 +15,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* XCB includes */
+#include <xcb/xcb.h>
+
 /* ADT includes */
 #include <adt/list.h>
 #include <adt/ohtbl.h>
@@ -32,6 +35,9 @@
 #include <input/kbd/bind.h>
 #include <input/mouse.h>
 
+/* Default initial values */
+#include <defs/icon.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -42,6 +48,9 @@
 #include <sn.h>
 #include <systray.h>
 #include <xsettings.h>
+
+/* Policy includes */
+#include <policy/placement.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -73,6 +82,17 @@ static void s_resync_after_reload(void)
             snode != NULL; snode = list_next(snode)) {
         surface_td *s = (surface_td *) list_data(snode);
         struct config_base_s *cb = &(wm->config->base);
+        int32_t tray_x;
+        int32_t tray_y;
+        uint16_t tray_w;
+        uint16_t tray_h;
+        /* Queried once per surface here, ahead of the desktop/client
+         * loop below, rather than once per icon inside it: this is a
+         * synchronous round trip to the X server (see 'systray_get_
+         * geometry''s own doc comment), and every icon on this same
+         * surface shares the identical tray rectangle regardless. */
+        bool tray_visible = systray_get_geometry(s, &tray_x, &tray_y,
+                &tray_w, &tray_h);
 
         if (s->id >= cb->screen_count) {
             continue;
@@ -139,6 +159,48 @@ static void s_resync_after_reload(void)
                          * though 'client->theme' itself already
                          * points at the freshly reloaded values. */
                         wm_request_client_redraw(c);
+
+                        /* An icon left sitting exactly where the tray
+                         * used to be, before this same reload just
+                         * moved it there, is never otherwise revisited
+                         * on its own: nothing else here (or anywhere
+                         * else) re-checks an already-placed icon's own
+                         * position against the tray's, only a fresh
+                         * 'place_icon' call or a drag ever does (see
+                         * 'icon_avoid_systray_overlap''s own doc
+                         * comment). */
+                        if (tray_visible && c->is_icon_mapped &&
+                                c->icon_window != 0u) {
+                            int16_t icon_x = c->icon_x;
+                            int16_t icon_y = c->icon_y;
+                            uint16_t icon_h = (uint16_t)
+                                WM_ICON_SQUARE_SIZE;
+
+                            if (c->theme != NULL &&
+                                    c->theme->icon.is_captioned) {
+                                icon_h = (uint16_t) (icon_h +
+                                        (uint16_t)
+                                        WM_ICON_CAPTION_HEIGHT);
+                            }
+
+                            if (icon_avoid_systray_overlap(&icon_x,
+                                        &icon_y,
+                                        (uint16_t) WM_ICON_SQUARE_SIZE,
+                                        icon_h, tray_x, tray_y, tray_w,
+                                        tray_h, &d->workarea)) {
+                                uint32_t vals[2];
+
+                                c->icon_x = icon_x;
+                                c->icon_y = icon_y;
+                                vals[0] = (uint32_t) icon_x;
+                                vals[1] = (uint32_t) icon_y;
+                                xcb_configure_window(wm->connection,
+                                        c->icon_window,
+                                        XCB_CONFIG_WINDOW_X |
+                                        XCB_CONFIG_WINDOW_Y,
+                                        vals);
+                            }
+                        }
                     }
                 }
             }
