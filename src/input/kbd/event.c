@@ -39,6 +39,7 @@
 #include <menu/dialog/quit.h>
 #include <menu/dialog/shortcuts.h>
 #include <menu/popup.h>
+#include <menu/search.h>
 
 /* Handler includes */
 #include <handler/internal.h>
@@ -382,6 +383,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_9:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_WINDOWS_MENU:
+        case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
         case KEYBIND_WM_RELOAD:
@@ -521,6 +523,14 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
     /* Cycle menu intercepts all keys while it is open */
     if (cycle_is_open()) {
         s_handle_cycle_key(keysym, state, surface, surfaces, config);
+        return;
+    }
+
+    /* Fuzzy window-search widget intercepts all keys while open */
+    if (search_is_open()) {
+        search_handle_keypress(
+                (surface != NULL) ? surface->connection : NULL,
+                surfaces, keysym, state, config);
         return;
     }
 
@@ -811,6 +821,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
                     winlist_show(surface->connection, surface,
                             mx, my, config);
+                }
+                return;
+
+            case KEYBIND_WM_SEARCH_WINDOWS:
+                if (surface != NULL && surface->connection != NULL) {
+                    search_open(surfaces, surface->connection,
+                            surface, config);
                 }
                 return;
 

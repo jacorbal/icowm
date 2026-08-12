@@ -457,6 +457,10 @@ struct config_bindings_s {
                 char windows[CONFIG_MAX_LENGTH_BINDING];
             } menus;
 
+            /** Opens the fuzzy window-search widget; see
+             *  'menu/search.h' */
+            char search[CONFIG_MAX_LENGTH_BINDING];
+
             char redraw[CONFIG_MAX_LENGTH_BINDING];
             char reload[CONFIG_MAX_LENGTH_BINDING];
             char quit[CONFIG_MAX_LENGTH_BINDING];

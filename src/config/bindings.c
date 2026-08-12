@@ -85,6 +85,9 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.wm.menus.windows,
                         CONFIG_MAX_LENGTH_BINDING);
             }
+            json_load_string(wm, "search",
+                    config_bindings->keyboard.wm.search,
+                    CONFIG_MAX_LENGTH_BINDING);
             json_load_string(wm, "show-desktop",
                     config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);

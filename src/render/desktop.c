@@ -35,6 +35,9 @@
 /* Menu includes */
 #include <menu/cycle.h>
 
+/* Policy includes */
+#include <policy/urgency.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
@@ -682,6 +685,15 @@ static void s_desktop_render_one_client(desktop_td *desktop,
     uint32_t border_width;
 
     is_focused = (desktop->client_active_id == client->id);
+
+    /* Swapped for one half of the blink cycle when this client is
+     * urgent (see 'policy/urgency.h'): every later use of
+     * 'is_focused' below (border, background, font, and text colors)
+     * already follows from this one flip, so the titlebar reads as
+     * attention-grabbing without a second, separate code path. */
+    if (client_is_urgent(client) && urgency_blink_is_on()) {
+        is_focused = !is_focused;
+    }
 
     hide_decoration =
         (client->properties.state ==

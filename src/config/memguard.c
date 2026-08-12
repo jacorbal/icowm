@@ -354,11 +354,16 @@ void config_set_default_values_memguard(config_td *config)
      * specify its own; identical to config_set_default_values's own
      * defaults, since restricted-memory mode has no particular reason
      * to prefer different programs. */
-    safe_strcpy(config->base.programs.terminal, "xterm");
-    safe_strcpy(config->base.programs.launcher, "gmrun");
-    safe_strcpy(config->base.programs.file_manager, "pcmanfm");
-    safe_strcpy(config->base.programs.editor, "gvim");
-    safe_strcpy(config->base.programs.web_browser, "firefox");
+    safe_strncpy(config->base.programs.terminal, "xterm",
+            sizeof(config->base.programs.terminal));
+    safe_strncpy(config->base.programs.launcher, "gmrun",
+            sizeof(config->base.programs.launcher));
+    safe_strncpy(config->base.programs.file_manager, "pcmanfm",
+            sizeof(config->base.programs.file_manager));
+    safe_strncpy(config->base.programs.editor, "gvim",
+            sizeof(config->base.programs.editor));
+    safe_strncpy(config->base.programs.web_browser, "firefox",
+            sizeof(config->base.programs.web_browser));
 
     config->base.windows.move_step = 10u;
     config->base.windows.resize_step = 20u;
@@ -414,7 +419,8 @@ void config_set_default_values_memguard(config_td *config)
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
     config->base.systray.clock.is_enabled = true;
-    safe_strcpy(config->base.systray.clock.format, "%a %R");
+    safe_strncpy(config->base.systray.clock.format, "%a %R",
+            sizeof(config->base.systray.clock.format));
 
     config->base.systray.battery.is_enabled = false;
     config->base.systray.battery.threshold.charged = 100u;

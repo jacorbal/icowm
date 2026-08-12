@@ -83,6 +83,10 @@
 #define WM_ICON_HINT_MAXIMIZED       'm'
 #define WM_ICON_HINT_MAXIMIZED_HORZ  'h'
 #define WM_ICON_HINT_MAXIMIZED_VERT  'v'
+#define WM_ICON_HINT_SHADED          's'
+#define WM_ICON_HINT_PINNED          'p'
+#define WM_ICON_HINT_URGENT          '!'
+#define WM_ICON_HINT_ICONIFIED       '_'
 
 
 #endif  /* ! DEFS_ICON_H */

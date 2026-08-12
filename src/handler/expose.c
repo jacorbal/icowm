@@ -43,6 +43,7 @@
 #include <menu/dialog/info.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
+#include <menu/search.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -109,6 +110,12 @@ void handler_expose(xcb_connection_t *connection,
     if (cycle_is_open() && event->window == cycle_window()) {
         cycle_force_full_repaint();
         cycle_draw(connection, cfg);
+        return;
+    }
+
+    /* Fuzzy window-search widget repaint */
+    if (search_is_open() && event->window == search_window()) {
+        search_draw(connection, cfg);
         return;
     }
 

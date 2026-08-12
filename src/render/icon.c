@@ -26,6 +26,9 @@
 /* Menu includes */
 #include <menu/cycle.h>
 
+/* Policy includes */
+#include <policy/urgency.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -93,9 +96,15 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * just not previously extended to icons.  A genuinely damaged
      * icon (covered and uncovered by another window, say) still
      * repaints correctly on its own via 'handler_expose', independent
-     * of this. */
+     * of this.  An urgent client is the one exception: its own
+     * attention blink (see 'policy/urgency.h') only ever changes
+     * 'ri_draw_icon_hints''s own hint letter below, nothing this
+     * function's own skip-check tracks, so an urgent client always
+     * falls through and repaints in full on every blink phase change
+     * regardless of whether either tracked reason actually changed. */
     if (!client->is_outdated &&
-            is_cycle_sel == client->icon_last_cycle_sel) {
+            is_cycle_sel == client->icon_last_cycle_sel &&
+            !client_is_urgent(client)) {
         return;
     }
     client->icon_last_cycle_sel = is_cycle_sel;
@@ -262,13 +271,35 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
 {
     char letter[2] = { 0, 0 };
     uint16_t letter_w;
+    bool is_urgent;
+    bool blink_on;
 
     if (connection == NULL || client == NULL || theme == NULL ||
-            !theme->icon.show_hints || client->icon_window == 0) {
+            client->icon_window == 0) {
         return;
     }
 
-    if ((client->properties.flags & CLIENT_FLAG_STICKY) != 0u) {
+    is_urgent = client_is_urgent(client);
+    blink_on = is_urgent && urgency_blink_is_on();
+
+    /* 'show-hints' off still hides the sticky pin and any state
+     * letter as documented, with one exception: an urgent client's
+     * attention blink (see 'policy/urgency.h') still gets the urgent
+     * letter drawn during its own "on" phase, appearing and
+     * disappearing in that corner every 'WM_URGENCY_BLINK_INTERVAL_
+     * MS' regardless of this setting, since drawing the user's
+     * attention to it is the entire point and should not be
+     * silenceable by a setting aimed at the unrelated state-letter
+     * feature. */
+    if (!theme->icon.show_hints) {
+        if (!blink_on) {
+            return;
+        }
+        letter[0] = WM_ICON_HINT_URGENT;
+    }
+
+    if (theme->icon.show_hints &&
+            (client->properties.flags & CLIENT_FLAG_STICKY) != 0u) {
         xcb_gcontext_t gc = xcb_generate_id(connection);
         uint32_t color = theme->window.titlebar.buttons.color.on;
 
@@ -295,21 +326,32 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
         xcb_free_gc(connection, gc);
     }
 
-    switch (client->properties.pre_iconify_state) {
-        case CLIENT_STATE_FULLSCREEN:
-            letter[0] = WM_ICON_HINT_FULLSCREEN;
-            break;
-        case CLIENT_STATE_MAXIMIZED:
-            letter[0] = WM_ICON_HINT_MAXIMIZED;
-            break;
-        case CLIENT_STATE_MAXIMIZED_HORZ:
-            letter[0] = WM_ICON_HINT_MAXIMIZED_HORZ;
-            break;
-        case CLIENT_STATE_MAXIMIZED_VERT:
-            letter[0] = WM_ICON_HINT_MAXIMIZED_VERT;
-            break;
-        default:
-            return; /* CLIENT_STATE_NORMAL: nothing more to draw */
+    if (theme->icon.show_hints) {
+        /* An urgent client's "on" blink phase always shows the
+         * urgent letter here, alternating with whatever this corner
+         * would otherwise show (a state letter, or nothing at all);
+         * see this function's own doc comment. */
+        if (blink_on) {
+            letter[0] = WM_ICON_HINT_URGENT;
+        } else {
+            switch (client->properties.pre_iconify_state) {
+                case CLIENT_STATE_FULLSCREEN:
+                    letter[0] = WM_ICON_HINT_FULLSCREEN;
+                    break;
+                case CLIENT_STATE_MAXIMIZED:
+                    letter[0] = WM_ICON_HINT_MAXIMIZED;
+                    break;
+                case CLIENT_STATE_MAXIMIZED_HORZ:
+                    letter[0] = WM_ICON_HINT_MAXIMIZED_HORZ;
+                    break;
+                case CLIENT_STATE_MAXIMIZED_VERT:
+                    letter[0] = WM_ICON_HINT_MAXIMIZED_VERT;
+                    break;
+                default:
+                    return; /* CLIENT_STATE_NORMAL, not blinking:
+                               nothing more to draw */
+            }
+        }
     }
 
     /* Same font/color scheme as the caption text just below this

@@ -588,6 +588,9 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.wm.menus.windows,
             "modc+mod1+mods+w",
             sizeof(config->bindings.keyboard.wm.menus.windows));
+    safe_strncpy(config->bindings.keyboard.wm.search,
+            "modc+mod4+mods+s",
+            sizeof(config->bindings.keyboard.wm.search));
     safe_strncpy(config->bindings.keyboard.window.close,
             "modc+mod1+c", sizeof(config->bindings.keyboard.window.close));
     safe_strncpy(config->bindings.keyboard.window.decorate,

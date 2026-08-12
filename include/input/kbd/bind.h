@@ -127,6 +127,7 @@ enum wm_keybind_type_e {
     /* Window manager lifecycle */
     KEYBIND_WM_ROOT_MENU,               /**< Open root desktop menu */
     KEYBIND_WM_WINDOWS_MENU,            /**< Open windows desktop menu */
+    KEYBIND_WM_SEARCH_WINDOWS,          /**< Open fuzzy window search */
     KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
     KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
     KEYBIND_WM_QUIT,                    /**< Quit with confirmation dialog */

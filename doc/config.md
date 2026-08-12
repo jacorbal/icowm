@@ -922,11 +922,25 @@ Window manager control shortcuts.
 
 | Key            | Default binding    | Action |
 |----------------|--------------------|--------|
+| `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
 | `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
 | `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
+
+`search` opens a centered, live-filtered list of every window across
+every desktop.  Typing narrows the list by fuzzy subsequence match
+against each window's name (the typed characters must appear in
+order, but not necessarily contiguous); `Up`/`Down` or the mouse
+select a row, `Return` or a click confirms it, and `Escape` cancels.
+Confirming switches to the window's desktop, restores it first if it
+was iconified, hidden, or shaded, then focuses and raises it.  Each
+row shows the window's icon (when `theme.menu.show-pixmaps` is
+enabled), its name, its desktop's name (when the surface has more
+than one desktop), and any bracketed state hints that apply
+(`f`/`m`/`h`/`v` for fullscreen or one of the maximized variants,
+`s` for shaded, `p` for pinned/sticky, `!` for urgent).
 
 `shortcuts` opens a dialog listing every active keyboard binding
 described in this section, grouped by category and read directly from
@@ -2325,6 +2339,7 @@ to whatever theme loads, unconditionally.
                 "root": "modc+mod1+mods+m",
                 "windows": "modc+mod1+mods+w"
             },
+            "search": "modc+mod4+mods+s",
             "show-desktop": "modc+mod1+mods+d",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",

@@ -209,8 +209,16 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted
- * @param is_focused Whether @p client is currently focused (selects
- *                   active vs inactive colors and font)
+ * @param is_focused Whether to paint with the active or inactive
+ *                   font and colors.  Ordinarily reflects whether
+ *                   @p client actually holds input focus, except
+ *                   for an urgent client mid-blink (see @c policy/
+ *                   urgency.h), where it is deliberately the
+ *                   opposite of the real focus state for one half of
+ *                   the blink cycle: font and colors swap together,
+ *                   so the titlebar reads as clearly attention-
+ *                   grabbing rather than merely looking like focus
+ *                   flickered
  * @param inner_w    Width available for the titlebar (the frame's
  *                   width minus its left/right decoration extents)
  * @param title_h    Titlebar height in pixels

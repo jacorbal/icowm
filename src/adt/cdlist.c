@@ -161,6 +161,7 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
         void **data)
 {
     cdlist_item_td *old_item;
+    void *old_data = NULL;
 
     /* Do not allow removal from an empty list */
     if (cdlist_size(cdlist) == 0) {
@@ -170,7 +171,7 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
     if (item == NULL) {
         /* Handle removal from the tail of the list */
         old_item = cdlist->tail;
-        *data = old_item->data;
+        old_data = old_item->data;
 
         if (cdlist_size(cdlist) == 1) {
             cdlist->head = NULL;  /* No items left */
@@ -187,7 +188,7 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
         }
 
         old_item = item->prev;
-        *data = old_item->data;
+        old_data = old_item->data;
 
         /* Update pointers to remove old item */
         item->prev = old_item->prev;
@@ -209,8 +210,24 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
     /* Free the storage allocated by the abstract data type */
     free(old_item);
 
+    if (data != NULL) {
+        *data = old_data;
+    }
+
     /* Adjust the size of the list */
     cdlist->size--;
+
+    /* Same gap as 'cdlist_rem_next''s own fix, and the same reason:
+     * the 'item != NULL' branch has no equivalent of the 'item ==
+     * NULL' branch's explicit head/tail reset above, so removing a
+     * degenerate single-element list's only item through it (item
+     * and old_item the same node, reached whenever a caller passes
+     * 'cdlist_next(tail)' as 'item') leaves 'cdlist->head'/'cdlist->
+     * tail' pointing at now-freed memory. */
+    if (cdlist->size == 0) {
+        cdlist->head = NULL;
+        cdlist->tail = NULL;
+    }
 
     return 0;
 }
@@ -289,6 +306,23 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
 
     /* Adjust the size of the list */
     cdlist->size--;
+
+    /* The 'item == NULL' branch above already resets head/tail to
+     * NULL for the one-element case it handles directly (lines
+     * 241-243), but the 'item != NULL' branch has no equivalent step
+     * of its own: when 'item' and 'old_item' are the same node (the
+     * degenerate single-element circular list, reached here whenever
+     * a caller passes 'cdlist_prev(head)' as 'item' to remove the
+     * list's only element, since 'cdlist_prev(head) == head' in that
+     * case), every assignment above targets fields on that same node
+     * about to be freed, so 'cdlist->head'/'cdlist->tail' are left
+     * pointing at now-freed memory with nothing here to catch it.
+     * Handling both branches in one place, after the free, closes
+     * that gap without duplicating this check into each one. */
+    if (cdlist->size == 0) {
+        cdlist->head = NULL;
+        cdlist->tail = NULL;
+    }
 
     return 0;
 }

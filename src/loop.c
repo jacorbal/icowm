@@ -40,6 +40,7 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+#include <policy/urgency.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>
@@ -55,6 +56,7 @@
 #include <menu/dialog/message.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
+#include <menu/search.h>
 
 /* Default initial values */
 #include <defs/loop.h>
@@ -384,6 +386,9 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 systray_clock_ms_remaining());
 
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                urgency_blink_ms_remaining());
+
         s_loop_tighten_poll_timeout(&poll_timeout_ms, sn_ms_remaining());
 
         /* Shorter still while a resize-cursor poll target is being
@@ -423,6 +428,7 @@ void loop_run(wm_td *wm)
         }
 
         systray_clock_tick();
+        urgency_blink_tick(wm->surfaces);
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection, wm->config);
@@ -530,6 +536,10 @@ void loop_run(wm_td *wm)
                     } else if (winlist_is_open()) {
                         winlist_handle_motion(me->event,
                                 me->event_x, me->event_y);
+                    } else if (search_is_open() &&
+                            (me->event == search_window() ||
+                             me->child == search_window())) {
+                        search_handle_motion(me->event_x, me->event_y);
                     } else if (!drag_is_active()) {
                         mouse_handle_motion_hover(wm->connection,
                                 wm->surfaces, me);

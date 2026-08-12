@@ -252,6 +252,8 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.wm.menus.root);
     s_append_binding(text, sizeof(text), &offset, "Windows menu",
             config->bindings.keyboard.wm.menus.windows);
+    s_append_binding(text, sizeof(text), &offset, "Search windows",
+            config->bindings.keyboard.wm.search);
     s_append_binding(text, sizeof(text), &offset, "Show desktop",
             config->bindings.keyboard.wm.show_desktop);
     if (surface->desktop_count > 1u) {

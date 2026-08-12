@@ -45,6 +45,7 @@
 #include <menu/dialog/info.h>
 #include <menu/dialog/message.h>
 #include <menu/popup.h>
+#include <menu/search.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -284,6 +285,23 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         return true;
     }
 
+    /* Fuzzy window-search widget: a click on a result row selects
+     * and confirms it (search_handle_click resolves the row from its
+     * own Y internally); a click anywhere else closes it */
+    if (search_is_open()) {
+        if (event->event == search_window() ||
+                event->child == search_window()) {
+            search_handle_click(connection, surfaces,
+                    (int16_t) event->event_x, (int16_t) event->event_y,
+                    config);
+        } else {
+            search_close(connection);
+        }
+        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+                event->time);
+        return true;
+    }
+
     /* Context menus: window menu, root menu, window list */
     if (wincmenu_is_open()) {
         s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
@@ -431,7 +449,8 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
  * When the scroll is over a client's titlebar, @c DESKTOP_PREV shades
  * the window (and moves focus to the next client), while
  * @c DESKTOP_NEXT unshades it.  When the scroll is over the root or
- * over a client's content area, a desktop-switch event is queued.
+ * over a client's content area, the desktop switch happens right
+ * away, synchronously.
  *
  * @param connection Active XCB connection
  * @param surfaces   Full surface list

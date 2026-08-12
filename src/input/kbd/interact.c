@@ -370,6 +370,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
         case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
         case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
@@ -502,6 +503,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
         case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
         case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:
@@ -672,6 +674,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
         case KEYBIND_WM_ROOT_MENU:
+        case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
         case KEYBIND_CLIENT_WINDOW_MENU:
         case KEYBIND_WM_REDRAW:

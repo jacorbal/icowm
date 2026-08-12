@@ -15,6 +15,7 @@
                 "root": "modc+mod1+mods+m",
                 "windows": "modc+mod1+mods+w"
             },
+            "search": "modc+mod4+mods+s",
             "show-desktop": "modc+mod1+mods+d",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
