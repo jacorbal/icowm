@@ -149,7 +149,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 
     /* Escape: cancel without activating */
     if (keysym == KS_ESCAPE) {
-        if (conn != NULL) { cycle_close(conn); }
+        if (conn != NULL) { cycle_destroy(conn); }
         return;
     }
 
@@ -172,7 +172,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
     }
 
     /* Any other key: close the menu without action */
-    if (conn != NULL) { cycle_close(conn); }
+    if (conn != NULL) { cycle_destroy(conn); }
 }
 
 
@@ -834,7 +834,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_SEARCH_WINDOWS:
                 if (surface != NULL && surface->connection != NULL) {
-                    search_open(surfaces, surface->connection,
+                    search_init(surfaces, surface->connection,
                             surface, config);
                 }
                 return;

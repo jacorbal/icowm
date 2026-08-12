@@ -442,7 +442,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
     /* Truncate against the menu's own width rather than the label's
      * own measured width, so a title long enough to have already
      * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
-     * menu opened (see 'cycle_open' in menu/cycle.c) is cut to match
+     * menu opened (see 'cycle_init' in menu/cycle.c) is cut to match
      * instead of running past the window's right edge. */
     snprintf(label_buf, sizeof(label_buf), "%s", g_cycle_menu.labels[i]);
     if (g_cycle_menu.width > text_x + style->pad_x) {

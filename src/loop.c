@@ -42,6 +42,9 @@
 #include <policy/focus.h>
 #include <policy/urgency.h>
 
+/* IPC includes */
+#include <ipc.h>
+
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
@@ -59,6 +62,7 @@
 #include <menu/search.h>
 
 /* Default initial values */
+#include <defs/ipc.h>
 #include <defs/loop.h>
 
 /* Project includes */
@@ -285,7 +289,8 @@ void loop_run(wm_td *wm)
                                                      comment at the
                                                      'XCB_MOTION_NOTIFY'
                                                      case below */
-    struct pollfd pfd;
+    struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
+    int nfds;
     int poll_status;
     int poll_timeout_ms;
     int conn_error;
@@ -366,9 +371,23 @@ void loop_run(wm_td *wm)
             break;
         }
 
-        pfd.fd = xcb_get_file_descriptor(wm->connection);
-        pfd.events = POLLIN;
-        pfd.revents = 0;
+        pfd[0].fd = xcb_get_file_descriptor(wm->connection);
+        pfd[0].events = POLLIN;
+        pfd[0].revents = 0;
+        nfds = 1;
+
+        {
+            int ipc_fds[IPC_MAX_CLIENTS + 1];
+            int ipc_count = ipc_poll_fds(ipc_fds,
+                    (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
+
+            for (int i = 0; i < ipc_count; ++i) {
+                pfd[nfds].fd = ipc_fds[i];
+                pfd[nfds].events = POLLIN;
+                pfd[nfds].revents = 0;
+                ++nfds;
+            }
+        }
 
         /* Use a shorter poll timeout when the info popup is visible so
          * it closes promptly at the configured expiry time. */
@@ -420,11 +439,25 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 drag_warp_ms_remaining());
 
-        poll_status = poll(&pfd, 1, poll_timeout_ms);
+        poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
                     strerror(errno));
             break;
+        }
+
+        /* Every non-X11 descriptor 'poll' reported ready belongs to
+         * IPC (index 0 is always the X connection, handled below via
+         * 'xcb_poll_for_event' instead of this array at all).
+         * 'ipc_handle_readable' itself tells the listening socket
+         * apart from an already-connected client, so nothing here
+         * needs to. */
+        if (poll_status > 0) {
+            for (int i = 1; i < nfds; ++i) {
+                if (pfd[i].revents & POLLIN) {
+                    ipc_handle_readable(wm, pfd[i].fd);
+                }
+            }
         }
 
         systray_clock_tick();

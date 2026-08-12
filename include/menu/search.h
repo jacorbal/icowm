@@ -39,7 +39,7 @@
 
 /* Public interface */
 /**
- * @brief Open the window-search widget
+ * @brief Initialize the window-search widget
  *
  * Collects every focusable, non-skip-taskbar client across every
  * desktop of @p surface, creates the floating centered widget, and
@@ -56,17 +56,17 @@
  * @note Complexity: @e O(n), where @e n is the number of clients
  *       across every desktop of @p surface
  */
-void search_open(list_td *surfaces, xcb_connection_t *connection,
+void search_init(list_td *surfaces, xcb_connection_t *connection,
         surface_td *surface, const config_td *cfg);
 
 /**
- * @brief Close the window-search widget and restore previous focus
+ * @brief Destroy the window-search widget and restore previous focus
  *
  * @param connection XCB connection
  *
  * @note Complexity: @e O(1)
  */
-void search_close(xcb_connection_t *connection);
+void search_destroy(xcb_connection_t *connection);
 
 /**
  * @brief Query whether the window-search widget is currently open

@@ -681,7 +681,7 @@ void enact_desktop_cycle_clients_active(list_td *surfaces,
         return;
     }
 
-    cycle_open(surfaces, connection, surface, desktop, false, 1,
+    cycle_init(surfaces, connection, surface, desktop, false, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -697,7 +697,7 @@ void enact_desktop_cycle_clients_prev(list_td *surfaces,
         return;
     }
 
-    cycle_open(surfaces, connection, surface, desktop, false, -1,
+    cycle_init(surfaces, connection, surface, desktop, false, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -713,7 +713,7 @@ void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
         return;
     }
 
-    cycle_open(surfaces, connection, surface, desktop, true, 1,
+    cycle_init(surfaces, connection, surface, desktop, true, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -729,7 +729,7 @@ void enact_desktop_cycle_clients_icons_prev(list_td *surfaces,
         return;
     }
 
-    cycle_open(surfaces, connection, surface, desktop, true, -1,
+    cycle_init(surfaces, connection, surface, desktop, true, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);

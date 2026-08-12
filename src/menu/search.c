@@ -228,7 +228,7 @@ static void s_search_build_hints(const client_td *client, char *out,
  *        every desktop of @c s_search.surface into @c s_search.
  *        candidates
  *
- * Same eligibility filter @c cycle_open uses for its own window list;
+ * Same eligibility filter @c cycle_init uses for its own window list;
  * unrelated to the currently active desktop, so a client on a desktop
  * other than the one showing right now is still collected.
  *
@@ -338,7 +338,7 @@ static void s_search_refilter(void)
  *        count from the current result count
  *
  * Caps visible height at @c WM_SEARCH_MAX_HEIGHT_PERCENT of the
- * surface's own height, the same reasoning @c cycle_open uses for
+ * surface's own height, the same reasoning @c cycle_init uses for
  * its own menu.
  *
  * @note Complexity: @e O(1)
@@ -439,8 +439,8 @@ bool search_owns_window(xcb_window_t win)
 }
 
 
-/* Open the window-search widget */
-void search_open(list_td *surfaces, xcb_connection_t *connection,
+/* Initialize the window-search widget */
+void search_init(list_td *surfaces, xcb_connection_t *connection,
         surface_td *surface, const config_td *cfg)
 {
     xcb_get_input_focus_cookie_t foc_cookie;
@@ -457,7 +457,7 @@ void search_open(list_td *surfaces, xcb_connection_t *connection,
     }
 
     if (search_is_open()) {
-        search_close(connection);
+        search_destroy(connection);
     }
 
     memset(&s_search, 0, sizeof(s_search));
@@ -531,8 +531,8 @@ void search_open(list_td *surfaces, xcb_connection_t *connection,
 }
 
 
-/* Close the window-search widget and restore previous focus */
-void search_close(xcb_connection_t *connection)
+/* Destroy the window-search widget and restore previous focus */
+void search_destroy(xcb_connection_t *connection)
 {
     if (connection == NULL || s_search.window == XCB_WINDOW_NONE) {
         return;
@@ -576,7 +576,7 @@ static void s_search_confirm(xcb_connection_t *connection,
 
     if (s_search.selected < 0 ||
             s_search.selected >= s_search.result_count) {
-        search_close(connection);
+        search_destroy(connection);
         return;
     }
 
@@ -584,7 +584,7 @@ static void s_search_confirm(xcb_connection_t *connection,
     desktop = s_search.results[s_search.selected].desktop;
     surface = s_search.surface;
 
-    search_close(connection);
+    search_destroy(connection);
 
     if (client == NULL || desktop == NULL || surface == NULL) {
         return;
@@ -620,7 +620,7 @@ void search_handle_keypress(xcb_connection_t *connection,
     }
 
     if (keysym == 0xff1bu) {   /* Escape */
-        search_close(connection);
+        search_destroy(connection);
         return;
     }
 

@@ -164,8 +164,8 @@ static void s_cycle_scroll_to_selection(void)
 }
 
 
-/* Open the cycle menu for window or icon cycling */
-void cycle_open(list_td *surfaces,
+/* Initialize the cycle menu for window or icon cycling */
+void cycle_init(list_td *surfaces,
         xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
         bool is_icon, int preselect, uint16_t modifier,
@@ -205,7 +205,7 @@ void cycle_open(list_td *surfaces,
     foc_cookie = xcb_get_input_focus(connection);
     foc_reply = xcb_get_input_focus_reply(connection, foc_cookie, NULL);
 
-    cycle_close(connection);
+    cycle_destroy(connection);
 
     g_cycle_menu.count = 0;
     g_cycle_menu.surface = surface;
@@ -432,8 +432,8 @@ void cycle_open(list_td *surfaces,
 }
 
 
-/* Close the cycle menu and restore previous focus */
-void cycle_close(xcb_connection_t *connection)
+/* Destroy the cycle menu and restore previous focus */
+void cycle_destroy(xcb_connection_t *connection)
 {
     xcb_window_t restore_focus;
     surface_td *surface;
@@ -499,7 +499,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     desktop = g_cycle_menu.desktop;
     is_icon = g_cycle_menu.is_icon_menu;
 
-    cycle_close(connection);
+    cycle_destroy(connection);
 
     if (target == NULL || surface == NULL || desktop == NULL) {
         return;
@@ -530,11 +530,11 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
  * window sitting on the desktop underneath it is otherwise told to
  * repaint when that selection moves on, so a client that was
  * highlighted and then passed over stays visually stuck showing that
- * highlight until something unrelated (e.g. 'cycle_close') eventually
+ * highlight until something unrelated (e.g. 'cycle_destroy') eventually
  * forces a full desktop repaint.  Called for both the previously- and
  * newly-selected client on every navigation, this keeps their real
  * icons in sync with the menu immediately instead.  (The cycle's own
- * initial preselection at 'cycle_open' time needs no separate call
+ * initial preselection at 'cycle_init' time needs no separate call
  * here: see 'mi_cycle_preview_apply' in menu/cycledraw.c, which
  * already applies the very same "selected" render this function
  * itself calls below.)

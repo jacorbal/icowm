@@ -40,7 +40,7 @@
 
 /* Public interface */
 /**
- * @brief Open the cycle menu for window or icon cycling
+ * @brief Initialize the cycle menu for window or icon cycling
  *
  * Collects matching clients from @p desktop, creates the floating menu
  * window, and preselects the entry @p preselect positions away from the
@@ -59,14 +59,14 @@
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
-void cycle_open(list_td *surfaces,
+void cycle_init(list_td *surfaces,
         xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
         bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg);
 
 /**
- * @brief Close the cycle menu and restore previous focus
+ * @brief Destroy the cycle menu and restore previous focus
  *
  * Destroys the menu window and returns input focus to the window that
  * held it before the menu was opened.
@@ -75,13 +75,13 @@ void cycle_open(list_td *surfaces,
  *
  * @note Complexity: @e O(1)
  */
-void cycle_close(xcb_connection_t *connection);
+void cycle_destroy(xcb_connection_t *connection);
 
 /**
  * @brief Repaint whatever changed in the menu since its own last call
  *
  * Renders every row when the viewport itself shifted (scrolling) or
- * this is the first call since @c cycle_open; otherwise only the row
+ * this is the first call since @c cycle_init; otherwise only the row
  * that lost the selection and the one that gained it actually show
  * anything different, so only those two are redrawn.  Call
  * @c cycle_force_full_repaint first to force the full-viewport path

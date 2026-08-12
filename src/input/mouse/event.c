@@ -275,10 +275,10 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
                 cycle_navigate_to(row);
                 cycle_confirm(connection, surfaces, config);
             } else {
-                cycle_close(connection);
+                cycle_destroy(connection);
             }
         } else {
-            cycle_close(connection);
+            cycle_destroy(connection);
         }
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
@@ -295,7 +295,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
                     (int16_t) event->event_x, (int16_t) event->event_y,
                     config);
         } else {
-            search_close(connection);
+            search_destroy(connection);
         }
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);

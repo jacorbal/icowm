@@ -1,0 +1,533 @@
+/**
+ * @file ipc.c
+ *
+ * @brief IPC control socket implementation
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#define _POSIX_C_SOURCE 200112L
+
+
+/* System includes */
+#include <errno.h>
+#include <fcntl.h>      /* fcntl, F_SETFL, O_NONBLOCK */
+#include <stdbool.h>
+#include <stddef.h>     /* NULL */
+#include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* free */
+#include <string.h>     /* memchr, memmove, memset, strerror, strlen */
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>     /* close, getuid, read, unlink, write */
+
+/* Default initial values */
+#include <defs/config.h>
+#include <defs/ipc.h>
+
+/* Utils includes */
+#include <utils/config/path.h>
+
+/* Project includes */
+#include <logger.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
+/* Local includes */
+#include <ipc.h>
+#include <ipc/commands.h>
+
+
+/** One connected client's own read state */
+struct s_ipc_client_s {
+    int fd;                            /**< -1 when this slot is free */
+    char buf[IPC_MSG_MAX_LENGTH];
+    size_t buf_len;                    /**< Bytes currently buffered,
+                                             not yet a complete line */
+};
+
+/** Every currently connected client, indexed by slot */
+static struct s_ipc_client_s s_clients[IPC_MAX_CLIENTS];
+
+/** Whether 's_clients' has had every slot's own 'fd' set to -1 yet.
+ *  Needed because static storage only zero-initializes it by
+ *  default, and 0 is itself a valid, real file descriptor (stdin);
+ *  every "is this slot free" check in this file relies on -1
+ *  specifically meaning free, so every slot must be set to that
+ *  explicitly, once, before any of those checks run for the first
+ *  time. */
+static bool s_clients_initialized = false;
+
+
+/** Listening socket descriptor, or -1 when not up */
+static int s_ipc_fd = -1;
+
+/** Full path of the socket file currently bound, for 'ipc_destroy' to
+ *  unlink; empty when not up */
+static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
+
+
+/**
+ * @brief Ensure the runtime directory exists, belongs to the calling
+ *        user, and has exactly 'IPC_RUNTIME_DIR_MODE' permissions
+ *
+ * Creates it fresh when nothing is there yet.  When something
+ * already is (most commonly '$XDG_RUNTIME_DIR' itself, already
+ * created by the session; occasionally a leftover subdirectory of
+ * ours from a previous run), verifies it is actually a directory
+ * this user owns before trusting it, since the '/tmp' fallback path
+ * is a location other users on the same system can also write to,
+ * and re-applies the mode regardless of whether it already matched,
+ * rather than assuming a pre-existing directory's permissions were
+ * already correct.
+ *
+ * @param dir Path to the runtime directory
+ *
+ * @return 0 on success, -1 on failure (reason logged)
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_ensure_runtime_dir(const char *dir)
+{
+    struct stat st;
+
+    if (mkdir(dir, IPC_RUNTIME_DIR_MODE) == 0) {
+        return 0;
+    }
+
+    if (errno != EEXIST) {
+        LOGGER_ERROR("Failed to create IPC runtime directory '%s': %s",
+                dir, strerror(errno));
+        return -1;
+    }
+
+    if (stat(dir, &st) != 0) {
+        LOGGER_ERROR("IPC runtime directory '%s' exists but could" \
+                " not be inspected: %s", dir, strerror(errno));
+        return -1;
+    }
+
+    if (!S_ISDIR(st.st_mode)) {
+        LOGGER_ERROR("IPC runtime path '%s' exists and is not a" \
+                " directory", dir);
+        return -1;
+    }
+
+    if (st.st_uid != getuid()) {
+        LOGGER_ERROR("IPC runtime directory '%s' exists but is not" \
+                " owned by this user; refusing to use it", dir);
+        return -1;
+    }
+
+    if (chmod(dir, IPC_RUNTIME_DIR_MODE) != 0) {
+        LOGGER_ERROR("Failed to set permissions on IPC runtime" \
+                " directory '%s': %s", dir, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/* Initialize the IPC control socket */
+int ipc_init(void)
+{
+    char runtime_dir[CONFIG_MAX_LENGTH_PATH_BASE];
+    char tmp_fallback[CONFIG_MAX_LENGTH_PATH_BASE];
+    char socket_path[CONFIG_MAX_LENGTH_PATH_BASE];
+    struct sockaddr_un addr;
+    int fd;
+
+    if (s_ipc_fd != -1) {
+        return 0;   /* Already up; not an error */
+    }
+
+    if (!s_clients_initialized) {
+        for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+            s_clients[i].fd = -1;
+            s_clients[i].buf_len = 0;
+        }
+        s_clients_initialized = true;
+    }
+
+    snprintf(tmp_fallback, sizeof(tmp_fallback), "%s%u",
+            IPC_TMP_FALLBACK_PREFIX, (unsigned int) getuid());
+
+    xdg_resolve_dir(XDG_DIR_RUNTIME, tmp_fallback,
+            runtime_dir, sizeof(runtime_dir));
+
+    if (s_ensure_runtime_dir(runtime_dir) != 0) {
+        return -1;
+    }
+
+    /* Built with 'safe_strncpy'/'safe_strncat' rather than
+     * 'snprintf("%s/%s", ...)' on purpose: both take the full
+     * destination size and truncate safely against it, exactly like
+     * 'snprintf' does, but neither is a 'printf'-family call, so
+     * neither one gives GCC's '-Wformat-truncation' anything to
+     * reason about in the first place.  That checker judges a '%s'
+     * argument by its source array's own declared capacity, not by
+     * what a function like 'xdg_resolve_dir' actually promises to
+     * leave in it, so composing same-sized path buffers through it
+     * always reads as a possible overflow to the compiler even when
+     * it can never really happen; growing the destination past its
+     * neighbors only relocates the same mismatch to whichever
+     * buffer receives it next (as happened here, into 's_ipc_
+     * socket_path' below, previously copied via that same 'snprintf
+     * ("%s", ...)' pattern). */
+    safe_strncpy(socket_path, runtime_dir, sizeof(socket_path));
+    safe_strncat(socket_path, "/", sizeof(socket_path));
+    safe_strncat(socket_path, IPC_SOCKET_FILENAME, sizeof(socket_path));
+
+    if (strlen(socket_path) >= sizeof(addr.sun_path)) {
+        LOGGER_ERROR("IPC socket path '%s' is too long for" \
+                " 'sockaddr_un' (%zu bytes available)",
+                socket_path, sizeof(addr.sun_path));
+        return -1;
+    }
+
+    /* A leftover file from a run that did not shut down cleanly
+     * (crash, 'SIGKILL') rather than a second live instance; see
+     * this function's own doc comment in ipc.h for why that is the
+     * only possibility left by the time this ever runs.  'unlink'
+     * failing only because there was nothing there to remove
+     * ('ENOENT') is expected and fine; any other failure means
+     * 'bind' below would fail anyway, so it is caught there instead
+     * of duplicating the same check twice. */
+    if (unlink(socket_path) != 0 && errno != ENOENT) {
+        LOGGER_WARNING("Could not remove existing IPC socket file" \
+                " '%s': %s", socket_path, strerror(errno));
+    }
+
+    fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (fd < 0) {
+        LOGGER_ERROR("Failed to create IPC socket: %s",
+                strerror(errno));
+        return -1;
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    memcpy(addr.sun_path, socket_path, strlen(socket_path) + 1u);
+
+    if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+        LOGGER_ERROR("Failed to bind IPC socket to '%s': %s",
+                socket_path, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    if (listen(fd, IPC_LISTEN_BACKLOG) != 0) {
+        LOGGER_ERROR("Failed to listen on IPC socket '%s': %s",
+                socket_path, strerror(errno));
+        close(fd);
+        (void) unlink(socket_path);
+        return -1;
+    }
+
+    s_ipc_fd = fd;
+    safe_strncpy(s_ipc_socket_path, socket_path,
+            sizeof(s_ipc_socket_path));
+
+    LOGGER_INFO("IPC control socket listening at '%s'", socket_path);
+
+    return 0;
+}
+
+
+/* Return the listening socket's own file descriptor */
+int ipc_socket_fd(void)
+{
+    return s_ipc_fd;
+}
+
+
+/* Destroy the IPC control socket */
+void ipc_destroy(void)
+{
+    if (s_ipc_fd == -1) {
+        return;
+    }
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd != -1) {
+            close(s_clients[i].fd);
+            s_clients[i].fd = -1;
+            s_clients[i].buf_len = 0;
+        }
+    }
+
+    close(s_ipc_fd);
+    s_ipc_fd = -1;
+
+    if (s_ipc_socket_path[0] != '\0') {
+        (void) unlink(s_ipc_socket_path);
+        s_ipc_socket_path[0] = '\0';
+    }
+}
+
+
+/**
+ * @brief Close one connected client's own descriptor and free its
+ *        slot
+ *
+ * @param idx Index into 's_clients'
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_close(int idx)
+{
+    if (s_clients[idx].fd == -1) {
+        return;
+    }
+    close(s_clients[idx].fd);
+    s_clients[idx].fd = -1;
+    s_clients[idx].buf_len = 0;
+}
+
+
+/**
+ * @brief Whether an 'errno' value from a non-blocking socket call
+ *        means "nothing ready right now", not a real error
+ *
+ * POSIX allows 'EAGAIN' and 'EWOULDBLOCK' to be either the same or
+ * two distinct values, depending on the platform; checking both by
+ * name, unconditionally, is the traditional portable idiom for that
+ * reason.  On glibc/Linux they are defined to the exact same number,
+ * which turns that same traditional check into a comparison against
+ * itself twice, something GCC's own '-Wlogical-op' rightly flags.
+ * The '#if' below only compares against 'EWOULDBLOCK' separately
+ * when it is actually a distinct value in the first place, so this
+ * stays the fully portable check on every POSIX system, while never
+ * tripping that warning on the one where the two would already be
+ * redundant.
+ *
+ * @param err The 'errno' value to check
+ *
+ * @return @c true when @p err indicates the call would have blocked
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_errno_is_would_block(int err)
+{
+#if EAGAIN == EWOULDBLOCK
+    return err == EAGAIN;
+#else
+    return err == EAGAIN || err == EWOULDBLOCK;
+#endif
+}
+
+
+/**
+ * @brief Accept one pending connection on the listening socket
+ *
+ * Dropped immediately, with a logged reason, when either accepting
+ * it or making it non-blocking fails outright, or when every slot
+ * in 's_clients' is already in use.
+ *
+ * @note Complexity: @e O(n), where @e n is 'IPC_MAX_CLIENTS' (the
+ *       free-slot scan)
+ */
+static void s_accept_new_client(void)
+{
+    int fd = accept(s_ipc_fd, NULL, NULL);
+    int flags;
+    int slot = -1;
+
+    if (fd < 0) {
+        if (!s_errno_is_would_block(errno)) {
+            LOGGER_WARNING("Failed to accept an IPC connection: %s",
+                    strerror(errno));
+        }
+        return;
+    }
+
+    /* 'accept' does not inherit the listening socket's own
+     * 'SOCK_NONBLOCK' flag onto the connection it hands back, so
+     * every accepted client is made non-blocking here, the POSIX
+     * way ('fcntl'/'F_SETFL'/'O_NONBLOCK'), rather than the Linux-
+     * only 'accept4' shortcut this project's own POSIX version
+     * target does not cover. */
+    flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
+        LOGGER_WARNING("Failed to make an accepted IPC connection" \
+                " non-blocking: %s", strerror(errno));
+        close(fd);
+        return;
+    }
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd == -1) {
+            slot = i;
+            break;
+        }
+    }
+
+    if (slot == -1) {
+        LOGGER_WARNING("IPC client limit (%d) reached;" \
+                " dropping a new connection", IPC_MAX_CLIENTS);
+        close(fd);
+        return;
+    }
+
+    s_clients[slot].fd = fd;
+    s_clients[slot].buf_len = 0;
+}
+
+
+/**
+ * @brief Read whatever is currently available from one connected
+ *        client and dispatch every complete line it contains
+ *
+ * @param wm  Window manager instance, passed through to each
+ *            dispatched command
+ * @param idx Index into 's_clients'
+ *
+ * @note Complexity: @e O(n), where @e n is the number of complete
+ *       lines found in this one read
+ */
+static void s_handle_client_data(wm_td *wm, int idx)
+{
+    struct s_ipc_client_s *c = &s_clients[idx];
+    ssize_t n;
+
+    /* Room for at least one more byte plus the buffer's own null
+     * terminator is always kept free, so a line that exactly fills
+     * the rest of 'buf' is still safe to null-terminate below. */
+    n = read(c->fd, c->buf + c->buf_len,
+            sizeof(c->buf) - c->buf_len - 1u);
+
+    if (n == 0) {
+        s_client_close(idx);
+        return;
+    }
+    if (n < 0) {
+        if (!s_errno_is_would_block(errno)) {
+            LOGGER_WARNING("IPC client read error: %s", strerror(errno));
+            s_client_close(idx);
+        }
+        return;
+    }
+
+    c->buf_len += (size_t) n;
+    c->buf[c->buf_len] = '\0';
+
+    /* Every complete ('\n'-terminated) line currently buffered is
+     * dispatched in this same call, not just the first one: a fast
+     * client (or one that simply queued several requests before
+     * this descriptor was next polled) can have more than one ready
+     * at once, and leaving the rest for a future 'poll' wakeup would
+     * delay them for no reason. */
+    for (;;) {
+        char *newline = memchr(c->buf, '\n', c->buf_len);
+        char *response;
+        size_t line_len;
+        size_t remaining;
+
+        if (newline == NULL) {
+            break;
+        }
+
+        *newline = '\0';
+        response = ipc_commands_dispatch(wm, c->buf);
+        if (response != NULL) {
+            size_t resp_len = strlen(response);
+            ssize_t written = write(c->fd, response, resp_len);
+            ssize_t nl_written = -1;
+
+            if (written >= 0 && (size_t) written == resp_len) {
+                nl_written = write(c->fd, "\n", 1);
+            }
+
+            if (written < 0 || (size_t) written != resp_len ||
+                    nl_written != 1) {
+                /* A short or failed write here means the client
+                 * either is not reading its own responses or has
+                 * gone away; either way, the connection is no
+                 * longer usable and the simplest correct response
+                 * is to drop it rather than track a partial-write
+                 * backlog for what is meant to stay a small local
+                 * control socket, not a general-purpose one.  This
+                 * also covers the response writing fully but the
+                 * trailing newline not: a client that only ever
+                 * sees a line without its own terminator can never
+                 * tell the response actually ended there. */
+                LOGGER_WARNING("Short write to an IPC client;" \
+                        " dropping its connection", L_NARG);
+                free(response);
+                s_client_close(idx);
+                return;
+            }
+            free(response);
+        }
+
+        /* Shift whatever came after this line (the start of the
+         * next one, or nothing yet) down to the front of the
+         * buffer, so the next loop iteration (or the next 'read'
+         * call entirely) sees it at offset 0 again. */
+        line_len = (size_t) (newline - c->buf) + 1u;
+        remaining = c->buf_len - line_len;
+        memmove(c->buf, c->buf + line_len, remaining);
+        c->buf_len = remaining;
+        c->buf[c->buf_len] = '\0';
+    }
+
+    if (c->buf_len >= sizeof(c->buf) - 1u) {
+        LOGGER_WARNING("IPC client sent a line longer than" \
+                " IPC_MSG_MAX_LENGTH (%d bytes) without a newline;" \
+                " dropping its connection", IPC_MSG_MAX_LENGTH);
+        s_client_close(idx);
+    }
+}
+
+
+/* List every file descriptor the IPC subsystem currently wants
+ * polled */
+int ipc_poll_fds(int *out_fds, int max)
+{
+    int count = 0;
+
+    if (s_ipc_fd == -1 || out_fds == NULL || max <= 0) {
+        return 0;
+    }
+
+    out_fds[count++] = s_ipc_fd;
+
+    for (int i = 0; i < IPC_MAX_CLIENTS && count < max; ++i) {
+        if (s_clients[i].fd != -1) {
+            out_fds[count++] = s_clients[i].fd;
+        }
+    }
+
+    return count;
+}
+
+
+/* Handle a single IPC-related descriptor a poll call reported as
+ * readable */
+void ipc_handle_readable(wm_td *wm, int fd)
+{
+    if (s_ipc_fd == -1) {
+        return;
+    }
+
+    if (fd == s_ipc_fd) {
+        s_accept_new_client();
+        return;
+    }
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd == fd) {
+            s_handle_client_data(wm, i);
+            return;
+        }
+    }
+}

@@ -96,7 +96,7 @@ static void s_wm_cleanup(void)
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
-    ipc_close();
+    ipc_destroy();
     mouse_destroy_resize_cursors(wm->connection);
 
     if (wm->session != NULL) {
