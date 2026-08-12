@@ -36,7 +36,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>      /* snprintf */
-#include <stdlib.h>     /* NULL, calloc, free, getenv */
+#include <stdlib.h>     /* NULL, calloc, free */
 #include <string.h>     /* memcpy */
 
 /* Utils includes */
@@ -65,31 +65,19 @@
 void config_resolve_dir(const char *config_dir_prefix,
         char *config_dir_base)
 {
-    const char *config_xdg_config_home = getenv("XDG_CONFIG_HOME");
-    const char *config_home = getenv("HOME");
     char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
 
     if (config_dir_prefix) {
         snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s", config_dir_prefix);
-
-    } else if (config_xdg_config_home) {
-        /* "${XDG_CONFIG_HOME}/icowm" */
-        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s/%s", config_xdg_config_home, CONFIG_DIR_BASE);
-    } else if (config_home) {
-        /* "${HOME}/.icowm" */
-        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s/.%s", config_home, CONFIG_DIR_BASE);
-    } else {
-        /* "$(pwd)/.icowm"; let's hope there's always a "${HOME}" */
-        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
-                "./%s", CONFIG_DIR_BASE);
+        path_simplify(temp_path);
+        safe_strncpy(config_dir_base, temp_path,
+                CONFIG_MAX_LENGTH_PATH_BASE);
+        return;
     }
 
-    path_simplify(temp_path);
-    safe_strncpy(config_dir_base, temp_path,
-            CONFIG_MAX_LENGTH_PATH_BASE);
+    xdg_resolve_dir(XDG_DIR_CONFIG, "./" CONFIG_DIR_BASE,
+            config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE);
 }
 
 
