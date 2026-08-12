@@ -4,7 +4,9 @@ What IcoWM is, how to start it, every command-line option it accepts,
 and restricted-memory mode's own run-time behavior.  For the JSON
 configuration files themselves, namely what each one controls, every field
 each accepts, its type, and its default, see
-[`config.md`](config.md) instead.
+[`config.md`](config.md) instead.  For `icowm-msg`, the command-line
+client for the IPC control socket section 5 below documents, see
+[`icowm-msg.md`](icowm-msg.md) instead.
 
 ---
 
@@ -33,7 +35,8 @@ each accepts, its type, and its default, see
      - [5.3.4 Desktop-scoped actions](#534-desktop-scoped-actions)
      - [5.3.5 Surface actions](#535-surface-actions)
      - [5.3.6 Whole window manager](#536-whole-window-manager)
-   - [5.4 A worked example](#54-a-worked-example)
+   - [5.4 The `icowm-msg` tool](#54-the-icowm-msg-tool)
+   - [5.5 Talking to the socket directly](#55-talking-to-the-socket-directly)
 
 ---
 
@@ -49,6 +52,12 @@ entry in a taskbar.
 Configuration lives in a set of JSON files, described in full in
 `config.md`; none of them is required, and IcoWM falls
 back to a built-in default for any file that is absent.
+
+IcoWM also exposes a local IPC control socket, so an external script
+can query its state or drive it directly, without going through X11
+client messages; see section 5 below, and `icowm-msg.md` for its own
+small command-line client, built alongside IcoWM itself for exactly
+that.
 
 ## 2. Starting IcoWM
 
@@ -429,15 +438,38 @@ responds with a bare `{"ok": true}` on success.
 | `wm_exit` | none | Requests that IcoWM stop and exit, the same as its own quit shortcut |
 | `reload_config` | none | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
 
-### 5.4 A worked example
+### 5.4 The `icowm-msg` tool
 
-Since the protocol is plain, newline-delimited JSON, it can be
-exercised directly from a shell, without any purpose-built client,
-using a tool like `socat`:
+`icowm-msg` is a small, standalone command-line client for the
+socket, built and installed alongside IcoWM itself as a separate
+binary (see `make help`):
+
+```sh
+$ icowm-msg get_version
+{"ok":true,"protocol_version":1}
+
+$ icowm-msg goto_desktop desktop_id=1
+{"ok":true}
+```
+
+Everything specific to `icowm-msg` itself, its own usage, how a
+`key=value` argument becomes a request field, its exit status, and
+its own options, is documented in full in
+[`icowm-msg.md`](icowm-msg.md), not repeated here; the commands it
+sends and their own arguments remain the ones section 5.3 above
+documents.
+
+### 5.5 Talking to the socket directly
+
+Since the protocol is plain, newline-delimited JSON (section 5.2),
+it can also be exercised directly from a shell, without
+`icowm-msg`, using a tool like `socat`; useful for a system without
+`icowm-msg` installed, or for watching the raw traffic while
+debugging something:
 
 ```sh
 $ echo '{"cmd": "list_desktops"}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
-{"desktops":[{"id":0,"name":"Desktop 0","surface_id":0,"current":true}, ...],"ok":true}
+{"ok":true,"desktops":[{"id":0,"name":"Work","surface_id":0,"current":true}]}
 
 $ echo '{"cmd": "goto_desktop", "desktop_id": 1}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
 {"ok":true}

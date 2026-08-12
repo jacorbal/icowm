@@ -116,6 +116,10 @@ Inside that directory the expected file tree is:
   `.json` extension.
 - `randr.json`; XRandR hot-plug event handling is always active
   regardless of this file existence.
+- None of the files above configure IcoWM's own IPC control socket:
+  it has no options of its own to set, and is either built in or
+  not. See `manual.md` section 5 for where it lives and its full
+  wire protocol.
 
 ## 2. `config.json`: Base configuration
 

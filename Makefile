@@ -25,6 +25,7 @@ RELEASE_DATE = "20261221 (intended)"
 PWD = $(CURDIR)
 I_DIR = $(PWD)/include
 S_DIR = $(PWD)/src
+T_DIR = $(PWD)/tools
 L_DIR = $(PWD)/lib
 O_DIR = $(PWD)/obj
 B_DIR = $(PWD)/bin
@@ -74,8 +75,10 @@ FONT_CFLAGS = $(shell $(PKGCONF) --cflags freetype2 fontconfig 2>/dev/null | \
         sed 's/-I/-isystem /g')
 JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
         $(PKGCONF) --cflags cjson 2>/dev/null)
-CCFLAGS = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
-          $(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS) ${CCDEPS}
+CCFLAGS_BASE = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
+               ${CCDEPS}
+CCFLAGS = $(CCFLAGS_BASE) $(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS)
+
 XCB_LFLAGS = $(shell $(PKGCONF) --libs \
         xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
         xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \
@@ -89,6 +92,13 @@ JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
 OTHR_LFLAGS = -lpthread
 LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) \
           $(OTHR_LFLAGS)
+
+# 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
+# self-contained IPC client: it never touches X11 at all, so it has
+# no reason to pull in the XCB or font libraries the window manager
+# itself needs, only JSON for the wire protocol it speaks.
+MSG_CCFLAGS = $(CCFLAGS_BASE) $(JSON_CFLAGS)
+MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 
 
 ## Data & build information
@@ -111,6 +121,18 @@ CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
 CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
+
+# 'icowm-msg' only ever prints its own name, IcoWM's own short name,
+# its version, and its license (see 'tools/icowm-msg.c'); the rest
+# of the metadata above is icowm's own '-v' output, not something
+# a small IPC client has any reason to report about itself.
+MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
+MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
+MSG_CCFLAGS += -D PROJECT_VERSION=\"$(PROJECT_VERSION)\"
+MSG_CCFLAGS += -D PROJECT_VERSION_CODENAME=\"$(PROJECT_VERSION_CODENAME)\"
+MSG_CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
+MSG_CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
+MSG_CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 
 
 ## Options on 'make'
@@ -168,6 +190,7 @@ endif
 
 # Binary file options and running arguments
 TARGET = $(B_DIR)/$(PROJECT_NAME_PROG)
+MSG_TARGET = $(B_DIR)/$(PROJECT_NAME_PROG)-msg
 DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
@@ -179,19 +202,27 @@ SRCS = $(wildcard $(S_DIR)/*.c) \
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
+# 'icowm-msg' (see 'tools/icowm-msg.c') builds and links entirely
+# separately from icowm itself: its own single object never joins
+# 'OBJS', and its own binary never joins 'TARGET', so a change to
+# one never forces a rebuild of the other.
+MSG_SRCS = $(wildcard $(T_DIR)/*.c)
+MSG_OBJS = $(patsubst $(T_DIR)/%.c, $(O_DIR)/tools/%.o, $(MSG_SRCS))
+MSG_DEPS = $(MSG_OBJS:.o=.d)
+
 
 ## Options
 .DEFAULT_GOAL := all
 
 # Make all, create needed directories and build
-all: mkdirs $(TARGET) ctags
+all: mkdirs $(TARGET) $(MSG_TARGET) ctags
 	@echo "Build $(BUILD_NUMBER)"
 
 parallel:
 	$(MAKE) -j$(JOBS) all
 
 mkdirs:
-	@mkdir -p $(B_DIR) $(O_DIR)
+	@mkdir -p $(B_DIR) $(O_DIR) $(O_DIR)/tools
 	@find $(S_DIR) -mindepth 1 -type d | \
 		sed 's|$(S_DIR)/||' | \
 		while read dir; do \
@@ -204,9 +235,15 @@ $(TARGET): $(OBJS)
 	@echo "Increasing build number to $(BUILD_NUMBER)..."
 	@echo $(BUILD_NUMBER) >$(BUILD_NUMBER_FILE)
 
+$(MSG_TARGET): $(MSG_OBJS)
+	$(CC) -o $@ $^ $(MSG_LDFLAGS)
+
 # Compilation
 $(O_DIR)/%.o: $(S_DIR)/%.c
 	$(CC) $(CCFLAGS) -c $< -o $@
+
+$(O_DIR)/tools/%.o: $(T_DIR)/%.c
+	$(CC) $(MSG_CCFLAGS) -c $< -o $@
 
 # Other options
 ctags:
@@ -224,11 +261,11 @@ ldflags:
 	@echo $(LDFLAGS)
 
 clean-obj:
-	@rm -f $(OBJS) $(DEPS)
+	@rm -f $(OBJS) $(DEPS) $(MSG_OBJS) $(MSG_DEPS)
 	@rm -rf $(O_DIR)/* $(O_DIR)
 
 clean-bin:
-	@rm -f $(TARGET)
+	@rm -f $(TARGET) $(MSG_TARGET)
 	@rm -rf $(B_DIR)
 
 clean-build:
@@ -269,10 +306,12 @@ help:
 	@echo "  Use 'COMPACT=1' to build using smaller arrays"
 	@echo
 	@echo "Binary will be placed in '$(TARGET)'"
+	@echo "IPC client tool will be placed in '$(MSG_TARGET)'"
 
 
 ## Auto-generated header dependecies
 -include $(DEPS)
+-include $(MSG_DEPS)
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
