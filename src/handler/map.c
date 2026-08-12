@@ -50,9 +50,9 @@
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/layer.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/internal.h>
 
 /* Project includes */
 #include <lookup.h>
@@ -67,7 +67,7 @@
  *
  * Shared by every early-return path in @c handler_map_request below
  * that declines to manage the window (an unresolvable surface or
- * current desktop, @c client_manage itself failing, or the client
+ * current desktop, @c client_init itself failing, or the client
  * failing to be added to its desktop): the requesting application
  * gets its window on screen either way, just without a frame or any
  * window-manager tracking.
@@ -187,7 +187,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         return;
     }
 
-    /* Checked before 'client_manage' does any of its own (comparatively
+    /* Checked before 'client_init' does any of its own (comparatively
      * expensive) setup work, so a client refused here never pays for
      * work that would just be thrown away.  Deliberately left
      * unmapped, unlike every other early-return path in this function
@@ -217,7 +217,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         return;
     }
 
-    client = client_manage(wm->connection, wm->ewmh,
+    client = client_init(wm->connection, wm->ewmh,
             event->window, &wm->config->theme, &wm->config->base);
     if (client == NULL) {
         s_map_unmanaged(wm->connection, event->window);
@@ -265,7 +265,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
      * 'IconicState' */
     if (client->initial_iconic) {
-        wcmd_client_iconify(client);
+        ccmd_client_iconify(client);
     } else {
         if (client->titlebar != 0) {
             xcb_map_window(wm->connection, client->titlebar);
@@ -310,7 +310,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     /* Re-apply layer stacking so newly mapped windows do not obscure
      * clients already assigned to the above layer */
-    wcmd_desktop_enforce_layers(desktop);
+    ccmd_desktop_enforce_layers(desktop);
 
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
@@ -372,9 +372,9 @@ void handler_unmap_notify(xcb_connection_t *connection,
             client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->titlebar);
         }
-        wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, XCB_NONE);
-        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-        wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+        ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
+        ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
         wm_request_client_redraw(client);
 
         if (connection != NULL) {
@@ -432,7 +432,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
     }
 
     /* ICCCM withdrawn state: remove WM_STATE on unmanage */
-    wcmd_clear_wm_state(client);
+    ccmd_clear_wm_state(client);
 
     /* When the frame is destroyed the X server also destroys all its
      * children ('client->window', 'client->titlebar').  Zero them all
@@ -520,7 +520,7 @@ void handler_map_notify(xcb_connection_t *connection,
         if (event->window == client->window) {
             xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
-            /* Re-assert the plain-pointer cursor 'client_manage'
+            /* Re-assert the plain-pointer cursor 'client_init'
              * already set once on this same window (see client.c).
              * Many GTK/GDK applications explicitly set their own
              * top-level window's cursor as part of their own
@@ -622,7 +622,7 @@ void handler_circulate_request(xcb_connection_t *connection,
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     stack_mode = (event->place == XCB_PLACE_ON_TOP)
         ? (uint32_t) XCB_STACK_MODE_ABOVE
         : (uint32_t) XCB_STACK_MODE_BELOW;

@@ -113,7 +113,7 @@ bool systray_owns_window(xcb_window_t window);
  *        'below' layer, or @c XCB_WINDOW_NONE otherwise
  *
  * Lets any code that needs to stack itself just below the tray (see
- * @c wcmd_client_iconify, which stacks a newly iconified client's icon
+ * @c ccmd_client_iconify, which stacks a newly iconified client's icon
  * window here, since icons are meant to sit lower than the tray even
  * within the 'below' layer) target it directly instead of competing
  * with it for the absolute bottom of the sibling stack via an
@@ -310,7 +310,7 @@ void systray_reload(wm_td *wm);
  *       clients (only when @c systray.layer is @c above;
  *       @e O(1) for @c below and @c overlay)
  *
- * @see @c wcmd_client_fullscreen and @c wcmd_client_unfullscreen
+ * @see @c ccmd_client_fullscreen and @c ccmd_client_unfullscreen
  */
 void systray_restack(void);
 

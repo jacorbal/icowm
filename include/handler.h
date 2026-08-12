@@ -303,7 +303,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
  * @param wm    Window manager state
  * @param event Raw XCB event from the main loop
  *
- * @see @c wcmd_client_resize_flush_pending
+ * @see @c ccmd_client_resize_flush_pending
  */
 void handler_sync_event(wm_td *wm, xcb_generic_event_t *event);
 

@@ -1,11 +1,11 @@
 /**
- * @file cmds/ccmd.h
+ * @file cmds/client/basic.h
  *
  * @brief Functions on executions over clients using the XCB interface
  *        with needed EWMH and ICCCM updates
  *
  * @defgroup cmds Client, desktop, and surface commands
- * @ingroup eventq
+ * @ingroup enact
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -15,15 +15,14 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_CCMD_H
-#define CMDS_CCMD_H
+#ifndef CMDS_CCMD_BASIC_H
+#define CMDS_CCMD_BASIC_H
 
 
 /* Command includes */
-#include <cmds/state.h>
+#include <cmds/client/state.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 
 
@@ -35,12 +34,12 @@
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_close(client_td *client);
+void ccmd_client_close(client_td *client);
 
 /**
  * @brief Forcibly terminate the client's connection to the X server
  *
- * Unlike @a wcmd_client_close (which only destroys the client's window
+ * Unlike @a ccmd_client_close (which only destroys the client's window
  * resource), this severs the client's entire X connection at the
  * protocol level via @c xcb_kill_client, matching the conventional
  * "force kill an unresponsive window" behavior (e.g., @c xkill).
@@ -52,7 +51,7 @@ void wcmd_client_close(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_kill(client_td *client);
+void ccmd_client_kill(client_td *client);
 
 /**
  * @brief Restore the client to its original state
@@ -61,7 +60,7 @@ void wcmd_client_kill(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_restore(client_td *client);
+void ccmd_client_restore(client_td *client);
 
 /**
  * @brief Focus on the given client
@@ -70,7 +69,7 @@ void wcmd_client_restore(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_focus(client_td *client);
+void ccmd_client_focus(client_td *client);
 
 /**
  * @brief Remove focus from the given client
@@ -79,7 +78,7 @@ void wcmd_client_focus(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_unfocus(client_td *client);
+void ccmd_client_unfocus(client_td *client);
 
 /**
  * @brief Perform the action to iconify (and minimize it)
@@ -88,7 +87,7 @@ void wcmd_client_unfocus(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_iconify(client_td *client);
+void ccmd_client_iconify(client_td *client);
 
 /**
  * @brief Hide the client by minimizing it without iconifying
@@ -97,7 +96,7 @@ void wcmd_client_iconify(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_hide(client_td *client);
+void ccmd_client_hide(client_td *client);
 
 /**
  * @brief Show (unhide) the client
@@ -106,7 +105,7 @@ void wcmd_client_hide(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_unhide(client_td *client);
+void ccmd_client_unhide(client_td *client);
 
 /**
  * @brief Make the client sticky (visible on all desktops)
@@ -115,7 +114,7 @@ void wcmd_client_unhide(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_sticky(client_td *client);
+void ccmd_client_sticky(client_td *client);
 
 /**
  * @brief Remove sticky mode from the client
@@ -124,7 +123,7 @@ void wcmd_client_sticky(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_unsticky(client_td *client);
+void ccmd_client_unsticky(client_td *client);
 
 /**
  * @brief Toggle sticky mode for the client
@@ -135,7 +134,7 @@ void wcmd_client_unsticky(client_td *client);
  *       nothing to actually toggle when there is only the one
  * @note Complexity: @e O(1)
  */
-void wcmd_client_toggle_sticky(client_td *client);
+void ccmd_client_toggle_sticky(client_td *client);
 
 /**
  * @brief Mark the client as urgent (requesting attention)
@@ -144,7 +143,7 @@ void wcmd_client_toggle_sticky(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_set_urgent(client_td *client);
+void ccmd_client_set_urgent(client_td *client);
 
 /**
  * @brief Clear urgency marking from the client
@@ -153,7 +152,7 @@ void wcmd_client_set_urgent(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_clear_urgent(client_td *client);
+void ccmd_client_clear_urgent(client_td *client);
 
 /**
  * @brief Publish @c _NET_WM_ALLOWED_ACTIONS for a client
@@ -168,7 +167,7 @@ void wcmd_client_clear_urgent(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_update_allowed_actions(client_td *client);
+void ccmd_client_update_allowed_actions(client_td *client);
 
 
-#endif  /* ! CMDS_CCMD_H */
+#endif  /* ! CMDS_CCMD_BASIC_H */

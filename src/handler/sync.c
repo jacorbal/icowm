@@ -31,7 +31,7 @@
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/geom.h>
+#include <cmds/client/geom.h>
 
 /* Local includes */
 #include <handler.h>
@@ -53,7 +53,7 @@
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across all surfaces and desktops
  *
- * @see @c client_manage
+ * @see @c client_init
  */
 static client_td *s_find_client_by_alarm(list_td *surfaces, uint32_t alarm)
 {
@@ -138,5 +138,5 @@ void handler_sync_event(wm_td *wm, xcb_generic_event_t *event)
      * manager sent it; release the wait and, if a newer resize step
      * arrived meanwhile, apply it now and re-arm the wait for the next
      * one so an ongoing interactive resize keeps throttling correctly */
-    wcmd_client_resize_flush_pending(client);
+    ccmd_client_resize_flush_pending(client);
 }

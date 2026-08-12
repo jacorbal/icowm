@@ -243,7 +243,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.titlebar.buttons.color.off =
         json_hex2uint32("7086A0");
 
-    safe_strcpy(theme->window.active.font, "fixed bold");
+    safe_strncpy(theme->window.active.font,
+            "fixed bold", sizeof(theme->window.active.font));
     theme->window.active.color.background =
         json_hex2uint32("9AAEC8");
     theme->window.active.color.foreground =
@@ -251,7 +252,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.active.border.color = json_hex2uint32("4A5566");
     theme->window.active.border.width = 2u;
 
-    safe_strcpy(theme->window.inactive.font, "fixed");
+    safe_strncpy(theme->window.inactive.font,
+            "fixed", sizeof(theme->window.inactive.font));
     theme->window.inactive.color.background =
         json_hex2uint32("D0D9E5");
     theme->window.inactive.color.foreground =
@@ -263,7 +265,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->icon.show_pixmaps = true;
     theme->icon.show_hints = true;
 
-    safe_strcpy(theme->icon.active.font, "fixed bold");
+    safe_strncpy(theme->icon.active.font,
+            "fixed bold", sizeof(theme->icon.active.font));
     theme->icon.active.color.background =
         json_hex2uint32("9AAEC8");
     theme->icon.active.color.foreground =
@@ -271,7 +274,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->icon.active.border.color = json_hex2uint32("4A5566");
     theme->icon.active.border.width = 1u;
 
-    safe_strcpy(theme->icon.inactive.font, "fixed");
+    safe_strncpy(theme->icon.inactive.font,
+            "fixed", sizeof(theme->icon.inactive.font));
     theme->icon.inactive.color.background =
         json_hex2uint32("D0D9E5");
     theme->icon.inactive.color.foreground =
@@ -279,7 +283,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->icon.inactive.border.color = json_hex2uint32("7F9AB6");
     theme->icon.inactive.border.width = 1u;
 
-    safe_strcpy(theme->systray.style.font, "fixed bold");
+    safe_strncpy(theme->systray.style.font,
+            "fixed bold", sizeof(theme->systray.style.font));
     theme->systray.style.color.background =
         json_hex2uint32("D0D9E5");
     theme->systray.style.color.foreground =
@@ -309,7 +314,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
      * feeling heavier than a full-screen area calls for. */
     theme->desktop.color.background = json_hex2uint32("5F7187");
 
-    safe_strcpy(theme->menu.unselected.font, "fixed");
+    safe_strncpy(theme->menu.unselected.font,
+            "fixed", sizeof(theme->menu.unselected.font));
     theme->menu.unselected.color.background =
         json_hex2uint32("D0D9E5");
     theme->menu.unselected.color.foreground =
@@ -317,7 +323,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.unselected.border.color = json_hex2uint32("7F9AB6");
     theme->menu.unselected.border.width = 0u;
 
-    safe_strcpy(theme->menu.selected.font, "fixed");
+    safe_strncpy(theme->menu.selected.font,
+            "fixed", sizeof(theme->menu.selected.font));
     theme->menu.selected.color.background =
         json_hex2uint32("9AAEC8");
     theme->menu.selected.color.foreground =
@@ -325,7 +332,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.selected.border.color = json_hex2uint32("4A5566");
     theme->menu.selected.border.width = 0u;
 
-    safe_strcpy(theme->menu.label.font, "fixed");
+    safe_strncpy(theme->menu.label.font,
+            "fixed", sizeof(theme->menu.label.font));
     theme->menu.label.color.background =
         json_hex2uint32("48607F");
     /* Picked for a WCAG contrast ratio of ~4.5:1 against this
@@ -358,12 +366,14 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.border.color = json_hex2uint32("7F9AB6");
     theme->dialog.border.width = 2u;
 
-    safe_strcpy(theme->dialog.label.font, "fixed bold");
+    safe_strncpy(theme->dialog.label.font,
+            "fixed bold", sizeof(theme->dialog.label.font));
     theme->dialog.label.foreground = json_hex2uint32("4A5566");
     theme->dialog.label.padding.horizontal = 12u;
     theme->dialog.label.padding.vertical = 12u;
 
-    safe_strcpy(theme->dialog.button.unselected.font, "fixed");
+    safe_strncpy(theme->dialog.button.unselected.font,
+            "fixed", sizeof(theme->dialog.button.unselected.font));
     theme->dialog.button.unselected.color.background =
         json_hex2uint32("D0D9E5");
     theme->dialog.button.unselected.color.foreground =
@@ -372,7 +382,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("7F9AB6");
     theme->dialog.button.unselected.border.width = 1u;
 
-    safe_strcpy(theme->dialog.button.selected.font, "fixed bold");
+    safe_strncpy(theme->dialog.button.selected.font,
+            "fixed bold", sizeof(theme->dialog.button.selected.font));
     theme->dialog.button.selected.color.background =
         json_hex2uint32("9AAEC8");
     theme->dialog.button.selected.color.foreground =
@@ -385,7 +396,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.button.padding.horizontal = 12u;
     theme->dialog.button.padding.vertical = 6u;
 
-    safe_strcpy(theme->overlay.font, "fixed");
+    safe_strncpy(theme->overlay.font, "fixed", sizeof(theme->overlay.font));
     theme->overlay.color.background = json_hex2uint32("D0D9E5");
     theme->overlay.color.foreground = json_hex2uint32("4A5566");
     theme->overlay.border.color = json_hex2uint32("7F9AB6");
@@ -472,11 +483,16 @@ void config_set_default_values(config_td *config)
     }
 
     LOGGER_TRACE("Setting default base programs", L_NARG);
-    safe_strcpy(config->base.programs.terminal, "xterm");
-    safe_strcpy(config->base.programs.launcher, "gmrun");
-    safe_strcpy(config->base.programs.file_manager, "pcmanfm");
-    safe_strcpy(config->base.programs.editor, "gvim");
-    safe_strcpy(config->base.programs.web_browser, "firefox");
+    safe_strncpy(config->base.programs.terminal,
+            "xterm", sizeof(config->base.programs.terminal));
+    safe_strncpy(config->base.programs.launcher,
+            "gmrun", sizeof(config->base.programs.launcher));
+    safe_strncpy(config->base.programs.file_manager,
+            "pcmanfm", sizeof(config->base.programs.file_manager));
+    safe_strncpy(config->base.programs.editor,
+            "gvim", sizeof(config->base.programs.editor));
+    safe_strncpy(config->base.programs.web_browser,
+            "firefox", sizeof(config->base.programs.web_browser));
     config->base.windows.move_step = 10;
     /* usually overridden by hints */
     config->base.windows.resize_step = 20;
@@ -512,7 +528,8 @@ void config_set_default_values(config_td *config)
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
     config->base.systray.clock.is_enabled = true;
-    safe_strcpy(config->base.systray.clock.format, "%a %R");
+    safe_strncpy(config->base.systray.clock.format,
+            "%a %R", sizeof(config->base.systray.clock.format));
 
     config->base.systray.battery.is_enabled = false;
     config->base.systray.battery.threshold.charged = 100u;
@@ -535,138 +552,195 @@ void config_set_default_values(config_td *config)
 
     /* Assign predetermined values for bindings modifiers */
     LOGGER_TRACE("Setting default bindings modifiers", L_NARG);
-    safe_strcpy(config->bindings.modc, "Control");
-    safe_strcpy(config->bindings.mods, "Shift");
-    safe_strcpy(config->bindings.modl, "Caps_Lock");
-    safe_strcpy(config->bindings.mod1, "Alt");
-    safe_strcpy(config->bindings.mod2, "Num_Lock");
-    safe_strcpy(config->bindings.mod3, "");
-    safe_strcpy(config->bindings.mod4, "Super");
-    safe_strcpy(config->bindings.mod5, "Hyper");
+    safe_strncpy(config->bindings.modc,
+            "Control", sizeof(config->bindings.modc));
+    safe_strncpy(config->bindings.mods,
+            "Shift", sizeof(config->bindings.mods));
+    safe_strncpy(config->bindings.modl,
+            "Caps_Lock", sizeof(config->bindings.modl));
+    safe_strncpy(config->bindings.mod1, "Alt", sizeof(config->bindings.mod1));
+    safe_strncpy(config->bindings.mod2,
+            "Num_Lock", sizeof(config->bindings.mod2));
+    safe_strncpy(config->bindings.mod3, "", sizeof(config->bindings.mod3));
+    safe_strncpy(config->bindings.mod4,
+            "Super", sizeof(config->bindings.mod4));
+    safe_strncpy(config->bindings.mod5,
+            "Hyper", sizeof(config->bindings.mod5));
 
     /* Predetermined configuration for keybindings */
     LOGGER_TRACE("Setting default keybindings", L_NARG);
-    safe_strcpy(config->bindings.keyboard.launch.terminal,
-            "modc+mod1+Return");
-    safe_strcpy(config->bindings.keyboard.launch.launcher,
-            "modc+mod1+r");
-    safe_strcpy(config->bindings.keyboard.launch.file_manager,
-            "modc+mod1+q");
-    safe_strcpy(config->bindings.keyboard.launch.web_browser,
-            "modc+mod1+w");
-    safe_strcpy(config->bindings.keyboard.launch.editor,
-            "modc+mod1+e");
-    safe_strcpy(config->bindings.keyboard.wm.menus.root,
-            "modc+mod1+mods+m");
-    safe_strcpy(config->bindings.keyboard.wm.menus.windows,
-            "modc+mod1+mods+w");
-    safe_strcpy(config->bindings.keyboard.window.close,
-            "modc+mod1+c");
-    safe_strcpy(config->bindings.keyboard.window.decorate,
-            "modc+mod1+d");
-    safe_strcpy(config->bindings.keyboard.window.fullscreen,
-            "modc+mod1+f");
-    safe_strcpy(config->bindings.keyboard.window.hide,
-            "modc+mod1+mods+u");
-    safe_strcpy(config->bindings.keyboard.window.iconify,
-            "modc+mod1+i");
-    safe_strcpy(config->bindings.keyboard.window.info,
-            "modc+mod1+mods+i");
-    safe_strcpy(config->bindings.keyboard.window.kill,
-            "modc+mod1+mods+Escape");
-    safe_strcpy(config->bindings.keyboard.window.maximize,
-            "modc+mod1+m");
-    safe_strcpy(config->bindings.keyboard.window.next_monitor,
-            "modc+mod1+mods+n");
-    safe_strcpy(config->bindings.keyboard.window.pin,
-            "modc+mod1+p");
-    safe_strcpy(config->bindings.keyboard.window.layer,
-            "modc+mod1+mods+y");
-    safe_strcpy(config->bindings.keyboard.window.shade,
-            "modc+mod1+s");
-    safe_strcpy(config->bindings.keyboard.cycle.desktop.prev,
-            "modc+mod1+Left");
-    safe_strcpy(config->bindings.keyboard.cycle.desktop.next,
-            "modc+mod1+Right");
-    safe_strcpy(config->bindings.keyboard.cycle.icon.prev,
-            "modc+mod1+mods+Tab");
-    safe_strcpy(config->bindings.keyboard.cycle.icon.next,
-            "modc+mod1+Tab");
-    safe_strcpy(config->bindings.keyboard.cycle.window.prev,
-            "mod1+mods+Tab");
-    safe_strcpy(config->bindings.keyboard.cycle.window.next,
-            "mod1+Tab");
-    safe_strcpy(config->bindings.keyboard.wm.redraw,
-            "modc+mod1+mods+r");
-    safe_strcpy(config->bindings.keyboard.wm.reload,
-            "modc+mod1+mods+c");
-    safe_strcpy(config->bindings.keyboard.wm.quit,
-            "modc+mod1+mods+x");
-    safe_strcpy(config->bindings.keyboard.wm.shortcuts,
-            "modc+mod4+F1");
-    safe_strcpy(config->bindings.keyboard.wm.show_desktop,
-            "modc+mod1+mods+d");
+    safe_strncpy(config->bindings.keyboard.launch.terminal,
+            "modc+mod1+Return",
+            sizeof(config->bindings.keyboard.launch.terminal));
+    safe_strncpy(config->bindings.keyboard.launch.launcher,
+            "modc+mod1+r", sizeof(config->bindings.keyboard.launch.launcher));
+    safe_strncpy(config->bindings.keyboard.launch.file_manager,
+            "modc+mod1+q",
+            sizeof(config->bindings.keyboard.launch.file_manager));
+    safe_strncpy(config->bindings.keyboard.launch.web_browser,
+            "modc+mod1+w",
+            sizeof(config->bindings.keyboard.launch.web_browser));
+    safe_strncpy(config->bindings.keyboard.launch.editor,
+            "modc+mod1+e", sizeof(config->bindings.keyboard.launch.editor));
+    safe_strncpy(config->bindings.keyboard.wm.menus.root,
+            "modc+mod1+mods+m",
+            sizeof(config->bindings.keyboard.wm.menus.root));
+    safe_strncpy(config->bindings.keyboard.wm.menus.windows,
+            "modc+mod1+mods+w",
+            sizeof(config->bindings.keyboard.wm.menus.windows));
+    safe_strncpy(config->bindings.keyboard.window.close,
+            "modc+mod1+c", sizeof(config->bindings.keyboard.window.close));
+    safe_strncpy(config->bindings.keyboard.window.decorate,
+            "modc+mod1+d", sizeof(config->bindings.keyboard.window.decorate));
+    safe_strncpy(config->bindings.keyboard.window.fullscreen,
+            "modc+mod1+f",
+            sizeof(config->bindings.keyboard.window.fullscreen));
+    safe_strncpy(config->bindings.keyboard.window.hide,
+            "modc+mod1+mods+u", sizeof(config->bindings.keyboard.window.hide));
+    safe_strncpy(config->bindings.keyboard.window.iconify,
+            "modc+mod1+i", sizeof(config->bindings.keyboard.window.iconify));
+    safe_strncpy(config->bindings.keyboard.window.iconify_all,
+            "modc+mod4+mods+i",
+            sizeof(config->bindings.keyboard.window.iconify_all));
+    safe_strncpy(config->bindings.keyboard.window.deiconify_all,
+            "modc+mod4+mods+d",
+            sizeof(config->bindings.keyboard.window.deiconify_all));
+    safe_strncpy(config->bindings.keyboard.window.info,
+            "modc+mod1+mods+i", sizeof(config->bindings.keyboard.window.info));
+    safe_strncpy(config->bindings.keyboard.window.kill,
+            "modc+mod1+mods+Escape",
+            sizeof(config->bindings.keyboard.window.kill));
+    safe_strncpy(config->bindings.keyboard.window.maximize,
+            "modc+mod1+m", sizeof(config->bindings.keyboard.window.maximize));
+    safe_strncpy(config->bindings.keyboard.window.next_monitor,
+            "modc+mod1+mods+n",
+            sizeof(config->bindings.keyboard.window.next_monitor));
+    safe_strncpy(config->bindings.keyboard.window.pin,
+            "modc+mod1+p", sizeof(config->bindings.keyboard.window.pin));
+    safe_strncpy(config->bindings.keyboard.window.layer,
+            "modc+mod1+mods+y",
+            sizeof(config->bindings.keyboard.window.layer));
+    safe_strncpy(config->bindings.keyboard.window.shade,
+            "modc+mod1+s", sizeof(config->bindings.keyboard.window.shade));
+    safe_strncpy(config->bindings.keyboard.cycle.desktop.prev,
+            "modc+mod1+Left",
+            sizeof(config->bindings.keyboard.cycle.desktop.prev));
+    safe_strncpy(config->bindings.keyboard.cycle.desktop.next,
+            "modc+mod1+Right",
+            sizeof(config->bindings.keyboard.cycle.desktop.next));
+    safe_strncpy(config->bindings.keyboard.cycle.icon.prev,
+            "modc+mod1+mods+Tab",
+            sizeof(config->bindings.keyboard.cycle.icon.prev));
+    safe_strncpy(config->bindings.keyboard.cycle.icon.next,
+            "modc+mod1+Tab",
+            sizeof(config->bindings.keyboard.cycle.icon.next));
+    safe_strncpy(config->bindings.keyboard.cycle.window.prev,
+            "mod1+mods+Tab",
+            sizeof(config->bindings.keyboard.cycle.window.prev));
+    safe_strncpy(config->bindings.keyboard.cycle.window.next,
+            "mod1+Tab", sizeof(config->bindings.keyboard.cycle.window.next));
+    safe_strncpy(config->bindings.keyboard.wm.redraw,
+            "modc+mod1+mods+r", sizeof(config->bindings.keyboard.wm.redraw));
+    safe_strncpy(config->bindings.keyboard.wm.reload,
+            "modc+mod1+mods+c", sizeof(config->bindings.keyboard.wm.reload));
+    safe_strncpy(config->bindings.keyboard.wm.quit,
+            "modc+mod1+mods+x", sizeof(config->bindings.keyboard.wm.quit));
+    safe_strncpy(config->bindings.keyboard.wm.shortcuts,
+            "modc+mod4+F1", sizeof(config->bindings.keyboard.wm.shortcuts));
+    safe_strncpy(config->bindings.keyboard.wm.show_desktop,
+            "modc+mod1+mods+d",
+            sizeof(config->bindings.keyboard.wm.show_desktop));
 
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[0],
-            "modc+mod1+0");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[1],
-            "modc+mod1+1");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[2],
-            "modc+mod1+2");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[3],
-            "modc+mod1+3");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[4],
-            "modc+mod1+4");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[5],
-            "modc+mod1+5");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[6],
-            "modc+mod1+6");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[7],
-            "modc+mod1+7");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[8],
-            "modc+mod1+8");
-    safe_strcpy(config->bindings.keyboard.wm.go_to.desktop[9],
-            "modc+mod1+9");
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[0],
+            "modc+mod1+0",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[0]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[1],
+            "modc+mod1+1",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[1]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[2],
+            "modc+mod1+2",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[2]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[3],
+            "modc+mod1+3",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[3]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[4],
+            "modc+mod1+4",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[4]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[5],
+            "modc+mod1+5",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[5]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[6],
+            "modc+mod1+6",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[6]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[7],
+            "modc+mod1+7",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[7]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[8],
+            "modc+mod1+8",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[8]));
+    safe_strncpy(config->bindings.keyboard.wm.go_to.desktop[9],
+            "modc+mod1+9",
+            sizeof(config->bindings.keyboard.wm.go_to.desktop[9]));
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
             L_NARG);
-    safe_strcpy(config->bindings.keyboard.window.move.relative.right,
-            "modc+mod1+l");
-    safe_strcpy(config->bindings.keyboard.window.move.relative.left,
-            "modc+mod1+h");
-    safe_strcpy(config->bindings.keyboard.window.move.relative.up,
-            "modc+mod1+k");
-    safe_strcpy(config->bindings.keyboard.window.move.relative.down,
-            "modc+mod1+j");
-    safe_strcpy(config->bindings.keyboard.window.move.absolute.center,
-            "modc+mod1+g");
-    safe_strcpy(config->bindings.keyboard.window.move.absolute.top_left,
-            "modc+mod1+y");
-    safe_strcpy(config->bindings.keyboard.window.move.absolute.top_right,
-            "modc+mod1+u");
-    safe_strcpy(config->bindings.keyboard.window.move.absolute.bottom_left,
-            "modc+mod1+b");
-    safe_strcpy(config->bindings.keyboard.window.move.absolute.bottom_right,
-            "modc+mod1+n");
-    safe_strcpy(config->bindings.keyboard.window.resize.right,
-            "modc+mod1+mods+l");
-    safe_strcpy(config->bindings.keyboard.window.resize.left,
-            "modc+mod1+mods+h");
-    safe_strcpy(config->bindings.keyboard.window.resize.up,
-            "modc+mod1+mods+k");
-    safe_strcpy(config->bindings.keyboard.window.resize.down,
-            "modc+mod1+mods+j");
+    safe_strncpy(config->bindings.keyboard.window.move.relative.right,
+            "modc+mod1+l",
+            sizeof(config->bindings.keyboard.window.move.relative.right));
+    safe_strncpy(config->bindings.keyboard.window.move.relative.left,
+            "modc+mod1+h",
+            sizeof(config->bindings.keyboard.window.move.relative.left));
+    safe_strncpy(config->bindings.keyboard.window.move.relative.up,
+            "modc+mod1+k",
+            sizeof(config->bindings.keyboard.window.move.relative.up));
+    safe_strncpy(config->bindings.keyboard.window.move.relative.down,
+            "modc+mod1+j",
+            sizeof(config->bindings.keyboard.window.move.relative.down));
+    safe_strncpy(config->bindings.keyboard.window.move.absolute.center,
+            "modc+mod1+g",
+            sizeof(config->bindings.keyboard.window.move.absolute.center));
+    safe_strncpy(config->bindings.keyboard.window.move.absolute.top_left,
+            "modc+mod1+y",
+            sizeof(config->bindings.keyboard.window.move.absolute.top_left));
+    safe_strncpy(config->bindings.keyboard.window.move.absolute.top_right,
+            "modc+mod1+u",
+            sizeof(config->bindings.keyboard.window.move.absolute.top_right));
+    safe_strncpy(config->bindings.keyboard.window.move.absolute.bottom_left,
+            "modc+mod1+b",
+            sizeof(config->bindings.keyboard.window.move.absolute.
+                    bottom_left));
+    safe_strncpy(config->bindings.keyboard.window.move.absolute.bottom_right,
+            "modc+mod1+n",
+            sizeof(config->bindings.keyboard.window.move.absolute.
+                    bottom_right));
+    safe_strncpy(config->bindings.keyboard.window.resize.right,
+            "modc+mod1+mods+l",
+            sizeof(config->bindings.keyboard.window.resize.right));
+    safe_strncpy(config->bindings.keyboard.window.resize.left,
+            "modc+mod1+mods+h",
+            sizeof(config->bindings.keyboard.window.resize.left));
+    safe_strncpy(config->bindings.keyboard.window.resize.up,
+            "modc+mod1+mods+k",
+            sizeof(config->bindings.keyboard.window.resize.up));
+    safe_strncpy(config->bindings.keyboard.window.resize.down,
+            "modc+mod1+mods+j",
+            sizeof(config->bindings.keyboard.window.resize.down));
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
-    safe_strcpy(config->bindings.mouse.window.move, "mod1+button1");
-    safe_strcpy(config->bindings.mouse.window.lower, "mod1+button2");
-    safe_strcpy(config->bindings.mouse.window.resize, "mod1+button3");
-    safe_strcpy(config->bindings.mouse.cycle.desktop.prev, "button4");
-    safe_strcpy(config->bindings.mouse.cycle.desktop.next, "button5");
+    safe_strncpy(config->bindings.mouse.window.move,
+            "mod1+button1", sizeof(config->bindings.mouse.window.move));
+    safe_strncpy(config->bindings.mouse.window.lower,
+            "mod1+button2", sizeof(config->bindings.mouse.window.lower));
+    safe_strncpy(config->bindings.mouse.window.resize,
+            "mod1+button3", sizeof(config->bindings.mouse.window.resize));
+    safe_strncpy(config->bindings.mouse.cycle.desktop.prev,
+            "button4", sizeof(config->bindings.mouse.cycle.desktop.prev));
+    safe_strncpy(config->bindings.mouse.cycle.desktop.next,
+            "button5", sizeof(config->bindings.mouse.cycle.desktop.next));
 
     config_set_default_theme_values(&config->theme);
 }

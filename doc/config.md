@@ -9,7 +9,7 @@ values, and built-in default value.
 ## Table of Contents
 
 1. [Directory layout](#1-directory-layout)
-2. [`config.json` -- Base configuration](#2-configjson----base-configuration)
+2. [`config.json`: Base configuration](#2-configjson-base-configuration)
    - [2.1 `theme`](#21-theme)
    - [2.2 `topology`](#22-topology)
    - [2.3 `programs`](#23-programs)
@@ -21,7 +21,7 @@ values, and built-in default value.
    - [2.9 `menu`](#29-menu)
    - [2.10 `systray`](#210-systray)
    - [2.11 `desktops`](#211-desktops)
-3. [`bindings.json` -- Keyboard and mouse bindings](#3-bindingsjson----keyboard-and-mouse-bindings)
+3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
    - [3.3 `keyboard.launch`](#33-keyboardlaunch)
@@ -30,7 +30,7 @@ values, and built-in default value.
    - [3.6 `keyboard.cycle`](#36-keyboardcycle)
    - [3.7 `mouse.window`](#37-mousewindow)
    - [3.8 `mouse.cycle`](#38-mousecycle)
-4. [`themes/<name>.json` -- Theme configuration](#4-themesnamejson----theme-configuration)
+4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
    - [4.1 `window`](#41-window)
    - [4.2 `icon`](#42-icon)
    - [4.3 `systray`](#43-systray)
@@ -40,30 +40,31 @@ values, and built-in default value.
    - [4.7 `overlay`](#47-overlay)
    - [4.8 `xsettings`](#48-xsettings)
    - [4.9 Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
-5. [`randr.json` -- XRandR output profiles](#5-randrjson----xrandr-output-profiles)
+5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
    - [5.3 Scope: per-X-screen, not per-`outputs[]`-entry](#53-scope-per-x-screen-not-per-outputs-entry)
    - [5.4 Reload behavior](#54-reload-behavior)
-6. [`rules.json` -- Per-window rules](#6-rulesjson----per-window-rules)
+6. [`rules.json`: Per-window rules](#6-rulesjson-per-window-rules)
    - [6.1 Rule file shape](#61-rule-file-shape)
    - [6.2 Rule entry fields](#62-rule-entry-fields)
    - [6.3 Match fields](#63-match-fields)
    - [6.4 Apply fields](#64-apply-fields)
-7. [`session.json` -- Session lifecycle hooks](#7-sessionjson--session-lifecycle-hooks)
+7. [`session.json`: Session lifecycle hooks](#7-sessionjson-session-lifecycle-hooks)
    - [7.1 Hook arrays](#71-hook-arrays)
-8. [`menu.json` -- Root desktop menu](#8-menujson----root-desktop-menu)
+8. [`menu.json`: Root desktop menu](#8-menujson-root-desktop-menu)
    - [8.1 Top-level structure](#81-top-level-structure)
    - [8.2 Entry types](#82-entry-types)
    - [8.3 Entry fields reference](#83-entry-fields-reference)
-9. [Full examples](#9-full-examples)
-10. [Restricted-memory mode (`icowm -M <mib>`)](#10-restricted-memory-mode-icowm--m-mib)
-    - [10.1 What this mode changes, and what it leaves alone](#101-what-this-mode-changes-and-what-it-leaves-alone)
-    - [10.2 Refusing to start, and warning while running](#102-refusing-to-start-and-warning-while-running)
-    - [10.3 How many windows it will manage at once](#103-how-many-windows-it-will-manage-at-once)
-    - [10.4 Warning and error dialogs cannot be dismissed by accident](#104-warning-and-error-dialogs-cannot-be-dismissed-by-accident)
-    - [10.5 Building an even lighter version](#105-building-an-even-lighter-version)
-    - [10.6 Default values compared](#106-default-values-compared)
+9. [`memguard.json`: Restricted-memory mode configuration](#9-memguardjson-restricted-memory-mode-configuration)
+   - [9.1 Configurable fields](#91-configurable-fields)
+   - [9.2 Fields this mode never lets `memguard.json` change](#92-fields-this-mode-never-lets-memguardjson-change)
+   - [9.3 The active theme's own restrictions](#93-the-active-themes-own-restrictions)
+10. [Full examples](#10-full-examples)
+
+For everything that is not a configuration file, namely what IcoWM is,
+every command-line option, and restricted-memory mode's own run-time
+behavior, see [`manual.md`](manual.md) instead.
 
 ---
 
@@ -89,6 +90,7 @@ Inside that directory the expected file tree is:
 ├── randr.json        XRandR output profiles
 ├── rules.json        Optional matching rules per-window
 ├── session.json      Command lists run at start, end, or on config. reload
+├── memguard.json     Restricted-memory mode ('-M <mib>') configuration
 └── themes/
     └── default.json  Theme file referenced by 'config.json'
 ```
@@ -115,7 +117,7 @@ Inside that directory the expected file tree is:
 - `randr.json`; XRandR hot-plug event handling is always active
   regardless of this file existence.
 
-## 2. `config.json` -- Base configuration
+## 2. `config.json`: Base configuration
 
 Controls the fundamental behavior of the window manager: screens,
 virtual desktops, default programs, window management policies, and
@@ -142,7 +144,7 @@ Configures the number of physical screens and the virtual desktops
 assigned to each.  **Takes effect at startup only**: changing anything
 under `topology` and reloading the configuration has no effect on an
 already-running window manager (see section 4.9).  For desktop
-behavior that *does* reload -- warp, cycle, and reserved margins --
+behavior that *does* reload, namely warp, cycle, and reserved margins,
 see section 2.11 (`desktops`) instead, a deliberately separate,
 sibling section for exactly that reason.
 
@@ -156,7 +158,7 @@ Number of physical screens (monitors) to manage.  Maximum is `6`.
 
 #### `topology.screens.desktops[]`
 
-The `desktops` array sits directly under `topology.screens` -- there
+The `desktops` array sits directly under `topology.screens`; there
 is no intervening `settings` object.  It accepts two layouts:
 
 **Simple layout** (one screen, desktops listed directly):
@@ -339,7 +341,7 @@ regardless of `placement.policy`, and windows clustered by
 grouped with; both also always target whichever monitor that parent or
 sibling is actually on, regardless of `placement.monitor`, since neither
 case is about picking a monitor for a window with no better signal to
-go on -- they already have one.
+go on: they already have one.
 
 When `group-related` is `true` (the default), a newly mapped window
 whose `WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
@@ -526,18 +528,18 @@ against is `monitor`'s job, described next.
 `reserve-space` controls whether the tray publishes its own
 `_NET_WM_STRUT_PARTIAL`/`_NET_WM_STRUT`, reserving its own on-screen
 area the same way an external panel or dock does, so maximized windows
-and this window manager's own placement logic both leave it alone --
+and this window manager's own placement logic both leave it alone,
 per the specification's own recommendation for a docking area, a
-taskbar, or a panel.  `false` by default -- an explicit `{0, 0, 0, 0}`
+taskbar, or a panel.  `false` by default: an explicit `{0, 0, 0, 0}`
 strut, reserving nothing, the same as if the tray were not there at
 all for placement purposes.  Set to `true` for the tray to reserve its
-own space instead, e.g. for a `layer` other than `"above"` or
+own space instead, e.g., for a `layer` other than `"above"` or
 `"overlay"`, where nothing else already keeps windows off the tray
 visually.
 
 `margins` (an object with `top`/`right`/`bottom`/`left` integers, all
 `0` by default) adds extra reserved space on top of whatever the
-tray's own actual size and position already reserve -- mirroring
+tray's own actual size and position already reserve, mirroring
 `desktops.margins` (section 2.11) exactly, including that it is not
 restricted to whichever edge the tray currently docks at: a `left` or
 `right` value still reserves space on that side even while the tray
@@ -750,14 +752,14 @@ desktops behaves at the two ends, whether dragging a window past a
 screen edge switches desktops with it, and how much of every
 desktop's own area stays reserved regardless of what any client
 itself publishes.  A sibling of `topology` (section 2.2) at the root
-of `config.json`, not nested inside it -- deliberately, since unlike
+of `config.json`, not nested inside it: deliberately so, since unlike
 `topology`, everything here **does** take effect on a configuration
 reload (see section 4.9).
 
 | Key                  | Type    | Default | Description |
 |----------------------|---------|---------|-------------|
 | `warp`                | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
-| `cycle`                | boolean | `true`  | Whether switching past the first or last desktop -- however it is triggered (keyboard binding, mouse scroll, or otherwise) -- wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
+| `cycle`                | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
 | `margins.top`          | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
 | `margins.right`        | integer | `0`     | Extra space reserved on the right, in pixels. |
 | `margins.bottom`       | integer | `0`     | Extra space reserved at the bottom, in pixels. |
@@ -765,7 +767,7 @@ reload (see section 4.9).
 
 `margins` adds on top of whatever space a client already reserves for
 itself via `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` (a panel or dock,
-say) rather than overriding it -- the two are meant to coexist, not
+say) rather than overriding it: the two are meant to coexist, not
 compete. It exists for a program that reserves screen space without
 publishing either property itself (a desktop widget like Conky is the
 classic example): configuring a margin here reserves that space for
@@ -787,7 +789,7 @@ per-screen override.
 }
 ```
 
-## 3. `bindings.json` -- Keyboard and mouse bindings
+## 3. `bindings.json`: Keyboard and mouse bindings
 
 Defines all keyboard shortcuts and mouse button bindings.  This file is
 optional; if absent, the built-in defaults listed in the tables below
@@ -867,6 +869,8 @@ Actions performed on the currently focused window.
 | `close`        | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
 | `kill`         | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
 | `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
+| `iconify-all`   | `modc+mod4+mods+i`     | Iconify (minimize) every client on the current desktop. |
+| `deiconify-all` | `modc+mod4+mods+d`     | Restore every iconified client on the current desktop. |
 | `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `next-monitor` | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
@@ -1024,7 +1028,7 @@ Mouse button bindings for switching virtual desktops.
 | `cycle.desktop.prev` | `button4`       | Scroll up to go to the previous desktop. |
 | `cycle.desktop.next` | `button5`       | Scroll down to go to the next desktop. |
 
-## 4. `themes/<name>.json` -- Theme configuration
+## 4. `themes/<name>.json`: Theme configuration
 
 Controls the visual appearance of windows, desktop icons, and the
 systray.  Theme files live in the `themes/` subdirectory of the
@@ -1517,11 +1521,11 @@ desktop's own `name`/`background-color`; see section 2.2): changing
 any of these and reloading has no effect on an already-running window
 manager.  This does not extend to the separate, sibling `desktops`
 section (section 2.11: `warp`, `cycle`, `margins`) despite the similar
-name -- that one describes navigation behavior and reserved space, not
+name: that one describes navigation behavior and reserved space, not
 topology, and does take effect on reload, same as everything else.
-Every other field in `config.json` -- and every other configuration
+Every other field in `config.json`, and every other configuration
 file (`bindings.json`, `menus.json`, `randr.json`, `rules.json`,
-`session.json`, and the active theme) -- does take effect on reload,
+`session.json`, and the active theme), does take effect on reload,
 as documented throughout this file.  Growing or shrinking the number
 of screens or desktops at runtime would mean deciding what happens to
 whatever clients, focus, and EWMH state already live on a desktop
@@ -1623,7 +1627,7 @@ manager to pick up a `topology.*` change instead.
 > ```
 ---
 
-## 5. `randr.json` -- XRandR output profiles
+## 5. `randr.json`: XRandR output profiles
 
 Defines per-output settings applied by IcoWM through the XRandR
 extension.  This file is **optional**.  If absent, XRandR hot-plug
@@ -1651,9 +1655,9 @@ is simply skipped until one by that name appears.
 | Key            | Type    | Default    | Description |
 |----------------|---------|------------|-------------|
 | `name`         | string  | `""`       | Output connector name as reported by the X server (e.g., `"HDMI-1"`, `"eDP-1"`, `"DP-2"`).  Run `xrandr` in a terminal to list available names. |
-| `is-enabled`   | boolean | `false`    | Whether this output is used at all.  `true` applies `resolution`, `position`, and `rotation` below to the output, and lets IcoWM manage windows on it.  `false` instead turns the output off (blanking it, the same as unplugging it) and excludes it from window placement entirely -- useful for a permanently-connected output (a projector for mirroring, say) that should never receive windows. |
+| `is-enabled`   | boolean | `false`    | Whether this output is used at all.  `true` applies `resolution`, `position`, and `rotation` below to the output, and lets IcoWM manage windows on it.  `false` instead turns the output off (blanking it, the same as unplugging it) and excludes it from window placement entirely, useful for a permanently-connected output (a projector for mirroring, say) that should never receive windows. |
 | `is-primary`   | boolean | `false`    | Mark this output as the primary display.  Only applied when `is-enabled` is `true`; applied as a separate step right after the rest of this profile. |
-| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels.  Matched against the modes the screen currently reports; if `0`, `0`, or no exact match exists, the output's own already-active mode is kept instead (or its first preferred mode, if it had none) -- and, since nothing was actually requested in that case, its resolution plays no part in deciding whether this profile changed anything on a later reload, or in what a `[ Revert ]` on the confirm dialog restores (see `position`/`rotation`/`is-primary` above and below, which always do). Only applied when `is-enabled` is `true`. |
+| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels.  Matched against the modes the screen currently reports; if `0`, `0`, or no exact match exists, the output's own already-active mode is kept instead (or its first preferred mode, if it had none), and, since nothing was actually requested in that case, its resolution plays no part in deciding whether this profile changed anything on a later reload, or in what a `[ Revert ]` on the confirm dialog restores (see `position`/`rotation`/`is-primary` above and below, which always do). Only applied when `is-enabled` is `true`. |
 | `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels.  See `resolution.w` above. |
 | `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
 | `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
@@ -1684,7 +1688,7 @@ assigned and are not normally reused across independent GPUs.
 `ACTION_WM_RELOAD`), updating `config->randr` in memory, and
 `wm_action_config_reload` immediately applies it (`surface_action_
 apply_randr_profiles`), before rules, keyboard/mouse bindings, or any
-other reload step -- so a resync of clients or desktops elsewhere in
+other reload step, so a resync of clients or desktops elsewhere in
 the same reload already reflects the new screen geometry if RandR
 itself just changed it.
 
@@ -1699,7 +1703,7 @@ prior mode, position, rotation, and primary status exactly. The
 countdown defaults to 10 seconds (`DIALOG_RANDR_CONFIRM_TIMEOUT_
 SECONDS` in `defs/dialog.h`). No dialog appears at all when nothing
 actually changed (see the comparison below), nor at startup or on a
-hotplug event -- only a reload, the one moment a person is at the
+hotplug event; only a reload, the one moment a person is at the
 keyboard to have triggered it, offers this.
 
 With more than one screen, every screen still gets its own profiles
@@ -1713,8 +1717,8 @@ configured profile against the matching output's actual current
 state first (resolution, position, rotation, primary status) and
 issues an XRandR write for it only when at least one of them
 genuinely differs. A `randr.json` whose profiles already match reality
-therefore issues no XRandR requests at all -- including on a reload
-triggered by an unrelated file (e.g. `config.json`), and on a hotplug
+therefore issues no XRandR requests at all, including on a reload
+triggered by an unrelated file (e.g., `config.json`), and on a hotplug
 event for an output some other profile targets.
 
 ```json
@@ -1741,7 +1745,7 @@ event for an output some other profile targets.
 }
 ```
 
-## 6. `rules.json` -- Per-window rules
+## 6. `rules.json`: Per-window rules
 
 Defines optional matching rules that are evaluated when a window is
 first mapped and, optionally, again when relevant ICCCM/EWMH properties
@@ -1936,7 +1940,7 @@ otherwise `monitor` alone would have no visible effect at all:
 The second example places the window 20 pixels from the top-left corner
 of monitor `1`, not of the whole surface.
 
-## 7. `session.json` -- Session lifecycle hooks
+## 7. `session.json`: Session lifecycle hooks
 
 Defines optional command lists that IcoWM launches asynchronously at key
 lifecycle points.  If the file is absent or malformed, no hooks run.
@@ -1963,7 +1967,7 @@ will be ignored.
 Only non-empty string entries are used; all other array items are
 ignored.
 
-## 8. `menu.json` -- Root desktop menu
+## 8. `menu.json`: Root desktop menu
 
 `menu.json` defines the user-configurable entries that appear when the
 user right-clicks on the empty desktop (root window).  The file is
@@ -2044,7 +2048,83 @@ Sub-menus can be nested to the depth limit defined by
 
 ---
 
-## 9. Full examples
+## 9. `memguard.json`: Restricted-memory mode configuration
+
+Read only when IcoWM is launched with `-M <mib>` (see `manual.md`'s own
+"Restricted-memory mode" section for what that flag does and why it
+exists); an ordinary session never reads this file, and this file has
+no effect at all without `-M <mib>`.  It fully replaces `config.json`
+for that one session: `config.json` itself is not consulted at all
+while `-M <mib>` is in effect, but `bindings.json` and a theme file
+under `themes/` are still read exactly as in an ordinary session
+(see 9.2 for the one exception).  The file is **optional**; a missing
+or unreadable one falls back to a fixed built-in profile.
+
+Only the fields below are ever read from it; anything else present in
+the file is silently ignored, and every field this mode's own screen
+and desktop counts, RandR handling, and startup-notification setting
+are fixed and cannot be configured here at all.
+
+### 9.1 Configurable fields
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `theme` | string | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
+| `programs.editor` | string | `"gvim"` | Same as `config.json`'s own `programs.editor`. |
+| `programs.file-manager` | string | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
+| `programs.launcher` | string | `"gmrun"` | Same as `config.json`'s own `programs.launcher`. |
+| `programs.terminal` | string | `"xterm"` | Same as `config.json`'s own `programs.terminal`. |
+| `programs.web-browser` | string | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
+| `desktops.margins.top/right/bottom/left` | integer | `0` | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step` | integer | `10` | Same as `config.json`'s own `windows.move-step`. |
+| `windows.placement.policy` | string | `"smart"` | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `icons.placement.policy` | string | `"smart"` | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray` | object | see 9.2 | The entire `systray` object, in the same shape as `config.json`'s own (section 2.10), with the two exceptions in 9.2. |
+| `enable-emergency-shortcut` | boolean | `false` | Same as `config.json`'s own `enable-emergency-shortcut`. |
+
+### 9.2 Fields this mode never lets `memguard.json` change
+
+A handful of fields are read the same way as `config.json`'s own
+identical `systray` object, but immediately forced back to a fixed
+value afterward, since restricted-memory mode never docks any icon at
+all (embedding is always off) and so has no use for them:
+
+- **`systray.text.position`** and **`systray.order`** only ever affect
+  docked pixmap icons (where their own text sits relative to them, and
+  the order newly docked ones are placed in); both are always reset to
+  their own ordinary default (`left` and `left-to-right`, respectively)
+  regardless of what the file specifies.
+- **Embedding itself** cannot be turned on at all in this mode; the
+  systray still shows (clock, battery, and its own frame) when
+  `systray.is-enabled` is `true`, just never accepts a docked
+  application icon.
+
+### 9.3 The active theme's own restrictions
+
+Whichever theme ends up active, named in `memguard.json`, or the
+built-in default if none is, gets further restricted after loading, on
+top of whatever `memguard.json` itself configured:
+
+- Every font the theme specifies (window titles, icon labels, menu
+  entries, dialog text, the systray's own clock/battery text, and the
+  desktop-name overlay) is replaced with IcoWM's own fixed built-in
+  font, **unless** it already names some variant of that same font
+  (matched case-sensitively): a theme is free to specify that font
+  directly instead of leaving every field to fall back to it, if it
+  wants any of the styling (size, weight) that comes with naming it
+  explicitly rather than implicitly.
+- XSettings propagation (section 4.8) is always off, regardless of
+  `theme.xsettings.is-enabled`.
+- Icon pixmaps, icon hint characters, and menu pixmaps are always off,
+  regardless of what the theme itself specifies for `icon.show-pixmaps`,
+  `icon.show-hints`, and `menu.show-pixmaps`.
+
+None of this is configurable through `memguard.json` itself; it applies
+to whatever theme loads, unconditionally.
+
+---
+
+## 10. Full examples
 
 ### `config.json`
 
@@ -2207,6 +2287,8 @@ Sub-menus can be nested to the depth limit defined by
             "close": "modc+mod1+c",
             "kill": "modc+mod1+mods+Escape",
             "iconify": "modc+mod1+i",
+            "iconify-all": "modc+mod4+mods+i",
+            "deiconify-all": "modc+mod4+mods+d",
             "hide": "modc+mod1+mods+h",
             "maximize": "modc+mod1+m",
             "fullscreen": "modc+mod1+f",
@@ -2546,172 +2628,39 @@ This example starts a compositor and tray applets when IcoWM launches,
 reloads or notifies companion processes after configuration changes, and
 emits a final notification on exit.
 
-## 10. Restricted-memory mode (`icowm -M <mib>`)
+### `memguard.json`
 
-`icowm -M <mib>` runs IcoWM in a mode aimed at genuinely memory-
-constrained systems: an old machine, a low-power single-board
-computer, a virtual machine given only a small amount of RAM.  `<mib>`
-is a number of mebibytes, and must be at least 48; IcoWM refuses a
-smaller value outright, since it could not realistically run in less
-than that regardless of anything else this mode does.
-
-### 10.1 What this mode changes, and what it leaves alone
-
-Two things, and only two, are always turned off in this mode,
-regardless of what your own configuration says:
-
-- **Icon pictures.** A minimized window still shows a small icon you
-  can click to restore it, but that icon is plain, without the
-  application's own picture drawn on it.
-- **Modern font rendering.** Text is drawn using plain, traditional X
-  fonts instead of the sharper, more flexible rendering IcoWM normally
-  uses for names and text, which comes with a real, ongoing memory
-  cost of its own.
-
-Everything else about how IcoWM looks and behaves is exactly what you
-have configured, the same as it would be without `-M <mib>` at all:
-your theme (including a desktop's own background color, and the theme
-color it falls back to when a desktop does not set one of its own),
-your system tray settings (including whether it is shown at all),
-your default terminal and launcher, your window rules, your session
-start/reload/exit commands, how your menus and window placement
-behave, and how many screens and desktops you have.  A configuration
-that defines, say, 6 desktops gets 6 desktops, restricted-memory mode
-included, with no cap of its own layered on top; the same is true of
-however many screens you define.  If you want a lighter setup with
-fewer desktops or a single screen, set that up yourself the same way
-you would in an ordinary session.
-
-The one difference restricted-memory mode makes here is what happens
-in the *absence* of that information: with no configuration of your
-own at all (or one that does not specify a desktop count), an
-ordinary session starts with 4 desktops, restricted-memory mode with
-2; see section 10.6.  This is only ever a starting point for when
-nothing else says otherwise, never something enforced over an
-explicit value.
-
-One thing does change on its own with how many desktops you actually
-end up with, whether restricted-memory mode is involved or not: with
-only one desktop configured, the window-list menu and the "send
-window to..." option skip straight to that desktop's own windows
-instead of first asking you to pick a desktop you do not have a
-choice about anyway.  With two or more desktops, both work exactly as
-they always have.
-
-### 10.2 Refusing to start, and warning while running
-
-Before doing anything else, IcoWM checks how much memory the system
-actually has free right now.  If that is less than the `<mib>` you
-gave `-M <mib>`, IcoWM will not start at all, and says why in its log:
-promising to stay under a ceiling is not meaningful if the system
-cannot even spare that much to begin with.
-
-Once running, IcoWM keeps an eye on its own memory use, checking every
-few seconds.  If it ever reaches the ceiling you set, a dialog appears
-telling you how much it is using and what the ceiling is, and
-suggesting you close a window or two before opening anything else.
-This is a warning, not a hard wall enforced by the operating system:
-IcoWM does not forcibly cut itself off at that number, since doing so
-reliably would mean guaranteeing every single thing it might ever try
-to allocate handles running out of memory gracefully, and getting that
-wrong would mean a window manager that crashes instead of one that
-merely warns you in time to act.
-
-### 10.3 How many windows it will manage at once
-
-Restricted-memory mode also limits how many application windows it
-will actually manage at the same time, since nothing about a screen or
-desktop count limits that on its own, and each window IcoWM manages
-carries its own real, ongoing cost regardless of anything else.  This
-limit is worked out from the ceiling you chose with `-M <mib>`,
-roughly like this:
-
-1. A small slice of the ceiling (6 MiB) is set aside for IcoWM itself,
-   before counting any windows at all.
-2. Whatever is left over is divided up, generously, at a quarter of a
-   mebibyte per window.
-3. The result is never fewer than one window, and never more than 64.
-
-In practice, because of how generous that per-window allowance is,
-this reaches the 64-window ceiling by `-M 22`, and stays there for
-anything more generous than that too; it only drops below 64 for a
-smaller value than that, down to 16 windows at `-M <mib>`'s own
-smallest accepted value (10 MiB).  Once you are at that limit,
-opening another application shows a warning dialog explaining that a
-window has to be closed first; the new window's own application is
-left waiting rather than being handed something broken to work with.
-
-### 10.4 Warning and error dialogs cannot be dismissed by accident
-
-The two dialogs this mode shows (the memory-ceiling warning in section
-10.2, the too-many-windows warning in section 10.3) behave a little
-differently from IcoWM's other dialogs, on purpose: pressing Escape
-does nothing at all, and pressing Enter or Space does nothing either
-until you have actually selected the "OK" button first, either by
-clicking it directly or by pressing Tab to select it and then Enter or
-Space.  A message serious enough to use one of these two dialogs is
-not meant to be dismissed by the same reflexive key press that closes
-whatever else happened to have focus a moment before.
-
-### 10.5 Building an even lighter version
-
-Everything above is a choice you make each time you start IcoWM, with
-the `-M <mib>` flag.  It cannot make a few things smaller that are
-fixed once IcoWM itself is built (how many screens, desktops, or
-monitors IcoWM can ever track at once, mainly), since those are not
-something any flag can change afterward, only how many of them you
-actually use at once.
-
-If you know you are always going to run on a severely memory-
-constrained machine, you can build IcoWM itself with that in mind:
-
-```
-make COMPACT=1
+```json
+{
+    "theme": "compact",
+    "programs": {
+        "terminal": "xterm",
+        "launcher": "gmrun"
+    },
+    "desktops": {
+        "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+    },
+    "windows": {
+        "move-step": 10,
+        "placement": { "policy": "smart" }
+    },
+    "icons": {
+        "placement": { "policy": "bottom" }
+    },
+    "systray": {
+        "is-enabled": true,
+        "clock": { "is-enabled": true, "format": "%a %R" },
+        "battery": { "is-enabled": true }
+    },
+    "enable-emergency-shortcut": true
+}
 ```
 
-This produces a separate build (you would need to rebuild without it
-to go back to the ordinary one) that starts with smaller allowances
-for several things throughout: fewer screens, desktops, and monitors
-than it could otherwise ever track at once; a smaller starting
-allowance for how many windows a desktop is initially prepared for;
-and a smaller allowance for how long a message dialog's own text can
-be.
+This example is only ever read when IcoWM is launched with `-M <mib>`;
+see `manual.md`'s "Restricted-memory mode" section for what that flag
+does.  It names a theme of its own (`themes/compact.json`, not shown
+here), keeps the systray's clock and battery on, and turns on the
+emergency shortcut, since a severely memory-constrained session is
+exactly the kind of place where a hung window is more likely and a
+guaranteed way out is worth having.
 
-**`COMPACT` and `-M <mib>` are entirely independent of each other.**
-`COMPACT` only changes those fixed, compiled-in ceilings; it does not
-turn restricted-memory mode on by itself, and it does not choose a
-`<mib>` value for `-M <mib>` on its own either.  A `COMPACT` build
-launched without `-M <mib>` at all runs a perfectly ordinary,
-unrestricted session: no memory-ceiling warning, no window-count
-limit, icon pictures and modern font rendering both still on, exactly
-as an ordinary build would behave without `-M <mib>` — just one with
-smaller compiled-in ceilings on screens, desktops, and monitors.
-Restricted-memory mode's own behavior (sections 10.1 through 10.4)
-only ever happens when you actually pass `-M <mib>` at the time you
-start IcoWM, in either kind of build.  The two are meant to complement
-each other for a build genuinely sized for a memory-constrained target
-from the ground up, but each also works perfectly well entirely
-without the other.
-
-### 10.6 Default values compared
-
-The table below assumes no configuration file changes any of these;
-if yours does, your own configuration always wins over the defaults
-shown here, in every row, in either kind of build, restricted-memory
-mode included.
-
-| Setting                                              | Ordinary build | `COMPACT` build |
-|-------------------------------------------------------|---------------:|----------------:|
-| Desktops per screen, with no configuration file at all, ordinary session | 4 | 4 |
-| Desktops per screen, with no configuration file at all, `-M <mib>` given | 2 | 2 |
-| Most screens IcoWM can ever track at once             |              6 |               1 |
-| Most desktops per screen IcoWM can ever track at once |             10 |               4 |
-| Most physical monitors IcoWM can ever track at once   |             16 |               2 |
-| Most XRandR output profiles you can configure at once |             16 |               2 |
-
-`-M <mib>`'s own smallest accepted value (10 MiB), the memory set
-aside for IcoWM itself before dividing up the rest among windows (6
-MiB), the rough cost assumed per window (a quarter of a mebibyte), and
-the hard ceiling on how many windows it will ever manage regardless of
-a very generous `-M <mib>` value (64) do not change between the two
-kinds of build; see section 10.3 for how those combine.

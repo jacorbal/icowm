@@ -46,6 +46,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <enact.h>
 #include <surface.h>
 
 /* Local includes */
@@ -495,16 +496,14 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     }
 
     if (is_icon) {
-        (void) client_send_event_restore(target);
+        enact_client_restore(target);
     } else if (target->properties.flags & CLIENT_FLAG_HIDDEN) {
         /* Hidden (non-iconified) window: unhide before focusing */
-        (void) client_send_event(target, ACTION_CLIENT_UNHIDE,
-                CLIENT_PRIORITY_DEFAULT);
+        enact_client_unhide(target);
     }
 
     if (!is_icon && client_is_shaded(target)) {
-        (void) client_send_event(target, ACTION_CLIENT_UNSHADE,
-                CLIENT_PRIORITY_DEFAULT);
+        enact_client_unshade(target);
     }
 
     focus_apply(surfaces, surface, desktop, target, true, cfg);

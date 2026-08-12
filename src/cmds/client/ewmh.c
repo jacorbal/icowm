@@ -1,8 +1,7 @@
 /**
- * @file cmds/util.c
+ * @file cmds/client/ewmh.c
  *
- * @brief Internal utility implementation shared across the @c cmds
-          subsystem
+ * @brief EWMH and ICCCM window-property management
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -22,25 +21,18 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
 /* Utils includes */
 #include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <client.h>
-#include <surface.h>
-
-/* Internal includes */
-#include <wm/internal.h>     /* the global 'wm' singleton */
 
 /* Local includes */
-#include <cmds/util.h>
+#include <cmds/client/internal.h>
 
 
 /* Retrieve the ID of the currently active window for a screen */
-xcb_window_t wcmd_active_win(xcb_ewmh_connection_t *ewmh,
+xcb_window_t ccmd_active_win(xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id)
 {
     xcb_window_t active_window;
@@ -57,80 +49,15 @@ xcb_window_t wcmd_active_win(xcb_ewmh_connection_t *ewmh,
 
 
 /* Intern an atom name in the X11 system */
-xcb_atom_t wcmd_intern_atom(xcb_connection_t *connection,
+xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
         const char *name)
 {
     return atom_intern(connection, name, false);
 }
 
 
-/* Return the frame window when decorated, otherwise the client window */
-xcb_window_t wcmd_target_win(client_td *client)
-{
-    if (client == NULL) {
-        return XCB_WINDOW_NONE;
-    }
-    if (client_is_decorated(client) && client->frame != 0) {
-        return client->frame;
-    }
-    return client->window;
-}
-
-
-/* Passively grab mouse buttons (excluding scroll wheel) on an
- * undecorated client.  Buttons 4 and 5 (scroll wheel) are intentionally
- * not grabbed so that scroll events are delivered directly to the
- * application. */
-void wcmd_client_grab_buttons(client_td *client)
-{
-    static const xcb_button_index_t s_grab_buttons[] = {
-        XCB_BUTTON_INDEX_1,
-        XCB_BUTTON_INDEX_2,
-        XCB_BUTTON_INDEX_3,
-        6,
-        7
-    };
-    size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
-
-    if (client == NULL || client->connection == NULL ||
-            client->window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    for (size_t bi = 0; bi < nb; ++bi) {
-        xcb_grab_button(client->connection,
-                0,
-                client->window,
-                XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
-                XCB_GRAB_MODE_SYNC,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_NONE,
-                XCB_NONE,
-                (uint8_t) s_grab_buttons[bi],
-                XCB_MOD_MASK_ANY);
-    }
-    xcb_flush(client->connection);
-}
-
-
-/* Remove passive button grabs from an undecorated client */
-void wcmd_client_ungrab_buttons(client_td *client)
-{
-    if (client == NULL || client->connection == NULL ||
-            client->window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    xcb_ungrab_button(client->connection,
-            (uint8_t) XCB_BUTTON_INDEX_ANY,
-            client->window,
-            (uint16_t) XCB_MOD_MASK_ANY);
-    xcb_flush(client->connection);
-}
-
-
 /* Write the ICCCM 'WM_STATE' property for a client */
-void wcmd_set_wm_state(client_td *client,
+void ccmd_set_wm_state(client_td *client,
         uint32_t state, xcb_window_t icon_window)
 {
     xcb_atom_t wm_state;
@@ -141,7 +68,7 @@ void wcmd_set_wm_state(client_td *client,
         return;
     }
 
-    wm_state = wcmd_intern_atom(client->connection, "WM_STATE");
+    wm_state = ccmd_intern_atom(client->connection, "WM_STATE");
     if (wm_state == XCB_ATOM_NONE) {
         return;
     }
@@ -155,7 +82,7 @@ void wcmd_set_wm_state(client_td *client,
 
 
 /*  Remove the ICCCM 'WM_STATE' property from a client */
-void wcmd_clear_wm_state(client_td *client)
+void ccmd_clear_wm_state(client_td *client)
 {
     xcb_atom_t wm_state;
 
@@ -164,7 +91,7 @@ void wcmd_clear_wm_state(client_td *client)
         return;
     }
 
-    wm_state = wcmd_intern_atom(client->connection, "WM_STATE");
+    wm_state = ccmd_intern_atom(client->connection, "WM_STATE");
     if (wm_state == XCB_ATOM_NONE) {
         return;
     }
@@ -174,75 +101,8 @@ void wcmd_clear_wm_state(client_td *client)
 }
 
 
-/* Retrieve the pixel dimensions of the client's current screen */
-bool wcmd_screen_dim(client_td *client, uint16_t *out_w, uint16_t *out_h)
-{
-    xcb_screen_iterator_t iter;
-
-    if (client == NULL || (out_w == NULL && out_h == NULL)) {
-        return false;
-    }
-
-    iter = xcb_setup_roots_iterator(xcb_get_setup(client->connection));
-    for (uint32_t i = 0; i < client->screen_id && iter.rem > 0; ++i) {
-        xcb_screen_next(&iter);
-    }
-    if (iter.rem == 0 || iter.data == NULL) {
-        return false;
-    }
-
-    if (out_w != NULL) {
-        *out_w = iter.data->width_in_pixels;
-    }
-    if (out_h != NULL) {
-        *out_h = iter.data->height_in_pixels;
-    }
-    return true;
-}
-
-
-/* Find which monitor a client is currently on */
-bool wcmd_client_monitor(client_td *client, surface_td **out_surface,
-        monitor_td *out_monitor)
-{
-    surface_td *surface = NULL;
-    int32_t center_x;
-    int32_t center_y;
-
-    if (client == NULL || out_monitor == NULL ||
-            wm == NULL || wm->surfaces == NULL) {
-        return false;
-    }
-
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *s = (surface_td *) list_data(node);
-
-        if (s != NULL && s->id == client->screen_id) {
-            surface = s;
-            break;
-        }
-    }
-    if (surface == NULL) {
-        return false;
-    }
-
-    center_x = client->layout.geometry.cur.pos.x +
-        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
-    center_y = client->layout.geometry.cur.pos.y +
-        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    *out_monitor = surface_monitor_for_point(surface, center_x, center_y);
-
-    if (out_surface != NULL) {
-        *out_surface = surface;
-    }
-
-    return true;
-}
-
-
 /* Add multiple EWMH window states to a client */
-void wcmd_add_states(client_td *client, uint32_t num_states, ...)
+void ccmd_add_states(client_td *client, uint32_t num_states, ...)
 {
     xcb_atom_t *add_atoms;
     xcb_atom_t *merged;
@@ -266,7 +126,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...)
     va_start(args, num_states);
     for (uint32_t i = 0; i < num_states; ++i) {
         const char *state_name = va_arg(args, const char *);
-        add_atoms[i] = wcmd_intern_atom(client->connection, state_name);
+        add_atoms[i] = ccmd_intern_atom(client->connection, state_name);
         if (add_atoms[i] == XCB_ATOM_NONE) {
             free(add_atoms);
             va_end(args);
@@ -330,7 +190,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...)
 
 
 /* Remove multiple EWMH window states from a client */
-void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
+void ccmd_rem_states(client_td *client, uint32_t num_states, ...)
 {
     xcb_atom_t *remove_states;
     xcb_atom_t *new_states;
@@ -354,7 +214,7 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
     va_start(args, num_states);
     for (uint32_t i = 0; i < num_states; ++i) {
         const char *state_name = va_arg(args, const char *);
-        remove_states[i] = wcmd_intern_atom(client->connection,
+        remove_states[i] = ccmd_intern_atom(client->connection,
                 state_name);
         if (remove_states[i] == XCB_ATOM_NONE) {
             free(remove_states);
@@ -422,7 +282,7 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...)
 
 
 /* Publish '_NET_FRAME_EXTENTS' on the client window */
-void wcmd_publish_frame_extents(client_td *client,
+void ccmd_publish_frame_extents(client_td *client,
         uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
 {
     uint32_t extents[4];

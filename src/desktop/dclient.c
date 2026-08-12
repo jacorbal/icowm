@@ -35,10 +35,11 @@
 #include <adt/ohtbl.h>
 
 /* Command includes */
-#include <cmds/layer.h>
+#include <cmds/client/layer.h>
 
 /* Project includes */
 #include <client.h>
+#include <enact.h>
 #include <logger.h>
 #include <sn.h>
 #include <wm.h>
@@ -99,18 +100,19 @@ static int s_desktop_set_clients_enabled(desktop_td *desktop,
  * @retval true  Layout is supported
  * @retval false Layout is not supported
  *
- * @note Supported layouts include: "floating", "stacking", "tiling",
- *       and "monocle".
  * @note Complexity: @e O(k), where @e k is the number of supported
  *       layouts
  */
 static bool s_desktop_layout_supported(const char *layout)
 {
+    /* A tiling and a monocle layout were both considered at one
+     * point, alongside this one, but neither was ultimately
+     * implemented; left here, commented out, rather than removed
+     * outright, in case either is picked back up later. */
     static const char *layouts[] = {
         "stacking",
-        "floating",
-        "tiling",
-        "monocle"
+//        "tiling",
+//        "monocle",
     };
 
     for (size_t i = 0; i < sizeof(layouts) / sizeof(layouts[0]); ++i) {
@@ -192,7 +194,7 @@ static int s_desktop_cycle_clients(desktop_td *desktop, bool forward)
     do {
         client_td *c = (client_td *) cdlist_data(node);
         if (c != NULL && !client_is_iconified(c)) {
-            client_send_event_focus(c);
+            enact_client_focus(c);
             return 0;
         }
         node = (forward) ? cdlist_next(node) : cdlist_prev(node);
@@ -261,7 +263,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
                     return -1;
                 }
 
-                wcmd_desktop_enforce_layers(desktop);
+                ccmd_desktop_enforce_layers(desktop);
                 desktop->is_outdated = true;
                 return 0;
             }
@@ -440,7 +442,35 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
 
     /* Iterate through all clients in hash table and iconify them */
     ohtbl_foreach(desktop->clients, elem) {
-        client_send_event_iconify((client_td *) elem);
+        enact_client_iconify((client_td *) elem);
+    }
+
+    return 0;
+}
+
+
+/* Restore every iconified client on the desktop */
+int desktop_action_clients_deiconify_all(desktop_td *desktop)
+{
+    void *elem;
+    client_td *client;
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Invalid desktop pointer", L_NARG);
+        return -1;
+    }
+
+    LOGGER_DEBUG("Restoring all iconified clients on desktop %u ('%s')",
+            desktop->id, desktop->name);
+
+    /* Iterate through all clients in hash table and restore only the
+     * ones currently iconified, leaving every other client (normal,
+     * maximized, fullscreen) untouched */
+    ohtbl_foreach(desktop->clients, elem) {
+        client = (client_td *) elem;
+        if (client != NULL && client_is_iconified(client)) {
+            enact_client_restore(client);
+        }
     }
 
     return 0;
@@ -509,7 +539,7 @@ int desktop_action_cycle_clients_icons(desktop_td *desktop)
     if (target != NULL) {
         client_td *client = (client_td *) cdlist_data(target);
         if (client != NULL) {
-            client_send_event_restore(client);
+            enact_client_restore(client);
         }
     }
 

@@ -44,6 +44,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <enact.h>
 #include <logger.h>
 #include <lookup.h>
 #include <render/icon.h>
@@ -1114,7 +1115,7 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
-        (void) client_send_event_move(client, new_x, new_y);
+        enact_client_move(client, new_x, new_y);
         if (show_geom) {
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
@@ -1183,8 +1184,7 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
-        (void) client_send_event_resize(client, new_x, new_y,
-                new_w, new_h);
+        enact_client_resize(client, new_x, new_y, new_w, new_h);
         if (show_geom) {
             if (client->size_hints.inc_w > 1 &&
                     client->size_hints.inc_h > 1) {
@@ -1253,7 +1253,7 @@ void drag_end(xcb_connection_t *connection,
             if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD) {
                 /* Treat as a click: restore and focus */
                 client_td *ic = s_drag.client;
-                (void) client_send_event_restore(ic);
+                enact_client_restore(ic);
                 if (surface != NULL && desktop != NULL) {
                     focus_apply(NULL, surface, desktop, ic, true, NULL);
                 }
@@ -1335,7 +1335,7 @@ void drag_end(xcb_connection_t *connection,
         }
 
         if (finalize_resize) {
-            (void) client_send_event_resize(s_drag.client,
+            enact_client_resize(s_drag.client,
                     s_drag.client->layout.geometry.cur.pos.x,
                     s_drag.client->layout.geometry.cur.pos.y,
                     final_w, final_h);
@@ -1616,7 +1616,7 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface->is_outdated = true;
 
     /* Same desktop-switch notification a normal (non-warp) switch
-     * shows (see 's_show_desktop_overlay' in cmds/scmd.c, whose own
+     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose own
      * thin wrapper over this same call this mirrors): without it, a
      * warp is the one way to switch desktops that never shows which
      * one just became active. */
@@ -1670,7 +1670,7 @@ void drag_warp_tick(xcb_connection_t *connection)
             show_geom = s_drag.client->config_base != NULL &&
                 s_drag.client->config_base->windows.show_geom;
 
-            (void) client_send_event_move(s_drag.client, new_window_x,
+            enact_client_move(s_drag.client, new_window_x,
                     s_drag.client_cur_y);
         }
 

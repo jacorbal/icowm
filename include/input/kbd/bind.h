@@ -107,6 +107,11 @@ enum wm_keybind_type_e {
     /* Show-desktop toggle */
     KEYBIND_DESKTOP_SHOW,               /**< Toggle show-desktop (hide all) */
 
+    /* Iconify/restore all clients on the desktop */
+    KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL,   /**< Iconify every client */
+    KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL, /**< Restore every iconified
+                                                 client */
+
     /* Direct desktop go-to (indices 0-9) */
     KEYBIND_DESKTOP_GOTO_0,             /**< Switch directly to desktop 0 */
     KEYBIND_DESKTOP_GOTO_1,             /**< Switch directly to desktop 1 */

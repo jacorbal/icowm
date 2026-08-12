@@ -166,7 +166,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
             xcb_map_window(surface->connection, client->icon_window);
             /* Icons stay lower than the tray even within the shared
              * 'below' layer, "stuck to the desktop"; see
-             * 'wcmd_client_iconify' for the fuller explanation of why
+             * 'ccmd_client_iconify' for the fuller explanation of why
              * an unqualified 'below' with no sibling is not enough to
              * guarantee that on its own. */
             tray_below = systray_below_window();

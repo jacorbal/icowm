@@ -126,9 +126,9 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "   -C              Check configuration files under" \
                 " <config_dir>, and exit\n");
-    fprintf(fp, "   -M <mib>        Set the ceiling for restricted" \
-                " memory (>= %u MiB)\n",
-            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+    fprintf(fp, "   -M <mib>        Enable restricted-memory mode" \
+                " with a ceiling (min. %u MiB)\n",
+                (unsigned int) MEMGUARD_MIN_CEILING_MIB);
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -162,20 +162,12 @@ static inline void s_show_help(FILE *fp)
 
     /* Restricted-memory information */
 #ifdef COMPACT
-    fprintf(fp, "Restricted memory: enabled in this build by default," \
-            " with a ceiling of %u MiB;\n" \
-            "                    it also refuses to start if less" \
-            " than that much\n" \
-            "                    system memory is free\n",
-            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+    fprintf(fp, "Restricted memory is enabled by default in this" \
+                " 'COMPACT' build\n");
 #else
-    fprintf(fp, "Restricted memory: the minimum ceiling '-M' accepts" \
-            " is %u MiB; it also\n" \
-            "                    refuses to start if less than" \
-            " <mib> of system memory\n" \
-            "                    is free\n",
-            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
-#endif
+    fprintf(fp, "Restricted memory refuses to start if less than" \
+                " <mib> of system memory is free\n");
+#endif  /* ! COMPACT */
 
     /* Show default logging information */
     fprintf(fp, "Logging mode is set to '%s'; log level" \

@@ -34,12 +34,13 @@
 #include <utils/geom.h>
 
 /* Command includes */
-#include <cmds/state.h>
+#include <cmds/client/state.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <enact.h>
 #include <lifecycle.h>
 #include <lookup.h>
 #include <surface.h>
@@ -235,7 +236,7 @@ static void s_kbd_resize_apply(client_td *client,
     /* A shaded client shows only the titlebar; restore the full window
      * before applying the new dimensions */
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     /* The caller ('ik_handle_resize' via 's_kb_resize_axis_target')
@@ -356,6 +357,8 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_RESIZE_UP:
         case KEYBIND_CLIENT_RESIZE_DOWN:
         case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -486,6 +489,8 @@ void ik_handle_move(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_RESIZE_UP:
         case KEYBIND_CLIENT_RESIZE_DOWN:
         case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -537,7 +542,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
             break;
     }
 
-    (void) client_send_event_move(client, new_x, new_y);
+    enact_client_move(client, new_x, new_y);
 }
 
 
@@ -654,6 +659,8 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
         case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
         case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:

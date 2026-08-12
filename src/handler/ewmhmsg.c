@@ -29,11 +29,11 @@
 #include <xcb/xcb_ewmh.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/geom.h>
-#include <cmds/layer.h>
-#include <cmds/scmd.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
+#include <cmds/client/layer.h>
+#include <cmds/surface.h>
+#include <cmds/client/internal.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -51,7 +51,6 @@
 #include <defs/client.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 #include <desktop.h>
 #include <handler/internal.h>
@@ -140,15 +139,15 @@ static void s_handle_wm_state_atom(client_td *client,
     is_modal = (state_atom == ewmh->_NET_WM_STATE_MODAL);
 
     if (is_fullscreen) {
-        /* No 'client_is_resizable' gate; see 'wcmd_client_fullscreen''s
+        /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s
          * own comment for why fullscreen is deliberately exempt from
          * it, unlike the maximize handling right below. */
         if (action == WM_STATE_ACTION_ADD) {
-            wcmd_client_fullscreen(client);
+            ccmd_client_fullscreen(client);
         } else if (action == WM_STATE_ACTION_REMOVE) {
-            wcmd_client_unfullscreen(client);
+            ccmd_client_unfullscreen(client);
         } else {
-            wcmd_client_toggle_fullscreen(client);
+            ccmd_client_toggle_fullscreen(client);
         }
         return;
     }
@@ -161,9 +160,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     client->properties.state ==
                         CLIENT_STATE_MAXIMIZED_HORZ)) {
-            wcmd_client_maximize_horz(client);
+            ccmd_client_maximize_horz(client);
         } else {
-            wcmd_client_restore(client);
+            ccmd_client_restore(client);
         }
         return;
     }
@@ -176,9 +175,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     client->properties.state ==
                         CLIENT_STATE_MAXIMIZED_VERT)) {
-            wcmd_client_maximize_vert(client);
+            ccmd_client_maximize_vert(client);
         } else {
-            wcmd_client_restore(client);
+            ccmd_client_restore(client);
         }
         return;
     }
@@ -186,9 +185,9 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_above) {
         if (s_wm_state_resolve_add(action,
                     client->properties.layer == CLIENT_LAYER_ABOVE)) {
-            wcmd_client_layer_above(client);
+            ccmd_client_layer_above(client);
         } else {
-            wcmd_client_layer_normal(client);
+            ccmd_client_layer_normal(client);
         }
         return;
     }
@@ -196,9 +195,9 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_below) {
         if (s_wm_state_resolve_add(action,
                     client->properties.layer == CLIENT_LAYER_BELOW)) {
-            wcmd_client_layer_below(client);
+            ccmd_client_layer_below(client);
         } else {
-            wcmd_client_layer_normal(client);
+            ccmd_client_layer_normal(client);
         }
         return;
     }
@@ -207,9 +206,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_STICKY) != 0u)) {
-            wcmd_client_sticky(client);
+            ccmd_client_sticky(client);
         } else {
-            wcmd_client_unsticky(client);
+            ccmd_client_unsticky(client);
         }
         return;
     }
@@ -218,9 +217,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_SHADED) != 0u)) {
-            wcmd_client_shade(client);
+            ccmd_client_shade(client);
         } else {
-            wcmd_client_unshade(client);
+            ccmd_client_unshade(client);
         }
         return;
     }
@@ -229,9 +228,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_HIDDEN) != 0u)) {
-            wcmd_client_iconify(client);
+            ccmd_client_iconify(client);
         } else {
-            wcmd_client_restore(client);
+            ccmd_client_restore(client);
         }
         return;
     }
@@ -240,9 +239,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_URGENT) != 0u)) {
-            wcmd_client_set_urgent(client);
+            ccmd_client_set_urgent(client);
         } else {
-            wcmd_client_clear_urgent(client);
+            ccmd_client_clear_urgent(client);
         }
         return;
     }
@@ -272,10 +271,10 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_modal) {
         if (s_wm_state_resolve_add(action, client_is_modal(client))) {
             client_set_modal(client);
-            wcmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
+            ccmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
         } else {
             client_unset_modal(client);
-            wcmd_rem_states(client, 1, "_NET_WM_STATE_MODAL");
+            ccmd_rem_states(client, 1, "_NET_WM_STATE_MODAL");
         }
         return;
     }
@@ -315,7 +314,6 @@ void hi_handle_net_current_desktop(wm_td *wm,
         xcb_client_message_event_t *event)
 {
     surface_td *surface;
-    action_data_surface_td surface_data;
 
     if (wm == NULL || event == NULL) {
         return;
@@ -326,11 +324,7 @@ void hi_handle_net_current_desktop(wm_td *wm,
         return;
     }
 
-    surface_data.surface = surface;
-    surface_data.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    surface_data.new_data.uvalue = event->data.data32[0];
-
-    scmd_surface_desktop_switch(surface, &surface_data);
+    scmd_surface_desktop_switch(surface, event->data.data32[0]);
     wm_outdate_surface(surface);
 }
 
@@ -563,9 +557,9 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
                 client_unset_hidden(client);
                 changed_hidden_state = true;
-                wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL,
+                ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL,
                         XCB_NONE);
-                wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+                ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
@@ -590,9 +584,9 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
                 client_set_hidden(client);
                 changed_hidden_state = true;
-                wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
+                ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
                         XCB_NONE);
-                wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+                ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
@@ -686,7 +680,7 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
 
     if (client->properties.state ==
             (uint16_t) CLIENT_STATE_FULLSCREEN) {
-        wcmd_client_fullscreen(client);
+        ccmd_client_fullscreen(client);
     }
 
     wm_outdate_surface(surface);

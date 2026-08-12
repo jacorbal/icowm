@@ -1,0 +1,773 @@
+/**
+ * @file enact.c
+ *
+ * @brief Every action this window manager can carry out, one typed
+ *        function per action
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+/* System includes */
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>      /* snprintf */
+
+/* ADT includes */
+#include <adt/cdlist.h>
+#include <adt/list.h>
+
+/* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
+
+/* Command includes */
+#include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/meta.h>
+#include <cmds/surface.h>
+
+/* Menu includes */
+#include <menu/cycle.h>
+#include <menu/dialog/info.h>
+
+/* Policy includes */
+#include <policy/placement.h>
+
+/* Handler includes */
+#include <handler/internal.h>
+
+/* Local includes */
+#include <enact.h>
+
+
+/* == action_client_e == */
+
+/* Close the client's window */
+void enact_client_close(client_td *client)
+{
+    ccmd_client_close(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Forcibly kill the client's owning connection */
+void enact_client_kill(client_td *client)
+{
+    ccmd_client_kill(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Restore the client to its normal state */
+void enact_client_restore(client_td *client)
+{
+    ccmd_client_restore(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Give input focus to the client */
+void enact_client_focus(client_td *client)
+{
+    ccmd_client_focus(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Take input focus away from the client */
+void enact_client_unfocus(client_td *client)
+{
+    ccmd_client_unfocus(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Resize the client to a specific frame geometry */
+void enact_client_resize(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    ccmd_client_resize(client, x, y, w, h);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to a specific position */
+void enact_client_move(client_td *client, int32_t x, int32_t y)
+{
+    ccmd_client_move(client, x, y);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Center the client on its current screen */
+void enact_client_center(client_td *client)
+{
+    ccmd_client_center(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to the next monitor on its surface */
+void enact_client_move_next_monitor(client_td *client)
+{
+    ccmd_client_move_to_next_monitor(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to a specific monitor index */
+void enact_client_move_to_monitor(client_td *client,
+        uint32_t monitor_index)
+{
+    ccmd_client_move_to_monitor(client, monitor_index);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Change the client's 'WM_CLASS' class and instance names */
+void enact_client_reclass(client_td *client, const char *class_name,
+        const char *instance_name)
+{
+    ccmd_client_reclass(client, class_name, instance_name);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Change the client's 'WM_WINDOW_ROLE' */
+void enact_client_rerole(client_td *client, const char *role)
+{
+    ccmd_client_rerole(client, role);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Rename the client's window title */
+void enact_client_rename(client_td *client, const char *name)
+{
+    ccmd_client_rename(client, name);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Maximize the client both horizontally and vertically */
+void enact_client_maximize(client_td *client)
+{
+    ccmd_client_maximize(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Maximize the client horizontally only */
+void enact_client_maximize_horz(client_td *client)
+{
+    ccmd_client_maximize_horz(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Maximize the client vertically only */
+void enact_client_maximize_vert(client_td *client)
+{
+    ccmd_client_maximize_vert(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Iconify the client */
+void enact_client_iconify(client_td *client)
+{
+    ccmd_client_iconify(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Hide the client's window */
+void enact_client_hide(client_td *client)
+{
+    ccmd_client_hide(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Show a previously hidden client */
+void enact_client_unhide(client_td *client)
+{
+    ccmd_client_unhide(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Shade (roll up) the client */
+void enact_client_shade(client_td *client)
+{
+    ccmd_client_shade(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Unshade (roll down) the client */
+void enact_client_unshade(client_td *client)
+{
+    ccmd_client_unshade(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Toggle the client's shade status */
+void enact_client_toggle_shade(client_td *client)
+{
+    ccmd_client_toggle_shade(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Set the client's sticky mode */
+void enact_client_sticky(client_td *client)
+{
+    ccmd_client_sticky(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Remove the client's sticky mode */
+void enact_client_unsticky(client_td *client)
+{
+    ccmd_client_unsticky(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Toggle the client's sticky mode */
+void enact_client_toggle_sticky(client_td *client)
+{
+    ccmd_client_toggle_sticky(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Set the client to full screen mode */
+void enact_client_fullscreen(client_td *client)
+{
+    ccmd_client_fullscreen(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Remove the client's full screen mode */
+void enact_client_unfullscreen(client_td *client)
+{
+    ccmd_client_unfullscreen(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Toggle the client's full screen mode */
+void enact_client_toggle_fullscreen(client_td *client)
+{
+    ccmd_client_toggle_fullscreen(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Raise the client to the top of its layer */
+void enact_client_raise(client_td *client)
+{
+    ccmd_client_raise(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Lower the client to the bottom of its layer */
+void enact_client_lower(client_td *client)
+{
+    ccmd_client_lower(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to the always-on-top layer */
+void enact_client_layer_above(client_td *client)
+{
+    ccmd_client_layer_above(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to the normal layer */
+void enact_client_layer_normal(client_td *client)
+{
+    ccmd_client_layer_normal(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Move the client to the always-on-bottom layer */
+void enact_client_layer_below(client_td *client)
+{
+    ccmd_client_layer_below(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Cycle the client through the normal/above/below layers */
+void enact_client_cycle_layer(client_td *client)
+{
+    ccmd_client_cycle_layer(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Mark the client as urgent */
+void enact_client_set_urgent(client_td *client)
+{
+    ccmd_client_set_urgent(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Clear the client's urgency level */
+void enact_client_clear_urgent(client_td *client)
+{
+    ccmd_client_clear_urgent(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Set the client's icon name */
+void enact_client_set_icon(client_td *client, const char *icon_name)
+{
+    ccmd_client_set_icon(client, icon_name);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* Toggle the client's decoration */
+void enact_client_toggle_decoration(client_td *client)
+{
+    ccmd_client_toggle_decoration(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+    }
+}
+
+
+/* == action_desktop_e == */
+
+/* Set the desktop's background color */
+void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
+{
+    if (desktop == NULL) {
+        return;
+    }
+
+    desktop->background.is_image = false;
+    desktop->background.use_root_pixmap = false;
+    desktop->background.bg.color = color;
+    desktop->is_outdated = true;
+    xcb_flush(desktop->connection);
+}
+
+
+/* Toggle whether the desktop's own surface shows the desktop */
+void enact_desktop_show(desktop_td *desktop, bool show)
+{
+    surface_td *surface;
+
+    if (desktop == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(desktop->screen_id);
+    if (surface == NULL) {
+        return;
+    }
+
+    hi_handle_net_showing_desktop(surface, show);
+    xcb_flush(surface->connection);
+}
+
+
+/* Add a client to the desktop */
+void enact_desktop_client_add(desktop_td *desktop, client_td *client)
+{
+    if (desktop == NULL || client == NULL) {
+        return;
+    }
+
+    desktop_action_client_add(desktop, client);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Remove a client from the desktop */
+void enact_desktop_client_remove(desktop_td *desktop, client_td *client)
+{
+    if (desktop == NULL || client == NULL) {
+        return;
+    }
+
+    desktop_action_client_rem(desktop, client);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Send a client from one desktop to another */
+void enact_desktop_client_send(desktop_td *desktop, client_td *client,
+        desktop_td *target)
+{
+    surface_td *surface;
+    xcb_window_t win_target;
+
+    if (desktop == NULL || client == NULL || target == NULL) {
+        return;
+    }
+
+    LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
+            " desktop %u", client->window, desktop->id, target->id);
+
+    /* If the client is currently visible on the active desktop, unmap
+     * it immediately so it disappears from the source desktop without
+     * waiting for the user to switch away */
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface != NULL &&
+            desktop->id == surface->desktop_cur &&
+            !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+            client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
+        win_target = (client_is_decorated(client) && client->frame != 0)
+            ? client->frame : client->window;
+        client->ignore_unmap += 2u;
+        if (client->titlebar != 0) {
+            client->ignore_unmap += 1u;
+            xcb_unmap_window(surface->connection, client->titlebar);
+        }
+        xcb_unmap_window(surface->connection, win_target);
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(surface->connection, client->icon_window);
+            client->is_icon_mapped = false;
+        }
+        xcb_flush(surface->connection);
+    }
+
+    desktop_action_client_rem(desktop, client);
+    desktop_action_client_add(target, client);
+    client->desktop_id = target->id;
+    xcb_flush(desktop->connection);
+}
+
+
+/* Send a client to the front of the desktop's window stack */
+void enact_desktop_client_send_front(desktop_td *desktop,
+        client_td *client)
+{
+    if (desktop == NULL || client == NULL) {
+        return;
+    }
+
+    (void) desktop_action_client_send_front(desktop, client);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Send a client to the back of the desktop's window stack */
+void enact_desktop_client_send_back(desktop_td *desktop,
+        client_td *client)
+{
+    if (desktop == NULL || client == NULL) {
+        return;
+    }
+
+    (void) desktop_action_client_send_back(desktop, client);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Re-apply the configured placement policy to every client on the
+ * desktop */
+void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
+        desktop_td *desktop)
+{
+    cdlist_item_td *node;
+    enum config_placement_policy_e policy;
+    bool single_spot_policy;
+    bool is_first;
+
+    if (wm == NULL || wm->config == NULL || surface == NULL ||
+            desktop == NULL) {
+        return;
+    }
+
+    policy = wm->config->base.windows.placement_policy;
+    single_spot_policy =
+        (policy == CONFIG_PLACEMENT_POLICY_CENTERED) ||
+        (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE);
+    is_first = true;
+
+    for (node = cdlist_head(desktop->stacking); node != NULL;
+            node = cdlist_next(node)) {
+        client_td *client = (client_td *) cdlist_data(node);
+
+        if (client == NULL) {
+            continue;
+        }
+
+        /* 'centered'/'under-mouse' always resolve to the exact same
+         * single spot, so every client after the first would land
+         * stacked on top of one another; only the first client uses
+         * the real configured policy, the rest fall back to cascade
+         * so the desktop ends up spread out instead of piled up */
+        if (single_spot_policy && !is_first) {
+            place_apply_cascade(wm, surface, client);
+        } else {
+            place_apply(wm, surface, client);
+        }
+        is_first = false;
+    }
+
+    xcb_flush(surface->connection);
+}
+
+
+/* Iconify every client on the desktop */
+void enact_desktop_clients_iconify_all(desktop_td *desktop)
+{
+    if (desktop == NULL) {
+        return;
+    }
+
+    desktop_action_clients_iconify_all(desktop);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Restore every iconified client on the desktop */
+void enact_desktop_clients_deiconify_all(desktop_td *desktop)
+{
+    if (desktop == NULL) {
+        return;
+    }
+
+    desktop_action_clients_deiconify_all(desktop);
+    xcb_flush(desktop->connection);
+}
+
+
+/* Cycle input focus to the next non-iconified client */
+void enact_desktop_cycle_clients_active(list_td *surfaces,
+        xcb_connection_t *connection, surface_td *surface,
+        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+{
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    cycle_open(surfaces, connection, surface, desktop, false, 1,
+            modifier, cfg);
+    cycle_draw(connection, cfg);
+    xcb_flush(connection);
+}
+
+
+/* Cycle input focus to the previous non-iconified client */
+void enact_desktop_cycle_clients_prev(list_td *surfaces,
+        xcb_connection_t *connection, surface_td *surface,
+        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+{
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    cycle_open(surfaces, connection, surface, desktop, false, -1,
+            modifier, cfg);
+    cycle_draw(connection, cfg);
+    xcb_flush(connection);
+}
+
+
+/* Cycle input focus to the next iconified client */
+void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
+        xcb_connection_t *connection, surface_td *surface,
+        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+{
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    cycle_open(surfaces, connection, surface, desktop, true, 1,
+            modifier, cfg);
+    cycle_draw(connection, cfg);
+    xcb_flush(connection);
+}
+
+
+/* Cycle input focus to the previous iconified client */
+void enact_desktop_cycle_clients_icons_prev(list_td *surfaces,
+        xcb_connection_t *connection, surface_td *surface,
+        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+{
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    cycle_open(surfaces, connection, surface, desktop, true, -1,
+            modifier, cfg);
+    cycle_draw(connection, cfg);
+    xcb_flush(connection);
+}
+
+
+/* Launch a program associated with the desktop */
+pid_t enact_desktop_command_launch(desktop_td *desktop,
+        const char *command)
+{
+    int result;
+    char msg[256];
+    surface_td *surface;
+    const config_td *config;
+
+    if (desktop == NULL || command == NULL) {
+        return -1;
+    }
+
+    result = desktop_action_process_launch(desktop, command);
+
+    if (result == -2) {
+        /* 'execvp' failed: already logged by
+         * 'desktop_action_process_launch'.  Also show an informational
+         * dialog so the user gets feedback. */
+        (void) snprintf(msg, sizeof(msg), "Cannot launch: '%s'", command);
+
+        surface = wm_get_surface_by_id(desktop->screen_id);
+        config = (surface != NULL) ? surface->config : NULL;
+        if (surface != NULL && config != NULL &&
+                surface->connection != NULL) {
+            dialog_info_show(surface->connection, surface, config,
+                    msg, MENU_MSG_LEVEL_WARNING);
+        }
+        return -1;
+    }
+
+    return (pid_t) result;
+}
+
+
+/* == action_surface_e == */
+
+/* Switch the surface to a specific desktop */
+void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
+{
+    scmd_surface_desktop_switch(surface, desktop_id);
+}
+
+
+/* Switch the surface to the next desktop, in cyclic order */
+void enact_surface_desktop_switch_next(surface_td *surface)
+{
+    scmd_surface_desktop_switch_next(surface);
+}
+
+
+/* Switch the surface to the previous desktop, in cyclic order */
+void enact_surface_desktop_switch_prev(surface_td *surface)
+{
+    scmd_surface_desktop_switch_prev(surface);
+}
+
+
+/* == action_wm_e == */
+
+/* Request that the window manager stop and exit */
+int enact_wm_exit(void)
+{
+    return wm_request_stop();
+}
+
+
+/* Reload the window manager's configuration */
+int enact_wm_configuration_reload(void)
+{
+    return wm_action_config_reload();
+}

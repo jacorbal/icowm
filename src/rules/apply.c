@@ -29,9 +29,9 @@
 #include <defs/desktop.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/layer.h>
-#include <cmds/state.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/state.h>
 
 /* Project includes */
 #include <client.h>
@@ -135,11 +135,11 @@ static void s_rules_apply_layer(client_td *client,
     }
 
     if (apply->layer == (uint16_t) CLIENT_LAYER_ABOVE) {
-        wcmd_client_layer_above(client);
+        ccmd_client_layer_above(client);
     } else if (apply->layer == (uint16_t) CLIENT_LAYER_BELOW) {
-        wcmd_client_layer_below(client);
+        ccmd_client_layer_below(client);
     } else {
-        wcmd_client_layer_normal(client);
+        ccmd_client_layer_normal(client);
     }
 }
 
@@ -300,15 +300,15 @@ static void s_rules_apply_flags(client_td *client,
 {
     if (apply->has_sticky) {
         if (apply->sticky) {
-            wcmd_client_sticky(client);
+            ccmd_client_sticky(client);
         } else {
-            wcmd_client_unsticky(client);
+            ccmd_client_unsticky(client);
         }
     }
 
     if (apply->has_decorated) {
         if (apply->decorated != client_is_decorated(client)) {
-            wcmd_client_toggle_decoration(client);
+            ccmd_client_toggle_decoration(client);
         }
     }
 }

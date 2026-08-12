@@ -49,7 +49,7 @@
 #include <input/mouse.h>
 
 /* Command includes */
-#include <cmds/state.h>
+#include <cmds/client/state.h>
 
 /* Project includes */
 #include <lookup.h>
@@ -243,7 +243,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     /* Applications that dynamically toggle their own decoration request
      * (e.g., 'Xpad') do so by re-setting '_MOTIF_WM_HINTS' at runtime
      * and rely on the window manager noticing the change; the same
-     * freaking de-facto hint 'client_manage' already reads once at
+     * freaking de-facto hint 'client_init' already reads once at
      * initial map time (see there for the field layout), just applied
      * live here whenever it actually changes. */
     motif_hints_atom = atom_intern(client->connection, "_MOTIF_WM_HINTS",
@@ -279,7 +279,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                             " window=0x%x; toggling decoration to" \
                             " decorated=%d", client->window,
                             (int) wants_decorated);
-                    wcmd_client_toggle_decoration(client);
+                    ccmd_client_toggle_decoration(client);
                 }
             }
             free(motif_r);

@@ -53,19 +53,17 @@
 #include <defs/input.h>
 
 /* Project includes */
-#include <action.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <event.h>
-#include <eventq.h>
+#include <enact.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
 
 /* CMD includes */
-#include <cmds/ccmd.h>
+#include <cmds/client/basic.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>
@@ -412,7 +410,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         /* Non-left-click: restore and focus */
         surface_td *surface;
 
-        (void) client_send_event_restore(client);
+        enact_client_restore(client);
         surface = lookup_surface_for_root(surfaces, event->root);
         if (surface != NULL && desktop != NULL) {
             focus_apply(surfaces, surface, desktop, client, true, config);
@@ -477,7 +475,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                     cdlist_item_td *node = NULL;
                     client_td *prev_c = NULL;
 
-                    wcmd_client_shade(client);
+                    ccmd_client_shade(client);
 
                     if (desktop != NULL && surface != NULL) {
                         if (desktop->stacking != NULL) {
@@ -507,7 +505,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                             s_mouse_sync_sticky_active(surface,
                                     desktop, prev_c);
                         } else {
-                            (void) client_send_event_unfocus(client);
+                            enact_client_unfocus(client);
                             desktop->client_active_id = 0;
                             desktop->focus_dirty = true;
                         }
@@ -519,7 +517,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
             } else { /* MOUSEBIND_DESKTOP_NEXT */
                 /* Scroll-down on titlebar: unshade and focus */
                 if (client_is_shaded(client)) {
-                    wcmd_client_unshade(client);
+                    ccmd_client_unshade(client);
 
                     if (surface != NULL && desktop != NULL) {
                         focus_apply(surfaces, surface, desktop,
@@ -544,16 +542,13 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
         return;
     }
 
-    /* No client under pointer: queue a desktop-switch action */
+    /* No client under pointer: switch desktop right away */
     if (surface != NULL) {
-        event_td *ev;
-        action_td action;
-        action.type = ACTION_TYPE_SURFACE;
-        action.object.surface = (type == MOUSEBIND_DESKTOP_NEXT)
-            ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
-            : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
-        ev = event_init((void *) surface, NULL, action, PRIORITY_NORMAL);
-        if (ev != NULL) { eventq_add(ev); }
+        if (type == MOUSEBIND_DESKTOP_NEXT) {
+            enact_surface_desktop_switch_next(surface);
+        } else {
+            enact_surface_desktop_switch_prev(surface);
+        }
     }
 
     s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
@@ -617,28 +612,23 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
 {
     switch (button) {
         case CONFIG_TITLEBAR_BUTTON_PIN:
-            client_send_event(client, ACTION_CLIENT_TOGGLE_STICKY,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_sticky(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_LAYER:
-            client_send_event(client, ACTION_CLIENT_CYCLE_LAYER,
-                    PRIORITY_NORMAL);
+            enact_client_cycle_layer(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_ICONIZE:
-            client_send_event(client, ACTION_CLIENT_ICONIFY,
-                    PRIORITY_NORMAL);
+            enact_client_iconify(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_HIDE:
-            client_send_event(client, ACTION_CLIENT_HIDE,
-                    PRIORITY_NORMAL);
+            enact_client_hide(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_SHADE:
-            client_send_event(client, ACTION_CLIENT_TOGGLE_SHADE,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_shade(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_MAXIMIZE:
@@ -647,15 +637,12 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
             }
             if ((xcb_button_index_t) event->detail ==
                     XCB_BUTTON_INDEX_2) {
-                client_send_event(client, ACTION_CLIENT_MAXIMIZE_VERT,
-                        PRIORITY_NORMAL);
+                enact_client_maximize_vert(client);
             } else if ((xcb_button_index_t) event->detail ==
                     XCB_BUTTON_INDEX_3) {
-                client_send_event(client, ACTION_CLIENT_MAXIMIZE_HORZ,
-                        PRIORITY_NORMAL);
+                enact_client_maximize_horz(client);
             } else {
-                client_send_event(client, ACTION_CLIENT_MAXIMIZE,
-                        PRIORITY_NORMAL);
+                enact_client_maximize(client);
             }
             break;
 
@@ -663,13 +650,11 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
             if (!can_maximize) {
                 break;
             }
-            client_send_event(client, ACTION_CLIENT_TOGGLE_FULLSCREEN,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_fullscreen(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_CLOSE:
-            client_send_event(client, ACTION_CLIENT_CLOSE,
-                    PRIORITY_NORMAL);
+            enact_client_close(client);
             break;
     }
 }
@@ -754,8 +739,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     /* Scroll wheel on the titlebar body: shade / unshade */
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_4) {
         if (!client_is_shaded(client)) {
-            client_send_event(client, ACTION_CLIENT_SHADE,
-                    PRIORITY_NORMAL);
+            enact_client_shade(client);
             s_mark_outdated(desktop, surface);
         }
         return true;
@@ -763,8 +747,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_5) {
         if (client_is_shaded(client)) {
-            client_send_event(client, ACTION_CLIENT_UNSHADE,
-                    PRIORITY_NORMAL);
+            enact_client_unshade(client);
             s_mark_outdated(desktop, surface);
         }
         return true;
@@ -815,8 +798,7 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
             /* Double-click: toggle shade */
             s_last_titlebar_press_time = 0;
             s_last_titlebar_press_win = XCB_NONE;
-            client_send_event(client, ACTION_CLIENT_TOGGLE_SHADE,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_shade(client);
             s_mark_outdated(desktop, surface);
         } else {
             /* Single left-click: start move drag */
@@ -962,7 +944,7 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
     uint32_t screen_h;
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     surface = lookup_surface_for_root(surfaces, event->root);
@@ -1022,7 +1004,7 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
             client_td *active = lookup_find_client(surfaces,
                     desktop->client_active_id, NULL, NULL);
             if (active != NULL) {
-                (void) client_send_event_unfocus(active);
+                enact_client_unfocus(active);
             }
             desktop->client_active_id = 0;
             desktop->focus_dirty = true;
@@ -1264,11 +1246,11 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     if (type == MOUSEBIND_RESIZE && client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     if (type == MOUSEBIND_LOWER) {
-        (void) client_send_event_lower(client);
+        enact_client_lower(client);
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;

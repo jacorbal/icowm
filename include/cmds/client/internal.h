@@ -1,11 +1,14 @@
 /**
- * @file cmds/util.h
+ * @file cmds/client/internal.h
  *
- * @brief Internal utility declarations shared across the @c cmds
-          subsystem
+ * @brief Private declarations shared across the client-command modules
  *
- * Helpers that provide low-level XCB and EWMH plumbing used by the
- * client-command modules (@c ccmd, @c geom, @c layer, @c meta).
+ * Low-level XCB, EWMH, and ICCCM plumbing used by the client-command
+ * modules (@c basic, @c geom, @c layer, @c meta, @c state), implemented
+ * across @c ewmh.c, @c screen.c, and @c grab.c.
+ *
+ * @note This header is private to @c cmds/client/ and must not be
+ *       included outside of it.
  *
  * @ingroup cmds
  */
@@ -17,8 +20,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_UTIL_H
-#define CMDS_UTIL_H
+#ifndef CMDS_CLIENT_INTERNAL_H
+#define CMDS_CLIENT_INTERNAL_H
 
 
 /* System includes */
@@ -34,9 +37,9 @@
 #include <surface.h>
 
 
-#define WCMD_WM_STATE_WITHDRAWN (0u)
-#define WCMD_WM_STATE_NORMAL    (1u)
-#define WCMD_WM_STATE_ICONIC    (3u)
+#define CCMD_WM_STATE_WITHDRAWN (0u)
+#define CCMD_WM_STATE_NORMAL    (1u)
+#define CCMD_WM_STATE_ICONIC    (3u)
 
 
 /* Internal interface */
@@ -50,7 +53,7 @@
  *
  * @note Complexity: @e O(1)
  */
-xcb_window_t wcmd_active_win(xcb_ewmh_connection_t *ewmh,
+xcb_window_t ccmd_active_win(xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id);
 
 /**
@@ -63,7 +66,7 @@ xcb_window_t wcmd_active_win(xcb_ewmh_connection_t *ewmh,
  *
  * @note Complexity: @e O(n), where @e n is the length of @p name
  */
-xcb_atom_t wcmd_intern_atom(xcb_connection_t *connection,
+xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
         const char *name);
 
 /**
@@ -77,7 +80,7 @@ xcb_atom_t wcmd_intern_atom(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-xcb_window_t wcmd_target_win(client_td *client);
+xcb_window_t ccmd_target_win(client_td *client);
 
 /**
  * @brief Retrieve the pixel dimensions of the client's current screen
@@ -92,7 +95,7 @@ xcb_window_t wcmd_target_win(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */
-bool wcmd_screen_dim(client_td *client,
+bool ccmd_screen_dim(client_td *client,
         uint16_t *out_w, uint16_t *out_h);
 
 /**
@@ -109,12 +112,12 @@ bool wcmd_screen_dim(client_td *client,
  *                     struts)
  *
  * @return @c true on success, @c false if the client's surface could
- *         not be found; callers fall back to @c wcmd_screen_dim's raw
+ *         not be found; callers fall back to @c ccmd_screen_dim's raw
  *         screen size in that case
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-bool wcmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
         monitor_td *out_monitor);
 
 /**
@@ -128,19 +131,19 @@ bool wcmd_client_monitor(client_td *client, surface_td **out_surface,
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_grab_buttons(client_td *client);
+void ccmd_client_grab_buttons(client_td *client);
 
 /**
  * @brief Remove passive button grabs from an undecorated client
  *
- * Releases the passive grab installed by @c wcmd_client_grab_buttons so
+ * Releases the passive grab installed by @c ccmd_client_grab_buttons so
  * mouse input flows directly to the client again.
  *
  * @param client Pointer to the client
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_ungrab_buttons(client_td *client);
+void ccmd_client_ungrab_buttons(client_td *client);
 
 /**
  * @brief Write the ICCCM @c WM_STATE property for a client
@@ -156,7 +159,7 @@ void wcmd_client_ungrab_buttons(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
-void wcmd_set_wm_state(client_td *client,
+void ccmd_set_wm_state(client_td *client,
         uint32_t state, xcb_window_t icon_window);
 
 /**
@@ -169,7 +172,7 @@ void wcmd_set_wm_state(client_td *client,
  *
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
-void wcmd_clear_wm_state(client_td *client);
+void ccmd_clear_wm_state(client_td *client);
 
 /**
  * @brief Add multiple EWMH window states to a client
@@ -180,7 +183,7 @@ void wcmd_clear_wm_state(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is @p num_states
  */
-void wcmd_add_states(client_td *client, uint32_t num_states, ...);
+void ccmd_add_states(client_td *client, uint32_t num_states, ...);
 
 /**
  * @brief Remove multiple EWMH window states from a client
@@ -192,7 +195,7 @@ void wcmd_add_states(client_td *client, uint32_t num_states, ...);
  * @note Complexity: @e O(n * m), where @e n is @p num_states and @e m
  *       is the current number of window states
  */
-void wcmd_rem_states(client_td *client, uint32_t num_states, ...);
+void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
 
 /**
  * @brief Publish @c _NET_FRAME_EXTENTS on the client window
@@ -210,8 +213,8 @@ void wcmd_rem_states(client_td *client, uint32_t num_states, ...);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_publish_frame_extents(client_td *client,
+void ccmd_publish_frame_extents(client_td *client,
         uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
 
 
-#endif  /* ! CMDS_UTIL_H */
+#endif  /* ! CMDS_CLIENT_INTERNAL_H */

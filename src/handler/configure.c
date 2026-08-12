@@ -26,7 +26,7 @@
 #include <adt/list.h>
 
 /* Command includes */
-#include <cmds/layer.h>
+#include <cmds/client/layer.h>
 
 /* Render includes */
 #include <render/desktop.h>
@@ -459,7 +459,7 @@ void handler_configure_request(xcb_connection_t *connection,
 
     if (geom_changed || (mask & XCB_CONFIG_WINDOW_STACK_MODE)) {
         if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-            wcmd_desktop_enforce_layers(desktop);
+            ccmd_desktop_enforce_layers(desktop);
         }
 
         if (client != NULL && geom_changed) {
@@ -531,7 +531,7 @@ void handler_configure_notify(xcb_connection_t *connection,
              *    window'): also generated for every 'ConfigureWindow'
              *    the window manager issued on the client, including the
              *    border-width adjustment that happens before placement
-             *    in client_manage.  That pre-placement event carries
+             *    in client_init.  That pre-placement event carries
              *    the application's initial position, often (0,0), which
              *    can arrive late (after place_apply already stored the
              *    centered coordinates) and corrupt the stored position.

@@ -1,5 +1,5 @@
 /**
- * @file cmds/layer.c
+ * @file cmds/client/layer.c
  *
  * @brief Client stacking-order command implementation
  */
@@ -25,12 +25,12 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/layer.h>
-#include <cmds/util.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/internal.h>
 
 
 /* Raise the client to the top of the stacking order */
-void wcmd_client_raise(client_td *client)
+void ccmd_client_raise(client_td *client)
 {
     desktop_td *desktop;
 
@@ -43,10 +43,10 @@ void wcmd_client_raise(client_td *client)
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         (void) desktop_action_client_send_front(desktop, client);
-        wcmd_desktop_enforce_layers(desktop);
+        ccmd_desktop_enforce_layers(desktop);
     } else {
         uint32_t values[] = { XCB_STACK_MODE_ABOVE };
-        xcb_window_t target = wcmd_target_win(client);
+        xcb_window_t target = ccmd_target_win(client);
         xcb_configure_window(client->connection, target,
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
         xcb_flush(client->connection);
@@ -56,7 +56,7 @@ void wcmd_client_raise(client_td *client)
 
 
 /* Lower the client to the bottom of the stacking order */
-void wcmd_client_lower(client_td *client)
+void ccmd_client_lower(client_td *client)
 {
     desktop_td *desktop;
 
@@ -69,10 +69,10 @@ void wcmd_client_lower(client_td *client)
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         (void) desktop_action_client_send_back(desktop, client);
-        wcmd_desktop_enforce_layers(desktop);
+        ccmd_desktop_enforce_layers(desktop);
     } else {
         uint32_t values[] = { XCB_STACK_MODE_BELOW };
-        xcb_window_t target = wcmd_target_win(client);
+        xcb_window_t target = ccmd_target_win(client);
         xcb_configure_window(client->connection, target,
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
         xcb_flush(client->connection);
@@ -84,8 +84,8 @@ void wcmd_client_lower(client_td *client)
  * @brief Enforce layer stacking and request a redraw after a client's
  *        layer changes
  *
- * Shared by @c wcmd_client_layer_above, @c wcmd_client_layer_normal,
- * and @c wcmd_client_layer_below below, which only differ in the new
+ * Shared by @c ccmd_client_layer_above, @c ccmd_client_layer_normal,
+ * and @c ccmd_client_layer_below below, which only differ in the new
  * @c client->properties.layer value and which @c _NET_WM_STATE atoms
  * to add or remove for it.
  *
@@ -94,12 +94,12 @@ void wcmd_client_lower(client_td *client)
  *                re-enforcing layer stacking
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop (see @c wcmd_desktop_enforce_layers)
+ *       @p desktop (see @c ccmd_desktop_enforce_layers)
  */
 static void s_client_layer_finish(client_td *client, desktop_td *desktop)
 {
     if (desktop != NULL) {
-        wcmd_desktop_enforce_layers(desktop);
+        ccmd_desktop_enforce_layers(desktop);
     }
 
     wm_request_client_redraw(client);
@@ -108,7 +108,7 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
 
 
 /* Place the client in the above layer */
-void wcmd_client_layer_above(client_td *client)
+void ccmd_client_layer_above(client_td *client)
 {
     desktop_td *desktop;
 
@@ -120,8 +120,8 @@ void wcmd_client_layer_above(client_td *client)
             client->window);
     client->properties.layer = CLIENT_LAYER_ABOVE;
 
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_BELOW");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_ABOVE");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_BELOW");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_ABOVE");
 
     desktop = wm_get_client_desktop(client);
     s_client_layer_finish(client, desktop);
@@ -129,7 +129,7 @@ void wcmd_client_layer_above(client_td *client)
 
 
 /* Place the client in the normal (default) layer */
-void wcmd_client_layer_normal(client_td *client)
+void ccmd_client_layer_normal(client_td *client)
 {
     desktop_td *desktop;
 
@@ -141,7 +141,7 @@ void wcmd_client_layer_normal(client_td *client)
             client->window);
     client->properties.layer = CLIENT_LAYER_NORMAL;
 
-    wcmd_rem_states(client, 2,
+    ccmd_rem_states(client, 2,
             "_NET_WM_STATE_ABOVE",
             "_NET_WM_STATE_BELOW");
 
@@ -151,7 +151,7 @@ void wcmd_client_layer_normal(client_td *client)
 
 
 /* Place the client in the below layer */
-void wcmd_client_layer_below(client_td *client)
+void ccmd_client_layer_below(client_td *client)
 {
     desktop_td *desktop;
 
@@ -163,8 +163,8 @@ void wcmd_client_layer_below(client_td *client)
             client->window);
     client->properties.layer = CLIENT_LAYER_BELOW;
 
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_ABOVE");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_BELOW");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_ABOVE");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_BELOW");
 
     desktop = wm_get_client_desktop(client);
     s_client_layer_finish(client, desktop);
@@ -172,24 +172,24 @@ void wcmd_client_layer_below(client_td *client)
 
 
 /* Cycle layer: 'normal -> above -> below -> normal -> above -> ...' */
-void wcmd_client_cycle_layer(client_td *client)
+void ccmd_client_cycle_layer(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
     if (client->properties.layer == CLIENT_LAYER_NORMAL) {
-        wcmd_client_layer_above(client);
+        ccmd_client_layer_above(client);
     } else if (client->properties.layer == CLIENT_LAYER_ABOVE) {
-        wcmd_client_layer_below(client);
+        ccmd_client_layer_below(client);
     } else {
-        wcmd_client_layer_normal(client);
+        ccmd_client_layer_normal(client);
     }
 }
 
 
 /* Enforce layer stacking order for all clients in a desktop */
-void wcmd_desktop_enforce_layers(desktop_td *desktop)
+void ccmd_desktop_enforce_layers(desktop_td *desktop)
 {
     cdlist_item_td *node;
     cdlist_item_td *initial;
@@ -221,7 +221,7 @@ void wcmd_desktop_enforce_layers(desktop_td *desktop)
             c = (client_td *) cdlist_data(node);
             if (c != NULL &&
                     c->properties.layer == (uint16_t) layer_order[li]) {
-                target = wcmd_target_win(c);
+                target = ccmd_target_win(c);
                 if (target != XCB_WINDOW_NONE) {
 
                     if (prev_target == XCB_WINDOW_NONE) {

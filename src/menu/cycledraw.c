@@ -119,8 +119,15 @@ uint32_t mi_cycle_preview_border_width(const client_td *client,
     if (is_icon_menu) {
         border_width = config->theme.icon.active.border.width;
     } else if (client != NULL &&
-            client_is_decorated(client) &&
-            client->frame != 0) {
+            ((client_is_decorated(client) && client->frame != 0) ||
+             client_is_fullscreen(client))) {
+        /* No border for a decorated client's own frame (it already
+         * has its own themed border painted elsewhere), and none for
+         * a fullscreen client either: applying the normal window
+         * border width here would paint a real, visible border over
+         * fullscreen content (e.g. mpv, undecorated from the start),
+         * the exact same reasoning 'ccmd_client_focus' (cmds/client/basic.c)
+         * already applies for a plain focus change. */
         border_width = 0u;
     } else {
         border_width = config->theme.window.active.border.width;

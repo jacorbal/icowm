@@ -1,5 +1,5 @@
 /**
- * @file cmds/geom.h
+ * @file cmds/client/geom.h
  *
  * @brief Client geometry command declarations
  *
@@ -13,12 +13,11 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_GEOM_H
-#define CMDS_GEOM_H
+#ifndef CMDS_CCMD_GEOM_H
+#define CMDS_CCMD_GEOM_H
 
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 
 
@@ -26,13 +25,13 @@
 /**
  * @brief Move the client to a new position
  *
- * @param client      Window to move
- * @param client_data Data containing the new position
+ * @param client Window to move
+ * @param x      New X position
+ * @param y      New Y position
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_move(client_td *client,
-        action_data_client_td *client_data);
+void ccmd_client_move(client_td *client, int32_t x, int32_t y);
 
 /**
  * @brief Center the client on its current screen
@@ -41,7 +40,7 @@ void wcmd_client_move(client_td *client,
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */
-void wcmd_client_center(client_td *client);
+void ccmd_client_center(client_td *client);
 
 /**
  * @brief Move the client to a specific monitor on its own surface
@@ -60,13 +59,13 @@ void wcmd_client_center(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index);
+void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index);
 
 /**
  * @brief Move the client to the next monitor on its own surface
  *
  * Resolves @p client's current monitor, then calls @c
- * wcmd_client_move_to_monitor with the next index in the surface's
+ * ccmd_client_move_to_monitor with the next index in the surface's
  * monitor list, wrapping back to @c 0 after the last one.  A no-op on
  * a surface with one monitor or none.
  *
@@ -74,18 +73,21 @@ void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index);
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-void wcmd_client_move_to_next_monitor(client_td *client);
+void ccmd_client_move_to_next_monitor(client_td *client);
 
 /**
  * @brief Resize the client to new dimensions
  *
- * @param client      Window to resize
- * @param client_data Data containing the new size
+ * @param client Window to resize
+ * @param x      New frame X position
+ * @param y      New frame Y position
+ * @param w      New frame width
+ * @param h      New frame height
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_resize(client_td *client,
-        action_data_client_td *client_data);
+void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h);
 
 /**
  * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled
@@ -94,7 +96,7 @@ void wcmd_client_resize(client_td *client,
  * Called from @c handler_sync_event when an @c AlarmNotify confirms the
  * client has redrawn to match the last size it was sent.  Clears the
  * client's wait state and, if a newer geometry arrived from
- * @c wcmd_client_resize while it was waiting, applies that geometry now
+ * @c ccmd_client_resize while it was waiting, applies that geometry now
  * and sends the next sync request so the throttling pipeline keeps up
  * with an ongoing interactive resize.  A no-op for clients that are not
  * currently waiting on an acknowledgement.
@@ -103,7 +105,7 @@ void wcmd_client_resize(client_td *client,
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_resize_flush_pending(client_td *client);
+void ccmd_client_resize_flush_pending(client_td *client);
 
 /**
  * @brief Maximize the client horizontally
@@ -112,7 +114,7 @@ void wcmd_client_resize_flush_pending(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */
-void wcmd_client_maximize_horz(client_td *client);
+void ccmd_client_maximize_horz(client_td *client);
 
 /**
  * @brief Maximize the client vertically
@@ -121,7 +123,7 @@ void wcmd_client_maximize_horz(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */
-void wcmd_client_maximize_vert(client_td *client);
+void ccmd_client_maximize_vert(client_td *client);
 
 /**
  * @brief Maximize the client entirely
@@ -130,7 +132,7 @@ void wcmd_client_maximize_vert(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */
-void wcmd_client_maximize(client_td *client);
+void ccmd_client_maximize(client_td *client);
 
 
-#endif  /* ! CMDS_GEOM_H */
+#endif  /* ! CMDS_CCMD_GEOM_H */

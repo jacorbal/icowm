@@ -31,7 +31,7 @@
 #include <utils/xcb/atom.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
+#include <cmds/client/basic.h>
 
 /* Local includes */
 #include <client.h>
@@ -337,9 +337,9 @@ void client_props_refresh_wm_hints(client_td *client)
     }
 
     if (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
-        wcmd_client_set_urgent(client);
+        ccmd_client_set_urgent(client);
     } else {
-        wcmd_client_clear_urgent(client);
+        ccmd_client_clear_urgent(client);
     }
 }
 

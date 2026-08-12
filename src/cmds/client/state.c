@@ -1,5 +1,5 @@
 /**
- * @file cmds/state.c
+ * @file cmds/client/state.c
  *
  * @brief Client state-transition commands: shading, fullscreen, and
  *        decoration toggling
@@ -8,7 +8,7 @@
  * require XCB geometry manipulation beyond a simple flag update:
  * shade/unshade, fullscreen/unfullscreen, and decoration toggle
  * (including the private helper that builds the frame and titlebar
- * windows).  Focus and visibility operations live in @c cmds/ccmd.c.
+ * windows).  Focus and visibility operations live in @c cmds/client/basic.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -47,9 +47,9 @@
 #include <input/mouse.h>
 
 /* Local includes */
-#include <cmds/ccmd.h>
-#include <cmds/layer.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/internal.h>
 
 
 /**
@@ -109,7 +109,7 @@ static void s_client_enable_decoration(client_td *client,
         frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
     }
 
-    wcmd_client_ungrab_buttons(client);
+    ccmd_client_ungrab_buttons(client);
 
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
@@ -199,14 +199,14 @@ static void s_client_enable_decoration(client_td *client,
     client->layout.frame_extents.bottom = bw;
     client_set_decoration(client);
 
-    wcmd_publish_frame_extents(client,
+    ccmd_publish_frame_extents(client,
             (uint32_t) bw, (uint32_t) bw,
             (uint32_t) (bw + th), (uint32_t) bw);
 }
 
 
 /* Shade client (roll-up), if decorated */
-void wcmd_client_shade(client_td *client)
+void ccmd_client_shade(client_td *client)
 {
     xcb_window_t target;
     uint32_t shaded_h;
@@ -220,7 +220,7 @@ void wcmd_client_shade(client_td *client)
 
     LOGGER_TRACE("Shading client window=0x%x", client->window);
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Refresh 'geometry.cur' from the real X11 state right before
      * saving it: an application-driven resize the window manager did
@@ -264,8 +264,8 @@ void wcmd_client_shade(client_td *client)
     client_sync_decoration_layout(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
-    wcmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);
@@ -273,7 +273,7 @@ void wcmd_client_shade(client_td *client)
 
 
 /* Unshade client (roll-down), if decorated */
-void wcmd_client_unshade(client_td *client)
+void ccmd_client_unshade(client_td *client)
 {
     xcb_window_t target;
     uint32_t restored_h;
@@ -285,7 +285,7 @@ void wcmd_client_unshade(client_td *client)
 
     LOGGER_TRACE("Unshading client window=0x%x", client->window);
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Restore only the height from the saved geometry; keep the current
      * position so that moving the shaded window is honored */
@@ -301,7 +301,7 @@ void wcmd_client_unshade(client_td *client)
     client_unset_hidden(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
-    wcmd_rem_states(client, 2,
+    ccmd_rem_states(client, 2,
             "_NET_WM_STATE_SHADED",
             "_NET_WM_STATE_HIDDEN");
 
@@ -315,28 +315,28 @@ void wcmd_client_unshade(client_td *client)
 static void s_client_unshade_if_needed(client_td *client)
 {
     if (client != NULL && client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 }
 
 
 /* Toggle shading */
-void wcmd_client_toggle_shade(client_td *client)
+void ccmd_client_toggle_shade(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     } else {
-        wcmd_client_shade(client);
+        ccmd_client_shade(client);
     }
 }
 
 
 /* Set full screen mode */
-void wcmd_client_fullscreen(client_td *client)
+void ccmd_client_fullscreen(client_td *client)
 {
     int32_t mx = 0;
     int32_t my = 0;
@@ -365,26 +365,26 @@ void wcmd_client_fullscreen(client_td *client)
             client->window);
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     /* Fullscreen deliberately targets the raw monitor rect, not the
-     * workarea 'wcmd_client_monitor_workarea' (maximize's own helper)
+     * workarea 'ccmd_client_monitor_workarea' (maximize's own helper)
      * would give: it is meant to cover panels and docks too, not stop
      * at their struts the way maximize does. */
-    if (wcmd_client_monitor(client, NULL, &monitor)) {
+    if (ccmd_client_monitor(client, NULL, &monitor)) {
         mx = monitor.x;
         my = monitor.y;
         sw = geom_clamp_dim((int32_t) monitor.w);
         sh = geom_clamp_dim((int32_t) monitor.h);
-    } else if (!wcmd_screen_dim(client, &sw, &sh)) {
+    } else if (!ccmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
     client_geometry_save(client);
     was_decorated = client_is_decorated(client);
     client->was_decorated_fullscreen = was_decorated;
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Resized to fill the screen FIRST, before the content window
      * below (when there is a separate one, i.e. 'target' is the
@@ -465,7 +465,7 @@ void wcmd_client_fullscreen(client_td *client)
 
     client->properties.state = CLIENT_STATE_FULLSCREEN;
 
-    wcmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
+    ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
 
     /* Retain focus: keep this client active on its desktop and give it
      * input focus so the window is not lost from the active window
@@ -477,12 +477,12 @@ void wcmd_client_fullscreen(client_td *client)
         (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
     }
-    wcmd_client_focus(client);
+    ccmd_client_focus(client);
 
-    wcmd_rem_states(client, 2,
+    ccmd_rem_states(client, 2,
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
     /* Let the systray reconsider its stacking now that a client just
      * became fullscreen: with 'systray.layer' set to "above" it should
@@ -496,7 +496,7 @@ void wcmd_client_fullscreen(client_td *client)
 
 
 /* Remove full screen mode */
-void wcmd_client_unfullscreen(client_td *client)
+void ccmd_client_unfullscreen(client_td *client)
 {
     xcb_window_t target;
     uint16_t border_width;
@@ -511,14 +511,14 @@ void wcmd_client_unfullscreen(client_td *client)
     LOGGER_TRACE("Exiting fullscreen for client window=0x%x",
             client->window);
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     client_geometry_restore(client);
 
     border_width = (client->theme != NULL)
         ? (uint16_t) client->theme->window.active.border.width : 0u;
 
     /* Configured BEFORE the frame/target itself shrinks further down,
-     * for the same reason 'wcmd_client_fullscreen' now configures its
+     * for the same reason 'ccmd_client_fullscreen' now configures its
      * own outer target before the inner content window: reversing
      * this order used to leave a real, if brief, window between two
      * separate 'ConfigureWindow' requests where the frame already had
@@ -611,7 +611,7 @@ void wcmd_client_unfullscreen(client_td *client)
 
     client->was_decorated_fullscreen = false;
 
-    /* Same reasoning as the matching call in 'wcmd_client_fullscreen':
+    /* Same reasoning as the matching call in 'ccmd_client_fullscreen':
      * make sure the client is told its true screen-relative geometry
      * explicitly, since exiting fullscreen can restore it to any
      * position, not just (0,0), where a decorated client's real
@@ -621,13 +621,13 @@ void wcmd_client_unfullscreen(client_td *client)
 
     client->properties.state = CLIENT_STATE_NORMAL;
 
-    wcmd_publish_frame_extents(client,
+    ccmd_publish_frame_extents(client,
             (uint32_t) client->layout.frame_extents.left,
             (uint32_t) client->layout.frame_extents.right,
             (uint32_t) client->layout.frame_extents.top,
             (uint32_t) client->layout.frame_extents.bottom);
 
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
     /* The client that just left fullscreen may have been the one the
      * systray was lowered below; let it reconsider its stacking now
@@ -640,24 +640,24 @@ void wcmd_client_unfullscreen(client_td *client)
 
 
 /* Toggle full screen mode */
-void wcmd_client_toggle_fullscreen(client_td *client)
+void ccmd_client_toggle_fullscreen(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
-    /* No 'client_is_resizable' gate; see 'wcmd_client_fullscreen''s own
+    /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s own
      * comment for why fullscreen is deliberately exempt. */
     if (client->properties.state == CLIENT_STATE_FULLSCREEN) {
-        wcmd_client_unfullscreen(client);
+        ccmd_client_unfullscreen(client);
     } else {
-        wcmd_client_fullscreen(client);
+        ccmd_client_fullscreen(client);
     }
 }
 
 
 /* Toggle window decoration on or off */
-void wcmd_client_toggle_decoration(client_td *client)
+void ccmd_client_toggle_decoration(client_td *client)
 {
     int32_t bw;
     int32_t th;
@@ -765,9 +765,9 @@ void wcmd_client_toggle_decoration(client_td *client)
         client->layout.frame_extents.top = 0;
         client->layout.frame_extents.bottom = 0;
         client_unset_decoration(client);
-        wcmd_client_grab_buttons(client);
+        ccmd_client_grab_buttons(client);
 
-        wcmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
+        ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
     } else {                            /* Restore decoration */
         if (client->frame == 0) {
             s_client_enable_decoration(client, bw, th);
@@ -838,7 +838,7 @@ void wcmd_client_toggle_decoration(client_td *client)
             client->layout.frame_extents.bottom = bw;
             client_set_decoration(client);
 
-            wcmd_publish_frame_extents(client,
+            ccmd_publish_frame_extents(client,
                     (uint32_t) bw, (uint32_t) bw,
                     (uint32_t) (bw + th), (uint32_t) bw);
         }
@@ -852,8 +852,8 @@ void wcmd_client_toggle_decoration(client_td *client)
             desktop->is_outdated = true;
         }
 
-        wcmd_client_raise(client);
-        wcmd_client_focus(client);
+        ccmd_client_raise(client);
+        ccmd_client_focus(client);
     }
 
     wm_request_client_redraw(client);

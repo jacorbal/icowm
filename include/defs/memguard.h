@@ -43,8 +43,8 @@
  *
  * A ceiling entirely divided up among clients with nothing held back
  * would let @c memguard_max_clients compute a number that leaves no
- * headroom at all for IcoWM's own connection, event queue, surface
- * and desktop state, and every other piece of it that exists
+ * headroom at all for IcoWM's own connection, surface and desktop
+ * state, and every other piece of it that exists
  * regardless of how many windows are open.  Set from an actual
  * measurement (a fresh restricted-memory session's own @c VmRSS,
  * sampled with no client windows open) rather than a guess: the

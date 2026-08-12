@@ -60,7 +60,6 @@
 #include <defs/loop.h>
 
 /* Project includes */
-#include <eventq.h>
 #include <handler.h>
 #include <lifecycle.h>
 #include <lookup.h>
@@ -754,8 +753,6 @@ void loop_run(wm_td *wm)
 
             free(event);
         }
-
-        eventq_process();
 
         /* Auto-close the info popup when its display timeout has
          * elapsed.  Close before the loop_update call so any visual

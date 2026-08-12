@@ -1,5 +1,5 @@
 /**
- * @file cmds/layer.h
+ * @file cmds/client/layer.h
  *
  * @brief Client stacking-order command declarations
  *
@@ -13,8 +13,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_LAYER_H
-#define CMDS_LAYER_H
+#ifndef CMDS_CCMD_LAYER_H
+#define CMDS_CCMD_LAYER_H
 
 
 /* Project includes */
@@ -30,7 +30,7 @@
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_raise(client_td *client);
+void ccmd_client_raise(client_td *client);
 
 /**
  * @brief Lower the client to the bottom of the stacking order
@@ -39,7 +39,7 @@ void wcmd_client_raise(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_lower(client_td *client);
+void ccmd_client_lower(client_td *client);
 
 /**
  * @brief Place the client in the above layer
@@ -48,7 +48,7 @@ void wcmd_client_lower(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_layer_above(client_td *client);
+void ccmd_client_layer_above(client_td *client);
 
 /**
  * @brief Place the client in the normal (default) layer
@@ -57,7 +57,7 @@ void wcmd_client_layer_above(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_layer_normal(client_td *client);
+void ccmd_client_layer_normal(client_td *client);
 
 /**
  * @brief Place the client in the below layer
@@ -66,7 +66,7 @@ void wcmd_client_layer_normal(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_layer_below(client_td *client);
+void ccmd_client_layer_below(client_td *client);
 
 /**
  * @brief Cycle the client's layer:
@@ -76,7 +76,7 @@ void wcmd_client_layer_below(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_cycle_layer(client_td *client);
+void ccmd_client_cycle_layer(client_td *client);
 
 /**
  * @brief Enforce layer stacking order for all clients in a desktop
@@ -92,8 +92,8 @@ void wcmd_client_cycle_layer(client_td *client);
  * @note No-op when @p desktop is null or has no stacking list
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
-void wcmd_desktop_enforce_layers(desktop_td *desktop);
+void ccmd_desktop_enforce_layers(desktop_td *desktop);
 
 
 
-#endif  /* ! CMDS_LAYER_H */
+#endif  /* ! CMDS_CCMD_LAYER_H */

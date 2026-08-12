@@ -46,6 +46,8 @@
             "fullscreen": "modc+mod1+f",
             "hide": "modc+mod1+mods+u",
             "iconify": "modc+mod1+i",
+            "iconify-all": "modc+mod4+mods+i",
+            "deiconify-all": "modc+mod4+mods+d",
             "info": "modc+mod1+mods+i",
             "layer": "modc+mod1+mods+y",
             "kill": "modc+mod1+mods+Escape",

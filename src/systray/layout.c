@@ -133,7 +133,7 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
  * any one icon to stack itself relative to) would otherwise claim the
  * absolute bottom of the sibling stack out from under any icon that
  * was already there, the same "whichever restacked most recently
- * wins" problem @c wcmd_client_iconify's own explicit stack-below
+ * wins" problem @c ccmd_client_iconify's own explicit stack-below
  * (see @c systray_below_window) handles for the opposite ordering.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
@@ -208,8 +208,8 @@ static void s_systray_push_icons_below(void)
  *
  * Safe to call whenever the tray's stacking might need reconsidering:
  * after every reflow, and whenever any client enters or exits
- * fullscreen (see 'wcmd_client_fullscreen' and
- * 'wcmd_client_unfullscreen', which call the public 'systray_restack'
+ * fullscreen (see 'ccmd_client_fullscreen' and
+ * 'ccmd_client_unfullscreen', which call the public 'systray_restack'
  * wrapper in systray.c). */
 void systray_layout_restack(void)
 {

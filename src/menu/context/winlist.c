@@ -32,17 +32,15 @@
 #include <utils/safe/safestr.h>
 
 /* Project includes */
-#include <action.h>
-#include <actdata.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <priority.h>
+#include <enact.h>
 #include <surface.h>
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/scmd.h>
+#include <cmds/surface.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -111,12 +109,7 @@ static int s_entry_data_used = 0;
  */
 static void s_switch_to_desktop(surface_td *surface, uint32_t desktop_id)
 {
-    action_data_surface_td sdata;
-
-    sdata.surface = surface;
-    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-    sdata.new_data.uvalue = desktop_id;
-    scmd_surface_desktop_switch(surface, &sdata);
+    enact_surface_desktop_switch(surface, desktop_id);
 }
 
 
@@ -206,15 +199,13 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     if (data->client->properties.flags & CLIENT_FLAG_HIDDEN) {
         if (data->client->properties.state ==
                 (uint16_t) CLIENT_STATE_ICONIFIED) {
-            (void) client_send_event_restore(data->client);
+            enact_client_restore(data->client);
         } else {
-            (void) client_send_event(data->client,
-                    ACTION_CLIENT_UNHIDE, PRIORITY_NORMAL);
+            enact_client_unhide(data->client);
         }
     }
     if (client_is_shaded(data->client)) {
-        (void) client_send_event(data->client,
-                ACTION_CLIENT_UNSHADE, PRIORITY_NORMAL);
+        enact_client_unshade(data->client);
     }
 
     target_desktop = surface_desktop_get(data->surface, target_did);

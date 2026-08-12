@@ -22,6 +22,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <enact.h>
 #include <render/surface.h>
 #include <utils/geom.h>
 
@@ -73,8 +74,8 @@ static void s_release_grab(void)
 /**
  * @brief Restore client geometry to its saved values
  *
- * Used on ESC cancel.  The restore is applied via the event queue so it
- * goes through the same path as normal geometry changes.
+ * Used on ESC cancel.  The restore is applied through the same
+ * function as normal geometry changes
  */
 static void s_restore_geometry(void)
 {
@@ -82,9 +83,9 @@ static void s_restore_geometry(void)
         return;
     }
     if (s_mode == KBD_MODAL_MOVING) {
-        (void) client_send_event_move(s_client, s_saved_x, s_saved_y);
+        enact_client_move(s_client, s_saved_x, s_saved_y);
     } else {
-        (void) client_send_event_resize(s_client,
+        enact_client_resize(s_client,
                 s_saved_x, s_saved_y, s_saved_w, s_saved_h);
     }
 }
@@ -151,7 +152,7 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
         return;
     }
 
-    (void) client_send_event_move(s_client, x, y);
+    enact_client_move(s_client, x, y);
 }
 
 
@@ -275,10 +276,8 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
         nh = 1;
     }
 
-    (void) client_send_event_resize(s_client,
-            nx, ny,
-            geom_clamp_dim(nw),
-            geom_clamp_dim(nh));
+    enact_client_resize(s_client, nx, ny,
+            geom_clamp_dim(nw), geom_clamp_dim(nh));
 }
 
 

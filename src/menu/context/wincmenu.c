@@ -4,8 +4,8 @@
  * @brief Window context menu implementation
  *
  * Builds and manages the right-click context menu for client windows.
- * Actions are dispatched via the standard event queue so they are
- * processed on the next event loop iteration.
+ * Actions are dispatched by calling the matching 'enact' function
+ * directly, taking effect immediately
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -32,22 +32,20 @@
 #include <utils/safe/safestr.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <action.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <event.h>
-#include <eventq.h>
+#include <enact.h>
+#include <logger.h>
 #include <lookup.h>
-#include <priority.h>
 #include <surface.h>
 #include <wm.h>
 
 /* CMD includes */
-#include <cmds/ccmd.h>
-#include <cmds/layer.h>
-#include <cmds/state.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/state.h>
 
 /* Input includes */
 /* Keyboard modal move/resize */
@@ -125,16 +123,13 @@ static const config_td *s_config = NULL;
 /**
  * @brief Callback: send client to a specific desktop
  *
- * @param connection XCB connection (unused; dispatch is via event queue)
+ * @param connection XCB connection (unused)
  * @param userdata   Pointer to @c wincmenu_send_data_td
  */
 static void s_cb_send_to_desktop(xcb_connection_t *connection,
         void *userdata)
 {
     wincmenu_send_data_td *d;
-    action_td action;
-    action_data_desktop_td *data;
-    event_td *event;
 
     (void) connection;
 
@@ -146,39 +141,20 @@ static void s_cb_send_to_desktop(xcb_connection_t *connection,
         return;
     }
 
-    action.type = ACTION_TYPE_DESKTOP;
-    action.object.desktop = ACTION_DESKTOP_CLIENT_SEND;
-
-    data = action_data_desktop_init(d->src, action.object.desktop);
-    if (data == NULL) {
-        return;
-    }
-    data->client = d->client;
-    data->target = d->dst;
-
-    event = event_init((void *) d->src, (void *) data,
-            action, PRIORITY_NORMAL);
-    if (event == NULL) {
-        action_data_desktop_destroy(data);
-        return;
-    }
-    (void) eventq_add(event);
+    enact_desktop_client_send(d->src, d->client, d->dst);
 }
 
 
 /**
  * @brief Callback: send client to a specific monitor
  *
- * @param connection XCB connection (unused; dispatch is via event queue)
+ * @param connection XCB connection (unused)
  * @param userdata   Pointer to @c wincmenu_send_monitor_data_td
  */
 static void s_cb_send_to_monitor(xcb_connection_t *connection,
         void *userdata)
 {
     wincmenu_send_monitor_data_td *d;
-    action_td action;
-    action_data_client_td *data;
-    event_td *event;
 
     (void) connection;
 
@@ -190,22 +166,7 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
         return;
     }
 
-    action.type = ACTION_TYPE_CLIENT;
-    action.object.client = ACTION_CLIENT_MOVE_TO_MONITOR;
-
-    data = action_data_client_init(d->client, action.object.client);
-    if (data == NULL) {
-        return;
-    }
-    data->new_data.uvalue = d->monitor_index;
-
-    event = event_init((void *) d->client, (void *) data,
-            action, PRIORITY_NORMAL);
-    if (event == NULL) {
-        action_data_client_destroy(data);
-        return;
-    }
-    (void) eventq_add(event);
+    enact_client_move_to_monitor(d->client, d->monitor_index);
 }
 
 
@@ -370,7 +331,7 @@ static void s_cb_resize(xcb_connection_t *connection,
     }
 
     if (client_is_shaded(s_target_client)) {
-        wcmd_client_unshade(s_target_client);
+        ccmd_client_unshade(s_target_client);
     }
 
     surface = wm_get_surface_by_id(s_target_client->screen_id);
@@ -431,8 +392,76 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
 
     (void) connection;
 
-    if (s_target_client != NULL) {
-        (void) client_send_event(s_target_client, action, PRIORITY_NORMAL);
+    if (s_target_client == NULL) {
+        return;
+    }
+
+    switch (action) {
+        case ACTION_CLIENT_CLOSE:
+            enact_client_close(s_target_client);
+            break;
+        case ACTION_CLIENT_HIDE:
+            enact_client_hide(s_target_client);
+            break;
+        case ACTION_CLIENT_ICONIFY:
+            enact_client_iconify(s_target_client);
+            break;
+        case ACTION_CLIENT_LAYER_ABOVE:
+            enact_client_layer_above(s_target_client);
+            break;
+        case ACTION_CLIENT_LAYER_BELOW:
+            enact_client_layer_below(s_target_client);
+            break;
+        case ACTION_CLIENT_LAYER_NORMAL:
+            enact_client_layer_normal(s_target_client);
+            break;
+        case ACTION_CLIENT_MAXIMIZE:
+            enact_client_maximize(s_target_client);
+            break;
+        case ACTION_CLIENT_RESTORE:
+            enact_client_restore(s_target_client);
+            break;
+        case ACTION_CLIENT_TOGGLE_DECORATION:
+            enact_client_toggle_decoration(s_target_client);
+            break;
+        case ACTION_CLIENT_TOGGLE_FULLSCREEN:
+            enact_client_toggle_fullscreen(s_target_client);
+            break;
+        case ACTION_CLIENT_TOGGLE_SHADE:
+            enact_client_toggle_shade(s_target_client);
+            break;
+        case ACTION_CLIENT_TOGGLE_STICKY:
+            enact_client_toggle_sticky(s_target_client);
+            break;
+        case ACTION_CLIENT_KILL:
+        case ACTION_CLIENT_FOCUS:
+        case ACTION_CLIENT_UNFOCUS:
+        case ACTION_CLIENT_RESIZE:
+        case ACTION_CLIENT_MOVE:
+        case ACTION_CLIENT_CENTER:
+        case ACTION_CLIENT_MOVE_NEXT_MONITOR:
+        case ACTION_CLIENT_MOVE_TO_MONITOR:
+        case ACTION_CLIENT_RECLASS:
+        case ACTION_CLIENT_REROLE:
+        case ACTION_CLIENT_RENAME:
+        case ACTION_CLIENT_MAXIMIZE_HORZ:
+        case ACTION_CLIENT_MAXIMIZE_VERT:
+        case ACTION_CLIENT_UNHIDE:
+        case ACTION_CLIENT_SHADE:
+        case ACTION_CLIENT_UNSHADE:
+        case ACTION_CLIENT_STICKY:
+        case ACTION_CLIENT_UNSTICKY:
+        case ACTION_CLIENT_FULLSCREEN:
+        case ACTION_CLIENT_UNFULLSCREEN:
+        case ACTION_CLIENT_RAISE:
+        case ACTION_CLIENT_LOWER:
+        case ACTION_CLIENT_CYCLE_LAYER:
+        case ACTION_CLIENT_SET_URGENT:
+        case ACTION_CLIENT_CLEAR_URGENT:
+        case ACTION_CLIENT_SET_ICON:
+            LOGGER_WARNING("Unexpected action %d routed through" \
+                    " 's_cb_send_action'", action);
+            break;
     }
 }
 
@@ -452,10 +481,9 @@ static void s_cb_decorate(xcb_connection_t *connection,
 
     if (s_target_client != NULL) {
         if (client_is_shaded(s_target_client)) {
-            wcmd_client_unshade(s_target_client);
+            ccmd_client_unshade(s_target_client);
         }
-        (void) client_send_event(s_target_client,
-                ACTION_CLIENT_TOGGLE_DECORATION, PRIORITY_NORMAL);
+        enact_client_toggle_decoration(s_target_client);
     }
 }
 
@@ -687,7 +715,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * only) can still be moved, but fully-maximized and fullscreen
      * windows cannot be moved or resized at all.  Restore, on the other
      * hand, is available from any maximized state (full, horizontal, or
-     * vertical) as well as fullscreen, since 'wcmd_client_restore'
+     * vertical) as well as fullscreen, since 'ccmd_client_restore'
      * already handles all of them. */
     can_restore = client_is_maximized_any(client)
         || client_is_fullscreen(client);
@@ -816,7 +844,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * WM-forced override of the client's own preferred geometry, not
      * a user-convenience resize the client's own fixed size hints
      * (client_is_resizable) have any say over; see
-     * 'wcmd_client_fullscreen''s own comment for the full reasoning. */
+     * 'ccmd_client_fullscreen''s own comment for the full reasoning. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
                 ? STR_WINCMENU_FULLSCREEN_EXIT

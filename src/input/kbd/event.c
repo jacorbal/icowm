@@ -44,20 +44,18 @@
 #include <handler/internal.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/scmd.h>
+#include <cmds/client/basic.h>
+#include <cmds/surface.h>
 
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/kbd.h>
 
 /* Project includes */
-#include <action.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <event.h>
-#include <eventq.h>
+#include <enact.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -307,8 +305,8 @@ static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
  * @brief Dispatch a single-client action triggered by a key binding
  *
  * Resolves the focused client and dispatches the action identified by
- * @p btype.  Each binding type maps to exactly one @c action_client_e
- * value.  Actions that require resize capability (maximize, fullscreen)
+ * @p btype.  Each binding type maps to exactly one @c enact_client_*
+ * function.  Actions that require resize capability (maximize, fullscreen)
  * are silently dropped when the client is not resizable.
  *
  * @param btype    Keyboard binding type (one of the @c KEYBIND_CLIENT_*
@@ -370,6 +368,8 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_RESIZE_UP:
         case KEYBIND_CLIENT_RESIZE_DOWN:
         case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -397,72 +397,60 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_ICONIFY:
-            client_send_event(client, ACTION_CLIENT_ICONIFY,
-                    PRIORITY_NORMAL);
+            enact_client_iconify(client);
             return;
 
         case KEYBIND_CLIENT_HIDE:
-            client_send_event(client, ACTION_CLIENT_HIDE,
-                    PRIORITY_NORMAL);
+            enact_client_hide(client);
             return;
 
         case KEYBIND_CLIENT_CLOSE:
-            client_send_event(client, ACTION_CLIENT_CLOSE,
-                    PRIORITY_NORMAL);
+            enact_client_close(client);
             return;
 
         case KEYBIND_CLIENT_KILL:
-            client_send_event(client, ACTION_CLIENT_KILL,
-                    PRIORITY_NORMAL);
+            enact_client_kill(client);
             return;
 
         case KEYBIND_CLIENT_MAXIMIZE:
             if (!client_is_resizable(client)) { return; }
-            client_send_event(client, ACTION_CLIENT_MAXIMIZE,
-                    PRIORITY_NORMAL);
+            enact_client_maximize(client);
             return;
 
         case KEYBIND_CLIENT_CENTER:
-            client_send_event(client, ACTION_CLIENT_CENTER,
-                    PRIORITY_NORMAL);
+            enact_client_center(client);
             return;
 
         case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-            client_send_event(client, ACTION_CLIENT_MOVE_NEXT_MONITOR,
-                    PRIORITY_NORMAL);
+            enact_client_move_next_monitor(client);
             return;
 
         case KEYBIND_CLIENT_SHADE:
-            client_send_event(client, ACTION_CLIENT_TOGGLE_SHADE,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_shade(client);
             return;
 
         case KEYBIND_CLIENT_FULLSCREEN:
             /* No 'client_is_resizable' gate, unlike maximize above;
-             * see 'wcmd_client_fullscreen''s own comment for why
+             * see 'ccmd_client_fullscreen''s own comment for why
              * fullscreen is deliberately exempt from it. */
-            client_send_event(client, ACTION_CLIENT_TOGGLE_FULLSCREEN,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_fullscreen(client);
             return;
 
         case KEYBIND_CLIENT_PIN:
-            client_send_event(client, ACTION_CLIENT_TOGGLE_STICKY,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_sticky(client);
             return;
 
         case KEYBIND_CLIENT_TOGGLE_DECORATION:
             /* Unshade first: toggling decoration while shaded would
              * leave the window in an inconsistent visual state */
             if (client_is_shaded(client)) {
-                wcmd_client_unshade(client);
+                ccmd_client_unshade(client);
             }
-            client_send_event(client, ACTION_CLIENT_TOGGLE_DECORATION,
-                    PRIORITY_NORMAL);
+            enact_client_toggle_decoration(client);
             return;
 
         case KEYBIND_CLIENT_CYCLE_LAYER:
-            client_send_event(client, ACTION_CLIENT_CYCLE_LAYER,
-                    PRIORITY_NORMAL);
+            enact_client_cycle_layer(client);
             return;
     }
 }
@@ -667,26 +655,34 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
 
         switch (btype) {
             case KEYBIND_DESKTOP_NEXT:
-            case KEYBIND_DESKTOP_PREV: {
+            case KEYBIND_DESKTOP_PREV:
                 if (surface != NULL) {
-                    event_td *ev;
-                    action_td action;
-                    action.type = ACTION_TYPE_SURFACE;
-                    action.object.surface =
-                        (btype == KEYBIND_DESKTOP_NEXT)
-                            ? ACTION_SURFACE_DESKTOP_SWITCH_NEXT
-                            : ACTION_SURFACE_DESKTOP_SWITCH_PREV;
-                    ev = event_init((void *) surface, NULL, action,
-                            PRIORITY_NORMAL);
-                    if (ev != NULL) { eventq_add(ev); }
+                    if (btype == KEYBIND_DESKTOP_NEXT) {
+                        enact_surface_desktop_switch_next(surface);
+                    } else {
+                        enact_surface_desktop_switch_prev(surface);
+                    }
                 }
                 return;
-            }
 
             case KEYBIND_DESKTOP_SHOW:
                 if (surface != NULL) {
-                    hi_handle_net_showing_desktop(surface,
+                    enact_desktop_show(lookup_current_desktop(surface),
                             !surface->showing_desktop);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
+                if (surface != NULL) {
+                    enact_desktop_clients_iconify_all(
+                            lookup_current_desktop(surface));
+                }
+                return;
+
+            case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
+                if (surface != NULL) {
+                    enact_desktop_clients_deiconify_all(
+                            lookup_current_desktop(surface));
                 }
                 return;
 
@@ -701,12 +697,8 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_DESKTOP_GOTO_8:
             case KEYBIND_DESKTOP_GOTO_9:
                 if (surface != NULL) {
-                    action_data_surface_td sdata;
-                    sdata.surface = surface;
-                    sdata.action_surface = ACTION_SURFACE_DESKTOP_SWITCH;
-                    sdata.new_data.uvalue = (uint32_t) (btype -
-                            KEYBIND_DESKTOP_GOTO_0);
-                    scmd_surface_desktop_switch(surface, &sdata);
+                    enact_surface_desktop_switch(surface,
+                            (uint32_t) (btype - KEYBIND_DESKTOP_GOTO_0));
                 }
                 return;
 
@@ -715,13 +707,16 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 if (surface != NULL) {
                     desktop_td *desktop =
                         lookup_current_desktop(surface);
-                    xcb_connection_t *conn = surface->connection;
-                    if (desktop != NULL && conn != NULL) {
-                        int dir = (btype == KEYBIND_CLIENT_CYCLE_NEXT)
-                            ? 1 : -1;
-                        cycle_open(surfaces, conn, surface, desktop,
-                                false, dir, bmm, config);
-                        cycle_draw(conn, config);
+                    if (desktop != NULL) {
+                        if (btype == KEYBIND_CLIENT_CYCLE_NEXT) {
+                            enact_desktop_cycle_clients_active(surfaces,
+                                    surface->connection, surface,
+                                    desktop, bmm, config);
+                        } else {
+                            enact_desktop_cycle_clients_prev(surfaces,
+                                    surface->connection, surface,
+                                    desktop, bmm, config);
+                        }
                     }
                 }
                 return;
@@ -731,13 +726,16 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
                 if (surface != NULL) {
                     desktop_td *desktop =
                         lookup_current_desktop(surface);
-                    xcb_connection_t *conn = surface->connection;
-                    if (desktop != NULL && conn != NULL) {
-                        int dir = (btype == KEYBIND_DESKTOP_ICON_NEXT)
-                            ? 1 : -1;
-                        cycle_open(surfaces, conn, surface, desktop,
-                                true, dir, bmm, config);
-                        cycle_draw(conn, config);
+                    if (desktop != NULL) {
+                        if (btype == KEYBIND_DESKTOP_ICON_NEXT) {
+                            enact_desktop_cycle_clients_icons_next(
+                                    surfaces, surface->connection,
+                                    surface, desktop, bmm, config);
+                        } else {
+                            enact_desktop_cycle_clients_icons_prev(
+                                    surfaces, surface->connection,
+                                    surface, desktop, bmm, config);
+                        }
                     }
                 }
                 return;

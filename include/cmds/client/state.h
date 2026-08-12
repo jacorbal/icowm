@@ -1,5 +1,5 @@
 /**
- * @file cmds/state.h
+ * @file cmds/client/state.h
  *
  * @brief Client state-transition command declarations: shading,
  *        fullscreen, and decoration toggling
@@ -7,7 +7,7 @@
  * Declares commands that change a client's visual state in ways that
  * require XCB geometry manipulation beyond a simple flag update, i.e.,
  * shade/unshade, fullscreen/unfullscreen, and decoration toggle.
- * Focus and visibility commands are declared in @c cmds/ccmd.h.
+ * Focus and visibility commands are declared in @c cmds/client/basic.h.
  *
  * @ingroup cmds
  */
@@ -19,8 +19,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_STATE_H
-#define CMDS_STATE_H
+#ifndef CMDS_CCMD_STATE_H
+#define CMDS_CCMD_STATE_H
 
 
 /* Project includes */
@@ -39,7 +39,7 @@
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_shade(client_td *client);
+void ccmd_client_shade(client_td *client);
 
 /**
  * @brief Unshade (roll-down) the client window
@@ -52,19 +52,19 @@ void wcmd_client_shade(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_unshade(client_td *client);
+void ccmd_client_unshade(client_td *client);
 
 /**
  * @brief Toggle client shading state
  *
- * Calls @a wcmd_client_shade when the window is not shaded, and
- * @a wcmd_client_unshade when it is.
+ * Calls @a ccmd_client_shade when the window is not shaded, and
+ * @a ccmd_client_unshade when it is.
  *
  * @param client Window to toggle shade on
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_toggle_shade(client_td *client);
+void ccmd_client_toggle_shade(client_td *client);
 
 /**
  * @brief Set the client to fullscreen mode
@@ -77,7 +77,7 @@ void wcmd_client_toggle_shade(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_fullscreen(client_td *client);
+void ccmd_client_fullscreen(client_td *client);
 
 /**
  * @brief Remove fullscreen mode from the client
@@ -90,19 +90,19 @@ void wcmd_client_fullscreen(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_unfullscreen(client_td *client);
+void ccmd_client_unfullscreen(client_td *client);
 
 /**
  * @brief Toggle fullscreen mode for the client
  *
- * Calls @a wcmd_client_fullscreen when not in fullscreen mode, and
- * @a wcmd_client_unfullscreen when it is.
+ * Calls @a ccmd_client_fullscreen when not in fullscreen mode, and
+ * @a ccmd_client_unfullscreen when it is.
  *
  * @param client Window to toggle fullscreen state on
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_toggle_fullscreen(client_td *client);
+void ccmd_client_toggle_fullscreen(client_td *client);
 
 /**
  * @brief Toggle window decoration on or off for the client
@@ -116,7 +116,7 @@ void wcmd_client_toggle_fullscreen(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void wcmd_client_toggle_decoration(client_td *client);
+void ccmd_client_toggle_decoration(client_td *client);
 
 
-#endif  /* ! CMDS_STATE_H */
+#endif  /* ! CMDS_CCMD_STATE_H */

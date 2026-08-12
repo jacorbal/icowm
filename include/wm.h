@@ -31,7 +31,6 @@
 
 /* Project includes */
 #include <config.h>
-#include <eventq.h>
 #include <surface.h>
 
 
@@ -147,7 +146,7 @@ typedef struct {
  * @retval  2 Cannot open X connection
  * @retval  3 Cannot open load configuration
  * @retval  4 to @c 10 Failed to initialize other internal data
- *            structures (event queue, surfaces, RandR, and so on)
+ *            structures (surfaces, RandR, and so on)
  * @retval 11 Restricted-memory mode's ceiling is already below
  *            available system memory; refused to start at all
  * @retval -1 Singleton was already initialized; no action taken
@@ -236,9 +235,7 @@ int wm_action_config_reload(void);
 /**
  * @brief Perform actions required before destroying the window manager
  *
- * Executes necessary actions required before invoking @a wm_stop, such
- * as sending additional events to the @p eventq priority queue and
- * ensuring it's completely empty by calling the required actions.
+ * Executes necessary actions required before invoking @a wm_stop
  *
  * @return Status of the operation
  * @retval  0 Success
@@ -281,9 +278,9 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
 /**
  * @brief Query whether the XSync extension is available on this server
  *
- * Used by @c client_manage to decide whether to create a per-client
+ * Used by @c client_init to decide whether to create a per-client
  * sync counter/alarm for @c _NET_WM_SYNC_REQUEST, and by
- * @c wcmd_client_resize to decide whether to throttle interactive
+ * @c ccmd_client_resize to decide whether to throttle interactive
  * resize on that client's acknowledgement.
  *
  * @return @c true when @c startup_sync_init found XSync present and

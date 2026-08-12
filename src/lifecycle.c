@@ -28,16 +28,12 @@
 #include <defs/desktop.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <action.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <event.h>
-#include <eventq.h>
 #include <logger.h>
 #include <lookup.h>
-#include <priority.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -107,7 +103,7 @@ void lifecycle_scan_existing(wm_td *wm)
                 desktop_td *desktop =
                     lookup_current_desktop(surface);
                 if (desktop != NULL) {
-                    client_td *client = client_manage(
+                    client_td *client = client_init(
                             wm->connection, wm->ewmh,
                             children[i], &wm->config->theme,
                             &wm->config->base);

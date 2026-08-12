@@ -1,5 +1,5 @@
 /**
- * @file cmds/meta.c
+ * @file cmds/client/meta.c
  *
  * @brief Client metadata command implementation
  */
@@ -25,28 +25,27 @@
 #include <utils/xcb/atom.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 #include <logger.h>
 
 /* Local includes */
-#include <cmds/meta.h>
-#include <cmds/util.h>
+#include <cmds/client/meta.h>
+#include <cmds/client/internal.h>
 
 
 /* Rename the client window */
-void wcmd_client_rename(client_td *client,
-        action_data_client_td *client_data)
+/* Rename the client window */
+void ccmd_client_rename(client_td *client, const char *name)
 {
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL || name == NULL) {
         return;
     }
 
     LOGGER_TRACE("Renaming client window=0x%x to '%s'", client->window,
-            client_data->new_data.str.str0);
+            name);
 
     free(client->info.name);
-    client->info.name = safe_strdup(client_data->new_data.str.str0);
+    client->info.name = safe_strdup(name);
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,
@@ -64,29 +63,25 @@ void wcmd_client_rename(client_td *client,
 
 
 /* Change the 'WM_CLASS' of the client window */
-void wcmd_client_reclass(client_td *client,
-        action_data_client_td *client_data)
+void ccmd_client_reclass(client_td *client, const char *class_name,
+        const char *instance_name)
 {
     char *wm_class_combined;
     size_t wm_class_combined_len;
     size_t len0;
     size_t len1;
 
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL || class_name == NULL || instance_name == NULL) {
         return;
     }
 
     LOGGER_TRACE("Setting 'WM_CLASS' for client window=0x%x to" \
-            " '%s'/'%s'", client->window,
-            client_data->new_data.str.str0,
-            client_data->new_data.str.str1);
+            " '%s'/'%s'", client->window, class_name, instance_name);
 
     free(client->info.class_name[0]);
     free(client->info.class_name[1]);
-    client->info.class_name[0] =
-        safe_strdup(client_data->new_data.str.str0);
-    client->info.class_name[1] =
-        safe_strdup(client_data->new_data.str.str1);
+    client->info.class_name[0] = safe_strdup(class_name);
+    client->info.class_name[1] = safe_strdup(instance_name);
 
     /* The 'WM_CLASS' property contains two consecutive null-terminated
      * strings (ICCCM v 2.0, §4.1.2.5).  A single buffer is built
@@ -114,21 +109,19 @@ void wcmd_client_reclass(client_td *client,
 
 
 /* Change the 'WM_WINDOW_ROLE' of the client window */
-void wcmd_client_rerole(client_td *client,
-        action_data_client_td *client_data)
+void ccmd_client_rerole(client_td *client, const char *role)
 {
     xcb_atom_t role_atom;
 
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL || role == NULL) {
         return;
     }
 
     LOGGER_TRACE("Setting 'WM_WINDOW_ROLE' for client window=0x%x to" \
-            " '%s'", client->window, client_data->new_data.str.str0);
+            " '%s'", client->window, role);
 
     free(client->info.role_name);
-    client->info.role_name =
-        safe_strdup(client_data->new_data.str.str0);
+    client->info.role_name = safe_strdup(role);
 
     role_atom = atom_intern(client->connection, "WM_WINDOW_ROLE", false);
     if (role_atom == XCB_ATOM_NONE) {
@@ -147,15 +140,14 @@ void wcmd_client_rerole(client_td *client,
 
 
 /* Set the icon name for the client window */
-void wcmd_client_set_icon(client_td *client,
-        action_data_client_td *client_data)
+void ccmd_client_set_icon(client_td *client, const char *icon_name)
 {
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL || icon_name == NULL) {
         return;
     }
 
     LOGGER_TRACE("Setting icon name for client window=0x%x to '%s'",
-            client->window, client_data->new_data.str.str0);
+            client->window, icon_name);
 
     xcb_change_property(client->connection,
             XCB_PROP_MODE_REPLACE,
@@ -163,10 +155,10 @@ void wcmd_client_set_icon(client_td *client,
             XCB_ATOM_WM_ICON_NAME,
             XCB_ATOM_STRING,
             8,
-            (uint32_t) safe_strlen(client_data->new_data.str.str0),
-            client_data->new_data.str.str0);
+            (uint32_t) safe_strlen(icon_name),
+            icon_name);
 
     xcb_ewmh_set_wm_icon_name(client->ewmh, client->window,
-            (uint32_t) safe_strlen(client_data->new_data.str.str0),
-            client_data->new_data.str.str0);
+            (uint32_t) safe_strlen(icon_name),
+            icon_name);
 }

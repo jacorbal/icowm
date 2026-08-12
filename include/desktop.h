@@ -316,6 +316,24 @@ int desktop_action_clients_rearrange(desktop_td *desktop);
 int desktop_action_clients_iconify_all(desktop_td *desktop);
 
 /**
+ * @brief Restore every iconified client on the current desktop
+ *
+ * Sets every client on the current desktop that is currently iconified
+ * (minimized) back to its normal state.  Clients that are not
+ * iconified are left untouched.
+ *
+ * @param desktop Pointer to the desktop to receive the action
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to perform the action
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
+ */
+int desktop_action_clients_deiconify_all(desktop_td *desktop);
+
+/**
  * @brief Cycle through active clients on the current desktop
  *
  * @param desktop Pointer to the desktop to receive the action

@@ -31,11 +31,11 @@
 #include <utils/xcb/atom.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/geom.h>
-#include <cmds/layer.h>
-#include <cmds/scmd.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
+#include <cmds/client/layer.h>
+#include <cmds/surface.h>
+#include <cmds/client/internal.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -44,7 +44,6 @@
 #include <render/outdate.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 #include <desktop.h>
 #include <handler.h>
@@ -214,13 +213,7 @@ void handler_client_message(wm_td *wm,
                         desktop = cur_desktop;
                     }
                 } else {
-                    action_data_surface_td surface_data;
-
-                    surface_data.surface = surface;
-                    surface_data.action_surface =
-                        ACTION_SURFACE_DESKTOP_SWITCH;
-                    surface_data.new_data.uvalue = desktop->id;
-                    scmd_surface_desktop_switch(surface, &surface_data);
+                    scmd_surface_desktop_switch(surface, desktop->id);
                     desktop = lookup_current_desktop(surface);
                 }
             }
@@ -250,9 +243,9 @@ void handler_client_message(wm_td *wm,
                     }
                 }
 
-                wcmd_client_restore(client);
+                ccmd_client_restore(client);
             } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-                wcmd_client_unhide(client);
+                ccmd_client_unhide(client);
             }
 
             if (desktop != NULL) {
@@ -270,7 +263,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
-            wcmd_client_close(client);
+            ccmd_client_close(client);
         }
         return;
     }
@@ -355,7 +348,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
-            wcmd_client_iconify(client);
+            ccmd_client_iconify(client);
             wm_outdate_surface(surface);
             wm_outdate_desktop(desktop);
         }

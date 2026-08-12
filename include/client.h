@@ -47,13 +47,7 @@
 /* Project includes */
 #include <action.h>
 #include <config.h>
-#include <event.h>
-#include <priority.h>
 #include <render/wmicon.h>
-
-
-/* Default priority on client creation */
-#define CLIENT_PRIORITY_DEFAULT (PRIORITY_NORMAL)
 
 
 /**
@@ -181,7 +175,7 @@ struct client_properties_s {
 
     /**
      * @brief The @c state this client was in right before it was last
-     *        iconified, so @c wcmd_client_restore can re-enter that
+     *        iconified, so @c ccmd_client_restore can re-enter that
      *        exact state (normal, maximized in any of its three
      *        variants, or fullscreen) instead of always landing back
      *        on plain @c CLIENT_STATE_NORMAL
@@ -372,7 +366,7 @@ typedef struct client_s {
      * so this header does not need to pull in @c xcb/sync.h; call sites
      * that actually issue XSync requests cast as needed.
      *
-     * @see @c wcmd_client_resize (throttling) and @c handler_sync_event
+     * @see @c ccmd_client_resize (throttling) and @c handler_sync_event
      * (acknowledgement) for how these fields are driven
      */
     bool has_net_wm_sync_request;   /**< Supports @c _NET_WM_SYNC_REQUEST */
@@ -380,7 +374,7 @@ typedef struct client_s {
                                          created and advertised via its
                                          own @c _NET_WM_SYNC_REQUEST_COUNTER
                                          property (read, not created, by
-                                         'client_manage'), or 0 if unset */
+                                         'client_init'), or 0 if unset */
     uint32_t sync_alarm;            /**< WM-owned alarm XID watching
                                          @p sync_counter for positive
                                          transitions, or 0 */
@@ -425,7 +419,7 @@ typedef struct client_s {
                                      'xcb_configure_window' when it
                                      would not actually change anything.
                                      Initialized to 'UINT32_MAX' by
-                                     'client_manage' so the very first
+                                     'client_init' so the very first
                                      render always applies the real
                                      value regardless of what it is */
     bool icon_last_cycle_sel;   /**< Whether the icon window was drawn
@@ -490,38 +484,6 @@ static inline xcb_window_t client_group_leader(const client_td *client)
 
 /* Public interface */
 /**
- * @brief Initialize a new client with the specified parameters
- *
- * Allocates and initializes a new client structure, attempting to
- * retrieve its properties from the X server (@c WM_NAME, @c WM_CLASS)
- * and creating an XCB window with the given dimensions and position.
- * The client is initialized in a hidden state.
- *
- * @param connection Pointer to the XCB connection
- * @param ewmh       EWMH connection, for reading initial state and
- *                   properties from the X server
- * @param parent_id  Pointer to the parent client index
- * @param w          Width of the client in pixels
- * @param h          Height of the client in pixels
- * @param x          X-coordinate of the client position
- * @param y          Y-coordinate of the client position
- * @param theme      Pointer to the theme configuration
- * @param config_base Pointer to the base configuration
- *
- * @return A pointer to the newly created client structure, or @c NULL
- *         on failure
- *
- * @note Complexity: @e O(1) for creating a client structure, excluding
- *       X server interactions and property retrieval costs
- */
-client_td *client_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
-        xcb_window_t parent_id,
-        uint32_t w, uint32_t h, int32_t x, int32_t y,
-        struct config_theme_s *theme,
-        const struct config_base_s *config_base);
-
-/**
  * @brief Destroy the specified client and free associated resources
  *
  * Deallocates all memory associated with the client, including the
@@ -568,7 +530,7 @@ void client_sync_decoration_layout(client_td *client);
  * inactive border widths are equal), when @p client has no theme, when
  * @p client is not decorated, or when @p client is currently
  * fullscreen: a fullscreen client's frame extents are deliberately
- * zeroed by @c wcmd_client_fullscreen regardless of what the theme
+ * zeroed by @c ccmd_client_fullscreen regardless of what the theme
  * says, and this function would otherwise read that as "the theme
  * changed" and restore the border/titlebar space, reintroducing a gap
  * where the titlebar used to be even though it stays unmapped.
@@ -678,7 +640,7 @@ void client_constrain_size(const client_td *client,
  * This must be called after any WM-initiated change to the client's
  * screen-relative position or content size:
  *   - after the initial frame placement (@c place_apply)
- *   - after a keyboard or programmatic resize (@c wcmd_client_resize)
+ *   - after a keyboard or programmatic resize (@c ccmd_client_resize)
  *   - after a gravity-triggered repositioning
  *
  * @param connection XCB connection handle
@@ -692,7 +654,7 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
         const client_td *client);
 
 /**
- * @brief Adopt an existing X window under window manager control
+ * @brief Initialize a new client, adopting an existing X window
  *
  * Wraps an existing X window in a client structure without creating a
  * new window.  Reads the @c WM_NAME and @c WM_CLASS hints, queries the
@@ -713,7 +675,7 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
  *       caller is responsible for calling @c xcb_map_window when ready
  * @note Complexity: @e O(1)
  */
-client_td *client_manage(xcb_connection_t *connection,
+client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         struct config_theme_s *theme,
         const struct config_base_s *config_base);
@@ -730,112 +692,6 @@ client_td *client_manage(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void client_update(client_td *client);
-
-/**
- * @brief Generic event sender for a client
- *
- * Creates and sends an event for a specified action on a client.  The
- * event is inserted into the event priority queue for processing by the
- * main event handler.
- *
- * @param client        Pointer to the target client
- * @param action_client Action to be performed on the client
- * @param priority      Priority level of the action
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events
- *       in the priority queue
- */
-int client_send_event(client_td *client,
-        enum action_client_e action_client, enum priority_e priority);
-
-/**
- * @brief Send an event to rename a specified client
- *
- * Creates an event to update the name of the client.  The new name is
- * passed as part of the event data for processing by the handler.
- *
- * @param client   Pointer to the client to be renamed
- * @param new_name New name for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
-int client_send_event_rename(client_td *client, const char *new_name);
-
-/**
- * @brief Send an event to change the class of a specified client
- *
- * Creates an event to update the class of the client.  The new class is
- * passed as part of the event data for processing by the handler.
- *
- * @param client    Pointer to the client to be reclassified
- * @param new_class New class for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
-int client_send_event_reclass(client_td *client, const char *new_class);
-
-/**
- * @brief Send event to move the specified client to given coordinates
- *
- * Creates an event to move the client to the specified @e (x, y)
- * position.  The new coordinates are passed as part of the event data.
- *
- * @param client Pointer to the client to be moved
- * @param new_x  New @e x coordinate for the client
- * @param new_y  New @e y coordinate for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
-int client_send_event_move(client_td *client,
-        int32_t new_x, int32_t new_y);
-
-/**
- * @brief Send an event to resize the specified client
- *
- * Creates an event to resize the client to the specified frame
- * geometry.  The new position and dimensions are passed as part of the
- * event data.
- *
- * @param client Pointer to the client to be resized
- * @param new_x  New @e x coordinate for the client
- * @param new_y  New @e y coordinate for the client
- * @param new_w  New width for the client
- * @param new_h  New height for the client
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
-int client_send_event_resize(client_td *client,
-        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h);
-
-/**
- * @brief Send an event to change the icon of a specified client
- *
- * Creates an event to update the icon of the client.  The icon name is
- * passed as part of the event data for processing by the handler.
- *
- * @param client    Pointer to the client for which the icon is to change
- * @param icon_name File path of the new icon
- *
- * @return 0 on success, -1 otherwise
- *
- * @note Complexity: @e O(log n), where @e n is the number of events in
- *       the priority queue
- */
-int client_send_event_set_icon(client_td *client, const char *icon_name);
 
 /**
  * @brief Refresh the managed client's name from X11 properties
@@ -903,213 +759,6 @@ void client_props_refresh_wm_hints(client_td *client);
 void client_props_refresh_normal_hints(client_td *client);
 
 /**
- * @brief Macro that sends an event to close the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_close(w) \
-    client_send_event(w, ACTION_CLIENT_CLOSE, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that sends an event to restore the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_restore(w) \
-    client_send_event(w, ACTION_CLIENT_RESTORE, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that sends an event to give focus to the specified
- *        client
- *
- * @see @a client_send_event
- */
-#define client_send_event_focus(w) \
-    client_send_event(w, ACTION_CLIENT_FOCUS, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that sends an event to set unfocused the specified
- *        client
- *
- * @see @a client_send_event
- */
-#define client_send_event_unfocus(w) \
-    client_send_event(w, ACTION_CLIENT_UNFOCUS, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        iconify (and minimize) the specified client
- *
- * Iconifying will hide the client, but in reality it's minimized, plus
- * an icon representing the client is placed on the desktop.  If there's
- * interaction with the icon, the client will be restored and the icon
- * vanished.  When using a generic taskbar, the iconified process should
- * appear as minimized, and when restored, the icon should be gone as
- * well.
- *
- * @see @a client_send_event
- */
-#define client_send_event_iconify(w) \
-    client_send_event(w, ACTION_CLIENT_ICONIFY, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        maximize the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_maximize(w) \
-    client_send_event(w, ACTION_CLIENT_MAXIMIZE, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        horizontally maximize the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_maximize_horz(w) \
-    client_send_event(w, ACTION_CLIENT_MAXIMIZE_HORZ, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        vertically maximize the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_maximize_vert(w) \
-    client_send_event(w, ACTION_CLIENT_MAXIMIZE_VERT, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        make sticky the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_sticky(w) \
-    client_send_event(w, ACTION_CLIENT_STICKY, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        make not sticky the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_unsticky(w) \
-    client_send_event(w, ACTION_CLIENT_UNSTICKY, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        toggle the sticky state the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_sticky_toggle(w) \
-    client_send_event(w, ACTION_CLIENT_TOGGLE_STICKY, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        make full screen the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_fullscreen(w) \
-    client_send_event(w, ACTION_CLIENT_FULLSCREEN, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        remove the full screen state from the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_fullscreen_toggle(w) \
-    client_send_event(w, ACTION_CLIENT_TOGGLE_FULLSCREEN, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        center the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_center(w) \
-    client_send_event(w, ACTION_CLIENT_CENTER, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        move the specified client to the next monitor on its own
- *        surface
- *
- * @see @a client_send_event
- */
-#define client_send_event_move_next_monitor(w) \
-    client_send_event(w, ACTION_CLIENT_MOVE_NEXT_MONITOR, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        raise the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_raise(w) \
-    client_send_event(w, ACTION_CLIENT_RAISE, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        lower the specified client
- *
- * @see @a client_send_event
- */
-#define client_send_event_lower(w) \
-    client_send_event(w, ACTION_CLIENT_LOWER, CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        set specified client on the top desktop layer
- *
- * @see @a client_send_event
- */
-#define client_send_event_layer_on_top(w) \
-    client_send_event(w, ACTION_CLIENT_LAYER_ABOVE, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        set specified client on the normal desktop layer
- *
- * @see @a client_send_event
- */
-#define client_send_event_layer_on_bottom(w) \
-    client_send_event(w, ACTION_CLIENT_LAYER_BELOW, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        set specified client on the bottom desktop layer
- *
- * @see @a client_send_event
- */
-#define client_send_event_layer_normal(w) \
-    client_send_event(w, ACTION_CLIENT_LAYER_NORMAL, \
-            CLIENT_PRIORITY_DEFAULT)
-
-/**
- * @brief Macro that performs the action that initializes an event to
- *        set specified client on urgency level
- *
- * @see @a client_send_event
- */
-#define client_send_event_set_urgent(w) \
-    client_send_event(w, ACTION_CLIENT_SET_URGENT, PRIORITY_HIGHER)
-
-/**
  * @brief Macro that evaluates to the client iconify state
  *
  * @note Complexity: @e O(1)
@@ -1155,8 +804,8 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  *
- * @see @c wcmd_client_maximize, @c wcmd_client_maximize_horz,
- *      @c wcmd_client_maximize_vert, and @c wcmd_client_iconify.
+ * @see @c ccmd_client_maximize, @c ccmd_client_maximize_horz,
+ *      @c ccmd_client_maximize_vert, and @c ccmd_client_iconify.
  */
 #define client_is_maximized_any(w) \
     (client_is_maximized(w) || client_is_maximized_horz(w) || \

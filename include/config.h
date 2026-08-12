@@ -488,6 +488,15 @@ struct config_bindings_s {
             char fullscreen[CONFIG_MAX_LENGTH_BINDING];
             char hide[CONFIG_MAX_LENGTH_BINDING];
             char iconify[CONFIG_MAX_LENGTH_BINDING];
+
+            /** Iconify (minimize) every client on the current
+             *  desktop */
+            char iconify_all[CONFIG_MAX_LENGTH_BINDING];
+
+            /** Restore every iconified client on the current
+             *  desktop */
+            char deiconify_all[CONFIG_MAX_LENGTH_BINDING];
+
             char info[CONFIG_MAX_LENGTH_BINDING];
             char layer[CONFIG_MAX_LENGTH_BINDING];
             char kill[CONFIG_MAX_LENGTH_BINDING];

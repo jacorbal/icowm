@@ -33,7 +33,6 @@
 #include <xcb/xcb_ewmh.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 #include <desktop.h>
 #include <surface.h>

@@ -72,6 +72,25 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
 void place_apply(wm_td *wm, surface_td *surface, client_td *client);
 
 /**
+ * @brief Place the client following the cascade policy, unconditionally
+ *
+ * Ignores @c windows.placement.policy entirely and always steps the
+ * client to the next cascade slot, regardless of which policy is
+ * actually configured.  Meant for callers that need a predictable,
+ * non-overlapping spread across several clients in a row (see
+ * @c enact_desktop_clients_rearrange), not for placing a single newly
+ * mapped client, which should call @c place_apply instead
+ *
+ * @param wm      Window manager instance
+ * @param surface Surface the client lives on
+ * @param client  Client to place
+ *
+ * @note Complexity: @e O(1)
+ */
+void place_apply_cascade(wm_td *wm, surface_td *surface,
+        client_td *client);
+
+/**
  * @brief Compute the icon window position for a newly iconified client
  *
  * Chooses an X/Y coordinate for @p client's icon window according to

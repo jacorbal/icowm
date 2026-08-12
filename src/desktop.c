@@ -40,7 +40,6 @@
 
 /* Project includes */
 #include <client.h>
-#include <eventq.h>
 #include <logger.h>
 #include <memguard.h>
 
@@ -504,14 +503,6 @@ void desktop_destroy(desktop_td *desktop)
 
     LOGGER_DEBUG("Destroying desktop %u ('%s')",
             desktop->id, desktop->name);
-
-    /* Discard any event still queued for this desktop itself, before
-     * anything below frees the memory it points to; each client on
-     * it is separately covered by 'client_destroy''s own call to
-     * this same purge, triggered below via the hash table's
-     * destructor callback (see 'eventq_purge_object' for why this is
-     * needed at all). */
-    eventq_purge_object((const void *) desktop);
 
     /* Destroy stacking list (clients not destroyed here, just the list) */
     LOGGER_TRACE("Deallocating stacking list on desktop %u ('%s')",

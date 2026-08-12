@@ -39,22 +39,18 @@
 #include <types/pair.h>
 
 /* Command includes */
-#include <cmds/ccmd.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/internal.h>
 
 /* Default initial values */
 #include <defs/config.h>
 #include <defs/client.h>
 
 /* Project includes */
-#include <actdata.h>
 #include <action.h>
 #include <client.h>
 #include <config.h>
-#include <event.h>
-#include <eventq.h>
 #include <logger.h>
-#include <priority.h>
 #include <render/wmicon.h>
 #include <wm.h>
 
@@ -153,147 +149,6 @@ static void s_client_set_display_name(client_td *client, const char *name)
 }
 
 
-/* Initialize a new client with the specified parameters */
-client_td *client_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
-        xcb_window_t parent_id,
-        uint32_t w, uint32_t h, int32_t x, int32_t y,
-        struct config_theme_s *theme,
-        const struct config_base_s *config_base)
-{
-    client_td *client;
-    xcb_void_cookie_t create_cookie;
-    xcb_generic_error_t *err;
-    uint32_t mask;
-    uint32_t values[3];
-    char wm_name[256];
-    char wm_class[256];
-    char wm_instance[256];
-
-    LOGGER_TRACE("Initializing client at (%d, %d)" \
-            " with size %ux%u", x, y, w, h);
-
-    /* Allocate memory for the client structure and verify the
-     * allocation was successful before proceeding */
-    client = calloc(1, sizeof(client_td));
-    if (client == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for client", L_NARG);
-        return NULL;
-    }
-
-    s_client_init_common(client, connection, ewmh, theme, config_base);
-    client->parent_id = parent_id;
-    client->user_time = 0;
-
-    /* Set the current geometry, and the "old" as the current one.
-     * This allows for saved state when resizing or maximizing */
-    client->layout.geometry.cur =
-        (struct geometry_s) {.pos = {.x = x, .y = y},
-                             .dim = {.w = w, .h = h}};
-    client->layout.geometry.old = client->layout.geometry.cur;
-
-    /* Initialize strut and frame extents to zero.
-     * These are used for panel and decoration management */
-    client->layout.strut_partial.sides =
-        (struct sides_s) {0, 0, 0, 0};
-    client->layout.strut_partial.start =
-        (struct sides_s) {0, 0, 0, 0};
-    client->layout.strut_partial.end =
-        (struct sides_s) {0, 0, 0, 0};
-    client->layout.frame_extents =
-        (struct sides_s) {0, 0, 0, 0};
-
-    /* Initialize client properties with sensible defaults */
-    client->properties.flags |= CLIENT_FLAG_HIDDEN;
-
-    /* Allocate string buffers for client information */
-    if (ci_alloc_strings(client) != 0) {
-        LOGGER_ERROR("Failed to allocate string buffers for client",
-                L_NARG);
-        free(client);
-        return NULL;
-    }
-
-    /* Initialize default name strings */
-    snprintf(client->info.name,
-            CONFIG_MAX_LENGTH_NAME - 1, "Client %p", (void *) client);
-    snprintf(client->info.visible_name,
-            CONFIG_MAX_LENGTH_NAME - 1, "Client %p", (void *) client);
-
-    /* Create the XCB window that represents this client */
-    client->window = xcb_generate_id(connection);
-
-    /* Set window attributes using values from the theme configuration.
-     * Background pixel, border pixel, and event mask are theme-aware */
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
-           XCB_CW_EVENT_MASK;
-    values[0] = theme->window.inactive.color.background;
-    values[1] = theme->window.inactive.border.color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE         |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                XCB_EVENT_MASK_PROPERTY_CHANGE  |
-                XCB_EVENT_MASK_ENTER_WINDOW     |
-                XCB_EVENT_MASK_LEAVE_WINDOW     |
-                XCB_EVENT_MASK_FOCUS_CHANGE     |
-                XCB_EVENT_MASK_BUTTON_PRESS;
-
-    /* Create the window with checked cookie to detect immediate errors */
-    create_cookie = xcb_create_window_checked(
-            connection,
-            XCB_COPY_FROM_PARENT,
-            client->window,
-            parent_id,
-            (int16_t) x, (int16_t) y,
-            (uint16_t) w, (uint16_t) h,
-            (uint16_t) theme->window.active.border.width,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_COPY_FROM_PARENT,
-            mask, values);
-
-    err = xcb_request_check(connection, create_cookie);
-    if (err != NULL) {
-        LOGGER_ERROR("Failed to create X client window", L_NARG);
-        s_client_release_heap_fields(client);
-        free(err);
-        free(client);
-        return NULL;
-    }
-
-    /* Generate unique client identifier based on the address of the
-     * allocated client structure */
-    client->id = (xcb_window_t) (uintptr_t) client;
-
-    /* Attempt to retrieve 'WM_NAME' property from the X server to
-     * populate the client's name field instead of using a default */
-    ci_get_wm_name(connection, parent_id, wm_name, sizeof(wm_name));
-    s_client_set_display_name(client, wm_name);
-
-    /* Attempt to retrieve 'WM_CLASS' property from the X server to
-     * populate the client's class and instance names */
-    ci_get_wm_class(connection, parent_id,
-            wm_class, sizeof(wm_class),
-            wm_instance, sizeof(wm_instance));
-    if (wm_class[0] != '\0') {
-        safe_strncpy(client->info.class_name[1], wm_class,
-                CONFIG_MAX_LENGTH_NAME - 1);
-    }
-    if (wm_instance[0] != '\0') {
-        safe_strncpy(client->info.class_name[0], wm_instance,
-                CONFIG_MAX_LENGTH_NAME - 1);
-    }
-    client_props_refresh_role(client);
-
-    /* Map the window to make it visible on the screen and flush the
-     * output buffer to ensure the request is sent */
-    xcb_map_window(connection, client->window);
-    xcb_flush(connection);
-
-    LOGGER_TRACE("Created X window %#x for client %p" \
-            " with name '%s'",
-            client->window, (void *) client, client->info.name);
-
-    return client;
-}
 
 
 /* Destroy the specified client and free associated resources */
@@ -305,14 +160,6 @@ void client_destroy(client_td *client)
 
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
             (void *) client, client->window, client->info.name);
-
-    /* Discard any event still queued for this client (for example, a
-     * deferred focus request from 'client_send_event', not yet
-     * reached by 'eventq_process' when this client's own window
-     * disappeared before that could happen) before anything below
-     * frees the memory it points to; see 'eventq_purge_object' for
-     * why this is needed at all. */
-    eventq_purge_object((const void *) client);
 
     /* Destroy the XCB window representation and flush the output buffer
      * to ensure the request is processed */
@@ -363,7 +210,7 @@ void client_destroy(client_td *client)
  * advertises support for, and, when '_NET_WM_SYNC_REQUEST' is both
  * advertised and the XSync extension is available, reads the
  * client-set counter and creates the alarm watching it (see
- * 'wcmd_client_resize' and 'handler_sync_event' for how that alarm is
+ * 'ccmd_client_resize' and 'handler_sync_event' for how that alarm is
  * consumed later).
  *
  * @param connection XCB connection
@@ -423,7 +270,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
      * window; the window manager only reads that property and creates
      * an alarm watching the client's counter for positive transitions,
      * so it is notified ('AlarmNotify') whenever the client advances it
-     * after finishing a redraw (see 'wcmd_client_resize' and
+     * after finishing a redraw (see 'ccmd_client_resize' and
      * 'handler_sync_event').  These are unchecked requests, matching
      * the rest of this function, so an unsupported/misbehaving client
      * or server at worst leaves 'has_net_wm_sync_request' effectively
@@ -982,8 +829,9 @@ static void s_client_subscribe_events(xcb_connection_t *connection,
 }
 
 
-/* Adopt an existing X window under window manager control */
-client_td *client_manage(xcb_connection_t *connection,
+/* Initialize a new client, adopting an existing X window under
+ * window manager control */
+client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
         struct config_theme_s *theme,
@@ -1106,7 +954,7 @@ client_td *client_manage(xcb_connection_t *connection,
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
             client->ewmh != NULL) {
-        wcmd_add_states(client, 3,
+        ccmd_add_states(client, 3,
                 "_NET_WM_STATE_STICKY",
                 "_NET_WM_STATE_SKIP_TASKBAR",
                 "_NET_WM_STATE_SKIP_PAGER");
@@ -1133,7 +981,7 @@ client_td *client_manage(xcb_connection_t *connection,
     }
 
     /* Publish initial '_NET_WM_ALLOWED_ACTIONS' */
-    wcmd_client_update_allowed_actions(client);
+    ccmd_client_update_allowed_actions(client);
 
     /* Subscribe to events, apply border width, and set the default
      * cursor; see the sibling function's own doc comment for the
@@ -1152,7 +1000,7 @@ client_td *client_manage(xcb_connection_t *connection,
             client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
             client->properties.type !=
                 (uint16_t) CLIENT_TYPE_NOTIFICATION) {
-        wcmd_client_grab_buttons(client);
+        ccmd_client_grab_buttons(client);
     }
 
     /* Initialize '_NET_WM_STATE' to an empty list for newly adopted
@@ -1167,7 +1015,7 @@ client_td *client_manage(xcb_connection_t *connection,
         }
     }
 
-    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
+    ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* Mark the client as needing a full geometry configure and repaint
      * on the first render pass so the decoration and content area are

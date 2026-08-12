@@ -1,5 +1,5 @@
 /**
- * @file cmds/ccmd.c
+ * @file cmds/client/basic.c
  *
  * @brief Implementation on executions over clients using the XCB
  *        interface while updating EWMH and ICCCM hints
@@ -43,12 +43,12 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/ccmd.h>
-#include <cmds/geom.h>
-#include <cmds/layer.h>
-#include <cmds/meta.h>
-#include <cmds/state.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/meta.h>
+#include <cmds/client/state.h>
+#include <cmds/client/internal.h>
 
 
 /**
@@ -116,7 +116,7 @@ static void s_client_focus_fallback(client_td *client)
         desktop->client_active_id = next_focus->id;
         desktop->focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, next_focus);
-        wcmd_client_focus(next_focus);
+        ccmd_client_focus(next_focus);
     } else {
         xcb_set_input_focus(client->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
@@ -130,7 +130,7 @@ static void s_client_focus_fallback(client_td *client)
 
 
 /* Perform the action to close the client */
-void wcmd_client_close(client_td *client)
+void ccmd_client_close(client_td *client)
 {
     if (client == NULL) {
         return;
@@ -159,13 +159,13 @@ void wcmd_client_close(client_td *client)
 
 
 /* Forcibly kill the client's X connection */
-void wcmd_client_kill(client_td *client)
+void ccmd_client_kill(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
-    /* Unlike 'wcmd_client_close' (a request to destroy a single window
+    /* Unlike 'ccmd_client_close' (a request to destroy a single window
      * resource), 'xcb_kill_client' terminates the owning client's
      * ENTIRE connection to the X server.  Meant as a last resort for
      * unresponsive clients that ignore a normal close request. */
@@ -174,7 +174,7 @@ void wcmd_client_kill(client_td *client)
 
 
 /* Restore a client to its normal state */
-void wcmd_client_restore(client_td *client)
+void ccmd_client_restore(client_td *client)
 {
     xcb_window_t target;
     xcb_atom_t icon_geom_atom;
@@ -187,7 +187,7 @@ void wcmd_client_restore(client_td *client)
     /* Fullscreen clients must be un-fullscreened first so the
      * decoration and EWMH atom are cleaned up properly */
     if (client_is_fullscreen(client)) {
-        wcmd_client_unfullscreen(client);
+        ccmd_client_unfullscreen(client);
         return;
     }
 
@@ -195,7 +195,7 @@ void wcmd_client_restore(client_td *client)
      * window can be raised and focused afterwards */
     was_iconified = client_is_iconified(client);
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     client_geometry_restore(client);
 
     if (client->icon_window != 0) {
@@ -214,22 +214,22 @@ void wcmd_client_restore(client_td *client)
     client_unset_hidden(client);
     client->properties.state = CLIENT_STATE_NORMAL;
 
-    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
+    ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* EWMH §5.9: remove icon geometry hint when restoring to normal */
-    icon_geom_atom = wcmd_intern_atom(client->connection,
+    icon_geom_atom = ccmd_intern_atom(client->connection,
             "_NET_WM_ICON_GEOMETRY");
     xcb_delete_property(client->connection, client->window,
             icon_geom_atom);
 
-    wcmd_rem_states(client, 3,
+    ccmd_rem_states(client, 3,
             "_NET_WM_STATE_HIDDEN",
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
 
     /* Re-enter whichever state this client was in right before it was
      * iconified (see 'pre_iconify_state''s own comment in client.h and
-     * where it is captured in 'wcmd_client_iconify'), rather than
+     * where it is captured in 'ccmd_client_iconify'), rather than
      * always settling for plain normal.  Each of these re-computes
      * its own geometry fresh against the current workarea/monitor
      * rather than replaying a stale saved one, since the screen
@@ -242,16 +242,16 @@ void wcmd_client_restore(client_td *client)
 
         switch (pre_iconify_state) {
             case CLIENT_STATE_MAXIMIZED:
-                wcmd_client_maximize(client);
+                ccmd_client_maximize(client);
                 break;
             case CLIENT_STATE_MAXIMIZED_HORZ:
-                wcmd_client_maximize_horz(client);
+                ccmd_client_maximize_horz(client);
                 break;
             case CLIENT_STATE_MAXIMIZED_VERT:
-                wcmd_client_maximize_vert(client);
+                ccmd_client_maximize_vert(client);
                 break;
             case CLIENT_STATE_FULLSCREEN:
-                wcmd_client_fullscreen(client);
+                ccmd_client_fullscreen(client);
                 break;
             default:
                 break;
@@ -271,7 +271,7 @@ void wcmd_client_restore(client_td *client)
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }
-        wcmd_client_focus(client);
+        ccmd_client_focus(client);
     }
 
     wm_request_client_redraw(client);
@@ -279,7 +279,7 @@ void wcmd_client_restore(client_td *client)
 
 
 /* Focus a client */
-void wcmd_client_focus(client_td *client)
+void ccmd_client_focus(client_td *client)
 {
     uint32_t border_color;
 
@@ -313,7 +313,7 @@ void wcmd_client_focus(client_td *client)
     }
 
     /* EWMH: advertise keyboard focus via '_NET_WM_STATE_FOCUSED' */
-    wcmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     xcb_map_window(client->connection, client->window);
     if ((!client_is_decorated(client) || client->frame == 0) &&
@@ -322,7 +322,7 @@ void wcmd_client_focus(client_td *client)
          * unconditionally applying the theme's own real border width
          * here on every single focus change (this function runs on
          * every click, via 'focus_apply') undid the zero width
-         * 'wcmd_client_fullscreen' (cmds/state.c) had already set,
+         * 'ccmd_client_fullscreen' (cmds/state.c) had already set,
          * putting a real, visible border back on an undecorated
          * fullscreen client's own window -- confirmed directly from
          * runtime diagnostics: an undecorated client (e.g. mpv, which
@@ -360,7 +360,7 @@ void wcmd_client_focus(client_td *client)
 
 
 /* Unfocus the client */
-void wcmd_client_unfocus(client_td *client)
+void ccmd_client_unfocus(client_td *client)
 {
     uint32_t border_color;
 
@@ -369,7 +369,7 @@ void wcmd_client_unfocus(client_td *client)
     }
 
     /* EWMH: clear '_NET_WM_STATE_FOCUSED' when the window loses focus */
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_FOCUSED");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     client_unfocus(client);
 
@@ -383,7 +383,7 @@ void wcmd_client_unfocus(client_td *client)
      * A caller that is unfocusing this client only to immediately
      * focus another one (see 'focus_apply') harmlessly overrides this
      * a moment later via that client's own 'SetInputFocus' call, same
-     * as the existing pattern in 'wcmd_client_close' below. */
+     * as the existing pattern in 'ccmd_client_close' below. */
     if (client->connection != NULL) {
         xcb_set_input_focus(client->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
@@ -393,7 +393,7 @@ void wcmd_client_unfocus(client_td *client)
 
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL && !client_is_fullscreen(client)) {
-        /* Same reasoning as the matching block in 'wcmd_client_focus'
+        /* Same reasoning as the matching block in 'ccmd_client_focus'
          * just above: skipped for a fullscreen client so a losing-
          * focus repaint cannot put a real border back on an
          * undecorated fullscreen client's own window either. */
@@ -422,7 +422,7 @@ void wcmd_client_unfocus(client_td *client)
  *
  * Checks @p client's saved @p icon_x/@p icon_y against every other
  * client on the same desktop that currently has a mapped icon, so
- * @c wcmd_client_iconify can tell a genuinely free remembered spot
+ * @c ccmd_client_iconify can tell a genuinely free remembered spot
  * from one that another window's icon has since claimed (e.g., because
  * that other window was iconified while @p client was still restored,
  * and happened to land where @p client's own icon last was).
@@ -520,16 +520,16 @@ static void s_client_ensure_icon_window(client_td *client,
         screen_w = 1024u;
         screen_h = 768u;
 
-        if (wcmd_client_monitor(client, &surface, &monitor)) {
+        if (ccmd_client_monitor(client, &surface, &monitor)) {
             mx = monitor.x;
             my = monitor.y;
             screen_w = geom_clamp_dim((int32_t) monitor.w);
             screen_h = geom_clamp_dim((int32_t) monitor.h);
-        } else if (wcmd_screen_dim(client, &screen_w, &screen_h)) {
+        } else if (ccmd_screen_dim(client, &screen_w, &screen_h)) {
             /* dimensions updated */
         }
 
-        /* 'monitor' above is deliberately raw (see wcmd_client_
+        /* 'monitor' above is deliberately raw (see ccmd_client_
          * monitor's own doc comment), the same as 'desktop_update_
          * workarea' (desktop.c) starts from before folding in
          * 'desktops.margins' and the systray's own reservation for
@@ -679,7 +679,7 @@ static void s_client_ensure_icon_window(client_td *client,
 }
 
 
-void wcmd_client_iconify(client_td *client)
+void ccmd_client_iconify(client_td *client)
 {
     xcb_window_t target;
     xcb_get_property_reply_t *handled_reply;
@@ -699,7 +699,7 @@ void wcmd_client_iconify(client_td *client)
 
     /* Remember the state this client is in right now (normal,
      * maximized in any of its three variants, or fullscreen) so
-     * 'wcmd_client_restore' can later re-enter that exact state
+     * 'ccmd_client_restore' can later re-enter that exact state
      * instead of always landing back on plain normal: "A window
      * manager may implement [additional states] as proper substates
      * of NormalState and IconicState, or it may treat them as
@@ -714,7 +714,7 @@ void wcmd_client_iconify(client_td *client)
     }
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     /* Un-fullscreen first, the same reasoning as unshading above: an
@@ -723,15 +723,15 @@ void wcmd_client_iconify(client_td *client)
      * just below), and while still fullscreen that size is the whole
      * screen, not the window's real one. */
     if (client_is_fullscreen(client)) {
-        wcmd_client_unfullscreen(client);
+        ccmd_client_unfullscreen(client);
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: iconifying a maximized window must
      * not overwrite the true pre-maximize geometry already held in
      * 'layout.geometry.old' (see 'client_is_maximized_any' and the
-     * matching guard in the 'wcmd_client_maximize*' functions), or
+     * matching guard in the 'ccmd_client_maximize*' functions), or
      * un-iconifying it later would restore it at the maximized size
      * instead of its original one */
     if (!client_is_maximized_any(client)) {
@@ -741,7 +741,7 @@ void wcmd_client_iconify(client_td *client)
     /* EWMH: if a pager sets '_NET_WM_HANDLED_ICONS' on the root window,
      * it manages icon display itself; the window manager must not
      * create icon windows */
-    handled_atom = wcmd_intern_atom(client->connection,
+    handled_atom = ccmd_intern_atom(client->connection,
             "_NET_WM_HANDLED_ICONS");
     handled_reply = xcb_get_property_reply(client->connection,
             xcb_get_property(client->connection, 0, client->parent_id,
@@ -802,8 +802,8 @@ void wcmd_client_iconify(client_td *client)
 
         /* ICCCM §4.1.3: mark the WM icon window as Withdrawn so pagers
          * that scan window trees treat it as unmanaged */
-        wm_state_atom = wcmd_intern_atom(client->connection, "WM_STATE");
-        wm_state_vals[0] = WCMD_WM_STATE_WITHDRAWN;
+        wm_state_atom = ccmd_intern_atom(client->connection, "WM_STATE");
+        wm_state_vals[0] = CCMD_WM_STATE_WITHDRAWN;
         wm_state_vals[1] = XCB_NONE;
 
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
@@ -811,11 +811,11 @@ void wcmd_client_iconify(client_td *client)
                 32, 2, wm_state_vals);
 
         /* EWMH: tell pagers and taskbars to skip the WM icon window */
-        net_wm_state_atom = wcmd_intern_atom(client->connection,
+        net_wm_state_atom = ccmd_intern_atom(client->connection,
                 "_NET_WM_STATE");
-        skip_atoms[0] = wcmd_intern_atom(client->connection,
+        skip_atoms[0] = ccmd_intern_atom(client->connection,
                 "_NET_WM_STATE_SKIP_PAGER");
-        skip_atoms[1] = wcmd_intern_atom(client->connection,
+        skip_atoms[1] = ccmd_intern_atom(client->connection,
                 "_NET_WM_STATE_SKIP_TASKBAR");
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
                 client->icon_window, net_wm_state_atom,
@@ -827,7 +827,7 @@ void wcmd_client_iconify(client_td *client)
         icon_geom[1] = (uint32_t) client->icon_y;
         icon_geom[2] = WM_ICON_SQUARE_SIZE;
         icon_geom[3] = icon_h_out;
-        icon_geom_atom = wcmd_intern_atom(client->connection,
+        icon_geom_atom = ccmd_intern_atom(client->connection,
                 "_NET_WM_ICON_GEOMETRY");
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
                 client->window, icon_geom_atom,
@@ -837,13 +837,13 @@ void wcmd_client_iconify(client_td *client)
     client_set_hidden(client);
     client->properties.state = CLIENT_STATE_ICONIFIED;
 
-    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC,
+    ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
             (skip_icon_win) ? XCB_NONE : client->icon_window);
 
     /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
      * Icon display handled by pager/desktop */
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
     s_client_focus_fallback(client);
 
@@ -858,7 +858,7 @@ void wcmd_client_iconify(client_td *client)
 
 
 /* Hide the client (minimize, but not iconify) */
-void wcmd_client_hide(client_td *client)
+void ccmd_client_hide(client_td *client)
 {
     xcb_window_t target;
     surface_td *surface;
@@ -872,7 +872,7 @@ void wcmd_client_hide(client_td *client)
         surface->showing_desktop = false;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Account for the 'UnmapNotify' events that 'handler_unmap_notify'
      * must skip.  Two events arrive for the unmapped target
@@ -901,9 +901,9 @@ void wcmd_client_hide(client_td *client)
 
     client_set_hidden(client);
 
-    wcmd_set_wm_state(client, WCMD_WM_STATE_ICONIC, XCB_NONE);
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
     s_client_focus_fallback(client);
     wm_request_client_redraw(client);
@@ -912,7 +912,7 @@ void wcmd_client_hide(client_td *client)
 
 
 /* Show (unhide) the client */
-void wcmd_client_unhide(client_td *client)
+void ccmd_client_unhide(client_td *client)
 {
     xcb_window_t target;
 
@@ -920,7 +920,7 @@ void wcmd_client_unhide(client_td *client)
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     if (client->titlebar != 0) {
         xcb_map_window(client->connection, client->titlebar);
@@ -934,8 +934,8 @@ void wcmd_client_unhide(client_td *client)
 
     client_unset_hidden(client);
 
-    wcmd_set_wm_state(client, WCMD_WM_STATE_NORMAL, XCB_NONE);
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
 
     /* Raise the unhidden client to the top of the desktop stacking
      * order and give it real input focus, matching the deiconify
@@ -949,14 +949,14 @@ void wcmd_client_unhide(client_td *client)
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }
-        wcmd_client_focus(client);
+        ccmd_client_focus(client);
     }
     wm_request_client_redraw(client);
 }
 
 
 /* Set client sticky mode */
-void wcmd_client_sticky(client_td *client)
+void ccmd_client_sticky(client_td *client)
 {
     uint32_t all_desktops;
 
@@ -965,7 +965,7 @@ void wcmd_client_sticky(client_td *client)
     }
 
     client_set_sticky(client);
-    wcmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
     if (client->ewmh != NULL) {
         all_desktops = WM_DESKTOP_ID_ALL;
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
@@ -978,7 +978,7 @@ void wcmd_client_sticky(client_td *client)
 
 
 /* Remove client sticky mode */
-void wcmd_client_unsticky(client_td *client)
+void ccmd_client_unsticky(client_td *client)
 {
     desktop_td *owner_desktop;
     desktop_td *current_desktop;
@@ -990,7 +990,7 @@ void wcmd_client_unsticky(client_td *client)
     }
 
     client_unset_sticky(client);
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
     if (client->ewmh != NULL) {
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
                 client->window, client->ewmh->_NET_WM_DESKTOP,
@@ -1004,7 +1004,7 @@ void wcmd_client_unsticky(client_td *client)
         : NULL;
     if (owner_desktop != NULL && current_desktop != NULL &&
             owner_desktop->id != current_desktop->id) {
-        target = wcmd_target_win(client);
+        target = ccmd_target_win(client);
 
         /* Account for the 'UnmapNotify' events that
          * 'handler_unmap_notify' must skip.  Two events arrive for the
@@ -1037,7 +1037,7 @@ void wcmd_client_unsticky(client_td *client)
 
 
 /* Toggle stickiness */
-void wcmd_client_toggle_sticky(client_td *client)
+void ccmd_client_toggle_sticky(client_td *client)
 {
     surface_td *surface;
 
@@ -1059,40 +1059,40 @@ void wcmd_client_toggle_sticky(client_td *client)
     }
 
     if (client_is_sticky(client)) {
-        wcmd_client_unsticky(client);
+        ccmd_client_unsticky(client);
     } else {
-        wcmd_client_sticky(client);
+        ccmd_client_sticky(client);
     }
 }
 
 
 /* Raise the client to the top */
-void wcmd_client_set_urgent(client_td *client)
+void ccmd_client_set_urgent(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
     client_set_urgent(client);
-    wcmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 }
 
 
 /* Clear client urgency */
-void wcmd_client_clear_urgent(client_td *client)
+void ccmd_client_clear_urgent(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
     client_unset_urgent(client);
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 }
 
 
 /* Publish '_NET_WM_ALLOWED_ACTIONS' based on the client's current
  * properties */
-void wcmd_client_update_allowed_actions(client_td *client)
+void ccmd_client_update_allowed_actions(client_td *client)
 {
     xcb_atom_t actions[12];
     uint32_t n = 0u;
@@ -1115,12 +1115,12 @@ void wcmd_client_update_allowed_actions(client_td *client)
      * maximize: fullscreen is a WM-forced override of the client's
      * own preferred geometry, not a user-convenience resize the
      * client's own fixed size hints have any say over; see
-     * 'wcmd_client_fullscreen''s own comment for the full reasoning.
+     * 'ccmd_client_fullscreen''s own comment for the full reasoning.
      * A DOS-emulation or retro-game window that fixes its own size is
      * exactly the case this matters for: some such clients check this
      * very property before ever attempting '_NET_WM_STATE_FULLSCREEN'
      * at all, so advertising it as disallowed here would have kept
-     * the fix in wcmd_client_fullscreen itself from ever being
+     * the fix in ccmd_client_fullscreen itself from ever being
      * reached. */
     actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
 

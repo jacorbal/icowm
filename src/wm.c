@@ -42,7 +42,6 @@
 #include <config.h>
 #include <config/memguard.h>
 #include <desktop.h>
-#include <eventq.h>
 #include <logger.h>
 #include <lookup.h>
 #include <loop.h>
@@ -124,8 +123,6 @@ static void s_wm_cleanup(void)
     }
 
     rootmenu_free_menu_json();
-
-    eventq_stop();  /* Safe even if eventq was never started */
 
     if (wm->config != NULL) {
         config_destroy(wm->config);
@@ -304,12 +301,6 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
      * menu/context/rootmenu.c and loaded directly rather than through
      * an 'init' handle here. */
     rootmenu_load_menu_json(wm->config_dir_prefix);
-
-    if (eventq_start() != 0) {
-        LOGGER_FATAL("Failed to initialize event queue", L_NARG);
-        s_wm_cleanup();
-        return 4;
-    }
 
     it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
     screens_detected = 0;

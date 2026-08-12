@@ -1,5 +1,5 @@
 /**
- * @file cmds/geom.c
+ * @file cmds/client/geom.c
  *
  * @brief Client geometry command implementation
  */
@@ -25,7 +25,6 @@
 #include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
 /* Project includes */
-#include <actdata.h>
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
@@ -34,37 +33,34 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/ccmd.h>
-#include <cmds/geom.h>
-#include <cmds/util.h>
+#include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
+#include <cmds/client/internal.h>
 
 
 /* Move the client to a new position */
-void wcmd_client_move(client_td *client,
-        action_data_client_td *client_data)
+/* Move the client to a new position */
+void ccmd_client_move(client_td *client, int32_t x, int32_t y)
 {
     xcb_window_t target;
 
-    if (client == NULL || client_data == NULL ||
-            client_is_maximized(client) || client_is_fullscreen(client)) {
+    if (client == NULL || client_is_maximized(client) ||
+            client_is_fullscreen(client)) {
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {
-                (uint32_t) client_data->new_data.geometry.pos.x,
-                (uint32_t) client_data->new_data.geometry.pos.y
-            });
-    client->layout.geometry.cur.pos =
-        client_data->new_data.geometry.pos;
+            (const uint32_t[]) { (uint32_t) x, (uint32_t) y });
+    client->layout.geometry.cur.pos.x = x;
+    client->layout.geometry.cur.pos.y = y;
     client->rule_position_locked = false;
 }
 
 
 /* Center the client on its current screen */
-void wcmd_client_center(client_td *client)
+void ccmd_client_center(client_td *client)
 {
     uint16_t sw;
     uint16_t sh;
@@ -80,16 +76,16 @@ void wcmd_client_center(client_td *client)
         return;
     }
 
-    if (wcmd_client_monitor(client, NULL, &monitor)) {
+    if (ccmd_client_monitor(client, NULL, &monitor)) {
         mx = monitor.x;
         my = monitor.y;
         sw = geom_clamp_dim((int32_t) monitor.w);
         sh = geom_clamp_dim((int32_t) monitor.h);
-    } else if (!wcmd_screen_dim(client, &sw, &sh)) {
+    } else if (!ccmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     x = ((int32_t) sw - (int32_t) client->layout.geometry.cur.dim.w) / 2;
     y = ((int32_t) sh - (int32_t) client->layout.geometry.cur.dim.h) / 2;
     if (x < 0) {
@@ -111,7 +107,7 @@ void wcmd_client_center(client_td *client)
 
 
 /* Move the client to a specific monitor on its own surface */
-void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
+void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
 {
     surface_td *surface = NULL;
     monitor_td cur_monitor;
@@ -125,7 +121,7 @@ void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
         return;
     }
 
-    if (!wcmd_client_monitor(client, &surface, &cur_monitor) ||
+    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
             surface == NULL || surface->monitor_count == 0u) {
         return;
     }
@@ -171,7 +167,7 @@ void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
             : target_monitor.y;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
@@ -183,7 +179,7 @@ void wcmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
 
 
 /* Move the client to the next monitor on its own surface */
-void wcmd_client_move_to_next_monitor(client_td *client)
+void ccmd_client_move_to_next_monitor(client_td *client)
 {
     surface_td *surface = NULL;
     monitor_td cur_monitor;
@@ -193,7 +189,7 @@ void wcmd_client_move_to_next_monitor(client_td *client)
         return;
     }
 
-    if (!wcmd_client_monitor(client, &surface, &cur_monitor) ||
+    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
             surface == NULL || surface->monitor_count <= 1u) {
         return;
     }
@@ -206,7 +202,7 @@ void wcmd_client_move_to_next_monitor(client_td *client)
         }
     }
 
-    wcmd_client_move_to_monitor(client,
+    ccmd_client_move_to_monitor(client,
             (cur_idx + 1u) % surface->monitor_count);
 }
 
@@ -214,11 +210,11 @@ void wcmd_client_move_to_next_monitor(client_td *client)
 /**
  * @brief Configure a client to the given frame geometry
  *
- * The single actual configure point used by @c wcmd_client_resize,
+ * The single actual configure point used by @c ccmd_client_resize,
  * whether the request is applied right away (an unsynchronized client,
  * or the first step of a synchronized one) or later, once a pending
  * @c _NET_WM_SYNC_REQUEST acknowledgement arrives (see
- * @c wcmd_client_resize_flush_pending).
+ * @c ccmd_client_resize_flush_pending).
  *
  * @param client Window to resize
  * @param req_x  Requested frame X
@@ -226,13 +222,13 @@ void wcmd_client_move_to_next_monitor(client_td *client)
  * @param req_w  Requested frame width
  * @param req_h  Requested frame height
  */
-static void s_wcmd_resize_configure(client_td *client,
+static void s_ccmd_resize_configure(client_td *client,
         int32_t req_x, int32_t req_y, uint32_t req_w, uint32_t req_h)
 {
     xcb_window_t target;
     uint16_t mask;
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     if (req_x != client->layout.geometry.cur.pos.x ||
             req_y != client->layout.geometry.cur.pos.y) {
@@ -258,11 +254,8 @@ static void s_wcmd_resize_configure(client_td *client,
 
     /* For decorated (reparented) clients the inner window must be
      * repositioned and resized to match the new frame dimensions.
-     * Previously this was handled by the immediate
-     * 'xcb_configure_window' path in 'client_send_event_resize', but
-     * non-interactive resizes now go through the event queue
-     * exclusively so 'wcmd_client_resize' is the single configure
-     * point. */
+     * 'ccmd_client_resize' is the single configure point, called
+     * directly for every resize, interactive or not. */
     client_sync_decoration_layout(client);
 
     /* Use 'exposures=1' so the X server generates an 'Expose' event and
@@ -311,7 +304,7 @@ static void s_wcmd_resize_configure(client_td *client,
  *
  * @param client Client to notify; must have @c has_net_wm_sync_request
  */
-static void s_wcmd_resize_send_sync_request(client_td *client)
+static void s_ccmd_resize_send_sync_request(client_td *client)
 {
     xcb_client_message_event_t ev;
 
@@ -346,7 +339,7 @@ static void s_wcmd_resize_send_sync_request(client_td *client)
  * event loop.  What actually throttles the client (and so avoids it
  * falling behind and tearing) is that further requests arriving before
  * the matching @c AlarmNotify are queued as a single pending geometry
- * in @c wcmd_client_resize rather than dispatched immediately, so at
+ * in @c ccmd_client_resize rather than dispatched immediately, so at
  * most one unacknowledged frame is ever in flight.
  *
  * @param client Client to resize
@@ -355,25 +348,22 @@ static void s_wcmd_resize_send_sync_request(client_td *client)
  * @param req_w  Requested frame width
  * @param req_h  Requested frame height
  */
-static void s_wcmd_resize_dispatch_synced(client_td *client,
+static void s_ccmd_resize_dispatch_synced(client_td *client,
         int32_t req_x, int32_t req_y, uint32_t req_w, uint32_t req_h)
 {
-    s_wcmd_resize_send_sync_request(client);
-    s_wcmd_resize_configure(client, req_x, req_y, req_w, req_h);
+    s_ccmd_resize_send_sync_request(client);
+    s_ccmd_resize_configure(client, req_x, req_y, req_w, req_h);
 }
 
 
 /* Resize the client to new dimensions */
-void wcmd_client_resize(client_td *client,
-        action_data_client_td *client_data)
+/* Resize the client to new dimensions */
+void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
 {
-    int32_t req_x;
-    int32_t req_y;
-    uint32_t req_w;
-    uint32_t req_h;
     bool synced;
 
-    if (client == NULL || client_data == NULL) {
+    if (client == NULL) {
         return;
     }
 
@@ -392,32 +382,18 @@ void wcmd_client_resize(client_td *client,
     }
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
-
-    req_x = client_data->new_data.geometry.pos.x;
-    req_y = client_data->new_data.geometry.pos.y;
-
-    /* The event data was already constrained by
-     * 'client_send_event_resize' (size hints, increments, min/max)
-     * before being queued.  Use the pre-constrained frame-space values
-     * directly so we do not apply increment snapping a second time.
-     * A second pass would force the unchanged axis (e.g., height when
-     * only width is being resized by keyboard) onto the increment grid
-     * from whatever the program reported via its own ConfigureRequest,
-     * causing the window to shrink on every resize keypress. */
-    req_w = client_data->new_data.geometry.dim.w;
-    req_h = client_data->new_data.geometry.dim.h;
 
     synced = client->has_net_wm_sync_request && wm_sync_available();
 
     if (!synced) {
-        s_wcmd_resize_configure(client, req_x, req_y, req_w, req_h);
+        s_ccmd_resize_configure(client, x, y, w, h);
         return;
     }
 
     if (!client->sync_waiting) {
-        s_wcmd_resize_dispatch_synced(client, req_x, req_y, req_w, req_h);
+        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
         return;
     }
 
@@ -430,20 +406,20 @@ void wcmd_client_resize(client_td *client,
     client->sync_wait_ticks += 1u;
     if (client->sync_wait_ticks > (uint8_t) WM_SYNC_MAX_WAIT_TICKS) {
         client->sync_has_pending = false;
-        s_wcmd_resize_dispatch_synced(client, req_x, req_y, req_w, req_h);
+        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
         return;
     }
 
-    client->sync_pending_geom.x = req_x;
-    client->sync_pending_geom.y = req_y;
-    client->sync_pending_geom.w = req_w;
-    client->sync_pending_geom.h = req_h;
+    client->sync_pending_geom.x = x;
+    client->sync_pending_geom.y = y;
+    client->sync_pending_geom.w = w;
+    client->sync_pending_geom.h = h;
     client->sync_has_pending = true;
 }
 
 
 /* Apply a client's pending '_NET_WM_SYNC_REQUEST'-throttled resize */
-void wcmd_client_resize_flush_pending(client_td *client)
+void ccmd_client_resize_flush_pending(client_td *client)
 {
     if (client == NULL) {
         return;
@@ -457,7 +433,7 @@ void wcmd_client_resize_flush_pending(client_td *client)
     }
 
     client->sync_has_pending = false;
-    s_wcmd_resize_dispatch_synced(client,
+    s_ccmd_resize_dispatch_synced(client,
             client->sync_pending_geom.x, client->sync_pending_geom.y,
             client->sync_pending_geom.w, client->sync_pending_geom.h);
 }
@@ -482,7 +458,7 @@ void wcmd_client_resize_flush_pending(client_td *client)
  * @return @c true on success, @c false if any part of the lookup
  *         fails (surface not found, desktop not found, no workarea
  *         known yet, or the clipped area is empty); callers fall
- *         back to @c wcmd_screen_dim's raw screen size in that case
+ *         back to @c ccmd_screen_dim's raw screen size in that case
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
@@ -500,7 +476,7 @@ static bool s_client_monitor_workarea(client_td *client,
         return false;
     }
 
-    if (!wcmd_client_monitor(client, &surface, &monitor)) {
+    if (!ccmd_client_monitor(client, &surface, &monitor)) {
         return false;
     }
 
@@ -535,8 +511,8 @@ static bool s_client_monitor_workarea(client_td *client,
 
 
 /**
- * @brief Precondition checks shared by @c wcmd_client_maximize_horz
- *        and @c wcmd_client_maximize_vert, unshading the client along
+ * @brief Precondition checks shared by @c ccmd_client_maximize_horz
+ *        and @c ccmd_client_maximize_vert, unshading the client along
  *        the way
  *
  * @param client Client about to be maximized on one axis
@@ -548,7 +524,7 @@ static bool s_client_monitor_workarea(client_td *client,
  *
  * @note Complexity: @e O(1)
  */
-static bool s_wcmd_maximize_precheck(client_td *client)
+static bool s_ccmd_maximize_precheck(client_td *client)
 {
     if (client == NULL) {
         return false;
@@ -559,7 +535,7 @@ static bool s_wcmd_maximize_precheck(client_td *client)
     }
 
     if (client_is_shaded(client)) {
-        wcmd_client_unshade(client);
+        ccmd_client_unshade(client);
     }
 
     return true;
@@ -568,7 +544,7 @@ static bool s_wcmd_maximize_precheck(client_td *client)
 
 /* Maximize the client horizontally, or restore/demote/complete
  * depending on its current maximize state */
-void wcmd_client_maximize_horz(client_td *client)
+void ccmd_client_maximize_horz(client_td *client)
 {
     int32_t mx = 0;
     uint16_t sw;
@@ -580,15 +556,15 @@ void wcmd_client_maximize_horz(client_td *client)
     }
 
     if (!s_client_monitor_workarea(client, &mx, NULL, &sw, &unused_h) &&
-            !wcmd_screen_dim(client, &sw, NULL)) {
+            !ccmd_screen_dim(client, &sw, NULL)) {
         return;
     }
 
-    if (!s_wcmd_maximize_precheck(client)) {
+    if (!s_ccmd_maximize_precheck(client)) {
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Toggling the horizontal axis off restores just that axis from
      * 'layout.geometry.old', leaving the vertical one exactly as it
@@ -614,7 +590,7 @@ void wcmd_client_maximize_horz(client_td *client)
                 });
         client->properties.state = (was_full)
             ? CLIENT_STATE_MAXIMIZED_VERT : CLIENT_STATE_NORMAL;
-        wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+        ccmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
         wm_request_client_redraw(client);
         return;
     }
@@ -635,8 +611,8 @@ void wcmd_client_maximize_horz(client_td *client)
         client->layout.geometry.cur.pos.x = mx;
         client->layout.geometry.cur.dim.w = sw;
         client->properties.state = CLIENT_STATE_MAXIMIZED;
-        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-        wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+        ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        ccmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
         wm_request_client_redraw(client);
         return;
     }
@@ -666,16 +642,16 @@ void wcmd_client_maximize_horz(client_td *client)
     client->layout.geometry.cur.dim.w = sw;
     client->properties.state = CLIENT_STATE_MAXIMIZED_HORZ;
 
-    wcmd_rem_states(client, 2,
+    ccmd_rem_states(client, 2,
             "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_VERT");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_HORZ");
     wm_request_client_redraw(client);
 }
 
 
 /* Maximize the client vertically, or restore/demote/complete
  * depending on its current maximize state */
-void wcmd_client_maximize_vert(client_td *client)
+void ccmd_client_maximize_vert(client_td *client)
 {
     int32_t my = 0;
     uint16_t sh;
@@ -687,15 +663,15 @@ void wcmd_client_maximize_vert(client_td *client)
     }
 
     if (!s_client_monitor_workarea(client, NULL, &my, &unused_w, &sh) &&
-            !wcmd_screen_dim(client, NULL, &sh)) {
+            !ccmd_screen_dim(client, NULL, &sh)) {
         return;
     }
 
-    if (!s_wcmd_maximize_precheck(client)) {
+    if (!s_ccmd_maximize_precheck(client)) {
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
 
     /* Toggling the vertical axis off restores just that axis from
      * 'layout.geometry.old', leaving the horizontal one exactly as it
@@ -720,7 +696,7 @@ void wcmd_client_maximize_vert(client_td *client)
                 });
         client->properties.state = (was_full)
             ? CLIENT_STATE_MAXIMIZED_HORZ : CLIENT_STATE_NORMAL;
-        wcmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+        ccmd_rem_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
         wm_request_client_redraw(client);
         return;
     }
@@ -741,8 +717,8 @@ void wcmd_client_maximize_vert(client_td *client)
         client->layout.geometry.cur.pos.y = my;
         client->layout.geometry.cur.dim.h = sh;
         client->properties.state = CLIENT_STATE_MAXIMIZED;
-        wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-        wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+        ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+        ccmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
         wm_request_client_redraw(client);
         return;
     }
@@ -772,15 +748,15 @@ void wcmd_client_maximize_vert(client_td *client)
     client->layout.geometry.cur.dim.h = sh;
     client->properties.state = CLIENT_STATE_MAXIMIZED_VERT;
 
-    wcmd_rem_states(client, 2,
+    ccmd_rem_states(client, 2,
             "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_HORZ");
-    wcmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
+    ccmd_add_states(client, 1, "_NET_WM_STATE_MAXIMIZED_VERT");
     wm_request_client_redraw(client);
 }
 
 
 /* Maximize the client entirely, or restore it if already maximized */
-void wcmd_client_maximize(client_td *client)
+void ccmd_client_maximize(client_td *client)
 {
     int32_t mx = 0;
     int32_t my = 0;
@@ -792,7 +768,7 @@ void wcmd_client_maximize(client_td *client)
         return;
     }
 
-    if (!s_wcmd_maximize_precheck(client)) {
+    if (!s_ccmd_maximize_precheck(client)) {
         return;
     }
 
@@ -801,7 +777,7 @@ void wcmd_client_maximize(client_td *client)
      * through to the "maximize" branch below instead, completing it
      * to full maximize on the other axis too. */
     if (client->properties.state == CLIENT_STATE_MAXIMIZED) {
-        target = wcmd_target_win(client);
+        target = ccmd_target_win(client);
         client_geometry_restore(client);
         xcb_configure_window(client->connection, target,
                 XCB_CONFIG_WINDOW_X     |
@@ -815,7 +791,7 @@ void wcmd_client_maximize(client_td *client)
                 client->layout.geometry.cur.dim.h
                 });
         client->properties.state = CLIENT_STATE_NORMAL;
-        wcmd_rem_states(client, 2,
+        ccmd_rem_states(client, 2,
                 "_NET_WM_STATE_MAXIMIZED_HORZ",
                 "_NET_WM_STATE_MAXIMIZED_VERT");
         wm_request_client_redraw(client);
@@ -823,11 +799,11 @@ void wcmd_client_maximize(client_td *client)
     }
 
     if (!s_client_monitor_workarea(client, &mx, &my, &sw, &sh) &&
-            !wcmd_screen_dim(client, &sw, &sh)) {
+            !ccmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 
-    target = wcmd_target_win(client);
+    target = ccmd_target_win(client);
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: switching from horizontal-only or
      * vertical-only maximize to full maximize must not overwrite the
@@ -854,8 +830,8 @@ void wcmd_client_maximize(client_td *client)
     client->layout.geometry.cur.dim.h = (uint32_t) sh;
     client->properties.state = CLIENT_STATE_MAXIMIZED;
 
-    wcmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-    wcmd_add_states(client, 2,
+    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+    ccmd_add_states(client, 2,
             "_NET_WM_STATE_MAXIMIZED_HORZ",
             "_NET_WM_STATE_MAXIMIZED_VERT");
     wm_request_client_redraw(client);
