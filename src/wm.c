@@ -28,6 +28,9 @@
 /* Session includes */
 #include <session.h>
 
+/* IPC includes */
+#include <ipc.h>
+
 /* Rules includes */
 #include <rules.h>
 
@@ -93,6 +96,7 @@ static void s_wm_cleanup(void)
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
+    ipc_close();
     mouse_destroy_resize_cursors(wm->connection);
 
     if (wm->session != NULL) {
@@ -389,6 +393,15 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     (void) startup_randr_init(wm);
     (void) startup_subscribe_randr_events(wm);
     (void) startup_sync_init(wm);
+
+    /* Not fatal if it fails, the same reasoning as EWMH root
+     * metadata just below: a working window manager without its
+     * own control socket is still a working window manager, just
+     * one external tools cannot script against for this run. */
+    if (ipc_init() != 0) {
+        LOGGER_WARNING("Failed to initialize IPC control socket",
+                L_NARG);
+    }
 
     if (wm_ewmh_init() != 0) {
         LOGGER_WARNING("Failed to initialize EWMH root metadata",
