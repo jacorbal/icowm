@@ -108,7 +108,7 @@ static struct {
  *
  * @note Complexity: @e O(1)
  */
-static uint32_t s_utf8_next(const char *text, size_t *index)
+uint32_t glyph_utf8_next(const char *text, size_t *index)
 {
     unsigned char b0;
     uint32_t codepoint = 0u;
@@ -540,7 +540,7 @@ void glyph_draw_string(xcb_connection_t *connection,
     len = 0u;
     byte_index = 0u;
     while (len < GLYPH_MAX_STRING_LEN) {
-        uint32_t codepoint = s_utf8_next(text, &byte_index);
+        uint32_t codepoint = glyph_utf8_next(text, &byte_index);
 
         if (codepoint == 0u) {
             break;
@@ -584,7 +584,7 @@ uint16_t glyph_measure_string(const char *text)
     total = 0;
     byte_index = 0u;
     while (true) {
-        uint32_t codepoint = s_utf8_next(text, &byte_index);
+        uint32_t codepoint = glyph_utf8_next(text, &byte_index);
 
         if (codepoint == 0u) {
             break;

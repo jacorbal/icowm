@@ -1,4 +1,4 @@
-# IcoWM GUI text translation template.
+# IcoWM GUI text translation: Galician.
 # Copyright (c) 2026, J. A. Corbal.
 # This file is distributed under the same license as IcoWM (ISC).
 #
@@ -8,290 +8,292 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-12 20:31+0200\n"
 "PO-Revision-Date: 2026-08-12 20:31+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Last-Translator: \n"
+"Language-Team: Galician\n"
+"Language: gl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: include/defs/uistr.h:38
 msgid "[ OK ]"
-msgstr ""
+msgstr "[ Aceptar ]"
 
 #: include/defs/uistr.h:42
 msgid "Reload configuration"
-msgstr ""
+msgstr "Recargar configuración"
 
 #: include/defs/uistr.h:43
 msgid "Redraw all windows"
-msgstr ""
+msgstr "Redebuxar todas as fiestras"
 
 #: include/defs/uistr.h:44
 msgid "Exit"
-msgstr ""
+msgstr "Saír"
 
 #: include/defs/uistr.h:47
 msgid "Send to desktop"
-msgstr ""
+msgstr "Enviar ao escritorio"
 
 #: include/defs/uistr.h:48
 msgid "Send to monitor"
-msgstr ""
+msgstr "Enviar ao monitor"
 
 #: include/defs/uistr.h:49;  include/defs/uistr.h:147
 msgid "Layer"
-msgstr ""
+msgstr "Capa"
 
 #: include/defs/uistr.h:50
 msgid "Always on top"
-msgstr ""
+msgstr "Sempre enriba"
 
 #: include/defs/uistr.h:51
 msgid "Normal"
-msgstr ""
+msgstr "Normal"
 
 #: include/defs/uistr.h:52
 msgid "Always on bottom"
-msgstr ""
+msgstr "Sempre debaixo"
 
 #: include/defs/uistr.h:53
 msgid "All desktops (pin)"
-msgstr ""
+msgstr "Todos os escritorios (fixar)"
 
 #: include/defs/uistr.h:54
 msgid "This desktop only (unpin)"
-msgstr ""
+msgstr "Só este escritorio (soltar)"
 
 #: include/defs/uistr.h:55
 msgid "Restore"
-msgstr ""
+msgstr "Restaurar"
 
 #: include/defs/uistr.h:56
 msgid "Move"
-msgstr ""
+msgstr "Mover"
 
 #: include/defs/uistr.h:57;  include/defs/uistr.h:157
 msgid "Resize"
-msgstr ""
+msgstr "Redimensionar"
 
 #: include/defs/uistr.h:58;  include/defs/uistr.h:142
 msgid "Iconify"
-msgstr ""
+msgstr "Iconizar"
 
 #: include/defs/uistr.h:59;  include/defs/uistr.h:141
 msgid "Hide"
-msgstr ""
+msgstr "Agochar"
 
 #: include/defs/uistr.h:60;  include/defs/uistr.h:148
 msgid "Maximize"
-msgstr ""
+msgstr "Maximizar"
 
 #: include/defs/uistr.h:61;  include/defs/uistr.h:140
 msgid "Fullscreen"
-msgstr ""
+msgstr "Pantalla completa"
 
 #: include/defs/uistr.h:62
 msgid "Exit Fullscreen"
-msgstr ""
+msgstr "Saír da pantalla completa"
 
 #: include/defs/uistr.h:63;  include/defs/uistr.h:151
 msgid "Shade"
-msgstr ""
+msgstr "Enrolar"
 
 #: include/defs/uistr.h:64
 msgid "Unshade"
-msgstr ""
+msgstr "Desenrolar"
 
 #: include/defs/uistr.h:65;  include/defs/uistr.h:139
 msgid "Decorate"
-msgstr ""
+msgstr "Decorar"
 
 #: include/defs/uistr.h:66
 msgid "Undecorate"
-msgstr ""
+msgstr "Quitar decoración"
 
 #: include/defs/uistr.h:67;  include/defs/uistr.h:137
 msgid "Close"
-msgstr ""
+msgstr "Pechar"
 
 #: include/defs/uistr.h:70
 msgid "Go there..."
-msgstr ""
+msgstr "Ir alí..."
 
 #: include/defs/uistr.h:75
 msgid "Are you sure you want to exit %s?"
-msgstr ""
+msgstr "Seguro que queres saír de %s?"
 
 #: include/defs/uistr.h:76
 msgid "[ Cancel ]"
-msgstr ""
+msgstr "[ Cancelar ]"
 
 #: include/defs/uistr.h:77
 msgid "[ Exit ]"
-msgstr ""
+msgstr "[ Saír ]"
 
 #: include/defs/uistr.h:97
 msgid "Automatically selecting '%.255s' in %d second(s)"
-msgstr ""
+msgstr "Seleccionando automaticamente '%.255s' en %d segundo(s)"
 
 #: include/defs/uistr.h:104
 msgid ""
 "The 'randr.json' configuration has been applied.  Keep it, or revert "
 "to the previous one?"
 msgstr ""
+"Aplicouse a configuración de 'randr.json'.  Mantela ou volver á "
+"anterior?"
 
 #: include/defs/uistr.h:107
 msgid "[ Revert ]"
-msgstr ""
+msgstr "[ Reverter ]"
 
 #: include/defs/uistr.h:108
 msgid "[ Keep ]"
-msgstr ""
+msgstr "[ Manter ]"
 
 #: include/defs/uistr.h:113
 msgid "[Window Manager]"
-msgstr ""
+msgstr "[Xestor de fiestras]"
 
 #: include/defs/uistr.h:114
 msgid "[Launch]"
-msgstr ""
+msgstr "[Iniciar]"
 
 #: include/defs/uistr.h:115
 msgid "[Window]"
-msgstr ""
+msgstr "[Fiestra]"
 
 #: include/defs/uistr.h:116
 msgid "[Cycle]"
-msgstr ""
+msgstr "[Ciclar]"
 
 #: include/defs/uistr.h:118
 msgid "Root menu"
-msgstr ""
+msgstr "Menú raíz"
 
 #: include/defs/uistr.h:119
 msgid "Windows menu"
-msgstr ""
+msgstr "Menú de fiestras"
 
 #: include/defs/uistr.h:120
 msgid "Search windows"
-msgstr ""
+msgstr "Buscar fiestras"
 
 #: include/defs/uistr.h:121
 msgid "Show desktop"
-msgstr ""
+msgstr "Amosar escritorio"
 
 #: include/defs/uistr.h:122
 msgid "Redraw"
-msgstr ""
+msgstr "Redebuxar"
 
 #: include/defs/uistr.h:123
 msgid "Reload config"
-msgstr ""
+msgstr "Recargar config."
 
 #: include/defs/uistr.h:124
 msgid "Quit"
-msgstr ""
+msgstr "Saír"
 
 #: include/defs/uistr.h:125
 msgid "This list"
-msgstr ""
+msgstr "Esta lista"
 
 #: include/defs/uistr.h:128
 msgid "Emergency exit: Ctrl+Mod1+BackSpace"
-msgstr ""
+msgstr "Saída de emerxencia: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
 msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr ""
+msgstr "Frase do día: Ctrl+Mod4+BackSpace"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
-msgstr ""
+msgstr "Terminal"
 
 #: include/defs/uistr.h:132
 msgid "Launcher"
-msgstr ""
+msgstr "Lanzador"
 
 #: include/defs/uistr.h:133
 msgid "File manager"
-msgstr ""
+msgstr "Xestor de ficheiros"
 
 #: include/defs/uistr.h:134
 msgid "Web browser"
-msgstr ""
+msgstr "Navegador web"
 
 #: include/defs/uistr.h:135
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: include/defs/uistr.h:138
 msgid "Kill"
-msgstr ""
+msgstr "Matar"
 
 #: include/defs/uistr.h:143
 msgid "Iconify all"
-msgstr ""
+msgstr "Iconizar todo"
 
 #: include/defs/uistr.h:144
 msgid "Deiconify all"
-msgstr ""
+msgstr "Desiconizar todo"
 
 #: include/defs/uistr.h:145
 msgid "Arrange"
-msgstr ""
+msgstr "Organizar"
 
 #: include/defs/uistr.h:146
 msgid "Info"
-msgstr ""
+msgstr "Información"
 
 #: include/defs/uistr.h:149
 msgid "Next monitor"
-msgstr ""
+msgstr "Seguinte monitor"
 
 #: include/defs/uistr.h:150
 msgid "Pin"
-msgstr ""
+msgstr "Fixar"
 
 #: include/defs/uistr.h:155
 msgid "Move (relative)"
-msgstr ""
+msgstr "Mover (relativo)"
 
 #: include/defs/uistr.h:156
 msgid "Move (absolute)"
-msgstr ""
+msgstr "Mover (absoluto)"
 
 #: include/defs/uistr.h:158
 msgid "Desktops"
-msgstr ""
+msgstr "Escritorios"
 
 #: include/defs/uistr.h:159
 msgid "Icons"
-msgstr ""
+msgstr "Iconas"
 
 #: include/defs/uistr.h:160
 msgid "Windows"
-msgstr ""
+msgstr "Fiestras"
 
 #: include/defs/uistr.h:174
 msgid "Go to desktop 0-9: %.*s<0-9>"
-msgstr ""
+msgstr "Ir ao escritorio 0-9: %.*s<0-9>"
 
 #: include/defs/uistr.h:176
 msgid "Go to desktop %u: %s"
-msgstr ""
+msgstr "Ir ao escritorio %u: %s"
 
 #: include/defs/uistr.h:179
 msgid "N/A"
-msgstr ""
+msgstr "N/D"
 
 #: include/defs/uistr.h:180
 msgid "Full AC"
-msgstr ""
+msgstr "Chea, con CA"
 
 #: include/defs/uistr.h:181
 msgid "Full"
-msgstr ""
+msgstr "Chea"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -301,24 +303,35 @@ msgid ""
 "open at once.  All of this trades some visual polish for keeping "
 "memory use low and predictable."
 msgstr ""
+"IcoWM está a executarse en modo de memoria restrinxida.  Neste modo: "
+"as iconas das aplicacións móstranse sen a súa propia imaxe, o texto "
+"debúxase con tipos de letra máis sinxelos e hai un límite de cantas "
+"fiestras poden estar abertas á vez.  Todo isto troca algo de acabado "
+"visual por manter o uso de memoria baixo e predicible."
 
 #: include/defs/uistr.h:198
 msgid ""
 "Error parsing '%s'; possible syntax error.  Reverted to default "
 "values."
 msgstr ""
+"Erro ao analizar '%s'; posible erro de sintaxe.  Restauráronse os "
+"valores predeterminados."
 
 #: include/defs/uistr.h:201
 msgid ""
 "Error parsing the following file(s); possible syntax error(s).  "
 "Reverted to default values for each: '%s'"
 msgstr ""
+"Erro ao analizar o(s) seguinte(s) ficheiro(s); posible(s) erro(s) de "
+"sintaxe.  Restauráronse os valores predeterminados para cada un: '%s'"
 
 #: include/defs/uistr.h:208
 msgid ""
 "  Additionally, the theme file '%s' named by 'config.json' was not "
 "found; using the built-in default theme instead."
 msgstr ""
+"  Ademais, non se atopou o ficheiro de tema '%s' indicado en "
+"'config.json'; estase a usar o tema predeterminado incorporado."
 
 #: include/defs/uistr.h:217
 msgid ""
@@ -326,6 +339,9 @@ msgid ""
 "%u MiB allowed (see the '-M' command-line option).  Close some "
 "windows to free up memory before opening more."
 msgstr ""
+"IcoWM alcanzou o seu límite de memoria configurado: usando %u MiB dos "
+"%u MiB permitidos (véxase a opción de liña de comandos '-M').  Pecha "
+"algunhas fiestras para liberar memoria antes de abrir máis."
 
 #: include/defs/uistr.h:222
 msgid ""
@@ -333,3 +349,6 @@ msgid ""
 "than %u window(s) at once (see the '-M' command-line option).  Close "
 "a window before opening another."
 msgstr ""
+"IcoWM está a executarse en modo de memoria restrinxida e non "
+"xestionará máis de %u fiestra(s) á vez (véxase a opción de liña de "
+"comandos '-M').  Pecha unha fiestra antes de abrir outra."

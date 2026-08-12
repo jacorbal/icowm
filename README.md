@@ -106,6 +106,14 @@ Basic features are:
     thereafter be reloaded in response to a `SIGHUP` signal, without
     any need to restart the window manager itself.
 
+  - **IPC control socket.**
+    A local Unix domain socket, speaking plain newline-delimited
+    JSON, permits an external script to query IcoWM's own state or
+    drive it directly, reaching the self-same catalog of actions
+    already available to the keyboard and mouse.  `icowm-msg`, a
+    small command-line client built and installed alongside IcoWM
+    itself, is furnished for exactly this purpose.
+
   - **Per-window rules.**
     Optional rules may match a window by its instance, class, role,
     title, type, or transient status, and thereupon apply a desktop,
@@ -162,8 +170,11 @@ deliberate, wherein changes of focus, iconification, and navigation
 between desktops are treated as essential operations.
 
 Full documentation resides in [`doc/manual.md`](doc/manual.md),
-covering what IcoWM is, how it is started, and every command-line option it
-accepts, and in [`doc/config.md`](doc/config.md), which describes
+covering what IcoWM is, how it is started, every command-line option it
+accepts, and the IPC control socket in full; in
+[`doc/icowm-msg.md`](doc/icowm-msg.md), which describes `icowm-msg`,
+the command-line client for that socket, in its own entirety; and in
+[`doc/config.md`](doc/config.md), which describes
 every configuration file, in its entirety, field by field.
 
 Dependencies

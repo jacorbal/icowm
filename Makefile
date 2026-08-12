@@ -93,7 +93,10 @@ OTHR_LFLAGS = -lpthread
 LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) \
           $(OTHR_LFLAGS)
 
-# For 'icowm-msg'
+# 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
+# self-contained IPC client: it never touches X11 at all, so it has no
+# reason to pull in the XCB or font libraries the window manager itself
+# needs, only JSON for the wire protocol it speaks.
 MSG_CCFLAGS = $(CCFLAGS_BASE) $(JSON_CFLAGS)
 MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 
@@ -121,18 +124,18 @@ CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 CCFLAGS += -D I18N_DOMAIN=\"default\"
 CCFLAGS += -D I18N_LOCALE_DIR=\"$(CURDIR)/locale\"
 
-# 'icowm-msg' only ever prints its own name, IcoWM's own short name,
-# its version, its license, its copyright line, and its author (see
-# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's
-# own '-v' output, not something a small IPC client has any reason
-# to report about itself.
+# 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
+# version, its license, its copyright line, and its author (see
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's own
+# '-v' output, not something a small IPC client has any reason to report
+# about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
 MSG_CCFLAGS += -D PROJECT_VERSION=\"$(PROJECT_VERSION)\"
 MSG_CCFLAGS += -D PROJECT_VERSION_CODENAME=\"$(PROJECT_VERSION_CODENAME)\"
-MSG_CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
-MSG_CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 MSG_CCFLAGS += -D LICENSE=\"$(LICENSE)\"
+MSG_CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
+MSG_CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
 
 
 ## Options on 'make'
@@ -172,10 +175,9 @@ endif
 # throughout the codebase, for building specifically for a severely
 # memory-constrained target.
 #
-# Independent of restricted-memory mode ('icowm -M <mib>').
-# It does not turn that mode on by itself, and it does not supply
-# a default for '-M  <mib>' when that flag is left off at run time
-# either.
+# Independent of restricted-memory mode ('icowm -M <mib>').  It does not
+# turn that mode on by itself, and it does not supply a default for
+# '-M <mib>' when that flag is left off at run time either.
 #
 # See 'defs/compact.h' for a broader explanation.
 COMPACT ?=

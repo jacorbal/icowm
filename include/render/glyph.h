@@ -12,9 +12,16 @@
  * well known trouble spot even among X developers) composites the
  * text onto the target drawable.
  *
- * This is not a public-facing API: it exists purely as the internal
- * implementation @c render/text.c dispatches to, and is not meant to
- * be called directly from anywhere else in the project.
+ * This is not a general-purpose public API: every drawing/measuring
+ * entry point below exists purely as @c render/text.c's own fallback
+ * path for a font name that does not resolve to an X core font, and
+ * is not meant to be called directly from anywhere else in the
+ * project.  @c glyph_utf8_next is the one exception: a plain UTF-8
+ * decoder with nothing glyph-rendering-specific about it, reused by
+ * @c render/text.c's own X core font path too, so a Latin-1-range
+ * codepoint can be drawn correctly through @c xcb_image_text_8
+ * (which, unlike this file's own path, has no multi-byte text
+ * support of its own at all).
  *
  * @ingroup render
  */
@@ -31,6 +38,7 @@
 
 
 /* System includes */
+#include <stddef.h>     /* size_t */
 #include <stdint.h>
 
 /* XCB includes */
@@ -38,6 +46,32 @@
 
 
 /* Public interface */
+/**
+ * @brief Decode the next UTF-8 codepoint from @p text
+ *
+ * A plain UTF-8-to-codepoint decoder, with nothing about it specific
+ * to glyph rendering; lives here only because @c render/text.c's own
+ * X core font path (@c xcb_image_text_8, single-byte only) needs the
+ * exact same decoding this file's own glyph path already had, to
+ * turn a Latin-1-range codepoint back into the one byte that font
+ * encoding actually expects, rather than passing UTF-8's own
+ * multi-byte encoding straight through.
+ *
+ * Malformed sequences are treated permissively: an invalid leading
+ * byte is returned as its own Latin-1 codepoint rather than rejecting
+ * the whole string, since this reads UI text, not untrusted input,
+ * and a best-effort result reads better than nothing at all.
+ *
+ * @param text   Null-terminated UTF-8 string
+ * @param index  Byte offset to start decoding from; advanced past the
+ *               consumed bytes on return
+ *
+ * @return The decoded codepoint, or 0 at the end of the string
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t glyph_utf8_next(const char *text, size_t *index);
+
 /**
  * @brief Try to initialize the glyph renderer for the given font
  *        description

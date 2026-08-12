@@ -1,4 +1,4 @@
-# IcoWM GUI text translation template.
+# IcoWM GUI text translation: Italian.
 # Copyright (c) 2026, J. A. Corbal.
 # This file is distributed under the same license as IcoWM (ISC).
 #
@@ -8,290 +8,292 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-12 20:31+0200\n"
 "PO-Revision-Date: 2026-08-12 20:31+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Last-Translator: \n"
+"Language-Team: Italian\n"
+"Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: include/defs/uistr.h:38
 msgid "[ OK ]"
-msgstr ""
+msgstr "[ OK ]"
 
 #: include/defs/uistr.h:42
 msgid "Reload configuration"
-msgstr ""
+msgstr "Ricarica configurazione"
 
 #: include/defs/uistr.h:43
 msgid "Redraw all windows"
-msgstr ""
+msgstr "Ridisegna tutte le finestre"
 
 #: include/defs/uistr.h:44
 msgid "Exit"
-msgstr ""
+msgstr "Esci"
 
 #: include/defs/uistr.h:47
 msgid "Send to desktop"
-msgstr ""
+msgstr "Invia al desktop"
 
 #: include/defs/uistr.h:48
 msgid "Send to monitor"
-msgstr ""
+msgstr "Invia al monitor"
 
 #: include/defs/uistr.h:49;  include/defs/uistr.h:147
 msgid "Layer"
-msgstr ""
+msgstr "Livello"
 
 #: include/defs/uistr.h:50
 msgid "Always on top"
-msgstr ""
+msgstr "Sempre in primo piano"
 
 #: include/defs/uistr.h:51
 msgid "Normal"
-msgstr ""
+msgstr "Normale"
 
 #: include/defs/uistr.h:52
 msgid "Always on bottom"
-msgstr ""
+msgstr "Sempre sullo sfondo"
 
 #: include/defs/uistr.h:53
 msgid "All desktops (pin)"
-msgstr ""
+msgstr "Tutti i desktop (blocca)"
 
 #: include/defs/uistr.h:54
 msgid "This desktop only (unpin)"
-msgstr ""
+msgstr "Solo questo desktop (sblocca)"
 
 #: include/defs/uistr.h:55
 msgid "Restore"
-msgstr ""
+msgstr "Ripristina"
 
 #: include/defs/uistr.h:56
 msgid "Move"
-msgstr ""
+msgstr "Sposta"
 
 #: include/defs/uistr.h:57;  include/defs/uistr.h:157
 msgid "Resize"
-msgstr ""
+msgstr "Ridimensiona"
 
 #: include/defs/uistr.h:58;  include/defs/uistr.h:142
 msgid "Iconify"
-msgstr ""
+msgstr "Iconizza"
 
 #: include/defs/uistr.h:59;  include/defs/uistr.h:141
 msgid "Hide"
-msgstr ""
+msgstr "Nascondi"
 
 #: include/defs/uistr.h:60;  include/defs/uistr.h:148
 msgid "Maximize"
-msgstr ""
+msgstr "Massimizza"
 
 #: include/defs/uistr.h:61;  include/defs/uistr.h:140
 msgid "Fullscreen"
-msgstr ""
+msgstr "Schermo intero"
 
 #: include/defs/uistr.h:62
 msgid "Exit Fullscreen"
-msgstr ""
+msgstr "Esci da schermo intero"
 
 #: include/defs/uistr.h:63;  include/defs/uistr.h:151
 msgid "Shade"
-msgstr ""
+msgstr "Arrotola"
 
 #: include/defs/uistr.h:64
 msgid "Unshade"
-msgstr ""
+msgstr "Srotola"
 
 #: include/defs/uistr.h:65;  include/defs/uistr.h:139
 msgid "Decorate"
-msgstr ""
+msgstr "Decora"
 
 #: include/defs/uistr.h:66
 msgid "Undecorate"
-msgstr ""
+msgstr "Rimuovi decorazione"
 
 #: include/defs/uistr.h:67;  include/defs/uistr.h:137
 msgid "Close"
-msgstr ""
+msgstr "Chiudi"
 
 #: include/defs/uistr.h:70
 msgid "Go there..."
-msgstr ""
+msgstr "Vai lì..."
 
 #: include/defs/uistr.h:75
 msgid "Are you sure you want to exit %s?"
-msgstr ""
+msgstr "Vuoi davvero uscire da %s?"
 
 #: include/defs/uistr.h:76
 msgid "[ Cancel ]"
-msgstr ""
+msgstr "[ Annulla ]"
 
 #: include/defs/uistr.h:77
 msgid "[ Exit ]"
-msgstr ""
+msgstr "[ Esci ]"
 
 #: include/defs/uistr.h:97
 msgid "Automatically selecting '%.255s' in %d second(s)"
-msgstr ""
+msgstr "Selezione automatica di '%.255s' tra %d secondo/i"
 
 #: include/defs/uistr.h:104
 msgid ""
 "The 'randr.json' configuration has been applied.  Keep it, or revert "
 "to the previous one?"
 msgstr ""
+"La configurazione di 'randr.json' è stata applicata.  Mantenerla o "
+"tornare a quella precedente?"
 
 #: include/defs/uistr.h:107
 msgid "[ Revert ]"
-msgstr ""
+msgstr "[ Ripristina ]"
 
 #: include/defs/uistr.h:108
 msgid "[ Keep ]"
-msgstr ""
+msgstr "[ Mantieni ]"
 
 #: include/defs/uistr.h:113
 msgid "[Window Manager]"
-msgstr ""
+msgstr "[Gestore finestre]"
 
 #: include/defs/uistr.h:114
 msgid "[Launch]"
-msgstr ""
+msgstr "[Avvia]"
 
 #: include/defs/uistr.h:115
 msgid "[Window]"
-msgstr ""
+msgstr "[Finestra]"
 
 #: include/defs/uistr.h:116
 msgid "[Cycle]"
-msgstr ""
+msgstr "[Cicla]"
 
 #: include/defs/uistr.h:118
 msgid "Root menu"
-msgstr ""
+msgstr "Menu principale"
 
 #: include/defs/uistr.h:119
 msgid "Windows menu"
-msgstr ""
+msgstr "Menu finestre"
 
 #: include/defs/uistr.h:120
 msgid "Search windows"
-msgstr ""
+msgstr "Cerca finestre"
 
 #: include/defs/uistr.h:121
 msgid "Show desktop"
-msgstr ""
+msgstr "Mostra desktop"
 
 #: include/defs/uistr.h:122
 msgid "Redraw"
-msgstr ""
+msgstr "Ridisegna"
 
 #: include/defs/uistr.h:123
 msgid "Reload config"
-msgstr ""
+msgstr "Ricarica config."
 
 #: include/defs/uistr.h:124
 msgid "Quit"
-msgstr ""
+msgstr "Esci"
 
 #: include/defs/uistr.h:125
 msgid "This list"
-msgstr ""
+msgstr "Questo elenco"
 
 #: include/defs/uistr.h:128
 msgid "Emergency exit: Ctrl+Mod1+BackSpace"
-msgstr ""
+msgstr "Uscita di emergenza: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
 msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr ""
+msgstr "Frase del giorno: Ctrl+Mod4+BackSpace"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
-msgstr ""
+msgstr "Terminale"
 
 #: include/defs/uistr.h:132
 msgid "Launcher"
-msgstr ""
+msgstr "Avviatore"
 
 #: include/defs/uistr.h:133
 msgid "File manager"
-msgstr ""
+msgstr "Gestore file"
 
 #: include/defs/uistr.h:134
 msgid "Web browser"
-msgstr ""
+msgstr "Browser web"
 
 #: include/defs/uistr.h:135
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: include/defs/uistr.h:138
 msgid "Kill"
-msgstr ""
+msgstr "Termina"
 
 #: include/defs/uistr.h:143
 msgid "Iconify all"
-msgstr ""
+msgstr "Iconizza tutto"
 
 #: include/defs/uistr.h:144
 msgid "Deiconify all"
-msgstr ""
+msgstr "Deiconizza tutto"
 
 #: include/defs/uistr.h:145
 msgid "Arrange"
-msgstr ""
+msgstr "Disponi"
 
 #: include/defs/uistr.h:146
 msgid "Info"
-msgstr ""
+msgstr "Informazioni"
 
 #: include/defs/uistr.h:149
 msgid "Next monitor"
-msgstr ""
+msgstr "Monitor successivo"
 
 #: include/defs/uistr.h:150
 msgid "Pin"
-msgstr ""
+msgstr "Blocca"
 
 #: include/defs/uistr.h:155
 msgid "Move (relative)"
-msgstr ""
+msgstr "Sposta (relativo)"
 
 #: include/defs/uistr.h:156
 msgid "Move (absolute)"
-msgstr ""
+msgstr "Sposta (assoluto)"
 
 #: include/defs/uistr.h:158
 msgid "Desktops"
-msgstr ""
+msgstr "Desktop"
 
 #: include/defs/uistr.h:159
 msgid "Icons"
-msgstr ""
+msgstr "Icone"
 
 #: include/defs/uistr.h:160
 msgid "Windows"
-msgstr ""
+msgstr "Finestre"
 
 #: include/defs/uistr.h:174
 msgid "Go to desktop 0-9: %.*s<0-9>"
-msgstr ""
+msgstr "Vai al desktop 0-9: %.*s<0-9>"
 
 #: include/defs/uistr.h:176
 msgid "Go to desktop %u: %s"
-msgstr ""
+msgstr "Vai al desktop %u: %s"
 
 #: include/defs/uistr.h:179
 msgid "N/A"
-msgstr ""
+msgstr "N/D"
 
 #: include/defs/uistr.h:180
 msgid "Full AC"
-msgstr ""
+msgstr "Carica, rete"
 
 #: include/defs/uistr.h:181
 msgid "Full"
-msgstr ""
+msgstr "Carica"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -301,24 +303,36 @@ msgid ""
 "open at once.  All of this trades some visual polish for keeping "
 "memory use low and predictable."
 msgstr ""
+"IcoWM è in esecuzione in modalità a memoria limitata.  In questa "
+"modalità: le icone delle applicazioni sono mostrate senza la propria "
+"immagine, il testo è disegnato con caratteri più semplici e c'è un "
+"limite al numero di finestre che possono essere aperte "
+"contemporaneamente.  Tutto ciò sacrifica un po' di rifinitura visiva "
+"per mantenere basso e prevedibile l'uso della memoria."
 
 #: include/defs/uistr.h:198
 msgid ""
 "Error parsing '%s'; possible syntax error.  Reverted to default "
 "values."
 msgstr ""
+"Errore nell'analisi di '%s'; possibile errore di sintassi.  "
+"Ripristinati i valori predefiniti."
 
 #: include/defs/uistr.h:201
 msgid ""
 "Error parsing the following file(s); possible syntax error(s).  "
 "Reverted to default values for each: '%s'"
 msgstr ""
+"Errore nell'analisi dei seguenti file; possibili errori di sintassi.  "
+"Ripristinati i valori predefiniti per ciascuno: '%s'"
 
 #: include/defs/uistr.h:208
 msgid ""
 "  Additionally, the theme file '%s' named by 'config.json' was not "
 "found; using the built-in default theme instead."
 msgstr ""
+"  Inoltre, il file del tema '%s' indicato in 'config.json' non è "
+"stato trovato; verrà usato il tema predefinito integrato."
 
 #: include/defs/uistr.h:217
 msgid ""
@@ -326,6 +340,9 @@ msgid ""
 "%u MiB allowed (see the '-M' command-line option).  Close some "
 "windows to free up memory before opening more."
 msgstr ""
+"IcoWM ha raggiunto il limite di memoria configurato: in uso %u MiB "
+"dei %u MiB consentiti (vedi l'opzione da riga di comando '-M').  "
+"Chiudi alcune finestre per liberare memoria prima di aprirne altre."
 
 #: include/defs/uistr.h:222
 msgid ""
@@ -333,3 +350,6 @@ msgid ""
 "than %u window(s) at once (see the '-M' command-line option).  Close "
 "a window before opening another."
 msgstr ""
+"IcoWM è in esecuzione in modalità a memoria limitata e non gestirà "
+"più di %u finestra/e alla volta (vedi l'opzione da riga di comando "
+"'-M').  Chiudi una finestra prima di aprirne un'altra."

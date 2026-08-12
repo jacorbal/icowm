@@ -146,7 +146,7 @@
 #define STR_SHORTCUTS_INFO          "Info"
 #define STR_SHORTCUTS_LAYER         "Layer"
 #define STR_SHORTCUTS_MAXIMIZE      "Maximize"
-#define STR_SHORTCUTS_NEXT_MONITOR  "NextMonitor"
+#define STR_SHORTCUTS_NEXT_MONITOR  "Next monitor"
 #define STR_SHORTCUTS_PIN           "Pin"
 #define STR_SHORTCUTS_SHADE         "Shade"
 

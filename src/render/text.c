@@ -481,6 +481,51 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
 }
 
 
+/**
+ * @brief Convert a UTF-8 string to single-byte Latin-1, for
+ *        'xcb_image_text_8', which has no multi-byte encoding
+ *        support of its own at all
+ *
+ * Every codepoint in the Latin-1 range (U+0000-U+00FF, which is
+ * fixed's own ISO 8859-1/8859-15 encoding, and covers every accented
+ * letter Spanish, Galician, Catalan, French, Italian, German, and
+ * Portuguese actually use) becomes the one byte that same numeric
+ * value already is in that encoding; anything further out (Cyrillic,
+ * CJK, most everything else) becomes a literal '?', since a bitmap X
+ * core font like 'fixed' has no glyph for it regardless of how
+ * faithfully the input text were decoded.
+ *
+ * @param text     Null-terminated UTF-8 string
+ * @param out      Destination buffer
+ * @param out_size Size of @p out, in bytes
+ *
+ * @return Length of the converted string in @p out, in bytes (always
+ *         at most one byte per decoded codepoint, so never longer
+ *         than @p text's own UTF-8 byte length)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p text
+ */
+static size_t s_utf8_to_latin1(const char *text, char *out,
+        size_t out_size)
+{
+    size_t byte_index = 0u;
+    size_t out_len = 0u;
+
+    while (out_len < out_size - 1u) {
+        uint32_t codepoint = glyph_utf8_next(text, &byte_index);
+
+        if (codepoint == 0u) {
+            break;
+        }
+        out[out_len] = (codepoint <= 0xFFu) ? (char) codepoint : '?';
+        out_len += 1u;
+    }
+    out[out_len] = '\0';
+
+    return out_len;
+}
+
+
 /* Draw a string at the specified position */
 void text_draw_string(xcb_connection_t *connection,
         xcb_drawable_t drawable, xcb_gcontext_t gc,
@@ -526,23 +571,28 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    if (len == 0) {
-        return;
-    }
-    if (len > 255) {
-        len = 255;
-    }
+    {
+        char latin1[512];
 
-    draw_error = xcb_request_check(connection,
-            xcb_image_text_8_checked(connection, (uint8_t) len,
-                drawable, (gc == XCB_NONE)
-                    ? s_text.gc
-                    : gc, x, y, sanitized));
-    if (draw_error != NULL) {
-        LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
-                " (error=%u)",
-                drawable, (unsigned) draw_error->error_code);
-        free(draw_error);
+        len = s_utf8_to_latin1(sanitized, latin1, sizeof(latin1));
+        if (len == 0) {
+            return;
+        }
+        if (len > 255) {
+            len = 255;
+        }
+
+        draw_error = xcb_request_check(connection,
+                xcb_image_text_8_checked(connection, (uint8_t) len,
+                    drawable, (gc == XCB_NONE)
+                        ? s_text.gc
+                        : gc, x, y, latin1));
+        if (draw_error != NULL) {
+            LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
+                    " (error=%u)",
+                    drawable, (unsigned) draw_error->error_code);
+            free(draw_error);
+        }
     }
 }
 
@@ -550,18 +600,31 @@ void text_draw_string(xcb_connection_t *connection,
 /* Measure the rendered width of a string */
 uint16_t text_measure_string(const char *text)
 {
-    size_t len;
+    size_t char_count = 0u;
+    size_t byte_index = 0u;
 
     if (s_text.backend == S_BACKEND_GLYPH) {
         return glyph_measure_string(text);
     }
+    if (text == NULL) {
+        return 0u;
+    }
 
-    len = safe_strlen(text);
-    if (len > UINT16_MAX / s_text.char_width) {
+    /* Counting decoded codepoints, not 'safe_strlen's own UTF-8 byte
+     * count: 's_utf8_to_latin1' always draws exactly one glyph per
+     * codepoint (the Latin-1 byte itself, or a '?' substitute for
+     * anything further out), so a multi-byte character like 'á'
+     * measures as the one character cell it actually occupies once
+     * drawn, not the two UTF-8 bytes it happens to take on the wire. */
+    while (glyph_utf8_next(text, &byte_index) != 0u) {
+        char_count += 1u;
+    }
+
+    if (char_count > UINT16_MAX / s_text.char_width) {
         return UINT16_MAX;
     }
 
-    return (uint16_t) (len * s_text.char_width);
+    return (uint16_t) (char_count * s_text.char_width);
 }
 
 
