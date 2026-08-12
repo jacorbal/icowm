@@ -84,5 +84,21 @@ void menu_draw_label(xcb_connection_t *connection,
  */
 uint16_t menu_draw_measure(const char *text);
 
+/**
+ * @brief Truncate a buffer in place, one character at a time, until
+ *        it measures no wider than @p max_w
+ *
+ * A cheap linear shrink rather than a binary search, appropriate for
+ * the short labels menus deal with (window titles, desktop names):
+ * the difference is not measurable at that length.  Left untouched
+ * if it already fits, or if it is empty.
+ *
+ * @param buf   Null-terminated buffer to truncate in place
+ * @param max_w Maximum width in pixels the text may measure
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p buf
+ */
+void menu_draw_truncate(char *buf, uint16_t max_w);
+
 
 #endif  /* ! MENU_DRAW_H */

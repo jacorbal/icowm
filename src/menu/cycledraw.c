@@ -18,6 +18,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -404,6 +405,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
     client_td *row_client = (i >= 0 && i < g_cycle_menu.count)
         ? g_cycle_menu.clients[i] : NULL;
     int16_t text_x = style->pad_x;
+    char label_buf[WM_CYCLE_MENU_ENTRY_LENGTH];
 
     if (i == g_cycle_menu.selected) {
         menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_sel,
@@ -437,10 +439,21 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         text_x = (int16_t) (style->pad_x + style->icon_offset);
     }
 
+    /* Truncate against the menu's own width rather than the label's
+     * own measured width, so a title long enough to have already
+     * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
+     * menu opened (see 'cycle_open' in menu/cycle.c) is cut to match
+     * instead of running past the window's right edge. */
+    snprintf(label_buf, sizeof(label_buf), "%s", g_cycle_menu.labels[i]);
+    if (g_cycle_menu.width > text_x + style->pad_x) {
+        menu_draw_truncate(label_buf,
+                (uint16_t) (g_cycle_menu.width - text_x - style->pad_x));
+    }
+
     menu_draw_label(connection, g_cycle_menu.window,
             text_x,
             (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
-            g_cycle_menu.labels[i]);
+            label_buf);
 }
 
 

@@ -51,6 +51,10 @@
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/winlist.h>
+#include <menu/draw.h>
+
+/* Render includes */
+#include <render/text.h>
 
 
 /** Singleton root menu state: one @c CTXMENU_SUBMENU entry per desktop */
@@ -310,6 +314,7 @@ static void s_append_client_entry(client_td *client, uint32_t did,
     cname = (client->info.name != NULL && client->info.name[0] != '\0')
         ? client->info.name : "(unnamed)";
     s_format_client_label(client, cname, name_buf, sizeof(name_buf));
+    menu_draw_truncate(name_buf, (uint16_t) WINLIST_LABEL_MAX_WIDTH);
     out_entries[n].type = CTXMENU_COMMAND;
     safe_strncpy(out_entries[n].label, name_buf,
             sizeof(out_entries[n].label) - 1u);
@@ -583,6 +588,14 @@ void winlist_show(xcb_connection_t *connection,
     }
 
     winlist_close();
+
+    /* Every per-client label built below gets truncated against
+     * 'WINLIST_LABEL_MAX_WIDTH' (see 's_append_client_entry'), which
+     * measures in whatever font the text renderer currently has
+     * active; initialized here, once, up front, so every one of
+     * those measurements is against the actual menu font rather than
+     * whatever an unrelated earlier caller happened to leave active. */
+    text_renderer_init(connection, config->theme.menu.unselected.font);
 
     s_entry_data_used = 0;
     s_appgroup_used = 0;

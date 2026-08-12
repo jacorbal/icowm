@@ -314,15 +314,25 @@ void cycle_open(list_td *surfaces,
      * entry could actually be drawn in ('unselected' and 'selected',
      * bold by default), the same reasoning as 's_compute_width' in
      * ctxmenu.c: sizing off only one leaves no room for the wider one
-     * once the highlight lands on it. */
+     * once the highlight lands on it.  Each individual measurement is
+     * capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one very long
+     * window title cannot stretch the whole menu; such a label is
+     * truncated when actually drawn instead (see 's_cycle_draw_row'
+     * in menu/cycledraw.c). */
     text_renderer_init(connection, cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
         uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);
+        if (w > (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH) {
+            w = (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH;
+        }
         if (w > max_w) { max_w = w; }
     }
     text_renderer_init(connection, cfg->theme.menu.selected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
         uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);
+        if (w > (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH) {
+            w = (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH;
+        }
         if (w > max_w) { max_w = w; }
     }
 

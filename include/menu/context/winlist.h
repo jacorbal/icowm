@@ -74,6 +74,22 @@
 #define WINLIST_MAX_COLLECTED (128)
 
 /**
+ * @brief Maximum pixel width a client entry's own label may claim
+ *        towards the windows-menu's width
+ *
+ * Caps how far one very long window title can stretch the whole
+ * menu; a label wider than this truncates instead (see
+ * 's_format_client_label' in menu/context/winlist.c), the same
+ * reasoning 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' truncates a cycle-menu
+ * entry (defs/cycle.h).  Application-group and desktop submenu
+ * labels are short, fixed phrases the user themselves configures
+ * (a desktop's own name, an application's own class name) rather
+ * than an arbitrary window title, so this only applies to the
+ * per-client entries.
+ */
+#define WINLIST_LABEL_MAX_WIDTH (280)
+
+/**
  * @brief Size of the shared pool of per-entry userdata records
  *
  * Sized to cover the worst case at every level: one per desktop (for

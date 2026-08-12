@@ -24,6 +24,18 @@
 /** Maximum label length for a cycle menu entry */
 #define WM_CYCLE_MENU_ENTRY_LENGTH (128)
 
+/**
+ * @brief Maximum pixel width a single cycle-menu label may claim
+ *        towards the menu's own width
+ *
+ * Caps how far one very long window title can stretch the whole
+ * menu; a label wider than this truncates instead (see @c
+ * s_cycle_draw_row in menu/cycledraw.c), the same reasoning @c
+ * WM_SEARCH_NAME_MAX_WIDTH truncates a search result's own name
+ * (defs/search.h).
+ */
+#define WM_CYCLE_MENU_LABEL_MAX_WIDTH (280)
+
 /** Height of each row in the cycle menu, in pixels */
 #define WM_CYCLE_MENU_ROW_HEIGHT (20)
 

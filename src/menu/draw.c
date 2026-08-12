@@ -15,6 +15,7 @@
 /* System includes */
 #include <stdint.h>
 #include <stddef.h>     /* NULL */
+#include <string.h>     /* strlen */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -72,4 +73,22 @@ uint16_t menu_draw_measure(const char *text)
     }
 
     return text_measure_string(text);
+}
+
+
+/* Truncate a buffer in place until it measures no wider than max_w */
+void menu_draw_truncate(char *buf, uint16_t max_w)
+{
+    size_t len;
+
+    if (buf == NULL || buf[0] == '\0' ||
+            menu_draw_measure(buf) <= max_w) {
+        return;
+    }
+
+    len = strlen(buf);
+    while (len > 0u && menu_draw_measure(buf) > max_w) {
+        --len;
+        buf[len] = '\0';
+    }
 }

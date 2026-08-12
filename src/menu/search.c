@@ -751,36 +751,6 @@ static void s_search_draw_bar(xcb_connection_t *connection,
 
 
 /**
- * @brief Truncate a buffer in place, one character at a time, until
- *        it measures no wider than @p max_w
- *
- * Same approach as @c s_titlebar_draw_title (render/desktop.c): a
- * cheap linear shrink rather than a binary search, since a search
- * result's name is short enough that the difference is not
- * measurable.  Left untouched if it already fits.
- *
- * @param buf   Null-terminated buffer to truncate in place
- * @param max_w Maximum width in pixels the text may measure
- *
- * @note Complexity: @e O(n), where @e n is the length of @p buf
- */
-static void s_search_truncate(char *buf, uint16_t max_w)
-{
-    size_t len;
-
-    if (buf[0] == '\0' || menu_draw_measure(buf) <= max_w) {
-        return;
-    }
-
-    len = strlen(buf);
-    while (len > 0u && menu_draw_measure(buf) > max_w) {
-        --len;
-        buf[len] = '\0';
-    }
-}
-
-
-/**
  * @brief Paint one result row: background, optional icon, name,
  *        desktop name, and bracketed hints
  *
@@ -838,7 +808,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
         if (name_max > (uint16_t) WM_SEARCH_NAME_MAX_WIDTH) {
             name_max = (uint16_t) WM_SEARCH_NAME_MAX_WIDTH;
         }
-        s_search_truncate(name_buf, name_max);
+        menu_draw_truncate(name_buf, name_max);
     }
     menu_draw_label(connection, s_search.window, text_x,
             (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4), name_buf);
@@ -850,7 +820,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
 
         if (desk_x < safe_right) {
             snprintf(desk_buf, sizeof(desk_buf), "%s", r->desktop->name);
-            s_search_truncate(desk_buf,
+            menu_draw_truncate(desk_buf,
                     (uint16_t) (safe_right - desk_x));
             menu_draw_label(connection, s_search.window, desk_x,
                     (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4),
