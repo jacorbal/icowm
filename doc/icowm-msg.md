@@ -149,6 +149,8 @@ There is nothing listening at the resolved socket path yet. This
 means one of:
 
 - IcoWM is not currently running.
+- IcoWM was started with `-s` (`manual.md` section 3.1), which
+  disables the socket entirely for that run, on purpose.
 - IcoWM is running, but its IPC socket failed to come up (see its
   own log: `ipc_init` logs a warning and continues without the
   socket rather than refusing to start over this alone; every other

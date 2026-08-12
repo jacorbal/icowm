@@ -129,6 +129,7 @@ static inline void s_show_help(FILE *fp)
     fprintf(fp, "   -M <mib>        Enable restricted-memory mode" \
                 " with a ceiling (min. %u MiB)\n",
                 (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+    fprintf(fp, "   -s              Disable the IPC control socket\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -325,6 +326,7 @@ int main(int argc, char *const argv[])
     bool log_is_tracking = false;
     bool verbose = true;
     bool lint_requested = false;
+    bool ipc_disabled = false;
 #ifdef COMPACT
     /* A COMPACT build enables restricted-memory mode on its own, at
      * the minimum ceiling, unless '-M' below overrides it with a
@@ -341,7 +343,7 @@ int main(int argc, char *const argv[])
     srand((unsigned int) (time(NULL) ^ getpid()));
 
     /* Get user options */
-    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qtM:")) != -1) {
+    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qtM:s")) != -1) {
         int opt_level;
 
         switch (opt) {
@@ -437,6 +439,10 @@ int main(int argc, char *const argv[])
                 }
                 break;
 
+            case 's':
+                ipc_disabled = true;
+                break;
+
             default:
                 s_show_help(stderr);
                 s_deallocate_buffers(&log_filename,
@@ -471,7 +477,8 @@ int main(int argc, char *const argv[])
 
     /* Window manager "magic" */
     LOGGER_INFO("Starting up window manager", L_NARG);
-    if (wm_start(display_name, config_dir, restricted_memory_mib) != 0) {
+    if (wm_start(display_name, config_dir, restricted_memory_mib,
+                ipc_disabled) != 0) {
         logger_stop();
         s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 1;

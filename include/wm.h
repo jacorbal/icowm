@@ -139,6 +139,10 @@ typedef struct {
  * @param restricted_memory_mib Restricted-memory mode's available-
  *                          memory ceiling in mebibytes, or @c 0 to
  *                          leave the mode off
+ * @param ipc_disabled      When @c true, the IPC control socket
+ *                          (@c ipc.h) is never brought up at all;
+ *                          every other part of IcoWM runs exactly the
+ *                          same either way
  *
  * @return Status of the initialization
  * @retval  0 Success
@@ -159,7 +163,7 @@ typedef struct {
  *       for the initialization requires iterate over a list of lists
  */
 int wm_start(const char *display_name, const char *config_dir_prefix,
-        uint32_t restricted_memory_mib);
+        uint32_t restricted_memory_mib, bool ipc_disabled);
 
 /**
  * @brief Warn through a message dialog if any JSON file loaded since

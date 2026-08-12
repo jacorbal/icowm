@@ -33,7 +33,7 @@ client for the IPC control socket section 5 below documents, see
      - [5.3.2 Client actions taking only `client_id`](#532-client-actions-taking-only-client_id)
      - [5.3.3 Client actions taking their own extra arguments](#533-client-actions-taking-their-own-extra-arguments)
      - [5.3.4 Desktop-scoped actions](#534-desktop-scoped-actions)
-     - [5.3.5 Surface actions](#535-surface-actions)
+      [5.3.5 Surface actions](#535-surface-actions)
      - [5.3.6 Whole window manager](#536-whole-window-manager)
    - [5.4 The `icowm-msg` tool](#54-the-icowm-msg-tool)
    - [5.5 Talking to the socket directly](#55-talking-to-the-socket-directly)
@@ -77,28 +77,29 @@ unrestricted session.
 
 ### 3.1 Main options
 
-| Option | Description |
-|--------|-------------|
-| `-d <display>` | Set the X server display to connect to (e.g., `:0`). If not given, the `DISPLAY` environment variable is used. |
+| Option            | Description |
+|-------------------|-------------|
+| `-d <display>`    | Set the X server display to connect to (e.g., `:0`). If not given, the `DISPLAY` environment variable is used. |
 | `-c <config_dir>` | Set the configuration directory, overriding the lookup order described in `config.md` section 1. |
-| `-C` | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
-| `-M <mib>` | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4. Must be at least 10. |
+| `-C`              | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
+| `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4. Must be at least 10. |
+| `-s`              | Disable the IPC control socket entirely for this run: `ipc_init` is never called at all, rather than being attempted and possibly failing. See section 5 for what the socket does. |
 
 ### 3.2 Logging
 
-| Option | Description |
-|--------|-------------|
+| Option           | Description |
+|------------------|-------------|
 | `-L <log_level>` | Set the minimum log verbosity level (0-8; see the level list IcoWM itself prints with `-h`, from `trace` through `fatal`). |
-| `-l <log_file>` | Set the log destination: a file path, or one of the keywords `DEFAULT` (errors to `stderr`, informational messages to `stdout`), `STDOUT`, `STDERR`, or `NULL` (disable logging). |
-| `-q` | Quiet mode: only fatal errors are logged; identical to the highest `-L` level. |
-| `-t` | Enable function-level tracing for every logged message, not only at the `trace` level. |
+| `-l <log_file>`  | Set the log destination: a file path, or one of the keywords `DEFAULT` (errors to `stderr`, informational messages to `stdout`), `STDOUT`, `STDERR`, or `NULL` (disable logging). |
+| `-q`             | Quiet mode: only fatal errors are logged; identical to the highest `-L` level. |
+| `-t`             | Enable function-level tracing for every logged message, not only at the `trace` level. |
 
 ### 3.3 Other options
 
 | Option | Description |
 |--------|-------------|
-| `-h` | Show usage information and exit. |
-| `-v` | Show version and license information, and exit. |
+| `-h`   | Show usage information and exit. |
+| `-v`   | Show version and license information, and exit. |
 
 ## 4. Restricted-memory mode (`icowm -M <mib>`)
 
@@ -364,41 +365,41 @@ Read-only; take no arguments beyond what is noted.
 Every one of these takes exactly one argument, `client_id`, and
 responds with a bare `{"ok": true}` on success.
 
-| Command | What it does |
-|---------|---------------|
-| `close_client` | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its own close button), or destroys its window directly if it does not support that |
-| `kill_client` | Forcibly terminates the client's own X connection; a last resort for a client `close_client` cannot reach at all |
-| `focus_client` | Moves input focus to the client, without raising it (see this section's own introduction) |
-| `unfocus_client` | Takes input focus away from the client, if it currently had it |
-| `iconify_client` | Iconifies (minimizes) the client |
-| `deiconify_client` | Restores the client if it was iconified |
-| `hide_client` | Hides the client without iconifying it |
-| `unhide_client` | Undoes `hide_client` |
-| `sticky_client` | Makes the client visible on every desktop of its own surface |
-| `unsticky_client` | Undoes `sticky_client` |
-| `toggle_sticky_client` | Toggles between `sticky_client` and `unsticky_client` |
-| `set_urgent_client` | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation) |
-| `clear_urgent_client` | Undoes `set_urgent_client` |
-| `center_client` | Centers the client on its own current screen |
-| `move_client_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner |
-| `maximize_client_horz` | Maximizes the client horizontally only |
-| `maximize_client_vert` | Maximizes the client vertically only |
-| `maximize_client` | Maximizes the client both horizontally and vertically |
-| `raise_client` | Raises the client to the front of its own current layer |
-| `lower_client` | Lowers the client to the back of its own current layer |
-| `layer_above_client` | Moves the client to the "always on top" layer |
-| `layer_normal_client` | Moves the client back to the ordinary layer |
-| `layer_below_client` | Moves the client to the "always below" layer |
-| `cycle_layer_client` | Cycles the client through above, normal, and below, in that order |
-| `shade_client` | Rolls the client up into just its own titlebar |
-| `unshade_client` | Undoes `shade_client` |
-| `toggle_shade_client` | Toggles between `shade_client` and `unshade_client` |
-| `fullscreen_client` | Makes the client fill its own screen, without any decoration |
-| `unfullscreen_client` | Undoes `fullscreen_client` |
-| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client` |
-| `toggle_decoration_client` | Shows or hides the client's own titlebar and border |
-| `send_client_to_front` | Raises the client to the front of its own desktop's window stack, independent of its layer |
-| `send_client_to_back` | Sends the client to the back of its own desktop's window stack, independent of its layer |
+| Command                    | What it does |
+|----------------------------|--------------|
+| `close_client`             | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its own close button), or destroys its window directly if it does not support that   
+| `kill_client`              | Forcibly terminates the client's own X connection; a last resort for a client `close_client` cannot reach at all                                        
+| `focus_client`             | Moves input focus to the client, without raising it (see this section's own introduction)                                                               
+| `unfocus_client`           | Takes input focus away from the client, if it currently had it                                                                                          
+| `iconify_client`           | Iconifies (minimizes) the client                                                                                                                        
+| `deiconify_client`         | Restores the client if it was iconified                                                                                                                 
+| `hide_client`              | Hides the client without iconifying it                                                                                                                  
+| `unhide_client`            | Undoes `hide_client`                                                                                                                                    
+| `sticky_client`            | Makes the client visible on every desktop of its own surface                                                                                            
+| `unsticky_client`          | Undoes `sticky_client`                                                                                                                                  
+| `toggle_sticky_client`     | Toggles between `sticky_client` and `unsticky_client`                                                                                                   
+| `set_urgent_client`        | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation)                                                              
+| `clear_urgent_client`      | Undoes `set_urgent_client`                                                                                                                              
+| `center_client`            | Centers the client on its own current screen                                                                                                            
+| `move_client_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner                                      
+| `maximize_client_horz`     | Maximizes the client horizontally only                                                                                                                  
+| `maximize_client_vert`     | Maximizes the client vertically only                                                                                                                    
+| `maximize_client`          | Maximizes the client both horizontally and vertically                                                                                                   
+| `raise_client`             | Raises the client to the front of its own current layer                                                                                                 
+| `lower_client`             | Lowers the client to the back of its own current layer                                                                                                  
+| `layer_above_client`       | Moves the client to the "always on top" layer                                                                                                           
+| `layer_normal_client`      | Moves the client back to the ordinary layer                                                                                                             
+| `layer_below_client`       | Moves the client to the "always below" layer                                                                                                            
+| `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order                                                                                       
+| `shade_client`             | Rolls the client up into just its own titlebar                                                                                                          
+| `unshade_client`           | Undoes `shade_client`                                                                                                                                   
+| `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client`                                                                                                     
+| `fullscreen_client`        | Makes the client fill its own screen, without any decoration                                                                                            
+| `unfullscreen_client`      | Undoes `fullscreen_client`                                                                                                                              
+| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client`                                                                                           
+| `toggle_decoration_client` | Shows or hides the client's own titlebar and border                                                                                                     
+| `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer                                                              
+| `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer                                                                
 
 #### 5.3.3 Client actions taking their own extra arguments
 
@@ -425,18 +426,18 @@ responds with a bare `{"ok": true}` on success.
 
 #### 5.3.5 Surface actions
 
-| Command | Arguments | What it does |
-|---------|-----------|---------------|
+| Command        | Arguments                                        | What it does |
+|----------------|--------------------------------------------------|--------------|
 | `goto_desktop` | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
-| `next_desktop` | `surface_id` (optional) | Switches the resolved surface to its own next desktop, wrapping around after the last one |
-| `prev_desktop` | `surface_id` (optional) | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
+| `next_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own next desktop, wrapping around after the last one |
+| `prev_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
 
 #### 5.3.6 Whole window manager
 
-| Command | Arguments | What it does |
-|---------|-----------|---------------|
-| `wm_exit` | none | Requests that IcoWM stop and exit, the same as its own quit shortcut |
-| `reload_config` | none | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
+| Command         | Arguments | What it does |
+|-----------------|-----------|--------------|
+| `wm_exit`       | none      | Requests that IcoWM stop and exit, the same as its own quit shortcut |
+| `reload_config` | none      | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
 
 ### 5.4 The `icowm-msg` tool
 

@@ -155,7 +155,7 @@ static void s_wm_cleanup(void)
 
 /* Initialize a window manager instance */
 int wm_start(const char *display_name, const char *config_dir_prefix,
-        uint32_t restricted_memory_mib)
+        uint32_t restricted_memory_mib, bool ipc_disabled)
 {
     uint32_t screens_detected;
     uint32_t screens_managed;
@@ -397,8 +397,14 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     /* Not fatal if it fails, the same reasoning as EWMH root
      * metadata just below: a working window manager without its
      * own control socket is still a working window manager, just
-     * one external tools cannot script against for this run. */
-    if (ipc_init() != 0) {
+     * one external tools cannot script against for this run.
+     * 'ipc_disabled' skips it outright instead, for anyone who
+     * would rather it never come up at all than have it come up and
+     * be reachable by any other local process running as the same
+     * user. */
+    if (ipc_disabled) {
+        LOGGER_INFO("IPC control socket disabled ('-s')", L_NARG);
+    } else if (ipc_init() != 0) {
         LOGGER_WARNING("Failed to initialize IPC control socket",
                 L_NARG);
     }
