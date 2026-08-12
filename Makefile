@@ -174,7 +174,8 @@ ARGS ?=
 # Sources, objects and auto-generated dependencies
 SRCS = $(wildcard $(S_DIR)/*.c) \
        $(wildcard $(S_DIR)/*/*.c) \
-       $(wildcard $(S_DIR)/*/*/*.c)
+       $(wildcard $(S_DIR)/*/*/*.c) \
+       $(wildcard $(S_DIR)/*/*/*/*.c)
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
@@ -186,7 +187,7 @@ DEPS = $(OBJS:.o=.d)
 all: mkdirs $(TARGET) ctags
 	@echo "Build $(BUILD_NUMBER)"
 
-parallel: clean
+parallel:
 	$(MAKE) -j$(JOBS) all
 
 mkdirs:
