@@ -307,6 +307,8 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.window.iconify_all);
     s_append_binding(text, sizeof(text), &offset, "Deiconify all",
             config->bindings.keyboard.window.deiconify_all);
+    s_append_binding(text, sizeof(text), &offset, "Arrange",
+            config->bindings.keyboard.window.arrange);
     s_append_binding(text, sizeof(text), &offset, "Info",
             config->bindings.keyboard.window.info);
     s_append_binding(text, sizeof(text), &offset, "Layer",

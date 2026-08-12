@@ -32,6 +32,7 @@
 
 /* Project includes */
 #include <config.h>
+#include <wm.h>
 
 
 /* Public interface */
@@ -44,6 +45,9 @@
  * Dispatches client operations, desktop switches, program launches,
  * move/resize key steps, and cycle menu open/navigate.
  *
+ * @param wm       Window manager instance (for actions that need more
+ *                 than the surface list and configuration alone, such
+ *                 as re-applying the placement policy)
  * @param keysyms  Allocated XCB key-symbols table
  * @param event    Incoming key-press event
  * @param surfaces All managed surfaces (for lookup and focus)
@@ -51,7 +55,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the number of loaded bindings
  */
-void keyboard_handle_press(xcb_key_symbols_t *keysyms,
+void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event,
         list_td *surfaces,
         const config_td *cfg);

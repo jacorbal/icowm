@@ -470,7 +470,7 @@ void loop_run(wm_td *wm)
 
             switch (event->response_type & ~0x80u) {
                 case XCB_KEY_PRESS:
-                    keyboard_handle_press(keysyms,
+                    keyboard_handle_press(wm, keysyms,
                             (xcb_key_press_event_t *) event,
                             wm->surfaces, wm->config);
                     break;

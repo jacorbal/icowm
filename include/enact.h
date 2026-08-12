@@ -489,7 +489,16 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  * @brief Re-apply the configured placement policy to every client on
  *        the desktop
  *
- * @param wm      Window manager instance
+ * A transient dialog among them is the one exception: it is
+ * re-centered over its own parent per ICCCM §4.1.2.6 instead of
+ * being run through the configured policy, since every client goes
+ * through 'place_apply' itself (see its own doc comment), the same
+ * general placement engine a window is run through when first
+ * mapped, not a simplified rearrange-only routine.
+ *
+ * @param wm      Window manager instance (needed to locate a
+ *                transient's parent, which can live on a different
+ *                surface, via 'wm->surfaces')
  * @param surface Surface the desktop belongs to
  * @param desktop Desktop whose clients are rearranged
  *

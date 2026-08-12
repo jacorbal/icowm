@@ -608,6 +608,9 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.window.deiconify_all,
             "modc+mod4+mods+d",
             sizeof(config->bindings.keyboard.window.deiconify_all));
+    safe_strncpy(config->bindings.keyboard.window.arrange,
+            "modc+mod1+mods+a",
+            sizeof(config->bindings.keyboard.window.arrange));
     safe_strncpy(config->bindings.keyboard.window.info,
             "modc+mod1+mods+i", sizeof(config->bindings.keyboard.window.info));
     safe_strncpy(config->bindings.keyboard.window.kill,

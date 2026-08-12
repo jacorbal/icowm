@@ -111,6 +111,8 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL,   /**< Iconify every client */
     KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL, /**< Restore every iconified
                                                  client */
+    KEYBIND_DESKTOP_CLIENTS_REARRANGE,     /**< Re-apply placement
+                                                 policy to every client */
 
     /* Direct desktop go-to (indices 0-9) */
     KEYBIND_DESKTOP_GOTO_0,             /**< Switch directly to desktop 0 */

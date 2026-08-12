@@ -871,6 +871,7 @@ Actions performed on the currently focused window.
 | `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
 | `iconify-all`   | `modc+mod4+mods+i`     | Iconify (minimize) every client on the current desktop. |
 | `deiconify-all` | `modc+mod4+mods+d`     | Restore every iconified client on the current desktop. |
+| `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out. A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
 | `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `next-monitor` | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
@@ -2303,6 +2304,7 @@ to whatever theme loads, unconditionally.
             "iconify": "modc+mod1+i",
             "iconify-all": "modc+mod4+mods+i",
             "deiconify-all": "modc+mod4+mods+d",
+            "arrange": "modc+mod1+mods+a",
             "hide": "modc+mod1+mods+h",
             "maximize": "modc+mod1+m",
             "fullscreen": "modc+mod1+f",

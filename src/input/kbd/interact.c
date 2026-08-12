@@ -359,6 +359,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_SHOW:
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -492,6 +493,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_SHOW:
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -663,6 +665,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_SHOW:
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:

@@ -150,6 +150,9 @@ int config_load_bindings(const char *filename,
             json_load_string(window, "deiconify-all",
                     config_bindings->keyboard.window.deiconify_all,
                     CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(window, "arrange",
+                    config_bindings->keyboard.window.arrange,
+                    CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "info",
                     config_bindings->keyboard.window.info,
                     CONFIG_MAX_LENGTH_BINDING);

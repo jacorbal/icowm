@@ -586,25 +586,62 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
         (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE);
     is_first = true;
 
-    for (node = cdlist_head(desktop->stacking); node != NULL;
-            node = cdlist_next(node)) {
-        client_td *client = (client_td *) cdlist_data(node);
+    node = cdlist_head(desktop->stacking);
+    if (node != NULL) {
+        /* 'desktop->stacking' is circular (see 'cdlist_next''s own
+         * doc comment in adt/cdlist.h): its own tail wraps back to
+         * its own head rather than ever handing back NULL, so a
+         * caller has to remember where it started and stop once it
+         * gets back there, the same 'initial' pattern already used
+         * to walk this same list elsewhere (e.g.
+         * 'desktop_action_client_rem' in desktop/dclient.c).  A
+         * plain 'for (...; node != NULL; ...)' loop over it, as this
+         * one used to be, never terminates for a non-empty desktop:
+         * it silently spins inside this one call forever, which
+         * blocks the whole event loop (this function's own caller
+         * runs synchronously from it) from ever processing another
+         * key press, mouse click, or menu, until the process is
+         * killed from outside. */
+        cdlist_item_td *initial = node;
 
-        if (client == NULL) {
-            continue;
-        }
+        do {
+            client_td *client = (client_td *) cdlist_data(node);
 
-        /* 'centered'/'under-mouse' always resolve to the exact same
-         * single spot, so every client after the first would land
-         * stacked on top of one another; only the first client uses
-         * the real configured policy, the rest fall back to cascade
-         * so the desktop ends up spread out instead of piled up */
-        if (single_spot_policy && !is_first) {
-            place_apply_cascade(wm, surface, client);
-        } else {
-            place_apply(wm, surface, client);
-        }
-        is_first = false;
+            if (client != NULL) {
+                /* Every client on the desktop goes through
+                 * 'place_apply' / 'place_apply_cascade', the same
+                 * general-purpose placement engine a newly mapped
+                 * window is run through, not a simplified
+                 * rearrange-only positioning routine.  That means a
+                 * transient dialog among them (a client with its own
+                 * 'transient_for' set) is not repositioned by the
+                 * configured placement policy below at all:
+                 * 'place_apply' re-centers it over its own parent
+                 * per ICCCM §4.1.2.6 instead, the same as it would
+                 * have been placed there in the first place.
+                 * Finding that parent is why this function needs the
+                 * full 'wm_td' rather than just 'desktop' or
+                 * 'config': the parent can live on a different
+                 * surface entirely, so locating it means searching
+                 * 'wm->surfaces' as a whole (see
+                 * 's_place_transient_centered' in policy/
+                 * placement.c). */
+
+                /* 'centered'/'under-mouse' always resolve to the
+                 * exact same single spot, so every client after the
+                 * first would land stacked on top of one another;
+                 * only the first client uses the real configured
+                 * policy, the rest fall back to cascade so the
+                 * desktop ends up spread out instead of piled up */
+                if (single_spot_policy && !is_first) {
+                    place_apply_cascade(wm, surface, client);
+                } else {
+                    place_apply(wm, surface, client);
+                }
+                is_first = false;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
     }
 
     xcb_flush(surface->connection);

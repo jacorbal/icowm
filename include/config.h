@@ -501,6 +501,11 @@ struct config_bindings_s {
              *  desktop */
             char deiconify_all[CONFIG_MAX_LENGTH_BINDING];
 
+            /** Re-apply the configured placement policy to every
+             *  client on the current desktop; see ICCCM §4.1.2.6
+             *  for the one exception, a transient dialog among them */
+            char arrange[CONFIG_MAX_LENGTH_BINDING];
+
             char info[CONFIG_MAX_LENGTH_BINDING];
             char layer[CONFIG_MAX_LENGTH_BINDING];
             char kill[CONFIG_MAX_LENGTH_BINDING];

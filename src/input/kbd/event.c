@@ -371,6 +371,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_SHOW:
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
+        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
         case KEYBIND_DESKTOP_GOTO_0:
         case KEYBIND_DESKTOP_GOTO_1:
         case KEYBIND_DESKTOP_GOTO_2:
@@ -488,7 +489,7 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
 
 
 /* Translate a key-press event into an action and dispatch it */
-void keyboard_handle_press(xcb_key_symbols_t *keysyms,
+void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event, list_td *surfaces,
         const config_td *config)
 {
@@ -692,6 +693,13 @@ void keyboard_handle_press(xcb_key_symbols_t *keysyms,
             case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
                 if (surface != NULL) {
                     enact_desktop_clients_deiconify_all(
+                            lookup_current_desktop(surface));
+                }
+                return;
+
+            case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
+                if (surface != NULL) {
+                    enact_desktop_clients_rearrange(wm, surface,
                             lookup_current_desktop(surface));
                 }
                 return;
