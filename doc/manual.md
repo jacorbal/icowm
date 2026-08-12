@@ -23,6 +23,11 @@ each accepts, its type, and its default, see
    - [4.4 Warning and error dialogs cannot be dismissed by accident](#44-warning-and-error-dialogs-cannot-be-dismissed-by-accident)
    - [4.5 Building an even lighter version](#45-building-an-even-lighter-version)
    - [4.6 Default values compared](#46-default-values-compared)
+5. [IPC control socket](#5-ipc-control-socket)
+   - [5.1 Connecting](#51-connecting)
+   - [5.2 Wire protocol](#52-wire-protocol)
+   - [5.3 Commands](#53-commands)
+   - [5.4 A worked example](#54-a-worked-example)
 
 ---
 
@@ -250,3 +255,85 @@ between the two kinds of build; see section 4.3 for how those combine.
 RandR output-profile management (`randr.json`) is never consulted at
 all in restricted-memory mode, in either kind of build, since it
 always runs with a single, fixed screen and desktop.
+
+## 5. IPC control socket
+
+IcoWM listens on a local Unix domain socket external tools can
+connect to, to query its current state or ask it to do something,
+without going through X11 client messages directly.  Every command
+already reachable from a key binding is reachable here too, since
+the socket calls the exact same underlying actions; it is a third
+way into that one catalog, not a separate one of its own.
+
+### 5.1 Connecting
+
+The socket lives at `icowm/socket` under `$XDG_RUNTIME_DIR` (falling
+back to `/tmp/icowm-<uid>` when that variable is unset), the same
+resolution order every other IcoWM-owned XDG path follows.  On a
+typical `systemd`-managed Linux system this resolves to
+`/run/user/<uid>/icowm/socket`.  The containing directory is created
+with mode `0700` if it does not already exist, so nothing else on
+the system can even see the socket file, let alone connect to it.
+
+### 5.2 Wire protocol
+
+Each message, in either direction, is one line of JSON terminated
+by `\n`.  A request is a JSON object with at least a string `"cmd"`
+field; any other fields are that command's own arguments.  A
+response is always a JSON object with at least a boolean `"ok"`
+field: `true`, with that command's own result fields alongside it,
+on success; `false`, with a string `"error"` field explaining what
+went wrong, on failure.  A malformed request (not valid JSON, valid
+JSON with no `"cmd"`, an unrecognized command name, a missing or
+invalid argument) is reported the same way, never left unanswered.
+
+Every command that accepts a `"surface_id"` treats it as optional:
+when left out, IcoWM falls back to the first surface in its own
+list, the only reasonable choice on a single-monitor setup and
+still a usable one on a multi-monitor one.
+
+### 5.3 Commands
+
+**Queries** (read-only; take no arguments beyond what is noted):
+
+| Command | Response fields |
+|---------|------------------|
+| `get_version` | `protocol_version` (an integer identifying the shape of this wire protocol itself, not an IcoWM release number; only bumped if a command's own argument or response shape ever changes in a way an existing client could not already handle) |
+| `list_desktops` | `desktops`: an array of `{id, name, surface_id, current}`, one entry per desktop on every managed surface |
+| `list_clients` | `clients`: an array of `{id, name, desktop_id, surface_id, iconified, urgent, sticky}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface |
+| `get_focused` | `focused`: an array of `{surface_id, client_id}`, one entry per managed surface (`client_id` is `null` when that surface currently has no active client) |
+
+Every `id` (a desktop's, a client's, a surface's) is the same
+numeric identifier IcoWM already uses for it internally: a client's
+`id` is its X window ID, a desktop's `id` is its index on its own
+surface, a surface's `id` is its own screen index.
+
+**Actions:**
+
+| Command | Arguments | What it does |
+|---------|-----------|---------------|
+| `goto_desktop` | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
+| `focus_client` | `client_id` (required) | Focuses and raises that client, wherever it currently is |
+| `close_client` | `client_id` (required) | Politely asks that client to close (`WM_DELETE_WINDOW`, the same as its own close button), or destroys its window directly if it does not support that |
+| `iconify_client` | `client_id` (required) | Iconifies that client |
+| `deiconify_client` | `client_id` (required) | Restores that client if it was iconified |
+| `rearrange` | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
+| `reload_config` | none | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
+
+A `client_id` that does not currently belong to any managed client,
+or a `desktop_id` out of range for the resolved surface, is reported
+as a normal `"ok": false` error, never a connection drop.
+
+### 5.4 A worked example
+
+Since the protocol is plain, newline-delimited JSON, it can be
+exercised directly from a shell, without any purpose-built client,
+using a tool like `socat`:
+
+```sh
+$ echo '{"cmd": "list_desktops"}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
+{"desktops":[{"id":0,"name":"Desktop 0","surface_id":0,"current":true}, ...],"ok":true}
+
+$ echo '{"cmd": "goto_desktop", "desktop_id": 1}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
+{"ok":true}
+```
