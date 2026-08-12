@@ -28,6 +28,9 @@
 #include <sys/un.h>
 #include <unistd.h>     /* close, getuid, read, unlink, write */
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Default initial values */
 #include <defs/config.h>
 #include <defs/ipc.h>
@@ -52,6 +55,12 @@ struct s_ipc_client_s {
     char buf[IPC_MSG_MAX_LENGTH];
     size_t buf_len;                    /**< Bytes currently buffered,
                                              not yet a complete line */
+    uint32_t subscribed_events;        /**< Bitmask of 'enum ipc_
+                                             event_type_e'; 0 means
+                                             none, correctly the same
+                                             as this static array's
+                                             own zero-initialized
+                                             default */
 };
 
 /** Every currently connected client, indexed by slot */
@@ -154,6 +163,7 @@ int ipc_init(void)
         for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
             s_clients[i].fd = -1;
             s_clients[i].buf_len = 0;
+            s_clients[i].subscribed_events = 0;
         }
         s_clients_initialized = true;
     }
@@ -262,6 +272,7 @@ void ipc_destroy(void)
             close(s_clients[i].fd);
             s_clients[i].fd = -1;
             s_clients[i].buf_len = 0;
+            s_clients[i].subscribed_events = 0;
         }
     }
 
@@ -291,6 +302,217 @@ static void s_client_close(int idx)
     close(s_clients[idx].fd);
     s_clients[idx].fd = -1;
     s_clients[idx].buf_len = 0;
+    s_clients[idx].subscribed_events = 0;
+}
+
+
+/** One event type's own name and bit, shared by both directions of
+ *  the name-to-bit mapping below (subscribing reads a name off the
+ *  wire and needs its bit; broadcasting has a bit and needs to write
+ *  its name back out), so the two stay in step by construction
+ *  rather than by two lists someone has to remember to edit
+ *  together. */
+struct s_ipc_event_def_s {
+    const char *name;
+    enum ipc_event_type_e bit;
+};
+
+static const struct s_ipc_event_def_s s_event_defs[] = {
+    { "window_mapped",    IPC_EVENT_WINDOW_MAPPED },
+    { "window_closed",    IPC_EVENT_WINDOW_CLOSED },
+    { "desktop_switched", IPC_EVENT_DESKTOP_SWITCHED },
+    { "focus_changed",    IPC_EVENT_FOCUS_CHANGED },
+};
+
+#define S_IPC_EVENT_COUNT \
+    (sizeof(s_event_defs) / sizeof(s_event_defs[0]))
+
+
+/**
+ * @brief Look up one event type's own name
+ *
+ * @param name Event name, as given on the wire
+ *
+ * @return The matching bit, or @c 0 (no @c enum @c ipc_event_type_e
+ *         value is ever itself @c 0) when @p name is not a
+ *         recognized event
+ *
+ * @note Complexity: @e O(1) (a handful of entries, checked linearly)
+ */
+static enum ipc_event_type_e s_event_name_to_bit(const char *name)
+{
+    for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
+        if (strcmp(s_event_defs[i].name, name) == 0) {
+            return s_event_defs[i].bit;
+        }
+    }
+    return (enum ipc_event_type_e) 0;
+}
+
+
+/**
+ * @brief Look up one event type's own bit
+ *
+ * @param type The event type
+ *
+ * @return Its own name, or @c NULL when @p type does not match any
+ *         known single event bit
+ *
+ * @note Complexity: @e O(1) (a handful of entries, checked linearly)
+ */
+static const char *s_event_bit_to_name(enum ipc_event_type_e type)
+{
+    for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
+        if (s_event_defs[i].bit == type) {
+            return s_event_defs[i].name;
+        }
+    }
+    return NULL;
+}
+
+
+/* Subscribe the given connection to one or more events */
+cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
+{
+    cJSON *events = cJSON_GetObjectItem(args, "events");
+    cJSON *item;
+    cJSON *resp;
+    uint32_t requested = 0;
+
+    if (events == NULL || !cJSON_IsArray(events) ||
+            cJSON_GetArraySize(events) == 0) {
+        resp = cJSON_CreateObject();
+        if (resp != NULL) {
+            cJSON_AddBoolToObject(resp, "ok", 0);
+            cJSON_AddStringToObject(resp, "error",
+                    "missing or empty 'events' array");
+        }
+        return resp;
+    }
+
+    cJSON_ArrayForEach(item, events) {
+        enum ipc_event_type_e bit;
+
+        if (!cJSON_IsString(item)) {
+            resp = cJSON_CreateObject();
+            if (resp != NULL) {
+                cJSON_AddBoolToObject(resp, "ok", 0);
+                cJSON_AddStringToObject(resp, "error",
+                        "'events' must be an array of strings");
+            }
+            return resp;
+        }
+        bit = s_event_name_to_bit(item->valuestring);
+        if (bit == 0) {
+            resp = cJSON_CreateObject();
+            if (resp != NULL) {
+                cJSON_AddBoolToObject(resp, "ok", 0);
+                cJSON_AddStringToObject(resp, "error",
+                        "unknown event name in 'events'");
+            }
+            return resp;
+        }
+        requested |= (uint32_t) bit;
+    }
+
+    s_clients[client_idx].subscribed_events |= requested;
+
+    resp = cJSON_CreateObject();
+    if (resp != NULL) {
+        cJSON_AddBoolToObject(resp, "ok", 1);
+    }
+    return resp;
+}
+
+
+/* Unsubscribe the given connection from one or more events, or from
+ * every event it was subscribed to when 'events' is left out */
+cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
+{
+    cJSON *events = cJSON_GetObjectItem(args, "events");
+    cJSON *item;
+    cJSON *resp;
+
+    if (events == NULL) {
+        s_clients[client_idx].subscribed_events = 0;
+    } else if (!cJSON_IsArray(events)) {
+        resp = cJSON_CreateObject();
+        if (resp != NULL) {
+            cJSON_AddBoolToObject(resp, "ok", 0);
+            cJSON_AddStringToObject(resp, "error",
+                    "'events' must be an array of strings");
+        }
+        return resp;
+    } else {
+        cJSON_ArrayForEach(item, events) {
+            enum ipc_event_type_e bit;
+
+            if (!cJSON_IsString(item)) {
+                resp = cJSON_CreateObject();
+                if (resp != NULL) {
+                    cJSON_AddBoolToObject(resp, "ok", 0);
+                    cJSON_AddStringToObject(resp, "error",
+                            "'events' must be an array of strings");
+                }
+                return resp;
+            }
+            bit = s_event_name_to_bit(item->valuestring);
+            /* An unrecognized name here is not an error the way it
+             * is for 'subscribe': the caller could not have been
+             * subscribed to it in the first place, so there is
+             * nothing to undo, the same as unsubscribing from an
+             * event never subscribed to at all is not an error
+             * either. */
+            s_clients[client_idx].subscribed_events &= ~(uint32_t) bit;
+        }
+    }
+
+    resp = cJSON_CreateObject();
+    if (resp != NULL) {
+        cJSON_AddBoolToObject(resp, "ok", 1);
+    }
+    return resp;
+}
+
+
+/* Send one event line to every currently subscribed client */
+void ipc_broadcast_event(enum ipc_event_type_e type, cJSON *fields)
+{
+    const char *name = s_event_bit_to_name(type);
+    cJSON *envelope;
+    char *line;
+    size_t len;
+
+    if (s_ipc_fd == -1 || name == NULL) {
+        cJSON_Delete(fields);
+        return;
+    }
+
+    envelope = (fields != NULL) ? fields : cJSON_CreateObject();
+    if (envelope == NULL) {
+        return;
+    }
+    cJSON_AddStringToObject(envelope, "event", name);
+
+    line = cJSON_PrintUnformatted(envelope);
+    cJSON_Delete(envelope);
+    if (line == NULL) {
+        return;
+    }
+    len = strlen(line);
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd == -1 ||
+                (s_clients[i].subscribed_events & (uint32_t) type) == 0) {
+            continue;
+        }
+        if (write(s_clients[i].fd, line, len) != (ssize_t) len ||
+                write(s_clients[i].fd, "\n", 1) != 1) {
+            s_client_close(i);
+        }
+    }
+
+    free(line);
 }
 
 
@@ -437,7 +659,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
         }
 
         *newline = '\0';
-        response = ipc_commands_dispatch(wm, c->buf);
+        response = ipc_commands_dispatch(wm, c->buf, idx);
         if (response != NULL) {
             size_t resp_len = strlen(response);
             ssize_t written = write(c->fd, response, resp_len);

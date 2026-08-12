@@ -142,7 +142,7 @@ xcb_window_t systray_below_window(void);
  * client's own published strut -- maximized windows and initial
  * placement stay off the tray's own area, the same protection any
  * other panel or dock gets by publishing a strut of its own, per the
- * specification's own recommendation (see @c config.md, section 2.9).
+ * specification's own recommendation.
  *
  * The tray is a single, not-per-surface instance (@c config.systray is
  * one global setting; see @c systray_state_s's own doc comment for

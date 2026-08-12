@@ -20,6 +20,12 @@
 #include <lookup.h>
 #include <surface.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
+/* IPC includes */
+#include <ipc.h>
+
 /* Local includes */
 #include <cmds/client/basic.h>
 #include <policy/focus.h>
@@ -96,5 +102,17 @@ void focus_apply(list_td *surfaces,
              cfg->base.windows.focus.is_raised_on_focus));
     if (should_raise) {
         enact_client_raise(client);
+    }
+
+    {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) surface->id);
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+        }
+        ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
     }
 }

@@ -49,10 +49,16 @@
 #include <surface.h>
 #include <wm.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Command includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
+
+/* IPC includes */
+#include <ipc.h>
 
 /* Project includes */
 #include <lookup.h>
@@ -318,6 +324,20 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
             event->window, client->info.name, desktop->id);
+
+    {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) desktop->id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) surface->id);
+        }
+        ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, fields);
+    }
 }
 
 
@@ -460,6 +480,21 @@ void handler_destroy_notify(xcb_connection_t *connection,
         client->titlebar = 0;
         client->window = 0;
     }
+
+    {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) desktop->id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) surface->id);
+        }
+        ipc_broadcast_event(IPC_EVENT_WINDOW_CLOSED, fields);
+    }
+
     client_destroy(client);
 
     wm_outdate_surface(surface);

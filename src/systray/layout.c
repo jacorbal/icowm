@@ -308,9 +308,9 @@ static monitor_td s_systray_anchor_rect(void)
  *        's_tray.reserved_strut' for 'systray_get_reserved_strut'
  *
  * Per the specification's own recommendation for a docking area, a
- * taskbar, or a panel (see config.md, section 2.9), the tray
- * publishes '_NET_WM_STRUT_PARTIAL' -- and, for compatibility with
- * anything that only understands the legacy property, plain
+ * taskbar, or a panel, the tray publishes '_NET_WM_STRUT_PARTIAL'
+ * -- and, for compatibility with anything that only understands
+ * the legacy property, plain
  * '_NET_WM_STRUT' alongside it -- covering the exact strip of screen
  * its own configured corner and current size occupy, so a maximized
  * window (and this window manager's own placement logic, via

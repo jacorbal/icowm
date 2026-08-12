@@ -32,6 +32,7 @@
 #include <wm.h>
 
 /* Local includes */
+#include <ipc.h>
 #include <ipc/response.h>
 #include <ipc/actions/client/basic.h>
 #include <ipc/actions/client/geom.h>
@@ -70,8 +71,8 @@ struct s_ipc_cmd_def_s {
 };
 
 
-/** The dispatch table itself, grouped and ordered the same way
- *  manual.md section 5.3 documents them */
+/** The dispatch table itself, grouped by the same categories as
+ *  ipc/actions/ itself */
 static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Queries: ipc/actions/query.h */
     { "get_version",              ipc_action_get_version },
@@ -153,7 +154,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
 
 
 /* Handle one complete IPC request line and produce a response */
-char *ipc_commands_dispatch(wm_td *wm, const char *request)
+char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
 {
     cJSON *parsed;
     cJSON *cmd_item;
@@ -179,11 +180,24 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request)
         return out;
     }
 
-    for (size_t i = 0; i < S_IPC_COMMAND_COUNT; ++i) {
-        if (strcmp(s_commands[i].name, cmd_item->valuestring) == 0) {
-            found = true;
-            resp = s_commands[i].handler(wm, parsed);
-            break;
+    /* 'subscribe'/'unsubscribe' ahead of the ordinary table: the
+     * only two commands whose own effect belongs to this specific
+     * connection (see ipc.h's own doc comment on each) rather than
+     * to 'wm', so neither one fits the table's own handler shape at
+     * all. */
+    if (strcmp(cmd_item->valuestring, "subscribe") == 0) {
+        found = true;
+        resp = ipc_client_subscribe(client_idx, parsed);
+    } else if (strcmp(cmd_item->valuestring, "unsubscribe") == 0) {
+        found = true;
+        resp = ipc_client_unsubscribe(client_idx, parsed);
+    } else {
+        for (size_t i = 0; i < S_IPC_COMMAND_COUNT; ++i) {
+            if (strcmp(s_commands[i].name, cmd_item->valuestring) == 0) {
+                found = true;
+                resp = s_commands[i].handler(wm, parsed);
+                break;
+            }
         }
     }
 

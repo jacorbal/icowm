@@ -5,7 +5,7 @@
  *
  * Unlike every other file under ipc/actions/, none of these mirror a
  * single @c enact_* function; they read state that already exists
- * (see manual.md section 5.3) rather than acting on anything.
+ * rather than acting on anything.
  *
  * @defgroup ipc_actions_query IPC read-only queries
  * @ingroup ipc

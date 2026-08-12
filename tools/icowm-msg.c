@@ -3,8 +3,8 @@
  *
  * @brief Command-line client for IcoWM's own IPC control socket
  *
- * A thin, self-contained wrapper around the wire protocol manual.md
- * section 5 documents: builds one JSON request line out of its own
+ * A thin, self-contained wrapper around IcoWM's own IPC wire
+ * protocol: builds one JSON request line out of its own
  * command-line arguments, sends it to a running IcoWM's control socket,
  * and prints back whatever it answers with.  Deliberately independent
  * of the rest of the project (only @c defs/ipc.h, for the handful of
@@ -17,10 +17,10 @@
  *   icowm-msg <command> [<key>=<value> ...]
  *
  * Each @c key=value becomes one field of the request object alongside
- * "cmd" (see @c manual.md section 5.3 for every command and its own
- * arguments).  A value is sent as a JSON boolean when it is exactly
- * @c true or @c false, as a JSON number when it parses as one in full,
- * and as a JSON string otherwise.
+ * "cmd", naming that command's own argument.  A value is sent as a
+ * JSON boolean when it is exactly @c true or @c false, as a JSON
+ * number when it parses as one in full, and as a JSON string
+ * otherwise.
  *
  * Exit status:
  *   0  The command reached IcoWM and it reported success
@@ -127,15 +127,12 @@ static void s_show_help(FILE *fp)
                 " socket\n", PROJECT_NAME_SHORT, PROJECT_NAME_SHORT);
     fprintf(fp, "Usage: %s-msg <command> [<key>=<value> ...]\n",
             PROJECT_NAME_PROG);
+    fprintf(fp, "       %s-msg -w <events> [-n <count>]\n",
+            PROJECT_NAME_PROG);
     fprintf(fp, "       %s-msg -h\n", PROJECT_NAME_PROG);
     fprintf(fp, "       %s-msg -v\n", PROJECT_NAME_PROG);
     fprintf(fp, "\n");
 
-/*
-    fprintf(fp, "Every command and its own arguments are documented" \
-                " in manual.md,\n");
-    fprintf(fp, "section 5.3 ('IPC control socket')");
-*/
     fprintf(fp, "Examples:\n");
     fprintf(fp, "   %s-msg get_version\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg list_clients\n", PROJECT_NAME_PROG);
@@ -145,9 +142,20 @@ static void s_show_help(FILE *fp)
             PROJECT_NAME_PROG);
     fprintf(fp, "\n");
     fprintf(fp, "Options:\n");
-    fprintf(fp, "   -h    Show this help information, and exit\n");
-    fprintf(fp, "   -v    Show version and license information," \
+    fprintf(fp, "   -h          Show this help information, and exit\n");
+    fprintf(fp, "   -v          Show version and license information," \
                 " and exit\n");
+    fprintf(fp, "   -w <events> Subscribe instead of sending a" \
+                " command; watch for a\n");
+    fprintf(fp, "               comma-separated list of events" \
+                " (e.g., 'window_mapped,\n");
+    fprintf(fp, "               desktop_switched'), printing one" \
+                " line per event as it\n");
+    fprintf(fp, "               arrives, until '-n' is reached or" \
+                " the connection ends\n");
+    fprintf(fp, "   -n <count>  Stop watching after this many" \
+                " events; only meaningful\n");
+    fprintf(fp, "               together with '-w'\n");
     fprintf(fp, "\n");
     fprintf(fp, "Exit status:\n");
     fprintf(fp, "   0 on success\n");
@@ -278,29 +286,19 @@ static cJSON *s_build_request(const char *cmd, int argc, char **argv,
 
 
 /**
- * @brief Connect to the socket, send one request line, and read the
- *        response line back
+ * @brief Connect to the socket
  *
- * @param socket_path   Path to the listening @c AF_UNIX socket
- * @param request_line  Full request, without its own trailing newline
- *                      (this function adds one)
- * @param out_response  Destination buffer for the response, without
- *                      its own trailing newline
- * @param out_size      Size of @p out_response, in bytes
+ * @param socket_path Path to the listening @c AF_UNIX socket
  *
- * @return @c 0 on success, @c -1 on any failure (reported to
- *         @c stderr already)
+ * @return The connected descriptor, or @c -1 on any failure
+ *         (reported to @c stderr already)
  *
- * @note Complexity: @e O(n), where @e n is the length of the
- *       request or response, whichever is longer
+ * @note Complexity: @e O(1)
  */
-static int s_send_and_receive(const char *socket_path,
-        const char *request_line, char *out_response, size_t out_size)
+static int s_connect_socket(const char *socket_path)
 {
     int fd;
     struct sockaddr_un addr;
-    size_t len;
-    size_t total = 0;
 
     fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -322,44 +320,255 @@ static int s_send_and_receive(const char *socket_path,
         return -1;
     }
 
-    len = strlen(request_line);
-    if (write(fd, request_line, len) != (ssize_t) len ||
+    return fd;
+}
+
+
+/**
+ * @brief Send one line, adding its own trailing newline
+ *
+ * @param fd   Connected descriptor
+ * @param line Line to send, without its own trailing newline
+ *
+ * @return @c 0 on success, @c -1 on failure (reported to @c stderr
+ *         already)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p line
+ */
+static int s_send_line(int fd, const char *line)
+{
+    size_t len = strlen(line);
+
+    if (write(fd, line, len) != (ssize_t) len ||
             write(fd, "\n", 1) != 1) {
         fprintf(stderr, "%s-msg: failed to send the request: %s\n",
                 PROJECT_NAME_PROG, strerror(errno));
-        close(fd);
-        return -1;
-    }
-
-    while (total < out_size - 1) {
-        ssize_t n = read(fd, out_response + total, out_size - 1 - total);
-
-        if (n < 0) {
-            fprintf(stderr, "%s-msg: failed to read the response: %s\n",
-                    PROJECT_NAME_PROG, strerror(errno));
-            close(fd);
-            return -1;
-        }
-        if (n == 0) {
-            break;
-        }
-        total += (size_t) n;
-        if (out_response[total - 1] == '\n') {
-            break;
-        }
-    }
-    out_response[total] = '\0';
-    close(fd);
-
-    if (total == 0) {
-        fprintf(stderr, "%s-msg: connection closed with no response\n",
-                PROJECT_NAME_PROG);
         return -1;
     }
     return 0;
 }
 
 
+/**
+ * @brief Read one newline-terminated line back
+ *
+ * @param fd       Connected descriptor
+ * @param out      Destination buffer, without its own trailing newline
+ * @param out_size Size of @p out, in bytes
+ *
+ * @return @c 0 on success, @c -1 on any failure or on the
+ *         connection closing with nothing (or an incomplete line)
+ *         read (reported to @c stderr already)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the line
+ *       read
+ */
+static int s_read_line(int fd, char *out, size_t out_size)
+{
+    size_t total = 0;
+
+    while (total < out_size - 1) {
+        ssize_t n = read(fd, out + total, out_size - 1 - total);
+
+        if (n < 0) {
+            fprintf(stderr, "%s-msg: failed to read: %s\n",
+                    PROJECT_NAME_PROG, strerror(errno));
+            return -1;
+        }
+        if (n == 0) {
+            break;
+        }
+        total += (size_t) n;
+        if (out[total - 1] == '\n') {
+            out[total - 1] = '\0';
+            return 0;
+        }
+    }
+    out[total] = '\0';
+
+    fprintf(stderr, "%s-msg: connection closed%s\n", PROJECT_NAME_PROG,
+            (total == 0) ? " with no response" : " mid-line");
+    return -1;
+}
+
+
+/**
+ * @brief Connect, send one request line, and read the response line
+ *        back, closing the connection either way
+ *
+ * @param socket_path  Path to the listening @c AF_UNIX socket
+ * @param request_line Full request, without its own trailing newline
+ * @param out_response Destination buffer for the response, without its
+ *                     own trailing newline
+ * @param out_size     Size of @p out_response, in bytes
+ *
+ * @return @c 0 on success, @c -1 on any failure (reported to
+ *         @c stderr already)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the
+ *       request or response, whichever is longer
+ */
+static int s_send_and_receive(const char *socket_path,
+        const char *request_line, char *out_response, size_t out_size)
+{
+    int fd = s_connect_socket(socket_path);
+    int status;
+
+    if (fd < 0) {
+        return -1;
+    }
+
+    status = (s_send_line(fd, request_line) == 0 &&
+            s_read_line(fd, out_response, out_size) == 0) ? 0 : -1;
+    close(fd);
+    return status;
+}
+
+
+/**
+ * @brief Build the @c subscribe request out of a comma-separated
+ *        list of event names
+ *
+ * @param event_list Comma-separated event names, e.g.,
+ *                   @c "window_mapped,desktop_switched"
+ *
+ * @return The newly allocated request object, or @c NULL on an
+ *         allocation failure
+ *
+ * @note Complexity: @e O(n), where @e n is the length of
+ *       @p event_list
+ */
+static cJSON *s_build_subscribe_request(const char *event_list)
+{
+    cJSON *req = cJSON_CreateObject();
+    cJSON *events;
+    const char *start = event_list;
+
+    if (req == NULL) {
+        return NULL;
+    }
+    cJSON_AddStringToObject(req, "cmd", "subscribe");
+    events = cJSON_AddArrayToObject(req, "events");
+
+    for (;;) {
+        const char *comma = strchr(start, ',');
+        size_t len = (comma != NULL)
+            ? (size_t) (comma - start) : strlen(start);
+        char name[S_MAX_KEY_LENGTH];
+
+        if (len == 0 || len >= sizeof(name)) {
+            fprintf(stderr, "%s-msg: event name in '-w %s' is empty" \
+                    " or too long\n", PROJECT_NAME_PROG, event_list);
+            cJSON_Delete(req);
+            return NULL;
+        }
+        memcpy(name, start, len);
+        name[len] = '\0';
+        cJSON_AddItemToArray(events, cJSON_CreateString(name));
+
+        if (comma == NULL) {
+            break;
+        }
+        start = comma + 1;
+    }
+
+    return req;
+}
+
+
+/**
+ * @brief Subscribe, then print one line per event as it arrives,
+ *        forever or until @p limit is reached
+ *
+ * @param socket_path Path to the listening @c AF_UNIX socket
+ * @param event_list  Comma-separated event names to subscribe to
+ * @param limit       Stop after this many events; @c 0 means no limit
+ *                    at all (watch until the connection drops or the
+ *                    process is killed)
+ *
+ * @return @c 0 on reaching @p limit (or, when @p limit is @c 0, this
+ *         never returns that way at all), @c 1 when the subscribe
+ *         request itself was rejected (@c "ok": @c false; the reason
+ *         was already printed), @c 2 when the connection could never be
+ *         made, the subscribe request could not be sent, or the
+ *         connection was lost while watching (each case already
+ *         reported to @c stderr)
+ *
+ * @note Complexity: unbounded; runs for as long as @p limit (or the
+ *       connection, or the process) allows
+ */
+static int s_watch(const char *socket_path, const char *event_list,
+        long limit)
+{
+    cJSON *request;
+    char *request_line;
+    char line[S_MAX_LINE_LENGTH];
+    cJSON *parsed;
+    cJSON *ok_field;
+    int fd;
+    long seen = 0;
+
+    request = s_build_subscribe_request(event_list);
+    if (request == NULL) {
+        return 2;
+    }
+    request_line = cJSON_PrintUnformatted(request);
+    cJSON_Delete(request);
+    if (request_line == NULL) {
+        fprintf(stderr, "%s-msg: failed to build the request\n",
+                PROJECT_NAME_PROG);
+        return 2;
+    }
+
+    fd = s_connect_socket(socket_path);
+    if (fd < 0) {
+        free(request_line);
+        return 2;
+    }
+
+    if (s_send_line(fd, request_line) != 0) {
+        free(request_line);
+        close(fd);
+        return 2;
+    }
+    free(request_line);
+
+    if (s_read_line(fd, line, sizeof(line)) != 0) {
+        close(fd);
+        return 2;
+    }
+    printf("%s\n", line);
+
+    parsed = cJSON_Parse(line);
+    ok_field = (parsed != NULL) ? cJSON_GetObjectItem(parsed, "ok") : NULL;
+    if (parsed == NULL || !cJSON_IsBool(ok_field) ||
+            !cJSON_IsTrue(ok_field)) {
+        cJSON_Delete(parsed);
+        close(fd);
+        return 1;
+    }
+    cJSON_Delete(parsed);
+
+    while (limit == 0 || seen < limit) {
+        if (s_read_line(fd, line, sizeof(line)) != 0) {
+            /* Connection lost mid-watch: 's_read_line' already
+             * reported why on stderr; report it as the same class
+             * of failure a connection that was never made at all
+             * would be, since either way the watch could not
+             * continue. */
+            close(fd);
+            return 2;
+        }
+        printf("%s\n", line);
+        ++seen;
+    }
+
+    close(fd);
+    return 0;
+}
+
+
+/* Main entry */
 int main(int argc, char **argv)
 {
     char socket_path[sizeof(((struct sockaddr_un *) 0)->sun_path)];
@@ -368,10 +577,14 @@ int main(int argc, char **argv)
     cJSON *parsed_response;
     cJSON *ok_field;
     char *request_line;
+    const char *watch_events = NULL;
+    char *watch_limit_end;
+    long watch_limit = 0;
+    bool limit_given = false;
     int status;
     int opt;
 
-    while ((opt = getopt(argc, argv, "hv")) != -1) {
+    while ((opt = getopt(argc, argv, "hvw:n:")) != -1) {
         switch (opt) {
         case 'h':
             s_show_help(stdout);
@@ -379,10 +592,35 @@ int main(int argc, char **argv)
         case 'v':
             s_show_version(stdout);
             return 0;
+        case 'w':
+            watch_events = optarg;
+            break;
+        case 'n':
+            errno = 0;
+            watch_limit = strtol(optarg, &watch_limit_end, 10);
+            if (errno != 0 || *watch_limit_end != '\0' ||
+                    watch_limit_end == optarg || watch_limit <= 0) {
+                fprintf(stderr, "%s-msg: '-n %s' is not a positive" \
+                        " integer\n", PROJECT_NAME_PROG, optarg);
+                return 2;
+            }
+            limit_given = true;
+            break;
         default:
             s_show_help(stderr);
             return 2;
         }
+    }
+
+    s_resolve_socket_path(socket_path, sizeof(socket_path));
+
+    if (watch_events != NULL) {
+        return s_watch(socket_path, watch_events, watch_limit);
+    }
+    if (limit_given) {
+        fprintf(stderr, "%s-msg: '-n' only makes sense together" \
+                " with '-w'\n", PROJECT_NAME_PROG);
+        return 2;
     }
 
     if (optind >= argc) {
@@ -404,8 +642,6 @@ int main(int argc, char **argv)
                 PROJECT_NAME_PROG);
         return 2;
     }
-
-    s_resolve_socket_path(socket_path, sizeof(socket_path));
 
     status = s_send_and_receive(socket_path, request_line, response,
             sizeof(response));

@@ -526,8 +526,7 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
  * since changing screen or desktop counts at runtime would mean
  * deciding what happens to whatever clients, focus, and EWMH state
  * already live on a desktop being removed, which nothing in the
- * window manager currently does (see the "Reload behavior" note in
- * doc/config.md, section 2.2).
+ * window manager currently does (see the "Reload behavior" note).
  *
  * @param json        Parsed root of @c config.json
  * @param config_base Destination structure; its @c screen_count and

@@ -32,7 +32,7 @@
 
 /* Public interface */
 /** "close_client": politely ask the client to close, or destroy its
- *  window directly if it does not support that (see manual.md 5.3) */
+ *  window directly if it does not support that */
 cJSON *ipc_action_close_client(wm_td *wm, const cJSON *args);
 
 /** "kill_client": forcibly terminate the client's own X connection */

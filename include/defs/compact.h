@@ -19,8 +19,7 @@
  *   for; @c config_base_s's own @c screens[CONFIG_MAX_SCREENS] of
  *   @c desktops[CONFIG_MAX_DESKTOPS] each, @c surface_td's own
  *   @c monitors[WM_SURFACE_MAX_MONITORS], and the message dialog's
- *   own @c lines[DIALOG_MSG_MAX_LINES] are three examples; see
- *   @c config.md §10 for the fuller list and the exact size of each.
+ *   own @c lines[DIALOG_MSG_MAX_LINES] are three examples.
  * - @c COMPACT is a compile-time choice: defining it (@c make
  *   COMPACT=1, which the top-level Makefile turns into @c -D COMPACT)
  *   shrinks exactly those compile-time capacities instead, in a

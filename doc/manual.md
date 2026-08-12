@@ -33,10 +33,11 @@ client for the IPC control socket section 5 below documents, see
      - [5.3.2 Client actions taking only `client_id`](#532-client-actions-taking-only-client_id)
      - [5.3.3 Client actions taking their own extra arguments](#533-client-actions-taking-their-own-extra-arguments)
      - [5.3.4 Desktop-scoped actions](#534-desktop-scoped-actions)
-      [5.3.5 Surface actions](#535-surface-actions)
+     - [5.3.5 Surface actions](#535-surface-actions)
      - [5.3.6 Whole window manager](#536-whole-window-manager)
    - [5.4 The `icowm-msg` tool](#54-the-icowm-msg-tool)
    - [5.5 Talking to the socket directly](#55-talking-to-the-socket-directly)
+   - [5.6 Subscribing to events](#56-subscribing-to-events)
 
 ---
 
@@ -96,9 +97,9 @@ unrestricted session.
 
 ### 3.3 Other options
 
-| Option | Description |
-|--------|-------------|
-| `-h`   | Show usage information and exit. |
+| Option | Description                                     |
+|--------|-------------------------------------------------|
+| `-h`   | Show usage information and exit.                |
 | `-v`   | Show version and license information, and exit. |
 
 ## 4. Restricted-memory mode (`icowm -M <mib>`)
@@ -254,7 +255,7 @@ if yours does, your own configuration always wins over the defaults
 shown here, in every row, in either kind of build.
 
 | Setting | Ordinary build | `COMPACT` build |
-|---------|----------------:|----------------:|
+|---------|---------------:|----------------:|
 | Desktops per screen, ordinary session, no `config.json` at all | 4 | 4 |
 | Screens, or desktops on that single screen, `-M <mib>` given (see 4.1) | 1 | 1 |
 | Most screens an ordinary, unrestricted session can ever track at once | 6 | 1 |
@@ -353,12 +354,12 @@ catalog:
 
 Read-only; take no arguments beyond what is noted.
 
-| Command | Response fields |
-|---------|------------------|
-| `get_version` | `protocol_version` (an integer identifying the shape of this wire protocol itself, not an IcoWM release number; only bumped if a command's own argument or response shape ever changes in a way an existing client could not already handle) |
+| Command         | Response fields |
+|-----------------|-----------------|
+| `get_version`   | `protocol_version` (an integer identifying the shape of this wire protocol itself, not an IcoWM release number; only bumped if a command's own argument or response shape ever changes in a way an existing client could not already handle) |
 | `list_desktops` | `desktops`: an array of `{id, name, surface_id, current}`, one entry per desktop on every managed surface |
-| `list_clients` | `clients`: an array of `{id, name, desktop_id, surface_id, x, y, w, h, iconified, urgent, sticky}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface (`x`, `y`, `w`, `h` are that client's own current position and size, in pixels, the same geometry `move_client` and `resize_client` below change) |
-| `get_focused` | `focused`: an array of `{surface_id, client_id}`, one entry per managed surface (`client_id` is `null` when that surface currently has no active client) |
+| `list_clients`  | `clients`: an array of `{id, name, desktop_id, surface_id, x, y, w, h, iconified, urgent, sticky}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface (`x`, `y`, `w`, `h` are that client's own current position and size, in pixels, the same geometry `move_client` and `resize_client` below change) |
+| `get_focused`   | `focused`: an array of `{surface_id, client_id}`, one entry per managed surface (`client_id` is `null` when that surface currently has no active client) |
 
 #### 5.3.2 Client actions taking only `client_id`
 
@@ -367,62 +368,62 @@ responds with a bare `{"ok": true}` on success.
 
 | Command                    | What it does |
 |----------------------------|--------------|
-| `close_client`             | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its own close button), or destroys its window directly if it does not support that   
-| `kill_client`              | Forcibly terminates the client's own X connection; a last resort for a client `close_client` cannot reach at all                                        
-| `focus_client`             | Moves input focus to the client, without raising it (see this section's own introduction)                                                               
-| `unfocus_client`           | Takes input focus away from the client, if it currently had it                                                                                          
-| `iconify_client`           | Iconifies (minimizes) the client                                                                                                                        
-| `deiconify_client`         | Restores the client if it was iconified                                                                                                                 
-| `hide_client`              | Hides the client without iconifying it                                                                                                                  
-| `unhide_client`            | Undoes `hide_client`                                                                                                                                    
-| `sticky_client`            | Makes the client visible on every desktop of its own surface                                                                                            
-| `unsticky_client`          | Undoes `sticky_client`                                                                                                                                  
-| `toggle_sticky_client`     | Toggles between `sticky_client` and `unsticky_client`                                                                                                   
-| `set_urgent_client`        | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation)                                                              
-| `clear_urgent_client`      | Undoes `set_urgent_client`                                                                                                                              
-| `center_client`            | Centers the client on its own current screen                                                                                                            
-| `move_client_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner                                      
-| `maximize_client_horz`     | Maximizes the client horizontally only                                                                                                                  
-| `maximize_client_vert`     | Maximizes the client vertically only                                                                                                                    
-| `maximize_client`          | Maximizes the client both horizontally and vertically                                                                                                   
-| `raise_client`             | Raises the client to the front of its own current layer                                                                                                 
-| `lower_client`             | Lowers the client to the back of its own current layer                                                                                                  
-| `layer_above_client`       | Moves the client to the "always on top" layer                                                                                                           
-| `layer_normal_client`      | Moves the client back to the ordinary layer                                                                                                             
-| `layer_below_client`       | Moves the client to the "always below" layer                                                                                                            
-| `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order                                                                                       
-| `shade_client`             | Rolls the client up into just its own titlebar                                                                                                          
-| `unshade_client`           | Undoes `shade_client`                                                                                                                                   
-| `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client`                                                                                                     
-| `fullscreen_client`        | Makes the client fill its own screen, without any decoration                                                                                            
-| `unfullscreen_client`      | Undoes `fullscreen_client`                                                                                                                              
-| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client`                                                                                           
-| `toggle_decoration_client` | Shows or hides the client's own titlebar and border                                                                                                     
-| `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer                                                              
-| `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer                                                                
+| `close_client`             | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its own close button), or destroys its window directly if it does not support that |
+| `kill_client`              | Forcibly terminates the client's own X connection; a last resort for a client `close_client` cannot reach at all |
+| `focus_client`             | Moves input focus to the client, without raising it (see this section's own introduction) |
+| `unfocus_client`           | Takes input focus away from the client, if it currently had it |
+| `iconify_client`           | Iconifies (minimizes) the client |
+| `deiconify_client`         | Restores the client if it was iconified |
+| `hide_client`              | Hides the client without iconifying it |
+| `unhide_client`            | Undoes `hide_client` |
+| `sticky_client`            | Makes the client visible on every desktop of its own surface |
+| `unsticky_client`          | Undoes `sticky_client` |
+| `toggle_sticky_client`     | Toggles between `sticky_client` and `unsticky_client` |
+| `set_urgent_client`        | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation) |
+| `clear_urgent_client`      | Undoes `set_urgent_client` |
+| `center_client`            | Centers the client on its own current screen |
+| `move_client_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner |
+| `maximize_client_horz`     | Maximizes the client horizontally only |
+| `maximize_client_vert`     | Maximizes the client vertically only |
+| `maximize_client`          | Maximizes the client both horizontally and vertically |
+| `raise_client`             | Raises the client to the front of its own current layer |
+| `lower_client`             | Lowers the client to the back of its own current layer |
+| `layer_above_client`       | Moves the client to the "always on top" layer |
+| `layer_normal_client`      | Moves the client back to the ordinary layer |
+| `layer_below_client`       | Moves the client to the "always below" layer |
+| `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order |
+| `shade_client`             | Rolls the client up into just its own titlebar |
+| `unshade_client`           | Undoes `shade_client` |
+| `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client` |
+| `fullscreen_client`        | Makes the client fill its own screen, without any decoration |
+| `unfullscreen_client`      | Undoes `fullscreen_client` |
+| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client` |
+| `toggle_decoration_client` | Shows or hides the client's own titlebar and border |
+| `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer |
+| `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer |
 
 #### 5.3.3 Client actions taking their own extra arguments
 
-| Command | Arguments | What it does |
-|---------|-----------|---------------|
-| `move_client` | `client_id`, `x`, `y` (both signed) | Moves the client so its own top-left corner is at that position |
-| `resize_client` | `client_id`, `x`, `y` (both signed), `w`, `h` (both unsigned) | Moves and resizes the client in one step, to that top-left corner and that size |
+| Command                  | Arguments | What it does |
+|--------------------------|-----------|--------------|
+| `move_client`            | `client_id`, `x`, `y` (both signed) | Moves the client so its own top-left corner is at that position |
+| `resize_client`          | `client_id`, `x`, `y` (both signed), `w`, `h` (both unsigned) | Moves and resizes the client in one step, to that top-left corner and that size |
 | `move_client_to_monitor` | `client_id`, `monitor_index` | Moves the client to that physical monitor, the same as `move_client_next_monitor` but to a specific one rather than the next one |
-| `rename_client` | `client_id`, `name` | Overrides the client's own window title as IcoWM displays it |
-| `reclass_client` | `client_id`, `class_name`, `instance_name` | Overrides the client's own ICCCM `WM_CLASS` (both its class and instance name), which theme rules and other IcoWM behavior that matches on window class use |
-| `rerole_client` | `client_id`, `role` | Overrides the client's own window role |
-| `set_client_icon` | `client_id`, `icon_name` | Overrides which icon IcoWM shows for the client when iconified |
+| `rename_client`          | `client_id`, `name` | Overrides the client's own window title as IcoWM displays it |
+| `reclass_client`         | `client_id`, `class_name`, `instance_name` | Overrides the client's own ICCCM `WM_CLASS` (both its class and instance name), which theme rules and other IcoWM behavior that matches on window class use |
+| `rerole_client`          | `client_id`, `role` | Overrides the client's own window role |
+| `set_client_icon`        | `client_id`, `icon_name` | Overrides which icon IcoWM shows for the client when iconified |
 
 #### 5.3.4 Desktop-scoped actions
 
-| Command | Arguments | What it does |
-|---------|-----------|---------------|
+| Command                  | Arguments | What it does |
+|--------------------------|-----------|--------------|
 | `set_desktop_background` | `desktop_id`, `surface_id` (optional), `color` (a packed `0xRRGGBB` value) | Sets that desktop's own solid background color |
-| `show_desktop` | `desktop_id`, `surface_id` (optional), `show` (boolean) | Shows or hides every client on that desktop at once, the same as a "show desktop" shortcut |
+| `show_desktop`           | `desktop_id`, `surface_id` (optional), `show` (boolean) | Shows or hides every client on that desktop at once, the same as a "show desktop" shortcut |
 | `send_client_to_desktop` | `client_id`, `target_desktop_id` (on the client's own current surface) | Moves the client to another desktop on the same surface |
-| `iconify_all` | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Iconifies every client on that desktop at once |
-| `deiconify_all` | Same arguments as `iconify_all` | Restores every iconified client on that desktop at once |
-| `rearrange` | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
+| `iconify_all`            | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Iconifies every client on that desktop at once |
+| `deiconify_all`          | Same arguments as `iconify_all` | Restores every iconified client on that desktop at once |
+| `rearrange`              | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
 
 #### 5.3.5 Surface actions
 
@@ -475,3 +476,54 @@ $ echo '{"cmd": "list_desktops"}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/
 $ echo '{"cmd": "goto_desktop", "desktop_id": 1}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
 {"ok":true}
 ```
+
+### 5.6 Subscribing to events
+
+Every command in section 5.3 follows the same request/response
+shape: one line in, one line back, connection otherwise idle in
+between. `subscribe` and `unsubscribe` are the two exceptions: once
+subscribed, that same connection starts receiving extra lines on
+its own, one per matching event, for as long as it stays open,
+without sending anything further itself. Each event line carries
+its own `"event"` field naming which one it is, alongside that
+event's own fields; there is no `"ok"` field on an event line the
+way there is on every ordinary response, since nothing was asked
+for it to answer.
+
+```sh
+$ echo '{"cmd": "subscribe", "events": ["window_mapped"]}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
+{"ok":true}
+{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+```
+
+(`socat` above exits once the connection closes or is interrupted;
+in practice a real subscriber keeps the connection open and keeps
+reading for as long as it wants more events, the same way
+`icowm-msg -w` does; see `icowm-msg.md` section 9 for that.)
+
+`subscribe` takes one argument, a non-empty array `"events"` of
+recognized event names; an unrecognized name anywhere in the array
+rejects the request as a whole (`"ok": false`, nothing is
+subscribed). `unsubscribe` takes the same, optional this time: given,
+it unsubscribes from only those (an unrecognized or never-subscribed
+name among them is not an error, since there is nothing to undo
+either way); left out entirely, it unsubscribes from everything at
+once. Both otherwise respond the same bare `{"ok": true}` every
+other command that takes no result fields of its own does.
+
+Every event type:
+
+| Event              | Fields |
+|--------------------|--------|
+| `window_mapped`    | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
+| `window_closed`    | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
+| `desktop_switched` | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
+| `focus_changed`    | `surface_id`, `client_id`: that client just became the active one on its own surface |
+
+A subscription lasts only as long as the connection itself: closing
+the connection (or losing it) drops every subscription made on it,
+with no separate `unsubscribe` needed first. A single connection can
+freely mix subscribing and ordinary commands: nothing about sending
+`subscribe` changes how the rest of the protocol on that same
+connection behaves, beyond the extra, unsolicited lines that start
+arriving afterward.

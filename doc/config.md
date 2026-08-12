@@ -130,8 +130,8 @@ icon placement.
 
 ### 2.1 `theme`
 
-| Key    | Type    | Default               |
-|--------|---------|-----------------------|
+| Key     | Type   | Default               |
+|---------|--------|-----------------------|
 | `theme` | string | `""` (built-in theme) |
 
 Name of the theme to load, without the `.json` extension.  The file
@@ -316,11 +316,11 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 
 #### `windows.placement`
 
-| Key                         | Type    | Default        | Description |
-|-----------------------------|---------|----------------|-------------|
-| `placement.policy`          | string  | `"smart"`      | How newly mapped windows are placed. |
-| `placement.monitor`         | string  | `"pointer"`    | Which physical monitor a placement decision targets, on a surface with more than one. |
-| `placement.group-related`   | boolean | `true`         | Cluster windows of the same application together. |
+| Key                       | Type    | Default     | Description |
+|---------------------------|---------|-------------|-------------|
+| `placement.policy`        | string  | `"smart"`   | How newly mapped windows are placed. |
+| `placement.monitor`       | string  | `"pointer"` | Which physical monitor a placement decision targets, on a surface with more than one. |
+| `placement.group-related` | boolean | `true`      | Cluster windows of the same application together. |
 
 Accepted placement policy values:
 
@@ -387,8 +387,8 @@ the icon.
 
 Controls how iconified windows are laid out on the desktop.
 
-| Key                      | Type   | Default   | Description               |
-|--------------------------|--------|-----------|---------------------------|
+| Key                      | Type   | Default   | Description |
+|--------------------------|--------|-----------|-------------|
 | `icons.placement.policy` | string | `"smart"` | How new icons are placed. |
 
 Accepted icon placement values:
@@ -413,7 +413,7 @@ Accepted icon placement values:
 
 | Key                    | Type    | Default |
 |------------------------|---------|---------|
-| `show-desktop-overlay`  | boolean | `true`  |
+| `show-desktop-overlay` | boolean | `true`  |
 
 When `true`, a small notification popup is displayed in the center of
 the screen for approximately 400 ms whenever the active virtual desktop
@@ -427,10 +427,10 @@ name.  Set to `false` to suppress the popup entirely.
 
 ### 2.7 `enable-emergency-shortcut` / `enable-fortune-shortcut`
 
-| Key                          | Type    | Default  |
-|------------------------------|---------|----------|
-| `enable-emergency-shortcut`  | boolean | `false`  |
-| `enable-fortune-shortcut`    | boolean | `false`  |
+| Key                         | Type    | Default |
+|-----------------------------|---------|---------|
+| `enable-emergency-shortcut` | boolean | `false` |
+| `enable-fortune-shortcut`   | boolean | `false` |
 
 Two hardcoded shortcuts, each off by default and each independently
 gated by its own boolean here rather than being configurable via
@@ -461,9 +461,9 @@ harmless to turn on.
 
 ### 2.8 `startup-notification`
 
-| Key                                      | Type    | Default |
-|--------------------------------------------|---------|---------|
-| `startup-notification.timeout-seconds`   | integer | `20`    |
+| Key                                    | Type    | Default |
+|----------------------------------------|---------|---------|
+| `startup-notification.timeout-seconds` | integer | `20`    |
 
 How long a startup-notification sequence (the busy cursor shown while
 a launched application is starting up, see the freedesktop.org
@@ -483,10 +483,10 @@ too long for the applications actually launched day to day.
 
 ### 2.9 `menu`
 
-| Key                        | Type   | Default         |
-|----------------------------|--------|-----------------|
-| `menus.root.position`      | string | `"under-mouse"` |
-| `menus.windows.position`   | string | `"under-mouse"` |
+| Key                      | Type   | Default         |
+|--------------------------|--------|-----------------|
+| `menus.root.position`    | string | `"under-mouse"` |
+| `menus.windows.position` | string | `"under-mouse"` |
 
 Controls where a menu appears when it is opened by a means with no
 screen position of its own, such as a keyboard shortcut, one setting per
@@ -515,15 +515,15 @@ under the pointer in that case.
 
 ### 2.10 `systray`
 
-| Key                  | Type    | Default            |
-|----------------------|---------|--------------------|
-| `systray.is-enabled` | boolean | `true`             |
-| `systray.reserve-space` | boolean | `false`         |
-| `systray.margins`    | object  | see below          |
-| `systray.position`   | string  | `"top-right"`      |
-| `systray.monitor`    | object  | see below          |
-| `systray.order`      | string  | `"left-to-right"`  |
-| `systray.layer`      | string  | `"below"`          |
+| Key                     | Type    | Default           |
+|-------------------------|---------|-------------------|
+| `systray.is-enabled`    | boolean | `true`            |
+| `systray.reserve-space` | boolean | `false`           |
+| `systray.margins`       | object  | see below         |
+| `systray.position`      | string  | `"top-right"`     |
+| `systray.monitor`       | object  | see below         |
+| `systray.order`         | string  | `"left-to-right"` |
+| `systray.layer`         | string  | `"below"`         |
 
 Built-in systray dock.  `is-enabled` turns it on, and `position` (one of
 `"top-left"`, `"top-right"`, `"bottom-left"`, or `"bottom-right"`)
@@ -564,11 +564,11 @@ same combined X screen; it has no effect otherwise.  It is an object
 with an `anchor` field and, only when `anchor` is `"index"`, an
 `index` field:
 
-| Value            | Behavior |
-|------------------|----------|
-| `"surface"`      | Measures `position` against the whole combined surface, exactly as if there were only one monitor (default). |
-| `"primary"`      | Measures `position` against whichever monitor RandR reports as primary. |
-| `"index"`        | Measures `position` against `monitor.index` specifically, a zero-based index into that surface's own monitor list.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| Value       | Behavior |
+|-------------|----------|
+| `"surface"` | Measures `position` against the whole combined surface, exactly as if there were only one monitor (default). |
+| `"primary"` | Measures `position` against whichever monitor RandR reports as primary. |
+| `"index"`   | Measures `position` against `monitor.index` specifically, a zero-based index into that surface's own monitor list.  Falls back to monitor `0` if it does not exist, logging a warning. |
 
 ```json
 "systray": {
@@ -623,10 +623,10 @@ tray.
 
 #### `systray.clock`
 
-| Key                        | Type    | Default    |
-|-----------------------------|---------|------------|
-| `systray.clock.is-enabled` | boolean | `true`     |
-| `systray.clock.format`     | string  | `"%H:%M"`  |
+| Key                        | Type    | Default   |
+|----------------------------|---------|-----------|
+| `systray.clock.is-enabled` | boolean | `true`    |
+| `systray.clock.format`     | string  | `"%H:%M"` |
 
 An optional clock drawn inside the systray dock.  `is-enabled` turns
 it on; when it is the only reason the tray would otherwise stay
@@ -637,12 +637,12 @@ below; see `systray.text`.
 `format` is a `strftime(3)` format string, interpreted in the system's
 local time zone.  A few common examples:
 
-| `format`      | Looks like            |
-|---------------|------------------------|
-| `"%H:%M"`     | `14:07`                |
-| `"%H:%M:%S"`  | `14:07:32`              |
-| `"%F %R"`     | `2026-08-07 14:07`      |
-| `"%a %d %b"`  | `Fri 07 Aug`            |
+| `format`     | Looks like         |
+|--------------|--------------------|
+| `"%H:%M"`    | `14:07`            |
+| `"%H:%M:%S"` | `14:07:32`         |
+| `"%F %R"`    | `2026-08-07 14:07` |
+| `"%a %d %b"` | `Fri 07 Aug`       |
 
 The clock redraws itself once per second while enabled; a `format`
 string without `%S` or other sub-minute fields simply redraws the same
@@ -650,15 +650,15 @@ text every second, which is harmless.
 
 #### `systray.battery`
 
-| Key                                    | Type    | Default  |
-|------------------------------------------|---------|----------|
-| `systray.battery.is-enabled`             | boolean | `false`  |
-| `systray.battery.threshold.charged`      | integer | `100`    |
-| `systray.battery.threshold.low`          | integer | `20`     |
-| `systray.battery.threshold.critical`     | integer | `5`      |
-| `systray.battery.backend.type`           | string  | `"acpi"` |
-| `systray.battery.backend.number`         | integer | `0`      |
-| `systray.battery.poll-seconds`           | integer | `30`     |
+| Key                                  | Type    | Default  |
+|--------------------------------------|---------|----------|
+| `systray.battery.is-enabled`         | boolean | `false`  |
+| `systray.battery.threshold.charged`  | integer | `100`    |
+| `systray.battery.threshold.low`      | integer | `20`     |
+| `systray.battery.threshold.critical` | integer | `5`      |
+| `systray.battery.backend.type`       | string  | `"acpi"` |
+| `systray.battery.backend.number`     | integer | `0`      |
+| `systray.battery.poll-seconds`       | integer | `30`     |
 
 An optional battery/AC status drawn inside the systray dock, read
 directly from the kernel rather than through any external daemon.
@@ -678,15 +678,15 @@ feels stale.
 The status text's exact shape depends on both AC power and how the
 battery's charge compares to `threshold`:
 
-| State                                    | Text        |
-|--------------------------------------------|-------------|
-| On battery, above `low`                    | `"X%"`      |
-| On battery, at/below `low`                 | `"X%!"`     |
-| On battery, at/below `critical`            | `"X%!!"`    |
-| On AC, not fully charged                   | `"X% AC"`   |
+| State                                          | Text        |
+|------------------------------------------------|-------------|
+| On battery, above `low`                        | `"X%"`      |
+| On battery, at/below `low`                     | `"X%!"`     |
+| On battery, at/below `critical`                | `"X%!!"`    |
+| On AC, not fully charged                       | `"X% AC"`   |
 | Fully charged (`charged` or above), on battery | `"Full"`    |
-| Fully charged, on AC                       | `"Full AC"` |
-| No battery found for `backend`             | `"N/A"`     |
+| Fully charged, on AC                           | `"Full AC"` |
+| No battery found for `backend`                 | `"N/A"`     |
 
 A battery counts as "fully charged" once its percentage reaches
 `threshold.charged`, regardless of what the kernel itself reports as
@@ -700,10 +700,10 @@ positioned and aligned is shared with `systray.clock` above; see
 
 #### `systray.text`
 
-| Key                       | Type            | Default                    |
-|-----------------------------|-----------------|-----------------------------|
-| `systray.text.order`      | array of string | `[ "battery", "clock" ]`   |
-| `systray.text.position`   | string          | `"right"`                  |
+| Key                     | Type            | Default                  |
+|-------------------------|-----------------|--------------------------|
+| `systray.text.order`    | array of string | `[ "battery", "clock" ]` |
+| `systray.text.position` | string          | `"right"`                |
 
 Shared placement for the clock and battery status text: which of the
 two show, in what left-to-right order.  `order` lists the enabled
@@ -761,14 +761,14 @@ of `config.json`, not nested inside it: deliberately so, since unlike
 `topology`, everything here **does** take effect on a configuration
 reload (see section 4.9).
 
-| Key                  | Type    | Default | Description |
-|----------------------|---------|---------|-------------|
-| `warp`                | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
-| `cycle`                | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
-| `margins.top`          | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
-| `margins.right`        | integer | `0`     | Extra space reserved on the right, in pixels. |
-| `margins.bottom`       | integer | `0`     | Extra space reserved at the bottom, in pixels. |
-| `margins.left`         | integer | `0`     | Extra space reserved on the left, in pixels. |
+| Key              | Type    | Default | Description |
+|------------------|---------|---------|-------------|
+| `warp`           | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
+| `cycle`          | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
+| `margins.top`    | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
+| `margins.right`  | integer | `0`     | Extra space reserved on the right, in pixels. |
+| `margins.bottom` | integer | `0`     | Extra space reserved at the bottom, in pixels. |
+| `margins.left`   | integer | `0`     | Extra space reserved on the left, in pixels. |
 
 `margins` adds on top of whatever space a client already reserves for
 itself via `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` (a panel or dock,
@@ -830,9 +830,9 @@ modifier uses one of these aliases.
 |--------|-----------------|-------------------------------|
 | `modc` | `Control`       | Control key                   |
 | `mods` | `Shift`         | Shift key                     |
-| `modl` | `Caps_Lock`    | Caps Lock                     |
+| `modl` | `Caps_Lock`     | Caps Lock                     |
 | `mod1` | `Alt`           | Alt / Meta key                |
-| `mod2` | `Num_Lock`     | Num Lock                      |
+| `mod2` | `Num_Lock`      | Num Lock                      |
 | `mod3` | `""`            | Unassigned (empty by default) |
 | `mod4` | `Super`         | Super / Windows key           |
 | `mod5` | `Hyper`         | Hyper key                     |
@@ -869,24 +869,24 @@ Actions performed on the currently focused window.
 
 #### Direct window actions
 
-| Key            | Default binding         | Action |
-|----------------|-------------------------|--------|
-| `close`        | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
-| `kill`         | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
-| `iconify`      | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
-| `iconify-all`   | `modc+mod4+mods+i`     | Iconify (minimize) every client on the current desktop. |
-| `deiconify-all` | `modc+mod4+mods+d`     | Restore every iconified client on the current desktop. |
+| Key             | Default binding         | Action |
+|-----------------|-------------------------|--------|
+| `close`         | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
+| `kill`          | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
+| `iconify`       | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
+| `iconify-all`   | `modc+mod4+mods+i`      | Iconify (minimize) every client on the current desktop. |
+| `deiconify-all` | `modc+mod4+mods+d`      | Restore every iconified client on the current desktop. |
 | `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out. A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
-| `hide`         | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
-| `maximize`     | `modc+mod1+m`           | Toggle maximize (full work area). |
-| `next-monitor` | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
-| `fullscreen`   | `modc+mod1+f`           | Toggle true fullscreen mode. |
-| `shade`        | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
-| `pin`          | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
-| `decorate`     | `modc+mod1+d`           | Toggle window decorations (title bar). |
-| `layer`        | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
-| `info`         | `modc+mod1+mods+i`      | Show a popup with window information. |
-| `show-desktop` | `modc+mod1+mods+d`      | Toggle show-desktop mode: hide all windows; press again to restore them. |
+| `hide`          | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
+| `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
+| `next-monitor`  | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
+| `fullscreen`    | `modc+mod1+f`           | Toggle true fullscreen mode. |
+| `shade`         | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
+| `pin`           | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
+| `decorate`      | `modc+mod1+d`           | Toggle window decorations (title bar). |
+| `layer`         | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
+| `info`          | `modc+mod1+mods+i`      | Show a popup with window information. |
+| `show-desktop`  | `modc+mod1+mods+d`      | Toggle show-desktop mode: hide all windows; press again to restore them. |
 
 #### `keyboard.window.move.relative`
 
@@ -963,10 +963,10 @@ position of their own (see `config.menus.*` in `config.json` for
 where each one appears when opened this way).
 
 
-| Key       | Default binding     | Action |
-|-----------|---------------------|--------|
-| `root`    | `modc+mod1+mods+m`  | Open the desktop (root) context menu, `menu.json`. |
-| `windows` | `modc+mod1+mods+w`  | Open the menu listing every window on every desktop. |
+| Key       | Default binding    | Action |
+|-----------|--------------------|--------|
+| `root`    | `modc+mod1+mods+m` | Open the desktop (root) context menu, `menu.json`. |
+| `windows` | `modc+mod1+mods+w` | Open the menu listing every window on every desktop. |
 
 ```json
 "wm": {
@@ -982,18 +982,18 @@ where each one appears when opened this way).
 Jump directly to a virtual desktop by index (0-9).  Desktops beyond
 index 9 are not reachable by these shortcuts.
 
-| Key        | Default binding  | Destination  |
-|------------|------------------|--------------|
-| `desktop0` | `modc+mod1+0`    | Desktop 0.   |
-| `desktop1` | `modc+mod1+1`    | Desktop 1.   |
-| `desktop2` | `modc+mod1+2`    | Desktop 2.   |
-| `desktop3` | `modc+mod1+3`    | Desktop 3.   |
-| `desktop4` | `modc+mod1+4`    | Desktop 4.   |
-| `desktop5` | `modc+mod1+5`    | Desktop 5.   |
-| `desktop6` | `modc+mod1+6`    | Desktop 6.   |
-| `desktop7` | `modc+mod1+7`    | Desktop 7.   |
-| `desktop8` | `modc+mod1+8`    | Desktop 8.   |
-| `desktop9` | `modc+mod1+9`    | Desktop 9.   |
+| Key        | Default binding | Destination |
+|------------|-----------------|-------------|
+| `desktop0` | `modc+mod1+0`   | Desktop 0.  |
+| `desktop1` | `modc+mod1+1`   | Desktop 1.  |
+| `desktop2` | `modc+mod1+2`   | Desktop 2.  |
+| `desktop3` | `modc+mod1+3`   | Desktop 3.  |
+| `desktop4` | `modc+mod1+4`   | Desktop 4.  |
+| `desktop5` | `modc+mod1+5`   | Desktop 5.  |
+| `desktop6` | `modc+mod1+6`   | Desktop 6.  |
+| `desktop7` | `modc+mod1+7`   | Desktop 7.  |
+| `desktop8` | `modc+mod1+8`   | Desktop 8.  |
+| `desktop9` | `modc+mod1+9`   | Desktop 9.  |
 
 If the interest is to use a 1-based indexing system, a trick could be
 setting `inaugural` to `1`.  Another is to change every single
@@ -1033,11 +1033,11 @@ Cycle through iconified (minimized) windows only.
 
 Mouse button bindings for window management.
 
-| Key      | Default binding | Action                                       |
-|----------|-----------------|----------------------------------------------|
-| `move`   | `mod1+button1`  | Click and drag to move the window.           |
+| Key      | Default binding | Action |
+|----------|-----------------|--------|
+| `move`   | `mod1+button1`  | Click and drag to move the window. |
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
-| `resize` | `mod1+button3`  | Click and drag to resize the window.         |
+| `resize` | `mod1+button3`  | Click and drag to resize the window. |
 
 ### 3.8 `mouse.cycle`
 
@@ -1085,16 +1085,16 @@ Appearance settings for managed windows.
 
 #### `window.titlebar`
 
-| Key                    | Type    | Default  | Description |
-|------------------------|---------|----------|-------------|
-| `height`               | integer | `19`     | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
-| `alignment`             | string  | `"left"` | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
-| `padding.horizontal`    | integer | `2`      | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
-| `padding.vertical`      | integer | `2`      | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`          | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
-| `buttons.right`         | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
-| `buttons.color.on`      | string  | `"#253040"` | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
-| `buttons.color.off`     | string  | `"#4A5566"` | Color for a button otherwise, i.e., not engaged. |
+| Key                  | Type             | Default | Description |
+|----------------------|------------------|---------|-------------|
+| `height`             | integer          | `19` | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
+| `alignment`          | string           | `"left"` | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
+| `padding.horizontal` | integer          | `2` | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
+| `padding.vertical`   | integer          | `2` | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| `buttons.left`       | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
+| `buttons.right`      | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
+| `buttons.color.on`   | string           | `"#253040"` | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
+| `buttons.color.off`  | string           | `"#4A5566"` | Color for a button otherwise, i.e., not engaged. |
 
 Accepted button names, for both `buttons.left` and `buttons.right`,
 are: `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`,
@@ -1117,13 +1117,13 @@ of its own for that case.
 Appearance of the focused window (`active`) and of windows that do not
 have focus (`inactive`).  Both share the same shape:
 
-| Key                 | Type    | Default (active) | Default (inactive) | Description |
-|---------------------|---------|-------------------|---------------------|-------------|
-| `font`              | string  | `"fixed bold"`    | `"fixed"`           | Title bar font (see note below). |
-| `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         | Title bar background color. |
-| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         | Title bar text color. |
-| `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         | Border color. |
-| `border.width`      | integer | `2`               | `2`                 | Border thickness in pixels. |
+| Key                | Type    | Default (active) | Default (inactive) | Description |
+|--------------------|---------|------------------|--------------------|-------------|
+| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below). |
+| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color. |
+| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        | Title bar text color. |
+| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        | Border color. |
+| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels. |
 
 `border.width` need not match between `active` and `inactive`.  When
 they differ, a decorated window's frame actually grows or shrinks by
@@ -1148,13 +1148,13 @@ Same shape as `window.active` / `window.inactive` above (`font`,
 `border.width`), applied to the icon selected in the icon-cycle menu
 (`active`) versus every other icon (`inactive`).
 
-| Key                 | Type    | Default (active) | Default (inactive) |
-|---------------------|---------|-------------------|---------------------|
-| `font`              | string  | `"fixed bold"`    | `"fixed"`           |
-| `color.background`  | string  | `"#9AAEC8"`       | `"#D0D9E5"`         |
-| `color.foreground`  | string  | `"#253040"`       | `"#4A5566"`         |
-| `border.color`      | string  | `"#4A5566"`       | `"#7F9AB6"`         |
-| `border.width`      | integer | `1`               | `1`                 |
+| Key                | Type    | Default (active) | Default (inactive) |
+|--------------------|---------|------------------|--------------------|
+| `font`             | string  | `"fixed bold"`   | `"fixed"`          |
+| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        |
+| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        |
+| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        |
+| `border.width`     | integer | `1`              | `1`                |
 
 ### 4.3 `systray`
 
@@ -1163,18 +1163,18 @@ above, applied to the systray dock itself, plus its own height, each
 docked icon's own size and padding, and the placement of the
 clock/battery text within it.
 
-| Key                 | Type    | Default     |
-|---------------------|---------|-------------|
-| `font`              | string  | `"fixed"`   |
-| `color.background`  | string  | `"#D0D9E5"` |
-| `color.foreground`  | string  | `"#4A5566"` |
-| `border.color`      | string  | `"#7F9AB6"` |
-| `border.width`      | integer | `1`         |
-| `height`            | integer | `22`        |
-| `pixmap.size`       | integer | `24`        |
-| `pixmap.padding`    | integer | `4`         |
-| `text.gap`          | integer | `12`        |
-| `text.valign`       | string  | `"center"`  |
+| Key                | Type    | Default     |
+|--------------------|---------|-------------|
+| `font`             | string  | `"fixed"`   |
+| `color.background` | string  | `"#D0D9E5"` |
+| `color.foreground` | string  | `"#4A5566"` |
+| `border.color`     | string  | `"#7F9AB6"` |
+| `border.width`     | integer | `1`         |
+| `height`           | integer | `22`        |
+| `pixmap.size`      | integer | `24`        |
+| `pixmap.padding`   | integer | `4`         |
+| `text.gap`         | integer | `12`        |
+| `text.valign`      | string  | `"center"`  |
 
 `pixmap.size` is the side length, in pixels, every docked icon's own
 embed window is forced to regardless of whatever size it originally
@@ -1226,9 +1226,9 @@ The desktop's own default background color, used only as a fallback:
 see the explanation right after the table below for exactly when it
 applies.
 
-| Key               | Type   | Default     |
-|-------------------|--------|-------------|
-| `color.background`| string | `"#5F7187"` |
+| Key                | Type   | Default     |
+|--------------------|--------|-------------|
+| `color.background` | string | `"#5F7187"` |
 
 This is deliberately not the same tone as `systray.color.background`
 or the other UI-chrome colors above (`"#D0D9E5"`-family): a desktop
@@ -1277,30 +1277,30 @@ shares this same `border` for its outer frame, so a context menu and
 the cycle menu always present the same outer border, regardless of
 whatever an entry's own border happens to be set to.
 
-| Key                        | Type    | Default     |
-|-----------------------------|---------|-------------|
-| `unselected.font`          | string  | `"fixed"`   |
-| `unselected.color.background` | string | `"#D0D9E5"` |
-| `unselected.color.foreground` | string | `"#4A5566"` |
-| `unselected.border.color`  | string  | `"#7F9AB6"` |
-| `unselected.border.width`  | integer | `1`         |
-| `selected.font`            | string  | `"fixed bold"` |
-| `selected.color.background` | string | `"#9AAEC8"` |
-| `selected.color.foreground` | string | `"#253040"` |
-| `selected.border.color`    | string  | `"#4A5566"` |
-| `selected.border.width`    | integer | `1`         |
-| `label.font`                | string | `"fixed"`   |
-| `label.color.background`   | string  | `"#D0D9E5"` |
-| `label.color.foreground`   | string  | `"#7F9AB6"` |
-| `label.border.color`       | string  | `"#7F9AB6"` |
-| `label.border.width`       | integer | `0`         |
-| `disabled.color.foreground` | string | `"#A0A8B0"` |
-| `separator.color`          | string  | `"#7F9AB6"` |
-| `border.color`             | string  | `"#7F9AB6"` |
-| `border.width`             | integer | `1`         |
-| `padding.horizontal`       | integer | `12`        |
-| `padding.vertical`         | integer | `4`         |
-| `show-pixmaps`             | boolean | `true`      |
+| Key                           | Type    | Default        |
+|-------------------------------|---------|----------------|
+| `unselected.font`             | string  | `"fixed"`      |
+| `unselected.color.background` | string  | `"#D0D9E5"`    |
+| `unselected.color.foreground` | string  | `"#4A5566"`    |
+| `unselected.border.color`     | string  | `"#7F9AB6"`    |
+| `unselected.border.width`     | integer | `1`            |
+| `selected.font`               | string  | `"fixed bold"` |
+| `selected.color.background`   | string  | `"#9AAEC8"`    |
+| `selected.color.foreground`   | string  | `"#253040"`    |
+| `selected.border.color`       | string  | `"#4A5566"`    |
+| `selected.border.width`       | integer | `1`            |
+| `label.font`                  | string  | `"fixed"`      |
+| `label.color.background`      | string  | `"#D0D9E5"`    |
+| `label.color.foreground`      | string  | `"#7F9AB6"`    |
+| `label.border.color`          | string  | `"#7F9AB6"`    |
+| `label.border.width`          | integer | `0`            |
+| `disabled.color.foreground`   | string  | `"#A0A8B0"`    |
+| `separator.color`             | string  | `"#7F9AB6"`    |
+| `border.color`                | string  | `"#7F9AB6"`    |
+| `border.width`                | integer | `1`            |
+| `padding.horizontal`          | integer | `12`           |
+| `padding.vertical`            | integer | `4`            |
+| `show-pixmaps`                | boolean | `true`         |
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
@@ -1372,28 +1372,28 @@ separators, submenu headers) are unaffected either way.
 Applies to the quit-confirmation dialog and the generic message
 dialog.
 
-| Key                          | Type    | Default     |
-|-------------------------------|---------|-------------|
-| `color.background`           | string  | `"#D0D9E5"` |
-| `border.color`                | string  | `"#7F9AB6"` |
-| `border.width`                | integer | `2`         |
-| `label.font`                  | string  | `"fixed"`   |
-| `label.color.foreground`     | string  | `"#4A5566"` |
-| `label.padding.horizontal`   | integer | `12`        |
-| `label.padding.vertical`     | integer | `12`        |
-| `button.unselected.font`     | string  | `"fixed"`   |
-| `button.unselected.color.background` | string | `"#D0D9E5"` |
-| `button.unselected.color.foreground` | string | `"#4A5566"` |
-| `button.unselected.border.color` | string | `"#7F9AB6"` |
-| `button.unselected.border.width` | integer | `1`     |
-| `button.selected.font`       | string  | `"fixed bold"` |
-| `button.selected.color.background` | string | `"#9AAEC8"` |
-| `button.selected.color.foreground` | string | `"#253040"` |
-| `button.selected.border.color` | string | `"#4A5566"` |
-| `button.selected.border.width` | integer | `1`     |
-| `button.gap`                  | integer | `12`        |
-| `button.padding.horizontal`  | integer | `12`        |
-| `button.padding.vertical`    | integer | `6`         |
+| Key                                  | Type    | Default        |
+|--------------------------------------|---------|----------------|
+| `color.background`                   | string  | `"#D0D9E5"`    |
+| `border.color`                       | string  | `"#7F9AB6"`    |
+| `border.width`                       | integer | `2`            |
+| `label.font`                         | string  | `"fixed"`      |
+| `label.color.foreground`             | string  | `"#4A5566"`    |
+| `label.padding.horizontal`           | integer | `12`           |
+| `label.padding.vertical`             | integer | `12`           |
+| `button.unselected.font`             | string  | `"fixed"`      |
+| `button.unselected.color.background` | string  | `"#D0D9E5"`    |
+| `button.unselected.color.foreground` | string  | `"#4A5566"`    |
+| `button.unselected.border.color`     | string  | `"#7F9AB6"`    |
+| `button.unselected.border.width`     | integer | `1`            |
+| `button.selected.font`               | string  | `"fixed bold"` |
+| `button.selected.color.background`   | string  | `"#9AAEC8"`    |
+| `button.selected.color.foreground`   | string  | `"#253040"`    |
+| `button.selected.border.color`       | string  | `"#4A5566"`    |
+| `button.selected.border.width`       | integer | `1`            |
+| `button.gap`                         | integer | `12`           |
+| `button.padding.horizontal`          | integer | `12`           |
+| `button.padding.vertical`            | integer | `6`            |
 
 `color.background` and `border` are the dialog window's own background
 and frame.  `label` styles the prompt or message text (e.g., "Are you
@@ -1447,13 +1447,13 @@ overlays that are not menus or dialogs: the client-info popup and the
 desktop-switch notification.  Both are single-style, non-interactive
 overlays with no selected/unselected state to distinguish.
 
-| Key                 | Type    | Default     |
-|---------------------|---------|-------------|
-| `font`              | string  | `"fixed"`   |
-| `color.background`  | string  | `"#D0D9E5"` |
-| `color.foreground`  | string  | `"#4A5566"` |
-| `border.color`      | string  | `"#7F9AB6"` |
-| `border.width`      | integer | `1`         |
+| Key                | Type    | Default     |
+|--------------------|---------|-------------|
+| `font`             | string  | `"fixed"`   |
+| `color.background` | string  | `"#D0D9E5"` |
+| `color.foreground` | string  | `"#4A5566"` |
+| `border.color`     | string  | `"#7F9AB6"` |
+| `border.width`     | integer | `1`         |
 
 ```json
 "overlay": {
@@ -1840,14 +1840,14 @@ updates.
 All match fields are optional.  A rule matches only when all specified
 fields match the current window.
 
-| Key               | Type              | Default | Description |
-|-------------------|-------------------|---------|-------------|
-| `match.instance`  | string or array   | unset   | Match the first string in `WM_CLASS` (instance name). |
-| `match.class`     | string or array   | unset   | Match the second string in `WM_CLASS` (class name). |
-| `match.role`      | string or array   | unset   | Match `WM_WINDOW_ROLE`. |
-| `match.title`     | string or array   | unset   | Match the current window title. |
-| `match.type`      | string or array   | unset   | Match `_NET_WM_WINDOW_TYPE`. |
-| `match.transient` | boolean           | unset   | Match whether the window is transient for another window. |
+| Key               | Type            | Default | Description |
+|-------------------|-----------------|---------|-------------|
+| `match.instance`  | string or array | unset   | Match the first string in `WM_CLASS` (instance name). |
+| `match.class`     | string or array | unset   | Match the second string in `WM_CLASS` (class name). |
+| `match.role`      | string or array | unset   | Match `WM_WINDOW_ROLE`. |
+| `match.title`     | string or array | unset   | Match the current window title. |
+| `match.type`      | string or array | unset   | Match `_NET_WM_WINDOW_TYPE`. |
+| `match.transient` | boolean         | unset   | Match whether the window is transient for another window. |
 
 String matches use shell-style glob patterns, so `\*` matches any
 sequence of characters and `?` matches any single character.
@@ -1896,19 +1896,19 @@ rule would also match e.g., a dialog with a matching title and class.
 All apply fields are optional.  Only the fields present in the last
 matching rule for each property are applied.
 
-| Key                     | Type                 | Default | Description |
-|-------------------------|----------------------|---------|-------------|
-| `apply.desktop`         | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
-| `apply.monitor`         | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
-| `apply.layer`           | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
-| `apply.focus`           | boolean              | unset   | Whether the matched window should receive focus. |
-| `apply.sticky`          | boolean              | unset   | Whether the window should be visible on all desktops. |
-| `apply.decorated`       | boolean              | unset   | Whether the window should keep its decorations. |
-| `apply.position`        | object or `"center"` | unset   | Where to place the window; see below. |
-| `apply.position.x`      | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
-| `apply.position.y`      | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
-| `apply.size.width`      | integer              | unset   | Window width in pixels; must be greater than `0`. |
-| `apply.size.height`     | integer              | unset   | Window height in pixels; must be greater than `0`. |
+| Key                 | Type                 | Default | Description |
+|---------------------|----------------------|---------|-------------|
+| `apply.desktop`     | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
+| `apply.monitor`     | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `apply.layer`       | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
+| `apply.focus`       | boolean              | unset   | Whether the matched window should receive focus. |
+| `apply.sticky`      | boolean              | unset   | Whether the window should be visible on all desktops. |
+| `apply.decorated`   | boolean              | unset   | Whether the window should keep its decorations. |
+| `apply.position`    | object or `"center"` | unset   | Where to place the window; see below. |
+| `apply.position.x`  | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
+| `apply.position.y`  | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
+| `apply.size.width`  | integer              | unset   | Window width in pixels; must be greater than `0`. |
+| `apply.size.height` | integer              | unset   | Window height in pixels; must be greater than `0`. |
 
 Position and size are applied independently.  Specifying only `position`
 moves the window without resizing it; specifying only `size` resizes it
@@ -2014,22 +2014,22 @@ value is a JSON array of entry objects.
 Each entry object must have a `"type"` string field.  Four types are
 supported:
 
-| `"type"`      | Description                                           |
-|---------------|-------------------------------------------------------|
-| `"command"`   | Clickable item that launches an application           |
-| `"separator"` | Horizontal dividing line (no other fields needed)     |
-| `"label"`     | Non-clickable section heading                         |
-| `"submenu"`   | Nested sub-menu revealed on hover/click               |
+| `"type"`      | Description                                       |
+|---------------|---------------------------------------------------|
+| `"command"`   | Clickable item that launches an application       |
+| `"separator"` | Horizontal dividing line (no other fields needed) |
+| `"label"`     | Non-clickable section heading                     |
+| `"submenu"`   | Nested sub-menu revealed on hover/click           |
 
 ### 8.3 Entry fields reference
 
 #### `"command"` entry
 
-| Field       | Type   | Required | Description                            |
-|-------------|--------|----------|----------------------------------------|
-| `"type"`    | string | yes      | Must be `"command"`                    |
-| `"name"`    | string | yes      | Label text shown in the menu           |
-| `"command"` | string | yes      | Shell command or program to execute    |
+| Field       | Type   | Required | Description                         |
+|-------------|--------|----------|-------------------------------------|
+| `"type"`    | string | yes      | Must be `"command"`                 |
+| `"name"`    | string | yes      | Label text shown in the menu        |
+| `"command"` | string | yes      | Shell command or program to execute |
 
 The `"command"` value is passed through `wordexp(3)` so environment
 variables and simple shell expansions (`~`, `$HOME`, …) are supported.
@@ -2040,18 +2040,18 @@ informational dialog so the user is notified immediately.
 
 #### `"separator"` entry
 
-| Field    | Type   | Required | Description         |
-|----------|--------|----------|---------------------|
+| Field    | Type   | Required | Description           |
+|----------|--------|----------|-----------------------|
 | `"type"` | string | yes      | Must be `"separator"` |
 
 At this moment there's only one kind of `"type"`, which is `"separator"`.
 
 #### `"label"` entry
 
-| Field    | Type   | Required | Description                      |
-|----------|--------|----------|----------------------------------|
-| `"type"` | string | yes      | Must be `"label"`                |
-| `"name"` | string | yes      | Section heading text to display  |
+| Field    | Type   | Required | Description                     |
+|----------|--------|----------|---------------------------------|
+| `"type"` | string | yes      | Must be `"label"`               |
+| `"name"` | string | yes      | Section heading text to display |
 
 At this moment there's only one kind of `"type"`, which is `"label"`.
 
@@ -2087,20 +2087,20 @@ are fixed and cannot be configured here at all.
 
 ### 9.1 Configurable fields
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `theme` | string | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor` | string | `"gvim"` | Same as `config.json`'s own `programs.editor`. |
-| `programs.file-manager` | string | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
-| `programs.launcher` | string | `"gmrun"` | Same as `config.json`'s own `programs.launcher`. |
-| `programs.terminal` | string | `"xterm"` | Same as `config.json`'s own `programs.terminal`. |
-| `programs.web-browser` | string | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
+| Key                                      | Type    | Default | Description |
+|------------------------------------------|---------|---------|-------------|
+| `theme`                                  | string  | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
+| `programs.editor`                        | string  | `"gvim"` | Same as `config.json`'s own `programs.editor`. |
+| `programs.file-manager`                  | string  | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
+| `programs.launcher`                      | string  | `"gmrun"` | Same as `config.json`'s own `programs.launcher`. |
+| `programs.terminal`                      | string  | `"xterm"` | Same as `config.json`'s own `programs.terminal`. |
+| `programs.web-browser`                   | string  | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
 | `desktops.margins.top/right/bottom/left` | integer | `0` | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step` | integer | `10` | Same as `config.json`'s own `windows.move-step`. |
-| `windows.placement.policy` | string | `"smart"` | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `icons.placement.policy` | string | `"smart"` | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray` | object | see 9.2 | The entire `systray` object, in the same shape as `config.json`'s own (section 2.10), with the two exceptions in 9.2. |
-| `enable-emergency-shortcut` | boolean | `false` | Same as `config.json`'s own `enable-emergency-shortcut`. |
+| `windows.move-step`                      | integer | `10` | Same as `config.json`'s own `windows.move-step`. |
+| `windows.placement.policy`               | string  | `"smart"` | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `icons.placement.policy`                 | string  | `"smart"` | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object  | see 9.2 | The entire `systray` object, in the same shape as `config.json`'s own (section 2.10), with the two exceptions in 9.2. |
+| `enable-emergency-shortcut`              | boolean | `false` | Same as `config.json`'s own `enable-emergency-shortcut`. |
 
 ### 9.2 Fields this mode never lets `memguard.json` change
 

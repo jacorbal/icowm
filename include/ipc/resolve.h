@@ -5,9 +5,9 @@
  *
  * Every command's own arguments name a client, desktop, or surface
  * by the same numeric ID @c list_clients / @c list_desktops /
- * @c get_focused already report it by (see manual.md section 5.3):
- * a client's own X window ID, a desktop's own index on its surface,
- * a surface's own screen index.  These turn one of those IDs back
+ * @c get_focused already report it by: a client's own X window ID,
+ * a desktop's own index on its surface, a surface's own screen
+ * index.  These turn one of those IDs back
  * into the real pointer it names, or build the appropriate error
  * response when it does not currently name anything, so every
  * action handler shares one place that does this instead of

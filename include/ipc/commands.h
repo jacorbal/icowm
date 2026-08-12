@@ -43,10 +43,18 @@
  * a client or desktop ID that does not currently exist) on failure.
  * A malformed request (not valid JSON, or valid JSON missing @c
  * "cmd") is itself reported the same way, never left unanswered.
+ * @c "subscribe" and @c "unsubscribe" are handled ahead of the
+ * ordinary table (see @c ipc_client_subscribe/@c ipc_client_
+ * unsubscribe in @c ipc.h): the only two commands whose own effect
+ * belongs to @p client_idx's own connection rather than to @p wm.
  *
- * @param wm      Window manager instance
- * @param request Null-terminated request line, without its own
- *                trailing newline
+ * @param wm         Window manager instance
+ * @param request    Null-terminated request line, without its own
+ *                   trailing newline
+ * @param client_idx Index of the connection @p request arrived on,
+ *                   passed through to @c ipc_client_subscribe/@c
+ *                   ipc_client_unsubscribe only; every other
+ *                   command ignores it entirely
  *
  * @return A newly allocated, null-terminated JSON response line
  *         (without a trailing newline; the caller adds one if
@@ -57,7 +65,8 @@
  *       desktops a listing command has to walk; @e O(1) for every
  *       other command
  */
-char *ipc_commands_dispatch(wm_td *wm, const char *request);
+char *ipc_commands_dispatch(wm_td *wm, const char *request,
+        int client_idx);
 
 
 #endif  /* ! IPC_COMMANDS_H */

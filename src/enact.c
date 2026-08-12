@@ -29,6 +29,12 @@
 #include <surface.h>
 #include <wm.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
+/* IPC includes */
+#include <ipc.h>
+
 /* Command includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/geom.h>
@@ -774,9 +780,37 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
 /* == action_surface_e == */
 
 /* Switch the surface to a specific desktop */
+/**
+ * @brief Broadcast a 'desktop_switched' event for the surface's own
+ *        current desktop, as it stands right now
+ *
+ * Shared by @c enact_surface_desktop_switch and both of its own
+ * next/prev siblings just below, all three of which change the same
+ * one thing (which desktop is current) and so broadcast the exact
+ * same event afterward, differing only in how they got there.
+ *
+ * @param surface The surface whose own current desktop just changed
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_broadcast_desktop_switched(const surface_td *surface)
+{
+    cJSON *fields = cJSON_CreateObject();
+
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) surface->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) surface->desktop_cur);
+    }
+    ipc_broadcast_event(IPC_EVENT_DESKTOP_SWITCHED, fields);
+}
+
+
 void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
 {
     scmd_surface_desktop_switch(surface, desktop_id);
+    s_broadcast_desktop_switched(surface);
 }
 
 
@@ -784,6 +818,7 @@ void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
 void enact_surface_desktop_switch_next(surface_td *surface)
 {
     scmd_surface_desktop_switch_next(surface);
+    s_broadcast_desktop_switched(surface);
 }
 
 
@@ -791,6 +826,7 @@ void enact_surface_desktop_switch_next(surface_td *surface)
 void enact_surface_desktop_switch_prev(surface_td *surface)
 {
     scmd_surface_desktop_switch_prev(surface);
+    s_broadcast_desktop_switched(surface);
 }
 
 

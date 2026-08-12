@@ -27,7 +27,30 @@
 /* Project includes */
 #include <wm.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Public interface */
+/**
+ * @brief Every event a client can @c subscribe to over the socket
+ *
+ * A bitmask (see @c ipc_broadcast_event and each connected client's
+ * own subscription set), not a plain sequential enum, so a future
+ * addition never renumbers an existing one an already-running
+ * client might still be relying on.
+ */
+enum ipc_event_type_e {
+    IPC_EVENT_WINDOW_MAPPED    = (1u << 0),  /**< A client was mapped */
+    IPC_EVENT_WINDOW_CLOSED    = (1u << 1),  /**< A client was
+                                                   destroyed */
+    IPC_EVENT_DESKTOP_SWITCHED = (1u << 2),  /**< A surface's own
+                                                   current desktop
+                                                   changed */
+    IPC_EVENT_FOCUS_CHANGED    = (1u << 3),  /**< A desktop's own
+                                                   active client
+                                                   changed */
+};
+
 /**
  * @brief Initialize the IPC control socket
  *
@@ -126,6 +149,75 @@ int ipc_poll_fds(int *out_fds, int max);
  *       lines found in this one read
  */
 void ipc_handle_readable(wm_td *wm, int fd);
+
+/**
+ * @brief Subscribe one connection to one or more events
+ *
+ * Called from @c ipc_commands_dispatch itself as a special case,
+ * ahead of the ordinary command table (see @c ipc/commands.c): this
+ * is the one command whose own effect belongs to the connection
+ * that sent it, not to the window manager, so it needs to know
+ * which client sent it in a way none of the other 55 handlers ever
+ * do.
+ *
+ * @param client_idx Index into this file's own connected-client
+ *                    table (see @c ipc_handle_readable's own
+ *                    caller), naming the connection to subscribe
+ * @param args        The request object; must have a non-empty
+ *                    array @c "events" of recognized event names
+ *                    (@c enum ipc_event_type_e), rejected as a whole
+ *                    if any single one is not
+ *
+ * @return The standard success or failure response
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p args's
+ *       own @c "events" array
+ */
+cJSON *ipc_client_subscribe(int client_idx, const cJSON *args);
+
+/**
+ * @brief Unsubscribe one connection from one or more events
+ *
+ * @param client_idx Index into this file's own connected-client
+ *                    table, naming the connection to unsubscribe
+ * @param args        The request object; an @c "events" array
+ *                    unsubscribes from only those (an unrecognized
+ *                    or never-subscribed name among them is not an
+ *                    error, since there is nothing to undo either
+ *                    way), while leaving it out entirely
+ *                    unsubscribes from everything at once
+ *
+ * @return The standard success response (always succeeds)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p args's
+ *       own @c "events" array, or @e O(1) when left out entirely
+ */
+cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
+
+/**
+ * @brief Send one event line to every currently subscribed client
+ *
+ * A safe no-op when the socket is not up at all (@c ipc_init was
+ * never called, failed, @c -s was given, or @c ipc_destroy has since
+ * run) or when no connected client is currently subscribed to @p
+ * type, so every call site throughout the rest of the project can
+ * call this unconditionally, the same way it already calls @c
+ * LOGGER_* macros unconditionally, without needing to first check
+ * whether anyone is listening.
+ *
+ * @param type   Which event this is; only clients subscribed to
+ *               this exact bit (see @c enum ipc_event_type_e) are
+ *               sent anything at all
+ * @param fields The event's own fields beyond its shared @c "event"
+ *               name field, or @c NULL for one with none.
+ *               However this call ends, whether any client was
+ *               actually subscribed or not, @p fields is always
+ *               freed before it returns: the caller never needs an
+ *               @c cJSON_Delete of its own after calling this
+ *
+ * @note Complexity: @e O(n), where @e n is @c IPC_MAX_CLIENTS
+ */
+void ipc_broadcast_event(enum ipc_event_type_e type, cJSON *fields);
 
 
 #endif  /* ! IPC_H */

@@ -21,6 +21,10 @@ there.
 6. [Examples](#6-examples)
 7. [Troubleshooting](#7-troubleshooting)
 8. [Command reference](#8-command-reference)
+9. [Watching for events](#9-watching-for-events)
+   - [9.1 What each event reports](#91-what-each-event-reports)
+   - [9.2 Example](#92-example)
+   - [9.3 Exit status while watching](#93-exit-status-while-watching)
 
 ---
 
@@ -65,11 +69,11 @@ not.
 Every `<key>=<value>` argument is split on its own first `=`; the
 value half is sent as:
 
-| Value | Sent as |
-|-------|----------|
-| Exactly `true` or `false` | A JSON boolean |
+| Value                                                     | Sent as |
+|-----------------------------------------------------------|---------|
+| Exactly `true` or `false`                                 | A JSON boolean |
 | Parses in full as a number (e.g. `23068673`, `-5`, `3.5`) | A JSON number |
-| Anything else | A JSON string, verbatim |
+| Anything else                                             | A JSON string, verbatim |
 
 This means a numeric ID never needs quoting on the command line
 (`client_id=23068673`, not `client_id="23068673"`), and a value
@@ -86,23 +90,25 @@ sent, with an explanation on `stderr` naming the offending argument.
 ## 4. Exit status
 
 | Exit status | Meaning |
-|-------------|----------|
-| `0` | The command reached IcoWM and it reported success (`"ok": true` in the printed response) |
-| `1` | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's own `"error"` field |
-| `2` | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option). Nothing is printed to `stdout` in this case; the reason is on `stderr` |
+|-------------|---------|
+| `0`         | The command reached IcoWM and it reported success (`"ok": true` in the printed response) |
+| `1`         | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's own `"error"` field |
+| `2`         | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option). Nothing is printed to `stdout` in this case; the reason is on `stderr` |
 
 A script that only cares whether the command worked can check the
 exit status alone, without parsing the response at all.
 
 ## 5. Options
 
-| Option | What it does |
-|--------|----------------|
-| `-h` | Show usage, a few examples, and this same option list, then exit |
-| `-v` | Show `icowm-msg`'s own name, IcoWM's own short name and version, its license, its copyright line, and its author, then exit |
+| Option        | What it does |
+|---------------|--------------|
+| `-h`          | Show usage, a few examples, and this same option list, then exit |
+| `-v`          | Show `icowm-msg`'s own name, IcoWM's own short name and version, its license, its copyright line, and its author, then exit |
+| `-w <events>` | Subscribe instead of sending a command; see section 9 |
+| `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see section 9); rejected as an error on its own |
 
-Both exit `0`. Any other option is rejected: usage is printed to
-`stderr` and `icowm-msg` exits `2`.
+`-h` and `-v` both exit `0`. Any other option is rejected: usage is
+printed to `stderr` and `icowm-msg` exits `2`.
 
 ## 6. Examples
 
@@ -245,3 +251,82 @@ out of this catalog, is in [`manual.md`](manual.md) section 5.3.
 | `prev_desktop`             | `surface_id`?                              | Switches the resolved surface to its own previous desktop |
 | `wm_exit`                  | none                                       | Requests that IcoWM stop and exit |
 | `reload_config`            | none                                       | Reloads every configuration file |
+
+## 9. Watching for events
+
+`icowm-msg -w <events>` switches out of the normal one-request,
+one-response flow entirely: instead of sending a command, it
+subscribes to one or more events and prints one JSON line per event
+as IcoWM reports them, for as long as the connection stays open.
+`<command>` and any `key=value` arguments are not used in this mode
+at all.
+
+```sh
+icowm-msg -w <events> [-n <count>]
+```
+
+`<events>` is a comma-separated list of event names (no spaces),
+e.g. `window_mapped,desktop_switched`. `-n <count>` stops watching
+after that many events have arrived, printing them and then exiting
+`0`; left out, `icowm-msg` watches forever, until the connection
+drops or the process is killed. `-n` on its own, without `-w`, is
+rejected as an error, since it has nothing to count events for.
+
+### 9.1 What each event reports
+
+| Event              | Fields |
+|--------------------|--------|
+| `window_mapped`    | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
+| `window_closed`    | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
+| `desktop_switched` | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
+| `focus_changed`    | `surface_id`, `client_id`: that client just became the active one on its own surface |
+
+Every event line also carries its own `"event"` field naming which
+one it is, the same as every other field name above; there is no
+separate envelope to unwrap.
+
+### 9.2 Example
+
+```sh
+$ icowm-msg -w window_mapped,desktop_switched -n 2
+{"ok":true}
+{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+{"surface_id":0,"desktop_id":1,"event":"desktop_switched"}
+```
+
+The very first line is always the `subscribe` request's own
+response (`{"ok":true}`, or, on failure, `{"ok":false,"error":...}`,
+followed by `icowm-msg` exiting `1` without watching anything at
+all); every line after that is one event.
+
+### 9.3 Exit status while watching
+
+The same three-way split as section 4 applies, adapted to what
+"the command" means in this mode:
+
+| Exit status | Meaning |
+|-------------|---------|
+| `0`         | `-n <count>` was given and that many events were printed |
+| `1`         | The `subscribe` request itself was rejected (`"ok": false`); the reason is in that first printed line |
+| `2`         | The connection could never be made, the `subscribe` request could not be sent, or the connection was lost while still watching (a server restart, a crash, `icowm` exiting) |
+
+That last `2` case is worth calling out on its own: unlike the
+ordinary request/response mode, a watch that has already printed
+real events can still end in failure, if the connection drops
+before `-n` is reached (or, with no `-n` at all, at any point,
+since nothing but the connection itself ever ends it). `icowm-msg`
+reports this on `stderr` before exiting, the same way it reports
+any other connection failure:
+
+```sh
+$ icowm-msg -w window_mapped
+{"ok":true}
+{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+icowm-msg: connection closed with no response
+$ echo $?
+2
+```
+
+A script that wants to tell "watched successfully to completion"
+apart from "the connection dropped partway through" checks the
+exit status, not just whether any event lines were printed at all.
