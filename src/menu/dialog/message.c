@@ -24,6 +24,7 @@
 
 /* Default initial values */
 #include <defs/uistr.h>
+#include <i18n.h>
 
 /* Util includes */
 #include <utils/safe/safestr.h>
@@ -326,11 +327,11 @@ static void s_message_compute_layout(xcb_connection_t *connection,
      * other one is actually the one drawn. */
     text_renderer_init(connection,
             config->theme.dialog.button.unselected.font);
-    ok_w = menu_draw_measure(STR_DIALOG_MSG_LABEL_OK);
+    ok_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
     text_renderer_init(connection, config->theme.dialog.button.selected.font);
-    ok_w = dlgutil_u16max(ok_w, menu_draw_measure(STR_DIALOG_MSG_LABEL_OK));
+    ok_w = dlgutil_u16max(ok_w, menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK)));
     btn_text_h = dlgutil_u16max(btn_text_h,
             (uint16_t) (text_font_ascent() + text_font_descent()));
 
@@ -562,7 +563,7 @@ static void s_message_draw(xcb_connection_t *connection,
     text_renderer_init(connection, (lo->ok_selected)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
-    label_w = menu_draw_measure(STR_DIALOG_MSG_LABEL_OK);
+    label_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));
     label_x = (int16_t) (lo->btn_x +
             (int16_t) ((lo->btn_w - label_w) / 2u));
     label_y = (int16_t) (lo->btn_y +
@@ -574,7 +575,7 @@ static void s_message_draw(xcb_connection_t *connection,
             (lo->ok_selected) ? fg_sel : fg_btn_nor,
             (lo->ok_selected) ? bg_sel : bg_btn_nor);
     menu_draw_label(connection, s_message_window,
-            label_x, label_y, STR_DIALOG_MSG_LABEL_OK);
+            label_x, label_y, _(STR_DIALOG_MSG_LABEL_OK));
 
     xcb_flush(connection);
 }

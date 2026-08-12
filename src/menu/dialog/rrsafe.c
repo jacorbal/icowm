@@ -17,6 +17,7 @@
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/uistr.h>
+#include <i18n.h>
 
 /* Project includes */
 #include <config.h>
@@ -62,9 +63,9 @@ void dialog_rrsafe_show(xcb_connection_t *connection, surface_td *surface,
         const config_td *config)
 {
     menu_confirm_dialog_show(connection, surface, config,
-            STR_DIALOG_RANDR_CONFIRM_PROMPT,
-            STR_DIALOG_RANDR_CONFIRM_CANCEL,
-            STR_DIALOG_RANDR_CONFIRM_OK,
+            _(STR_DIALOG_RANDR_CONFIRM_PROMPT),
+            _(STR_DIALOG_RANDR_CONFIRM_CANCEL),
+            _(STR_DIALOG_RANDR_CONFIRM_OK),
             s_on_rrsafe_confirm, s_on_rrsafe_cancel,
             DIALOG_RANDR_CONFIRM_TIMEOUT_SECONDS);
 }

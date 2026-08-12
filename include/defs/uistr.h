@@ -32,68 +32,68 @@
 #define DEFS_UISTR_H
 
 
-/* Message dialog (src/menu/dialog/message.c): its single dismiss
+/* Message dialog ('src/menu/dialog/message.c'): its single dismiss
  * button, shared by every caller (an alert-level message, the
  * keyboard-shortcuts list, the fortune easter egg) */
 #define STR_DIALOG_MSG_LABEL_OK "[ OK ]"
 
-/* Root menu (src/menu/context/rootmenu.c): the fixed footer entries
+/* Root menu ('src/menu/context/rootmenu.c'): the fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
 #define STR_ROOTMENU_RELOAD_CONFIG   "Reload configuration"
 #define STR_ROOTMENU_REDRAW_ALL      "Redraw all windows"
 #define STR_ROOTMENU_EXIT            "Exit"
 
-/* Per-window context menu (src/menu/context/wincmenu.c) */
-#define STR_WINCMENU_SEND_TO_DESKTOP       "Send to desktop"
-#define STR_WINCMENU_SEND_TO_MONITOR       "Send to monitor"
-#define STR_WINCMENU_LAYER                 "Layer"
+/* Per-window context menu ('src/menu/context/wincmenu.c') */
+#define STR_WINCMENU_SEND_TO_DESKTOP        "Send to desktop"
+#define STR_WINCMENU_SEND_TO_MONITOR        "Send to monitor"
+#define STR_WINCMENU_LAYER                  "Layer"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_TOP    "Always on top"
 #define STR_WINCMENU_LAYER_NORMAL           "Normal"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
 #define STR_WINCMENU_ALL_DESKTOPS_PIN       "All desktops (pin)"
 #define STR_WINCMENU_THIS_DESKTOP_UNPIN     "This desktop only (unpin)"
-#define STR_WINCMENU_RESTORE         "Restore"
-#define STR_WINCMENU_MOVE            "Move"
-#define STR_WINCMENU_RESIZE          "Resize"
-#define STR_WINCMENU_ICONIFY         "Iconify"
-#define STR_WINCMENU_HIDE            "Hide"
-#define STR_WINCMENU_MAXIMIZE        "Maximize"
-#define STR_WINCMENU_FULLSCREEN_ENTER "Fullscreen"
-#define STR_WINCMENU_FULLSCREEN_EXIT  "Exit Fullscreen"
-#define STR_WINCMENU_SHADE            "Shade"
-#define STR_WINCMENU_UNSHADE          "Unshade"
-#define STR_WINCMENU_DECORATE         "Decorate"
-#define STR_WINCMENU_UNDECORATE       "Undecorate"
-#define STR_WINCMENU_CLOSE           "Close"
+#define STR_WINCMENU_RESTORE                "Restore"
+#define STR_WINCMENU_MOVE                   "Move"
+#define STR_WINCMENU_RESIZE                 "Resize"
+#define STR_WINCMENU_ICONIFY                "Iconify"
+#define STR_WINCMENU_HIDE                   "Hide"
+#define STR_WINCMENU_MAXIMIZE               "Maximize"
+#define STR_WINCMENU_FULLSCREEN_ENTER       "Fullscreen"
+#define STR_WINCMENU_FULLSCREEN_EXIT        "Exit Fullscreen"
+#define STR_WINCMENU_SHADE                  "Shade"
+#define STR_WINCMENU_UNSHADE                "Unshade"
+#define STR_WINCMENU_DECORATE               "Decorate"
+#define STR_WINCMENU_UNDECORATE             "Undecorate"
+#define STR_WINCMENU_CLOSE                  "Close"
 
-/* All-desktops window list (src/menu/context/winlist.c) */
-#define STR_WINLIST_GO_THERE         "Go there..."
+/* All-desktops window list ('src/menu/context/winlist.c') */
+#define STR_WINLIST_GO_THERE    "Go there..."
 
-/* Quit-confirmation dialog (src/menu/dialog/quit.c); the prompt is a
- * format string taking the window manager's own display name (see
- * 'WM_EWMH_NAME' in defs/ewmh.h) */
+/* Quit-confirmation dialog ('src/menu/dialog/quit.c'); the prompt is
+ * a format string taking the window manager's own display name (see
+ * 'WM_EWMH_NAME' in 'defs/ewmh.h') */
 #define STR_DIALOG_QUIT_PROMPT_FMT   "Are you sure you want to exit %s?"
 #define STR_DIALOG_QUIT_CANCEL       "[ Cancel ]"
 #define STR_DIALOG_QUIT_EXIT         "[ Exit ]"
 
-/* Generic confirm dialog's own optional countdown line (src/menu/
- * dialog/confirm.c), shown under the prompt whenever a timeout was
- * given to 'menu_confirm_dialog_show'.  Names the cancel button's own
- * label specifically (never assumed to literally read "Cancel"; see
- * e.g. 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since the countdown
- * always takes that path once it elapses regardless of which button
- * a person may have tabbed the visible selection to in the meantime
- * (a safety timeout has to fall back to the one path that needs no
- * working display to have been chosen deliberately).  A format
- * string taking the cancel button's own label, then the whole
- * seconds remaining, updated once a second as it counts down.  The
- * '%s' precision is capped at 255 (DIALOG_TEXT_MAX_LEN - 1, the most
- * a label can ever actually hold) explicitly, in the format string
- * itself rather than left to be inferred from the caller's own
- * buffer: GCC's own '-Wformat-truncation' cannot prove that a label
- * reached through a struct pointer is null-terminated within its own
- * declared array bound rather than somewhere later in the struct, so
- * without this it assumes the width of every field after it too. */
+/* Generic confirm dialog's own optional countdown line
+ * ('src/menu/dialog/confirm.c'), shown under the prompt whenever
+ * a timeout was given to 'menu_confirm_dialog_show'.  Names the cancel
+ * button's own label specifically (never assumed to literally read
+ * "Cancel"; see e.g., 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since
+ * the countdown always takes that path once it elapses regardless of
+ * which button a person may have tabbed the visible selection to in the
+ * meantime (a safety timeout has to fall back to the one path that
+ * needs no working display to have been chosen deliberately).  A format
+ * string taking the cancel button's own label, then the whole seconds
+ * remaining, updated once a second as it counts down.  The '%s'
+ * precision is capped at 255 (DIALOG_TEXT_MAX_LEN - 1, the most a label
+ * can ever actually hold) explicitly, in the format string itself
+ * rather than left to be inferred from the caller's own buffer: GCC's
+ * own '-Wformat-truncation' cannot prove that a label reached through
+ * a struct pointer is null-terminated within its own declared array
+ * bound rather than somewhere later in the struct, so without this it
+ * assumes the width of every field after it too. */
 #define STR_DIALOG_CONFIRM_TIMEOUT_FMT \
     ("Automatically selecting '%.255s' in %d second(s)")
 
@@ -106,6 +106,124 @@
      "or revert to the previous one?")
 #define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
 #define STR_DIALOG_RANDR_CONFIRM_OK     "[ Keep ]"
+
+/* Keyboard-shortcuts list dialog (src/menu/dialog/shortcuts.c): one
+ * section header, and one label per action, each paired at
+ * runtime with that action's own configured key combo */
+#define STR_SHORTCUTS_HEADER_WM     "[Window Manager]"
+#define STR_SHORTCUTS_HEADER_LAUNCH "[Launch]"
+#define STR_SHORTCUTS_HEADER_WINDOW "[Window]"
+#define STR_SHORTCUTS_HEADER_CYCLE  "[Cycle]"
+
+#define STR_SHORTCUTS_ROOT_MENU         "Root menu"
+#define STR_SHORTCUTS_WINDOWS_MENU      "Windows menu"
+#define STR_SHORTCUTS_SEARCH_WINDOWS    "Search windows"
+#define STR_SHORTCUTS_SHOW_DESKTOP      "Show desktop"
+#define STR_SHORTCUTS_REDRAW            "Redraw"
+#define STR_SHORTCUTS_RELOAD_CONFIG     "Reload config"
+#define STR_SHORTCUTS_QUIT              "Quit"
+#define STR_SHORTCUTS_THIS_LIST         "This list"
+/* Both whole, fixed lines on their own (no combo of their own to
+ * pair with; the combo is itself hardcoded, not user-configurable) */
+#define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+BackSpace"
+#define STR_SHORTCUTS_FORTUNE        "Fortune: Ctrl+Mod4+BackSpace"
+
+#define STR_SHORTCUTS_TERMINAL      "Terminal"
+#define STR_SHORTCUTS_LAUNCHER      "Launcher"
+#define STR_SHORTCUTS_FILE_MANAGER  "File manager"
+#define STR_SHORTCUTS_WEB_BROWSER   "Web browser"
+#define STR_SHORTCUTS_EDITOR        "Editor"
+
+#define STR_SHORTCUTS_CLOSE         "Close"
+#define STR_SHORTCUTS_KILL          "Kill"
+#define STR_SHORTCUTS_DECORATE      "Decorate"
+#define STR_SHORTCUTS_FULLSCREEN    "Fullscreen"
+#define STR_SHORTCUTS_HIDE          "Hide"
+#define STR_SHORTCUTS_ICONIFY       "Iconify"
+#define STR_SHORTCUTS_ICONIFY_ALL   "Iconify all"
+#define STR_SHORTCUTS_DEICONIFY_ALL "Deiconify all"
+#define STR_SHORTCUTS_ARRANGE       "Arrange"
+#define STR_SHORTCUTS_INFO          "Info"
+#define STR_SHORTCUTS_LAYER         "Layer"
+#define STR_SHORTCUTS_MAXIMIZE      "Maximize"
+#define STR_SHORTCUTS_NEXT_MONITOR  "NextMonitor"
+#define STR_SHORTCUTS_PIN           "Pin"
+#define STR_SHORTCUTS_SHADE         "Shade"
+
+/* Group labels; each pairs with a short direction/position name
+ * below, joined at runtime as e.g. "Right=<combo>, Left=<combo>" */
+#define STR_SHORTCUTS_MOVE_RELATIVE "Move (relative)"
+#define STR_SHORTCUTS_MOVE_ABSOLUTE "Move (absolute)"
+#define STR_SHORTCUTS_RESIZE        "Resize"
+#define STR_SHORTCUTS_DESKTOPS      "Desktops"
+#define STR_SHORTCUTS_ICONS         "Icons"
+#define STR_SHORTCUTS_WINDOWS       "Windows"
+
+/* Deliberately NOT translated, unlike every label above: 'Right',
+ * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',
+ * 'BotRight', 'prev', and 'next' each sit directly beside the literal,
+ * never-translated key combo they name (e.g. 'Right=mod1+ Right'), so
+ * they stay as plain literals at their own call site in 'shortcuts.c'
+ * instead of living here; translating only one half of that pairing
+ * would read as more inconsistent than helpful. */
+
+/* TRANSLATORS: '%.*s' and '<0-9>' together spell out a shared key combo
+ * prefix followed by a literal digit placeholder; '%u' and the second
+ * '%s' are a desktop's own index and its own combo.  Keep every
+ * placeholder, in this exact order, in translation. */
+#define STR_SHORTCUTS_GOTO_DESKTOP_RANGE_FMT \
+    "Go to desktop 0-9: %.*s<0-9>"
+#define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u: %s"
+
+/* Battery indicator ('src/systray/battery.c') */
+#define STR_BATTERY_NOT_AVAILABLE "N/A"
+#define STR_BATTERY_FULL_AC       "Full AC"
+#define STR_BATTERY_FULL          "Full"
+
+/* Restricted-memory mode announcement, shown once at startup
+ * ('src/wm.c') */
+#define STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE \
+    ("IcoWM is running in restricted-memory mode.  In" \
+     " this mode: application icons are shown without" \
+     " their own picture, text is drawn with simpler" \
+     " fonts, and there is a limit on how many windows" \
+     " can be open at once.  All of this trades some" \
+     " visual polish for keeping memory use low and" \
+     " predictable.")
+
+/* Configuration-file syntax-error dialog ('src/wm.c',
+ * 'wm_warn_json_syntax_errors'), one file or several; TRANSLATORS: keep
+ * the single '%s' in the first, and the trailing '%s' in the second (a
+ * filename list is appended after it, comma-separated) */
+#define STR_WM_JSON_SYNTAX_ERROR_SINGLE_FMT \
+    ("Error parsing '%s'; possible syntax error." \
+     "  Reverted to default values.")
+#define STR_WM_JSON_SYNTAX_ERROR_MULTIPLE_FMT \
+    ("Error parsing the following file(s); possible" \
+     " syntax error(s).  Reverted to default values" \
+     " for each: '%s'")
+/* Appended to either message above when the theme file itself was also
+ * missing; TRANSLATORS: keep the single '%s' (the theme filename), and
+ * 'config.json' unchanged (a real filename, not prose) */
+#define STR_WM_MISSING_THEME_FMT \
+    ("  Additionally, the theme file '%s' named by" \
+     " 'config.json' was not found; using the" \
+     " built-in default theme instead.")
+
+/* Restricted-memory mode's own two warning dialogs
+ * ('src/memguard.c'); TRANSLATORS: keep every '%u' (a MiB count, or a
+ * window count) and the literal '-M' (the command-line option's own
+ * name, unchanged in every language) */
+#define STR_MEMGUARD_CEILING_REACHED_FMT \
+    ("IcoWM has reached its configured memory ceiling: using" \
+     " %u MiB of the %u MiB allowed (see the '-M' command-line" \
+     " option).  Close some windows to free up memory before" \
+     " opening more.")
+#define STR_MEMGUARD_CLIENT_CAP_REACHED_FMT \
+    ("IcoWM is running in restricted-memory mode and will not" \
+     " manage more than %u window(s) at once (see the '-M'" \
+     " command-line option).  Close a window before opening" \
+     " another.")
 
 
 #endif  /* ! DEFS_UISTR_H */

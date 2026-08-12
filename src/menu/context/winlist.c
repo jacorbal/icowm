@@ -27,6 +27,7 @@
 
 /* Default initial values */
 #include <defs/uistr.h>
+#include <i18n.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -671,7 +672,7 @@ void winlist_show(xcb_connection_t *connection,
                     }
                     s_desktop_entries[did][0].type = CTXMENU_COMMAND;
                     safe_strncpy(s_desktop_entries[did][0].label,
-                            STR_WINLIST_GO_THERE,
+                            _(STR_WINLIST_GO_THERE),
                             sizeof(s_desktop_entries[did][0].label) - 1u);
                     s_desktop_entries[did][0].is_disabled = is_cur;
                     s_desktop_entries[did][0].on_activate = NULL;

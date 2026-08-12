@@ -23,6 +23,7 @@
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/uistr.h>
+#include <i18n.h>
 
 /* Util includes */
 #include <utils/safe/safestr.h>
@@ -355,7 +356,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
         uint16_t timeout_w;
 
         (void) snprintf(timeout_text, sizeof(timeout_text),
-                STR_DIALOG_CONFIRM_TIMEOUT_FMT, lo->cancel_label,
+                _(STR_DIALOG_CONFIRM_TIMEOUT_FMT), lo->cancel_label,
                 seconds);
         timeout_w = menu_draw_measure(timeout_text);
         timeout_x = (int16_t) ((lo->w > timeout_w)

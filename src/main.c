@@ -54,6 +54,7 @@
 /* Project includes */
 #include <config.h>
 #include <config/lint.h>
+#include <i18n.h>
 #include <logger.h>
 #include <wm.h>
 
@@ -337,6 +338,13 @@ int main(int argc, char *const argv[])
     uint32_t restricted_memory_mib = 0u;
 #endif
     int opt;
+
+    /* GUI text translation, set up unconditionally, this early,
+     * so nothing later ever needs to reason about whether it has
+     * run yet: -h/-v themselves are deliberately never translated
+     * (see i18n.h), but every dialog wm_start can reach further
+     * down already needs it ready. */
+    i18n_init();
 
     /* Generate a random seed (windows are in a hash table and the seeds
      * for the hashing algorithm use 'rand') */

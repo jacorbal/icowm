@@ -26,6 +26,10 @@
 #include <config.h>
 #include <surface.h>
 
+/* Defs includes */
+#include <defs/uistr.h>
+#include <i18n.h>
+
 /* Local includes */
 #include <menu/dialog/shortcuts.h>
 #include <menu/dialog/message.h>
@@ -162,7 +166,7 @@ static void s_append_goto_desktop(char *buf, size_t buf_size,
 
     if (shared_prefix) {
         s_append_line(buf, buf_size, offset,
-                "Go to desktop 0-9: %.*s<0-9>", (int) prefix_len,
+                _(STR_SHORTCUTS_GOTO_DESKTOP_RANGE_FMT), (int) prefix_len,
                 desktop[0]);
         return;
     }
@@ -171,7 +175,7 @@ static void s_append_goto_desktop(char *buf, size_t buf_size,
         if (desktop[i][0] == '\0') {
             continue;
         }
-        s_append_line(buf, buf_size, offset, "Go to desktop %u: %s",
+        s_append_line(buf, buf_size, offset, _(STR_SHORTCUTS_GOTO_DESKTOP_FMT),
                 i, desktop[i]);
     }
 }
@@ -247,86 +251,96 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.mod1, config->bindings.mod4);
     s_append_blank_line(text, sizeof(text), &offset);
 
-    s_append_line(text, sizeof(text), &offset, "[Window Manager]");
-    s_append_binding(text, sizeof(text), &offset, "Root menu",
+    s_append_line(text, sizeof(text), &offset, "%s",
+            _(STR_SHORTCUTS_HEADER_WM));
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_ROOT_MENU),
             config->bindings.keyboard.wm.menus.root);
-    s_append_binding(text, sizeof(text), &offset, "Windows menu",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_WINDOWS_MENU),
             config->bindings.keyboard.wm.menus.windows);
-    s_append_binding(text, sizeof(text), &offset, "Search windows",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_SEARCH_WINDOWS),
             config->bindings.keyboard.wm.search);
-    s_append_binding(text, sizeof(text), &offset, "Show desktop",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_SHOW_DESKTOP),
             config->bindings.keyboard.wm.show_desktop);
     if (surface->desktop_count > 1u) {
         s_append_goto_desktop(text, sizeof(text), &offset, config);
     }
-    s_append_binding(text, sizeof(text), &offset, "Redraw",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_REDRAW),
             config->bindings.keyboard.wm.redraw);
-    s_append_binding(text, sizeof(text), &offset, "Reload config",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_RELOAD_CONFIG),
             config->bindings.keyboard.wm.reload);
-    s_append_binding(text, sizeof(text), &offset, "Quit",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_QUIT),
             config->bindings.keyboard.wm.quit);
-    s_append_binding(text, sizeof(text), &offset, "This list",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_THIS_LIST),
             config->bindings.keyboard.wm.shortcuts);
     if (config->base.enable_emergency_shortcut) {
-        s_append_line(text, sizeof(text), &offset,
-                "Emergency exit: Ctrl+Mod1+BackSpace");
+        s_append_line(text, sizeof(text), &offset, "%s",
+                _(STR_SHORTCUTS_EMERGENCY_EXIT));
     }
     if (config->base.enable_fortune_shortcut) {
-        s_append_line(text, sizeof(text), &offset,
-                "Fortune: Ctrl+Mod4+BackSpace");
+        s_append_line(text, sizeof(text), &offset, "%s",
+                _(STR_SHORTCUTS_FORTUNE));
     }
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "[Launch]");
-    s_append_binding(text, sizeof(text), &offset, "Terminal",
+    s_append_line(text, sizeof(text), &offset, "%s",
+            _(STR_SHORTCUTS_HEADER_LAUNCH));
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_TERMINAL),
             config->bindings.keyboard.launch.terminal);
-    s_append_binding(text, sizeof(text), &offset, "Launcher",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_LAUNCHER),
             config->bindings.keyboard.launch.launcher);
-    s_append_binding(text, sizeof(text), &offset, "File manager",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_FILE_MANAGER),
             config->bindings.keyboard.launch.file_manager);
-    s_append_binding(text, sizeof(text), &offset, "Web browser",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_WEB_BROWSER),
             config->bindings.keyboard.launch.web_browser);
-    s_append_binding(text, sizeof(text), &offset, "Editor",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_EDITOR),
             config->bindings.keyboard.launch.editor);
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "[Window]");
-    s_append_binding(text, sizeof(text), &offset, "Close",
+    s_append_line(text, sizeof(text), &offset, "%s",
+            _(STR_SHORTCUTS_HEADER_WINDOW));
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_CLOSE),
             config->bindings.keyboard.window.close);
-    s_append_binding(text, sizeof(text), &offset, "Kill",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_KILL),
             config->bindings.keyboard.window.kill);
-    s_append_binding(text, sizeof(text), &offset, "Decorate",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_DECORATE),
             config->bindings.keyboard.window.decorate);
-    s_append_binding(text, sizeof(text), &offset, "Fullscreen",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_FULLSCREEN),
             config->bindings.keyboard.window.fullscreen);
-    s_append_binding(text, sizeof(text), &offset, "Hide",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_HIDE),
             config->bindings.keyboard.window.hide);
-    s_append_binding(text, sizeof(text), &offset, "Iconify",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_ICONIFY),
             config->bindings.keyboard.window.iconify);
-    s_append_binding(text, sizeof(text), &offset, "Iconify all",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_ICONIFY_ALL),
             config->bindings.keyboard.window.iconify_all);
-    s_append_binding(text, sizeof(text), &offset, "Deiconify all",
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_DEICONIFY_ALL),
             config->bindings.keyboard.window.deiconify_all);
-    s_append_binding(text, sizeof(text), &offset, "Arrange",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_ARRANGE),
             config->bindings.keyboard.window.arrange);
-    s_append_binding(text, sizeof(text), &offset, "Info",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_INFO),
             config->bindings.keyboard.window.info);
-    s_append_binding(text, sizeof(text), &offset, "Layer",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_LAYER),
             config->bindings.keyboard.window.layer);
-    s_append_binding(text, sizeof(text), &offset, "Maximize",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_MAXIMIZE),
             config->bindings.keyboard.window.maximize);
     if (surface->monitor_count > 1u) {
-        s_append_binding(text, sizeof(text), &offset, "NextMonitor",
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_NEXT_MONITOR),
                 config->bindings.keyboard.window.next_monitor);
     }
     if (surface->desktop_count > 1u) {
-        s_append_binding(text, sizeof(text), &offset, "Pin",
+        s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_PIN),
                 config->bindings.keyboard.window.pin);
     }
-    s_append_binding(text, sizeof(text), &offset, "Shade",
+    s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_SHADE),
             config->bindings.keyboard.window.shade);
 
-    s_append_group(text, sizeof(text), &offset, "Move (relative)",
+    s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_MOVE_RELATIVE),
             (const char *const []) {"Right", "Left", "Up", "Down"},
             (const char *const []) {
                 config->bindings.keyboard.window.move.relative.right,
@@ -334,7 +348,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.window.move.relative.up,
                 config->bindings.keyboard.window.move.relative.down
             }, 4u);
-    s_append_group(text, sizeof(text), &offset, "Move (absolute)",
+    s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_MOVE_ABSOLUTE),
             (const char *const [])
                 {"Center", "TopLeft", "TopRight", "BotLeft", "BotRight"},
             (const char *const []) {
@@ -344,7 +358,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.window.move.absolute.bottom_left,
                 config->bindings.keyboard.window.move.absolute.bottom_right
             }, 5u);
-    s_append_group(text, sizeof(text), &offset, "Resize",
+    s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_RESIZE),
             (const char *const []) {"Right", "Left", "Up", "Down"},
             (const char *const []) {
                 config->bindings.keyboard.window.resize.right,
@@ -354,22 +368,23 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             }, 4u);
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "[Cycle]");
+    s_append_line(text, sizeof(text), &offset, "%s",
+            _(STR_SHORTCUTS_HEADER_CYCLE));
     if (surface->desktop_count > 1u) {
-        s_append_group(text, sizeof(text), &offset, "Desktops",
+        s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_DESKTOPS),
                 (const char *const []) {"prev", "next"},
                 (const char *const []) {
                     config->bindings.keyboard.cycle.desktop.prev,
                     config->bindings.keyboard.cycle.desktop.next
                 }, 2u);
     }
-    s_append_group(text, sizeof(text), &offset, "Icons",
+    s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_ICONS),
             (const char *const []) {"prev", "next"},
             (const char *const []) {
                 config->bindings.keyboard.cycle.icon.prev,
                 config->bindings.keyboard.cycle.icon.next
             }, 2u);
-    s_append_group(text, sizeof(text), &offset, "Windows",
+    s_append_group(text, sizeof(text), &offset, _(STR_SHORTCUTS_WINDOWS),
             (const char *const []) {"prev", "next"},
             (const char *const []) {
                 config->bindings.keyboard.cycle.window.prev,

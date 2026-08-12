@@ -93,10 +93,7 @@ OTHR_LFLAGS = -lpthread
 LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) \
           $(OTHR_LFLAGS)
 
-# 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
-# self-contained IPC client: it never touches X11 at all, so it has
-# no reason to pull in the XCB or font libraries the window manager
-# itself needs, only JSON for the wire protocol it speaks.
+# For 'icowm-msg'
 MSG_CCFLAGS = $(CCFLAGS_BASE) $(JSON_CFLAGS)
 MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 
@@ -121,11 +118,14 @@ CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
 CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
+CCFLAGS += -D I18N_DOMAIN=\"default\"
+CCFLAGS += -D I18N_LOCALE_DIR=\"$(CURDIR)/locale\"
 
 # 'icowm-msg' only ever prints its own name, IcoWM's own short name,
-# its version, and its license (see 'tools/icowm-msg.c'); the rest
-# of the metadata above is icowm's own '-v' output, not something
-# a small IPC client has any reason to report about itself.
+# its version, its license, its copyright line, and its author (see
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's
+# own '-v' output, not something a small IPC client has any reason
+# to report about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
 MSG_CCFLAGS += -D PROJECT_VERSION=\"$(PROJECT_VERSION)\"

@@ -21,6 +21,10 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Defs includes */
+#include <defs/uistr.h>
+#include <i18n.h>
+
 /* Local includes */
 #include <systray/battery.h>
 
@@ -264,13 +268,14 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
     }
 
     if (!found) {
-        (void) safe_strncpy(out, "N/A", out_size - 1u);
+        (void) safe_strncpy(out, _(STR_BATTERY_NOT_AVAILABLE), out_size - 1u);
         out[out_size - 1u] = '\0';
         return;
     }
 
     if (percent >= threshold_charged) {
-        (void) snprintf(out, out_size, "%s", (ac) ? "Full AC" : "Full");
+        (void) snprintf(out, out_size, "%s",
+                (ac) ? _(STR_BATTERY_FULL_AC) : _(STR_BATTERY_FULL));
         return;
     }
 

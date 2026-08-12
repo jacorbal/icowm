@@ -40,6 +40,8 @@
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/ewmh.h>
+#include <defs/uistr.h>
+#include <i18n.h>
 
 /* Project includes */
 #include <config.h>
@@ -449,13 +451,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         menu_message_dialog_show(wm->connection,
                 (surface_td *) list_data(list_head(wm->surfaces)),
                 wm->config,
-                "IcoWM is running in restricted-memory mode.  In" \
-                " this mode: application icons are shown without" \
-                " their own picture, text is drawn with simpler" \
-                " fonts, and there is a limit on how many windows" \
-                " can be open at once.  All of this trades some" \
-                " visual polish for keeping memory use low and" \
-                " predictable.",
+                _(STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE),
                 MENU_MSG_LEVEL_INFO);
     }
 
@@ -484,11 +480,8 @@ void wm_warn_json_syntax_errors(void)
 
     offset = (size_t) snprintf(message, sizeof(message),
             (count == 1u)
-                ? "Error parsing '%s'; possible syntax error." \
-                  "  Reverted to default values."
-                : "Error parsing the following file(s); possible" \
-                  " syntax error(s).  Reverted to default values" \
-                  " for each: '%s'",
+                ? _(STR_WM_JSON_SYNTAX_ERROR_SINGLE_FMT)
+                : _(STR_WM_JSON_SYNTAX_ERROR_MULTIPLE_FMT),
             json_syntax_errors_get(0u));
     for (uint32_t i = 1u; i < count && offset < sizeof(message); ++i) {
         int written = snprintf(message + offset, sizeof(message) - offset,
@@ -529,9 +522,7 @@ void wm_warn_json_syntax_errors(void)
         if (missing_theme != NULL) {
             int written = snprintf(message + offset,
                     sizeof(message) - offset,
-                    "  Additionally, the theme file '%s' named by" \
-                    " 'config.json' was not found; using the" \
-                    " built-in default theme instead.", missing_theme);
+                    _(STR_WM_MISSING_THEME_FMT), missing_theme);
             if (written > 0) {
                 offset += (size_t) written;
             }

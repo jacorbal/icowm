@@ -27,6 +27,7 @@
 /* Default initial values */
 #include <defs/input.h>
 #include <defs/uistr.h>
+#include <i18n.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -581,11 +582,11 @@ static int s_build_desk_entries(surface_td *surface,
      * a pin once set */
     if (is_sticky) {
         safe_strncpy(s_desk_entries[n].label,
-                STR_WINCMENU_THIS_DESKTOP_UNPIN,
+                _(STR_WINCMENU_THIS_DESKTOP_UNPIN),
                 sizeof(s_desk_entries[n].label) - 1u);
     } else {
         safe_strncpy(s_desk_entries[n].label,
-                STR_WINCMENU_ALL_DESKTOPS_PIN,
+                _(STR_WINCMENU_ALL_DESKTOPS_PIN),
                 sizeof(s_desk_entries[n].label) - 1u);
     }
 
@@ -672,13 +673,14 @@ static void s_build_layer_entries(const client_td *client)
     is_below  = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_BELOW);
 
-    s_entry_command(&s_layer_entries[0], STR_WINCMENU_LAYER_ALWAYS_ON_TOP,
+    s_entry_command(&s_layer_entries[0], _(STR_WINCMENU_LAYER_ALWAYS_ON_TOP),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_LAYER_ABOVE, is_above);
-    s_entry_command(&s_layer_entries[1], STR_WINCMENU_LAYER_NORMAL,
+    s_entry_command(&s_layer_entries[1], _(STR_WINCMENU_LAYER_NORMAL),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_LAYER_NORMAL, is_normal);
-    s_entry_command(&s_layer_entries[2], STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM,
+    s_entry_command(&s_layer_entries[2],
+            _(STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_LAYER_BELOW, is_below);
 }
@@ -777,7 +779,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * on a surface with only one desktop */
     if (desk_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_DESKTOP,
+        safe_strncpy(s_entries[n].label, _(STR_WINCMENU_SEND_TO_DESKTOP),
                 sizeof(s_entries[n].label) - 1u);
         s_entries[n].items = s_desk_entries;
         s_entries[n].item_count = desk_count;
@@ -789,7 +791,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * on a surface with only one monitor */
     if (monitor_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_entries[n].label, STR_WINCMENU_SEND_TO_MONITOR,
+        safe_strncpy(s_entries[n].label, _(STR_WINCMENU_SEND_TO_MONITOR),
                 sizeof(s_entries[n].label) - 1u);
         s_entries[n].items = s_monitor_entries;
         s_entries[n].item_count = monitor_count;
@@ -799,7 +801,7 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Layer (submenu) */
     s_entries[n].type = CTXMENU_SUBMENU;
-    safe_strncpy(s_entries[n].label, STR_WINCMENU_LAYER,
+    safe_strncpy(s_entries[n].label, _(STR_WINCMENU_LAYER),
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_layer_entries;
     s_entries[n].item_count = WINCMENU_LAYER_COUNT;
@@ -810,30 +812,30 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].type = CTXMENU_SEPARATOR;
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_RESTORE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_RESTORE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_RESTORE, !can_restore);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_MOVE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_MOVE),
             s_cb_move, NULL, !can_move);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_RESIZE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_RESIZE),
             s_cb_resize, NULL, !can_resize);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_ICONIFY,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_ICONIFY),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_ICONIFY, false);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_HIDE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_HIDE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_HIDE, false);
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_MAXIMIZE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_MAXIMIZE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_MAXIMIZE,
             !client_is_resizable(client) || client_is_maximized(client) ||
@@ -847,22 +849,22 @@ void wincmenu_show(xcb_connection_t *connection,
      * 'ccmd_client_fullscreen''s own comment for the full reasoning. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
-                ? STR_WINCMENU_FULLSCREEN_EXIT
-                : STR_WINCMENU_FULLSCREEN_ENTER,
+                ? _(STR_WINCMENU_FULLSCREEN_EXIT)
+                : _(STR_WINCMENU_FULLSCREEN_ENTER),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN, false);
     ++n;
 
     s_entry_command(&s_entries[n],
-            (client_is_shaded(client)) ? STR_WINCMENU_UNSHADE
-                : STR_WINCMENU_SHADE,
+            (client_is_shaded(client)) ? _(STR_WINCMENU_UNSHADE)
+                : _(STR_WINCMENU_SHADE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_TOGGLE_SHADE, !can_shade);
     ++n;
 
     s_entry_command(&s_entries[n],
-            (client_is_decorated(client)) ? STR_WINCMENU_UNDECORATE
-                : STR_WINCMENU_DECORATE,
+            (client_is_decorated(client)) ? _(STR_WINCMENU_UNDECORATE)
+                : _(STR_WINCMENU_DECORATE),
             s_cb_decorate, NULL, client_is_fullscreen(client));
     ++n;
 
@@ -870,7 +872,7 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].type = CTXMENU_SEPARATOR;
     ++n;
 
-    s_entry_command(&s_entries[n], STR_WINCMENU_CLOSE,
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_CLOSE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_CLOSE, false);
     ++n;

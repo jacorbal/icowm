@@ -26,6 +26,10 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Defs includes */
+#include <defs/uistr.h>
+#include <i18n.h>
+
 /* Local includes */
 #include <menu/dialog/confirm.h>
 #include <menu/dialog/quit.h>
@@ -52,10 +56,10 @@ void dialog_quit_show(xcb_connection_t *connection,
     char prompt[DIALOG_QUIT_PROMPT_MAX_LENGTH];
 
     (void) snprintf(prompt, sizeof(prompt),
-            STR_DIALOG_QUIT_PROMPT_FMT, WM_EWMH_NAME);
+            _(STR_DIALOG_QUIT_PROMPT_FMT), WM_EWMH_NAME);
 
     menu_confirm_dialog_show(connection, surface, cfg,
-            prompt, STR_DIALOG_QUIT_CANCEL, STR_DIALOG_QUIT_EXIT,
+            prompt, _(STR_DIALOG_QUIT_CANCEL), _(STR_DIALOG_QUIT_EXIT),
             s_on_quit_confirm, NULL, 0u);
 
 }

@@ -27,6 +27,8 @@
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/memguard.h>
+#include <defs/uistr.h>
+#include <i18n.h>
 
 /* Project includes */
 #include <config.h>
@@ -186,10 +188,7 @@ void memguard_tick(xcb_connection_t *connection,
             (unsigned int) rss_mib, (unsigned int) s_ceiling_mib);
 
     (void) snprintf(message, sizeof(message),
-            "IcoWM has reached its configured memory ceiling: using" \
-            " %u MiB of the %u MiB allowed (see the -M command-line" \
-            " option).  Close some windows to free up memory before" \
-            " opening more.",
+            _(STR_MEMGUARD_CEILING_REACHED_FMT),
             (unsigned int) rss_mib, (unsigned int) s_ceiling_mib);
     s_memguard_show_dialog(connection, surface, config,
             MENU_MSG_LEVEL_ERROR, message);
@@ -213,10 +212,7 @@ void memguard_warn_client_cap(xcb_connection_t *connection,
             (unsigned int) s_max_clients);
 
     (void) snprintf(message, sizeof(message),
-            "IcoWM is running in restricted-memory mode and will not" \
-            " manage more than %u window(s) at once (see the -M" \
-            " command-line option).  Close a window before opening" \
-            " another.",
+            _(STR_MEMGUARD_CLIENT_CAP_REACHED_FMT),
             (unsigned int) s_max_clients);
     s_memguard_show_dialog(connection, surface, config,
             MENU_MSG_LEVEL_WARNING, message);
