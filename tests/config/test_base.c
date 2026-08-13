@@ -258,8 +258,8 @@ static void s_test_representative_fields(void)
         "},"
         "\"icons\": {\"placement\": {\"policy\": \"top\"}},"
         "\"enable-emergency-shortcut\": true,"
-        "\"enable-fortune-shortcut\": true,"
-        "\"show-desktop-overlay\": true,"
+        "\"fortune\": {\"is-enabled\": true,"
+        "  \"command\": \"fortune -s\"},"
         "\"startup-notification\": {\"is-enabled\": true,"
         "  \"timeout-seconds\": 15},"
         "\"menus\": {\"root\": {\"position\": \"center\"}}"
@@ -281,8 +281,8 @@ static void s_test_representative_fields(void)
     TAP_EQ_INT(base.icons.placement_policy, CONFIG_ICON_PLACEMENT_TOP,
             "icons.placement.policy");
     TAP_OK(base.enable_emergency_shortcut, "enable-emergency-shortcut");
-    TAP_OK(base.enable_fortune_shortcut, "enable-fortune-shortcut");
-    TAP_OK(base.show_desktop_overlay, "show-desktop-overlay");
+    TAP_OK(base.fortune.is_enabled, "fortune.is-enabled");
+    TAP_EQ_STR(base.fortune.command, "fortune -s", "fortune.command");
     TAP_OK(base.startup_notification.is_enabled,
             "startup-notification.is-enabled");
     TAP_EQ_INT((int) base.startup_notification.timeout_seconds, 15,
@@ -334,19 +334,22 @@ static void s_test_icons_placement_legacy_windows_location(void)
 }
 
 
-/* desktops.warp/cycle/margins, a sibling of 'topology' at the config
- * root, meant to still apply on every reload (unlike topology) */
+/* desktops.show-overlay/enable-edge-warp/is-circular/margins, a
+ * sibling of 'topology' at the config root, meant to still apply on
+ * every reload (unlike topology) */
 static void s_test_desktop_behavior(void)
 {
     struct config_base_s base;
     struct config_desktop_s desktop;
 
     s_load(
-        "{\"desktops\": {\"warp\": true, \"cycle\": true,"
+        "{\"desktops\": {\"show-overlay\": true,"
+        " \"enable-edge-warp\": true, \"is-circular\": true,"
         " \"margins\": {\"top\": 3, \"left\": 7}}}", &base, &desktop);
 
-    TAP_OK(desktop.warp, "desktops.warp");
-    TAP_OK(desktop.cycle, "desktops.cycle");
+    TAP_OK(desktop.show_overlay, "desktops.show-overlay");
+    TAP_OK(desktop.enable_edge_warp, "desktops.enable-edge-warp");
+    TAP_OK(desktop.is_circular, "desktops.is-circular");
     TAP_EQ_INT((int) desktop.margins.top, 3, "desktops.margins.top");
     TAP_EQ_INT((int) desktop.margins.left, 7, "desktops.margins.left");
 }

@@ -119,8 +119,10 @@ static void s_test_default_values_key_fields(void)
             "a single screen by default");
     TAP_EQ_INT((int) config->base.screens[0].desktop_count, 1,
             "a single desktop by default");
-    TAP_OK(!config->desktops.warp, "warp off: meaningless with 1 desktop");
-    TAP_OK(!config->desktops.cycle, "cycle off: meaningless with 1 desktop");
+    TAP_OK(!config->desktops.enable_edge_warp,
+            "edge warp off: meaningless with 1 desktop");
+    TAP_OK(!config->desktops.is_circular,
+            "circular switching off: meaningless with 1 desktop");
     TAP_EQ_STR(config->base.theme, "", "no theme name until loaded");
     TAP_EQ_INT((int) config->base.windows.move_step, 10,
             "fixed default move step");

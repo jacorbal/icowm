@@ -152,9 +152,23 @@ void path_simplify(char *restrict path)
 
     /* Trim a single trailing slash this process may have left
      * behind (e.g. simplifying "a/b/../" down to "a/"), except when
-     * the whole simplified path is the root by itself */
-    if (dst > path + 1 && *(dst - 1) == '/') {
-        dst--;
+     * the whole simplified path is the root by itself.  Computed as
+     * an integer length rather than compared and dereferenced via
+     * pointer arithmetic on 'dst' directly: GCC's static analyzer
+     * (-fanalyzer) cannot always follow the bound this pointer is
+     * actually kept within by the loop above (with its many nested
+     * branches and 'dst' resets while resolving '..'), and flags a
+     * false out-of-bounds read on 'dst - 1' otherwise, despite that
+     * loop only ever advancing 'dst' by writing through it (so it
+     * can never end up past 'src', let alone past 'path' itself).
+     * Indexing 'path[]' by an integer length here is semantically
+     * identical, and easier for it to verify as safe. */
+    {
+        size_t len = (size_t) (dst - path);
+
+        if (len > 1u && path[len - 1u] == '/') {
+            dst = path + (len - 1u);
+        }
     }
 
     *dst = '\0';    /* End string */

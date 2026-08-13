@@ -33,11 +33,18 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
         h *= MH1_C;
     }
 
-    /* Process remaining bytes */
+    /* Process remaining bytes.  'len & 3' alone is not safe here if
+     * 'len' is negative: two's complement means a negative 'len' can
+     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * a 'case' below that dereferences 'tail', which 'len > 0' above
+     * already left NULL for exactly this ('len' non-positive) case.
+     * Forcing the switch itself to 0 whenever 'len' is non-positive
+     * keeps it consistent with 'tail' regardless of sign, without
+     * changing anything for any 'len' this ever ran correctly on. */
     tail = (len > 0) ? data + nblocks * 4 : NULL;
     k = 0;
 
-    switch (len & 3) {
+    switch ((len > 0) ? (len & 3) : 0) {
         case 3: k ^= (unsigned int) tail[2] << 16;  /* SLL16 */
             __attribute__((fallthrough));
         case 2: k ^= (unsigned int) tail[1] << 8;   /* SLL8 */
@@ -79,11 +86,18 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
         h = h * 5 + MH2_MIX;
     }
 
-    /* Process remaining bytes */
+    /* Process remaining bytes.  'len & 3' alone is not safe here if
+     * 'len' is negative: two's complement means a negative 'len' can
+     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * a 'case' below that dereferences 'tail', which 'len > 0' above
+     * already left NULL for exactly this ('len' non-positive) case.
+     * Forcing the switch itself to 0 whenever 'len' is non-positive
+     * keeps it consistent with 'tail' regardless of sign, without
+     * changing anything for any 'len' this ever ran correctly on. */
     tail = (len > 0) ? data + nblocks * 4 : NULL;
     k = 0;
 
-    switch (len & 3) {
+    switch ((len > 0) ? (len & 3) : 0) {
         case 3: k ^= (unsigned int) tail[2] << 16;
             __attribute__((fallthrough));
         case 2: k ^= (unsigned int) tail[1] << 8;
@@ -126,11 +140,18 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
         h = h * 5 + MH2_MIX;
     }
 
-    /* Process remaining bytes */
+    /* Process remaining bytes.  'len & 3' alone is not safe here if
+     * 'len' is negative: two's complement means a negative 'len' can
+     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * a 'case' below that dereferences 'tail', which 'len > 0' above
+     * already left NULL for exactly this ('len' non-positive) case.
+     * Forcing the switch itself to 0 whenever 'len' is non-positive
+     * keeps it consistent with 'tail' regardless of sign, without
+     * changing anything for any 'len' this ever ran correctly on. */
     tail = (len > 0)
         ? (const uint8_t *) (data + nblocks * 4) : NULL;
     k = 0;
-    switch (len & 3) {
+    switch ((len > 0) ? (len & 3) : 0) {
         case 3:
             k ^= (unsigned int) tail[2] << 16;
             __attribute__((fallthrough));
