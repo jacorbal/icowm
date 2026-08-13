@@ -48,6 +48,7 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
 
@@ -234,7 +235,19 @@ void ccmd_client_shade(client_td *client)
         free(geom_r);
     }
 
-    client_geometry_save(client);
+    /* Same guard 'ccmd_client_maximize'/'_horz'/'_vert' (geom.c) and
+     * 'ccmd_client_iconify' already apply: skip saving when the
+     * client is already maximized (in any of its three variants),
+     * so shading a maximized client and then unshading it later
+     * restores the maximized size, not the pre-maximize one that
+     * 'client->layout.geometry.old' already holds from whenever it
+     * was maximized -- an unconditional save here would silently
+     * overwrite that with the current (maximized) geometry, losing
+     * the true original size no later 'unmaximize' could ever
+     * recover, since nothing else remembers it. */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
 
     shaded_h = (uint32_t) (client->layout.frame_extents.top +
                            client->layout.frame_extents.bottom);
@@ -381,7 +394,20 @@ void ccmd_client_fullscreen(client_td *client)
         return;
     }
 
-    client_geometry_save(client);
+    /* Same guard 'ccmd_client_maximize'/'_horz'/'_vert' (geom.c) and
+     * 'ccmd_client_iconify' already apply, for the exact same reason:
+     * skip saving when the client is already maximized, so entering
+     * fullscreen and then leaving it later restores the maximized
+     * size, not the pre-maximize one 'client->layout.geometry.old'
+     * already holds; an unconditional save here would overwrite it
+     * with the current (maximized) geometry instead, permanently
+     * losing the true original size a later 'unmaximize' needs.
+     * The equivalent case for shade is already handled above, via
+     * the 'ccmd_client_unshade' call this function already makes
+     * before ever reaching here. */
+    if (!client_is_maximized_any(client)) {
+        client_geometry_save(client);
+    }
     was_decorated = client_is_decorated(client);
     client->was_decorated_fullscreen = was_decorated;
     target = ccmd_target_win(client);
@@ -664,7 +690,8 @@ void ccmd_client_toggle_decorate(client_td *client)
     desktop_td *desktop;
     bool keep_focus;
 
-    if (client == NULL || client_is_fullscreen(client)) {
+    if (client == NULL || client_is_fullscreen(client) ||
+            client_is_locked(client)) {
         return;
     }
 
@@ -841,6 +868,90 @@ void ccmd_client_toggle_decorate(client_td *client)
             ccmd_publish_frame_extents(client,
                     (uint32_t) bw, (uint32_t) bw,
                     (uint32_t) (bw + th), (uint32_t) bw);
+        }
+    }
+
+    /* A maximized client's own geometry, computed just above, only
+     * ever grows or shrinks its existing frame in place around
+     * whatever position/size that already was -- exactly right for
+     * an ordinary client, but not for one that was filling the
+     * workarea a moment ago: decoration changes how much of that
+     * area its own frame extents eat into, so what it should still
+     * fill afterward is the workarea itself, not "whatever it
+     * already had, offset by however much bigger or smaller its own
+     * frame extents just became". Recomputed here instead, against
+     * 'ccmd_client_monitor_workarea' (the same resolution
+     * 'ccmd_client_maximize' itself already uses), so the client
+     * ends up exactly refilling the workarea under its new decorated
+     * state, the same as if it had only just been maximized now.
+     * Only the axis (or axes) 'client->properties.state' itself
+     * actually names gets touched: a client maximized on one axis
+     * alone leaves its own other axis exactly as the base decorate/
+     * undecorate logic above already placed it, rather than growing
+     * it to fill the workarea too and silently turning a horizontal-
+     * or vertical-only maximize into a full one. */
+    if (client_is_maximized_any(client)) {
+        int32_t mx = 0;
+        int32_t my = 0;
+        uint16_t sw;
+        uint16_t sh;
+
+        if (ccmd_client_monitor_workarea(client, &mx, &my, &sw, &sh)) {
+            xcb_window_t target = ccmd_target_win(client);
+            bool touch_x = client->properties.state !=
+                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
+            bool touch_y = client->properties.state !=
+                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+            /* This function always ends by focusing 'client' (see
+             * 'keep_focus' below), so its border width right after
+             * this toggle is always the active one, regardless of
+             * whichever one it had a moment ago. */
+            uint32_t border = 2u * client_border_width(client, true);
+            uint16_t mask = 0u;
+            uint32_t values[4];
+            int n = 0;
+
+            sw = (uint16_t) ((sw > border) ? sw - border : 0u);
+            sh = (uint16_t) ((sh > border) ? sh - border : 0u);
+
+            if (touch_x) {
+                mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;
+                client->layout.geometry.cur.pos.x = mx;
+                client->layout.geometry.cur.dim.w = sw;
+            }
+            if (touch_y) {
+                mask |= XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT;
+                client->layout.geometry.cur.pos.y = my;
+                client->layout.geometry.cur.dim.h = sh;
+            }
+
+            /* 'xcb_configure_window' requires its own value list in
+             * ascending 'XCB_CONFIG_WINDOW_*' bit order (X, Y, then
+             * WIDTH, HEIGHT); built here explicitly rather than
+             * indexed by bit position so skipping the untouched
+             * axis's own two fields (X+WIDTH or Y+HEIGHT) still
+             * leaves the fields that are set in the right order. */
+            if (mask & XCB_CONFIG_WINDOW_X) {
+                values[n++] = (uint32_t) client->layout.geometry.cur.pos.x;
+            }
+            if (mask & XCB_CONFIG_WINDOW_Y) {
+                values[n++] = (uint32_t) client->layout.geometry.cur.pos.y;
+            }
+            if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+                values[n++] = client->layout.geometry.cur.dim.w;
+            }
+            if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+                values[n++] = client->layout.geometry.cur.dim.h;
+            }
+
+            if (mask != 0u) {
+                xcb_configure_window(client->connection, target, mask,
+                        values);
+            }
+
+            if (client->frame != 0) {
+                client_sync_decoration_layout(client);
+            }
         }
     }
 

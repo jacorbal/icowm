@@ -700,7 +700,7 @@ void wincmenu_show(xcb_connection_t *connection,
     bool can_shade;
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
-            client == NULL || config == NULL) {
+            client == NULL || config == NULL || client_is_locked(client)) {
         return;
     }
 
@@ -722,10 +722,12 @@ void wincmenu_show(xcb_connection_t *connection,
     can_restore = client_is_maximized_any(client)
         || client_is_fullscreen(client);
     can_move = !client_is_maximized(client)
-        && !client_is_fullscreen(client);
+        && !client_is_fullscreen(client)
+        && !client_is_locked(client);
     can_resize = client_is_resizable(client)
         && !client_is_maximized(client)
-        && !client_is_fullscreen(client);
+        && !client_is_fullscreen(client)
+        && !client_is_locked(client);
     can_shade = (client->properties.flags &
             CLIENT_FLAG_DECORATED) != 0u
         && !client_is_fullscreen(client);

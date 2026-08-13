@@ -82,7 +82,7 @@
 
 
 /**
- * @brief Handle pointer-leave notifications for focus-follow-mouse
+ * @brief Handle pointer-leave notifications for focus-sloppy
  *
  * @param wm    Window-manager singleton
  * @param event Leave-notify event to process
@@ -107,7 +107,7 @@ static void s_loop_handle_leave_notify(wm_td *wm,
      * focus. */
     mouse_hover_poll_clear(event->event);
 
-    if (focus_is_follow_mouse(wm->config) &&
+    if (focus_is_sloppy(wm->config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&
             event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
             lookup_find_client(wm->surfaces, event->event,

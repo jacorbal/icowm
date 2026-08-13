@@ -46,6 +46,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <memguard.h>
+#include <scratchpad.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -241,6 +242,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         s_map_unmanaged(wm->connection, event->window);
         return;
     }
+
+    scratchpad_position(client, desktop, surface);
 
     /* Advertise the desktop this client belongs to per EWMH */
     if (wm->ewmh != NULL) {

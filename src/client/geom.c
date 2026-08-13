@@ -127,8 +127,10 @@ void client_resync_theme_layout(client_td *client, bool is_active)
 {
     uint16_t new_border;
     uint16_t new_title_height;
-    int32_t delta_side;
-    int32_t delta_top_extra;
+    int32_t inner_x;
+    int32_t inner_y;
+    int32_t inner_w;
+    int32_t inner_h;
 
     if (client == NULL || client->theme == NULL ||
             !client_is_decorated(client) || client->frame == 0 ||
@@ -144,14 +146,31 @@ void client_resync_theme_layout(client_td *client, bool is_active)
     /* 'left' alone is enough to detect "border width unchanged":
      * 'left', 'right', and 'bottom' are always set equal to each other
      * by 'ci_set_decoration_defaults' and by this same function */
-    delta_side = (int32_t) new_border -
-        (int32_t) client->layout.frame_extents.left;
-    delta_top_extra = (int32_t) new_title_height -
-        (int32_t) client->title_height;
-
-    if (delta_side == 0 && delta_top_extra == 0) {
+    if (new_border == client->layout.frame_extents.left &&
+            new_title_height == client->title_height) {
         return;
     }
+
+    /* Recover the content window's own true on-screen position and
+     * size -- the one invariant across any border/titlebar change --
+     * from the OLD frame extents still in effect, before either of
+     * them is touched below.  Every field this function sets is then
+     * rebuilt from this recovered pair alone, never incrementally
+     * from the previous frame geometry the way an applied "delta"
+     * would (the frame growing or shrinking "by" some difference):
+     * anchoring each call to the content's own fixed truth instead
+     * of the prior call's own output leaves no way for any small
+     * per-call error to compound across repeated toggles. */
+    inner_x = client->layout.geometry.cur.pos.x +
+        (int32_t) client->layout.frame_extents.left;
+    inner_y = client->layout.geometry.cur.pos.y +
+        (int32_t) client->layout.frame_extents.top;
+    inner_w = (int32_t) client->layout.geometry.cur.dim.w -
+        (int32_t) client->layout.frame_extents.left -
+        (int32_t) client->layout.frame_extents.right;
+    inner_h = (int32_t) client->layout.geometry.cur.dim.h -
+        (int32_t) client->layout.frame_extents.top -
+        (int32_t) client->layout.frame_extents.bottom;
 
     client->title_height = new_title_height;
     client->layout.frame_extents.left = new_border;
@@ -160,20 +179,14 @@ void client_resync_theme_layout(client_td *client, bool is_active)
     client->layout.frame_extents.top =
         (uint16_t) (new_border + new_title_height);
 
-    /* Grow or shrink the frame around its content: the content window's
-     * own on-screen position and size never change, only how much
-     * border and titlebar surround it.  The border widens or narrows
-     * symmetrically on every side ('delta_side'); the titlebar height
-     * only affects the top ('delta_top_extra' on top of the border's
-     * own share there). */
-    client->layout.geometry.cur.pos.x -= delta_side;
-    client->layout.geometry.cur.pos.y -= (delta_side + delta_top_extra);
+    client->layout.geometry.cur.pos.x = inner_x - (int32_t) new_border;
+    client->layout.geometry.cur.pos.y =
+        inner_y - (int32_t) client->layout.frame_extents.top;
     client->layout.geometry.cur.dim.w =
-        (uint32_t) ((int64_t) client->layout.geometry.cur.dim.w +
-                2 * delta_side);
+        (uint32_t) (inner_w + 2 * (int32_t) new_border);
     client->layout.geometry.cur.dim.h =
-        (uint32_t) ((int64_t) client->layout.geometry.cur.dim.h +
-                2 * delta_side + delta_top_extra);
+        (uint32_t) (inner_h + (int32_t) client->layout.frame_extents.top +
+                (int32_t) new_border);
 
     /* The render pass picks this client up from here: it applies
      * 'geometry.cur' to the frame via 'xcb_configure_window' and then
@@ -373,6 +386,45 @@ void client_constrain_size(const client_td *client,
 
     req_w = *width;
     req_h = *height;
+
+    /* The absolute floor every resize is guaranteed never to fall
+     * below, applied first so the client's own explicit 'min_w'/
+     * 'min_h' just below (when it specifies one) can still only ever
+     * raise this, never lower it: 1 resize-increment unit for a
+     * client that measures itself in one (a terminal counting
+     * character columns/rows, say, via 'width_inc'/'height_inc'),
+     * or 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
+    if (client->size_hints.valid && client->size_hints.inc_w > 1) {
+        uint32_t base_w = (client->size_hints.base_w > 0)
+            ? (uint32_t) client->size_hints.base_w
+            : 0u;
+
+        if (req_w < base_w +
+                WM_MIN_WINDOW_DIMENSION_UNITS *
+                    (uint32_t) client->size_hints.inc_w) {
+            req_w = base_w +
+                WM_MIN_WINDOW_DIMENSION_UNITS *
+                    (uint32_t) client->size_hints.inc_w;
+        }
+    } else if (req_w < (uint32_t) WM_MIN_WINDOW_DIMENSION) {
+        req_w = (uint32_t) WM_MIN_WINDOW_DIMENSION;
+    }
+
+    if (client->size_hints.valid && client->size_hints.inc_h > 1) {
+        uint32_t base_h = (client->size_hints.base_h > 0)
+            ? (uint32_t) client->size_hints.base_h
+            : 0u;
+
+        if (req_h < base_h +
+                WM_MIN_WINDOW_DIMENSION_UNITS *
+                    (uint32_t) client->size_hints.inc_h) {
+            req_h = base_h +
+                WM_MIN_WINDOW_DIMENSION_UNITS *
+                    (uint32_t) client->size_hints.inc_h;
+        }
+    } else if (req_h < (uint32_t) WM_MIN_WINDOW_DIMENSION) {
+        req_h = (uint32_t) WM_MIN_WINDOW_DIMENSION;
+    }
 
     if (client->size_hints.valid) {
         if (client->size_hints.min_w > 0 &&

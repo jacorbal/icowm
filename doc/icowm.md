@@ -424,6 +424,7 @@ responds with a bare `{"ok": true}` on success.
 | `iconify_all`            | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Iconifies every client on that desktop at once |
 | `deiconify_all`          | Same arguments as `iconify_all` | Restores every iconified client on that desktop at once |
 | `rearrange_desktop`      | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
+| `toggle_scratchpad`      | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Launches the scratchpad (see `config.md`'s own `scratchpad`), or shows/hides it on that desktop if it is already running |
 
 #### 5.3.5 Surface actions
 

@@ -151,10 +151,23 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         ? cur_frame - ext_a - ext_b : 0u;
     if (!client->size_hints.valid) {
         int32_t resize_step = (step > 0u) ? (int32_t) step : 1;
+        uint32_t floor_frame = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
+        uint32_t clamped;
+
         target = (grow)
             ? (int32_t) cur_frame + resize_step
             : (int32_t) cur_frame - resize_step;
-        return geom_clamp_dim(target);
+        clamped = geom_clamp_dim(target);
+        /* A decorated client's own frame extents ('ext_a'/'ext_b',
+         * the border plus, on the vertical axis, the titlebar) are
+         * fixed regardless of how small its content shrinks: floored
+         * here so the titlebar in particular can never itself shrink
+         * away or disappear, no matter how far a resize keeps
+         * pushing this axis -- 'geom_clamp_dim' alone has no client
+         * in scope to know this frame carries a titlebar at all,
+         * only ever floors to a content-sized minimum on its own. */
+        return (uint16_t) ((clamped > floor_frame)
+                ? clamped : floor_frame);
     }
 
     if (horizontal) {
@@ -174,12 +187,26 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
             ? (uint32_t) base_i
             : ((min_i > 0) ? (uint32_t) min_i : 0u);
         uint32_t inc = (uint32_t) inc_i;
+        /* The client's own true floor, in units of 'inc' above
+         * 'base': its own 'min_w'/'min_h' if it provides one larger
+         * than the one-unit default (a client is free to demand more
+         * than one row/column at all times), or
+         * 'WM_MIN_WINDOW_DIMENSION_UNITS' (defs/client.h) otherwise
+         * -- never all the way down to 'base' itself, which without
+         * an explicit 'min_w'/'min_h' of the client's own leaves no
+         * floor at all ('cur_inner' below would allow shrinking to
+         * exactly 'base', 0 units). */
+        uint32_t floor_inner = base +
+            WM_MIN_WINDOW_DIMENSION_UNITS * inc;
         uint32_t over;
         uint32_t snapped;
         uint32_t target_inner;
 
-        if (cur_inner < base) {
-            cur_inner = base;
+        if (min_i > 0 && (uint32_t) min_i > floor_inner) {
+            floor_inner = (uint32_t) min_i;
+        }
+        if (cur_inner < floor_inner) {
+            cur_inner = floor_inner;
         }
 
         over = (cur_inner > base) ? (cur_inner - base) : 0u;
@@ -188,17 +215,27 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         if (grow) {
             target_inner = snapped + inc;
         } else {
-            target_inner = (snapped > base) ? (snapped - inc) : base;
+            target_inner = (snapped > floor_inner)
+                ? (snapped - inc) : floor_inner;
         }
 
         return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
     }
 
-    target = (grow)
-        ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
-        : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
+    {
+        uint32_t floor_frame = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
+        uint32_t clamped;
 
-    return geom_clamp_dim(target);
+        target = (grow)
+            ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
+            : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
+        clamped = geom_clamp_dim(target);
+        /* Same reasoning as the '!client->size_hints.valid' branch
+         * above: a client with hints but no resize-increment of its
+         * own still has fixed frame extents to protect. */
+        return (uint16_t) ((clamped > floor_frame)
+                ? clamped : floor_frame);
+    }
 }
 
 
@@ -325,6 +362,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
         case KEYBIND_NONE:
+        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
         case KEYBIND_CLIENT_ICONIFY:
@@ -442,7 +480,8 @@ void ik_handle_move(enum wm_keybind_type_e btype,
      * window context menu's own 'can_move' (menu/context/wincmenu.c);
      * a client maximized on just one axis is still free to move,
      * since only one axis is pinned to the workarea edge. */
-    if (client_is_maximized(client) || client_is_fullscreen(client)) {
+    if (client_is_maximized(client) || client_is_fullscreen(client) ||
+            client_is_locked(client)) {
         return;
     }
 
@@ -462,6 +501,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
         case KEYBIND_NONE:
+        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
         case KEYBIND_CLIENT_ICONIFY:
@@ -581,7 +621,8 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     int32_t new_h;
 
     client = ik_get_active_client(surface, surfaces, NULL, NULL);
-    if (client == NULL || !client_is_resizable(client)) {
+    if (client == NULL || !client_is_resizable(client) ||
+            client_is_locked(client)) {
         return;
     }
 
@@ -630,6 +671,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
         case KEYBIND_NONE:
+        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NEXT:
         case KEYBIND_DESKTOP_PREV:
         case KEYBIND_CLIENT_ICONIFY:

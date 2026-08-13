@@ -104,7 +104,7 @@ struct config_base_s {
         } gravity;
         enum config_focus_policy_e {
             CONFIG_FOCUS_POLICY_CLICK = 0,
-            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE
+            CONFIG_FOCUS_POLICY_SLOPPY
         } focus_policy;
         enum config_placement_policy_e {
             CONFIG_PLACEMENT_POLICY_SMART = 0,
@@ -421,6 +421,75 @@ struct config_base_s {
             } position;
         } text;
     } systray;
+
+    /**
+     * @brief Configuration for the scratchpad: a single dedicated
+     *        client, launched on demand from @c command, toggled
+     *        visible/hidden by its own keybind or IPC command
+     *        instead of iconified/restored
+     *
+     * @c is_enabled just gates whether the toggle action does
+     * anything at all; @c width and @c height are always applied
+     * regardless of whatever geometry the client itself requests,
+     * against whichever edge @c edge names, centered along that
+     * edge's own other axis.
+     *
+     * @see @c scratchpad.c
+     */
+    struct {
+        bool is_enabled;    /**< Enable the scratchpad toggle action */
+        char command[CONFIG_MAX_LENGTH_COMMAND]; /**< Launched the
+                                                        first time the
+                                                        toggle runs
+                                                        with no
+                                                        scratchpad
+                                                        client yet */
+        enum config_scratchpad_edge_e {
+            CONFIG_SCRATCHPAD_EDGE_TOP = 0,
+            CONFIG_SCRATCHPAD_EDGE_BOTTOM,
+            CONFIG_SCRATCHPAD_EDGE_LEFT,
+            CONFIG_SCRATCHPAD_EDGE_RIGHT
+        } edge;              /**< Screen edge it slides out from */
+
+        /**
+         * @brief Either dimension, given as a fixed pixel count or
+         *        as the string @c "max", meaning "however much of
+         *        that axis is actually available", so a user is
+         *        never forced to hard-code a resolution that may
+         *        change later
+         *
+         * @c pixels is only meaningful when @c mode is
+         * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under @c CONFIG_
+         * SCRATCHPAD_SIZE_MAX the scratchpad's own placement code
+         * computes it fresh every time instead, against
+         * @c desktop->workarea (or the full monitor extent, when
+         * @c ignore_margins is @c true), the same as a numeric
+         * value would be measured against.
+         */
+        struct config_scratchpad_size_s {
+            enum config_scratchpad_size_e {
+                CONFIG_SCRATCHPAD_SIZE_FIXED = 0,
+                CONFIG_SCRATCHPAD_SIZE_MAX
+            } mode;
+            uint32_t pixels;
+        } width;             /**< Always-applied width */
+        struct config_scratchpad_size_s height; /**< Always-applied
+                                                       height */
+
+        /**
+         * @brief Whether the scratchpad's own placement skips
+         *        'desktops.margins' and the systray's own reserved
+         *        space
+         *
+         * @c false (the default) places it the same way an ordinary
+         * client already respects that reserved space; @c true lets
+         * it use the full edge regardless, e.g. a top-edge scratchpad
+         * sliding out from underneath an external panel that already
+         * reserves that same space rather than starting just below
+         * it.
+         */
+        bool ignore_margins;
+    } scratchpad;
 };
 
 
@@ -471,6 +540,10 @@ struct config_bindings_s {
             char shortcuts[CONFIG_MAX_LENGTH_BINDING];
 
             char show_desktop[CONFIG_MAX_LENGTH_BINDING];
+
+            /** Toggles the scratchpad's own visibility; see
+             *  'scratchpad_toggle' in 'scratchpad.h' */
+            char scratchpad_toggle[CONFIG_MAX_LENGTH_BINDING];
 
             /* Direct desktop goto shortcuts (indices 0-9) */
             struct {
@@ -955,6 +1028,21 @@ struct config_theme_s {
                                                  pixels */
         } theme;
     } xsettings;
+
+    /**
+     * @brief The scratchpad's own border, since it never has any
+     *        other decoration to theme (always undecorated; see
+     *        @c scratchpad.h)
+     *
+     * @c width of @c 0 disables the border entirely, the same way
+     * @c window.titlebar.height of @c 0 disables the titlebar.
+     */
+    struct {
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
+    } scratchpad;
 };
 
 

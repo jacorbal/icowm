@@ -33,9 +33,9 @@ Basic features are:
     its own independent set of virtual desktops.
 
   - **Configurable focus policies.**
-    Both *click-to-focus* and *follow-mouse* (sloppy focus) policies
-    are supported, and may be selected through the configuration file
-    as the occasion demands.
+    Both click-to-focus (`"click"`) and follow-mouse (`"sloppy"`)
+    policies are supported, and may be selected through the
+    configuration file as the occasion demands.
 
   - **Window placement policies.**
     Four strategies govern the placement of newly mapped windows:
@@ -128,11 +128,18 @@ Basic features are:
     compositor, or sundry daemons, with the process identifier and
     termination status of each duly logged.
 
-  - **Iconifying (classical).**
-    Rather than a classical minimization, the window is iconified upon
-    the desktop in the manner of TWM.  Icon placement follows a
-    configurable policy: a top or bottom row, a left or right column,
-    or the smart choice of the first free slot.
+  - **Iconifying (traditional).**
+    Rather than modern minimization to a crowded taskbar, the window is
+    iconified upon the desktop in the traditional manner of TWM.  Icon
+    placement follows a configurable policy: a top or bottom row, a
+    left or right column, or the smart choice of the first free slot.
+
+  - **Scratchpad.**
+    A single dedicated client, any graphical program, launched on
+    demand and toggled visible or hidden instead of iconified or
+    restored, in the manner of a dropdown terminal.  Hiding it never
+    terminates the underlying process, so the same client, with
+    whatever state it was left in, is shown again next time.
 
   - **Restricted-memory mode.**
     A dedicated run-time mode, invoked with `icowm -M <mib>`, tailors
@@ -140,7 +147,7 @@ Basic features are:
     low-power single-board computer, or a virtual machine allotted but
     a modest share of memory.  A companion compile-time option,
     `make COMPACT=1`, may be combined with it for a build sized for
-    such a target from the very ground up.  See `doc/manual.md` for
+    such a target from the very ground up.  See `doc/icowm.md` for
     the whole of it.
 
 IcoWM aspires to blend a lightweight design *ethos* with usability.
@@ -156,7 +163,7 @@ prevalence in contemporary interfaces, for this feature harkens back to
 an era when applications were elegantly transformed into icons, which is
 a stylistic choice that has largely been overshadowed by contemporary
 minimization practices towards a crowded taskbar.  Thus, IcoWM retains
-classical iconification not as a vestigial convenience, but as
+traditional iconification not as a vestigial convenience, but as
 a principal element of its intended mode of use, thereby permitting
 windows to be set aside as actual desktop icons, rather than being
 reduced solely to entries within such bars.
@@ -169,7 +176,7 @@ provide a mode of interaction that is orderly, intelligible, and
 deliberate, wherein changes of focus, iconification, and navigation
 between desktops are treated as essential operations.
 
-Full documentation resides in [`doc/manual.md`](doc/manual.md),
+Full documentation resides in [`doc/icowm.md`](doc/icowm.md),
 covering what IcoWM is, how it is started, every command-line option it
 accepts, and the IPC control socket in full; in
 [`doc/icowm-msg.md`](doc/icowm-msg.md), which describes `icowm-msg`,

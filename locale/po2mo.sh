@@ -1,16 +1,16 @@
 #!/bin/sh
 #
 # po2mo.sh -- compile every '<lang>/LC_MESSAGES/*.po' under here into
-#             its own '*.mo', right beside it, one language directory
-#             at a time.
+#             its own '*.mo', right beside it, one language directory at
+#             a time.
 #
 # Run from inside 'locale/' itself (the same directory 'default.pot'
 # lives in):
 #
-#   cd locale
+#   cd locale/
 #   ./po2mo.sh
 #
-# Requires 'msgfmt' (part of GNU gettext).
+# Requires 'msgfmt' (part of GNU 'gettext').
 
 if ! command -v msgfmt >/dev/null 2>&1; then
     echo "po2mo.sh: msgfmt not found (install gettext)" >&2

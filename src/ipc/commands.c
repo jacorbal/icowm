@@ -41,6 +41,7 @@
 #include <ipc/actions/client/state.h>
 #include <ipc/actions/desktop.h>
 #include <ipc/actions/query.h>
+#include <ipc/actions/scratchpad.h>
 #include <ipc/actions/surface.h>
 #include <ipc/actions/wm.h>
 #include <ipc/commands.h>
@@ -153,6 +154,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Whole window manager: ipc/actions/wm.h */
     { "exit_wm",                  ipc_action_exit_wm },
     { "reload_config",            ipc_action_reload_config },
+    { "toggle_scratchpad",        ipc_action_toggle_scratchpad },
 };
 
 /** Number of entries in 's_commands' */

@@ -715,10 +715,12 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     int ey = (int) event->event_y;
     int left_extent = (int) client->layout.frame_extents.left;
     int right_extent = (int) client->layout.frame_extents.right;
+    int top_extent = (int) client->layout.frame_extents.top;
     int frame_w = (int) client->layout.geometry.cur.dim.w;
     int fw = (frame_w > left_extent + right_extent)
         ? frame_w - left_extent - right_extent : 1;
     int title_h = (int) client->title_height;
+    int title_y = (top_extent > title_h) ? top_extent - title_h : 0;
     bool can_maximize;
     bool hide_pin;
     enum config_titlebar_button_e button;
@@ -730,6 +732,27 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     if (client->theme == NULL) {
         return false;
     }
+
+    /* Per the X11 protocol, 'event_x'/'event_y' are always relative
+     * to the origin of 'event->event' -- here, 'client->frame', the
+     * window this whole button-press grab was established on (see
+     * this file's own comment on 'owner_events=0' by
+     * 'ci_create_decorations', client/geom.c) -- never to
+     * 'event->child' ('client->titlebar', the window the click
+     * actually landed in), regardless of which one the click hit.
+     * Every button position 'client_titlebar_layout' computes below
+     * is relative to the titlebar's own origin instead, the same
+     * origin the titlebar's own physical window is created and kept
+     * synced at -- '(left, title_y)' within the frame, both times
+     * ('ci_create_decorations' and 'client_sync_decoration_layout',
+     * both client/geom.c). Left unconverted, comparing a frame-
+     * relative click straight against titlebar-relative button
+     * positions is off by exactly that offset on both axes -- (left,
+     * title_y) -- imperceptible at the traditional 1px border this
+     * bug shipped with for years, severe with a large one, since the
+     * offset grows with it. */
+    ex -= left_extent;
+    ey -= title_y;
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_resizable(client);
@@ -880,7 +903,8 @@ static bool s_mouse_can_resize_client(const client_td *client,
         return false;
     }
 
-    if (client_is_fullscreen(client) || client_is_maximized(client)) {
+    if (client_is_fullscreen(client) || client_is_maximized(client) ||
+            client_is_locked(client)) {
         return false;
     }
 
@@ -1258,7 +1282,7 @@ void mouse_handle_press(xcb_connection_t *connection,
 
     if (type == MOUSEBIND_RESIZE &&
             (!client_is_resizable(client) || client_is_fullscreen(client) ||
-             client_is_maximized(client))) {
+             client_is_maximized(client) || client_is_locked(client))) {
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
@@ -1283,7 +1307,8 @@ void mouse_handle_press(xcb_connection_t *connection,
 
     if (type == MOUSEBIND_MOVE &&
             (client_is_maximized(client) ||
-             client_is_fullscreen(client))) {
+             client_is_fullscreen(client) ||
+             client_is_locked(client))) {
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
@@ -1402,7 +1427,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    if (!focus_is_follow_mouse(config)) {
+    if (!focus_is_sloppy(config)) {
         return;
     }
 

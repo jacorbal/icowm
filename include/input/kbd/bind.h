@@ -136,6 +136,7 @@ enum wm_keybind_type_e {
     KEYBIND_WM_SHORTCUTS_LIST,          /**< Show active keybindings */
     KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
     KEYBIND_WM_FORTUNE,                 /**< Show a 'fortune' dialog */
+    KEYBIND_WM_SCRATCHPAD_TOGGLE,       /**< Show/hide the scratchpad */
 };
 
 

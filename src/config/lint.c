@@ -101,6 +101,15 @@ static const config_lint_key_td s_schema_programs[] = {
     {"editor", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_scratchpad[] = {
+    {"is-enabled", NULL, 0u},
+    {"command", NULL, 0u},
+    {"edge", NULL, 0u},
+    {"width", NULL, 0u},
+    {"height", NULL, 0u},
+    {"ignore-margins", NULL, 0u}
+};
+
 static const config_lint_key_td s_schema_windows_focus[] = {
     {"policy", NULL, 0u},
     {"is-new-focused", NULL, 0u},
@@ -227,6 +236,8 @@ static const config_lint_key_td s_schema_config[] = {
         sizeof(s_schema_menus) / sizeof(s_schema_menus[0])},
     {"systray", s_schema_systray,
         sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
+    {"scratchpad", s_schema_scratchpad,
+        sizeof(s_schema_scratchpad) / sizeof(s_schema_scratchpad[0])},
     {"show-desktop-overlay", NULL, 0u},
     {"enable-emergency-shortcut", NULL, 0u},
     {"enable-fortune-shortcut", NULL, 0u}

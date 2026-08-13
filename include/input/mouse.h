@@ -166,7 +166,7 @@ void mouse_handle_release(xcb_connection_t *connection,
  * motion alone might have missed.
  *
  * Focus itself is then applied to the client under the pointer only
- * when the configured focus policy is @c follow-mouse.  Normal events
+ * when the configured focus policy is @c sloppy.  Normal events
  * on managed client frames raise no stacking change; an inferior
  * transition (entering this same client's own content area from its
  * frame) skips focus re-evaluation, since the client was already

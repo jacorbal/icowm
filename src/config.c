@@ -240,6 +240,12 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.active.border.color = json_hex2uint32("4A5566");
     theme->window.active.border.width = 2u;
 
+    /* Same as 'window.active.border' by default: the scratchpad is
+     * always undecorated (see 'scratchpad.h'), so this border is its
+     * only themeable element */
+    theme->scratchpad.border.color = json_hex2uint32("4A5566");
+    theme->scratchpad.border.width = 2u;
+
     safe_strncpy(theme->window.inactive.font,
             "fixed", sizeof(theme->window.inactive.font));
     theme->window.inactive.color.background =
@@ -481,6 +487,19 @@ void config_set_default_values(config_td *config)
             "gvim", sizeof(config->base.programs.editor));
     safe_strncpy(config->base.programs.web_browser,
             "firefox", sizeof(config->base.programs.web_browser));
+
+    LOGGER_TRACE("Setting default scratchpad configuration", L_NARG);
+    config->base.scratchpad.is_enabled = true;
+    safe_strncpy(config->base.scratchpad.command,
+            "xterm -fg black -bg ivory -cr black",
+            sizeof(config->base.scratchpad.command));
+    config->base.scratchpad.edge = CONFIG_SCRATCHPAD_EDGE_TOP;
+    config->base.scratchpad.width.mode = CONFIG_SCRATCHPAD_SIZE_MAX;
+    config->base.scratchpad.width.pixels = 0;
+    config->base.scratchpad.height.mode = CONFIG_SCRATCHPAD_SIZE_FIXED;
+    config->base.scratchpad.height.pixels = 200;
+    config->base.scratchpad.ignore_margins = false;
+
     config->base.windows.move_step = 10;
     /* usually overridden by hints */
     config->base.windows.resize_step = 20;
@@ -644,6 +663,9 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.wm.show_desktop,
             "modc+mod1+mods+d",
             sizeof(config->bindings.keyboard.wm.show_desktop));
+    safe_strncpy(config->bindings.keyboard.wm.scratchpad_toggle,
+            "modc+mod1+mods+F12",
+            sizeof(config->bindings.keyboard.wm.scratchpad_toggle));
 
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);

@@ -462,7 +462,7 @@ void ccmd_client_resize_flush_pending(client_td *client)
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-static bool s_client_monitor_workarea(client_td *client,
+bool ccmd_client_monitor_workarea(client_td *client,
         int32_t *out_x, int32_t *out_y,
         uint16_t *out_w, uint16_t *out_h)
 {
@@ -555,9 +555,21 @@ void ccmd_client_maximize_horz(client_td *client)
         return;
     }
 
-    if (!s_client_monitor_workarea(client, &mx, NULL, &sw, &unused_h) &&
+    if (!ccmd_client_monitor_workarea(client, &mx, NULL, &sw, &unused_h) &&
             !ccmd_screen_dim(client, &sw, NULL)) {
         return;
+    }
+
+    /* Same reservation 'ccmd_client_maximize' above already makes,
+     * for the same reason (see its own comment there); only the
+     * horizontal axis is at stake here, so only 'sw' needs it. */
+    {
+        desktop_td *own_desktop = wm_get_client_desktop(client);
+        bool is_active = own_desktop != NULL &&
+            own_desktop->client_active_id == client->id;
+        uint32_t border = 2u * client_border_width(client, is_active);
+
+        sw = (uint16_t) ((sw > border) ? sw - border : 0u);
     }
 
     if (!s_ccmd_maximize_precheck(client)) {
@@ -662,9 +674,21 @@ void ccmd_client_maximize_vert(client_td *client)
         return;
     }
 
-    if (!s_client_monitor_workarea(client, NULL, &my, &unused_w, &sh) &&
+    if (!ccmd_client_monitor_workarea(client, NULL, &my, &unused_w, &sh) &&
             !ccmd_screen_dim(client, NULL, &sh)) {
         return;
+    }
+
+    /* Same reservation 'ccmd_client_maximize' above already makes,
+     * for the same reason (see its own comment there); only the
+     * vertical axis is at stake here, so only 'sh' needs it. */
+    {
+        desktop_td *own_desktop = wm_get_client_desktop(client);
+        bool is_active = own_desktop != NULL &&
+            own_desktop->client_active_id == client->id;
+        uint32_t border = 2u * client_border_width(client, is_active);
+
+        sh = (uint16_t) ((sh > border) ? sh - border : 0u);
     }
 
     if (!s_ccmd_maximize_precheck(client)) {
@@ -798,9 +822,33 @@ void ccmd_client_maximize(client_td *client)
         return;
     }
 
-    if (!s_client_monitor_workarea(client, &mx, &my, &sw, &sh) &&
+    if (!ccmd_client_monitor_workarea(client, &mx, &my, &sw, &sh) &&
             !ccmd_screen_dim(client, &sw, &sh)) {
         return;
+    }
+
+    /* Per the X11 protocol (ConfigureWindow), 'x'/'y' name a
+     * window's own top-left corner including its native border, if
+     * any, drawn growing rightward/downward from there: the full
+     * on-screen footprint of a client with one reaches all the way
+     * to 'x + 2 * border + w', 2 * border wider/taller than 'w'
+     * alone (equivalently for height).  'client_border_width'
+     * (client.h) is 0 for a decorated client (its own frame is
+     * always created with a native border of 0; its themed margin
+     * is already fully accounted for elsewhere, in its own frame
+     * dimensions), so this only ever actually shrinks the target
+     * for an undecorated one -- keeping its own full footprint
+     * within the workarea/monitor rect 'sw'/'sh' just resolved
+     * above, rather than spilling its own border past its own
+     * right/bottom edge. */
+    {
+        desktop_td *own_desktop = wm_get_client_desktop(client);
+        bool is_active = own_desktop != NULL &&
+            own_desktop->client_active_id == client->id;
+        uint32_t border = 2u * client_border_width(client, is_active);
+
+        sw = (uint16_t) ((sw > border) ? sw - border : 0u);
+        sh = (uint16_t) ((sh > border) ? sh - border : 0u);
     }
 
     target = ccmd_target_win(client);

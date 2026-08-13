@@ -59,6 +59,7 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
+#include <scratchpad.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -369,6 +370,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_RESIZE_UP:
         case KEYBIND_CLIENT_RESIZE_DOWN:
         case KEYBIND_DESKTOP_SHOW:
+        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
         case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
@@ -680,6 +682,12 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 if (surface != NULL) {
                     enact_desktop_show(lookup_current_desktop(surface),
                             !surface->showing_desktop);
+                }
+                return;
+
+            case KEYBIND_WM_SCRATCHPAD_TOGGLE:
+                if (surface != NULL) {
+                    scratchpad_toggle(wm, lookup_current_desktop(surface));
                 }
                 return;
 

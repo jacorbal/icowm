@@ -19,8 +19,43 @@
 #define DEFS_CLIENT_H
 
 
-/** Minimum supported client window dimension */
-#define WM_MIN_WINDOW_DIMENSION (1u)
+/**
+ * @brief Absolute minimum a client's own content area (its window,
+ *        not counting decoration) can ever be resized down to, in
+ *        pixels, when it has no own resize-increment hint of its
+ *        own (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
+ *        §4.1.2.3) to measure itself in instead -- see
+ *        @c WM_MIN_WINDOW_DIMENSION_UNITS below for that case.
+ *
+ * The one true floor every resize path is guaranteed to respect,
+ * interactive (mouse or keyboard) or not, regardless of whether that
+ * particular path also happens to know about a client's own size
+ * hints: @c geom_clamp_dim (utils/geom.c), the lowest-level generic
+ * clamp several of them share, floors to exactly this value on its
+ * own, with no client or hints in scope to reason about a floor any
+ * more specific than "always safe to show and still grab".
+ */
+#define WM_MIN_WINDOW_DIMENSION (4u)
+
+/**
+ * @brief Absolute minimum a client's own content area can be resized
+ *        down to, in resize-increment units, for a client that
+ *        provides one (@c WM_NORMAL_HINTS's @c width_inc/height_inc,
+ *        ICCCM §4.1.2.3) -- a terminal counting in character columns
+ *        and rows, say, rather than raw pixels.
+ *
+ * Applied only by @c client_constrain_size (client/geom.c), the one
+ * path that actually resolves a client's own hints, as the floor
+ * such a client's own @c min_w/min_h defaults to when it does not
+ * specify one itself; a real @c min_w/min_h the client does specify
+ * always still wins if larger.  Left unscaled by the client's own
+ * @c width_inc/height_inc on purpose (1 unit's own true pixel size,
+ * whatever that happens to be, already exceeds
+ * @c WM_MIN_WINDOW_DIMENSION above for every increment size any real
+ * client is ever likely to use, so that floor is never actually the
+ * binding one for a client of this kind in practice).
+ */
+#define WM_MIN_WINDOW_DIMENSION_UNITS (1u)
 
 /**
  * @brief Fallback client width and height when geometry cannot be

@@ -21,6 +21,7 @@ values, and built-in default value.
    - [2.9 `menu`](#29-menu)
    - [2.10 `systray`](#210-systray)
    - [2.11 `desktops`](#211-desktops)
+   - [2.12 `scratchpad`](#212-scratchpad)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1 Binding syntax](#31-binding-syntax)
    - [3.2 `modifiers`](#32-modifiers)
@@ -40,6 +41,7 @@ values, and built-in default value.
    - [4.7 `overlay`](#47-overlay)
    - [4.8 `xsettings`](#48-xsettings)
    - [4.9 Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
+   - [4.10 `scratchpad`](#410-scratchpad)
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
    - [5.1 Top-level fields](#51-top-level-fields)
    - [5.2 `outputs[]` entries](#52-outputs-entries)
@@ -64,7 +66,7 @@ values, and built-in default value.
 
 For everything that is not a configuration file, namely what IcoWM is,
 every command-line option, and restricted-memory mode's own run-time
-behavior, see [`manual.md`](manual.md) instead.
+behavior, see [`icowm.md`](icowm.md) instead.
 
 ---
 
@@ -118,8 +120,8 @@ Inside that directory the expected file tree is:
   regardless of this file existence.
 - None of the files above configure IcoWM's own IPC control socket:
   it has no options of its own to set, and is either brought up or,
-  with `-s`, deliberately skipped for that run (`manual.md` section
-  3.1). See `manual.md` section 5 for where it lives and its full
+  with `-s`, deliberately skipped for that run (`icowm.md` section
+  3.1). See `icowm.md` section 5 for where it lives and its full
   wire protocol.
 
 ## 2. `config.json`: Base configuration
@@ -300,7 +302,7 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 
 | Key                        | Type    | Default   | Description |
 |----------------------------|---------|-----------|-------------|
-| `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"follow-mouse"` focuses whichever window is under the pointer. |
+| `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `focus.is-new-focused`     | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
 | `focus.is-raised-on-focus` | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
 
@@ -794,6 +796,62 @@ per-screen override.
 }
 ```
 
+### 2.12 `scratchpad`
+
+A single dedicated client, launched on demand and toggled
+visible/hidden instead of iconified/restored, the same way a
+dropdown terminal works in other window managers.  Hiding it never
+terminates the underlying process: the same client is shown again
+next time, with whatever state it was left in (a shell's own
+scrollback, say), until it exits on its own, at which point the next
+toggle launches a fresh one.  Never appears in `list_clients` (IPC),
+the window cycle, or the window-list menu; cannot be decorated,
+un-pinned, moved to a different layer, iconified, shaded, moved, or
+resized, by any means (keybind, mouse, menu, or IPC); `Alt+Space`
+does nothing on it; loses input focus by hiding itself
+automatically; and is skipped by `rearrange_desktop`.  `toggle
+fullscreen` is deliberately left alone: nothing above prevents it.
+
+**Reloading configuration never affects a scratchpad client already
+alive.** Every field below (`command`, `edge`, `width`/`height`,
+`ignore-margins`) is only ever read the moment a fresh scratchpad is
+actually launched, never while the current one is still around,
+hidden or shown.  Changing `command` and reloading, say, has no
+effect on an already-running scratchpad session at all; it only
+takes effect the next time one gets launched, which means the
+current client's own process (the shell inside it, typically) has
+to exit first, since hiding it is not enough to release it.
+
+`command` is not limited to a terminal: any graphical program works,
+as long as it actually opens a window at all rather than running as
+a pure command-line tool with no display of its own, e.g.
+`"gvim ~/docs/my_notes.txt"` to always have the same notes file one
+toggle away, exactly as much as a shell would be.
+
+| Key                     | Type            | Default                    | Description |
+|--------------------------|-----------------|----------------------------|-------------|
+| `is-enabled`             | boolean         | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its own keybind does nothing at all while this is `false`. |
+| `command`                | string          | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their own `-class`; see the note above on what kind of command this can be. |
+| `edge`                   | string          | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
+| `width`                  | integer or `"max"` | `"max"`                  | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
+| `height`                 | integer or `"max"` | `200`                    | Always-applied height, in pixels, or `"max"` (see `width` above). |
+| `ignore-margins`         | boolean         | `false`                    | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g. a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
+
+Its own border is themed separately from every other window, since
+it never has any other decoration; see `themes/<name>.json` section
+4.10.
+
+```json
+"scratchpad": {
+    "is-enabled": true,
+    "command": "xterm -fg black -bg ivory -cr black",
+    "edge": "top",
+    "width": "max",
+    "height": 200,
+    "ignore-margins": false
+}
+```
+
 ## 3. `bindings.json`: Keyboard and mouse bindings
 
 Defines all keyboard shortcuts and mouse button bindings.  This file is
@@ -930,6 +988,7 @@ Window manager control shortcuts.
 |----------------|--------------------|--------|
 | `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
 | `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
+| `scratchpad-toggle` | `modc+mod1+grave` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.12). |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
@@ -1645,6 +1704,28 @@ manager to pick up a `topology.*` change instead.
 > ```
 > fc-match "Noto Sans:bold:size=11"
 > ```
+
+### 4.10 `scratchpad`
+
+The scratchpad's own border (`config.json` section 2.12), since it
+is always undecorated and so never has any other decoration to
+theme.  Same as `window.active.border` by default, since the
+scratchpad's own window is meant to stand out the same way the
+active window's own border already does.
+
+| Key                       | Type    | Default   | Description |
+|----------------------------|---------|-----------|-------------|
+| `scratchpad.border.color`  | string  | `"#4A5566"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| `scratchpad.border.width`  | integer | `2`       | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
+
+```json
+"scratchpad": {
+    "border": {
+        "color": "#4A5566",
+        "width": 2
+    }
+}
+```
 ---
 
 ## 5. `randr.json`: XRandR output profiles
@@ -2070,7 +2151,7 @@ Sub-menus can be nested to the depth limit defined by
 
 ## 9. `memguard.json`: Restricted-memory mode configuration
 
-Read only when IcoWM is launched with `-M <mib>` (see `manual.md`'s own
+Read only when IcoWM is launched with `-M <mib>` (see `icowm.md`'s own
 "Restricted-memory mode" section for what that flag does and why it
 exists); an ordinary session never reads this file, and this file has
 no effect at all without `-M <mib>`.  It fully replaces `config.json`
@@ -2273,6 +2354,15 @@ to whatever theme loads, unconditionally.
         "timeout-seconds": 20
     },
 
+    "scratchpad": {
+        "is-enabled": true,
+        "command": "xterm -fg black -bg ivory -cr black",
+        "edge": "top",
+        "width": "max",
+        "height": 200,
+        "ignore-margins": false
+    },
+
     "show-desktop-overlay": true,
     "enable-emergency-shortcut": false,
     "enable-fortune-shortcut": false
@@ -2348,6 +2438,7 @@ to whatever theme loads, unconditionally.
             },
             "search": "modc+mod4+mods+s",
             "show-desktop": "modc+mod1+mods+d",
+            "scratchpad-toggle": "modc+mod1+grave",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",
@@ -2520,6 +2611,13 @@ to whatever theme loads, unconditionally.
             "cursor-theme-name": "Adwaita",
             "cursor-theme-size": 24
         }
+    },
+
+    "scratchpad": {
+        "border": {
+            "color": "#4A5566",
+            "width": 2
+        }
     }
 }
 ```
@@ -2679,7 +2777,7 @@ emits a final notification on exit.
 ```
 
 This example is only ever read when IcoWM is launched with `-M <mib>`;
-see `manual.md`'s "Restricted-memory mode" section for what that flag
+see `icowm.md`'s "Restricted-memory mode" section for what that flag
 does.  It names a theme of its own (`themes/compact.json`, not shown
 here), keeps the systray's clock and battery on, and turns on the
 emergency shortcut, since a severely memory-constrained session is

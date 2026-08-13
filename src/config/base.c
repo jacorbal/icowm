@@ -36,7 +36,7 @@
  *
  * @return Parsed focus policy enumeration value
  *
- * @note Supported values are @c click and @c follow-mouse
+ * @note Supported values are @c click and @c sloppy
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 static enum config_focus_policy_e
@@ -48,8 +48,8 @@ static enum config_focus_policy_e
         return CONFIG_FOCUS_POLICY_CLICK;
     }
 
-    if (safe_strcmp(value_norm, "follow-mouse") == 0) {
-        return CONFIG_FOCUS_POLICY_FOLLOW_MOUSE;
+    if (safe_strcmp(value_norm, "sloppy") == 0) {
+        return CONFIG_FOCUS_POLICY_SLOPPY;
     }
 
     return CONFIG_FOCUS_POLICY_CLICK;
@@ -132,6 +132,76 @@ static enum config_menu_position_e
     }
 
     return CONFIG_MENU_POSITION_UNDER_MOUSE;
+}
+
+
+/**
+ * @brief Parse one scratchpad dimension from either a fixed pixel
+ *        count or the string @c "max"
+ *
+ * @param item Value from configuration, expected to be either a
+ *             number or the string @c "max"; any other JSON type,
+ *             or a negative number, leaves @p out untouched
+ * @param out  Destination dimension
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_parse_scratchpad_size(const cJSON *item,
+        struct config_scratchpad_size_s *out)
+{
+    if (item == NULL || out == NULL) {
+        return;
+    }
+
+    if (cJSON_IsString(item)) {
+        char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+        if (json_field_normalize(item->valuestring, value_norm,
+                    sizeof(value_norm)) &&
+                safe_strcmp(value_norm, "max") == 0) {
+            out->mode = CONFIG_SCRATCHPAD_SIZE_MAX;
+        }
+        return;
+    }
+
+    if (cJSON_IsNumber(item) && item->valuedouble >= 0.0) {
+        out->mode = CONFIG_SCRATCHPAD_SIZE_FIXED;
+        out->pixels = (uint32_t) item->valuedouble;
+    }
+}
+
+
+/**
+ * @brief Parse scratchpad edge text into configuration enumeration
+ *
+ * @param value Scratchpad edge string from configuration
+ *
+ * @return Parsed scratchpad edge enumeration value
+ *
+ * @note Supported values are @c top, @c bottom, @c left, and
+ *       @c right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ */
+static enum config_scratchpad_edge_e
+    s_config_parse_scratchpad_edge(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_SCRATCHPAD_EDGE_TOP;
+    }
+
+    if (safe_strcmp(value_norm, "bottom") == 0) {
+        return CONFIG_SCRATCHPAD_EDGE_BOTTOM;
+    }
+    if (safe_strcmp(value_norm, "left") == 0) {
+        return CONFIG_SCRATCHPAD_EDGE_LEFT;
+    }
+    if (safe_strcmp(value_norm, "right") == 0) {
+        return CONFIG_SCRATCHPAD_EDGE_RIGHT;
+    }
+
+    return CONFIG_SCRATCHPAD_EDGE_TOP;
 }
 
 
@@ -896,6 +966,7 @@ int config_load_base(const char *filename,
 {
     cJSON *json;
     cJSON *programs;
+    cJSON *scratchpad;
     cJSON *windows;
     cJSON *icons;
     cJSON *menus;
@@ -939,6 +1010,32 @@ int config_load_base(const char *filename,
         json_load_string(programs, "editor",
                 config_base->programs.editor,
                 CONFIG_MAX_LENGTH_COMMAND);
+    }
+
+    /* Load scratchpad configuration */
+    scratchpad = cJSON_GetObjectItem(json, "scratchpad");
+    if (scratchpad) {
+        cJSON *edge_item;
+
+        json_load_bool(scratchpad, "is-enabled",
+                &config_base->scratchpad.is_enabled);
+        json_load_string(scratchpad, "command",
+                config_base->scratchpad.command,
+                CONFIG_MAX_LENGTH_COMMAND);
+        s_config_parse_scratchpad_size(
+                json_get_item(scratchpad, "width"),
+                &config_base->scratchpad.width);
+        s_config_parse_scratchpad_size(
+                json_get_item(scratchpad, "height"),
+                &config_base->scratchpad.height);
+        json_load_bool(scratchpad, "ignore-margins",
+                &config_base->scratchpad.ignore_margins);
+
+        edge_item = json_get_item(scratchpad, "edge");
+        if (edge_item != NULL && cJSON_IsString(edge_item)) {
+            config_base->scratchpad.edge =
+                s_config_parse_scratchpad_edge(edge_item->valuestring);
+        }
     }
 
     /* Load window base configuration */

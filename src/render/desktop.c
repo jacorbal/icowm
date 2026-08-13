@@ -731,7 +731,7 @@ void desktop_render_one_client(desktop_td *desktop,
         border_width = (has_extra_window_border)
             ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
     } else {
-        border_width = client->theme->window.active.border.width;
+        border_width = client_border_width(client, is_focused);
         if (has_extra_window_border) {
             border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
         }

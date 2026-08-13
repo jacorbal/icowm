@@ -25,6 +25,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <scratchpad.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
@@ -177,6 +178,9 @@ void enact_client_unfocus(client_td *client)
     ccmd_client_unfocus(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        if (scratchpad_is_client(client) && !client_is_hidden(client)) {
+            enact_client_hide(client);
+        }
     }
 }
 
@@ -805,7 +809,7 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
         do {
             client_td *client = (client_td *) cdlist_data(node);
 
-            if (client != NULL) {
+            if (client != NULL && !client_is_locked(client)) {
                 /* Every client on the desktop goes through
                  * 'place_apply' / 'place_apply_cascade', the same
                  * general-purpose placement engine a newly mapped

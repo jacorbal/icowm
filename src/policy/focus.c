@@ -15,6 +15,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <scratchpad.h>
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
@@ -31,14 +32,14 @@
 #include <policy/focus.h>
 
 
-bool focus_is_follow_mouse(const config_td *cfg)
+bool focus_is_sloppy(const config_td *cfg)
 {
     if (cfg == NULL) {
         return false;
     }
 
     return (cfg->base.windows.focus_policy ==
-            CONFIG_FOCUS_POLICY_FOLLOW_MOUSE);
+            CONFIG_FOCUS_POLICY_SLOPPY);
 }
 
 
@@ -80,6 +81,10 @@ void focus_apply(list_td *surfaces,
                 desktop->client_active_id, NULL, NULL);
         if (previous != NULL) {
             ccmd_client_unfocus(previous);
+            if (scratchpad_is_client(previous) &&
+                    !client_is_hidden(previous)) {
+                enact_client_hide(previous);
+            }
         }
     }
 

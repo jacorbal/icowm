@@ -529,6 +529,20 @@ int config_load_theme(const char *filename,
         }
     }
 
+    {
+        cJSON *scratchpad = cJSON_GetObjectItem(json, "scratchpad");
+        cJSON *sp_border;
+
+        sp_border = (scratchpad != NULL)
+            ? cJSON_GetObjectItem(scratchpad, "border") : NULL;
+        if (sp_border) {
+            json_load_color(sp_border, "color",
+                    &config_theme->scratchpad.border.color);
+            json_load_uint(sp_border, "width",
+                    &config_theme->scratchpad.border.width);
+        }
+    }
+
     cJSON_Delete(json);
 
     return 0;

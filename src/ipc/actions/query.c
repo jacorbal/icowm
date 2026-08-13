@@ -171,7 +171,7 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
             ohtbl_foreach(desktop->clients, elem) {
                 client_td *c = (client_td *) elem;
 
-                if (c != NULL) {
+                if (c != NULL && !client_is_locked(c)) {
                     s_append_client_summary(array, c, desktop, surface);
                 }
             }

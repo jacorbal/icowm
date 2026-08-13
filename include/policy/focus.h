@@ -45,7 +45,7 @@
  *
  * @note Complexity: @e O(1)
  */
-bool focus_is_follow_mouse(const config_td *cfg);
+bool focus_is_sloppy(const config_td *cfg);
 
 /**
  * @brief Focus a client and keep focus-related state in sync

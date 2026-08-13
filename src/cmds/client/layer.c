@@ -112,7 +112,7 @@ void ccmd_client_layer_above(client_td *client)
 {
     desktop_td *desktop;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 
@@ -133,7 +133,7 @@ void ccmd_client_layer_normal(client_td *client)
 {
     desktop_td *desktop;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 
@@ -155,7 +155,7 @@ void ccmd_client_layer_below(client_td *client)
 {
     desktop_td *desktop;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 

@@ -134,5 +134,37 @@ void ccmd_client_maximize_vert(client_td *client);
  */
 void ccmd_client_maximize(client_td *client);
 
+/**
+ * @brief Resolve the workarea a client's own maximize/fullscreen
+ *        target should fill, on whichever monitor it currently sits
+ *        on
+ *
+ * The same resolution @c ccmd_client_maximize/_horz/_vert already
+ * use internally, exposed here for any other caller needing the
+ * exact same target rect a maximized client already fills -- @c
+ * ccmd_client_toggle_decorate (cmds/client/state.c), recalculating a
+ * maximized client's own geometry to still fill it after decoration
+ * changes size how much of it its own frame extents eat into,
+ * rather than just growing or shrinking the frame in place around
+ * whatever position/size it already had.
+ *
+ * @param client Client to resolve the workarea for
+ * @param out_x  Receives the workarea's own left edge; @c NULL to
+ *               skip
+ * @param out_y  Receives the workarea's own top edge; @c NULL to
+ *               skip
+ * @param out_w  Receives the workarea's own width; required
+ * @param out_h  Receives the workarea's own height; required
+ *
+ * @return @c true on success; @c false if @p client is @c NULL, has
+ *         no monitor or desktop resolvable, or that desktop's own
+ *         workarea has not been computed yet
+ *
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_monitor_workarea(client_td *client,
+        int32_t *out_x, int32_t *out_y,
+        uint16_t *out_w, uint16_t *out_h);
+
 
 #endif  /* ! CMDS_CCMD_GEOM_H */

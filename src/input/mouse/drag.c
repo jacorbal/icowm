@@ -1182,6 +1182,55 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
 
+        /* 'client_constrain_size' (client/geom.c) expects its own
+         * width/height in terms of the client's own content window
+         * (what its own WM_NORMAL_HINTS actually describe, per
+         * ICCCM), not 'new_w'/'new_h' here, which are frame-relative
+         * (this whole function's own 'client_start_w'/'_h', what
+         * they were seeded from, already store
+         * 'geometry.cur.dim.w'/'.h', established elsewhere
+         * (ci_create_decorations, client/geom.c) as the frame's own
+         * total, decoration included) -- converted here to content
+         * space, constrained, then back, the same round trip
+         * 's_kb_resize_axis_target' (input/kbd/interact.c) already
+         * makes for the keyboard resize path.  Only ever grows
+         * either dimension past what the drag alone would have left
+         * it at, never shrinks one back down, since that would fight
+         * the user's own drag instead of merely flooring it. */
+        {
+            uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
+                (uint32_t) client->layout.frame_extents.right;
+            uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
+                (uint32_t) client->layout.frame_extents.bottom;
+            uint32_t content_w = (new_w > ext_w) ? (uint32_t) new_w - ext_w
+                : 0u;
+            uint32_t content_h = (new_h > ext_h) ? (uint32_t) new_h - ext_h
+                : 0u;
+            uint32_t floor_w = ext_w + WM_MIN_WINDOW_DIMENSION;
+            uint32_t floor_h = ext_h + WM_MIN_WINDOW_DIMENSION;
+            uint32_t constrained_w;
+            uint32_t constrained_h;
+
+            client_constrain_size(client, &content_w, &content_h);
+            constrained_w = content_w + ext_w;
+            constrained_h = content_h + ext_h;
+            if (constrained_w < floor_w) {
+                constrained_w = floor_w;
+            }
+            if (constrained_h < floor_h) {
+                constrained_h = floor_h;
+            }
+
+            if (s_drag.anchor_right && constrained_w > (uint32_t) new_w) {
+                new_x -= (int32_t) (constrained_w - (uint32_t) new_w);
+            }
+            if (s_drag.anchor_bottom && constrained_h > (uint32_t) new_h) {
+                new_y -= (int32_t) (constrained_h - (uint32_t) new_h);
+            }
+            new_w = geom_clamp_dim((int32_t) constrained_w);
+            new_h = geom_clamp_dim((int32_t) constrained_h);
+        }
+
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
         enact_client_resize(client, new_x, new_y, new_w, new_h);

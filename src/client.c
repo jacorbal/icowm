@@ -52,6 +52,7 @@
 #include <config.h>
 #include <logger.h>
 #include <render/wmicon.h>
+#include <scratchpad.h>
 #include <wm.h>
 
 /* Input includes */
@@ -158,6 +159,8 @@ void client_destroy(client_td *client)
         return;
     }
 
+    scratchpad_notice_client_destroyed(client);
+
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
             (void *) client, client->window, client->info.name);
 
@@ -199,6 +202,38 @@ void client_destroy(client_td *client)
 
     /* Free the client structure itself */
     free(client);
+}
+
+
+/* Apply a client's own themed border color and width to its own
+ * window, honoring 'border_override' when set */
+void client_apply_border(client_td *client, bool use_active_style)
+{
+    uint32_t color;
+    uint32_t width;
+
+    if (client == NULL || client->connection == NULL ||
+            client->theme == NULL || client_is_fullscreen(client) ||
+            (client_is_decorated(client) && client->frame != 0)) {
+        return;
+    }
+
+    if (client->border_override.is_set) {
+        color = client->border_override.color;
+        width = client->border_override.width;
+    } else if (use_active_style) {
+        color = client->theme->window.active.border.color;
+        width = client->theme->window.active.border.width;
+    } else {
+        color = client->theme->window.inactive.border.color;
+        width = client->theme->window.inactive.border.width;
+    }
+
+    xcb_change_window_attributes(client->connection, client->window,
+            XCB_CW_BORDER_PIXEL, &color);
+    xcb_configure_window(client->connection, client->window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) { width });
 }
 
 
@@ -1021,6 +1056,8 @@ client_td *client_init(xcb_connection_t *connection,
      * on the first render pass so the decoration and content area are
      * correctly sized and positioned from the outset */
     client->is_outdated = true;
+
+    scratchpad_notice_client_created(client);
 
     LOGGER_TRACE("Now managing window %#x ('%s')",
             window, client->info.name);

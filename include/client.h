@@ -111,7 +111,29 @@ enum window_flags_e {
     CLIENT_FLAG_SKIP_PAGER   = 1 << 9,
     CLIENT_FLAG_MODAL        = 1 << 10, /**< Window is modal (EWMH) */
     CLIENT_FLAG_UNRESPONSIVE = 1 << 11, /**< No ping reply received */
-    CLIENT_FLAG_MAX = 12,
+
+    /**
+     * @brief Every aspect of this client's own presentation and
+     *        extent is entirely policy-controlled, never subject to
+     *        any user- or script-initiated mutation
+     *
+     * Deliberately generic, not tied to any one feature: set once by
+     * whichever policy owns a client with this flag (the scratchpad,
+     * scratchpad.c, is the only one that does so today), then
+     * checked everywhere a user- or script-initiated action might
+     * otherwise change decoration, pin state, layer, iconified
+     * state, position, or size (see @c client_is_locked's own
+     * callers) -- none of which need to know what feature actually
+     * set this, or why, only that it is set.  A caller with feature-
+     * specific behavior beyond "refuse this mutation entirely" (the
+     * scratchpad hiding itself on losing focus, say, rather than
+     * merely refusing to be unfocused) still calls into the owning
+     * feature's own module directly for that, the same as before;
+     * this flag only ever centralizes the "refuse" half shared by
+     * every such feature, not anything specific to one of them.
+     */
+    CLIENT_FLAG_LOCKED       = 1 << 12,
+    CLIENT_FLAG_MAX = 13,
 };
 
 
@@ -297,6 +319,29 @@ typedef struct client_s {
 
     struct config_theme_s *theme;               /**< User defined theme */
     const struct config_base_s *config_base;    /**< Base configuration */
+
+    /**
+     * @brief A client's own border color and width, independent of
+     *        @c theme->window.active/inactive.border
+     *
+     * Deliberately generic, not tied to any one feature: unset by
+     * default, in which case @c client_apply_border (client.h) falls
+     * back to the usual @c theme->window.active/inactive.border a
+     * plain client already gets on every focus change; a caller that
+     * sets this (the scratchpad, scratchpad.c, is the only one that
+     * does so today, from @c theme->scratchpad.border) needs @e no
+     * further involvement from @c ccmd_client_focus/_unfocus
+     * (cmds/client/basic.c) beyond that single field: neither one
+     * needs to know what feature set it, or why, only to prefer it
+     * over the theme's own default whenever it is present, exactly
+     * the same relationship @c CLIENT_FLAG_LOCKED (above) already has
+     * with its own callers.
+     */
+    struct {
+        bool is_set;
+        uint32_t color;
+        uint32_t width;
+    } border_override;
 
     uint32_t user_time;             /**< Time since last used */
 
@@ -494,6 +539,91 @@ static inline xcb_window_t client_group_leader(const client_td *client)
  * @note Complexity: @e O(1)
  */
 void client_destroy(client_td *client);
+
+/**
+ * @brief Apply a client's own themed border color and width to its
+ *        own window, honoring @c border_override when set
+ *
+ * A no-op for a decorated client (@c client->frame @c != @c 0) or a
+ * fullscreen one, regardless of decoration: a decorated client's own
+ * border lives on its frame instead, repainted by @c
+ * desktop_repaint_frame_decoration (render/desktop.c), not on
+ * @c client->window itself; a fullscreen client, decorated or not,
+ * is never meant to show any border at all.  For every other
+ * (undecorated, non-fullscreen) client, applies
+ * @c client->border_override's own color and width when @c is_set,
+ * or @c theme->window.active/inactive.border otherwise (@p
+ * use_active_style selects which), the same border a plain client
+ * already gets restored to on every focus change.
+ *
+ * @param client            Client to apply the border to
+ * @param use_active_style  Ignored when @c border_override.is_set;
+ *                          otherwise @c true for
+ *                          @c theme->window.active.border, @c false
+ *                          for @c .inactive
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_apply_border(client_td *client, bool use_active_style);
+
+/**
+ * @brief The border width @c client currently themes its own window
+ *        or frame with
+ *
+ * @c border_override's own width when @c is_set (the scratchpad,
+ * scratchpad.c, is the only client that sets one today, and never
+ * varies it with focus), or @c theme->window.active/inactive.border.
+ * width otherwise (@p is_active selects which) -- the same width
+ * @c client_apply_border applies for the exact same client and
+ * focus state.  Meant for any caller that has to reserve room for a
+ * border ahead of actually drawing on, e.g. sizing a client to fill
+ * an area without its own border ever spilling past that area's own
+ * edge (see @c ccmd_client_maximize, cmds/client/geom.c).
+ *
+ * @param client    Client to query
+ * @param is_active Ignored when @c border_override.is_set; otherwise
+ *                  @c true for @c theme->window.active.border.width,
+ *                  @c false for @c .inactive
+ *
+ * @return @p client's own current border width; @c 0 if @p client is
+ *         @c NULL or has no theme
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline uint32_t client_border_width(const client_td *client,
+        bool is_active)
+{
+    /* A decorated client's own frame is always created with a native
+     * X11 'border_width' of 0 ('ci_create_decorations', client/
+     * geom.c): the themed margin around a decorated client's own
+     * content is drawn as background color inset within the frame's
+     * own declared width/height (layout.frame_extents), already
+     * fully accounted for there, not as an X11 border layered on top
+     * of it the way 'client_apply_border' (above) draws one directly
+     * on an undecorated client's own window.  A caller reserving
+     * room for a client's own border has nothing to reserve here,
+     * so this returns 0 for a decorated client (frame != 0) even
+     * though 'window.active/inactive.border.width' below is not
+     * itself 0. */
+    if (client == NULL || client->theme == NULL || client->frame != 0) {
+        return 0u;
+    }
+
+    /* 'border_override' (the scratchpad's own case today) never
+     * varies with focus -- its own width is set once and never
+     * revisited (see 'scratchpad_notice_client_created',
+     * scratchpad.c) -- so 'is_active' only ever matters for the
+     * theme's own fallback below, where active and inactive can
+     * configure two genuinely different widths, not just two
+     * colors. */
+    if (client->border_override.is_set) {
+        return client->border_override.width;
+    }
+
+    return (is_active)
+        ? client->theme->window.active.border.width
+        : client->theme->window.inactive.border.width;
+}
 
 /**
  * @brief Synchronize the inner client and titlebar windows with the
@@ -943,6 +1073,32 @@ void client_props_refresh_normal_hints(client_td *client);
 #define client_mark_responsive(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_UNRESPONSIVE, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that sets the locked flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_lock(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_LOCKED, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the locked flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unlock(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_LOCKED, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that evaluates to the locked flag of a client
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_locked(w) \
+    ((w)->properties.flags & CLIENT_FLAG_LOCKED)
 
 /**
  * @brief Macro that sets the hidden flag of a client

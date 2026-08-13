@@ -4,7 +4,7 @@ What `icowm-msg` is, how to invoke it, how it turns its own
 command-line arguments into a request, and what its exit status
 means.  For the socket it talks to (where it lives, the wire
 protocol itself, and the full list of every command with its own
-arguments), see [`manual.md`](manual.md) section 5 instead: this
+arguments), see [`icowm.md`](icowm.md) section 5 instead: this
 file only covers what is specific to `icowm-msg` itself, not the
 protocol underneath it, which is part of IcoWM proper and documented
 there.
@@ -31,7 +31,7 @@ there.
 ## 1. What `icowm-msg` is
 
 `icowm-msg` is a small, standalone command-line client for IcoWM's
-own IPC control socket (`manual.md` section 5). It builds one JSON
+own IPC control socket (`icowm.md` section 5). It builds one JSON
 request line out of its own command-line arguments, sends it to a
 running IcoWM's control socket, and prints back whatever IcoWM
 answers with.
@@ -53,7 +53,7 @@ icowm-msg -h
 icowm-msg -v
 ```
 
-`<command>` is any of the command names `manual.md` section 5.3
+`<command>` is any of the command names `icowm.md` section 5.3
 documents (`get_version`, `goto_desktop`, `move_client`, and so on).
 Each `<key>=<value>` becomes one field of the request object
 alongside `"cmd"`, naming that command's own argument: which keys a
@@ -79,7 +79,7 @@ This means a numeric ID never needs quoting on the command line
 (`client_id=23068673`, not `client_id="23068673"`), and a value
 that happens to look like a number but is meant as text (a client's
 own new name that is only digits, say) is sent as a number instead;
-none of the commands `manual.md` section 5.3 documents currently
+none of the commands `icowm.md` section 5.3 documents currently
 have a string argument this could affect, but it is worth knowing
 about if a future one ever does.
 
@@ -167,7 +167,7 @@ There is nothing listening at the resolved socket path yet. This
 means one of:
 
 - IcoWM is not currently running.
-- IcoWM was started with `-s` (`manual.md` section 3.1), which
+- IcoWM was started with `-s` (`icowm.md` section 3.1), which
   disables the socket entirely for that run, on purpose.
 - IcoWM is running, but its IPC socket failed to come up (see its
   own log: `ipc_init` logs a warning and continues without the
@@ -179,7 +179,7 @@ means one of:
   it was in the session IcoWM itself started under (a remote shell,
   a different user, or a terminal from before `$XDG_RUNTIME_DIR` was
   changed, for instance). `icowm-msg` resolves the socket path the
-  same way IcoWM itself does (`manual.md` section 5.1): under
+  same way IcoWM itself does (`icowm.md` section 5.1): under
   `$XDG_RUNTIME_DIR/icowm/`, or `/tmp/icowm-<uid>/icowm/` when that
   variable is unset, so the two need to agree on that variable to
   find the same socket.
@@ -205,7 +205,7 @@ Every command IcoWM currently understands, with its own arguments
 This is a compact index only; the full explanation of each,
 including what each response field means and the two actions
 deliberately left out of this catalog, is in
-[`manual.md`](manual.md) section 5.3.
+[`icowm.md`](icowm.md) section 5.3.
 
 | Command                       | Arguments                                | Description |
 |-------------------------------|------------------------------------------|-------------|
@@ -264,6 +264,7 @@ deliberately left out of this catalog, is in
 | `goto_prev_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own previous desktop |
 | `exit_wm`                     | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`               | none                                     | Reloads every configuration file |
+| `toggle_scratchpad`           | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
 
 ## 9. Watching for events
 

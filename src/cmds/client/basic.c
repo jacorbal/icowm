@@ -285,8 +285,6 @@ void ccmd_client_restore(client_td *client)
 /* Focus a client */
 void ccmd_client_focus(client_td *client)
 {
-    uint32_t border_color;
-
     if (client == NULL) {
         return;
     }
@@ -331,37 +329,30 @@ void ccmd_client_focus(client_td *client)
     ccmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     xcb_map_window(client->connection, client->window);
+    /* 'client_apply_border' (client.h) preserves this same
+     * condition (undecorated-or-frameless, never fullscreen)
+     * internally, and additionally honors 'border_override' for a
+     * client that themes its own border independently of
+     * 'theme->window.active/inactive' (the scratchpad,
+     * scratchpad.c, is the only one that does so today) --
+     * unconditionally applying the theme's own real border width
+     * here on every single focus change (this function runs on
+     * every click, via 'focus_apply') used to undo the zero width
+     * 'ccmd_client_fullscreen' (cmds/state.c) had already set,
+     * putting a real, visible border back on an undecorated
+     * fullscreen client's own window -- confirmed directly from
+     * runtime diagnostics: an undecorated client (e.g. mpv, which
+     * requests no decoration of its own from the very start, so
+     * 'client_is_decorated' is already false before it ever goes
+     * fullscreen, unlike a client that only loses decoration
+     * because it went fullscreen) has no separate frame at all
+     * ('client->frame' stays 0 throughout, this branch's own
+     * 'hide_decoration' equivalent everywhere else in the project
+     * never even applies to it), so this call is the only place
+     * actually restoring its border on focus. */
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL && !client_is_fullscreen(client)) {
-        /* Skipped outright for a fullscreen client, decorated or not:
-         * unconditionally applying the theme's own real border width
-         * here on every single focus change (this function runs on
-         * every click, via 'focus_apply') undid the zero width
-         * 'ccmd_client_fullscreen' (cmds/state.c) had already set,
-         * putting a real, visible border back on an undecorated
-         * fullscreen client's own window -- confirmed directly from
-         * runtime diagnostics: an undecorated client (e.g. mpv, which
-         * requests no decoration of its own from the very start, so
-         * 'client_is_decorated' is already false before it ever goes
-         * fullscreen, unlike a client that only loses decoration
-         * because it went fullscreen) has no separate frame at all
-         * ('client->frame' stays 0 throughout, this branch's own
-         * 'hide_decoration' equivalent everywhere else in the project
-         * never even applies to it), so this branch was the only
-         * place actually restoring its border on focus. */
-        border_color = client->theme->window.active.border.color;
-        xcb_change_window_attributes(client->connection, client->window,
-                XCB_CW_BORDER_PIXEL, &border_color);
-        /* Undecorated clients have no separate frame to resize: an
-         * X11 border is drawn entirely outside a window's own width
-         * and height, so changing its thickness here never touches
-         * the window's own geometry, unlike the decorated case just
-         * below which does need to grow or shrink the frame. */
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                (const uint32_t[]) {
-                    client->theme->window.active.border.width
-                });
+        client_apply_border(client, true);
     } else {
         client_resync_theme_layout(client, true);
     }
@@ -377,8 +368,6 @@ void ccmd_client_focus(client_td *client)
 /* Unfocus the client */
 void ccmd_client_unfocus(client_td *client)
 {
-    uint32_t border_color;
-
     if (client == NULL) {
         return;
     }
@@ -411,15 +400,10 @@ void ccmd_client_unfocus(client_td *client)
         /* Same reasoning as the matching block in 'ccmd_client_focus'
          * just above: skipped for a fullscreen client so a losing-
          * focus repaint cannot put a real border back on an
-         * undecorated fullscreen client's own window either. */
-        border_color = client->theme->window.inactive.border.color;
-        xcb_change_window_attributes(client->connection, client->window,
-                XCB_CW_BORDER_PIXEL, &border_color);
-        xcb_configure_window(client->connection, client->window,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                (const uint32_t[]) {
-                    client->theme->window.inactive.border.width
-                });
+         * undecorated fullscreen client's own window either;
+         * 'client_apply_border' (client.h) additionally honors
+         * 'border_override' the same way that one does. */
+        client_apply_border(client, false);
     } else {
         client_resync_theme_layout(client, false);
     }
@@ -708,7 +692,7 @@ void ccmd_client_iconify(client_td *client)
     uint16_t icon_h_out;
     bool skip_icon_win;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 
@@ -1000,7 +984,7 @@ void ccmd_client_unpin(client_td *client)
     surface_td *surface;
     xcb_window_t target;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 
@@ -1056,7 +1040,7 @@ void ccmd_client_toggle_pin(client_td *client)
 {
     surface_td *surface;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_locked(client)) {
         return;
     }
 
