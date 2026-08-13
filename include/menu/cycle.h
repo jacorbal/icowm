@@ -242,50 +242,15 @@ uint16_t cycle_prev_modmask(void);
 /**
  * @brief Return whether a client has cycle extra border
  *
- * Also covers a selection registered by @c cycle_set_external_
- * selection below: another widget that highlights a selected client
- * the same visual way the cycle menu does (currently the fuzzy
- * window-search widget, menu/search.c) registers its own current
- * selection there instead of duplicating this function's own
- * client-matching logic, so every caller of this one -- render/
- * desktop.c and render/icon.c -- only ever needs to consult this
- * single function to learn whether @p client should draw with the
- * extra border, regardless of which widget is asking for it.
- *
  * @param client       Target client
  * @param is_icon_menu @c true for icon border, @c false for window
  *                     border
  *
  * @return @c true when the client must use the cycle-selected extra
- *         border while the cycle menu is open, or an external
- *         selection matching @p client and @p is_icon_menu is
- *         currently registered
+ *         border while cycle menu is open
  */
 bool cycle_client_has_extra_border(const client_td *client,
         bool is_icon_menu);
-
-/**
- * @brief Register or clear an externally-selected client for
- *        @c cycle_client_has_extra_border to also report
- *
- * Lets a widget other than the cycle menu itself (currently the
- * fuzzy window-search widget, menu/search.c) mark its own current
- * selection so it draws with the exact same extra border the cycle
- * menu's own selection does, without that other widget needing to
- * track or apply the border-drawing logic itself.  Independent of
- * whether the cycle menu is open: the two never are at the same
- * time in practice (each intercepts every key while open, see
- * input/kbd/event.c), but nothing here assumes that.
- *
- * @param client  Client to highlight, or @c NULL to clear any
- *                previously registered external selection
- * @param is_icon @c true if @p client is currently shown in its
- *                iconified representation, @c false for an ordinary
- *                window; ignored when @p client is @c NULL
- *
- * @note Complexity: @e O(1)
- */
-void cycle_set_external_selection(client_td *client, bool is_icon);
 
 
 #endif  /* ! MENU_CYCLE_H */

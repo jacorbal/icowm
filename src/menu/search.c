@@ -47,7 +47,6 @@
 #include <policy/focus.h>
 
 /* Menu includes */
-#include <menu/cycle.h>
 #include <menu/dialog/info.h>
 #include <menu/draw.h>
 
@@ -570,24 +569,6 @@ void search_destroy(xcb_connection_t *connection)
 
     xcb_flush(connection);
 
-    /* Clear the last selection's own extra border the same way
-     * 'search_draw' registered it, and mark its desktop dirty one
-     * last time so the render pass actually paints over it -- left
-     * undone, the last-selected result would keep showing the extra
-     * border indefinitely, until some unrelated repaint happened to
-     * come along. */
-    cycle_set_external_selection(NULL, false);
-    if (s_search.surface != NULL) {
-        for (uint32_t i = 0; i < s_search.surface->desktop_count; ++i) {
-            desktop_td *d = surface_desktop_get(s_search.surface, i);
-
-            if (d != NULL) {
-                d->focus_dirty = true;
-            }
-        }
-        s_search.surface->is_outdated = true;
-    }
-
     s_search.window = XCB_WINDOW_NONE;
     s_search.surface = NULL;
     s_search.config = NULL;
@@ -889,45 +870,6 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
 {
     if (!search_is_open() || cfg == NULL) {
         return;
-    }
-
-    /* The extra border a selected result draws with -- the exact
-     * same one the cycle menu's own selection does, registered via
-     * 'cycle_set_external_selection' (menu/cycle.h) rather than this
-     * widget tracking or applying that border-drawing logic itself
-     * -- lives on the result's own real window or icon, outside this
-     * widget's own window entirely, drawn by the main render pass
-     * instead ('desktop_render_one_client'/'ri_render_client_icon',
-     * render/desktop.c and render/icon.c), which only ever repaints
-     * a client's own border/titlebar colors when that client's own
-     * 'is_outdated' is set or its own desktop's own 'focus_dirty' is
-     * -- neither of which navigating this widget's own selection
-     * (nothing about any real client) has any other reason to set on
-     * its own.  Marking every desktop on this widget's own surface
-     * here, once, on every repaint (results can come from more than
-     * one), is what actually makes the highlight travel with the
-     * selection in real time, the same way a real focus change
-     * already does, rather than only catching up whenever the next
-     * unrelated repaint happens to come along. */
-    if (s_search.selected >= 0 &&
-            s_search.selected < s_search.result_count) {
-        client_td *sel = s_search.results[s_search.selected].client;
-
-        cycle_set_external_selection(sel,
-                sel != NULL && client_is_iconified(sel));
-    } else {
-        cycle_set_external_selection(NULL, false);
-    }
-
-    if (s_search.surface != NULL) {
-        for (uint32_t i = 0; i < s_search.surface->desktop_count; ++i) {
-            desktop_td *d = surface_desktop_get(s_search.surface, i);
-
-            if (d != NULL) {
-                d->focus_dirty = true;
-            }
-        }
-        s_search.surface->is_outdated = true;
     }
 
     /* Kept in sync with 's_search.height' here, the one place every
