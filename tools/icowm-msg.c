@@ -232,10 +232,11 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "\n");
 
     fprintf(fp, "Examples:\n");
-    fprintf(fp, "   %s-msg get_version\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg list_clients\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg goto_desktop desktop_id=1\n",
             PROJECT_NAME_PROG);
+    fprintf(fp, "   %s-msg set_desktop_background desktop_id=0" \
+                " color=0xaaccff\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg move_client client_id=23068673 x=100 y=200\n",
             PROJECT_NAME_PROG);
     fprintf(fp, "\n");
@@ -244,20 +245,17 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "   -h          Show this help information, and exit\n");
     fprintf(fp, "   -v          Show version and license information," \
                 " and exit\n");
-    fprintf(fp, "   -K          List every command name this build" \
-                " knows about,\n");
-    fprintf(fp, "               one per line, and exit\n");
-    fprintf(fp, "   -w <events> Subscribe instead of sending a" \
-                " command; watch for a\n");
-    fprintf(fp, "               comma-separated list of events" \
-                " (e.g., 'window_mapped,\n");
-    fprintf(fp, "               desktop_switched'), printing one" \
-                " line per event as it\n");
-    fprintf(fp, "               arrives, until '-n' is reached or" \
+    fprintf(fp, "   -K          Known commands, one per line, and exit\n");
+    fprintf(fp, "   -w <events> Subscribe instead of sending a command;\n" \
+                "               watch for a comma-separated list of" \
+                " events \n" \
+                "               printing one line per event as" \
+                " it arrives,\n" \
+                "               until '-n' is reached or" \
                 " the connection ends\n");
     fprintf(fp, "   -n <count>  Stop watching after this many" \
-                " events; only meaningful\n");
-    fprintf(fp, "               together with '-w'\n");
+                " events; only\n");
+    fprintf(fp, "               meaningful together with '-w'\n");
     fprintf(fp, "\n");
     fprintf(fp, "Exit status:\n");
     fprintf(fp, "   0 on success\n");

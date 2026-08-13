@@ -616,7 +616,14 @@ void enact_client_toggle_decorate(client_td *client)
 /* Set the desktop's background color */
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
 {
+    surface_td *surface;
+
     if (desktop == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(desktop->screen_id);
+    if (surface == NULL) {
         return;
     }
 
@@ -624,6 +631,14 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
+    /* Marking only 'desktop->is_outdated' is not enough on its own:
+     * 'loop_update' only calls 'surface_render_all_desktops' at all
+     * when this desktop's own surface is itself outdated (see
+     * 'enact_desktop_show', right below, for the same pattern);
+     * without this, the new color never actually repaints until
+     * something else marks the surface outdated for an unrelated
+     * reason, e.g. switching desktops away and back. */
+    surface->is_outdated = true;
     xcb_flush(desktop->connection);
     s_broadcast_desktop_event(desktop,
             IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);

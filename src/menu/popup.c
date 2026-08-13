@@ -22,6 +22,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/client/internal.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
@@ -60,7 +61,14 @@ void popup_show(xcb_connection_t *connection,
     const char *name;
     const char *class_name;
     const char *instance_name;
-    const int16_t width = 520;
+    /** Left/right margin around the text, matching the @c x=8 origin
+     *  'popup_repaint' already draws every line at */
+    const int16_t text_margin = 8;
+    /** Floor under the computed width, so a popup for a client with
+     *  very short property values never ends up uncomfortably
+     *  narrow */
+    const int16_t min_width = 260;
+    int16_t width;
     const int16_t height = 96;
     int16_t x;
     int16_t y;
@@ -68,6 +76,10 @@ void popup_show(xcb_connection_t *connection,
     int32_t max_y;
     uint32_t mask;
     uint32_t values[3];
+    surface_td *client_surface = NULL;
+    monitor_td client_monitor;
+    uint32_t monitor_id = 0u;
+    uint16_t widest_line = 0u;
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
             client == NULL || cfg == NULL ||
@@ -80,6 +92,63 @@ void popup_show(xcb_connection_t *connection,
         ? client->info.class_name[1] : "";
     instance_name = (client->info.class_name[0] != NULL)
         ? client->info.class_name[0] : "";
+
+    /* Resolve which physical monitor the client's own center point
+     * currently falls on, the same way 'ccmd_client_move_to_next_
+     * monitor' (cmds/client/geom.c) does, to display alongside its
+     * desktop/surface; a client on a single-monitor surface always
+     * resolves to monitor 0. */
+    if (ccmd_client_monitor(client, &client_surface, &client_monitor) &&
+            client_surface != NULL) {
+        for (uint32_t i = 0u; i < client_surface->monitor_count; ++i) {
+            if (client_surface->monitors[i].x == client_monitor.x &&
+                    client_surface->monitors[i].y == client_monitor.y) {
+                monitor_id = i;
+                break;
+            }
+        }
+    }
+
+    /* Build every line, and size the window to its own widest one,
+     * before creating anything: sizing the window first and fitting
+     * the text into whatever that left (the previous approach, a
+     * fixed guess wide enough for the longest line this popup could
+     * ever show) reliably wastes space for every shorter one, since
+     * most lines never come close to the longest possible. */
+    snprintf(s_popup_lines[0], sizeof(s_popup_lines[0]),
+            "name=%s class=%s instance=%s",
+            name, class_name, instance_name);
+    snprintf(s_popup_lines[1], sizeof(s_popup_lines[1]),
+            "frame_id=%#x client_id=%#x desktop_id=%u surface_id=%u" \
+            " monitor_id=%u",
+            client->frame, client->id, desktop->id, surface->id,
+            monitor_id);
+    snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
+            "geom=%ux%u+%d+%d",
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y);
+    snprintf(s_popup_lines[3], sizeof(s_popup_lines[3]),
+            "flags=%#x state=%#x",
+            client->properties.flags, client->properties.state);
+
+    /* 'text_measure_string' needs the renderer already set up for
+     * this popup's own font; safe and cheap to call here even though
+     * 'popup_repaint' calls it again later; it is a same-connection,
+     * same-font no-op the second time (see its own doc comment). */
+    text_renderer_init(connection, cfg->theme.overlay.font);
+    for (size_t i = 0; i < 4; ++i) {
+        uint16_t line_width = text_measure_string(s_popup_lines[i]);
+
+        if (line_width > widest_line) {
+            widest_line = line_width;
+        }
+    }
+    width = (int16_t) (widest_line + (uint16_t) (2 * text_margin));
+    if (width < min_width) {
+        width = min_width;
+    }
 
     popup_close(connection);
 
@@ -117,22 +186,6 @@ void popup_show(xcb_connection_t *connection,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
-
-    snprintf(s_popup_lines[0], sizeof(s_popup_lines[0]),
-            "name=%s class=%s instance=%s",
-            name, class_name, instance_name);
-    snprintf(s_popup_lines[1], sizeof(s_popup_lines[1]),
-            "window=%#x frame=%#x desktop=%u surface=%u",
-            client->window, client->frame, desktop->id, surface->id);
-    snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
-            "geom=%ux%u+%d+%d",
-            client->layout.geometry.cur.dim.w,
-            client->layout.geometry.cur.dim.h,
-            client->layout.geometry.cur.pos.x,
-            client->layout.geometry.cur.pos.y);
-    snprintf(s_popup_lines[3], sizeof(s_popup_lines[3]),
-            "flags=%#x state=%#x",
-            client->properties.flags, client->properties.state);
 
     xcb_map_window(connection, s_popup_window);
     xcb_flush(connection);
