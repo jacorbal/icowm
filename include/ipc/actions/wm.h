@@ -27,8 +27,8 @@
 
 
 /* Public interface */
-/** "wm_exit": request that IcoWM stop and exit; no arguments */
-cJSON *ipc_action_wm_exit(wm_td *wm, const cJSON *args);
+/** "exit_wm": request that IcoWM stop and exit; no arguments */
+cJSON *ipc_action_exit_wm(wm_td *wm, const cJSON *args);
 
 /** "reload_config": reload every configuration file, the same as
  *  sending IcoWM SIGHUP; no arguments */

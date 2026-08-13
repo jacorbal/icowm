@@ -69,6 +69,90 @@
 
 
 /**
+ * @brief Every command name this build knows about, for @c -K alone
+ *
+ * A plain, hand-maintained snapshot of the server's own dispatch
+ * table (@c s_dispatch in @c src/ipc/commands.c), kept here rather
+ * than queried live so @c -L works the same offline way @c -h and
+ * @c -v already do, without needing a running server.  The trade-off
+ * that buys: this list can drift out of sync with the server's own
+ * table over time if one side gains or loses a command and the other
+ * is not updated to match, something a live query could never do.
+ * Deliberately used only to answer "-K"'s own question ("what
+ * commands does this build know the names of"), never to locally
+ * validate or reject a command before sending it: an ordinary
+ * request still reaches the server exactly as before, unfiltered, so
+ * a drifted-stale list here only ever makes @c -K's own output
+ * incomplete, never breaks a command that the server itself would
+ * otherwise have accepted.
+ *
+ * @note Whoever adds or removes a command from @c s_dispatch in
+ *       @c src/ipc/commands.c is responsible for updating this array
+ *       to match; that file carries the same note pointing back here
+ */
+static const char *const s_known_commands[] = {
+    "center_client",
+    "close_client",
+    "cycle_layer_client",
+    "deiconify_all",
+    "deiconify_client",
+    "exit_wm",
+    "focus_client",
+    "fullscreen_client",
+    "get_focused",
+    "get_version",
+    "goto_desktop",
+    "goto_next_desktop",
+    "goto_prev_desktop",
+    "hide_client",
+    "iconify_all",
+    "iconify_client",
+    "kill_client",
+    "list_clients",
+    "list_desktops",
+    "lower_client",
+    "maximize_client",
+    "maximize_client_horz",
+    "maximize_client_vert",
+    "move_client",
+    "move_client_to_monitor",
+    "move_client_to_next_monitor",
+    "pin_client",
+    "raise_client",
+    "rearrange_desktop",
+    "reclass_client",
+    "reload_config",
+    "rename_client",
+    "rerole_client",
+    "resize_client",
+    "send_client_to_back",
+    "send_client_to_desktop",
+    "send_client_to_front",
+    "set_client_icon",
+    "set_desktop_background",
+    "set_layer_above_client",
+    "set_layer_below_client",
+    "set_layer_normal_client",
+    "shade_client",
+    "show_desktop",
+    "toggle_decorate_client",
+    "toggle_fullscreen_client",
+    "toggle_pin_client",
+    "toggle_shade_client",
+    "unfocus_client",
+    "unfullscreen_client",
+    "unhide_client",
+    "unpin_client",
+    "unshade_client",
+    "unurge_client",
+    "urge_client",
+};
+
+#define S_KNOWN_COMMANDS_COUNT \
+    (sizeof(s_known_commands) / sizeof(s_known_commands[0]))
+
+
+/**
  * @brief Print copyright string
  *
  * @param fp File pointer to the stream where to write the output
@@ -115,6 +199,22 @@ static void s_show_version(FILE *fp)
 
 
 /**
+ * @brief Display every command name this build knows about, one per
+ *        line
+ *
+ * @param fp File pointer to the stream where to write the output
+ *
+ * @note Complexity: @e O(n), where @e n is @c S_KNOWN_COMMANDS_COUNT
+ */
+static void s_show_commands(FILE *fp)
+{
+    for (size_t i = 0; i < S_KNOWN_COMMANDS_COUNT; ++i) {
+        fprintf(fp, "%s\n", s_known_commands[i]);
+    }
+}
+
+
+/**
  * @brief Display help on screen
  *
  * @param fp File pointer to the stream where to write the output
@@ -131,6 +231,7 @@ static void s_show_help(FILE *fp)
             PROJECT_NAME_PROG);
     fprintf(fp, "       %s-msg -h\n", PROJECT_NAME_PROG);
     fprintf(fp, "       %s-msg -v\n", PROJECT_NAME_PROG);
+    fprintf(fp, "       %s-msg -K\n", PROJECT_NAME_PROG);
     fprintf(fp, "\n");
 
     fprintf(fp, "Examples:\n");
@@ -145,6 +246,9 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "   -h          Show this help information, and exit\n");
     fprintf(fp, "   -v          Show version and license information," \
                 " and exit\n");
+    fprintf(fp, "   -K          List every command name this build" \
+                " knows about,\n");
+    fprintf(fp, "               one per line, and exit\n");
     fprintf(fp, "   -w <events> Subscribe instead of sending a" \
                 " command; watch for a\n");
     fprintf(fp, "               comma-separated list of events" \
@@ -584,13 +688,16 @@ int main(int argc, char **argv)
     int status;
     int opt;
 
-    while ((opt = getopt(argc, argv, "hvw:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "hvKw:n:")) != -1) {
         switch (opt) {
         case 'h':
             s_show_help(stdout);
             return 0;
         case 'v':
             s_show_version(stdout);
+            return 0;
+        case 'K':
+            s_show_commands(stdout);
             return 0;
         case 'w':
             watch_events = optarg;

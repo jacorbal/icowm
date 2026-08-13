@@ -423,7 +423,7 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
             enact_client_restore(s_target_client);
             break;
         case ACTION_CLIENT_TOGGLE_DECORATION:
-            enact_client_toggle_decoration(s_target_client);
+            enact_client_toggle_decorate(s_target_client);
             break;
         case ACTION_CLIENT_TOGGLE_FULLSCREEN:
             enact_client_toggle_fullscreen(s_target_client);
@@ -431,8 +431,8 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
         case ACTION_CLIENT_TOGGLE_SHADE:
             enact_client_toggle_shade(s_target_client);
             break;
-        case ACTION_CLIENT_TOGGLE_STICKY:
-            enact_client_toggle_sticky(s_target_client);
+        case ACTION_CLIENT_TOGGLE_PIN:
+            enact_client_toggle_pin(s_target_client);
             break;
         case ACTION_CLIENT_KILL:
         case ACTION_CLIENT_FOCUS:
@@ -450,8 +450,8 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
         case ACTION_CLIENT_UNHIDE:
         case ACTION_CLIENT_SHADE:
         case ACTION_CLIENT_UNSHADE:
-        case ACTION_CLIENT_STICKY:
-        case ACTION_CLIENT_UNSTICKY:
+        case ACTION_CLIENT_PIN:
+        case ACTION_CLIENT_UNPIN:
         case ACTION_CLIENT_FULLSCREEN:
         case ACTION_CLIENT_UNFULLSCREEN:
         case ACTION_CLIENT_RAISE:
@@ -484,7 +484,7 @@ static void s_cb_decorate(xcb_connection_t *connection,
         if (client_is_shaded(s_target_client)) {
             ccmd_client_unshade(s_target_client);
         }
-        enact_client_toggle_decoration(s_target_client);
+        enact_client_toggle_decorate(s_target_client);
     }
 }
 
@@ -530,7 +530,7 @@ static int s_build_desk_entries(surface_td *surface,
     bool is_cur;
     bool is_sticky;
 
-    is_sticky = (client->properties.flags & CLIENT_FLAG_STICKY) != 0u;
+    is_sticky = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
 
     for (uint32_t d_idx = 0; d_idx < surface->desktop_count &&
             n < WINCMENU_MAX_DESKTOPS; ++d_idx) {
@@ -595,7 +595,7 @@ static int s_build_desk_entries(surface_td *surface,
     s_desk_entries[n].is_disabled = false/*is_sticky*/;
     s_desk_entries[n].on_activate = s_cb_send_action;
     s_desk_entries[n].userdata =
-        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY;
+        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_PIN;
     ++n;
 
     return n;

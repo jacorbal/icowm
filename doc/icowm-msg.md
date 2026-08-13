@@ -104,11 +104,23 @@ exit status alone, without parsing the response at all.
 |---------------|--------------|
 | `-h`          | Show usage, a few examples, and this same option list, then exit |
 | `-v`          | Show `icowm-msg`'s own name, IcoWM's own short name and version, its license, its copyright line, and its author, then exit |
+| `-L`          | List every command name this build knows about, one per line, then exit; see its own note below on how this list is kept |
 | `-w <events>` | Subscribe instead of sending a command; see section 9 |
 | `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see section 9); rejected as an error on its own |
 
-`-h` and `-v` both exit `0`. Any other option is rejected: usage is
-printed to `stderr` and `icowm-msg` exits `2`.
+`-h`, `-v`, and `-L` all exit `0`. Any other option is rejected: usage
+is printed to `stderr` and `icowm-msg` exits `2`.
+
+`-L`'s own list is a plain, hand-maintained snapshot of the server's
+own command table, kept here so it works offline the same way `-h`
+and `-v` already do, rather than needing a running IcoWM to query.
+That means it can, in principle, drift out of sync with the server's
+own table over time. It is used only to answer `-L`'s own question,
+never to locally validate or reject a command before sending it: an
+ordinary command still reaches the server exactly as documented
+throughout the rest of this file, unfiltered, so a stale `-L` listing
+here only makes its own output incomplete, never breaks a command the
+server itself would otherwise accept.
 
 ## 6. Examples
 
@@ -208,21 +220,21 @@ out of this catalog, is in [`manual.md`](manual.md) section 5.3.
 | `deiconify_client`         | `client_id`                                | Restores the client if it was iconified |
 | `hide_client`              | `client_id`                                | Hides the client without iconifying it |
 | `unhide_client`            | `client_id`                                | Undoes `hide_client` |
-| `sticky_client`            | `client_id`                                | Makes the client visible on every desktop |
-| `unsticky_client`          | `client_id`                                | Undoes `sticky_client` |
-| `toggle_sticky_client`     | `client_id`                                | Toggles `sticky_client`/`unsticky_client` |
-| `set_urgent_client`        | `client_id`                                | Marks the client urgent |
-| `clear_urgent_client`      | `client_id`                                | Undoes `set_urgent_client` |
+| `pin_client`               | `client_id`                                | Makes the client visible on every desktop |
+| `unpin_client`             | `client_id`                                | Undoes `pin_client` |
+| `toggle_pin_client`        | `client_id`                                | Toggles `pin_client`/`unpin_client` |
+| `urge_client`              | `client_id`                                | Marks the client urgent |
+| `unurge_client`            | `client_id`                                | Undoes `urge_client` |
 | `center_client`            | `client_id`                                | Centers the client on its own screen |
-| `move_client_next_monitor` | `client_id`                                | Moves the client to the next physical monitor |
+| `move_client_to_next_monitor` | `client_id`                             | Moves the client to the next physical monitor |
 | `maximize_client_horz`     | `client_id`                                | Maximizes the client horizontally only |
 | `maximize_client_vert`     | `client_id`                                | Maximizes the client vertically only |
 | `maximize_client`          | `client_id`                                | Maximizes the client both horizontally and vertically |
 | `raise_client`             | `client_id`                                | Raises the client within its own layer |
 | `lower_client`             | `client_id`                                | Lowers the client within its own layer |
-| `layer_above_client`       | `client_id`                                | Moves the client to the "always on top" layer |
-| `layer_normal_client`      | `client_id`                                | Moves the client back to the ordinary layer |
-| `layer_below_client`       | `client_id`                                | Moves the client to the "always below" layer |
+| `set_layer_above_client`   | `client_id`                                | Moves the client to the "always on top" layer |
+| `set_layer_normal_client`  | `client_id`                                | Moves the client back to the ordinary layer |
+| `set_layer_below_client`   | `client_id`                                | Moves the client to the "always below" layer |
 | `cycle_layer_client`       | `client_id`                                | Cycles the client through above, normal, and below |
 | `shade_client`             | `client_id`                                | Rolls the client up into just its own titlebar |
 | `unshade_client`           | `client_id`                                | Undoes `shade_client` |
@@ -230,7 +242,7 @@ out of this catalog, is in [`manual.md`](manual.md) section 5.3.
 | `fullscreen_client`        | `client_id`                                | Makes the client fill its own screen |
 | `unfullscreen_client`      | `client_id`                                | Undoes `fullscreen_client` |
 | `toggle_fullscreen_client` | `client_id`                                | Toggles `fullscreen_client`/`unfullscreen_client` |
-| `toggle_decoration_client` | `client_id`                                | Shows or hides the client's own titlebar and border |
+| `toggle_decorate_client`   | `client_id`                                | Shows or hides the client's own titlebar and border |
 | `send_client_to_front`     | `client_id`                                | Raises the client to the front of its own desktop's window stack |
 | `send_client_to_back`      | `client_id`                                | Sends the client to the back of its own desktop's window stack |
 | `move_client`              | `client_id`, `x`, `y`                      | Moves the client so its own top-left corner is at that position |
@@ -245,11 +257,11 @@ out of this catalog, is in [`manual.md`](manual.md) section 5.3.
 | `send_client_to_desktop`   | `client_id`, `target_desktop_id`           | Moves the client to another desktop on the same surface |
 | `iconify_all`              | `desktop_id`?, `surface_id`?               | Iconifies every client on that desktop at once |
 | `deiconify_all`            | `desktop_id`?, `surface_id`?               | Restores every iconified client on that desktop at once |
-| `rearrange`                | `desktop_id`?, `surface_id`?               | Re-applies the configured placement policy on that desktop |
+| `rearrange_desktop`        | `desktop_id`?, `surface_id`?               | Re-applies the configured placement policy on that desktop |
 | `goto_desktop`             | `desktop_id`, `surface_id`?                | Switches the resolved surface to that desktop |
-| `next_desktop`             | `surface_id`?                              | Switches the resolved surface to its own next desktop |
-| `prev_desktop`             | `surface_id`?                              | Switches the resolved surface to its own previous desktop |
-| `wm_exit`                  | none                                       | Requests that IcoWM stop and exit |
+| `goto_next_desktop`        | `surface_id`?                              | Switches the resolved surface to its own next desktop |
+| `goto_prev_desktop`        | `surface_id`?                              | Switches the resolved surface to its own previous desktop |
+| `exit_wm`                  | none                                       | Requests that IcoWM stop and exit |
 | `reload_config`            | none                                       | Reloads every configuration file |
 
 ## 9. Watching for events
@@ -281,7 +293,7 @@ rejected as an error, since it has nothing to count events for.
 | `desktop_switched` | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
 | `focus_changed`    | `surface_id`, `client_id`: that client just became the active one on its own surface |
 | `urgency_set`      | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
-| `urgency_unset`    | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
+| `urgency_cleared`  | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
 | `window_moved`     | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
 | `window_resized`   | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
 | `rule_applied`     | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |

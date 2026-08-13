@@ -376,21 +376,21 @@ responds with a bare `{"ok": true}` on success.
 | `deiconify_client`         | Restores the client if it was iconified |
 | `hide_client`              | Hides the client without iconifying it |
 | `unhide_client`            | Undoes `hide_client` |
-| `sticky_client`            | Makes the client visible on every desktop of its own surface |
-| `unsticky_client`          | Undoes `sticky_client` |
-| `toggle_sticky_client`     | Toggles between `sticky_client` and `unsticky_client` |
-| `set_urgent_client`        | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation) |
-| `clear_urgent_client`      | Undoes `set_urgent_client` |
+| `pin_client`               | Makes the client visible on every desktop of its own surface |
+| `unpin_client`             | Undoes `pin_client` |
+| `toggle_pin_client`        | Toggles between `pin_client` and `unpin_client` |
+| `urge_client`              | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation) |
+| `unurge_client`            | Undoes `urge_client` |
 | `center_client`            | Centers the client on its own current screen |
-| `move_client_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner |
+| `move_client_to_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner |
 | `maximize_client_horz`     | Maximizes the client horizontally only |
 | `maximize_client_vert`     | Maximizes the client vertically only |
 | `maximize_client`          | Maximizes the client both horizontally and vertically |
 | `raise_client`             | Raises the client to the front of its own current layer |
 | `lower_client`             | Lowers the client to the back of its own current layer |
-| `layer_above_client`       | Moves the client to the "always on top" layer |
-| `layer_normal_client`      | Moves the client back to the ordinary layer |
-| `layer_below_client`       | Moves the client to the "always below" layer |
+| `set_layer_above_client`   | Moves the client to the "always on top" layer |
+| `set_layer_normal_client`  | Moves the client back to the ordinary layer |
+| `set_layer_below_client`   | Moves the client to the "always below" layer |
 | `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order |
 | `shade_client`             | Rolls the client up into just its own titlebar |
 | `unshade_client`           | Undoes `shade_client` |
@@ -398,7 +398,7 @@ responds with a bare `{"ok": true}` on success.
 | `fullscreen_client`        | Makes the client fill its own screen, without any decoration |
 | `unfullscreen_client`      | Undoes `fullscreen_client` |
 | `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client` |
-| `toggle_decoration_client` | Shows or hides the client's own titlebar and border |
+| `toggle_decorate_client`   | Shows or hides the client's own titlebar and border |
 | `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer |
 | `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer |
 
@@ -408,7 +408,7 @@ responds with a bare `{"ok": true}` on success.
 |--------------------------|-----------|--------------|
 | `move_client`            | `client_id`, `x`, `y` (both signed) | Moves the client so its own top-left corner is at that position |
 | `resize_client`          | `client_id`, `x`, `y` (both signed), `w`, `h` (both unsigned) | Moves and resizes the client in one step, to that top-left corner and that size |
-| `move_client_to_monitor` | `client_id`, `monitor_index` | Moves the client to that physical monitor, the same as `move_client_next_monitor` but to a specific one rather than the next one |
+| `move_client_to_monitor` | `client_id`, `monitor_index` | Moves the client to that physical monitor, the same as `move_client_to_next_monitor` but to a specific one rather than the next one |
 | `rename_client`          | `client_id`, `name` | Overrides the client's own window title as IcoWM displays it |
 | `reclass_client`         | `client_id`, `class_name`, `instance_name` | Overrides the client's own ICCCM `WM_CLASS` (both its class and instance name), which theme rules and other IcoWM behavior that matches on window class use |
 | `rerole_client`          | `client_id`, `role` | Overrides the client's own window role |
@@ -423,21 +423,21 @@ responds with a bare `{"ok": true}` on success.
 | `send_client_to_desktop` | `client_id`, `target_desktop_id` (on the client's own current surface) | Moves the client to another desktop on the same surface |
 | `iconify_all`            | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Iconifies every client on that desktop at once |
 | `deiconify_all`          | Same arguments as `iconify_all` | Restores every iconified client on that desktop at once |
-| `rearrange`              | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
+| `rearrange_desktop`      | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
 
 #### 5.3.5 Surface actions
 
 | Command        | Arguments                                        | What it does |
 |----------------|--------------------------------------------------|--------------|
 | `goto_desktop` | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
-| `next_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own next desktop, wrapping around after the last one |
-| `prev_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
+| `goto_next_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own next desktop, wrapping around after the last one |
+| `goto_prev_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
 
 #### 5.3.6 Whole window manager
 
 | Command         | Arguments | What it does |
 |-----------------|-----------|--------------|
-| `wm_exit`       | none      | Requests that IcoWM stop and exit, the same as its own quit shortcut |
+| `exit_wm`       | none      | Requests that IcoWM stop and exit, the same as its own quit shortcut |
 | `reload_config` | none      | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
 
 ### 5.4 The `icowm-msg` tool
@@ -520,7 +520,7 @@ Every event type:
 | `desktop_switched` | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
 | `focus_changed`    | `surface_id`, `client_id`: that client just became the active one on its own surface |
 | `urgency_set`      | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
-| `urgency_unset`    | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
+| `urgency_cleared`  | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
 | `window_moved`     | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
 | `window_resized`   | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
 | `rule_applied`     | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |

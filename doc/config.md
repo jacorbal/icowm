@@ -1869,7 +1869,7 @@ repeating the same `apply` block for each of them:
         "type": "normal"
     },
     "apply": {
-        "sticky": true,
+        "pinned": true,
         "decorated": false,
         "layer": "below"
     }
@@ -1902,7 +1902,7 @@ matching rule for each property are applied.
 | `apply.monitor`     | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
 | `apply.layer`       | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
 | `apply.focus`       | boolean              | unset   | Whether the matched window should receive focus. |
-| `apply.sticky`      | boolean              | unset   | Whether the window should be visible on all desktops. |
+| `apply.pinned`      | boolean              | unset   | Whether the window should be visible on all desktops. |
 | `apply.decorated`   | boolean              | unset   | Whether the window should keep its decorations. |
 | `apply.position`    | object or `"center"` | unset   | Where to place the window; see below. |
 | `apply.position.x`  | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
@@ -2589,7 +2589,7 @@ the keyboard `exit` binding.
                 "type": "normal"
         },
         "apply": {
-            "sticky": true,
+            "pinned": true,
             "decorated": false,
             "layer": "below",
             "position": {
@@ -2618,7 +2618,7 @@ This example shows three complete rules:
   console"`, then moves it to desktop of index `2`, focuses it, and
   raises it to the `"above"` layer.
 - a `"map"` rule for the program name `"\*Sonata"` that applies once
-  when the window is first managed, keeping it sticky, undecorated, in
+  when the window is first managed, keeping it pinned, undecorated, in
   the `"below"` layer, and positioned at the top-right corner using
   a fixed geometry.
 - a `"map"` rule for the program name `"gmrun"` that applies once when

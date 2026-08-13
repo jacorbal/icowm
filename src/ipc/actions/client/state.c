@@ -72,7 +72,7 @@ static void s_toggle_decoration(wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_toggle_decoration(client);
+    enact_client_toggle_decorate(client);
 }
 
 
@@ -106,7 +106,7 @@ cJSON *ipc_action_toggle_fullscreen_client(wm_td *wm, const cJSON *args)
     return ipc_dispatch_client_action(wm, args, s_toggle_fullscreen);
 }
 
-cJSON *ipc_action_toggle_decoration_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_decorate_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_toggle_decoration);
 }

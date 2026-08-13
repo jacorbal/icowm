@@ -227,7 +227,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
  * otherwise.  The result is written into @p buf.
  *
  * @c CLIENT_FLAG_HIDDEN is set for both an iconified and a genuinely
- * hidden client (see @c client_set_hidden, called from both paths),
+ * hidden client (see @c client_hide, called from both paths),
  * so the more specific iconified state has to be checked first; the
  * hidden flag is only checked once iconified has already been ruled
  * out.
@@ -453,7 +453,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
             if (client == NULL ||
                     (client->properties.flags &
                         CLIENT_FLAG_SKIP_TASKBAR) ||
-                    (!client_is_sticky(client) &&
+                    (!client_is_pinned(client) &&
                         client->desktop_id != did)) {
                 continue;
             }
@@ -470,7 +470,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                 if (home_desktop != NULL && home_desktop != desktop &&
                         home_desktop->clients != NULL) {
                     ohtbl_foreach(home_desktop->clients, client) {
-                        if (client == NULL || !client_is_sticky(client) ||
+                        if (client == NULL || !client_is_pinned(client) ||
                                 (client->properties.flags &
                                     CLIENT_FLAG_SKIP_TASKBAR)) {
                             continue;

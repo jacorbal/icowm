@@ -202,7 +202,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
                 /* Publish '_NET_WM_DESKTOP' so taskbars and pagers can
                  * associate each window with the correct desktop */
-                did_prop = (client->properties.flags & CLIENT_FLAG_STICKY)
+                did_prop = (client->properties.flags & CLIENT_FLAG_PIN)
                     ? WM_DESKTOP_ID_ALL : desktop->id;
                 xcb_change_property(surface->connection,
                         XCB_PROP_MODE_REPLACE,
@@ -620,7 +620,7 @@ static void s_wm_ping_client(client_td *client,
             client->last_ping_reply != client->last_ping_sent &&
             now >= client->last_ping_sent &&
             now - client->last_ping_sent >= timeout) {
-        client_set_unresponsive(client);
+        client_mark_unresponsive(client);
     }
 
     if (client->last_ping_sent != 0u &&

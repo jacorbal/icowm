@@ -270,7 +270,7 @@ void cycle_init(list_td *surfaces,
                      *  - normal ->  "name"
                      * 'CLIENT_FLAG_HIDDEN' is set for BOTH an
                      * iconified and a genuinely hidden client (see
-                     * 'client_set_hidden', called from both paths), so
+                     * 'client_hide', called from both paths), so
                      * the more specific iconified state has to be
                      * checked first; the hidden flag is only checked
                      * once iconified has already been ruled out. */

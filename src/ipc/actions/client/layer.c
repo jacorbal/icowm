@@ -79,17 +79,17 @@ cJSON *ipc_action_lower_client(wm_td *wm, const cJSON *args)
     return ipc_dispatch_client_action(wm, args, s_lower);
 }
 
-cJSON *ipc_action_layer_above_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_above_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_above);
 }
 
-cJSON *ipc_action_layer_normal_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_normal_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_normal);
 }
 
-cJSON *ipc_action_layer_below_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_below_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_below);
 }

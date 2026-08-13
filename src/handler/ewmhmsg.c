@@ -205,10 +205,10 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_sticky) {
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
-                        CLIENT_FLAG_STICKY) != 0u)) {
-            ccmd_client_sticky(client);
+                        CLIENT_FLAG_PIN) != 0u)) {
+            ccmd_client_pin(client);
         } else {
-            ccmd_client_unsticky(client);
+            ccmd_client_unpin(client);
         }
         return;
     }
@@ -239,9 +239,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_URGENT) != 0u)) {
-            ccmd_client_set_urgent(client);
+            ccmd_client_urge(client);
         } else {
-            ccmd_client_clear_urgent(client);
+            ccmd_client_unurge(client);
         }
         return;
     }
@@ -250,9 +250,9 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_SKIP_TASKBAR) != 0u)) {
-            client_set_skip_taskbar(client);
+            client_skip_taskbar(client);
         } else {
-            client_unset_skip_taskbar(client);
+            client_unskip_taskbar(client);
         }
         return;
     }
@@ -261,19 +261,19 @@ static void s_handle_wm_state_atom(client_td *client,
         if (s_wm_state_resolve_add(action,
                     (client->properties.flags &
                         CLIENT_FLAG_SKIP_PAGER) != 0u)) {
-            client_set_skip_pager(client);
+            client_skip_pager(client);
         } else {
-            client_unset_skip_pager(client);
+            client_unskip_pager(client);
         }
         return;
     }
 
     if (is_modal) {
         if (s_wm_state_resolve_add(action, client_is_modal(client))) {
-            client_set_modal(client);
+            client_mark_modal(client);
             ccmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
         } else {
-            client_unset_modal(client);
+            client_unmark_modal(client);
             ccmd_rem_states(client, 1, "_NET_WM_STATE_MODAL");
         }
         return;
@@ -555,7 +555,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                     (client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
-                client_unset_hidden(client);
+                client_unhide(client);
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL,
                         XCB_NONE);
@@ -582,7 +582,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                     !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
-                client_set_hidden(client);
+                client_hide(client);
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
                         XCB_NONE);

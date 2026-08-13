@@ -323,7 +323,7 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
     { "desktop_switched", IPC_EVENT_DESKTOP_SWITCHED },
     { "focus_changed",    IPC_EVENT_FOCUS_CHANGED },
     { "urgency_set",      IPC_EVENT_URGENCY_SET },
-    { "urgency_unset",    IPC_EVENT_URGENCY_UNSET },
+    { "urgency_cleared",  IPC_EVENT_URGENCY_CLEARED },
     { "window_moved",     IPC_EVENT_WINDOW_MOVED },
     { "window_resized",   IPC_EVENT_WINDOW_RESIZED },
     { "rule_applied",     IPC_EVENT_RULE_APPLIED },

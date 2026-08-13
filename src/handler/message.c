@@ -192,7 +192,7 @@ void handler_client_message(wm_td *wm,
              * non-sticky clients on a different desktop, the
              * traditional behavior of switching to that desktop is
              * preserved. */
-            if (!(client->properties.flags & CLIENT_FLAG_STICKY) &&
+            if (!(client->properties.flags & CLIENT_FLAG_PIN) &&
                     surface->desktop_cur != desktop->id) {
                 if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
                     desktop_td *cur_desktop;
@@ -220,7 +220,7 @@ void handler_client_message(wm_td *wm,
 
             if (client->properties.state ==
                     (uint16_t) CLIENT_STATE_ICONIFIED) {
-                if (!(client->properties.flags & CLIENT_FLAG_STICKY) &&
+                if (!(client->properties.flags & CLIENT_FLAG_PIN) &&
                         surface != NULL && desktop != NULL &&
                         surface->desktop_cur != desktop->id) {
                     desktop_td *cur_desktop =
@@ -335,7 +335,7 @@ void handler_client_message(wm_td *wm,
                 &surface, &desktop);
         if (client != NULL) {
             client->last_ping_reply = event->data.data32[1];
-            client_unset_unresponsive(client);
+            client_mark_responsive(client);
             wm_outdate_surface(surface);
             wm_outdate_desktop(desktop);
         }

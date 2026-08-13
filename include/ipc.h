@@ -51,7 +51,7 @@ enum ipc_event_type_e {
                                                    changed */
     IPC_EVENT_URGENCY_SET      = (1u << 4),  /**< A client's urgency
                                                    hint was set */
-    IPC_EVENT_URGENCY_UNSET    = (1u << 5),  /**< A client's urgency
+    IPC_EVENT_URGENCY_CLEARED  = (1u << 5),  /**< A client's urgency
                                                    hint was cleared */
     IPC_EVENT_WINDOW_MOVED     = (1u << 6),  /**< A client's own
                                                    position changed */

@@ -122,7 +122,7 @@ void lifecycle_scan_existing(wm_td *wm)
                         if (wm->ewmh != NULL) {
                             uint32_t did =
                                 (client->properties.flags &
-                                 CLIENT_FLAG_STICKY)
+                                 CLIENT_FLAG_PIN)
                                 ? WM_DESKTOP_ID_ALL : desktop->id;
                             xcb_change_property(wm->connection,
                                     XCB_PROP_MODE_REPLACE,

@@ -56,20 +56,20 @@ cJSON *ipc_action_hide_client(wm_td *wm, const cJSON *args);
 /** "unhide_client": undo "hide_client" */
 cJSON *ipc_action_unhide_client(wm_td *wm, const cJSON *args);
 
-/** "sticky_client": make the client visible on every desktop */
-cJSON *ipc_action_sticky_client(wm_td *wm, const cJSON *args);
+/** "pin_client": make the client visible on every desktop */
+cJSON *ipc_action_pin_client(wm_td *wm, const cJSON *args);
 
-/** "unsticky_client": undo "sticky_client" */
-cJSON *ipc_action_unsticky_client(wm_td *wm, const cJSON *args);
+/** "unpin_client": undo "pin_client" */
+cJSON *ipc_action_unpin_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_sticky_client" */
-cJSON *ipc_action_toggle_sticky_client(wm_td *wm, const cJSON *args);
+/** "toggle_pin_client" */
+cJSON *ipc_action_toggle_pin_client(wm_td *wm, const cJSON *args);
 
-/** "set_urgent_client": mark the client urgent */
-cJSON *ipc_action_set_urgent_client(wm_td *wm, const cJSON *args);
+/** "urge_client": mark the client urgent */
+cJSON *ipc_action_urge_client(wm_td *wm, const cJSON *args);
 
-/** "clear_urgent_client": undo "set_urgent_client" */
-cJSON *ipc_action_clear_urgent_client(wm_td *wm, const cJSON *args);
+/** "unurge_client": undo "urge_client" */
+cJSON *ipc_action_unurge_client(wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_BASIC_H */

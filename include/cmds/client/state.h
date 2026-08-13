@@ -116,7 +116,7 @@ void ccmd_client_toggle_fullscreen(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_toggle_decoration(client_td *client);
+void ccmd_client_toggle_decorate(client_td *client);
 
 
 #endif  /* ! CMDS_CCMD_STATE_H */

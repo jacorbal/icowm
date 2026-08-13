@@ -279,7 +279,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                             " window=0x%x; toggling decoration to" \
                             " decorated=%d", client->window,
                             (int) wants_decorated);
-                    ccmd_client_toggle_decoration(client);
+                    ccmd_client_toggle_decorate(client);
                 }
             }
             free(motif_r);

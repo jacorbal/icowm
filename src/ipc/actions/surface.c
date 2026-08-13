@@ -46,7 +46,7 @@ cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_next_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args)
 {
     surface_td *surface = ipc_resolve_surface(wm, args);
 
@@ -59,7 +59,7 @@ cJSON *ipc_action_next_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_prev_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args)
 {
     surface_td *surface = ipc_resolve_surface(wm, args);
 

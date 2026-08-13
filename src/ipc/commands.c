@@ -72,7 +72,14 @@ struct s_ipc_cmd_def_s {
 
 
 /** The dispatch table itself, grouped by the same categories as
- *  ipc/actions/ itself */
+ *  ipc/actions/ itself
+ *
+ * @note 'tools/icowm-msg.c' keeps its own hand-maintained snapshot of
+ *       every command name here, 's_known_commands', used only for
+ *       its own offline '-L' listing (see that array's own doc
+ *       comment for why it is not simply queried live instead).
+ *       Adding or removing an entry here means updating that array
+ *       to match. */
 static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Queries: ipc/actions/query.h */
     { "get_version",              ipc_action_get_version },
@@ -89,17 +96,17 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "iconify_client",           ipc_action_iconify_client },
     { "hide_client",              ipc_action_hide_client },
     { "unhide_client",            ipc_action_unhide_client },
-    { "sticky_client",            ipc_action_sticky_client },
-    { "unsticky_client",          ipc_action_unsticky_client },
-    { "toggle_sticky_client",     ipc_action_toggle_sticky_client },
-    { "set_urgent_client",        ipc_action_set_urgent_client },
-    { "clear_urgent_client",      ipc_action_clear_urgent_client },
+    { "pin_client",               ipc_action_pin_client },
+    { "unpin_client",             ipc_action_unpin_client },
+    { "toggle_pin_client",        ipc_action_toggle_pin_client },
+    { "urge_client",             ipc_action_urge_client },
+    { "unurge_client",           ipc_action_unurge_client },
 
     /* Client geometry: ipc/actions/client/geom.h */
     { "move_client",              ipc_action_move_client },
     { "center_client",            ipc_action_center_client },
     { "move_client_to_monitor",   ipc_action_move_client_to_monitor },
-    { "move_client_next_monitor", ipc_action_move_client_next_monitor },
+    { "move_client_to_next_monitor", ipc_action_move_client_to_next_monitor },
     { "resize_client",            ipc_action_resize_client },
     { "maximize_client_horz",     ipc_action_maximize_client_horz },
     { "maximize_client_vert",     ipc_action_maximize_client_vert },
@@ -108,9 +115,9 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Client layering: ipc/actions/client/layer.h */
     { "raise_client",             ipc_action_raise_client },
     { "lower_client",             ipc_action_lower_client },
-    { "layer_above_client",       ipc_action_layer_above_client },
-    { "layer_normal_client",      ipc_action_layer_normal_client },
-    { "layer_below_client",       ipc_action_layer_below_client },
+    { "set_layer_above_client",   ipc_action_set_layer_above_client },
+    { "set_layer_normal_client",  ipc_action_set_layer_normal_client },
+    { "set_layer_below_client",   ipc_action_set_layer_below_client },
     { "cycle_layer_client",       ipc_action_cycle_layer_client },
 
     /* Client metadata: ipc/actions/client/meta.h */
@@ -126,7 +133,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "fullscreen_client",        ipc_action_fullscreen_client },
     { "unfullscreen_client",      ipc_action_unfullscreen_client },
     { "toggle_fullscreen_client", ipc_action_toggle_fullscreen_client },
-    { "toggle_decoration_client", ipc_action_toggle_decoration_client },
+    { "toggle_decorate_client",   ipc_action_toggle_decorate_client },
 
     /* Desktop-scoped: ipc/actions/desktop.h */
     { "set_desktop_background",   ipc_action_set_desktop_background },
@@ -136,15 +143,15 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "send_client_to_back",      ipc_action_send_client_to_back },
     { "iconify_all",              ipc_action_iconify_all },
     { "deiconify_all",            ipc_action_deiconify_all },
-    { "rearrange",                ipc_action_rearrange },
+    { "rearrange_desktop",        ipc_action_rearrange },
 
     /* Surface (desktop switching): ipc/actions/surface.h */
     { "goto_desktop",             ipc_action_goto_desktop },
-    { "next_desktop",             ipc_action_next_desktop },
-    { "prev_desktop",             ipc_action_prev_desktop },
+    { "goto_next_desktop",        ipc_action_goto_next_desktop },
+    { "goto_prev_desktop",        ipc_action_goto_prev_desktop },
 
     /* Whole window manager: ipc/actions/wm.h */
-    { "wm_exit",                  ipc_action_wm_exit },
+    { "exit_wm",                  ipc_action_exit_wm },
     { "reload_config",            ipc_action_reload_config },
 };
 

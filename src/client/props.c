@@ -337,9 +337,9 @@ void client_props_refresh_wm_hints(client_td *client)
     }
 
     if (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
-        ccmd_client_set_urgent(client);
+        ccmd_client_urge(client);
     } else {
-        ccmd_client_clear_urgent(client);
+        ccmd_client_unurge(client);
     }
 }
 
@@ -399,7 +399,7 @@ void client_props_refresh_normal_hints(client_td *client)
         bool fixed_h = (hints.min_height > 0 &&
                 hints.min_height == hints.max_height);
         if (fixed_w || fixed_h) {
-            client_unset_resizable(client);
+            client_forbid_resize(client);
         }
     }
 }

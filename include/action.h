@@ -48,9 +48,9 @@ enum action_client_e {
     ACTION_CLIENT_SHADE,                /**< Shade (roll-up) the window */
     ACTION_CLIENT_UNSHADE,              /**< Unshade (roll-down) the window */
     ACTION_CLIENT_TOGGLE_SHADE,         /**< Toggle window shade status */
-    ACTION_CLIENT_STICKY,               /**< Set window sticky mode */
-    ACTION_CLIENT_UNSTICKY,             /**< Remove window sticky mode */
-    ACTION_CLIENT_TOGGLE_STICKY,        /**< Toggle window sticky mode */
+    ACTION_CLIENT_PIN,                  /**< Set window pin mode */
+    ACTION_CLIENT_UNPIN,                /**< Remove window pin mode */
+    ACTION_CLIENT_TOGGLE_PIN,           /**< Toggle window pin mode */
     ACTION_CLIENT_FULLSCREEN,           /**< Set full screen mode */
     ACTION_CLIENT_UNFULLSCREEN,         /**< Remove full screen mode */
     ACTION_CLIENT_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */

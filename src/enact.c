@@ -309,30 +309,30 @@ void enact_client_toggle_shade(client_td *client)
 }
 
 
-/* Set the client's sticky mode */
-void enact_client_sticky(client_td *client)
+/* Set the client's pin mode */
+void enact_client_pin(client_td *client)
 {
-    ccmd_client_sticky(client);
+    ccmd_client_pin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }
 }
 
 
-/* Remove the client's sticky mode */
-void enact_client_unsticky(client_td *client)
+/* Remove the client's pin mode */
+void enact_client_unpin(client_td *client)
 {
-    ccmd_client_unsticky(client);
+    ccmd_client_unpin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }
 }
 
 
-/* Toggle the client's sticky mode */
-void enact_client_toggle_sticky(client_td *client)
+/* Toggle the client's pin mode */
+void enact_client_toggle_pin(client_td *client)
 {
-    ccmd_client_toggle_sticky(client);
+    ccmd_client_toggle_pin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }
@@ -430,9 +430,9 @@ void enact_client_cycle_layer(client_td *client)
 
 
 /* Mark the client as urgent */
-void enact_client_set_urgent(client_td *client)
+void enact_client_urge(client_td *client)
 {
-    ccmd_client_set_urgent(client);
+    ccmd_client_urge(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }
@@ -440,9 +440,9 @@ void enact_client_set_urgent(client_td *client)
 
 
 /* Clear the client's urgency level */
-void enact_client_clear_urgent(client_td *client)
+void enact_client_unurge(client_td *client)
 {
-    ccmd_client_clear_urgent(client);
+    ccmd_client_unurge(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }
@@ -460,9 +460,9 @@ void enact_client_set_icon(client_td *client, const char *icon_name)
 
 
 /* Toggle the client's decoration */
-void enact_client_toggle_decoration(client_td *client)
+void enact_client_toggle_decorate(client_td *client)
 {
-    ccmd_client_toggle_decoration(client);
+    ccmd_client_toggle_decorate(client);
     if (client != NULL) {
         xcb_flush(client->connection);
     }

@@ -76,11 +76,11 @@ static int s_desktop_set_clients_enabled(desktop_td *desktop,
     ohtbl_foreach(desktop->clients, elem) {
         client_td *client = (client_td *) elem;
         if (enabled) {
-            client_unset_disable(client);
-            client_set_focusable(client);
+            client_enable(client);
+            client_allow_focus(client);
         } else {
-            client_set_disable(client);
-            client_unset_focusable(client);
+            client_disable(client);
+            client_forbid_focus(client);
         }
     }
 

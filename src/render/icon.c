@@ -318,7 +318,7 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
     }
 
     if (theme->icon.show_hints &&
-            (client->properties.flags & CLIENT_FLAG_STICKY) != 0u) {
+            (client->properties.flags & CLIENT_FLAG_PIN) != 0u) {
         xcb_gcontext_t gc = xcb_generate_id(connection);
         uint32_t color = theme->window.titlebar.buttons.color.on;
 

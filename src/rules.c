@@ -225,10 +225,10 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             rule->apply.focus = cJSON_IsTrue(item);
         }
 
-        item = json_get_item(apply_json, "sticky");
+        item = json_get_item(apply_json, "pinned");
         if (cJSON_IsBool(item)) {
             rule->apply.has_sticky = true;
-            rule->apply.sticky = cJSON_IsTrue(item);
+            rule->apply.pinned = cJSON_IsTrue(item);
         }
 
         item = json_get_item(apply_json, "decorated");

@@ -86,35 +86,35 @@ static void s_sticky(wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_sticky(client);
+    enact_client_pin(client);
 }
 
 static void s_unsticky(wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_unsticky(client);
+    enact_client_unpin(client);
 }
 
 static void s_toggle_sticky(wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_toggle_sticky(client);
+    enact_client_toggle_pin(client);
 }
 
 static void s_set_urgent(wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_set_urgent(client);
+    enact_client_urge(client);
 }
 
 static void s_clear_urgent(wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_clear_urgent(client);
+    enact_client_unurge(client);
 }
 
 
@@ -158,27 +158,27 @@ cJSON *ipc_action_unhide_client(wm_td *wm, const cJSON *args)
     return ipc_dispatch_client_action(wm, args, s_unhide);
 }
 
-cJSON *ipc_action_sticky_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_pin_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_sticky);
 }
 
-cJSON *ipc_action_unsticky_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_unpin_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_unsticky);
 }
 
-cJSON *ipc_action_toggle_sticky_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_pin_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_toggle_sticky);
 }
 
-cJSON *ipc_action_set_urgent_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_urge_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_set_urgent);
 }
 
-cJSON *ipc_action_clear_urgent_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_unurge_client(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_clear_urgent);
 }

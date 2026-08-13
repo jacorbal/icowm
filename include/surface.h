@@ -573,7 +573,7 @@ int surface_action_configure_settings(surface_td *surface);
  *
  * Iterates the stacking list of the specified desktop and calls
  * @c xcb_unmap_window for each client that does not have the
- * @c CLIENT_FLAG_STICKY flag set.  Used when switching away from a
+ * @c CLIENT_FLAG_PIN flag set.  Used when switching away from a
  * desktop to hide its windows.
  *
  * @param surface    Pointer to the surface that owns the desktop
@@ -605,7 +605,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id);
  * @brief Move all sticky clients from every other desktop to @p to_id
  *
  * Iterates all desktops on the surface and relocates any client that
- * carries the @c CLIENT_FLAG_STICKY flag to the desktop identified by
+ * carries the @c CLIENT_FLAG_PIN flag to the desktop identified by
  * @p to_id.  Called during desktop switches so that pinned windows are
  * present in the new desktop's stacking list and therefore respond to
  * keyboard shortcuts and focus management on the destination desktop.

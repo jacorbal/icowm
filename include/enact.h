@@ -259,31 +259,31 @@ void enact_client_unshade(client_td *client);
 void enact_client_toggle_shade(client_td *client);
 
 /**
- * @brief Set the client's sticky mode
+ * @brief Set the client's pin mode
  *
- * @param client Client to set sticky
+ * @param client Client to pin
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_sticky(client_td *client);
+void enact_client_pin(client_td *client);
 
 /**
- * @brief Remove the client's sticky mode
+ * @brief Remove the client's pin mode
  *
  * @param client Client to unstick
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_unsticky(client_td *client);
+void enact_client_unpin(client_td *client);
 
 /**
- * @brief Toggle the client's sticky mode
+ * @brief Toggle the client's pin mode
  *
  * @param client Client to toggle
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_toggle_sticky(client_td *client);
+void enact_client_toggle_pin(client_td *client);
 
 /**
  * @brief Set the client to full screen mode
@@ -373,7 +373,7 @@ void enact_client_cycle_layer(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_set_urgent(client_td *client);
+void enact_client_urge(client_td *client);
 
 /**
  * @brief Clear the client's urgency level
@@ -382,7 +382,7 @@ void enact_client_set_urgent(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_clear_urgent(client_td *client);
+void enact_client_unurge(client_td *client);
 
 /**
  * @brief Set the client's icon name
@@ -401,7 +401,7 @@ void enact_client_set_icon(client_td *client, const char *icon_name);
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_toggle_decoration(client_td *client);
+void enact_client_toggle_decorate(client_td *client);
 
 
 /* == action_desktop_e == */

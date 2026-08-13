@@ -244,7 +244,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     /* Advertise the desktop this client belongs to per EWMH */
     if (wm->ewmh != NULL) {
-        uint32_t did = (client->properties.flags & CLIENT_FLAG_STICKY)
+        uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
             ? WM_DESKTOP_ID_ALL : desktop->id;
 
         xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
@@ -284,7 +284,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
             xcb_map_window(wm->connection, event->window);
         }
 
-        client_unset_hidden(client);
+        client_unhide(client);
 
         if (wm->config->base.windows.focus.is_new_focused &&
                 client_is_focusable(client)) {
@@ -383,7 +383,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * a system tray), unmap every WM-created decoration and mark
          * the client hidden so later render passes never remap the
          * ghost frame */
-        client_set_hidden(client);
+        client_hide(client);
         if (client->frame != 0) {
             client->ignore_unmap++;
             xcb_unmap_window(client->connection, client->frame);

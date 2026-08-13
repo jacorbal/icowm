@@ -389,7 +389,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
             client->group_leader = wm_hints.window_group;
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
-            client_set_urgent(client);
+            client_urge(client);
         }
     }
 
@@ -535,29 +535,29 @@ static void s_client_read_window_type(xcb_connection_t *connection,
         for (uint32_t ti = 0; ti < type_reply.atoms_len; ++ti) {
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_DOCK) {
                 client->properties.type = CLIENT_TYPE_DOCK;
-                client_unset_decoration(client);
-                client_set_sticky(client);
-                client_set_skip_taskbar(client);
-                client_set_skip_pager(client);
+                client_undecorate(client);
+                client_pin(client);
+                client_skip_taskbar(client);
+                client_skip_pager(client);
                 client->layout.frame_extents.left = 0;
                 client->layout.frame_extents.right = 0;
                 client->layout.frame_extents.top = 0;
                 client->layout.frame_extents.bottom = 0;
                 client->properties.layer = CLIENT_LAYER_ABOVE;
-                client_unset_focusable(client);
+                client_forbid_focus(client);
                 break;
             }
 
             if (atom_notification != XCB_ATOM_NONE &&
                     type_reply.atoms[ti] == atom_notification) {
                 client->properties.type = CLIENT_TYPE_NOTIFICATION;
-                client_unset_decoration(client);
+                client_undecorate(client);
                 client->layout.frame_extents.left = 0;
                 client->layout.frame_extents.right = 0;
                 client->layout.frame_extents.top = 0;
                 client->layout.frame_extents.bottom = 0;
                 client->properties.layer = CLIENT_LAYER_ABOVE;
-                client_unset_focusable(client);
+                client_forbid_focus(client);
                 break;
             }
 
@@ -573,13 +573,13 @@ static void s_client_read_window_type(xcb_connection_t *connection,
 
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_MENU) {
                 client->properties.type = CLIENT_TYPE_MENU;
-                client_unset_decoration(client);
+                client_undecorate(client);
                 break;
             }
 
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
-                client_unset_decoration(client);
+                client_undecorate(client);
                 break;
             }
 
@@ -649,12 +649,12 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
                     /* MWM_HINTS_DECORATIONS set: 'decorations' is
                      * meaningful */
                     if (motif_decorations == 0u) {
-                        client_unset_decoration(client);
+                        client_undecorate(client);
                         client->layout.frame_extents =
                             (struct sides_s) {0, 0, 0, 0};
                     } else if (theme != NULL &&
                             theme->window.is_decorated) {
-                        client_set_decoration(client);
+                        client_decorate(client);
                     }
                 }
             }
@@ -723,9 +723,9 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                     if (atoms[si] == atom_below) {
                         client->properties.layer = CLIENT_LAYER_BELOW;
                     } else if (atoms[si] == atom_skip_taskbar) {
-                        client_set_skip_taskbar(client);
+                        client_skip_taskbar(client);
                     } else if (atoms[si] == atom_skip_pager) {
-                        client_set_skip_pager(client);
+                        client_skip_pager(client);
                     }
                 }
                 LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \

@@ -63,7 +63,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
     do {
         client_td *client = (client_td *) cdlist_data(node);
         if (client != NULL &&
-                !(client->properties.flags & CLIENT_FLAG_STICKY)) {
+                !(client->properties.flags & CLIENT_FLAG_PIN)) {
             /* Only unmap and track events for clients whose windows are
              * currently mapped.  Hidden and iconified clients have
              * already had their windows unmapped by other code paths;
@@ -350,7 +350,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
             do {
                 client_td *c = (client_td *) cdlist_data(cnode);
 
-                if (c != NULL && client_is_sticky(c) &&
+                if (c != NULL && client_is_pinned(c) &&
                         n < (int) (sizeof(sticky) / sizeof(sticky[0]))) {
                     sticky[n++] = c;
                 }

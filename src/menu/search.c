@@ -198,7 +198,7 @@ static void s_search_build_hints(const client_td *client, char *out,
     if (client_is_shaded(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_SHADED;
     }
-    if (client_is_sticky(client) && n < sizeof(letters)) {
+    if (client_is_pinned(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_PINNED;
     }
     if (client_is_urgent(client) && n < sizeof(letters)) {

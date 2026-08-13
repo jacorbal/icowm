@@ -197,7 +197,7 @@ static void s_client_enable_decoration(client_td *client,
     client->layout.frame_extents.right = bw;
     client->layout.frame_extents.top = bw + th;
     client->layout.frame_extents.bottom = bw;
-    client_set_decoration(client);
+    client_decorate(client);
 
     ccmd_publish_frame_extents(client,
             (uint32_t) bw, (uint32_t) bw,
@@ -260,7 +260,7 @@ void ccmd_client_shade(client_td *client)
     xcb_unmap_window(client->connection, client->window);
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
-    client_set_shade(client);
+    client_shade(client);
     client_sync_decoration_layout(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
@@ -297,8 +297,8 @@ void ccmd_client_unshade(client_td *client)
             (const uint32_t[]) { restored_h });
     xcb_map_window(client->connection, client->window);
 
-    client_unset_shade(client);
-    client_unset_hidden(client);
+    client_unshade(client);
+    client_unhide(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     ccmd_rem_states(client, 2,
@@ -657,7 +657,7 @@ void ccmd_client_toggle_fullscreen(client_td *client)
 
 
 /* Toggle window decoration on or off */
-void ccmd_client_toggle_decoration(client_td *client)
+void ccmd_client_toggle_decorate(client_td *client)
 {
     int32_t bw;
     int32_t th;
@@ -764,7 +764,7 @@ void ccmd_client_toggle_decoration(client_td *client)
         client->layout.frame_extents.right = 0;
         client->layout.frame_extents.top = 0;
         client->layout.frame_extents.bottom = 0;
-        client_unset_decoration(client);
+        client_undecorate(client);
         ccmd_client_grab_buttons(client);
 
         ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
@@ -836,7 +836,7 @@ void ccmd_client_toggle_decoration(client_td *client)
             client->layout.frame_extents.right = bw;
             client->layout.frame_extents.top = bw + th;
             client->layout.frame_extents.bottom = bw;
-            client_set_decoration(client);
+            client_decorate(client);
 
             ccmd_publish_frame_extents(client,
                     (uint32_t) bw, (uint32_t) bw,

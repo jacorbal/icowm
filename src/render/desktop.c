@@ -637,7 +637,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
         (bool) client_is_resizable(client);
     desktop_draw_titlebar_buttons(connection, client->titlebar,
             btn_y, left, left_n, right, right_n, is_focused,
-            (bool) client_is_sticky(client),
+            (bool) client_is_pinned(client),
             (client->properties.layer != CLIENT_LAYER_NORMAL),
             can_maximize, theme);
 }

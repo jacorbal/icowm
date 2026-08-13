@@ -108,14 +108,14 @@ void ci_set_decoration_defaults(client_td *client,
         client->title_height > 0u;
 
     if (is_decorated) {
-        client_set_decoration(client);
+        client_decorate(client);
         client->layout.frame_extents.left = border_width;
         client->layout.frame_extents.right = border_width;
         client->layout.frame_extents.top =
             (uint16_t) (border_width + client->title_height);
         client->layout.frame_extents.bottom = border_width;
     } else {
-        client_unset_decoration(client);
+        client_undecorate(client);
         client->layout.frame_extents = (struct sides_s) {0, 0, 0, 0};
     }
 }

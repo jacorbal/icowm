@@ -440,7 +440,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_PIN:
-            enact_client_toggle_sticky(client);
+            enact_client_toggle_pin(client);
             return;
 
         case KEYBIND_CLIENT_TOGGLE_DECORATION:
@@ -449,7 +449,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             if (client_is_shaded(client)) {
                 ccmd_client_unshade(client);
             }
-            enact_client_toggle_decoration(client);
+            enact_client_toggle_decorate(client);
             return;
 
         case KEYBIND_CLIENT_CYCLE_LAYER:

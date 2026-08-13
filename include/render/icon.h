@@ -103,7 +103,7 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
  *        top corners
  *
  * A filled square in the top-left corner when @p client is
- * sticky/pinned (@c CLIENT_FLAG_STICKY), colored the same as the
+ * sticky/pinned (@c CLIENT_FLAG_PIN), colored the same as the
  * titlebar's own pin button (@c window.titlebar.buttons.color.on)
  * and sized from @c WM_ICON_SQUARE_SIZE and
  * @c WM_ICON_PIXMAP_SCALE_PERCENT rather than reusing the titlebar's

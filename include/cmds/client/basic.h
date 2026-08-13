@@ -108,33 +108,33 @@ void ccmd_client_hide(client_td *client);
 void ccmd_client_unhide(client_td *client);
 
 /**
- * @brief Make the client sticky (visible on all desktops)
+ * @brief Pin the client (visible on all desktops)
  *
- * @param client Window to make sticky
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_sticky(client_td *client);
-
-/**
- * @brief Remove sticky mode from the client
- *
- * @param client Window to unstick
+ * @param client Window to pin
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_unsticky(client_td *client);
+void ccmd_client_pin(client_td *client);
 
 /**
- * @brief Toggle sticky mode for the client
+ * @brief Unpin the client
  *
- * @param client Window to toggle sticky state
+ * @param client Window to unpin
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_unpin(client_td *client);
+
+/**
+ * @brief Toggle pin mode for the client
+ *
+ * @param client Window to toggle pin state
  *
  * @note No-op on a surface with only one desktop: stickiness has
  *       nothing to actually toggle when there is only the one
  * @note Complexity: @e O(1)
  */
-void ccmd_client_toggle_sticky(client_td *client);
+void ccmd_client_toggle_pin(client_td *client);
 
 /**
  * @brief Mark the client as urgent (requesting attention)
@@ -143,7 +143,7 @@ void ccmd_client_toggle_sticky(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_set_urgent(client_td *client);
+void ccmd_client_urge(client_td *client);
 
 /**
  * @brief Clear urgency marking from the client
@@ -152,7 +152,7 @@ void ccmd_client_set_urgent(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_clear_urgent(client_td *client);
+void ccmd_client_unurge(client_td *client);
 
 /**
  * @brief Publish @c _NET_WM_ALLOWED_ACTIONS for a client

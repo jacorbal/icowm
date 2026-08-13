@@ -72,7 +72,7 @@ static void s_append_client_summary(cJSON *array, const client_td *client,
     cJSON_AddBoolToObject(entry, "urgent",
             client_is_urgent(client) ? 1 : 0);
     cJSON_AddBoolToObject(entry, "sticky",
-            client_is_sticky(client) ? 1 : 0);
+            client_is_pinned(client) ? 1 : 0);
     cJSON_AddItemToArray(array, entry);
 }
 

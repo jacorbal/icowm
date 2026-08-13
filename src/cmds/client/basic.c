@@ -215,7 +215,7 @@ void ccmd_client_restore(client_td *client)
         xcb_map_window(client->connection, client->window);
     }
 
-    client_unset_hidden(client);
+    client_unhide(client);
     client->properties.state = CLIENT_STATE_NORMAL;
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
@@ -299,7 +299,7 @@ void ccmd_client_focus(client_td *client)
      * closes, and the rest) already converges on, rather than at
      * each of those call sites individually. */
     if (client_is_urgent(client)) {
-        ccmd_client_clear_urgent(client);
+        ccmd_client_unurge(client);
     }
 
     /* ICCCM §4.2.7: only call 'SetInputFocus' when the client's input
@@ -849,7 +849,7 @@ void ccmd_client_iconify(client_td *client)
                 XCB_ATOM_CARDINAL, 32, 4, icon_geom);
     }
 
-    client_set_hidden(client);
+    client_hide(client);
     client->properties.state = CLIENT_STATE_ICONIFIED;
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
@@ -914,7 +914,7 @@ void ccmd_client_hide(client_td *client)
         xcb_unmap_window(client->connection, client->window);
     }
 
-    client_set_hidden(client);
+    client_hide(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
@@ -947,7 +947,7 @@ void ccmd_client_unhide(client_td *client)
         xcb_map_window(client->connection, client->window);
     }
 
-    client_unset_hidden(client);
+    client_unhide(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
@@ -970,8 +970,8 @@ void ccmd_client_unhide(client_td *client)
 }
 
 
-/* Set client sticky mode */
-void ccmd_client_sticky(client_td *client)
+/* Set client pin mode */
+void ccmd_client_pin(client_td *client)
 {
     uint32_t all_desktops;
 
@@ -979,7 +979,7 @@ void ccmd_client_sticky(client_td *client)
         return;
     }
 
-    client_set_sticky(client);
+    client_pin(client);
     ccmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
     if (client->ewmh != NULL) {
         all_desktops = WM_DESKTOP_ID_ALL;
@@ -992,8 +992,8 @@ void ccmd_client_sticky(client_td *client)
 }
 
 
-/* Remove client sticky mode */
-void ccmd_client_unsticky(client_td *client)
+/* Remove client pin mode */
+void ccmd_client_unpin(client_td *client)
 {
     desktop_td *owner_desktop;
     desktop_td *current_desktop;
@@ -1004,7 +1004,7 @@ void ccmd_client_unsticky(client_td *client)
         return;
     }
 
-    client_unset_sticky(client);
+    client_unpin(client);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
     if (client->ewmh != NULL) {
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
@@ -1052,7 +1052,7 @@ void ccmd_client_unsticky(client_td *client)
 
 
 /* Toggle stickiness */
-void ccmd_client_toggle_sticky(client_td *client)
+void ccmd_client_toggle_pin(client_td *client)
 {
     surface_td *surface;
 
@@ -1073,22 +1073,22 @@ void ccmd_client_toggle_sticky(client_td *client)
         return;
     }
 
-    if (client_is_sticky(client)) {
-        ccmd_client_unsticky(client);
+    if (client_is_pinned(client)) {
+        ccmd_client_unpin(client);
     } else {
-        ccmd_client_sticky(client);
+        ccmd_client_pin(client);
     }
 }
 
 
 /* Raise the client to the top */
-void ccmd_client_set_urgent(client_td *client)
+void ccmd_client_urge(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
-    client_set_urgent(client);
+    client_urge(client);
     ccmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 
     {
@@ -1108,13 +1108,13 @@ void ccmd_client_set_urgent(client_td *client)
 
 
 /* Clear client urgency */
-void ccmd_client_clear_urgent(client_td *client)
+void ccmd_client_unurge(client_td *client)
 {
     if (client == NULL) {
         return;
     }
 
-    client_unset_urgent(client);
+    client_unurge(client);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
 
     {
@@ -1128,7 +1128,7 @@ void ccmd_client_clear_urgent(client_td *client)
             cJSON_AddNumberToObject(fields, "surface_id",
                     (double) client->screen_id);
         }
-        ipc_broadcast_event(IPC_EVENT_URGENCY_UNSET, fields);
+        ipc_broadcast_event(IPC_EVENT_URGENCY_CLEARED, fields);
     }
 }
 

@@ -108,7 +108,7 @@ static void s_rules_apply_desktop(wm_td *wm, client_td *client,
 
     client->desktop_id = target->id;
     if (wm->ewmh != NULL) {
-        uint32_t did = (client->properties.flags & CLIENT_FLAG_STICKY)
+        uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
             ? WM_DESKTOP_ID_ALL : target->id;
 
         xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
@@ -288,9 +288,9 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
 
 
 /**
- * @brief Apply sticky and decoration flag rules to a client
+ * @brief Apply pinned and decoration flag rules to a client
  *
- * Sets or clears the sticky flag and toggles decoration according to
+ * Sets or clears the pinned flag and toggles decoration according to
  * @p apply.  Each flag is only touched when its corresponding @c has_*
  * field is @c true.
  *
@@ -303,16 +303,16 @@ static void s_rules_apply_flags(client_td *client,
         const struct rules_apply_s *apply)
 {
     if (apply->has_sticky) {
-        if (apply->sticky) {
-            ccmd_client_sticky(client);
+        if (apply->pinned) {
+            ccmd_client_pin(client);
         } else {
-            ccmd_client_unsticky(client);
+            ccmd_client_unpin(client);
         }
     }
 
     if (apply->has_decorated) {
         if (apply->decorated != client_is_decorated(client)) {
-            ccmd_client_toggle_decoration(client);
+            ccmd_client_toggle_decorate(client);
         }
     }
 }
@@ -381,7 +381,7 @@ bool rules_apply(wm_td *wm, client_td *client,
         }
         if (rule->apply.has_sticky) {
             merged.has_sticky = true;
-            merged.sticky = rule->apply.sticky;
+            merged.pinned = rule->apply.pinned;
         }
         if (rule->apply.has_decorated) {
             merged.has_decorated = true;

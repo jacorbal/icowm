@@ -48,9 +48,9 @@ cJSON *ipc_action_unfullscreen_client(wm_td *wm, const cJSON *args);
 /** "toggle_fullscreen_client" */
 cJSON *ipc_action_toggle_fullscreen_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_decoration_client": show or hide the client's own titlebar
+/** "toggle_decorate_client": show or hide the client's own titlebar
  *  and border */
-cJSON *ipc_action_toggle_decoration_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_toggle_decorate_client(wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_STATE_H */

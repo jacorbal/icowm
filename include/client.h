@@ -101,7 +101,7 @@ enum window_operation_e {
 enum window_flags_e {
     CLIENT_FLAG_HIDDEN       = 1 << 0,
     CLIENT_FLAG_FOCUSABLE    = 1 << 1,
-    CLIENT_FLAG_STICKY       = 1 << 2,
+    CLIENT_FLAG_PIN       = 1 << 2,
     CLIENT_FLAG_SHADED       = 1 << 3,
     CLIENT_FLAG_DECORATED    = 1 << 4,
     CLIENT_FLAG_URGENT       = 1 << 5,
@@ -844,12 +844,21 @@ void client_props_refresh_normal_hints(client_td *client);
     ((w)->properties.flags & CLIENT_FLAG_SHADED)
 
 /**
- * @brief Macro that evaluates to the client stickiness flag
+ * @brief Macro that evaluates to the client pinned flag
  *
  * @note Complexity: @e O(1)
  */
-#define client_is_sticky(w) \
-    ((w)->properties.flags & CLIENT_FLAG_STICKY)
+#define client_is_pinned(w) \
+    ((w)->properties.flags & CLIENT_FLAG_PIN)
+
+/**
+ * @brief Macro that evaluates to the negation of the client pinned
+ *        flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_unpinned(w) \
+    (!client_is_pinned(w))
 
 /**
  * @brief Macro that evaluates to the client decoration flag
@@ -904,7 +913,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_modal(w) \
+#define client_mark_modal(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_MODAL, (1 << CLIENT_FLAG_MAX))
 
@@ -913,7 +922,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_modal(w) \
+#define client_unmark_modal(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_MODAL, (1 << CLIENT_FLAG_MAX))
 
@@ -922,7 +931,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_unresponsive(w) \
+#define client_mark_unresponsive(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_UNRESPONSIVE, (1 << CLIENT_FLAG_MAX))
 
@@ -931,7 +940,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_unresponsive(w) \
+#define client_mark_responsive(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_UNRESPONSIVE, (1 << CLIENT_FLAG_MAX))
 
@@ -943,7 +952,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_hidden(w) \
+#define client_hide(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_HIDDEN, (1 << CLIENT_FLAG_MAX))
 
@@ -955,7 +964,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_hidden(w) \
+#define client_unhide(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_HIDDEN, (1 << CLIENT_FLAG_MAX))
 
@@ -967,7 +976,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_toggle_hidden(w) \
+#define client_toggle_hide(w) \
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_HIDDEN, (1 << CLIENT_FLAG_MAX))
 
@@ -978,7 +987,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_focusable(w) \
+#define client_allow_focus(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_FOCUSABLE, (1 << CLIENT_FLAG_MAX))
 
@@ -990,20 +999,8 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_focusable(w) \
+#define client_forbid_focus(w) \
     safeflg_unset(&((w)->properties.flags), \
-            CLIENT_FLAG_FOCUSABLE, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that toggles the focus flag of a client
- *
- * @param w Pointer to the client structure whose focus is to be
- *          toggled
- *
- * @note Complexity: @e O(1)
- */
-#define client_toggle_focusable(w) \
-    safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_FOCUSABLE, (1 << CLIENT_FLAG_MAX))
 
 /**
@@ -1013,7 +1010,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_shade(w) \
+#define client_shade(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_SHADED, (1 << CLIENT_FLAG_MAX))
 
@@ -1025,7 +1022,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_shade(w) \
+#define client_unshade(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_SHADED, (1 << CLIENT_FLAG_MAX))
 
@@ -1042,39 +1039,39 @@ void client_props_refresh_normal_hints(client_td *client);
             CLIENT_FLAG_SHADED, (1 << CLIENT_FLAG_MAX))
 
 /**
- * @brief Macro that sets the sticky flag of a client
+ * @brief Macro that sets the pin flag of a client
  *
- * @param w Pointer to the client structure whose sticky is to be set
+ * @param w Pointer to the client structure whose pin is to be set
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_sticky(w) \
+#define client_pin(w) \
     safeflg_set(&((w)->properties.flags), \
-            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
+            CLIENT_FLAG_PIN, (1 << CLIENT_FLAG_MAX))
 
 /**
- * @brief Macro that clears the sticky flag of a client
+ * @brief Macro that clears the pin flag of a client
  *
- * @param w Pointer to the client structure whose sticky is to be
+ * @param w Pointer to the client structure whose pin is to be
  *          cleared
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_sticky(w) \
+#define client_unpin(w) \
     safeflg_unset(&((w)->properties.flags), \
-            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
+            CLIENT_FLAG_PIN, (1 << CLIENT_FLAG_MAX))
 
 /**
- * @brief Macro that toggles the sticky flag of a client
+ * @brief Macro that toggles the pin flag of a client
  *
- * @param w Pointer to the client structure whose sticky is to be
+ * @param w Pointer to the client structure whose pin is to be
  *          toggled
  *
  * @note Complexity: @e O(1)
  */
-#define client_toggle_sticky(w) \
+#define client_toggle_pin(w) \
     safeflg_toggle(&((w)->properties.flags), \
-            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
+            CLIENT_FLAG_PIN, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that sets the decoration flag of a client
@@ -1083,7 +1080,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_decoration(w) \
+#define client_decorate(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_DECORATED, (1 << CLIENT_FLAG_MAX))
 
@@ -1095,7 +1092,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_decoration(w) \
+#define client_undecorate(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_DECORATED, (1 << CLIENT_FLAG_MAX))
 
@@ -1107,7 +1104,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_toggle_decoration(w) \
+#define client_toggle_decorate(w) \
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_DECORATED, (1 << CLIENT_FLAG_MAX))
 
@@ -1118,7 +1115,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_urgent(w) \
+#define client_urge(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_URGENT, (1 << CLIENT_FLAG_MAX))
 
@@ -1130,7 +1127,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_urgent(w) \
+#define client_unurge(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_URGENT, (1 << CLIENT_FLAG_MAX))
 
@@ -1142,45 +1139,10 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_toggle_urgent(w) \
+#define client_toggle_urge(w) \
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_URGENT, (1 << CLIENT_FLAG_MAX))
 
-
-/**
- * @brief Macro that sets the unfocusable flag of a client
- *
- * @param w Pointer to the client structure whose disable is to be set
- *
- * @note Complexity: @e O(1)
- */
-#define client_set_unfocusable(w) \
-    safeflg_set(&((w)->properties.flags), \
-            CLIENT_FLAG_UNFOCUSABLE, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that clears the unfocusable flag of a client
- *
- * @param w Pointer to the client structure whose disable is to be
- *          cleared
- *
- * @note Complexity: @e O(1)
- */
-#define client_unset_unfocusable(w) \
-    safeflg_unset(&((w)->properties.flags), \
-            CLIENT_FLAG_UNFOCUSABLE, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that toggles the unfocusable flag of a client
- *
- * @param w Pointer to the client structure whose disable is to be
- *          toggled
- *
- * @note Complexity: @e O(1)
- */
-#define client_toggle_unfocusable(w) \
-    safeflg_toggle(&((w)->properties.flags), \
-            CLIENT_FLAG_UNFOCUSABLE, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that sets the resizable flag of a client
@@ -1189,7 +1151,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_resizable(w) \
+#define client_allow_resize(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_RESIZABLE, (1 << CLIENT_FLAG_MAX))
 
@@ -1201,20 +1163,8 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_resizable(w) \
+#define client_forbid_resize(w) \
     safeflg_unset(&((w)->properties.flags), \
-            CLIENT_FLAG_RESIZABLE, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that toggles the resizable flag of a client
- *
- * @param w Pointer to the client structure whose resizable is to be
- *          toggled
- *
- * @note Complexity: @e O(1)
- */
-#define client_toggle_resizable(w) \
-    safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_RESIZABLE, (1 << CLIENT_FLAG_MAX))
 
 /**
@@ -1224,7 +1174,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_disable(w) \
+#define client_disable(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_DISABLED, (1 << CLIENT_FLAG_MAX))
 
@@ -1236,7 +1186,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_disable(w) \
+#define client_enable(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_DISABLED, (1 << CLIENT_FLAG_MAX))
 
@@ -1259,7 +1209,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_skip_taskbar(w) \
+#define client_skip_taskbar(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_SKIP_TASKBAR, (1 << CLIENT_FLAG_MAX))
 
@@ -1270,7 +1220,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_skip_taskbar(w) \
+#define client_unskip_taskbar(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_SKIP_TASKBAR, (1 << CLIENT_FLAG_MAX))
 
@@ -1281,7 +1231,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_set_skip_pager(w) \
+#define client_skip_pager(w) \
     safeflg_set(&((w)->properties.flags), \
             CLIENT_FLAG_SKIP_PAGER, (1 << CLIENT_FLAG_MAX))
 
@@ -1292,7 +1242,7 @@ void client_props_refresh_normal_hints(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-#define client_unset_skip_pager(w) \
+#define client_unskip_pager(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_SKIP_PAGER, (1 << CLIENT_FLAG_MAX))
 

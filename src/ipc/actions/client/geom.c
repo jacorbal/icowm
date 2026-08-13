@@ -75,7 +75,7 @@ cJSON *ipc_action_center_client(wm_td *wm, const cJSON *args)
     return ipc_dispatch_client_action(wm, args, s_center);
 }
 
-cJSON *ipc_action_move_client_next_monitor(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client_to_next_monitor(wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_move_next_monitor);
 }

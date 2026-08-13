@@ -334,7 +334,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
  *
  * @c focus_apply only updates @c client_active_id on the one @p desktop
  * passed to it.  For an ordinary client that is enough, but a sticky
- * one (visible on every desktop; see @c client_is_sticky) is expected
+ * one (visible on every desktop; see @c client_is_pinned) is expected
  * to keep showing as the active window no matter which desktop the
  * user switches to next.  Without this, @c surface_clients_sticky_
  * transfer_all's own "was this sticky client active on the desktop
@@ -359,7 +359,7 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
     cdlist_item_td *dinitial;
 
     if (surface == NULL || surface->desktops == NULL ||
-            client == NULL || !client_is_sticky(client)) {
+            client == NULL || !client_is_pinned(client)) {
         return;
     }
 
@@ -631,7 +631,7 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
 {
     switch (button) {
         case CONFIG_TITLEBAR_BUTTON_PIN:
-            enact_client_toggle_sticky(client);
+            enact_client_toggle_pin(client);
             break;
 
         case CONFIG_TITLEBAR_BUTTON_LAYER:
