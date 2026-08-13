@@ -40,7 +40,7 @@ cJSON *ipc_action_center_client(wm_td *wm, const cJSON *args);
 /** "move_client_to_monitor": arguments "client_id", "monitor_index" */
 cJSON *ipc_action_move_client_to_monitor(wm_td *wm, const cJSON *args);
 
-/** "move_client_next_monitor" */
+/** "move_client_to_next_monitor" */
 cJSON *ipc_action_move_client_to_next_monitor(wm_td *wm, const cJSON *args);
 
 /** "resize_client": arguments "client_id", "x", "y" (both signed,

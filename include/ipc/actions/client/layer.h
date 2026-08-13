@@ -35,13 +35,13 @@ cJSON *ipc_action_raise_client(wm_td *wm, const cJSON *args);
 /** "lower_client" */
 cJSON *ipc_action_lower_client(wm_td *wm, const cJSON *args);
 
-/** "layer_above_client": move the client to the "always on top" layer */
+/** "set_layer_above_client": move the client to the "always on top" layer */
 cJSON *ipc_action_set_layer_above_client(wm_td *wm, const cJSON *args);
 
-/** "layer_normal_client": move the client back to the ordinary layer */
+/** "set_layer_normal_client": move the client back to the ordinary layer */
 cJSON *ipc_action_set_layer_normal_client(wm_td *wm, const cJSON *args);
 
-/** "layer_below_client": move the client to the "always below" layer */
+/** "set_layer_below_client": move the client to the "always below" layer */
 cJSON *ipc_action_set_layer_below_client(wm_td *wm, const cJSON *args);
 
 /** "cycle_layer_client": cycle the client through above/normal/below */

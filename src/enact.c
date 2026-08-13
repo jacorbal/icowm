@@ -56,6 +56,78 @@
 #include <enact.h>
 
 
+/**
+ * @brief Broadcast an event whose payload is just the standard
+ *        client/desktop/surface identifier triple
+ *
+ * Shared by every 'enact_client_*' action below whose own IPC event
+ * needs nothing beyond identifying which client it happened to and
+ * where; avoids repeating the same three-field 'cJSON' object at
+ * each of those call sites individually. Not used by an action whose
+ * own event payload needs anything more than these three fields
+ * (e.g. a renamed client's own new name).
+ *
+ * @param client Client the event happened to; a NULL client is a
+ *               silent no-op, matching every caller's own existing
+ *               'if (client != NULL)' guard around its own
+ *               'xcb_flush'
+ * @param type   Which event this is
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_broadcast_client_event(client_td *client,
+        uint32_t type)
+{
+    cJSON *fields;
+
+    if (client == NULL) {
+        return;
+    }
+
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) client->desktop_id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) client->screen_id);
+    }
+    ipc_broadcast_event(type, fields);
+}
+
+
+/**
+ * @brief Broadcast an event whose payload is just the standard
+ *        desktop/surface identifier pair, with no specific client
+ *        involved
+ *
+ * @param desktop Desktop the event happened to; a NULL desktop is a
+ *                silent no-op
+ * @param type    Which event this is
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_broadcast_desktop_event(desktop_td *desktop,
+        uint32_t type)
+{
+    cJSON *fields;
+
+    if (desktop == NULL) {
+        return;
+    }
+
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) desktop->id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) desktop->screen_id);
+    }
+    ipc_broadcast_event(type, fields);
+}
+
+
 /* == action_client_e == */
 
 /* Close the client's window */
@@ -84,6 +156,7 @@ void enact_client_restore(client_td *client)
     ccmd_client_restore(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_CLIENT_DEICONIFIED);
     }
 }
 
@@ -115,20 +188,7 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
     ccmd_client_resize(client, x, y, w, h);
     if (client != NULL) {
         xcb_flush(client->connection);
-
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-            }
-            ipc_broadcast_event(IPC_EVENT_WINDOW_RESIZED, fields);
-        }
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
 
@@ -139,20 +199,7 @@ void enact_client_move(client_td *client, int32_t x, int32_t y)
     ccmd_client_move(client, x, y);
     if (client != NULL) {
         xcb_flush(client->connection);
-
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-            }
-            ipc_broadcast_event(IPC_EVENT_WINDOW_MOVED, fields);
-        }
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
 
@@ -163,6 +210,7 @@ void enact_client_center(client_td *client)
     ccmd_client_center(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
 
@@ -173,6 +221,7 @@ void enact_client_move_next_monitor(client_td *client)
     ccmd_client_move_to_next_monitor(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
 
@@ -184,6 +233,7 @@ void enact_client_move_to_monitor(client_td *client,
     ccmd_client_move_to_monitor(client, monitor_index);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
 
@@ -195,6 +245,24 @@ void enact_client_reclass(client_td *client, const char *class_name,
     ccmd_client_reclass(client, class_name, instance_name);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+                cJSON_AddStringToObject(fields, "class_name",
+                        (class_name != NULL) ? class_name : "");
+                cJSON_AddStringToObject(fields, "instance_name",
+                        (instance_name != NULL) ? instance_name : "");
+            }
+            ipc_broadcast_event(IPC_EVENT_CLIENT_RECLASSED, fields);
+        }
     }
 }
 
@@ -205,6 +273,22 @@ void enact_client_rerole(client_td *client, const char *role)
     ccmd_client_rerole(client, role);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+                cJSON_AddStringToObject(fields, "role",
+                        (role != NULL) ? role : "");
+            }
+            ipc_broadcast_event(IPC_EVENT_CLIENT_REROLED, fields);
+        }
     }
 }
 
@@ -215,6 +299,22 @@ void enact_client_rename(client_td *client, const char *name)
     ccmd_client_rename(client, name);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+                cJSON_AddStringToObject(fields, "name",
+                        (name != NULL) ? name : "");
+            }
+            ipc_broadcast_event(IPC_EVENT_CLIENT_RENAMED, fields);
+        }
     }
 }
 
@@ -225,6 +325,7 @@ void enact_client_maximize(client_td *client)
     ccmd_client_maximize(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
 
@@ -235,6 +336,7 @@ void enact_client_maximize_horz(client_td *client)
     ccmd_client_maximize_horz(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
 
@@ -245,6 +347,7 @@ void enact_client_maximize_vert(client_td *client)
     ccmd_client_maximize_vert(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
 
@@ -255,6 +358,7 @@ void enact_client_iconify(client_td *client)
     ccmd_client_iconify(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_CLIENT_ICONIFIED);
     }
 }
 
@@ -265,6 +369,7 @@ void enact_client_hide(client_td *client)
     ccmd_client_hide(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_HIDE_SET);
     }
 }
 
@@ -275,6 +380,7 @@ void enact_client_unhide(client_td *client)
     ccmd_client_unhide(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_HIDE_CLEARED);
     }
 }
 
@@ -285,6 +391,7 @@ void enact_client_shade(client_td *client)
     ccmd_client_shade(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_SHADE_SET);
     }
 }
 
@@ -295,6 +402,7 @@ void enact_client_unshade(client_td *client)
     ccmd_client_unshade(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_SHADE_CLEARED);
     }
 }
 
@@ -305,6 +413,8 @@ void enact_client_toggle_shade(client_td *client)
     ccmd_client_toggle_shade(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, client_is_shaded(client)
+                ? IPC_EVENT_SHADE_SET : IPC_EVENT_SHADE_CLEARED);
     }
 }
 
@@ -315,6 +425,7 @@ void enact_client_pin(client_td *client)
     ccmd_client_pin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_PIN_SET);
     }
 }
 
@@ -325,6 +436,7 @@ void enact_client_unpin(client_td *client)
     ccmd_client_unpin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_PIN_CLEARED);
     }
 }
 
@@ -335,6 +447,8 @@ void enact_client_toggle_pin(client_td *client)
     ccmd_client_toggle_pin(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, client_is_pinned(client)
+                ? IPC_EVENT_PIN_SET : IPC_EVENT_PIN_CLEARED);
     }
 }
 
@@ -345,6 +459,7 @@ void enact_client_fullscreen(client_td *client)
     ccmd_client_fullscreen(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_FULLSCREEN_SET);
     }
 }
 
@@ -355,6 +470,7 @@ void enact_client_unfullscreen(client_td *client)
     ccmd_client_unfullscreen(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_FULLSCREEN_CLEARED);
     }
 }
 
@@ -365,6 +481,8 @@ void enact_client_toggle_fullscreen(client_td *client)
     ccmd_client_toggle_fullscreen(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, client_is_fullscreen(client)
+                ? IPC_EVENT_FULLSCREEN_SET : IPC_EVENT_FULLSCREEN_CLEARED);
     }
 }
 
@@ -375,6 +493,7 @@ void enact_client_raise(client_td *client)
     ccmd_client_raise(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
     }
 }
 
@@ -385,6 +504,7 @@ void enact_client_lower(client_td *client)
     ccmd_client_lower(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
     }
 }
 
@@ -395,6 +515,7 @@ void enact_client_layer_above(client_td *client)
     ccmd_client_layer_above(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
 
@@ -405,6 +526,7 @@ void enact_client_layer_normal(client_td *client)
     ccmd_client_layer_normal(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
 
@@ -415,6 +537,7 @@ void enact_client_layer_below(client_td *client)
     ccmd_client_layer_below(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
 
@@ -425,6 +548,7 @@ void enact_client_cycle_layer(client_td *client)
     ccmd_client_cycle_layer(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
 
@@ -455,6 +579,22 @@ void enact_client_set_icon(client_td *client, const char *icon_name)
     ccmd_client_set_icon(client, icon_name);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+                cJSON_AddStringToObject(fields, "icon_name",
+                        (icon_name != NULL) ? icon_name : "");
+            }
+            ipc_broadcast_event(IPC_EVENT_CLIENT_ICON_CHANGED, fields);
+        }
     }
 }
 
@@ -465,6 +605,8 @@ void enact_client_toggle_decorate(client_td *client)
     ccmd_client_toggle_decorate(client);
     if (client != NULL) {
         xcb_flush(client->connection);
+        s_broadcast_client_event(client, client_is_decorated(client)
+                ? IPC_EVENT_DECORATION_SET : IPC_EVENT_DECORATION_CLEARED);
     }
 }
 
@@ -483,6 +625,8 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
     xcb_flush(desktop->connection);
+    s_broadcast_desktop_event(desktop,
+            IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);
 }
 
 
@@ -502,6 +646,8 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 
     hi_handle_net_showing_desktop(surface, show);
     xcb_flush(surface->connection);
+    s_broadcast_desktop_event(desktop,
+            show ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
 }
 
 
@@ -570,6 +716,7 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
     desktop_action_client_add(target, client);
     client->desktop_id = target->id;
     xcb_flush(desktop->connection);
+    s_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
 }
 
 
@@ -583,6 +730,7 @@ void enact_desktop_client_send_front(desktop_td *desktop,
 
     (void) desktop_action_client_send_front(desktop, client);
     xcb_flush(desktop->connection);
+    s_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
 
@@ -596,6 +744,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 
     (void) desktop_action_client_send_back(desktop, client);
     xcb_flush(desktop->connection);
+    s_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
 
@@ -870,5 +1019,10 @@ int enact_wm_exit(void)
 /* Reload the window manager's configuration */
 int enact_wm_configuration_reload(void)
 {
-    return wm_action_config_reload();
+    int status = wm_action_config_reload();
+
+    if (status == 0) {
+        ipc_broadcast_event(IPC_EVENT_CONFIG_RELOADED, NULL);
+    }
+    return status;
 }

@@ -524,6 +524,29 @@ Every event type:
 | `window_moved`     | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
 | `window_resized`   | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
 | `rule_applied`     | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |
+| `pin_set`          | `client_id`, `desktop_id`, `surface_id`: that client was just pinned (visible on every desktop) |
+| `pin_cleared`      | `client_id`, `desktop_id`, `surface_id`: that client was just unpinned |
+| `fullscreen_set`   | `client_id`, `desktop_id`, `surface_id`: that client just entered full screen |
+| `fullscreen_cleared` | `client_id`, `desktop_id`, `surface_id`: that client just left full screen |
+| `shade_set`        | `client_id`, `desktop_id`, `surface_id`: that client was just shaded (rolled up into its titlebar) |
+| `shade_cleared`    | `client_id`, `desktop_id`, `surface_id`: that client was just unshaded |
+| `hide_set`         | `client_id`, `desktop_id`, `surface_id`: that client was just hidden |
+| `hide_cleared`     | `client_id`, `desktop_id`, `surface_id`: that client was just unhidden |
+| `decoration_set`   | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just shown |
+| `decoration_cleared` | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just hidden |
+| `client_iconified` | `client_id`, `desktop_id`, `surface_id`: that client was just iconified |
+| `client_deiconified` | `client_id`, `desktop_id`, `surface_id`: that client was just restored from being iconified |
+| `layer_changed`    | `client_id`, `desktop_id`, `surface_id`: that client's own stacking layer just changed (see `list_clients` for its current layer) |
+| `client_desktop_changed` | `client_id`, `desktop_id`, `surface_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
+| `client_renamed`   | `client_id`, `desktop_id`, `surface_id`, `name`: that client's own displayed title was just overridden |
+| `client_reclassed` | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's own `WM_CLASS` was just overridden |
+| `client_reroled`   | `client_id`, `desktop_id`, `surface_id`, `role`: that client's own window role was just overridden |
+| `client_icon_changed` | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's own displayed icon was just overridden |
+| `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's own solid background color was just set |
+| `desktop_shown`    | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
+| `desktop_hidden`   | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
+| `config_reloaded`  | none: every configuration file was just reloaded |
+| `stacking_changed` | `client_id`, `desktop_id`, `surface_id`: that client's own position within its layer's stacking order just changed |
 
 A subscription lasts only as long as the connection itself: closing
 the connection (or losing it) drops every subscription made on it,

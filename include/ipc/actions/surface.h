@@ -31,10 +31,10 @@
  *  (optional) */
 cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args);
 
-/** "next_desktop": argument "surface_id" (optional) */
+/** "goto_next_desktop": argument "surface_id" (optional) */
 cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args);
 
-/** "prev_desktop": argument "surface_id" (optional) */
+/** "goto_prev_desktop": argument "surface_id" (optional) */
 cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args);
 
 

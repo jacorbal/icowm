@@ -68,7 +68,7 @@ cJSON *ipc_action_iconify_all(wm_td *wm, const cJSON *args);
 /** "deiconify_all": same arguments as "iconify_all" */
 cJSON *ipc_action_deiconify_all(wm_td *wm, const cJSON *args);
 
-/** "rearrange": arguments "desktop_id" (optional; the resolved
+/** "rearrange_desktop": arguments "desktop_id" (optional; the resolved
  *  surface's own current desktop otherwise), "surface_id" (optional) */
 cJSON *ipc_action_rearrange(wm_td *wm, const cJSON *args);
 

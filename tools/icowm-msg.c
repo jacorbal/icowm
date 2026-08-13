@@ -71,24 +71,23 @@
 /**
  * @brief Every command name this build knows about, for @c -K alone
  *
- * A plain, hand-maintained snapshot of the server's own dispatch
- * table (@c s_dispatch in @c src/ipc/commands.c), kept here rather
- * than queried live so @c -L works the same offline way @c -h and
- * @c -v already do, without needing a running server.  The trade-off
- * that buys: this list can drift out of sync with the server's own
- * table over time if one side gains or loses a command and the other
- * is not updated to match, something a live query could never do.
- * Deliberately used only to answer "-K"'s own question ("what
- * commands does this build know the names of"), never to locally
- * validate or reject a command before sending it: an ordinary
- * request still reaches the server exactly as before, unfiltered, so
- * a drifted-stale list here only ever makes @c -K's own output
- * incomplete, never breaks a command that the server itself would
- * otherwise have accepted.
+ * A plain, hand-maintained snapshot of the server's own dispatch table
+ * (@c s_dispatch in @c src/ipc/commands.c), kept here rather than
+ * queried live so @c -L works the same offline way @c -h and @c -v
+ * already do, without needing a running server.  The trade-off that
+ * buys: this list can drift out of sync with the server's own table
+ * over time if one side gains or loses a command and the other is not
+ * updated to match, something a live query could never do.
+ * Deliberately used only to answer @c -K's own question ("what commands
+ * does this build know the names of"), never to locally validate or
+ * reject a command before sending it: an ordinary request still reaches
+ * the server exactly as before, unfiltered, so a drifted-stale list
+ * here only ever makes @c -K's own output incomplete, never breaks
+ * a command that the server itself would otherwise have accepted.
  *
  * @note Whoever adds or removes a command from @c s_dispatch in
- *       @c src/ipc/commands.c is responsible for updating this array
- *       to match; that file carries the same note pointing back here
+ *       @c src/ipc/commands.c is responsible for updating this array to
+ *       match; that file carries the same note pointing back here
  */
 static const char *const s_known_commands[] = {
     "center_client",
@@ -225,13 +224,11 @@ static void s_show_help(FILE *fp)
 {
     fprintf(fp, "%s-msg -- Command-line client for %s's own IPC control" \
                 " socket\n", PROJECT_NAME_SHORT, PROJECT_NAME_SHORT);
-    fprintf(fp, "Usage: %s-msg <command> [<key>=<value> ...]\n",
+
+    fprintf(fp, "Usage: %s-msg (<command> [<key>=<value> ...] |\n",
             PROJECT_NAME_PROG);
-    fprintf(fp, "       %s-msg -w <events> [-n <count>]\n",
-            PROJECT_NAME_PROG);
-    fprintf(fp, "       %s-msg -h\n", PROJECT_NAME_PROG);
-    fprintf(fp, "       %s-msg -v\n", PROJECT_NAME_PROG);
-    fprintf(fp, "       %s-msg -K\n", PROJECT_NAME_PROG);
+    fprintf(fp, "                 " \
+            " -w <events> [-n <count>] | -K | -h | -v)\n");
     fprintf(fp, "\n");
 
     fprintf(fp, "Examples:\n");
@@ -242,6 +239,7 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "   %s-msg move_client client_id=23068673 x=100 y=200\n",
             PROJECT_NAME_PROG);
     fprintf(fp, "\n");
+
     fprintf(fp, "Options:\n");
     fprintf(fp, "   -h          Show this help information, and exit\n");
     fprintf(fp, "   -v          Show version and license information," \
@@ -434,8 +432,9 @@ static int s_connect_socket(const char *socket_path)
  * @param fd   Connected descriptor
  * @param line Line to send, without its own trailing newline
  *
- * @return @c 0 on success, @c -1 on failure (reported to @c stderr
- *         already)
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on failure (reported to @c stderr already)
  *
  * @note Complexity: @e O(n), where @e n is the length of @p line
  */
@@ -460,9 +459,11 @@ static int s_send_line(int fd, const char *line)
  * @param out      Destination buffer, without its own trailing newline
  * @param out_size Size of @p out, in bytes
  *
- * @return @c 0 on success, @c -1 on any failure or on the
- *         connection closing with nothing (or an incomplete line)
- *         read (reported to @c stderr already)
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on any failure or on the connection closing with nothing
+ *            (or an incomplete line) read (reported to @c stderr
+ *            already)
  *
  * @note Complexity: @e O(n), where @e n is the length of the line
  *       read
@@ -506,8 +507,9 @@ static int s_read_line(int fd, char *out, size_t out_size)
  *                     own trailing newline
  * @param out_size     Size of @p out_response, in bytes
  *
- * @return @c 0 on success, @c -1 on any failure (reported to
- *         @c stderr already)
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on any failure (reported to @c stderr already)
  *
  * @note Complexity: @e O(n), where @e n is the length of the
  *       request or response, whichever is longer
@@ -534,7 +536,7 @@ static int s_send_and_receive(const char *socket_path,
  *        list of event names
  *
  * @param event_list Comma-separated event names, e.g.,
- *                   @c "window_mapped,desktop_switched"
+ *                   @c window_mapped,desktop_switched
  *
  * @return The newly allocated request object, or @c NULL on an
  *         allocation failure
@@ -590,13 +592,14 @@ static cJSON *s_build_subscribe_request(const char *event_list)
  *                    at all (watch until the connection drops or the
  *                    process is killed)
  *
- * @return @c 0 on reaching @p limit (or, when @p limit is @c 0, this
- *         never returns that way at all), @c 1 when the subscribe
- *         request itself was rejected (@c "ok": @c false; the reason
- *         was already printed), @c 2 when the connection could never be
- *         made, the subscribe request could not be sent, or the
- *         connection was lost while watching (each case already
- *         reported to @c stderr)
+ * @return Status of the operation
+ * @retval  0 on reaching @p limit (or, when @p limit is @c 0, this
+ *            never returns that way at all)
+ * @retval  1 when the subscribe request itself was rejected (@c ok:
+ *            @c false; the reason was already printed)
+ * @retval  2 when the connection could never be made, the subscribe
+ *            request could not be sent, or the connection was lost
+ *            while watching (each case already reported to @c stderr)
  *
  * @note Complexity: unbounded; runs for as long as @p limit (or the
  *       connection, or the process) allows

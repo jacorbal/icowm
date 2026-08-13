@@ -314,7 +314,7 @@ static void s_client_close(int idx)
  *  together. */
 struct s_ipc_event_def_s {
     const char *name;
-    enum ipc_event_type_e bit;
+    uint32_t bit;
 };
 
 static const struct s_ipc_event_def_s s_event_defs[] = {
@@ -327,6 +327,29 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
     { "window_moved",     IPC_EVENT_WINDOW_MOVED },
     { "window_resized",   IPC_EVENT_WINDOW_RESIZED },
     { "rule_applied",     IPC_EVENT_RULE_APPLIED },
+    { "pin_set",              IPC_EVENT_PIN_SET },
+    { "pin_cleared",          IPC_EVENT_PIN_CLEARED },
+    { "fullscreen_set",       IPC_EVENT_FULLSCREEN_SET },
+    { "fullscreen_cleared",   IPC_EVENT_FULLSCREEN_CLEARED },
+    { "shade_set",            IPC_EVENT_SHADE_SET },
+    { "shade_cleared",        IPC_EVENT_SHADE_CLEARED },
+    { "hide_set",             IPC_EVENT_HIDE_SET },
+    { "hide_cleared",         IPC_EVENT_HIDE_CLEARED },
+    { "decoration_set",       IPC_EVENT_DECORATION_SET },
+    { "decoration_cleared",   IPC_EVENT_DECORATION_CLEARED },
+    { "client_iconified",     IPC_EVENT_CLIENT_ICONIFIED },
+    { "client_deiconified",   IPC_EVENT_CLIENT_DEICONIFIED },
+    { "layer_changed",        IPC_EVENT_LAYER_CHANGED },
+    { "client_desktop_changed", IPC_EVENT_CLIENT_DESKTOP_CHANGED },
+    { "client_renamed",       IPC_EVENT_CLIENT_RENAMED },
+    { "client_reclassed",     IPC_EVENT_CLIENT_RECLASSED },
+    { "client_reroled",       IPC_EVENT_CLIENT_REROLED },
+    { "client_icon_changed",  IPC_EVENT_CLIENT_ICON_CHANGED },
+    { "desktop_background_changed", IPC_EVENT_DESKTOP_BACKGROUND_CHANGED },
+    { "desktop_shown",        IPC_EVENT_DESKTOP_SHOWN },
+    { "desktop_hidden",       IPC_EVENT_DESKTOP_HIDDEN },
+    { "config_reloaded",      IPC_EVENT_CONFIG_RELOADED },
+    { "stacking_changed",     IPC_EVENT_STACKING_CHANGED },
 };
 
 #define S_IPC_EVENT_COUNT \
@@ -344,14 +367,14 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
-static enum ipc_event_type_e s_event_name_to_bit(const char *name)
+static uint32_t s_event_name_to_bit(const char *name)
 {
     for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
         if (strcmp(s_event_defs[i].name, name) == 0) {
             return s_event_defs[i].bit;
         }
     }
-    return (enum ipc_event_type_e) 0;
+    return 0;
 }
 
 
@@ -365,7 +388,7 @@ static enum ipc_event_type_e s_event_name_to_bit(const char *name)
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
-static const char *s_event_bit_to_name(enum ipc_event_type_e type)
+static const char *s_event_bit_to_name(uint32_t type)
 {
     for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
         if (s_event_defs[i].bit == type) {
@@ -396,7 +419,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
     }
 
     cJSON_ArrayForEach(item, events) {
-        enum ipc_event_type_e bit;
+        uint32_t bit;
 
         if (!cJSON_IsString(item)) {
             resp = cJSON_CreateObject();
@@ -450,7 +473,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
         return resp;
     } else {
         cJSON_ArrayForEach(item, events) {
-            enum ipc_event_type_e bit;
+            uint32_t bit;
 
             if (!cJSON_IsString(item)) {
                 resp = cJSON_CreateObject();
@@ -481,7 +504,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
 
 
 /* Send one event line to every currently subscribed client */
-void ipc_broadcast_event(enum ipc_event_type_e type, cJSON *fields)
+void ipc_broadcast_event(uint32_t type, cJSON *fields)
 {
     const char *name = s_event_bit_to_name(type);
     cJSON *envelope;
