@@ -26,6 +26,7 @@ PWD = $(CURDIR)
 I_DIR = $(PWD)/include
 S_DIR = $(PWD)/src
 T_DIR = $(PWD)/tools
+TESTS_DIR = $(PWD)/tests
 L_DIR = $(PWD)/lib
 O_DIR = $(PWD)/obj
 B_DIR = $(PWD)/bin
@@ -78,7 +79,11 @@ JSON_CFLAGS = $(shell $(PKGCONF) --cflags libcjson 2>/dev/null || \
 CCFLAGS_BASE = $(CCOPTS) $(CCWARN) -std=$(CCSTD) $(CCEXTRA) -I $(I_DIR) \
                ${CCDEPS}
 CCFLAGS = $(CCFLAGS_BASE) $(XCB_CFLAGS) $(FONT_CFLAGS) $(JSON_CFLAGS)
-
+# 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
+# self-contained IPC client: it never touches X11 at all, so it has
+# no reason to pull in the XCB or font libraries the window manager
+# itself needs, only JSON for the wire protocol it speaks.
+MSG_CCFLAGS = $(CCFLAGS_BASE) $(JSON_CFLAGS)
 XCB_LFLAGS = $(shell $(PKGCONF) --libs \
         xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
         xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \
@@ -92,12 +97,6 @@ JSON_LFLAGS = $(shell $(PKGCONF) --libs libcjson 2>/dev/null || \
 OTHR_LFLAGS = -lpthread
 LDFLAGS = -L $(L_DIR) $(XCB_LFLAGS) $(FONT_LFLAGS) $(JSON_LFLAGS) \
           $(OTHR_LFLAGS)
-
-# 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
-# self-contained IPC client: it never touches X11 at all, so it has no
-# reason to pull in the XCB or font libraries the window manager itself
-# needs, only JSON for the wire protocol it speaks.
-MSG_CCFLAGS = $(CCFLAGS_BASE) $(JSON_CFLAGS)
 MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 
 
@@ -124,18 +123,18 @@ CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 CCFLAGS += -D I18N_DOMAIN=\"default\"
 CCFLAGS += -D I18N_LOCALE_DIR=\"$(CURDIR)/locale\"
 
-# 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
-# version, its license, its copyright line, and its author (see
-# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's own
-# '-v' output, not something a small IPC client has any reason to report
-# about itself.
+# 'icowm-msg' only ever prints its own name, IcoWM's own short name,
+# its version, its license, its copyright line, and its author (see
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's
+# own '-v' output, not something a small IPC client has any reason
+# to report about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
 MSG_CCFLAGS += -D PROJECT_VERSION=\"$(PROJECT_VERSION)\"
 MSG_CCFLAGS += -D PROJECT_VERSION_CODENAME=\"$(PROJECT_VERSION_CODENAME)\"
-MSG_CCFLAGS += -D LICENSE=\"$(LICENSE)\"
-MSG_CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
 MSG_CCFLAGS += -D AUTHOR=\"$(AUTHOR)\"
+MSG_CCFLAGS += -D COPYRIGHT=\"$(COPYRIGHT)\"
+MSG_CCFLAGS += -D LICENSE=\"$(LICENSE)\"
 
 
 ## Options on 'make'
@@ -175,9 +174,10 @@ endif
 # throughout the codebase, for building specifically for a severely
 # memory-constrained target.
 #
-# Independent of restricted-memory mode ('icowm -M <mib>').  It does not
-# turn that mode on by itself, and it does not supply a default for
-# '-M <mib>' when that flag is left off at run time either.
+# Independent of restricted-memory mode ('icowm -M <mib>').
+# It does not turn that mode on by itself, and it does not supply
+# a default for '-M  <mib>' when that flag is left off at run time
+# either.
 #
 # See 'defs/compact.h' for a broader explanation.
 COMPACT ?=
@@ -247,6 +247,161 @@ $(O_DIR)/%.o: $(S_DIR)/%.c
 $(O_DIR)/tools/%.o: $(T_DIR)/%.c
 	$(CC) $(MSG_CCFLAGS) -c $< -o $@
 
+
+## Tests
+#
+# Each 'tests/<dir>/test_<name>.c' is its own standalone binary,
+# compiled and linked directly against exactly the source files it
+# actually exercises (never through $(TARGET) itself): always under
+# AddressSanitizer and UndefinedBehaviorSanitizer, since a test
+# binary's own job is finding exactly the class of bug those catch,
+# not just checking return values.  Extend TEST_BINS with one more
+# line, and its own explicit recipe alongside the others below, for
+# each new test file; no automatic discovery, so a new test always
+# has to be wired in on purpose, not silently picked up (or silently
+# skipped) by a glob.
+TEST_CCFLAGS = -std=$(CCSTD) -D _POSIX_C_SOURCE=200112L -g -O0 \
+    -Wall -Wextra -Werror \
+    -fsanitize=address,undefined -fno-omit-frame-pointer \
+    -I $(I_DIR) -I $(TESTS_DIR) $(JSON_CFLAGS) $(XCB_CFLAGS)
+TEST_LDFLAGS = -fsanitize=address,undefined
+
+TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
+    $(O_DIR)/tests/utils/safe/test_safeflg \
+    $(O_DIR)/tests/utils/safe/test_safemem \
+    $(O_DIR)/tests/utils/safe/test_safestr \
+    $(O_DIR)/tests/utils/hash/test_murmurhash \
+    $(O_DIR)/tests/utils/config/test_path \
+    $(O_DIR)/tests/utils/config/test_json \
+    $(O_DIR)/tests/config/test_randr \
+    $(O_DIR)/tests/config/test_bindings \
+    $(O_DIR)/tests/config/test_theme \
+    $(O_DIR)/tests/config/test_memguard \
+    $(O_DIR)/tests/config/test_lint \
+    $(O_DIR)/tests/config/test_base \
+    $(O_DIR)/tests/rules/test_match
+
+test: $(TEST_BINS)
+	@status=0; \
+	for t in $(TEST_BINS); do \
+		echo "== $$t =="; \
+		"$$t" || status=1; \
+		echo; \
+	done; \
+	exit $$status
+
+$(O_DIR)/tests/adt/test_cdlist: $(TESTS_DIR)/adt/test_cdlist.c \
+		$(S_DIR)/adt/cdlist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/safe/test_safeflg: \
+		$(TESTS_DIR)/utils/safe/test_safeflg.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/safe/test_safemem: \
+		$(TESTS_DIR)/utils/safe/test_safemem.c \
+		$(S_DIR)/utils/safe/safemem.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/safe/test_safestr: \
+		$(TESTS_DIR)/utils/safe/test_safestr.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/hash/test_murmurhash: \
+		$(TESTS_DIR)/utils/hash/test_murmurhash.c \
+		$(S_DIR)/utils/hash/murmurhash.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/config/test_path: \
+		$(TESTS_DIR)/utils/config/test_path.c \
+		$(S_DIR)/utils/config/path.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/config/test_json: \
+		$(TESTS_DIR)/utils/config/test_json.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_randr: \
+		$(TESTS_DIR)/config/test_randr.c \
+		$(S_DIR)/config/randr.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_bindings: \
+		$(TESTS_DIR)/config/test_bindings.c \
+		$(S_DIR)/config/bindings.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_theme: \
+		$(TESTS_DIR)/config/test_theme.c \
+		$(S_DIR)/config/theme.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_memguard: \
+		$(TESTS_DIR)/config/test_memguard.c \
+		$(S_DIR)/config/memguard.c \
+		$(S_DIR)/config/base.c \
+		$(S_DIR)/config.c \
+		$(S_DIR)/config/theme.c \
+		$(S_DIR)/config/bindings.c \
+		$(S_DIR)/config/randr.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/config/path.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_lint: \
+		$(TESTS_DIR)/config/test_lint.c \
+		$(S_DIR)/config/lint.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/config/test_base: \
+		$(TESTS_DIR)/config/test_base.c \
+		$(S_DIR)/config/base.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) -lpthread
+
+$(O_DIR)/tests/rules/test_match: \
+		$(TESTS_DIR)/rules/test_match.c \
+		$(S_DIR)/rules/match.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
 # Other options
 ctags:
 ifneq (,$(shell command -v ctags 2>/dev/null))
@@ -298,6 +453,7 @@ help:
 	@echo "  make run               Run binary (if exists)"
 	@echo "  make run ARGS=<args>   Run with arguments (if binary exists)"
 	@echo "  make hard-run          Clean, build and run (if binary exists)"
+	@echo "  make test              Build and run every tests/*/test_*.c"
 	@echo
 	@echo "Options:"
 	@echo "  Use 'CC=<compiler>' to select a compiler ('gcc' or 'clang')"
@@ -317,4 +473,4 @@ help:
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
-        hard hard-run doxygen ccflags ldflags parallel help
+        hard hard-run doxygen ccflags ldflags parallel help test

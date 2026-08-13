@@ -25,6 +25,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Default initial values */
 #include <defs/desktop.h>
 
@@ -36,6 +39,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <ipc.h>
 #include <logger.h>
 #include <policy/focus.h>
 #include <surface.h>
@@ -420,6 +424,20 @@ bool rules_apply(wm_td *wm, client_td *client,
     changed = merged.has_desktop || merged.has_monitor ||
         merged.has_layer || merged.has_focus || merged.has_position ||
         merged.has_size || merged.has_sticky || merged.has_decorated;
+
+    if (changed) {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) (*desktop_io)->id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) (*surface_io)->id);
+        }
+        ipc_broadcast_event(IPC_EVENT_RULE_APPLIED, fields);
+    }
 
     return changed;
 }

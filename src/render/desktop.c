@@ -658,6 +658,12 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
  * own stacking-order iteration for how this fits into a full render
  * pass.
  *
+ * Public (not @c static) so @c policy/urgency.c can repaint one
+ * specific urgent client directly on its own blink-phase change,
+ * without forcing a full-desktop @c desktop_render_full pass (and
+ * every other client on it repainting along with it) just to update
+ * one client's own titlebar colors.
+ *
  * @param desktop    Desktop the client belongs to
  * @param client     Client to render; assumed non-@c NULL and not
  *                   currently hidden
@@ -666,7 +672,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-static void s_desktop_render_one_client(desktop_td *desktop,
+void desktop_render_one_client(desktop_td *desktop,
         client_td *client, bool is_current)
 {
     uint16_t mask;
@@ -904,15 +910,20 @@ static void s_desktop_render_one_client(desktop_td *desktop,
         }
 
         client->is_outdated = false;
-    } else if (target != client->window && desktop->focus_dirty) {
+    } else if (target != client->window &&
+            (desktop->focus_dirty || client_is_urgent(client))) {
         /* The client geometry has not changed; only refresh the
          * focus-sensitive decoration colors (border and titlebar
-         * background/text) when the active client actually changed.
-         * Skipping this repaint when focus is unchanged avoids
-         * spurious 'xcb_clear_area + text-draw' calls on every
-         * render pass during resize, which was the source of the
-         * desktop-wide flickering visible on all non-resized
-         * windows. */
+         * background/text) when the active client actually changed,
+         * or when this specific client is urgent (its own attention
+         * blink alternates these same colors on every phase change,
+         * the same reasoning 'ri_render_client_icon', render/icon.c,
+         * already applies via its own '!client_is_urgent' skip-check
+         * condition, just expressed the other way around here).
+         * Skipping this repaint otherwise avoids spurious
+         * 'xcb_clear_area + text-draw' calls on every render pass
+         * during resize, which was the source of the desktop-wide
+         * flickering visible on all non-resized windows. */
         left = (uint16_t) client->layout.frame_extents.left;
         right = (uint16_t) client->layout.frame_extents.right;
         top = (uint16_t) client->layout.frame_extents.top;
@@ -1017,7 +1028,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current)
             continue;
         }
 
-        s_desktop_render_one_client(desktop, client, is_current);
+        desktop_render_one_client(desktop, client, is_current);
 
         stacking_node = cdlist_next(stacking_node);
     } while (stacking_node != NULL &&
@@ -1076,7 +1087,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
      * exact spurious 'xcb_clear_area + text-draw' repaint on every
      * other window this flag exists to avoid.  See its own doc
      * comment in desktop.h ("since last render pass") and the
-     * 'focus_dirty' branch in 's_desktop_render_one_client' above. */
+     * 'focus_dirty' branch in 'desktop_render_one_client' above. */
     desktop->focus_dirty = false;
 
     /* NOTE: Do NOT flush here!  Let the surface handle the flushing */

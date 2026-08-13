@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <stdbool.h>    /* bool, true, false */
 #include <stddef.h>     /* NULL, size_t */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* getenv */
@@ -69,25 +70,91 @@ static const struct xdg_dir_def_s s_xdg_defs[] = {
 void path_simplify(char *restrict path)
 {
     char *src = path, *dst = path;
-    char *last_slash = NULL;
+    bool is_absolute = (path[0] == '/');
 
     while (*src) {
         if (*src == '/') {
-            /* Avoid multiple slashes */
-            if (dst != path && *(dst - 1) == '/') {
+            /* Avoid multiple slashes, and a leading one on what
+             * should be a purely relative path: the second case
+             * only ever arises right after resolving a '..' back to
+             * the very start of a relative 'dst' (see below), where
+             * the '/' that used to separate the popped component
+             * from whatever follows it no longer separates anything
+             * and must be dropped too, not kept as a spurious
+             * leading slash an otherwise-relative path never had. */
+            if ((dst != path && *(dst - 1) == '/') ||
+                    (dst == path && !is_absolute)) {
                 src++;
                 continue;
             }
             *dst++ = *src++;
-            last_slash = dst - 1;   /* Save last slash position */
         } else if (safe_strncmp(src, "./", 2) == 0) {
             src += 2;   /* Jump over "./" */
-        } else if (safe_strncmp(src, "../", 3) == 0 && last_slash) {
-            dst = last_slash;       /* Go back to last slash */
-            src += 3;   /* Jump over "../" */
+        } else if (safe_strncmp(src, "../", 3) == 0) {
+            /* Resolve this '..' against the previous component
+             * already written to 'dst', if there is one to resolve
+             * it against: scan back from 'dst' to find where that
+             * component starts (right after its own leading slash,
+             * or the very start of 'dst' if it has none), so the
+             * whole component can be removed, not just the slash
+             * before it. Only a genuine, already-resolved component
+             * (neither empty nor itself an unresolved '..') can
+             * actually be cancelled this way; otherwise '..' cannot
+             * be resolved here at all, so it is either kept as a
+             * literal component (a relative path with nothing left
+             * behind it to cancel against, or a previous component
+             * that is itself an unresolved '..') or dropped outright
+             * (an absolute path already at its own root, which has
+             * nothing above it to name). */
+            char *comp_end = (dst > path && *(dst - 1) == '/')
+                ? dst - 1 : dst;
+            char *comp_start = comp_end;
+            bool have_component;
+            bool component_is_dotdot;
+
+            while (comp_start > path && *(comp_start - 1) != '/') {
+                comp_start--;
+            }
+            have_component = (comp_end > comp_start);
+            component_is_dotdot = (comp_end - comp_start == 2 &&
+                    comp_start[0] == '.' && comp_start[1] == '.');
+
+            if (have_component && !component_is_dotdot) {
+                dst = comp_start;
+            } else if (!is_absolute) {
+                *dst++ = '.';
+                *dst++ = '.';
+            }
+            /* Absolute path already at root: '..' dropped outright,
+             * nothing written at all; there is nothing above root
+             * to name */
+
+            src += 2;   /* Jump over the two dots; the slash right
+                         * after them (if any) is left for the next
+                         * pass through this same loop, whose own
+                         * slash handling above already deals with
+                         * it correctly either way */
+            continue;
         } else {
             *dst++ = *src++;
         }
+    }
+
+    /* A relative path emptied out entirely by resolving every one
+     * of its own components against a '..' (e.g. "a/../" simplifies
+     * to nothing at all, the current directory) is represented as
+     * "." itself, never as an empty string: an empty path and "the
+     * current directory" are not interchangeable to whatever this
+     * result gets used for next. */
+    if (dst == path && !is_absolute) {
+        *dst++ = '.';
+    }
+
+    /* Trim a single trailing slash this process may have left
+     * behind (e.g. simplifying "a/b/../" down to "a/"), except when
+     * the whole simplified path is the root by itself */
+    if (dst > path + 1 && *(dst - 1) == '/') {
+        dst--;
     }
 
     *dst = '\0';    /* End string */

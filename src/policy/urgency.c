@@ -29,6 +29,9 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <render/desktop.h>
+#include <render/icon.h>
+#include <render/surface.h>
 #include <surface.h>
 
 /* Local includes */
@@ -80,17 +83,19 @@ static long s_ms_since(const struct timespec *since)
 
 
 /**
- * @brief Mark every surface and desktop that owns at least one
- *        urgent client as needing a repaint
+ * @brief Whether at least one managed client, anywhere, currently has
+ *        its urgency hint set
  *
- * Only sets 'surface_td::is_outdated' (so 'loop_update' picks it up
- * on this same iteration) and 'desktop_td::focus_dirty' (so
- * 's_desktop_render_one_client' in render/desktop.c takes its
- * cheaper "only refresh focus-sensitive colors" branch rather than a
- * full geometry recompute); never touches any per-client flag, since
- * both 's_desktop_render_one_client' and 'ri_render_client_icon'
- * (render/icon.c) already special-case an urgent client on their own
- * to repaint regardless of what changed.
+ * A pure scan with no side effects at all, safe to call on every
+ * single @c urgency_blink_tick (i.e. every main-loop iteration, not
+ * just at the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence): the
+ * blink phase itself must keep advancing consistently regardless of
+ * which desktop the urgent client happens to sit on, or how often
+ * this is called, so this deliberately still looks at every desktop
+ * of every surface, not only each surface's own currently visible
+ * one (see @c s_repaint_urgent_clients for that narrower scope,
+ * which is where the actual, comparatively expensive repainting
+ * happens instead).
  *
  * @param surfaces All managed surfaces
  *
@@ -99,10 +104,8 @@ static long s_ms_since(const struct timespec *since)
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
  */
-static bool s_mark_urgent_outdated(list_td *surfaces)
+static bool s_any_client_urgent(list_td *surfaces)
 {
-    bool found = false;
-
     if (surfaces == NULL) {
         return false;
     }
@@ -110,7 +113,6 @@ static bool s_mark_urgent_outdated(list_td *surfaces)
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
-        bool surface_has_urgent = false;
 
         if (surface == NULL) {
             continue;
@@ -119,7 +121,6 @@ static bool s_mark_urgent_outdated(list_td *surfaces)
         for (uint32_t di = 0; di < surface->desktop_count; ++di) {
             desktop_td *desktop = surface_desktop_get(surface, di);
             void *elem;
-            bool desktop_has_urgent = false;
 
             if (desktop == NULL || desktop->clients == NULL) {
                 continue;
@@ -129,23 +130,92 @@ static bool s_mark_urgent_outdated(list_td *surfaces)
                 client_td *c = (client_td *) elem;
 
                 if (c != NULL && client_is_urgent(c)) {
-                    desktop_has_urgent = true;
-                    found = true;
+                    return true;
                 }
             }
-
-            if (desktop_has_urgent) {
-                desktop->focus_dirty = true;
-                surface_has_urgent = true;
-            }
-        }
-
-        if (surface_has_urgent) {
-            surface->is_outdated = true;
         }
     }
 
-    return found;
+    return false;
+}
+
+
+/**
+ * @brief Repaint every currently visible urgent client directly,
+ *        to match the blink phase that just took effect
+ *
+ * Deliberately narrow in both scope and mechanism, unlike an earlier
+ * version of this function that instead marked whole surfaces and
+ * desktops outdated and let the ordinary full-render path pick that
+ * up: that meant every single client on a desktop with an urgent one
+ * repainted alongside it, on every call, and since this used to be
+ * called on every main-loop iteration rather than only at the real
+ * blink cadence, that full-desktop repaint fired far more often than
+ * the blink itself ever changed, visibly flickering every window and
+ * icon on the desktop, not just the urgent one, and stomping over
+ * other clients' own independent, transient render state along the
+ * way (e.g. an icon's cycle-selection highlight mid-drag). Only ever
+ * called from the actual blink-phase-toggle branch of
+ * @c urgency_blink_tick now, this instead calls @c desktop_render_
+ * one_client / @c ri_render_client_icon directly, one at a time, for
+ * only the specific client(s) that are both urgent and on a desktop
+ * currently visible on some surface (an urgent client sitting on a
+ * desktop nobody is looking at right now has nothing to visibly
+ * repaint at all: its own clients are not even mapped, see
+ * @c desktop_render_clients's own doc comment), leaving every other
+ * client on that same desktop untouched.
+ *
+ * @param surfaces All managed surfaces
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       each surface's own currently visible desktop
+ */
+static void s_repaint_urgent_clients(list_td *surfaces)
+{
+    if (surfaces == NULL) {
+        return;
+    }
+
+    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+            snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        desktop_td *desktop;
+        void *elem;
+        bool repainted_any = false;
+
+        if (surface == NULL) {
+            continue;
+        }
+
+        desktop = surface_desktop_get(surface, surface->desktop_cur);
+        if (desktop == NULL || desktop->clients == NULL) {
+            continue;
+        }
+
+        ohtbl_foreach(desktop->clients, elem) {
+            client_td *c = (client_td *) elem;
+
+            if (c == NULL || !client_is_urgent(c)) {
+                continue;
+            }
+
+            if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
+                if (c->properties.state ==
+                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    ri_render_client_icon(desktop, c, true);
+                    repainted_any = true;
+                }
+                continue;
+            }
+
+            desktop_render_one_client(desktop, c, true);
+            repainted_any = true;
+        }
+
+        if (repainted_any) {
+            surface_render_flush(surface);
+        }
+    }
 }
 
 
@@ -159,7 +229,7 @@ bool urgency_blink_is_on(void)
 /* Advance the blink cycle and repaint whatever it changed */
 void urgency_blink_tick(list_td *surfaces)
 {
-    s_has_urgent = s_mark_urgent_outdated(surfaces);
+    s_has_urgent = s_any_client_urgent(surfaces);
 
     if (!s_has_urgent) {
         s_blink_on = false;
@@ -175,9 +245,7 @@ void urgency_blink_tick(list_td *surfaces)
             (long) WM_URGENCY_BLINK_INTERVAL_MS) {
         s_blink_on = !s_blink_on;
         (void) clock_gettime(CLOCK_MONOTONIC, &s_last_toggle);
-        /* The outdated/focus_dirty marking above already covers every
-         * urgent client found this same tick with the phase about to
-         * take effect; nothing further to mark here. */
+        s_repaint_urgent_clients(surfaces);
     }
 }
 

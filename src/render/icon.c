@@ -97,11 +97,12 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * icon (covered and uncovered by another window, say) still
      * repaints correctly on its own via 'handler_expose', independent
      * of this.  An urgent client is the one exception: its own
-     * attention blink (see 'policy/urgency.h') only ever changes
-     * 'ri_draw_icon_hints''s own hint letter below, nothing this
-     * function's own skip-check tracks, so an urgent client always
-     * falls through and repaints in full on every blink phase change
-     * regardless of whether either tracked reason actually changed. */
+     * attention blink (see 'policy/urgency.h') alternates this
+     * icon's own colors (and 'ri_draw_icon_hints''s own hint letter)
+     * between active and inactive, nothing this function's own
+     * skip-check tracks, so an urgent client always falls through
+     * and repaints in full on every blink phase change regardless of
+     * whether either tracked reason actually changed. */
     if (!client->is_outdated &&
             is_cycle_sel == client->icon_last_cycle_sel &&
             !client_is_urgent(client)) {
@@ -109,91 +110,109 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     }
     client->icon_last_cycle_sel = is_cycle_sel;
 
-    has_extra_icon_border =
-        cycle_client_has_extra_border(client, true);
-    xcb_change_window_attributes(desktop->connection,
-            client->icon_window,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) {
-        (is_cycle_sel)
-            ? desktop->config_theme->icon.active.color.background
-            : desktop->config_theme->icon.inactive.color.background,
-        (is_cycle_sel)
-            ? desktop->config_theme->icon.active.border.color
-            : desktop->config_theme->icon.inactive.border.color
-            });
+    {
+        /* What to actually display this frame: the icon's own real
+         * cycle-selection state, except during an urgent client's
+         * "on" blink phase, which swaps it to the opposite of
+         * whatever it would otherwise be -- the same active/inactive
+         * swap 's_desktop_render_one_client' (render/desktop.c)
+         * already applies to a titlebar for the same reason.  Kept
+         * separate from 'is_cycle_sel' itself (used above for the
+         * skip-check and 'icon_last_cycle_sel' tracking) so a
+         * transient blink flip is never mistaken for a real change
+         * in cycle-selection once the client stops being urgent. */
+        bool display_active = is_cycle_sel;
 
-    border_width = (is_cycle_sel)
-        ? client->theme->icon.active.border.width
-        : client->theme->icon.inactive.border.width;
-    if (has_extra_icon_border) {
-        border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-    }
-    xcb_configure_window(desktop->connection,
-            client->icon_window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            &border_width);
+        if (client_is_urgent(client) && urgency_blink_is_on()) {
+            display_active = !display_active;
+        }
 
-    xcb_clear_area(desktop->connection, 0,
-            client->icon_window, 0, 0, 0, 0);
-    xcb_map_window(desktop->connection, client->icon_window);
-    /* Icons stay lower than the tray even within the shared 'below'
-     * layer, "stuck to the desktop"; see 'ccmd_client_iconify' for the
-     * fuller explanation of why an unqualified 'below' with no sibling
-     * is not enough to guarantee that on its own. */
-    tray_below = systray_below_window();
-    if (tray_below != XCB_WINDOW_NONE) {
-        xcb_configure_window(desktop->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
+        has_extra_icon_border =
+            cycle_client_has_extra_border(client, true);
+        xcb_change_window_attributes(desktop->connection,
+                client->icon_window,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                tray_below, XCB_STACK_MODE_BELOW
+            (display_active)
+                ? desktop->config_theme->icon.active.color.background
+                : desktop->config_theme->icon.inactive.color.background,
+            (display_active)
+                ? desktop->config_theme->icon.active.border.color
+                : desktop->config_theme->icon.inactive.border.color
                 });
-    } else {
-        xcb_configure_window(desktop->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+
+        border_width = (display_active)
+            ? client->theme->icon.active.border.width
+            : client->theme->icon.inactive.border.width;
+        if (has_extra_icon_border) {
+            border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
+        }
+        xcb_configure_window(desktop->connection,
+                client->icon_window,
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                &border_width);
+
+        xcb_clear_area(desktop->connection, 0,
+                client->icon_window, 0, 0, 0, 0);
+        xcb_map_window(desktop->connection, client->icon_window);
+        /* Icons stay lower than the tray even within the shared 'below'
+         * layer, "stuck to the desktop"; see 'ccmd_client_iconify' for the
+         * fuller explanation of why an unqualified 'below' with no sibling
+         * is not enough to guarantee that on its own. */
+        tray_below = systray_below_window();
+        if (tray_below != XCB_WINDOW_NONE) {
+            xcb_configure_window(desktop->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) {
+                    tray_below, XCB_STACK_MODE_BELOW
+                    });
+        } else {
+            xcb_configure_window(desktop->connection, client->icon_window,
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        }
+
+        if (desktop->config_theme->icon.show_pixmaps) {
+            wmicon_draw(desktop->connection, client->ewmh, client->window,
+                    client->icon_window, WM_ICON_SQUARE_SIZE,
+                    (display_active)
+                        ? desktop->config_theme->icon.active.color.foreground
+                        : desktop->config_theme->icon.inactive.color.foreground,
+                    (display_active)
+                        ? desktop->config_theme->icon.active.color.background
+                        : desktop->config_theme->icon.inactive.color.background,
+                    &client->icon_pixmap_cache);
+        }
+
+        if (desktop->config_theme->icon.is_captioned &&
+                client->info.name != NULL) {
+            const char *caption =
+                (client->icon_info.visible_icon_name != NULL &&
+                 client->icon_info.visible_icon_name[0] != '\0')
+                    ? client->icon_info.visible_icon_name
+                    : client->info.name;
+
+            text_renderer_init(desktop->connection,
+                    desktop->config_theme->icon.inactive.font);
+            text_renderer_set_color(
+            (display_active)
+                ? desktop->config_theme->icon.active.color.foreground
+                : desktop->config_theme->icon.inactive.color.foreground,
+            (display_active)
+                ? desktop->config_theme->icon.active.color.background
+                : desktop->config_theme->icon.inactive.color.background);
+
+            text_draw_string(desktop->connection,
+                    client->icon_window, XCB_NONE,
+                    2,
+                    (int16_t) (WM_ICON_SQUARE_SIZE +
+                        WM_ICON_CAPTION_HEIGHT - 2u),
+                    caption);
+        }
+
+        ri_draw_icon_hints(desktop->connection, client, display_active,
+                desktop->config_theme);
     }
-
-    if (desktop->config_theme->icon.show_pixmaps) {
-        wmicon_draw(desktop->connection, client->ewmh, client->window,
-                client->icon_window, WM_ICON_SQUARE_SIZE,
-                (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.color.foreground
-                    : desktop->config_theme->icon.inactive.color.foreground,
-                (is_cycle_sel)
-                    ? desktop->config_theme->icon.active.color.background
-                    : desktop->config_theme->icon.inactive.color.background,
-                &client->icon_pixmap_cache);
-    }
-
-    if (desktop->config_theme->icon.is_captioned &&
-            client->info.name != NULL) {
-        const char *caption =
-            (client->icon_info.visible_icon_name != NULL &&
-             client->icon_info.visible_icon_name[0] != '\0')
-                ? client->icon_info.visible_icon_name
-                : client->info.name;
-
-        text_renderer_init(desktop->connection,
-                desktop->config_theme->icon.inactive.font);
-        text_renderer_set_color(
-        (is_cycle_sel)
-            ? desktop->config_theme->icon.active.color.foreground
-            : desktop->config_theme->icon.inactive.color.foreground,
-        (is_cycle_sel)
-            ? desktop->config_theme->icon.active.color.background
-            : desktop->config_theme->icon.inactive.color.background);
-
-        text_draw_string(desktop->connection,
-                client->icon_window, XCB_NONE,
-                2,
-                (int16_t) (WM_ICON_SQUARE_SIZE +
-                    WM_ICON_CAPTION_HEIGHT - 2u),
-                caption);
-    }
-
-    ri_draw_icon_hints(desktop->connection, client, is_cycle_sel,
-            desktop->config_theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.
      * Only 's_desktop_render_one_client' (render/desktop.c) clears

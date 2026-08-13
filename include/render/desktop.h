@@ -116,6 +116,35 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
 int desktop_render_clients(desktop_td *desktop, bool is_current);
 
 /**
+ * @brief Render, position, and decorate a single already-non-hidden
+ *        client during a stacking-order render pass
+ *
+ * Applies the client's own border width (only when it actually
+ * changed, to avoid needless server round trips), maps or unmaps its
+ * frame/titlebar/content window as appropriate for whether @p desktop
+ * is the surface's currently displayed one, and either reconfigures
+ * its full geometry and decoration (when @c is_outdated) or, more
+ * cheaply, only refreshes focus-sensitive decoration colors (when
+ * only @p desktop's own @c focus_dirty changed).
+ *
+ * Meant to be called directly for one specific client outside of an
+ * ordinary full @c desktop_render_clients pass, e.g. by @c policy/
+ * urgency.c to repaint just the urgent client(s) on an urgent
+ * client's own blink-phase change, without forcing every other
+ * client on the same desktop to repaint along with it.
+ *
+ * @param desktop    Desktop the client belongs to
+ * @param client     Client to render; assumed non-@c NULL and not
+ *                   currently hidden
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_render_one_client(desktop_td *desktop,
+        client_td *client, bool is_current);
+
+/**
  * @brief Full desktop render
  *
  * Clears the desktop and redraws everything, i.e., background and

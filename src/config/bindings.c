@@ -103,6 +103,24 @@ int config_load_bindings(const char *filename,
             json_load_string(wm, "shortcuts",
                     config_bindings->keyboard.wm.shortcuts,
                     CONFIG_MAX_LENGTH_BINDING);
+
+            /* Direct go-to shortcuts 0-9.  Kept independent of
+             * whether 'window' below is present in the file at all:
+             * 'go-to' is its own field of 'wm', not of 'window'. */
+            go_to = cJSON_GetObjectItem(wm, "go-to");
+            if (go_to != NULL) {
+                static const char *keys[10] = {
+                    "desktop0", "desktop1", "desktop2",
+                    "desktop3", "desktop4", "desktop5",
+                    "desktop6", "desktop7", "desktop8",
+                    "desktop9"
+                };
+                for (int gi = 0; gi < 10; ++gi) {
+                    json_load_string(go_to, keys[gi],
+                            config_bindings->keyboard.wm.go_to.desktop[gi],
+                            CONFIG_MAX_LENGTH_BINDING);
+                }
+            }
         }
 
         launch = cJSON_GetObjectItem(keyboard, "launch");
@@ -233,21 +251,6 @@ int config_load_bindings(const char *filename,
             json_load_string(window, "show-desktop",
                     config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);
-            /* Direct go-to shortcuts 0-9 */
-            go_to = cJSON_GetObjectItem(wm, "go-to");
-            if (go_to != NULL) {
-                static const char *keys[10] = {
-                    "desktop0", "desktop1", "desktop2",
-                    "desktop3", "desktop4", "desktop5",
-                    "desktop6", "desktop7", "desktop8",
-                    "desktop9"
-                };
-                for (int gi = 0; gi < 10; ++gi) {
-                    json_load_string(go_to, keys[gi],
-                            config_bindings->keyboard.wm.go_to.desktop[gi],
-                            CONFIG_MAX_LENGTH_BINDING);
-                }
-            }
         }
 
         /* Keybindings for cycling: desktop, icon, and window */

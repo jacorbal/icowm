@@ -34,7 +34,7 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     }
 
     /* Process remaining bytes */
-    tail = data + nblocks * 4;
+    tail = (len > 0) ? data + nblocks * 4 : NULL;
     k = 0;
 
     switch (len & 3) {
@@ -80,7 +80,7 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
     }
 
     /* Process remaining bytes */
-    tail = data + nblocks * 4;
+    tail = (len > 0) ? data + nblocks * 4 : NULL;
     k = 0;
 
     switch (len & 3) {
@@ -127,7 +127,8 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
     }
 
     /* Process remaining bytes */
-    tail = (const uint8_t *) (data + nblocks * 4);
+    tail = (len > 0)
+        ? (const uint8_t *) (data + nblocks * 4) : NULL;
     k = 0;
     switch (len & 3) {
         case 3:

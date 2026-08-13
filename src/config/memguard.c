@@ -47,9 +47,9 @@
  *
  * Recognizes both forms a theme's own font field can hold: a simple
  * alias, where the family is the leading word up to the first space
- * (e.g. @c "fixed", @c "fixed bold", @c "fixed-14"), and a full XLFD
- * pattern, where the family is the second @c '-'-delimited field
- * (e.g. @c "-misc-fixed-bold-r-normal--0-120-75-75-c-0-iso10646-1").
+ * or hyphen (e.g. @c "fixed", @c "fixed bold", @c "fixed-14"), and a
+ * full XLFD pattern, where the family is the second @c '-'-delimited
+ * field (e.g. @c "-misc-fixed-bold-r-normal--0-120-75-75-c-0-iso10646-1").
  * Either form lets a person still pick a specific size or encoding
  * while staying on the light X core rendering path, rather than the
  * plain literal strings @c "fixed" and @c "fixed bold" alone.
@@ -88,8 +88,10 @@ static bool s_memguard_is_fixed_variant(const char *font)
         family_start = dash1 + 1;
         family_end = strchr(family_start, '-');
     } else {
+        size_t stop = strcspn(font, " -");
+
         family_start = font;
-        family_end = strchr(font, ' ');
+        family_end = (font[stop] != '\0') ? font + stop : NULL;
     }
 
     family_len = (family_end != NULL)

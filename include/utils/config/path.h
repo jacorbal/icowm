@@ -57,11 +57,23 @@ enum xdg_dir_kind_e {
  * Processes the input path and simplifies it by:
  *   - removing consecutive slashes;
  *   - ignoring the current directory indicators ('./');
- *   - resolving the parent directory indicators ('../').
+ *   - resolving the parent directory indicators ('../'), popping
+ *     the previous real component when there is one to cancel
+ *     against, keeping '..' itself literally when there is not (a
+ *     relative path with nothing behind it, or a previous component
+ *     that is itself an unresolved '..'), and dropping it outright
+ *     for an absolute path already at its own root.
  *
  * @param path Pointer to the input path string to be normalized
  *
  * @note The function modifies the path in place
+ * @note A relative path that resolves down to nothing at all (e.g.
+ *       @c "a/../") becomes @c "." (the current directory), never
+ *       an empty string
+ * @note Only matches a @c '..' component immediately followed by a
+ *       @c '/' (i.e. followed by more path, not at the very end of
+ *       @p path with nothing after it): @c "a/.." is left
+ *       unresolved, unlike @c "a/../" or @c "a/../b"
  * @note Complexity: @e O(n), where @e n is the length of the input path
  */
 void path_simplify(char *restrict path);

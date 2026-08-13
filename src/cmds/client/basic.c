@@ -22,6 +22,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* ADT includes */
 #include <adt/cdlist.h>
 
@@ -38,6 +41,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <ipc.h>
 #include <lookup.h>
 #include <systray.h>
 #include <wm.h>
@@ -285,6 +289,17 @@ void ccmd_client_focus(client_td *client)
 
     if (client == NULL) {
         return;
+    }
+
+    /* A client receiving real input focus has, by definition, gotten
+     * the user's attention it was asking for: clear any pending
+     * urgency hint here, at the one place every real focus-granting
+     * path (a plain click via 'focus_apply', restoring an iconified
+     * client, focus recovery when the previously active client
+     * closes, and the rest) already converges on, rather than at
+     * each of those call sites individually. */
+    if (client_is_urgent(client)) {
+        ccmd_client_clear_urgent(client);
     }
 
     /* ICCCM §4.2.7: only call 'SetInputFocus' when the client's input
@@ -1075,6 +1090,20 @@ void ccmd_client_set_urgent(client_td *client)
 
     client_set_urgent(client);
     ccmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+
+    {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+        }
+        ipc_broadcast_event(IPC_EVENT_URGENCY_SET, fields);
+    }
 }
 
 
@@ -1087,6 +1116,20 @@ void ccmd_client_clear_urgent(client_td *client)
 
     client_unset_urgent(client);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+
+    {
+        cJSON *fields = cJSON_CreateObject();
+
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+        }
+        ipc_broadcast_event(IPC_EVENT_URGENCY_UNSET, fields);
+    }
 }
 
 

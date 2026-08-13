@@ -115,6 +115,20 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
     ccmd_client_resize(client, x, y, w, h);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+            }
+            ipc_broadcast_event(IPC_EVENT_WINDOW_RESIZED, fields);
+        }
     }
 }
 
@@ -125,6 +139,20 @@ void enact_client_move(client_td *client, int32_t x, int32_t y)
     ccmd_client_move(client, x, y);
     if (client != NULL) {
         xcb_flush(client->connection);
+
+        {
+            cJSON *fields = cJSON_CreateObject();
+
+            if (fields != NULL) {
+                cJSON_AddNumberToObject(fields, "client_id",
+                        (double) client->id);
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) client->desktop_id);
+                cJSON_AddNumberToObject(fields, "surface_id",
+                        (double) client->screen_id);
+            }
+            ipc_broadcast_event(IPC_EVENT_WINDOW_MOVED, fields);
+        }
     }
 }
 

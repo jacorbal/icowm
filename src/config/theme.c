@@ -11,6 +11,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+/* System includes */
+#include <stdbool.h>
+
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -68,11 +71,15 @@ static bool s_parse_titlebar_button(const char *name,
  * @brief Load a titlebar button list (@c "left" or @c "right") from
  *        @c window.titlebar.buttons
  *
- * A button name the theme repeats, or does not recognize, is silently
- * skipped rather than aborting the whole list; recognized names beyond
- * @c CONFIG_MAX_TITLEBAR_BUTTONS are also silently dropped.  Omitting
- * a side entirely (or listing zero buttons on it) simply means no
- * buttons are drawn there.
+ * A button name the theme repeats is kept only for its first
+ * occurrence; later repeats are silently skipped rather than
+ * consuming another one of the limited @c CONFIG_MAX_TITLEBAR_BUTTONS
+ * slots for a visual duplicate that would add nothing. An
+ * unrecognized name is also silently skipped rather than aborting
+ * the whole list; recognized names beyond
+ * @c CONFIG_MAX_TITLEBAR_BUTTONS are also silently dropped.
+ * Omitting a side entirely (or listing zero buttons on it) simply
+ * means no buttons are drawn there.
  *
  * @param buttons_json Parsed @c "buttons" JSON object
  * @param key          @c left or @c right
@@ -80,8 +87,10 @@ static bool s_parse_titlebar_button(const char *name,
  *                     @c CONFIG_MAX_TITLEBAR_BUTTONS
  * @param count_out    Receives the number of buttons actually loaded
  *
- * @note Complexity: @e O(n), where @e n is
- *       @c CONFIG_MAX_TITLEBAR_BUTTONS
+ * @note Complexity: @e O(n * m), where @e n is the length of the
+ *       JSON array and @e m is @c CONFIG_MAX_TITLEBAR_BUTTONS (the
+ *       most any one candidate is ever compared against for the
+ *       already-present check)
  */
 static void s_load_button_list(cJSON *buttons_json, const char *key,
         enum config_titlebar_button_e *dest, uint8_t *count_out)
@@ -98,15 +107,29 @@ static void s_load_button_list(cJSON *buttons_json, const char *key,
     n = 0u;
     cJSON_ArrayForEach(elem, item) {
         enum config_titlebar_button_e btn;
+        bool already_present;
 
         if (n >= (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
             break;
         }
-        if (cJSON_IsString(elem) && elem->valuestring != NULL &&
-                s_parse_titlebar_button(elem->valuestring, &btn)) {
-            dest[n] = btn;
-            ++n;
+        if (!cJSON_IsString(elem) || elem->valuestring == NULL ||
+                !s_parse_titlebar_button(elem->valuestring, &btn)) {
+            continue;
         }
+
+        already_present = false;
+        for (uint8_t i = 0u; i < n; ++i) {
+            if (dest[i] == btn) {
+                already_present = true;
+                break;
+            }
+        }
+        if (already_present) {
+            continue;
+        }
+
+        dest[n] = btn;
+        ++n;
     }
 
     *count_out = n;

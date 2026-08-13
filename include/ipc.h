@@ -49,6 +49,17 @@ enum ipc_event_type_e {
     IPC_EVENT_FOCUS_CHANGED    = (1u << 3),  /**< A desktop's own
                                                    active client
                                                    changed */
+    IPC_EVENT_URGENCY_SET      = (1u << 4),  /**< A client's urgency
+                                                   hint was set */
+    IPC_EVENT_URGENCY_UNSET    = (1u << 5),  /**< A client's urgency
+                                                   hint was cleared */
+    IPC_EVENT_WINDOW_MOVED     = (1u << 6),  /**< A client's own
+                                                   position changed */
+    IPC_EVENT_WINDOW_RESIZED   = (1u << 7),  /**< A client's own
+                                                   size changed */
+    IPC_EVENT_RULE_APPLIED     = (1u << 8),  /**< A rule changed one
+                                                   of a client's own
+                                                   properties */
 };
 
 /**

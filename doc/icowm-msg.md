@@ -280,6 +280,11 @@ rejected as an error, since it has nothing to count events for.
 | `window_closed`    | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
 | `desktop_switched` | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
 | `focus_changed`    | `surface_id`, `client_id`: that client just became the active one on its own surface |
+| `urgency_set`      | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
+| `urgency_unset`    | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
+| `window_moved`     | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
+| `window_resized`   | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
+| `rule_applied`     | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |
 
 Every event line also carries its own `"event"` field naming which
 one it is, the same as every other field name above; there is no
