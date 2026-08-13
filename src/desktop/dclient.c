@@ -336,6 +336,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     LOGGER_TRACE("Added client 0x%08x to desktop %u ('%s')",
             client->id, desktop->id, desktop->name);
     desktop->is_outdated = true;  /* Mark for redraw */
+    desktop_action_recompute_urgent(desktop);
 
     return 0;
 }
@@ -384,8 +385,33 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
     LOGGER_TRACE("Removed client 0x%08x from desktop %u",
             client->id, desktop->id);
     desktop->is_outdated = true;  /* Mark for redraw */
+    desktop_action_recompute_urgent(desktop);
 
     return 0;
+}
+
+
+/* Recompute whether any client on the desktop currently has its own
+ * urgency hint set */
+void desktop_action_recompute_urgent(desktop_td *desktop)
+{
+    void *elem;
+    bool found = false;
+
+    if (desktop == NULL || desktop->clients == NULL) {
+        return;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *c = (client_td *) elem;
+
+        if (c != NULL && client_is_urgent(c)) {
+            found = true;
+            break;
+        }
+    }
+
+    desktop->is_urgent = found;
 }
 
 

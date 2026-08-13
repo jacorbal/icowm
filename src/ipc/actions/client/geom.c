@@ -142,7 +142,7 @@ cJSON *ipc_action_move_client_to_monitor(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_resize_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_resize_client(wm_td *wm, const cJSON *args)
 {
     int32_t x;
     int32_t y;
@@ -170,5 +170,30 @@ cJSON *ipc_action_resize_client(wm_td *wm, const cJSON *args)
     }
 
     enact_client_resize(client, x, y, w, h);
+    return ipc_response_ok();
+}
+
+
+cJSON *ipc_action_resize_client(wm_td *wm, const cJSON *args)
+{
+    uint32_t w;
+    uint32_t h;
+    client_td *client;
+    cJSON *error = NULL;
+
+    if (!ipc_args_get_uint(args, "w", &w)) {
+        return ipc_response_error("missing or invalid 'w'");
+    }
+    if (!ipc_args_get_uint(args, "h", &h)) {
+        return ipc_response_error("missing or invalid 'h'");
+    }
+
+    client = ipc_resolve_client(wm, args, NULL, NULL, &error);
+    if (client == NULL) {
+        return error;
+    }
+
+    enact_client_resize(client, client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y, w, h);
     return ipc_response_ok();
 }

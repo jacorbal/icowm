@@ -86,8 +86,9 @@ static const config_lint_key_td s_schema_desktops_margins[] = {
 };
 
 static const config_lint_key_td s_schema_desktops[] = {
-    {"warp", NULL, 0u},
-    {"cycle", NULL, 0u},
+    {"show-overlay", NULL, 0u},
+    {"enable-edge-warp", NULL, 0u},
+    {"is-circular", NULL, 0u},
     {"margins", s_schema_desktops_margins,
         sizeof(s_schema_desktops_margins) /
             sizeof(s_schema_desktops_margins[0])}
@@ -152,6 +153,11 @@ static const config_lint_key_td s_schema_icons[] = {
 static const config_lint_key_td s_schema_startup_notification[] = {
     {"is-enabled", NULL, 0u},
     {"timeout-seconds", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_fortune[] = {
+    {"is-enabled", NULL, 0u},
+    {"command", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_menu_position[] = {
@@ -238,9 +244,9 @@ static const config_lint_key_td s_schema_config[] = {
         sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
     {"scratchpad", s_schema_scratchpad,
         sizeof(s_schema_scratchpad) / sizeof(s_schema_scratchpad[0])},
-    {"show-desktop-overlay", NULL, 0u},
     {"enable-emergency-shortcut", NULL, 0u},
-    {"enable-fortune-shortcut", NULL, 0u}
+    {"fortune", s_schema_fortune,
+        sizeof(s_schema_fortune) / sizeof(s_schema_fortune[0])}
 };
 
 
@@ -267,6 +273,7 @@ static const config_lint_key_td s_schema_kb_wm[] = {
     {"reload", NULL, 0u},
     {"quit", NULL, 0u},
     {"shortcuts", NULL, 0u},
+    {"fortune", NULL, 0u},
     {"go-to", s_schema_go_to,
         sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])}
 };

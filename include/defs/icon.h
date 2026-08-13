@@ -77,7 +77,12 @@
  *        client's own top-right corner (see @c ri_draw_icon_hints in
  *        render/icon.c), one per @c pre_iconify_state value it
  *        restores to on de-iconify (@c CLIENT_STATE_NORMAL draws
- *        none)
+ *        none); also drawn, this same set plus
+ *        @c WM_ICON_HINT_HIDDEN below, next to a matching client's
+ *        own row in the fuzzy window-search widget (see
+ *        @c s_search_build_hints, menu/search.c), where a hidden
+ *        client is a state of its own @c pre_iconify_state never
+ *        covers.
  */
 #define WM_ICON_HINT_FULLSCREEN      'f'
 #define WM_ICON_HINT_MAXIMIZED       'm'
@@ -87,6 +92,16 @@
 #define WM_ICON_HINT_PINNED          'p'
 #define WM_ICON_HINT_URGENT          '!'
 #define WM_ICON_HINT_ICONIFIED       '_'
+#define WM_ICON_HINT_HIDDEN          '~'  /**< Hidden, but NOT
+                                                iconified; an
+                                                iconified client is
+                                                already hidden as
+                                                well (see @c
+                                                client_hide), so this
+                                                one is only ever
+                                                shown when @c
+                                                WM_ICON_HINT_ICONIFIED
+                                                is not */
 
 
 #endif  /* ! DEFS_ICON_H */

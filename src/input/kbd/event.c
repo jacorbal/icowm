@@ -771,7 +771,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_WM_FORTUNE:
-                if (config->base.enable_fortune_shortcut &&
+                if (config->base.fortune.is_enabled &&
                         surface != NULL && surface->connection != NULL) {
                     dialog_fortune_show(surface->connection, surface,
                             config);

@@ -81,6 +81,12 @@ Basic features are:
     permits swift, keyboard-driven navigation amongst open clients and
     iconified windows alike.
 
+  - **Fuzzy window search.**
+    A dedicated search widget filters open windows by their own title
+    as the query is typed, fuzzy-matched and ranked by how well each
+    one fits, letting a single window among many be reached by a few
+    keystrokes rather than by cycling through them one at a time.
+
   - **System tray.**
     A built-in systray, conforming to the freedesktop.org System Tray
     protocol, offers a docking place for application icons, together
@@ -127,6 +133,13 @@ Basic features are:
     `on-exit`, may launch external processes, such as a panel, a
     compositor, or sundry daemons, with the process identifier and
     termination status of each duly logged.
+
+  - **Internationalization.**
+    Every dialog message, button, and menu label is translatable via
+    `gettext`, so IcoWM's own user-facing text may render in the
+    user's own locale; the command line and diagnostic log messages
+    are deliberately left untranslated, as these serve a diagnostic,
+    not an end-user, audience.
 
   - **Iconifying (traditional).**
     Rather than modern minimization to a crowded taskbar, the window is

@@ -16,7 +16,7 @@
 
 /* System includes */
 #include <stddef.h>     /* NULL, size_t */
-#include <stdio.h>      /* popen, pclose, FILE, fread */
+#include <stdio.h>      /* popen, pclose, FILE, fread, snprintf */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -24,8 +24,12 @@
 /* Util includes */
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
 /* Project includes */
 #include <config.h>
+#include <i18n.h>
 #include <surface.h>
 
 /* Local includes */
@@ -33,11 +37,13 @@
 #include <menu/dialog/message.h>
 
 
-/* Show the output of 'fortune', or an invitation to install it */
+/* Show the output of the configured 'fortune' command, or an
+ * invitation to install/configure it */
 void dialog_fortune_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)
 {
     char buffer[DIALOG_FORTUNE_MAX_LENGTH];
+    char cmd[CONFIG_MAX_LENGTH_COMMAND + 16];
     FILE *pipe;
     size_t len;
     const char *text;
@@ -52,7 +58,9 @@ void dialog_fortune_show(xcb_connection_t *connection,
      * "command not found" complaint never ends up as this dialog's
      * text; an empty read is exactly what should fall through to the
      * fallback message below regardless of why it came up empty. */
-    pipe = popen("fortune 2>/dev/null", "r");
+    (void) snprintf(cmd, sizeof(cmd), "%s 2>/dev/null",
+            config->base.fortune.command);
+    pipe = popen(cmd, "r");
     if (pipe != NULL) {
         size_t n = fread(buffer, 1u, sizeof(buffer) - 1u, pipe);
 
@@ -70,7 +78,7 @@ void dialog_fortune_show(xcb_connection_t *connection,
         buffer[--len] = '\0';
     }
 
-    text = (len > 0u) ? buffer : DIALOG_FORTUNE_FALLBACK_MSG;
+    text = (len > 0u) ? buffer : _(STR_FORTUNE_FALLBACK);
 
     menu_message_dialog_show(connection, surface, config,
             text, MENU_MSG_LEVEL_NONE);

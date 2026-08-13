@@ -849,41 +849,57 @@ void desktop_render_one_client(desktop_td *desktop,
                         top - bottom)
                 : 1;
 
-            xcb_configure_window(desktop->connection, client->window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                    (const uint32_t[]) {
-                        left, top, inner_w, inner_h
-                    });
+            /* A shaded client's own content window is deliberately
+             * left unmapped, at whatever geometry it already had
+             * (see 'ccmd_client_shade', cmds/client/state.c): none
+             * of the three calls below (repositioning it, telling it
+             * about that new position, and prompting it to redraw)
+             * are meant for it while shaded, since it is never seen
+             * regardless of what geometry it holds.  'left'/'top'/
+             * 'inner_w'/'title_h', computed above either way, are
+             * still needed below this whole 'if' to position the
+             * titlebar correctly even while shaded. */
+            if (!client_is_shaded(client)) {
+                xcb_configure_window(desktop->connection, client->window,
+                        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                        XCB_CONFIG_WINDOW_WIDTH |
+                        XCB_CONFIG_WINDOW_HEIGHT,
+                        (const uint32_t[]) {
+                            left, top, inner_w, inner_h
+                        });
 
-            /* ICCCM §4.2.3: the xcb_configure_window above positions
-             * the inner window relative to the frame (x=left, y=top),
-             * so the X server delivers a 'ConfigureNotify' to the
-             * client with those frame-relative coordinates.  Override
-             * it immediately with a synthetic 'ConfigureNotify'
-             * carrying the true screen-relative position so the
-             * client's last geometry notification is always correct.
-             * Without this a decorated client sees a frame-relative
-             * 'ConfigureNotify' as its final event on every render
-             * pass, causing misaligned popups and a content area
-             * that appears not to fill the frame until the next
-             * user-triggered repaint. */
-            client_send_synthetic_configure_notify(desktop->connection,
-                    client);
+                /* ICCCM §4.2.3: the xcb_configure_window above
+                 * positions the inner window relative to the frame
+                 * (x=left, y=top), so the X server delivers a
+                 * 'ConfigureNotify' to the client with those
+                 * frame-relative coordinates.  Override it
+                 * immediately with a synthetic 'ConfigureNotify'
+                 * carrying the true screen-relative position so the
+                 * client's last geometry notification is always
+                 * correct.  Without this a decorated client sees a
+                 * frame-relative 'ConfigureNotify' as its final
+                 * event on every render pass, causing misaligned
+                 * popups and a content area that appears not to
+                 * fill the frame until the next user-triggered
+                 * repaint. */
+                client_send_synthetic_configure_notify(
+                        desktop->connection, client);
 
-            /* Force a repaint AFTER the synthetic 'ConfigureNotify'
-             * so the client always redraws at its correct
-             * screen-relative geometry.  Some programs do not
-             * redraw on 'ConfigureNotify' alone; this 'Expose'
-             * ensures the drawing happens at the right size and
-             * position after every render pass, including the
-             * initial map and post-resize redraws.  Setting
-             * 'exposures=1' causes the X server to generate an
-             * 'Expose' event, which arrives in the client's queue
-             * after both the 'xcb_configure_window' and the
-             * synthetic 'ConfigureNotify' above. */
-            xcb_clear_area(desktop->connection, 1,
-                    client->window, 0, 0, 0, 0);
+                /* Force a repaint AFTER the synthetic
+                 * 'ConfigureNotify' so the client always redraws at
+                 * its correct screen-relative geometry.  Some
+                 * programs do not redraw on 'ConfigureNotify' alone;
+                 * this 'Expose' ensures the drawing happens at the
+                 * right size and position after every render pass,
+                 * including the initial map and post-resize
+                 * redraws.  Setting 'exposures=1' causes the X
+                 * server to generate an 'Expose' event, which
+                 * arrives in the client's queue after both the
+                 * 'xcb_configure_window' and the synthetic
+                 * 'ConfigureNotify' above. */
+                xcb_clear_area(desktop->connection, 1,
+                        client->window, 0, 0, 0, 0);
+            }
             if (!hide_decoration) {
                 desktop_repaint_frame_decoration(desktop->connection,
                         client, is_focused, desktop->config_theme);

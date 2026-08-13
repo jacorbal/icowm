@@ -155,10 +155,26 @@ struct config_base_s {
         } placement_policy;
     } icons;
 
-    bool show_desktop_overlay;       /**< Show desktop name on switch */
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
-    bool enable_fortune_shortcut;   /**< Allow 'Ctrl+Mod4+BackSpace'
-                                          fortune dialog */
+
+    /**
+     * @brief The @c fortune easter egg (@c menu/dialog/fortune.c):
+     *        whether its own keyboard shortcut is active at all, and
+     *        which command it runs
+     *
+     * @c command is run through a shell (@c popen), so it may be any
+     * shell command line, not just a bare executable name -- e.g.
+     * @c "fortune -s" for short-only fortunes, @c "fortune -o" for
+     * offensive ones, or a specific fortune database/language.  Runs
+     * literally as configured, with no argument substitution or
+     * validation of its own: an invalid command simply produces no
+     * output, which the dialog already falls back to a built-in
+     * message for (see @c STR_FORTUNE_FALLBACK, defs/uistr.h).
+     */
+    struct {
+        bool is_enabled;
+        char command[CONFIG_MAX_LENGTH_COMMAND];
+    } fortune;
 
     /**
      * @brief Whether launching a program begins a startup-
@@ -538,6 +554,13 @@ struct config_bindings_s {
              *  shortcut; see 'ctxmenu_show_shortcuts_list' in
              *  menu/dialog/shortcuts.h */
             char shortcuts[CONFIG_MAX_LENGTH_BINDING];
+
+            /** Opens the 'fortune' easter egg dialog; only active
+             *  when 'base.fortune.is_enabled' is also true (see
+             *  above) -- meaningless on its own otherwise, the same
+             *  way every binding in this struct already is when the
+             *  feature it triggers is itself off or unavailable */
+            char fortune[CONFIG_MAX_LENGTH_BINDING];
 
             char show_desktop[CONFIG_MAX_LENGTH_BINDING];
 
@@ -1132,16 +1155,20 @@ struct config_randr_s {
  * configuration reload.
  */
 struct config_desktop_s {
+    /** Whether the current desktop's own name briefly overlays the
+     *  screen after switching to it. */
+    bool show_overlay;
+
     /** Whether dragging a window past a screen edge, held there past
      *  @c WM_DESKTOP_WARP_DELAY_MS (defs/desktop.h), switches to the
      *  adjacent desktop with the drag still held.  Meaningless with
      *  only one desktop. */
-    bool warp;
+    bool enable_edge_warp;
 
     /** Whether switching past the first or last desktop wraps around
      *  to the other end, rather than stopping there.  Meaningless
      *  with only one desktop. */
-    bool cycle;
+    bool is_circular;
 
     /** Extra space reserved on each edge of every desktop's own
      *  workarea, on top of whatever @c _NET_WM_STRUT_PARTIAL clients

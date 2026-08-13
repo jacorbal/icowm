@@ -940,14 +940,19 @@ static void s_config_load_desktop_behavior(cJSON *json,
 
     desktop_settings = cJSON_GetObjectItem(json, "desktops");
     if (desktop_settings == NULL) {
-        LOGGER_TRACE("No 'desktops' object found in '%s'; warp," \
-                " cycle, and margins keep their default values",
+        LOGGER_TRACE("No 'desktops' object found in '%s'; show-" \
+                "overlay, enable-edge-warp, is-circular, and margins" \
+                " keep their default values",
                 filename);
         return;
     }
 
-    json_load_bool(desktop_settings, "warp", &config_desktop->warp);
-    json_load_bool(desktop_settings, "cycle", &config_desktop->cycle);
+    json_load_bool(desktop_settings, "show-overlay",
+            &config_desktop->show_overlay);
+    json_load_bool(desktop_settings, "enable-edge-warp",
+            &config_desktop->enable_edge_warp);
+    json_load_bool(desktop_settings, "is-circular",
+            &config_desktop->is_circular);
 
     margins = cJSON_GetObjectItem(desktop_settings, "margins");
     if (margins != NULL) {
@@ -971,6 +976,7 @@ int config_load_base(const char *filename,
     cJSON *icons;
     cJSON *menus;
     cJSON *startup_notification_item;
+    cJSON *fortune_item;
 
     LOGGER_TRACE("Preparing to parse base configuration from file" \
             " '%s'", filename);
@@ -1143,10 +1149,15 @@ int config_load_base(const char *filename,
 
     json_load_bool(json, "enable-emergency-shortcut",
             &config_base->enable_emergency_shortcut);
-    json_load_bool(json, "enable-fortune-shortcut",
-            &config_base->enable_fortune_shortcut);
-    json_load_bool(json, "show-desktop-overlay",
-            &config_base->show_desktop_overlay);
+
+    fortune_item = cJSON_GetObjectItem(json, "fortune");
+    if (fortune_item) {
+        json_load_bool(fortune_item, "is-enabled",
+                &config_base->fortune.is_enabled);
+        json_load_string(fortune_item, "command",
+                config_base->fortune.command,
+                CONFIG_MAX_LENGTH_COMMAND);
+    }
 
     startup_notification_item = cJSON_GetObjectItem(json,
             "startup-notification");

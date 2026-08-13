@@ -37,7 +37,7 @@ for dir in */LC_MESSAGES; do
 done
 
 if [ "$total" -eq 0 ]; then
-    echo "po2mo.sh: no .po files found under */LC_MESSAGES/" >&2
+    echo "po2mo.sh: no '.po' files found under '*/LC_MESSAGES/'" >&2
     exit 1
 fi
 

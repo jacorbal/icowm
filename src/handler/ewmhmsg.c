@@ -524,7 +524,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         initial = node;
         do {
             client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL &&
+            if (client != NULL && !client_is_locked(client) &&
                     !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
@@ -551,7 +551,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         initial = node;
         do {
             client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL &&
+            if (client != NULL && !client_is_locked(client) &&
                     (client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {
@@ -578,7 +578,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         initial = node;
         do {
             client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL &&
+            if (client != NULL && !client_is_locked(client) &&
                     !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                     client->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED) {

@@ -187,10 +187,6 @@ msgstr "Mostrar escritorio"
 msgid "Redraw"
 msgstr "Redibujar"
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr "Recargar config."
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr "Salir"
@@ -204,8 +200,8 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr "Salida de emergencia: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr "Frase del día: Ctrl+Mod4+BackSpace"
+msgid "Fortune"
+msgstr "Frase del día"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
@@ -288,12 +284,16 @@ msgid "N/A"
 msgstr "N/D"
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "Llena, con CA"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "Llena"
+
+#: include/defs/uistr.h:188
+msgid "AC"
+msgstr "CA"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -354,3 +354,11 @@ msgstr ""
 "IcoWM se está ejecutando en modo de memoria restringida y no "
 "gestionará más de %u ventana(s) a la vez (véase la opción de línea de "
 "comandos '-M').  Cierra una ventana antes de abrir otra."
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr "No hay ventanas abiertas en esta sesión en este momento."
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "¡Oh, desdicha!  No mora en esta máquina el oráculo de 'fortune', ca, faltando él, ninguna sabiduría de los antiguos podrá hoy ser adivinada.  Ruégoos a vuestra merced que suplique a su administrador de paquetes, mediante algún conjuro cual 'sudo apt install fortune-mod' (o el hechizo que vuestra distribución hubiere menester), para que las voces de los sabios de antaño tornen a hablar por medio de este humilde diálogo."

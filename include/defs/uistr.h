@@ -120,13 +120,13 @@
 #define STR_SHORTCUTS_SEARCH_WINDOWS    "Search windows"
 #define STR_SHORTCUTS_SHOW_DESKTOP      "Show desktop"
 #define STR_SHORTCUTS_REDRAW            "Redraw"
-#define STR_SHORTCUTS_RELOAD_CONFIG     "Reload config"
+#define STR_SHORTCUTS_RELOAD_CONFIG     "Reload configuration"
 #define STR_SHORTCUTS_QUIT              "Quit"
 #define STR_SHORTCUTS_THIS_LIST         "This list"
 /* Both whole, fixed lines on their own (no combo of their own to
  * pair with; the combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+BackSpace"
-#define STR_SHORTCUTS_FORTUNE        "Fortune: Ctrl+Mod4+BackSpace"
+#define STR_SHORTCUTS_FORTUNE        "Fortune"
 
 #define STR_SHORTCUTS_TERMINAL      "Terminal"
 #define STR_SHORTCUTS_LAUNCHER      "Launcher"
@@ -179,6 +179,13 @@
 #define STR_BATTERY_NOT_AVAILABLE "N/A"
 #define STR_BATTERY_FULL_AC       "Full AC"
 #define STR_BATTERY_FULL          "Full"
+/* Standalone, appended after a percentage (e.g. "34% AC"): kept as
+ * its own string, separate from 'STR_BATTERY_FULL_AC' above, since a
+ * translation cannot derive one from the other by substring -- some
+ * languages place the qualifier before the percentage, or use an
+ * entirely different word or word order for "on AC power" versus
+ * "fully charged, on AC power" */
+#define STR_BATTERY_AC             "AC"
 
 /* Restricted-memory mode announcement, shown once at startup
  * ('src/wm.c') */
@@ -224,6 +231,23 @@
      " manage more than %u window(s) at once (see the '-M'" \
      " command-line option).  Close a window before opening" \
      " another.")
+
+/* Fuzzy window-search widget ('src/menu/search.c'): shown instead of
+ * opening the widget itself when there is nothing to search for */
+#define STR_SEARCH_NO_WINDOWS \
+    "There are no open windows in this session at the moment."
+
+/* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead
+ * when the configured 'fortune.command' is missing or produces no
+ * output; deliberately overwrought and archaic, per its whole point
+ * being a small joke rather than a plain error message */
+#define STR_FORTUNE_FALLBACK \
+    ("Alack!  The oracle 'fortune' abideth not upon this machine, " \
+     "wherefore no wisdom of the ancients may this day be divined.  " \
+     "Prithee, entreat thy package steward with an incantation " \
+     "such as 'sudo apt install fortune-mod' (or whate'er charm " \
+     "thy distribution demandeth), that the sages of yore might " \
+     "once more speak through this humble dialog.")
 
 
 #endif  /* ! DEFS_UISTR_H */

@@ -117,7 +117,7 @@ static struct {
     bool warp_pending;          /**< Whether the pointer is currently
                                      held against a warp-eligible
                                      screen edge, counting down to a
-                                     desktop switch (see 'desktops.warp'
+                                     desktop switch (see 'desktops.enable_edge_warp'
                                      in config.json, config_desktop_s) */
     bool warp_is_left;          /**< Which edge, only meaningful when
                                      'warp_pending' */
@@ -980,7 +980,7 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
  *
  * Starts (or keeps running, without restarting it) a countdown to
  * switching desktops when the pointer is held against the left or
- * right screen edge, per @c desktops.warp in config.json (see @c
+ * right screen edge, per @c desktops.enable_edge_warp in config.json (see @c
  * config_desktop_s and @c drag_warp_tick, which actually performs the
  * switch once the countdown elapses); cancels it the moment the
  * pointer leaves either edge, or when warping is disabled, there is
@@ -1003,7 +1003,7 @@ static void s_drag_check_warp_edge(int16_t root_x)
 
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.warp ||
+            !surface->config->desktops.enable_edge_warp ||
             surface->desktop_count <= 1u) {
         s_drag.warp_pending = false;
         return;
@@ -1618,14 +1618,14 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->screen == NULL ||
             surface->config == NULL ||
-            !surface->config->desktops.warp ||
+            !surface->config->desktops.enable_edge_warp ||
             surface->desktop_count <= 1u) {
         return;
     }
 
     old_desktop_id = surface->desktop_cur;
     old_desktop = surface_desktop_get(surface, old_desktop_id);
-    cycle = surface->config->desktops.cycle;
+    cycle = surface->config->desktops.is_circular;
 
     new_desktop = s_drag.warp_is_left
         ? surface_desktop_prev(surface, old_desktop_id, cycle)

@@ -187,10 +187,6 @@ msgstr "Amosar escritorio"
 msgid "Redraw"
 msgstr "Redebuxar"
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr "Recargar config."
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr "Saír"
@@ -204,8 +200,8 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr "Saída de emerxencia: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr "Frase do día: Ctrl+Mod4+BackSpace"
+msgid "Fortune"
+msgstr "Frase do día"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
@@ -288,12 +284,16 @@ msgid "N/A"
 msgstr "N/D"
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "Chea, con CA"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "Chea"
+
+#: include/defs/uistr.h:188
+msgid "AC"
+msgstr "CA"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -352,3 +352,11 @@ msgstr ""
 "IcoWM está a executarse en modo de memoria restrinxida e non "
 "xestionará máis de %u fiestra(s) á vez (véxase a opción de liña de "
 "comandos '-M').  Pecha unha fiestra antes de abrir outra."
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr "Neste momento non hai ningunha xanela aberta nesta sesión."
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "Ai de min!  O oráculo 'fortune' non mora nesta máquina, polo que ningunha sabedoría dos antigos poderá hoxe ser adiviñada.  Rógovos que supliquedes ao voso xestor de paquetes cun conxuro tal coma 'sudo apt install fortune-mod' (ou o feitizo que a vosa distribución esixa), para que os sabios de outrora poidan de novo falar a través deste humilde diálogo."

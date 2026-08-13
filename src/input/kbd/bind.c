@@ -390,13 +390,13 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * open the desktop menu and the all-desktops window list;
          * this opens the context menu of one specific window. */
         { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
-        /* Fortune easter egg (grabbed only if enabled); mirrors
-         * emergency exit's own combination below but with 'Mod4' in
-         * place of 'Mod1', keeping the two visually and mnemonically
-         * distinct while both stay clear of 'Ctrl+Mod1+F10', which is
-         * commonly reserved by the system for switching to a text
-         * console */
-        { "Ctrl+Mod4+BackSpace", KEYBIND_WM_FORTUNE },
+        /* Fortune easter egg (grabbed only if enabled); default
+         * mirrors emergency exit's own combination below but with
+         * 'Mod4' in place of 'Mod1', keeping the two visually and
+         * mnemonically distinct while both stay clear of
+         * 'Ctrl+Mod1+F10', which is commonly reserved by the system
+         * for switching to a text console */
+        { config->bindings.keyboard.wm.fortune, KEYBIND_WM_FORTUNE },
         /* Hardcoded emergency exit (grabbed only if enabled) */
         { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }
@@ -493,7 +493,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         /* Skip the fortune easter egg grab the same way, when
          * disabled in configuration */
         if (defs[i].type == KEYBIND_WM_FORTUNE &&
-                !config->base.enable_fortune_shortcut) {
+                !config->base.fortune.is_enabled) {
             continue;
         }
 

@@ -1068,12 +1068,19 @@ void ccmd_client_toggle_pin(client_td *client)
 /* Raise the client to the top */
 void ccmd_client_urge(client_td *client)
 {
+    desktop_td *desktop;
+
     if (client == NULL) {
         return;
     }
 
     client_urge(client);
     ccmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop != NULL) {
+        desktop_action_recompute_urgent(desktop);
+    }
 
     {
         cJSON *fields = cJSON_CreateObject();
@@ -1094,12 +1101,19 @@ void ccmd_client_urge(client_td *client)
 /* Clear client urgency */
 void ccmd_client_unurge(client_td *client)
 {
+    desktop_td *desktop;
+
     if (client == NULL) {
         return;
     }
 
     client_unurge(client);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop != NULL) {
+        desktop_action_recompute_urgent(desktop);
+    }
 
     {
         cJSON *fields = cJSON_CreateObject();

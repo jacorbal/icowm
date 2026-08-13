@@ -185,10 +185,6 @@ msgstr "yIngan Daq cha'"
 msgid "Redraw"
 msgstr "qon"
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr "reH"
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr "mej"
@@ -202,8 +198,8 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr "chuq mej: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr "veS mu': Ctrl+Mod4+BackSpace"
+msgid "Fortune"
+msgstr "veS mu'"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
@@ -286,12 +282,16 @@ msgid "N/A"
 msgstr "Sut"
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "meQ, Sor"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "meQ"
+
+#: include/defs/uistr.h:188
+msgid "AC"
+msgstr "QaD"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -345,3 +345,11 @@ msgid ""
 msgstr ""
 "IcoWM rambeH lo'laHbe' 'ej %u qonHommey neH lo' (yIlegh '-M' choS).  "
 "wa' qonHom SoQ, pa' latlh chen."
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr "DaH session vam Doj ghajbe'"
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "toH!  pa' Deghmey ta' 'fortune' Suq lu' pagh.  vaj DaH chan ngan Sov je.  nuq mIw yIchov: 'sudo apt install fortune-mod' rur, latlh De' pagh mIw nIvbogh SoHvaD."

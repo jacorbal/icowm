@@ -92,7 +92,15 @@
     "startup-notification": {
         "timeout-seconds": 20
     },
-    "show-desktop-overlay": true,
+    "desktops": {
+        "show-overlay": true,
+        "enable-edge-warp": true,
+        "is-circular": true,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
+    },
     "enable-emergency-shortcut": true,
-    "enable-fortune-shortcut": false
+    "fortune": {
+        "is-enabled": true,
+        "command": "fortune"
+    }
 }

@@ -73,7 +73,7 @@
  *
  * A plain, hand-maintained snapshot of the server's own dispatch table
  * (@c s_dispatch in @c src/ipc/commands.c), kept here rather than
- * queried live so @c -L works the same offline way @c -h and @c -v
+ * queried live so @c -K works the same offline way @c -h and @c -v
  * already do, without needing a running server.  The trade-off that
  * buys: this list can drift out of sync with the server's own table
  * over time if one side gains or loses a command and the other is not
@@ -116,6 +116,7 @@ static const char *const s_known_commands[] = {
     "move_client",
     "move_client_to_monitor",
     "move_client_to_next_monitor",
+    "move_resize_client",
     "pin_client",
     "raise_client",
     "rearrange_desktop",
@@ -137,6 +138,7 @@ static const char *const s_known_commands[] = {
     "toggle_decorate_client",
     "toggle_fullscreen_client",
     "toggle_pin_client",
+    "toggle_scratchpad",
     "toggle_shade_client",
     "unfocus_client",
     "unfullscreen_client",
@@ -146,6 +148,59 @@ static const char *const s_known_commands[] = {
     "unurge_client",
     "urge_client",
 };
+
+/**
+ * @brief Every event name this build knows about, for @c -W alone
+ *
+ * The exact same trade-off @c s_known_commands above already accepts,
+ * for the same reason: a plain, hand-maintained snapshot of the
+ * server's own name table (the left-hand column of the array in
+ * @c s_event_name_to_bit, @c src/ipc.c) instead of a live query, so
+ * @c -W works offline the same way @c -K does.  These are the exact
+ * names @c -w itself accepts, comma-separated, to subscribe to; @c -W
+ * lists them, it does not subscribe to anything on its own.
+ *
+ * @note Whoever adds or removes an event from that same array in
+ *       @c src/ipc.c is responsible for updating this one to match;
+ *       that file carries the same note pointing back here
+ */
+static const char *const s_known_events[] = {
+    "window_mapped",
+    "window_closed",
+    "desktop_switched",
+    "focus_changed",
+    "urgency_set",
+    "urgency_cleared",
+    "window_moved",
+    "window_resized",
+    "rule_applied",
+    "pin_set",
+    "pin_cleared",
+    "fullscreen_set",
+    "fullscreen_cleared",
+    "shade_set",
+    "shade_cleared",
+    "hide_set",
+    "hide_cleared",
+    "decoration_set",
+    "decoration_cleared",
+    "client_iconified",
+    "client_deiconified",
+    "layer_changed",
+    "client_desktop_changed",
+    "client_renamed",
+    "client_reclassed",
+    "client_reroled",
+    "client_icon_changed",
+    "desktop_background_changed",
+    "desktop_shown",
+    "desktop_hidden",
+    "config_reloaded",
+    "stacking_changed",
+};
+
+#define S_KNOWN_EVENTS_COUNT \
+    (sizeof(s_known_events) / sizeof(s_known_events[0]))
 
 #define S_KNOWN_COMMANDS_COUNT \
     (sizeof(s_known_commands) / sizeof(s_known_commands[0]))
@@ -214,6 +269,22 @@ static void s_show_commands(FILE *fp)
 
 
 /**
+ * @brief Display every event name this build knows about, one per
+ *        line
+ *
+ * @param fp File pointer to the stream where to write the output
+ *
+ * @note Complexity: @e O(n), where @e n is @c S_KNOWN_EVENTS_COUNT
+ */
+static void s_show_events(FILE *fp)
+{
+    for (size_t i = 0; i < S_KNOWN_EVENTS_COUNT; ++i) {
+        fprintf(fp, "%s\n", s_known_events[i]);
+    }
+}
+
+
+/**
  * @brief Display help on screen
  *
  * @param fp File pointer to the stream where to write the output
@@ -228,7 +299,17 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "Usage: %s-msg (<command> [<key>=<value> ...] |\n",
             PROJECT_NAME_PROG);
     fprintf(fp, "                 " \
-            " -w <events> [-n <count>] | -K | -h | -v)\n");
+            " -w <events> [-n <count>] | -K | -W | -h | -v)\n");
+    fprintf(fp, "\n");
+
+    fprintf(fp, "A '<key>=<value>' argument's own value is parsed as" \
+                " 'true'/'false', a\n");
+    fprintf(fp, "number, or else taken as a plain string; a number may" \
+                " be given in decimal\n");
+    fprintf(fp, "or, prefixed with '0x', in hexadecimal, whichever" \
+                " reads more naturally\n");
+    fprintf(fp, "for that particular value (a window ID or a packed" \
+                " RRGGBB color, say).\n");
     fprintf(fp, "\n");
 
     fprintf(fp, "Examples:\n");
@@ -239,6 +320,8 @@ static void s_show_help(FILE *fp)
                 " color=0xaaccff\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg move_client client_id=23068673 x=100 y=200\n",
             PROJECT_NAME_PROG);
+    fprintf(fp, "   %s-msg resize_client client_id=0x1600001" \
+                " w=300 h=200\n", PROJECT_NAME_PROG);
     fprintf(fp, "\n");
 
     fprintf(fp, "Options:\n");
@@ -246,16 +329,17 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "   -v          Show version and license information," \
                 " and exit\n");
     fprintf(fp, "   -K          Known commands, one per line, and exit\n");
+    fprintf(fp, "   -W          Known events (see '-w' below), one per" \
+                " line, and exit\n");
     fprintf(fp, "   -w <events> Subscribe instead of sending a command;\n" \
                 "               watch for a comma-separated list of" \
-                " events \n" \
-                "               printing one line per event as" \
-                " it arrives,\n" \
-                "               until '-n' is reached or" \
-                " the connection ends\n");
+                " events printing\n" \
+                "               one line per event as it arrives, until" \
+                " '-n' is reached\n" \
+                "               or the connection ends\n");
     fprintf(fp, "   -n <count>  Stop watching after this many" \
-                " events; only\n");
-    fprintf(fp, "               meaningful together with '-w'\n");
+                " events (only meaningful\n");
+    fprintf(fp, "               together with '-w')\n");
     fprintf(fp, "\n");
     fprintf(fp, "Exit status:\n");
     fprintf(fp, "   0 on success\n");
@@ -689,7 +773,7 @@ int main(int argc, char **argv)
     int status;
     int opt;
 
-    while ((opt = getopt(argc, argv, "hvKw:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "hvKWw:n:")) != -1) {
         switch (opt) {
         case 'h':
             s_show_help(stdout);
@@ -699,6 +783,9 @@ int main(int argc, char **argv)
             return 0;
         case 'K':
             s_show_commands(stdout);
+            return 0;
+        case 'W':
+            s_show_events(stdout);
             return 0;
         case 'w':
             watch_events = optarg;

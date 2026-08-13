@@ -418,11 +418,12 @@ void config_set_default_values(config_td *config)
     /* Desktop-navigation and reserved-space behavior (config.json's
      * own top-level 'desktop', a sibling of 'topology'; see config_
      * desktop_s's own doc comment in config.h) -- meaningless with
-     * only one desktop for 'warp'/'cycle', but set regardless of how
-     * many desktops end up configured, the same as every other
-     * default here. */
-    config->desktops.warp = true;
-    config->desktops.cycle = true;
+     * only one desktop for 'enable_edge_warp'/'is_circular', but set
+     * regardless of how many desktops end up configured, the same
+     * as every other default here. */
+    config->desktops.show_overlay = true;
+    config->desktops.enable_edge_warp = true;
+    config->desktops.is_circular = true;
     config->desktops.margins.top = 0u;
     config->desktops.margins.right = 0u;
     config->desktops.margins.bottom = 0u;
@@ -515,11 +516,12 @@ void config_set_default_values(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
     config->base.enable_emergency_shortcut = false;
-    config->base.enable_fortune_shortcut = true;
+    config->base.fortune.is_enabled = true;
+    safe_strncpy(config->base.fortune.command, "fortune",
+            sizeof(config->base.fortune.command));
     config->base.startup_notification.is_enabled = true;
     config->base.startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
-    config->base.show_desktop_overlay = true;
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.systray.is_enabled = true;
@@ -660,6 +662,9 @@ void config_set_default_values(config_td *config)
             "modc+mod1+mods+x", sizeof(config->bindings.keyboard.wm.quit));
     safe_strncpy(config->bindings.keyboard.wm.shortcuts,
             "modc+mod4+F1", sizeof(config->bindings.keyboard.wm.shortcuts));
+    safe_strncpy(config->bindings.keyboard.wm.fortune,
+            "Ctrl+Mod4+BackSpace",
+            sizeof(config->bindings.keyboard.wm.fortune));
     safe_strncpy(config->bindings.keyboard.wm.show_desktop,
             "modc+mod1+mods+d",
             sizeof(config->bindings.keyboard.wm.show_desktop));

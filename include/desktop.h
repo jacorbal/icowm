@@ -105,6 +105,29 @@ typedef struct desktop_s {
                                                  since last render pass;
                                                  decoration colors must be
                                                  refreshed on all clients */
+
+    /**
+     * @brief Whether at least one client on this desktop currently
+     *        has its own urgency hint set
+     *
+     * Kept correct by @c desktop_action_recompute_urgent
+     * (desktop/dclient.c), called from every site that could change
+     * the answer: a client's own urgency being set or cleared
+     * (@c ccmd_client_urge/_unurge, cmds/client/basic.c) while
+     * already on this desktop, and a client entering or leaving it
+     * altogether (@c desktop_action_client_add/_rem, this same
+     * file), which already covers a client created already urgent,
+     * one destroyed while still urgent, and one sent to a different
+     * desktop while still urgent -- every one of those changes who
+     * this desktop's own set of clients is, not a client already on
+     * it changing its own urgency, the other case those two
+     * functions exist to handle instead.  Not consulted by anything
+     * yet: a hook for a future feature (e.g. drawing this desktop's
+     * own entry differently while the surface is showing a different
+     * one), included now so a client's own urgency is never missed
+     * regardless of which desktop it lands on.
+     */
+    bool is_urgent;
 } desktop_td;
 
 
@@ -202,6 +225,18 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client);
  * @note Complexity: @e O(1)
  */
 int desktop_action_client_rem(desktop_td *desktop, client_td *client);
+
+/**
+ * @brief Recompute @c desktop->is_urgent from scratch, against every
+ *        client currently on it
+ *
+ * @param desktop Desktop to recompute; a no-op if @c NULL or its own
+ *                @c clients table is
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ *       currently on @p desktop
+ */
+void desktop_action_recompute_urgent(desktop_td *desktop);
 
 /**
  * @brief Rename the desktop

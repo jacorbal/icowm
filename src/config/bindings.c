@@ -106,6 +106,9 @@ int config_load_bindings(const char *filename,
             json_load_string(wm, "shortcuts",
                     config_bindings->keyboard.wm.shortcuts,
                     CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(wm, "fortune",
+                    config_bindings->keyboard.wm.fortune,
+                    CONFIG_MAX_LENGTH_BINDING);
 
             /* Direct go-to shortcuts 0-9.  Kept independent of
              * whether 'window' below is present in the file at all:

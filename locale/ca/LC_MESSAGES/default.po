@@ -187,10 +187,6 @@ msgstr "Mostra l'escriptori"
 msgid "Redraw"
 msgstr "Redibuixa"
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr "Recarrega la config."
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr "Surt"
@@ -204,8 +200,8 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr "Sortida d'emergència: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr "Frase del dia: Ctrl+Mod4+BackSpace"
+msgid "Fortune"
+msgstr "Frase del dia"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
@@ -288,12 +284,16 @@ msgid "N/A"
 msgstr "N/D"
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "Plena, amb CA"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "Plena"
+
+#: include/defs/uistr.h:188
+msgid "AC"
+msgstr "CA"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -354,3 +354,11 @@ msgstr ""
 "L'IcoWM s'està executant en mode de memòria restringida i no "
 "gestionarà més de %u finestra/es alhora (vegeu l'opció de línia "
 "d'ordres '-M').  Tanca una finestra abans d'obrir-ne una altra."
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr "En aquest moment no hi ha cap finestra oberta en aquesta sessió."
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "Ai las!  L'oracle 'fortune' no habita en aquesta màquina, per la qual cosa cap saviesa dels antics no podrà avui ésser endevinada.  Us prego que supliqueu al vostre gestor de paquets amb un conjur tal com 'sudo apt install fortune-mod' (o l'encanteri que la vostra distribució demani), perquè els savis d'antany puguin novament parlar a través d'aquest humil diàleg."

@@ -30,12 +30,14 @@
 /* Default initial values */
 #include <defs/icon.h>
 #include <defs/search.h>
+#include <defs/uistr.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <i18n.h>
 #include <lookup.h>
 #include <render/text.h>
 #include <render/wmicon.h>
@@ -45,6 +47,8 @@
 #include <policy/focus.h>
 
 /* Menu includes */
+#include <menu/cycle.h>
+#include <menu/dialog/info.h>
 #include <menu/draw.h>
 
 /* Local includes */
@@ -197,6 +201,10 @@ static void s_search_build_hints(const client_td *client, char *out,
 
     if (client_is_shaded(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_SHADED;
+    }
+    if (client_is_hidden(client) && !client_is_iconified(client) &&
+            n < sizeof(letters)) {
+        letters[n++] = WM_ICON_HINT_HIDDEN;
     }
     if (client_is_pinned(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_PINNED;
@@ -477,6 +485,20 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     }
 
     s_search_collect_candidates();
+
+    if (s_search.candidate_count == 0) {
+        /* Nothing to search for at all: showing the widget empty,
+         * with no way to ever produce a result no matter what is
+         * typed, would only look broken rather than actually
+         * informative.  's_search.window' is still 'XCB_WINDOW_NONE'
+         * here (set right after the 'memset' above), so
+         * 'search_is_open' already correctly reports the widget as
+         * never having opened. */
+        dialog_info_show(connection, surface, cfg,
+                _(STR_SEARCH_NO_WINDOWS), MENU_MSG_LEVEL_INFO);
+        return;
+    }
+
     s_search_refilter();
     s_search_compute_geometry();
 
@@ -547,6 +569,24 @@ void search_destroy(xcb_connection_t *connection)
     }
 
     xcb_flush(connection);
+
+    /* Clear the last selection's own extra border the same way
+     * 'search_draw' registered it, and mark its desktop dirty one
+     * last time so the render pass actually paints over it -- left
+     * undone, the last-selected result would keep showing the extra
+     * border indefinitely, until some unrelated repaint happened to
+     * come along. */
+    cycle_set_external_selection(NULL, false);
+    if (s_search.surface != NULL) {
+        for (uint32_t i = 0; i < s_search.surface->desktop_count; ++i) {
+            desktop_td *d = surface_desktop_get(s_search.surface, i);
+
+            if (d != NULL) {
+                d->focus_dirty = true;
+            }
+        }
+        s_search.surface->is_outdated = true;
+    }
 
     s_search.window = XCB_WINDOW_NONE;
     s_search.surface = NULL;
@@ -813,13 +853,18 @@ static void s_search_draw_row(xcb_connection_t *connection,
     menu_draw_label(connection, s_search.window, text_x,
             (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4), name_buf);
 
-    if (s_search.surface->desktop_count > 1u && r->desktop != NULL &&
-            r->desktop->name[0] != '\0') {
+    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
         int16_t desk_x = (int16_t) (text_x +
                 menu_draw_measure(name_buf) + WM_SEARCH_COLUMN_GAP);
 
         if (desk_x < safe_right) {
-            snprintf(desk_buf, sizeof(desk_buf), "%s", r->desktop->name);
+            if (r->desktop->name[0] != '\0') {
+                snprintf(desk_buf, sizeof(desk_buf), "[%u] -- %s",
+                        r->desktop->id, r->desktop->name);
+            } else {
+                snprintf(desk_buf, sizeof(desk_buf), "[%u]",
+                        r->desktop->id);
+            }
             menu_draw_truncate(desk_buf,
                     (uint16_t) (safe_right - desk_x));
             menu_draw_label(connection, s_search.window, desk_x,
@@ -845,6 +890,61 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
     if (!search_is_open() || cfg == NULL) {
         return;
     }
+
+    /* The extra border a selected result draws with -- the exact
+     * same one the cycle menu's own selection does, registered via
+     * 'cycle_set_external_selection' (menu/cycle.h) rather than this
+     * widget tracking or applying that border-drawing logic itself
+     * -- lives on the result's own real window or icon, outside this
+     * widget's own window entirely, drawn by the main render pass
+     * instead ('desktop_render_one_client'/'ri_render_client_icon',
+     * render/desktop.c and render/icon.c), which only ever repaints
+     * a client's own border/titlebar colors when that client's own
+     * 'is_outdated' is set or its own desktop's own 'focus_dirty' is
+     * -- neither of which navigating this widget's own selection
+     * (nothing about any real client) has any other reason to set on
+     * its own.  Marking every desktop on this widget's own surface
+     * here, once, on every repaint (results can come from more than
+     * one), is what actually makes the highlight travel with the
+     * selection in real time, the same way a real focus change
+     * already does, rather than only catching up whenever the next
+     * unrelated repaint happens to come along. */
+    if (s_search.selected >= 0 &&
+            s_search.selected < s_search.result_count) {
+        client_td *sel = s_search.results[s_search.selected].client;
+
+        cycle_set_external_selection(sel,
+                sel != NULL && client_is_iconified(sel));
+    } else {
+        cycle_set_external_selection(NULL, false);
+    }
+
+    if (s_search.surface != NULL) {
+        for (uint32_t i = 0; i < s_search.surface->desktop_count; ++i) {
+            desktop_td *d = surface_desktop_get(s_search.surface, i);
+
+            if (d != NULL) {
+                d->focus_dirty = true;
+            }
+        }
+        s_search.surface->is_outdated = true;
+    }
+
+    /* Kept in sync with 's_search.height' here, the one place every
+     * caller that might have just changed it (a new query result
+     * count changing how many rows there are to show, via
+     * 's_search_compute_geometry') already converges on before ever
+     * repainting, rather than needing each of them to remember their
+     * own 'xcb_configure_window' too: left undone, the physical
+     * window kept whatever taller height an earlier, larger result
+     * set had already sized it to, so a repaint after the count
+     * shrank only ever painted over its own new, shorter area,
+     * leaving the previous (now stale) rows still visible below it,
+     * looking like the new list runs into leftover entries from the
+     * old one. */
+    xcb_configure_window(connection, s_search.window,
+            XCB_CONFIG_WINDOW_HEIGHT,
+            (const uint32_t[]) { s_search.height });
 
     menu_draw_row_bg(connection, s_search.window,
             cfg->theme.menu.unselected.color.background,

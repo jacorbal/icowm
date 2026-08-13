@@ -336,10 +336,12 @@ void config_set_default_values_memguard(config_td *config)
     config->base.theme[0] = '\0';
     config->base.screen_count = 1u;
 
-    /* A single screen, a single desktop: neither warp nor cycle mean
+    /* A single screen, a single desktop: neither edge-warping nor
+     * wrap-around navigation, nor the desktop-name overlay, mean
      * anything with only one desktop to switch to. */
-    config->desktops.warp = false;
-    config->desktops.cycle = false;
+    config->desktops.show_overlay = false;
+    config->desktops.enable_edge_warp = false;
+    config->desktops.is_circular = false;
     config->desktops.margins.top = 0u;
     config->desktops.margins.right = 0u;
     config->desktops.margins.bottom = 0u;
@@ -389,13 +391,13 @@ void config_set_default_values_memguard(config_td *config)
     config->base.icons.show_geom = false;
 
     config->base.enable_emergency_shortcut = false;
-    config->base.enable_fortune_shortcut = false;
+    config->base.fortune.is_enabled = false;
+    safe_strncpy(config->base.fortune.command, "fortune",
+            sizeof(config->base.fortune.command));
 
     config->base.startup_notification.is_enabled = false;
     config->base.startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
-
-    config->base.show_desktop_overlay = false;
 
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;

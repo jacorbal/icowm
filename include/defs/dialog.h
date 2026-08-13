@@ -122,16 +122,5 @@
 /** Maximum bytes read from the @c fortune command's output */
 #define DIALOG_FORTUNE_MAX_LENGTH (1024u)
 
-/** Shown instead when @c fortune is missing or produces no output;
- *  deliberately overwrought and archaic, per its whole point being a
- *  small joke rather than a plain error message */
-#define DIALOG_FORTUNE_FALLBACK_MSG \
-    "Alack!  The oracle 'fortune' abideth not upon this machine, " \
-    "wherefore no wisdom of the ancients may this day be divined.  " \
-    "Prithee, entreat thy package steward with an incantation " \
-    "such as 'sudo apt install fortune-mod' (or whate'er charm " \
-    "thy distribution demandeth), that the sages of yore might " \
-    "once more speak through this humble dialog."
-
 
 #endif  /* ! DEFS_DIALOG_H */

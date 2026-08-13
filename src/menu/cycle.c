@@ -709,6 +709,13 @@ uint16_t cycle_prev_modmask(void)
 
 
 /* Return whether a client must keep cycle extra border */
+/* Externally-registered selection (see 'cycle_set_external_selection'
+ * below): a widget other than the cycle menu itself asking to have
+ * its own current selection draw with the exact same extra border */
+static client_td *s_external_selected_client = NULL;
+static bool s_external_selected_is_icon = false;
+
+
 bool cycle_client_has_extra_border(const client_td *client,
         bool is_icon_menu)
 {
@@ -716,12 +723,18 @@ bool cycle_client_has_extra_border(const client_td *client,
         return false;
     }
 
-    if (cycle_is_open()) {
-        return cycle_get_selected_client() == client &&
-            g_cycle_menu.is_icon_menu == is_icon_menu;
+    if (cycle_is_open() && cycle_get_selected_client() == client &&
+            g_cycle_menu.is_icon_menu == is_icon_menu) {
+        return true;
     }
 
-    return cycle_is_open() &&
-        cycle_get_selected_client() == client &&
-        g_cycle_menu.is_icon_menu == is_icon_menu;
+    return s_external_selected_client == client &&
+        s_external_selected_is_icon == is_icon_menu;
+}
+
+
+void cycle_set_external_selection(client_td *client, bool is_icon)
+{
+    s_external_selected_client = client;
+    s_external_selected_is_icon = (client != NULL) && is_icon;
 }

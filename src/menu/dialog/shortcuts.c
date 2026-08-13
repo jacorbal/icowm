@@ -280,9 +280,10 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_line(text, sizeof(text), &offset, "%s",
                 _(STR_SHORTCUTS_EMERGENCY_EXIT));
     }
-    if (config->base.enable_fortune_shortcut) {
-        s_append_line(text, sizeof(text), &offset, "%s",
-                _(STR_SHORTCUTS_FORTUNE));
+    if (config->base.fortune.is_enabled) {
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_FORTUNE),
+                config->bindings.keyboard.wm.fortune);
     }
 
     s_append_blank_line(text, sizeof(text), &offset);

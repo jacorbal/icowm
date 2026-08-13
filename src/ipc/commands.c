@@ -108,6 +108,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "center_client",            ipc_action_center_client },
     { "move_client_to_monitor",   ipc_action_move_client_to_monitor },
     { "move_client_to_next_monitor", ipc_action_move_client_to_next_monitor },
+    { "move_resize_client",        ipc_action_move_resize_client },
     { "resize_client",            ipc_action_resize_client },
     { "maximize_client_horz",     ipc_action_maximize_client_horz },
     { "maximize_client_vert",     ipc_action_maximize_client_vert },

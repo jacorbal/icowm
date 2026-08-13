@@ -67,7 +67,7 @@
 #define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)
 
 /** How long, in milliseconds, a window or icon drag has to hold the
- *  pointer against a screen edge before 'desktops.warp' (config.json;
+ *  pointer against a screen edge before 'desktops.enable_edge_warp' (config.json;
  *  see config_desktop_s) switches to the adjacent desktop with the
  *  drag still held.  Long enough that merely passing through the edge
  *  on the way to a normal drop elsewhere does not trigger it. */

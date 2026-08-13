@@ -55,7 +55,7 @@ void notify_desktop_show(xcb_connection_t *connection,
         return;
     }
 
-    if (!cfg->base.show_desktop_overlay) {
+    if (!cfg->desktops.show_overlay) {
         return;
     }
 

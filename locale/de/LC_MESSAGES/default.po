@@ -187,10 +187,6 @@ msgstr "Schreibtisch anzeigen"
 msgid "Redraw"
 msgstr "Neu zeichnen"
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr "Konfig. neu laden"
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr "Beenden"
@@ -204,8 +200,8 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr "Notausstieg: Ctrl+Mod1+BackSpace"
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
-msgstr "Spruch des Tages: Ctrl+Mod4+BackSpace"
+msgid "Fortune"
+msgstr "Spruch des Tages"
 
 #: include/defs/uistr.h:131
 msgid "Terminal"
@@ -288,12 +284,16 @@ msgid "N/A"
 msgstr "k. A."
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "Voll, Netz"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "Voll"
+
+#: include/defs/uistr.h:188
+msgid "AC"
+msgstr "Netz"
 
 #: include/defs/uistr.h:185
 msgid ""
@@ -354,3 +354,11 @@ msgstr ""
 "IcoWM läuft im speicherbeschränkten Modus und verwaltet nicht mehr "
 "als %u Fenster gleichzeitig (siehe die Befehlszeilenoption '-M').  "
 "Schließen Sie ein Fenster, bevor Sie ein weiteres öffnen."
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr "Zurzeit sind in dieser Sitzung keine Fenster geöffnet."
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "Ach, wehe!  Das Orakel 'fortune' weilet nicht auf dieser Maschine, auf dass keine Weisheit der Alten heute zu erschauen sei.  Ich bitte Euch, Euren Paketverwalter mit einer Beschwörung wie 'sudo apt install fortune-mod' anzurufen (oder welcher Zauber auch immer Eure Distribution verlange), auf dass die Weisen der Vorzeit einst wieder durch diesen bescheidenen Dialog zu Euch sprechen mögen."

@@ -185,10 +185,6 @@ msgstr ""
 msgid "Redraw"
 msgstr ""
 
-#: include/defs/uistr.h:123
-msgid "Reload config"
-msgstr ""
-
 #: include/defs/uistr.h:124
 msgid "Quit"
 msgstr ""
@@ -202,7 +198,7 @@ msgid "Emergency exit: Ctrl+Mod1+BackSpace"
 msgstr ""
 
 #: include/defs/uistr.h:129
-msgid "Fortune: Ctrl+Mod4+BackSpace"
+msgid "Fortune"
 msgstr ""
 
 #: include/defs/uistr.h:131
@@ -286,11 +282,15 @@ msgid "N/A"
 msgstr ""
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr ""
 
 #: include/defs/uistr.h:181
 msgid "Full"
+msgstr ""
+
+#: include/defs/uistr.h:188
+msgid "AC"
 msgstr ""
 
 #: include/defs/uistr.h:185
@@ -332,4 +332,12 @@ msgid ""
 "IcoWM is running in restricted-memory mode and will not manage more "
 "than %u window(s) at once (see the '-M' command-line option).  Close "
 "a window before opening another."
+msgstr ""
+
+#: include/defs/uistr.h:230
+msgid "There are no open windows in this session at the moment."
+msgstr ""
+
+#: include/defs/uistr.h:244
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
 msgstr ""

@@ -280,7 +280,8 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
     }
 
     if (ac) {
-        (void) snprintf(out, out_size, "%u%% AC", percent);
+        (void) snprintf(out, out_size, "%u%% %s", percent,
+                _(STR_BATTERY_AC));
     } else if (percent <= threshold_critical) {
         (void) snprintf(out, out_size, "%u%%!!", percent);
     } else if (percent <= threshold_low) {
