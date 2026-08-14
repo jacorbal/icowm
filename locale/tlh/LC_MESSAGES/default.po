@@ -201,6 +201,10 @@ msgstr "chuq mej: Ctrl+Mod1+BackSpace"
 msgid "Fortune"
 msgstr "veS mu'"
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr "poH mIw"
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr "boSwI'"
@@ -282,7 +286,7 @@ msgid "N/A"
 msgstr "Sut"
 
 #: include/defs/uistr.h:180
-msgid "Full, AC"
+msgid "Full AC"
 msgstr "meQ, Sor"
 
 #: include/defs/uistr.h:181

@@ -203,6 +203,10 @@ msgstr "Salida de emergencia: Ctrl+Mod1+BackSpace"
 msgid "Fortune"
 msgstr "Frase del día"
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr "Área de trabajo temporal"
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr "Terminal"

@@ -203,6 +203,10 @@ msgstr "Notausstieg: Ctrl+Mod1+BackSpace"
 msgid "Fortune"
 msgstr "Spruch des Tages"
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr "Temporärer Arbeitsbereich"
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr "Terminal"
@@ -284,7 +288,7 @@ msgid "N/A"
 msgstr "k. A."
 
 #: include/defs/uistr.h:180
-msgid "Full, AC"
+msgid "Full AC"
 msgstr "Voll, Netz"
 
 #: include/defs/uistr.h:181

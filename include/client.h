@@ -133,7 +133,28 @@ enum window_flags_e {
      * every such feature, not anything specific to one of them.
      */
     CLIENT_FLAG_LOCKED       = 1 << 12,
-    CLIENT_FLAG_MAX = 13,
+
+    /**
+     * @brief Never offered as the fallback focus target when some
+     *        other client on the same desktop loses focus
+     *
+     * Deliberately generic, not tied to any one feature, the same
+     * spirit as @c CLIENT_FLAG_LOCKED above: set once by whichever
+     * policy owns a client with this flag (the scratchpad,
+     * scratchpad.c, is the only one that does so today), then
+     * checked by every "who should get focus next" search on the
+     * current desktop (@c s_client_focus_fallback in
+     * cmds/client/basic.c, @c s_restore_focus_after_client_loss in
+     * handler/map.c) -- neither of which needs to know what feature
+     * actually set this, or why, only that this client's own
+     * visibility is managed by something else entirely (its own
+     * toggle, in the scratchpad's case) and should never be picked
+     * as an incidental side effect of another client merely losing
+     * focus.
+     */
+    CLIENT_FLAG_NO_FOCUS_FALLBACK = 1 << 13,
+
+    CLIENT_FLAG_MAX = 14,
 };
 
 
@@ -1118,6 +1139,23 @@ void client_props_refresh_normal_hints(client_td *client);
  */
 #define client_is_locked(w) \
     ((w)->properties.flags & CLIENT_FLAG_LOCKED)
+
+/**
+ * @brief Macro that sets a client's own no-focus-fallback flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_set_no_focus_fallback(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_NO_FOCUS_FALLBACK, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that evaluates to a client's own no-focus-fallback flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_has_no_focus_fallback(w) \
+    ((w)->properties.flags & CLIENT_FLAG_NO_FOCUS_FALLBACK)
 
 /**
  * @brief Macro that sets the hidden flag of a client

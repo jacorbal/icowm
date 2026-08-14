@@ -201,6 +201,10 @@ msgstr ""
 msgid "Fortune"
 msgstr ""
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr ""
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr ""
@@ -282,7 +286,7 @@ msgid "N/A"
 msgstr ""
 
 #: include/defs/uistr.h:180
-msgid "Full, AC"
+msgid "Full AC"
 msgstr ""
 
 #: include/defs/uistr.h:181

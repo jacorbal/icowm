@@ -127,6 +127,7 @@
  * pair with; the combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+BackSpace"
 #define STR_SHORTCUTS_FORTUNE        "Fortune"
+#define STR_SHORTCUTS_SCRATCHPAD     "Scratchpad"
 
 #define STR_SHORTCUTS_TERMINAL      "Terminal"
 #define STR_SHORTCUTS_LAUNCHER      "Launcher"

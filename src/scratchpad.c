@@ -195,6 +195,13 @@ void scratchpad_notice_client_created(client_td *client)
 
     client_lock(client);
 
+    /* Never a valid fallback focus target on its own, e.g. after
+     * some other client on the same desktop shades or hides: its own
+     * visibility is managed entirely by 'scratchpad_toggle', not by
+     * anything that picks a next client to focus generically; see
+     * 'CLIENT_FLAG_NO_FOCUS_FALLBACK' (client.h) */
+    client_set_no_focus_fallback(client);
+
     LOGGER_TRACE("Claimed client %#x as the scratchpad",
             client->window);
 }

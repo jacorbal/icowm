@@ -203,6 +203,10 @@ msgstr "Uscita di emergenza: Ctrl+Mod1+BackSpace"
 msgid "Fortune"
 msgstr "Frase del giorno"
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr "Area di lavoro temporanea"
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr "Terminale"
@@ -284,7 +288,7 @@ msgid "N/A"
 msgstr "N/D"
 
 #: include/defs/uistr.h:180
-msgid "Full, AC"
+msgid "Full AC"
 msgstr "Carica, rete"
 
 #: include/defs/uistr.h:181

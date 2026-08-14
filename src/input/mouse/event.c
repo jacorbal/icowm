@@ -510,8 +510,12 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                             client_td *c =
                                 (client_td *) cdlist_data(node);
                             if (c != NULL && c != client &&
+                                    !(c->properties.flags &
+                                        CLIENT_FLAG_HIDDEN) &&
+                                    !client_is_shaded(c) &&
                                     client_is_focusable(c) &&
-                                    !client_is_iconified(c)) {
+                                    !client_is_iconified(c) &&
+                                    !client_has_no_focus_fallback(c)) {
                                 prev_c = c;
                                 break;
                             }

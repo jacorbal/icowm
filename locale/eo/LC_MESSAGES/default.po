@@ -203,6 +203,10 @@ msgstr "Krizeliro: Ctrl+Mod1+BackSpace"
 msgid "Fortune"
 msgstr "Diradaĵo de la tago"
 
+#: include/defs/uistr.h:130
+msgid "Scratchpad"
+msgstr "Provizora laborspaco"
+
 #: include/defs/uistr.h:131
 msgid "Terminal"
 msgstr "Terminalo"
@@ -284,7 +288,7 @@ msgid "N/A"
 msgstr "N/A"
 
 #: include/defs/uistr.h:180
-msgid "Full, AC"
+msgid "Full AC"
 msgstr "Plena, kun reto"
 
 #: include/defs/uistr.h:181

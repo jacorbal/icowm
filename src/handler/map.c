@@ -120,7 +120,8 @@ static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
                     !client_is_shaded(c) &&
                     c->properties.state !=
                         (uint16_t) CLIENT_STATE_ICONIFIED &&
-                    (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {
+                    (c->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
+                    !client_has_no_focus_fallback(c)) {
                 desktop->client_active_id = c->id;
                 desktop->focus_dirty = true;
 

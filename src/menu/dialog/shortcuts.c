@@ -285,6 +285,11 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 _(STR_SHORTCUTS_FORTUNE),
                 config->bindings.keyboard.wm.fortune);
     }
+    if (config->base.scratchpad.is_enabled) {
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_SCRATCHPAD),
+                config->bindings.keyboard.wm.scratchpad);
+    }
 
     s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "%s",

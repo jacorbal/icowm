@@ -107,7 +107,8 @@ static void s_client_focus_fallback(client_td *client)
                         candidate->properties.state !=
                             (uint16_t) CLIENT_STATE_ICONIFIED &&
                         (candidate->properties.flags &
-                         CLIENT_FLAG_FOCUSABLE)) {
+                         CLIENT_FLAG_FOCUSABLE) &&
+                        !client_has_no_focus_fallback(candidate)) {
                     next_focus = candidate;
                     break;
                 }
