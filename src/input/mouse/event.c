@@ -857,7 +857,9 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
         s_last_titlebar_press_win = client->titlebar;
 
         if (prev_win == client->titlebar &&
-                dt <= (xcb_timestamp_t) WM_DOUBLE_CLICK_MS) {
+                dt <= (xcb_timestamp_t) ((config != NULL)
+                    ? config->a11y.interaction.double_click_ms
+                    : WM_DOUBLE_CLICK_MS)) {
             /* Double-click: toggle shade */
             s_last_titlebar_press_time = 0;
             s_last_titlebar_press_win = XCB_NONE;

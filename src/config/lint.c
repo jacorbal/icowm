@@ -425,6 +425,31 @@ static const config_lint_key_td s_schema_menu[] = {
     {"menu", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_a11y_interaction[] = {
+    {"double-click-ms", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_a11y_focus_indicator[] = {
+    {"min-border-width", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_a11y_urgency[] = {
+    {"audible-bell", NULL, 0u},
+    {"blink-interval-ms", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_a11y[] = {
+    {"interaction", s_schema_a11y_interaction,
+        sizeof(s_schema_a11y_interaction) /
+            sizeof(s_schema_a11y_interaction[0])},
+    {"focus-indicator", s_schema_a11y_focus_indicator,
+        sizeof(s_schema_a11y_focus_indicator) /
+            sizeof(s_schema_a11y_focus_indicator[0])},
+    {"urgency", s_schema_a11y_urgency,
+        sizeof(s_schema_a11y_urgency) /
+            sizeof(s_schema_a11y_urgency[0])}
+};
+
 
 static const config_lint_file_spec_td s_files[] = {
     {"config.json", s_schema_config,
@@ -438,7 +463,10 @@ static const config_lint_file_spec_td s_files[] = {
     {"session.json", s_schema_session,
         sizeof(s_schema_session) / sizeof(s_schema_session[0]), false},
     {"menu.json", s_schema_menu,
-        sizeof(s_schema_menu) / sizeof(s_schema_menu[0]), false}
+        sizeof(s_schema_menu) / sizeof(s_schema_menu[0]), false},
+    {"a11y.json", s_schema_a11y,
+        sizeof(s_schema_a11y) / sizeof(s_schema_a11y[0]),
+        false}
 };
 
 

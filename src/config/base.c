@@ -575,17 +575,186 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
+ * @brief Detect which of the two accepted 'topology.screens.desktops'
+ *        shapes a JSON array is using, looking at its first entry
+ *        alone
+ *
+ * The flat, single-screen shape has plain desktop entries (name/
+ * background color and the like); the per-screen shape instead has
+ * each entry carrying its own 'settings'/'count'/'inaugural' fields
+ * describing a whole screen.
+ *
+ * @param desktops_array The 'topology.screens.desktops' array itself
+ *
+ * @return @c true if the per-screen (nested) shape is in use
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_config_screens_uses_nested_layout(cJSON *desktops_array)
+{
+    cJSON *first_desktop_item;
+
+    first_desktop_item = cJSON_GetArrayItem(desktops_array, 0);
+    if (first_desktop_item == NULL ||
+            !cJSON_IsObject(first_desktop_item)) {
+        return false;
+    }
+
+    return cJSON_GetObjectItem(first_desktop_item, "settings") != NULL ||
+        cJSON_GetObjectItem(first_desktop_item, "count") != NULL ||
+        cJSON_GetObjectItem(first_desktop_item, "inaugural") != NULL;
+}
+
+
+/**
+ * @brief Load the flat 'topology.screens.desktops' shape: every array
+ *        entry is a plain desktop, all applied to screen 0
+ *
+ * @param desktops_array The 'topology.screens.desktops' array itself
+ * @param desktop_count  Number of entries in @p desktops_array,
+ *                       already clamped to 'CONFIG_MAX_DESKTOPS'
+ * @param config_base    Destination structure
+ * @param filename       Path the JSON was read from, for log messages
+ *                       only
+ *
+ * @note Complexity: @e O(d), where @e d is @p desktop_count
+ */
+static void s_config_load_screens_flat(cJSON *desktops_array,
+        unsigned int desktop_count, struct config_base_s *config_base,
+        const char *filename)
+{
+    config_base->screens[0].desktop_count = desktop_count;
+    s_config_enforce_min_count(&config_base->screens[0].desktop_count,
+            1u, "topology.screens.desktops (count)", filename);
+
+    for (unsigned int i = 0;
+            i < desktop_count && i < CONFIG_MAX_DESKTOPS; ++i) {
+        cJSON *desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
+
+        if (desktop_item == NULL) {
+            continue;
+        }
+        s_config_load_desktop_entry(desktop_item,
+                config_base->screens[0].desktops[i].name,
+                &config_base->screens[0].desktops[i].settings);
+    }
+}
+
+
+/**
+ * @brief Load one screen's own entry within the per-screen (nested)
+ *        'topology.screens.desktops' shape
+ *
+ * Reads that one screen's own 'count'/'inaugural', clamping the
+ * inaugural desktop back to 0 if it names one past the screen's own
+ * desktop count, then loads every desktop named in its own
+ * 'settings' array.
+ *
+ * @param desktop_item One entry of 'topology.screens.desktops',
+ *                     describing screen @p screen_idx
+ * @param screen_idx   Index of the screen this entry describes
+ * @param config_base  Destination structure
+ * @param filename     Path the JSON was read from, for log messages
+ *                     only
+ *
+ * @note Complexity: @e O(d), where @e d is the number of entries in
+ *       this screen's own 'settings' array
+ */
+static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
+        uint32_t screen_idx, struct config_base_s *config_base,
+        const char *filename)
+{
+    cJSON *desktop_settings;
+    unsigned int settings_count;
+
+    json_load_uint(desktop_item, "count",
+            &config_base->screens[screen_idx].desktop_count);
+    s_config_enforce_min_count(
+            &config_base->screens[screen_idx].desktop_count, 1u,
+            "topology.screens.desktops[].count", filename);
+    json_load_uint(desktop_item, "inaugural",
+            &config_base->screens[screen_idx].desktop_inaugural);
+
+    /* Desktops, as screens, are zero-based indexed, so if the
+     * inaugural desktop is a number bigger than the desktop, it
+     * reverts to the first desktop of all: the 0th */
+    if (config_base->screens[screen_idx].desktop_inaugural >
+            config_base->screens[screen_idx].desktop_count - 1) {
+        config_base->screens[screen_idx].desktop_inaugural = 0;
+    }
+
+    desktop_settings = cJSON_GetObjectItem(desktop_item, "settings");
+    if (desktop_settings == NULL || !cJSON_IsArray(desktop_settings)) {
+        return;
+    }
+
+    settings_count = (unsigned int) cJSON_GetArraySize(desktop_settings);
+    for (unsigned int j = 0;
+            j < settings_count && j < CONFIG_MAX_DESKTOPS; ++j) {
+        cJSON *setting_item = cJSON_GetArrayItem(desktop_settings,
+                (int) j);
+
+        if (setting_item == NULL) {
+            continue;
+        }
+        s_config_load_desktop_entry(setting_item,
+                config_base->screens[screen_idx].desktops[j].name,
+                &config_base->screens[screen_idx].desktops[j].settings);
+    }
+}
+
+
+/**
+ * @brief Load the per-screen (nested) 'topology.screens.desktops'
+ *        shape: every array entry describes one whole screen
+ *
+ * @param desktops_array The 'topology.screens.desktops' array itself
+ * @param desktop_count  Number of entries in @p desktops_array,
+ *                       already clamped to 'CONFIG_MAX_DESKTOPS';
+ *                       reused here against 'CONFIG_MAX_SCREENS'
+ *                       instead, since each entry is a screen in this
+ *                       shape, not a desktop (see the note below)
+ * @param config_base    Destination structure
+ * @param filename       Path the JSON was read from, for log messages
+ *                       only
+ *
+ * @note Complexity: @e O(s * d), where @e s is the number of screens
+ *       and @e d the number of desktops described per screen
+ */
+static void s_config_load_screens_nested(cJSON *desktops_array,
+        unsigned int desktop_count, struct config_base_s *config_base,
+        const char *filename)
+{
+    /* Each entry of 'desktops_array' represents a screen in this
+     * layout, so the bound must be 'CONFIG_MAX_SCREENS', not
+     * 'CONFIG_MAX_DESKTOPS'; otherwise 'config_base->screens[i]'
+     * would be written out of bounds */
+    for (unsigned int i = 0;
+            i < desktop_count && i < CONFIG_MAX_SCREENS; ++i) {
+        cJSON *desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
+
+        if (desktop_item != NULL) {
+            s_config_load_screen_desktop_settings(desktop_item, i,
+                    config_base, filename);
+        }
+    }
+}
+
+
+/**
  * @brief Load @c "topology.screens" (screen count, and each screen's
  *        desktop count/inaugural desktop/desktop entries) from parsed
  *        @c config.json
  *
  * Accepts two on-disk shapes for the @c "topology.screens.desktops"
  * array: a flat list of desktop entries applied to screen 0 (the
- * common, single-screen case), or, when any entry in that array
- * itself carries its own @c "settings"/"count"/"inaugural" fields, a
- * nested layout where each entry instead describes one whole screen
- * (multi-screen configurations).  Which shape is in use is detected
- * from the first array entry alone.  A missing @c "topology" or
+ * common, single-screen case, see @c s_config_load_screens_flat), or,
+ * when any entry in that array itself carries its own @c "settings"/
+ * "count"/"inaugural" fields, a nested layout where each entry
+ * instead describes one whole screen (multi-screen configurations,
+ * see @c s_config_load_screens_nested).  Which shape is in use is
+ * detected from the first array entry alone (see @c
+ * s_config_screens_uses_nested_layout).  A missing @c "topology" or
  * @c "screens" object, or a missing/non-array @c "desktops" within
  * it, leaves whatever @p config_base already held (its compiled-in or
  * previously-loaded defaults) untouched, logging why.
@@ -612,6 +781,8 @@ static void s_config_load_screens(cJSON *json,
 {
     cJSON *topology;
     cJSON *screen_settings;
+    cJSON *desktops_array;
+    unsigned int desktop_count;
 
     topology = cJSON_GetObjectItem(json, "topology");
     screen_settings = (topology != NULL)
@@ -620,137 +791,38 @@ static void s_config_load_screens(cJSON *json,
         LOGGER_WARNING("No 'topology.screens' object found in '%s';" \
                 " desktop settings, including background colors," \
                 " will keep their default values", filename);
+        return;
+    }
+
+    json_load_uint(screen_settings, "count", &config_base->screen_count);
+    s_config_enforce_min_count(&config_base->screen_count, 1u,
+            "topology.screens.count", filename);
+
+    /* 'desktops' sits directly under 'topology.screens' -- no
+     * intervening 'settings' object (unlike each individual screen
+     * entry's own per-desktop 'settings[]' array below, which is a
+     * different, unrelated thing this schema keeps as it already
+     * was). */
+    desktops_array = cJSON_GetObjectItem(screen_settings, "desktops");
+    if (desktops_array == NULL || !cJSON_IsArray(desktops_array)) {
+        LOGGER_WARNING("No 'desktops' array found under" \
+                " 'topology.screens' in '%s'; desktop" \
+                " settings, including background colors, will" \
+                " keep their default values", filename);
+        return;
+    }
+
+    desktop_count = (unsigned int) cJSON_GetArraySize(desktops_array);
+    desktop_count = (desktop_count > CONFIG_MAX_DESKTOPS)
+        ? CONFIG_MAX_DESKTOPS : desktop_count;
+
+    if (s_config_screens_uses_nested_layout(desktops_array)) {
+        s_config_load_screens_nested(desktops_array, desktop_count,
+                config_base, filename);
     } else {
-        cJSON *desktops_array;
-
-        /* Load total number of screen */
-        json_load_uint(screen_settings, "count",
-                &config_base->screen_count);
-        s_config_enforce_min_count(&config_base->screen_count, 1u,
-                "topology.screens.count", filename);
-
-        /* 'desktops' sits directly under 'topology.screens' -- no
-         * intervening 'settings' object (unlike each individual
-         * screen entry's own per-desktop 'settings[]' array below,
-         * which is a different, unrelated thing this schema keeps as
-         * it already was). */
-        desktops_array =
-            cJSON_GetObjectItem(screen_settings, "desktops");
-
-        /* NOTE: Whilst I recognize this maze of if statements could
-         *       benefit from finesse, I am stuck with it for now.
-         *       A sophisticated refactor will come, but deadlines have
-         *       a way of complicating matters. */
-        if (desktops_array && cJSON_IsArray(desktops_array)) {
-            unsigned int desktop_count =
-                (unsigned int) cJSON_GetArraySize(desktops_array);
-            cJSON *first_desktop_item;
-            bool uses_nested_screen_layout = false;
-
-            desktop_count = (desktop_count > CONFIG_MAX_DESKTOPS)
-                ? CONFIG_MAX_DESKTOPS
-                : desktop_count;
-            first_desktop_item = cJSON_GetArrayItem(desktops_array, 0);
-            if (first_desktop_item &&
-                    cJSON_IsObject(first_desktop_item)) {
-                if (cJSON_GetObjectItem(first_desktop_item, "settings") ||
-                        cJSON_GetObjectItem(first_desktop_item, "count") ||
-                        cJSON_GetObjectItem(first_desktop_item,
-                            "inaugural")) {
-                    uses_nested_screen_layout = true;
-                }
-            }
-
-            if (!uses_nested_screen_layout) {
-                config_base->screens[0].desktop_count = desktop_count;
-                s_config_enforce_min_count(
-                        &config_base->screens[0].desktop_count, 1u,
-                        "topology.screens.desktops (count)", filename);
-
-                for (unsigned int i = 0;
-                        i < desktop_count && i < CONFIG_MAX_DESKTOPS;
-                        ++i) {
-                    cJSON *desktop_item;
-
-                    desktop_item =
-                        cJSON_GetArrayItem(desktops_array, (int) i);
-                    if (desktop_item == NULL) {
-                        continue;
-                    }
-                    s_config_load_desktop_entry(desktop_item,
-                            config_base->screens[0].desktops[i].name,
-                            &config_base->screens[0].desktops[i].settings);
-                }
-            } else {
-                /* Each entry of 'desktops_array' represents a screen in
-                 * this layout, so the bound must be
-                 * 'CONFIG_MAX_SCREENS', not 'CONFIG_MAX_DESKTOPS';
-                 * otherwise 'config_base->screens[i]' would be written
-                 * out of bounds */
-                for (unsigned int i = 0;
-                        i < desktop_count && i < CONFIG_MAX_SCREENS;
-                        ++i) {
-                    cJSON *desktop_item;
-
-                    desktop_item =
-                        cJSON_GetArrayItem(desktops_array, (int) i);
-                    if (desktop_item) {
-                        cJSON *desktop_settings;
-                        /* Load desktop 'count' and 'inaugural' */
-                        json_load_uint(desktop_item, "count",
-                                &config_base->screens[i].desktop_count);
-                        s_config_enforce_min_count(
-                                &config_base->screens[i].desktop_count,
-                                1u, "topology.screens.desktops[].count",
-                                filename);
-                        json_load_uint(desktop_item, "inaugural",
-                                &config_base->screens[i].desktop_inaugural);
-
-                        /* Desktops, as screens, are zero-based indexed,
-                         * so if the inaugural desktop is a number
-                         * bigger than the desktop, it reverts to the
-                         * first desktop of all: the 0th */
-                        if (config_base->screens[i].desktop_inaugural >
-                                config_base->screens[i].desktop_count - 1) {
-                            config_base->screens[i].desktop_inaugural = 0;
-                        }
-
-                        /* Get 'settings' field for each desktop */
-                        desktop_settings =
-                            cJSON_GetObjectItem(desktop_item, "settings");
-                        if (desktop_settings &&
-                                cJSON_IsArray(desktop_settings)) {
-                            unsigned int settings_count =
-                                (unsigned int)
-                                cJSON_GetArraySize(desktop_settings);
-                            for (unsigned int j = 0;
-                                    j < settings_count &&
-                                    j < CONFIG_MAX_DESKTOPS;
-                                    ++j) {
-                                cJSON *setting_item;
-
-                                setting_item =
-                                    cJSON_GetArrayItem(desktop_settings,
-                                            (int) j);
-                                if (setting_item) {
-                                    s_config_load_desktop_entry(setting_item,
-                                            config_base->screens[i]
-                                            .desktops[j].name,
-                                            &config_base->screens[i]
-                                            .desktops[j].settings);
-                                } /* ! if (setting_item) */
-                            } /* ! for(j in 0..settings_count) */
-                        } /* ! if (desktop_settings) */
-                    } /* ! if (desktop_item) */
-                } /* ! for (i in 0..desktop_count) */
-            } /* ! if (!uses_nested_screen_layout) */
-        } else {
-            LOGGER_WARNING("No 'desktops' array found under" \
-                    " 'topology.screens' in '%s'; desktop" \
-                    " settings, including background colors, will" \
-                    " keep their default values", filename);
-        } /* ! if (desktops_array) */
-    } /* ! if (screen_settings) */
+        s_config_load_screens_flat(desktops_array, desktop_count,
+                config_base, filename);
+    }
 }
 
 

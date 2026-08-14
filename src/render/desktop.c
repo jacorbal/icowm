@@ -278,7 +278,6 @@ static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 int desktop_render_background(desktop_td *desktop)
 {
     xcb_screen_t *screen;
-    xcb_screen_iterator_t iter;
     uint32_t values[2];
     xcb_pixmap_t root_pixmap;
 
@@ -298,30 +297,15 @@ int desktop_render_background(desktop_td *desktop)
             " with color #%06x",
             desktop->id, desktop->name, desktop->background.bg.color);
 
-    /* Get the screen */
-    /* FIXME: The 'screen_id' is taken by iterating all screens with the
-     *        current 'desktop->screen_id', and this should be by direct
-     *        access.  Maybe passing a pointer to the screen instead
-     *        getting the id on 'desktop_init' (vid. 'src/desktop.c').
-     *
-     *        Although, in general terms, the number of screens in any
-     *        setup tends to be low, so this loop has a complexity of
-     *        'O(n)', where 'n' is the number of screens, in most cases,
-     *        'n' approaches 1 or a small constant. */
-    iter = xcb_setup_roots_iterator(xcb_get_setup(desktop->connection));
-    screen = NULL;
-
-    for (uint32_t i = 0; i < desktop->screen_id && iter.rem > 0; ++i) {
-        xcb_screen_next(&iter);
-    }
-
-    if (iter.rem == 0 || iter.data == NULL) {
+    /* O(1): reuses the pointer 'desktop_init' (desktop.c) already
+     * resolved once for this desktop, rather than re-walking every
+     * screen from scratch (O(n)) on every single repaint */
+    screen = desktop->screen;
+    if (screen == NULL) {
         LOGGER_ERROR("Could not get screen for background rendering",
                 L_NARG);
         return 1;
     }
-
-    screen = iter.data;
 
     root_pixmap = s_get_root_background_pixmap(desktop->connection,
             screen->root);

@@ -407,7 +407,7 @@ void loop_run(wm_td *wm)
                 systray_clock_ms_remaining());
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                urgency_blink_ms_remaining());
+                urgency_blink_ms_remaining(wm->config));
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms, sn_ms_remaining());
 
@@ -470,7 +470,7 @@ void loop_run(wm_td *wm)
         }
 
         systray_clock_tick();
-        urgency_blink_tick(wm->surfaces);
+        urgency_blink_tick(wm->surfaces, wm->config);
         sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection, wm->config);

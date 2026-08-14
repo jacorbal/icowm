@@ -43,6 +43,7 @@
 #define CONFIG_FILENAME_SESSION "session.json"
 #define CONFIG_FILENAME_MENU "menu.json"
 #define CONFIG_FILENAME_MEMGUARD "memguard.json"
+#define CONFIG_FILENAME_A11Y "a11y.json"
 
 /* Default values when no value is given
  *

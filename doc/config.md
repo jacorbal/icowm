@@ -46,22 +46,25 @@ values, and built-in default value.
    - [5.2. `outputs[]` entries](#52-outputs-entries)
    - [5.3. Scope: per-X-screen, not per-`outputs[]`-entry](#53-scope-per-x-screen-not-per-outputs-entry)
    - [5.4. Reload behavior](#54-reload-behavior)
-6. [`rules.json`: Per-window rules](#6-rulesjson-per-window-rules)
-   - [6.1. Rule file shape](#61-rule-file-shape)
-   - [6.2. Rule entry fields](#62-rule-entry-fields)
-   - [6.3. Match fields](#63-match-fields)
-   - [6.4. Apply fields](#64-apply-fields)
-7. [`session.json`: Session lifecycle hooks](#7-sessionjson-session-lifecycle-hooks)
-   - [7.1. Hook arrays](#71-hook-arrays)
-8. [`menu.json`: Root desktop menu](#8-menujson-root-desktop-menu)
-   - [8.1. Top-level structure](#81-top-level-structure)
-   - [8.2. Entry types](#82-entry-types)
-   - [8.3. Entry fields reference](#83-entry-fields-reference)
-9. [`memguard.json`: Restricted-memory mode configuration](#9-memguardjson-restricted-memory-mode-configuration)
-   - [9.1. Configurable fields](#91-configurable-fields)
-   - [9.2. Fields this mode never lets `memguard.json` change](#92-fields-this-mode-never-lets-memguardjson-change)
-   - [9.3. The active theme's own restrictions](#93-the-active-themes-own-restrictions)
-10. [Full examples](#10-full-examples)
+6. [`a11y.json`: Timing and visual-feedback overrides](#6-a11yjson-timing-and-visual-feedback-overrides)
+   - [6.1. Fields](#61-fields)
+   - [6.2. Reload behavior](#62-reload-behavior)
+7. [`rules.json`: Per-window rules](#7-rulesjson-per-window-rules)
+   - [7.1. Rule file shape](#71-rule-file-shape)
+   - [7.2. Rule entry fields](#72-rule-entry-fields)
+   - [7.3. Match fields](#73-match-fields)
+   - [7.4. Apply fields](#74-apply-fields)
+8. [`session.json`: Session lifecycle hooks](#8-sessionjson-session-lifecycle-hooks)
+   - [8.1. Hook arrays](#81-hook-arrays)
+9. [`menu.json`: Root desktop menu](#9-menujson-root-desktop-menu)
+   - [9.1. Top-level structure](#91-top-level-structure)
+   - [9.2. Entry types](#92-entry-types)
+   - [9.3. Entry fields reference](#93-entry-fields-reference)
+10. [`memguard.json`: Restricted-memory mode configuration](#10-memguardjson-restricted-memory-mode-configuration)
+   - [10.1. Configurable fields](#101-configurable-fields)
+   - [10.2. Fields this mode never lets `memguard.json` change](#102-fields-this-mode-never-lets-memguardjson-change)
+   - [10.3. The active theme's own restrictions](#103-the-active-themes-own-restrictions)
+11. [Full examples](#11-full-examples)
 
 For everything that is not a configuration file, namely what IcoWM is,
 every command-line option, and restricted-memory mode's own run-time
@@ -85,13 +88,14 @@ Inside that directory the expected file tree is:
 
 ```
 ~/.icowm/
-├── config.json       Base configuration
+├── a11y.json         Timing and visual-feedback overrides
 ├── bindings.json     Keyboard & mouse bindings
+├── config.json       Base configuration
+├── memguard.json     Restricted-memory mode ('-M <mib>') configuration
 ├── menu.json         Root desktop menu entries
 ├── randr.json        XRandR output profiles
 ├── rules.json        Optional matching rules per-window
 ├── session.json      Command lists run at start, end, or on config. reload
-├── memguard.json     Restricted-memory mode ('-M <mib>') configuration
 └── themes/
     └── default.json  Theme file referenced by 'config.json'
 ```
@@ -443,8 +447,8 @@ hooks a normal quit or an external `SIGTERM` otherwise runs.  This is
 deliberate, not an oversight.  The emergency exit exists specifically
 for situations where the window manager itself might be unresponsive or
 in some broken state, so it is kept to the smallest, most direct action
-possible: a signal sent to its own process, detected the very next time
-its main loop gets to check for one.  Every one of the things this
+possible, i.e, a signal sent to its own process, detected the very next
+time its main loop gets to check for one.  Every one of the things this
 shortcut skips (a dialog, a menu, the coordinated client-closing wait)
 depends on that same main loop and its own rendering still working;
 adding any of them back in as a required step, even one that can itself
@@ -457,7 +461,7 @@ combination, so it keeps working even while one of those has the
 keyboard grabbed.
 
 `shutdown.timeout-seconds` applies only to the normal quit action (the
-"Quit" keybinding and its confirmation dialog): once confirmed, every
+"Quit" keybinding and its confirmation dialog).  Once confirmed, every
 managed client is first asked to close on its own (the same
 `WM_DELETE_WINDOW` request closing one window individually already
 sends, so an application with unsaved changes gets the same chance to
@@ -632,8 +636,8 @@ absolutely everything, including fullscreen windows.
 
 When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
 on startup and embeds icon windows that request docking via the
-freedesktop.org System Tray Protocol together with the XEMBED handshake;
-the dock window stays hidden while no icons are docked.  Toggling
+freedesktop.org System Tray Protocol together with the XEMBED handshake.
+The dock window stays hidden while no icons are docked.  Toggling
 `is-enabled` off and back on via a configuration reload releases and
 re-acquires the selection immediately without losing already-docked
 icons: the dock window and its icons persist in the background while
@@ -1889,7 +1893,72 @@ other profile targets.
 }
 ```
 
-## 6.  `rules.json`: Per-window rules
+## 6.  `a11y.json`: Timing and visual-feedback overrides
+
+An entirely optional file: everything here has a built-in default
+already in effect before this file exists at all, so nobody who never
+creates it sees any behavior change.  Every field this file does not
+specify keeps whatever value it already had, the same way `randr.json`
+(section 5) works.
+
+### 6.1 Fields
+
+| Key                                  | Type    | Default |
+|---------------------------------------|---------|---------|
+| `interaction.double-click-ms`         | integer | `400`   |
+| `focus-indicator.min-border-width`    | integer | `0`     |
+| `urgency.audible-bell`                | boolean | `false` |
+| `urgency.blink-interval-ms`           | integer | `600`   |
+
+`interaction.double-click-ms` is how long, in milliseconds, between two
+clicks on a titlebar for them to count as a double-click (which toggles
+shade) rather than two independent single clicks.  Raise it for more
+forgiving timing.
+
+`focus-indicator.min-border-width` enforces a minimum border width, in
+pixels, on every window regardless of what the active theme's own
+`window.active.border.width` / `window.inactive.border.width`
+(`themes/<name>.json`, section 4.1) specify.  A theme that already sets
+a wider border than this is left untouched; this only ever raises
+a border that would otherwise be thinner than it, keeping the focus
+indicator visible even for a theme that sets an unusually thin one.  The
+default of `0` never raises anything, deferring entirely to whatever the
+active theme already specifies.
+
+`urgency.audible-bell`, when `true`, sounds the X server's own bell
+(`xcb_bell`) the moment a client first becomes urgent, once per
+transition into urgency rather than repeatedly while it stays that way,
+alongside the visual blink every urgent client's titlebar (and icon, if
+iconified) already gets regardless of this setting.
+
+`urgency.blink-interval-ms` is how many milliseconds pass between one
+blink phase and the next for that same visual indicator.  Lower it for
+a faster, more attention-grabbing blink; raise it for a slower one.
+
+```json
+{
+    "interaction": {
+        "double-click-ms": 500
+    },
+    "focus-indicator": {
+        "min-border-width": 3
+    },
+    "urgency": {
+        "audible-bell": true,
+        "blink-interval-ms": 400
+    }
+}
+```
+
+### 6.2 Reload behavior
+
+Unlike `topology` in `config.json` (section 2.1), every field here does
+take effect on a configuration reload (`KEYBIND_WM_RELOAD` / `SIGHUP`
+/ the root menu's "Reload configuration" entry): none of them describe
+screen or desktop topology, so none of the concerns that keep `topology`
+reload-only-at-startup apply here.
+
+## 7. `rules.json`: Per-window rules
 
 Defines optional matching rules that are evaluated when a window is
 first mapped and, optionally, again when relevant ICCCM/EWMH properties
@@ -1905,7 +1974,7 @@ The file may be either:
 - a top-level JSON array of rule objects, or
 - an object with a `rules` array.
 
-### 6.1.  Rule file shape
+### 7.1.  Rule file shape
 
 ```json
 [
@@ -1941,7 +2010,7 @@ Equivalent wrapper form:
 }
 ```
 
-### 6.2.  Rule entry fields
+### 7.2.  Rule entry fields
 
 Each rule entry is a JSON object with the following keys:
 
@@ -2137,7 +2206,7 @@ still centers the window on that monitor by default, since otherwise
 The second example places the window 20 pixels from the top-left corner
 of monitor `1`, not of the whole surface.
 
-## 7.  `session.json`: Session lifecycle hooks
+## 8.  `session.json`: Session lifecycle hooks
 
 Defines optional command lists that IcoWM launches asynchronously at key
 lifecycle points.  If the file is absent or malformed, no hooks run.
@@ -2153,7 +2222,7 @@ also be disabled on platforms that provide `WRDE_NOENV`.
 If the "emergency shortcut" is used to exit, all pending session hooks
 will be ignored.
 
-### 7.1.  Hook arrays
+### 8.1.  Hook arrays
 
 | Key         | Type             | Default | Description |
 |-------------|------------------|---------|-------------|
@@ -2164,7 +2233,7 @@ will be ignored.
 Only non-empty string entries are used; all other array items are
 ignored.
 
-## 8.  `menu.json`: Root desktop menu
+## 9.  `menu.json`: Root desktop menu
 
 `menu.json` defines the user-configurable entries that appear when the
 user right-clicks on the empty desktop (root window).  The file is
@@ -2172,7 +2241,7 @@ user right-clicks on the empty desktop (root window).  The file is
 (`Reload configuration`, `Redraw all windows`, `Exit`) is still shown
 without any preceding separator.
 
-### 8.1.  Top-level structure
+### 9.1.  Top-level structure
 
 The file must contain a single JSON object with one key: `"menu"`, whose
 value is a JSON array of entry objects.
@@ -2186,7 +2255,7 @@ value is a JSON array of entry objects.
 }
 ```
 
-### 8.2.  Entry types
+### 9.2.  Entry types
 
 Each entry object must have a `"type"` string field.  Four types are
 supported:
@@ -2198,7 +2267,7 @@ supported:
 | `"label"`     | Non-clickable section heading                     |
 | `"submenu"`   | Nested sub-menu revealed on hover/click           |
 
-### 8.3.  Entry fields reference
+### 9.3.  Entry fields reference
 
 #### `"command"` entry
 
@@ -2245,7 +2314,7 @@ Sub-menus can be nested to the depth limit defined by
 
 ---
 
-## 9.  `memguard.json`: Restricted-memory mode configuration
+## 10.  `memguard.json`: Restricted-memory mode configuration
 
 Read only when IcoWM is launched with `-M <mib>` (see `icowm.md`'s own
 "Restricted-memory mode" section for what that flag does and why it
@@ -2262,7 +2331,7 @@ the file is silently ignored, and every field this mode's own screen and
 desktop counts, RandR handling, and startup-notification setting are
 fixed and cannot be configured here at all.
 
-### 9.1.  Configurable fields
+### 10.1.  Configurable fields
 
 | Key                                      | Type    | Default     | Description |
 |------------------------------------------|---------|-------------|-------------|
@@ -2280,7 +2349,7 @@ fixed and cannot be configured here at all.
 | `enable-emergency-shortcut`              | boolean | `false`     | Same as `config.json`'s own `enable-emergency-shortcut`. |
 | `shutdown.timeout-seconds`               | integer | `15`        | Same as `config.json`'s own `shutdown.timeout-seconds`. |
 
-### 9.2.  Fields this mode never lets `memguard.json` change
+### 10.2.  Fields this mode never lets `memguard.json` change
 
 A handful of fields are read the same way as `config.json`'s own
 identical `systray` object, but immediately forced back to a fixed value
@@ -2297,7 +2366,7 @@ afterward, since restricted-memory mode never docks any icon at all
   `systray.is-enabled` is `true`, just never accepts a docked
   application icon.
 
-### 9.3.  The active theme's own restrictions
+### 10.3.  The active theme's own restrictions
 
 Whichever theme ends up active, named in `memguard.json`, or the
 built-in default if none is, gets further restricted after loading, on
@@ -2322,7 +2391,7 @@ to whatever theme loads, unconditionally.
 
 ---
 
-## 10.  Full examples
+## 11.  Full examples
 
 ### `config.json`
 
@@ -2898,3 +2967,17 @@ emergency shortcut, since a severely memory-constrained session is
 exactly the kind of place where a hung window is more likely and
 a guaranteed way out is worth having.
 
+### `al11y.json`
+
+{
+    "interaction": {
+        "double-click-ms": 500
+    },
+    "focus-indicator": {
+        "min-border-width": 3
+    },
+    "urgency": {
+        "audible-bell": true,
+        "blink-interval-ms": 400
+    }
+}

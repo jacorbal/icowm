@@ -19,6 +19,9 @@
 #include <stddef.h>     /* NULL */
 #include <time.h>       /* clock_gettime, struct timespec */
 
+/* XCB includes */
+#include <xcb/xcb.h>
+
 /* ADT includes */
 #include <adt/list.h>
 #include <adt/ohtbl.h>
@@ -28,6 +31,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <config.h>
 #include <desktop.h>
 #include <render/desktop.h>
 #include <render/icon.h>
@@ -227,9 +231,31 @@ bool urgency_blink_is_on(void)
 
 
 /* Advance the blink cycle and repaint whatever it changed */
-void urgency_blink_tick(list_td *surfaces)
+void urgency_blink_tick(list_td *surfaces, const config_td *config)
 {
+    bool had_urgent = s_has_urgent;
+    uint32_t interval_ms = (config != NULL)
+        ? config->a11y.urgency.blink_interval_ms
+        : WM_URGENCY_BLINK_INTERVAL_MS;
+
     s_has_urgent = s_any_client_urgent(surfaces);
+
+    /* Sound the accessibility bell right on the transition into
+     * urgency, never again on every later tick while it stays
+     * urgent, and never while it clears: an audible cue alongside
+     * the visual blink every urgent client already gets regardless
+     * of this setting */
+    if (!had_urgent && s_has_urgent && config != NULL &&
+            config->a11y.urgency.audible_bell &&
+            surfaces != NULL && !list_is_empty(surfaces)) {
+        surface_td *first =
+            (surface_td *) list_data(list_head(surfaces));
+
+        if (first != NULL && first->connection != NULL) {
+            xcb_bell(first->connection, 0);
+            xcb_flush(first->connection);
+        }
+    }
 
     if (!s_has_urgent) {
         s_blink_on = false;
@@ -241,8 +267,7 @@ void urgency_blink_tick(list_td *surfaces)
         return;
     }
 
-    if (s_ms_since(&s_last_toggle) >=
-            (long) WM_URGENCY_BLINK_INTERVAL_MS) {
+    if (s_ms_since(&s_last_toggle) >= (long) interval_ms) {
         s_blink_on = !s_blink_on;
         (void) clock_gettime(CLOCK_MONOTONIC, &s_last_toggle);
         s_repaint_urgent_clients(surfaces);
@@ -251,9 +276,12 @@ void urgency_blink_tick(list_td *surfaces)
 
 
 /* How many milliseconds until the blink cycle next needs a tick */
-int urgency_blink_ms_remaining(void)
+int urgency_blink_ms_remaining(const config_td *config)
 {
     long elapsed_ms;
+    uint32_t interval_ms = (config != NULL)
+        ? config->a11y.urgency.blink_interval_ms
+        : WM_URGENCY_BLINK_INTERVAL_MS;
 
     if (!s_has_urgent) {
         return -1;
@@ -264,9 +292,9 @@ int urgency_blink_ms_remaining(void)
     }
 
     elapsed_ms = s_ms_since(&s_last_toggle);
-    if (elapsed_ms >= (long) WM_URGENCY_BLINK_INTERVAL_MS) {
+    if (elapsed_ms >= (long) interval_ms) {
         return 0;
     }
 
-    return (int) ((long) WM_URGENCY_BLINK_INTERVAL_MS - elapsed_ms);
+    return (int) ((long) interval_ms - elapsed_ms);
 }

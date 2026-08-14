@@ -89,17 +89,19 @@ static void s_client_release_heap_fields(client_td *client)
 /**
  * @brief Initialize the common non-zero client defaults
  *
- * @param client      Client structure to initialize
- * @param connection  XCB connection
- * @param ewmh        EWMH connection
- * @param theme       Theme configuration
- * @param config_base Base configuration
+ * @param client        Client structure to initialize
+ * @param connection    XCB connection
+ * @param ewmh          EWMH connection
+ * @param theme         Theme configuration
+ * @param config_base   Base configuration
+ * @param a11y          Accessibility (a11y) configuration
  */
 static void s_client_init_common(client_td *client,
         xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         struct config_theme_s *theme,
-        const struct config_base_s *config_base)
+        const struct config_base_s *config_base,
+        const struct config_a11y_s *a11y)
 {
     if (client == NULL) {
         return;
@@ -109,6 +111,7 @@ static void s_client_init_common(client_td *client,
     client->ewmh = ewmh;
     client->theme = theme;
     client->config_base = config_base;
+    client->a11y = a11y;
     client->process.pid = -1;
     client->wm_input_hint = true;
     client->icon_x = -1;
@@ -238,6 +241,15 @@ void client_apply_border(client_td *client, bool use_active_style)
         opacity_percent = (client->opacity_override.is_set_inactive)
             ? client->opacity_override.inactive
             : client->theme->window.inactive.opacity;
+    }
+
+    /* Accessibility: never let the focus indicator go thinner than
+     * 'a11y.focus-indicator.min-border-width', regardless of
+     * what the theme itself specifies */
+    if (client->a11y != NULL &&
+            width < client->a11y->focus_indicator
+                .min_border_width) {
+        width = client->a11y->focus_indicator.min_border_width;
     }
 
     xcb_change_window_attributes(client->connection, client->window,
@@ -883,7 +895,8 @@ client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
         struct config_theme_s *theme,
-        const struct config_base_s *config_base)
+        const struct config_base_s *config_base,
+        const struct config_a11y_s *a11y)
 {
     client_td *client;
     xcb_get_geometry_reply_t *geom_reply;
@@ -917,7 +930,8 @@ client_td *client_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    s_client_init_common(client, connection, ewmh, theme, config_base);
+    s_client_init_common(client, connection, ewmh, theme, config_base,
+            a11y);
 
     /* Use the X window ID as both window handle and hash/lookup key */
     client->window = window;

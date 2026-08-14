@@ -29,7 +29,9 @@
 /* Default initial values */
 #include <defs/config.h>
 #include <defs/desktop.h>
+#include <defs/input.h>
 #include <defs/memguard.h>
+#include <defs/urgency.h>
 
 /* Project includes */
 #include <logger.h>
@@ -402,6 +404,16 @@ void config_set_default_values_memguard(config_td *config)
     safe_strncpy(config->base.fortune.command, "fortune",
             sizeof(config->base.fortune.command));
 
+    /* Accessibility (a11y): the exact same built-in defaults as an
+     * ordinary session's own (see 'config_set_default_values',
+     * config.c); restricted-memory mode never has a reason to change
+     * these, saving memory is never a reason to also give up basic
+     * accessibility accommodations */
+    config->a11y.interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
+    config->a11y.focus_indicator.min_border_width = 0u;
+    config->a11y.urgency.audible_bell = false;
+    config->a11y.urgency.blink_interval_ms = WM_URGENCY_BLINK_INTERVAL_MS;
+
     config->base.startup_notification.is_enabled = false;
     config->base.startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
@@ -471,6 +483,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
     char config_memguard_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_theme_file[CONFIG_MAX_LENGTH_PATH_THEME];
+    char config_a11y_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     int result = 0;
 
     config_set_default_values_memguard(config);
@@ -532,6 +545,22 @@ int config_load_memguard(config_td *config, const char *config_prefix)
     }
 
     s_memguard_restrict_theme(config);
+
+    /* Accessibility (a11y): loaded as its own independent file, the
+     * same way 'bindings.json' and the active theme file already are
+     * above, rather than folded into 'memguard.json' itself; wanting
+     * to save memory is never a reason to also give up basic
+     * accessibility accommodations */
+    snprintf(config_a11y_file, sizeof(config_a11y_file),
+            "%s/%s", config_dir, CONFIG_FILENAME_A11Y);
+    if (config_load_a11y(config_a11y_file, &(config->a11y)) != 0) {
+        LOGGER_DEBUG("Accessibility (a11y) configuration not found or" \
+                " could not be loaded from '%s'; built-in defaults" \
+                " kept", config_a11y_file);
+    } else {
+        LOGGER_DEBUG("Accessibility (a11y) configuration loaded" \
+                " from '%s'", config_a11y_file);
+    }
 
     return result;
 }

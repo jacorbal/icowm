@@ -47,8 +47,10 @@
 /* Default initial values */
 #include <defs/ctxmenu.h>
 #include <defs/desktop.h>
+#include <defs/input.h>
 #include <defs/loop.h>
 #include <defs/sn.h>
+#include <defs/urgency.h>
 
 /* Project includes */
 #include <logger.h>
@@ -772,6 +774,16 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.mouse.cycle.desktop.next,
             "button5", sizeof(config->bindings.mouse.cycle.desktop.next));
 
+    /* Accessibility (a11y) defaults: the exact same values already
+     * in effect before 'a11y.json' existed at all (see
+     * 'WM_DOUBLE_CLICK_MS'/'WM_URGENCY_BLINK_INTERVAL_MS'), so
+     * nobody who never creates that file sees any behavior change */
+    config->a11y.interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
+    config->a11y.focus_indicator.min_border_width = 0u;
+    config->a11y.urgency.audible_bell = false;
+    config->a11y.urgency.blink_interval_ms =
+        WM_URGENCY_BLINK_INTERVAL_MS;
+
     config_set_default_theme_values(&config->theme);
 }
 
@@ -806,6 +818,7 @@ int config_load(config_td *config, const char *config_prefix)
     char config_bindings_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
     char config_theme_file[CONFIG_MAX_LENGTH_PATH_THEME];
     char config_randr_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
+    char config_a11y_file[CONFIG_MAX_LENGTH_PATH_CONFIG];
 
     config_resolve_dir(config_prefix, config_dir);
 
@@ -910,6 +923,19 @@ int config_load(config_td *config, const char *config_prefix)
                 config_randr_file,
                 (int) config->randr.is_enabled,
                 config->randr.output_count);
+    }
+
+    /* Set a11y config file path and load (optional) */
+    snprintf(config_a11y_file, sizeof(config_a11y_file),
+            "%s/%s", config_dir, CONFIG_FILENAME_A11Y);
+    if (config_load_a11y(config_a11y_file,
+                &(config->a11y)) != 0) {
+        LOGGER_DEBUG("Accessibility (a11y) configuration not found or" \
+                " could not be loaded from '%s'; built-in defaults" \
+                " kept", config_a11y_file);
+    } else {
+        LOGGER_DEBUG("Accessibility (a11y) configuration loaded" \
+                " from '%s'", config_a11y_file);
     }
 
     return 0;

@@ -171,8 +171,10 @@ Beyond that, several things are always turned off, regardless of what
 Everything else about how IcoWM looks and behaves comes from
 `memguard.json` (see `config.md` section 9 for exactly which fields it
 accepts) the same way `config.json` does for an ordinary session, which
-is not read at all while `-M <mib>` is in effect.  `bindings.json` and
-a theme file under `themes/` are read exactly as in an ordinary session.
+is not read at all while `-M <mib>` is in effect.  `bindings.json`,
+`a11y.json`, and a theme file under `themes/` are read exactly as in an
+ordinary session: restricted-memory mode is never a reason to also give
+up basic accessibility accommodations.
 
 With a single desktop, the window-list menu and the "send window to..."
 option skip straight to that desktop's own windows instead of first

@@ -106,7 +106,8 @@ void lifecycle_scan_existing(wm_td *wm)
                     client_td *client = client_init(
                             wm->connection, wm->ewmh,
                             children[i], &wm->config->theme,
-                            &wm->config->base);
+                            &wm->config->base,
+                            &wm->config->a11y);
                     if (client != NULL) {
                         /* ReparentWindow on an already-mapped window
                          * generates an 'UnmapNotify'.  Absorb it so

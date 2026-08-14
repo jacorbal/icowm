@@ -30,6 +30,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Project includes */
+#include <config.h>
+
 
 /**
  * @brief Query the current blink phase
@@ -48,20 +51,29 @@ bool urgency_blink_is_on(void);
  * the same way @c systray_clock_tick is.  Scans every client across
  * every surface and desktop for the urgent flag; a no-op when none
  * is found.  When at least one is found and
- * @c WM_URGENCY_BLINK_INTERVAL_MS has elapsed since the last phase
- * change, flips the phase and repaints every urgent client's
- * titlebar (and icon, if iconified) to match.
+ * @c config->a11y.urgency.blink_interval_ms (config.h) has
+ * elapsed since the last phase change, flips the phase and repaints
+ * every urgent client's titlebar (and icon, if iconified) to match.
+ * Also sounds an audible bell right on the transition into urgency
+ * when @c config->a11y.urgency.audible_bell is set.
  *
  * @param surfaces All managed surfaces
+ * @param config   Active configuration; a @c NULL falls back to the
+ *                 built-in @c WM_URGENCY_BLINK_INTERVAL_MS
+ *                 (defs/urgency.h) and never sounds a bell
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
  */
-void urgency_blink_tick(list_td *surfaces);
+void urgency_blink_tick(list_td *surfaces, const config_td *config);
 
 /**
  * @brief How many milliseconds until the blink cycle next needs a
  *        tick
+ *
+ * @param config Active configuration; a @c NULL falls back to the
+ *               built-in @c WM_URGENCY_BLINK_INTERVAL_MS
+ *               (defs/urgency.h)
  *
  * @return Milliseconds until the next phase change, or @c -1 when no
  *         client is currently urgent (as of the most recent @c
@@ -69,7 +81,7 @@ void urgency_blink_tick(list_td *surfaces);
  *
  * @note Complexity: @e O(1)
  */
-int urgency_blink_ms_remaining(void);
+int urgency_blink_ms_remaining(const config_td *config);
 
 
 #endif  /* ! POLICY_URGENCY_H */

@@ -1301,6 +1301,52 @@ struct config_desktop_s {
 
 
 /**
+ * @brief Accessibility (a11y) oriented adjustments to timing and
+ *        visual feedback
+ *
+ * Loaded from its own @c a11y.json file, entirely optional: a
+ * missing file, or any field it does not specify, keeps every value
+ * here at the same built-in default the window manager already used
+ * before this file existed, so nobody who never creates one sees any
+ * behavior change at all.  Every field here does take effect on a
+ * configuration reload, the same as @c config_desktop_s above.
+ */
+struct config_a11y_s {
+    struct {
+        /** Milliseconds between two clicks for them to count as a
+         *  double-click (e.g. on a titlebar, to toggle shade); see
+         *  @c WM_DOUBLE_CLICK_MS (defs/input.h) for the built-in
+         *  default this overrides */
+        uint32_t double_click_ms;
+    } interaction;
+
+    struct {
+        /** Minimum border width, in pixels, enforced on every
+         *  decorated or undecorated window regardless of what the
+         *  active theme's own @c window.active.border.width /
+         *  @c window.inactive.border.width (theme.json) specify;
+         *  raising this keeps the focus indicator visible even for a
+         *  theme that sets an unusually thin border.  A value of 0
+         *  never raises anything, deferring entirely to the theme */
+        uint32_t min_border_width;
+    } focus_indicator;
+
+    struct {
+        /** Sound an audible bell (@c xcb_bell) every time a client
+         *  first becomes urgent, alongside the visual blink it
+         *  already gets regardless of this setting */
+        bool audible_bell;
+
+        /** Milliseconds between one blink phase and the next for an
+         *  urgent client's own visual indicator; see
+         *  @c WM_URGENCY_BLINK_INTERVAL_MS (defs/urgency.h) for the
+         *  built-in default this overrides */
+        uint32_t blink_interval_ms;
+    } urgency;
+};
+
+
+/**
  * @brief Main configuration structure
  *
  * Encapsulates the main configuration, including base settings,
@@ -1312,6 +1358,7 @@ typedef struct {
     struct config_theme_s theme;
     struct config_randr_s randr;
     struct config_desktop_s desktops;
+    struct config_a11y_s a11y;
 } config_td;
 
 
@@ -1578,6 +1625,30 @@ uint32_t config_theme_opacity_to_raw(uint8_t percent);
  */
 int config_load_randr(const char *filename,
         struct config_randr_s *config_randr);
+
+
+/**
+ * @brief Load accessibility (a11y) settings from a JSON file
+ *
+ * Loads timing and visual-feedback overrides into the provided
+ * @c config_a11y_s structure from the specified file.  A missing
+ * file, or one that omits some field, leaves whatever
+ * @p config_a11y already held (its compiled-in default) untouched
+ * for that field, so a partial file only ever overrides what it
+ * actually names.
+ *
+ * @param filename    Path to the a11y configuration file
+ * @param config_a11y Pointer to the a11y configuration structure to
+ *                    populate
+ *
+ * @return 0 on success, or otherwise
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @c config_a11y_s
+ */
+int config_load_a11y(const char *filename,
+        struct config_a11y_s *config_a11y);
 
 
 #endif  /* ! CONFIG_H */

@@ -341,6 +341,11 @@ typedef struct client_s {
     struct config_theme_s *theme;               /**< User defined theme */
     const struct config_base_s *config_base;    /**< Base configuration */
 
+    /** Accessibility (a11y) timing/visual-feedback overrides
+     *  (a11y.json); see @c client_apply_border, where
+     *  @c focus_indicator.min_border_width is applied */
+    const struct config_a11y_s *a11y;
+
     /**
      * @brief A client's own border color and width, independent of
      *        @c theme->window.active/inactive.border
@@ -831,11 +836,12 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
  * current window geometry, and subscribes to property and structure
  * events on the window.
  *
- * @param connection  Pointer to the XCB connection
- * @param ewmh        Pointer to EWMH connection
- * @param window      ID of the existing X window to adopt
- * @param theme       Pointer to the theme configuration
- * @param config_base Pointer to the base configuration
+ * @param connection    Pointer to the XCB connection
+ * @param ewmh          Pointer to EWMH connection
+ * @param window        ID of the existing X window to adopt
+ * @param theme         Pointer to the theme configuration
+ * @param config_base   Pointer to the base configuration
+ * @param a11y          Pointer to the accessibility (a11y) configuration
  *
  * @return A pointer to the client structure wrapping the window, or
  *         @c NULL if the window should not be managed (e.g.,
@@ -848,7 +854,8 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         struct config_theme_s *theme,
-        const struct config_base_s *config_base);
+        const struct config_base_s *config_base,
+        const struct config_a11y_s *a11y);
 
 /**
  * @brief Update the content of the specified client

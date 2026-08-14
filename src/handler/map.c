@@ -226,7 +226,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     }
 
     client = client_init(wm->connection, wm->ewmh,
-            event->window, &wm->config->theme, &wm->config->base);
+            event->window, &wm->config->theme, &wm->config->base,
+            &wm->config->a11y);
     if (client == NULL) {
         s_map_unmanaged(wm->connection, event->window);
         return;

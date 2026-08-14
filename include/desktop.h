@@ -70,6 +70,20 @@ typedef struct desktop_s {
     xcb_connection_t *connection;           /**< XCB connection */
     xcb_ewmh_connection_t *ewmh;            /**< EWMH connection */
     uint32_t screen_id;                     /**< Screen index */
+
+    /**
+     * @brief Resolved pointer to this desktop's own XCB screen
+     *
+     * Resolved once, in @a desktop_init, from the same
+     * 'xcb_setup_roots_iterator' walk already needed there to read
+     * this screen's own pixel dimensions; kept here afterward so
+     * every later caller that needs this desktop's own screen (e.g.
+     * @a desktop_render_background, render/desktop.c) reads this
+     * field directly instead of repeating that same O(n) walk again
+     * from scratch, an O(1) lookup either way.
+     */
+    xcb_screen_t *screen;
+
     xcb_window_t id;                        /**< Desktop index */
 
     char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */

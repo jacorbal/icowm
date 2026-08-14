@@ -387,6 +387,11 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     screen = iter.data;
 
+    /* Kept for every later O(1) lookup of this desktop's own screen
+     * (see the field's own doc comment, desktop.h); this same walk
+     * already had to resolve it just above to read its dimensions */
+    desktop->screen = screen;
+
     /* Initialize geometry with screen dimensions */
     desktop->geometry = (struct geometry_s) {
         .pos = {.x = 0, .y = 0},

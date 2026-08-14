@@ -99,6 +99,16 @@ void ci_set_decoration_defaults(client_td *client,
         border_width = (uint16_t) theme->window.active.border.width;
     }
 
+    /* Accessibility: never let the focus indicator go thinner than
+     * 'a11y.focus-indicator.min-border-width', regardless of
+     * what the theme itself specifies */
+    if (client->a11y != NULL &&
+            border_width < client->a11y->focus_indicator
+                .min_border_width) {
+        border_width = (uint16_t)
+            client->a11y->focus_indicator.min_border_width;
+    }
+
     /* A theme's 'window.titlebar.height' of 0 is equivalent to
      * 'window.is-decorated: false': a titlebar with no height has
      * nothing to draw and nowhere to put its buttons, so there is no
@@ -142,6 +152,16 @@ void client_resync_theme_layout(client_td *client, bool is_active)
         ? client->theme->window.active.border.width
         : client->theme->window.inactive.border.width);
     new_title_height = (uint16_t) client->theme->window.titlebar.height;
+
+    /* Accessibility: never let the focus indicator go thinner than
+     * 'a11y.focus-indicator.min-border-width', regardless of
+     * what the theme itself specifies */
+    if (client->a11y != NULL &&
+            new_border < client->a11y->focus_indicator
+                .min_border_width) {
+        new_border = (uint16_t)
+            client->a11y->focus_indicator.min_border_width;
+    }
 
     /* 'left' alone is enough to detect "border width unchanged":
      * 'left', 'right', and 'bottom' are always set equal to each other
