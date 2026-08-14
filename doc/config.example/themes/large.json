@@ -1,15 +1,13 @@
 {
-    "name": "Default theme",
+    "name": "Default theme (large font)",
     "-author": "J. A. Corbal",
-    "-creation-date": "Sat Aug  1 03:57:31 UTC 2026",
-    "-modified-date": "Sat Aug  8 05:12:38 UTC 2026",
-
+    "-creation-date": "Fri Aug 14 00:00:00 UTC 2026",
+    "-modified-date": "Fri Aug 14 00:00:00 UTC 2026",
     "desktop": {
         "color": {
             "background": "#5f7187"
         }
     },
-
     "window": {
         "is-decorated": true,
         "active": {
@@ -22,7 +20,7 @@
                 "background": "#9aaec8",
                 "foreground": "#253040"
             },
-            "font": "fixed bold"
+            "font": "fixed bold 15"
         },
         "inactive": {
             "border": {
@@ -33,7 +31,7 @@
                 "background": "#d0d9e5",
                 "foreground": "#4a5566"
             },
-            "font": "fixed"
+            "font": "fixed 15"
         },
         "titlebar": {
             "alignment": "center",
@@ -42,8 +40,16 @@
                     "off": "#7086a0",
                     "on": "#253f60"
                 },
-                "left": [ "pin", "layer" ],
-                "right": [ "close", "maximize", "shade", "iconize" ]
+                "left": [
+                    "pin",
+                    "layer"
+                ],
+                "right": [
+                    "close",
+                    "maximize",
+                    "shade",
+                    "iconize"
+                ]
             },
             "height": 22,
             "padding": {
@@ -52,7 +58,6 @@
             }
         }
     },
-
     "icon": {
         "is-captioned": true,
         "show-hints": true,
@@ -67,8 +72,7 @@
                 "background": "#9aaec8",
                 "foreground": "#253040"
             },
-            "font": "fixed bold"
-
+            "font": "fixed bold 15"
         },
         "inactive": {
             "opacity": 100,
@@ -80,10 +84,9 @@
                 "background": "#d0d9e5",
                 "foreground": "#4a5566"
             },
-            "font": "fixed"
+            "font": "fixed 15"
         }
     },
-
     "menu": {
         "opacity": 100,
         "show-pixmaps": true,
@@ -105,7 +108,7 @@
                 "background": "#48607f",
                 "foreground": "#d0d9e5"
             },
-            "font": "fixed"
+            "font": "fixed 15"
         },
         "padding": {
             "horizontal": 12,
@@ -120,7 +123,7 @@
                 "background": "#9aaec8",
                 "foreground": "#253040"
             },
-            "font": "fixed"
+            "font": "fixed 15"
         },
         "separator": {
             "color": "#7f9ab6"
@@ -134,10 +137,9 @@
                 "background": "#d0d9e5",
                 "foreground": "#4a5566"
             },
-            "font": "fixed"
+            "font": "fixed 15"
         }
     },
-
     "dialog": {
         "opacity": 100,
         "border": {
@@ -159,7 +161,7 @@
                     "background": "#9aaec8",
                     "foreground": "#253040"
                 },
-                "font": "fixed bold"
+                "font": "fixed bold 15"
             },
             "unselected": {
                 "border": {
@@ -170,7 +172,7 @@
                     "background": "#d0d9e5",
                     "foreground": "#4a5566"
                 },
-                "font": "fixed"
+                "font": "fixed 15"
             }
         },
         "color": {
@@ -180,17 +182,16 @@
             "color": {
                 "foreground": "#4a5566"
             },
-            "font": "fixed bold",
+            "font": "fixed bold 15",
             "padding": {
                 "horizontal": 12,
                 "vertical": 12
             }
         }
     },
-
     "overlay": {
         "opacity": 100,
-        "font": "fixed",
+        "font": "fixed 15",
         "border": {
             "color": "#7f9ab6",
             "width": 1
@@ -200,10 +201,9 @@
             "foreground": "#4a5566"
         }
     },
-
     "systray": {
         "opacity": 100,
-        "font": "fixed bold",
+        "font": "fixed bold 15",
         "height": 22,
         "border": {
             "color": "#7f9ab6",
@@ -221,16 +221,13 @@
             "gap": 12,
             "valign": "center"
         }
-
     },
-
     "scratchpad": {
         "border": {
             "color": "#4a5566",
             "width": 2
         }
     },
-
     "xsettings": {
         "dpi": 96,
         "is-enabled": false,
@@ -240,5 +237,6 @@
             "cursor-theme-name": "Adwaita",
             "cursor-theme-size": 24
         }
-    }
+    },
+    "-notes": "Identical to default.json except every font field is fixed 15 / fixed bold 15."
 }

@@ -2,8 +2,8 @@
 
 What IcoWM is, how to start it, every command-line option it accepts,
 and restricted-memory mode's own run-time behavior.  For the JSON
-configuration files themselves, namely what each one controls, every field
-each accepts, its type, and its default, see
+configuration files themselves, namely what each one controls, every
+field each accepts, its type, and its default, see
 [`config.md`](config.md) instead.  For `icowm-msg`, the command-line
 client for the IPC control socket section 5 below documents, see
 [`icowm-msg.md`](icowm-msg.md) instead.
@@ -42,40 +42,39 @@ client for the IPC control socket section 5 below documents, see
 
 ---
 
-## 1.  What IcoWM is
+## 1. What IcoWM is
 
 IcoWM is a minimalist stacking window manager for the X Window System.
-It manages ordinary, freely overlapping windows: there is no tiling
-or automatic layout of application windows, and it represents an
-iconified (minimized) window as an actual icon placed on the desktop,
-in the style of classic window managers such as TWM, rather than as an
-entry in a taskbar.
+It manages ordinary, freely overlapping windows: there is no tiling or
+automatic layout of application windows, and it represents an iconified
+(minimized) window as an actual icon placed on the desktop, in the style
+of classic window managers such as TWM, rather than as an entry in
+a taskbar.
 
 Configuration lives in a set of JSON files, described in full in
-`config.md`; none of them is required, and IcoWM falls
-back to a built-in default for any file that is absent.
+`config.md`; none of them is required, and IcoWM falls back to
+a built-in default for any file that is absent.
 
-IcoWM also exposes a local IPC control socket, so an external script
-can query its state or drive it directly, without going through X11
-client messages; see section 5 below, and `icowm-msg.md` for its own
-small command-line client, built alongside IcoWM itself for exactly
-that.
+IcoWM also exposes a local IPC control socket, so an external script can
+query its state or drive it directly, without going through X11 client
+messages; see section 5 below, and `icowm-msg.md` for its own small
+command-line client, built alongside IcoWM itself for exactly that.
 
-## 2.  Starting IcoWM
+## 2. Starting IcoWM
 
-IcoWM is started from an `.xinitrc`, a display manager session entry,
-or any other place an X session's window manager is normally launched:
+IcoWM is started from an `.xinitrc`, a display manager session entry, or
+any other place an X session's window manager is normally launched:
 
 ```sh
 exec icowm
 ```
 
-With no arguments, IcoWM connects to the display named by the
-`DISPLAY` environment variable, reads its configuration from the
-directory described in `config.md` section 1, and runs an ordinary,
-unrestricted session.
+With no arguments, IcoWM connects to the display named by the `DISPLAY`
+environment variable, reads its configuration from the directory
+described in `config.md` section 1, and runs an ordinary, unrestricted
+session.
 
-### 2.1.  Exiting IcoWM
+### 2.1. Exiting IcoWM
 
 There are two distinct ways to shut IcoWM down, and they behave very
 differently on purpose.
@@ -85,14 +84,14 @@ dialog, and the root menu's "Quit" entry) asks every currently open
 application to close itself first, the same request closing one window
 individually already sends, so an application with unsaved changes gets
 the same chance to warn about it that it already gets any other time.
-IcoWM waits for all of them (see `config.md` section 2.6's own
-`shutdown.timeout-seconds`) before actually exiting.
+IcoWM waits for all of them (see `config.md` section
+2.6's own `shutdown.timeout-seconds`) before actually exiting.
 
 The emergency exit shortcut, `Ctrl+Mod1+BackSpace` (off by default, see
 `config.md` section 2.6's own `shutdown.enable-emergency-shortcut`),
 does none of that.  It runs with no dialog, no confirmation, and no wait
 of any kind: the moment it is pressed, IcoWM terminates immediately,
-skipping even the exit session hooks (`config.md` section 7) the normal
+skipping even the exit session hooks (`config.md` section 8) the normal
 quit action always runs.  This is deliberate, not an oversight: this
 shortcut exists for situations where IcoWM itself might be unresponsive
 or in some broken state, so it is kept to the smallest, most direct
@@ -101,19 +100,19 @@ IcoWM's own event loop or rendering to keep working, would only be as
 reliable as whatever it is that might be the very reason someone reaches
 for this shortcut in the first place.
 
-## 3.  Command-line options
+## 3. Command-line options
 
-### 3.1.  Main options
+### 3.1. Main options
 
 | Option            | Description |
 |-------------------|-------------|
-| `-d <display>`    | Set the X server display to connect to (e.g., `:0`).  If not given, the `DISPLAY` environment variable is used. |
+| `-d <display>`    | Set the X server display to connect to (e.g., `:0`). If not given, the `DISPLAY` environment variable is used. |
 | `-c <config_dir>` | Set the configuration directory, overriding the lookup order described in `config.md` section 1. |
 | `-C`              | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
-| `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4.  Must be at least 10. |
-| `-s`              | Disable the IPC control socket entirely for this run: `ipc_init` is never called at all, rather than being attempted and possibly failing.  See section 5 for what the socket does. |
+| `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4. Must be at least 10. |
+| `-s`              | Disable the IPC control socket entirely for this run: `ipc_init` is never called at all, rather than being attempted and possibly failing. See section 5 for what the socket does. |
 
-### 3.2.  Logging
+### 3.2. Logging
 
 | Option           | Description |
 |------------------|-------------|
@@ -122,27 +121,27 @@ for this shortcut in the first place.
 | `-q`             | Quiet mode: only fatal errors are logged; identical to the highest `-L` level. |
 | `-t`             | Enable function-level tracing for every logged message, not only at the `trace` level. |
 
-### 3.3.  Other options
+### 3.3. Other options
 
 | Option | Description                                     |
 |--------|-------------------------------------------------|
 | `-h`   | Show usage information and exit.                |
 | `-v`   | Show version and license information, and exit. |
 
-## 4.  Restricted-memory mode (`icowm -M <mib>`)
+## 4. Restricted-memory mode (`icowm -M <mib>`)
 
 `icowm -M <mib>` runs IcoWM in a mode aimed at genuinely memory-
-constrained systems: an old machine, a low-power single-board
-computer, a virtual machine given only a small amount of RAM.  `<mib>`
-is a number of mebibytes, and must be at least 10; IcoWM refuses a
-smaller value outright, since it could not realistically run in less
-than that regardless of anything else this mode does.
+constrained systems: an old machine, a low-power single-board computer,
+a virtual machine given only a small amount of RAM.  `<mib>` is a number
+of mebibytes, and must be at least 10; IcoWM refuses a smaller value
+outright, since it could not realistically run in less than that
+regardless of anything else this mode does.
 
-### 4.1.  What this mode changes, and what it leaves alone
+### 4.1. What this mode changes, and what it leaves alone
 
 This mode always runs with a single screen and a single desktop on it,
 with no way to configure more of either: `memguard.json` (see
-`config.md` section 9) has no field for a screen or desktop count at
+`config.md` section 10) has no field for a screen or desktop count at
 all.  If the system actually has more than one X screen, only the first
 is managed; the rest are left alone entirely.
 
@@ -169,7 +168,7 @@ Beyond that, several things are always turned off, regardless of what
   application icon.
 
 Everything else about how IcoWM looks and behaves comes from
-`memguard.json` (see `config.md` section 9 for exactly which fields it
+`memguard.json` (see `config.md` section 10 for exactly which fields it
 accepts) the same way `config.json` does for an ordinary session, which
 is not read at all while `-M <mib>` is in effect.  `bindings.json`,
 `a11y.json`, and a theme file under `themes/` are read exactly as in an
@@ -182,7 +181,7 @@ asking you to pick a desktop you do not have a choice about anyway; this
 is the same behavior an ordinary session gets with only one desktop
 configured, restricted-memory mode or not.
 
-### 4.2.  Refusing to start, and warning while running
+### 4.2. Refusing to start, and warning while running
 
 Before doing anything else, IcoWM checks how much memory the system
 actually has free right now.  If that is less than the `<mib>` you gave
@@ -201,7 +200,7 @@ handles running out of memory gracefully, and getting that wrong would
 mean a window manager that crashes instead of one that merely warns you
 in time to act.
 
-### 4.3.  How many windows it will manage at once
+### 4.3. How many windows it will manage at once
 
 Restricted-memory mode also limits how many application windows it will
 actually manage at the same time, since each window IcoWM manages
@@ -209,7 +208,7 @@ carries its own real, ongoing cost regardless of anything else.  This
 limit is worked out from the ceiling you chose with `-M <mib>`, roughly
 like this:
 
-1. A small slice of the ceiling (~6 MiB) is set aside for IcoWM itself,
+1. A small slice of the ceiling (6 MiB) is set aside for IcoWM itself,
    before counting any windows at all.
 2. Whatever is left over is divided up, generously, at a quarter of
    a mebibyte per window.
@@ -224,7 +223,7 @@ shows a warning dialog explaining that a window has to be closed first;
 the new window's own application is left waiting rather than being
 handed something broken to work with.
 
-### 4.4.  Warning and error dialogs cannot be dismissed by accident
+### 4.4. Warning and error dialogs cannot be dismissed by accident
 
 The two dialogs this mode shows (the memory-ceiling warning in section
 4.2, the too-many-windows warning in section 4.3) behave a little
@@ -236,7 +235,7 @@ A message serious enough to use one of these two dialogs is not meant to
 be dismissed by the same reflexive key press that closes whatever else
 happened to have focus a moment before.
 
-### 4.5.  Building an even lighter version
+### 4.5. Building an even lighter version
 
 Everything above is a choice you make each time you start IcoWM, with
 the `-M <mib>` flag.  It cannot make a few things smaller that are fixed
@@ -276,7 +275,7 @@ other for a build genuinely sized for a memory-constrained target from
 the ground up, but each also works perfectly well entirely without the
 other.
 
-### 4.6 Default values compared
+### 4.6. Default values compared
 
 The table below assumes no configuration file changes any of these; if
 yours does, your own configuration always wins over the defaults shown
@@ -284,12 +283,12 @@ here, in every row, in either kind of build.
 
 | Setting | Ordinary build | `COMPACT` build |
 |---------|---------------:|----------------:|
-| Desktops per screen, ordinary session, no `config.json` at all                    |  4 | 4 |
-| Screens, or desktops on that single screen, `-M <mib>` given (see 4.1)            |  1 | 1 |
-| Most screens an ordinary, unrestricted session can ever track at once             |  6 | 1 |
+| Desktops per screen, ordinary session, no `config.json` at all | 4 | 4 |
+| Screens, or desktops on that single screen, `-M <mib>` given (see 4.1) | 1 | 1 |
+| Most screens an ordinary, unrestricted session can ever track at once | 6 | 1 |
 | Most desktops per screen an ordinary, unrestricted session can ever track at once | 10 | 4 |
-| Most physical monitors an ordinary, unrestricted session can ever track at once   | 16 | 2 |
-| Most XRandR output profiles you can configure at once, ordinary session           | 16 | 2 |
+| Most physical monitors an ordinary, unrestricted session can ever track at once | 16 | 2 |
+| Most XRandR output profiles you can configure at once, ordinary session | 16 | 2 |
 
 `-M <mib>`'s own smallest accepted value (10 MiB), the memory set aside
 for IcoWM itself before dividing up the rest among windows (6 MiB), the
@@ -299,9 +298,12 @@ generous `-M <mib>` value (64) do not change between the two kinds of
 build; see section 4.3 for how those combine.  RandR output-profile
 management (`randr.json`) is never consulted at all in restricted-memory
 mode, in either kind of build, since it always runs with a single, fixed
-screen and desktop.
+screen and desktop.  Accessibility (`a11y.json`, section 6) is the one
+exception to that pattern: it is consulted exactly as in an ordinary
+session, in either kind of build, since restricted-memory mode is never
+a reason to also give up basic accessibility accommodations.
 
-## 5.  IPC control socket
+## 5. IPC control socket
 
 IcoWM listens on a local Unix domain socket external tools can connect
 to, to query its current state or ask it to do something, without going
@@ -310,7 +312,7 @@ from a key binding is reachable here too, since the socket calls the
 exact same underlying actions; it is a third way into that one catalog,
 not a separate one of its own.
 
-### 5.1.  Connecting
+### 5.1. Connecting
 
 The socket lives at `icowm/socket` under `$XDG_RUNTIME_DIR` (falling
 back to `/tmp/icowm-<uid>` when that variable is unset), the same
@@ -320,7 +322,7 @@ resolution order every other IcoWM-owned XDG path follows.  On a typical
 with mode `0700` if it does not already exist, so nothing else on the
 system can even see the socket file, let alone connect to it.
 
-### 5.2.  Wire protocol
+### 5.2. Wire protocol
 
 Each message, in either direction, is one line of JSON terminated by
 `\n`.  A request is a JSON object with at least a string `"cmd"` field;
@@ -337,31 +339,31 @@ left out, IcoWM falls back to the first surface in its own list, the
 only reasonable choice on a single-monitor setup and still a usable one
 on a multi-monitor one.
 
-### 5.3.  Commands
+### 5.3. Commands
 
 Every command below, except the four read-only queries, is a thin
 wrapper around exactly one `enact_*` function: the same catalog of
-actions the keyboard and mouse already reach through key bindings
-and menus (see `enact.h` in the source tree), so the socket is a
-third way into that one catalog, not a separate one of its own.  Each
-command does exactly the one thing its own `enact_*` function does,
-nothing more: none of them chain multiple actions together, even
-where a keyboard shortcut's own behavior might.  Command `focus_client`,
-for instance, only moves input focus; it does not also raise the client
-the way clicking on a partially covered window normally would.  Combine
-two commands from a script when the combined behavior is what is
-actually wanted: `focus_client` followed by `raise_client` reproduces
-"focus and raise" in full.
+actions the keyboard and mouse already reach through key bindings and
+menus (see `enact.h` in the source tree), so the socket is a third way
+into that one catalog, not a separate one of its own. Each command does
+exactly the one thing its own `enact_*` function does, nothing more:
+none of them chain multiple actions together, even where a keyboard
+shortcut's own behavior might. `focus_client`, for instance, only moves
+input focus; it does not also raise the client the way clicking on
+a partially covered window normally would.  Combine two commands from
+a script when the combined behavior is what is actually wanted:
+`focus_client` followed by `raise_client` reproduces "focus and raise"
+in full.
 
 Every `id` (a desktop's, a client's, a surface's) is the same numeric
 identifier IcoWM already uses for it internally: a client's `id` is its
 X window ID, a desktop's `id` is its index on its own surface,
-a surface's `id` is its own screen index.  Every command that accepts
+a surface's `id` is its own screen index. Every command that accepts
 a `surface_id` treats it as optional in the way section
-5.2 already describes.  A `client_id` that does not currently belong to
-any managed client, or a `desktop_id` out of range for the resolved
-surface, is reported as a normal `"ok": false` error, never a connection
-drop.
+5.2 already describes. A `client_id` that does not currently belong to
+  any managed client, or a `desktop_id` out of range for the resolved
+  surface, is reported as a normal `"ok": false` error, never
+  a connection drop.
 
 Two things `enact.h` itself can do are deliberately left out of this
 catalog:
@@ -378,7 +380,7 @@ catalog:
   something from it; that is not something a fire-and-forget socket
   command can usefully drive.
 
-#### 5.3.1.  Queries
+#### 5.3.1. Queries
 
 Read-only; take no arguments beyond what is noted.
 
@@ -389,7 +391,7 @@ Read-only; take no arguments beyond what is noted.
 | `list_clients`  | `clients`: an array of `{id, name, desktop_id, surface_id, x, y, w, h, iconified, urgent, sticky}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface (`x`, `y`, `w`, `h` are that client's own current position and size, in pixels, the same geometry `move_client`, `move_resize_client`, and `resize_client` below change) |
 | `get_focused`   | `focused`: an array of `{surface_id, client_id}`, one entry per managed surface (`client_id` is `null` when that surface currently has no active client) |
 
-#### 5.3.2.  Client actions taking only `client_id`
+#### 5.3.2. Client actions taking only `client_id`
 
 Every one of these takes exactly one argument, `client_id`, and responds
 with a bare `{"ok": true}` on success.
@@ -430,7 +432,7 @@ with a bare `{"ok": true}` on success.
 | `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer |
 | `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer |
 
-#### 5.3.3.  Client actions taking their own extra arguments
+#### 5.3.3. Client actions taking their own extra arguments
 
 | Command                  | Arguments | What it does |
 |--------------------------|-----------|--------------|
@@ -443,7 +445,7 @@ with a bare `{"ok": true}` on success.
 | `rerole_client`          | `client_id`, `role` | Overrides the client's own window role |
 | `set_client_icon`        | `client_id`, `icon_name` | Overrides which icon IcoWM shows for the client when iconified |
 
-#### 5.3.4.  Desktop-scoped actions
+#### 5.3.4. Desktop-scoped actions
 
 | Command                  | Arguments | What it does |
 |--------------------------|-----------|--------------|
@@ -455,7 +457,7 @@ with a bare `{"ok": true}` on success.
 | `rearrange_desktop`      | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Re-applies the configured placement policy to every client on that desktop; see `config.md`'s own `windows.placement-policy` for which policy that is |
 | `toggle_scratchpad`      | `desktop_id` (optional; the resolved surface's own current desktop otherwise), `surface_id` (optional) | Launches the scratchpad (see `config.md`'s own `scratchpad`), or shows/hides it on that desktop if it is already running |
 
-#### 5.3.5.  Surface actions
+#### 5.3.5. Surface actions
 
 | Command        | Arguments                                        | What it does |
 |----------------|--------------------------------------------------|--------------|
@@ -463,18 +465,18 @@ with a bare `{"ok": true}` on success.
 | `goto_next_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own next desktop, wrapping around after the last one |
 | `goto_prev_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
 
-#### 5.3.6.  Whole window manager
+#### 5.3.6. Whole window manager
 
 | Command         | Arguments | What it does |
 |-----------------|-----------|--------------|
 | `exit_wm`       | none      | Requests that IcoWM stop and exit, the same as its own quit shortcut |
 | `reload_config` | none      | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
 
-### 5.4.  The `icowm-msg` tool
+### 5.4. The `icowm-msg` tool
 
-`icowm-msg` is a small, standalone command-line client for the socket,
-built and installed alongside IcoWM itself as a separate binary (see
-`make help`):
+`icowm-msg` is a small, standalone command-line client for the
+socket, built and installed alongside IcoWM itself as a separate
+binary (see `make help`):
 
 ```sh
 $ icowm-msg get_version
@@ -490,7 +492,7 @@ own options, is documented in full in [`icowm-msg.md`](icowm-msg.md),
 not repeated here; the commands it sends and their own arguments remain
 the ones section 5.3 above documents.
 
-### 5.5.  Talking to the socket directly
+### 5.5. Talking to the socket directly
 
 Since the protocol is plain, newline-delimited JSON (section 5.2), it
 can also be exercised directly from a shell, without `icowm-msg`, using
@@ -505,14 +507,14 @@ $ echo '{"cmd": "goto_desktop", "desktop_id": 1}' | socat - UNIX-CONNECT:$XDG_RU
 {"ok":true}
 ```
 
-### 5.6.  Subscribing to events
+### 5.6. Subscribing to events
 
 Every command in section 5.3 follows the same request/response shape:
-one line in, one line back, connection otherwise idle in between.
-Commands `subscribe` and `unsubscribe` are the two exceptions: once
+one line in, one line back, connection otherwise idle in
+between. `subscribe` and `unsubscribe` are the two exceptions: once
 subscribed, that same connection starts receiving extra lines on its
 own, one per matching event, for as long as it stays open, without
-sending anything further itself.  Each event line carries its own
+sending anything further itself. Each event line carries its own
 `"event"` field naming which one it is, alongside that event's own
 fields; there is no `"ok"` field on an event line the way there is on
 every ordinary response, since nothing was asked for it to answer.
@@ -528,13 +530,13 @@ practice a real subscriber keeps the connection open and keeps reading
 for as long as it wants more events, the same way `icowm-msg -w` does;
 see `icowm-msg.md` section 9 for that.)
 
-The command `subscribe` takes one argument, a non-empty array `"events"`
-of recognized event names; an unrecognized name anywhere in the array
-rejects the request as a whole (`"ok": false`, nothing is subscribed).
-The command `unsubscribe` takes the same, optional this time: given, it
+`subscribe` takes one argument, a non-empty array `"events"` of
+recognized event names; an unrecognized name anywhere in the array
+rejects the request as a whole (`"ok": false`, nothing is
+subscribed). `unsubscribe` takes the same, optional this time: given, it
 unsubscribes from only those (an unrecognized or never-subscribed name
 among them is not an error, since there is nothing to undo either way);
-left out entirely, it unsubscribes from everything at once.  Both
+left out entirely, it unsubscribes from everything at once. Both
 otherwise respond the same bare `{"ok": true}` every other command that
 takes no result fields of its own does.
 
@@ -577,7 +579,7 @@ Every event type:
 
 A subscription lasts only as long as the connection itself: closing the
 connection (or losing it) drops every subscription made on it, with no
-separate `unsubscribe` needed first.  A single connection can freely mix
+separate `unsubscribe` needed first. A single connection can freely mix
 subscribing and ordinary commands: nothing about sending `subscribe`
 changes how the rest of the protocol on that same connection behaves,
 beyond the extra, unsolicited lines that start arriving afterward.

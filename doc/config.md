@@ -61,9 +61,9 @@ values, and built-in default value.
    - [9.2. Entry types](#92-entry-types)
    - [9.3. Entry fields reference](#93-entry-fields-reference)
 10. [`memguard.json`: Restricted-memory mode configuration](#10-memguardjson-restricted-memory-mode-configuration)
-   - [10.1. Configurable fields](#101-configurable-fields)
-   - [10.2. Fields this mode never lets `memguard.json` change](#102-fields-this-mode-never-lets-memguardjson-change)
-   - [10.3. The active theme's own restrictions](#103-the-active-themes-own-restrictions)
+    - [10.1. Configurable fields](#101-configurable-fields)
+    - [10.2. Fields this mode never lets `memguard.json` change](#102-fields-this-mode-never-lets-memguardjson-change)
+    - [10.3. The active theme's own restrictions](#103-the-active-themes-own-restrictions)
 11. [Full examples](#11-full-examples)
 
 For everything that is not a configuration file, namely what IcoWM is,
@@ -72,7 +72,7 @@ behavior, see [`icowm.md`](icowm.md) instead.
 
 ---
 
-## 1.  Directory layout
+## 1. Directory layout
 
 IcoWM looks for its configuration files in the following directory,
 evaluated in order:
@@ -88,52 +88,52 @@ Inside that directory the expected file tree is:
 
 ```
 ~/.icowm/
-├── a11y.json         Timing and visual-feedback overrides
-├── bindings.json     Keyboard & mouse bindings
 ├── config.json       Base configuration
-├── memguard.json     Restricted-memory mode ('-M <mib>') configuration
+├── bindings.json     Keyboard & mouse bindings
 ├── menu.json         Root desktop menu entries
 ├── randr.json        XRandR output profiles
+├── a11y.json         Timing and visual-feedback overrides
 ├── rules.json        Optional matching rules per-window
 ├── session.json      Command lists run at start, end, or on config. reload
+├── memguard.json     Restricted-memory mode ('-M <mib>') configuration
 └── themes/
     └── default.json  Theme file referenced by 'config.json'
 ```
 
 - **All files are optional**; they fall back to built-in defaults when
   absent.  A file that does exist but cannot actually be read as valid
-  JSON is a different matter: IcoWM still falls back to defaults for
-  it, the same as if it were absent, but also shows a single warning
-  dialog listing every such file from the whole startup (or reload,
-  or the moment `menu.json` is actually read, which only happens the
-  first time the root menu is opened) together, rather than one
-  dialog per file.  A missing file is an ordinary, silent choice to
-  use the defaults; a broken one is worth knowing about.  A theme file
-  named by a correctly-parsed `config.json` is treated the same way as
-  any other file for this purpose (a syntax error in it joins that
-  same combined dialog); one that is simply not found at all follows
-  the ordinary missing-file rule and says nothing on its own, but if a
-  dialog is already being shown for some other file's syntax error
-  regardless, it adds one further line naming the missing theme file
-  and confirming the built-in default is being used instead.
+  JSON is a different matter: IcoWM still falls back to defaults for it,
+  the same as if it were absent, but also shows a single warning dialog
+  listing every such file from the whole startup (or reload, or the
+  moment `menu.json` is actually read, which only happens the first time
+  the root menu is opened) together, rather than one dialog per file.
+  A missing file is an ordinary, silent choice to use the defaults;
+  a broken one is worth knowing about.  A theme file named by
+  a correctly-parsed `config.json` is treated the same way as any other
+  file for this purpose (a syntax error in it joins that same combined
+  dialog); one that is simply not found at all follows the ordinary
+  missing-file rule and says nothing on its own, but if a dialog is
+  already being shown for some other file's syntax error regardless, it
+  adds one further line naming the missing theme file and confirming the
+  built-in default is being used instead.
 - Theme files are loaded from the `themes/` sub-directory.  The theme
   name field in `config.json` must match the filename without the
   `.json` extension.
 - `randr.json`; XRandR hot-plug event handling is always active
   regardless of this file existence.
-- None of the files above configure IcoWM's own IPC control socket:
-  it has no options of its own to set, and is either brought up or,
-  with `-s`, deliberately skipped for that run (`icowm.md` section
-  3.1).  See `icowm.md` section 5 for where it lives and its full
-  wire protocol.
+- None of the files above configure IcoWM's own IPC control socket: it
+  has no options of its own to set, and is either brought up or, with
+  `-s`, deliberately skipped for that run (`icowm.md` section
+  3.1). See `icowm.md` section 5 for where it lives and its full wire
+  protocol.
 
-## 2.  `config.json`: Base configuration
+## 2. `config.json`: Base configuration
 
 Controls the fundamental behavior of the window manager: screens,
-virtual desktops, default programs, window management policies, and
-icon placement.
+virtual desktops, default programs, window management policies, and icon
+placement.
 
-### 2.1.  `theme`
+### 2.1. `theme`
 
 | Key     | Type   | Default               |
 |---------|--------|-----------------------|
@@ -148,7 +148,7 @@ be used.
 "theme": "default"
 ```
 
-### 2.2.  `topology`
+### 2.2. `topology`
 
 Configures the number of physical screens and the virtual desktops
 assigned to each.  **Takes effect at startup only**: changing anything
@@ -226,12 +226,12 @@ Per-screen layout fields:
 
 | Key                           | Type    | Default      | Description |
 |-------------------------------|---------|--------------|-------------|
-| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`).  Maximum is `10`. |
+| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`). Maximum is `10`. |
 | `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
 | `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
 | `settings[].background-color` | string  | none         | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset, a desktop falls back to `theme.desktop.color.background` (section 4.4). |
 
-### 2.3.  `programs`
+### 2.3. `programs`
 
 Associates application categories with the executables IcoWM will launch
 for the corresponding keyboard shortcuts.
@@ -254,7 +254,7 @@ for the corresponding keyboard shortcuts.
 }
 ```
 
-### 2.4.  `windows`
+### 2.4. `windows`
 
 Controls window behavior: gravity, edge snapping, resize grips, focus
 policy, and placement policy.
@@ -305,7 +305,7 @@ When `true`, geometry when moving (mouse drag) or position when resizing
 
 | Key                        | Type    | Default   | Description |
 |----------------------------|---------|-----------|-------------|
-| `focus.policy`             | string  | `"click"` | Focus policy: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `focus.is-new-focused`     | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
 | `focus.is-raised-on-focus` | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
 
@@ -377,7 +377,7 @@ name.
 }
 ```
 
-### 2.5.  `icons`
+### 2.5. `icons`
 
 #### `icons.show-geom`
 
@@ -414,14 +414,14 @@ Accepted icon placement values:
 }
 ```
 
-### 2.6.  `shutdown` / `fortune`
+### 2.6. `shutdown` / `fortune`
 
-| Key                                  | Type    | Default     |
-|--------------------------------------|---------|-------------|
-| `shutdown.enable-emergency-shortcut` | boolean | `false`     |
-| `shutdown.timeout-seconds`           | integer | `15`        |
-| `fortune.is-enabled`                 | boolean | `true`      |
-| `fortune.command`                    | string  | `"fortune"` |
+| Key                                    | Type    | Default |
+|-----------------------------------------|---------|---------|
+| `shutdown.enable-emergency-shortcut`    | boolean | `false` |
+| `shutdown.timeout-seconds`              | integer | `15`    |
+| `fortune.is-enabled`                    | boolean | `true`  |
+| `fortune.command`                       | string  | `"fortune"` |
 
 `shutdown` groups every setting about how the window manager itself
 shuts down: the hardcoded emergency exit shortcut, and the wait the
@@ -447,8 +447,8 @@ hooks a normal quit or an external `SIGTERM` otherwise runs.  This is
 deliberate, not an oversight.  The emergency exit exists specifically
 for situations where the window manager itself might be unresponsive or
 in some broken state, so it is kept to the smallest, most direct action
-possible, i.e, a signal sent to its own process, detected the very next
-time its main loop gets to check for one.  Every one of the things this
+possible: a signal sent to its own process, detected the very next time
+its main loop gets to check for one.  Every one of the things this
 shortcut skips (a dialog, a menu, the coordinated client-closing wait)
 depends on that same main loop and its own rendering still working;
 adding any of them back in as a required step, even one that can itself
@@ -461,7 +461,7 @@ combination, so it keeps working even while one of those has the
 keyboard grabbed.
 
 `shutdown.timeout-seconds` applies only to the normal quit action (the
-"Quit" keybinding and its confirmation dialog).  Once confirmed, every
+"Quit" keybinding and its confirmation dialog): once confirmed, every
 managed client is first asked to close on its own (the same
 `WM_DELETE_WINDOW` request closing one window individually already
 sends, so an application with unsaved changes gets the same chance to
@@ -495,7 +495,7 @@ on.
 }
 ```
 
-### 2.7.  `startup-notification`
+### 2.7. `startup-notification`
 
 | Key                                    | Type    | Default |
 |----------------------------------------|---------|---------|
@@ -517,7 +517,7 @@ applications actually launched day to day.
 }
 ```
 
-### 2.8.  `menu`
+### 2.8. `menu`
 
 | Key                      | Type   | Default         |
 |--------------------------|--------|-----------------|
@@ -529,7 +529,7 @@ screen position of its own, such as a keyboard shortcut, one setting per
 menu type: `root` is the desktop context menu (`menu.json`, opened by
 `keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm));
 `windows` is the menu listing every window on every desktop (opened by
-`keyboard.wm.menus.windows`).  Supported values are `"center"`, which
+`keyboard.wm.menus.windows`). Supported values are `"center"`, which
 always opens the menu in the center of the screen, and `"under-mouse"`,
 which opens it under the current mouse pointer position instead,
 matching the naming of `windows.placement.policy`.
@@ -549,7 +549,7 @@ under the pointer in that case.
 }
 ```
 
-### 2.9.  `systray`
+### 2.9. `systray`
 
 | Key                     | Type    | Default           |
 |-------------------------|---------|-------------------|
@@ -636,8 +636,8 @@ absolutely everything, including fullscreen windows.
 
 When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
 on startup and embeds icon windows that request docking via the
-freedesktop.org System Tray Protocol together with the XEMBED handshake.
-The dock window stays hidden while no icons are docked.  Toggling
+freedesktop.org System Tray Protocol together with the XEMBED handshake;
+the dock window stays hidden while no icons are docked.  Toggling
 `is-enabled` off and back on via a configuration reload releases and
 re-acquires the selection immediately without losing already-docked
 icons: the dock window and its icons persist in the background while
@@ -711,15 +711,15 @@ that drains quickly enough that 30 seconds feels stale.
 The status text's exact shape depends on both AC power and how the
 battery's charge compares to `threshold`:
 
-| State                                          | Text         |
-|------------------------------------------------|--------------|
-| On battery, above `low`                        | `"X%"`       |
-| On battery, at/below `low`                     | `"X%!"`      |
-| On battery, at/below `critical`                | `"X%!!"`     |
-| On AC, not fully charged                       | `"X% AC"`    |
-| Fully charged (`charged` or above), on battery | `"Full"`     |
-| Fully charged, on AC                           | `"Full, AC"` |
-| No battery found for `backend`                 | `"N/A"`      |
+| State                                          | Text        |
+|------------------------------------------------|-------------|
+| On battery, above `low`                        | `"X%"`      |
+| On battery, at/below `low`                     | `"X%!"`     |
+| On battery, at/below `critical`                | `"X%!!"`    |
+| On AC, not fully charged                       | `"X% AC"`   |
+| Fully charged (`charged` or above), on battery | `"Full"`    |
+| Fully charged, on AC                           | `"Full AC"` |
+| No battery found for `backend`                 | `"N/A"`     |
 
 A battery counts as "fully charged" once its percentage reaches
 `threshold.charged`, regardless of what the kernel itself reports as its
@@ -782,7 +782,7 @@ theme documentation (section 4.3).
 }
 ```
 
-### 2.10.  `desktops`
+### 2.10. `desktops`
 
 Desktop-navigation and reserved-space behavior: whether the active
 desktop's own name briefly overlays the screen on switch, whether
@@ -796,9 +796,9 @@ a configuration reload (see section 4.9).
 
 | Key                | Type    | Default | Description |
 |--------------------|---------|---------|-------------|
-| `show-overlay`     | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes.  The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name. |
-| `enable-edge-warp` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay.  Meaningless with only one desktop. |
-| `is-circular`      | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there.  Meaningless with only one desktop. |
+| `show-overlay`     | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes. The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name. |
+| `enable-edge-warp` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
+| `is-circular`      | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
 | `margins.top`      | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
 | `margins.right`    | integer | `0`     | Extra space reserved on the right, in pixels. |
 | `margins.bottom`   | integer | `0`     | Extra space reserved at the bottom, in pixels. |
@@ -807,12 +807,12 @@ a configuration reload (see section 4.9).
 `margins` adds on top of whatever space a client already reserves for
 itself via `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` (a panel or dock,
 say) rather than overriding it: the two are meant to coexist, not
-compete.  It exists for a program that reserves screen space without
+compete. It exists for a program that reserves screen space without
 publishing either property itself (a desktop widget like Conky is the
 classic example): configuring a margin here reserves that space for it,
 the same way maximizing a window or its initial placement already
-respects a panel's own published strut.  `margins` applies identically
-to every desktop on every screen; there is no per-desktop or per-screen
+respects a panel's own published strut. `margins` applies identically to
+every desktop on every screen; there is no per-desktop or per-screen
 override.
 
 ```json
@@ -829,7 +829,7 @@ override.
 }
 ```
 
-### 2.11.  `scratchpad`
+### 2.11. `scratchpad`
 
 A single dedicated client, launched on demand and toggled visible/hidden
 instead of iconified/restored, the same way a dropdown terminal works in
@@ -860,14 +860,14 @@ command-line tool with no display of its own, e.g., `"gvim
 ~/docs/my_notes.txt"` to always have the same notes file one toggle
 away, exactly as much as a shell would be.
 
-| Key                      | Type               | Default | Description |
-|--------------------------|--------------------|---------|-------------|
-| `is-enabled`             | boolean            | `true`  | Enables the toggle action; a `toggle_scratchpad` command or its own keybind does nothing at all while this is `false`. |
-| `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their own `-class`; see the note above on what kind of command this can be. |
-| `edge`                   | string             | `"top"` | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
-| `width`                  | integer or `"max"` | `"max"` | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
-| `height`                 | integer or `"max"` | `200`   | Always-applied height, in pixels, or `"max"` (see `width` above). |
-| `ignore-margins`         | boolean            | `false` | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
+| Key                     | Type            | Default                    | Description |
+|--------------------------|-----------------|----------------------------|-------------|
+| `is-enabled`             | boolean         | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its own keybind does nothing at all while this is `false`. |
+| `command`                | string          | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their own `-class`; see the note above on what kind of command this can be. |
+| `edge`                   | string          | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
+| `width`                  | integer or `"max"` | `"max"`                  | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
+| `height`                 | integer or `"max"` | `200`                    | Always-applied height, in pixels, or `"max"` (see `width` above). |
+| `ignore-margins`         | boolean         | `false` | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
 
 Its own border is themed separately from every other window, since it
 never has any other decoration; see `themes/<name>.json` section
@@ -884,13 +884,13 @@ never has any other decoration; see `themes/<name>.json` section
 }
 ```
 
-## 3.  `bindings.json`: Keyboard and mouse bindings
+## 3. `bindings.json`: Keyboard and mouse bindings
 
 Defines all keyboard shortcuts and mouse button bindings.  This file is
 optional; if absent, the built-in defaults listed in the tables below
 are used.
 
-### 3.1 Binding syntax
+### 3.1. Binding syntax
 
 A binding is a `+`-separated chain of modifier aliases and a final key
 or button name:
@@ -911,7 +911,7 @@ modifier1+[modifier2+[modifier3+]]KeyName
 Example:  `"modc+mod1+Return"` with the default modifiers resolves to
 `Control+Alt+Return`.
 
-### 3.2.  `modifiers`
+### 3.2. `modifiers`
 
 Symbolic names for modifier keys.  Every binding that references
 a modifier uses one of these aliases.
@@ -940,7 +940,7 @@ a modifier uses one of these aliases.
 }
 ```
 
-### 3.3.  `keyboard.launch`
+### 3.3. `keyboard.launch`
 
 Shortcuts for launching external applications.  The executables are
 taken from the `programs` section of `config.json`.
@@ -953,7 +953,7 @@ taken from the `programs` section of `config.json`.
 | `web-browser`  | `modc+mod1+w`      | Launch the web browser.          |
 | `editor`       | `modc+mod1+e`      | Launch the text editor.          |
 
-### 3.4.  `keyboard.window`
+### 3.4. `keyboard.window`
 
 Actions performed on the currently focused window.
 
@@ -966,7 +966,7 @@ Actions performed on the currently focused window.
 | `iconify`       | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
 | `iconify-all`   | `modc+mod4+mods+i`      | Iconify (minimize) every client on the current desktop. |
 | `deiconify-all` | `modc+mod4+mods+d`      | Restore every iconified client on the current desktop. |
-| `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out.  A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
+| `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out. A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
 | `hide`          | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `next-monitor`  | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
@@ -1012,20 +1012,20 @@ Resize the focused window by a fixed step in the given direction.
 | `up`    | `modc+mod1+mods+k` |
 | `down`  | `modc+mod1+mods+j` |
 
-### 3.5.  `keyboard.wm`
+### 3.5. `keyboard.wm`
 
 Window manager control shortcuts.
 
-| Key            | Default binding       | Action |
-|----------------|-----------------------|--------|
-| `search`       | `modc+mod4+mods+s`    | Open the fuzzy window-search widget. |
-| `show-desktop` | `modc+mod1+mods+d`    | Hide all windows and show the empty desktop. |
-| `scratchpad`   | `modc+mod1+mods+F12`  | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
-| `redraw`       | `modc+mod1+mods+r`    | Force a full redraw of all windows. |
-| `reload`       | `modc+mod1+mods+c`    | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit`         | `modc+mod1+mods+x`    | Exit IcoWM. |
-| `shortcuts`    | `modc+mod4+F1`        | Show a dialog listing every currently active keyboard shortcut. |
-| `fortune`      | `modc+mod4+Backspace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
+| Key            | Default binding    | Action |
+|----------------|--------------------|--------|
+| `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
+| `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
+| `scratchpad` | `modc+mod1+mods+F12` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
+| `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
+| `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
+| `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
+| `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
+| `fortune`      | `Ctrl+Mod4+BackSpace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
 
 `search` opens a centered, live-filtered list of every window across
 every desktop.  Typing narrows the list by fuzzy subsequence match
@@ -1091,7 +1091,7 @@ If the interest is to use a 1-based indexing system, a trick could be
 setting `inaugural` to `1`.  Another is to change every single
 `keyboard.wm.go-to` binding.
 
-### 3.6.  `keyboard.cycle`
+### 3.6. `keyboard.cycle`
 
 Shortcuts for cycling through desktops, iconified windows, and open
 windows.
@@ -1121,7 +1121,7 @@ Cycle through iconified (minimized) windows only.
 | `prev` | `modc+mod1+mods+Tab` | Focus the previous icon. |
 | `next` | `modc+mod1+Tab`      | Focus the next icon.     |
 
-### 3.7.  `mouse.window`
+### 3.7. `mouse.window`
 
 Mouse button bindings for window management.
 
@@ -1131,7 +1131,7 @@ Mouse button bindings for window management.
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
 | `resize` | `mod1+button3`  | Click and drag to resize the window. |
 
-### 3.8.  `mouse.cycle`
+### 3.8. `mouse.cycle`
 
 Mouse button bindings for switching virtual desktops.
 
@@ -1140,7 +1140,7 @@ Mouse button bindings for switching virtual desktops.
 | `cycle.desktop.prev` | `button4`       | Scroll up to go to the previous desktop. |
 | `cycle.desktop.next` | `button5`       | Scroll down to go to the next desktop. |
 
-## 4.  `themes/<name>.json`: Theme configuration
+## 4. `themes/<name>.json`: Theme configuration
 
 Controls the visual appearance of windows, desktop icons, and the
 systray.  Theme files live in the `themes/` subdirectory of the
@@ -1167,7 +1167,7 @@ parses or acts on them.
 }
 ```
 
-### 4.1.  `window`
+### 4.1. `window`
 
 Appearance settings for managed windows.
 
@@ -1223,14 +1223,14 @@ difference every time it gains or loses focus, so its content never has
 to resize; see the note on configuration reload below for the one case
 this resizing does not happen automatically.
 
-### 4.2.  `icon`
+### 4.2. `icon`
 
 Appearance settings for iconified windows.
 
 | Key            | Type    | Default | Description |
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
-| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another; see `WM_ICON_PIXMAP_SCALE` in `defs/icon.h` for that fraction of the icon square the image is scaled to fill (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
+| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap). Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`. Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another; see `WM_ICON_PIXMAP_SCALE` in `defs/icon.h` for that fraction of the icon square the image is scaled to fill (not currently configurable from a JSON file, only at compile time). The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
 | `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's own top corners: a filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
 
 #### `icon.active` / `icon.inactive`
@@ -1249,7 +1249,7 @@ every other icon (`inactive`).
 | `border.width`     | integer | `1`              | `1`                |
 | `opacity`          | integer | `100`            | `100`              |
 
-### 4.3.  `systray`
+### 4.3. `systray`
 
 A `font` / `color` / `border` block, the same shape as `window.active`
 above, applied to the systray dock itself, plus its own height, each
@@ -1313,7 +1313,7 @@ spacing and vertical alignment are theme concerns.
 }
 ```
 
-### 4.4.  `desktop`
+### 4.4. `desktop`
 
 The desktop's own default background color, used only as a fallback: see
 the explanation right after the table below for exactly when it applies.
@@ -1347,7 +1347,7 @@ externally set wallpaper with either one.
 }
 ```
 
-### 4.5.  `menu`
+### 4.5. `menu`
 
 Applies to every context menu (root menu, per-window menu, the
 all-desktops window list, and their submenus) and to the Alt+Tab-style
@@ -1470,7 +1470,7 @@ submenu headers) are unaffected either way.
 }
 ```
 
-### 4.6.  `dialog`
+### 4.6. `dialog`
 
 Applies to the quit-confirmation dialog and the generic message dialog.
 
@@ -1507,9 +1507,7 @@ the inset between the dialog window's own edges and that text.
 not-selected/keyboard-navigated-choice distinction as `menu` above; the
 message dialog's single "OK" button always uses `button.selected`, since
 there is nothing else it could be navigated away from.  `button.gap` is
-the horizontal space between adjacent `button.selected`, since there is
-nothing else it could be navigated away from.  `button.gap` is the
-horizontal space between adjacent buttons.  `button.padding` is the
+the horizontal space between adjacent buttons.  `button.padding` is the
 inset between a button's own edges and its label, shared by both
 `unselected` and `selected` so a button does not change size (and shove
 its neighbor sideways) as the highlight moves onto or off of it; each
@@ -1544,7 +1542,7 @@ regardless of which font ends up drawn, so switching to a wider
 }
 ```
 
-### 4.7.  `overlay`
+### 4.7. `overlay`
 
 A single `font` / `color` / `border` block, the same shape as
 `window.active` (section 4.1), applied to transient informational
@@ -1569,7 +1567,7 @@ overlays with no selected/unselected state to distinguish.
 }
 ```
 
-### 4.8.  `xsettings`
+### 4.8. `xsettings`
 
 | Key                                 | Type    | Default     |
 |-------------------------------------|---------|-------------|
@@ -1621,7 +1619,7 @@ exactly as a dedicated XSETTINGS daemon would.
 }
 ```
 
-### 4.9.  Configuration reload and already-open windows
+### 4.9. Configuration reload and already-open windows
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names and
@@ -1660,33 +1658,33 @@ window manager to pick up a `topology.*` change instead.
 
 ---
 
-> **Font format note:**  Every `font` field in a theme accepts the same
-> string, tried through two backends in order:
+> **Font format note:**  Every `font` field in a theme accepts the
+> same string, tried through two backends in order:
 >
 > 1. **X core fonts** (accessed via XCB), IcoWM's original text
->    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are available
->    through this backend; it is tried first because it has no per-glyph
->    rasterization cost and every X server ships the `fixed` family it
->    falls back to below.
+>    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are
+>    available through this backend; it is tried first because it has
+>    no per-glyph rasterization cost and every X server ships the
+>    `fixed` family it falls back to below.
 >
 > 2. **TrueType/OpenType**, via fontconfig (font matching), FreeType2
 >    (rasterization), and the X RENDER extension (compositing), used
->    automatically whenever a `font` string does not resolve to an
->    X core font, e.g., a family name such as `"DejaVu Sans"` that most
->    systems only have as a scalable font, not as a legacy X bitmap one.
->    This is what gives window titles, menus, and the systray
+>    automatically whenever a `font` string does not resolve to an X
+>    core font, e.g., a family name such as `"DejaVu Sans"` that most
+>    systems only have as a scalable font, not as a legacy X bitmap
+>    one.  This is what gives window titles, menus, and the systray
 >    clock/battery text real anti-aliasing and full UTF-8 support
 >    (accented characters, non-Latin scripts, and so on), neither of
 >    which the X core font backend can provide.
 >
-> If a `font` string resolves through neither backend, IcoWM falls back
-> to `"fixed"`, so text rendering is never left completely broken by
-> a single bad theme value.
+> If a `font` string resolves through neither backend, IcoWM falls
+> back to `"fixed"`, so text rendering is never left completely
+> broken by a single bad theme value.
 >
 > No separate field or prefix selects which backend is used: it is
-> decided purely by whether the string resolves as an X core font first.
-> A short description like `"fixed bold 13"` almost always takes the
-> X core font path, since `fixed` is an X bitmap family;
+> decided purely by whether the string resolves as an X core font
+> first.  A short description like `"fixed bold 13"` almost always
+> takes the X core font path, since `fixed` is an X bitmap family;
 > a TrueType/OpenType family name takes the fontconfig path instead,
 > using fontconfig's own pattern syntax rather than the short
 > description syntax below.
@@ -1699,7 +1697,7 @@ window manager to pick up a `topology.*` change instead.
 >   `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
 >
 >    IcoWM parses this and constructs the appropriate XLFD wildcard
->    pattern internally.  All fields after `family` are optional and can
+>    pattern internally. All fields after `family` are optional and can
 >    appear in any order, except that `registry-encoding` (if given)
 >    must come last.  `registry-encoding` is any token that contains
 >    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
@@ -1752,7 +1750,7 @@ window manager to pick up a `topology.*` change instead.
 > fc-match "Noto Sans:bold:size=11"
 > ```
 
-### 4.10.  `scratchpad`
+### 4.10. `scratchpad`
 
 The scratchpad's own border (`config.json` section 2.11), since it is
 always undecorated and so never has any other decoration to theme.  Same
@@ -1760,10 +1758,10 @@ as `window.active.border` by default, since the scratchpad's own window
 is meant to stand out the same way the active window's own border
 already does.
 
-| Key                       | Type    | Default     | Description |
-|---------------------------|---------|-------------|-------------|
-| `scratchpad.border.color` | string  | `"#4A5566"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
-| `scratchpad.border.width` | integer | `2`         | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
+| Key                       | Type    | Default   | Description |
+|----------------------------|---------|-----------|-------------|
+| `scratchpad.border.color`  | string  | `"#4A5566"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| `scratchpad.border.width`  | integer | `2`       | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
 
 ```json
 "scratchpad": {
@@ -1775,7 +1773,7 @@ already does.
 ```
 ---
 
-## 5.  `randr.json`: XRandR output profiles
+## 5. `randr.json`: XRandR output profiles
 
 Defines per-output settings applied by IcoWM through the XRandR
 extension.  This file is **optional**.  If absent, XRandR hot-plug event
@@ -1788,13 +1786,13 @@ see `CONFIG_RANDR_MAX_OUTPUTS` in `defs/config.h`).
 Applied at startup, and again whenever an output connects or disconnects
 afterward (e.g., plugging in an external monitor).
 
-### 5.1.  Top-level fields
+### 5.1. Top-level fields
 
 | Key          | Type    | Default | Description |
 |--------------|---------|---------|-------------|
 | `is-enabled` | boolean | `false` | Master switch.  Set to `true` to activate output profile management. |
 
-### 5.2.  `outputs[]` entries
+### 5.2. `outputs[]` entries
 
 Each entry in the `outputs` array describes one physical display output.
 A profile whose `name` does not match any currently-connected output is
@@ -1805,32 +1803,32 @@ simply skipped until one by that name appears.
 | `name`         | string  | `""`       | Output connector name as reported by the X server (e.g., `"HDMI-1"`, `"eDP-1"`, `"DP-2"`).  Run `xrandr` in a terminal to list available names. |
 | `is-enabled`   | boolean | `false`    | Whether this output is used at all.  `true` applies `resolution`, `position`, and `rotation` below to the output, and lets IcoWM manage windows on it.  `false` instead turns the output off (blanking it, the same as unplugging it) and excludes it from window placement entirely, useful for a permanently-connected output (a projector for mirroring, say) that should never receive windows. |
 | `is-primary`   | boolean | `false`    | Mark this output as the primary display.  Only applied when `is-enabled` is `true`; applied as a separate step right after the rest of this profile. |
-| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels.  Matched against the modes the screen currently reports; if `0`, `0`, or no exact match exists, the output's own already-active mode is kept instead (or its first preferred mode, if it had none), and, since nothing was actually requested in that case, its resolution plays no part in deciding whether this profile changed anything on a later reload, or in what a `[ Revert ]` on the confirm dialog restores (see `position`/`rotation`/`is-primary` above and below, which always do).  Only applied when `is-enabled` is `true`. |
+| `resolution.w` | integer | `0`        | Preferred horizontal resolution in pixels.  Matched against the modes the screen currently reports; if `0`, `0`, or no exact match exists, the output's own already-active mode is kept instead (or its first preferred mode, if it had none), and, since nothing was actually requested in that case, its resolution plays no part in deciding whether this profile changed anything on a later reload, or in what a `[ Revert ]` on the confirm dialog restores (see `position`/`rotation`/`is-primary` above and below, which always do). Only applied when `is-enabled` is `true`. |
 | `resolution.h` | integer | `0`        | Preferred vertical resolution in pixels.  See `resolution.w` above. |
 | `position.x`   | integer | `0`        | Horizontal position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
 | `position.y`   | integer | `0`        | Vertical position of this output in the virtual screen.  Only applied when `is-enabled` is `true`. |
 | `rotation`     | string  | `"normal"` | Screen rotation.  Only applied when `is-enabled` is `true`. |
 
-Accepted `rotation` values are: `"normal"`, `"left"` (90°),
-`"right"` (270°), `"inverted"` (180°).
+Accepted `rotation` values are: `"normal"`, `"left"` (90°), `"right"`
+(270°), `"inverted"` (180°).
 
-### 5.3.  Scope: per-X-screen, not per-`outputs[]`-entry
+### 5.3. Scope: per-X-screen, not per-`outputs[]`-entry
 
 RandR is scoped to a single X screen: CRTCs, outputs, and modes are
 queried and configured against one screen's root window, with no
-cross-screen notion at the protocol level.  `surface_action_
+cross-screen notion at the protocol level. `surface_action_
 apply_randr_profiles` is called once per surface (X screen managed),
-querying and applying RandR state independently for each.  `outputs[]`
+querying and applying RandR state independently for each. `outputs[]`
 itself, however, is a single list in `config_randr_s`, shared by every
-surface, with no per-screen field.  On a multi-GPU setup where two
+surface, with no per-screen field. On a multi-GPU setup where two
 X screens each expose an output of the same name, the matching profile
 is applied identically to both, with no way to scope it to one screen
-only.  Not applicable to the common case of one X screen managing
-several outputs via RandR 1.5 monitors, nor in practice to most
-multi-screen setups either, since output names are driver/GPU- assigned
-and are not normally reused across independent GPUs.
+only. Not applicable to the common case of one X screen managing several
+outputs via RandR 1.5 monitors, nor in practice to most multi-screen
+setups either, since output names are driver/GPU- assigned and are not
+normally reused across independent GPUs.
 
-### 5.4.  Reload behavior
+### 5.4. Reload behavior
 
 `randr.json` is re-read on configuration reload (`KEYBIND_WM_RELOAD`
 / `ACTION_WM_RELOAD`), updating `config->randr` in memory, and
@@ -1842,17 +1840,16 @@ just changed it.
 
 If that application actually changed anything, a confirm dialog appears,
 centered on the affected screen: "The 'randr.json' configuration has
-been applied.  Keep it, or revert to the previous one?", with `[ Revert
-]` selected by default and a live countdown underneath.  Pressing `[
-Keep ]` (or Tab/arrow then Enter/Space) keeps the just-applied profile;
+been applied. Keep it, or revert to the previous one?", with `[ Revert
+]` selected by default and a live countdown underneath. Pressing `[ Keep
+]` (or Tab/arrow then Enter/Space) keeps the just-applied profile;
 pressing `[ Revert ]`, Escape, or letting the countdown reach zero
 undoes it, restoring every changed output's prior mode, position,
-rotation, and primary status exactly.  The countdown defaults to 10
-seconds (`DIALOG_RANDR_CONFIRM_TIMEOUT_ SECONDS` in `defs/dialog.h`).
-No dialog appears at all when nothing actually changed (see the
-comparison below), nor at startup or on a hotplug event; only a reload,
-the one moment a person is at the keyboard to have triggered it, offers
-this.
+rotation, and primary status exactly. The countdown defaults to 10
+seconds (`DIALOG_RANDR_CONFIRM_TIMEOUT_ SECONDS` in `defs/dialog.h`). No
+dialog appears at all when nothing actually changed (see the comparison
+below), nor at startup or on a hotplug event; only a reload, the one
+moment a person is at the keyboard to have triggered it, offers this.
 
 With more than one screen, every screen still gets its own profiles
 applied on the same reload even when more than one changes, but only the
@@ -1863,11 +1860,11 @@ remembered well enough to revert.
 Every call to `surface_action_apply_randr_profiles` compares each
 configured profile against the matching output's actual current state
 first (resolution, position, rotation, primary status) and issues an
-XRandR write for it only when at least one of them genuinely differs.
-A `randr.json` whose profiles already match reality therefore issues no
-XRandR requests at all, including on a reload triggered by an unrelated
-file (e.g., `config.json`), and on a hotplug event for an output some
-other profile targets.
+XRandR write for it only when at least one of them genuinely
+differs. A `randr.json` whose profiles already match reality therefore
+issues no XRandR requests at all, including on a reload triggered by an
+unrelated file (e.g., `config.json`), and on a hotplug event for an
+output some other profile targets.
 
 ```json
 {
@@ -1893,7 +1890,7 @@ other profile targets.
 }
 ```
 
-## 6.  `a11y.json`: Timing and visual-feedback overrides
+## 6. `a11y.json`: Timing and visual-feedback overrides
 
 An entirely optional file: everything here has a built-in default
 already in effect before this file exists at all, so nobody who never
@@ -1901,7 +1898,7 @@ creates it sees any behavior change.  Every field this file does not
 specify keeps whatever value it already had, the same way `randr.json`
 (section 5) works.
 
-### 6.1 Fields
+### 6.1. Fields
 
 | Key                                  | Type    | Default |
 |---------------------------------------|---------|---------|
@@ -1950,7 +1947,7 @@ a faster, more attention-grabbing blink; raise it for a slower one.
 }
 ```
 
-### 6.2 Reload behavior
+### 6.2. Reload behavior
 
 Unlike `topology` in `config.json` (section 2.1), every field here does
 take effect on a configuration reload (`KEYBIND_WM_RELOAD` / `SIGHUP`
@@ -1974,7 +1971,7 @@ The file may be either:
 - a top-level JSON array of rule objects, or
 - an object with a `rules` array.
 
-### 7.1.  Rule file shape
+### 7.1. Rule file shape
 
 ```json
 [
@@ -2010,7 +2007,7 @@ Equivalent wrapper form:
 }
 ```
 
-### 7.2.  Rule entry fields
+### 7.2. Rule entry fields
 
 Each rule entry is a JSON object with the following keys:
 
@@ -2028,7 +2025,7 @@ or type.  Use `"both"` when the same rule should be considered in both
 situations: at initial map time and again after relevant property
 updates.
 
-### 6.3 Match fields
+### 7.3. Match fields
 
 All match fields are optional.  A rule matches only when all specified
 fields match the current window.
@@ -2045,13 +2042,13 @@ fields match the current window.
 String matches use shell-style glob patterns, so `\*` matches any
 sequence of characters and `?` matches any single character.  `[...]` is
 also special, the same way it is in a shell glob: it defines a character
-class matching any *one* of the characters inside the brackets, not
-a literal pair of brackets; so `"[Application]"` does not match a title
+class matching any *one* of the characters inside the brackets, not a
+literal pair of brackets, so `"[Application]"` does not match a title
 that literally reads `[Application]`; it matches a title that is the
-single character `A`, `p`, `l`, `i`, `c`, `t`, `o`, or `n`.  To match
-a literal `[` or `]`, escape it with a backslash, doubled as usual for
-a JSON string: `"\\[Application\\]"` in `rules.json` reaches the matcher
-as `\[Application\]`, matching the literal text `[Application]`.
+single character `A`, `p`, `l`, `i`, `c`, `t`, `o`, or `n`.  To match a
+literal `[` or `]`, escape it with a backslash, doubled as usual
+for a JSON string: `"\\[Application\\]"` in `rules.json` reaches the
+matcher as `\[Application\]`, matching the literal text `[Application]`.
 A plain `"*Application*"` is usually simpler when the brackets
 themselves do not need to be part of the match.
 
@@ -2067,28 +2064,14 @@ repeating the same `apply` block for each of them:
 {
     "when": "map",
     "match": {
-        "title": [ "*Sonata", "\\[Sonata\\]" ],
+        "title": ["*Sonata", "*mpv", "mplayer"],
+        "class": "MEDIA",
         "type": "normal"
     },
     "apply": {
-        "decorated": false,
         "pinned": true,
-        "layer": "below",
-        "position": {
-            "x": 1460,
-            "y": 10
-        }
-    }
-},
-{
-    "when": "map",
-    "match": {
-        "title": [ "*mpv", "*mplayer", "*VLC media player" ]
-    },
-    "apply": {
         "decorated": false,
-        "pinned": false,
-        "position": "center"
+        "layer": "below"
     }
 }
 ```
@@ -2104,12 +2087,11 @@ Accepted `match.type` values are: `"normal"`, `"desktop"`, `"dock"`,
 
 As with every other match field, omitting `match.type` entirely does not
 default to `"normal"`.  It means that criterion is not checked at all,
-so the rule matches windows of any type.  In the example above,
-`"type"`: "normal" is an explicit, active condition; removing that line
-and the rule would also match e.g., a dialog with a matching title and
-class.
+so the rule matches windows of any type. In the example above, `"type"`:
+"normal" is an explicit, active condition; removing that line and the
+rule would also match e.g., a dialog with a matching title and class.
 
-### 6.4.  Apply fields
+### 7.4. Apply fields
 
 All apply fields are optional.  Only the fields present in the last
 matching rule for each property are applied.
@@ -2134,8 +2116,8 @@ matching rule for each property are applied.
 Position and size are applied independently.  Specifying only `position`
 moves the window without resizing it; specifying only `size` resizes it
 without moving it; both may be present to set position and size at once.
-Both `size.width` and `size.height` are only accepted when greater than
-`0`.
+Both `size.width` and `size.height` are only accepted when strictly
+postive, greater than `0`.
 
 Key `opacity` is either a single integer applying to both the active and
 inactive state alike, or an object naming one, the other, or both
@@ -2206,7 +2188,7 @@ still centers the window on that monitor by default, since otherwise
 The second example places the window 20 pixels from the top-left corner
 of monitor `1`, not of the whole surface.
 
-## 8.  `session.json`: Session lifecycle hooks
+## 8. `session.json`: Session lifecycle hooks
 
 Defines optional command lists that IcoWM launches asynchronously at key
 lifecycle points.  If the file is absent or malformed, no hooks run.
@@ -2222,7 +2204,7 @@ also be disabled on platforms that provide `WRDE_NOENV`.
 If the "emergency shortcut" is used to exit, all pending session hooks
 will be ignored.
 
-### 8.1.  Hook arrays
+### 8.1. Hook arrays
 
 | Key         | Type             | Default | Description |
 |-------------|------------------|---------|-------------|
@@ -2233,7 +2215,7 @@ will be ignored.
 Only non-empty string entries are used; all other array items are
 ignored.
 
-## 9.  `menu.json`: Root desktop menu
+## 9. `menu.json`: Root desktop menu
 
 `menu.json` defines the user-configurable entries that appear when the
 user right-clicks on the empty desktop (root window).  The file is
@@ -2241,7 +2223,7 @@ user right-clicks on the empty desktop (root window).  The file is
 (`Reload configuration`, `Redraw all windows`, `Exit`) is still shown
 without any preceding separator.
 
-### 9.1.  Top-level structure
+### 9.1. Top-level structure
 
 The file must contain a single JSON object with one key: `"menu"`, whose
 value is a JSON array of entry objects.
@@ -2255,7 +2237,7 @@ value is a JSON array of entry objects.
 }
 ```
 
-### 9.2.  Entry types
+### 9.2. Entry types
 
 Each entry object must have a `"type"` string field.  Four types are
 supported:
@@ -2267,7 +2249,7 @@ supported:
 | `"label"`     | Non-clickable section heading                     |
 | `"submenu"`   | Nested sub-menu revealed on hover/click           |
 
-### 9.3.  Entry fields reference
+### 9.3. Entry fields reference
 
 #### `"command"` entry
 
@@ -2290,7 +2272,8 @@ informational dialog so the user is notified immediately.
 |----------|--------|----------|-----------------------|
 | `"type"` | string | yes      | Must be `"separator"` |
 
-At this moment there's only one kind of `"type"`, which is `"separator"`.
+At this moment there's only one kind of `"type"`, which is
+`"separator"`.
 
 #### `"label"` entry
 
@@ -2314,7 +2297,7 @@ Sub-menus can be nested to the depth limit defined by
 
 ---
 
-## 10.  `memguard.json`: Restricted-memory mode configuration
+## 10. `memguard.json`: Restricted-memory mode configuration
 
 Read only when IcoWM is launched with `-M <mib>` (see `icowm.md`'s own
 "Restricted-memory mode" section for what that flag does and why it
@@ -2331,25 +2314,25 @@ the file is silently ignored, and every field this mode's own screen and
 desktop counts, RandR handling, and startup-notification setting are
 fixed and cannot be configured here at all.
 
-### 10.1.  Configurable fields
+### 10.1. Configurable fields
 
-| Key                                      | Type    | Default     | Description |
-|------------------------------------------|---------|-------------|-------------|
+| Key                                      | Type    | Default | Description |
+|------------------------------------------|---------|---------|-------------|
 | `theme`                                  | string  | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor`                        | string  | `"gvim"`    | Same as `config.json`'s own `programs.editor`. |
+| `programs.editor`                        | string  | `"gvim"` | Same as `config.json`'s own `programs.editor`. |
 | `programs.file-manager`                  | string  | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
-| `programs.launcher`                      | string  | `"gmrun"`   | Same as `config.json`'s own `programs.launcher`. |
-| `programs.terminal`                      | string  | `"xterm"`   | Same as `config.json`'s own `programs.terminal`. |
+| `programs.launcher`                      | string  | `"gmrun"` | Same as `config.json`'s own `programs.launcher`. |
+| `programs.terminal`                      | string  | `"xterm"` | Same as `config.json`'s own `programs.terminal`. |
 | `programs.web-browser`                   | string  | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
-| `desktops.margins.top/right/bottom/left` | integer | `0`         | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step`                      | integer | `10`        | Same as `config.json`'s own `windows.move-step`. |
-| `windows.placement.policy`               | string  | `"smart"`   | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `icons.placement.policy`                 | string  | `"smart"`   | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object  | see 9.2     | The entire `systray` object, in the same shape as `config.json`'s own (section 2.9), with the two exceptions in 9.2. |
-| `enable-emergency-shortcut`              | boolean | `false`     | Same as `config.json`'s own `enable-emergency-shortcut`. |
-| `shutdown.timeout-seconds`               | integer | `15`        | Same as `config.json`'s own `shutdown.timeout-seconds`. |
+| `desktops.margins.top/right/bottom/left` | integer | `0` | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step`                      | integer | `10` | Same as `config.json`'s own `windows.move-step`. |
+| `windows.placement.policy`               | string  | `"smart"` | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `icons.placement.policy`                 | string  | `"smart"` | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object  | see 9.2 | The entire `systray` object, in the same shape as `config.json`'s own (section 2.9), with the two exceptions in 9.2. |
+| `shutdown.enable-emergency-shortcut`     | boolean | `false` | Same as `config.json`'s own `shutdown.enable-emergency-shortcut`. |
+| `shutdown.timeout-seconds`               | integer | `15`    | Same as `config.json`'s own `shutdown.timeout-seconds`. |
 
-### 10.2.  Fields this mode never lets `memguard.json` change
+### 10.2. Fields this mode never lets `memguard.json` change
 
 A handful of fields are read the same way as `config.json`'s own
 identical `systray` object, but immediately forced back to a fixed value
@@ -2366,7 +2349,7 @@ afterward, since restricted-memory mode never docks any icon at all
   `systray.is-enabled` is `true`, just never accepts a docked
   application icon.
 
-### 10.3.  The active theme's own restrictions
+### 10.3. The active theme's own restrictions
 
 Whichever theme ends up active, named in `memguard.json`, or the
 built-in default if none is, gets further restricted after loading, on
@@ -2391,7 +2374,7 @@ to whatever theme loads, unconditionally.
 
 ---
 
-## 11.  Full examples
+## 11. Full examples
 
 ### `config.json`
 
@@ -2891,6 +2874,7 @@ the keyboard `exit` binding.
     ]
 }
 ```
+
 This example shows three complete rules:
 - a `"property"` rule that waits until a window title becomes `"Journal
   console"`, then moves it to desktop of index `2`, focuses it, and
@@ -2967,8 +2951,9 @@ emergency shortcut, since a severely memory-constrained session is
 exactly the kind of place where a hung window is more likely and
 a guaranteed way out is worth having.
 
-### `al11y.json`
+### `a11y.json`
 
+```json
 {
     "interaction": {
         "double-click-ms": 500
@@ -2981,3 +2966,4 @@ a guaranteed way out is worth having.
         "blink-interval-ms": 400
     }
 }
+```
