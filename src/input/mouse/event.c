@@ -489,14 +489,22 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 
         if (on_titlebar) {
             if (type == MOUSEBIND_DESKTOP_PREV) {
-                /* Scroll-up on titlebar: shade and transfer focus */
+                /* Scroll-up on titlebar: shade, transferring focus
+                 * only when this client was the one actually
+                 * holding it; shading an already-inactive client
+                 * must leave whichever other client currently has
+                 * real focus untouched */
                 if (!client_is_shaded(client)) {
-                    cdlist_item_td *node = NULL;
-                    client_td *prev_c = NULL;
+                    bool was_active = (desktop != NULL &&
+                            desktop->client_active_id == client->id);
 
                     ccmd_client_shade(client);
 
-                    if (desktop != NULL && surface != NULL) {
+                    if (was_active && desktop != NULL &&
+                            surface != NULL) {
+                        cdlist_item_td *node = NULL;
+                        client_td *prev_c = NULL;
+
                         if (desktop->stacking != NULL) {
                             cdlist_item_td *tail =
                                 cdlist_tail(desktop->stacking);
@@ -532,10 +540,10 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                             desktop->client_active_id = 0;
                             desktop->focus_dirty = true;
                         }
-
-                        desktop->is_outdated = true;
-                        surface->is_outdated = true;
                     }
+
+                    if (desktop != NULL) { desktop->is_outdated = true; }
+                    if (surface != NULL) { surface->is_outdated = true; }
                 }
             } else { /* MOUSEBIND_DESKTOP_NEXT */
                 /* Scroll-down on titlebar: unshade and focus */
