@@ -29,6 +29,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/* Default initial values */
+#include <defs/desktop.h>
+
 /* Local includes */
 #include <config.h>
 #include <harness/tap.h>
@@ -103,6 +106,49 @@ static void s_test_screens_flat_shape(void)
             "flat shape: first desktop's name loaded");
     TAP_EQ_INT(base.screens[0].desktops[1].settings.background.color,
             0x445566u, "flat shape: second desktop's color loaded");
+}
+
+
+/* A reload whose file no longer names a desktop's own
+ * 'background-color' must fall back to the sentinel
+ * ('WM_DESKTOP_BG_COLOR_UNSET'), not keep whatever color an earlier
+ * load on the very same struct happened to leave there: this is
+ * what lets 'desktop_init' (desktop.c) and the reload path in
+ * wm/actions.c fall back to the theme's own
+ * 'desktop.color.background' correctly. */
+static void s_test_background_color_falls_back_after_removal(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+    char path[256];
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"name\": \"Web\", \"background-color\": \"#112233\"},"
+        "  {\"name\": \"Fixed\", \"background-color\": \"#445566\"}"
+        "] } } }", &base, &desktop);
+    TAP_EQ_INT(base.screens[0].desktops[0].settings.background.color,
+            0x112233, "before removal: first desktop's color loaded");
+
+    /* Reload the very same 'base' (no reset in between, the way an
+     * actual configuration reload leaves it) from a file that still
+     * sets the second desktop's color but no longer sets the
+     * first's. */
+    s_write_temp_file(path, sizeof(path),
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"name\": \"Web\"},"
+        "  {\"name\": \"Fixed\", \"background-color\": \"#445566\"}"
+        "] } } }");
+    config_load_base(path, &base, &desktop);
+    unlink(path);
+
+    TAP_EQ_INT(base.screens[0].desktops[0].settings.background.color,
+            WM_DESKTOP_BG_COLOR_UNSET,
+            "after removal: first desktop's color falls back to the"
+            " sentinel");
+    TAP_EQ_INT(base.screens[0].desktops[1].settings.background.color,
+            0x445566, "after removal: second desktop's own color,"
+            " still set, is unaffected");
 }
 
 
@@ -455,10 +501,11 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(57);
+    TAP_PLAN(62);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
+    s_test_background_color_falls_back_after_removal();
     s_test_screens_nested_shape();
     s_test_shape_detected_from_first_entry_only();
     s_test_inaugural_out_of_range_reverts_to_zero();

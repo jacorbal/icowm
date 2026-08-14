@@ -403,6 +403,7 @@ static const config_lint_key_td s_schema_theme[] = {
     {"menu", NULL, 0u},
     {"dialog", NULL, 0u},
     {"overlay", NULL, 0u},
+    {"scratchpad", NULL, 0u},
     {"xsettings", NULL, 0u}
 };
 

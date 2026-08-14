@@ -21,6 +21,9 @@
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/desktop.h>
+
 /* Project includes */
 #include <logger.h>
 
@@ -532,12 +535,19 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
     json_load_string(desktop_json, "name", name_out,
             CONFIG_MAX_LENGTH_NAME);
 
-    if (json_load_color(desktop_json, "background-color",
-                &settings_out->background.color) != 0) {
-        LOGGER_WARNING("Failed to load JSON string:"
-                " 'background-color'; desktop '%s' keeps its"
-                " default background color", name_out);
-    }
+    /* Reset to the sentinel before every attempt, not just the very
+     * first one: a reload whose 'config.json' no longer names a
+     * 'background-color' for this desktop must fall back to the
+     * theme's own 'desktop.color.background' (see 'desktop_init',
+     * desktop.c, and its own reload-time counterpart in wm/actions.c)
+     * the same way a desktop that never had one does, rather than
+     * keeping whatever color an earlier load happened to leave here.
+     * 'json_load_color' below already logs its own DEBUG line when
+     * the field is absent, so nothing further is logged here for
+     * that, entirely ordinary, case. */
+    settings_out->background.color = WM_DESKTOP_BG_COLOR_UNSET;
+    (void) json_load_color(desktop_json, "background-color",
+            &settings_out->background.color);
 }
 
 
