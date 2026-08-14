@@ -71,6 +71,7 @@
 /* Local includes */
 #include <wm.h>
 #include <wm/internal.h>
+#include <wm/shutdown.h>
 
 
 /* Though variable static dost often lurk near,
@@ -571,6 +572,14 @@ int wm_request_stop(void)
 
     wm->is_running = false;
     return 0;
+}
+
+
+/* Request a coordinated stop, giving managed clients a chance to
+ * close first */
+void wm_request_graceful_stop(void)
+{
+    wm_shutdown_begin();
 }
 
 

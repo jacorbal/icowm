@@ -158,6 +158,33 @@ struct config_base_s {
     bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
 
     /**
+     * @brief Coordinated shutdown behavior for the normal quit action
+     *
+     * When quit is confirmed, every managed client is first asked to
+     * close (ICCCM 'WM_DELETE_WINDOW' where supported, so an
+     * application with unsaved changes gets the same chance to warn
+     * the user it already gets when its own window is closed
+     * individually), rather than the window manager simply exiting
+     * out from under them.  @c timeout_seconds bounds how long this
+     * wait lasts before whichever clients are still open get forced
+     * closed regardless (see @c ccmd_client_kill, cmds/client/
+     * basic.h) and the window manager exits anyway.
+     *
+     * @note Deliberately not consulted at all by the emergency exit
+     *       shortcut above, which already bypasses even the exit
+     *       session hooks for the same reason: it exists as a last
+     *       resort that must never wait on anything
+     *
+     * @see @c wm_request_graceful_stop (wm.h), @c wm/shutdown.c
+     */
+    struct {
+        /** Seconds to wait for clients to close on their own before
+         *  forcing the rest closed; @c 0 skips the wait entirely and
+         *  force-closes every remaining client right away */
+        uint32_t timeout_seconds;
+    } shutdown;
+
+    /**
      * @brief The @c fortune easter egg (@c menu/dialog/fortune.c):
      *        whether its own keyboard shortcut is active at all, and
      *        which command it runs

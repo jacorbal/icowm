@@ -191,6 +191,7 @@ static int s_memguard_load_json(const char *filename, config_td *config)
     cJSON *windows_item;
     cJSON *icons_item;
     cJSON *systray_item;
+    cJSON *shutdown_item;
 
     if (json_load_config(filename, &json) != 0) {
         return 1;
@@ -302,6 +303,12 @@ static int s_memguard_load_json(const char *filename, config_td *config)
     json_load_bool(json, "enable-emergency-shortcut",
             &config->base.enable_emergency_shortcut);
 
+    shutdown_item = cJSON_GetObjectItem(json, "shutdown");
+    if (shutdown_item) {
+        json_load_uint(shutdown_item, "timeout-seconds",
+                &config->base.shutdown.timeout_seconds);
+    }
+
     cJSON_Delete(json);
     return 0;
 }
@@ -391,6 +398,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.icons.show_geom = false;
 
     config->base.enable_emergency_shortcut = false;
+    config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = false;
     safe_strncpy(config->base.fortune.command, "fortune",
             sizeof(config->base.fortune.command));

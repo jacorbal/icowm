@@ -76,6 +76,7 @@
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
+#include <wm/shutdown.h>
 
 /* Local includes */
 #include <loop.h>
@@ -439,6 +440,14 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 drag_warp_ms_remaining());
 
+        /* Shorter still while a coordinated shutdown (see
+         * 'wm_shutdown_tick' in wm/shutdown.h) is waiting on managed
+         * clients to close on their own, so the timeout that forces
+         * the rest closed elapses promptly instead of waiting for the
+         * next unrelated event to wake the loop up. */
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                wm_shutdown_ms_remaining());
+
         poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -467,6 +476,7 @@ void loop_run(wm_td *wm)
         menu_confirm_dialog_tick(wm->connection, wm->config);
         menu_message_dialog_tick(wm->connection);
         drag_warp_tick(wm->connection);
+        wm_shutdown_tick();
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
             memguard_tick(wm->connection,

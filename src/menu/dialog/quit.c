@@ -45,7 +45,7 @@
 static void s_on_quit_confirm(xcb_connection_t *connection)
 {
     (void) connection;
-    (void) wm_request_stop();
+    wm_request_graceful_stop();
 }
 
 

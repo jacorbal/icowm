@@ -220,6 +220,23 @@ int wm_stop(void);
 int wm_request_stop(void);
 
 /**
+ * @brief Request a coordinated stop of the window manager, giving
+ *        every managed client a chance to close itself first
+ *
+ * Unlike @a wm_request_stop, which stops the main loop right away,
+ * this asks every managed client to close (ICCCM 'WM_DELETE_WINDOW'
+ * where supported) and only actually stops once every one of them
+ * has closed on its own or a configured timeout elapses, whichever
+ * comes first; see @c wm/shutdown.h for the full design.  Meant for
+ * the normal quit action; the emergency exit shortcut deliberately
+ * calls @a wm_request_stop directly instead, bypassing this entirely.
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       managed clients across every surface and desktop
+ */
+void wm_request_graceful_stop(void);
+
+/**
  * @brief Reload the configuration from the configuration files
  *
  * @return Status of the operation

@@ -15,7 +15,7 @@ values, and built-in default value.
    - [2.3. `programs`](#23-programs)
    - [2.4. `windows`](#24-windows)
    - [2.5. `icons`](#25-icons)
-   - [2.6. `enable-emergency-shortcut` / `fortune`](#26-enable-emergency-shortcut--fortune)
+   - [2.6. `enable-emergency-shortcut` / `shutdown` / `fortune`](#26-enable-emergency-shortcut--shutdown--fortune)
    - [2.7. `startup-notification`](#27-startup-notification)
    - [2.8. `menu`](#28-menu)
    - [2.9. `systray`](#29-systray)
@@ -410,12 +410,13 @@ Accepted icon placement values:
 }
 ```
 
-### 2.6.  `enable-emergency-shortcut` / `fortune`
+### 2.6.  `enable-emergency-shortcut` / `shutdown` / `fortune`
 
-| Key                         | Type    | Default |
-|-----------------------------|---------|---------|
-| `enable-emergency-shortcut` | boolean | `false` |
-| `fortune.is-enabled`        | boolean | `true`  |
+| Key                         | Type    | Default     |
+|-----------------------------|---------|-------------|
+| `enable-emergency-shortcut` | boolean | `false`     |
+| `shutdown.timeout-seconds`  | integer | `15`        |
+| `fortune.is-enabled`        | boolean | `true`      |
 | `fortune.command`           | string  | `"fortune"` |
 
 `enable-emergency-shortcut` gates a hardcoded shortcut, off by default,
@@ -435,6 +436,16 @@ happen intentionally or by accident: any such binding is ignored (with
 a warning logged) so the emergency exit always keeps
 `Ctrl+Mod1+BackSpace` to itself.
 
+`shutdown.timeout-seconds` applies only to the normal quit action (the "Quit"
+keybinding and its confirmation dialog, never the emergency exit above): once
+confirmed, every managed client is first asked to close on its own (the same
+`WM_DELETE_WINDOW` request closing one window individually already sends, so an
+application with unsaved changes gets the same chance to warn the user), and
+the window manager waits up to this many seconds for all of them to actually
+close before forcing whichever ones are still open closed regardless and
+exiting anyway.  A value of `0` skips the wait entirely and force-closes every
+remaining client right away.
+
 When `fortune.is-enabled` is `true`, its own keyboard shortcut (see
 `keyboard.wm.fortune`, section 3.5) opens a small dialog running
 `fortune.command` through a shell and showing its output, or, if that
@@ -449,6 +460,9 @@ on.
 
 ```json
 "enable-emergency-shortcut": true,
+"shutdown": {
+    "timeout-seconds": 15
+},
 "fortune": {
     "is-enabled": true,
     "command": "fortune"
@@ -2242,6 +2256,7 @@ fixed and cannot be configured here at all.
 | `icons.placement.policy`                 | string  | `"smart"`   | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
 | `systray`                                | object  | see 9.2     | The entire `systray` object, in the same shape as `config.json`'s own (section 2.9), with the two exceptions in 9.2. |
 | `enable-emergency-shortcut`              | boolean | `false`     | Same as `config.json`'s own `enable-emergency-shortcut`. |
+| `shutdown.timeout-seconds`               | integer | `15`        | Same as `config.json`'s own `shutdown.timeout-seconds`. |
 
 ### 9.2.  Fields this mode never lets `memguard.json` change
 
@@ -2425,6 +2440,9 @@ to whatever theme loads, unconditionally.
     },
 
     "enable-emergency-shortcut": false,
+    "shutdown": {
+        "timeout-seconds": 15
+    },
     "fortune": {
         "is-enabled": false,
         "command": "fortune"
@@ -2844,6 +2862,9 @@ emits a final notification on exit.
         "battery": { "is-enabled": true }
     },
     "enable-emergency-shortcut": true
+    "shutdown": {
+        "timeout-seconds": 15
+    }
 }
 ```
 
