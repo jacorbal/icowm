@@ -232,6 +232,55 @@ static void s_load_theme_colors(cJSON *json_obj,
 }
 
 
+/**
+ * @brief Load and clamp a 0 to 100 opacity percentage from a JSON
+ *        object, into any one field that holds one
+ *
+ * Deliberately not part of @c s_load_theme_colors above: unlike
+ * @c font/@c color/@c border, opacity only makes sense for a
+ * @c config_theme_style_s instance that stands for one real,
+ * distinct window or window-state on its own (@c window.active/
+ * @c inactive, @c icon.active/@c inactive, @c systray.style,
+ * @c overlay), never for one that styles a row or button drawn
+ * inside a window shared with others (@c menu.unselected/@c
+ * selected/@c label, @c dialog.button.unselected/@c selected):
+ * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it cannot
+ * vary per row or per button the way those share one window's own
+ * background/border colors can.  Called individually, only at the
+ * sites where it is actually meaningful, rather than folded into the
+ * shared loader every one of those sites already calls.
+ *
+ * @param json_obj Object that may contain @p key
+ * @param key      Key name to look up
+ * @param dest     Destination; left untouched if @p key is absent or
+ *                 not a number
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_load_theme_opacity(cJSON *json_obj, const char *key,
+        uint8_t *dest)
+{
+    unsigned int raw;
+
+    raw = *dest;
+    if (json_load_uint(json_obj, key, &raw) == 0) {
+        *dest = (uint8_t) ((raw > 100u) ? 100u : raw);
+    }
+}
+
+
+/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
+ * 32-bit range */
+uint32_t config_theme_opacity_to_raw(uint8_t percent)
+{
+    uint8_t clamped;
+
+    clamped = (percent > 100u) ? 100u : percent;
+
+    return (uint32_t) ((double) clamped / 100.0 * (double) 0xffffffffu);
+}
+
+
 /* Load theme configuration */
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme)
@@ -312,9 +361,13 @@ int config_load_theme(const char *filename,
 
         active = cJSON_GetObjectItem(window, "active");
         s_load_theme_colors(active, &config_theme->window.active);
+        s_load_theme_opacity(active, "opacity",
+                &config_theme->window.active.opacity);
 
         inactive = cJSON_GetObjectItem(window, "inactive");
         s_load_theme_colors(inactive, &config_theme->window.inactive);
+        s_load_theme_opacity(inactive, "opacity",
+                &config_theme->window.inactive.opacity);
     }
 
     icon = cJSON_GetObjectItem(json, "icon");
@@ -331,13 +384,19 @@ int config_load_theme(const char *filename,
 
         active = cJSON_GetObjectItem(icon, "active");
         s_load_theme_colors(active, &config_theme->icon.active);
+        s_load_theme_opacity(active, "opacity",
+                &config_theme->icon.active.opacity);
 
         inactive = cJSON_GetObjectItem(icon, "inactive");
         s_load_theme_colors(inactive, &config_theme->icon.inactive);
+        s_load_theme_opacity(inactive, "opacity",
+                &config_theme->icon.inactive.opacity);
     }
 
     systray = cJSON_GetObjectItem(json, "systray");
     s_load_theme_colors(systray, &config_theme->systray.style);
+    s_load_theme_opacity(systray, "opacity",
+            &config_theme->systray.style.opacity);
     if (systray) {
         cJSON *pixmap_obj;
         cJSON *text_obj;
@@ -419,6 +478,9 @@ int config_load_theme(const char *filename,
                     &config_theme->menu.border.width);
         }
 
+        s_load_theme_opacity(menu, "opacity",
+                &config_theme->menu.opacity);
+
         padding = cJSON_GetObjectItem(menu, "padding");
         if (padding) {
             json_load_uint(padding, "horizontal",
@@ -451,6 +513,9 @@ int config_load_theme(const char *filename,
             json_load_uint(border_obj, "width",
                     &config_theme->dialog.border.width);
         }
+
+        s_load_theme_opacity(dialog, "opacity",
+                &config_theme->dialog.opacity);
 
         label = cJSON_GetObjectItem(dialog, "label");
         if (label) {
@@ -497,6 +562,8 @@ int config_load_theme(const char *filename,
 
     overlay = cJSON_GetObjectItem(json, "overlay");
     s_load_theme_colors(overlay, &config_theme->overlay);
+    s_load_theme_opacity(overlay, "opacity",
+            &config_theme->overlay.opacity);
 
     xsettings = cJSON_GetObjectItem(json, "xsettings");
     if (xsettings) {

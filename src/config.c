@@ -239,6 +239,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("253040");
     theme->window.active.border.color = json_hex2uint32("4A5566");
     theme->window.active.border.width = 2u;
+    theme->window.active.opacity = 100u;
 
     /* Same as 'window.active.border' by default: the scratchpad is
      * always undecorated (see 'scratchpad.h'), so this border is its
@@ -254,6 +255,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("4A5566");
     theme->window.inactive.border.color = json_hex2uint32("7F9AB6");
     theme->window.inactive.border.width = 2u;
+    theme->window.inactive.opacity = 100u;
 
     theme->icon.is_captioned = true;
     theme->icon.show_pixmaps = true;
@@ -267,6 +269,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("253040");
     theme->icon.active.border.color = json_hex2uint32("4A5566");
     theme->icon.active.border.width = 1u;
+    theme->icon.active.opacity = 100u;
 
     safe_strncpy(theme->icon.inactive.font,
             "fixed", sizeof(theme->icon.inactive.font));
@@ -276,6 +279,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("4A5566");
     theme->icon.inactive.border.color = json_hex2uint32("7F9AB6");
     theme->icon.inactive.border.width = 1u;
+    theme->icon.inactive.opacity = 100u;
 
     safe_strncpy(theme->systray.style.font,
             "fixed bold", sizeof(theme->systray.style.font));
@@ -285,6 +289,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("4A5566");
     theme->systray.style.border.color = json_hex2uint32("7F9AB6");
     theme->systray.style.border.width = 1u;
+    theme->systray.style.opacity = 100u;
     theme->systray.height = 22u;
     theme->systray.pixmap.size = 24u;
     theme->systray.pixmap.padding = 4u;
@@ -352,6 +357,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.separator_color = json_hex2uint32("7F9AB6");
     theme->menu.border.color = json_hex2uint32("7F9AB6");
     theme->menu.border.width = 2u;
+    theme->menu.opacity = 100u;
     theme->menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
     theme->menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
     theme->menu.show_pixmaps = true;
@@ -359,6 +365,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.background = json_hex2uint32("D0D9E5");
     theme->dialog.border.color = json_hex2uint32("7F9AB6");
     theme->dialog.border.width = 2u;
+    theme->dialog.opacity = 100u;
 
     safe_strncpy(theme->dialog.label.font,
             "fixed bold", sizeof(theme->dialog.label.font));
@@ -395,6 +402,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->overlay.color.foreground = json_hex2uint32("4A5566");
     theme->overlay.border.color = json_hex2uint32("7F9AB6");
     theme->overlay.border.width = 1u;
+    theme->overlay.opacity = 100u;
 
     theme->xsettings.is_enabled = false;
     theme->xsettings.dpi = 96u;
@@ -668,9 +676,9 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.wm.show_desktop,
             "modc+mod1+mods+d",
             sizeof(config->bindings.keyboard.wm.show_desktop));
-    safe_strncpy(config->bindings.keyboard.wm.scratchpad_toggle,
+    safe_strncpy(config->bindings.keyboard.wm.scratchpad,
             "modc+mod1+mods+F12",
-            sizeof(config->bindings.keyboard.wm.scratchpad_toggle));
+            sizeof(config->bindings.keyboard.wm.scratchpad));
 
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);

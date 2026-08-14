@@ -498,6 +498,8 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
         const client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {
+    uint8_t opacity_percent;
+
     if (connection == NULL || client == NULL || client->frame == 0 ||
             theme == NULL || !client_is_decorated(client)) {
         return;
@@ -513,6 +515,18 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
                     ? theme->window.active.border.color
                     : theme->window.inactive.border.color
             });
+
+    if (use_active_style) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : theme->window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : theme->window.inactive.opacity;
+    }
+    atom_set_window_opacity(connection, client->frame,
+            config_theme_opacity_to_raw(opacity_percent));
     xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
 }
 

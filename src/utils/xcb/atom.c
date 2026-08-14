@@ -1,7 +1,8 @@
 /**
  * @file utils/xcb/atom.c
  *
- * @brief Single-atom interning implementation
+ * @brief X atom lookup by name, and a couple of small property
+ *        writes shared across more than one call site
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -85,4 +86,21 @@ bool atom_name(xcb_connection_t *connection, xcb_atom_t atom,
     free(reply);
 
     return true;
+}
+
+
+/* Publish '_NET_WM_WINDOW_OPACITY' on a window */
+void atom_set_window_opacity(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t raw)
+{
+    xcb_atom_t opacity_atom;
+
+    if (connection == NULL || window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    opacity_atom = atom_intern(connection, "_NET_WM_WINDOW_OPACITY",
+            false);
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window,
+            opacity_atom, XCB_ATOM_CARDINAL, 32, 1, &raw);
 }

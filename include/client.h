@@ -343,6 +343,25 @@ typedef struct client_s {
         uint32_t width;
     } border_override;
 
+    /**
+     * @brief Per-window opacity override from a matched rule
+     *
+     * The rules engine's own equivalent of @c border_override above:
+     * @c is_set_active/@c is_set_inactive independently mark whether
+     * a rule overrode that one state's own percentage, since a rule
+     * may only ever override one of the two (see @c rules_apply_s in
+     * rules/internal.h).  Whichever half is not overridden keeps
+     * falling back to the theme's own @c window.active.opacity/
+     * @c window.inactive.opacity, the same way @c border_override
+     * itself falls back to the theme when unset.
+     */
+    struct {
+        bool is_set_active;
+        bool is_set_inactive;
+        uint8_t active;
+        uint8_t inactive;
+    } opacity_override;
+
     uint32_t user_time;             /**< Time since last used */
 
     struct {

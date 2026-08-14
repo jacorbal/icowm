@@ -107,6 +107,8 @@ struct rules_apply_s {
                                  position */
     bool has_sticky;
     bool has_decorated;
+    bool has_opacity_active;
+    bool has_opacity_inactive;
 
     uint32_t desktop;
     /**
@@ -129,6 +131,13 @@ struct rules_apply_s {
     uint32_t h;
     bool pinned;
     bool decorated;
+
+    /** Percentage, 0 to 100, overriding the theme's own 'window.
+     *  active.opacity'/'window.inactive.opacity' for this one client;
+     *  see 'config_theme_opacity_to_raw' (config.h) for how this
+     *  reaches '_NET_WM_WINDOW_OPACITY' */
+    uint8_t opacity_active;
+    uint8_t opacity_inactive;
 };
 
 /**

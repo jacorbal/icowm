@@ -91,8 +91,8 @@ int config_load_bindings(const char *filename,
             json_load_string(wm, "show-desktop",
                     config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(wm, "scratchpad-toggle",
-                    config_bindings->keyboard.wm.scratchpad_toggle,
+            json_load_string(wm, "scratchpad",
+                    config_bindings->keyboard.wm.scratchpad,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(wm, "redraw",
                     config_bindings->keyboard.wm.redraw,

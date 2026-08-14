@@ -24,6 +24,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <config.h>
@@ -140,6 +141,8 @@ void notify_popup_show_centered(xcb_connection_t *connection,
             (uint16_t) height, (uint16_t) cfg->theme.overlay.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT, mask, values);
+    atom_set_window_opacity(connection, state->window,
+            config_theme_opacity_to_raw(cfg->theme.overlay.opacity));
     xcb_map_window(connection, state->window);
     xcb_flush(connection);
     (void) clock_gettime(CLOCK_MONOTONIC, &state->open_time);

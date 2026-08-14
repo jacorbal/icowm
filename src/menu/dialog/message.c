@@ -28,6 +28,7 @@
 
 /* Util includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/atom.h>
 
 /* Project includes */
 #include <config.h>
@@ -708,6 +709,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
+    atom_set_window_opacity(connection, s_message_window,
+            config_theme_opacity_to_raw(config->theme.dialog.opacity));
 
     xcb_map_window(connection, s_message_window);
     xcb_configure_window(connection, s_message_window,

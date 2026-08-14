@@ -211,6 +211,7 @@ void client_apply_border(client_td *client, bool use_active_style)
 {
     uint32_t color;
     uint32_t width;
+    uint8_t opacity_percent;
 
     if (client == NULL || client->connection == NULL ||
             client->theme == NULL || client_is_fullscreen(client) ||
@@ -229,11 +230,23 @@ void client_apply_border(client_td *client, bool use_active_style)
         width = client->theme->window.inactive.border.width;
     }
 
+    if (use_active_style) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : client->theme->window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : client->theme->window.inactive.opacity;
+    }
+
     xcb_change_window_attributes(client->connection, client->window,
             XCB_CW_BORDER_PIXEL, &color);
     xcb_configure_window(client->connection, client->window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) { width });
+    atom_set_window_opacity(client->connection, client->window,
+            config_theme_opacity_to_raw(opacity_percent));
 }
 
 

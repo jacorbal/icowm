@@ -113,6 +113,29 @@ static void s_rules_load_match_list(cJSON *match_json, const char *key,
 }
 
 
+/**
+ * @brief Clamp a JSON opacity value into the 0 to 100 range
+ *        'config_theme_style_s.opacity' itself uses
+ *
+ * @param raw The cJSON number's own 'valueint', which may be
+ *            negative or above 100
+ *
+ * @return @p raw clamped into 0 to 100
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint8_t s_clamp_opacity_percent(int raw)
+{
+    if (raw < 0) {
+        return 0u;
+    }
+    if (raw > 100) {
+        return 100u;
+    }
+    return (uint8_t) raw;
+}
+
+
 /* Load window matching rules from the JSON configuration file */
 int rules_load(rules_td *rules, const char *config_dir_prefix)
 {
@@ -128,6 +151,8 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     cJSON *y;
     cJSON *w;
     cJSON *h;
+    cJSON *opacity_active;
+    cJSON *opacity_inactive;
     struct rules_rule_s *rule;
     uint32_t loaded = 0u;
 
@@ -235,6 +260,34 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
         if (cJSON_IsBool(item)) {
             rule->apply.has_decorated = true;
             rule->apply.decorated = cJSON_IsTrue(item);
+        }
+
+        /* Either a single value applying to both states, or an
+         * object naming one, the other, or both separately; each
+         * half stays independently unset (falling back to the
+         * theme's own 'window.active.opacity'/'window.inactive.
+         * opacity' at apply time) if that half is not given here */
+        item = json_get_item(apply_json, "opacity");
+        if (cJSON_IsNumber(item)) {
+            rule->apply.has_opacity_active = true;
+            rule->apply.has_opacity_inactive = true;
+            rule->apply.opacity_active =
+                s_clamp_opacity_percent(item->valueint);
+            rule->apply.opacity_inactive = rule->apply.opacity_active;
+        } else if (cJSON_IsObject(item)) {
+            opacity_active = json_get_item(item, "active");
+            opacity_inactive = json_get_item(item, "inactive");
+
+            if (cJSON_IsNumber(opacity_active)) {
+                rule->apply.has_opacity_active = true;
+                rule->apply.opacity_active =
+                    s_clamp_opacity_percent(opacity_active->valueint);
+            }
+            if (cJSON_IsNumber(opacity_inactive)) {
+                rule->apply.has_opacity_inactive = true;
+                rule->apply.opacity_inactive =
+                    s_clamp_opacity_percent(opacity_inactive->valueint);
+            }
         }
 
         item = json_get_item(apply_json, "position");

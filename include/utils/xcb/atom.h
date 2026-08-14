@@ -1,8 +1,8 @@
 /**
  * @file utils/xcb/atom.h
  *
- * @brief Single-atom interning by name, with a clean @c XCB_ATOM_NONE
- *        on any failure
+ * @brief X atom lookup by name, and a couple of small property
+ *        writes shared across more than one call site
  *
  * Every call site across the project that needs one X atom by its
  * string name (an EWMH/ICCCM property this window manager itself
@@ -81,6 +81,26 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
  */
 bool atom_name(xcb_connection_t *connection, xcb_atom_t atom,
         char *out_name, size_t out_name_size);
+
+
+/**
+ * @brief Publish '_NET_WM_WINDOW_OPACITY' on a window
+ *
+ * Purely a property write: this window manager never composites
+ * anything itself, so the value only has any visible effect once a
+ * compositing manager reads it back off the window and acts on it.
+ *
+ * @param connection XCB connection
+ * @param window     Window to publish the property on
+ * @param raw        The already-converted 32-bit value to publish
+ *                   (see @c config_theme_opacity_to_raw, config.h,
+ *                   for converting a theme's own 0 to 100 percentage
+ *                   into this)
+ *
+ * @note Complexity: @e O(1)
+ */
+void atom_set_window_opacity(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t raw);
 
 
 #endif  /* ! UTILS_XCB_ATOM_H */

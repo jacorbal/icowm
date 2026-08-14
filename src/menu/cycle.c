@@ -42,6 +42,9 @@
 #include <defs/ctxmenu.h>
 #include <defs/cycle.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -412,6 +415,11 @@ void cycle_init(list_td *surfaces,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
+
+    /* Same window-level opacity ctxmenu.c's own window publishes,
+     * shared with it via 'config_theme_s.menu.opacity' (config.h) */
+    atom_set_window_opacity(connection, g_cycle_menu.window,
+            config_theme_opacity_to_raw(cfg->theme.menu.opacity));
 
     xcb_map_window(connection, g_cycle_menu.window);
     xcb_set_input_focus(connection,

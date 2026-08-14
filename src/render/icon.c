@@ -32,6 +32,9 @@
 /* Default initial values */
 #include <defs/icon.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -151,6 +154,11 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
                 client->icon_window,
                 XCB_CONFIG_WINDOW_BORDER_WIDTH,
                 &border_width);
+        atom_set_window_opacity(desktop->connection,
+                client->icon_window,
+                config_theme_opacity_to_raw((display_active)
+                    ? desktop->config_theme->icon.active.opacity
+                    : desktop->config_theme->icon.inactive.opacity));
 
         xcb_clear_area(desktop->connection, 0,
                 client->icon_window, 0, 0, 0, 0);

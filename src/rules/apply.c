@@ -43,6 +43,7 @@
 #include <logger.h>
 #include <policy/focus.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <rules.h>
@@ -315,6 +316,18 @@ static void s_rules_apply_flags(client_td *client,
             ccmd_client_toggle_decorate(client);
         }
     }
+
+    if (apply->has_opacity_active) {
+        client->opacity_override.is_set_active = true;
+        client->opacity_override.active = apply->opacity_active;
+    }
+    if (apply->has_opacity_inactive) {
+        client->opacity_override.is_set_inactive = true;
+        client->opacity_override.inactive = apply->opacity_inactive;
+    }
+    if (apply->has_opacity_active || apply->has_opacity_inactive) {
+        wm_request_client_redraw(client);
+    }
 }
 
 
@@ -387,6 +400,14 @@ bool rules_apply(wm_td *wm, client_td *client,
             merged.has_decorated = true;
             merged.decorated = rule->apply.decorated;
         }
+        if (rule->apply.has_opacity_active) {
+            merged.has_opacity_active = true;
+            merged.opacity_active = rule->apply.opacity_active;
+        }
+        if (rule->apply.has_opacity_inactive) {
+            merged.has_opacity_inactive = true;
+            merged.opacity_inactive = rule->apply.opacity_inactive;
+        }
     }
 
     if (!has_match) {
@@ -423,7 +444,8 @@ bool rules_apply(wm_td *wm, client_td *client,
 
     changed = merged.has_desktop || merged.has_monitor ||
         merged.has_layer || merged.has_focus || merged.has_position ||
-        merged.has_size || merged.has_sticky || merged.has_decorated;
+        merged.has_size || merged.has_sticky || merged.has_decorated ||
+        merged.has_opacity_active || merged.has_opacity_inactive;
 
     if (changed) {
         cJSON *fields = cJSON_CreateObject();

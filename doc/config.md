@@ -10,57 +10,57 @@ values, and built-in default value.
 
 1. [Directory layout](#1-directory-layout)
 2. [`config.json`: Base configuration](#2-configjson-base-configuration)
-   - [2.1 `theme`](#21-theme)
-   - [2.2 `topology`](#22-topology)
-   - [2.3 `programs`](#23-programs)
-   - [2.4 `windows`](#24-windows)
-   - [2.5 `icons`](#25-icons)
-   - [2.6 `enable-emergency-shortcut` / `fortune`](#26-enable-emergency-shortcut--fortune)
-   - [2.7 `startup-notification`](#27-startup-notification)
-   - [2.8 `menu`](#28-menu)
-   - [2.9 `systray`](#29-systray)
-   - [2.10 `desktops`](#210-desktops)
-   - [2.11 `scratchpad`](#211-scratchpad)
+   - [2.1. `theme`](#21-theme)
+   - [2.2. `topology`](#22-topology)
+   - [2.3. `programs`](#23-programs)
+   - [2.4. `windows`](#24-windows)
+   - [2.5. `icons`](#25-icons)
+   - [2.6. `enable-emergency-shortcut` / `fortune`](#26-enable-emergency-shortcut--fortune)
+   - [2.7. `startup-notification`](#27-startup-notification)
+   - [2.8. `menu`](#28-menu)
+   - [2.9. `systray`](#29-systray)
+   - [2.10. `desktops`](#210-desktops)
+   - [2.11. `scratchpad`](#211-scratchpad)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
-   - [3.1 Binding syntax](#31-binding-syntax)
-   - [3.2 `modifiers`](#32-modifiers)
-   - [3.3 `keyboard.launch`](#33-keyboardlaunch)
-   - [3.4 `keyboard.window`](#34-keyboardwindow)
-   - [3.5 `keyboard.wm`](#35-keyboardwm)
-   - [3.6 `keyboard.cycle`](#36-keyboardcycle)
-   - [3.7 `mouse.window`](#37-mousewindow)
-   - [3.8 `mouse.cycle`](#38-mousecycle)
+   - [3.1. Binding syntax](#31-binding-syntax)
+   - [3.2. `modifiers`](#32-modifiers)
+   - [3.3. `keyboard.launch`](#33-keyboardlaunch)
+   - [3.4. `keyboard.window`](#34-keyboardwindow)
+   - [3.5. `keyboard.wm`](#35-keyboardwm)
+   - [3.6. `keyboard.cycle`](#36-keyboardcycle)
+   - [3.7. `mouse.window`](#37-mousewindow)
+   - [3.8. `mouse.cycle`](#38-mousecycle)
 4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
-   - [4.1 `window`](#41-window)
-   - [4.2 `icon`](#42-icon)
-   - [4.3 `systray`](#43-systray)
-   - [4.4 `desktop`](#44-desktop)
-   - [4.5 `menu`](#45-menu)
-   - [4.6 `dialog`](#46-dialog)
-   - [4.7 `overlay`](#47-overlay)
-   - [4.8 `xsettings`](#48-xsettings)
-   - [4.9 Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
-   - [4.10 `scratchpad`](#410-scratchpad)
+   - [4.1. `window`](#41-window)
+   - [4.2. `icon`](#42-icon)
+   - [4.3. `systray`](#43-systray)
+   - [4.4. `desktop`](#44-desktop)
+   - [4.5. `menu`](#45-menu)
+   - [4.6. `dialog`](#46-dialog)
+   - [4.7. `overlay`](#47-overlay)
+   - [4.8. `xsettings`](#48-xsettings)
+   - [4.9. Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
+   - [4.10. `scratchpad`](#410-scratchpad)
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
-   - [5.1 Top-level fields](#51-top-level-fields)
-   - [5.2 `outputs[]` entries](#52-outputs-entries)
-   - [5.3 Scope: per-X-screen, not per-`outputs[]`-entry](#53-scope-per-x-screen-not-per-outputs-entry)
-   - [5.4 Reload behavior](#54-reload-behavior)
+   - [5.1. Top-level fields](#51-top-level-fields)
+   - [5.2. `outputs[]` entries](#52-outputs-entries)
+   - [5.3. Scope: per-X-screen, not per-`outputs[]`-entry](#53-scope-per-x-screen-not-per-outputs-entry)
+   - [5.4. Reload behavior](#54-reload-behavior)
 6. [`rules.json`: Per-window rules](#6-rulesjson-per-window-rules)
-   - [6.1 Rule file shape](#61-rule-file-shape)
-   - [6.2 Rule entry fields](#62-rule-entry-fields)
-   - [6.3 Match fields](#63-match-fields)
-   - [6.4 Apply fields](#64-apply-fields)
+   - [6.1. Rule file shape](#61-rule-file-shape)
+   - [6.2. Rule entry fields](#62-rule-entry-fields)
+   - [6.3. Match fields](#63-match-fields)
+   - [6.4. Apply fields](#64-apply-fields)
 7. [`session.json`: Session lifecycle hooks](#7-sessionjson-session-lifecycle-hooks)
-   - [7.1 Hook arrays](#71-hook-arrays)
+   - [7.1. Hook arrays](#71-hook-arrays)
 8. [`menu.json`: Root desktop menu](#8-menujson-root-desktop-menu)
-   - [8.1 Top-level structure](#81-top-level-structure)
-   - [8.2 Entry types](#82-entry-types)
-   - [8.3 Entry fields reference](#83-entry-fields-reference)
+   - [8.1. Top-level structure](#81-top-level-structure)
+   - [8.2. Entry types](#82-entry-types)
+   - [8.3. Entry fields reference](#83-entry-fields-reference)
 9. [`memguard.json`: Restricted-memory mode configuration](#9-memguardjson-restricted-memory-mode-configuration)
-   - [9.1 Configurable fields](#91-configurable-fields)
-   - [9.2 Fields this mode never lets `memguard.json` change](#92-fields-this-mode-never-lets-memguardjson-change)
-   - [9.3 The active theme's own restrictions](#93-the-active-themes-own-restrictions)
+   - [9.1. Configurable fields](#91-configurable-fields)
+   - [9.2. Fields this mode never lets `memguard.json` change](#92-fields-this-mode-never-lets-memguardjson-change)
+   - [9.3. The active theme's own restrictions](#93-the-active-themes-own-restrictions)
 10. [Full examples](#10-full-examples)
 
 For everything that is not a configuration file, namely what IcoWM is,
@@ -1175,6 +1175,7 @@ have focus (`inactive`).  Both share the same shape:
 | `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        | Title bar text color. |
 | `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        | Border color. |
 | `border.width`     | integer | `2`              | `2`                | Border thickness in pixels. |
+| `opacity`          | integer | `100`            | `100`              | Desired opacity, 0 to 100, published on the frame through `_NET_WM_WINDOW_OPACITY`. IcoWM never composites anything itself, so this has no visible effect at all unless a compositing manager, e.g., picom, is also running and reading the property back off the window. See section 5 for a per-window override in `rules.json`. |
 
 `border.width` need not match between `active` and `inactive`.  When
 they differ, a decorated window's frame actually grows or shrinks by the
@@ -1206,6 +1207,7 @@ every other icon (`inactive`).
 | `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        |
 | `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        |
 | `border.width`     | integer | `1`              | `1`                |
+| `opacity`          | integer | `100`            | `100`              |
 
 ### 4.3.  `systray`
 
@@ -1221,6 +1223,7 @@ clock/battery text within it.
 | `color.foreground` | string  | `"#4A5566"` |
 | `border.color`     | string  | `"#7F9AB6"` |
 | `border.width`     | integer | `1`         |
+| `opacity`          | integer | `100`       |
 | `height`           | integer | `22`        |
 | `pixmap.size`      | integer | `24`        |
 | `pixmap.padding`   | integer | `4`         |
@@ -1347,9 +1350,21 @@ own border happens to be set to.
 | `separator.color`             | string  | `"#7F9AB6"`    |
 | `border.color`                | string  | `"#7F9AB6"`    |
 | `border.width`                | integer | `1`            |
+| `opacity`                     | integer | `100`          |
 | `padding.horizontal`          | integer | `12`           |
 | `padding.vertical`            | integer | `4`            |
 | `show-pixmaps`                | boolean | `true`         |
+
+`opacity` (0 to 100) is a sibling of `border` above, not of
+`unselected`/`selected`/`label`: it is the whole menu window's own
+opacity, published through `_NET_WM_WINDOW_OPACITY`, the same way
+`border` is the window's own single outer frame regardless of which row
+is highlighted. `_NET_WM_WINDOW_OPACITY` is a per-window property, so it
+cannot vary row by row the way each row's own colors can; the cycle
+menu's own window shares this same field, the same way it already shares
+`border`. As with every opacity field in this file, a compositing
+manager, e.g., picom, must also be running and reading the property back
+for this to have any visible effect at all.
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
@@ -1424,6 +1439,7 @@ Applies to the quit-confirmation dialog and the generic message dialog.
 | `color.background`                   | string  | `"#D0D9E5"`    |
 | `border.color`                       | string  | `"#7F9AB6"`    |
 | `border.width`                       | integer | `2`            |
+| `opacity`                            | integer | `100`          |
 | `label.font`                         | string  | `"fixed"`      |
 | `label.color.foreground`             | string  | `"#4A5566"`    |
 | `label.padding.horizontal`           | integer | `12`           |
@@ -1442,23 +1458,25 @@ Applies to the quit-confirmation dialog and the generic message dialog.
 | `button.padding.horizontal`          | integer | `12`           |
 | `button.padding.vertical`            | integer | `6`            |
 
-`color.background` and `border` are the dialog window's own background
-and frame.  `label` styles the prompt or message text (e.g., "Are you
-sure you want to exit IcoWM?"); `label.padding` is the inset between the
-dialog window's own edges and that text.  `button.unselected` and
-`button.selected` style the dialog's buttons (e.g., "Cancel" / "Exit"),
-the same not-selected/keyboard-navigated-choice distinction as `menu`
-above; the message dialog's single "OK" button always uses
-`button.selected`, since there is nothing else it could be navigated
-away from.  `button.gap` is the horizontal space between adjacent
-buttons.  `button.padding` is the inset between a button's own edges and
-its label, shared by both `unselected` and `selected` so a button does
-not change size (and shove its neighbor sideways) as the highlight moves
-onto or off of it; each button is still sized wide and tall enough for
-whichever of the two fonts is larger, and its label stays centered
-within that fixed size regardless of which font ends up drawn, so
-switching to a wider `selected` font (bold by default) never looks
-off-center.
+`color.background`, `border`, and `opacity` are the dialog window's own
+background, frame, and opacity.  `label` styles the prompt or message
+text (e.g., "Are you sure you want to exit IcoWM?"); `label.padding` is
+the inset between the dialog window's own edges and that text.
+`button.unselected` and `button.selected` style the dialog's buttons
+(e.g., "Cancel" / "Exit"), the same
+not-selected/keyboard-navigated-choice distinction as `menu` above; the
+message dialog's single "OK" button always uses `button.selected`, since
+there is nothing else it could be navigated away from.  `button.gap` is
+the horizontal space between adjacent `button.selected`, since there is
+nothing else it could be navigated away from.  `button.gap` is the
+horizontal space between adjacent buttons.  `button.padding` is the
+inset between a button's own edges and its label, shared by both
+`unselected` and `selected` so a button does not change size (and shove
+its neighbor sideways) as the highlight moves onto or off of it; each
+button is still sized wide and tall enough for whichever of the two
+fonts is larger, and its label stays centered within that fixed size
+regardless of which font ends up drawn, so switching to a wider
+`selected` font (bold by default) never looks off-center.
 
 ```json
 "dialog": {
@@ -1501,6 +1519,7 @@ overlays with no selected/unselected state to distinguish.
 | `color.foreground` | string  | `"#4A5566"` |
 | `border.color`     | string  | `"#7F9AB6"` |
 | `border.width`     | integer | `1`         |
+| `opacity`          | integer | `100`       |
 
 ```json
 "overlay": {
@@ -1990,25 +2009,53 @@ class.
 All apply fields are optional.  Only the fields present in the last
 matching rule for each property are applied.
 
-| Key                 | Type                 | Default | Description |
-|---------------------|----------------------|---------|-------------|
-| `apply.desktop`     | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
-| `apply.monitor`     | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
-| `apply.layer`       | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
-| `apply.focus`       | boolean              | unset   | Whether the matched window should receive focus. |
-| `apply.pinned`      | boolean              | unset   | Whether the window should be visible on all desktops. |
-| `apply.decorated`   | boolean              | unset   | Whether the window should keep its decorations. |
-| `apply.position`    | object or `"center"` | unset   | Where to place the window; see below. |
-| `apply.position.x`  | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
-| `apply.position.y`  | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
-| `apply.size.width`  | integer              | unset   | Window width in pixels; must be greater than `0`. |
-| `apply.size.height` | integer              | unset   | Window height in pixels; must be greater than `0`. |
+| Key                      | Type                 | Default | Description |
+|--------------------------|----------------------|---------|-------------|
+| `apply.desktop`          | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
+| `apply.monitor`          | integer              | unset   | Zero-based monitor index, within the window's own surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `apply.layer`            | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
+| `apply.focus`            | boolean              | unset   | Whether the matched window should receive focus. |
+| `apply.pinned`           | boolean              | unset   | Whether the window should be visible on all desktops. |
+| `apply.decorated`        | boolean              | unset   | Whether the window should keep its decorations. |
+| `apply.opacity`          | integer or object    | unset   | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's own `window.active.opacity`/`window.inactive.opacity` (section 4.1) for this one window; see below. |
+| `apply.opacity.active`   | integer              | unset   | Opacity while the window is focused (when `opacity` is an object). |
+| `apply.opacity.inactive` | integer              | unset   | Opacity while the window is not focused (when `opacity` is an object). |
+| `apply.position`         | object or `"center"` | unset   | Where to place the window; see below. |
+| `apply.position.x`       | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
+| `apply.position.y`       | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s own top-left corner if set, or to the surface's otherwise. |
+| `apply.size.width`       | integer              | unset   | Window width in pixels; must be greater than `0`. |
+| `apply.size.height`      | integer              | unset   | Window height in pixels; must be greater than `0`. |
 
 Position and size are applied independently.  Specifying only `position`
 moves the window without resizing it; specifying only `size` resizes it
 without moving it; both may be present to set position and size at once.
 Both `size.width` and `size.height` are only accepted when greater than
 `0`.
+
+Key `opacity` is either a single integer applying to both the active and
+inactive state alike, or an object naming one, the other, or both
+separately:
+
+```json
+"apply": {
+    "opacity": 90
+}
+```
+
+```json
+"apply": {
+    "opacity": {
+        "active": 100,
+        "inactive": 75
+    }
+}
+```
+
+A `"opacity": {"active": ...}` object with only one of the two keys
+overrides that one state only, leaving the other to keep following the
+theme's own value.  As with every other apply field, no compositing
+manager reading `_NET_WM_WINDOW_OPACITY` back means this has no visible
+effect at all, whether it comes from here or from the theme.
 
 Key `position` is either an `{"x": ..., "y": ...}` object with an
 absolute pixel position, or the string `"center"`, which centers the
@@ -2454,7 +2501,7 @@ to whatever theme loads, unconditionally.
             },
             "search": "modc+mod4+mods+s",
             "show-desktop": "modc+mod1+mods+d",
-            "scratchpad": "modc+mod1+grave",
+            "scratchpad": "modc+mod1+mods+F12",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "quit": "modc+mod1+mods+x",
@@ -2514,12 +2561,14 @@ to whatever theme loads, unconditionally.
         "active": {
             "font": "fixed bold",
             "color": { "background": "#9aaec8", "foreground": "#253040" },
-            "border": { "color": "#4a5566", "width": 2 }
+            "border": { "color": "#4a5566", "width": 2 },
+            "opacity": 100
         },
         "inactive": {
             "font": "fixed",
             "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-            "border": { "color": "#7f9ab6", "width": 2 }
+            "border": { "color": "#7f9ab6", "width": 2 },
+            "opacity": 100
         }
     },
 
@@ -2530,12 +2579,14 @@ to whatever theme loads, unconditionally.
         "active": {
             "font": "fixed bold",
             "color": { "background": "#9aaec8", "foreground": "#253040" },
-            "border": { "color": "#4a5566", "width": 1 }
+            "border": { "color": "#4a5566", "width": 1 },
+            "opacity": 100
         },
         "inactive": {
             "font": "fixed",
             "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-            "border": { "color": "#7f9ab6", "width": 1 }
+            "border": { "color": "#7f9ab6", "width": 1 },
+            "opacity": 100
         }
     },
 
@@ -2543,6 +2594,7 @@ to whatever theme loads, unconditionally.
         "font": "fixed bold",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
+        "opacity": 100
         "height": 22,
         "pixmap": {
             "size": 24,
@@ -2581,6 +2633,7 @@ to whatever theme loads, unconditionally.
             "color": "#7f9ab6"
         },
         "border": { "color": "#7f9ab6", "width": 2 },
+        "opacity": 100,
         "padding": {
             "horizontal": 12,
             "vertical": 4
@@ -2591,6 +2644,7 @@ to whatever theme loads, unconditionally.
     "dialog": {
         "color": { "background": "#d0d9e5" },
         "border": { "color": "#7f9ab6", "width": 2 },
+        "opacity": 100,
         "label": {
             "font": "fixed bold",
             "color": { "foreground": "#4a5566" },
@@ -2615,7 +2669,8 @@ to whatever theme loads, unconditionally.
     "overlay": {
         "font": "fixed",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-        "border": { "color": "#7f9ab6", "width": 1 }
+        "border": { "color": "#7f9ab6", "width": 1 },
+        "opacity": 100
     },
 
     "xsettings": {

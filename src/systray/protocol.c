@@ -365,6 +365,9 @@ bool systray_protocol_ensure_window(wm_td *wm)
             (uint16_t) wm->config->theme.systray.style.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
+    atom_set_window_opacity(wm->connection, s_tray.window,
+            config_theme_opacity_to_raw(
+                wm->config->theme.systray.style.opacity));
     xcb_flush(wm->connection);
 
     s_tray.window_ready = true;

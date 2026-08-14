@@ -32,6 +32,9 @@
 /* Default initial values */
 #include <defs/popup.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/popup.h>
@@ -186,6 +189,8 @@ void popup_show(xcb_connection_t *connection,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
+    atom_set_window_opacity(connection, s_popup_window,
+            config_theme_opacity_to_raw(cfg->theme.overlay.opacity));
 
     xcb_map_window(connection, s_popup_window);
     xcb_flush(connection);

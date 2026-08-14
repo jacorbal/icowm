@@ -566,7 +566,7 @@ struct config_bindings_s {
 
             /** Toggles the scratchpad's own visibility; see
              *  'scratchpad_toggle' in 'scratchpad.h' */
-            char scratchpad_toggle[CONFIG_MAX_LENGTH_BINDING];
+            char scratchpad[CONFIG_MAX_LENGTH_BINDING];
 
             /* Direct desktop goto shortcuts (indices 0-9) */
             struct {
@@ -719,6 +719,18 @@ struct config_theme_style_s {
         uint32_t color;
         uint32_t width;
     } border;
+
+    /**
+     * @brief Desired opacity, 0 to 100, published through
+     *        '_NET_WM_WINDOW_OPACITY'
+     *
+     * Purely advisory: IcoWM never composites anything itself, it only
+     * publishes the atom on the relevant window, converted to the
+     * 32-bit range that atom expects (see 'config_theme_opacity_to_
+     * raw', config.h).  Without a compositing manager, e.g.,
+     * picom, running, this has no visible effect at all
+     */
+    uint8_t opacity;
 };
 
 
@@ -933,6 +945,23 @@ struct config_theme_s {
             uint32_t width;
         } border;
 
+        /**
+         * @brief Desired opacity, 0 to 100, published on the menu
+         *        window itself through '_NET_WM_WINDOW_OPACITY'
+         *
+         * The same window-versus-row distinction as @c border above:
+         * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it
+         * cannot vary row by row the way @c unselected/@c selected/
+         * @c label's own colors do, and lives here, a sibling of
+         * @c border, rather than inside any one of those.  The cycle
+         * menu's own window shares this same field, the same way it
+         * already shares @c border.  Purely advisory: IcoWM never
+         * composites anything itself, so this has no visible effect
+         * at all unless a compositing manager, e.g., picom, is also
+         * running and reading the property back off the window.
+         */
+        uint8_t opacity;
+
         /** Inset, in pixels, between the menu window's own edges and
          *  every row's text (and, for a submenu, its arrow indicator);
          *  applies equally to @c unselected, @c selected, and
@@ -975,6 +1004,22 @@ struct config_theme_s {
             uint32_t color;
             uint32_t width;
         } border;
+
+        /**
+         * @brief Desired opacity, 0 to 100, published on the dialog
+         *        window itself through '_NET_WM_WINDOW_OPACITY'
+         *
+         * A sibling of @c background/@c border above, not of
+         * @c button.unselected/@c button.selected below: the dialog
+         * window is one single window regardless of which button (if
+         * any) currently has the keyboard-navigated selection, and
+         * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it
+         * cannot vary per button.  Purely advisory: IcoWM never
+         * composites anything itself, so this has no visible effect
+         * at all unless a compositing manager, e.g., picom, is also
+         * running and reading the property back off the window.
+         */
+        uint8_t opacity;
 
         /** Prompt text (e.g., "Are you sure you want to exit IcoWM?") */
         struct {
@@ -1423,6 +1468,26 @@ int config_load_bindings(const char *filename,
  */
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme);
+
+/**
+ * @brief Convert a theme's own 0 to 100 opacity percentage to the
+ *        32-bit value '_NET_WM_WINDOW_OPACITY' itself expects
+ *
+ * The property's own valid range is 0 (fully transparent) to
+ * 0xffffffff (fully opaque); this scales @p percent linearly onto
+ * that range, matching the same formula every compositing manager
+ * already assumes for its own atom.
+ *
+ * @param percent Opacity percentage, 0 to 100; a value above 100 is
+ *                treated as 100, since 'config_theme_style_s.opacity'
+ *                is meant to already be within range by the time this
+ *                runs, this is only a last defensive clamp
+ *
+ * @return The 32-bit value to publish on '_NET_WM_WINDOW_OPACITY'
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t config_theme_opacity_to_raw(uint8_t percent);
 
 /**
  * @brief Load XRandR output profiles from a JSON file

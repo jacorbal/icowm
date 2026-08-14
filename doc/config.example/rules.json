@@ -37,6 +37,18 @@
             "layer": "above",
             "position": "center"
         }
+    },
+    {
+        "when": "map",
+        "match": {
+            "instance": [ "URxvt" ]
+        },
+        "apply": {
+            "opacity": {
+                "active": 100,
+                "inactive": 80
+            }
+        }
     }
     ]
 }

@@ -27,6 +27,9 @@
 #include <defs/ctxmenu.h>
 #include <defs/kbd.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
@@ -885,6 +888,13 @@ void ctxmenu_show(xcb_connection_t *connection,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
+
+    /* The whole menu window's own opacity, distinct from any one
+     * row's own font/color/border, since '_NET_WM_WINDOW_OPACITY' is
+     * a per-window property, not a per-row one; see the doc comment
+     * on 'config_theme_s.menu.opacity' (config.h) */
+    atom_set_window_opacity(connection, state->window,
+            config_theme_opacity_to_raw(config->theme.menu.opacity));
 
     /* Raise to the top */
     stk[0] = XCB_STACK_MODE_ABOVE;
