@@ -492,8 +492,10 @@ void handler_destroy_notify(xcb_connection_t *connection,
         if (fields != NULL) {
             cJSON_AddNumberToObject(fields, "client_id",
                     (double) client->id);
-            cJSON_AddNumberToObject(fields, "desktop_id",
-                    (double) desktop->id);
+            if (desktop != NULL) {
+                cJSON_AddNumberToObject(fields, "desktop_id",
+                        (double) desktop->id);
+            }
             cJSON_AddNumberToObject(fields, "surface_id",
                     (double) surface->id);
         }

@@ -69,10 +69,10 @@ typedef struct {
 
 /** One in-progress reassembly of an incoming chunked text message */
 typedef struct {
-    xcb_window_t window;
-    char buf[SN_MSG_MAX_LEN];
     size_t len;
+    xcb_window_t window;
     bool in_use;
+    char buf[SN_MSG_MAX_LEN];
 } s_reassembly_td;
 
 

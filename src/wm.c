@@ -521,12 +521,8 @@ void wm_warn_json_syntax_errors(void)
         const char *missing_theme = config_missing_theme_get();
 
         if (missing_theme != NULL) {
-            int written = snprintf(message + offset,
-                    sizeof(message) - offset,
+            snprintf(message + offset, sizeof(message) - offset,
                     _(STR_WM_MISSING_THEME_FMT), missing_theme);
-            if (written > 0) {
-                offset += (size_t) written;
-            }
         }
     }
 

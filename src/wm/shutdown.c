@@ -11,6 +11,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -46,59 +49,34 @@ static struct timespec s_shutdown_deadline;
 
 
 /**
- * @brief Visit every currently managed client across every surface
- *        and desktop, optionally applying an action to each
+ * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's own
+ *        action signature
  *
- * Same enumeration @c wm/ewmhinit.c's own '_NET_CLIENT_LIST' builder
- * already walks, reused here rather than duplicated with its own
- * separate traversal logic.
+ * @param client   Client to close
+ * @param userdata Unused
  *
- * @param action Function called once per client found, or @c NULL to
- *               only count them without acting on any
- *
- * @return Number of managed clients found
- *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every surface and desktop
+ * @note Complexity: @e O(1)
  */
-static uint32_t s_shutdown_for_each_client(void (*action)(client_td *))
+static void s_shutdown_close_client(client_td *client, void *userdata)
 {
-    uint32_t count = 0u;
+    (void) userdata;
+    ccmd_client_close(client);
+}
 
-    if (wm == NULL || wm->surfaces == NULL) {
-        return 0u;
-    }
 
-    for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
-            snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
-
-        if (surface == NULL) {
-            continue;
-        }
-
-        for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-            desktop_td *desktop = surface_desktop_get(surface, did);
-            void *elem;
-
-            if (desktop == NULL || desktop->clients == NULL) {
-                continue;
-            }
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *client = (client_td *) elem;
-
-                if (client != NULL) {
-                    ++count;
-                    if (action != NULL) {
-                        action(client);
-                    }
-                }
-            }
-        }
-    }
-
-    return count;
+/**
+ * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's own
+ *        action signature
+ *
+ * @param client   Client to kill
+ * @param userdata Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_shutdown_kill_client(client_td *client, void *userdata)
+{
+    (void) userdata;
+    ccmd_client_kill(client);
 }
 
 
@@ -145,7 +123,7 @@ void wm_shutdown_begin(void)
         return;
     }
 
-    if (s_shutdown_for_each_client(NULL) == 0u) {
+    if (wm_for_each_client(NULL, NULL) == 0u) {
         LOGGER_DEBUG("No managed clients to wait for;" \
                 " stopping right away", L_NARG);
         (void) wm_request_stop();
@@ -154,7 +132,7 @@ void wm_shutdown_begin(void)
 
     LOGGER_INFO("Coordinated shutdown started;" \
             " asking every managed client to close", L_NARG);
-    (void) s_shutdown_for_each_client(ccmd_client_close);
+    (void) wm_for_each_client(s_shutdown_close_client, NULL);
 
     timeout_seconds = (wm != NULL && wm->config != NULL)
         ? wm->config->base.shutdown.timeout_seconds : 15u;
@@ -185,7 +163,7 @@ void wm_shutdown_tick(void)
         return;
     }
 
-    remaining = s_shutdown_for_each_client(NULL);
+    remaining = wm_for_each_client(NULL, NULL);
     if (remaining == 0u) {
         LOGGER_INFO("Every managed client closed;" \
                 " finishing shutdown", L_NARG);
@@ -200,7 +178,7 @@ void wm_shutdown_tick(void)
 
     LOGGER_NOTICE("Shutdown timeout elapsed with %u client(s)" \
             " still open; forcing them closed", remaining);
-    (void) s_shutdown_for_each_client(ccmd_client_kill);
+    (void) wm_for_each_client(s_shutdown_kill_client, NULL);
     s_shutdown_in_progress = false;
     (void) wm_request_stop();
 }

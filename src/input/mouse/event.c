@@ -1293,7 +1293,6 @@ void mouse_handle_press(xcb_connection_t *connection,
     }
 
     /* Step 7: configured MOVE or RESIZE binding; re-resolve client */
-    window = (event->child != XCB_NONE) ? event->child : event->event;
     client = s_mouse_find_event_client(connection, surfaces,
             event->event, event->child, &desktop);
 

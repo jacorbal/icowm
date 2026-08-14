@@ -15,6 +15,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
 
 /* System includes */
 #include <stdbool.h>

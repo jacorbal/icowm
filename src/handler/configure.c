@@ -184,8 +184,8 @@ void handler_configure_request(xcb_connection_t *connection,
         bool on_inner = (event->window == client->window);
         bool send_synth = false;
         xcb_window_t target = event->window;
-        int32_t req_x = client->layout.geometry.cur.pos.x;
-        int32_t req_y = client->layout.geometry.cur.pos.y;
+        int32_t req_x;
+        int32_t req_y;
         uint32_t req_w = client->layout.geometry.cur.dim.w;
         uint32_t req_h = client->layout.geometry.cur.dim.h;
         uint32_t old_w = client->layout.geometry.cur.dim.w;
@@ -285,7 +285,7 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         if (mask & XCB_CONFIG_WINDOW_Y) {
-            if (is_reparented && on_inner) {
+            if (client->rule_position_locked) {
                 /* Position was fixed by a rule; reject the client's
                  * attempt to move the window and keep the locked Y */
                 send_synth = is_reparented;
@@ -392,7 +392,6 @@ void handler_configure_request(xcb_connection_t *connection,
                 }
                 target_values[0] = (uint32_t) adj_x;
                 target_values[1] = (uint32_t) adj_y;
-                i += 2;
                 target_mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
                 client->layout.geometry.cur.pos.x = adj_x;
                 client->layout.geometry.cur.pos.y = adj_y;

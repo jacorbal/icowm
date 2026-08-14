@@ -282,8 +282,12 @@ int logger_stop(void)
         }
     }
 
-    /* Close the file if it was open */
-    if (logger->file.is_open) {
+    /* Close the file if it was open.  The 'fp_out != NULL' check is
+     * a defensive second guard alongside 'is_open': the two fields
+     * are always kept in sync today, but 'fclose(NULL)' is undefined
+     * behavior, so this does not rely solely on that invariant
+     * holding across every future code path */
+    if (logger->file.is_open && logger->file.fp_out != NULL) {
         fclose(logger->file.fp_out);
     }
 

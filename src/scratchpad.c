@@ -282,9 +282,6 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
         height = area_h;
     }
 
-    x = area_x;
-    y = area_y;
-
     switch (config->base.scratchpad.edge) {
     case CONFIG_SCRATCHPAD_EDGE_BOTTOM:
         x = area_x + (int32_t) ((avail_w - width) / 2u);

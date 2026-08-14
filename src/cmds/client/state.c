@@ -78,7 +78,7 @@ static void s_client_enable_decoration(client_td *client,
     int32_t frame_h;
     uint32_t border_color;
     uint32_t bg_color;
-    static const xcb_button_index_t s_grab_buttons[] = {
+    static const xcb_button_t s_grab_buttons[] = {
         XCB_BUTTON_INDEX_1,
         XCB_BUTTON_INDEX_2,
         XCB_BUTTON_INDEX_3,
@@ -182,7 +182,7 @@ static void s_client_enable_decoration(client_td *client,
                 XCB_GRAB_MODE_ASYNC,
                 XCB_NONE,
                 XCB_NONE,
-                (uint8_t) s_grab_buttons[bi],
+                s_grab_buttons[bi],
                 XCB_MOD_MASK_ANY);
     }
 

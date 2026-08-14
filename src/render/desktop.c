@@ -940,8 +940,6 @@ void desktop_render_one_client(desktop_td *desktop,
          * flickering visible on all non-resized windows. */
         left = (uint16_t) client->layout.frame_extents.left;
         right = (uint16_t) client->layout.frame_extents.right;
-        top = (uint16_t) client->layout.frame_extents.top;
-        bottom = (uint16_t) client->layout.frame_extents.bottom;
         title_h = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w > left + right)
             ? (uint16_t) (client->layout.geometry.cur.dim.w -

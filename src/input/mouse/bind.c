@@ -16,6 +16,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* strtok_r */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

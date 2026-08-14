@@ -24,7 +24,13 @@
 
 /* FreeType includes */
 #include <ft2build.h>
-#include FT_FREETYPE_H
+#include FT_FREETYPE_H  /* Header 'ft2build.h' declares no FreeType
+                         * functions itself, for it only defines macros
+                         * like 'FT_FREETYPE_H' that expand to the real
+                         * header path ('<freetype/freetype.h>' on this
+                         * system), so client code stays unaffected if
+                         * that internal layout ever changes between
+                         * versions */
 
 /* Fontconfig includes */
 #include <fontconfig/fontconfig.h>
@@ -36,28 +42,40 @@
 #include <render/glyph.h>
 
 
-/** Maximum distinct codepoints this renderer will cache and upload
- *  for one font; a WM's own text uses a small, stable alphabet, so a
- *  flat array with linear search is simpler than a hash table and
- *  fast enough at this size */
+/**
+ * @brief Maximum distinct codepoints this renderer will cache and
+ *        upload for one font; a WM's own text uses a small, stable
+ *        alphabet, so a flat array with linear search is simpler than
+ *        a hash table and fast enough at this size
+ */
 #define GLYPH_CACHE_MAX (512u)
 
-/** Fallback pixel size when fontconfig's match does not resolve one */
+/**
+ * @brief Fallback pixel size when fontconfig's match does not resolve
+ *        one
+ */
 #define GLYPH_DEFAULT_PIXEL_SIZE (12)
 
-/** Maximum codepoints drawn or measured in a single call; long enough
- *  for any label this window manager itself draws (window titles,
- *  menu entries, dialog text) */
+/**
+ * @brief Maximum codepoints drawn or measured in a single call; long
+ *        enough for any label this window manager itself draws (window
+ *        titles, menu entries, dialog text)
+ */
 #define GLYPH_MAX_STRING_LEN (512u)
 
 
-/** One rasterized-and-uploaded glyph's cached metrics */
+/**
+ * @brief One rasterized-and-uploaded glyph's cached metrics
+ */
 typedef struct {
     uint32_t codepoint;
     int16_t advance_x;
 } s_glyph_cache_entry_td;
 
 
+/**
+ * @brief Global state for glyph rendering and caching
+ */
 static struct {
     xcb_connection_t *connection;
     char font_name[256];
@@ -95,14 +113,14 @@ static struct {
 /**
  * @brief Decode the next UTF-8 codepoint from @p text
  *
- * Malformed sequences are treated permissively: an invalid leading
- * byte is returned as its own Latin-1 codepoint rather than rejecting
- * the whole string, since this draws UI text, not untrusted input,
- * and a best-effort result reads better than nothing at all.
+ * Malformed sequences are treated permissively: an invalid leading byte
+ * is returned as its own Latin-1 codepoint rather than rejecting the
+ * whole string, since this draws UI text, not untrusted input, and
+ * a best-effort result reads better than nothing at all.
  *
- * @param text   Null-terminated UTF-8 string
- * @param index  Byte offset to start decoding from; advanced past the
- *               consumed bytes on return
+ * @param text  Null-terminated UTF-8 string
+ * @param index Byte offset to start decoding from; advanced past the
+ *              consumed bytes on return
  *
  * @return The decoded codepoint, or 0 at the end of the string
  *
@@ -156,12 +174,12 @@ uint32_t glyph_utf8_next(const char *text, size_t *index)
  * @brief Resolve @p font_name through fontconfig to a font file, face
  *        index, and pixel size
  *
- * @param font_name       Fontconfig pattern string, or a plain family
- *                        name
- * @param out_file        Buffer to receive the matched font file path
- * @param out_file_size   Size of @p out_file
- * @param out_face_index  Receives the face index within the file
- * @param out_pixel_size  Receives the matched pixel size
+ * @param font_name      Fontconfig pattern string, or a plain family
+ *                       name
+ * @param out_file       Buffer to receive the matched font file path
+ * @param out_file_size  Size of @p out_file
+ * @param out_face_index Receives the face index within the file
+ * @param out_pixel_size Receives the matched pixel size
  *
  * @return @c true if a font was matched and a file path recovered
  *
@@ -232,7 +250,7 @@ static bool s_resolve_font(const char *font_name, char *out_file,
  * @brief Free every xcb-render object the renderer currently owns,
  *        without touching the FreeType or fontconfig state
  *
- * Shared by @c glyph_renderer_destroy and by @c glyph_renderer_init
+ * Shared by @a glyph_renderer_destroy and by @a glyph_renderer_init
  * when reinitializing for a new font, since both need the previous
  * glyph set and picture gone before a new one is created.
  *
@@ -257,10 +275,10 @@ static void s_free_render_objects(void)
 
 /**
  * @brief Look up @p codepoint's cached advance, rasterizing and
- *        uploading it to the glyph set first if this is the first
- *        time it is needed
+ *        uploading it to the glyph set first if this is the first time
+ *        it is needed
  *
- * @param codepoint  Unicode codepoint to look up
+ * @param codepoint   Unicode codepoint to look up
  * @param out_advance Receives the glyph's horizontal advance in
  *                    pixels
  *
@@ -348,22 +366,24 @@ static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
  * @brief Advance width for one codepoint, ensuring its glyph exists
  *        first
  *
- * A thin wrapper around @c s_ensure_glyph returning the advance width
+ * A thin wrapper around @a s_ensure_glyph returning the advance width
  * directly instead of through an output parameter, so a caller never
  * holds a local variable whose initialization depends on a call whose
- * own success or failure it does not otherwise care about; callers
- * that only need the width call this, callers that also need to know
- * whether the glyph was newly rendered (there are none currently, but
- * the distinction is real) would still call @c s_ensure_glyph
- * directly instead.
+ * own success or failure it does not otherwise care about; callers that
+ * only need the width call this, callers that also need to know whether
+ * the glyph was newly rendered (there are none currently, but the
+ * distinction is real) would still call @a s_ensure_glyph directly
+ * instead.
  *
  * @param codepoint Unicode codepoint to look up or render
  *
- * @return The glyph's advance width in pixels; the same fallback
- *         value @c s_ensure_glyph itself falls back to when the glyph
- *         cannot be rendered
+ * @return The glyph's advance width in pixels; the same fallback value
+ *         @a s_ensure_glyph itself falls back to when the glyph cannot
+ *         be rendered
  *
- * @note Complexity: @e O(1) amortized (see @c s_ensure_glyph)
+ * @note Complexity: @e O(1) amortized
+ *
+ * @see @a s_ensure_glyph
  */
 static int16_t s_glyph_advance_for(uint32_t codepoint)
 {
@@ -429,9 +449,9 @@ int glyph_renderer_init(xcb_connection_t *connection,
         return -1;
     }
 
-    /* Cached across calls (re-fetched only when the connection itself
-     * changes): this is queried on every font switch otherwise, and a
-     * single redraw pass can switch fonts many times (once per
+    /* Cached across calls (re-fetched only when connection itself
+     * changes).  This is queried on every font switch otherwise, and
+     * a single redraw pass can switch fonts many times (once per
      * differently styled label), which would otherwise mean a full
      * round trip to the X server for something that never actually
      * changes while the connection is open. */
@@ -607,8 +627,8 @@ int16_t glyph_font_ascent(void)
 }
 
 
-/* Pixels the baseline sits above the bottom of a line, for the
- * current font */
+/* Pixels the baseline sits above the bottom of a line, for the current
+ * font */
 int16_t glyph_font_descent(void)
 {
     return s_glyph.descent;

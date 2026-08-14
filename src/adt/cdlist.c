@@ -83,15 +83,18 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
         cdlist->head->prev = new_item;
         cdlist->tail = new_item;
     } else {
-        /* Handle insertion before the current item */
-        new_item->next = item;
-        new_item->prev = item->prev;
+        cdlist_item_td *old_prev = item->prev;
 
-        /* Update the previous item's next pointer */
-        if (item->prev != NULL) {
-            item->prev->next = new_item;
-        } else {
-            /* Update head if we're at the start */
+        /* Handle insertion before the current item.  'old_prev' is
+         * never NULL here: every node in this circular list always
+         * has a valid 'prev' (pointing to itself when it is the only
+         * one), so the only real decision is whether 'item' was the
+         * head, not whether 'old_prev' exists. */
+        new_item->next = item;
+        new_item->prev = old_prev;
+        old_prev->next = new_item;
+
+        if (item == cdlist->head) {
             cdlist->head = new_item;
         }
 
@@ -189,21 +192,29 @@ int cdlist_rem_prev(cdlist_td *cdlist, cdlist_item_td *item,
 
         old_item = item->prev;
         old_data = old_item->data;
-
-        /* Update pointers to remove old item */
         item->prev = old_item->prev;
 
-        if (old_item->prev != NULL) {
+        if (old_item->prev != cdlist->tail) {
+            /* Link prev item back to current item */
             old_item->prev->next = item;
         } else {
+            /* Removing the head: update head and fix the circular
+             * back-link so 'tail->next' points to the new head.
+             * Without this, 'cdlist_next(cdlist_tail())' would
+             * return a dangling pointer to the freed node */
             cdlist->head = item;
+            cdlist->tail->next = item;
         }
 
-        /* Check if we are removing the tail */
-        if (old_item == cdlist->tail) {
-            cdlist->tail = item->prev;
-        } else {
-            item->prev->next = item;
+        /* If the removed item was the tail (reached via
+         * 'cdlist_next(tail) = head'), update the tail pointer and
+         * fix the head's backward link.  The size guard excludes the
+         * degenerate single-element circular case where
+         * 'item == old_item' and the subsequent
+         * 'cdlist_ins_prev(size==0)' resets head/tail. */
+        if (old_item == cdlist->tail && cdlist->size > 1) {
+            cdlist->tail = old_item->prev;
+            cdlist->head->prev = cdlist->tail;
         }
     }
 

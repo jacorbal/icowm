@@ -31,7 +31,7 @@
  * application. */
 void ccmd_client_grab_buttons(client_td *client)
 {
-    static const xcb_button_index_t s_grab_buttons[] = {
+    static const xcb_button_t s_grab_buttons[] = {
         XCB_BUTTON_INDEX_1,
         XCB_BUTTON_INDEX_2,
         XCB_BUTTON_INDEX_3,
@@ -54,7 +54,7 @@ void ccmd_client_grab_buttons(client_td *client)
                 XCB_GRAB_MODE_ASYNC,
                 XCB_NONE,
                 XCB_NONE,
-                (uint8_t) s_grab_buttons[bi],
+                s_grab_buttons[bi],
                 XCB_MOD_MASK_ANY);
     }
     xcb_flush(client->connection);
