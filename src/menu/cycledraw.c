@@ -44,6 +44,136 @@
 
 
 /**
+ * @brief Per-call drawing constants shared by every row @c cycle_draw
+ *        paints in one call, computed once up front rather than
+ *        re-derived from @c config on each row
+ */
+struct s_cycle_row_style_s {
+    uint32_t fg_sel;
+    uint32_t bg_sel;
+    uint32_t fg_nor;
+    uint32_t bg_nor;
+    int16_t pad_x;
+    int16_t icon_offset;
+    uint16_t icon_size;
+};
+
+
+/**
+ * @brief Resolve the current theme's cycle-row drawing constants
+ *
+ * @param config Active configuration
+ * @param style  Receives the resolved constants
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_row_style(const config_td *config,
+        struct s_cycle_row_style_s *style)
+{
+    style->fg_sel = config->theme.menu.selected.color.foreground;
+    style->bg_sel = config->theme.menu.selected.color.background;
+    style->fg_nor = config->theme.menu.unselected.color.foreground;
+    style->bg_nor = config->theme.menu.unselected.color.background;
+    style->pad_x = (int16_t) config->theme.menu.padding.horizontal;
+    style->icon_offset = 0;
+    style->icon_size = 0u;
+
+    /* Space reserved for a row's own client icon plus one more gap
+     * (the same width as the menu's own left padding) before its
+     * label; see 'theme.menu.show-pixmaps''s own doc comment in
+     * config.h and 'WM_MENU_ICON_INSET' in defs/ctxmenu.h. */
+    if (config->theme.menu.show_pixmaps) {
+        /* '#if', not a runtime ternary: both operands are fixed
+         * compile-time constants, so a ternary here left one branch
+         * provably unreachable to the compiler (-Wunreachable-code).
+         * Still guards the arithmetic against a future edit to either
+         * constant that would otherwise underflow silently. */
+#if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
+        style->icon_size = (uint16_t)
+            (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
+#else
+        style->icon_size = 0u;
+#endif
+        style->icon_offset =
+            (int16_t) (style->icon_size + style->pad_x);
+    }
+}
+
+
+/**
+ * @brief Paint one row of the cycle menu, background through label
+ *
+ * Self-contained: callers need no separate clear step first, whether
+ * repainting the whole viewport or just this one row on its own (see
+ * @c cycle_draw's own doc comment for when each happens).
+ *
+ * @param connection XCB connection
+ * @param i          Absolute entry index to draw (not viewport-
+ *                    relative); must fall within the current viewport
+ * @param pad_y       Vertical padding, for this row's own Y offset
+ * @param style      Drawing constants from @c s_cycle_row_style
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_draw_row(xcb_connection_t *connection, int i,
+        int16_t pad_y, const struct s_cycle_row_style_s *style)
+{
+    int16_t row_y = (int16_t) (pad_y +
+            (i - g_cycle_menu.scroll_offset) * WM_CYCLE_MENU_ROW_HEIGHT);
+    client_td *row_client = (i >= 0 && i < g_cycle_menu.count)
+        ? g_cycle_menu.clients[i] : NULL;
+    int16_t text_x = style->pad_x;
+    char label_buf[WM_CYCLE_MENU_ENTRY_LENGTH];
+
+    if (i == g_cycle_menu.selected) {
+        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_sel,
+                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                g_cycle_menu.width);
+        text_renderer_set_color(style->fg_sel, style->bg_sel);
+    } else {
+        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_nor,
+                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
+                g_cycle_menu.width);
+        text_renderer_set_color(style->fg_nor, style->bg_nor);
+    }
+
+    /* A row with no client of its own (should not normally happen,
+     * but 's_cycle_close_and_apply' and similar guard against it
+     * elsewhere too) simply gets no icon and no reserved space, same
+     * as 'icon_offset' being 0 when 'show-pixmaps' is off. */
+    if (style->icon_size > 0u && row_client != NULL &&
+            g_cycle_menu.surface != NULL) {
+        int16_t icon_y = (int16_t) (row_y +
+                (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2);
+
+        wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
+                row_client->window, g_cycle_menu.window,
+                style->pad_x, icon_y, style->icon_size,
+                (i == g_cycle_menu.selected) ? style->fg_sel
+                    : style->fg_nor,
+                (i == g_cycle_menu.selected) ? style->bg_sel
+                    : style->bg_nor,
+                &row_client->icon_pixmap_cache);
+        text_x = (int16_t) (style->pad_x + style->icon_offset);
+    }
+
+    /* Truncate against the menu's own width rather than the label's
+     * own measured width, so a title long enough to have already
+     * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
+     * menu opened (see 'cycle_init' in menu/cycle.c) is cut to match
+     * instead of running past the window's right edge. */
+    snprintf(label_buf, sizeof(label_buf), "%s", g_cycle_menu.labels[i]);
+    if (g_cycle_menu.width > text_x + style->pad_x) {
+        menu_draw_truncate(label_buf,
+                (uint16_t) (g_cycle_menu.width - text_x - style->pad_x));
+    }
+
+    menu_draw_label(connection, g_cycle_menu.window,
+            text_x,
+            (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
+            label_buf);
+}
+/**
  * @brief Resolve the X window used as the visual target for cycle
  *        preview
  *
@@ -325,136 +455,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Per-call drawing constants shared by every row @c cycle_draw
- *        paints in one call, computed once up front rather than
- *        re-derived from @c config on each row
- */
-struct s_cycle_row_style_s {
-    uint32_t fg_sel;
-    uint32_t bg_sel;
-    uint32_t fg_nor;
-    uint32_t bg_nor;
-    int16_t pad_x;
-    int16_t icon_offset;
-    uint16_t icon_size;
-};
-
-
-/**
- * @brief Resolve the current theme's cycle-row drawing constants
- *
- * @param config Active configuration
- * @param style  Receives the resolved constants
- *
- * @note Complexity: @e O(1)
- */
-static void s_cycle_row_style(const config_td *config,
-        struct s_cycle_row_style_s *style)
-{
-    style->fg_sel = config->theme.menu.selected.color.foreground;
-    style->bg_sel = config->theme.menu.selected.color.background;
-    style->fg_nor = config->theme.menu.unselected.color.foreground;
-    style->bg_nor = config->theme.menu.unselected.color.background;
-    style->pad_x = (int16_t) config->theme.menu.padding.horizontal;
-    style->icon_offset = 0;
-    style->icon_size = 0u;
-
-    /* Space reserved for a row's own client icon plus one more gap
-     * (the same width as the menu's own left padding) before its
-     * label; see 'theme.menu.show-pixmaps''s own doc comment in
-     * config.h and 'WM_MENU_ICON_INSET' in defs/ctxmenu.h. */
-    if (config->theme.menu.show_pixmaps) {
-        /* '#if', not a runtime ternary: both operands are fixed
-         * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler (-Wunreachable-code).
-         * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently. */
-#if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
-        style->icon_size = (uint16_t)
-            (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
-#else
-        style->icon_size = 0u;
-#endif
-        style->icon_offset =
-            (int16_t) (style->icon_size + style->pad_x);
-    }
-}
-
-
-/**
- * @brief Paint one row of the cycle menu, background through label
- *
- * Self-contained: callers need no separate clear step first, whether
- * repainting the whole viewport or just this one row on its own (see
- * @c cycle_draw's own doc comment for when each happens).
- *
- * @param connection XCB connection
- * @param i          Absolute entry index to draw (not viewport-
- *                    relative); must fall within the current viewport
- * @param pad_y       Vertical padding, for this row's own Y offset
- * @param style      Drawing constants from @c s_cycle_row_style
- *
- * @note Complexity: @e O(1)
- */
-static void s_cycle_draw_row(xcb_connection_t *connection, int i,
-        int16_t pad_y, const struct s_cycle_row_style_s *style)
-{
-    int16_t row_y = (int16_t) (pad_y +
-            (i - g_cycle_menu.scroll_offset) * WM_CYCLE_MENU_ROW_HEIGHT);
-    client_td *row_client = (i >= 0 && i < g_cycle_menu.count)
-        ? g_cycle_menu.clients[i] : NULL;
-    int16_t text_x = style->pad_x;
-    char label_buf[WM_CYCLE_MENU_ENTRY_LENGTH];
-
-    if (i == g_cycle_menu.selected) {
-        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_sel,
-                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                g_cycle_menu.width);
-        text_renderer_set_color(style->fg_sel, style->bg_sel);
-    } else {
-        menu_draw_row_bg(connection, g_cycle_menu.window, style->bg_nor,
-                row_y, (uint16_t) WM_CYCLE_MENU_ROW_HEIGHT,
-                g_cycle_menu.width);
-        text_renderer_set_color(style->fg_nor, style->bg_nor);
-    }
-
-    /* A row with no client of its own (should not normally happen,
-     * but 's_cycle_close_and_apply' and similar guard against it
-     * elsewhere too) simply gets no icon and no reserved space, same
-     * as 'icon_offset' being 0 when 'show-pixmaps' is off. */
-    if (style->icon_size > 0u && row_client != NULL &&
-            g_cycle_menu.surface != NULL) {
-        int16_t icon_y = (int16_t) (row_y +
-                (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2);
-
-        wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
-                row_client->window, g_cycle_menu.window,
-                style->pad_x, icon_y, style->icon_size,
-                (i == g_cycle_menu.selected) ? style->fg_sel
-                    : style->fg_nor,
-                (i == g_cycle_menu.selected) ? style->bg_sel
-                    : style->bg_nor,
-                &row_client->icon_pixmap_cache);
-        text_x = (int16_t) (style->pad_x + style->icon_offset);
-    }
-
-    /* Truncate against the menu's own width rather than the label's
-     * own measured width, so a title long enough to have already
-     * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
-     * menu opened (see 'cycle_init' in menu/cycle.c) is cut to match
-     * instead of running past the window's right edge. */
-    snprintf(label_buf, sizeof(label_buf), "%s", g_cycle_menu.labels[i]);
-    if (g_cycle_menu.width > text_x + style->pad_x) {
-        menu_draw_truncate(label_buf,
-                (uint16_t) (g_cycle_menu.width - text_x - style->pad_x));
-    }
-
-    menu_draw_label(connection, g_cycle_menu.window,
-            text_x,
-            (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
-            label_buf);
-}
 
 
 /* Repaint all menu entries */

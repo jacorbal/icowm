@@ -1,7 +1,8 @@
 /**
  * @file config/randr.c
  *
- * @brief XRandR output profile configuration loader implementation
+ * @brief XRandR output profile configuration loader and defaults
+ *        implementation
  *
  * Parses a JSON file of the form:
  * @code
@@ -83,6 +84,15 @@ static uint16_t s_config_randr_parse_rotation(const char *value)
     }
 
     return (uint16_t) XCB_RANDR_ROTATION_ROTATE_0;
+}
+
+
+/* Populate default values for one RandR output-profile structure */
+void config_set_default_randr_values(struct config_randr_s *config_randr)
+{
+    LOGGER_TRACE("Setting default RandR configuration", L_NARG);
+    config_randr->is_enabled = false;
+    config_randr->output_count = 0u;
 }
 
 

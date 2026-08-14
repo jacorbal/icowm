@@ -1,7 +1,7 @@
 /**
  * @file config/theme.c
  *
- * @brief Theme configuration loader implementation
+ * @brief Theme configuration loader and defaults implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -20,6 +20,9 @@
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
+
+/* Default initial values */
+#include <defs/ctxmenu.h>
 
 /* Project includes */
 #include <logger.h>
@@ -266,6 +269,233 @@ static void s_load_theme_opacity(cJSON *json_obj, const char *key,
     if (json_load_uint(json_obj, key, &raw) == 0) {
         *dest = (uint8_t) ((raw > 100u) ? 100u : raw);
     }
+}
+
+
+/* Populate default values for one theme structure, used both as the
+ * compiled-in fallback theme and, before applying any theme file
+ * found, as the known-good starting point that file's own fields
+ * then overlay */
+void config_set_default_theme_values(struct config_theme_s *theme)
+{
+    LOGGER_TRACE("Setting default theme", L_NARG);
+    /* Left empty here on purpose, rather than a name like "Default
+     * theme" outright: 'ci_config_resolve_theme_name' (config.c)
+     * settles on the final name afterward, once it knows whether a
+     * theme file was actually loaded and whether that file set its
+     * own "name" (empty here means it did not), and this field
+     * staying empty is exactly the signal it checks for that. */
+    theme->name[0] = '\0';
+
+    theme->window.is_decorated = true;
+    theme->window.titlebar.height = 22u;
+    theme->window.titlebar.alignment = CONFIG_TITLEBAR_ALIGN_CENTER;
+    theme->window.titlebar.padding.horizontal = 2u;
+    theme->window.titlebar.padding.vertical = 2u;
+
+    theme->window.titlebar.buttons.left[0] =
+        CONFIG_TITLEBAR_BUTTON_PIN;
+    theme->window.titlebar.buttons.left[1] =
+        CONFIG_TITLEBAR_BUTTON_LAYER;
+    theme->window.titlebar.buttons.left_count = 2u;
+
+    theme->window.titlebar.buttons.right[0] =
+        CONFIG_TITLEBAR_BUTTON_CLOSE;
+    theme->window.titlebar.buttons.right[1] =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    theme->window.titlebar.buttons.right[2] =
+        CONFIG_TITLEBAR_BUTTON_SHADE;
+    theme->window.titlebar.buttons.right[3] =
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    theme->window.titlebar.buttons.right_count = 4u;
+
+    theme->window.titlebar.buttons.color.on =
+        json_hex2uint32("253F60");
+    theme->window.titlebar.buttons.color.off =
+        json_hex2uint32("7086A0");
+
+    safe_strncpy(theme->window.active.font,
+            "fixed bold", sizeof(theme->window.active.font));
+    theme->window.active.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->window.active.color.foreground =
+        json_hex2uint32("253040");
+    theme->window.active.border.color = json_hex2uint32("4A5566");
+    theme->window.active.border.width = 2u;
+    theme->window.active.opacity = 100u;
+
+    /* Same as 'window.active.border' by default: the scratchpad is
+     * always undecorated (see 'scratchpad.h'), so this border is its
+     * only themeable element */
+    theme->scratchpad.border.color = json_hex2uint32("4A5566");
+    theme->scratchpad.border.width = 2u;
+
+    safe_strncpy(theme->window.inactive.font,
+            "fixed", sizeof(theme->window.inactive.font));
+    theme->window.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->window.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->window.inactive.border.color = json_hex2uint32("7F9AB6");
+    theme->window.inactive.border.width = 2u;
+    theme->window.inactive.opacity = 100u;
+
+    theme->icon.is_captioned = true;
+    theme->icon.show_pixmaps = true;
+    theme->icon.show_hints = true;
+
+    safe_strncpy(theme->icon.active.font,
+            "fixed bold", sizeof(theme->icon.active.font));
+    theme->icon.active.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->icon.active.color.foreground =
+        json_hex2uint32("253040");
+    theme->icon.active.border.color = json_hex2uint32("4A5566");
+    theme->icon.active.border.width = 1u;
+    theme->icon.active.opacity = 100u;
+
+    safe_strncpy(theme->icon.inactive.font,
+            "fixed", sizeof(theme->icon.inactive.font));
+    theme->icon.inactive.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->icon.inactive.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->icon.inactive.border.color = json_hex2uint32("7F9AB6");
+    theme->icon.inactive.border.width = 1u;
+    theme->icon.inactive.opacity = 100u;
+
+    safe_strncpy(theme->systray.style.font,
+            "fixed bold", sizeof(theme->systray.style.font));
+    theme->systray.style.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->systray.style.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->systray.style.border.color = json_hex2uint32("7F9AB6");
+    theme->systray.style.border.width = 1u;
+    theme->systray.style.opacity = 100u;
+    theme->systray.height = 22u;
+    theme->systray.pixmap.size = 24u;
+    theme->systray.pixmap.padding = 4u;
+    /* 'height' (22) actually sits below 'pixmap.size' (24) here: per
+     * 's_systray_apply_config' in systray.c, the tray's own real,
+     * effective height is clamped up to whichever of the two is
+     * larger, so 24 -- not 22 -- is what actually applies, leaving no
+     * room for 'systray.text.valign' to have any visible effect. */
+    theme->systray.text.gap = 12u;
+    theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
+
+    /* Same hue family (~213 degrees) as the rest of the theme's
+     * D0D9E5/4A5566-family colors, but deliberately darker than the
+     * UI chrome: a desktop background is a large, full-screen area
+     * rather than a small UI element, so it wants a more neutral,
+     * less attention-grabbing tone, and staying darker gives windows
+     * placed on top of it more contrast to stand out against than a
+     * light background would.  Landed on this specific value (rather
+     * than an even darker one first tried) so it does not sit almost
+     * as dark as the theme's own text/border colors, which left it
+     * feeling heavier than a full-screen area calls for. */
+    theme->desktop.color.background = json_hex2uint32("5F7187");
+
+    safe_strncpy(theme->menu.unselected.font,
+            "fixed", sizeof(theme->menu.unselected.font));
+    theme->menu.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->menu.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->menu.unselected.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.unselected.border.width = 0u;
+
+    safe_strncpy(theme->menu.selected.font,
+            "fixed", sizeof(theme->menu.selected.font));
+    theme->menu.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->menu.selected.color.foreground =
+        json_hex2uint32("253040");
+    theme->menu.selected.border.color = json_hex2uint32("4A5566");
+    theme->menu.selected.border.width = 0u;
+
+    safe_strncpy(theme->menu.label.font,
+            "fixed", sizeof(theme->menu.label.font));
+    theme->menu.label.color.background =
+        json_hex2uint32("48607F");
+    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
+     * background (the same bar as any other normal-weight text in
+     * the theme): the border color this foreground used to reuse
+     * only reached ~2:1 against a light background, too low for
+     * text meant to be read normally rather than treated as a
+     * de-emphasized secondary state; the ratio itself is the same
+     * either way around, since contrast between two colors does not
+     * depend on which one is foreground and which is background. */
+    theme->menu.label.color.foreground =
+        json_hex2uint32("D0D9E5");
+    theme->menu.label.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.label.border.width = 0u;
+
+    /* Picked for a WCAG contrast ratio of ~3:1 against the menu's own
+     * background: low enough to still read as visibly de-emphasized
+     * (this is disabled, secondary text, not meant to compete with
+     * normal menu text), but not the ~1.7:1 the previous color gave,
+     * which was too low to reliably read as text at all. */
+    theme->menu.disabled_foreground = json_hex2uint32("717B88");
+    theme->menu.separator_color = json_hex2uint32("7F9AB6");
+    theme->menu.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.border.width = 2u;
+    theme->menu.opacity = 100u;
+    theme->menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
+    theme->menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
+    theme->menu.show_pixmaps = true;
+
+    theme->dialog.background = json_hex2uint32("D0D9E5");
+    theme->dialog.border.color = json_hex2uint32("7F9AB6");
+    theme->dialog.border.width = 2u;
+    theme->dialog.opacity = 100u;
+
+    safe_strncpy(theme->dialog.label.font,
+            "fixed bold", sizeof(theme->dialog.label.font));
+    theme->dialog.label.foreground = json_hex2uint32("4A5566");
+    theme->dialog.label.padding.horizontal = 12u;
+    theme->dialog.label.padding.vertical = 12u;
+
+    safe_strncpy(theme->dialog.button.unselected.font,
+            "fixed", sizeof(theme->dialog.button.unselected.font));
+    theme->dialog.button.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->dialog.button.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->dialog.button.unselected.border.color =
+        json_hex2uint32("7F9AB6");
+    theme->dialog.button.unselected.border.width = 1u;
+
+    safe_strncpy(theme->dialog.button.selected.font,
+            "fixed bold", sizeof(theme->dialog.button.selected.font));
+    theme->dialog.button.selected.color.background =
+        json_hex2uint32("9AAEC8");
+    theme->dialog.button.selected.color.foreground =
+        json_hex2uint32("253040");
+    theme->dialog.button.selected.border.color =
+        json_hex2uint32("4A5566");
+    theme->dialog.button.selected.border.width = 1u;
+
+    theme->dialog.button.gap = 24u;
+    theme->dialog.button.padding.horizontal = 12u;
+    theme->dialog.button.padding.vertical = 6u;
+
+    safe_strncpy(theme->overlay.font, "fixed", sizeof(theme->overlay.font));
+    theme->overlay.color.background = json_hex2uint32("D0D9E5");
+    theme->overlay.color.foreground = json_hex2uint32("4A5566");
+    theme->overlay.border.color = json_hex2uint32("7F9AB6");
+    theme->overlay.border.width = 1u;
+    theme->overlay.opacity = 100u;
+
+    theme->xsettings.is_enabled = false;
+    theme->xsettings.dpi = 96u;
+    safe_strncpy(theme->xsettings.theme.gtk_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(theme->xsettings.theme.icon_theme_name, "Adwaita",
+            CONFIG_MAX_LENGTH_NAME);
+    safe_strncpy(theme->xsettings.theme.cursor_theme_name,
+            "Adwaita", CONFIG_MAX_LENGTH_NAME);
+    theme->xsettings.theme.cursor_theme_size = 24u;
 }
 
 

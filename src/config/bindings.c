@@ -1,8 +1,8 @@
 /**
  * @file config/bindings.c
  *
- * @brief Keyboard and mouse bindings configuration loader
- *        implementation
+ * @brief Keyboard and mouse bindings configuration loader and
+ *        defaults implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -17,12 +17,226 @@
 
 /* Utils includes */
 #include <utils/config/json.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>
 
 /* Local includes */
 #include <config.h>
+
+
+/* Populate default values for the keyboard and mouse bindings
+ * configuration structure, used both as the initial process-wide
+ * default and, before applying any bindings.json found, as the
+ * known-good starting point that file's own fields then overlay */
+void config_set_default_bindings_values(
+        struct config_bindings_s *config_bindings)
+{
+    /* Assign predetermined values for bindings modifiers */
+    LOGGER_TRACE("Setting default bindings modifiers", L_NARG);
+    safe_strncpy(config_bindings->modc,
+            "Control", sizeof(config_bindings->modc));
+    safe_strncpy(config_bindings->mods,
+            "Shift", sizeof(config_bindings->mods));
+    safe_strncpy(config_bindings->modl,
+            "Caps_Lock", sizeof(config_bindings->modl));
+    safe_strncpy(config_bindings->mod1, "Alt", sizeof(config_bindings->mod1));
+    safe_strncpy(config_bindings->mod2,
+            "Num_Lock", sizeof(config_bindings->mod2));
+    safe_strncpy(config_bindings->mod3, "", sizeof(config_bindings->mod3));
+    safe_strncpy(config_bindings->mod4,
+            "Super", sizeof(config_bindings->mod4));
+    safe_strncpy(config_bindings->mod5,
+            "Hyper", sizeof(config_bindings->mod5));
+
+    /* Predetermined configuration for keybindings */
+    LOGGER_TRACE("Setting default keybindings", L_NARG);
+    safe_strncpy(config_bindings->keyboard.launch.terminal,
+            "modc+mod1+Return",
+            sizeof(config_bindings->keyboard.launch.terminal));
+    safe_strncpy(config_bindings->keyboard.launch.launcher,
+            "modc+mod1+r", sizeof(config_bindings->keyboard.launch.launcher));
+    safe_strncpy(config_bindings->keyboard.launch.file_manager,
+            "modc+mod1+q",
+            sizeof(config_bindings->keyboard.launch.file_manager));
+    safe_strncpy(config_bindings->keyboard.launch.web_browser,
+            "modc+mod1+w",
+            sizeof(config_bindings->keyboard.launch.web_browser));
+    safe_strncpy(config_bindings->keyboard.launch.editor,
+            "modc+mod1+e", sizeof(config_bindings->keyboard.launch.editor));
+    safe_strncpy(config_bindings->keyboard.wm.menus.root,
+            "modc+mod1+mods+m",
+            sizeof(config_bindings->keyboard.wm.menus.root));
+    safe_strncpy(config_bindings->keyboard.wm.menus.windows,
+            "modc+mod1+mods+w",
+            sizeof(config_bindings->keyboard.wm.menus.windows));
+    safe_strncpy(config_bindings->keyboard.wm.search,
+            "modc+mod4+mods+s",
+            sizeof(config_bindings->keyboard.wm.search));
+    safe_strncpy(config_bindings->keyboard.window.close,
+            "modc+mod1+c", sizeof(config_bindings->keyboard.window.close));
+    safe_strncpy(config_bindings->keyboard.window.decorate,
+            "modc+mod1+d", sizeof(config_bindings->keyboard.window.decorate));
+    safe_strncpy(config_bindings->keyboard.window.fullscreen,
+            "modc+mod1+f",
+            sizeof(config_bindings->keyboard.window.fullscreen));
+    safe_strncpy(config_bindings->keyboard.window.hide,
+            "modc+mod1+mods+u", sizeof(config_bindings->keyboard.window.hide));
+    safe_strncpy(config_bindings->keyboard.window.iconify,
+            "modc+mod1+i", sizeof(config_bindings->keyboard.window.iconify));
+    safe_strncpy(config_bindings->keyboard.window.iconify_all,
+            "modc+mod1+mods+i",
+            sizeof(config_bindings->keyboard.window.iconify_all));
+    safe_strncpy(config_bindings->keyboard.window.deiconify_all,
+            "modc+mod1+mods+d",
+            sizeof(config_bindings->keyboard.window.deiconify_all));
+    safe_strncpy(config_bindings->keyboard.window.arrange,
+            "modc+mod1+mods+a",
+            sizeof(config_bindings->keyboard.window.arrange));
+    safe_strncpy(config_bindings->keyboard.window.info,
+            "modc+mod4+mods+i", sizeof(config_bindings->keyboard.window.info));
+    safe_strncpy(config_bindings->keyboard.window.kill,
+            "modc+mod1+mods+Escape",
+            sizeof(config_bindings->keyboard.window.kill));
+    safe_strncpy(config_bindings->keyboard.window.maximize,
+            "modc+mod1+m", sizeof(config_bindings->keyboard.window.maximize));
+    safe_strncpy(config_bindings->keyboard.window.next_monitor,
+            "modc+mod1+mods+n",
+            sizeof(config_bindings->keyboard.window.next_monitor));
+    safe_strncpy(config_bindings->keyboard.window.pin,
+            "modc+mod1+p", sizeof(config_bindings->keyboard.window.pin));
+    safe_strncpy(config_bindings->keyboard.window.layer,
+            "modc+mod1+mods+y",
+            sizeof(config_bindings->keyboard.window.layer));
+    safe_strncpy(config_bindings->keyboard.window.shade,
+            "modc+mod1+s", sizeof(config_bindings->keyboard.window.shade));
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.prev,
+            "modc+mod1+Left",
+            sizeof(config_bindings->keyboard.cycle.desktop.prev));
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.next,
+            "modc+mod1+Right",
+            sizeof(config_bindings->keyboard.cycle.desktop.next));
+    safe_strncpy(config_bindings->keyboard.cycle.icon.prev,
+            "modc+mod1+mods+Tab",
+            sizeof(config_bindings->keyboard.cycle.icon.prev));
+    safe_strncpy(config_bindings->keyboard.cycle.icon.next,
+            "modc+mod1+Tab",
+            sizeof(config_bindings->keyboard.cycle.icon.next));
+    safe_strncpy(config_bindings->keyboard.cycle.window.prev,
+            "mod1+mods+Tab",
+            sizeof(config_bindings->keyboard.cycle.window.prev));
+    safe_strncpy(config_bindings->keyboard.cycle.window.next,
+            "mod1+Tab", sizeof(config_bindings->keyboard.cycle.window.next));
+    safe_strncpy(config_bindings->keyboard.wm.redraw,
+            "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));
+    safe_strncpy(config_bindings->keyboard.wm.reload,
+            "modc+mod1+mods+c", sizeof(config_bindings->keyboard.wm.reload));
+    safe_strncpy(config_bindings->keyboard.wm.quit,
+            "modc+mod1+mods+x", sizeof(config_bindings->keyboard.wm.quit));
+    safe_strncpy(config_bindings->keyboard.wm.shortcuts,
+            "modc+mod4+F1", sizeof(config_bindings->keyboard.wm.shortcuts));
+    safe_strncpy(config_bindings->keyboard.wm.fortune,
+            "modc+mod4+Backspace",
+            sizeof(config_bindings->keyboard.wm.fortune));
+    safe_strncpy(config_bindings->keyboard.wm.show_desktop,
+            "modc+mod4+mods+d",
+            sizeof(config_bindings->keyboard.wm.show_desktop));
+    safe_strncpy(config_bindings->keyboard.wm.scratchpad,
+            "modc+mod1+mods+F12",
+            sizeof(config_bindings->keyboard.wm.scratchpad));
+
+    /* Predetermined goto-desktop shortcuts for desktops 0-9 */
+    LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[0],
+            "modc+mod1+0",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[0]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[1],
+            "modc+mod1+1",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[1]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[2],
+            "modc+mod1+2",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[2]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[3],
+            "modc+mod1+3",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[3]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[4],
+            "modc+mod1+4",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[4]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[5],
+            "modc+mod1+5",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[5]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[6],
+            "modc+mod1+6",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[6]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[7],
+            "modc+mod1+7",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[7]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[8],
+            "modc+mod1+8",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[8]));
+    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[9],
+            "modc+mod1+9",
+            sizeof(config_bindings->keyboard.wm.go_to.desktop[9]));
+
+    /* Predetermined configuration for movement with keyboard */
+    LOGGER_TRACE("Setting default movement/resizing keybindings",
+            L_NARG);
+    safe_strncpy(config_bindings->keyboard.window.move.relative.right,
+            "modc+mod1+l",
+            sizeof(config_bindings->keyboard.window.move.relative.right));
+    safe_strncpy(config_bindings->keyboard.window.move.relative.left,
+            "modc+mod1+h",
+            sizeof(config_bindings->keyboard.window.move.relative.left));
+    safe_strncpy(config_bindings->keyboard.window.move.relative.up,
+            "modc+mod1+k",
+            sizeof(config_bindings->keyboard.window.move.relative.up));
+    safe_strncpy(config_bindings->keyboard.window.move.relative.down,
+            "modc+mod1+j",
+            sizeof(config_bindings->keyboard.window.move.relative.down));
+    safe_strncpy(config_bindings->keyboard.window.move.absolute.center,
+            "modc+mod1+g",
+            sizeof(config_bindings->keyboard.window.move.absolute.center));
+    safe_strncpy(config_bindings->keyboard.window.move.absolute.top_left,
+            "modc+mod1+y",
+            sizeof(config_bindings->keyboard.window.move.absolute.top_left));
+    safe_strncpy(config_bindings->keyboard.window.move.absolute.top_right,
+            "modc+mod1+u",
+            sizeof(config_bindings->keyboard.window.move.absolute.top_right));
+    safe_strncpy(config_bindings->keyboard.window.move.absolute.bottom_left,
+            "modc+mod1+b",
+            sizeof(config_bindings->keyboard.window.move.absolute.
+                    bottom_left));
+    safe_strncpy(config_bindings->keyboard.window.move.absolute.bottom_right,
+            "modc+mod1+n",
+            sizeof(config_bindings->keyboard.window.move.absolute.
+                    bottom_right));
+    safe_strncpy(config_bindings->keyboard.window.resize.right,
+            "modc+mod1+mods+l",
+            sizeof(config_bindings->keyboard.window.resize.right));
+    safe_strncpy(config_bindings->keyboard.window.resize.left,
+            "modc+mod1+mods+h",
+            sizeof(config_bindings->keyboard.window.resize.left));
+    safe_strncpy(config_bindings->keyboard.window.resize.up,
+            "modc+mod1+mods+k",
+            sizeof(config_bindings->keyboard.window.resize.up));
+    safe_strncpy(config_bindings->keyboard.window.resize.down,
+            "modc+mod1+mods+j",
+            sizeof(config_bindings->keyboard.window.resize.down));
+
+    /* Predetermined configuration for mouse bindings */
+    LOGGER_TRACE("Setting default mouse bindings", L_NARG);
+    safe_strncpy(config_bindings->mouse.window.move,
+            "mod1+button1", sizeof(config_bindings->mouse.window.move));
+    safe_strncpy(config_bindings->mouse.window.lower,
+            "mod1+button2", sizeof(config_bindings->mouse.window.lower));
+    safe_strncpy(config_bindings->mouse.window.resize,
+            "mod1+button3", sizeof(config_bindings->mouse.window.resize));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.prev,
+            "button4", sizeof(config_bindings->mouse.cycle.desktop.prev));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.next,
+            "button5", sizeof(config_bindings->mouse.cycle.desktop.next));
+}
 
 
 /* Load bindings configuration */

@@ -234,7 +234,7 @@ struct config_base_s {
      *
      * @c command is run through a shell (@c popen), so it may be any
      * shell command line, not just a bare executable name -- e.g.
-     * @c "fortune -s" for short-only fortunes, @c "fortune -o" for
+     * @c (fortune -s) for short-only fortunes, @c (fortune -o) for
      * offensive ones, or a specific fortune database/language.  Runs
      * literally as configured, with no argument substitution or
      * validation of its own: an invalid command simply produces no
@@ -539,7 +539,7 @@ struct config_base_s {
 
         /**
          * @brief Either dimension, given as a fixed pixel count or
-         *        as the string @c "max", meaning "however much of
+         *        as the string @c max, meaning "however much of
          *        that axis is actually available", so a user is
          *        never forced to hard-code a resolution that may
          *        change later
@@ -1265,7 +1265,7 @@ struct config_randr_s {
  * much of each desktop's own area stays reserved regardless of what
  * any client itself publishes via @c _NET_WM_STRUT_PARTIAL (see @c
  * desktop_update_workarea).  Loaded from @c config.json's own top-
- * level @c "desktops" object, a sibling of @c "topology", not nested
+ * level @c desktops object, a sibling of @c topology, not nested
  * inside it: unlike topology, every field here does take effect on a
  * configuration reload.
  */
@@ -1412,11 +1412,13 @@ void config_destroy(config_td *config);
  * @brief Populate the configuration structure with an ordinary
  *        session's own default values
  *
- * Sets default values for all fields in the given @c config_td
- * structure.  Restricted-memory mode never calls this: see @a
- * config_set_default_values_memguard in config/memguard.h for its own
- * completely separate profile, which this function knows nothing
- * about.
+ * A thin dispatcher: delegates to each module's own @c
+ * config_set_default_*_values (@c config/base.c, @c config/randr.c,
+ * @c config/bindings.c, @c config/a11y.c, @c config/theme.c), rather
+ * than setting any field directly itself.  Restricted-memory mode
+ * never calls this: see @a config_set_default_values_memguard in
+ * config/memguard.h for its own completely separate profile, which
+ * this function knows nothing about.
  *
  * @param config Pointer to the configuration structure to set the
  *               default values for
@@ -1424,7 +1426,7 @@ void config_destroy(config_td *config);
  * @note This function is loaded before user configuration, as
  *       a fail-safe for fields not yet configured manually
  * @note Complexity: @e O(n), where @e n is the number of fields that
- *       need to be set
+ *       need to be set, across every module this delegates to
  */
 void config_set_default_values(config_td *config);
 
@@ -1439,7 +1441,7 @@ void config_set_default_values(config_td *config);
  * file specifies, never resets the rest on its own, so a caller that
  * skips this first and reuses whatever @c theme already held from a
  * previous load would leave a field the new file no longer specifies
- * (e.g. a boolean like @c window.is-decorated) stuck at its old value
+ * (e.g., a boolean like @c window.is-decorated) stuck at its old value
  * instead of falling back to this default.  @a config_load calls this
  * itself before loading a theme file on every call, not just the
  * first, for exactly that reason.
@@ -1539,8 +1541,8 @@ const char *config_missing_theme_get(void);
  *        environment variables when none is given
  *
  * Resolution order: @p config_dir_prefix, if given; otherwise
- * @c "${XDG_CONFIG_HOME}/icowm"; otherwise @c "${HOME}/.icowm";
- * otherwise @c "./.icowm" in the current working directory.
+ * @c ${XDG_CONFIG_HOME}/icowm; otherwise @c ${HOME}/.icowm;
+ * otherwise @c ./.icowm in the current working directory.
  *
  * @param config_dir_prefix Configuration directory, or @c NULL to
  *                          resolve it from the environment instead
@@ -1554,11 +1556,27 @@ void config_resolve_dir(const char *config_dir_prefix,
         char *config_dir_base);
 
 /**
+ * @brief Populate default values for the base and desktop-navigation
+ *        configuration structures, used both as the initial process-
+ *        wide default and, before applying any config.json (or
+ *        memguard.json) found, as the known-good starting point that
+ *        file's own fields then overlay
+ *
+ * @param config_base    Base configuration structure to populate
+ * @param config_desktop Desktop-behavior structure to populate
+ *
+ * @note Complexity: @e O(s * d), where @e s is @c CONFIG_MAX_SCREENS
+ *       and @e d is @c CONFIG_MAX_DESKTOPS
+ */
+void config_set_default_base_values(struct config_base_s *config_base,
+        struct config_desktop_s *config_desktop);
+
+/**
  * @brief Load base configuration settings from a JSON file
  *
  * Loads base configuration settings into the provided @c config_base_s
  * structure from the specified file, and desktop-navigation/reserved-
- * space behavior (@c "desktops" -- @c warp, @c cycle, @c margins; see
+ * space behavior (@c desktops; @c warp, @c cycle, @c margins; see
  * @c config_desktop_s) into @p config_desktop from that same file,
  * since both live in @c config.json.
  *
@@ -1579,6 +1597,20 @@ void config_resolve_dir(const char *config_dir_prefix,
 int config_load_base(const char *filename,
         struct config_base_s *config_base,
         struct config_desktop_s *config_desktop);
+
+/**
+ * @brief Populate default values for the keyboard and mouse bindings
+ *        configuration structure, used both as the initial process-
+ *        wide default and, before applying any bindings.json found,
+ *        as the known-good starting point that file's own fields
+ *        then overlay
+ *
+ * @param config_bindings Bindings configuration structure to populate
+ *
+ * @note Complexity: @e O(1)
+ */
+void config_set_default_bindings_values(
+        struct config_bindings_s *config_bindings);
 
 /**
  * @brief Load key bindings from a JSON file
@@ -1639,6 +1671,19 @@ int config_load_theme(const char *filename,
  * @note Complexity: @e O(1)
  */
 uint32_t config_theme_opacity_to_raw(uint8_t percent);
+
+/**
+ * @brief Populate default values for one RandR output-profile
+ *        structure, used both as the initial process-wide default
+ *        and, before applying any randr.json found, as the
+ *        known-good starting point that file's own fields then
+ *        overlay
+ *
+ * @param config_randr RandR configuration structure to populate
+ *
+ * @note Complexity: @e O(1)
+ */
+void config_set_default_randr_values(struct config_randr_s *config_randr);
 
 /**
  * @brief Load XRandR output profiles from a JSON file
