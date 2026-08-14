@@ -80,90 +80,90 @@
  * ('src/menu/dialog/confirm.c'), shown under the prompt whenever
  * a timeout was given to 'menu_confirm_dialog_show'.  Names the cancel
  * button's own label specifically (never assumed to literally read
- * "Cancel"; see e.g., 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since
+ * "Cancel"; see, e.g., 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since
  * the countdown always takes that path once it elapses regardless of
  * which button a person may have tabbed the visible selection to in the
  * meantime (a safety timeout has to fall back to the one path that
  * needs no working display to have been chosen deliberately).  A format
  * string taking the cancel button's own label, then the whole seconds
  * remaining, updated once a second as it counts down.  The '%s'
- * precision is capped at 255 (DIALOG_TEXT_MAX_LEN - 1, the most a label
- * can ever actually hold) explicitly, in the format string itself
- * rather than left to be inferred from the caller's own buffer: GCC's
- * own '-Wformat-truncation' cannot prove that a label reached through
- * a struct pointer is null-terminated within its own declared array
- * bound rather than somewhere later in the struct, so without this it
- * assumes the width of every field after it too. */
+ * precision is capped at 255 ((DIALOG_TEXT_MAX_LEN - 1), the most
+ * a label can ever actually hold) explicitly, in the format string
+ * itself rather than left to be inferred from the caller's own buffer:
+ * GCC's own '-Wformat-truncation' cannot prove that a label reached
+ * through a struct pointer is null-terminated within its own declared
+ * array bound rather than somewhere later in the struct, so without
+ * this it assumes the width of every field after it too. */
 #define STR_DIALOG_CONFIRM_TIMEOUT_FMT \
     ("Automatically selecting '%.255s' in %d second(s)")
 
-/* RandR output-profile confirm dialog (src/menu/dialog/
- * rrsafe.c), shown after 'surface_action_apply_randr_profiles'
- * is called from a configuration reload (see 'wm_action_config_
- * reload'), never at startup or on a hotplug 'OUTPUT_CHANGE' */
+/* RandR output-profile confirm dialog ('src/menu/dialog/ rrsafe.c'),
+ * shown after 'surface_action_apply_randr_profiles' is called from
+ * a configuration reload (see 'wm_action_config_reload'), never at
+ * startup or on a hotplug 'OUTPUT_CHANGE' */
 #define STR_DIALOG_RANDR_CONFIRM_PROMPT \
     ("The 'randr.json' configuration has been applied.  Keep it, " \
      "or revert to the previous one?")
 #define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
 #define STR_DIALOG_RANDR_CONFIRM_OK     "[ Keep ]"
 
-/* Keyboard-shortcuts list dialog (src/menu/dialog/shortcuts.c): one
- * section header, and one label per action, each paired at
- * runtime with that action's own configured key combo */
+/* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c'): one
+ * section header, and one label per action, each paired at runtime with
+ * that action's own configured key combo */
 #define STR_SHORTCUTS_HEADER_WM     "[Window Manager]"
 #define STR_SHORTCUTS_HEADER_LAUNCH "[Launch]"
 #define STR_SHORTCUTS_HEADER_WINDOW "[Window]"
 #define STR_SHORTCUTS_HEADER_CYCLE  "[Cycle]"
 
-#define STR_SHORTCUTS_ROOT_MENU         "Root menu"
-#define STR_SHORTCUTS_WINDOWS_MENU      "Windows menu"
-#define STR_SHORTCUTS_SEARCH_WINDOWS    "Search windows"
-#define STR_SHORTCUTS_SHOW_DESKTOP      "Show desktop"
-#define STR_SHORTCUTS_REDRAW            "Redraw"
-#define STR_SHORTCUTS_RELOAD_CONFIG     "Reload configuration"
-#define STR_SHORTCUTS_QUIT              "Quit"
-#define STR_SHORTCUTS_THIS_LIST         "This list"
-/* Both whole, fixed lines on their own (no combo of their own to
- * pair with; the combo is itself hardcoded, not user-configurable) */
+#define STR_SHORTCUTS_ROOT_MENU      "Root menu"
+#define STR_SHORTCUTS_WINDOWS_MENU   "Windows menu"
+#define STR_SHORTCUTS_SEARCH_WINDOWS "Search windows"
+#define STR_SHORTCUTS_SHOW_DESKTOP   "Show desktop"
+#define STR_SHORTCUTS_REDRAW         "Redraw"
+#define STR_SHORTCUTS_RELOAD_CONFIG  "Reload configuration"
+#define STR_SHORTCUTS_QUIT           "Quit"
+#define STR_SHORTCUTS_THIS_LIST      "This list"
+/* Both whole, fixed lines on their own (no combo of their own to pair
+ * with; the combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
 #define STR_SHORTCUTS_FORTUNE        "Fortune"
 #define STR_SHORTCUTS_SCRATCHPAD     "Scratchpad"
 
-#define STR_SHORTCUTS_TERMINAL      "Terminal"
-#define STR_SHORTCUTS_LAUNCHER      "Launcher"
-#define STR_SHORTCUTS_FILE_MANAGER  "File manager"
-#define STR_SHORTCUTS_WEB_BROWSER   "Web browser"
-#define STR_SHORTCUTS_EDITOR        "Editor"
+#define STR_SHORTCUTS_TERMINAL       "Terminal"
+#define STR_SHORTCUTS_LAUNCHER       "Launcher"
+#define STR_SHORTCUTS_FILE_MANAGER   "File manager"
+#define STR_SHORTCUTS_WEB_BROWSER    "Web browser"
+#define STR_SHORTCUTS_EDITOR         "Editor"
 
-#define STR_SHORTCUTS_CLOSE         "Close"
-#define STR_SHORTCUTS_KILL          "Kill"
-#define STR_SHORTCUTS_DECORATE      "Decorate"
-#define STR_SHORTCUTS_FULLSCREEN    "Fullscreen"
-#define STR_SHORTCUTS_HIDE          "Hide"
-#define STR_SHORTCUTS_ICONIFY       "Iconify"
-#define STR_SHORTCUTS_ICONIFY_ALL   "Iconify all"
-#define STR_SHORTCUTS_DEICONIFY_ALL "Deiconify all"
-#define STR_SHORTCUTS_ARRANGE       "Arrange"
-#define STR_SHORTCUTS_INFO          "Info"
-#define STR_SHORTCUTS_LAYER         "Layer"
-#define STR_SHORTCUTS_MAXIMIZE      "Maximize"
-#define STR_SHORTCUTS_NEXT_MONITOR  "Next monitor"
-#define STR_SHORTCUTS_PIN           "Pin"
-#define STR_SHORTCUTS_SHADE         "Shade"
+#define STR_SHORTCUTS_CLOSE          "Close"
+#define STR_SHORTCUTS_KILL           "Kill"
+#define STR_SHORTCUTS_DECORATE       "Decorate"
+#define STR_SHORTCUTS_FULLSCREEN     "Fullscreen"
+#define STR_SHORTCUTS_HIDE           "Hide"
+#define STR_SHORTCUTS_ICONIFY        "Iconify"
+#define STR_SHORTCUTS_ICONIFY_ALL    "Iconify all"
+#define STR_SHORTCUTS_DEICONIFY_ALL  "Deiconify all"
+#define STR_SHORTCUTS_ARRANGE        "Arrange"
+#define STR_SHORTCUTS_INFO           "Info"
+#define STR_SHORTCUTS_LAYER          "Layer"
+#define STR_SHORTCUTS_MAXIMIZE       "Maximize"
+#define STR_SHORTCUTS_NEXT_MONITOR   "Next monitor"
+#define STR_SHORTCUTS_PIN            "Pin"
+#define STR_SHORTCUTS_SHADE          "Shade"
 
-/* Group labels; each pairs with a short direction/position name
- * below, joined at runtime as e.g. "Right=<combo>, Left=<combo>" */
-#define STR_SHORTCUTS_MOVE_RELATIVE "Move (relative)"
-#define STR_SHORTCUTS_MOVE_ABSOLUTE "Move (absolute)"
-#define STR_SHORTCUTS_RESIZE        "Resize"
-#define STR_SHORTCUTS_DESKTOPS      "Desktops"
-#define STR_SHORTCUTS_ICONS         "Icons"
-#define STR_SHORTCUTS_WINDOWS       "Windows"
+/* Group labels; each pairs with a short direction/position name below,
+ * joined at runtime as, e.g., "Right=<combo>, Left=<combo>" */
+#define STR_SHORTCUTS_MOVE_RELATIVE  "Move (relative)"
+#define STR_SHORTCUTS_MOVE_ABSOLUTE  "Move (absolute)"
+#define STR_SHORTCUTS_RESIZE         "Resize"
+#define STR_SHORTCUTS_DESKTOPS       "Desktops"
+#define STR_SHORTCUTS_ICONS          "Icons"
+#define STR_SHORTCUTS_WINDOWS        "Windows"
 
 /* Deliberately NOT translated, unlike every label above: 'Right',
  * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',
  * 'BotRight', 'prev', and 'next' each sit directly beside the literal,
- * never-translated key combo they name (e.g. 'Right=mod1+ Right'), so
+ * never-translated key combo they name (e.g., 'Right=mod1+ Right'), so
  * they stay as plain literals at their own call site in 'shortcuts.c'
  * instead of living here; translating only one half of that pairing
  * would read as more inconsistent than helpful. */
@@ -177,9 +177,9 @@
 #define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u: %s"
 
 /* Battery indicator ('src/systray/battery.c') */
-#define STR_BATTERY_NOT_AVAILABLE "N/A"
-#define STR_BATTERY_FULL_AC       "Full, AC"
-#define STR_BATTERY_FULL          "Full"
+#define STR_BATTERY_NOT_AVAILABLE   "N/A"
+#define STR_BATTERY_FULL_AC         "Full, AC"
+#define STR_BATTERY_FULL            "Full"
 /* The percentage itself, formatted on its own before being embedded
  * into any of the longer strings below (e.g., before 'STR_BATTERY_AC'
  * to form "34% AC"): kept as its own translatable format string,
@@ -187,17 +187,16 @@
  * flush against the number or has a space before it is a per-language
  * typographic convention, not something a single hardcoded "%u%%" can
  * get right for every locale at once. */
-#define STR_BATTERY_PERCENT        "%u%%"
+#define STR_BATTERY_PERCENT "%u%%"
 /* Standalone, appended after a percentage (e.g., "34% AC"): kept as its
  * own string, separate from 'STR_BATTERY_FULL_AC' above, since
  * a translation cannot derive one from the other by substring; some
  * languages place the qualifier before the percentage, or use an
- * entirely different word or word order for "on AC power" versus "fully
- * charged, on AC power" */
-#define STR_BATTERY_AC             "AC"
+ * entirely different word (or word order) for "on AC power" versus
+ * "fully charged, on AC power" */
+#define STR_BATTERY_AC "AC"
 
-/* Restricted-memory mode announcement, shown once at startup
- * ('src/wm.c') */
+/* Restricted-memory mode announcement, shown once at startup ('src/wm.c') */
 #define STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE \
     ("IcoWM is running in restricted-memory mode.  In" \
      " this mode: application icons are shown without" \
@@ -226,10 +225,10 @@
      " 'config.json' was not found; using the" \
      " built-in default theme instead.")
 
-/* Restricted-memory mode's own two warning dialogs
- * ('src/memguard.c'); TRANSLATORS: keep every '%u' (a MiB count, or a
- * window count) and the literal '-M' (the command-line option's own
- * name, unchanged in every language) */
+/* Restricted-memory mode's own two warning dialogs ('src/memguard.c');
+ * TRANSLATORS: keep every '%u' (a MiB count, or a window count) and the
+ * literal '-M' (the command-line option's own name, unchanged in every
+ * language) */
 #define STR_MEMGUARD_CEILING_REACHED_FMT \
     ("IcoWM has reached its configured memory ceiling: using" \
      " %u MiB of the %u MiB allowed (see the '-M' command-line" \
@@ -246,10 +245,10 @@
 #define STR_SEARCH_NO_WINDOWS \
     "There are no open windows in this session at the moment."
 
-/* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead
- * when the configured 'fortune.command' is missing or produces no
- * output; deliberately overwrought and archaic, per its whole point
- * being a small joke rather than a plain error message */
+/* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead when
+ * the configured 'fortune.command' is missing or produces no output;
+ * deliberately overwrought and archaic, per its whole point being
+ * a small joke rather than a plain error message */
 #define STR_FORTUNE_FALLBACK \
     ("Alack!  The oracle 'fortune' abideth not upon this machine, " \
      "wherefore no wisdom of the ancients may this day be divined.  " \
