@@ -101,7 +101,7 @@ bool search_owns_window(xcb_window_t win);
  * @brief Handle a key press while the search widget is open
  *
  * A printable character appends to the query and re-filters the
- * match list; @c BackSpace removes the last character; @c Up / @c
+ * match list; @c Backspace removes the last character; @c Up / @c
  * Down, or @c Tab / @c Shift+Tab, move the selection (@c Tab acting
  * like @c Down, @c Shift+Tab like @c Up, so the widget stays
  * navigable with one hand the same way a plain @c Tab-completion

@@ -192,18 +192,35 @@ static void s_test_representative_fields_at_every_level(void)
 }
 
 
-/* Known, documented behavior (left as-is, not changed by this
- * file's own fix): 'keyboard.wm.show-desktop' and
- * 'keyboard.window.show-desktop' both write the same destination
- * field; when both are present in the file, whichever one the code
- * happens to process second (window's) wins. This is not asserted
- * as correct or incorrect, only pinned down so a future change to
- * this ordering is a deliberate decision, not an accidental one. */
-static void s_test_show_desktop_duplicate_last_write_wins(void)
+/* 'show-desktop' only ever lives in 'keyboard.wm' -- the field it
+ * writes to (keyboard.wm.show_desktop) has never had a genuine
+ * counterpart under 'keyboard.window'; a same-named key there is
+ * simply unrecognized and has no effect at all, the same as any
+ * other typo would. */
+static void s_test_show_desktop_only_wm_accepted(void)
 {
     char path[512];
     struct config_bindings_s cb;
 
+    /* Present only under 'wm': loads normally */
+    memset(&cb, 0, sizeof(cb));
+    s_write_temp_file(path, sizeof(path),
+            "{\"keyboard\": {\"wm\": {\"show-desktop\": \"from-wm\"} } }");
+    config_load_bindings(path, &cb);
+    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "from-wm",
+            "'wm.show-desktop' loads correctly");
+    unlink(path);
+
+    /* Present only under 'window': has no effect at all */
+    memset(&cb, 0, sizeof(cb));
+    s_write_temp_file(path, sizeof(path),
+            "{\"keyboard\": {\"window\": {\"show-desktop\": \"from-window\"} } }");
+    config_load_bindings(path, &cb);
+    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "",
+            "'window.show-desktop' is not a recognized key; ignored");
+    unlink(path);
+
+    /* Present in both: only 'wm's own value is ever used */
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
             "{\"keyboard\": {"
@@ -211,24 +228,22 @@ static void s_test_show_desktop_duplicate_last_write_wins(void)
             "\"window\": {\"show-desktop\": \"from-window\"}"
             "} }");
     config_load_bindings(path, &cb);
-
-    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "from-window",
-            "documented behavior: when both are present, 'window's"
-            " value wins, since it is processed second");
+    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "from-wm",
+            "with both present, only 'wm's own value is ever used");
     unlink(path);
 }
 
 
 int main(void)
 {
-    TAP_PLAN(19);
+    TAP_PLAN(21);
 
     s_test_missing_file();
     s_test_empty_file();
     s_test_go_to_regression();
     s_test_go_to_still_works_with_window_present();
     s_test_representative_fields_at_every_level();
-    s_test_show_desktop_duplicate_last_write_wins();
+    s_test_show_desktop_only_wm_accepted();
 
     return TAP_DONE();
 }

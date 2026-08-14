@@ -650,7 +650,7 @@ void search_handle_keypress(xcb_connection_t *connection,
         return;
     }
 
-    if (keysym == 0xff08u) {   /* BackSpace */
+    if (keysym == 0xff08u) {   /* Backspace */
         if (s_search.query_len > 0) {
             s_search.query[--s_search.query_len] = '\0';
             s_search_refilter();

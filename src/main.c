@@ -6,9 +6,9 @@
  *
  * @author J. A. Corbal <jacorbal@gmail.com>
  *
- * @date Tue Feb 24 11:42:50 UTC 2026
+ * @date Fri Aug 14 14:44:41 UTC 2026
  *
- * @version 1.0.1b1 ("'ovelya")
+ * @version 1.0.1-beta.3 ("'ovelya")
  * @copyright Copyright (c) 2026, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *

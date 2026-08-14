@@ -208,6 +208,11 @@ static const config_lint_key_td s_schema_systray_text[] = {
     {"position", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_systray_monitor[] = {
+    {"anchor", NULL, 0u},
+    {"index", NULL, 0u}
+};
+
 static const config_lint_key_td s_schema_systray[] = {
     {"is-enabled", NULL, 0u},
     {"reserve-space", NULL, 0u},
@@ -218,6 +223,9 @@ static const config_lint_key_td s_schema_systray[] = {
         sizeof(s_schema_desktops_margins) /
             sizeof(s_schema_desktops_margins[0])},
     {"position", NULL, 0u},
+    {"monitor", s_schema_systray_monitor,
+        sizeof(s_schema_systray_monitor) /
+            sizeof(s_schema_systray_monitor[0])},
     {"order", NULL, 0u},
     {"layer", NULL, 0u},
     {"clock", s_schema_clock,
@@ -274,7 +282,9 @@ static const config_lint_key_td s_schema_go_to[] = {
 static const config_lint_key_td s_schema_kb_wm[] = {
     {"menus", s_schema_wm_menus,
         sizeof(s_schema_wm_menus) / sizeof(s_schema_wm_menus[0])},
+    {"search", NULL, 0u},
     {"show-desktop", NULL, 0u},
+    {"scratchpad", NULL, 0u},
     {"redraw", NULL, 0u},
     {"reload", NULL, 0u},
     {"quit", NULL, 0u},
@@ -311,11 +321,14 @@ static const config_lint_key_td s_schema_window_move[] = {
 };
 
 static const config_lint_key_td s_schema_kb_window[] = {
+    {"arrange", NULL, 0u},
     {"close", NULL, 0u},
     {"decorate", NULL, 0u},
+    {"deiconify-all", NULL, 0u},
     {"fullscreen", NULL, 0u},
     {"hide", NULL, 0u},
     {"iconify", NULL, 0u},
+    {"iconify-all", NULL, 0u},
     {"info", NULL, 0u},
     {"kill", NULL, 0u},
     {"layer", NULL, 0u},
@@ -323,7 +336,6 @@ static const config_lint_key_td s_schema_kb_window[] = {
     {"next-monitor", NULL, 0u},
     {"pin", NULL, 0u},
     {"shade", NULL, 0u},
-    {"show-desktop", NULL, 0u},
     {"move", s_schema_window_move,
         sizeof(s_schema_window_move) / sizeof(s_schema_window_move[0])},
     {"resize", s_schema_move_relative,
@@ -389,22 +401,263 @@ static const config_lint_key_td s_schema_bindings[] = {
 };
 
 
-/* --- Shallower schemas: top level and one level deep only, deferring
- *     to the opaque-subtree rule below that for anything nested
- *     further; see config/lint.h for why this is a deliberate scope
- *     choice rather than an oversight --- */
+/* --- theme.json schema: validated to the same full depth as every
+ *     other fixed-shape file (config.json, bindings.json, a11y.json).
+ *     Unlike randr.json's own "outputs" or rules.json's own "rules",
+ *     nothing under theme.json is genuinely polymorphic (see the
+ *     opaque-subtree rule in config/lint.h for what that means and
+ *     why it does not apply here): every field's own shape is fixed
+ *     and known ahead of time, so there is no risk of a false
+ *     positive on a legitimate but less common shape the way there
+ *     would be for those. --- */
+
+/* The { font, color: {background, foreground}, border: {color,
+ * width} } shape shared by every themeable surface's own row or
+ * button style (menu.unselected/selected/label, dialog.button.
+ * unselected/selected): never has its own 'opacity', since
+ * '_NET_WM_WINDOW_OPACITY' is a per-window property that cannot vary
+ * row by row or button by button; see 's_load_theme_colors''s own
+ * doc comment, config/theme.c, for the full rationale. */
+static const config_lint_key_td s_schema_theme_color[] = {
+    {"background", NULL, 0u},
+    {"foreground", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_border[] = {
+    {"color", NULL, 0u},
+    {"width", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_style[] = {
+    {"font", NULL, 0u},
+    {"color", s_schema_theme_color,
+        sizeof(s_schema_theme_color) / sizeof(s_schema_theme_color[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])}
+};
+
+/* The same shape, but for the six sites that stand for one real,
+ * distinct window or window-state on their own and so do have their
+ * own 'opacity' (window.active/inactive, icon.active/inactive,
+ * systray, overlay); see 's_schema_theme_style' above for the
+ * opacity-less variant and why the split exists at all. */
+static const config_lint_key_td s_schema_theme_style_opacity[] = {
+    {"font", NULL, 0u},
+    {"color", s_schema_theme_color,
+        sizeof(s_schema_theme_color) / sizeof(s_schema_theme_color[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])},
+    {"opacity", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_padding[] = {
+    {"horizontal", NULL, 0u},
+    {"vertical", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_titlebar_buttons_color[] = {
+    {"on", NULL, 0u},
+    {"off", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_titlebar_buttons[] = {
+    {"color", s_schema_titlebar_buttons_color,
+        sizeof(s_schema_titlebar_buttons_color) /
+            sizeof(s_schema_titlebar_buttons_color[0])},
+    {"left", NULL, 0u},
+    {"right", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_titlebar[] = {
+    {"height", NULL, 0u},
+    {"alignment", NULL, 0u},
+    {"padding", s_schema_theme_padding,
+        sizeof(s_schema_theme_padding) / sizeof(s_schema_theme_padding[0])},
+    {"buttons", s_schema_titlebar_buttons,
+        sizeof(s_schema_titlebar_buttons) /
+            sizeof(s_schema_titlebar_buttons[0])}
+};
+
+static const config_lint_key_td s_schema_theme_window[] = {
+    {"is-decorated", NULL, 0u},
+    {"titlebar", s_schema_titlebar,
+        sizeof(s_schema_titlebar) / sizeof(s_schema_titlebar[0])},
+    {"active", s_schema_theme_style_opacity,
+        sizeof(s_schema_theme_style_opacity) /
+            sizeof(s_schema_theme_style_opacity[0])},
+    {"inactive", s_schema_theme_style_opacity,
+        sizeof(s_schema_theme_style_opacity) /
+            sizeof(s_schema_theme_style_opacity[0])}
+};
+
+static const config_lint_key_td s_schema_theme_icon[] = {
+    {"is-captioned", NULL, 0u},
+    {"show-pixmaps", NULL, 0u},
+    {"show-hints", NULL, 0u},
+    {"active", s_schema_theme_style_opacity,
+        sizeof(s_schema_theme_style_opacity) /
+            sizeof(s_schema_theme_style_opacity[0])},
+    {"inactive", s_schema_theme_style_opacity,
+        sizeof(s_schema_theme_style_opacity) /
+            sizeof(s_schema_theme_style_opacity[0])}
+};
+
+static const config_lint_key_td s_schema_theme_systray_pixmap[] = {
+    {"size", NULL, 0u},
+    {"padding", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_systray_text[] = {
+    {"gap", NULL, 0u},
+    {"valign", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_systray[] = {
+    {"font", NULL, 0u},
+    {"color", s_schema_theme_color,
+        sizeof(s_schema_theme_color) / sizeof(s_schema_theme_color[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])},
+    {"opacity", NULL, 0u},
+    {"height", NULL, 0u},
+    {"pixmap", s_schema_theme_systray_pixmap,
+        sizeof(s_schema_theme_systray_pixmap) /
+            sizeof(s_schema_theme_systray_pixmap[0])},
+    {"text", s_schema_theme_systray_text,
+        sizeof(s_schema_theme_systray_text) /
+            sizeof(s_schema_theme_systray_text[0])}
+};
+
+static const config_lint_key_td s_schema_theme_desktop_color[] = {
+    {"background", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_desktop[] = {
+    {"color", s_schema_theme_desktop_color,
+        sizeof(s_schema_theme_desktop_color) /
+            sizeof(s_schema_theme_desktop_color[0])}
+};
+
+static const config_lint_key_td s_schema_theme_menu_disabled_color[] = {
+    {"foreground", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_menu_disabled[] = {
+    {"color", s_schema_theme_menu_disabled_color,
+        sizeof(s_schema_theme_menu_disabled_color) /
+            sizeof(s_schema_theme_menu_disabled_color[0])}
+};
+
+static const config_lint_key_td s_schema_theme_menu_separator[] = {
+    {"color", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_menu[] = {
+    {"unselected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"selected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"label", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"disabled", s_schema_theme_menu_disabled,
+        sizeof(s_schema_theme_menu_disabled) /
+            sizeof(s_schema_theme_menu_disabled[0])},
+    {"separator", s_schema_theme_menu_separator,
+        sizeof(s_schema_theme_menu_separator) /
+            sizeof(s_schema_theme_menu_separator[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])},
+    {"opacity", NULL, 0u},
+    {"padding", s_schema_theme_padding,
+        sizeof(s_schema_theme_padding) / sizeof(s_schema_theme_padding[0])},
+    {"show-pixmaps", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_dialog_color[] = {
+    {"background", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_dialog_label_color[] = {
+    {"foreground", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_dialog_label[] = {
+    {"font", NULL, 0u},
+    {"color", s_schema_theme_dialog_label_color,
+        sizeof(s_schema_theme_dialog_label_color) /
+            sizeof(s_schema_theme_dialog_label_color[0])},
+    {"padding", s_schema_theme_padding,
+        sizeof(s_schema_theme_padding) / sizeof(s_schema_theme_padding[0])}
+};
+
+static const config_lint_key_td s_schema_theme_dialog_button[] = {
+    {"unselected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"selected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"gap", NULL, 0u},
+    {"padding", s_schema_theme_padding,
+        sizeof(s_schema_theme_padding) / sizeof(s_schema_theme_padding[0])}
+};
+
+static const config_lint_key_td s_schema_theme_dialog[] = {
+    {"color", s_schema_theme_dialog_color,
+        sizeof(s_schema_theme_dialog_color) /
+            sizeof(s_schema_theme_dialog_color[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])},
+    {"opacity", NULL, 0u},
+    {"label", s_schema_theme_dialog_label,
+        sizeof(s_schema_theme_dialog_label) /
+            sizeof(s_schema_theme_dialog_label[0])},
+    {"button", s_schema_theme_dialog_button,
+        sizeof(s_schema_theme_dialog_button) /
+            sizeof(s_schema_theme_dialog_button[0])}
+};
+
+static const config_lint_key_td s_schema_theme_xsettings_theme[] = {
+    {"gtk-theme-name", NULL, 0u},
+    {"icon-theme-name", NULL, 0u},
+    {"cursor-theme-name", NULL, 0u},
+    {"cursor-theme-size", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_theme_xsettings[] = {
+    {"is-enabled", NULL, 0u},
+    {"dpi", NULL, 0u},
+    {"theme", s_schema_theme_xsettings_theme,
+        sizeof(s_schema_theme_xsettings_theme) /
+            sizeof(s_schema_theme_xsettings_theme[0])}
+};
+
+static const config_lint_key_td s_schema_theme_scratchpad[] = {
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])}
+};
 
 static const config_lint_key_td s_schema_theme[] = {
     {"name", NULL, 0u},
-    {"window", NULL, 0u},
-    {"icon", NULL, 0u},
-    {"systray", NULL, 0u},
-    {"desktop", NULL, 0u},
-    {"menu", NULL, 0u},
-    {"dialog", NULL, 0u},
-    {"overlay", NULL, 0u},
-    {"scratchpad", NULL, 0u},
-    {"xsettings", NULL, 0u}
+    {"window", s_schema_theme_window,
+        sizeof(s_schema_theme_window) / sizeof(s_schema_theme_window[0])},
+    {"icon", s_schema_theme_icon,
+        sizeof(s_schema_theme_icon) / sizeof(s_schema_theme_icon[0])},
+    {"systray", s_schema_theme_systray,
+        sizeof(s_schema_theme_systray) / sizeof(s_schema_theme_systray[0])},
+    {"desktop", s_schema_theme_desktop,
+        sizeof(s_schema_theme_desktop) / sizeof(s_schema_theme_desktop[0])},
+    {"menu", s_schema_theme_menu,
+        sizeof(s_schema_theme_menu) / sizeof(s_schema_theme_menu[0])},
+    {"dialog", s_schema_theme_dialog,
+        sizeof(s_schema_theme_dialog) / sizeof(s_schema_theme_dialog[0])},
+    {"overlay", s_schema_theme_style_opacity,
+        sizeof(s_schema_theme_style_opacity) /
+            sizeof(s_schema_theme_style_opacity[0])},
+    {"scratchpad", s_schema_theme_scratchpad,
+        sizeof(s_schema_theme_scratchpad) /
+            sizeof(s_schema_theme_scratchpad[0])},
+    {"xsettings", s_schema_theme_xsettings,
+        sizeof(s_schema_theme_xsettings) /
+            sizeof(s_schema_theme_xsettings[0])}
 };
 
 static const config_lint_key_td s_schema_randr[] = {
@@ -453,6 +706,67 @@ static const config_lint_key_td s_schema_a11y[] = {
 };
 
 
+/* --- memguard.json schema: a stricter subset of config.json's own,
+ *     since restricted-memory mode accepts fewer fields per section
+ *     than an ordinary session does (see config.md section 10.1) --- */
+
+static const config_lint_key_td s_schema_memguard_windows_placement[] = {
+    {"policy", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_memguard_windows[] = {
+    {"move-step", NULL, 0u},
+    {"placement", s_schema_memguard_windows_placement,
+        sizeof(s_schema_memguard_windows_placement) /
+            sizeof(s_schema_memguard_windows_placement[0])}
+};
+
+static const config_lint_key_td s_schema_memguard_icons_placement[] = {
+    {"policy", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_memguard_icons[] = {
+    {"placement", s_schema_memguard_icons_placement,
+        sizeof(s_schema_memguard_icons_placement) /
+            sizeof(s_schema_memguard_icons_placement[0])}
+};
+
+static const config_lint_key_td s_schema_memguard_desktops[] = {
+    /* Reuses 'desktops.margins''s own schema array; see
+     * 's_schema_systray''s own identical comment above for why. */
+    {"margins", s_schema_desktops_margins,
+        sizeof(s_schema_desktops_margins) /
+            sizeof(s_schema_desktops_margins[0])}
+};
+
+static const config_lint_key_td s_schema_memguard[] = {
+    {"theme", NULL, 0u},
+    /* 'programs' and 'shutdown' accept the exact same fields as
+     * config.json's own identically-named sections, so their
+     * schemas are shared verbatim rather than duplicated. */
+    {"programs", s_schema_programs,
+        sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
+    {"desktops", s_schema_memguard_desktops,
+        sizeof(s_schema_memguard_desktops) /
+            sizeof(s_schema_memguard_desktops[0])},
+    {"windows", s_schema_memguard_windows,
+        sizeof(s_schema_memguard_windows) /
+            sizeof(s_schema_memguard_windows[0])},
+    {"icons", s_schema_memguard_icons,
+        sizeof(s_schema_memguard_icons) /
+            sizeof(s_schema_memguard_icons[0])},
+    /* 'systray' is loaded by the exact same 'ci_config_load_systray'
+     * config.json itself uses, so every field it accepts there is
+     * accepted here too, even the two ('text.position' and 'order')
+     * that end up with no visible effect in this mode; see that
+     * function's own call site in memguard.c for why. */
+    {"systray", s_schema_systray,
+        sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
+    {"shutdown", s_schema_shutdown,
+        sizeof(s_schema_shutdown) / sizeof(s_schema_shutdown[0])}
+};
+
+
 static const config_lint_file_spec_td s_files[] = {
     {"config.json", s_schema_config,
         sizeof(s_schema_config) / sizeof(s_schema_config[0]), true},
@@ -468,6 +782,9 @@ static const config_lint_file_spec_td s_files[] = {
         sizeof(s_schema_menu) / sizeof(s_schema_menu[0]), false},
     {"a11y.json", s_schema_a11y,
         sizeof(s_schema_a11y) / sizeof(s_schema_a11y[0]),
+        false},
+    {"memguard.json", s_schema_memguard,
+        sizeof(s_schema_memguard) / sizeof(s_schema_memguard[0]),
         false}
 };
 

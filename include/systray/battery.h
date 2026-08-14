@@ -77,8 +77,14 @@
  * | On battery, at/below @c critical | @c "X%!!" |
  * | On AC, not fully charged         | @c "X% AC" |
  * | Fully charged, on battery        | @c "Full" |
- * | Fully charged, on AC             | @c "Full AC" |
+ * | Fully charged, on AC             | @c "Full, AC" |
  * | No battery found for @p backend_type / @p backend_number | @c "N/A" |
+ *
+ * @c "X%" here is itself translatable ('STR_BATTERY_PERCENT',
+ * uistr.h): whether the '%' sign sits flush against the number or
+ * has a space before it is a per-language typographic convention, so
+ * the exact rendered text (e.g. @c "50%" versus @c "50 %") varies by
+ * locale even though the shapes above hold for every one of them.
  *
  * A battery is "fully charged" once its percentage is at or above
  * @p threshold_charged, regardless of its actual charging/discharging

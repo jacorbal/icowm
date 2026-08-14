@@ -431,12 +431,12 @@ emergency exit, there is no risk in triggering it by accident, so it has
 no reason to be fixed in place the same way the emergency exit is.
 
 `shutdown.enable-emergency-shortcut`, when `true`, activates
-`Ctrl+Mod1+BackSpace`.  Not configurable via `bindings.json` like
+`Ctrl+Mod1+Backspace`.  Not configurable via `bindings.json` like
 a normal keybinding, and while enabled, that exact key combination
 cannot be reused by any `bindings.json` entry, whether that would happen
 intentionally or by accident: any such binding is ignored (with
 a warning logged) so the emergency exit always keeps
-`Ctrl+Mod1+BackSpace` to itself.  Set to `false` (the default) to
+`Ctrl+Mod1+Backspace` to itself.  Set to `false` (the default) to
 disable the shortcut entirely, for example on systems where the key
 combination might be triggered accidentally.
 
@@ -964,8 +964,8 @@ Actions performed on the currently focused window.
 | `close`         | `modc+mod1+c`           | Send `WM_DELETE_WINDOW` to politely close the window. |
 | `kill`          | `modc+mod1+mods+Escape` | Forcibly terminate the client process. |
 | `iconify`       | `modc+mod1+i`           | Iconify the window (TWM-style desktop icon). |
-| `iconify-all`   | `modc+mod4+mods+i`      | Iconify (minimize) every client on the current desktop. |
-| `deiconify-all` | `modc+mod4+mods+d`      | Restore every iconified client on the current desktop. |
+| `iconify-all`   | `modc+mod1+mods+i`      | Iconify (minimize) every client on the current desktop. |
+| `deiconify-all` | `modc+mod1+mods+d`      | Restore every iconified client on the current desktop. |
 | `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out. A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
 | `hide`          | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
@@ -975,8 +975,7 @@ Actions performed on the currently focused window.
 | `pin`           | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
 | `decorate`      | `modc+mod1+d`           | Toggle window decorations (title bar). |
 | `layer`         | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
-| `info`          | `modc+mod1+mods+i`      | Show a popup with window information. |
-| `show-desktop`  | `modc+mod1+mods+d`      | Toggle show-desktop mode: hide all windows; press again to restore them. |
+| `info`          | `modc+mod4+mods+i`      | Show a popup with window information. |
 
 #### `keyboard.window.move.relative`
 
@@ -1019,13 +1018,13 @@ Window manager control shortcuts.
 | Key            | Default binding    | Action |
 |----------------|--------------------|--------|
 | `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
-| `show-desktop` | `modc+mod1+mods+d` | Hide all windows and show the empty desktop. |
+| `show-desktop` | `modc+mod4+mods+d` | Hide all windows and show the empty desktop. |
 | `scratchpad` | `modc+mod1+mods+F12` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
 | `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
-| `fortune`      | `Ctrl+Mod4+BackSpace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
+| `fortune`      | `modc+mod4+Backspace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
 
 `search` opens a centered, live-filtered list of every window across
 every desktop.  Typing narrows the list by fuzzy subsequence match
@@ -2564,8 +2563,8 @@ to whatever theme loads, unconditionally.
             "close": "modc+mod1+c",
             "kill": "modc+mod1+mods+Escape",
             "iconify": "modc+mod1+i",
-            "iconify-all": "modc+mod4+mods+i",
-            "deiconify-all": "modc+mod4+mods+d",
+            "iconify-all": "modc+mod1+mods+i",
+            "deiconify-all": "modc+mod1+mods+d",
             "arrange": "modc+mod1+mods+a",
             "hide": "modc+mod1+mods+h",
             "maximize": "modc+mod1+m",
@@ -2574,7 +2573,7 @@ to whatever theme loads, unconditionally.
             "pin": "modc+mod1+p",
             "decorate": "modc+mod1+d",
             "layer": "modc+mod1+mods+y",
-            "info": "modc+mod1+mods+i",
+            "info": "modc+mod4+mods+i",
             "move": {
                 "relative": {
                     "right": "modc+mod1+l",
@@ -2604,7 +2603,7 @@ to whatever theme loads, unconditionally.
                 "windows": "modc+mod1+mods+w"
             },
             "search": "modc+mod4+mods+s",
-            "show-desktop": "modc+mod1+mods+d",
+            "show-desktop": "modc+mod4+mods+d",
             "scratchpad": "modc+mod1+mods+F12",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",

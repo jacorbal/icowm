@@ -196,8 +196,8 @@ msgid "This list"
 msgstr "Esta lista"
 
 #: include/defs/uistr.h:128
-msgid "Emergency exit: Ctrl+Mod1+BackSpace"
-msgstr "Salida de emergencia: Ctrl+Mod1+BackSpace"
+msgid "Emergency exit: Ctrl+Mod1+Backspace"
+msgstr "Salida de emergencia: Ctrl+Mod1+Backspace"
 
 #: include/defs/uistr.h:129
 msgid "Fortune"
@@ -294,6 +294,10 @@ msgstr "Llena, con CA"
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "Llena"
+
+#: include/defs/uistr.h:190
+msgid "%u%%"
+msgstr "%u %%"
 
 #: include/defs/uistr.h:188
 msgid "AC"

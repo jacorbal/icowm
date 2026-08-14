@@ -280,13 +280,25 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
     }
 
     if (ac) {
-        (void) snprintf(out, out_size, "%u%% %s", percent,
+        char percent_buf[16];
+
+        (void) snprintf(percent_buf, sizeof(percent_buf),
+                _(STR_BATTERY_PERCENT), percent);
+        (void) snprintf(out, out_size, "%s %s", percent_buf,
                 _(STR_BATTERY_AC));
     } else if (percent <= threshold_critical) {
-        (void) snprintf(out, out_size, "%u%%!!", percent);
+        char percent_buf[16];
+
+        (void) snprintf(percent_buf, sizeof(percent_buf),
+                _(STR_BATTERY_PERCENT), percent);
+        (void) snprintf(out, out_size, "%s!!", percent_buf);
     } else if (percent <= threshold_low) {
-        (void) snprintf(out, out_size, "%u%%!", percent);
+        char percent_buf[16];
+
+        (void) snprintf(percent_buf, sizeof(percent_buf),
+                _(STR_BATTERY_PERCENT), percent);
+        (void) snprintf(out, out_size, "%s!", percent_buf);
     } else {
-        (void) snprintf(out, out_size, "%u%%", percent);
+        (void) snprintf(out, out_size, _(STR_BATTERY_PERCENT), percent);
     }
 }

@@ -168,7 +168,7 @@ struct config_base_s {
      */
     struct {
         /**
-         * @brief Allow the hardcoded 'Ctrl+Mod1+BackSpace' emergency
+         * @brief Allow the hardcoded 'Ctrl+Mod1+Backspace' emergency
          *        exit shortcut
          *
          * Off (@c false) by default.  When enabled, this shortcut

@@ -1,0 +1,32 @@
+{
+    "theme": "default",
+    "programs": {
+        "editor": "gvim",
+        "file-manager": "pcmanfm",
+        "launcher": "gmrun",
+        "terminal": "xterm",
+        "web-browser": "firefox"
+    },
+    "desktops": {
+        "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+    },
+    "windows": {
+        "move-step": 10,
+        "placement": { "policy": "smart" }
+    },
+    "icons": {
+        "placement": { "policy": "smart" }
+    },
+    "systray": {
+        "is-enabled": true,
+        "reserve-space": false,
+        "position": "top-right",
+        "monitor": { "anchor": "primary" },
+        "order": "left-to-right",
+        "layer": "above"
+    },
+    "shutdown": {
+        "enable-emergency-shortcut": false,
+        "timeout-seconds": 15
+    }
+}

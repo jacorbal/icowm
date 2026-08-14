@@ -87,7 +87,7 @@ the same chance to warn about it that it already gets any other time.
 IcoWM waits for all of them (see `config.md` section
 2.6's own `shutdown.timeout-seconds`) before actually exiting.
 
-The emergency exit shortcut, `Ctrl+Mod1+BackSpace` (off by default, see
+The emergency exit shortcut, `Ctrl+Mod1+Backspace` (off by default, see
 `config.md` section 2.6's own `shutdown.enable-emergency-shortcut`),
 does none of that.  It runs with no dialog, no confirmation, and no wait
 of any kind: the moment it is pressed, IcoWM terminates immediately,

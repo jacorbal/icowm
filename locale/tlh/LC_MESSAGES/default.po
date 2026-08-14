@@ -194,8 +194,8 @@ msgid "This list"
 msgstr "DIchDaq tetlh"
 
 #: include/defs/uistr.h:128
-msgid "Emergency exit: Ctrl+Mod1+BackSpace"
-msgstr "chuq mej: Ctrl+Mod1+BackSpace"
+msgid "Emergency exit: Ctrl+Mod1+Backspace"
+msgstr "chuq mej: Ctrl+Mod1+Backspace"
 
 #: include/defs/uistr.h:129
 msgid "Fortune"
@@ -286,12 +286,16 @@ msgid "N/A"
 msgstr "Sut"
 
 #: include/defs/uistr.h:180
-msgid "Full AC"
+msgid "Full, AC"
 msgstr "meQ, Sor"
 
 #: include/defs/uistr.h:181
 msgid "Full"
 msgstr "meQ"
+
+#: include/defs/uistr.h:190
+msgid "%u%%"
+msgstr "%u%%"
 
 #: include/defs/uistr.h:188
 msgid "AC"

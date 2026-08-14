@@ -253,10 +253,6 @@ int config_load_bindings(const char *filename,
                         config_bindings->keyboard.window.resize.down,
                         CONFIG_MAX_LENGTH_BINDING);
             }
-
-            json_load_string(window, "show-desktop",
-                    config_bindings->keyboard.wm.show_desktop,
-                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         /* Keybindings for cycling: desktop, icon, and window */

@@ -384,7 +384,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         /* Hardcoded 'Alt+Space': always opens the per-window context
          * menu (right-click on a titlebar); fixed, not configurable,
          * matching the common desktop-environment convention for this
-         * exact key combination, the same way 'Ctrl+Mod1+BackSpace'
+         * exact key combination, the same way 'Ctrl+Mod1+Backspace'
          * below is a fixed emergency-exit shortcut.  Unrelated to
          * either 'keyboard.wm.menus.root' or '.windows': those two
          * open the desktop menu and the all-desktops window list;
@@ -398,7 +398,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * for switching to a text console */
         { config->bindings.keyboard.wm.fortune, KEYBIND_WM_FORTUNE },
         /* Hardcoded emergency exit (grabbed only if enabled) */
-        { "Ctrl+Mod1+BackSpace", KEYBIND_WM_EMERGENCY_EXIT },
+        { "Ctrl+Mod1+Backspace", KEYBIND_WM_EMERGENCY_EXIT },
         { NULL, KEYBIND_NONE }
     };
 
@@ -469,7 +469,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     /* Resolve the emergency exit combo now that all declarations are
      * in place above */
     if (config->base.shutdown.enable_emergency_shortcut) {
-        (void) s_parse_binding(config, "Ctrl+Mod1+BackSpace",
+        (void) s_parse_binding(config, "Ctrl+Mod1+Backspace",
                 &emergency_modmask, &emergency_keysym);
     }
 
@@ -535,7 +535,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
                 keysym == emergency_keysym &&
                 modmask == emergency_modmask) {
             LOGGER_WARNING("Binding '%s' collides with the emergency" \
-                    " exit shortcut (Ctrl+Mod1+BackSpace); ignoring" \
+                    " exit shortcut (Ctrl+Mod1+Backspace); ignoring" \
                     " it so the emergency exit keeps that combination" \
                     " to itself", defs[i].binding);
             continue;

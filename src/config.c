@@ -621,16 +621,16 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.window.iconify,
             "modc+mod1+i", sizeof(config->bindings.keyboard.window.iconify));
     safe_strncpy(config->bindings.keyboard.window.iconify_all,
-            "modc+mod4+mods+i",
+            "modc+mod1+mods+i",
             sizeof(config->bindings.keyboard.window.iconify_all));
     safe_strncpy(config->bindings.keyboard.window.deiconify_all,
-            "modc+mod4+mods+d",
+            "modc+mod1+mods+d",
             sizeof(config->bindings.keyboard.window.deiconify_all));
     safe_strncpy(config->bindings.keyboard.window.arrange,
             "modc+mod1+mods+a",
             sizeof(config->bindings.keyboard.window.arrange));
     safe_strncpy(config->bindings.keyboard.window.info,
-            "modc+mod1+mods+i", sizeof(config->bindings.keyboard.window.info));
+            "modc+mod4+mods+i", sizeof(config->bindings.keyboard.window.info));
     safe_strncpy(config->bindings.keyboard.window.kill,
             "modc+mod1+mods+Escape",
             sizeof(config->bindings.keyboard.window.kill));
@@ -672,10 +672,10 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.keyboard.wm.shortcuts,
             "modc+mod4+F1", sizeof(config->bindings.keyboard.wm.shortcuts));
     safe_strncpy(config->bindings.keyboard.wm.fortune,
-            "Ctrl+Mod4+BackSpace",
+            "modc+mod4+Backspace",
             sizeof(config->bindings.keyboard.wm.fortune));
     safe_strncpy(config->bindings.keyboard.wm.show_desktop,
-            "modc+mod1+mods+d",
+            "modc+mod4+mods+d",
             sizeof(config->bindings.keyboard.wm.show_desktop));
     safe_strncpy(config->bindings.keyboard.wm.scratchpad,
             "modc+mod1+mods+F12",
