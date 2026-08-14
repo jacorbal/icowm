@@ -49,21 +49,21 @@
  *
  * Recognizes both forms a theme's own font field can hold: a simple
  * alias, where the family is the leading word up to the first space
- * or hyphen (e.g. @c "fixed", @c "fixed bold", @c "fixed-14"), and a
+ * or hyphen (e.g., @c "fixed", @c "fixed bold", @c "fixed-14"), and a
  * full XLFD pattern, where the family is the second @c '-'-delimited
- * field (e.g. @c "-misc-fixed-bold-r-normal--0-120-75-75-c-0-iso10646-1").
+ * field (e.g., @c "-misc-fixed-bold-r-normal--0-120-75-75-c-0-iso10646-1").
  * Either form lets a person still pick a specific size or encoding
  * while staying on the light X core rendering path, rather than the
  * plain literal strings @c "fixed" and @c "fixed bold" alone.
  *
- * @param font Font field to check, e.g. @c
+ * @param font Font field to check, e.g., @c
  *             config->theme.window.active.font
  *
  * @return @c true if @p font's own family is exactly the lowercase
  *         @c "fixed", case-sensitive
  *
  * @note Deliberately case-sensitive, not case-insensitive: a real
- *       Xft-only family can be named e.g. @c "Fixed Bold", capitalized
+ *       Xft-only family can be named e.g., @c "Fixed Bold", capitalized
  *       and visually similar but a different, heavier font entirely,
  *       distinct from the plain lowercase @c "fixed bold" this
  *       restriction is actually meant to leave alone.  A case-

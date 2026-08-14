@@ -724,7 +724,7 @@ void loop_run(wm_td *wm)
                      * 's_routine_target_ops' below are exactly that
                      * expected race, not a sign of anything actually
                      * wrong on this window manager's own end, so they
-                     * are logged at DEBUG instead, e.g.:
+                     * are logged at DEBUG instead, e.g.,
                      *
                      * +-------+-----------------+-----------+--------+
                      * | major | request         | error     | result |

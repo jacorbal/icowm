@@ -538,7 +538,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
  * window sitting on the desktop underneath it is otherwise told to
  * repaint when that selection moves on, so a client that was
  * highlighted and then passed over stays visually stuck showing that
- * highlight until something unrelated (e.g. 'cycle_destroy') eventually
+ * highlight until something unrelated (e.g., 'cycle_destroy') eventually
  * forces a full desktop repaint.  Called for both the previously- and
  * newly-selected client on every navigation, this keeps their real
  * icons in sync with the menu immediately instead.  (The cycle's own

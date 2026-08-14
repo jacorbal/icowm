@@ -166,7 +166,7 @@ static int s_search_fuzzy_score(const char *query, const char *text)
  *
  * Combines the client's mutually exclusive geometry state (fullscreen
  * or one of the maximized variants) with its independent shaded,
- * sticky, and urgent flags into a single comma-separated list, e.g.
+ * sticky, and urgent flags into a single comma-separated list, e.g.,
  * @c "[p,m,!]".  Writes nothing (an empty string) when no hint
  * applies.
  *
@@ -796,9 +796,9 @@ static void s_search_draw_row(xcb_connection_t *connection,
     uint32_t bg;
     bool is_sel = (i == s_search.selected);
 
-    fg = is_sel ? cfg->theme.menu.selected.color.foreground
+    fg = (is_sel) ? cfg->theme.menu.selected.color.foreground
         : cfg->theme.menu.unselected.color.foreground;
-    bg = is_sel ? cfg->theme.menu.selected.color.background
+    bg = (is_sel) ? cfg->theme.menu.selected.color.background
         : cfg->theme.menu.unselected.color.background;
 
     menu_draw_row_bg(connection, s_search.window, bg, row_y,

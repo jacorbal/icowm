@@ -39,7 +39,7 @@
  * @brief One client action's own function pointer shape
  *
  * @param wm      Window manager instance (only a handful of actions,
- *                e.g. focus, actually need more than @p client
+ *                e.g., focus, actually need more than @p client
  *                itself; every other one ignores the rest of these
  *                parameters)
  * @param client  The resolved client to act on

@@ -90,7 +90,7 @@ static surface_td *s_randr_snapshot_surface = NULL;
  *
  * @param connection    XCB connection
  * @param res_reply     Already-fetched current screen resources
- * @param name          Output name to match (e.g. "HDMI-1"), compared
+ * @param name          Output name to match (e.g., "HDMI-1"), compared
  *                      case-insensitively
  * @param out_output_id Receives the matching output, only when one
  *                      is found
@@ -1012,12 +1012,12 @@ void surface_reflow_clients(surface_td *surface)
                 bool still_on_a_monitor = false;
 
                 /* A window overlapping two adjacent, still-connected
-                 * monitors (a common, legitimate arrangement, e.g. a
+                 * monitors (a common, legitimate arrangement, e.g., a
                  * wide window straddling the seam between them) must
                  * not be "corrected" just because it is not fully
                  * inside any single one of them: only reposition a
                  * window that has landed with no overlap at all
-                 * against any currently known monitor, e.g. because
+                 * against any currently known monitor, e.g., because
                  * the one it used to be on was unplugged, or the
                  * combined layout changed shape around it (RandR does
                  * not require monitors to stay contiguous, so a
@@ -1471,13 +1471,13 @@ void surface_action_revert_randr_profiles(void)
 
         cfg_cookie = xcb_randr_set_crtc_config(surface->connection,
                 snap->crtc, XCB_CURRENT_TIME, res_reply->config_timestamp,
-                was_off ? 0 : snap->prior_x,
-                was_off ? 0 : snap->prior_y,
-                was_off ? (xcb_randr_mode_t) XCB_NONE : snap->prior_mode,
-                was_off ? (uint16_t) XCB_RANDR_ROTATION_ROTATE_0
+                (was_off) ? 0 : snap->prior_x,
+                (was_off) ? 0 : snap->prior_y,
+                (was_off) ? (xcb_randr_mode_t) XCB_NONE : snap->prior_mode,
+                (was_off) ? (uint16_t) XCB_RANDR_ROTATION_ROTATE_0
                         : snap->prior_rotation,
-                was_off ? 0u : 1u,
-                was_off ? NULL : &snap->output_id);
+                (was_off) ? 0u : 1u,
+                (was_off) ? NULL : &snap->output_id);
         cfg_reply = xcb_randr_set_crtc_config_reply(surface->connection,
                 cfg_cookie, NULL);
 

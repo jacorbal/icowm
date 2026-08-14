@@ -35,7 +35,7 @@
  *
  * @param connection     XCB connection
  * @param window         Window that should own the selection
- * @param selection_atom Manager-selection atom to acquire (e.g.
+ * @param selection_atom Manager-selection atom to acquire (e.g.,
  *                       @c _NET_SYSTEM_TRAY_S0)
  * @param manager_atom   Interned @c MANAGER atom, used as the
  *                       broadcast client message's own type

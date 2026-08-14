@@ -91,7 +91,7 @@ static long s_ms_since(const struct timespec *since)
  *        its urgency hint set
  *
  * A pure scan with no side effects at all, safe to call on every
- * single @c urgency_blink_tick (i.e. every main-loop iteration, not
+ * single @c urgency_blink_tick (i.e., every main-loop iteration, not
  * just at the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence): the
  * blink phase itself must keep advancing consistently regardless of
  * which desktop the urgent client happens to sit on, or how often
@@ -158,7 +158,7 @@ static bool s_any_client_urgent(list_td *surfaces)
  * the blink itself ever changed, visibly flickering every window and
  * icon on the desktop, not just the urgent one, and stomping over
  * other clients' own independent, transient render state along the
- * way (e.g. an icon's cycle-selection highlight mid-drag). Only ever
+ * way (e.g., an icon's cycle-selection highlight mid-drag). Only ever
  * called from the actual blink-phase-toggle branch of
  * @c urgency_blink_tick now, this instead calls @c desktop_render_
  * one_client / @c ri_render_client_icon directly, one at a time, for

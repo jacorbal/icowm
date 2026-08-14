@@ -195,7 +195,7 @@ void scratchpad_notice_client_created(client_td *client)
 
     client_lock(client);
 
-    /* Never a valid fallback focus target on its own, e.g. after
+    /* Never a valid fallback focus target on its own, e.g., after
      * some other client on the same desktop shades or hides: its own
      * visibility is managed entirely by 'scratchpad_toggle', not by
      * anything that picks a next client to focus generically; see
@@ -254,7 +254,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
      * border wider/taller than 'width'/'height' alone.  Reserving
      * that much here, before 'width'/'height' are ever resolved
      * against 'area_w'/'area_h' below (rather than only afterward,
-     * e.g. by shrinking a "max" result in place), keeps that full
+     * e.g., by shrinking a "max" result in place), keeps that full
      * footprint within the configured edge's own area on every side,
      * not just flush against whichever edge 'x'/'y' themselves
      * already sit on: an unadjusted "max" width, say, already flush

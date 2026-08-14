@@ -83,7 +83,7 @@
  * @c "X%" here is itself translatable ('STR_BATTERY_PERCENT',
  * uistr.h): whether the '%' sign sits flush against the number or
  * has a space before it is a per-language typographic convention, so
- * the exact rendered text (e.g. @c "50%" versus @c "50 %") varies by
+ * the exact rendered text (e.g., @c "50%" versus @c "50 %") varies by
  * locale even though the shapes above hold for every one of them.
  *
  * A battery is "fully charged" once its percentage is at or above

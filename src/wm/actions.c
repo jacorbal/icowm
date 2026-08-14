@@ -218,7 +218,7 @@ static void s_resync_after_reload(void)
          * trigger (a client mapping/unmapping, a RandR change...),
          * none of which a reload is. Without this, a changed margin
          * would stay invisible until one of those unrelated triggers
-         * happened to fire, e.g. by switching desktops (switching
+         * happened to fire, e.g., by switching desktops (switching
          * away and back hides and shows clients, an unmap/map pair
          * that reaches 'surface_refresh_workareas' as a side effect
          * of something else entirely). */

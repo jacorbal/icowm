@@ -660,7 +660,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             s_drag.resize_h = true;
         }
     } else {
-        s_drag.anchor_right  = false;
+        s_drag.anchor_right = false;
         s_drag.anchor_bottom = false;
         s_drag.resize_w = false;
         s_drag.resize_h = false;
@@ -807,7 +807,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.screen_w = screen_w;
     s_drag.screen_h = screen_h;
     s_drag.icon_was_mapped = client->is_icon_mapped;
-    s_drag.anchor_right  = false;
+    s_drag.anchor_right = false;
     s_drag.anchor_bottom = false;
     s_drag.resize_w = false;
     s_drag.resize_h = false;

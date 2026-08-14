@@ -327,7 +327,7 @@ static void s_surface_monitors_fallback(surface_td *surface)
  * this existed.
  *
  * @param config Active configuration, or @c NULL to always allow
- * @param name   Resolved RandR output name (e.g. @c "HDMI-1")
+ * @param name   Resolved RandR output name (e.g., @c "HDMI-1")
  *
  * @return @c false only when a matching profile exists and is
  *         explicitly disabled; @c true otherwise

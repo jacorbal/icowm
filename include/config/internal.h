@@ -77,7 +77,7 @@ void ci_config_dir_set(const char *config_dir_prefix,
  *                         cases, whatever the file itself set for the
  *                         third)
  * @param theme_file_name The short name a theme was loaded under
- *                         (e.g. @c "default", the same string
+ *                         (e.g., @c "default", the same string
  *                         @c "theme": @c "<this>" names in @c
  *                         memguard.json/config.json, not a path or
  *                         the @c ".json" extension), or @c NULL/empty

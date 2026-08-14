@@ -46,7 +46,7 @@
  *
  * Plain @c #define constants of type @c uint32_t rather than a
  * regular C @c enum: @c IPC_EVENT_STACKING_CHANGED's own value
- * (@c 1u @c << @c 31, i.e. 2147483648) exceeds @c INT_MAX, and ISO C
+ * (@c 1u @c << @c 31, i.e., 2147483648) exceeds @c INT_MAX, and ISO C
  * requires every enumerator's value to be representable as an @c
  * int -- an @c enum simply cannot host it under strict @c -std=c99
  * @c -pedantic compilation, regardless of the expression used to
@@ -54,10 +54,10 @@
  * event_type_e parameter now takes a plain @c uint32_t instead, for
  * the same reason.
  */
-#define IPC_EVENT_WINDOW_MAPPED    ((uint32_t) 1u << 0)  /**< A client
+#define IPC_EVENT_WINDOW_MAPPED ((uint32_t) 1u << 0)  /**< A client
                                                                 was
                                                                 mapped */
-#define IPC_EVENT_WINDOW_CLOSED    ((uint32_t) 1u << 1)  /**< A client
+#define IPC_EVENT_WINDOW_CLOSED ((uint32_t) 1u << 1)  /**< A client
                                                                 was
                                                                 destroyed */
 #define IPC_EVENT_DESKTOP_SWITCHED ((uint32_t) 1u << 2)  /**< A
@@ -66,44 +66,44 @@
                                                                 current
                                                                 desktop
                                                                 changed */
-#define IPC_EVENT_FOCUS_CHANGED    ((uint32_t) 1u << 3)  /**< A
+#define IPC_EVENT_FOCUS_CHANGED ((uint32_t) 1u << 3)  /**< A
                                                                 desktop's
                                                                 own
                                                                 active
                                                                 client
                                                                 changed */
-#define IPC_EVENT_URGENCY_SET      ((uint32_t) 1u << 4)  /**< A
+#define IPC_EVENT_URGENCY_SET ((uint32_t) 1u << 4)  /**< A
                                                                 client's
                                                                 urgency
                                                                 hint was
                                                                 set */
-#define IPC_EVENT_URGENCY_CLEARED  ((uint32_t) 1u << 5)  /**< A
+#define IPC_EVENT_URGENCY_CLEARED ((uint32_t) 1u << 5)  /**< A
                                                                 client's
                                                                 urgency
                                                                 hint was
                                                                 cleared */
-#define IPC_EVENT_WINDOW_MOVED     ((uint32_t) 1u << 6)  /**< A
+#define IPC_EVENT_WINDOW_MOVED ((uint32_t) 1u << 6)  /**< A
                                                                 client's
                                                                 own
                                                                 position
                                                                 changed */
-#define IPC_EVENT_WINDOW_RESIZED   ((uint32_t) 1u << 7)  /**< A
+#define IPC_EVENT_WINDOW_RESIZED ((uint32_t) 1u << 7)  /**< A
                                                                 client's
                                                                 own size
                                                                 changed */
-#define IPC_EVENT_RULE_APPLIED     ((uint32_t) 1u << 8)  /**< A rule
+#define IPC_EVENT_RULE_APPLIED ((uint32_t) 1u << 8)  /**< A rule
                                                                 changed
                                                                 one of a
                                                                 client's
                                                                 own
                                                                 properties */
-#define IPC_EVENT_PIN_SET          ((uint32_t) 1u << 9)  /**< A client
+#define IPC_EVENT_PIN_SET ((uint32_t) 1u << 9)  /**< A client
                                                                 was
                                                                 pinned */
-#define IPC_EVENT_PIN_CLEARED      ((uint32_t) 1u << 10) /**< A client
+#define IPC_EVENT_PIN_CLEARED ((uint32_t) 1u << 10) /**< A client
                                                                 was
                                                                 unpinned */
-#define IPC_EVENT_FULLSCREEN_SET     ((uint32_t) 1u << 11) /**< A
+#define IPC_EVENT_FULLSCREEN_SET ((uint32_t) 1u << 11) /**< A
                                                                   client
                                                                   entered
                                                                   fullscreen */
@@ -111,19 +111,19 @@
                                                                   client
                                                                   left
                                                                   fullscreen */
-#define IPC_EVENT_SHADE_SET        ((uint32_t) 1u << 13) /**< A client
+#define IPC_EVENT_SHADE_SET ((uint32_t) 1u << 13) /**< A client
                                                                 was
                                                                 shaded */
-#define IPC_EVENT_SHADE_CLEARED    ((uint32_t) 1u << 14) /**< A client
+#define IPC_EVENT_SHADE_CLEARED ((uint32_t) 1u << 14) /**< A client
                                                                 was
                                                                 unshaded */
-#define IPC_EVENT_HIDE_SET         ((uint32_t) 1u << 15) /**< A client
+#define IPC_EVENT_HIDE_SET ((uint32_t) 1u << 15) /**< A client
                                                                 was
                                                                 hidden */
-#define IPC_EVENT_HIDE_CLEARED     ((uint32_t) 1u << 16) /**< A client
+#define IPC_EVENT_HIDE_CLEARED ((uint32_t) 1u << 16) /**< A client
                                                                 was
                                                                 unhidden */
-#define IPC_EVENT_DECORATION_SET     ((uint32_t) 1u << 17) /**< A
+#define IPC_EVENT_DECORATION_SET ((uint32_t) 1u << 17) /**< A
                                                                   client's
                                                                   own
                                                                   decoration
@@ -135,7 +135,7 @@
                                                                   decoration
                                                                   was
                                                                   hidden */
-#define IPC_EVENT_CLIENT_ICONIFIED   ((uint32_t) 1u << 19) /**< A
+#define IPC_EVENT_CLIENT_ICONIFIED ((uint32_t) 1u << 19) /**< A
                                                                   client
                                                                   was
                                                                   iconified */
@@ -146,7 +146,7 @@
                                                                   from
                                                                   being
                                                                   iconified */
-#define IPC_EVENT_LAYER_CHANGED    ((uint32_t) 1u << 21) /**< A
+#define IPC_EVENT_LAYER_CHANGED ((uint32_t) 1u << 21) /**< A
                                                                 client's
                                                                 own
                                                                 stacking
@@ -158,7 +158,7 @@
                                                                       to a
                                                                       different
                                                                       desktop */
-#define IPC_EVENT_CLIENT_RENAMED   ((uint32_t) 1u << 23) /**< A
+#define IPC_EVENT_CLIENT_RENAMED ((uint32_t) 1u << 23) /**< A
                                                                 client's
                                                                 own
                                                                 displayed
@@ -170,7 +170,7 @@
                                                                 'WM_CLASS'
                                                                 was
                                                                 overridden */
-#define IPC_EVENT_CLIENT_REROLED   ((uint32_t) 1u << 25) /**< A
+#define IPC_EVENT_CLIENT_REROLED ((uint32_t) 1u << 25) /**< A
                                                                 client's
                                                                 own
                                                                 window
@@ -192,17 +192,17 @@
                                                                      color
                                                                      was
                                                                      set */
-#define IPC_EVENT_DESKTOP_SHOWN    ((uint32_t) 1u << 28) /**< Every
+#define IPC_EVENT_DESKTOP_SHOWN ((uint32_t) 1u << 28) /**< Every
                                                                 client on
                                                                 a desktop
                                                                 was shown
                                                                 at once */
-#define IPC_EVENT_DESKTOP_HIDDEN   ((uint32_t) 1u << 29) /**< Every
+#define IPC_EVENT_DESKTOP_HIDDEN ((uint32_t) 1u << 29) /**< Every
                                                                 client on
                                                                 a desktop
                                                                 was hidden
                                                                 at once */
-#define IPC_EVENT_CONFIG_RELOADED  ((uint32_t) 1u << 30) /**< Every
+#define IPC_EVENT_CONFIG_RELOADED ((uint32_t) 1u << 30) /**< Every
                                                                 configuration
                                                                 file was
                                                                 reloaded */

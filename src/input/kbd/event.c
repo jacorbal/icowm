@@ -183,7 +183,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
  * @brief Handle a key press while the generic confirm dialog is open
  *        (backs both the quit-confirmation dialog and any other
  *        two-button confirm dialog built on 'menu/dialog/confirm.h',
- *        e.g. 'menu/dialog/rrsafe.h')
+ *        e.g., 'menu/dialog/rrsafe.h')
  *
  * @c Tab / @c Left / @c Right toggle the selected button; @c Enter
  * activates it; @c Escape always cancels the dialog, regardless of

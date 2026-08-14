@@ -35,7 +35,7 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
 
     /* Process remaining bytes.  'len & 3' alone is not safe here if
      * 'len' is negative: two's complement means a negative 'len' can
-     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * still leave a nonzero remainder (e.g., '-1 & 3' is 3), entering
      * a 'case' below that dereferences 'tail', which 'len > 0' above
      * already left NULL for exactly this ('len' non-positive) case.
      * Forcing the switch itself to 0 whenever 'len' is non-positive
@@ -88,7 +88,7 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
 
     /* Process remaining bytes.  'len & 3' alone is not safe here if
      * 'len' is negative: two's complement means a negative 'len' can
-     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * still leave a nonzero remainder (e.g., '-1 & 3' is 3), entering
      * a 'case' below that dereferences 'tail', which 'len > 0' above
      * already left NULL for exactly this ('len' non-positive) case.
      * Forcing the switch itself to 0 whenever 'len' is non-positive
@@ -142,7 +142,7 @@ uint32_t murmurhash3_32(const void *key, int len, uint32_t seed)
 
     /* Process remaining bytes.  'len & 3' alone is not safe here if
      * 'len' is negative: two's complement means a negative 'len' can
-     * still leave a nonzero remainder (e.g. '-1 & 3' is 3), entering
+     * still leave a nonzero remainder (e.g., '-1 & 3' is 3), entering
      * a 'case' below that dereferences 'tail', which 'len > 0' above
      * already left NULL for exactly this ('len' non-positive) case.
      * Forcing the switch itself to 0 whenever 'len' is non-positive

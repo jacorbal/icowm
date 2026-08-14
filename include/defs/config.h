@@ -34,7 +34,7 @@
      + (CONFIG_MAX_LENGTH_FILENAME))
 
 /* Base default directories */
-#define CONFIG_DIR_BASE  "icowm"
+#define CONFIG_DIR_BASE "icowm"
 #define CONFIG_DIR_THEMES "themes"
 #define CONFIG_FILENAME_BASE "config.json"
 #define CONFIG_FILENAME_BINDINGS "bindings.json"

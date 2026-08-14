@@ -39,42 +39,42 @@
 
 /* Root menu ('src/menu/context/rootmenu.c'): the fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
-#define STR_ROOTMENU_RELOAD_CONFIG   "Reload configuration"
-#define STR_ROOTMENU_REDRAW_ALL      "Redraw all windows"
-#define STR_ROOTMENU_EXIT            "Exit"
+#define STR_ROOTMENU_RELOAD_CONFIG "Reload configuration"
+#define STR_ROOTMENU_REDRAW_ALL "Redraw all windows"
+#define STR_ROOTMENU_EXIT "Exit"
 
 /* Per-window context menu ('src/menu/context/wincmenu.c') */
-#define STR_WINCMENU_SEND_TO_DESKTOP        "Send to desktop"
-#define STR_WINCMENU_SEND_TO_MONITOR        "Send to monitor"
-#define STR_WINCMENU_LAYER                  "Layer"
-#define STR_WINCMENU_LAYER_ALWAYS_ON_TOP    "Always on top"
-#define STR_WINCMENU_LAYER_NORMAL           "Normal"
+#define STR_WINCMENU_SEND_TO_DESKTOP "Send to desktop"
+#define STR_WINCMENU_SEND_TO_MONITOR "Send to monitor"
+#define STR_WINCMENU_LAYER "Layer"
+#define STR_WINCMENU_LAYER_ALWAYS_ON_TOP "Always on top"
+#define STR_WINCMENU_LAYER_NORMAL "Normal"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
-#define STR_WINCMENU_ALL_DESKTOPS_PIN       "All desktops (pin)"
-#define STR_WINCMENU_THIS_DESKTOP_UNPIN     "This desktop only (unpin)"
-#define STR_WINCMENU_RESTORE                "Restore"
-#define STR_WINCMENU_MOVE                   "Move"
-#define STR_WINCMENU_RESIZE                 "Resize"
-#define STR_WINCMENU_ICONIFY                "Iconify"
-#define STR_WINCMENU_HIDE                   "Hide"
-#define STR_WINCMENU_MAXIMIZE               "Maximize"
-#define STR_WINCMENU_FULLSCREEN_ENTER       "Fullscreen"
-#define STR_WINCMENU_FULLSCREEN_EXIT        "Exit Fullscreen"
-#define STR_WINCMENU_SHADE                  "Shade"
-#define STR_WINCMENU_UNSHADE                "Unshade"
-#define STR_WINCMENU_DECORATE               "Decorate"
-#define STR_WINCMENU_UNDECORATE             "Undecorate"
-#define STR_WINCMENU_CLOSE                  "Close"
+#define STR_WINCMENU_ALL_DESKTOPS_PIN "All desktops (pin)"
+#define STR_WINCMENU_THIS_DESKTOP_UNPIN "This desktop only (unpin)"
+#define STR_WINCMENU_RESTORE "Restore"
+#define STR_WINCMENU_MOVE "Move"
+#define STR_WINCMENU_RESIZE "Resize"
+#define STR_WINCMENU_ICONIFY "Iconify"
+#define STR_WINCMENU_HIDE "Hide"
+#define STR_WINCMENU_MAXIMIZE "Maximize"
+#define STR_WINCMENU_FULLSCREEN_ENTER "Fullscreen"
+#define STR_WINCMENU_FULLSCREEN_EXIT "Exit Fullscreen"
+#define STR_WINCMENU_SHADE "Shade"
+#define STR_WINCMENU_UNSHADE "Unshade"
+#define STR_WINCMENU_DECORATE "Decorate"
+#define STR_WINCMENU_UNDECORATE "Undecorate"
+#define STR_WINCMENU_CLOSE "Close"
 
 /* All-desktops window list ('src/menu/context/winlist.c') */
-#define STR_WINLIST_GO_THERE    "Go there..."
+#define STR_WINLIST_GO_THERE "Go there..."
 
 /* Quit-confirmation dialog ('src/menu/dialog/quit.c'); the prompt is
  * a format string taking the window manager's own display name (see
  * 'WM_EWMH_NAME' in 'defs/ewmh.h') */
-#define STR_DIALOG_QUIT_PROMPT_FMT   "Are you sure you want to exit %s?"
-#define STR_DIALOG_QUIT_CANCEL       "[ Cancel ]"
-#define STR_DIALOG_QUIT_EXIT         "[ Exit ]"
+#define STR_DIALOG_QUIT_PROMPT_FMT "Are you sure you want to exit %s?"
+#define STR_DIALOG_QUIT_CANCEL "[ Cancel ]"
+#define STR_DIALOG_QUIT_EXIT "[ Exit ]"
 
 /* Generic confirm dialog's own optional countdown line
  * ('src/menu/dialog/confirm.c'), shown under the prompt whenever
@@ -105,60 +105,60 @@
     ("The 'randr.json' configuration has been applied.  Keep it, " \
      "or revert to the previous one?")
 #define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
-#define STR_DIALOG_RANDR_CONFIRM_OK     "[ Keep ]"
+#define STR_DIALOG_RANDR_CONFIRM_OK "[ Keep ]"
 
 /* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c'): one
  * section header, and one label per action, each paired at runtime with
  * that action's own configured key combo */
-#define STR_SHORTCUTS_HEADER_WM     "[Window Manager]"
+#define STR_SHORTCUTS_HEADER_WM "[Window Manager]"
 #define STR_SHORTCUTS_HEADER_LAUNCH "[Launch]"
 #define STR_SHORTCUTS_HEADER_WINDOW "[Window]"
-#define STR_SHORTCUTS_HEADER_CYCLE  "[Cycle]"
+#define STR_SHORTCUTS_HEADER_CYCLE "[Cycle]"
 
-#define STR_SHORTCUTS_ROOT_MENU      "Root menu"
-#define STR_SHORTCUTS_WINDOWS_MENU   "Windows menu"
+#define STR_SHORTCUTS_ROOT_MENU "Root menu"
+#define STR_SHORTCUTS_WINDOWS_MENU "Windows menu"
 #define STR_SHORTCUTS_SEARCH_WINDOWS "Search windows"
-#define STR_SHORTCUTS_SHOW_DESKTOP   "Show desktop"
-#define STR_SHORTCUTS_REDRAW         "Redraw"
-#define STR_SHORTCUTS_RELOAD_CONFIG  "Reload configuration"
-#define STR_SHORTCUTS_QUIT           "Quit"
-#define STR_SHORTCUTS_THIS_LIST      "This list"
+#define STR_SHORTCUTS_SHOW_DESKTOP "Show desktop"
+#define STR_SHORTCUTS_REDRAW "Redraw"
+#define STR_SHORTCUTS_RELOAD_CONFIG "Reload configuration"
+#define STR_SHORTCUTS_QUIT "Quit"
+#define STR_SHORTCUTS_THIS_LIST "This list"
 /* Both whole, fixed lines on their own (no combo of their own to pair
  * with; the combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
-#define STR_SHORTCUTS_FORTUNE        "Fortune"
-#define STR_SHORTCUTS_SCRATCHPAD     "Scratchpad"
+#define STR_SHORTCUTS_FORTUNE "Fortune"
+#define STR_SHORTCUTS_SCRATCHPAD "Scratchpad"
 
-#define STR_SHORTCUTS_TERMINAL       "Terminal"
-#define STR_SHORTCUTS_LAUNCHER       "Launcher"
-#define STR_SHORTCUTS_FILE_MANAGER   "File manager"
-#define STR_SHORTCUTS_WEB_BROWSER    "Web browser"
-#define STR_SHORTCUTS_EDITOR         "Editor"
+#define STR_SHORTCUTS_TERMINAL "Terminal"
+#define STR_SHORTCUTS_LAUNCHER "Launcher"
+#define STR_SHORTCUTS_FILE_MANAGER "File manager"
+#define STR_SHORTCUTS_WEB_BROWSER "Web browser"
+#define STR_SHORTCUTS_EDITOR "Editor"
 
-#define STR_SHORTCUTS_CLOSE          "Close"
-#define STR_SHORTCUTS_KILL           "Kill"
-#define STR_SHORTCUTS_DECORATE       "Decorate"
-#define STR_SHORTCUTS_FULLSCREEN     "Fullscreen"
-#define STR_SHORTCUTS_HIDE           "Hide"
-#define STR_SHORTCUTS_ICONIFY        "Iconify"
-#define STR_SHORTCUTS_ICONIFY_ALL    "Iconify all"
-#define STR_SHORTCUTS_DEICONIFY_ALL  "Deiconify all"
-#define STR_SHORTCUTS_ARRANGE        "Arrange"
-#define STR_SHORTCUTS_INFO           "Info"
-#define STR_SHORTCUTS_LAYER          "Layer"
-#define STR_SHORTCUTS_MAXIMIZE       "Maximize"
-#define STR_SHORTCUTS_NEXT_MONITOR   "Next monitor"
-#define STR_SHORTCUTS_PIN            "Pin"
-#define STR_SHORTCUTS_SHADE          "Shade"
+#define STR_SHORTCUTS_CLOSE "Close"
+#define STR_SHORTCUTS_KILL "Kill"
+#define STR_SHORTCUTS_DECORATE "Decorate"
+#define STR_SHORTCUTS_FULLSCREEN "Fullscreen"
+#define STR_SHORTCUTS_HIDE "Hide"
+#define STR_SHORTCUTS_ICONIFY "Iconify"
+#define STR_SHORTCUTS_ICONIFY_ALL "Iconify all"
+#define STR_SHORTCUTS_DEICONIFY_ALL "Deiconify all"
+#define STR_SHORTCUTS_ARRANGE "Arrange"
+#define STR_SHORTCUTS_INFO "Info"
+#define STR_SHORTCUTS_LAYER "Layer"
+#define STR_SHORTCUTS_MAXIMIZE "Maximize"
+#define STR_SHORTCUTS_NEXT_MONITOR "Next monitor"
+#define STR_SHORTCUTS_PIN "Pin"
+#define STR_SHORTCUTS_SHADE "Shade"
 
 /* Group labels; each pairs with a short direction/position name below,
  * joined at runtime as, e.g., "Right=<combo>, Left=<combo>" */
-#define STR_SHORTCUTS_MOVE_RELATIVE  "Move (relative)"
-#define STR_SHORTCUTS_MOVE_ABSOLUTE  "Move (absolute)"
-#define STR_SHORTCUTS_RESIZE         "Resize"
-#define STR_SHORTCUTS_DESKTOPS       "Desktops"
-#define STR_SHORTCUTS_ICONS          "Icons"
-#define STR_SHORTCUTS_WINDOWS        "Windows"
+#define STR_SHORTCUTS_MOVE_RELATIVE "Move (relative)"
+#define STR_SHORTCUTS_MOVE_ABSOLUTE "Move (absolute)"
+#define STR_SHORTCUTS_RESIZE "Resize"
+#define STR_SHORTCUTS_DESKTOPS "Desktops"
+#define STR_SHORTCUTS_ICONS "Icons"
+#define STR_SHORTCUTS_WINDOWS "Windows"
 
 /* Deliberately NOT translated, unlike every label above: 'Right',
  * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',
@@ -177,9 +177,9 @@
 #define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u: %s"
 
 /* Battery indicator ('src/systray/battery.c') */
-#define STR_BATTERY_NOT_AVAILABLE   "N/A"
-#define STR_BATTERY_FULL_AC         "Full, AC"
-#define STR_BATTERY_FULL            "Full"
+#define STR_BATTERY_NOT_AVAILABLE "N/A"
+#define STR_BATTERY_FULL_AC "Full, AC"
+#define STR_BATTERY_FULL "Full"
 /* The percentage itself, formatted on its own before being embedded
  * into any of the longer strings below (e.g., before 'STR_BATTERY_AC'
  * to form "34% AC"): kept as its own translatable format string,

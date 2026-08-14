@@ -22,7 +22,7 @@
  *        recognized as the scratchpad
  *
  * 'scratchpad.command' (config.json) is expected to pass this along,
- * e.g. 'xterm -class Scratchpad'; a command that does not set this
+ * e.g., 'xterm -class Scratchpad'; a command that does not set this
  * class is never recognized as the scratchpad client, no matter what
  * it launches.
  */

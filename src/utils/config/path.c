@@ -32,9 +32,9 @@
  */
 struct xdg_dir_def_s {
     const char *env_var;       /**< Environment variable to check
-                                     first, e.g. "XDG_CONFIG_HOME" */
+                                     first, e.g., "XDG_CONFIG_HOME" */
     const char *xdg_suffix;    /**< Appended to that variable's own
-                                     value, e.g. "icowm" */
+                                     value, e.g., "icowm" */
     const char *home_relative; /**< Full path relative to "$HOME" to
                                      fall back to when the variable
                                      above is unset or empty, already
@@ -141,7 +141,7 @@ void path_simplify(char *restrict path)
     }
 
     /* A relative path emptied out entirely by resolving every one
-     * of its own components against a '..' (e.g. "a/../" simplifies
+     * of its own components against a '..' (e.g., "a/../" simplifies
      * to nothing at all, the current directory) is represented as
      * "." itself, never as an empty string: an empty path and "the
      * current directory" are not interchangeable to whatever this
@@ -151,7 +151,7 @@ void path_simplify(char *restrict path)
     }
 
     /* Trim a single trailing slash this process may have left
-     * behind (e.g. simplifying "a/b/../" down to "a/"), except when
+     * behind (e.g., simplifying "a/b/../" down to "a/"), except when
      * the whole simplified path is the root by itself.  Computed as
      * an integer length rather than compared and dereferenced via
      * pointer arithmetic on 'dst' directly: GCC's static analyzer

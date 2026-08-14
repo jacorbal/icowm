@@ -342,7 +342,7 @@ void ccmd_client_focus(client_td *client)
      * 'ccmd_client_fullscreen' (cmds/state.c) had already set,
      * putting a real, visible border back on an undecorated
      * fullscreen client's own window -- confirmed directly from
-     * runtime diagnostics: an undecorated client (e.g. mpv, which
+     * runtime diagnostics: an undecorated client (e.g., mpv, which
      * requests no decoration of its own from the very start, so
      * 'client_is_decorated' is already false before it ever goes
      * fullscreen, unlike a client that only loses decoration
@@ -703,7 +703,7 @@ void ccmd_client_iconify(client_td *client)
      * instead of always landing back on plain normal: "A window
      * manager may implement [additional states] as proper substates
      * of NormalState and IconicState, or it may treat them as
-     * independent flags, allowing e.g. a maximized window to be
+     * independent flags, allowing e.g., a maximized window to be
      * iconified and to re-appear as maximized upon de-iconification"
      * (X Desktop Group, 2013, "Extended Window Manager Hints", v1.5,
      * §2.1.1).  Guarded against an already-iconified client calling

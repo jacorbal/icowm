@@ -296,8 +296,8 @@ void hi_handle_net_wm_state(client_td *client,
     }
 
     action = event->data.data32[0];
-    atom1  = (xcb_atom_t) event->data.data32[1];
-    atom2  = (xcb_atom_t) event->data.data32[2];
+    atom1 = (xcb_atom_t) event->data.data32[1];
+    atom2 = (xcb_atom_t) event->data.data32[2];
 
     s_handle_wm_state_atom(client, atom1, action, ewmh);
     if (atom2 != XCB_ATOM_NONE) {

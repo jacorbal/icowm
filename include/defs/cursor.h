@@ -41,13 +41,13 @@
  * when the pointer hovers over a window's border or corner, before any
  * button is pressed.
  */
-#define WM_CURSOR_TOP_SIDE_GLYPH            (138u)
-#define WM_CURSOR_BOTTOM_SIDE_GLYPH         (16u)
-#define WM_CURSOR_LEFT_SIDE_GLYPH           (70u)
-#define WM_CURSOR_RIGHT_SIDE_GLYPH          (96u)
-#define WM_CURSOR_TOP_LEFT_CORNER_GLYPH     (134u)
-#define WM_CURSOR_TOP_RIGHT_CORNER_GLYPH    (136u)
-#define WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH  (12u)
+#define WM_CURSOR_TOP_SIDE_GLYPH (138u)
+#define WM_CURSOR_BOTTOM_SIDE_GLYPH (16u)
+#define WM_CURSOR_LEFT_SIDE_GLYPH (70u)
+#define WM_CURSOR_RIGHT_SIDE_GLYPH (96u)
+#define WM_CURSOR_TOP_LEFT_CORNER_GLYPH (134u)
+#define WM_CURSOR_TOP_RIGHT_CORNER_GLYPH (136u)
+#define WM_CURSOR_BOTTOM_LEFT_CORNER_GLYPH (12u)
 #define WM_CURSOR_BOTTOM_RIGHT_CORNER_GLYPH (14u)
 
 /**

@@ -8,7 +8,7 @@
  * way closing one window individually already works, rather than the
  * window manager exiting out from under every running application at
  * once.  A bounded wait (see 'config_base_s.shutdown.timeout_seconds',
- * config.h) lets each application react, e.g. an editor with unsaved
+ * config.h) lets each application react, e.g., an editor with unsaved
  * changes warning the user before actually closing, before whichever
  * clients are still open past that point get forced closed and the
  * window manager exits anyway.
@@ -45,7 +45,7 @@
  * client has actually closed or the configured timeout elapses,
  * whichever comes first.  Requests the window manager's own stop
  * directly instead, with no wait at all, when there is nothing to
- * wait for, e.g. no managed clients.  Calling this while a shutdown
+ * wait for, e.g., no managed clients.  Calling this while a shutdown
  * is already in progress has no further effect.
  *
  * @note Complexity: @e O(n), where @e n is the total number of

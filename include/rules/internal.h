@@ -38,7 +38,7 @@
 #define RULES_MAX (256u)
 
 /**
- * @brief Maximum alternative values a single match criterion (e.g.
+ * @brief Maximum alternative values a single match criterion (e.g.,
  *        @c title) can hold when given as a JSON array instead of a
  *        single string
  *

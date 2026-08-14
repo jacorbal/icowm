@@ -87,7 +87,7 @@ void config_set_default_values_memguard(config_td *config);
  *
  * The theme restrictions applied after loading: any font not already
  * naming some variant of the @c "fixed" X core font family (allowing
- * a caller to still pick its size or encoding, e.g. @c "fixed-14" or
+ * a caller to still pick its size or encoding, e.g., @c "fixed-14" or
  * a full XLFD string) is replaced outright with plain @c "fixed",
  * @c xsettings publishing is turned off, and both @c icon.show-
  * pixmaps and @c icon.show-hints are forced off; every other theme

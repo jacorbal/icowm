@@ -666,11 +666,11 @@ static void s_build_layer_entries(const client_td *client)
     bool is_normal;
     bool is_below;
 
-    is_above  = (client->properties.layer ==
+    is_above = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_ABOVE);
     is_normal = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_NORMAL);
-    is_below  = (client->properties.layer ==
+    is_below = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_BELOW);
 
     s_entry_command(&s_layer_entries[0], _(STR_WINCMENU_LAYER_ALWAYS_ON_TOP),

@@ -38,8 +38,8 @@
 
 
 #define CCMD_WM_STATE_WITHDRAWN (0u)
-#define CCMD_WM_STATE_NORMAL    (1u)
-#define CCMD_WM_STATE_ICONIC    (3u)
+#define CCMD_WM_STATE_NORMAL (1u)
+#define CCMD_WM_STATE_ICONIC (3u)
 
 
 /* Internal interface */

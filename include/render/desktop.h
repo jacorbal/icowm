@@ -128,7 +128,7 @@ int desktop_render_clients(desktop_td *desktop, bool is_current);
  * only @p desktop's own @c focus_dirty changed).
  *
  * Meant to be called directly for one specific client outside of an
- * ordinary full @c desktop_render_clients pass, e.g. by @c policy/
+ * ordinary full @c desktop_render_clients pass, e.g., by @c policy/
  * urgency.c to repaint just the urgent client(s) on an urgent
  * client's own blink-phase change, without forcing every other
  * client on the same desktop to repaint along with it.

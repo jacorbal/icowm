@@ -413,16 +413,16 @@ void ccmd_client_fullscreen(client_td *client)
     target = ccmd_target_win(client);
 
     /* Resized to fill the screen FIRST, before the content window
-     * below (when there is a separate one, i.e. 'target' is the
+     * below (when there is a separate one, i.e., 'target' is the
      * frame): reversing this order used to leave a real, if brief,
      * window between the two separate 'ConfigureWindow' requests
      * where the content window already had its own full-screen size
      * while its parent frame still had its old, smaller one, which
      * X11 clips a child window to regardless of what size the child
-     * itself was just given.  A fast-redrawing client (e.g. xterm)
+     * itself was just given.  A fast-redrawing client (e.g., xterm)
      * never showed it, redrawing its own content well before a human
      * could perceive the gap; a client buffering its own rendering
-     * (e.g. a GL/Vulkan video player like mpv, already special-cased
+     * (e.g., a GL/Vulkan video player like mpv, already special-cased
      * below for exactly this kind of timing sensitivity) could catch
      * that intermediate geometry and paint a frame reflecting it,
      * leaving the frame's own background (set to the theme's border

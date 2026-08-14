@@ -577,7 +577,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
  * its label (see its own body), so redrawing just the row(s) that
  * actually changed selection is self-contained: no separate clear
  * step is needed first, and nothing else in the menu window is
- * touched.  A single deselect (e.g. the pointer leaving every entry)
+ * touched.  A single deselect (e.g., the pointer leaving every entry)
  * passes @c -1 for @p idx_b.
  *
  * @param state Menu state the entries belong to
@@ -1053,7 +1053,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         }
 
         /* Mark this entry selected (a click may land here with no
-         * prior hover over this exact row, e.g. the pointer already
+         * prior hover over this exact row, e.g., the pointer already
          * resting here when the menu first mapped) so it stays
          * visibly highlighted for as long as its own submenu is
          * open, the same as the keyboard path already shows via

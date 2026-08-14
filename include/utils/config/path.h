@@ -67,11 +67,11 @@ enum xdg_dir_kind_e {
  * @param path Pointer to the input path string to be normalized
  *
  * @note The function modifies the path in place
- * @note A relative path that resolves down to nothing at all (e.g.
+ * @note A relative path that resolves down to nothing at all (e.g.,
  *       @c "a/../") becomes @c "." (the current directory), never
  *       an empty string
  * @note Only matches a @c '..' component immediately followed by a
- *       @c '/' (i.e. followed by more path, not at the very end of
+ *       @c '/' (i.e., followed by more path, not at the very end of
  *       @p path with nothing after it): @c "a/.." is left
  *       unresolved, unlike @c "a/../" or @c "a/../b"
  * @note Complexity: @e O(n), where @e n is the length of the input path
@@ -83,7 +83,7 @@ void path_simplify(char *restrict path);
  *
  * Tries, in order:
  *   -# The environment variable the XDG specification defines for
- *      @p kind (e.g. @c XDG_CONFIG_HOME for @c XDG_DIR_CONFIG), if
+ *      @p kind (e.g., @c XDG_CONFIG_HOME for @c XDG_DIR_CONFIG), if
  *      set and non-empty: @c "${that}/icowm".
  *   -# For every kind except @c XDG_DIR_RUNTIME, @c $HOME, if set
  *      and non-empty, joined with that kind's own established
@@ -91,7 +91,7 @@ void path_simplify(char *restrict path);
  *      @c "${HOME}/.icowm", the pre-XDG convention this project
  *      already shipped and must keep resolving unchanged; the
  *      other three follow the spec's own documented default
- *      location instead, e.g. @c "${HOME}/.local/share/icowm" for
+ *      location instead, e.g., @c "${HOME}/.local/share/icowm" for
  *      @c XDG_DIR_DATA, since neither has any pre-existing
  *      behavior of its own to preserve.  @c XDG_DIR_RUNTIME skips
  *      this tier entirely: an ordinary @c $HOME directory offers
@@ -106,7 +106,7 @@ void path_simplify(char *restrict path);
  *      this last resort entirely up to the application.
  *
  * Only ever resolves and writes the path string; never creates the
- * directory on disk (callers that need it to exist, e.g. before
+ * directory on disk (callers that need it to exist, e.g., before
  * binding a socket inside it, create it themselves, with whatever
  * permissions that particular use needs).
  *

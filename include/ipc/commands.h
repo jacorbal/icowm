@@ -34,7 +34,7 @@
  * @brief Handle one complete IPC request line and produce a response
  *
  * @p request is expected to be a single JSON object with at least a
- * string @c "cmd" field (e.g. @c {"cmd": "list_desktops"}); any
+ * string @c "cmd" field (e.g., @c {"cmd": "list_desktops"}); any
  * other fields are that command's own arguments.  The response is
  * always a JSON object with at least a boolean @c "ok" field: @c
  * true with the command's own result fields alongside it on

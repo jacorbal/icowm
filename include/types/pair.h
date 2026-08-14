@@ -64,7 +64,7 @@ struct sides_s {
  * @note A traditional, non-partial strut (@c _NET_WM_STRUT) is
  *       represented the same way, with @c start and @c end both left
  *       at zero on every side -- whatever reads this treats 0..0 as
- *       unbounded for exactly that reason (e.g. @c s_ranges_overlap
+ *       unbounded for exactly that reason (e.g., @c s_ranges_overlap
  *       in desktop.c).
  */
 struct strut_partial_s {

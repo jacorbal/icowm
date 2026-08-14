@@ -309,7 +309,7 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection);
  * server shows it the instant the pointer crosses into that window,
  * with no window-manager-side event handling required at all, unlike
  * relying on catching every possible crossing or motion event (which
- * a client that intercepts pointer motion for its own purposes, e.g.
+ * a client that intercepts pointer motion for its own purposes, e.g.,
  * to track hover for its own UI, can prevent from ever reaching this
  * window manager in the first place).
  *

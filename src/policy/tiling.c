@@ -220,7 +220,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
      * pixel overlap) rather than against a precomputed grid-index
      * table, so a candidate only a few pixels into an existing icon's
      * footprint is correctly rejected even when that icon's own saved
-     * position is not itself grid-aligned (e.g. it sits on a monitor
+     * position is not itself grid-aligned (e.g., it sits on a monitor
      * whose own origin does not fall on a step_x/step_y multiple of
      * this one, or a stale position momentarily left behind by a
      * config or theme change since it was last placed). */

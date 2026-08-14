@@ -174,7 +174,7 @@ const struct strut_partial_s *systray_get_reserved_strut(
  * configured @c height is; the rest follows from wherever @c
  * systray_layout_reflow last placed the window itself), so this is
  * the only way to answer "where exactly is the tray sitting right
- * now" precisely.  Meant for infrequent, one-off checks (e.g. an icon
+ * now" precisely.  Meant for infrequent, one-off checks (e.g., an icon
  * settling into its final dropped position after a drag), not
  * anything called on every frame of a render or drag loop.
  *

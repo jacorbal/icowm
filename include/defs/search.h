@@ -65,7 +65,7 @@
  *        hints, regardless of whether that row has any
  *
  * Wide enough for the longest possible combination (an exclusive
- * state letter plus every independent flag, e.g. "[f,s,p,!]"), so
+ * state letter plus every independent flag, e.g., "[f,s,p,!]"), so
  * the name and desktop-name columns always truncate against the same
  * boundary whether or not the hints they are making room for turn
  * out to be empty this row.

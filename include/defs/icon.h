@@ -84,15 +84,15 @@
  *        client is a state of its own @c pre_iconify_state never
  *        covers.
  */
-#define WM_ICON_HINT_FULLSCREEN      'f'
-#define WM_ICON_HINT_MAXIMIZED       'm'
-#define WM_ICON_HINT_MAXIMIZED_HORZ  'h'
-#define WM_ICON_HINT_MAXIMIZED_VERT  'v'
-#define WM_ICON_HINT_SHADED          's'
-#define WM_ICON_HINT_PINNED          'p'
-#define WM_ICON_HINT_URGENT          '!'
-#define WM_ICON_HINT_ICONIFIED       '_'
-#define WM_ICON_HINT_HIDDEN          '~'  /**< Hidden, but NOT
+#define WM_ICON_HINT_FULLSCREEN 'f'
+#define WM_ICON_HINT_MAXIMIZED 'm'
+#define WM_ICON_HINT_MAXIMIZED_HORZ 'h'
+#define WM_ICON_HINT_MAXIMIZED_VERT 'v'
+#define WM_ICON_HINT_SHADED 's'
+#define WM_ICON_HINT_PINNED 'p'
+#define WM_ICON_HINT_URGENT '!'
+#define WM_ICON_HINT_ICONIFIED '_'
+#define WM_ICON_HINT_HIDDEN '~'  /**< Hidden, but NOT
                                                 iconified; an
                                                 iconified client is
                                                 already hidden as

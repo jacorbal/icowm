@@ -215,7 +215,7 @@ void popup_close(xcb_connection_t *connection)
     s_popup_window = XCB_WINDOW_NONE;
     s_popup_modifier = 0;
     s_popup_keycode = 0;
-    s_popup_open_time.tv_sec  = 0;
+    s_popup_open_time.tv_sec = 0;
     s_popup_open_time.tv_nsec = 0;
 }
 

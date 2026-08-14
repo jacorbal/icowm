@@ -127,7 +127,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
  * in the lower half, so the icon is never pushed toward whichever
  * edge the tray already occupies (which, near a screen edge, could
  * otherwise push the icon straight off the visible workarea entirely
- * -- e.g. a tray docked at the bottom, pushing "further down" would
+ * -- e.g., a tray docked at the bottom, pushing "further down" would
  * leave the icon below the workarea's own bottom edge, off-screen or
  * inside a reserved margin, rather than clear of the tray at all).
  * A small fixed gap (@c WM_ICON_SYSTRAY_GAP, defs/icon.h) is left
@@ -144,7 +144,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
  *                 with the adjusted position if pushed
  * @param icon_w   Icon width, in pixels
  * @param icon_h   Icon height, in pixels
- * @param tray_x   Tray's own current rectangle, e.g. from @c
+ * @param tray_x   Tray's own current rectangle, e.g., from @c
  *                 systray_get_geometry
  * @param tray_y   See @p tray_x
  * @param tray_w   See @p tray_x

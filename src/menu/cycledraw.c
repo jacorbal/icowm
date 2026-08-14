@@ -256,7 +256,7 @@ uint32_t mi_cycle_preview_border_width(const client_td *client,
          * has its own themed border painted elsewhere), and none for
          * a fullscreen client either: applying the normal window
          * border width here would paint a real, visible border over
-         * fullscreen content (e.g. mpv, undecorated from the start),
+         * fullscreen content (e.g., mpv, undecorated from the start),
          * the exact same reasoning 'ccmd_client_focus' (cmds/client/basic.c)
          * already applies for a plain focus change. */
         border_width = 0u;
@@ -377,7 +377,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     previous = g_cycle_menu.preview_client;
 
     /* Selection unchanged since this same client was last previewed
-     * (e.g. re-called for an 'Expose' on the menu window itself, or
+     * (e.g., re-called for an 'Expose' on the menu window itself, or
      * navigating with only one client in the cycle, which always
      * "changes" the index back to the same single entry): nothing
      * about the preview differs from what is already applied, so

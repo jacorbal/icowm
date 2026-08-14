@@ -77,7 +77,7 @@ typedef struct desktop_s {
      * Resolved once, in @a desktop_init, from the same
      * 'xcb_setup_roots_iterator' walk already needed there to read
      * this screen's own pixel dimensions; kept here afterward so
-     * every later caller that needs this desktop's own screen (e.g.
+     * every later caller that needs this desktop's own screen (e.g.,
      * @a desktop_render_background, render/desktop.c) reads this
      * field directly instead of repeating that same O(n) walk again
      * from scratch, an O(1) lookup either way.
@@ -136,7 +136,7 @@ typedef struct desktop_s {
      * this desktop's own set of clients is, not a client already on
      * it changing its own urgency, the other case those two
      * functions exist to handle instead.  Not consulted by anything
-     * yet: a hook for a future feature (e.g. drawing this desktop's
+     * yet: a hook for a future feature (e.g., drawing this desktop's
      * own entry differently while the surface is showing a different
      * one), included now so a client's own urgency is never missed
      * regardless of which desktop it lands on.

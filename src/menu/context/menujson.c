@@ -93,7 +93,7 @@ static bool s_parse_array(const cJSON *arr,
         type_node = cJSON_GetObjectItemCaseSensitive(item, "type");
         name_node = cJSON_GetObjectItemCaseSensitive(item, "name");
         class_node = cJSON_GetObjectItemCaseSensitive(item, "class");
-        cmd_node  = cJSON_GetObjectItemCaseSensitive(item, "command");
+        cmd_node = cJSON_GetObjectItemCaseSensitive(item, "command");
         items_node = cJSON_GetObjectItemCaseSensitive(item, "items");
 
         type_str = (cJSON_IsString(type_node))

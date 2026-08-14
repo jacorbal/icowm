@@ -44,40 +44,40 @@
  * to @c F1 through @c F12 for @c n in @c 1..12 (see
  * @c s_bindings_parse_keysym_token in input/kbd/bind.c).
  */
-#define KS_SPACE      (0x0020u)
-#define KS_BACKSPACE  (0xff08u)
-#define KS_TAB        (0xff09u)
-#define KS_RETURN     (0xff0du)
-#define KS_PAUSE      (0xff13u)
-#define KS_SYS_REQ    (0xff15u)
-#define KS_ESCAPE     (0xff1bu)
-#define KS_HOME       (0xff50u)
-#define KS_LEFT       (0xff51u)
-#define KS_UP         (0xff52u)
-#define KS_RIGHT      (0xff53u)
-#define KS_DOWN       (0xff54u)
-#define KS_PAGE_UP    (0xff55u)
-#define KS_PAGE_DOWN  (0xff56u)
-#define KS_END        (0xff57u)
-#define KS_PRINT      (0xff61u)
-#define KS_INSERT     (0xff63u)
-#define KS_BREAK      (0xff6bu)
-#define KS_NUM_LOCK   (0xff7fu)
-#define KS_KP_ENTER   (0xff8du)
-#define KS_FKEY_BASE  (0xffbdu)
-#define KS_SHIFT_L    (0xffe1u)
-#define KS_SHIFT_R    (0xffe2u)
-#define KS_CONTROL_L  (0xffe3u)
-#define KS_CONTROL_R  (0xffe4u)
-#define KS_META_L     (0xffe7u)
-#define KS_META_R     (0xffe8u)
-#define KS_ALT_L      (0xffe9u)
-#define KS_ALT_R      (0xffeau)
-#define KS_SUPER_L    (0xffebu)
-#define KS_SUPER_R    (0xffecu)
-#define KS_HYPER_L    (0xffedu)
-#define KS_HYPER_R    (0xffeeu)
-#define KS_DELETE     (0xffffu)
+#define KS_SPACE (0x0020u)
+#define KS_BACKSPACE (0xff08u)
+#define KS_TAB (0xff09u)
+#define KS_RETURN (0xff0du)
+#define KS_PAUSE (0xff13u)
+#define KS_SYS_REQ (0xff15u)
+#define KS_ESCAPE (0xff1bu)
+#define KS_HOME (0xff50u)
+#define KS_LEFT (0xff51u)
+#define KS_UP (0xff52u)
+#define KS_RIGHT (0xff53u)
+#define KS_DOWN (0xff54u)
+#define KS_PAGE_UP (0xff55u)
+#define KS_PAGE_DOWN (0xff56u)
+#define KS_END (0xff57u)
+#define KS_PRINT (0xff61u)
+#define KS_INSERT (0xff63u)
+#define KS_BREAK (0xff6bu)
+#define KS_NUM_LOCK (0xff7fu)
+#define KS_KP_ENTER (0xff8du)
+#define KS_FKEY_BASE (0xffbdu)
+#define KS_SHIFT_L (0xffe1u)
+#define KS_SHIFT_R (0xffe2u)
+#define KS_CONTROL_L (0xffe3u)
+#define KS_CONTROL_R (0xffe4u)
+#define KS_META_L (0xffe7u)
+#define KS_META_R (0xffe8u)
+#define KS_ALT_L (0xffe9u)
+#define KS_ALT_R (0xffeau)
+#define KS_SUPER_L (0xffebu)
+#define KS_SUPER_R (0xffecu)
+#define KS_HYPER_L (0xffedu)
+#define KS_HYPER_R (0xffeeu)
+#define KS_DELETE (0xffffu)
 
 
 /**
@@ -97,12 +97,12 @@
             (unsigned int) XCB_MOD_MASK_2)))
 
 /* Readable aliases for common modifier masks */
-#define MOD_SHIFT    XCB_MOD_MASK_SHIFT    /**< Shift modifier */
-#define MOD_CTRL     XCB_MOD_MASK_CONTROL  /**< Control modifier */
-#define MOD_ALT      XCB_MOD_MASK_1        /**< Alt/Mod1 modifier */
-#define MOD_SUPER    XCB_MOD_MASK_4        /**< Super/Win/Mod4 modifier */
-#define MOD_HYPER    XCB_MOD_MASK_5        /**< Hyper/Mod5 modifier */
-#define MOD_NUMLOCK  XCB_MOD_MASK_2        /**< Num_Lock/Mod2 (locking) */
+#define MOD_SHIFT XCB_MOD_MASK_SHIFT    /**< Shift modifier */
+#define MOD_CTRL XCB_MOD_MASK_CONTROL  /**< Control modifier */
+#define MOD_ALT XCB_MOD_MASK_1        /**< Alt/Mod1 modifier */
+#define MOD_SUPER XCB_MOD_MASK_4        /**< Super/Win/Mod4 modifier */
+#define MOD_HYPER XCB_MOD_MASK_5        /**< Hyper/Mod5 modifier */
+#define MOD_NUMLOCK XCB_MOD_MASK_2        /**< Num_Lock/Mod2 (locking) */
 #define MOD_CAPSLOCK XCB_MOD_MASK_LOCK     /**< Caps_Lock (locking) */
 
 

@@ -182,7 +182,7 @@ struct config_base_s {
          * be unresponsive or in some broken state, so it is kept to
          * the smallest, most direct possible action, a signal to its
          * own process, with nothing else in between that could
-         * itself get stuck, hang, or otherwise fail to complete, e.g.
+         * itself get stuck, hang, or otherwise fail to complete, e.g.,
          * a dialog that depends on the very rendering or event loop
          * that might be the reason this shortcut is being reached
          * for in the first place.  Not configurable via
@@ -233,8 +233,8 @@ struct config_base_s {
      *        which command it runs
      *
      * @c command is run through a shell (@c popen), so it may be any
-     * shell command line, not just a bare executable name -- e.g.
-     * @c (fortune -s) for short-only fortunes, @c (fortune -o) for
+     * shell command line, not just a bare executable name -- e.g.,
+     * @c "fortune -s" for short-only fortunes, @c "fortune -o" for
      * offensive ones, or a specific fortune database/language.  Runs
      * literally as configured, with no argument substitution or
      * validation of its own: an invalid command simply produces no
@@ -539,7 +539,7 @@ struct config_base_s {
 
         /**
          * @brief Either dimension, given as a fixed pixel count or
-         *        as the string @c max, meaning "however much of
+         *        as the string @c "max", meaning "however much of
          *        that axis is actually available", so a user is
          *        never forced to hard-code a resolution that may
          *        change later
@@ -569,7 +569,7 @@ struct config_base_s {
          *
          * @c false (the default) places it the same way an ordinary
          * client already respects that reserved space; @c true lets
-         * it use the full edge regardless, e.g. a top-edge scratchpad
+         * it use the full edge regardless, e.g., a top-edge scratchpad
          * sliding out from underneath an external panel that already
          * reserves that same space rather than starting just below
          * it.
@@ -1265,7 +1265,7 @@ struct config_randr_s {
  * much of each desktop's own area stays reserved regardless of what
  * any client itself publishes via @c _NET_WM_STRUT_PARTIAL (see @c
  * desktop_update_workarea).  Loaded from @c config.json's own top-
- * level @c desktops object, a sibling of @c topology, not nested
+ * level @c "desktops" object, a sibling of @c "topology", not nested
  * inside it: unlike topology, every field here does take effect on a
  * configuration reload.
  */
@@ -1289,7 +1289,7 @@ struct config_desktop_s {
      *  workarea, on top of whatever @c _NET_WM_STRUT_PARTIAL clients
      *  already reserve there (see @c desktop_update_workarea);
      *  useful for a program that does not publish that property
-     *  itself (e.g. Conky).  Applies identically to every desktop on
+     *  itself (e.g., Conky).  Applies identically to every desktop on
      *  every screen; there is no per-desktop or per-screen override. */
     struct {
         uint32_t top;
@@ -1327,7 +1327,7 @@ struct config_a11y_s {
 
     struct {
         /** Milliseconds between two clicks for them to count as a
-         *  double-click (e.g. on a titlebar, to toggle shade); see
+         *  double-click (e.g., on a titlebar, to toggle shade); see
          *  @c WM_DOUBLE_CLICK_MS (defs/input.h) for the built-in
          *  default this overrides */
         uint32_t double_click_ms;
@@ -1541,8 +1541,8 @@ const char *config_missing_theme_get(void);
  *        environment variables when none is given
  *
  * Resolution order: @p config_dir_prefix, if given; otherwise
- * @c ${XDG_CONFIG_HOME}/icowm; otherwise @c ${HOME}/.icowm;
- * otherwise @c ./.icowm in the current working directory.
+ * @c "${XDG_CONFIG_HOME}/icowm"; otherwise @c "${HOME}/.icowm";
+ * otherwise @c "./.icowm" in the current working directory.
  *
  * @param config_dir_prefix Configuration directory, or @c NULL to
  *                          resolve it from the environment instead
@@ -1576,7 +1576,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
  *
  * Loads base configuration settings into the provided @c config_base_s
  * structure from the specified file, and desktop-navigation/reserved-
- * space behavior (@c desktops; @c warp, @c cycle, @c margins; see
+ * space behavior (@c "desktops"; @c warp, @c cycle, @c margins; see
  * @c config_desktop_s) into @p config_desktop from that same file,
  * since both live in @c config.json.
  *

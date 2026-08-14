@@ -1095,7 +1095,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     /* Every client just had its chance, in the loop above, to compare
      * itself against 'focus_dirty' and refresh its own decoration
      * colors if the active client changed since the last full render;
-     * clearing it here consumes that signal so the next pass (e.g. a
+     * clearing it here consumes that signal so the next pass (e.g., a
      * later resize of one otherwise-unrelated client, with focus
      * unchanged since) does not see it still set and re-trigger the
      * exact spurious 'xcb_clear_area + text-draw' repaint on every

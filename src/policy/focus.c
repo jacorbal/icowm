@@ -65,7 +65,7 @@ void focus_apply(list_td *surfaces,
      * only holds if the override actually runs before anything else
      * can observe or act on the intervening pointer-follows-focus
      * state; called directly from the same synchronous path a caller
-     * reached here from (e.g. 'ccmd_client_restore', which already
+     * reached here from (e.g., 'ccmd_client_restore', which already
      * synchronously focuses 'client' once before this function even
      * runs, only for the unfocus below to then run afterward
      * and undo it), nothing guarantees that ordering.  Calling both

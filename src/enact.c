@@ -66,7 +66,7 @@
  * where; avoids repeating the same three-field 'cJSON' object at
  * each of those call sites individually. Not used by an action whose
  * own event payload needs anything more than these three fields
- * (e.g. a renamed client's own new name).
+ * (e.g., a renamed client's own new name).
  *
  * @param client Client the event happened to; a NULL client is a
  *               silent no-op, matching every caller's own existing
@@ -641,7 +641,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
      * 'enact_desktop_show', right below, for the same pattern);
      * without this, the new color never actually repaints until
      * something else marks the surface outdated for an unrelated
-     * reason, e.g. switching desktops away and back. */
+     * reason, e.g., switching desktops away and back. */
     surface->is_outdated = true;
     xcb_flush(desktop->connection);
     s_broadcast_desktop_event(desktop,
@@ -666,7 +666,7 @@ void enact_desktop_show(desktop_td *desktop, bool show)
     hi_handle_net_showing_desktop(surface, show);
     xcb_flush(surface->connection);
     s_broadcast_desktop_event(desktop,
-            show ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
+            (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
 }
 
 
@@ -795,7 +795,7 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
          * its own head rather than ever handing back NULL, so a
          * caller has to remember where it started and stop once it
          * gets back there, the same 'initial' pattern already used
-         * to walk this same list elsewhere (e.g.
+         * to walk this same list elsewhere (e.g.,
          * 'desktop_action_client_rem' in desktop/dclient.c).  A
          * plain 'for (...; node != NULL; ...)' loop over it, as this
          * one used to be, never terminates for a non-empty desktop:

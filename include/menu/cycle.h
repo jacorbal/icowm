@@ -85,7 +85,7 @@ void cycle_destroy(xcb_connection_t *connection);
  * that lost the selection and the one that gained it actually show
  * anything different, so only those two are redrawn.  Call
  * @c cycle_force_full_repaint first to force the full-viewport path
- * regardless (e.g. after an 'Expose' event, where the window's whole
+ * regardless (e.g., after an 'Expose' event, where the window's whole
  * prior content may be gone).
  *
  * @param connection XCB connection

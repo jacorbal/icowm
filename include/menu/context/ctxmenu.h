@@ -130,7 +130,7 @@ typedef struct ctxmenu_entry_s {
     xcb_window_t icon_window;
 
     /**
-     * @brief That client's own icon cache slot (e.g.
+     * @brief That client's own icon cache slot (e.g.,
      *        @c &client->icon_pixmap_cache), reused across repaints
      *        the same way the client's own desktop icon does
      *

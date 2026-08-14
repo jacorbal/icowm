@@ -156,7 +156,7 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
      * (measured here, while it is still the active font, rather than
      * re-selecting it later): only reserved while a timeout is
      * actually running, so a plain confirm dialog with none (every
-     * existing caller, e.g. 'dialog_quit_show') is laid out exactly
+     * existing caller, e.g., 'dialog_quit_show') is laid out exactly
      * as before this existed. */
     timeout_ascent = text_font_ascent();
     timeout_line_h = s_confirm_timeout_active

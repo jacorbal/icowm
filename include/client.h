@@ -99,17 +99,17 @@ enum window_operation_e {
  * @brief Window characteristics using flags using bitwise flags
  */
 enum window_flags_e {
-    CLIENT_FLAG_HIDDEN       = 1 << 0,
-    CLIENT_FLAG_FOCUSABLE    = 1 << 1,
-    CLIENT_FLAG_PIN       = 1 << 2,
-    CLIENT_FLAG_SHADED       = 1 << 3,
-    CLIENT_FLAG_DECORATED    = 1 << 4,
-    CLIENT_FLAG_URGENT       = 1 << 5,
-    CLIENT_FLAG_RESIZABLE    = 1 << 6,
-    CLIENT_FLAG_DISABLED     = 1 << 7,
+    CLIENT_FLAG_HIDDEN = 1 << 0,
+    CLIENT_FLAG_FOCUSABLE = 1 << 1,
+    CLIENT_FLAG_PIN = 1 << 2,
+    CLIENT_FLAG_SHADED = 1 << 3,
+    CLIENT_FLAG_DECORATED = 1 << 4,
+    CLIENT_FLAG_URGENT = 1 << 5,
+    CLIENT_FLAG_RESIZABLE = 1 << 6,
+    CLIENT_FLAG_DISABLED = 1 << 7,
     CLIENT_FLAG_SKIP_TASKBAR = 1 << 8,
-    CLIENT_FLAG_SKIP_PAGER   = 1 << 9,
-    CLIENT_FLAG_MODAL        = 1 << 10, /**< Window is modal (EWMH) */
+    CLIENT_FLAG_SKIP_PAGER = 1 << 9,
+    CLIENT_FLAG_MODAL = 1 << 10, /**< Window is modal (EWMH) */
     CLIENT_FLAG_UNRESPONSIVE = 1 << 11, /**< No ping reply received */
 
     /**
@@ -132,7 +132,7 @@ enum window_flags_e {
      * this flag only ever centralizes the "refuse" half shared by
      * every such feature, not anything specific to one of them.
      */
-    CLIENT_FLAG_LOCKED       = 1 << 12,
+    CLIENT_FLAG_LOCKED = 1 << 12,
 
     /**
      * @brief Never offered as the fallback focus target when some
@@ -191,15 +191,15 @@ enum client_layer_e {
  */
 enum client_gravity_e {         /* Reference point fixed on resize: */
     CLIENT_GRAVITY_NORTH_WEST = 1,  /*  1: top-left corner of frame */
-    CLIENT_GRAVITY_NORTH      = 2,  /*  2: center of top edge */
+    CLIENT_GRAVITY_NORTH = 2,  /*  2: center of top edge */
     CLIENT_GRAVITY_NORTH_EAST = 3,  /*  3: top-right corner of frame */
-    CLIENT_GRAVITY_EAST       = 4,  /*  4: center of right edge */
+    CLIENT_GRAVITY_EAST = 4,  /*  4: center of right edge */
     CLIENT_GRAVITY_SOUTH_EAST = 5,  /*  5: bottom-right corner of frame */
-    CLIENT_GRAVITY_SOUTH      = 6,  /*  6: center of bottom edge */
+    CLIENT_GRAVITY_SOUTH = 6,  /*  6: center of bottom edge */
     CLIENT_GRAVITY_SOUTH_WEST = 7,  /*  7: bottom-left corner of frame */
-    CLIENT_GRAVITY_WEST       = 8,  /*  8: center of left edge */
-    CLIENT_GRAVITY_CENTER     = 9,  /*  9: center of frame */
-    CLIENT_GRAVITY_STATIC     = 10, /* 10: top-left corner of client area */
+    CLIENT_GRAVITY_WEST = 8,  /*  8: center of left edge */
+    CLIENT_GRAVITY_CENTER = 9,  /*  9: center of frame */
+    CLIENT_GRAVITY_STATIC = 10, /* 10: top-left corner of client area */
 };
 
 /**
@@ -621,7 +621,7 @@ void client_apply_border(client_td *client, bool use_active_style);
  * width otherwise (@p is_active selects which) -- the same width
  * @c client_apply_border applies for the exact same client and
  * focus state.  Meant for any caller that has to reserve room for a
- * border ahead of actually drawing on, e.g. sizing a client to fill
+ * border ahead of actually drawing on, e.g., sizing a client to fill
  * an area without its own border ever spilling past that area's own
  * edge (see @c ccmd_client_maximize, cmds/client/geom.c).
  *
