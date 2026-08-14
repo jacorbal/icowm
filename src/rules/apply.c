@@ -210,9 +210,27 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     height = client->layout.geometry.cur.dim.h;
 
     if (apply->has_size) {
-        width = apply->w;
-        height = apply->h;
-        client_constrain_size(client, &width, &height);
+        /* 'apply->w'/'apply->h' (rules.json's own 'apply.size.width'/
+         * 'apply.size.height') name the decorated frame's own total,
+         * border and titlebar included, the same as
+         * 'client->layout.geometry.cur.dim' itself already does --
+         * but the ICCCM size hints 'client_constrain_size' enforces
+         * are always about a client's own content alone, regardless
+         * of decoration, so convert to content space first, apply
+         * them there, then convert back, the same round trip
+         * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
+         * (input/kbd/interact.c) already make for their own resize
+         * paths. */
+        uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
+            (uint32_t) client->layout.frame_extents.right;
+        uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
+            (uint32_t) client->layout.frame_extents.bottom;
+        uint32_t content_w = (apply->w > ext_w) ? apply->w - ext_w : 0u;
+        uint32_t content_h = (apply->h > ext_h) ? apply->h - ext_h : 0u;
+
+        client_constrain_size(client, &content_w, &content_h);
+        width = content_w + ext_w;
+        height = content_h + ext_h;
         client->layout.geometry.cur.dim.w = width;
         client->layout.geometry.cur.dim.h = height;
         set_size = true;

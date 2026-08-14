@@ -1235,6 +1235,23 @@ void drag_update(xcb_connection_t *connection,
         s_drag.client_cur_y = new_y;
         enact_client_resize(client, new_x, new_y, new_w, new_h);
         if (show_geom) {
+            /* 'new_w'/'new_h' are the decorated frame's own total
+             * (border and titlebar included, established elsewhere;
+             * see 'ci_create_decorations', client/geom.c), the same
+             * as 'client->layout.geometry.cur.dim' itself -- but
+             * both the size hints below (ICCCM, always about
+             * a client's own content, decoration notwithstanding)
+             * and the geometry text shown here are about that
+             * content alone, so convert to content space first, the
+             * same round trip the resize-floor block above already
+             * makes. */
+            uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
+                (uint32_t) client->layout.frame_extents.right;
+            uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
+                (uint32_t) client->layout.frame_extents.bottom;
+            uint32_t content_w = (new_w > ext_w) ? new_w - ext_w : 0u;
+            uint32_t content_h = (new_h > ext_h) ? new_h - ext_h : 0u;
+
             if (client->size_hints.inc_w > 1 &&
                     client->size_hints.inc_h > 1) {
                 /* ICCCM 4.1.2.3: falls back to MIN_SIZE as the grid base */
@@ -1248,10 +1265,10 @@ void drag_update(xcb_connection_t *connection,
                             ? (uint32_t) client->size_hints.min_h : 0u);
                 uint32_t inc_w = (uint32_t) client->size_hints.inc_w;
                 uint32_t inc_h = (uint32_t) client->size_hints.inc_h;
-                uint32_t cols = ((new_w > base_w)
-                        ? (new_w - base_w) : 0u) / inc_w;
-                uint32_t lines = ((new_h > base_h)
-                        ? (new_h - base_h) : 0u) / inc_h;
+                uint32_t cols = ((content_w > base_w)
+                        ? (content_w - base_w) : 0u) / inc_w;
+                uint32_t lines = ((content_h > base_h)
+                        ? (content_h - base_h) : 0u) / inc_h;
 
                 /* Cell count ('cols x lines') for a terminal-like client */
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
@@ -1262,9 +1279,11 @@ void drag_update(xcb_connection_t *connection,
                         new_w, new_h);
                 */
             } else {
-                /* Raw pixel dimensions */
+                /* Raw pixel dimensions, content only, not the
+                 * decorated frame's own total; see this block's own
+                 * doc comment above for why */
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
-                        new_w, new_h);
+                        content_w, content_h);
             }
             s_drag_overlay_show(connection, false,
                     new_x, new_y,

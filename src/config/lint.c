@@ -440,6 +440,7 @@ static const config_lint_key_td s_schema_a11y_urgency[] = {
 };
 
 static const config_lint_key_td s_schema_a11y[] = {
+    {"is-enabled", NULL, 0u},
     {"interaction", s_schema_a11y_interaction,
         sizeof(s_schema_a11y_interaction) /
             sizeof(s_schema_a11y_interaction[0])},

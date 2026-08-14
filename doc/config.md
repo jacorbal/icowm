@@ -1893,19 +1893,30 @@ output some other profile targets.
 ## 6. `a11y.json`: Timing and visual-feedback overrides
 
 An entirely optional file: everything here has a built-in default
-already in effect before this file exists at all, so nobody who never
-creates it sees any behavior change.  Every field this file does not
-specify keeps whatever value it already had, the same way `randr.json`
-(section 5) works.
+already in effect before this file exists at all, so nobody who
+never creates it sees any behavior change.  A reload resets every
+field back to its own built-in default first, then applies only
+what the file actually specifies, the same way the active theme
+(section 4) already does, rather than merging on top of whatever an
+earlier load left in place.
+
+`is-enabled` (default `false`) gates every field below at once, the
+same opt-in-only posture `randr.json`'s own `is-enabled` (section 5)
+already has: a file that exists but never turns this on is read
+without error, same as ever, but has no effect at all, the same as
+if it were absent.  A person can keep an `a11y.json` around, ready
+to reference or hand off, without it applying until they explicitly
+turn this on.
 
 ### 6.1. Fields
 
-| Key                                  | Type    | Default |
-|---------------------------------------|---------|---------|
-| `interaction.double-click-ms`         | integer | `400`   |
-| `focus-indicator.min-border-width`    | integer | `0`     |
-| `urgency.audible-bell`                | boolean | `false` |
-| `urgency.blink-interval-ms`           | integer | `600`   |
+| Key                                | Type    | Default |
+|------------------------------------|---------|---------|
+| `is-enabled`                       | boolean | `false` |
+| `interaction.double-click-ms`      | integer | `400`   |
+| `focus-indicator.min-border-width` | integer | `0`     |
+| `urgency.audible-bell`             | boolean | `false` |
+| `urgency.blink-interval-ms`        | integer | `600`   |
 
 `interaction.double-click-ms` is how long, in milliseconds, between two
 clicks on a titlebar for them to count as a double-click (which toggles
@@ -1934,6 +1945,7 @@ a faster, more attention-grabbing blink; raise it for a slower one.
 
 ```json
 {
+    "is-enabled": true,
     "interaction": {
         "double-click-ms": 500
     },
@@ -1954,6 +1966,7 @@ take effect on a configuration reload (`KEYBIND_WM_RELOAD` / `SIGHUP`
 / the root menu's "Reload configuration" entry): none of them describe
 screen or desktop topology, so none of the concerns that keep `topology`
 reload-only-at-startup apply here.
+
 
 ## 7. `rules.json`: Per-window rules
 

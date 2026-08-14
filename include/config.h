@@ -1310,8 +1310,21 @@ struct config_desktop_s {
  * before this file existed, so nobody who never creates one sees any
  * behavior change at all.  Every field here does take effect on a
  * configuration reload, the same as @c config_desktop_s above.
+ *
+ * @c is_enabled (default @c false, mirroring @c config_randr_s's own)
+ * gates every other field here at once: @c false leaves all of them
+ * at their own built-in defaults regardless of what @c a11y.json
+ * otherwise specifies, the same way @c config_load_a11y behaves when
+ * the file is absent entirely.  A person keeps an a11y.json around
+ * (to reference, or to have ready) without it taking effect until
+ * they flip this on, the same opt-in @c randr.json's own
+ * @c is-enabled already provides for XRandR output profiles.
  */
 struct config_a11y_s {
+    /** Gates every field below at once; see this struct's own doc
+     *  comment above */
+    bool is_enabled;
+
     struct {
         /** Milliseconds between two clicks for them to count as a
          *  double-click (e.g. on a titlebar, to toggle shade); see
@@ -1437,6 +1450,27 @@ void config_set_default_values(config_td *config);
  *       need to be set
  */
 void config_set_default_theme_values(struct config_theme_s *theme);
+
+/**
+ * @brief Populate default values for one accessibility (a11y)
+ *        structure, used both as the initial process-wide default
+ *        and, before applying any a11y.json found, as the
+ *        known-good starting point that file's own fields then
+ *        overlay
+ *
+ * The same rationale as @c config_set_default_theme_values above
+ * applies here: a reload whose @c a11y.json skips a field, or is
+ * absent entirely, or whose @c is-enabled has just turned @c false,
+ * must not leave that field stuck at whatever an earlier, still-
+ * enabled load happened to set it to.  @c config_load_a11y calls
+ * this itself before parsing a file on every call, not just the
+ * first, for exactly that reason.
+ *
+ * @param a11y Accessibility structure to populate
+ *
+ * @note Complexity: @e O(1)
+ */
+void config_set_default_a11y_values(struct config_a11y_s *a11y);
 
 /**
  * @brief Load all of an ordinary session's own configuration

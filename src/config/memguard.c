@@ -405,14 +405,12 @@ void config_set_default_values_memguard(config_td *config)
             sizeof(config->base.fortune.command));
 
     /* Accessibility (a11y): the exact same built-in defaults as an
-     * ordinary session's own (see 'config_set_default_values',
-     * config.c); restricted-memory mode never has a reason to change
+     * ordinary session's own (see 'config_set_default_a11y_values',
+     * config.c), including the same 'is_enabled=false' opt-in
+     * posture; restricted-memory mode never has a reason to change
      * these, saving memory is never a reason to also give up basic
      * accessibility accommodations */
-    config->a11y.interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
-    config->a11y.focus_indicator.min_border_width = 0u;
-    config->a11y.urgency.audible_bell = false;
-    config->a11y.urgency.blink_interval_ms = WM_URGENCY_BLINK_INTERVAL_MS;
+    config_set_default_a11y_values(&config->a11y);
 
     config->base.startup_notification.is_enabled = false;
     config->base.startup_notification.timeout_seconds =

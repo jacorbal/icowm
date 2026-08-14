@@ -47,10 +47,8 @@
 /* Default initial values */
 #include <defs/ctxmenu.h>
 #include <defs/desktop.h>
-#include <defs/input.h>
 #include <defs/loop.h>
 #include <defs/sn.h>
-#include <defs/urgency.h>
 
 /* Project includes */
 #include <logger.h>
@@ -774,16 +772,7 @@ void config_set_default_values(config_td *config)
     safe_strncpy(config->bindings.mouse.cycle.desktop.next,
             "button5", sizeof(config->bindings.mouse.cycle.desktop.next));
 
-    /* Accessibility (a11y) defaults: the exact same values already
-     * in effect before 'a11y.json' existed at all (see
-     * 'WM_DOUBLE_CLICK_MS'/'WM_URGENCY_BLINK_INTERVAL_MS'), so
-     * nobody who never creates that file sees any behavior change */
-    config->a11y.interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
-    config->a11y.focus_indicator.min_border_width = 0u;
-    config->a11y.urgency.audible_bell = false;
-    config->a11y.urgency.blink_interval_ms =
-        WM_URGENCY_BLINK_INTERVAL_MS;
-
+    config_set_default_a11y_values(&config->a11y);
     config_set_default_theme_values(&config->theme);
 }
 
