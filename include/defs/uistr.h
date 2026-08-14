@@ -181,19 +181,19 @@
 #define STR_BATTERY_FULL_AC       "Full, AC"
 #define STR_BATTERY_FULL          "Full"
 /* The percentage itself, formatted on its own before being embedded
- * into any of the longer strings below (e.g. before 'STR_BATTERY_AC'
+ * into any of the longer strings below (e.g., before 'STR_BATTERY_AC'
  * to form "34% AC"): kept as its own translatable format string,
  * separate from where it gets used, since whether the '%' sign sits
- * flush against the number or has a space before it is a per-
- * language typographic convention, not something a single hardcoded
- * "%u%%" can get right for every locale at once. */
+ * flush against the number or has a space before it is a per-language
+ * typographic convention, not something a single hardcoded "%u%%" can
+ * get right for every locale at once. */
 #define STR_BATTERY_PERCENT        "%u%%"
-/* Standalone, appended after a percentage (e.g. "34% AC"): kept as
- * its own string, separate from 'STR_BATTERY_FULL_AC' above, since a
- * translation cannot derive one from the other by substring; some
+/* Standalone, appended after a percentage (e.g., "34% AC"): kept as its
+ * own string, separate from 'STR_BATTERY_FULL_AC' above, since
+ * a translation cannot derive one from the other by substring; some
  * languages place the qualifier before the percentage, or use an
- * entirely different word or word order for "on AC power" versus
- * "fully charged, on AC power" */
+ * entirely different word or word order for "on AC power" versus "fully
+ * charged, on AC power" */
 #define STR_BATTERY_AC             "AC"
 
 /* Restricted-memory mode announcement, shown once at startup

@@ -299,6 +299,7 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
                 _(STR_BATTERY_PERCENT), percent);
         (void) snprintf(out, out_size, "%s!", percent_buf);
     } else {
-        (void) snprintf(out, out_size, _(STR_BATTERY_PERCENT), percent);
+        (void) snprintf(out, out_size,
+                _(STR_BATTERY_PERCENT), percent);
     }
 }
