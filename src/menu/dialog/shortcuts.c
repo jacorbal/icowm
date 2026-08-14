@@ -277,7 +277,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.wm.quit);
     s_append_binding(text, sizeof(text), &offset, _(STR_SHORTCUTS_THIS_LIST),
             config->bindings.keyboard.wm.shortcuts);
-    if (config->base.enable_emergency_shortcut) {
+    if (config->base.shutdown.enable_emergency_shortcut) {
         s_append_line(text, sizeof(text), &offset, "%s",
                 _(STR_SHORTCUTS_EMERGENCY_EXIT));
     }

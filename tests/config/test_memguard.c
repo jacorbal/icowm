@@ -173,7 +173,7 @@ static void s_test_load_full_file(void)
         "\"windows\": {\"move-step\": 25,"
         "  \"placement\": {\"policy\": \"cascade\"}},"
         "\"icons\": {\"placement\": {\"policy\": \"grid\"}},"
-        "\"enable-emergency-shortcut\": true"
+        "\"shutdown\": {\"enable-emergency-shortcut\": true}"
         "}");
 
     config_load_memguard(config, dir);
@@ -184,8 +184,8 @@ static void s_test_load_full_file(void)
             "desktops.margins.top loaded");
     TAP_EQ_INT((int) config->base.windows.move_step, 25,
             "windows.move-step loaded");
-    TAP_OK(config->base.enable_emergency_shortcut,
-            "enable-emergency-shortcut loaded");
+    TAP_OK(config->base.shutdown.enable_emergency_shortcut,
+            "shutdown.enable-emergency-shortcut loaded");
 
     free(config);
     s_remove_temp_dir(dir);

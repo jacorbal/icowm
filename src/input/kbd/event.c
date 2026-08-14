@@ -640,7 +640,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
     }
 
     /* Emergency exit 'Ctrl+Mod1+BackSpace' */
-    if (config->base.enable_emergency_shortcut &&
+    if (config->base.shutdown.enable_emergency_shortcut &&
             keysym == KS_BACKSPACE &&
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {

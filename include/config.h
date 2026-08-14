@@ -155,32 +155,75 @@ struct config_base_s {
         } placement_policy;
     } icons;
 
-    bool enable_emergency_shortcut; /**< Allow 'Ctrl+Mod1+BackSpace' exit */
-
     /**
-     * @brief Coordinated shutdown behavior for the normal quit action
+     * @brief Shutdown behavior: the normal, coordinated quit action,
+     *        and the hardcoded emergency exit shortcut
      *
-     * When quit is confirmed, every managed client is first asked to
-     * close (ICCCM 'WM_DELETE_WINDOW' where supported, so an
-     * application with unsaved changes gets the same chance to warn
-     * the user it already gets when its own window is closed
-     * individually), rather than the window manager simply exiting
-     * out from under them.  @c timeout_seconds bounds how long this
-     * wait lasts before whichever clients are still open get forced
-     * closed regardless (see @c ccmd_client_kill, cmds/client/
-     * basic.h) and the window manager exits anyway.
-     *
-     * @note Deliberately not consulted at all by the emergency exit
-     *       shortcut above, which already bypasses even the exit
-     *       session hooks for the same reason: it exists as a last
-     *       resort that must never wait on anything
-     *
-     * @see @c wm_request_graceful_stop (wm.h), @c wm/shutdown.c
+     * @c enable_emergency_shortcut and @c timeout_seconds both live
+     * here together, rather than the emergency shortcut sitting
+     * apart at the top level, since both are about how the window
+     * manager itself shuts down, just by two entirely different
+     * paths that never interact with each other; see each field's
+     * own doc comment below for exactly how they differ.
      */
     struct {
-        /** Seconds to wait for clients to close on their own before
-         *  forcing the rest closed; @c 0 skips the wait entirely and
-         *  force-closes every remaining client right away */
+        /**
+         * @brief Allow the hardcoded 'Ctrl+Mod1+BackSpace' emergency
+         *        exit shortcut
+         *
+         * Off (@c false) by default.  When enabled, this shortcut
+         * terminates the window manager immediately: no confirmation
+         * dialog, no menu, none of the coordinated wait
+         * @c timeout_seconds below governs for the normal quit
+         * action, and not even the exit session hooks that a normal
+         * quit or @c SIGTERM otherwise runs.  This is deliberate, not
+         * an oversight: this shortcut exists specifically as a last
+         * resort for situations where the window manager itself may
+         * be unresponsive or in some broken state, so it is kept to
+         * the smallest, most direct possible action, a signal to its
+         * own process, with nothing else in between that could
+         * itself get stuck, hang, or otherwise fail to complete, e.g.
+         * a dialog that depends on the very rendering or event loop
+         * that might be the reason this shortcut is being reached
+         * for in the first place.  Not configurable via
+         * 'bindings.json' like a normal keybinding, for the same
+         * reason: a fixed, hardcoded combination that never changes
+         * and never depends on 'bindings.json' having parsed
+         * correctly is itself part of what makes it dependable as a
+         * last resort.  While enabled, that exact key combination
+         * cannot be reused by any binding in 'bindings.json', whether
+         * that would happen intentionally or by accident.
+         *
+         * @see 'input/kbd/event.c', where this shortcut is detected
+         *      ahead of every other keyboard handling, including any
+         *      open dialog or menu, so it keeps working even while
+         *      one of those has the keyboard grabbed
+         */
+        bool enable_emergency_shortcut;
+
+        /**
+         * @brief Coordinated shutdown behavior for the normal quit
+         *        action
+         *
+         * When quit is confirmed, every managed client is first
+         * asked to close (ICCCM 'WM_DELETE_WINDOW' where supported,
+         * so an application with unsaved changes gets the same
+         * chance to warn the user it already gets when its own
+         * window is closed individually), rather than the window
+         * manager simply exiting out from under them.
+         * @c timeout_seconds bounds how long this wait lasts before
+         * whichever clients are still open get forced closed
+         * regardless (see @c ccmd_client_kill, cmds/client/basic.h)
+         * and the window manager exits anyway.  Seconds to wait; @c 0
+         * skips the wait entirely and force-closes every remaining
+         * client right away.
+         *
+         * @note Never consulted by @c enable_emergency_shortcut
+         *       above, which bypasses this, the coordinated wait it
+         *       governs, and even the exit session hooks, entirely
+         *
+         * @see @c wm_request_graceful_stop (wm.h), @c wm/shutdown.c
+         */
         uint32_t timeout_seconds;
     } shutdown;
 

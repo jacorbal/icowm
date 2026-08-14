@@ -1148,11 +1148,10 @@ int config_load_base(const char *filename,
         }
     }
 
-    json_load_bool(json, "enable-emergency-shortcut",
-            &config_base->enable_emergency_shortcut);
-
     shutdown_item = cJSON_GetObjectItem(json, "shutdown");
     if (shutdown_item) {
+        json_load_bool(shutdown_item, "enable-emergency-shortcut",
+                &config_base->shutdown.enable_emergency_shortcut);
         json_load_uint(shutdown_item, "timeout-seconds",
                 &config_base->shutdown.timeout_seconds);
     }

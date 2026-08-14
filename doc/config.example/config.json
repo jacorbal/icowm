@@ -118,8 +118,8 @@
       "bottom": 0
     }
   },
-  "enable-emergency-shortcut": true,
   "shutdown": {
+    "enable-emergency-shortcut": true,
     "timeout-seconds": 15
   },
   "fortune": {

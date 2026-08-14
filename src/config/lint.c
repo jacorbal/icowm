@@ -161,6 +161,7 @@ static const config_lint_key_td s_schema_fortune[] = {
 };
 
 static const config_lint_key_td s_schema_shutdown[] = {
+    {"enable-emergency-shortcut", NULL, 0u},
     {"timeout-seconds", NULL, 0u}
 };
 
@@ -248,7 +249,6 @@ static const config_lint_key_td s_schema_config[] = {
         sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
     {"scratchpad", s_schema_scratchpad,
         sizeof(s_schema_scratchpad) / sizeof(s_schema_scratchpad[0])},
-    {"enable-emergency-shortcut", NULL, 0u},
     {"shutdown", s_schema_shutdown,
         sizeof(s_schema_shutdown) / sizeof(s_schema_shutdown[0])},
     {"fortune", s_schema_fortune,

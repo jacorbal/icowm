@@ -300,11 +300,10 @@ static int s_memguard_load_json(const char *filename, config_td *config)
         }
     }
 
-    json_load_bool(json, "enable-emergency-shortcut",
-            &config->base.enable_emergency_shortcut);
-
     shutdown_item = cJSON_GetObjectItem(json, "shutdown");
     if (shutdown_item) {
+        json_load_bool(shutdown_item, "enable-emergency-shortcut",
+                &config->base.shutdown.enable_emergency_shortcut);
         json_load_uint(shutdown_item, "timeout-seconds",
                 &config->base.shutdown.timeout_seconds);
     }
@@ -397,7 +396,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
 
-    config->base.enable_emergency_shortcut = false;
+    config->base.shutdown.enable_emergency_shortcut = false;
     config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = false;
     safe_strncpy(config->base.fortune.command, "fortune",

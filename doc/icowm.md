@@ -14,6 +14,7 @@ client for the IPC control socket section 5 below documents, see
 
 1. [What IcoWM is](#1-what-icowm-is)
 2. [Starting IcoWM](#2-starting-icowm)
+   - [2.1. Exiting IcoWM](#21-exiting-icowm)
 3. [Command-line options](#3-command-line-options)
    - [3.1. Main options](#31-main-options)
    - [3.2. Logging](#32-logging)
@@ -73,6 +74,32 @@ With no arguments, IcoWM connects to the display named by the
 `DISPLAY` environment variable, reads its configuration from the
 directory described in `config.md` section 1, and runs an ordinary,
 unrestricted session.
+
+### 2.1.  Exiting IcoWM
+
+There are two distinct ways to shut IcoWM down, and they behave very
+differently on purpose.
+
+The normal quit action (the "Quit" keybinding, its own confirmation
+dialog, and the root menu's "Quit" entry) asks every currently open
+application to close itself first, the same request closing one window
+individually already sends, so an application with unsaved changes gets
+the same chance to warn about it that it already gets any other time.
+IcoWM waits for all of them (see `config.md` section 2.6's own
+`shutdown.timeout-seconds`) before actually exiting.
+
+The emergency exit shortcut, `Ctrl+Mod1+BackSpace` (off by default, see
+`config.md` section 2.6's own `shutdown.enable-emergency-shortcut`),
+does none of that.  It runs with no dialog, no confirmation, and no wait
+of any kind: the moment it is pressed, IcoWM terminates immediately,
+skipping even the exit session hooks (`config.md` section 7) the normal
+quit action always runs.  This is deliberate, not an oversight: this
+shortcut exists for situations where IcoWM itself might be unresponsive
+or in some broken state, so it is kept to the smallest, most direct
+action possible.  A confirmation dialog, or any other step that waits on
+IcoWM's own event loop or rendering to keep working, would only be as
+reliable as whatever it is that might be the very reason someone reaches
+for this shortcut in the first place.
 
 ## 3.  Command-line options
 
@@ -255,9 +282,9 @@ here, in every row, in either kind of build.
 
 | Setting | Ordinary build | `COMPACT` build |
 |---------|---------------:|----------------:|
-| Desktops per screen, ordinary session, no `config.json` at all                    | 4 | 4 |
-| Screens, or desktops on that single screen, `-M <mib>` given (see 4.1)            | 1 | 1 |
-| Most screens an ordinary, unrestricted session can ever track at once             | 6 | 1 |
+| Desktops per screen, ordinary session, no `config.json` at all                    |  4 | 4 |
+| Screens, or desktops on that single screen, `-M <mib>` given (see 4.1)            |  1 | 1 |
+| Most screens an ordinary, unrestricted session can ever track at once             |  6 | 1 |
 | Most desktops per screen an ordinary, unrestricted session can ever track at once | 10 | 4 |
 | Most physical monitors an ordinary, unrestricted session can ever track at once   | 16 | 2 |
 | Most XRandR output profiles you can configure at once, ordinary session           | 16 | 2 |

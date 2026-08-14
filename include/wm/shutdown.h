@@ -15,7 +15,7 @@
  *
  * Deliberately never involved in the emergency exit shortcut, which
  * bypasses this (and even the exit session hooks) entirely by design:
- * see 'config_base_s.enable_emergency_shortcut', config.h.
+ * see 'config_base_s.shutdown.enable_emergency_shortcut', config.h.
  *
  * @defgroup wm_shutdown Coordinated shutdown
  * @ingroup wm

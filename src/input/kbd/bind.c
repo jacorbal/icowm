@@ -468,7 +468,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
     /* Resolve the emergency exit combo now that all declarations are
      * in place above */
-    if (config->base.enable_emergency_shortcut) {
+    if (config->base.shutdown.enable_emergency_shortcut) {
         (void) s_parse_binding(config, "Ctrl+Mod1+BackSpace",
                 &emergency_modmask, &emergency_keysym);
     }
@@ -486,7 +486,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * entry's own type directly or the grab happens regardless
          * of the flag below.) */
         if (defs[i].type == KEYBIND_WM_EMERGENCY_EXIT &&
-                !config->base.enable_emergency_shortcut) {
+                !config->base.shutdown.enable_emergency_shortcut) {
             continue;
         }
 

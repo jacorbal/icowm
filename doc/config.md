@@ -15,7 +15,7 @@ values, and built-in default value.
    - [2.3. `programs`](#23-programs)
    - [2.4. `windows`](#24-windows)
    - [2.5. `icons`](#25-icons)
-   - [2.6. `enable-emergency-shortcut` / `shutdown` / `fortune`](#26-enable-emergency-shortcut--shutdown--fortune)
+   - [2.6. `shutdown` / `fortune`](#26-shutdown--fortune)
    - [2.7. `startup-notification`](#27-startup-notification)
    - [2.8. `menu`](#28-menu)
    - [2.9. `systray`](#29-systray)
@@ -410,41 +410,63 @@ Accepted icon placement values:
 }
 ```
 
-### 2.6.  `enable-emergency-shortcut` / `shutdown` / `fortune`
+### 2.6.  `shutdown` / `fortune`
 
-| Key                         | Type    | Default     |
-|-----------------------------|---------|-------------|
-| `enable-emergency-shortcut` | boolean | `false`     |
-| `shutdown.timeout-seconds`  | integer | `15`        |
-| `fortune.is-enabled`        | boolean | `true`      |
-| `fortune.command`           | string  | `"fortune"` |
+| Key                                  | Type    | Default     |
+|--------------------------------------|---------|-------------|
+| `shutdown.enable-emergency-shortcut` | boolean | `false`     |
+| `shutdown.timeout-seconds`           | integer | `15`        |
+| `fortune.is-enabled`                 | boolean | `true`      |
+| `fortune.command`                    | string  | `"fortune"` |
 
-`enable-emergency-shortcut` gates a hardcoded shortcut, off by default,
-not configurable via `bindings.json` like a normal keybinding.
-`fortune` gates a normal, configurable one instead (see
-`keyboard.wm.fortune` in section 3.5): unlike the emergency exit, there
-is no risk in triggering it by accident, so it has no reason to be fixed
-in place the same way.
+`shutdown` groups every setting about how the window manager itself
+shuts down: the hardcoded emergency exit shortcut, and the wait the
+normal quit action performs.  `fortune` gates a normal, configurable
+shortcut instead (see `keyboard.wm.fortune` in section 3.5): unlike the
+emergency exit, there is no risk in triggering it by accident, so it has
+no reason to be fixed in place the same way the emergency exit is.
 
-When `true`, `enable-emergency-shortcut` activates
-`Ctrl+Mod1+BackSpace`, which immediately terminates the window manager
-ignoring pending session hooks.  Set to `false` (the default) to disable
-that shortcut, for example on systems where the key combination might be
-triggered accidentally.  While enabled, that exact key combination
-cannot be reused by any binding in `bindings.json`, whether that would
-happen intentionally or by accident: any such binding is ignored (with
+`shutdown.enable-emergency-shortcut`, when `true`, activates
+`Ctrl+Mod1+BackSpace`.  Not configurable via `bindings.json` like
+a normal keybinding, and while enabled, that exact key combination
+cannot be reused by any `bindings.json` entry, whether that would happen
+intentionally or by accident: any such binding is ignored (with
 a warning logged) so the emergency exit always keeps
-`Ctrl+Mod1+BackSpace` to itself.
+`Ctrl+Mod1+BackSpace` to itself.  Set to `false` (the default) to
+disable the shortcut entirely, for example on systems where the key
+combination might be triggered accidentally.
 
-`shutdown.timeout-seconds` applies only to the normal quit action (the "Quit"
-keybinding and its confirmation dialog, never the emergency exit above): once
-confirmed, every managed client is first asked to close on its own (the same
-`WM_DELETE_WINDOW` request closing one window individually already sends, so an
-application with unsaved changes gets the same chance to warn the user), and
-the window manager waits up to this many seconds for all of them to actually
-close before forcing whichever ones are still open closed regardless and
-exiting anyway.  A value of `0` skips the wait entirely and force-closes every
-remaining client right away.
+This shortcut terminates the window manager immediately: no confirmation
+dialog, no menu, none of the coordinated wait `shutdown.timeout-seconds`
+below governs for the normal quit action, and not even the exit session
+hooks a normal quit or an external `SIGTERM` otherwise runs.  This is
+deliberate, not an oversight.  The emergency exit exists specifically
+for situations where the window manager itself might be unresponsive or
+in some broken state, so it is kept to the smallest, most direct action
+possible: a signal sent to its own process, detected the very next time
+its main loop gets to check for one.  Every one of the things this
+shortcut skips (a dialog, a menu, the coordinated client-closing wait)
+depends on that same main loop and its own rendering still working;
+adding any of them back in as a required step, even one that can itself
+be cancelled, would make the emergency exit only as reliable as whatever
+it is that might be the very reason someone is reaching for it in the
+first place.  For the same reason, this shortcut is detected ahead of
+every other keyboard handling in the window manager, including whatever
+any currently open dialog or menu would otherwise do with that same key
+combination, so it keeps working even while one of those has the
+keyboard grabbed.
+
+`shutdown.timeout-seconds` applies only to the normal quit action (the
+"Quit" keybinding and its confirmation dialog): once confirmed, every
+managed client is first asked to close on its own (the same
+`WM_DELETE_WINDOW` request closing one window individually already
+sends, so an application with unsaved changes gets the same chance to
+warn the user), and the window manager waits up to this many seconds for
+all of them to actually close before forcing whichever ones are still
+open closed regardless and exiting anyway.  A value of `0` skips the
+wait entirely and force-closes every remaining client right away.  Never
+consulted by `shutdown.enable-emergency-shortcut` above, for the reasons
+already covered.
 
 When `fortune.is-enabled` is `true`, its own keyboard shortcut (see
 `keyboard.wm.fortune`, section 3.5) opens a small dialog running
@@ -459,8 +481,8 @@ supports.  Purely for fun; harmless to leave off, and harmless to turn
 on.
 
 ```json
-"enable-emergency-shortcut": true,
 "shutdown": {
+    "enable-emergency-shortcut": true,
     "timeout-seconds": 15
 },
 "fortune": {
@@ -2439,8 +2461,8 @@ to whatever theme loads, unconditionally.
         "ignore-margins": false
     },
 
-    "enable-emergency-shortcut": false,
     "shutdown": {
+        "enable-emergency-shortcut": false,
         "timeout-seconds": 15
     },
     "fortune": {
@@ -2612,7 +2634,7 @@ to whatever theme loads, unconditionally.
         "font": "fixed bold",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
-        "opacity": 100
+        "opacity": 100,
         "height": 22,
         "pixmap": {
             "size": 24,
@@ -2861,8 +2883,8 @@ emits a final notification on exit.
         "clock": { "is-enabled": true, "format": "%a %R" },
         "battery": { "is-enabled": true }
     },
-    "enable-emergency-shortcut": true
     "shutdown": {
+        "enable-emergency-shortcut": true,
         "timeout-seconds": 15
     }
 }

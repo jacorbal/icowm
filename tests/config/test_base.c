@@ -257,7 +257,8 @@ static void s_test_representative_fields(void)
         "  \"placement\": {\"policy\": \"cascade\", \"monitor\": \"primary\"}"
         "},"
         "\"icons\": {\"placement\": {\"policy\": \"top\"}},"
-        "\"enable-emergency-shortcut\": true,"
+        "\"shutdown\": {\"enable-emergency-shortcut\": true,"
+        "  \"timeout-seconds\": 20},"
         "\"fortune\": {\"is-enabled\": true,"
         "  \"command\": \"fortune -s\"},"
         "\"startup-notification\": {\"is-enabled\": true,"
@@ -280,7 +281,10 @@ static void s_test_representative_fields(void)
             CONFIG_PLACEMENT_MONITOR_PRIMARY, "windows.placement.monitor");
     TAP_EQ_INT(base.icons.placement_policy, CONFIG_ICON_PLACEMENT_TOP,
             "icons.placement.policy");
-    TAP_OK(base.enable_emergency_shortcut, "enable-emergency-shortcut");
+    TAP_OK(base.shutdown.enable_emergency_shortcut,
+            "shutdown.enable-emergency-shortcut");
+    TAP_EQ_INT((int) base.shutdown.timeout_seconds, 20,
+            "shutdown.timeout-seconds");
     TAP_OK(base.fortune.is_enabled, "fortune.is-enabled");
     TAP_EQ_STR(base.fortune.command, "fortune -s", "fortune.command");
     TAP_OK(base.startup_notification.is_enabled,

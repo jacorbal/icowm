@@ -523,7 +523,7 @@ void config_set_default_values(config_td *config)
     config->base.windows.focus.is_raised_on_focus = false;
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
-    config->base.enable_emergency_shortcut = false;
+    config->base.shutdown.enable_emergency_shortcut = false;
     config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = true;
     safe_strncpy(config->base.fortune.command, "fortune",
