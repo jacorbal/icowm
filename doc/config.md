@@ -1910,13 +1910,13 @@ turn this on.
 
 ### 6.1. Fields
 
-| Key                                | Type    | Default |
-|------------------------------------|---------|---------|
-| `is-enabled`                       | boolean | `false` |
-| `interaction.double-click-ms`      | integer | `400`   |
-| `focus-indicator.min-border-width` | integer | `0`     |
-| `urgency.audible-bell`             | boolean | `false` |
-| `urgency.blink-interval-ms`        | integer | `600`   |
+| Key                                  | Type    | Default |
+|---------------------------------------|---------|---------|
+| `is-enabled`                          | boolean | `false` |
+| `interaction.double-click-ms`         | integer | `400`   |
+| `focus-indicator.min-border-width`    | integer | `0`     |
+| `urgency.audible-bell`                | boolean | `false` |
+| `urgency.blink-interval-ms`           | integer | `600`   |
 
 `interaction.double-click-ms` is how long, in milliseconds, between two
 clicks on a titlebar for them to count as a double-click (which toggles
@@ -1966,7 +1966,6 @@ take effect on a configuration reload (`KEYBIND_WM_RELOAD` / `SIGHUP`
 / the root menu's "Reload configuration" entry): none of them describe
 screen or desktop topology, so none of the concerns that keep `topology`
 reload-only-at-startup apply here.
-
 
 ## 7. `rules.json`: Per-window rules
 
@@ -2968,6 +2967,7 @@ a guaranteed way out is worth having.
 
 ```json
 {
+    "is-enabled": true,
     "interaction": {
         "double-click-ms": 500
     },
