@@ -540,8 +540,7 @@ void ccmd_client_unfullscreen(client_td *client)
     target = ccmd_target_win(client);
     client_geometry_restore(client);
 
-    border_width = (client->theme != NULL)
-        ? (uint16_t) client->theme->window.active.border.width : 0u;
+    border_width = (uint16_t) client_border_width(client, true);
 
     /* Configured BEFORE the frame/target itself shrinks further down,
      * for the same reason 'ccmd_client_fullscreen' now configures its
@@ -715,9 +714,7 @@ void ccmd_client_toggle_decorate(client_td *client)
         mouse_hover_poll_clear(client->frame);
     }
 
-    bw = (client->theme != NULL)
-        ? (int32_t) client->theme->window.active.border.width
-        : 0;
+    bw = (int32_t) client_border_width(client, true);
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
     keep_focus = true;

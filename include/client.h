@@ -638,6 +638,8 @@ void client_apply_border(client_td *client, bool use_active_style);
 static inline uint32_t client_border_width(const client_td *client,
         bool is_active)
 {
+    uint32_t base_width;
+
     /* A decorated client's own frame is always created with a native
      * X11 'border_width' of 0 ('ci_create_decorations', client/
      * geom.c): the themed margin around a decorated client's own
@@ -662,12 +664,22 @@ static inline uint32_t client_border_width(const client_td *client,
      * configure two genuinely different widths, not just two
      * colors. */
     if (client->border_override.is_set) {
-        return client->border_override.width;
+        base_width = client->border_override.width;
+    } else {
+        base_width = (is_active)
+            ? client->theme->window.active.border.width
+            : client->theme->window.inactive.border.width;
     }
 
-    return (is_active)
-        ? client->theme->window.active.border.width
-        : client->theme->window.inactive.border.width;
+    /* Accessibility: never let a caller reserve less room than
+     * 'a11y.focus-indicator.min-border-width' actually needs,
+     * regardless of what the theme or 'border_override' specify;
+     * the same floor 'client_apply_border' (above) already applies
+     * when it actually draws the border this reserves room for */
+    return (client->a11y != NULL &&
+            client->a11y->focus_indicator.min_border_width > base_width)
+        ? client->a11y->focus_indicator.min_border_width
+        : base_width;
 }
 
 /**

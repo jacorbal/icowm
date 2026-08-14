@@ -97,9 +97,7 @@ im_resize_bounds_td im_resize_bounds(const client_td *client)
                 (int32_t) client->layout.frame_extents.top;
         }
     } else {
-        int32_t theme_border = (client->theme != NULL)
-            ? (int32_t) client->theme->window.active.border.width
-            : 0;
+        int32_t theme_border = (int32_t) client_border_width(client, true);
 
         border_left = theme_border;
         border_right = theme_border;

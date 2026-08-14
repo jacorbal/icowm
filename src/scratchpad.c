@@ -262,8 +262,14 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
      * its own right-hand border 2 * border past 'area_x + area_w' on
      * the right, off whatever the configured edge's own area was
      * ever meant to stay within. */
-    border = client->border_override.is_set
-        ? client->border_override.width : 0u;
+    /* 'client_border_width' (client.h) already reflects both
+     * 'border_override' set just above in 'scratchpad_notice_
+     * client_created' and any 'a11y.focus-indicator.min-border-
+     * width' floor over it, the exact width 'client_apply_border'
+     * itself will actually draw, rather than 'border_override.width'
+     * alone, which could be narrower than what a11y ends up
+     * enforcing and so reserve too little room here for it. */
+    border = client_border_width(client, true);
     avail_w = (area_w > 2u * border) ? area_w - 2u * border : 0u;
     avail_h = (area_h > 2u * border) ? area_h - 2u * border : 0u;
 
