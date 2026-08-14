@@ -81,6 +81,7 @@ static void s_append_line(char *buf, size_t buf_size, size_t *offset,
     if (*offset < buf_size - 1u) {
         buf[*offset] = '\n';
         *offset += 1u;
+        buf[*offset] = '\0';
     }
 }
 

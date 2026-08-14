@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
+#include <stdlib.h>     /* free */
 #include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
@@ -62,6 +63,11 @@ typedef struct {
 
 /** XCB window of the currently visible confirm dialog */
 static xcb_window_t s_confirm_window = XCB_WINDOW_NONE;
+
+/** Real X11 input focus captured right before this dialog took it,
+ *  so it can be restored on close; same pattern already used by
+ *  'search.c' and 'cycle.c' */
+static xcb_window_t s_confirm_prev_focus = XCB_WINDOW_NONE;
 
 /** Currently highlighted button: 0 = cancel (default), 1 = confirm */
 static int s_confirm_selected = 0;
@@ -426,6 +432,8 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     int16_t y;
     uint32_t mask;
     uint32_t values[4];
+    xcb_get_input_focus_cookie_t foc_cookie;
+    xcb_get_input_focus_reply_t *foc_reply;
 
     if (connection == NULL || surface == NULL || config == NULL ||
             surface->screen == NULL) {
@@ -434,6 +442,17 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 
     if (s_confirm_window != XCB_WINDOW_NONE) {
         return;
+    }
+
+    foc_cookie = xcb_get_input_focus(connection);
+    foc_reply = xcb_get_input_focus_reply(connection, foc_cookie, NULL);
+    s_confirm_prev_focus = (foc_reply != NULL &&
+            foc_reply->focus != XCB_WINDOW_NONE &&
+            foc_reply->focus != XCB_INPUT_FOCUS_POINTER_ROOT &&
+            foc_reply->focus != XCB_INPUT_FOCUS_NONE)
+        ? foc_reply->focus : XCB_WINDOW_NONE;
+    if (foc_reply != NULL) {
+        free(foc_reply);
     }
 
     (void) safe_strncpy(s_confirm_layout.prompt,
@@ -540,6 +559,19 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     s_confirm_selected = 0;
     s_confirm_callback = NULL;
     s_confirm_cancel_callback = NULL;
+
+    /* Restore whichever real X11 focus this dialog displaced when it
+     * opened; without this, focus reverts to 'PointerRoot' instead
+     * (per the revert_to mode 'menu_confirm_dialog_show' set it up
+     * with), which may land on a different client than the one the
+     * window manager's own bookkeeping still shows as active, or on
+     * nothing at all. */
+    if (s_confirm_prev_focus != XCB_WINDOW_NONE) {
+        xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
+                s_confirm_prev_focus, XCB_CURRENT_TIME);
+    }
+    s_confirm_prev_focus = XCB_WINDOW_NONE;
+
     /* Also cancels any click-triggered close/accept still scheduled
      * (see 'menu_dialog_defer_schedule' in menu_confirm_dialog_
      * handle_click), so 'menu_dialog_defer_tick' has nothing left to
