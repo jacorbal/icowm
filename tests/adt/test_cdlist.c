@@ -257,6 +257,69 @@ static void s_test_remove_middle_of_three(void)
 }
 
 
+/* Regression for a bug 'cdlist_ins_prev' used to have: inserting
+ * before the current head (with more than one item already in the
+ * list) linked every pointer correctly but never updated 'cdlist->
+ * head' itself, silently leaving the new first item unreachable from
+ * 'cdlist_head'.  The sibling 'cdlist_ins_next' never had this bug,
+ * since it always compares against 'cdlist->head'/'cdlist->tail'
+ * rather than against 'NULL', which 'cdlist_ins_prev' now does too. */
+static void s_test_ins_prev_at_head_updates_head(void)
+{
+    cdlist_td *list = cdlist_init(NULL);
+    int a = 1, b = 2, c = 3, x = 4;
+    cdlist_item_td *old_head;
+
+    cdlist_ins_prev(list, NULL, &a);
+    cdlist_ins_prev(list, NULL, &b);
+    cdlist_ins_prev(list, NULL, &c);
+    old_head = cdlist_head(list);
+
+    cdlist_ins_prev(list, old_head, &x);
+
+    TAP_EQ_INT(cdlist_size(list), 4, "four items after the insert");
+    TAP_EQ_INT(*(int *) cdlist_data(cdlist_head(list)), 4,
+            "the new item is the new head");
+    TAP_EQ_INT(*(int *) cdlist_data(cdlist_tail(list)), 3,
+            "the tail is unaffected by a head-side insert");
+    TAP_OK(cdlist_next(cdlist_head(list)) == old_head,
+            "the old head immediately follows the new one");
+    TAP_OK(cdlist_prev(cdlist_head(list)) == cdlist_tail(list),
+            "the circular back-link from the new head reaches the tail");
+
+    cdlist_destroy(list);
+}
+
+
+/* Regression for the same bug's own mirror image in 'cdlist_rem_
+ * prev': removing the current head (by removing the item before its
+ * own next neighbor, with more than one item left afterward) never
+ * updated 'cdlist->head' either */
+static void s_test_rem_prev_at_head_updates_head(void)
+{
+    cdlist_td *list = cdlist_init(NULL);
+    int a = 1, b = 2, c = 3;
+    void *removed = NULL;
+
+    cdlist_ins_prev(list, NULL, &a);
+    cdlist_ins_prev(list, NULL, &b);
+    cdlist_ins_prev(list, NULL, &c);
+
+    /* 'a' is the head; removing it via rem_prev from its own next
+     * neighbor ('b') exercises the head-removal path */
+    cdlist_rem_prev(list, cdlist_next(cdlist_head(list)), &removed);
+
+    TAP_EQ_INT(cdlist_size(list), 2, "one item removed, two remain");
+    TAP_OK(removed == &a, "the old head's own data came back");
+    TAP_EQ_INT(*(int *) cdlist_data(cdlist_head(list)), 2,
+            "'b' is the new head");
+    TAP_OK(cdlist_prev(cdlist_head(list)) == cdlist_tail(list),
+            "the circular back-link from the new head reaches the tail");
+
+    cdlist_destroy(list);
+}
+
+
 /* cdlist_clear runs the destroy callback exactly once per item, and
  * leaves the list itself empty and reusable afterward, not freed */
 static void s_test_clear_calls_destroy_once_each(void)
@@ -315,7 +378,7 @@ static void s_test_null_destroy_callback_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(42);
+    TAP_PLAN(51);
 
     s_test_empty_list();
     s_test_ins_next_null_builds_head();
@@ -326,6 +389,8 @@ int main(void)
     s_test_remove_only_item_via_next_tail();
     s_test_insert_after_degenerate_removal();
     s_test_remove_middle_of_three();
+    s_test_ins_prev_at_head_updates_head();
+    s_test_rem_prev_at_head_updates_head();
     s_test_clear_calls_destroy_once_each();
     s_test_null_destroy_callback_is_safe();
 

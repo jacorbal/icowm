@@ -330,6 +330,49 @@ bool wm_sync_available(void);
 list_td *wm_get_surfaces(void);
 
 /**
+ * @brief Find which managed surface a given desktop belongs to
+ *
+ * @c desktop_td itself keeps no back-pointer to its own owning
+ * @c surface_td (each surface's own @c desktops list points one way
+ * only, surface to desktop); this is the reverse lookup, used by
+ * @c desktop_action_recompute_urgent (desktop/dclient.c) to find the
+ * surface a desktop's own cross-desktop urgency notification popup
+ * needs to center on and compare @c desktop_cur against, without
+ * that function's own signature having to grow a @c surface_td
+ * parameter every one of its own several unrelated callers would
+ * then also have to obtain and pass through.
+ *
+ * @param desktop Desktop to find the owning surface of
+ *
+ * @return The surface @p desktop belongs to, or @c NULL when
+ *         @p desktop is @c NULL, no managed surface contains it, or
+ *         the window manager is not initialized
+ *
+ * @note Complexity: @e O(s * d), where @e s is the number of managed
+ *       surfaces and @e d the number of desktops per surface
+ */
+surface_td *wm_get_desktop_surface(const desktop_td *desktop);
+
+/**
+ * @brief Return the active configuration of the singleton window
+ *        manager instance
+ *
+ * Used by code outside @c src/wm/ (which cannot include the private
+ * @c wm/internal.h singleton pointer directly) that needs to read
+ * configuration without already having a @c client_td/@c desktop_td
+ * of its own that caches the specific sub-section it needs (see,
+ * e.g., @c client_td.config_base, @c desktop_td.config_base): @c
+ * desktop_action_recompute_urgent (desktop/dclient.c) is the first
+ * such caller, reading @c desktops.notify-activity.
+ *
+ * @return The active configuration, or @c NULL when the window
+ *         manager is not initialized
+ *
+ * @note Complexity: @e O(1)
+ */
+config_td *wm_get_config(void);
+
+/**
  * @brief Return the configuration directory prefix
  *
  * Returns the value of @c config_dir_prefix passed to @a wm_start, or

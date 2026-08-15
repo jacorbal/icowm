@@ -8,7 +8,7 @@
  *
  * @date Fri Aug 14 14:44:41 UTC 2026
  *
- * @version 1.0.1-beta.3 ("'ovelya")
+ * @version 1.0.1-rc.1 ("'ovelya")
  * @copyright Copyright (c) 2026, J. A. Corbal.
  *            ISC License <https://opensource.org/license/isc-license-txt>
  *

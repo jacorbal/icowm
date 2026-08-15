@@ -39,7 +39,7 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
 
     /* Initialize each positions */
     htbl->min_positions =
-        (positions > min_positions || min_positions == 0) ? positions
+        (min_positions > positions || min_positions == 0) ? positions
                                                           : min_positions;
     htbl->positions = positions;
     for (size_t i = 0; i < htbl->positions; ++i) {

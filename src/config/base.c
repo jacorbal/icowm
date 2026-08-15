@@ -868,15 +868,17 @@ static void s_config_load_desktop_behavior(cJSON *json,
 
     desktop_settings = cJSON_GetObjectItem(json, "desktops");
     if (desktop_settings == NULL) {
-        LOGGER_TRACE("No 'desktops' object found in '%s'; show-" \
-                "overlay, enable-edge-warp, is-circular, and margins" \
-                " keep their default values",
+        LOGGER_TRACE("No 'desktops' object found in '%s';" \
+                " show-overlay, notify-activity, enable-edge-warp," \
+                " is-circular, and margins keep their default values",
                 filename);
         return;
     }
 
     json_load_bool(desktop_settings, "show-overlay",
             &config_desktop->show_overlay);
+    json_load_bool(desktop_settings, "notify-activity",
+            &config_desktop->notify_activity);
     json_load_bool(desktop_settings, "enable-edge-warp",
             &config_desktop->enable_edge_warp);
     json_load_bool(desktop_settings, "is-circular",
@@ -912,6 +914,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
      * regardless of how many desktops end up configured, the same
      * as every other default here. */
     config_desktop->show_overlay = true;
+    config_desktop->notify_activity = true;
     config_desktop->enable_edge_warp = true;
     config_desktop->is_circular = true;
     config_desktop->margins.top = 0u;

@@ -345,9 +345,11 @@ void config_set_default_values_memguard(config_td *config)
     config->base.screen_count = 1u;
 
     /* A single screen, a single desktop: neither edge-warping nor
-     * wrap-around navigation, nor the desktop-name overlay, mean
-     * anything with only one desktop to switch to. */
+     * wrap-around navigation, nor the desktop-name overlay or the
+     * cross-desktop activity notification, mean anything with only
+     * one desktop to switch to */
     config->desktops.show_overlay = false;
+    config->desktops.notify_activity = false;
     config->desktops.enable_edge_warp = false;
     config->desktops.is_circular = false;
     config->desktops.margins.top = 0u;
@@ -362,7 +364,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.screens[0].desktops[0].settings.background.color =
         WM_DESKTOP_BG_COLOR_UNSET;
 
-    /* Launched-program defaults, in case memguard.json does not
+    /* Launched-program defaults, in case 'memguard.json' does not
      * specify its own; identical to config_set_default_values's own
      * defaults, since restricted-memory mode has no particular reason
      * to prefer different programs. */
@@ -390,11 +392,11 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.focus.is_raised_on_focus = false;
 
     /* SMART's own cost is bounded (256 candidate slots, each checked
-     * against every already-docked icon, so O(256*n) at worst) and
+     * against every already-docked icon, so 'O(256*n)' at worst) and
      * runs once per icon placed, not on any hot path, so it costs
      * nothing meaningful to leave on by default here; overridable in
-     * memguard.json (see s_memguard_load_json) the same as an
-     * ordinary session's own icons.placement. */
+     * 'memguard.json' (see 's_memguard_load_json') the same as an
+     * ordinary session's own 'icons.placement' */
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
 
@@ -406,7 +408,7 @@ void config_set_default_values_memguard(config_td *config)
 
     /* Accessibility (a11y): the exact same built-in defaults as an
      * ordinary session's own (see 'config_set_default_a11y_values',
-     * config.c), including the same 'is_enabled=false' opt-in
+     * 'config.c'), including the same 'is_enabled=false' opt-in
      * posture; restricted-memory mode never has a reason to change
      * these, saving memory is never a reason to also give up basic
      * accessibility accommodations */

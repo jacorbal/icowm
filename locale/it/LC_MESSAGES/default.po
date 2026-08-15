@@ -283,6 +283,18 @@ msgstr "Vai al desktop 0-9: %.*s<0-9>"
 msgid "Go to desktop %u: %s"
 msgstr "Vai al desktop %u: %s"
 
+#: include/defs/uistr.h:187
+msgid "Detected activity on desktop [%u] -- %s"
+msgstr "Rilevata attività sul desktop [%u] -- %s"
+
+#: include/defs/uistr.h:189
+msgid "Detected activity on desktop [%u]"
+msgstr "Rilevata attività sul desktop [%u]"
+
+#: include/defs/uistr.h:194
+msgid " (on surface %u)"
+msgstr " (sulla superficie %u)"
+
 #: include/defs/uistr.h:179
 msgid "N/A"
 msgstr "N/D"

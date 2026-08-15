@@ -13,7 +13,7 @@
 PROJECT_NAME_PROG = icowm
 PROJECT_NAME_SHORT = "IcoWM"
 PROJECT_NAME_LONG = "Iconifying Window Manager"
-PROJECT_VERSION = "1.0.1-beta.3"
+PROJECT_VERSION = "1.0.1-rc.1"
 PROJECT_VERSION_CODENAME = "'ovelya"
 LICENSE = "ISC License"
 COPYRIGHT = "Copyright (c) 2026"
@@ -250,11 +250,11 @@ $(O_DIR)/tools/%.o: $(T_DIR)/%.c
 
 ## Tests
 #
-# See tests/Makefile.mk for every test-related rule and variable;
-# kept in its own file to keep this one focused on building IcoWM
-# itself.  Included, not sub-made, so it shares this Makefile's own
-# variables (CC, CCSTD, I_DIR, S_DIR, and so on) directly, with no
-# need to re-export or duplicate any of them.
+# See 'tests/Makefile.mk' for every test-related rule and variable; kept
+# in its own file to keep this one focused on building IcoWM itself.
+# Included, not sub-made, so it shares this Makefile's own variables
+# ('CC', 'CCSTD', 'I_DIR', 'S_DIR', and so on) directly, with no need to
+# re-export or duplicate any of them.
 include tests/Makefile.mk
 
 

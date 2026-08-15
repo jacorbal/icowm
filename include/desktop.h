@@ -67,20 +67,20 @@
  * information about their environment.
  */
 typedef struct desktop_s {
-    xcb_connection_t *connection;           /**< XCB connection */
-    xcb_ewmh_connection_t *ewmh;            /**< EWMH connection */
-    uint32_t screen_id;                     /**< Screen index */
+    xcb_connection_t *connection;   /**< XCB connection */
+    xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
+    uint32_t screen_id;             /**< Screen index */
 
     /**
      * @brief Resolved pointer to this desktop's own XCB screen
      *
      * Resolved once, in @a desktop_init, from the same
-     * 'xcb_setup_roots_iterator' walk already needed there to read
-     * this screen's own pixel dimensions; kept here afterward so
-     * every later caller that needs this desktop's own screen (e.g.,
-     * @a desktop_render_background, render/desktop.c) reads this
-     * field directly instead of repeating that same O(n) walk again
-     * from scratch, an O(1) lookup either way.
+     * @a xcb_setup_roots_iterator walk already needed there to read
+     * this screen's own pixel dimensions; kept here afterward so every
+     * later caller that needs this desktop's own screen (e.g.,
+     * @a desktop_render_background, @c render/desktop.c) reads this
+     * field directly instead of repeating that same @e O(n) walk again
+     * from scratch, an @e O(1) lookup either way.
      */
     xcb_screen_t *screen;
 
@@ -98,10 +98,10 @@ typedef struct desktop_s {
         } bg;                               /**< Background information */
     } background;
     /* No 'bg_applied_once'/'bg_color_applied' cache here: the root
-     * window a solid-color background actually paints is one single X
-     * resource shared by every desktop on the same screen, so that
-     * cache lives per screen instead (see 's_root_bg_applied_once' in
-     * render/desktop.c), not per desktop. */
+     * window a solid-color background actually paints is one single
+     * X resource shared by every desktop on the same screen, so that
+     * cache lives per screen instead (cfr. 's_root_bg_applied_once' in
+     * 'render/desktop.c'), not per desktop. */
 
     ohtbl_td *clients;                      /**< Clients hash table */
     cdlist_td *stacking;                    /**< Stacking list */
@@ -121,25 +121,28 @@ typedef struct desktop_s {
                                                  refreshed on all clients */
 
     /**
-     * @brief Whether at least one client on this desktop currently
-     *        has its own urgency hint set
+     * @brief Whether at least one client on this desktop currently has
+     *        its own urgency hint set
      *
-     * Kept correct by @c desktop_action_recompute_urgent
-     * (desktop/dclient.c), called from every site that could change
-     * the answer: a client's own urgency being set or cleared
-     * (@c ccmd_client_urge/_unurge, cmds/client/basic.c) while
-     * already on this desktop, and a client entering or leaving it
-     * altogether (@c desktop_action_client_add/_rem, this same
-     * file), which already covers a client created already urgent,
-     * one destroyed while still urgent, and one sent to a different
-     * desktop while still urgent -- every one of those changes who
-     * this desktop's own set of clients is, not a client already on
-     * it changing its own urgency, the other case those two
-     * functions exist to handle instead.  Not consulted by anything
-     * yet: a hook for a future feature (e.g., drawing this desktop's
-     * own entry differently while the surface is showing a different
-     * one), included now so a client's own urgency is never missed
-     * regardless of which desktop it lands on.
+     * Kept correct by @a desktop_action_recompute_urgent
+     * (@c desktop/dclient.c), called from every site that could change
+     * the answer.  A client's own urgency being set or cleared
+     * (@a ccmd_client_urge and @a ccmd_client_unurge, in
+     * @c cmds/client/basic.c) while already on this desktop, and
+     * a client entering or leaving it altogether
+     * (@a desktop_action_client_add and @a desktop_action_client_rem,
+     * this same file), which already covers a client created already
+     * urgent, one destroyed while still urgent, and one sent to
+     * a different desktop while still urgent.  Every one of those
+     * changes who this desktop's own set of clients is, not a client
+     * already on it changing its own urgency, the other case those two
+     * functions exist to handle instead.
+     *
+     * @note Not consulted by anything yet.  A hook for a future feature
+     *       (e.g., drawing this desktop's own entry differently while
+     *       the surface is showing a different one), included now so
+     *       a client's own urgency is never missed regardless of which
+     *       desktop it lands on.
      */
     bool is_urgent;
 } desktop_td;
@@ -241,11 +244,11 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client);
 int desktop_action_client_rem(desktop_td *desktop, client_td *client);
 
 /**
- * @brief Recompute @c desktop->is_urgent from scratch, against every
+ * @brief Recompute @p desktop->is_urgent from scratch, against every
  *        client currently on it
  *
  * @param desktop Desktop to recompute; a no-op if @c NULL or its own
- *                @c clients table is
+ *                @p clients table is
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  *       currently on @p desktop
@@ -508,14 +511,13 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *
  * Scans all clients in the stacking list for non-zero @c _NET_WM_STRUT
  * / @c _NET_WM_STRUT_PARTIAL values, folds in @p systray_strut (the
- * window manager's own built-in systray reservation, aggregated
- * exactly like a client's strut since the systray's own dock window
- * is never itself a managed client -- see @c systray_get_reserved_
- * strut) the same way, adds @p config_desktop's own @c margins on top
- * of that (see @c config_desktop_s in config.h, for a program that
- * reserves screen space without publishing either property itself),
- * and subtracts the combined maximum reservation on each edge from
- * the full screen dimensions.  For partial struts, the corresponding
+ * window manager's own built-in systray reservation, aggregated exactly
+ * like a client's strut since the systray's own dock window is never
+ * itself a managed client.
+ *
+ * The same way, adds @p config_desktop's own @p margins on top of that
+ * and subtracts the combined maximum reservation on each edge from the
+ * full screen dimensions.  For partial struts, the corresponding
  * start/end range is honored so reservations that do not overlap the
  * screen edge span are ignored; configured margins always apply along
  * the whole edge, having no start/end range of their own to honor.
@@ -524,23 +526,27 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *
  * Call this after a panel (strut client) is mapped or unmapped, after
  * the systray's own reservation changes (reposition, resize, or being
- * shown/hidden), and after a configuration reload that may have
- * changed @c margins, so that maximize and smart-placement work on
- * the correct available area.
+ * shown/hidden), and after a configuration reload that may have changed
+ * @p margins, so that maximize and smart-placement work on the correct
+ * available area.
  *
  * @param desktop        Desktop whose work area should be refreshed
  * @param screen_w       Full screen width in pixels
  * @param screen_h       Full screen height in pixels
  * @param config_desktop Active desktop-behavior configuration, for
- *                       its @c margins; a @c NULL treats every margin
+ *                       its @p margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
  * @param systray_strut  The systray's own current reservation on
- *                       @p desktop's surface (see @c systray_get_
- *                       reserved_strut); a @c NULL folds in nothing,
- *                       same as if the systray reserved no space
+ *                       @p desktop's surface; a @c NULL value folds in
+ *                       nothing, same as if the systray reserved no
+ *                       space
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop
+ *
+ * @see @a systray_get_reserved_strut
+ * @see @p config_desktop_s in @c config.h, for a program that reserves
+ *      screen space without publishing either property itself
  */
 void desktop_update_workarea(desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h,

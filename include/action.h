@@ -33,9 +33,9 @@ enum action_client_e {
     ACTION_CLIENT_MOVE,                 /**< Move window */
     ACTION_CLIENT_CENTER,               /**< Center window */
     ACTION_CLIENT_MOVE_NEXT_MONITOR,    /**< Move window to the next
-                                              monitor */
+                                             monitor */
     ACTION_CLIENT_MOVE_TO_MONITOR,      /**< Move window to a specific
-                                              monitor index */
+                                             monitor index */
     ACTION_CLIENT_RECLASS,              /**< Change window class */
     ACTION_CLIENT_REROLE,               /**< Change window role */
     ACTION_CLIENT_RENAME,               /**< Rename window */
@@ -85,12 +85,12 @@ enum action_desktop_e {
     ACTION_DESKTOP_CLIENT_SEND_BACK,    /**< Set w. to back of stack */
     ACTION_DESKTOP_CLIENTS_REARRANGE,   /**< Rearrange windows */
     ACTION_DESKTOP_CLIENTS_ICONIFY_ALL, /**< Iconify (& minim.) all w. */
-    ACTION_DESKTOP_CLIENTS_DEICONIFY_ALL, /**< Restore all iconified w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE,/**< Cycle through active w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_PREV,  /**< Cycle through prev. w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_NEXT, /**< Cycle to next icon */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_PREV, /**< Cycle to prev. icon */
-    ACTION_DESKTOP_COMMAND_LAUNCH,      /**< Launch program */
+    ACTION_DESKTOP_CLIENTS_DEICONIFY_ALL,       /**< Restore all iconified w. */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE,        /**< Cycle through active w. */
+    ACTION_DESKTOP_CYCLE_CLIENTS_PREV,          /**< Cycle through prev. w. */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_NEXT,    /**< Cycle to next icon */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_PREV,    /**< Cycle to prev. icon */
+    ACTION_DESKTOP_COMMAND_LAUNCH,              /**< Launch program */
 
     ACTION_DESKTOP_MAX =
         ACTION_DESKTOP_COMMAND_LAUNCH,

@@ -626,6 +626,39 @@ list_td *wm_get_surfaces(void)
 }
 
 
+/* Find which managed surface a given desktop belongs to */
+surface_td *wm_get_desktop_surface(const desktop_td *desktop)
+{
+    if (desktop == NULL || wm == NULL || wm->surfaces == NULL) {
+        return NULL;
+    }
+
+    for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
+            snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+
+        if (surface == NULL) {
+            continue;
+        }
+        for (uint32_t i = 0; i < surface->desktop_count; ++i) {
+            if (surface_desktop_get(surface, i) == desktop) {
+                return surface;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+
+/* Return the active configuration of the singleton window manager
+ * instance */
+config_td *wm_get_config(void)
+{
+    return (wm != NULL) ? wm->config : NULL;
+}
+
+
 /* Return the configuration directory prefix */
 const char *wm_get_config_dir(void)
 {

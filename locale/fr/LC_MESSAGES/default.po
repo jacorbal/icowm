@@ -283,6 +283,18 @@ msgstr "Aller au bureau 0-9 : %.*s<0-9>"
 msgid "Go to desktop %u: %s"
 msgstr "Aller au bureau %u : %s"
 
+#: include/defs/uistr.h:187
+msgid "Detected activity on desktop [%u] -- %s"
+msgstr "Activité détectée sur le bureau [%u] -- %s"
+
+#: include/defs/uistr.h:189
+msgid "Detected activity on desktop [%u]"
+msgstr "Activité détectée sur le bureau [%u]"
+
+#: include/defs/uistr.h:194
+msgid " (on surface %u)"
+msgstr " (sur la surface %u)"
+
 #: include/defs/uistr.h:179
 msgid "N/A"
 msgstr "N/D"

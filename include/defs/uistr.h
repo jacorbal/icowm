@@ -176,6 +176,24 @@
     "Go to desktop 0-9: %.*s<0-9>"
 #define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u: %s"
 
+/* Cross-desktop urgency notification ('src/desktop/dclient.c',
+ * 'desktop_action_recompute_urgent'): shown, via the shared message
+ * dialog ('menu/dialog/message.h') at 'MENU_MSG_LEVEL_INFO', when
+ * a client becomes urgent on a desktop other than the one currently
+ * visible on its own surface (see 'desktops.notify-activity' in
+ * config.json); TRANSLATORS: keep every '%u' (a desktop's own index,
+ * or, only in the surface-suffix variant, a surface's own index) and
+ * every '%s' (a desktop's own name) */
+#define STR_DESKTOP_ACTIVITY_NAMED_FMT \
+    "Detected activity on desktop [%u] -- %s"
+#define STR_DESKTOP_ACTIVITY_UNNAMED_FMT \
+    "Detected activity on desktop [%u]"
+/* Appended to either message above, only when more than one surface is
+ * managed (a single-surface setup, by far the common case, has nothing
+ * to disambiguate) */
+#define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT \
+    " (on surface %u)"
+
 /* Battery indicator ('src/systray/battery.c') */
 #define STR_BATTERY_NOT_AVAILABLE "N/A"
 #define STR_BATTERY_FULL_AC "Full, AC"

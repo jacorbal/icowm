@@ -283,6 +283,18 @@ msgstr "Vés a l'escriptori 0-9: %.*s<0-9>"
 msgid "Go to desktop %u: %s"
 msgstr "Vés a l'escriptori %u: %s"
 
+#: include/defs/uistr.h:187
+msgid "Detected activity on desktop [%u] -- %s"
+msgstr "Detectada activitat a l'escriptori [%u] -- %s"
+
+#: include/defs/uistr.h:189
+msgid "Detected activity on desktop [%u]"
+msgstr "Detectada activitat a l'escriptori [%u]"
+
+#: include/defs/uistr.h:194
+msgid " (on surface %u)"
+msgstr " (a la superfície %u)"
+
 #: include/defs/uistr.h:179
 msgid "N/A"
 msgstr "N/D"

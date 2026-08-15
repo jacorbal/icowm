@@ -281,6 +281,18 @@ msgstr "yIngan Daq 0-9: %.*s<0-9>"
 msgid "Go to desktop %u: %s"
 msgstr "yIngan Daq %u: %s"
 
+#: include/defs/uistr.h:187
+msgid "Detected activity on desktop [%u] -- %s"
+msgstr "yIngan Daq [%u] -- %s: vay' taH"
+
+#: include/defs/uistr.h:189
+msgid "Detected activity on desktop [%u]"
+msgstr "yIngan Daq [%u]: vay' taH"
+
+#: include/defs/uistr.h:194
+msgid " (on surface %u)"
+msgstr " (verengan %u)"
+
 #: include/defs/uistr.h:179
 msgid "N/A"
 msgstr "Sut"

@@ -797,6 +797,7 @@ a configuration reload (see section 4.9).
 | Key                | Type    | Default | Description |
 |--------------------|---------|---------|-------------|
 | `show-overlay`     | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes. The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name. |
+| `notify-activity`  | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its own surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed). A client urgent on the currently visible desktop already gets its own titlebar blink instead (see `urgency.*` in `a11y.json`, section 6), which this never duplicates. |
 | `enable-edge-warp` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
 | `is-circular`      | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
 | `margins.top`      | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
@@ -818,6 +819,7 @@ override.
 ```json
 "desktops": {
     "show-overlay": true,
+    "notify-activity": true,
     "enable-edge-warp": true,
     "is-circular": true,
     "margins": {
@@ -2421,6 +2423,7 @@ to whatever theme loads, unconditionally.
 
     "desktops": {
         "show-overlay": true,
+        "notify-activity": true,
         "enable-edge-warp": true,
         "is-circular": true,
         "margins": {

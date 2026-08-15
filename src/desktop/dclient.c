@@ -20,6 +20,7 @@
 #include <fcntl.h>      /* fcntl, F_SETFD, FD_CLOEXEC */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, setenv */
 #include <string.h>     /* strerror */
 #include <strings.h>    /* strcasecmp */
@@ -43,6 +44,16 @@
 #include <logger.h>
 #include <sn.h>
 #include <wm.h>
+
+/* Menu includes */
+#include <menu/dialog/message.h>
+
+/* Default initial values */
+#include <defs/desktop.h>
+#include <defs/uistr.h>
+
+/* i18n */
+#include <i18n.h>
 
 /* Local includes */
 #include <desktop.h>
@@ -396,11 +407,14 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 void desktop_action_recompute_urgent(desktop_td *desktop)
 {
     void *elem;
+    bool was_urgent;
     bool found = false;
 
     if (desktop == NULL || desktop->clients == NULL) {
         return;
     }
+
+    was_urgent = desktop->is_urgent;
 
     ohtbl_foreach(desktop->clients, elem) {
         client_td *c = (client_td *) elem;
@@ -412,6 +426,48 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     }
 
     desktop->is_urgent = found;
+
+    /* Only on the actual false-to-true transition, and only when this
+     * is not the desktop currently visible on its own surface: that
+     * case already gets its own titlebar blink (policy/urgency.c),
+     * so a dialog here would only duplicate what is already on
+     * screen. */
+    if (!was_urgent && found) {
+        surface_td *surface = wm_get_desktop_surface(desktop);
+        config_td *config = wm_get_config();
+
+        if (surface != NULL && desktop->id != surface->desktop_cur &&
+                config != NULL && config->desktops.notify_activity &&
+                !menu_message_dialog_is_open()) {
+            list_td *surfaces = wm_get_surfaces();
+            uint32_t surface_count = (surfaces != NULL)
+                ? (uint32_t) list_size(surfaces) : 0u;
+            char text[WM_DESKTOP_MAX_LENGTH_NAME + 48];
+            size_t used;
+
+            if (desktop->name[0] != '\0') {
+                snprintf(text, sizeof(text),
+                        _(STR_DESKTOP_ACTIVITY_NAMED_FMT),
+                        (unsigned int) desktop->id, desktop->name);
+            } else {
+                snprintf(text, sizeof(text),
+                        _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
+                        (unsigned int) desktop->id);
+            }
+
+            if (surface_count > 1u) {
+                used = strlen(text);
+                if (used < sizeof(text)) {
+                    snprintf(text + used, sizeof(text) - used,
+                            _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
+                            (unsigned int) surface->id);
+                }
+            }
+
+            menu_message_dialog_show(desktop->connection, surface,
+                    config, text, MENU_MSG_LEVEL_INFO);
+        }
+    }
 }
 
 

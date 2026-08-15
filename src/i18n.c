@@ -12,8 +12,8 @@
  */
 
 /* System includes */
-#include <libintl.h>
-#include <locale.h>
+#include <libintl.h>    /* bindtextdomain, textdomain */
+#include <locale.h>     /* setlocale */
 
 /* Local includes */
 #include <i18n.h>
