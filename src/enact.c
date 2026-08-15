@@ -246,27 +246,26 @@ void enact_client_move_to_monitor(client_td *client,
 void enact_client_reclass(client_td *client, const char *class_name,
         const char *instance_name)
 {
+    cJSON *fields;
+
     ccmd_client_reclass(client, class_name, instance_name);
     if (client != NULL) {
         xcb_flush(client->connection);
 
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-                cJSON_AddStringToObject(fields, "class_name",
-                        (class_name != NULL) ? class_name : "");
-                cJSON_AddStringToObject(fields, "instance_name",
-                        (instance_name != NULL) ? instance_name : "");
-            }
-            ipc_broadcast_event(IPC_EVENT_CLIENT_RECLASSED, fields);
+        fields = cJSON_CreateObject();
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+            cJSON_AddStringToObject(fields, "class_name",
+                    (class_name != NULL) ? class_name : "");
+            cJSON_AddStringToObject(fields, "instance_name",
+                    (instance_name != NULL) ? instance_name : "");
         }
+        ipc_broadcast_event(IPC_EVENT_CLIENT_RECLASSED, fields);
     }
 }
 
@@ -274,25 +273,24 @@ void enact_client_reclass(client_td *client, const char *class_name,
 /* Change the client's 'WM_WINDOW_ROLE' */
 void enact_client_rerole(client_td *client, const char *role)
 {
+    cJSON *fields;
+
     ccmd_client_rerole(client, role);
     if (client != NULL) {
         xcb_flush(client->connection);
 
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-                cJSON_AddStringToObject(fields, "role",
-                        (role != NULL) ? role : "");
-            }
-            ipc_broadcast_event(IPC_EVENT_CLIENT_REROLED, fields);
+        fields = cJSON_CreateObject();
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+            cJSON_AddStringToObject(fields, "role",
+                    (role != NULL) ? role : "");
         }
+        ipc_broadcast_event(IPC_EVENT_CLIENT_REROLED, fields);
     }
 }
 
@@ -300,25 +298,24 @@ void enact_client_rerole(client_td *client, const char *role)
 /* Rename the client's window title */
 void enact_client_rename(client_td *client, const char *name)
 {
+    cJSON *fields;
+
     ccmd_client_rename(client, name);
     if (client != NULL) {
         xcb_flush(client->connection);
 
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-                cJSON_AddStringToObject(fields, "name",
-                        (name != NULL) ? name : "");
-            }
-            ipc_broadcast_event(IPC_EVENT_CLIENT_RENAMED, fields);
+        fields = cJSON_CreateObject();
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+            cJSON_AddStringToObject(fields, "name",
+                    (name != NULL) ? name : "");
         }
+        ipc_broadcast_event(IPC_EVENT_CLIENT_RENAMED, fields);
     }
 }
 
@@ -580,25 +577,24 @@ void enact_client_unurge(client_td *client)
 /* Set the client's icon name */
 void enact_client_set_icon(client_td *client, const char *icon_name)
 {
+    cJSON *fields;
+
     ccmd_client_set_icon(client, icon_name);
     if (client != NULL) {
         xcb_flush(client->connection);
 
-        {
-            cJSON *fields = cJSON_CreateObject();
-
-            if (fields != NULL) {
-                cJSON_AddNumberToObject(fields, "client_id",
-                        (double) client->id);
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) client->desktop_id);
-                cJSON_AddNumberToObject(fields, "surface_id",
-                        (double) client->screen_id);
-                cJSON_AddStringToObject(fields, "icon_name",
-                        (icon_name != NULL) ? icon_name : "");
-            }
-            ipc_broadcast_event(IPC_EVENT_CLIENT_ICON_CHANGED, fields);
+        fields = cJSON_CreateObject();
+        if (fields != NULL) {
+            cJSON_AddNumberToObject(fields, "client_id",
+                    (double) client->id);
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) client->desktop_id);
+            cJSON_AddNumberToObject(fields, "surface_id",
+                    (double) client->screen_id);
+            cJSON_AddStringToObject(fields, "icon_name",
+                    (icon_name != NULL) ? icon_name : "");
         }
+        ipc_broadcast_event(IPC_EVENT_CLIENT_ICON_CHANGED, fields);
     }
 }
 

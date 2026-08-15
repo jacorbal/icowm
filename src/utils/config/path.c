@@ -32,27 +32,30 @@
  */
 struct xdg_dir_def_s {
     const char *env_var;       /**< Environment variable to check
-                                     first, e.g., "XDG_CONFIG_HOME" */
+                                    first, e.g., @c XDG_CONFIG_HOME */
     const char *xdg_suffix;    /**< Appended to that variable's own
-                                     value, e.g., "icowm" */
-    const char *home_relative; /**< Full path relative to "$HOME" to
-                                     fall back to when the variable
-                                     above is unset or empty, already
-                                     including this project's own
-                                     name in whatever form that
-                                     kind's own convention uses (see
-                                     'xdg_resolve_dir''s own doc
-                                     comment in path.h); NULL for
-                                     the one kind with no such
-                                     fallback tier at all */
+                                    value, e.g., "icowm" */
+    const char *home_relative; /**< Full path relative to @c $HOME to
+                                    fall back to when the variable above
+                                    is unset or empty, already including
+                                    this project's own name in whatever
+                                    form that kind's own convention uses
+                                    (see @a xdg_resolve_dir's own doc
+                                    comment in @c path.h); @c NULL for
+                                    the one kind with no such fallback
+                                    tier at all */
 };
 
-/** One resolution rule set per 'xdg_dir_kind_e' value, indexed by it.
- *  Every "xdg_suffix" and the name embedded in each "home_relative"
- *  is 'CONFIG_DIR_BASE' ("icowm"), the same single name every other
+/**
+ * @brief One resolution rule set per @p xdg_dir_kind_e value, indexed
+ *        by it
+ *
+ *
+ *  Every @p xdg_suffix and the name embedded in each @p home_relative
+ *  is @c CONFIG_DIR_BASE ("icowm"), the same single name every other
  *  path in the project already resolves against, rather than five
- *  separate copies of the literal that could drift out of sync with
- *  it. */
+ *  separate copies of the literal that could drift out of sync with it.
+ */
 static const struct xdg_dir_def_s s_xdg_defs[] = {
     [XDG_DIR_CONFIG]  = { "XDG_CONFIG_HOME", CONFIG_DIR_BASE,
                            "." CONFIG_DIR_BASE },
@@ -71,17 +74,18 @@ void path_simplify(char *restrict path)
 {
     char *src = path, *dst = path;
     bool is_absolute = (path[0] == '/');
+    size_t len;
 
     while (*src) {
         if (*src == '/') {
-            /* Avoid multiple slashes, and a leading one on what
-             * should be a purely relative path: the second case
-             * only ever arises right after resolving a '..' back to
-             * the very start of a relative 'dst' (see below), where
-             * the '/' that used to separate the popped component
-             * from whatever follows it no longer separates anything
-             * and must be dropped too, not kept as a spurious
-             * leading slash an otherwise-relative path never had. */
+            /* Avoid multiple slashes, and a leading one on what should
+             * be a purely relative path: the second case only ever
+             * arises right after resolving a '..' back to the very
+             * start of a relative 'dst' (see below), where the '/' that
+             * used to separate the popped component from whatever
+             * follows it no longer separates anything and must be
+             * dropped too, not kept as a spurious leading slash an
+             * otherwise-relative path never had. */
             if ((dst != path && *(dst - 1) == '/') ||
                     (dst == path && !is_absolute)) {
                 src++;
@@ -140,35 +144,33 @@ void path_simplify(char *restrict path)
         }
     }
 
-    /* A relative path emptied out entirely by resolving every one
-     * of its own components against a '..' (e.g., "a/../" simplifies
-     * to nothing at all, the current directory) is represented as
-     * "." itself, never as an empty string: an empty path and "the
-     * current directory" are not interchangeable to whatever this
-     * result gets used for next. */
+    /* A relative path emptied out entirely by resolving every one of
+     * its own components against a '..' (e.g., 'a/../' simplifies to
+     * nothing at all, the current directory) is represented as '.'
+     * itself, never as an empty string: an empty path and "the current
+     * directory" are not interchangeable to whatever this result gets
+     * used for next. */
     if (dst == path && !is_absolute) {
         *dst++ = '.';
     }
 
-    /* Trim a single trailing slash this process may have left
-     * behind (e.g., simplifying "a/b/../" down to "a/"), except when
-     * the whole simplified path is the root by itself.  Computed as
-     * an integer length rather than compared and dereferenced via
-     * pointer arithmetic on 'dst' directly: GCC's static analyzer
-     * (-fanalyzer) cannot always follow the bound this pointer is
+    /* Trim a single trailing slash this process may have left behind
+     * (e.g., simplifying 'a/b/../' down to 'a/'), except when the whole
+     * simplified path is the root by itself.  Computed as an integer
+     * length rather than compared and dereferenced via pointer
+     * arithmetic on 'dst' directly: GCC's static analyzer
+     * ('-fanalyzer') cannot always follow the bound this pointer is
      * actually kept within by the loop above (with its many nested
-     * branches and 'dst' resets while resolving '..'), and flags a
-     * false out-of-bounds read on 'dst - 1' otherwise, despite that
-     * loop only ever advancing 'dst' by writing through it (so it
-     * can never end up past 'src', let alone past 'path' itself).
-     * Indexing 'path[]' by an integer length here is semantically
-     * identical, and easier for it to verify as safe. */
-    {
-        size_t len = (size_t) (dst - path);
+     * branches and 'dst' resets while resolving '..'), and flags
+     * a false out-of-bounds read on 'dst - 1' otherwise, despite that
+     * loop only ever advancing 'dst' by writing through it (so it can
+     * never end up past 'src', let alone past 'path' itself).  Indexing
+     * 'path[]' by an integer length here is semantically identical, and
+     * easier for it to verify as safe. */
+    len = (size_t) (dst - path);
 
-        if (len > 1u && path[len - 1u] == '/') {
-            dst = path + (len - 1u);
-        }
+    if (len > 1u && path[len - 1u] == '/') {
+        dst = path + (len - 1u);
     }
 
     *dst = '\0';    /* End string */

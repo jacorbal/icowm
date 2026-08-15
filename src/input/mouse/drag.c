@@ -1137,6 +1137,14 @@ void drag_update(xcb_connection_t *connection,
         int32_t new_y = s_drag.client_start_y;
         uint32_t new_w;
         uint32_t new_h;
+        uint32_t resize_ext_w;
+        uint32_t resize_ext_h;
+        uint32_t resize_content_w;
+        uint32_t resize_content_h;
+        uint32_t resize_floor_w;
+        uint32_t resize_floor_h;
+        uint32_t resize_constrained_w;
+        uint32_t resize_constrained_h;
 
         /* Determine resize direction from the anchor computed at drag
          * start.  When 'anchor_right' is set the right edge is fixed
@@ -1199,39 +1207,37 @@ void drag_update(xcb_connection_t *connection,
          * either dimension past what the drag alone would have left
          * it at, never shrinks one back down, since that would fight
          * the user's own drag instead of merely flooring it. */
-        {
-            uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
-                (uint32_t) client->layout.frame_extents.right;
-            uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
-                (uint32_t) client->layout.frame_extents.bottom;
-            uint32_t content_w = (new_w > ext_w) ? (uint32_t) new_w - ext_w
-                : 0u;
-            uint32_t content_h = (new_h > ext_h) ? (uint32_t) new_h - ext_h
-                : 0u;
-            uint32_t floor_w = ext_w + WM_MIN_WINDOW_DIMENSION;
-            uint32_t floor_h = ext_h + WM_MIN_WINDOW_DIMENSION;
-            uint32_t constrained_w;
-            uint32_t constrained_h;
+        resize_ext_w = (uint32_t) client->layout.frame_extents.left +
+            (uint32_t) client->layout.frame_extents.right;
+        resize_ext_h = (uint32_t) client->layout.frame_extents.top +
+            (uint32_t) client->layout.frame_extents.bottom;
+        resize_content_w = (new_w > resize_ext_w)
+            ? (uint32_t) new_w - resize_ext_w : 0u;
+        resize_content_h = (new_h > resize_ext_h)
+            ? (uint32_t) new_h - resize_ext_h : 0u;
+        resize_floor_w = resize_ext_w + WM_MIN_WINDOW_DIMENSION;
+        resize_floor_h = resize_ext_h + WM_MIN_WINDOW_DIMENSION;
 
-            client_constrain_size(client, &content_w, &content_h);
-            constrained_w = content_w + ext_w;
-            constrained_h = content_h + ext_h;
-            if (constrained_w < floor_w) {
-                constrained_w = floor_w;
-            }
-            if (constrained_h < floor_h) {
-                constrained_h = floor_h;
-            }
-
-            if (s_drag.anchor_right && constrained_w > (uint32_t) new_w) {
-                new_x -= (int32_t) (constrained_w - (uint32_t) new_w);
-            }
-            if (s_drag.anchor_bottom && constrained_h > (uint32_t) new_h) {
-                new_y -= (int32_t) (constrained_h - (uint32_t) new_h);
-            }
-            new_w = geom_clamp_dim((int32_t) constrained_w);
-            new_h = geom_clamp_dim((int32_t) constrained_h);
+        client_constrain_size(client, &resize_content_w, &resize_content_h);
+        resize_constrained_w = resize_content_w + resize_ext_w;
+        resize_constrained_h = resize_content_h + resize_ext_h;
+        if (resize_constrained_w < resize_floor_w) {
+            resize_constrained_w = resize_floor_w;
         }
+        if (resize_constrained_h < resize_floor_h) {
+            resize_constrained_h = resize_floor_h;
+        }
+
+        if (s_drag.anchor_right &&
+                resize_constrained_w > (uint32_t) new_w) {
+            new_x -= (int32_t) (resize_constrained_w - (uint32_t) new_w);
+        }
+        if (s_drag.anchor_bottom &&
+                resize_constrained_h > (uint32_t) new_h) {
+            new_y -= (int32_t) (resize_constrained_h - (uint32_t) new_h);
+        }
+        new_w = geom_clamp_dim((int32_t) resize_constrained_w);
+        new_h = geom_clamp_dim((int32_t) resize_constrained_h);
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
@@ -1498,6 +1504,10 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     const char *font_name;
     uint16_t text_w;
     int16_t text_x;
+    uint16_t overlay_w;
+    int16_t ascent;
+    int16_t descent;
+    int16_t text_y;
 
     if (connection == NULL ||
             s_drag.overlay_window == XCB_WINDOW_NONE ||
@@ -1543,14 +1553,12 @@ void drag_repaint_overlay(xcb_connection_t *connection)
      * width the same way here removes the mismatch entirely, for any
      * string length, not just the ones on either side of it that
      * happened not to expose the bug. */
-    {
-        uint16_t overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
+    overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
 
-        if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
-            overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
-        }
-        text_x = (int16_t) ((overlay_w - text_w) / 2u);
+    if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
+        overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
     }
+    text_x = (int16_t) ((overlay_w - text_w) / 2u);
 
     /* Vertically centered baseline for whatever font this theme
      * actually configures, rather than a single Y hardcoded for one
@@ -1559,15 +1567,13 @@ void drag_repaint_overlay(xcb_connection_t *connection)
      * below the box's own top edge, here with 'top' itself computed
      * from ascent/descent so half the leftover vertical space sits on
      * each side). */
-    {
-        int16_t ascent = text_font_ascent();
-        int16_t descent = text_font_descent();
-        int16_t text_y = (int16_t)
-            (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
+    ascent = text_font_ascent();
+    descent = text_font_descent();
+    text_y = (int16_t)
+        (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
 
-        text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
-                text_x, text_y, s_drag.overlay_text);
-    }
+    text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
+            text_x, text_y, s_drag.overlay_text);
 }
 
 
@@ -1612,9 +1618,12 @@ void drag_warp_tick(xcb_connection_t *connection)
     desktop_td *old_desktop;
     desktop_td *new_desktop;
     uint32_t old_desktop_id;
+    uint32_t right_edge_x;
     int16_t new_root_x;
+    int32_t new_window_x;
     bool cycle;
     bool is_icon;
+    bool show_geom;
 
     if (connection == NULL || !s_drag.warp_pending ||
             drag_warp_ms_remaining() > 0) {
@@ -1696,10 +1705,15 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* Reposition the pointer to the opposite edge, one pixel in from
      * it rather than exactly on it, so the very next motion notify
      * does not immediately re-arm another warp back the way it just
-     * came from. */
+     * came from.  'right_edge_x' clamps to INT16_MAX before the
+     * final cast: 'screen_w' (uint32_t, no compile-time bound of its
+     * own) is not guaranteed to fit int16_t on an extreme multi-
+     * monitor surface, and this pointer position is sent to the X
+     * server as one, via xcb_warp_pointer below. */
+    right_edge_x = (s_drag.screen_w > 1u) ? (s_drag.screen_w - 2u) : 0u;
     new_root_x = s_drag.warp_is_left
-        ? (int16_t) ((s_drag.screen_w > 1u)
-                ? (s_drag.screen_w - 2u) : 0u)
+        ? (int16_t) ((right_edge_x > (uint32_t) INT16_MAX)
+                ? INT16_MAX : right_edge_x)
         : (int16_t) 1;
 
     /* Move the dragged window or icon by the exact same delta the
@@ -1719,52 +1733,49 @@ void drag_warp_tick(xcb_connection_t *connection)
      * identical before and after the warp, keeping the dragged
      * window or icon pinned at its old spot rather than following
      * the pointer to the new one). */
-    {
-        int32_t new_window_x = s_drag.client_cur_x +
-            ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
-        bool show_geom;
+    new_window_x = s_drag.client_cur_x +
+        ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
 
-        s_drag.client_cur_x = new_window_x;
+    s_drag.client_cur_x = new_window_x;
 
-        if (is_icon) {
-            uint32_t vals[2];
+    if (is_icon) {
+        uint32_t vals[2];
 
-            show_geom = s_drag.client->config_base != NULL &&
-                s_drag.client->config_base->icons.show_geom;
+        show_geom = s_drag.client->config_base != NULL &&
+            s_drag.client->config_base->icons.show_geom;
 
-            vals[0] = (uint32_t) new_window_x;
-            vals[1] = (uint32_t) s_drag.client_cur_y;
-            xcb_configure_window(connection, s_drag.client->icon_window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
-        } else {
-            show_geom = s_drag.client->config_base != NULL &&
-                s_drag.client->config_base->windows.show_geom;
+        vals[0] = (uint32_t) new_window_x;
+        vals[1] = (uint32_t) s_drag.client_cur_y;
+        xcb_configure_window(connection, s_drag.client->icon_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+    } else {
+        show_geom = s_drag.client->config_base != NULL &&
+            s_drag.client->config_base->windows.show_geom;
 
-            enact_client_move(s_drag.client, new_window_x,
-                    s_drag.client_cur_y);
-        }
+        enact_client_move(s_drag.client, new_window_x,
+                s_drag.client_cur_y);
+    }
 
-        /* Same geometry overlay 'drag_update' keeps current on every
-         * real motion notify: without this, it would stay painted at
-         * the position the window (or icon) had right before the
-         * warp -- on the old desktop's own edge -- until whatever
-         * real pointer motion happens to come next, rather than
-         * following it across immediately. */
-        if (show_geom) {
-            char geom_buf[24];
+    /* Same geometry overlay 'drag_update' keeps current on every
+     * real motion notify: without this, it would stay painted at
+     * the position the window (or icon) had right before the
+     * warp -- on the old desktop's own edge -- until whatever
+     * real pointer motion happens to come next, rather than
+     * following it across immediately. */
+    if (show_geom) {
+        char geom_buf[24];
 
-            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
-                    (int) new_window_x, (int) s_drag.client_cur_y);
-            s_drag_overlay_show(connection, is_icon,
-                    new_window_x, s_drag.client_cur_y,
-                    is_icon
-                        ? (uint16_t) WM_ICON_SQUARE_SIZE
-                        : s_drag.client_start_w,
-                    is_icon
-                        ? s_drag_icon_height(s_drag.client)
-                        : s_drag.client_start_h,
-                    geom_buf);
-        }
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                (int) new_window_x, (int) s_drag.client_cur_y);
+        s_drag_overlay_show(connection, is_icon,
+                new_window_x, s_drag.client_cur_y,
+                is_icon
+                    ? (uint16_t) WM_ICON_SQUARE_SIZE
+                    : s_drag.client_start_w,
+                is_icon
+                    ? s_drag_icon_height(s_drag.client)
+                    : s_drag.client_start_h,
+                geom_buf);
     }
 
     xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,

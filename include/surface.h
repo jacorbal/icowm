@@ -150,7 +150,7 @@ typedef struct surface_s {
  *
  * @param connection    Pointer to XCB connection
  * @param ewmh          EWMH connection pointer
- * @param screen_id     Screen identifier
+ * @param surface_id    Surface identifier
  * @param desktop_count Number of desktops on this surface
  * @param config        Configuration this surface reads its own theme
  *                      and window settings from
@@ -161,7 +161,7 @@ typedef struct surface_s {
  */
 surface_td *surface_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
-        const uint32_t screen_id, uint32_t desktop_count,
+        uint32_t surface_id, uint32_t desktop_count,
         config_td *config);
 
 /**

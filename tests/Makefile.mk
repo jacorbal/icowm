@@ -334,6 +334,9 @@ $(O_DIR)/tests/config/test_theme: \
 $(O_DIR)/tests/config/test_memguard: \
 		$(TESTS_DIR)/config/test_memguard.c \
 		$(S_DIR)/config/memguard.c \
+		$(S_DIR)/config/memguard/theme.c \
+		$(S_DIR)/config/memguard/load.c \
+		$(S_DIR)/config/memguard/defaults.c \
 		$(S_DIR)/config/base.c \
 		$(S_DIR)/config.c \
 		$(S_DIR)/config/theme.c \

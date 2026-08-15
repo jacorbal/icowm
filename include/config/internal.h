@@ -5,8 +5,9 @@
  *
  * Declares static helper functions that are used by more than one of
  * the config translation units (@c config/base.c, @c config.c,
- * @c config/randr.c) but must not be exposed as part of the public
- * configuration API declared in @c config.h.
+ * @c config/randr.c, @c config/memguard.c and its own submodules
+ * under @c config/memguard/) but must not be exposed as part of the
+ * public configuration API declared in @c config.h.
  *
  * @note This header is private to the config subsystem and must not be
  *       included outside of @c src/config/
@@ -160,6 +161,58 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  */
 enum config_placement_policy_e ci_config_parse_placement_policy(
         const char *value);
+
+/**
+ * @brief Apply restricted-memory mode's own theme restrictions on top
+ *        of whatever @p config->theme was just loaded from
+ *
+ * Every font field not already naming some variant of the @c "fixed"
+ * X core font family is replaced outright with plain @c
+ * MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps (both
+ * the icon square's own, @c icon.show-pixmaps, and the menu row/
+ * cycle row icon shown alongside each entry, @c menu.show-pixmaps),
+ * and icon hint indicators are all forced off unconditionally.
+ * Every other theme field, colors, decoration, and @c is-captioned
+ * included, is left exactly as the theme file specified: none of
+ * those carry the ongoing memory cost the font backend and pixmap
+ * compositing do.
+ *
+ * @param config Configuration structure whose already-loaded theme
+ *               this restricts; must not be @c NULL
+ *
+ * @note Implemented in @c config/memguard/theme.c
+ * @note Complexity: @e O(1), a fixed number of fields
+ */
+void ci_memguard_restrict_theme(config_td *config);
+
+/**
+ * @brief Load @c memguard.json's own configurable fields into
+ *        @p config
+ *
+ * Everything restricted-memory mode still lets a person configure:
+ * the active theme's name, launched programs, desktop margins, the
+ * window move step and placement policy (via @a
+ * ci_config_parse_placement_policy, shared verbatim with @c
+ * config.json's own identical parsing), the icon placement policy
+ * (via @a ci_config_parse_icon_placement, likewise shared), the
+ * systray block (via @a ci_config_load_systray, shared verbatim with
+ * @c config.json's own identical @c "systray" object, minus its own
+ * @c text.position and @c order fields, which this mode always keeps
+ * at their own fixed defaults regardless of what the file specifies),
+ * and the emergency shortcut.  A no-op, leaving every field at
+ * whatever @a config_set_default_values_memguard already set, for any
+ * of these not present in the file.
+ *
+ * @param filename Path to @c memguard.json
+ * @param config   Configuration structure to update
+ *
+ * @return @c 0 on success, @c 1 if @p filename could not be loaded or
+ *         parsed
+ *
+ * @note Implemented in @c config/memguard/load.c
+ * @note Complexity: @e O(n), where @e n is the size of @p filename
+ */
+int ci_memguard_load_json(const char *filename, config_td *config);
 
 
 #endif  /* ! CONFIG_INTERNAL_H */

@@ -49,6 +49,7 @@ void focus_apply(list_td *surfaces,
 {
     client_td *previous = NULL;
     bool should_raise;
+    cJSON *fields;
 
     if (surface == NULL || desktop == NULL || client == NULL) {
         return;
@@ -109,15 +110,12 @@ void focus_apply(list_td *surfaces,
         enact_client_raise(client);
     }
 
-    {
-        cJSON *fields = cJSON_CreateObject();
-
-        if (fields != NULL) {
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) surface->id);
-            cJSON_AddNumberToObject(fields, "client_id",
-                    (double) client->id);
-        }
-        ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) surface->id);
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
     }
+    ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
 }

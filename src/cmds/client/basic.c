@@ -1070,6 +1070,7 @@ void ccmd_client_toggle_pin(client_td *client)
 void ccmd_client_urge(client_td *client)
 {
     desktop_td *desktop;
+    cJSON *fields;
 
     if (client == NULL) {
         return;
@@ -1083,19 +1084,16 @@ void ccmd_client_urge(client_td *client)
         desktop_action_recompute_urgent(desktop);
     }
 
-    {
-        cJSON *fields = cJSON_CreateObject();
-
-        if (fields != NULL) {
-            cJSON_AddNumberToObject(fields, "client_id",
-                    (double) client->id);
-            cJSON_AddNumberToObject(fields, "desktop_id",
-                    (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) client->screen_id);
-        }
-        ipc_broadcast_event(IPC_EVENT_URGENCY_SET, fields);
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) client->desktop_id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) client->screen_id);
     }
+    ipc_broadcast_event(IPC_EVENT_URGENCY_SET, fields);
 }
 
 
@@ -1103,6 +1101,7 @@ void ccmd_client_urge(client_td *client)
 void ccmd_client_unurge(client_td *client)
 {
     desktop_td *desktop;
+    cJSON *fields;
 
     if (client == NULL) {
         return;
@@ -1116,19 +1115,16 @@ void ccmd_client_unurge(client_td *client)
         desktop_action_recompute_urgent(desktop);
     }
 
-    {
-        cJSON *fields = cJSON_CreateObject();
-
-        if (fields != NULL) {
-            cJSON_AddNumberToObject(fields, "client_id",
-                    (double) client->id);
-            cJSON_AddNumberToObject(fields, "desktop_id",
-                    (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) client->screen_id);
-        }
-        ipc_broadcast_event(IPC_EVENT_URGENCY_CLEARED, fields);
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) client->desktop_id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) client->screen_id);
     }
+    ipc_broadcast_event(IPC_EVENT_URGENCY_CLEARED, fields);
 }
 
 

@@ -157,6 +157,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     desktop_td *desktop;
     client_td *client;
     uint32_t max_clients;
+    cJSON *fields;
 
     if (wm == NULL || event == NULL) {
         LOGGER_ERROR("Received null pointer in map request handler",
@@ -330,19 +331,16 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
             event->window, client->info.name, desktop->id);
 
-    {
-        cJSON *fields = cJSON_CreateObject();
-
-        if (fields != NULL) {
-            cJSON_AddNumberToObject(fields, "client_id",
-                    (double) client->id);
-            cJSON_AddNumberToObject(fields, "desktop_id",
-                    (double) desktop->id);
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) surface->id);
-        }
-        ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, fields);
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) desktop->id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) surface->id);
     }
+    ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, fields);
 }
 
 
@@ -416,6 +414,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
     client_td *client;
     surface_td *surface;
     desktop_td *desktop;
+    cJSON *fields;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in destroy handler",
@@ -486,21 +485,18 @@ void handler_destroy_notify(xcb_connection_t *connection,
         client->window = 0;
     }
 
-    {
-        cJSON *fields = cJSON_CreateObject();
-
-        if (fields != NULL) {
-            cJSON_AddNumberToObject(fields, "client_id",
-                    (double) client->id);
-            if (desktop != NULL) {
-                cJSON_AddNumberToObject(fields, "desktop_id",
-                        (double) desktop->id);
-            }
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) surface->id);
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        if (desktop != NULL) {
+            cJSON_AddNumberToObject(fields, "desktop_id",
+                    (double) desktop->id);
         }
-        ipc_broadcast_event(IPC_EVENT_WINDOW_CLOSED, fields);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) surface->id);
     }
+    ipc_broadcast_event(IPC_EVENT_WINDOW_CLOSED, fields);
 
     client_destroy(client);
 

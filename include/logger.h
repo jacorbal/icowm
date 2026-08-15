@@ -208,7 +208,7 @@ typedef struct {
  * @see @c logger_level_e
  */
 int logger_start(const char *filename,
-        const enum logger_level_e level_min, bool is_tracking);
+        enum logger_level_e level_min, bool is_tracking);
 
 /**
  * @brief Deallocate memory used by this logger instance

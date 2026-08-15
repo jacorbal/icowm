@@ -573,7 +573,7 @@ void desktop_update_workarea(desktop_td *desktop,
  *
  * @note Complexity: @e O(1)
  */
-#define desktop_client_count(d) ((d) ? d->clients->size : 0)
+#define desktop_client_count(d) ((d) ? (d)->clients->size : 0)
 
 
 #endif  /* ! DESKTOP_H */

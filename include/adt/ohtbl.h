@@ -157,7 +157,7 @@ typedef struct {
  *       before the hash table can be used with any other operation
  * @note Complexity: @e O(m), where @e m is the number of positions
  */
-ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
+ohtbl_td *ohtbl_init(size_t positions, size_t min_positions,
         size_t (*h1)(const void *key), size_t (*h2)(const void *key),
         bool (*match)(const void *key1, const void *key2),
         void (*destroy)(void *data));

@@ -148,6 +148,14 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...)
         cur_atoms = (xcb_atom_t *) xcb_get_property_value(reply);
     }
 
+    /* NOTE: Variable 'num_states' is already guarded to be nonzero
+     *       above (line 117), and 'cur_len' can only add to it, never
+     *       subtract, so this can never actually allocate zero bytes;
+     *       'clang-analyzer-optin.portability.UnixAPI' cannot see
+     *       across that earlier guard on its own, so it is my hallowed
+     *       obligation and lofty charge to bid noble 'clang-tidy' hold
+     *       its peace on this line, once and for all. */
+    /* NOLINTNEXTLINE(clang-analyzer-optin.portability.UnixAPI) */
     merged = malloc((cur_len + num_states) * sizeof(xcb_atom_t));
     if (merged == NULL) {
         free(add_atoms);
@@ -161,7 +169,6 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...)
         merged[i] = cur_atoms[i];
     }
     merged_count = cur_len;
-
 
     for (uint32_t i = 0; i < num_states; ++i) {
         already_set = false;

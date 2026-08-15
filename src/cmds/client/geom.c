@@ -550,6 +550,9 @@ void ccmd_client_maximize_horz(client_td *client)
     uint16_t sw;
     uint16_t unused_h;
     xcb_window_t target;
+    desktop_td *own_desktop;
+    bool is_active;
+    uint32_t border;
 
     if (client == NULL) {
         return;
@@ -563,14 +566,12 @@ void ccmd_client_maximize_horz(client_td *client)
     /* Same reservation 'ccmd_client_maximize' above already makes,
      * for the same reason (see its own comment there); only the
      * horizontal axis is at stake here, so only 'sw' needs it. */
-    {
-        desktop_td *own_desktop = wm_get_client_desktop(client);
-        bool is_active = own_desktop != NULL &&
-            own_desktop->client_active_id == client->id;
-        uint32_t border = 2u * client_border_width(client, is_active);
+    own_desktop = wm_get_client_desktop(client);
+    is_active = own_desktop != NULL &&
+        own_desktop->client_active_id == client->id;
+    border = 2u * client_border_width(client, is_active);
 
-        sw = (uint16_t) ((sw > border) ? sw - border : 0u);
-    }
+    sw = (uint16_t) ((sw > border) ? sw - border : 0u);
 
     if (!s_ccmd_maximize_precheck(client)) {
         return;
@@ -669,6 +670,9 @@ void ccmd_client_maximize_vert(client_td *client)
     uint16_t sh;
     uint16_t unused_w;
     xcb_window_t target;
+    desktop_td *own_desktop;
+    bool is_active;
+    uint32_t border;
 
     if (client == NULL) {
         return;
@@ -682,14 +686,12 @@ void ccmd_client_maximize_vert(client_td *client)
     /* Same reservation 'ccmd_client_maximize' above already makes,
      * for the same reason (see its own comment there); only the
      * vertical axis is at stake here, so only 'sh' needs it. */
-    {
-        desktop_td *own_desktop = wm_get_client_desktop(client);
-        bool is_active = own_desktop != NULL &&
-            own_desktop->client_active_id == client->id;
-        uint32_t border = 2u * client_border_width(client, is_active);
+    own_desktop = wm_get_client_desktop(client);
+    is_active = own_desktop != NULL &&
+        own_desktop->client_active_id == client->id;
+    border = 2u * client_border_width(client, is_active);
 
-        sh = (uint16_t) ((sh > border) ? sh - border : 0u);
-    }
+    sh = (uint16_t) ((sh > border) ? sh - border : 0u);
 
     if (!s_ccmd_maximize_precheck(client)) {
         return;
@@ -787,6 +789,9 @@ void ccmd_client_maximize(client_td *client)
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
+    desktop_td *own_desktop;
+    bool is_active;
+    uint32_t border;
 
     if (client == NULL) {
         return;
@@ -841,15 +846,13 @@ void ccmd_client_maximize(client_td *client)
      * within the workarea/monitor rect 'sw'/'sh' just resolved
      * above, rather than spilling its own border past its own
      * right/bottom edge. */
-    {
-        desktop_td *own_desktop = wm_get_client_desktop(client);
-        bool is_active = own_desktop != NULL &&
-            own_desktop->client_active_id == client->id;
-        uint32_t border = 2u * client_border_width(client, is_active);
+    own_desktop = wm_get_client_desktop(client);
+    is_active = own_desktop != NULL &&
+        own_desktop->client_active_id == client->id;
+    border = 2u * client_border_width(client, is_active);
 
-        sw = (uint16_t) ((sw > border) ? sw - border : 0u);
-        sh = (uint16_t) ((sh > border) ? sh - border : 0u);
-    }
+    sw = (uint16_t) ((sw > border) ? sw - border : 0u);
+    sh = (uint16_t) ((sh > border) ? sh - border : 0u);
 
     target = ccmd_target_win(client);
     /* Only remember the geometry to restore to if it is not already

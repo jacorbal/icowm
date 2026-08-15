@@ -134,6 +134,8 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     int32_t min_i;
     int32_t inc_i;
     int32_t target;
+    uint32_t frame_floor;
+    uint32_t frame_clamped;
 
     if (client == NULL) {
         return cur_frame;
@@ -222,20 +224,17 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
     }
 
-    {
-        uint32_t floor_frame = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
-        uint32_t clamped;
+    frame_floor = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
 
-        target = (grow)
-            ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
-            : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
-        clamped = geom_clamp_dim(target);
-        /* Same reasoning as the '!client->size_hints.valid' branch
-         * above: a client with hints but no resize-increment of its
-         * own still has fixed frame extents to protect. */
-        return (uint16_t) ((clamped > floor_frame)
-                ? clamped : floor_frame);
-    }
+    target = (grow)
+        ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
+        : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
+    frame_clamped = geom_clamp_dim(target);
+    /* Same reasoning as the '!client->size_hints.valid' branch
+     * above: a client with hints but no resize-increment of its
+     * own still has fixed frame extents to protect. */
+    return (uint16_t) ((frame_clamped > frame_floor)
+            ? frame_clamped : frame_floor);
 }
 
 

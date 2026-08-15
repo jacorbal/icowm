@@ -534,6 +534,7 @@ void text_draw_string(xcb_connection_t *connection,
     size_t len;
     xcb_generic_error_t *draw_error;
     char sanitized[512];
+    char latin1[512];
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL) {
         return;
@@ -571,28 +572,24 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    {
-        char latin1[512];
+    len = s_utf8_to_latin1(sanitized, latin1, sizeof(latin1));
+    if (len == 0) {
+        return;
+    }
+    if (len > 255) {
+        len = 255;
+    }
 
-        len = s_utf8_to_latin1(sanitized, latin1, sizeof(latin1));
-        if (len == 0) {
-            return;
-        }
-        if (len > 255) {
-            len = 255;
-        }
-
-        draw_error = xcb_request_check(connection,
-                xcb_image_text_8_checked(connection, (uint8_t) len,
-                    drawable, (gc == XCB_NONE)
-                        ? s_text.gc
-                        : gc, x, y, latin1));
-        if (draw_error != NULL) {
-            LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
-                    " (error=%u)",
-                    drawable, (unsigned) draw_error->error_code);
-            free(draw_error);
-        }
+    draw_error = xcb_request_check(connection,
+            xcb_image_text_8_checked(connection, (uint8_t) len,
+                drawable, (gc == XCB_NONE)
+                    ? s_text.gc
+                    : gc, x, y, latin1));
+    if (draw_error != NULL) {
+        LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
+                " (error=%u)",
+                drawable, (unsigned) draw_error->error_code);
+        free(draw_error);
     }
 }
 

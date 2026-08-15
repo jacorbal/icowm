@@ -160,7 +160,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
  *
  * @note Complexity: @e O(1)
  */
-bool icon_avoid_systray_overlap(int16_t *io_x, int16_t *io_y,
+bool icon_avoid_systray_overlap(const int16_t *io_x, int16_t *io_y,
         uint16_t icon_w, uint16_t icon_h,
         int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,
         const struct geometry_s *workarea);

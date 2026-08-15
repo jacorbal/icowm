@@ -641,6 +641,39 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Repaint a client's own frame decoration, unless it is
+ *        currently forced hidden
+ *
+ * Shared by @c desktop_render_one_client's own full-repaint and
+ * focus-only-repaint branches, which otherwise each repeat the exact
+ * same @c hide_decoration guard around the same call (see that
+ * function's own @c hide_decoration for what forces this: currently
+ * only a fullscreen client that was decorated before going
+ * fullscreen).
+ *
+ * @param connection      XCB connection
+ * @param client          Client whose frame decoration to repaint
+ * @param is_focused      Whether to use the active or inactive
+ *                        color set
+ * @param hide_decoration Whether decoration is currently suppressed
+ *                        entirely; a no-op when @c true
+ * @param theme           Active theme
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_repaint_frame_decoration_unless_hidden(
+        xcb_connection_t *connection, const client_td *client,
+        bool is_focused, bool hide_decoration,
+        const struct config_theme_s *theme)
+{
+    if (!hide_decoration) {
+        desktop_repaint_frame_decoration(connection, client, is_focused,
+                theme);
+    }
+}
+
+
 /* Draw all clients on a desktop */
 /**
  * @brief Render, position, and decorate a single already-non-hidden
@@ -685,6 +718,7 @@ void desktop_render_one_client(desktop_td *desktop,
     uint16_t inner_w;
     uint16_t inner_h;
     bool hide_decoration;
+    bool titlebar_visible;
     bool has_extra_window_border;
     uint32_t border_width;
 
@@ -703,6 +737,15 @@ void desktop_render_one_client(desktop_td *desktop,
         (client->properties.state ==
              (uint16_t) CLIENT_STATE_FULLSCREEN &&
          client->was_decorated_fullscreen);
+
+    /* Computed once here rather than re-spelled out as 'client->
+     * titlebar != 0 && !hide_decoration' at each of the three spots
+     * below (the initial map, the full outdated repaint, and the
+     * lighter focus-only repaint) that all need to draw exactly the
+     * same distinction between "this client currently has a
+     * titlebar to show at all" and "decoration is being suppressed
+     * right now" (fullscreen). */
+    titlebar_visible = (client->titlebar != 0 && !hide_decoration);
 
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame
@@ -772,7 +815,7 @@ void desktop_render_one_client(desktop_td *desktop,
                     client->icon_window);
             client->is_icon_mapped = false;
         }
-        if (client->titlebar != 0 && !hide_decoration) {
+        if (titlebar_visible) {
             xcb_map_window(desktop->connection, client->titlebar);
         } else if (client->titlebar != 0) {
             xcb_unmap_window(desktop->connection, client->titlebar);
@@ -898,12 +941,11 @@ void desktop_render_one_client(desktop_td *desktop,
                 xcb_clear_area(desktop->connection, 1,
                         client->window, 0, 0, 0, 0);
             }
-            if (!hide_decoration) {
-                desktop_repaint_frame_decoration(desktop->connection,
-                        client, is_focused, desktop->config_theme);
-            }
+            s_repaint_frame_decoration_unless_hidden(desktop->connection,
+                    client, is_focused, hide_decoration,
+                    desktop->config_theme);
 
-            if (client->titlebar != 0 && !hide_decoration) {
+            if (titlebar_visible) {
                 xcb_configure_window(desktop->connection,
                         client->titlebar,
                         XCB_CONFIG_WINDOW_X     |
@@ -954,12 +996,11 @@ void desktop_render_one_client(desktop_td *desktop,
          * this lighter branch only meant to refresh existing colors,
          * not decide from scratch whether a border belongs here at
          * all. */
-        if (!hide_decoration) {
-            desktop_repaint_frame_decoration(desktop->connection,
-                    client, is_focused, desktop->config_theme);
-        }
+        s_repaint_frame_decoration_unless_hidden(desktop->connection,
+                client, is_focused, hide_decoration,
+                desktop->config_theme);
 
-        if (client->titlebar != 0 && !hide_decoration) {
+        if (titlebar_visible) {
             desktop_repaint_titlebar_content(desktop->connection,
                     client, is_focused, inner_w, title_h,
                     desktop->config_theme);

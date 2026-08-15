@@ -71,6 +71,8 @@ static uint32_t s_resolve_size(struct config_scratchpad_size_s size,
  * running */
 void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
 {
+    surface_td *surface;
+
     if (wm == NULL || desktop == NULL || wm->config == NULL ||
             !wm->config->base.scratchpad.is_enabled) {
         return;
@@ -113,13 +115,10 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
          * focused a moment ago with no real unfocus ever applied to
          * it at all, this client's own raise just visually covering
          * it instead. */
-        {
-            surface_td *surface = wm_get_surface_by_id(
-                    desktop->screen_id);
+        surface = wm_get_surface_by_id(desktop->screen_id);
 
-            focus_apply(wm->surfaces, surface, desktop,
-                    s_scratchpad_client, true, wm->config);
-        }
+        focus_apply(wm->surfaces, surface, desktop,
+                s_scratchpad_client, true, wm->config);
     } else {
         enact_client_hide(s_scratchpad_client);
     }
@@ -222,8 +221,8 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
     uint32_t avail_h;
     uint32_t width;
     uint32_t height;
-    int32_t x;
-    int32_t y;
+    int32_t x = 0;
+    int32_t y = 0;
 
     if (!scratchpad_is_client(client) || desktop == NULL ||
             surface == NULL || surface->config == NULL) {
