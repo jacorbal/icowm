@@ -7,6 +7,8 @@ for inactive windows, placing a significant emphasis on the utilization
 of iconification (iconization) in a manner reminiscent of traditional
 TWM aesthetics, but with a modern touch.
 
+[Screenshot: IcoWM 1.0.1 ("'ovelya")](doc/scrot/icowm_1.0.1-rc.1.png)
+
 Basic features are:
 
   - **Support for multiple monitors.**
@@ -252,6 +254,11 @@ packages, together with a `cjson`/`libcjson` development package; one's
 own distribution's package search ought to be consulted for the precise
 names in use.
 
+Bugs
+----
+
+Yea; features, too.
+
 License
 -------
 
@@ -261,11 +268,6 @@ directly, or further information gathered from [ISC Open Source Software
 Licenses](https://www.isc.org/licenses/).
 
 Copyright (c) 2026, J. A. Corbal.
-
-Bugs
-----
-
-Yea; features, too.
 
 Contact information
 -------------------
