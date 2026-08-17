@@ -647,6 +647,7 @@ int ci_create_decorations(client_td *client)
      * 'ConfigureRequest' ever generated at all. */
     values[2] = XCB_EVENT_MASK_EXPOSURE             |
                 XCB_EVENT_MASK_BUTTON_PRESS         |
+                XCB_EVENT_MASK_ENTER_WINDOW         |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY     |
                 XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
                 XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
@@ -665,7 +666,8 @@ int ci_create_decorations(client_td *client)
     client->titlebar = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = client->theme->window.inactive.color.background;
-    values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
+    values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
+        XCB_EVENT_MASK_ENTER_WINDOW;
     xcb_create_window(client->connection,
             XCB_COPY_FROM_PARENT,
             client->titlebar,

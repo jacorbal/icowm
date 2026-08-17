@@ -109,9 +109,12 @@ struct config_base_s {
         uint32_t move_step;     /**< Keyboard move step in pixels */
         uint32_t resize_step;   /**< Keyboard resize step in pixels */
         bool show_geom;         /**< Show geometry overlay on move/resize */
+        bool solid_drag;        /**< Move/resize the real window live, as
+                                     opposed to an outline stand-in
+                                     applied only once the drag ends */
         struct {
-            bool is_new_focused;
-            bool is_raised_on_focus;
+            bool focus_new;
+            bool raise;         /**< Raise on focus */
         } focus;
         enum config_gravity_e {
             CONFIG_GRAVITY_NORTH_WEST = 1,
@@ -1490,12 +1493,12 @@ struct config_desktop_s {
      *
      * @note Meaningless with only one desktop
      */
-    bool enable_edge_warp;
+    bool warp_on_edge_drag;
 
     /** Whether switching past the first or last desktop wraps around to
      *  the other end, rather than stopping there.  Meaningless with
      *  only one desktop. */
-    bool is_circular;
+    bool wrap_at_bounds;
 
     /**
      * @brief Extra space reserved on each edge of every desktop's own
@@ -1579,7 +1582,7 @@ struct config_a11y_s {
          *        a client first becomes urgent, alongside the visual
          *        blink it already gets regardless of this setting
          */
-        bool audible_bell;
+        bool sound_bell;
 
         /**
          * @brief Milliseconds between one blink phase and the next for

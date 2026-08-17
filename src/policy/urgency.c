@@ -250,7 +250,7 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
      * blink every urgent client already gets regardless of this
      * setting */
     if (!had_urgent && s_has_urgent && config != NULL &&
-            config->a11y.urgency.audible_bell &&
+            config->a11y.urgency.sound_bell &&
             surfaces != NULL && !list_is_empty(surfaces)) {
         surface_td *first =
             (surface_td *) list_data(list_head(surfaces));

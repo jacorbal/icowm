@@ -119,13 +119,71 @@ static struct {
     bool warp_pending;          /**< Whether the pointer is currently
                                      held against a warp-eligible
                                      screen edge, counting down to a
-                                     desktop switch (see 'desktops.enable_edge_warp'
+                                     desktop switch (see 'desktops.warp_on_edge_drag'
                                      in config.json, config_desktop_s) */
     bool warp_is_left;          /**< Which edge, only meaningful when
                                      'warp_pending' */
     struct timespec warp_due;   /**< When the held edge becomes due to
                                      warp, only meaningful when
                                      'warp_pending' */
+    xcb_window_t root;          /**< Root window, saved at 'drag_start'
+                                     so 'drag_update'/'drag_end' can
+                                     draw an outline onto it without
+                                     needing it added to their own
+                                     public signature */
+    bool solid_drag;            /**< Snapshot of
+                                     'config->windows.solid_drag' taken
+                                     at 'drag_start', so a config
+                                     reload mid-drag cannot switch
+                                     behavior out from under an
+                                     already-active one */
+    bool outline_offscreened;   /**< Whether the real window has
+                                     already been moved off-screen for
+                                     the current outline drag;
+                                     'drag_start' itself fires on
+                                     every plain click, with no way
+                                     yet to tell it apart from
+                                     a genuine drag, so this only
+                                     happens once the first real
+                                     'drag_update' confirms actual
+                                     movement, tracked here so it only
+                                     ever happens once */
+    xcb_window_t outline_windows[4]; /**< The outline stand-in used in
+                                           place of moving the real
+                                           window live, when
+                                           '!solid_drag': 4 separate,
+                                           opaque, override-redirect
+                                           strip windows, one per side
+                                           (top, bottom, left, right,
+                                           in that fixed order),
+                                           rather than a single filled
+                                           rectangle, so the middle
+                                           stays uncovered and whatever
+                                           is genuinely underneath
+                                           keeps showing through
+                                           without needing a
+                                           compositor at all.  Each
+                                           entry is 'XCB_WINDOW_NONE'
+                                           whenever no outline drag is
+                                           in progress.  Real X windows
+                                           the server itself manages
+                                           the exposure/repaint of, so
+                                           unlike the XOR rubber-band
+                                           this replaced, nothing else
+                                           redrawing underneath or
+                                           around them (another window
+                                           repainting itself, or an
+                                           edge-warp desktop switch)
+                                           can ever leave a stray
+                                           artifact behind */
+    int32_t client_cur_w;       /**< Current width during a resize
+                                     drag (mirrors 'client_cur_x'/'_y'
+                                     above); needed because an outline
+                                     drag never touches the real client
+                                     until 'drag_end', so
+                                     'layout.geometry.cur' cannot be
+                                     relied on to hold it meanwhile */
+    int32_t client_cur_h;       /**< See 'client_cur_w' */
 } s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
@@ -156,7 +214,15 @@ static struct {
     .has_last_pos = false,
     .warp_pending = false,
     .warp_is_left = false,
-    .warp_due = {0}
+    .warp_due = {0},
+    .root = XCB_WINDOW_NONE,
+    .solid_drag = true,
+    .outline_offscreened = false,
+    .outline_windows = {
+        XCB_WINDOW_NONE, XCB_WINDOW_NONE, XCB_WINDOW_NONE, XCB_WINDOW_NONE
+    },
+    .client_cur_w = 0,
+    .client_cur_h = 0
 };
 
 
@@ -584,6 +650,220 @@ static void s_drag_snap_move(int32_t *x, int32_t *y,
 }
 
 
+/**
+ * @brief Position an outline-mode drag's own 4 strip windows (top,
+ *        bottom, left, right) to outline a given rectangle
+ *
+ * Each strip is a separate, opaque, override-redirect window rather
+ * than one filled rectangle, so the middle of the outline stays
+ * genuinely uncovered: whatever is already on screen there keeps
+ * showing through on its own, with no transparency or compositor of
+ * any kind involved, and none of the XOR corruption a rubber-band
+ * outline is prone to (see the whole outline mechanism's own
+ * introduction, 'outline_windows', for the full reasoning), since
+ * each strip is a real window the X server itself repaints correctly
+ * around, the exact same guarantee any ordinary client window
+ * already gets when it moves.
+ *
+ * @param connection X connection
+ * @param x Left edge of the rectangle, in root coordinates
+ * @param y Top edge of the rectangle, in root coordinates
+ * @param w Rectangle width
+ * @param h Rectangle height
+ * @param create Whether the 4 strips still need creating (and
+ *               mapping) first, rather than already existing and
+ *               only needing to move to this new rectangle
+ *
+ * @note No-op if 'connection' is null
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_outline_place(xcb_connection_t *connection,
+        int32_t x, int32_t y, uint32_t w, uint32_t h, bool create)
+{
+    uint32_t bw = (uint32_t) WM_DRAG_OUTLINE_BORDER_WIDTH;
+    /* Each strip's own (x, y, w, h), in 'outline_windows''s own fixed
+     * top/bottom/left/right order; width/height floored at 1, since
+     * 'xcb_create_window'/'xcb_configure_window' both reject a
+     * genuinely zero-sized window outright, which a resize shrinking
+     * past the border's own thickness would otherwise hand them. */
+    uint32_t strip_x[4];
+    uint32_t strip_y[4];
+    uint32_t strip_w[4];
+    uint32_t strip_h[4];
+    uint32_t full_w = (w > 0u) ? w : 1u;
+    uint32_t full_h = (h > 0u) ? h : 1u;
+
+    if (connection == NULL) {
+        return;
+    }
+
+    strip_x[0] = (uint32_t) x; /* top */
+    strip_y[0] = (uint32_t) y;
+    strip_w[0] = full_w;
+    strip_h[0] = bw;
+
+    strip_x[1] = (uint32_t) x; /* bottom */
+    strip_y[1] = (uint32_t) y + ((h > bw) ? h - bw : 0u);
+    strip_w[1] = full_w;
+    strip_h[1] = bw;
+
+    strip_x[2] = (uint32_t) x; /* left */
+    strip_y[2] = (uint32_t) y;
+    strip_w[2] = bw;
+    strip_h[2] = full_h;
+
+    strip_x[3] = (uint32_t) x + ((w > bw) ? w - bw : 0u); /* right */
+    strip_y[3] = (uint32_t) y;
+    strip_w[3] = bw;
+    strip_h[3] = full_h;
+
+    for (int i = 0; i < 4; ++i) {
+        if (create) {
+            uint32_t create_mask;
+            uint32_t create_values[2];
+
+            s_drag.outline_windows[i] = xcb_generate_id(connection);
+            create_mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
+            create_values[0] = (s_drag.client != NULL &&
+                    s_drag.client->theme != NULL)
+                ? s_drag.client->theme->window.active.border.color
+                : 0u;
+            create_values[1] = 1u;
+
+            xcb_create_window(connection,
+                    XCB_COPY_FROM_PARENT,
+                    s_drag.outline_windows[i],
+                    s_drag.root,
+                    (int16_t) strip_x[i], (int16_t) strip_y[i],
+                    (uint16_t) strip_w[i], (uint16_t) strip_h[i],
+                    0,
+                    XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                    XCB_COPY_FROM_PARENT,
+                    create_mask, create_values);
+            xcb_map_window(connection, s_drag.outline_windows[i]);
+        } else if (s_drag.outline_windows[i] != XCB_WINDOW_NONE) {
+            const uint32_t vals[4] = {
+                strip_x[i], strip_y[i], strip_w[i], strip_h[i]
+            };
+
+            xcb_configure_window(connection, s_drag.outline_windows[i],
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    vals);
+        }
+    }
+    xcb_flush(connection);
+}
+
+
+/**
+ * @brief Begin an outline-mode drag: create and map the initial 4
+ *        strip windows
+ *
+ * @param connection X connection
+ * @param x Initial left edge, in root coordinates
+ * @param y Initial top edge, in root coordinates
+ * @param w Initial width
+ * @param h Initial height
+ *
+ * @note No-op if 'connection' is null
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_outline_start(xcb_connection_t *connection,
+        int32_t x, int32_t y, uint32_t w, uint32_t h)
+{
+    s_drag_outline_place(connection, x, y, w, h, true);
+}
+
+
+/**
+ * @brief Move the outline stand-in's own 4 strip windows to a new
+ *        rectangle
+ *
+ * @param connection X connection
+ * @param x New left edge, in root coordinates
+ * @param y New top edge, in root coordinates
+ * @param w New width
+ * @param h New height
+ *
+ * @note No-op if 'connection' is null
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_outline_move(xcb_connection_t *connection,
+        int32_t x, int32_t y, uint32_t w, uint32_t h)
+{
+    s_drag_outline_place(connection, x, y, w, h, false);
+}
+
+
+/**
+ * @brief End an outline-mode drag: destroy the 4 strip windows
+ *
+ * @param connection X connection
+ *
+ * @note No-op if 'connection' is null, or no outline drag is active
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_outline_end(xcb_connection_t *connection)
+{
+    if (connection == NULL ||
+            s_drag.outline_windows[0] == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        xcb_destroy_window(connection, s_drag.outline_windows[i]);
+        s_drag.outline_windows[i] = XCB_WINDOW_NONE;
+    }
+    xcb_flush(connection);
+}
+
+
+/**
+ * @brief Move the real window being dragged in outline mode off
+ *        screen, for the duration of the drag
+ *
+ * See @c WM_DRAG_OFFSCREEN_POS itself (defs/input.h) for why this,
+ * rather than unmapping it, is what keeps it out of sight without
+ * ever disturbing real input focus, sloppy focus tracking, or
+ * active-window rendering.  A plain @c xcb_configure_window, not
+ * @a enact_client_move, since this is a purely visual, temporary
+ * relocation with no logical meaning of its own: unlike a real move,
+ * it must never touch @p client's own @c layout.geometry.cur.pos,
+ * which every other part of the window manager still relies on to
+ * reflect wherever the drag is logically taking it, not this
+ * incidental physical parking spot.  Moving it back to its own
+ * genuine final position is left entirely to whichever one of
+ * @a enact_client_move/@a enact_client_resize @a drag_end itself
+ * already calls once the drag ends, rather than needing a
+ * symmetrical function of its own here.
+ *
+ * @param connection X connection
+ * @param client Client to move off screen
+ *
+ * @note No-op if @p connection or @p client is null
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_move_client_offscreen(xcb_connection_t *connection,
+        client_td *client)
+{
+    xcb_window_t target;
+    const uint32_t vals[2] = {
+        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
+    };
+
+    if (connection == NULL || client == NULL) {
+        return;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+}
+
+
 /* Begin a drag operation for a managed client window */
 void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
@@ -613,6 +893,12 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         (uint16_t) client->layout.geometry.cur.dim.h;
     s_drag.client_cur_x = s_drag.client_start_x;
     s_drag.client_cur_y = s_drag.client_start_y;
+    s_drag.client_cur_w = s_drag.client_start_w;
+    s_drag.client_cur_h = s_drag.client_start_h;
+    s_drag.root = root;
+    s_drag.solid_drag = (client->config_base == NULL) ||
+        client->config_base->windows.solid_drag;
+    s_drag.outline_offscreened = false;
     s_drag.screen_w = screen_w;
     s_drag.screen_h = screen_h;
     s_drag.snap = snap;
@@ -674,6 +960,15 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     /* A user-initiated move overrides any rule-assigned position */
     if (operation == CLIENT_OPERATION_MOVING) {
         client->rule_position_locked = false;
+    }
+
+    /* An outline drag draws a stand-in rectangle from the very start,
+     * rather than moving the real window live; see 's_drag.solid_drag'
+     * itself for the config option this follows. */
+    if (!s_drag.solid_drag) {
+        s_drag_outline_start(connection, s_drag.client_start_x,
+                s_drag.client_start_y, s_drag.client_start_w,
+                s_drag.client_start_h);
     }
 
     xcb_grab_pointer(connection,
@@ -807,6 +1102,12 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start_h = 0;
     s_drag.client_cur_x = icon_x;
     s_drag.client_cur_y = icon_y;
+    /* Icon drags are always solid, regardless of 'windows.solid-drag':
+     * moving just the small icon window live is cheap enough on its
+     * own that the outline machinery would add complexity for no
+     * real benefit here; see 'drag_end''s own comment on this same
+     * exclusion. */
+    s_drag.solid_drag = true;
     s_drag.screen_w = screen_w;
     s_drag.screen_h = screen_h;
     s_drag.icon_was_mapped = client->is_icon_mapped;
@@ -983,7 +1284,7 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
  *
  * Starts (or keeps running, without restarting it) a countdown to
  * switching desktops when the pointer is held against the left or
- * right screen edge, per @a desktops.enable_edge_warp in
+ * right screen edge, per @a desktops.warp_on_edge_drag in
  * @c config.json; moment the pointer leaves either edge, or when
  * warping is disabled, there is only one desktop, or no configuration
  * can be resolved at all.
@@ -1008,7 +1309,7 @@ static void s_drag_check_warp_edge(int16_t root_x)
 
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.enable_edge_warp ||
+            !surface->config->desktops.warp_on_edge_drag ||
             surface->desktop_count <= 1u) {
         s_drag.warp_pending = false;
         return;
@@ -1075,6 +1376,21 @@ void drag_update(xcb_connection_t *connection,
     s_drag.has_last_pos = true;
 
     client = s_drag.client;
+
+    /* The pointer has now genuinely moved since 'drag_start', which
+     * fires on every plain click with no way yet to tell a click
+     * apart from a real drag; only now, confirmed a real drag rather
+     * than a click that never moved, does the real window actually
+     * move off screen (see 's_drag_move_client_offscreen''s own doc
+     * comment).  'outline_offscreened' guards this so it only ever
+     * happens once per drag.  Icon drags are always solid (see
+     * 'drag_start_icon''s own comment), so this never applies to
+     * them at all. */
+    if (!s_drag.solid_drag && !s_drag.outline_offscreened) {
+        s_drag_move_client_offscreen(connection, client);
+        s_drag.outline_offscreened = true;
+    }
+
     dx = (int32_t) root_x - (int32_t) s_drag.pointer_start_x;
     dy = (int32_t) root_y - (int32_t) s_drag.pointer_start_y;
 
@@ -1121,7 +1437,12 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
-        enact_client_move(client, new_x, new_y);
+        if (s_drag.solid_drag) {
+            enact_client_move(client, new_x, new_y);
+        } else {
+            s_drag_outline_move(connection, new_x, new_y,
+                    s_drag.client_start_w, s_drag.client_start_h);
+        }
 
         if (show_geom) {
             char geom_buf[24];
@@ -1250,7 +1571,13 @@ void drag_update(xcb_connection_t *connection,
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
-        enact_client_resize(client, new_x, new_y, new_w, new_h);
+        s_drag.client_cur_w = (int32_t) new_w;
+        s_drag.client_cur_h = (int32_t) new_h;
+        if (s_drag.solid_drag) {
+            enact_client_resize(client, new_x, new_y, new_w, new_h);
+        } else {
+            s_drag_outline_move(connection, new_x, new_y, new_w, new_h);
+        }
         if (show_geom) {
             /* 'new_w'/'new_h' are the decorated frame's own total
              * (border and titlebar included, established elsewhere; see
@@ -1324,8 +1651,18 @@ void drag_end(xcb_connection_t *connection,
     }
 
     if (s_drag.client != NULL) {
-        uint32_t final_w = s_drag.client->layout.geometry.cur.dim.w;
-        uint32_t final_h = s_drag.client->layout.geometry.cur.dim.h;
+        /* In a solid drag, the real window already tracks
+         * 'layout.geometry.cur' live, updated by every 'drag_update'
+         * along the way; an outline drag never touches it until now,
+         * so 'client_cur_w'/'_h', kept live throughout instead (see
+         * their own doc comment above), are what actually hold the
+         * final size here. */
+        uint32_t final_w = s_drag.solid_drag
+            ? s_drag.client->layout.geometry.cur.dim.w
+            : (uint32_t) s_drag.client_cur_w;
+        uint32_t final_h = s_drag.solid_drag
+            ? s_drag.client->layout.geometry.cur.dim.h
+            : (uint32_t) s_drag.client_cur_h;
         bool finalize_resize =
             s_drag.operation == CLIENT_OPERATION_RESIZING;
 
@@ -1421,11 +1758,43 @@ void drag_end(xcb_connection_t *connection,
             wm_request_client_redraw(s_drag.client);
         }
 
-        if (finalize_resize) {
-            enact_client_resize(s_drag.client,
-                    s_drag.client->layout.geometry.cur.pos.x,
-                    s_drag.client->layout.geometry.cur.pos.y,
-                    final_w, final_h);
+        /* Icon drags never go through 'solid_drag'/the outline
+         * machinery at all (see 'drag_start_icon''s own comment,
+         * intentionally always solid given how cheap moving just an
+         * icon already is); their own final position is already
+         * fully settled by the icon-specific block above, so this
+         * whole thing only applies to an actual client window drag. */
+        if (s_drag.drag_window == XCB_WINDOW_NONE) {
+            if (s_drag.solid_drag) {
+                /* Already fully applied live, one 'enact_client_move'/
+                 * 'enact_client_resize' per 'drag_update' along the
+                 * way; a resize alone gets one more here, to finalize
+                 * whatever that last live call left off at (e.g.,
+                 * snapping fully onto the size-hint grid a client
+                 * with 'WM_NORMAL_HINTS' increments declares, which
+                 * the live calls only approach step by step as the
+                 * pointer moves). */
+                if (finalize_resize) {
+                    enact_client_resize(s_drag.client,
+                            s_drag.client->layout.geometry.cur.pos.x,
+                            s_drag.client->layout.geometry.cur.pos.y,
+                            final_w, final_h);
+                }
+            } else {
+                /* An outline drag never touched the real window until
+                 * now; apply the final position (and size, for a
+                 * resize) in one single call, then destroy the 4
+                 * strip windows that made up the outline stand-in. */
+                if (finalize_resize) {
+                    enact_client_resize(s_drag.client,
+                            s_drag.client_cur_x, s_drag.client_cur_y,
+                            final_w, final_h);
+                } else {
+                    enact_client_move(s_drag.client,
+                            s_drag.client_cur_x, s_drag.client_cur_y);
+                }
+                s_drag_outline_end(connection);
+            }
         }
     }
 
@@ -1453,6 +1822,33 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
     }
 
     s_drag_overlay_hide(connection);
+    /* Moved back from its own off-screen parking spot first (see
+     * 's_drag_move_client_offscreen''s own doc comment), to its own
+     * genuine, never-actually-changed logical position, for a client
+     * that survives the cancel (see the comment on
+     * 'properties.operation' just below, for exactly this same
+     * distinction): without this, it would stay stuck off screen
+     * forever, with nothing left to ever move it back. */
+    if (s_drag.outline_offscreened && s_drag.client != NULL) {
+        xcb_window_t target =
+            (client_is_decorated(s_drag.client) &&
+                s_drag.client->frame != 0)
+            ? s_drag.client->frame
+            : s_drag.client->window;
+        const uint32_t vals[2] = {
+            (uint32_t) s_drag.client->layout.geometry.cur.pos.x,
+            (uint32_t) s_drag.client->layout.geometry.cur.pos.y
+        };
+
+        xcb_configure_window(connection, target,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+    }
+    /* A no-op whenever no outline drag was in progress (solid drag,
+     * or an icon drag, which is always solid regardless); otherwise
+     * destroys the 4 strip windows, so a client that disappears
+     * mid-drag never leaves them stuck on screen with nothing left
+     * to ever remove them. */
+    s_drag_outline_end(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.warp_pending = false;
@@ -1660,14 +2056,14 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->screen == NULL ||
             surface->config == NULL ||
-            !surface->config->desktops.enable_edge_warp ||
+            !surface->config->desktops.warp_on_edge_drag ||
             surface->desktop_count <= 1u) {
         return;
     }
 
     old_desktop_id = surface->desktop_cur;
     old_desktop = surface_desktop_get(surface, old_desktop_id);
-    cycle = surface->config->desktops.is_circular;
+    cycle = surface->config->desktops.wrap_at_bounds;
 
     new_desktop = s_drag.warp_is_left
         ? surface_desktop_prev(surface, old_desktop_id, cycle)
@@ -1684,8 +2080,30 @@ void drag_warp_tick(xcb_connection_t *connection)
      * clients below. */
     if (old_desktop != NULL) {
         (void) desktop_action_client_rem(old_desktop, s_drag.client);
+        /* Deliberately never clears 'old_desktop->client_active_id'
+         * here, even though it now names a client no longer actually
+         * on that desktop: left stale like this, exactly like it
+         * already is whenever a desktop's own active client simply
+         * closes while some other desktop is the one currently
+         * shown, is precisely what tells 'surface_clients_show'
+         * (surface/actions.c) to have 'client_focus_fallback' guess
+         * a reasonable replacement once the person switches back,
+         * rather than relinquishing focus outright the way a
+         * 'client_active_id' that was 0 to begin with would.  Actually
+         * clearing it here would collapse that same distinction this
+         * whole session already built 'client_focus_fallback' itself
+         * around, right back into the exact bug that whole thing was
+         * written to fix in the first place. */
     }
     (void) desktop_action_client_add(new_desktop, s_drag.client);
+    /* The dragged client is, by construction, always the one the
+     * person is actively engaged with right now; 'new_desktop' itself
+     * has no way to already know that on its own, so without this it
+     * would keep rendering whichever client was its own last
+     * genuinely active one instead, active-window highlight included,
+     * as soon as the drag settles there. */
+    new_desktop->client_active_id = s_drag.client->id;
+    new_desktop->focus_dirty = true;
 
     /* 'desktop_action_client_rem'/'_add' above only move the client
      * between each desktop's own stacking list and lookup table;
@@ -1764,8 +2182,25 @@ void drag_warp_tick(xcb_connection_t *connection)
         show_geom = s_drag.client->config_base != NULL &&
             s_drag.client->config_base->windows.show_geom;
 
-        enact_client_move(s_drag.client, new_window_x,
-                s_drag.client_cur_y);
+        if (s_drag.solid_drag) {
+            enact_client_move(s_drag.client, new_window_x,
+                    s_drag.client_cur_y);
+        } else {
+            /* Same reasoning as the geometry overlay just below: left
+             * untouched here, the outline would stay drawn wherever it
+             * was right before the warp, on the old desktop's own
+             * edge, until whatever real motion notify happens to come
+             * next, rather than following the pointer across
+             * immediately.  Width/height stay 'client_start_w'/'_h'
+             * (never 'client_cur_w'/'_h'), the same as 'drag_update''s
+             * own MOVING branch, since this whole function only ever
+             * runs for a plain move, never a resize (see the early
+             * 'CLIENT_OPERATION_MOVING' guard above), so the size
+             * itself never actually changes here at all. */
+            s_drag_outline_move(connection, new_window_x,
+                    s_drag.client_cur_y, s_drag.client_start_w,
+                    s_drag.client_start_h);
+        }
     }
 
     /* Same geometry overlay 'drag_update' keeps current on every real

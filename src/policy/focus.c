@@ -108,7 +108,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
 
     should_raise = (raise ||
             (cfg != NULL &&
-             cfg->base.windows.focus.is_raised_on_focus));
+             cfg->base.windows.focus.raise));
     if (should_raise) {
         enact_client_raise(client);
     }

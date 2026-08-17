@@ -87,8 +87,8 @@ static const config_lint_key_td s_schema_desktops_margins[] = {
 
 static const config_lint_key_td s_schema_desktops[] = {
     {"show-overlay", NULL, 0u},
-    {"enable-edge-warp", NULL, 0u},
-    {"is-circular", NULL, 0u},
+    {"warp-on-edge-drag", NULL, 0u},
+    {"wrap-at-bounds", NULL, 0u},
     {"margins", s_schema_desktops_margins,
         sizeof(s_schema_desktops_margins) /
             sizeof(s_schema_desktops_margins[0])}
@@ -113,8 +113,8 @@ static const config_lint_key_td s_schema_scratchpad[] = {
 
 static const config_lint_key_td s_schema_windows_focus[] = {
     {"policy", NULL, 0u},
-    {"is-new-focused", NULL, 0u},
-    {"is-raised-on-focus", NULL, 0u}
+    {"focus-new", NULL, 0u},
+    {"raise", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_windows_placement[] = {
@@ -132,6 +132,7 @@ static const config_lint_key_td s_schema_windows[] = {
     {"move-step", NULL, 0u},
     {"resize-step", NULL, 0u},
     {"show-geom", NULL, 0u},
+    {"solid-drag", NULL, 0u},
     {"gravity", NULL, 0u},
     {"focus", s_schema_windows_focus,
         sizeof(s_schema_windows_focus) / sizeof(s_schema_windows_focus[0])},
@@ -712,7 +713,7 @@ static const config_lint_key_td s_schema_a11y_focus_indicator[] = {
 };
 
 static const config_lint_key_td s_schema_a11y_urgency[] = {
-    {"audible-bell", NULL, 0u},
+    {"sound-bell", NULL, 0u},
     {"blink-interval-ms", NULL, 0u}
 };
 

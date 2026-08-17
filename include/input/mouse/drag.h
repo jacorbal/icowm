@@ -170,7 +170,7 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
  * @param root       Root window on which to grab the pointer
  * @param client     Client whose icon window is being dragged
  * @param desktop    Desktop @p client currently sits on; needed for
- *                   @p desktops.enable_edge_warp (see
+ *                   @p desktops.warp_on_edge_drag (see
  *                   @a drag_warp_tick), the same as @a drag_start's own
  *                   @p desktop parameter
  * @param icon_x     Current icon window X (screen-relative)
@@ -313,7 +313,7 @@ void drag_current_pos(int32_t *x, int32_t *y);
  *        screen edge is due to switch desktops
  *
  * Tracked by @c drag_update as the pointer moves (see
- * @p desktops.enable_edge_warp in @c config.json, @c config_desktop_s);
+ * @p desktops.warp_on_edge_drag in @c config.json, @c config_desktop_s);
  * serviced by @a drag_warp_tick.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if the
@@ -333,7 +333,7 @@ int drag_warp_ms_remaining(void);
  * drive it.  A no-op when no warp is currently pending, its countdown
  * has not yet elapsed, the drag it belonged to is no longer a plain
  * window or icon move, warping is disabled, there is only one desktop,
- * or (with @p desktops.is_circular off) the edge held is already the
+ * or (with @p desktops.wrap_at_bounds off) the edge held is already the
  * first or last desktop.
  *
  * Moves the dragged client to the adjacent desktop without unmapping it

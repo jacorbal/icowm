@@ -186,7 +186,7 @@ void scratchpad_notice_client_created(client_td *client)
      *
      * Applying it once more here regardless, rather than only ever
      * relying on the next focus change to do it, covers
-     * 'focus.is-new-focused: false', where a freshly mapped client is
+     * 'focus.focus-new: false', where a freshly mapped client is
      * not focused at all and so would otherwise show no border until
      * the first time it is.  A theme reload only ever affects the next
      * scratchpad launched, not this one still running (see

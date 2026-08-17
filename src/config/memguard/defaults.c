@@ -54,8 +54,8 @@ void config_set_default_values_memguard(config_td *config)
      * one desktop to switch to. */
     config->desktops.show_overlay = false;
     config->desktops.notify_activity = false;
-    config->desktops.enable_edge_warp = false;
-    config->desktops.is_circular = false;
+    config->desktops.warp_on_edge_drag = false;
+    config->desktops.wrap_at_bounds = false;
     config->desktops.margins.top = 0u;
     config->desktops.margins.right = 0u;
     config->desktops.margins.bottom = 0u;
@@ -96,13 +96,14 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.resize_step = 20u;
     config->base.windows.snap = 4u;
     config->base.windows.show_geom = false;
+    config->base.windows.solid_drag = false;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
     config->base.windows.group_related = false;
-    config->base.windows.focus.is_new_focused = true;
-    config->base.windows.focus.is_raised_on_focus = false;
+    config->base.windows.focus.focus_new = true;
+    config->base.windows.focus.raise = false;
 
     /* SMART's own cost is bounded (256 candidate slots, each checked
      * against every already-docked icon, so O(256*n) at worst) and runs

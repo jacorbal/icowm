@@ -118,7 +118,7 @@ static void s_switch_cyclic(surface_td *surface, bool forward)
 
     old_id = surface->desktop_cur;
     cycle = (surface->config != NULL)
-        ? surface->config->desktops.is_circular : true;
+        ? surface->config->desktops.wrap_at_bounds : true;
 
     LOGGER_DEBUG("Switching to %s desktop on surface %u",
             (forward) ? "next" : "previous", surface->id);

@@ -74,7 +74,7 @@
  * @brief Milliseconds a window or icon drag has to hold the pointer
  *        against a screen edge before switching to the adjacent desktop
  *
- * Milliseconds before @p desktops.enable_edge_warp (@c config.json)
+ * Milliseconds before @p desktops.warp_on_edge_drag (@c config.json)
  * switches to the adjacent desktop with the drag still held.  Long
  * enough that merely passing through the edge on the way to a normal
  * drop elsewhere does not trigger it.

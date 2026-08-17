@@ -304,20 +304,39 @@ treated as `1`.
 When `true`, geometry when moving (mouse drag) or position when resizing
 (with mouse drag) is shown in the center of the window.
 
+#### `windows.solid-drag`
+
+| Key                  | Type    | Default |
+|----------------------|---------|---------|
+| `windows.solid-drag` | boolean | `true`  |
+
+When `true`, the real window itself is moved or resized live, redrawn on
+every pointer motion for the whole duration of a mouse drag.  When
+`false`, a plain outline stand-in is drawn instead, and the real window
+is only ever moved or resized once, the moment the mouse button is
+released; this avoids repainting whatever the client itself draws on
+every single motion event, which can matter on genuinely slow hardware
+if the client redraws something expensive on each resize.  Icon drags
+are always solid regardless of this setting, moving just the small icon
+window being cheap enough on its own that the distinction would add
+nothing.  Restricted-memory mode (`memguard.json`) always runs with this
+`false`, and does not expose the key for the person to override; see
+§10.2 below.
+
 #### `windows.focus`
 
 | Key                        | Type    | Default   | Description |
 |----------------------------|---------|-----------|-------------|
 | `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
-| `focus.is-new-focused`     | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
-| `focus.is-raised-on-focus` | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
+| `focus.focus-new`          | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
+| `focus.raise`              | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
 
 ```json
 "windows": {
     "focus": {
         "policy": "click",
-        "is-new-focused": true,
-        "is-raised-on-focus": false
+        "focus-new": true,
+        "raise": false
     }
 }
 ```
@@ -801,8 +820,8 @@ a configuration reload (see section 4.9).
 |--------------------|---------|---------|-------------|
 | `show-overlay`     | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes. The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name. |
 | `notify-activity`  | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its own surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed). A client urgent on the currently visible desktop already gets its own titlebar blink instead (see `urgency.*` in `a11y.json`, section 6), which this never duplicates. |
-| `enable-edge-warp` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
-| `is-circular`      | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
+| `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against the left or right screen edge switches to the adjacent desktop, cursor and dragged window or icon both carried across, after a short delay. Meaningless with only one desktop. |
+| `wrap-at-bounds`   | boolean | `true`  | Whether switching past the first or last desktop, however it is triggered (keyboard binding, mouse scroll, or otherwise), wraps around to the other end, rather than stopping there. Meaningless with only one desktop. |
 | `margins.top`      | integer | `0`     | Extra space reserved at the top of every desktop's own workarea, in pixels, on every screen. |
 | `margins.right`    | integer | `0`     | Extra space reserved on the right, in pixels. |
 | `margins.bottom`   | integer | `0`     | Extra space reserved at the bottom, in pixels. |
@@ -823,8 +842,8 @@ override.
 "desktops": {
     "show-overlay": true,
     "notify-activity": true,
-    "enable-edge-warp": true,
-    "is-circular": true,
+    "warp-on-edge-drag": true,
+    "wrap-at-bounds": true,
     "margins": {
         "top": 0,
         "right": 0,
@@ -1664,7 +1683,7 @@ count, and how many desktops each screen has, along with each desktop's
 own `name`/`background-color`; see section 2.2): changing any of these
 and reloading has no effect on an already-running window manager.  This
 does not extend to the separate, sibling `desktops` section (section
-2.10: `show-overlay`, `enable-edge-warp`, `is-circular`, `margins`)
+2.10: `show-overlay`, `warp-on-edge-drag`, `wrap-at-bounds`, `margins`)
 despite the similar name: that one describes navigation behavior and
 reserved space, not topology, and does take effect on reload, same as
 everything else.  Every other field in `config.json`, and every other
@@ -2012,7 +2031,7 @@ turn this on.
 | `is-enabled`                          | boolean | `false` |
 | `interaction.double-click-ms`         | integer | `400`   |
 | `focus-indicator.min-border-width`    | integer | `0`     |
-| `urgency.audible-bell`                | boolean | `false` |
+| `urgency.sound-bell`                  | boolean | `false` |
 | `urgency.blink-interval-ms`           | integer | `600`   |
 
 `interaction.double-click-ms` is how long, in milliseconds, between two
@@ -2030,7 +2049,7 @@ indicator visible even for a theme that sets an unusually thin one.  The
 default of `0` never raises anything, deferring entirely to whatever the
 active theme already specifies.
 
-`urgency.audible-bell`, when `true`, sounds the X server's own bell
+`urgency.sound-bell`, when `true`, sounds the X server's own bell
 (`xcb_bell`) the moment a client first becomes urgent, once per
 transition into urgency rather than repeatedly while it stays that way,
 alongside the visual blink every urgent client's titlebar (and icon, if
@@ -2050,7 +2069,7 @@ a faster, more attention-grabbing blink; raise it for a slower one.
         "min-border-width": 3
     },
     "urgency": {
-        "audible-bell": true,
+        "sound-bell": true,
         "blink-interval-ms": 400
     }
 }
@@ -2457,6 +2476,11 @@ afterward, since restricted-memory mode never docks any icon at all
   systray still shows (clock, battery, and its own frame) when
   `systray.is-enabled` is `true`, just never accepts a docked
   application icon.
+- **`windows.solid-drag`**, unlike the two fields just above, is not
+  even accepted in the file at all (the schema this mode validates
+  against does not list it; see 10.1), rather than being read and then
+  overridden: this mode always runs with it forced to `false`, no
+  exception.
 
 ### 10.3. The active theme's own restrictions
 
@@ -2529,8 +2553,8 @@ to whatever theme loads, unconditionally.
     "desktops": {
         "show-overlay": true,
         "notify-activity": true,
-        "enable-edge-warp": true,
-        "is-circular": true,
+        "warp-on-edge-drag": true,
+        "wrap-at-bounds": true,
         "margins": {
             "top": 0,
             "right": 0,
@@ -2541,17 +2565,18 @@ to whatever theme loads, unconditionally.
     "windows": {
         "gravity": "north-west",
         "move-step": 10,
-        "snap": 4,
         "show-geom": true,
+        "snap": 4,
+        "solid-drag": false,
         "focus": {
-            "policy": "click",
-            "is-new-focused": true,
-            "is-raised-on-focus": false
+            "focus-new": true,
+            "raise": false
+            "policy": "click"
         },
         "placement": {
-            "policy": "smart",
+            "group-related": true,
             "monitor": "pointer",
-            "group-related": true
+            "policy": "smart"
         }
     },
     "icons": {
@@ -3086,7 +3111,7 @@ process altogether.
         "min-border-width": 3
     },
     "urgency": {
-        "audible-bell": true,
+        "sound-bell": true,
         "blink-interval-ms": 400
     }
 }

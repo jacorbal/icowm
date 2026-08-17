@@ -58,5 +58,28 @@
  */
 #define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) x 4 (px) = 16 (px^2) */
 
+/**
+ * @brief Thickness, in pixels, of each of the 4 strip windows an
+ *        outline-mode drag draws as its own stand-in rectangle (see
+ *        @c windows.solid-drag, in @c config.md)
+ */
+#define WM_DRAG_OUTLINE_BORDER_WIDTH (4u)
+
+/**
+ * @brief Coordinate, well outside any real monitor yet still within
+ *        the signed 16-bit range X11 window positions themselves are
+ *        limited to, an outline-mode drag moves the real window to
+ *        for the duration of the drag
+ *
+ * A window moved here stays fully mapped throughout (unlike
+ * unmapping it, which the X server itself would answer by reverting
+ * input focus away from it, per the protocol's own rules for a
+ * window no longer viewable, breaking real input focus, sloppy focus
+ * tracking, and active-window rendering all at once), so none of
+ * that ever happens; it is simply nowhere visible for anyone to see
+ * until the drag itself moves it back.
+ */
+#define WM_DRAG_OFFSCREEN_POS (-30000)
+
 
 #endif  /* ! DEFS_INPUT_H */

@@ -14,7 +14,7 @@
  *         "min-border-width": 0
  *     },
  *     "urgency": {
- *         "audible-bell": false,
+ *         "sound-bell": false,
  *         "blink-interval-ms": 600
  *     }
  * }
@@ -77,7 +77,7 @@ void config_set_default_a11y_values(struct config_a11y_s *a11y)
      * this file sees any behavior change. */
     a11y->interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
     a11y->focus_indicator.min_border_width = 0u;
-    a11y->urgency.audible_bell = false;
+    a11y->urgency.sound_bell = false;
     a11y->urgency.blink_interval_ms = WM_URGENCY_BLINK_INTERVAL_MS;
 }
 
@@ -133,19 +133,19 @@ int config_load_a11y(const char *filename,
 
     urgency_item = cJSON_GetObjectItem(json, "urgency");
     if (urgency_item) {
-        json_load_bool(urgency_item, "audible-bell",
-                &config_a11y->urgency.audible_bell);
+        json_load_bool(urgency_item, "sound-bell",
+                &config_a11y->urgency.sound_bell);
         json_load_uint(urgency_item, "blink-interval-ms",
                 &config_a11y->urgency.blink_interval_ms);
     }
 
     LOGGER_DEBUG("Loaded a11y configuration" \
             " (is-enabled=%d, double-click-ms=%u, min-border-width=%u," \
-            " audible-bell=%d, blink-interval-ms=%u)",
+            " sound-bell=%d, blink-interval-ms=%u)",
             (int) config_a11y->is_enabled,
             config_a11y->interaction.double_click_ms,
             config_a11y->focus_indicator.min_border_width,
-            (int) config_a11y->urgency.audible_bell,
+            (int) config_a11y->urgency.sound_bell,
             config_a11y->urgency.blink_interval_ms);
 
     cJSON_Delete(json);

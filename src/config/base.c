@@ -870,8 +870,8 @@ static void s_config_load_desktop_behavior(cJSON *json,
     desktop_settings = cJSON_GetObjectItem(json, "desktops");
     if (desktop_settings == NULL) {
         LOGGER_TRACE("No 'desktops' object found in '%s';" \
-                " show-overlay, notify-activity, enable-edge-warp," \
-                " is-circular, and margins keep their default values",
+                " show-overlay, notify-activity, warp-on-edge-drag," \
+                " wrap-at-bounds, and margins keep their default values",
                 filename);
         return;
     }
@@ -880,10 +880,10 @@ static void s_config_load_desktop_behavior(cJSON *json,
             &config_desktop->show_overlay);
     json_load_bool(desktop_settings, "notify-activity",
             &config_desktop->notify_activity);
-    json_load_bool(desktop_settings, "enable-edge-warp",
-            &config_desktop->enable_edge_warp);
-    json_load_bool(desktop_settings, "is-circular",
-            &config_desktop->is_circular);
+    json_load_bool(desktop_settings, "warp-on-edge-drag",
+            &config_desktop->warp_on_edge_drag);
+    json_load_bool(desktop_settings, "wrap-at-bounds",
+            &config_desktop->wrap_at_bounds);
 
     margins = cJSON_GetObjectItem(desktop_settings, "margins");
     if (margins != NULL) {
@@ -910,13 +910,13 @@ void config_set_default_base_values(struct config_base_s *config_base,
     /* Desktop-navigation and reserved-space behavior ('config.json''s
      * top-level 'desktop', a sibling of 'topology'; see
      * config_desktop_s's comment in 'config.h').  Meaningless with only
-     * one desktop for 'enable_edge_warp'/'is_circular', but set
+     * one desktop for 'warp_on_edge_drag'/'wrap_at_bounds', but set
      * regardless of how many desktops end up configured, the same as
      * every other default here. */
     config_desktop->show_overlay = true;
     config_desktop->notify_activity = true;
-    config_desktop->enable_edge_warp = true;
-    config_desktop->is_circular = true;
+    config_desktop->warp_on_edge_drag = true;
+    config_desktop->wrap_at_bounds = true;
     config_desktop->margins.top = 0u;
     config_desktop->margins.right = 0u;
     config_desktop->margins.bottom = 0u;
@@ -1001,13 +1001,14 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.resize_step = 20;
     config_base->windows.snap = 4;
     config_base->windows.show_geom = true;
+    config_base->windows.solid_drag = true;
     config_base->windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config_base->windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config_base->windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config_base->windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
     config_base->windows.group_related = true;
-    config_base->windows.focus.is_new_focused = true;
-    config_base->windows.focus.is_raised_on_focus = false;
+    config_base->windows.focus.focus_new = true;
+    config_base->windows.focus.raise = false;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config_base->icons.show_geom = false;
     config_base->shutdown.enable_emergency_shortcut = false;
@@ -1318,6 +1319,8 @@ int config_load_base(const char *filename,
 */
         json_load_bool(windows, "show-geom",
                 &config_base->windows.show_geom);
+        json_load_bool(windows, "solid-drag",
+                &config_base->windows.solid_drag);
         gravity = json_get_item(windows, "gravity");
         if (gravity != NULL && cJSON_IsString(gravity)) {
             config_base->windows.gravity =
@@ -1327,10 +1330,10 @@ int config_load_base(const char *filename,
         if (focus) {
             cJSON *focus_policy_item;
 
-            json_load_bool(focus, "is-new-focused",
-                    &config_base->windows.focus.is_new_focused);
-            json_load_bool(focus, "is-raised-on-focus",
-                    &config_base->windows.focus.is_raised_on_focus);
+            json_load_bool(focus, "focus-new",
+                    &config_base->windows.focus.focus_new);
+            json_load_bool(focus, "raise",
+                    &config_base->windows.focus.raise);
             focus_policy_item = json_get_item(focus,
                     "policy");
             if (focus_policy_item != NULL &&

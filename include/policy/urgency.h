@@ -56,7 +56,7 @@ bool urgency_blink_is_on(void);
  * since the last phase change, flips the phase and repaints every
  * urgent client's titlebar (and icon, if iconified) to match.  Also
  * sounds an audible bell right on the transition into urgency when
- * @p config->a11y.urgency.audible_bell is set.
+ * @p config->a11y.urgency.sound_bell is set.
  *
  * @param surfaces All managed surfaces
  * @param config   Active configuration; a @c NULL falls back to the
