@@ -206,6 +206,24 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         return;
     }
 
+    /* Fullscreen is a WM-forced override of the client's own preferred
+     * geometry (see 'ccmd_client_fullscreen''s comment in
+     * 'cmds/client/state.c'), and every source that might otherwise
+     * change position/size while it holds respects that already
+     * ('handler_configure_request', in 'handler/configure.c', for the
+     * client's own attempts).  A rule is no different: 'rules_apply'
+     * itself re-runs on any property change this client's own window
+     * happens to generate while fullscreen (not just its initial map),
+     * via the generic fallback at the end of 'handler_property_notify'
+     * ('handler/focus.c'), so without this a rule with its own
+     * 'apply.size'/'apply.position' would silently undo fullscreen the
+     * next time that client touched some unrelated property of its own.
+     * Every other rule effect (desktop, layer, flags) still applies
+     * regardless; only geometry itself is skipped here. */
+    if (client_is_fullscreen(client)) {
+        return;
+    }
+
     width = client->layout.geometry.cur.dim.w;
     height = client->layout.geometry.cur.dim.h;
 
@@ -219,8 +237,8 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
          * always about a client's own content alone, regardless of
          * decoration, so convert to content space first, apply them
          * there, then convert back, the same round trip
-         * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
-         * (in 'input/kbd/interact.c') already make for their own resize
+         * 'input/mouse/drag.c' and 's_kb_resize_axis_target' (in
+         * 'input/kbd/interact.c') already make for their own resize
          * paths. */
         uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
