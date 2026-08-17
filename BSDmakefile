@@ -22,11 +22,12 @@
 # NOTE: 'tests/Makefile.mk', included by the '## Tests' section below,
 # is written for GNU Make (it shares this file's own GNU-Make-specific
 # variables directly, per its own comment in 'GNUmakefile').  It is
-# NOT converted here, since it is a separate file this port was not
-# asked to touch; 'make test' under bmake will fail until that file
-# is ported too.  Every other target in this file ('all', 'parallel',
+# NOT converted here: testing under bmake is not this port's goal,
+# only building the project itself is, so that section includes it
+# only if present and skips it silently otherwise, rather than
+# erroring out; every other target in this file ('all', 'parallel',
 # 'ctags', the 'clean-*' targets, and so on) does not depend on it at
-# all, and is unaffected.
+# all, and is unaffected either way.
 
 ## Project metadata
 PROJECT_NAME_PROG = icowm
@@ -330,15 +331,14 @@ ${src:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}: ${src}
 #
 # See 'tests/Makefile.mk' for every test-related rule and variable.
 # UNLIKE THE REST OF THIS FILE, that one is NOT ported to bmake here:
-# it is a separate file (not uploaded alongside 'GNUmakefile' when
-# this port was written), and its own comment in 'GNUmakefile' says
-# it shares this file's variables directly, implying it is written in
-# GNU Make syntax throughout.  Everything above and below this
-# section works under bmake regardless; only whatever target(s) that
-# file itself defines (e.g. 'test') will fail until it is ported too.
-.if !exists(${TESTS_DIR}/Makefile.mk)
-.error Cannot find ${TESTS_DIR}/Makefile.mk
-.else
+# it is written for GNU Make throughout (its own comment in
+# 'GNUmakefile' says it shares this file's variables directly), and
+# testing under bmake is not this port's goal, only building the
+# project itself is.  Included only if present, silently skipped
+# otherwise, so its absence (or its own GNU-only syntax, if it is
+# ever actually read by a stray 'make test') never blocks 'all' or
+# any other real target below from building.
+.if exists(${TESTS_DIR}/Makefile.mk)
 .include "${TESTS_DIR}/Makefile.mk"
 .endif
 
