@@ -441,6 +441,39 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.padding.vertical = (uint32_t) WM_CTXMENU_PAD_Y;
     theme->menu.show_pixmaps = true;
 
+    safe_strncpy(theme->search.input.font,
+            "fixed bold", sizeof(theme->search.input.font));
+    theme->search.input.color.background = json_hex2uint32("9AAEC8");
+    theme->search.input.color.foreground = json_hex2uint32("253040");
+    theme->search.input.opacity = 100u;
+    safe_strncpy(theme->search.unselected.font,
+            "fixed", sizeof(theme->search.unselected.font));
+    theme->search.unselected.color.background =
+        json_hex2uint32("D0D9E5");
+    theme->search.unselected.color.foreground =
+        json_hex2uint32("4A5566");
+    theme->search.unselected.opacity = 100u;
+    safe_strncpy(theme->search.selected.font,
+            "fixed bold", sizeof(theme->search.selected.font));
+    theme->search.selected.color.background = json_hex2uint32("9AAEC8");
+    theme->search.selected.color.foreground = json_hex2uint32("253040");
+    theme->search.selected.opacity = 100u;
+    theme->search.border.color = json_hex2uint32("7F9AB6");
+    theme->search.border.width = 2u;
+
+    safe_strncpy(theme->prompt.label.font,
+            "fixed bold", sizeof(theme->prompt.label.font));
+    theme->prompt.label.color.background = json_hex2uint32("9AAEC8");
+    theme->prompt.label.color.foreground = json_hex2uint32("253040");
+    theme->prompt.label.opacity = 100u;
+    safe_strncpy(theme->prompt.input.font,
+            "fixed bold", sizeof(theme->prompt.input.font));
+    theme->prompt.input.color.background = json_hex2uint32("D0D9E5");
+    theme->prompt.input.color.foreground = json_hex2uint32("253040");
+    theme->prompt.input.opacity = 100u;
+    theme->prompt.border.color = json_hex2uint32("7F9AB6");
+    theme->prompt.border.width = 2u;
+
     theme->dialog.background = json_hex2uint32("D0D9E5");
     theme->dialog.border.color = json_hex2uint32("7F9AB6");
     theme->dialog.border.width = 2u;
@@ -517,6 +550,8 @@ int config_load_theme(const char *filename,
     cJSON *systray;
     cJSON *desktop;
     cJSON *menu;
+    cJSON *search;
+    cJSON *prompt;
     cJSON *dialog;
     cJSON *overlay;
     cJSON *xsettings;
@@ -736,6 +771,52 @@ int config_load_theme(const char *filename,
 
         json_load_bool(menu, "show-pixmaps",
                 &config_theme->menu.show_pixmaps);
+    }
+
+    search = cJSON_GetObjectItem(json, "search");
+    if (search) {
+        cJSON *input;
+        cJSON *unselected;
+        cJSON *selected;
+        cJSON *border_obj;
+
+        input = cJSON_GetObjectItem(search, "input");
+        s_load_theme_colors(input, &config_theme->search.input);
+
+        unselected = cJSON_GetObjectItem(search, "unselected");
+        s_load_theme_colors(unselected, &config_theme->search.unselected);
+
+        selected = cJSON_GetObjectItem(search, "selected");
+        s_load_theme_colors(selected, &config_theme->search.selected);
+
+        border_obj = cJSON_GetObjectItem(search, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->search.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->search.border.width);
+        }
+    }
+
+    prompt = cJSON_GetObjectItem(json, "prompt");
+    if (prompt) {
+        cJSON *label;
+        cJSON *input;
+        cJSON *border_obj;
+
+        label = cJSON_GetObjectItem(prompt, "label");
+        s_load_theme_colors(label, &config_theme->prompt.label);
+
+        input = cJSON_GetObjectItem(prompt, "input");
+        s_load_theme_colors(input, &config_theme->prompt.input);
+
+        border_obj = cJSON_GetObjectItem(prompt, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->prompt.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->prompt.border.width);
+        }
     }
 
     dialog = cJSON_GetObjectItem(json, "dialog");

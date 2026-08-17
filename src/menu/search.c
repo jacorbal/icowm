@@ -515,8 +515,8 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.menu.unselected.color.background;
-    values[1] = cfg->theme.menu.border.color;
+    values[0] = cfg->theme.search.unselected.color.background;
+    values[1] = cfg->theme.search.border.color;
     values[2] = 1;  /* override_redirect: prevent WM from managing it */
     values[3] = XCB_EVENT_MASK_EXPOSURE     |
         XCB_EVENT_MASK_KEY_PRESS    |
@@ -530,7 +530,7 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
             surface->screen->root,
             widget_x, widget_y,
             (uint16_t) WM_SEARCH_WIDTH, s_search.height,
-            (uint16_t) cfg->theme.menu.border.width,
+            (uint16_t) cfg->theme.search.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
@@ -759,15 +759,15 @@ static void s_search_draw_bar(xcb_connection_t *connection,
     char shown[WM_SEARCH_QUERY_MAX_LENGTH + 2];
 
     menu_draw_row_bg(connection, s_search.window,
-            cfg->theme.menu.selected.color.background,
+            cfg->theme.search.input.color.background,
             (int16_t) WM_SEARCH_PAD_Y, (uint16_t) WM_SEARCH_BAR_HEIGHT,
             (uint16_t) WM_SEARCH_WIDTH);
 
     snprintf(shown, sizeof(shown), "%s_", s_search.query);
 
-    text_renderer_init(connection, cfg->theme.menu.selected.font);
-    text_renderer_set_color(cfg->theme.menu.selected.color.foreground,
-            cfg->theme.menu.selected.color.background);
+    text_renderer_init(connection, cfg->theme.search.input.font);
+    text_renderer_set_color(cfg->theme.search.input.color.foreground,
+            cfg->theme.search.input.color.background);
     menu_draw_label(connection, s_search.window,
             (int16_t) WM_SEARCH_PAD_X,
             (int16_t) (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7),
@@ -799,14 +799,13 @@ static void s_search_draw_row(xcb_connection_t *connection,
     uint32_t bg;
     bool is_sel = (i == s_search.selected);
 
-    fg = (is_sel) ? cfg->theme.menu.selected.color.foreground
-        : cfg->theme.menu.unselected.color.foreground;
-    bg = (is_sel) ? cfg->theme.menu.selected.color.background
-        : cfg->theme.menu.unselected.color.background;
+    fg = (is_sel) ? cfg->theme.search.selected.color.foreground
+        : cfg->theme.search.unselected.color.foreground;
+    bg = (is_sel) ? cfg->theme.search.selected.color.background
+        : cfg->theme.search.unselected.color.background;
 
     menu_draw_row_bg(connection, s_search.window, bg, row_y,
             (uint16_t) WM_SEARCH_ROW_HEIGHT, (uint16_t) WM_SEARCH_WIDTH);
-    text_renderer_set_color(fg, bg);
 
     if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
             s_search.surface != NULL) {
@@ -821,9 +820,18 @@ static void s_search_draw_row(xcb_connection_t *connection,
         text_x = (int16_t) (text_x + icon_size + WM_SEARCH_PAD_X);
     }
 
+    /* 'text_renderer_init' destroys and recreates the shared GC (with
+     * neutral, unthemed colors) whenever the requested font differs
+     * from whichever one is currently loaded (see its comment in
+     * 'render/text.c'), so 'text_renderer_set_color' must ALWAYS run
+     * after it, never before.  This row's own real colors would
+     * otherwise survive only until the next row happens to request
+     * a different font than this one, right up until then looking like
+     * nothing was ever wrong at all. */
     text_renderer_init(connection, is_sel
-            ? cfg->theme.menu.selected.font
-            : cfg->theme.menu.unselected.font);
+            ? cfg->theme.search.selected.font
+            : cfg->theme.search.unselected.font);
+    text_renderer_set_color(fg, bg);
 
     snprintf(name_buf, sizeof(name_buf), "%s", r->name);
     if (safe_right > text_x) {
@@ -894,7 +902,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
             (const uint32_t[]) { s_search.height });
 
     menu_draw_row_bg(connection, s_search.window,
-            cfg->theme.menu.unselected.color.background,
+            cfg->theme.search.unselected.color.background,
             0, s_search.height, (uint16_t) WM_SEARCH_WIDTH);
 
     s_search_draw_bar(connection, cfg);
@@ -915,12 +923,12 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
         int16_t down_y = (int16_t) (S_SEARCH_ROWS_TOP +
                 s_search.viewport_rows * WM_SEARCH_ROW_HEIGHT);
 
-        text_renderer_init(connection, cfg->theme.menu.selected.font);
+        text_renderer_init(connection, cfg->theme.search.selected.font);
 
         if (s_search.scroll_offset > 0) {
             text_renderer_set_color(
-                    cfg->theme.menu.selected.color.foreground,
-                    cfg->theme.menu.unselected.color.background);
+                    cfg->theme.search.selected.color.foreground,
+                    cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
                     (int16_t) (WM_SEARCH_WIDTH / 2 - 4),
                     (int16_t) (up_y + text_font_ascent()),
@@ -930,8 +938,8 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
         if (s_search.scroll_offset + s_search.viewport_rows <
                 s_search.result_count) {
             text_renderer_set_color(
-                    cfg->theme.menu.selected.color.foreground,
-                    cfg->theme.menu.unselected.color.background);
+                    cfg->theme.search.selected.color.foreground,
+                    cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
                     (int16_t) (WM_SEARCH_WIDTH / 2 - 4),
                     (int16_t) (down_y + WM_SEARCH_PAD_Y -

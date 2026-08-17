@@ -573,6 +573,26 @@ static const config_lint_key_td s_schema_theme_menu[] = {
     {"show-pixmaps", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_theme_search[] = {
+    {"input", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"unselected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"selected", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])}
+};
+
+static const config_lint_key_td s_schema_theme_prompt[] = {
+    {"label", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"input", s_schema_theme_style,
+        sizeof(s_schema_theme_style) / sizeof(s_schema_theme_style[0])},
+    {"border", s_schema_theme_border,
+        sizeof(s_schema_theme_border) / sizeof(s_schema_theme_border[0])}
+};
+
 static const config_lint_key_td s_schema_theme_dialog_color[] = {
     {"background", NULL, 0u}
 };
@@ -647,6 +667,10 @@ static const config_lint_key_td s_schema_theme[] = {
         sizeof(s_schema_theme_desktop) / sizeof(s_schema_theme_desktop[0])},
     {"menu", s_schema_theme_menu,
         sizeof(s_schema_theme_menu) / sizeof(s_schema_theme_menu[0])},
+    {"search", s_schema_theme_search,
+        sizeof(s_schema_theme_search) / sizeof(s_schema_theme_search[0])},
+    {"prompt", s_schema_theme_prompt,
+        sizeof(s_schema_theme_prompt) / sizeof(s_schema_theme_prompt[0])},
     {"dialog", s_schema_theme_dialog,
         sizeof(s_schema_theme_dialog) / sizeof(s_schema_theme_dialog[0])},
     {"overlay", s_schema_theme_style_opacity,

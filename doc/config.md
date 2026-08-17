@@ -42,6 +42,8 @@ values, and built-in default value.
    - [4.8. `xsettings`](#48-xsettings)
    - [4.9. Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
    - [4.10. `scratchpad`](#410-scratchpad)
+   - [4.11. `search`](#411-search)
+   - [4.12. `prompt`](#412-prompt)
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
    - [5.1. Top-level fields](#51-top-level-fields)
    - [5.2. `outputs[]` entries](#52-outputs-entries)
@@ -1792,6 +1794,83 @@ already does.
     }
 }
 ```
+
+### 4.11. `search`
+
+Theme for the fuzzy window-search widget (see `bindings.json` section
+3.5, `search_windows`).  Its own dedicated section rather than reusing
+`menu` above: the two happen to share identical values by default, but
+nothing ties them together, so a person can make the widget stand out
+from ordinary context menus if they want to.
+
+`input` styles the query bar itself (what is actually typed); `selected`
+and `unselected` style a result row depending on whether it is the
+current hovered or keyboard-navigated one.
+
+| Key                       | Type    | Default | Description |
+|---------------------------|---------|---------|-------------|
+| `search.input.font`       | string  | `"fixed"` | Font for the query bar. |
+| `search.input.color.background` | string | `"#9AAEC8"` | Query bar background. |
+| `search.input.color.foreground` | string | `"#253040"` | Query bar text. |
+| `search.unselected.font`  | string  | `"fixed"` | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
+| `search.unselected.color.background` | string | `"#D0D9E5"` | Unselected row background. |
+| `search.unselected.color.foreground` | string | `"#4A5566"` | Unselected row text. |
+| `search.selected.font`    | string  | `"fixed"` | Font for the hovered or keyboard-navigated result row. |
+| `search.selected.color.background` | string | `"#9AAEC8"` | Selected row background. |
+| `search.selected.color.foreground` | string | `"#253040"` | Selected row text. |
+| `search.border.color`     | string  | `"#7F9AB6"` | Widget window's own outer frame color. |
+| `search.border.width`     | integer | `2`     | Widget window's own outer frame width in pixels. |
+
+```json
+"search": {
+    "input": {
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+    },
+    "unselected": {
+        "font": "fixed",
+        "color": { "background": "#D0D9E5", "foreground": "#4A5566" }
+    },
+    "selected": {
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+    },
+    "border": { "color": "#7F9AB6", "width": 2 }
+}
+```
+
+### 4.12. `prompt`
+
+Theme for the built-in run-box (`config.json` section 2.12).  `label`
+styles the "Run:" prompt itself; `input` styles the typed command,
+drawn right next to it with its own independent font and colors, so
+the two can be told apart at a glance the same way `label` and `input`
+can be given different backgrounds below.
+
+| Key                      | Type    | Default | Description |
+|--------------------------|---------|---------|-------------|
+| `prompt.label.font`      | string  | `"fixed bold"` | Font for the "Run:" prompt. |
+| `prompt.label.color.background` | string | `"#9AAEC8"` | Prompt background. |
+| `prompt.label.color.foreground` | string | `"#253040"` | Prompt text. |
+| `prompt.input.font`      | string  | `"fixed"` | Font for the typed command. |
+| `prompt.input.color.background` | string | `"#9AAEC8"` | Typed-command background. |
+| `prompt.input.color.foreground` | string | `"#253040"` | Typed-command text. |
+| `prompt.border.color`    | string  | `"#7F9AB6"` | Box's own outer frame color. |
+| `prompt.border.width`    | integer | `2`     | Box's own outer frame width in pixels. |
+
+```json
+"prompt": {
+    "label": {
+        "font": "fixed bold",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+    },
+    "input": {
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+    },
+    "border": { "color": "#7F9AB6", "width": 2 }
+}
+```
 ---
 
 ## 5. `randr.json`: XRandR output profiles
@@ -2752,6 +2831,33 @@ to whatever theme loads, unconditionally.
         },
         "show-pixmaps": true
     },
+    "search": {
+        "input": {
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": { "background": "#d0d9e5", "foreground": "#4a5566" }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
+        },
+        "border": { "color": "#7f9ab6", "width": 2 }
+    },
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
+        },
+        "input": {
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
+        },
+        "border": { "color": "#7f9ab6", "width": 2 }
+    },
+
     "dialog": {
         "color": { "background": "#d0d9e5" },
         "border": { "color": "#7f9ab6", "width": 2 },

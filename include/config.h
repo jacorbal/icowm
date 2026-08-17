@@ -1170,6 +1170,52 @@ struct config_theme_s {
     } menu;
 
     /**
+     * @brief Fuzzy window-search widget theme (@c menu/search.h)
+     *
+     * Its own dedicated section rather than reusing @p menu above: the
+     * two happened to share identical values when the widget was first
+     * built, but nothing ties them together architecturally, and
+     * a person may want the widget to stand out from ordinary context
+     * menus.
+     */
+    struct {
+        /** Style for the query bar itself (the text actually typed) */
+        struct config_theme_style_s input;
+
+        /** Style for a result row that is neither hovered nor the
+         *  keyboard-navigated selection */
+        struct config_theme_style_s unselected;
+
+        /** Style for the hovered or keyboard-navigated result row */
+        struct config_theme_style_s selected;
+
+        /** The widget window's own outer frame, the same
+         *  window-versus-row distinction @p menu.border's own doc
+         *  comment gives */
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
+    } search;
+
+    /**
+     * @brief Built-in run-box theme (@c menu/dialog/run.h)
+     */
+    struct {
+        /** Style for the "Run:" prompt itself */
+        struct config_theme_style_s label;
+
+        /** Style for the typed command */
+        struct config_theme_style_s input;
+
+        /** The box's own outer frame */
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
+    } prompt;
+
+    /**
      * @brief Dialog theme (the quit-confirmation and generic message
      *        dialogs)
      */

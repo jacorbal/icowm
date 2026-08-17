@@ -161,8 +161,8 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
 
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-    values[0] = cfg->theme.menu.unselected.color.background;
-    values[1] = cfg->theme.menu.border.color;
+    values[0] = cfg->theme.prompt.input.color.background;
+    values[1] = cfg->theme.prompt.border.color;
     values[2] = 1;  /* override_redirect: prevent WM from managing it */
     values[3] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS |
         XCB_EVENT_MASK_KEY_RELEASE;
@@ -173,7 +173,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
             surface->screen->root,
             widget_x, widget_y,
             (uint16_t) WM_RUN_WIDTH, height,
-            (uint16_t) cfg->theme.menu.border.width,
+            (uint16_t) cfg->theme.prompt.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             mask, values);
@@ -267,28 +267,92 @@ void run_handle_keypress(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Fill a rectangle at an arbitrary horizontal offset
+ *
+ * The same drawing this shares with @a menu_draw_row_bg
+ * (menu/draw.c), just with @p x configurable: that shared helper
+ * always starts at the window's own left edge, which is exactly
+ * right for every one of its other callers (a whole-width row
+ * background) but not for painting @p label's and @p input's own
+ * independently colored halves of the run-box side by side.
+ *
+ * @param connection XCB connection
+ * @param window     Window to draw into
+ * @param color      Fill color
+ * @param x          Left edge, in pixels
+ * @param w          Width, in pixels
+ * @param h          Height, in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_run_fill_rect(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t color,
+        int16_t x, uint16_t w, uint16_t h)
+{
+    xcb_gcontext_t gc;
+    xcb_rectangle_t rect;
+    uint32_t gc_vals[1];
+
+    gc = xcb_generate_id(connection);
+    gc_vals[0] = color;
+    xcb_create_gc(connection, gc, window, XCB_GC_FOREGROUND, gc_vals);
+
+    rect.x = x;
+    rect.y = 0;
+    rect.width = w;
+    rect.height = h;
+    xcb_poly_fill_rectangle(connection, window, gc, 1, &rect);
+
+    xcb_free_gc(connection, gc);
+}
+
+
 /* Repaint the run-box */
 void run_draw(xcb_connection_t *connection, const config_td *cfg)
 {
-    char shown[WM_RUN_COMMAND_MAX_LENGTH + 16];
+    char shown[WM_RUN_COMMAND_MAX_LENGTH + 8];
+    const char *prompt;
+    uint16_t height;
+    uint16_t label_w;
+    int16_t input_x;
 
     if (!run_is_open() || cfg == NULL) {
         return;
     }
 
-    menu_draw_row_bg(connection, s_run.window,
-            cfg->theme.menu.selected.color.background,
-            0, (uint16_t) (WM_RUN_BAR_HEIGHT + 2 * WM_RUN_PAD_Y),
-            (uint16_t) WM_RUN_WIDTH);
+    height = (uint16_t) (WM_RUN_BAR_HEIGHT + 2 * WM_RUN_PAD_Y);
+    prompt = _(STR_RUN_PROMPT);
 
-    snprintf(shown, sizeof(shown), "%s %s_",
-            _(STR_RUN_PROMPT), s_run.command);
+    /* Measured against 'label''s own font, which is also the one it
+     * gets drawn in just below, since 'text_measure_string' reports
+     * against whichever font 'text_renderer_init' was last set to. */
+    text_renderer_init(connection, cfg->theme.prompt.label.font);
+    label_w = (uint16_t) (WM_RUN_PAD_X +
+            text_measure_string(prompt) + WM_RUN_PAD_X / 2);
+    input_x = (int16_t) label_w;
 
-    text_renderer_init(connection, cfg->theme.menu.selected.font);
-    text_renderer_set_color(cfg->theme.menu.selected.color.foreground,
-            cfg->theme.menu.selected.color.background);
+    s_run_fill_rect(connection, s_run.window,
+            cfg->theme.prompt.label.color.background,
+            0, label_w, height);
+    s_run_fill_rect(connection, s_run.window,
+            cfg->theme.prompt.input.color.background,
+            input_x, (uint16_t) (WM_RUN_WIDTH - label_w), height);
+
+    text_renderer_set_color(cfg->theme.prompt.label.color.foreground,
+            cfg->theme.prompt.label.color.background);
     menu_draw_label(connection, s_run.window,
             (int16_t) WM_RUN_PAD_X,
+            (int16_t) (WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7),
+            prompt);
+
+    snprintf(shown, sizeof(shown), "%s_", s_run.command);
+
+    text_renderer_init(connection, cfg->theme.prompt.input.font);
+    text_renderer_set_color(cfg->theme.prompt.input.color.foreground,
+            cfg->theme.prompt.input.color.background);
+    menu_draw_label(connection, s_run.window,
+            (int16_t) (input_x + WM_RUN_PAD_X / 2),
             (int16_t) (WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7),
             shown);
 
