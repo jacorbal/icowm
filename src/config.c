@@ -5,7 +5,8 @@
  *        implementation
  */
 /*
- * NOTE, i.e., MUSINGS AND ADMONITIONS TO MINE OWN REFLECTIVE INNER SELF:
+ * MUSINGS AND ADMONITIONS UNTO MINE OWN REFLECTIVE INNER SELF, WHICH
+ * DWELLETH WITHIN:
  *
  * Regarding the forthcoming extant self (Sat Mar 22 05:01 CET 2025):
  *      The current state of this code is significantly suboptimal.
@@ -24,6 +25,14 @@
  *
  * Regarding my rambling selves of yesteryear (Sat Feb 14 11:36 CET 2026):
  *      Pish, let it matter not, ye idle knaves!  I shall change naught!
+ *
+ * Regarding the self now undone by toil (Sun Aug 09 04:38 CET 2026):
+ *      Much have I attempted, and all that mortal vigour would permit;
+ *      beyond this point, I can but yield.  I did endeavour to bear
+ *      this cursed contrivance further, yet my spirit faltered and my
+ *      limbs denied me.  Alas, by fatigue am I brought low;
+ *      O weariness, begotten of refactoring, thou most merciless of
+ *      foes!
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
