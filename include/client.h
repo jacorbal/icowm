@@ -835,6 +835,29 @@ void client_constrain_size(const client_td *client,
         uint32_t *width, uint32_t *height);
 
 /**
+ * @brief Clamp a width/height pair into a client's own aspect-ratio
+ *        bounds, adjusting height only
+ *
+ * Applies the @c PAspect portion of @c WM_NORMAL_HINTS on its own
+ * (ICCCM §4.1.2.3), separately from @a client_constrain_size's own
+ * minimum/maximum/increment handling, so a caller that already produced
+ * a fully snapped size for one axis (see @c input/kbd/interact.c's own
+ * @c ik_handle_resize) can still apply just this one constraint without
+ * @a client_constrain_size's other rules snapping the values a second
+ * time.
+ *
+ * @param client Pointer to the client owning the size hints
+ * @param width  Width the ratio is measured against; never adjusted
+ * @param height In/out height, adjusted to fit @p width's own ratio
+ *
+ * @note No-op if any pointer argument is null, or if the client sets
+ *       neither aspect-ratio bound
+ * @note Complexity: @e O(1)
+ */
+void client_clamp_aspect_ratio(const client_td *client,
+        uint32_t width, uint32_t *height);
+
+/**
  * @brief Send a synthetic @c ConfigureNotify to an ICCCM-compliant
  *        client
  *

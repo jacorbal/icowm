@@ -617,6 +617,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     uint32_t old_h;
     int32_t new_w;
     int32_t new_h;
+    uint32_t aspect_h;
 
     client = ik_get_active_client(surface, surfaces, NULL, NULL);
     if (client == NULL || !client_is_resizable(client) ||
@@ -731,20 +732,35 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_RESIZE_LEFT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, false);
+            aspect_h = (uint32_t) new_h;
+            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            new_h = (int32_t) aspect_h;
             new_x += (int32_t) old_w - new_w;
             break;
+
         case KEYBIND_CLIENT_RESIZE_RIGHT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, true);
+            aspect_h = (uint32_t) new_h;
+            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            new_h = (int32_t) aspect_h;
             break;
+
         case KEYBIND_CLIENT_RESIZE_UP:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, false);
+            aspect_h = (uint32_t) new_h;
+            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            new_h = (int32_t) aspect_h;
             new_y += (int32_t) old_h - new_h;
             break;
+
         case KEYBIND_CLIENT_RESIZE_DOWN:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, true);
+            aspect_h = (uint32_t) new_h;
+            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            new_h = (int32_t) aspect_h;
             break;
     }
 

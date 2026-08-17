@@ -393,6 +393,46 @@ void client_sync_decoration_layout(client_td *client)
 }
 
 
+/* Clamp a width/height pair into a client's own aspect-ratio bounds */
+void client_clamp_aspect_ratio(const client_td *client,
+        uint32_t width, uint32_t *height)
+{
+    if (client == NULL || height == NULL || !client->size_hints.valid) {
+        return;
+    }
+
+    /* Comparisons cross-multiply instead of dividing so no fractional
+     * rounding of the ratio itself ever creeps in. */
+    if (client->size_hints.min_aspect_num > 0 &&
+            client->size_hints.min_aspect_den > 0) {
+        uint64_t lhs = (uint64_t) width *
+            (uint64_t) client->size_hints.min_aspect_den;
+        uint64_t rhs = (uint64_t) client->size_hints.min_aspect_num *
+            (uint64_t) *height;
+
+        if (lhs < rhs) {
+            *height = (uint32_t) (((uint64_t) width *
+                        (uint64_t) client->size_hints.min_aspect_den) /
+                    (uint64_t) client->size_hints.min_aspect_num);
+        }
+    }
+
+    if (client->size_hints.max_aspect_num > 0 &&
+            client->size_hints.max_aspect_den > 0) {
+        uint64_t lhs = (uint64_t) width *
+            (uint64_t) client->size_hints.max_aspect_den;
+        uint64_t rhs = (uint64_t) client->size_hints.max_aspect_num *
+            (uint64_t) *height;
+
+        if (lhs > rhs) {
+            *height = (uint32_t) (((uint64_t) width *
+                        (uint64_t) client->size_hints.max_aspect_den) /
+                    (uint64_t) client->size_hints.max_aspect_num);
+        }
+    }
+}
+
+
 /* Apply ICCCM size-hint constraints to a requested width and height */
 void client_constrain_size(const client_td *client,
         uint32_t *width, uint32_t *height)
@@ -410,10 +450,10 @@ void client_constrain_size(const client_td *client,
     /* The absolute floor every resize is guaranteed never to fall
      * below, applied first so the client's own explicit 'min_w'/
      * 'min_h' just below (when it specifies one) can still only ever
-     * raise this, never lower it: 1 resize-increment unit for a
-     * client that measures itself in one (a terminal counting
-     * character columns/rows, say, via 'width_inc'/'height_inc'),
-     * or 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
+     * raise this, never lower it: 1 resize-increment unit for a client
+     * that measures itself in one (a terminal counting character
+     * columns/rows, say, via 'width_inc'/'height_inc'), or
+     * 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
     if (client->size_hints.valid && client->size_hints.inc_w > 1) {
         uint32_t base_w = (client->size_hints.base_w > 0)
             ? (uint32_t) client->size_hints.base_w
@@ -500,15 +540,13 @@ void client_constrain_size(const client_td *client,
         }
 
         /* ICCCM §4.1.2.3: clamp the width/height ratio into
-         * ['min_aspect', 'max_aspect'], adjusting 'req_h' rather than
-         * 'req_w' so the axis the person is actively dragging (most
-         * often width, e.g. a corner or side handle) is left exactly as
-         * requested; comparisons cross-multiply instead of dividing so
-         * no fractional rounding of the ratio itself ever creeps in.
-         * Kept as the very last adjustment in this whole block, after
-         * every other constraint above (including the grid and the
-         * second 'min_w'/'min_h' floor just below), so nothing that
-         * runs afterward can push the ratio back out of range again. */
+         * ['min_aspect', 'max_aspect'], via 'client_clamp_aspect_ratio'
+         * (shared with 'ik_handle_resize' in input/kbd/interact.c, for
+         * exactly the reasoning its own doc comment gives).  Kept as
+         * the very last adjustment in this whole block, after every
+         * other constraint above (including the grid and the second
+         * 'min_w'/'min_h' floor just below), so nothing that runs
+         * afterward can push the ratio back out of range again. */
         if (client->size_hints.min_w > 0 &&
                 req_w < (uint32_t) client->size_hints.min_w) {
             req_w = (uint32_t) client->size_hints.min_w;
@@ -519,33 +557,7 @@ void client_constrain_size(const client_td *client,
             req_h = (uint32_t) client->size_hints.min_h;
         }
 
-        if (client->size_hints.min_aspect_num > 0 &&
-                client->size_hints.min_aspect_den > 0) {
-            uint64_t lhs = (uint64_t) req_w *
-                (uint64_t) client->size_hints.min_aspect_den;
-            uint64_t rhs = (uint64_t) client->size_hints.min_aspect_num *
-                (uint64_t) req_h;
-
-            if (lhs < rhs) {
-                req_h = (uint32_t) (((uint64_t) req_w *
-                            (uint64_t) client->size_hints.min_aspect_den) /
-                        (uint64_t) client->size_hints.min_aspect_num);
-            }
-        }
-
-        if (client->size_hints.max_aspect_num > 0 &&
-                client->size_hints.max_aspect_den > 0) {
-            uint64_t lhs = (uint64_t) req_w *
-                (uint64_t) client->size_hints.max_aspect_den;
-            uint64_t rhs = (uint64_t) client->size_hints.max_aspect_num *
-                (uint64_t) req_h;
-
-            if (lhs > rhs) {
-                req_h = (uint32_t) (((uint64_t) req_w *
-                            (uint64_t) client->size_hints.max_aspect_den) /
-                        (uint64_t) client->size_hints.max_aspect_num);
-            }
-        }
+        client_clamp_aspect_ratio(client, req_w, &req_h);
     }
 
     *width = req_w;
