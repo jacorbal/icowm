@@ -399,7 +399,31 @@ typedef struct client_s {
         uint8_t inactive;
     } opacity_override;
 
-    uint32_t user_time;             /**< Time since last used */
+    /**
+     * @brief Timestamp of the client's own most recent genuine
+     *        keyboard/pointer input, kept live throughout its whole
+     *        lifetime, not just read once at map time
+     *
+     * Read once from @c _NET_WM_USER_TIME when the client first maps
+     * (@a client_init, in @c client.c), then kept up to date afterward
+     * by @a client_update_user_time every time a real (not synthetic)
+     * @c KeyPress or @c ButtonPress actually reaches this specific
+     * client, the same @c _NET_WM_USER_TIME concept EWMH itself already
+     * defines, just refreshed continuously rather than trusted only
+     * once.
+     *
+     * The one place this whole thing exists for: deciding whether an
+     * incoming @c _NET_ACTIVE_WINDOW request deserves real focus, by
+     * comparing this field against the currently active client's own
+     * (see @a hi_handle_net_active_window, @c handler/message.c).
+     * A client whose own genuine input predates the one already holding
+     * focus has a weaker claim on the user's attention right now, so it
+     * gets marked urgent instead of stealing focus outright.
+     *
+     * @see @a client_user_time_is_newer for the wraparound-safe way to
+     *      compare two values of this field
+     */
+    uint32_t user_time;
 
     struct {
         pid_t pid;                  /**< PID being executed */
@@ -634,6 +658,29 @@ static inline xcb_window_t client_group_leader(const client_td *client)
  * @note Complexity: @e O(1)
  */
 void client_destroy(client_td *client);
+
+/**
+ * @brief Refresh a client's own @c user_time from a genuine input event
+ *        that just reached it
+ *
+ * Called once per real (not synthetic) @c KeyPress or @c ButtonPress
+ * that the X server actually delivered for this specific client's own
+ * window, so its own @p user_time stays a true, live record of when it
+ * was last genuinely used, rather than the one-time snapshot
+ * @c _NET_WM_USER_TIME provided back when it first mapped.
+ *
+ * @param client Client that just received the genuine input event
+ * @param time   X server timestamp of the event, e.g., @p event->time
+ *               straight off the @a xcb_key_press_event_t /
+ *               @a xcb_button_press_event_t itself
+ *
+ * @note No-op if @p client is null, or if @p time is not actually newer
+ *       than the client's own current @p user_time (per
+ *       @a client_user_time_is_newer), guarding against events a caller
+ *       might ever hand over out of their true chronological order
+ * @note Complexity: @e O(1)
+ */
+void client_update_user_time(client_td *client, uint32_t time);
 
 /**
  * @brief Apply a client's own themed border color and width to its own
@@ -1141,6 +1188,33 @@ void client_props_refresh_normal_hints(client_td *client);
  */
 #define client_is_urgent(w) \
     ((w)->properties.flags & CLIENT_FLAG_URGENT)
+
+/**
+ * @brief Macro that compares two @p user_time values safely across the
+ *        32-bit wraparound X11 timestamps undergo roughly every
+ *        49.7 days of continuous X server uptime
+ *
+ * A naive @c a @c > @c b comparison breaks exactly once per wraparound:
+ * right after it, every fresh timestamp is numerically small again, so
+ * it would wrongly look older than any timestamp from just before the
+ * wraparound.  Subtracting first and reinterpreting the result as
+ * signed sidesteps this entirely, the same idiom X11 itself already
+ * relies on for its own timestamps, as long as the two values being
+ * compared are never more than roughly half the 32-bit range (about
+ * 24.8 days) apart, which two genuine user-interaction timestamps
+ * meaningfully compared against each other never are in practice.
+ *
+ * @param a First timestamp
+ * @param b Second timestamp
+ *
+ * @return Whether @p a happened after @p b
+ * @retval  true @p a is the more recent timestamp
+ * @retval false @p a is not more recent than @p b
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_user_time_is_newer(a, b) \
+    (((int32_t) ((a) - (b))) > 0)
 
 /**
  * @brief Macro that evaluates to the client disabled flag

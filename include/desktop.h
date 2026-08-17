@@ -265,6 +265,21 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client);
 int desktop_action_client_rem(desktop_td *desktop, client_td *client);
 
 /**
+ * @brief Find the client on a desktop matching a given client ID
+ *
+ * @param desktop Desktop whose own clients are searched
+ * @param id      Client ID to search for
+ *
+ * @return Pointer to the matching client, or @c NULL if @p desktop is
+ *         null, or no client on it has that ID
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+client_td *desktop_find_client_by_id(const desktop_td *desktop,
+        uint32_t id);
+
+/**
  * @brief Recompute @p desktop->is_urgent from scratch, against every
  *        client currently on it
  *

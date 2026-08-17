@@ -406,6 +406,35 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 }
 
 
+/* Find the client on a desktop matching a given client ID */
+client_td *desktop_find_client_by_id(const desktop_td *desktop,
+        uint32_t id)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (desktop == NULL || desktop->stacking == NULL) {
+        return NULL;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return NULL;
+    }
+
+    initial = node;
+    do {
+        client_td *c = (client_td *) cdlist_data(node);
+        if (c != NULL && c->id == id) {
+            return c;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return NULL;
+}
+
+
 /* Recompute whether any client on the desktop currently has its own
  * urgency hint set */
 void desktop_action_recompute_urgent(desktop_td *desktop)

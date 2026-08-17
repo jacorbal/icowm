@@ -209,6 +209,20 @@ void client_destroy(client_td *client)
 }
 
 
+/* Refresh a client's own user-time from a genuine input event that just
+ * reached it */
+void client_update_user_time(client_td *client, uint32_t time)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    if (client_user_time_is_newer(time, client->user_time)) {
+        client->user_time = time;
+    }
+}
+
+
 /* Apply a client's own themed border color and width to its own
  * window, honoring 'border_override' when set */
 void client_apply_border(client_td *client, bool use_active_style)

@@ -27,7 +27,7 @@
 /* Utils includes */
 #include <utils/geom.h>
 
-/* Commands includes */
+/* Command includes */
 #include <cmds/client/basic.h>
 
 /* Project includes */
@@ -117,7 +117,7 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
      * silence the warning).  Both initialized the array at its
      * declaration, but neither affected the diagnostic.
      *
-     * It then reported a “use of uninitialized value” without
+     * It then reported a "use of uninitialized value" without
      * identifying any source location for the alleged read.  That
      * strongly suggests a known class of '-fanalyzer' false positive
      * involving a fixed-size array declared inside a loop that has an
@@ -810,23 +810,15 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * so the previous desktop's windows do not retain keyboard input. */
     focus_target = NULL;
     if (desktop->client_active_id != 0) {
-        node = cdlist_head(desktop->stacking);
-        if (node != NULL) {
-            initial = node;
-            do {
-                client_td *c = (client_td *) cdlist_data(node);
-                if (c != NULL && c->id == desktop->client_active_id &&
-                        !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        !client_is_shaded(c) &&
-                        c->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED &&
-                        (c->properties.flags &
-                             CLIENT_FLAG_FOCUSABLE)) {
-                    focus_target = c;
-                    break;
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
+        client_td *c = desktop_find_client_by_id(desktop,
+                desktop->client_active_id);
+
+        if (c != NULL && !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                !client_is_shaded(c) &&
+                c->properties.state !=
+                    (uint16_t) CLIENT_STATE_ICONIFIED &&
+                (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {
+            focus_target = c;
         }
     }
 

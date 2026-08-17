@@ -278,6 +278,45 @@ static const char *s_loop_connection_error_string(int error_code)
 }
 
 
+/**
+ * @brief Refresh the client behind a genuine input event's own
+ *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
+ *        prevention to compare against later
+ *
+ * @param wm Window manager state, for @p wm->surfaces
+ * @param window Window a real @c KeyPress or @c ButtonPress named as
+ *               its own @c event field, i.e., the one that actually
+ *               received it
+ * @param response_type The raw, unmasked @c response_type off the
+ *                       event itself, top bit included
+ * @param time X server timestamp of the event
+ *
+ * @note A no-op when the top bit of @p response_type marks the event
+ *       synthetic, i.e., sent by an application itself via
+ *       @c XSendEvent rather than genuinely delivered by the X
+ *       server: trusting a synthetic one here would let any client
+ *       fake recent activity right before requesting
+ *       @c _NET_ACTIVE_WINDOW, defeating the whole point of the
+ *       comparison this feeds
+ * @note Complexity: @e O(s * d * c), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e c
+ *       the hash-table lookup cost per desktop, the same as
+ *       @a lookup_find_client itself, which this wraps
+ */
+static void s_loop_note_real_input(wm_td *wm, xcb_window_t window,
+        uint8_t response_type, uint32_t time)
+{
+    client_td *client;
+
+    if ((response_type & 0x80u) != 0u) {
+        return;
+    }
+
+    client = lookup_find_client(wm->surfaces, window, NULL, NULL);
+    client_update_user_time(client, time);
+}
+
+
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
@@ -518,11 +557,16 @@ void loop_run(wm_td *wm)
             }
 
             switch (event->response_type & ~0x80u) {
-                case XCB_KEY_PRESS:
-                    keyboard_handle_press(wm, keysyms,
-                            (xcb_key_press_event_t *) event,
+                case XCB_KEY_PRESS: {
+                    xcb_key_press_event_t *kp =
+                        (xcb_key_press_event_t *) event;
+
+                    s_loop_note_real_input(wm, kp->event,
+                            event->response_type, kp->time);
+                    keyboard_handle_press(wm, keysyms, kp,
                             wm->surfaces, wm->config);
                     break;
+                }
 
                 case XCB_KEY_RELEASE:
                     keyboard_handle_release(keysyms,
@@ -530,11 +574,16 @@ void loop_run(wm_td *wm)
                             wm->surfaces, wm->config);
                     break;
 
-                case XCB_BUTTON_PRESS:
+                case XCB_BUTTON_PRESS: {
+                    xcb_button_press_event_t *bp =
+                        (xcb_button_press_event_t *) event;
+
+                    s_loop_note_real_input(wm, bp->event,
+                            event->response_type, bp->time);
                     mouse_handle_press(wm->connection, wm->surfaces,
-                            (xcb_button_press_event_t *) event,
-                            wm->config);
+                            bp, wm->config);
                     break;
+                }
 
                 case XCB_BUTTON_RELEASE:
                     mouse_handle_release(wm->connection, wm->surfaces,
