@@ -40,20 +40,6 @@
 
 
 /**
- * @brief Refresh the work areas for all desktops on a surface
- *
- * Recalculates and updates @c _NET_WORKAREA for every desktop on
- * @p surface after a strut or screen-geometry change.
- *
- * @param surface Surface whose work areas should be refreshed
- *
- * @note Implemented in @c handler/focus.c
- * @note Complexity: @e O(n), where @e n is the number of desktops
- */
-void hi_refresh_workareas(surface_td *surface);
-
-
-/**
  * @brief Handle a @c _NET_WM_STATE client message
  *
  * Dispatches up to two EWMH state atoms from a @c _NET_WM_STATE

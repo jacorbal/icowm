@@ -439,7 +439,8 @@ int main(int argc, char *const argv[])
                             " run in less than that\n",
                             (unsigned int) MEMGUARD_MIN_CEILING_MIB);
                     s_deallocate_buffers(&log_filename,
-                            &display_name, &config_dir);
+                                         &display_name,
+                                         &config_dir);
                     return -1;
                 }
                 break;
