@@ -83,6 +83,15 @@ void config_set_default_values_memguard(config_td *config)
     safe_strncpy(config->base.programs.web_browser, "firefox",
             sizeof(config->base.programs.web_browser));
 
+    /* Unlike every program name just above, this one genuinely does
+     * differ from the normal-mode default (see 'base.c''s own).  The
+     * built-in run-box avoids spawning 'launcher' itself as a whole
+     * extra process, even a minimal one such as this very mode's own
+     * default for it above, fitting this mode's whole reason for
+     * existing the same way every other choice in this file already
+     * does. */
+    config->base.prompt.is_enabled = true;
+
     config->base.windows.move_step = 10u;
     config->base.windows.resize_step = 20u;
     config->base.windows.snap = 4u;

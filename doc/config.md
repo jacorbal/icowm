@@ -21,6 +21,7 @@ values, and built-in default value.
    - [2.9. `systray`](#29-systray)
    - [2.10. `desktops`](#210-desktops)
    - [2.11. `scratchpad`](#211-scratchpad)
+   - [2.12. `prompt`](#212-prompt)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1. Binding syntax](#31-binding-syntax)
    - [3.2. `modifiers`](#32-modifiers)
@@ -239,7 +240,7 @@ for the corresponding keyboard shortcuts.
 | Key                     | Type   | Default     | Description          |
 |-------------------------|--------|-------------|----------------------|
 | `programs.terminal`     | string | `"xterm"`   | Terminal emulator.   |
-| `programs.launcher`     | string | `"gmrun"`   | Application launcher |
+| `programs.launcher`     | string | `"gmrun"`   | Application launcher; see `prompt` (section 2.12) for the built-in alternative that can replace spawning this entirely. |
 | `programs.file-manager` | string | `"pcmanfm"` | File manager.        |
 | `programs.editor`       | string | `"gvim"`    | Text editor.         |
 | `programs.web-browser`  | string | `"firefox"` | Web browser.         |
@@ -847,7 +848,7 @@ automatically; and is skipped by `rearrange_desktop`.  `toggle
 fullscreen` is deliberately left alone: nothing above prevents it.
 
 **Reloading configuration never affects a scratchpad client already
-alive.** Every field below (`command`, `edge`, `width`/`height`,
+alive.**  Every field below (`command`, `edge`, `width`/`height`,
 `ignore-margins`) is only ever read the moment a fresh scratchpad is
 actually launched, never while the current one is still around, hidden
 or shown.  Changing `command` and reloading, say, has no effect on an
@@ -883,6 +884,25 @@ never has any other decoration; see `themes/<name>.json` section
     "width": "max",
     "height": 200,
     "ignore-margins": false
+}
+```
+
+### 2.12. `prompt`
+
+A single, always-centered text field for typing and launching a command
+directly, with no application listing, no fuzzy matching, and no cache
+of any kind, unlike `programs.launcher` (section 2.3).  A mistyped or
+missing command shows an informational dialog (never a blocking warning
+or error) rather than doing nothing silently or interrupting further
+than necessary, and a successful one closes the box right away.
+
+| Key          | Type    | Default | Description |
+|--------------|---------|---------|-------------|
+| `is-enabled` | boolean | `false` in normal mode; `true` in restricted-memory mode (`-M`) | When `true`, the `launcher` keyboard shortcut opens this built-in box instead of spawning `programs.launcher`.  Restricted-memory mode defaults this to `true` specifically to avoid that extra process, even a minimal one such as this same mode's own default for `programs.launcher`. |
+
+```json
+"prompt": {
+    "is-enabled": false
 }
 ```
 
@@ -2420,7 +2440,16 @@ to whatever theme loads, unconditionally.
             ]
         }
     },
-
+    "programs": {
+        "terminal": "xterm",
+        "launcher": "gmrun",
+        "editor": "gvim",
+        "file-manager": "pcmanfm",
+        "web-browser": "firefox"
+    },
+    "prompt": {
+        "is-enabled": false
+    },
     "desktops": {
         "show-overlay": true,
         "notify-activity": true,
@@ -2433,15 +2462,6 @@ to whatever theme loads, unconditionally.
             "left": 0
         }
     },
-
-    "programs": {
-        "terminal": "xterm",
-        "launcher": "gmrun",
-        "editor": "gvim",
-        "file-manager": "pcmanfm",
-        "web-browser": "firefox"
-    },
-
     "windows": {
         "gravity": "north-west",
         "move-step": 10,
@@ -2458,14 +2478,12 @@ to whatever theme loads, unconditionally.
             "group-related": true
         }
     },
-
     "icons": {
         "show-geom": false,
         "placement": {
             "policy": "smart"
         }
     },
-
     "menus": {
         "root": {
             "position": "under-mouse"
@@ -2474,7 +2492,6 @@ to whatever theme loads, unconditionally.
             "position": "under-mouse"
         }
     },
-
     "systray": {
         "is-enabled": true,
         "reserve-space": false,
@@ -2513,11 +2530,6 @@ to whatever theme loads, unconditionally.
             "position": "right"
         }
     },
-
-    "startup-notification": {
-        "timeout-seconds": 20
-    },
-
     "scratchpad": {
         "is-enabled": true,
         "command": "xterm -fg black -bg ivory -cr black",
@@ -2526,7 +2538,9 @@ to whatever theme loads, unconditionally.
         "height": 200,
         "ignore-margins": false
     },
-
+    "startup-notification": {
+        "timeout-seconds": 20
+    },
     "shutdown": {
         "enable-emergency-shortcut": false,
         "timeout-seconds": 15
@@ -2561,7 +2575,6 @@ to whatever theme loads, unconditionally.
             "web-browser": "modc+mod1+w",
             "editor": "modc+mod1+e"
         },
-
         "window": {
             "close": "modc+mod1+c",
             "kill": "modc+mod1+mods+Escape",
@@ -2599,7 +2612,6 @@ to whatever theme loads, unconditionally.
                 "down": "modc+mod1+mods+j"
             }
         },
-
         "wm": {
             "menus": {
                 "root": "modc+mod1+mods+m",
@@ -2613,7 +2625,6 @@ to whatever theme loads, unconditionally.
             "quit": "modc+mod1+mods+x",
             "shortcuts": "modc+mod4+F1"
         },
-
         "cycle": {
             "desktop": {
                 "prev": "modc+mod1+Left",
@@ -2629,7 +2640,6 @@ to whatever theme loads, unconditionally.
             }
         }
     },
-
     "mouse": {
         "window": {
             "move": "mod1+button1",
@@ -2677,7 +2687,6 @@ to whatever theme loads, unconditionally.
             "opacity": 100
         }
     },
-
     "icon": {
         "is-captioned": true,
         "show-pixmaps": true,
@@ -2695,7 +2704,6 @@ to whatever theme loads, unconditionally.
             "opacity": 100
         }
     },
-
     "systray": {
         "font": "fixed bold",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
@@ -2711,11 +2719,9 @@ to whatever theme loads, unconditionally.
             "valign": "center"
         }
     },
-
     "desktop": {
         "color": { "background": "#5f7187" }
     },
-
     "menu": {
         "unselected": {
             "font": "fixed",
@@ -2746,7 +2752,6 @@ to whatever theme loads, unconditionally.
         },
         "show-pixmaps": true
     },
-
     "dialog": {
         "color": { "background": "#d0d9e5" },
         "border": { "color": "#7f9ab6", "width": 2 },
@@ -2771,14 +2776,12 @@ to whatever theme loads, unconditionally.
             "padding": { "horizontal": 12, "vertical": 6 }
         }
     },
-
     "overlay": {
         "font": "fixed",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
         "opacity": 100
     },
-
     "xsettings": {
         "is-enabled": false,
         "dpi": 96,
@@ -2789,7 +2792,6 @@ to whatever theme loads, unconditionally.
             "cursor-theme-size": 24
         }
     },
-
     "scratchpad": {
         "border": {
             "color": "#4A5566",
@@ -2935,6 +2937,9 @@ emits a final notification on exit.
         "terminal": "xterm",
         "launcher": "gmrun"
     },
+    "prompt": {
+        "is-enabled": true
+    },
     "desktops": {
         "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
     },
@@ -2960,10 +2965,12 @@ emits a final notification on exit.
 This example is only ever read when IcoWM is launched with `-M <mib>`;
 see `icowm.md`'s "Restricted-memory mode" section for what that flag
 does.  It names a theme of its own (`themes/compact.json`, not shown
-here), keeps the systray's clock and battery on, and turns on the
-emergency shortcut, since a severely memory-constrained session is
-exactly the kind of place where a hung window is more likely and
-a guaranteed way out is worth having.
+here), keeps the systray's clock and battery on, turns on the emergency
+shortcut, since a severely memory-constrained session is exactly the
+kind of place where a hung window is more likely and a guaranteed way
+out is worth having, and turns on the built-in `prompt` (section 2.12)
+instead of `programs.launcher` (`gmrun` here) to avoid that extra
+process altogether.
 
 ### `a11y.json`
 

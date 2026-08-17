@@ -381,3 +381,15 @@ msgstr ""
 "toH!  pa' Deghmey ta' 'fortune' Suq lu' pagh.  vaj DaH chan ngan Sov "
 "je.  nuq mIw yIchov: 'sudo apt install fortune-mod' rur, latlh De' "
 "pagh mIw nIvbogh SoHvaD."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "chu':"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "'%s' ra' lo'laHbe'."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "'%s' chu'laHbe'; ra' lo'laHbe'."

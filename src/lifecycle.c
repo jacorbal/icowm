@@ -37,6 +37,12 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
+/* Project includes */
+#include <i18n.h>
+
 /* Menu includes */
 #include <menu/dialog/info.h>
 
@@ -148,16 +154,16 @@ void lifecycle_scan_existing(wm_td *wm)
                         LOGGER_DEBUG("Adopted pre-existing window %#x" \
                                 " on surface %u desktop %u",
                                 children[i], surface->id, desktop->id);
-                    }
-                }
+                    } /* ! if (!client) */
+                } /* ! if (!desktop) */
             }
 
             free(ar);
-        }
+        } /* ! for (i) */
 
         surface_refresh_workareas(surface);
         free(qt_reply);
-    }
+    } /* ! for (node) */
 
     xcb_flush(wm->connection);
     LOGGER_DEBUG("Finished scanning for pre-existing windows", L_NARG);
@@ -190,8 +196,7 @@ void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
         char msg[256];
 
         (void) snprintf(msg, sizeof(msg),
-                "Failed to execute child process '%s';" \
-                " no such file or directory", prog);
+                _(STR_LAUNCH_COMMAND_NOT_FOUND_FMT), prog);
         dialog_info_show(surface->connection, surface,
                 surface->config, msg, MENU_MSG_LEVEL_WARNING);
     }

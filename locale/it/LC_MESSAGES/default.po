@@ -392,3 +392,15 @@ msgstr ""
 "'sudo apt install fortune-mod' (o qual sortilegio la vostra "
 "distribuzione richieda), affinché i saggi d'un tempo possano ancora "
 "una volta parlare attraverso questo umile dialogo."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "Esegui:"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "Comando '%s' non trovato."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "Impossibile eseguire '%s': comando non trovato."

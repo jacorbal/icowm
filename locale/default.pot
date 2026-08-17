@@ -366,3 +366,15 @@ msgid ""
 "fortune-mod' (or whate'er charm thy distribution demandeth), that the "
 "sages of yore might once more speak through this humble dialog."
 msgstr ""
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr ""
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr ""
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr ""

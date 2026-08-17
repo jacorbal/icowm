@@ -40,6 +40,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     cJSON *json;
     cJSON *theme_item;
     cJSON *programs;
+    cJSON *prompt;
     cJSON *desktops_item;
     cJSON *windows_item;
     cJSON *icons_item;
@@ -73,6 +74,12 @@ int ci_memguard_load_json(const char *filename, config_td *config)
         json_load_string(programs, "web-browser",
                 config->base.programs.web_browser,
                 sizeof(config->base.programs.web_browser));
+    }
+
+    prompt = cJSON_GetObjectItem(json, "prompt");
+    if (prompt != NULL) {
+        json_load_bool(prompt, "is-enabled",
+                &config->base.prompt.is_enabled);
     }
 
     desktops_item = cJSON_GetObjectItem(json, "desktops");

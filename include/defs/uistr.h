@@ -274,6 +274,33 @@
 #define STR_SEARCH_NO_WINDOWS \
     "There are no open windows in this session at the moment."
 
+/* Built-in run-box ('src/menu/dialog/run.c'): the prompt preceding its
+ * own text field.  Kept short and distinct from 'STR_SEARCH_NO_WINDOWS'
+ * above so the two widgets, easy to confuse at a glance since both are
+ * a single centered text field, never look alike. */
+#define STR_RUN_PROMPT "Run:"
+
+/* Built-in run-box: shown (as an informational dialog, never a blocking
+ * warning or error) when the entered command could not be found or
+ * executed.
+ *
+ * TRANSLATION: keep the single '%s' (the command as typed) */
+#define STR_RUN_COMMAND_NOT_FOUND_FMT \
+    "Command '%s' not found."
+
+/* 'lifecycle_dispatch_launch' ('src/lifecycle.c'): shown as a blocking
+ * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
+ * a keybind-triggered program (e.g. 'programs.terminal') could not be
+ * found or executed.  Unlike the run-box, where a bad command is a
+ * one-off typo the person just made, this always means the very same
+ * configured program will keep failing every single time that same
+ * keybind is pressed again until 'config.json' itself is fixed, which
+ * is worth calling more attention to.
+ *
+ * TRANSLATION: keep the single '%s' (the configured command) */
+#define STR_LAUNCH_COMMAND_NOT_FOUND_FMT \
+    "Failed to execute '%s': command not found."
+
 /* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead when
  * the configured 'fortune.command' is missing or produces no output;
  * deliberately overwrought and archaic, per its whole point being

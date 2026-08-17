@@ -39,6 +39,7 @@
 #include <menu/dialog/quit.h>
 #include <menu/dialog/shortcuts.h>
 #include <menu/popup.h>
+#include <menu/dialog/run.h>
 #include <menu/search.h>
 
 /* Handler includes */
@@ -536,6 +537,14 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         search_handle_keypress(
                 (surface != NULL) ? surface->connection : NULL,
                 surfaces, keysym, state, config);
+        return;
+    }
+
+    /* Built-in run-box intercepts all keys while open */
+    if (run_is_open()) {
+        run_handle_keypress(
+                (surface != NULL) ? surface->connection : NULL,
+                surface, keysym, config);
         return;
     }
 

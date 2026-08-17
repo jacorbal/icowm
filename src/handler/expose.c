@@ -43,6 +43,7 @@
 #include <menu/dialog/info.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
+#include <menu/dialog/run.h>
 #include <menu/search.h>
 
 /* Input includes */
@@ -118,6 +119,12 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
+    /* Built-in run-box repaint */
+    if (run_owns_window(event->window)) {
+        run_draw(connection, cfg);
+        return;
+    }
+
     /* Generic confirm dialog repaint (quit-confirmation or any other
      * dialog built on 'menu/dialog/confirm.h'; only one instance can
      * ever be open at a time, so which wrapper opened it does not
@@ -161,7 +168,7 @@ void handler_expose(xcb_connection_t *connection,
             drag_client() == client;
         /* The icon's own drag ('drag_start_icon' in
          * 'input/mouse/drag.c') sets the active styling once, at the
-         * start of the drag, and nothing re-applies it afterward; an
+         * start of the drag, and nothing re-applies it afterward.  An
          * icon passing behind another window mid-drag gets exposed
          * again once it re-emerges, and without this check that repaint
          * would fall back to the inactive styling for the rest of the

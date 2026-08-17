@@ -80,6 +80,29 @@ struct config_base_s {
         char editor[CONFIG_MAX_LENGTH_COMMAND];
     } programs;
 
+    /**
+     * @brief Whether @c KEYBIND_LAUNCH_LAUNCHER opens the built-in
+     *        run-box instead of spawning @p programs.launcher
+     *
+     * Its own top-level section, rather than nested under @p programs
+     * itself, specifically to avoid the confusion a second, differently
+     * typed "launcher" key nested right next to @p programs.launcher (a
+     * plain command string) would invite.
+     *
+     * @p is_enabled defaults to @c true in restricted-memory mode,
+     * where avoiding the extra process @p programs.launcher itself
+     * would otherwise spawn (even a minimal one, e.g. 'gmrun', this
+     * mode's own default for it) fits that mode's whole reason for
+     * existing.
+     *
+     * @see @a ik_handle_launch in @c input/kbd/interact.c for where
+     *      this is consulted
+     * @see @c menu/dialog/run.h for the run-box itself
+     */
+    struct {
+        bool is_enabled;
+    } prompt;
+
     /* General behavior of environment towards windows */
     struct {
         uint32_t snap;          /**< Snap factor in pixels */

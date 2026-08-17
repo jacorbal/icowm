@@ -390,3 +390,15 @@ msgstr ""
 "alvoki vian pakaĵadministrilon per sorĉo kiel 'sudo apt install "
 "fortune-mod' (aŭ kian ajn ĉarmon via distribuo postulas), por ke la "
 "saĝuloj de la pasinteco denove povu paroli tra ĉi tiu humila dialogo."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "Ruli:"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "Komando '%s' ne trovita."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "Malsukcesis ruli '%s': komando ne trovita."

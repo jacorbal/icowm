@@ -390,3 +390,15 @@ msgstr "Ai de min!  O oráculo 'fortune' non mora nesta máquina, polo "
 "apt install fortune-mod' (ou o feitizo que a vosa distribución esixa), "
 "para que os sabios de outrora poidan de novo falar a través deste "
 "humilde diálogo."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "Executar:"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "Non se atopou a orde '%s'."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "Non se puido executar '%s': orde non atopada."

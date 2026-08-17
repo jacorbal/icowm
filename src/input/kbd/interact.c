@@ -47,6 +47,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Menu includes */
+#include <menu/dialog/run.h>
+
 /* Local includes */
 #include <input/kbd/internal.h>
 
@@ -163,7 +166,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         clamped = geom_clamp_dim(target);
         /* A decorated client's own frame extents ('ext_a'/'ext_b', the
          * border plus, on the vertical axis, the titlebar) are fixed
-         * regardless of how small its content shrinks: floored here so
+         * regardless of how small its content shrinks.  Floored here so
          * the titlebar in particular can never itself shrink away or
          * disappear, no matter how far a resize keeps pushing this
          * axis; 'geom_clamp_dim' alone has no client in scope to know
@@ -422,15 +425,23 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_LAUNCH_TERMINAL:
             program = config->base.programs.terminal;
             break;
+
         case KEYBIND_LAUNCH_LAUNCHER:
+            if (config->base.prompt.is_enabled) {
+                run_init(surface->connection, surface, config);
+                return;
+            }
             program = config->base.programs.launcher;
             break;
+
         case KEYBIND_LAUNCH_FILE_MANAGER:
             program = config->base.programs.file_manager;
             break;
+
         case KEYBIND_LAUNCH_WEB_BROWSER:
             program = config->base.programs.web_browser;
             break;
+
         case KEYBIND_LAUNCH_EDITOR:
             program = config->base.programs.editor;
             break;

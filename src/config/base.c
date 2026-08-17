@@ -981,6 +981,9 @@ void config_set_default_base_values(struct config_base_s *config_base,
     safe_strncpy(config_base->programs.web_browser,
             "firefox", sizeof(config_base->programs.web_browser));
 
+    LOGGER_TRACE("Setting default prompt configuration", L_NARG);
+    config_base->prompt.is_enabled = false;
+
     LOGGER_TRACE("Setting default scratchpad configuration", L_NARG);
     config_base->scratchpad.is_enabled = true;
     safe_strncpy(config_base->scratchpad.command,
@@ -1213,6 +1216,7 @@ int config_load_base(const char *filename,
 {
     cJSON *json;
     cJSON *programs;
+    cJSON *prompt;
     cJSON *scratchpad;
     cJSON *windows;
     cJSON *icons;
@@ -1259,6 +1263,13 @@ int config_load_base(const char *filename,
         json_load_string(programs, "editor",
                 config_base->programs.editor,
                 CONFIG_MAX_LENGTH_COMMAND);
+    }
+
+    /* Load prompt (built-in run-box) configuration */
+    prompt = cJSON_GetObjectItem(json, "prompt");
+    if (prompt) {
+        json_load_bool(prompt, "is-enabled",
+                &config_base->prompt.is_enabled);
     }
 
     /* Load scratchpad configuration */

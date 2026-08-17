@@ -393,3 +393,15 @@ msgstr ""
 "com 'sudo apt install fortune-mod' (o l'encanteri que la vostra "
 "distribució demani), perquè els savis d'antany puguin novament parlar "
 "a través d'aquest humil diàleg."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "Executa:"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "No s'ha trobat l'ordre '%s'."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "No s'ha pogut executar '%s': ordre no trobada."

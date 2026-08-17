@@ -393,3 +393,15 @@ msgstr ""
 "fortune-mod' anzurufen (oder welcher Zauber auch immer Eure "
 "Distribution verlange), auf dass die Weisen der Vorzeit einst wieder "
 "durch diesen bescheidenen Dialog zu Euch sprechen mögen."
+
+#: include/defs/uistr.h:281
+msgid "Run:"
+msgstr "Ausführen:"
+
+#: include/defs/uistr.h:288
+msgid "Command '%s' not found."
+msgstr "Befehl '%s' nicht gefunden."
+
+#: include/defs/uistr.h:301
+msgid "Failed to execute '%s': command not found."
+msgstr "Ausführung von '%s' fehlgeschlagen: Befehl nicht gefunden."
