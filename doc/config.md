@@ -1039,15 +1039,15 @@ Resize the focused window by a fixed step in the given direction.
 
 Window manager control shortcuts.
 
-| Key            | Default binding    | Action |
-|----------------|--------------------|--------|
-| `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
-| `show-desktop` | `modc+mod4+mods+d` | Hide all windows and show the empty desktop. |
-| `scratchpad` | `modc+mod1+mods+F12` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
-| `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
-| `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
-| `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
+| Key            | Default binding       | Action |
+|----------------|-----------------------|--------|
+| `search`       | `modc+mod4+mods+s`    | Open the fuzzy window-search widget. |
+| `show-desktop` | `modc+mod4+mods+d`    | Hide all windows and show the empty desktop. |
+| `scratchpad`   | `modc+mod1+mods+F12`  | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
+| `redraw`       | `modc+mod1+mods+r`    | Force a full redraw of all windows. |
+| `reload`       | `modc+mod1+mods+c`    | Reload the configuration files (equivalent to `SIGHUP`). |
+| `quit`         | `modc+mod1+mods+x`    | Exit IcoWM. |
+| `shortcuts`    | `modc+mod4+F1`        | Show a dialog listing every currently active keyboard shortcut. |
 | `fortune`      | `modc+mod4+Backspace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
 
 `search` opens a centered, live-filtered list of every window across
@@ -1812,7 +1812,7 @@ current hovered or keyboard-navigated one.
 | `search.unselected.font`             | string  | `"fixed"`      | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
 | `search.unselected.color.background` | string  | `"#D0D9E5"`    | Unselected row background. |
 | `search.unselected.color.foreground` | string  | `"#4A5566"`    | Unselected row text. |
-| `search.selected.font`               | string  | `"fixed bold"` | Font for the hovered or keyboard-navigated result row. |
+| `search.selected.font`               | string  | `"fixed"`      | Font for the hovered or keyboard-navigated result row. |
 | `search.selected.color.background`   | string  | `"#9AAEC8"`    | Selected row background. |
 | `search.selected.color.foreground`   | string  | `"#253040"`    | Selected row text. |
 | `search.border.color`                | string  | `"#7F9AB6"`    | Widget window's own outer frame color. |
@@ -1825,7 +1825,7 @@ current hovered or keyboard-navigated one.
         "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "selected": {
-        "font": "fixed bold",
+        "font": "fixed",
         "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "unselected": {
@@ -2834,7 +2834,7 @@ to whatever theme loads, unconditionally.
             "color": { "background": "#9aaec8", "foreground": "#253040" }
         },
         "selected": {
-            "font": "fixed bold",
+            "font": "fixed",
             "color": { "background": "#9aaec8", "foreground": "#253040" }
         },
         "unselected": {

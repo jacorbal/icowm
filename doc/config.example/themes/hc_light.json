@@ -233,17 +233,17 @@
                 "foreground": "#000000"
             }
         },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#ffdd00",
+                "foreground": "#000000"
+            }
+        },
         "unselected": {
             "font": "fixed",
             "color": {
                 "background": "#ffffff",
-                "foreground": "#000000"
-            }
-        },
-        "selected": {
-            "font": "fixed bold",
-            "color": {
-                "background": "#ffdd00",
                 "foreground": "#000000"
             }
         },

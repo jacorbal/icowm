@@ -454,7 +454,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
         json_hex2uint32("4A5566");
     theme->search.unselected.opacity = 100u;
     safe_strncpy(theme->search.selected.font,
-            "fixed bold", sizeof(theme->search.selected.font));
+            "fixed", sizeof(theme->search.selected.font));
     theme->search.selected.color.background = json_hex2uint32("9AAEC8");
     theme->search.selected.color.foreground = json_hex2uint32("253040");
     theme->search.selected.opacity = 100u;

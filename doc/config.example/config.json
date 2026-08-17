@@ -21,6 +21,18 @@
         }
     },
 
+    "programs": {
+        "editor": "gvim",
+        "file-manager": "pcmanfm",
+        "launcher": "gmrun",
+        "terminal": "xterm",
+        "web-browser": "firefox"
+    },
+
+    "prompt": {
+        "is-enabled": true
+    },
+
     "desktops": {
         "notify-activity": true,
         "show-overlay": true,
@@ -62,14 +74,6 @@
         }
     },
 
-    "programs": {
-        "editor": "gvim",
-        "file-manager": "pcmanfm",
-        "launcher": "gmrun",
-        "terminal": "xterm",
-        "web-browser": "firefox"
-    },
-
     "systray": {
         "is-enabled": true,
         "layer": "below",
@@ -91,10 +95,10 @@
             "is-enabled": true,
             "format": "%a %R"
         },
-        "position": "top-left",
+        "position": "top-right",
         "text": {
-            "order": [ "clock", "battery" ],
-            "position": "left"
+            "order": [ "battery", "clock" ],
+            "position": "right"
         },
         "reserve-space": false,
         "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
