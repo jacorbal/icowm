@@ -235,6 +235,20 @@ void ccmd_client_shade(client_td *client)
         return;
     }
 
+    /* An iconified client's own target window is unmapped and its
+     * icon window stands in for it; shading it in place here, same
+     * as 'ccmd_client_fullscreen' and 'ccmd_client_maximize' (via
+     * 's_ccmd_maximize_precheck') already do for the same reason,
+     * would map the frame back while the icon window is still up,
+     * showing both at once.  Restoring first keeps this consistent
+     * with the project's own established convention of resolving a
+     * conflicting prior state automatically rather than refusing
+     * the request outright (the same convention 'ccmd_client_iconify'
+     * itself follows for shade and fullscreen on the way in). */
+    if (client_is_iconified(client)) {
+        ccmd_client_restore(client);
+    }
+
     LOGGER_TRACE("Shading client window=0x%x", client->window);
 
     target = ccmd_target_win(client);
@@ -368,6 +382,15 @@ void ccmd_client_fullscreen(client_td *client)
 
     if (client == NULL) {
         return;
+    }
+
+    /* Restore first if iconified, the same reasoning as
+     * 'ccmd_client_shade''s own identical guard just above: an
+     * iconified client's target window is unmapped, and entering
+     * fullscreen here would map it back while the icon window is
+     * still up. */
+    if (client_is_iconified(client)) {
+        ccmd_client_restore(client);
     }
 
     /* Deliberately no 'client_is_resizable' gate here, unlike maximize:

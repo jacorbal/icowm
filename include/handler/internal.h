@@ -97,37 +97,32 @@ void hi_handle_net_wm_desktop(wm_td *wm,
         desktop_td *src_desktop);
 
 /**
- * @brief Handle a @c _NET_WM_MOVERESIZE client message
+ * @brief Handle a @c _NET_MOVERESIZE_WINDOW client message
  *
- * Lets a @c Client that draws its own titlebar or resize grips (common
- * among GTK/Qt applications using client-side decoration) ask icowm to
- * take over an interactive move or resize, the same way dragging
- * icowm's own decoration would, rather than the Client having to track
- * pointer motion itself.
+ * Lets a @c Client (typically a pager or session-restore tool, rather
+ * than the client owning the window itself) request a direct,
+ * one-shot geometry change, the same request @c ccmd_client_move and
+ * @c ccmd_client_resize apply for icowm's own internal callers, but
+ * driven by an external @c ClientMessage instead.
  *
- * A @c Client MAY choose to grab the pointer directly instead and never
- * send this message at all, so receiving it is optional to begin with,
- * but a @c Client that does relies on getting the exact same
- * move/resize behavior (edge snapping and so on) icowm's own decoration
- * already provides.
+ * @c event's own @c data32[0] carries a bitmask of which of
+ * @c data32[1..4] (@c x, @c y, @c width, @c height, in that order)
+ * are actually present in this particular request; an axis whose own
+ * flag bit is unset is left exactly as it already was.  @p width and
+ * @p height, per the EWMH specification, describe the client's own
+ * content size, so each is padded out by the matching pair of frame
+ * extents before being applied to @p client's frame, when decorated.
+ * @p y is floored at @c 0 and @p width/@p height at
+ * @c WM_MIN_WINDOW_DIMENSION, the same floors @c ccmd_client_move and
+ * @c ccmd_client_resize themselves already enforce.
  *
- * @p direction selects the operation:
- * @c XCB_EWMH_WM_MOVERESIZE_MOVE starts a move; one of the eight
- * @c XCB_EWMH_WM_MOVERESIZE_SIZE_* values starts a resize anchored on;
- * @c XCB_EWMH_WM_MOVERESIZE_CANCEL cancels whichever of the two is
- * currently active for this same client, if any.
- *
- * The message itself carries no timestamp (@p only x_root, @p y_root,
- * direction, button, and source indication), so @c XCB_CURRENT_TIME is
- * used for both the pointer grab and, where a move is requested, the
- * drag state that would otherwise want the triggering event's own time.
- * The keyboard variants (@c XCB_EWMH_WM_MOVERESIZE_MOVE_KEYBOARD and
- * @c _SIZE_KEYBOARD) have no continuous, pointer-free equivalent in
- * @c icowm's own move/resize machinery to hand off to, so they are
- * acknowledged by being recognized at all but otherwise silently
- * ignored, the same way some other window managers (e.g., i3) treat the
- * full set of possible directions as more complexity than the few
- * @c Clients actually relying on this message call for.
+ * An iconified @p client is left iconified: unlike
+ * @c ccmd_client_shade, @c ccmd_client_fullscreen, and
+ * @c ccmd_client_maximize (whose own request is itself a visible
+ * state change the person is asking for), silently un-iconifying a
+ * window a person deliberately minimized just because an external
+ * pager sent it a geometry hint would be a surprising side effect of
+ * a request that, on any other client, has no visible effect at all.
  *
  * @param wm      Window manager state
  * @param event   Incoming client message event
@@ -136,8 +131,6 @@ void hi_handle_net_wm_desktop(wm_td *wm,
  * @param desktop Desktop @p client is on
  *
  * @note Complexity: @e O(1)
- *
- * @see @a s_moveresize_direction_to_anchor
  */
 void hi_handle_net_moveresize_window(wm_td *wm,
         xcb_client_message_event_t *event,

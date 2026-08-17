@@ -405,23 +405,24 @@ typedef struct client_s {
      *        lifetime, not just read once at map time
      *
      * Read once from @c _NET_WM_USER_TIME when the client first maps
-     * (@a client_init, in @c client.c), then kept up to date afterward
-     * by @a client_update_user_time every time a real (not synthetic)
+     * (@a client_init, client.c), then kept up to date afterward by
+     * @a client_update_user_time every time a real (not synthetic)
      * @c KeyPress or @c ButtonPress actually reaches this specific
-     * client, the same @c _NET_WM_USER_TIME concept EWMH itself already
-     * defines, just refreshed continuously rather than trusted only
-     * once.
+     * client, the same @c _NET_WM_USER_TIME concept EWMH itself
+     * already defines, just refreshed continuously rather than
+     * trusted only once.
      *
      * The one place this whole thing exists for: deciding whether an
      * incoming @c _NET_ACTIVE_WINDOW request deserves real focus, by
      * comparing this field against the currently active client's own
-     * (see @a hi_handle_net_active_window, @c handler/message.c).
-     * A client whose own genuine input predates the one already holding
-     * focus has a weaker claim on the user's attention right now, so it
-     * gets marked urgent instead of stealing focus outright.
+     * (see @c hi_handle_net_active_window, handler/message.c).  A
+     * client whose own genuine input predates the one already
+     * holding focus has a weaker claim on the user's attention right
+     * now, so it gets marked urgent instead of stealing focus
+     * outright.
      *
-     * @see @a client_user_time_is_newer for the wraparound-safe way to
-     *      compare two values of this field
+     * @see @a client_user_time_is_newer for the wraparound-safe way
+     *      to compare two values of this field
      */
     uint32_t user_time;
 
@@ -441,19 +442,21 @@ typedef struct client_s {
      * @brief ICCCM @c WM_NORMAL_HINTS size constraints
      */
     struct {
-        bool valid;             /**< True when hints were read from server */
-        int32_t min_w;          /**< Minimum width  (0 = unset) */
-        int32_t min_h;          /**< Minimum height (0 = unset) */
-        int32_t max_w;          /**< Maximum width  (0 = unset) */
-        int32_t max_h;          /**< Maximum height (0 = unset) */
-        int32_t base_w;         /**< Base width for increment arithmetic */
-        int32_t base_h;         /**< Base height for increment arithmetic */
-        int32_t inc_w;          /**< Width increment  (0 or 1 = no grid) */
-        int32_t inc_h;          /**< Height increment (0 or 1 = no grid) */
-        int32_t min_aspect_num; /**< Minimum w/h ratio numerator (0 = unset) */
-        int32_t min_aspect_den; /**< Minimum w/h ratio denominator */
-        int32_t max_aspect_num; /**< Maximum w/h ratio numerator (0 = unset) */
-        int32_t max_aspect_den; /**< Maximum w/h ratio denominator */
+        bool valid;         /**< True when hints were read from server */
+        int32_t min_w;      /**< Minimum width  (0 = unset) */
+        int32_t min_h;      /**< Minimum height (0 = unset) */
+        int32_t max_w;      /**< Maximum width  (0 = unset) */
+        int32_t max_h;      /**< Maximum height (0 = unset) */
+        int32_t base_w;     /**< Base width for increment arithmetic */
+        int32_t base_h;     /**< Base height for increment arithmetic */
+        int32_t inc_w;      /**< Width increment  (0 or 1 = no grid) */
+        int32_t inc_h;      /**< Height increment (0 or 1 = no grid) */
+        int32_t min_aspect_num;  /**< Minimum w/h ratio numerator
+                                       (0 = unset) */
+        int32_t min_aspect_den;  /**< Minimum w/h ratio denominator */
+        int32_t max_aspect_num;  /**< Maximum w/h ratio numerator
+                                       (0 = unset) */
+        int32_t max_aspect_den;  /**< Maximum w/h ratio denominator */
     } size_hints;
 
     /**
@@ -477,17 +480,17 @@ typedef struct client_s {
 
     /**
      * @brief Whether the client's own pre-existing @c _NET_WM_STATE
-     *        (read before this window was ever mapped) already included
-     *        @c _NET_WM_STATE_FULLSCREEN
+     *        (read before this window was ever mapped) already
+     *        included @c _NET_WM_STATE_FULLSCREEN
      *
      * EWMH's own correct way for a client to request fullscreen from
      * the outset, distinct from @p initial_iconic just above (ICCCM
-     * @c WM_HINTS, not EWMH) though serving the exact same role.
+     * @c WM_HINTS, not EWMH) though serving the exact same role:
      * @a handler_map_request consults this once the newly mapped
      * client's own frame/decoration already exist, the same way it
      * already consults @p initial_iconic for @c IconicState.
      *
-     * @see @a s_client_read_pre_existing_state in @c client.c
+     * @see @a s_client_read_pre_existing_state (client.c)
      */
     bool initial_fullscreen;
 
@@ -502,7 +505,7 @@ typedef struct client_s {
      * the same way fullscreen does.  A client requesting both is
      * maximized on both axes at once, rather than one call each.
      *
-     * @see @a s_client_read_pre_existing_state (@c client.c)
+     * @see @a s_client_read_pre_existing_state (client.c)
      */
     bool initial_maximized_horz;
     bool initial_maximized_vert;
@@ -660,24 +663,25 @@ static inline xcb_window_t client_group_leader(const client_td *client)
 void client_destroy(client_td *client);
 
 /**
- * @brief Refresh a client's own @c user_time from a genuine input event
- *        that just reached it
+ * @brief Refresh a client's own @c user_time from a genuine input
+ *        event that just reached it
  *
  * Called once per real (not synthetic) @c KeyPress or @c ButtonPress
- * that the X server actually delivered for this specific client's own
- * window, so its own @p user_time stays a true, live record of when it
- * was last genuinely used, rather than the one-time snapshot
+ * that the X server actually delivered for this specific client's
+ * own window, so its own @c user_time stays a true, live record of
+ * when it was last genuinely used, rather than the one-time snapshot
  * @c _NET_WM_USER_TIME provided back when it first mapped.
  *
  * @param client Client that just received the genuine input event
- * @param time   X server timestamp of the event, e.g., @p event->time
- *               straight off the @a xcb_key_press_event_t /
- *               @a xcb_button_press_event_t itself
+ * @param time X server timestamp of the event, e.g., @c event->time
+ *             straight off the @c xcb_key_press_event_t /
+ *             @c xcb_button_press_event_t itself
  *
- * @note No-op if @p client is null, or if @p time is not actually newer
- *       than the client's own current @p user_time (per
- *       @a client_user_time_is_newer), guarding against events a caller
- *       might ever hand over out of their true chronological order
+ * @note No-op if @p client is null, or if @p time is not actually
+ *       newer than the client's own current @c user_time (per
+ *       @a client_user_time_is_newer), guarding against events a
+ *       caller might ever hand over out of their true chronological
+ *       order
  * @note Complexity: @e O(1)
  */
 void client_update_user_time(client_td *client, uint32_t time);
@@ -919,11 +923,11 @@ void client_constrain_size(const client_td *client,
  *
  * Applies the @c PAspect portion of @c WM_NORMAL_HINTS on its own
  * (ICCCM §4.1.2.3), separately from @a client_constrain_size's own
- * minimum/maximum/increment handling, so a caller that already produced
- * a fully snapped size for one axis (see @c input/kbd/interact.c's own
- * @c ik_handle_resize) can still apply just this one constraint without
- * @a client_constrain_size's other rules snapping the values a second
- * time.
+ * minimum/maximum/increment handling, so a caller that already
+ * produced a fully snapped size for one axis (see
+ * @c input/kbd/interact.c's own @c ik_handle_resize) can still apply
+ * just this one constraint without @a client_constrain_size's other
+ * rules snapping the values a second time.
  *
  * @param client Pointer to the client owning the size hints
  * @param width  Width the ratio is measured against; never adjusted
@@ -1141,12 +1145,52 @@ void client_props_refresh_normal_hints(client_td *client);
     ((w)->properties.flags & CLIENT_FLAG_HIDDEN)
 
 /**
- * @brief Macro that evaluates to the client focused flag
+ * @brief Macro that evaluates to the client focusable flag
+ *
+ * @c CLIENT_FLAG_FOCUSABLE is cleared for a window whose own
+ * @c _NET_WM_WINDOW_TYPE marks it as a kind that should never take
+ * real keyboard focus (a dock or a notification; see @c client.c).
+ * This is a distinct concept from @a client_accepts_input_focus:
+ * this one is about the window's own @e type, that one is about its
+ * ICCCM input model.  A plain @c CLIENT_TYPE_NORMAL window is always
+ * focusable by this macro's own measure, regardless of what its
+ * @c WM_HINTS may say about whether it actually accepts input.
  *
  * @note Complexity: @e O(1)
  */
 #define client_is_focusable(w) \
     ((w)->properties.flags & CLIENT_FLAG_FOCUSABLE)
+
+/**
+ * @brief Macro that evaluates to whether a client can receive real
+ *        keyboard focus under its own declared ICCCM input model
+ *
+ * ICCCM §4.1.7 defines three ways a client may end up receiving
+ * keyboard focus: a @e Passive client (@c WM_HINTS input field
+ * @c true, no @c WM_TAKE_FOCUS) takes it via @c SetInputFocus alone;
+ * a @e Locally @e Active or @e Globally @e Active client (registered
+ * @c WM_TAKE_FOCUS) additionally or exclusively takes it via that
+ * protocol message; a @e No @e Input client (input @c false, no
+ * @c WM_TAKE_FOCUS) never takes real keyboard focus at all, by its
+ * own explicit declaration.  This macro evaluates true for the
+ * first two and false for the third, mirroring Openbox's own
+ * @c can_focus @c || @c focus_notify check in @c focus_valid_target
+ * (@c focus.c).
+ *
+ * This is a distinct concept from @a client_is_focusable: that one
+ * is about the window's own @e type (a dock or notification never
+ * wants focus, whatever its input model says); this one is about
+ * the ICCCM input model any window, dock or not, may declare.  A
+ * caller that skips this check before routing a client into
+ * @a focus_apply (@c policy/focus.c) risks unfocusing whatever
+ * already holds real keyboard focus in favor of a client that can
+ * never actually receive it, leaving keyboard input directed
+ * nowhere until the person clicks something else by hand.
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_accepts_input_focus(w) \
+    ((w)->wm_input_hint || (w)->has_wm_take_focus)
 
 /**
  * @brief Macro that evaluates to the client shade flag
@@ -1190,22 +1234,23 @@ void client_props_refresh_normal_hints(client_td *client);
     ((w)->properties.flags & CLIENT_FLAG_URGENT)
 
 /**
- * @brief Macro that compares two @p user_time values safely across the
- *        32-bit wraparound X11 timestamps undergo roughly every
+ * @brief Macro that compares two @c user_time values safely across
+ *        the 32-bit wraparound X11 timestamps undergo roughly every
  *        49.7 days of continuous X server uptime
  *
  * Nothing breaks server-side at that wraparound; the millisecond
  * counter, defined by the X11 protocol itself as a plain @c CARD32,
- * just wraps back to 0 and keeps counting, ordinary unsigned overflow.
- * But a naive @c (a > b) comparison breaks exactly once per wraparound:
- * right after it, every fresh timestamp is numerically small again, so
- * it would wrongly look older than any timestamp from just before the
- * wraparound.  Subtracting first and reinterpreting the result as
- * signed sidesteps this entirely, the same idiom X11 itself already
- * relies on for its own timestamps, as long as the two values being
- * compared are never more than roughly half the 32-bit range (about
- * 24.8 days) apart, which two genuine user-interaction timestamps
- * meaningfully compared against each other never are in practice.
+ * just wraps back to 0 and keeps counting, ordinary unsigned
+ * overflow.  But a naive @c a @c > @c b comparison breaks exactly
+ * once per wraparound: right after it, every fresh timestamp is
+ * numerically small again, so it would wrongly look older than any
+ * timestamp from just before the wraparound.  Subtracting first and
+ * reinterpreting the result as signed sidesteps this entirely, the
+ * same idiom X11 itself already relies on for its own timestamps,
+ * as long as the two values being compared are never more than
+ * roughly half the 32-bit range (about 24.8 days) apart, which two
+ * genuine user-interaction timestamps meaningfully compared against
+ * each other never are in practice.
  *
  * @param a First timestamp
  * @param b Second timestamp

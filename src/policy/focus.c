@@ -57,6 +57,24 @@ void focus_apply(list_td *surfaces, surface_td *surface,
         return;
     }
 
+    /* ICCCM §4.1.7: a client whose own declared input model can
+     * never actually receive real keyboard focus (see
+     * 'client_accepts_input_focus', client.h) must not be allowed to
+     * take over 'client_active_id'/'_NET_WM_STATE_FOCUSED' anyway,
+     * or the client already holding real focus would be unfocused
+     * below in its favor, leaving keyboard input directed nowhere:
+     * 'ccmd_client_focus' correctly withholds 'SetInputFocus' and
+     * 'WM_TAKE_FOCUS' from such a client already, but everything
+     * else this function does (unfocusing whichever client actually
+     * had focus, marking this one active, publishing
+     * '_NET_WM_STATE_FOCUSED') would still run unless refused here.
+     * Openbox's own 'focus_valid_target' (focus.c) gates on exactly
+     * this same 'can_focus || focus_notify' condition before
+     * considering a client at all. */
+    if (!client_accepts_input_focus(client)) {
+        return;
+    }
+
     /* Unfocus the previous active client, and focus this one,
      * synchronously and in that exact order, rather than through the
      * queued 'client_send_event_unfocus'/'client_send_event_focus' pair

@@ -212,7 +212,6 @@ void wm_warn_json_syntax_errors(void);
  * @retval  0 Success
  * @retval  1 No operation has been performed
  *
- * @note Passing a null pointer has no effect
  * @note Complexity: @e O(m * (1 + n^2)), where @e n is the number of
  *       surfaces, and @e m is the number of desktops per surface, as it
  *       iterates through the array of windows to free each one of them

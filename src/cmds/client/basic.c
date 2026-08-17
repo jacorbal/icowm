@@ -62,18 +62,17 @@
  *        visible focus chain
  *
  * Thin wrapper resolving @p client's own surface/desktop before
- * deferring to @a client_focus_fallback itself.
+ * deferring to @a client_focus_fallback itself; a no-op unless
+ * @p client is genuinely this desktop's own current active client,
+ * since some other, already-unfocused client being hidden or
+ * iconified has no focus of its own to hand off in the first place.
  *
  * @param client Client that is being hidden or iconified
  *
- * @note A no-op unless @p client is genuinely this desktop's own
- *       current active client, since some other, already-unfocused
- *       client being hidden or iconified has no focus of its own to
- *       hand off in the first place.
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       current desktop
  */
-static void s_client_focus_fallback(const client_td *client)
+static void s_client_focus_fallback(client_td *client)
 {
     surface_td *surface;
     desktop_td *desktop;
@@ -96,10 +95,10 @@ static void s_client_focus_fallback(const client_td *client)
 }
 
 
-/* Transfer input focus away from a client that is leaving the current
- * visible focus chain, to the most recently used other visible,
- * focusable client on the same desktop, or to 'PointerRoot' if non
- * qualifies */
+/* Transfer input focus away from a client leaving the current
+ * visible focus chain to the most recently used other visible,
+ * focusable client on the same desktop, or to 'PointerRoot' if
+ * none qualifies; see the full criteria in the header */
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         const client_td *exclude)
 {
@@ -113,8 +112,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     desktop->client_active_id = 0;
     desktop->focus_dirty = true;
 
-    if (desktop->stacking != NULL &&
-            cdlist_size(desktop->stacking) > 0) {
+    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
         const cdlist_item_td *initial;
 
         node = cdlist_tail(desktop->stacking);
@@ -205,14 +203,14 @@ void ccmd_client_kill(client_td *client)
     xcb_kill_client(client->connection, client->window);
 
     /* Enough for the common case: losing its own X connection is
-     * normally fatal to whatever toolkit the client is built on, so the
-     * process exits on its own shortly after.  A genuinely unresponsive
-     * client, stuck in some loop that never processes its own
-     * X connection at all, never notices that loss and keeps running
-     * regardless; 'wm_kill_register' watches for exactly that and sends
-     * a real 'SIGKILL' if it is still alive once its own bounded window
-     * elapses.  See 'wm/kill.h''s own doc comment for the full
-     * reasoning.  */
+     * normally fatal to whatever toolkit the client is built on, so
+     * the process exits on its own shortly after.  A genuinely
+     * unresponsive client, stuck in some loop that never processes
+     * its own X connection at all, never notices that loss and keeps
+     * running regardless; 'wm_kill_register' watches for exactly
+     * that and sends a real 'SIGKILL' if it is still alive once its
+     * own bounded window elapses.  See wm/kill.h's own doc comment
+     * for the full reasoning. */
     wm_kill_register(client->process.pid);
 }
 
@@ -797,6 +795,26 @@ void ccmd_client_iconify(client_td *client)
 
     if (!skip_icon_win) {
         s_client_ensure_icon_window(client, icon_h_out);
+    }
+
+    /* Account for the 'UnmapNotify' events that 'handler_unmap_notify'
+     * must skip, the same reasoning as 'ccmd_client_hide''s own
+     * identical comment: two events arrive for the unmapped target
+     * ('SubstructureNotify' on parent + 'StructureNotify' on target)
+     * and one additional event for the titlebar via the frame's
+     * 'SubstructureNotify'.  If 'target' is the frame, the content
+     * window is also unmapped explicitly below, producing two more
+     * events for 'client->window'.  Without this, an iconified
+     * decorated client's own content-window 'UnmapNotify' reaches
+     * 'handler_unmap_notify' with 'ignore_unmap' still zero, which
+     * that handler reads as the client withdrawing itself rather
+     * than the window manager iconifying it. */
+    client->ignore_unmap += 2u;
+    if (client->titlebar != 0) {
+        client->ignore_unmap += 1u;
+    }
+    if (target != client->window) {
+        client->ignore_unmap += 2u;
     }
 
     if (client->titlebar != 0) {

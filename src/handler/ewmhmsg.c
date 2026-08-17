@@ -489,6 +489,18 @@ void hi_handle_net_moveresize_window(wm_td *wm,
         return;
     }
 
+    /* Unlike 'ccmd_client_shade'/'ccmd_client_fullscreen'/
+     * 'ccmd_client_maximize', which restore an iconified client
+     * automatically because entering any of those states is itself
+     * the visible change being asked for, a plain geometry request
+     * has no visible effect on a client that is not currently mapped
+     * to begin with; silently un-iconifying it would be a surprising
+     * side effect of a request that leaves every other client's own
+     * visibility untouched. */
+    if (client_is_iconified(client)) {
+        return;
+    }
+
     flags = (uint32_t) event->data.data32[0];
     req_x = (int32_t) event->data.data32[1];
     req_y = (int32_t) event->data.data32[2];

@@ -511,16 +511,18 @@ bool ccmd_client_monitor_workarea(client_td *client,
 
 
 /**
- * @brief Precondition checks shared by @c ccmd_client_maximize_horz
- *        and @c ccmd_client_maximize_vert, unshading the client along
- *        the way
+ * @brief Precondition checks shared by @c ccmd_client_maximize,
+ *        @c ccmd_client_maximize_horz, and @c ccmd_client_maximize_vert,
+ *        restoring an iconified client and unshading a shaded one
+ *        along the way
  *
- * @param client Client about to be maximized on one axis
+ * @param client Client about to be maximized, on one axis or both
  *
  * @return @c true if the caller should proceed (the client is
- *         resizable, not fullscreen, and any shade state has already
- *         been cleared); @c false if @p client is @c NULL or the
- *         maximize should be refused outright
+ *         resizable, not fullscreen, and any prior iconified or
+ *         shaded state has already been cleared); @c false if
+ *         @p client is @c NULL or the maximize should be refused
+ *         outright
  *
  * @note Complexity: @e O(1)
  */
@@ -532,6 +534,15 @@ static bool s_ccmd_maximize_precheck(client_td *client)
 
     if (!client_is_resizable(client) || client_is_fullscreen(client)) {
         return false;
+    }
+
+    /* An iconified client's own target window is unmapped and its
+     * icon window stands in for it; maximizing it in place here
+     * would map the frame back while the icon window is still up,
+     * the same reasoning as the identical guard in
+     * 'ccmd_client_shade' and 'ccmd_client_fullscreen' (state.c). */
+    if (client_is_iconified(client)) {
+        ccmd_client_restore(client);
     }
 
     if (client_is_shaded(client)) {

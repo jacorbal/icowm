@@ -207,19 +207,19 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     }
 
     /* Fullscreen is a WM-forced override of the client's own preferred
-     * geometry (see 'ccmd_client_fullscreen''s comment in
-     * 'cmds/client/state.c'), and every source that might otherwise
+     * geometry (see 'ccmd_client_fullscreen''s own doc comment,
+     * cmds/client/state.c), and every source that might otherwise
      * change position/size while it holds respects that already
-     * ('handler_configure_request', in 'handler/configure.c', for the
+     * ('handler_configure_request', handler/configure.c, for the
      * client's own attempts).  A rule is no different: 'rules_apply'
      * itself re-runs on any property change this client's own window
      * happens to generate while fullscreen (not just its initial map),
      * via the generic fallback at the end of 'handler_property_notify'
-     * ('handler/focus.c'), so without this a rule with its own
+     * (handler/focus.c), so without this a rule with its own
      * 'apply.size'/'apply.position' would silently undo fullscreen the
-     * next time that client touched some unrelated property of its own.
-     * Every other rule effect (desktop, layer, flags) still applies
-     * regardless; only geometry itself is skipped here. */
+     * next time that client touched some unrelated property of its
+     * own.  Every other rule effect (desktop, layer, flags) still
+     * applies regardless; only geometry itself is skipped here. */
     if (client_is_fullscreen(client)) {
         return;
     }
@@ -237,8 +237,8 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
          * always about a client's own content alone, regardless of
          * decoration, so convert to content space first, apply them
          * there, then convert back, the same round trip
-         * 'input/mouse/drag.c' and 's_kb_resize_axis_target' (in
-         * 'input/kbd/interact.c') already make for their own resize
+         * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
+         * (in 'input/kbd/interact.c') already make for their own resize
          * paths. */
         uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
@@ -458,6 +458,18 @@ bool rules_apply(wm_td *wm, client_td *client,
             client->desktop_id != prev_desktop_id &&
             *surface_io != NULL) {
         if ((*surface_io)->desktop_cur != client->desktop_id) {
+            /* Two 'UnmapNotify' events arrive for 'client->window'
+             * itself ('SubstructureNotify' on its parent +
+             * 'StructureNotify' on the window), both matching
+             * 'handler_unmap_notify''s 'event->window ==
+             * client->window' check; without this, the first one
+             * reaching it with 'ignore_unmap' still zero is read as
+             * the client withdrawing itself rather than the window
+             * manager hiding it for a desktop reassignment.  The
+             * frame's own separate 'UnmapNotify' never carries
+             * 'event->window == client->window', so it needs no
+             * token of its own. */
+            client->ignore_unmap += 2u;
             xcb_unmap_window(wm->connection, client->window);
             if (client->frame != 0) {
                 xcb_unmap_window(wm->connection, client->frame);

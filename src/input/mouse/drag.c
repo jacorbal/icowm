@@ -1740,11 +1740,27 @@ void drag_end(xcb_connection_t *connection,
                  * position, so there is no window at all, however
                  * brief, where it could still be showing over the tray. */
                 systray_restack();
+
+                /* Restore whatever mapped state the icon window had
+                 * right before this drag began, the same value
+                 * 's_drag_sync_icon_active_visual' (drag_start_icon)
+                 * forced to 'true' for the duration of the drag to
+                 * keep it visible while being moved.  Scoped to this
+                 * branch alone, rather than run unconditionally for
+                 * every kind of drag this function ends: the click
+                 * branch above already leaves 'is_icon_mapped' at
+                 * the correct 'false' 'enact_client_restore' set,
+                 * alongside 'icon_window' itself at zero; applying
+                 * this same assignment there too would stamp 'true'
+                 * straight back over it, since 'icon_was_mapped' was
+                 * necessarily 'true' to begin dragging a mapped icon
+                 * in the first place, leaving 'is_icon_mapped' true
+                 * while 'icon_window' is already destroyed. */
+                s_drag.client->is_icon_mapped = s_drag.icon_was_mapped;
             }
         }
 
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
-        s_drag.client->is_icon_mapped = s_drag.icon_was_mapped;
 
         if (connection != NULL &&
                 s_drag.drag_window != XCB_WINDOW_NONE &&

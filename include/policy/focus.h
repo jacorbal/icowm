@@ -66,6 +66,17 @@ bool focus_is_sloppy(const config_td *cfg);
  *
  * @note Passing @c NULL for @p surfaces suppresses the unfocus-previous
  *       step; this is safe when the caller has already handled it.
+ *
+ * @note No-op, leaving whichever client already holds real keyboard
+ *       focus untouched, when @a client_accepts_input_focus
+ *       (@c client.h) is false for @p client: unfocusing whatever
+ *       currently has focus in favor of a client that can never
+ *       actually receive it under its own declared ICCCM input
+ *       model would leave keyboard input directed nowhere.  Most
+ *       callers already gate on @a client_is_focusable before
+ *       reaching here, but that macro is about window @e type, not
+ *       the ICCCM input model this note is about; see both macros'
+ *       own comments in @c client.h for the distinction.
  */
 void focus_apply(list_td *surfaces, surface_td *surface,
         desktop_td *desktop, client_td *client,
