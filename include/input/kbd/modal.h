@@ -38,8 +38,8 @@
 /**
  * @brief Check whether a keyboard modal mode (move or resize) is active
  *
- * @return @c true when the WM is in an interactive keyboard move or
- *         resize session, @c false otherwise
+ * @return @c true when the window manager is in an interactive keyboard
+ *         move or resize session
  *
  * @note Complexity: @e O(1)
  */
@@ -68,7 +68,8 @@ void kbd_modal_move_start(xcb_connection_t *connection,
  * Saves the client's current geometry, grabs the keyboard on the root
  * window, and enters resize mode.  The first arrow key press determines
  * the active edge; subsequent presses grow or shrink along that edge.
- * @c Return confirms and @c Escape cancels, restoring the original size.
+ * @c Return confirms and @c Escape cancels, restoring the original
+ * size.
  *
  * @param connection XCB connection
  * @param surface    Surface the client belongs to (used for root window)
@@ -86,9 +87,9 @@ void kbd_modal_resize_start(xcb_connection_t *connection,
  * the operation on @c Return or @c KP_Enter, and cancels it on
  * @c Escape.  All keys are consumed while modal mode is active.
  *
- * @param connection XCB connection (may be @c NULL; saved connection is
+ * @param connection XCB connection (may be null; saved connection is
  *                   used as fallback)
- * @param surface    Current surface (used for move / resize step config)
+ * @param surface    Current surface (used for move/resize step config)
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration (for move and resize step sizes)
  *

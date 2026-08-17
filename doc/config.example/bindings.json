@@ -9,18 +9,21 @@
         "mod4": "Super",
         "mod5": "Hyper"
     },
+
     "keyboard": {
         "wm": {
+            "search": "modc+mod1+mods+s",
+            "scratchpad": "modc+mod1+mods+F12",
+            "show-desktop": "modc+mod4+mods+d",
+            "redraw": "modc+mod1+mods+r",
+            "reload": "modc+mod1+mods+c",
+            "fortune": "modc+mod4+Backspace",
+            "shortcuts": "modc+mod4+F1",
+            "quit": "modc+mod1+mods+x",
             "menus": {
                 "root": "modc+mod1+mods+m",
                 "windows": "modc+mod1+mods+w"
             },
-            "search": "modc+mod4+mods+s",
-            "show-desktop": "modc+mod4+mods+d",
-            "redraw": "modc+mod1+mods+r",
-            "reload": "modc+mod1+mods+c",
-            "quit": "modc+mod1+mods+x",
-            "shortcuts": "modc+mod4+F1",
             "go-to": {
                 "desktop0": "modc+mod1+0",
                 "desktop1": "modc+mod1+1",
@@ -42,18 +45,18 @@
             "editor": "modc+mod1+e"
         },
         "window": {
+            "arrange": "modc+mod1+mods+a",
             "close": "mod1+modc+c",
             "decorate": "modc+mod1+d",
-            "fullscreen": "modc+mod1+f",
             "hide": "modc+mod1+mods+u",
             "iconify": "modc+mod1+i",
             "iconify-all": "modc+mod1+mods+i",
             "deiconify-all": "modc+mod1+mods+d",
-            "arrange": "modc+mod1+mods+a",
             "info": "modc+mod4+mods+i",
             "layer": "modc+mod1+mods+y",
             "kill": "modc+mod1+mods+Escape",
             "maximize": "modc+mod1+m",
+            "fullscreen": "modc+mod1+f",
             "pin": "modc+mod1+p",
             "shade": "modc+mod1+s",
             "move": {
@@ -93,6 +96,7 @@
             }
         }
     },
+
     "mouse": {
         "window": {
             "move": "mod1+button1",

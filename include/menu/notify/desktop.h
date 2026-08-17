@@ -88,7 +88,7 @@ xcb_window_t notify_desktop_window(void);
 /**
  * @brief Return milliseconds remaining before the notification closes
  *
- * @return Remaining milliseconds, 0 if expired, or -1 on error
+ * @return Remaining milliseconds, @c 0 if expired, or @c -1 on error
  *
  * @note Complexity: @e O(1)
  */

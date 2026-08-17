@@ -17,7 +17,6 @@
 #include <stdint.h>
 #include <stdio.h>      /* FILE, fopen, fseek, ftell, fread, fclose */
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <string.h>     /* strcmp */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -354,10 +353,10 @@ void json_syntax_errors_record(const char *filename)
     /* Do not record the same file twice: 'json_load_config' can be
      * called more than once for the same path within a single load
      * (e.g., a lint pass that re-checks a file already loaded once),
-     * and a repeated entry would just be noise in the eventual
-     * warning dialog rather than new information. */
+     * and a repeated entry would just be noise in the eventual warning
+     * dialog rather than new information. */
     for (uint32_t i = 0u; i < s_syntax_error_count; ++i) {
-        if (strcmp(s_syntax_error_files[i], filename) == 0) {
+        if (safe_strcmp(s_syntax_error_files[i], filename) == 0) {
             return;
         }
     }

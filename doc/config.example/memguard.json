@@ -1,5 +1,6 @@
 {
     "theme": "default",
+
     "programs": {
         "editor": "gvim",
         "file-manager": "pcmanfm",
@@ -7,26 +8,49 @@
         "terminal": "xterm",
         "web-browser": "firefox"
     },
+
     "desktops": {
-        "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
+
     "windows": {
         "move-step": 10,
-        "placement": { "policy": "smart" }
+        "placement": {
+            "policy": "smart"
+        }
     },
+
     "icons": {
-        "placement": { "policy": "smart" }
+        "placement": {
+            "policy": "smart"
+        }
     },
+
     "systray": {
         "is-enabled": true,
-        "reserve-space": false,
+        "layer": "below",
+        "battery": {
+            "is-enabled": false,
+            "poll-seconds": 30,
+            "backend": {
+                "number": 0,
+                "type": "acpi"
+            }
+        },
+        "clock": {
+            "is-enabled": true,
+            "format": "%a %R"
+        },
         "position": "top-right",
-        "monitor": { "anchor": "primary" },
-        "order": "left-to-right",
-        "layer": "above"
+        "text": {
+            "order": [ "clock", "battery" ]
+        },
+        "reserve-space": false,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
+
     "shutdown": {
-        "enable-emergency-shortcut": false,
+        "enable-emergency-shortcut": true,
         "timeout-seconds": 15
     }
 }

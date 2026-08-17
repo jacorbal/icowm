@@ -206,6 +206,22 @@ static void s_client_enable_decoration(client_td *client,
 }
 
 
+/**
+ * @brief Unshades a client window when it is currently shaded
+ *
+ * @param client Client to unshade if necessary
+ *
+ * @note Does nothing if @p client is @c NULL or the client is not
+ *       shaded
+ */
+static void s_client_unshade_if_needed(client_td *client)
+{
+    if (client != NULL && client_is_shaded(client)) {
+        ccmd_client_unshade(client);
+    }
+}
+
+
 /* Shade client (roll-up), if decorated */
 void ccmd_client_shade(client_td *client)
 {
@@ -224,7 +240,7 @@ void ccmd_client_shade(client_td *client)
     target = ccmd_target_win(client);
 
     /* Refresh 'geometry.cur' from the real X11 state right before
-     * saving it: an application-driven resize the window manager did
+     * saving it.  An application-driven resize the window manager did
      * not initiate could leave 'geometry.cur' stale, and shading would
      * then save (and unshading would later restore) the wrong height. */
     geom_ck = xcb_get_geometry(client->connection, target);
@@ -235,16 +251,16 @@ void ccmd_client_shade(client_td *client)
         free(geom_r);
     }
 
-    /* Same guard 'ccmd_client_maximize'/'_horz'/'_vert' (geom.c) and
-     * 'ccmd_client_iconify' already apply: skip saving when the
-     * client is already maximized (in any of its three variants),
-     * so shading a maximized client and then unshading it later
-     * restores the maximized size, not the pre-maximize one that
-     * 'client->layout.geometry.old' already holds from whenever it
-     * was maximized -- an unconditional save here would silently
-     * overwrite that with the current (maximized) geometry, losing
-     * the true original size no later 'unmaximize' could ever
-     * recover, since nothing else remembers it. */
+    /* Same guard 'ccmd_client_maximize'/'_horz'/'_vert' ('geom.c') and
+     * 'ccmd_client_iconify' already apply: skip saving when the client
+     * is already maximized (in any of its three variants), so shading
+     * a maximized client and then unshading it later restores the
+     * maximized size, not the pre-maximize one that
+     * 'client->layout.geometry.old' already holds from whenever it was
+     * maximized.  An unconditional save here would silently overwrite
+     * that with the current (maximized) geometry, losing the true
+     * original size no later 'unmaximize' could ever recover, since
+     * nothing else remembers it. */
     if (!client_is_maximized_any(client)) {
         client_geometry_save(client);
     }
@@ -320,16 +336,6 @@ void ccmd_client_unshade(client_td *client)
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);
-}
-
-
-/**
- */
-static void s_client_unshade_if_needed(client_td *client)
-{
-    if (client != NULL && client_is_shaded(client)) {
-        ccmd_client_unshade(client);
-    }
 }
 
 
@@ -412,28 +418,29 @@ void ccmd_client_fullscreen(client_td *client)
     client->was_decorated_fullscreen = was_decorated;
     target = ccmd_target_win(client);
 
-    /* Resized to fill the screen FIRST, before the content window
-     * below (when there is a separate one, i.e., 'target' is the
-     * frame): reversing this order used to leave a real, if brief,
-     * window between the two separate 'ConfigureWindow' requests
-     * where the content window already had its own full-screen size
-     * while its parent frame still had its old, smaller one, which
-     * X11 clips a child window to regardless of what size the child
-     * itself was just given.  A fast-redrawing client (e.g., xterm)
-     * never showed it, redrawing its own content well before a human
-     * could perceive the gap; a client buffering its own rendering
-     * (e.g., a GL/Vulkan video player like mpv, already special-cased
-     * below for exactly this kind of timing sensitivity) could catch
-     * that intermediate geometry and paint a frame reflecting it,
-     * leaving the frame's own background (set to the theme's border
-     * color by 'desktop_repaint_frame_decoration', render/desktop.c)
-     * visible through the gap along the content's own top and left
-     * edges until its next redraw happened to catch up -- visually
-     * indistinguishable from a real border, though neither an X11
-     * border nor that repaint function was ever actually involved.
-     * Configuring the parent first removes the gap outright: the
-     * child is never given a size its own parent does not already
-     * accommodate, however briefly. */
+    /* Resized to fill the screen FIRST, before the content window below
+     * (when there is a separate one, i.e., 'target' is the frame):
+     * reversing this order used to leave a real, if brief, window
+     * between the two separate 'ConfigureWindow' requests where the
+     * content window already had its own fullscreen size while its
+     * parent frame still had its old, smaller one, which X11 clips
+     * a child window to regardless of what size the child itself was
+     * just given.  A fast-redrawing client (e.g., 'xterm') never showed
+     * it, redrawing its own content well before a human could perceive
+     * the gap.
+     *
+     * A client buffering its own rendering (e.g., a GL/Vulkan video
+     * player like 'mpv', already special-cased below for exactly this
+     * kind of timing sensitivity) could catch that intermediate
+     * geometry and paint a frame reflecting it, leaving the frame's own
+     * background (set to the theme's border color by
+     * 'desktop_repaint_frame_decoration', 'render/desktop.c') visible
+     * through the gap along the content's own top and left edges until
+     * its next redraw happened to catch up (visually indistinguishable
+     * from a real border, though neither an X11 border nor that repaint
+     * function was ever actually involved).  Configuring the parent
+     * first removes the gap outright: the child is never given a size
+     * its own parent does not already accommodate, however briefly. */
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X      |
             XCB_CONFIG_WINDOW_Y      |
@@ -526,9 +533,6 @@ void ccmd_client_unfullscreen(client_td *client)
 {
     xcb_window_t target;
     uint16_t border_width;
-    uint16_t title_height;
-    uint16_t inner_w;
-    uint16_t inner_h;
 
     if (client == NULL) {
         return;
@@ -557,6 +561,10 @@ void ccmd_client_unfullscreen(client_td *client)
      * would otherwise still be smaller than an as-yet-unshrunk
      * child) case there. */
     if (client->was_decorated_fullscreen && client->frame != 0) {
+        uint16_t title_height;
+        uint16_t inner_w;
+        uint16_t inner_h;
+
         title_height = client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w >
                 (uint16_t) (border_width * 2u))
@@ -868,25 +876,26 @@ void ccmd_client_toggle_decorate(client_td *client)
         }
     }
 
-    /* A maximized client's own geometry, computed just above, only
-     * ever grows or shrinks its existing frame in place around
-     * whatever position/size that already was -- exactly right for
-     * an ordinary client, but not for one that was filling the
-     * workarea a moment ago: decoration changes how much of that
-     * area its own frame extents eat into, so what it should still
-     * fill afterward is the workarea itself, not "whatever it
-     * already had, offset by however much bigger or smaller its own
-     * frame extents just became". Recomputed here instead, against
-     * 'ccmd_client_monitor_workarea' (the same resolution
-     * 'ccmd_client_maximize' itself already uses), so the client
-     * ends up exactly refilling the workarea under its new decorated
-     * state, the same as if it had only just been maximized now.
+    /* A maximized client's own geometry, computed just above, only ever
+     * grows or shrinks its existing frame in place around whatever
+     * position/size that already was (exactly right for an ordinary
+     * client, but not for one that was filling the workarea a moment
+     * ago).  Decoration changes how much of that area its own frame
+     * extents eat into, so what it should still fill afterward is the
+     * workarea itself, not "whatever it already had, offset by however
+     * much bigger or smaller its own frame extents just became".
+     * Recomputed here instead, against 'ccmd_client_monitor_workarea'
+     * (the same resolution 'ccmd_client_maximize' itself already uses),
+     * so the client ends up exactly refilling the workarea under its
+     * new decorated state, the same as if it had only just been
+     * maximized now.
+     *
      * Only the axis (or axes) 'client->properties.state' itself
-     * actually names gets touched: a client maximized on one axis
-     * alone leaves its own other axis exactly as the base decorate/
-     * undecorate logic above already placed it, rather than growing
-     * it to fill the workarea too and silently turning a horizontal-
-     * or vertical-only maximize into a full one. */
+     * actually names gets touched: a client maximized on one axis alone
+     * leaves its own other axis exactly as the base decorate/
+     * undecorate logic above already placed it, rather than growing it
+     * to fill the workarea too and silently turning a horizontal- or
+     * vertical-only maximize into a full one. */
     if (client_is_maximized_any(client)) {
         int32_t mx = 0;
         int32_t my = 0;

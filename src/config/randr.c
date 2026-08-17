@@ -178,7 +178,7 @@ int config_load_randr(const char *filename,
 
         LOGGER_DEBUG("Loaded RandR profile %u (name='%s'," \
                 " is-enabled=%d, is-primary=%d, res=%ux%u," \
-                " pos=%d+%d, rot=%u)",
+                " pos=%+d%+d, rot=%u)",
                 config_randr->output_count,
                 out->name,
                 (int) out->is_enabled, (int) out->is_primary,

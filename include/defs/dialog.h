@@ -22,21 +22,24 @@
  * @brief Maximum number of wrapped lines the message dialog can ever
  *        hold, backing the fixed-size @c lines array
  *
- * A hard cap purely to bound the fixed-size arrays this backs, not a
- * display limit: unlike before scrolling existed, text past this many
- * lines is not simply cut off from view, it never enters @c lines at
+ * A hard cap purely to bound the fixed-size arrays this backs, not
+ * a display limit: unlike before scrolling existed, text past this many
+ * lines is not simply cut off from view, it never enters @p lines at
  * all, so scrolling could not reach it regardless of how generous the
  * dialog's own monitor-height cap is (see @c menu/dialog/message.c's
  * @c s_message_compute_layout for that separate, on-screen limit).
+ *
  * Kept comfortably above what the keyboard-shortcuts list (see
  * @c menu/dialog/shortcuts.h) actually produces, plus headroom for it
  * growing over time, rather than tuned tightly to today's exact line
- * count.  Smaller under @c COMPACT (see
- * @c defs/compact.h), though not as small as restricted-memory mode's
- * own shorter shortcuts list alone would allow: this build flag and
- * @c -M are meant to be combined but are not strictly coupled, so
- * this still comfortably covers the full, non-restricted shortcuts
- * list in case a compact build is ever run without @c -M too.
+ * count.  Smaller under @c COMPACT (see @c defs/compact.h), though not
+ * as small as restricted-memory mode's own shorter shortcuts list alone
+ * would allow.
+ *
+ * This build flag and @c -M are meant to be combined but are not
+ * strictly coupled, so this still comfortably covers the full,
+ * non-restricted shortcuts list in case a compact build is ever run
+ * without @c -M too.
  */
 #ifdef COMPACT
 #define DIALOG_MSG_MAX_LINES (64u)
@@ -44,16 +47,22 @@
 #define DIALOG_MSG_MAX_LINES (96u)
 #endif
 
-/** Maximum length of the raw message text before wrapping, prefix
- *  included; see @c DIALOG_MSG_MAX_LINES for the same headroom
- *  reasoning, compact build included */
+/**
+ * @brief Maximum length of the raw message text before wrapping, prefix
+ *        included
+ *
+ * @see @c DIALOG_MSG_MAX_LINES for the same headroom reasoning, compact
+ *      build included
+ */
 #ifdef COMPACT
 #define DIALOG_MSG_RAW_MAX_LENGTH (2560u)
 #else
 #define DIALOG_MSG_RAW_MAX_LENGTH (4096u)
 #endif
 
-/** Maximum length of a single already-wrapped line */
+/**
+ * @brief Maximum length of a single already-wrapped line
+ */
 #define DIALOG_MSG_LINE_MAX_LENGTH (160u)
 
 /**
@@ -61,18 +70,19 @@
  *
  * A fixed byte count, independent of the active font, so wrapping
  * behaves the same regardless of which font the theme configures: 80
- * columns is the conventional plain-text wrap width.  Counts bytes,
- * not Unicode codepoints: a multi-byte UTF-8 character (e.g., an
- * accented letter) counts as more than one toward this limit, so text
- * containing them wraps at fewer than 80 visual characters.  Every
- * other length constant in this file (@c DIALOG_MSG_RAW_MAX_LENGTH,
- * @c DIALOG_MSG_LINE_MAX_LENGTH, @c DIALOG_QUIT_PROMPT_MAX_LENGTH,
- * @c DIALOG_FORTUNE_MAX_LENGTH) is a byte count for the same reason:
- * none of this project's text handling decodes UTF-8 sequences.  The
- * dialog itself can still end up narrower than this: it is sized to
- * the widest line the wrap actually produces (in pixels, via
- * @c menu_draw_measure), not to this bound directly, so a short
- * one-line message stays compact.
+ * columns is the conventional plain-text wrap width.  Counts bytes, not
+ * Unicode codepoints; a multi-byte UTF-8 character (e.g., an accented
+ * letter) counts as more than one toward this limit, so text containing
+ * them wraps at fewer than 80 visual characters.
+ *
+ * Every other length constant in this file
+ * (@c DIALOG_MSG_RAW_MAX_LENGTH, @c DIALOG_MSG_LINE_MAX_LENGTH,
+ * @c DIALOG_QUIT_PROMPT_MAX_LENGTH, @c DIALOG_FORTUNE_MAX_LENGTH) is
+ * a byte count for the same reason: none of this project's text
+ * handling decodes UTF-8 sequences.  The dialog itself can still end up
+ * narrower than this, for it is sized to the widest line the wrap
+ * actually produces (in pixels, via @a menu_draw_measure), not to this
+ * bound directly, so a short one-line message stays compact.
  */
 #define DIALOG_MSG_WRAP_LENGTH (80u)
 
@@ -96,26 +106,29 @@
  *        selected before a mouse click actually closes/accepts the
  *        dialog it belongs to
  *
- * Shared by every dialog that defers its own click-triggered close
- * this way (see @c menu/dialog/defer.h): closing on the very same
- * repaint that shows the new selection would not give a person any
- * real chance to perceive it, since screen updates and human
- * perception both take a moment neither the repaint nor the close
- * itself can shortcut.
+ * Shared by every dialog that defers its own click-triggered close this
+ * way.  Closing on the very same repaint that shows the new selection
+ * would not give a person any real chance to perceive it, since screen
+ * updates and human perception both take a moment neither the repaint
+ * nor the close itself can shortcut.
+ *
+ * @see @c menu/dialog/defer.h
  */
 #define DIALOG_CLICK_FEEDBACK_DELAY_MS (150)
 
 /**
  * @brief Seconds the RandR output-profile confirm dialog (see
- *        @c menu/dialog/rrsafe.c) waits before automatically
- *        reverting a just-applied @c randr.json
+ *        @c menu/dialog/rrsafe.c) waits before automatically reverting
+ *        a just-applied @c randr.json
  *
- * The cancel/revert button is the dialog's default selection (see
- * @c menu_confirm_dialog_show), so this timing out has the same
- * effect as a person pressing it themselves: long enough to actually
- * read the prompt and react even if the new profile left the screen
- * in an awkward state, short enough not to sit there indefinitely if
- * nobody is watching (e.g., a reload triggered from a script).
+ * The cancel/revert button is the dialog's default selection, so this
+ * timing out has the same effect as a person pressing it themselves:
+ * long enough to actually read the prompt and react even if the new
+ * profile left the screen in an awkward state, short enough not to sit
+ * there indefinitely if nobody is watching (e.g., a reload triggered
+ * from a script).
+ *
+ * @see @a menu_config_dialog_show
  */
 #define DIALOG_RANDR_CONFIRM_TIMEOUT_SECONDS (10u)
 

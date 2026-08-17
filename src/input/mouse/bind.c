@@ -146,18 +146,6 @@ static bool s_parse_mouse_binding(const config_td *config,
 /* Parse mouse bindings from configuration and grab buttons */
 void mouse_load(list_td *surfaces, const config_td *config)
 {
-    struct {
-        const char *binding;
-        enum wm_mousebind_type_e type;
-    } defs[] = {
-        { config->bindings.mouse.window.move,        MOUSEBIND_MOVE },
-        { config->bindings.mouse.window.resize,      MOUSEBIND_RESIZE },
-        { config->bindings.mouse.window.lower,       MOUSEBIND_LOWER },
-        { config->bindings.mouse.cycle.desktop.prev, MOUSEBIND_DESKTOP_PREV },
-        { config->bindings.mouse.cycle.desktop.next, MOUSEBIND_DESKTOP_NEXT },
-        { NULL,                                   MOUSEBIND_NONE }
-    };
-
     static const uint16_t lockmods[] = {
         0,
         XCB_MOD_MASK_LOCK,
@@ -166,15 +154,32 @@ void mouse_load(list_td *surfaces, const config_td *config)
     };
 
     xcb_connection_t *connection = NULL;
+    struct {
+        const char *binding;
+        enum wm_mousebind_type_e type;
+    } defs[6];
 
     if (config == NULL) {
         return;
     }
 
+    defs[0].binding = config->bindings.mouse.window.move;
+    defs[0].type = MOUSEBIND_MOVE;
+    defs[1].binding = config->bindings.mouse.window.resize;
+    defs[1].type = MOUSEBIND_RESIZE;
+    defs[2].binding = config->bindings.mouse.window.lower;
+    defs[2].type = MOUSEBIND_LOWER;
+    defs[3].binding = config->bindings.mouse.cycle.desktop.prev;
+    defs[3].type = MOUSEBIND_DESKTOP_PREV;
+    defs[4].binding = config->bindings.mouse.cycle.desktop.next;
+    defs[4].type = MOUSEBIND_DESKTOP_NEXT;
+    defs[5].binding = NULL;
+    defs[5].type = MOUSEBIND_NONE;
+
     if (surfaces != NULL) {
         list_item_td *head = list_head(surfaces);
         if (head != NULL) {
-            surface_td *first = (surface_td *) list_data(head);
+            const surface_td *first = (surface_td *) list_data(head);
             if (first != NULL) {
                 connection = first->connection;
             }

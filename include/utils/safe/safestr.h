@@ -134,6 +134,7 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
  *
  * @warning This function does not receive destination size and cannot
  *          enforce bounds on @p dst
+ *
  * @note Use @a safe_strncpy in new code.
  * @note This could have been done by referencing @a safe_strncpy with
  *       @c "return safe_strncpy(dst, src, safe_strlen(src) + 1);", but
@@ -194,10 +195,11 @@ char *safe_strdup(const char *s);
  *
  * @return A pointer to the resulting string @p dst.
  *
- * @note If @p sz is greater than the length of @p src, the entire
- *       @p src string will be appended
  * @warning This function does not receive destination size and cannot
  *          enforce bounds on @p dst
+ *
+ * @note If @p sz is greater than the length of @p src, the entire
+ *       @p src string will be appended
  * @note Use @a safe_strncat in new code.
  * @note It is the caller's responsibility to ensure that @p dst has
  *       enough space to accommodate the concatenated result, including

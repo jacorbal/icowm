@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <string.h>     /* memset, memcpy, strncpy */
+#include <string.h>     /* memset, memcpy, strchr, strstr */
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, time */
 #include <unistd.h>     /* getpid */
 
@@ -57,7 +57,7 @@
  *  sender window sending interleaved chunks) */
 #define SN_MAX_REASSEMBLY (8)
 
-/** Bytes of text payload in one format-8 'ClientMessage' */
+/** Bytes of text payload in one format-8 @c ClientMessage */
 #define SN_CHUNK_LEN (20)
 
 
@@ -66,6 +66,7 @@ typedef struct {
     char id[SN_ID_MAX_LEN];
     struct timespec started_at;
 } s_pending_td;
+
 
 /** One in-progress reassembly of an incoming chunked text message */
 typedef struct {
@@ -87,16 +88,16 @@ static xcb_atom_t s_atom_info = XCB_ATOM_NONE;
 
 
 /**
- * @brief Show or restore the busy (watch) cursor on every managed
- *        root window
+ * @brief Show or restore the busy (watch) cursor on every managed root
+ *        window
  *
- * Loaded from the active cursor theme via @c util_cursor_load (same
- * as every other cursor in the project), falling back to the X core
- * cursor font automatically if the theme has no "watch"/"left_ptr"
- * cursor.  The theme lookup itself is tied to one screen, but the
- * resulting cursor resource is valid to apply to every root window on
- * the same connection, so only the first managed surface's screen is
- * used to build it.
+ * Loaded from the active cursor theme via @a util_cursor_load (same as
+ * every other cursor in the project), falling back to the X core cursor
+ * font automatically if the theme has no "watch"/"left_ptr" cursor.
+ * The theme lookup itself is tied to one screen, but the resulting
+ * cursor resource is valid to apply to every root window on the same
+ * connection, so only the first managed surface's screen is used to
+ * build it.
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
@@ -162,19 +163,19 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
 
 /**
  * @brief Broadcast one startup-notification text message, splitting it
- *        into @c SN_CHUNK_LEN-byte format-8 'ClientMessage'
- *        chunks per the protocol
+ *        into @c SN_CHUNK_LEN byte format-8 'ClientMessage' chunks per
+ *        the protocol
  *
- * The first chunk uses @c _NET_STARTUP_INFO_BEGIN as its message type;
- * every following chunk (if the text does not fit in one) uses
+ * The first chunk uses @c _NET_STARTUP_INFO_BEGIN as its message type.
+ * Every following chunk (if the text does not fit in one) uses
  * @c _NET_STARTUP_INFO instead, exactly as @c libstartup-notification
  * does, so any conforming listener can reassemble it the same way
- * @c sn_handle_client_message does on the receiving end.
+ * @a sn_handle_client_message does on the receiving end.
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
- * @param text       Null-terminated ASCII message text (e.g.,
- *                   @c "new: ID=\"...\"")
+ * @param text       Null-terminated ASCII message text, e.g.,
+ *                   @c ("new: ID=\"...\"")
  *
  * @note Complexity: @e O(s * m), where @e s is the number of managed
  *       surfaces and @e m is the number of chunks @p text splits into
@@ -191,10 +192,10 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
         return;
     }
 
-    /* Including the terminating NUL lets the receiver recognize the
-     * message's end the same way libstartup-notification does: a
-     * chunk that does not completely fill the 20-byte payload marks
-     * the message as complete. */
+    /* Including the terminating null lets the receiver recognize the
+     * message's end the same way libstartup-notification does.  A chunk
+     * that does not completely fill the 20-byte payload marks the
+     * message as complete. */
     text_len = safe_strlen(text) + 1u;
 
     for (list_item_td *node = list_head(surfaces); node != NULL;
@@ -239,11 +240,10 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
  *
  * @param window Source window the chunks are arriving from
  *
- * @return Pointer to that window's reassembly slot, or @c NULL if
- *         every slot is already in use by a different window
+ * @return Pointer to that window's reassembly slot, or @c NULL if every
+ *         slot is already in use by a different window
  *
- * @note Complexity: @e O(r), where @e r is
- *       @c SN_MAX_REASSEMBLY
+ * @note Complexity: @e O(r), where @e r is @c SN_MAX_REASSEMBLY
  */
 static s_reassembly_td *s_reassembly_for(xcb_window_t window)
 {
@@ -270,14 +270,14 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
 
 
 /**
- * @brief Remove a pending sequence by ID, if still pending, and
- *        restore the normal cursor once none remain
+ * @brief Remove a pending sequence by ID, if still pending, and restore
+ *        the normal cursor once none remain
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
  * @param id         Startup ID to remove
  * @param reason     Short reason logged at debug level (e.g.,
- *                   @c "completed by application", @c "canceled")
+ *                   "completed by application", "canceled")
  *
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
@@ -302,7 +302,7 @@ static void s_complete_by_id(xcb_connection_t *connection,
 
 /**
  * @brief Complete the pending sequence named by an incoming
- *        @c "remove:" message, if one is still pending
+ *        @c ("remove:" message), if one is still pending
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
@@ -341,7 +341,8 @@ static void s_handle_complete_message(xcb_connection_t *connection,
     memcpy(id, id_start, id_len);
     id[id_len] = '\0';
 
-    s_complete_by_id(connection, surfaces, id, "completed by application");
+    s_complete_by_id(connection, surfaces, id,
+            "completed by application");
 }
 
 
@@ -363,7 +364,8 @@ bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
                 "_NET_STARTUP_INFO_BEGIN", false);
     }
     if (s_atom_info == XCB_ATOM_NONE) {
-        s_atom_info = atom_intern(connection, "_NET_STARTUP_INFO", false);
+        s_atom_info = atom_intern(connection,
+                "_NET_STARTUP_INFO", false);
     }
     if (s_atom_begin == XCB_ATOM_NONE || s_atom_info == XCB_ATOM_NONE) {
         return false;
@@ -495,7 +497,8 @@ void sn_tick(xcb_connection_t *connection, list_td *surfaces)
     struct timespec now;
     uint8_t i;
 
-    if (s_pending_count == 0u || connection == NULL || surfaces == NULL) {
+    if (s_pending_count == 0u || connection == NULL ||
+            surfaces == NULL) {
         return;
     }
 

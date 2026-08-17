@@ -60,7 +60,7 @@ int surface_render_all_desktops(surface_td *surface);
  * @brief Mark current desktop outdated and repaint the surface
  *
  * Marks the surface's currently selected desktop as outdated and then
- * triggers @c surface_render_all_desktops so the update is applied
+ * triggers @a surface_render_all_desktops so the update is applied
  * immediately.
  *
  * @param surface Pointer to the surface

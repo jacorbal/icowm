@@ -4,9 +4,7 @@
  * @brief Common shared structures for pair types (2D)
  *
  * @note Some of them are repeated but with different name, for clarity
- *       of the code when trying not to use 'typedef'.  I could use
- *       a common structure for those, but readability is important.
- *       Maybe in the future there will be some refactoring...
+ *       of the code when trying not to use @c typedef.
  *
  * @defgroup types Generic reusable types
  */
@@ -36,7 +34,7 @@ struct size_s {
 };
 
 
-/*
+/**
  * @brief Generic position structure
  */
 struct position_s {
@@ -57,15 +55,16 @@ struct sides_s {
 
 
 /**
- * @brief EWMH-style partial strut: reserved space on each of the
- *        four screen edges, plus the along-edge range each
- *        reservation spans (see @c _NET_WM_STRUT_PARTIAL)
+ * @brief EWMH-style partial strut: reserved space on each of the four
+ *        screen edges, plus the along-edge range each reservation spans
  *
  * @note A traditional, non-partial strut (@c _NET_WM_STRUT) is
  *       represented the same way, with @c start and @c end both left
- *       at zero on every side -- whatever reads this treats 0..0 as
+ *       at zero on every side, whatever reads this treats 0..0 as
  *       unbounded for exactly that reason (e.g., @c s_ranges_overlap
- *       in desktop.c).
+ *       in @c desktop.c).
+ *
+ * @see @c _NET_WM_STRUT_PARTIAL
  */
 struct strut_partial_s {
     struct sides_s sides;       /* [left, right, top, bottom] */

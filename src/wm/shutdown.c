@@ -43,8 +43,8 @@
 /** Whether a coordinated shutdown is currently in progress */
 static bool s_shutdown_in_progress = false;
 
-/** Absolute deadline (@c CLOCK_MONOTONIC) past which remaining
- *  clients are force-closed regardless */
+/** Absolute deadline (@c CLOCK_MONOTONIC) past which remaining clients
+ * are force-closed regardless */
 static struct timespec s_shutdown_deadline;
 
 
@@ -81,19 +81,19 @@ static void s_shutdown_kill_client(client_td *client, void *userdata)
 
 
 /**
- * @brief Milliseconds remaining until an absolute deadline, floored
- *        at zero rather than going negative once past it
+ * @brief Milliseconds remaining until an absolute deadline, floored at
+ *        zero rather than going negative once past it
  *
- * Same computation 'menu/dialog/confirm.c''s own
- * 's_confirm_ms_until' already performs for its countdown; kept as
- * its own small copy here rather than shared, the same way that one
- * and 'menu/dialog/defer.c''s own equivalent already are two small
- * copies of each other rather than one shared utility.
+ * Same computation @c menu/dialog/confirm.c's own
+ * @a s_confirm_ms_until already performs for its countdown.  Kept as
+ * its own small copy here rather than shared, the same way that one and
+ * @c menu/dialog/defer.c's own equivalent already are two small copies
+ * of each other rather than one shared utility.
  *
  * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
  *
- * @return Milliseconds remaining (never negative), or @c 0 if the
- *         clock itself could not be read
+ * @return Milliseconds remaining (never negative), or @c 0 if the clock
+ *         itself could not be read
  *
  * @note Complexity: @e O(1)
  */

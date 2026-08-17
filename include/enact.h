@@ -4,14 +4,15 @@
  * @brief Every action this window manager can carry out, one typed
  *        function per action
  *
- * Each @c enact_* function below is the single place in the whole
+ * Each @a enact_* function below is the single place in the whole
  * project where its corresponding action actually happens.  A caller
- * anywhere else (a keybinding handler, a menu callback, an EWMH
- * message handler, a rule) calls the matching @c enact_* function
- * directly, with its own typed parameters, instead of reaching into
- * one of the @c cmds/client/ headers or @c cmds/surface.h itself.  Searching
- * for an action's enum name (see @c action.h) always leads back to
- * exactly one function here.
+ * anywhere else (a keybinding handler, a menu callback, an EWMH message
+ * handler, a rule) calls the matching @a enact_* function directly,
+ * with its own typed parameters, instead of reaching into one of the
+ * @c cmds/client/ headers or @c cmds/surface.h itself.  Searching for
+ * an action's enum name always leads back to exactly one function here.
+ *
+ * @see @c action.h
  *
  * @defgroup enact Action execution
  */
@@ -33,9 +34,6 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -44,7 +42,7 @@
 #include <wm.h>
 
 
-/* == action_client_e == */
+/* 'action_client_e' */
 
 /**
  * @brief Close the client's window
@@ -146,11 +144,11 @@ void enact_client_move_to_monitor(client_td *client,
         uint32_t monitor_index);
 
 /**
- * @brief Change the client's 'WM_CLASS' class and instance names
+ * @brief Change the client's @c WM_CLASS class and instance names
  *
  * @param client        Client to reclassify
- * @param class_name    New 'WM_CLASS' class name
- * @param instance_name New 'WM_CLASS' instance name
+ * @param class_name    New @c WM_CLASS class name
+ * @param instance_name New @c WM_CLASS instance name
  *
  * @note Complexity: @e O(1)
  */
@@ -158,7 +156,7 @@ void enact_client_reclass(client_td *client, const char *class_name,
         const char *instance_name);
 
 /**
- * @brief Change the client's 'WM_WINDOW_ROLE'
+ * @brief Change the client's @c WM_WINDOW_ROLE
  *
  * @param client Client to change
  * @param role   New role string
@@ -404,7 +402,7 @@ void enact_client_set_icon(client_td *client, const char *icon_name);
 void enact_client_toggle_decorate(client_td *client);
 
 
-/* == action_desktop_e == */
+/* 'action_desktop_e' */
 
 /**
  * @brief Set the desktop's background color
@@ -426,8 +424,8 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color);
  * @param show    @c true to hide clients and show the desktop,
  *                @c false to restore them
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the surface
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       surface
  */
 void enact_desktop_show(desktop_td *desktop, bool show);
 
@@ -489,21 +487,23 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  * @brief Re-apply the configured placement policy to every client on
  *        the desktop
  *
- * A transient dialog among them is the one exception: it is
- * re-centered over its own parent per ICCCM §4.1.2.6 instead of
- * being run through the configured policy, since every client goes
- * through 'place_apply' itself (see its own doc comment), the same
- * general placement engine a window is run through when first
- * mapped, not a simplified rearrange-only routine.
+ * A transient dialog among them is the one exception.  It is
+ * re-centered over its own parent per ICCCM §4.1.2.6 instead of being
+ * run through the configured policy, since every client goes through
+ * @a place_apply itself, the same general placement engine a window is
+ * run through when first mapped, not a simplified rearrange-only
+ * routine.
  *
  * @param wm      Window manager instance (needed to locate a
  *                transient's parent, which can live on a different
- *                surface, via 'wm->surfaces')
+ *                surface, via @p wm->surfaces)
  * @param surface Surface the desktop belongs to
  * @param desktop Desktop whose clients are rearranged
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop
+ *
+ * @see @a place_apply
  */
 void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
         desktop_td *desktop);
@@ -513,8 +513,8 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
  *
  * @param desktop Desktop whose clients are iconified
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
 void enact_desktop_clients_iconify_all(desktop_td *desktop);
 
@@ -523,8 +523,8 @@ void enact_desktop_clients_iconify_all(desktop_td *desktop);
  *
  * @param desktop Desktop whose iconified clients are restored
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
 void enact_desktop_clients_deiconify_all(desktop_td *desktop);
 
@@ -533,38 +533,36 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop);
  *
  * Opens the cycle menu preselecting the next entry, and repaints it
  *
- * @param surfaces   All managed surfaces
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
  * @param desktop    Desktop whose client list will be shown
  * @param modifier   Modifier mask of the opening key binding
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
-void enact_desktop_cycle_clients_active(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg);
+void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg);
 
 /**
  * @brief Cycle input focus to the previous non-iconified client
  *
  * Opens the cycle menu preselecting the previous entry, and repaints it
  *
- * @param surfaces   All managed surfaces
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
  * @param desktop    Desktop whose client list will be shown
  * @param modifier   Modifier mask of the opening key binding
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
-void enact_desktop_cycle_clients_prev(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg);
+void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg);
 
 /**
  * @brief Cycle input focus to the next iconified client
@@ -572,19 +570,18 @@ void enact_desktop_cycle_clients_prev(list_td *surfaces,
  * Opens the cycle menu listing icons and preselecting the next entry,
  * and repaints it
  *
- * @param surfaces   All managed surfaces
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
  * @param desktop    Desktop whose icon list will be shown
  * @param modifier   Modifier mask of the opening key binding
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
-void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg);
+void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg);
 
 /**
  * @brief Cycle input focus to the previous iconified client
@@ -592,19 +589,18 @@ void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
  * Opens the cycle menu listing icons and preselecting the previous
  * entry, and repaints it
  *
- * @param surfaces   All managed surfaces
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
  * @param desktop    Desktop whose icon list will be shown
  * @param modifier   Modifier mask of the opening key binding
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
-void enact_desktop_cycle_clients_icons_prev(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg);
+void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg);
 
 /**
  * @brief Launch a program associated with the desktop
@@ -620,7 +616,7 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
         const char *command);
 
 
-/* == action_surface_e == */
+/* 'action_surface_e' */
 
 /**
  * @brief Switch the surface to a specific desktop
@@ -628,8 +624,8 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
  * @param surface    Surface to switch
  * @param desktop_id Target desktop index
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktops involved
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
  */
 void enact_surface_desktop_switch(surface_td *surface,
         uint32_t desktop_id);
@@ -639,8 +635,8 @@ void enact_surface_desktop_switch(surface_td *surface,
  *
  * @param surface Surface to switch
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktops involved
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
  */
 void enact_surface_desktop_switch_next(surface_td *surface);
 
@@ -649,13 +645,13 @@ void enact_surface_desktop_switch_next(surface_td *surface);
  *
  * @param surface Surface to switch
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktops involved
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
  */
 void enact_surface_desktop_switch_prev(surface_td *surface);
 
 
-/* == action_wm_e == */
+/* 'action_wm_e' */
 
 /**
  * @brief Request that the window manager stop and exit

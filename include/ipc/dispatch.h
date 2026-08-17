@@ -3,12 +3,14 @@
  *
  * @brief Shared "resolve a client, act on it, report success" wrapper
  *
- * The overwhelming majority of client actions (see @c enact.h) take
- * only a @c client_id and report a bare success once done; this is
- * the one place that resolves the client, calls whichever single
- * action a command needs, and builds the response, so those command
- * handlers stay a one-line call into this instead of each repeating
- * the same resolve/call/respond shape on its own.
+ * The overwhelming majority of client actions take only a @p client_id
+ * and report a bare success once done; this is the one place that
+ * resolves the client, calls whichever single action a command needs,
+ * and builds the response, so those command handlers stay a one-line
+ * call into this instead of each repeating the same
+ * resolve/call/respond shape on its own.
+ *
+ * @see @c enact.h
  *
  * @defgroup ipc_dispatch IPC client-action dispatch
  * @ingroup ipc
@@ -38,13 +40,14 @@
 /**
  * @brief One client action's own function pointer shape
  *
- * @param wm      Window manager instance (only a handful of actions,
- *                e.g., focus, actually need more than @p client
- *                itself; every other one ignores the rest of these
- *                parameters)
+ * @param wm      Window manager instance
  * @param client  The resolved client to act on
  * @param surface The client's own surface
  * @param desktop The client's own desktop
+ *
+ * @note Only a handful of actions, e.g., @c focus, actually need more
+ *       than @p client itself; every other one ignores the rest of
+ *       these parameters
  */
 typedef void (*ipc_client_action_fn)(wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop);
@@ -56,13 +59,13 @@ typedef void (*ipc_client_action_fn)(wm_td *wm, client_td *client,
  *        and report the outcome
  *
  * @param wm     Window manager instance
- * @param args   The request object; must have a numeric @c client_id
+ * @param args   The request object; must have a numeric @p client_id
  * @param action The one action to run once the client is found
  *
- * @return The standard success or failure response (see
- *         @c ipc_resolve_client in ipc/resolve.h for the failure
- *         wording when @c client_id is missing or names no current
- *         client)
+ * @return The standard success or failure response
+ *
+ * @see @p ipc_resolve_client in @c ipc/resolve.h for the failure
+ *      wording when @p client_id is missing or names no current client
  *
  * @note Complexity: @e O(1)
  */

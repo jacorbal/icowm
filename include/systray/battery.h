@@ -1,9 +1,9 @@
 /**
  * @file systray/battery.h
  *
- * @brief Battery status reading and formatting, compatible with
- *        either the Linux ACPI (@c /sys/class/power_supply) or the
- *        legacy APM (@c /proc/apm) kernel interface
+ * @brief Battery status reading and formatting, compatible with either
+ *        the Linux ACPI (@c /sys/class/power_supply) or the legacy APM
+ *        (@c /proc/apm) kernel interface
  *
  * @ingroup systray
  */
@@ -33,18 +33,17 @@
 /** Legacy APM battery/AC status pseudo-file */
 #define BATTERY_APM_PROC_FILE "/proc/apm"
 
-/** Maximum bytes read from any one single-line sysfs/procfs file */
+/** Maximum bytes read from any one single-line @c sysfs/procfs file */
 #define BATTERY_LINE_MAX_LEN (64)
 
 /**
  * @brief Buffer size for one line read from @c BATTERY_APM_PROC_FILE
  *
  * @c /proc/apm holds several whitespace-separated fields on one line
- * (driver version, APM version, flags, AC line status, battery
- * status, battery flags, and battery percentage), unlike the single
- * bare value @c BATTERY_LINE_MAX_LEN is sized for; generous enough
- * for that field list with real-world values, well short of actually
- * needing to be.
+ * (driver version, APM version, flags, AC line status, battery status,
+ * battery flags, and battery percentage), unlike the single bare value
+ * @c BATTERY_LINE_MAX_LEN is sized for; generous enough for that field
+ * list with real-world values, well short of actually needing to be.
  */
 #define BATTERY_APM_LINE_MAX_LEN (128)
 
@@ -53,12 +52,12 @@
  *        @c BATTERY_ACPI_BASE_DIR
  *
  * Sized generously above the worst case a compiler's static
- * truncation analysis can prove for @c "<base>/<d_name>/<suffix>"
- * (the base directory's own length, plus a full @c NAME_MAX-sized
- * directory entry name, plus the longest suffix used, @c "/online",
- * plus the terminating NUL), so building such a path can never be
- * flagged as a possible truncation regardless of what the C library's
- * own @c d_name field declares itself capable of holding.
+ * truncation analysis can prove for @c ("<base>/<d_name>/<suffix>")
+ * (the base directory's own length, plus a full directory entry name
+ * with size @c NAME_MAX, plus the longest suffix used, @c /online, plus
+ * the terminating null), so building such a path can never be flagged
+ * as a possible truncation regardless of what the C library's own
+ * @p d_name field declares itself capable of holding.
  */
 #define BATTERY_PATH_MAX_LEN (320)
 
@@ -70,30 +69,32 @@
  * whether AC power is connected and how the battery's charge compares
  * to @p threshold_charged / @p threshold_low / @p threshold_critical:
  *
- * | State                          | Text     |
- * |---------------------------------|----------|
- * | On battery, above @c low        | @c "X%"  |
- * | On battery, at/below @c low     | @c "X%!" |
- * | On battery, at/below @c critical | @c "X%!!" |
- * | On AC, not fully charged         | @c "X% AC" |
- * | Fully charged, on battery        | @c "Full" |
- * | Fully charged, on AC             | @c "Full, AC" |
- * | No battery found for @p backend_type / @p backend_number | @c "N/A" |
+ * @verbatim
+ * | State                                                | Text       |
+ * |------------------------------------------------------|------------|
+ * | On battery, above 'low'                              | "X%"       |
+ * | On battery, at/below 'low'                           | "X%!"      |
+ * | On battery, at/below 'critical'                      | "X%!!"     |
+ * | On AC, not fully charged                             | "X% AC"    |
+ * | Fully charged, on battery                            | "Full"     |
+ * | Fully charged, on AC                                 | "Full, AC" |
+ * | No battery found for 'backend_type'/'backend_number' | "N/A"      |
+ * @endverbatim
  *
- * @c "X%" here is itself translatable ('STR_BATTERY_PERCENT',
- * uistr.h): whether the '%' sign sits flush against the number or
+ * @c "X%" here is itself translatable (@c STR_BATTERY_PERCENT, in
+ * @c uistr.h).  Whether the '%' sign sits flush against the number or
  * has a space before it is a per-language typographic convention, so
- * the exact rendered text (e.g., @c "50%" versus @c "50 %") varies by
- * locale even though the shapes above hold for every one of them.
+ * the exact rendered text (e.g., "50%" versus "50 %") varies by locale
+ * even though the shapes above hold for every one of them.
  *
  * A battery is "fully charged" once its percentage is at or above
  * @p threshold_charged, regardless of its actual charging/discharging
- * state as reported by the kernel; some hardware never reports
- * "Full" even sitting at 100% on AC, so going by the percentage alone
- * is more reliable across backends.
+ * state as reported by the kernel; some hardware never reports "Full"
+ * even sitting at 100% on AC, so going by the percentage alone is more
+ * reliable across backends.
  *
- * @param backend_type      Which kernel interface to read
- * @param backend_number    Which battery to read when a system has
+ * @param backend_type       Which kernel interface to read
+ * @param backend_number     Which battery to read when a system has
  *                           more than one (0-indexed); ignored for
  *                           @c CONFIG_BATTERY_BACKEND_APM, which only
  *                           ever exposes one aggregate battery
@@ -108,8 +109,8 @@
  *                           terminated status text
  * @param out_size           Size of @p out in bytes
  *
- * @note Complexity: @e O(1), a small, fixed number of short file
- *       reads regardless of system state
+ * @note Complexity: @e O(1), a small, fixed number of short file reads
+ *       regardless of system state
  */
 void battery_status_read(enum config_battery_backend_type_e backend_type,
         uint32_t backend_number,

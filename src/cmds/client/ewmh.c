@@ -106,12 +106,11 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...)
 {
     xcb_atom_t *add_atoms;
     xcb_atom_t *merged;
-    xcb_atom_t *cur_atoms;
+    const xcb_atom_t *cur_atoms;
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
     uint32_t cur_len;
     uint32_t merged_count;
-    bool already_set;
     va_list args;
 
     if (client == NULL || client->ewmh == NULL || num_states == 0) {
@@ -171,7 +170,7 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...)
     merged_count = cur_len;
 
     for (uint32_t i = 0; i < num_states; ++i) {
-        already_set = false;
+        bool already_set = false;
         for (uint32_t j = 0; j < cur_len; ++j) {
             if (cur_atoms[j] == add_atoms[i]) {
                 already_set = true;
@@ -201,13 +200,12 @@ void ccmd_rem_states(client_td *client, uint32_t num_states, ...)
 {
     xcb_atom_t *remove_states;
     xcb_atom_t *new_states;
-    xcb_atom_t *current_atoms;
+    const xcb_atom_t *current_atoms;
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
     uint32_t current_len;
     uint32_t new_count;
     va_list args;
-    bool should_remove;
 
     if (client == NULL || client->ewmh == NULL || num_states == 0) {
         return;
@@ -260,7 +258,7 @@ void ccmd_rem_states(client_td *client, uint32_t num_states, ...)
 
     new_count = 0;
     for (uint32_t i = 0; i < current_len; ++i) {
-        should_remove = false;
+        bool should_remove = false;
 
         for (uint32_t j = 0; j < num_states; ++j) {
             if (current_atoms[i] == remove_states[j]) {

@@ -4,14 +4,15 @@
  * @brief Periodic fallback re-evaluation of the resize-border cursor
  *        for a single tracked window
  *
- * A client that selects @c PointerMotion for its own purposes
- * (common in GTK/Qt applications tracking hover for their own UI)
- * intercepts motion events before they reach @c mouse_handle_motion_
- * hover, and an undecorated client has no separate frame window for
- * a further @c EnterNotify to catch when the pointer moves from its
- * border into its interior.  This periodic poll of one tracked window
- * is the fallback for both cases; see @c im_hover_track's own doc
- * comment for when it starts and stops.
+ * A client that selects @c PointerMotion for its own purposes (common
+ * in GTK/Qt applications tracking hover for their own UI) intercepts
+ * motion events before they reach @a mouse_handle_motion_hover, and an
+ * undecorated client has no separate frame window for a further
+ * @c EnterNotify to catch when the pointer moves from its border into
+ * its interior.  This periodic poll of one tracked window is the
+ * fallback for both cases.
+ *
+ * @see @a im_hover_track's own comment for when it starts and stops
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,20 +42,21 @@
 
 
 /**
- * @brief Undecorated client whose resize cursor @c mouse_hover_poll_tick
- *        should keep re-evaluating, or @c XCB_WINDOW_NONE for none
+ * @brief Undecorated client whose resize cursor
+ *       @a mouse_hover_poll_tick should keep re-evaluating, or
+ *       @c XCB_WINDOW_NONE for none
  *
- * Set by @c im_hover_track, cleared by @c mouse_hover_poll_clear
- * (called from the @c LeaveNotify handler in loop.c) or the next
- * @c im_hover_track call for a window that does not itself warrant
+ * Set by @a im_hover_track, cleared by @a mouse_hover_poll_clear
+ * (called from the @c LeaveNotify handler in @c loop.c) or the next
+ * @a im_hover_track call for a window that does not itself warrant
  * tracking.  Tracked by window id rather than a @c client_td pointer
  * kept live across calls, so a client destroyed while still hovered
- * simply stops resolving in @c lookup_find_client on the next poll
+ * simply stops resolving in @a lookup_find_client on the next poll
  * rather than leaving a dangling pointer to clean up.
  */
 static xcb_window_t s_hover_window = XCB_WINDOW_NONE;
 
-/** Absolute time of the next scheduled poll for 's_hover_window' */
+/** Absolute time of the next scheduled poll for @a s_hover_window */
 static struct timespec s_hover_next_poll;
 
 /** How often 's_hover_window', while set, gets re-evaluated */
@@ -62,7 +64,7 @@ static struct timespec s_hover_next_poll;
 
 
 /**
- * @brief Schedule the next poll for 's_hover_window' to run
+ * @brief Schedule the next poll for @a s_hover_window to run
  *        @c MOUSE_HOVER_POLL_INTERVAL_MS from now
  *
  * @note Complexity: @e O(1)
@@ -114,7 +116,8 @@ int mouse_hover_poll_ms_remaining(void)
 
 
 /* Re-evaluate the resize cursor for 's_hover_window', if due */
-void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces)
+void mouse_hover_poll_tick(xcb_connection_t *connection,
+        list_td *surfaces)
 {
     xcb_query_pointer_reply_t *reply;
 

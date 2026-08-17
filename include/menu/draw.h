@@ -3,10 +3,9 @@
  *
  * @brief Shared drawing primitives for window manager menu windows
  *
- * Low-level helpers used by the cycle menu and the info popup to
- * paint row backgrounds and text inside an XCB window.  This module
- * has no knowledge of menu state; it only performs raw drawing
- * operations.
+ * Low-level helpers used by the cycle menu and the info popup to paint
+ * row backgrounds and text inside an XCB window.  This module has no
+ * knowledge of menu state; it only performs raw drawing operations.
  *
  * @ingroup menu
  */
@@ -52,10 +51,8 @@ void menu_draw_row_bg(xcb_connection_t *connection,
 /**
  * @brief Draw a text label at the given position
  *
- * Renders @p text at (@p x, @p y) inside @p window using the
- * previously configured text renderer colors.  The caller must have
- * called @c text_renderer_init and @c text_renderer_set_color before
- * invoking this function.
+ * Renders @p text at (@p x, @p y) inside @p window using the previously
+ * configured text renderer colors.
  *
  * @param connection XCB connection
  * @param window     Target drawable window
@@ -63,6 +60,8 @@ void menu_draw_row_bg(xcb_connection_t *connection,
  * @param y          Baseline Y position in pixels
  * @param text       Null-terminated text to render
  *
+ * @note The caller must have called @a text_renderer_init and
+ *       @a text_renderer_set_color before invoking this function
  * @note Complexity: @e O(n), where @e n is the number of glyphs in
  *       @p text
  */
@@ -72,7 +71,7 @@ void menu_draw_label(xcb_connection_t *connection,
 /**
  * @brief Measure the pixel width of a text string
  *
- * Wraps @c text_measure_string to provide a menu-module-local entry
+ * Wraps @p text_measure_string to provide a menu-module-local entry
  * point without requiring menu modules to include @c render/text.h
  * directly.
  *
@@ -85,13 +84,13 @@ void menu_draw_label(xcb_connection_t *connection,
 uint16_t menu_draw_measure(const char *text);
 
 /**
- * @brief Truncate a buffer in place, one character at a time, until
- *        it measures no wider than @p max_w
+ * @brief Truncate a buffer in place, one character at a time, until it
+ *        measures no wider than @p max_w
  *
  * A cheap linear shrink rather than a binary search, appropriate for
- * the short labels menus deal with (window titles, desktop names):
- * the difference is not measurable at that length.  Left untouched
- * if it already fits, or if it is empty.
+ * the short labels menus deal with (window titles, desktop names): the
+ * difference is not measurable at that length.  Left untouched if it
+ * already fits, or if it is empty.
  *
  * @param buf   Null-terminated buffer to truncate in place
  * @param max_w Maximum width in pixels the text may measure

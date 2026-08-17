@@ -108,7 +108,7 @@ uint32_t memguard_max_clients(void)
  * @brief Show a message dialog on this module's behalf, unless one is
  *        already open or a required parameter is missing
  *
- * Both @c memguard_tick and @c memguard_warn_client_cap need exactly
+ * Both @a memguard_tick and @a memguard_warn_client_cap need exactly
  * this same guard-then-show sequence around a message that is
  * otherwise entirely their own (built with a different format and
  * arguments, logged with a different message); this is the part that
@@ -148,13 +148,13 @@ void memguard_tick(xcb_connection_t *connection,
         return;
     }
 
-    /* Never compete with a dialog already on screen, restricted-
-     * memory warning or otherwise: showing a second one on top would
-     * be confusing, and 's_memguard_show_dialog' below would just
-     * silently refuse it anyway (only one instance at a time); caught
-     * here too, ahead of that, so the whole rest of this function
-     * (the clock read, the RSS read) is skipped as well, not just the
-     * dialog itself. */
+    /* Never compete with a dialog already on screen, restricted-memory
+     * warning or otherwise: showing a second one on top would be
+     * confusing, and 's_memguard_show_dialog' below would just silently
+     * refuse it anyway (only one instance at a time).  Caught here too,
+     * ahead of that, so the whole rest of this function (the clock
+     * read, the RSS read, &c.) is skipped as well, not just the dialog
+     * itself. */
     if (menu_message_dialog_is_open()) {
         return;
     }
@@ -196,7 +196,7 @@ void memguard_tick(xcb_connection_t *connection,
 }
 
 
-/* Warn through a message dialog that memguard_max_clients has been
+/* Warn through a message dialog that 'memguard_max_clients' has been
  * reached on a desktop */
 void memguard_warn_client_cap(xcb_connection_t *connection,
         surface_td *surface, const config_td *config)

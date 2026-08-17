@@ -78,10 +78,10 @@ static void s_cycle_row_style(const config_td *config,
     style->icon_offset = 0;
     style->icon_size = 0u;
 
-    /* Space reserved for a row's own client icon plus one more gap
-     * (the same width as the menu's own left padding) before its
-     * label; see 'theme.menu.show-pixmaps''s own doc comment in
-     * config.h and 'WM_MENU_ICON_INSET' in defs/ctxmenu.h. */
+    /* Space reserved for a row's own client icon plus one more gap (the
+     * same width as the menu's own left padding) before its label; see
+     * 'theme.menu.show-pixmaps''s comment in 'config.h' and
+     * 'WM_MENU_ICON_INSET' in 'defs/ctxmenu.h' */
     if (config->theme.menu.show_pixmaps) {
         /* '#if', not a runtime ternary: both operands are fixed
          * compile-time constants, so a ternary here left one branch
@@ -104,16 +104,17 @@ static void s_cycle_row_style(const config_td *config,
  * @brief Paint one row of the cycle menu, background through label
  *
  * Self-contained: callers need no separate clear step first, whether
- * repainting the whole viewport or just this one row on its own (see
- * @c cycle_draw's own doc comment for when each happens).
+ * repainting the whole viewport or just this one row on its own.
  *
  * @param connection XCB connection
- * @param i          Absolute entry index to draw (not viewport-
- *                    relative); must fall within the current viewport
- * @param pad_y       Vertical padding, for this row's own Y offset
- * @param style      Drawing constants from @c s_cycle_row_style
+ * @param i          Absolute entry index to draw (not viewport-relative);
+ *                   must fall within the current viewport
+ * @param pad_y      Vertical padding, for this row's own Y offset
+ * @param style      Drawing constants from @a s_cycle_row_style
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a cycle_draw's own comment for when repainting happens
  */
 static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         int16_t pad_y, const struct s_cycle_row_style_s *style)
@@ -173,6 +174,8 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
             (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
             label_buf);
 }
+
+
 /**
  * @brief Resolve the X window used as the visual target for cycle
  *        preview
@@ -191,7 +194,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
  *
  * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
  *       lacks a valid drawable target
- * @note Prefers @c client->icon_window in icon menu mode when available
+ * @note Prefers @p client->icon_window in icon menu mode when available
  * @note Uses the frame window when the client is decorated
  * @note Complexity: @e O(1)
  */
@@ -226,8 +229,7 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  * Computes the border width to use for a preview target in the cycle
  * interface, selecting the icon border width for icon previews, no
  * border for decorated client frames, and the normal window border
- * width for undecorated window targets.  When the target is highlighted,
- * an extra selection width is added.
+ * width for undecorated window targets.
  *
  * @param client         Pointer to the client associated with the target
  * @param config         Pointer to the active configuration
@@ -236,6 +238,8 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  *
  * @return Border width to apply to the preview target
  *
+ * @note When the target is highlighted, an extra selection width is
+ *       added
  * @note Complexity: @e O(1)
  */
 uint32_t mi_cycle_preview_border_width(const client_td *client,
@@ -296,7 +300,6 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
         uint32_t border_color, bool is_highlighted)
 {
     uint32_t border_width;
-    uint32_t frame_values[2];
 
     if (connection == NULL || target == XCB_WINDOW_NONE ||
             config == NULL) {
@@ -312,8 +315,8 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
             client != NULL &&
             client_is_decorated(client) &&
             client->frame == target) {
-        frame_values[0] = border_color;
-        frame_values[1] = border_color;
+        uint32_t frame_values[2] = { border_color, border_color };
+
         xcb_change_window_attributes(connection, target,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 frame_values);
@@ -356,8 +359,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     xcb_window_t previous_target;
     uint32_t values[2];
     uint32_t selected_border;
-    uint32_t previous_border;
-    bool prev_is_active;
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE ||
@@ -392,7 +393,8 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                 g_cycle_menu.is_icon_menu);
 
         if (previous_target != XCB_WINDOW_NONE) {
-            prev_is_active =
+            uint32_t previous_border;
+            bool prev_is_active =
                 (g_cycle_menu.desktop->client_active_id == previous->id);
 
             if (g_cycle_menu.is_icon_menu) {
@@ -455,8 +457,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 }
 
 
-
-
 /* Repaint all menu entries */
 void cycle_draw(xcb_connection_t *connection, const config_td *config)
 {
@@ -474,11 +474,11 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
 
     text_renderer_init(connection, config->theme.menu.unselected.font);
 
-    /* A viewport shift (scrolling) changes every row actually shown,
-     * so it still needs the full loop below; otherwise selection
-     * moved between two rows already on screen, and only those two
-     * actually changed which color/text they show -- repainting the
-     * rest would be identical to what is already there. */
+    /* A viewport shift (scrolling) changes every row actually shown, so
+     * it still needs the full loop below.  Otherwise selection moved
+     * between two rows already on screen, and only those two actually
+     * changed which color/text they show, for repainting the rest would
+     * be identical to what is already there. */
     need_full_repaint = !g_cycle_menu.has_drawn_once ||
         g_cycle_menu.last_drawn_scroll_offset != g_cycle_menu.scroll_offset;
 
@@ -490,11 +490,13 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             s_cycle_draw_row(connection, i, pad_y, &style);
         }
     } else if (g_cycle_menu.last_drawn_selected != g_cycle_menu.selected) {
-        if (g_cycle_menu.last_drawn_selected >= g_cycle_menu.scroll_offset &&
-                g_cycle_menu.last_drawn_selected < g_cycle_menu.scroll_offset +
+        if (g_cycle_menu.last_drawn_selected >=
+                        g_cycle_menu.scroll_offset
+                && g_cycle_menu.last_drawn_selected <
+                        g_cycle_menu.scroll_offset +
                     g_cycle_menu.viewport_rows) {
-            s_cycle_draw_row(connection, g_cycle_menu.last_drawn_selected,
-                    pad_y, &style);
+            s_cycle_draw_row(connection,
+                    g_cycle_menu.last_drawn_selected, pad_y, &style);
         }
         if (g_cycle_menu.selected >= g_cycle_menu.scroll_offset &&
                 g_cycle_menu.selected < g_cycle_menu.scroll_offset +
@@ -513,16 +515,18 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
      * meaningful as part of a full repaint: their content depends
      * solely on 'scroll_offset' and 'count', neither of which changes
      * on a same-viewport selection move.
+     *
      * 'menu_draw_label' positions text by its baseline, and the
-     * top/bottom padding strips are each only 'pad_y' pixels tall
-     * (the default theme's 4px is smaller than most fonts' own
-     * ascent), so a naive baseline offset clips the glyph against
-     * whichever window edge is closer: the top indicator's baseline
-     * sits at the font's own ascent from Y=0 (see 'text_font_ascent'),
-     * keeping it below the window's top edge; the bottom indicator's
-     * sits 'descent' pixels above the window's bottom edge (see
-     * 'text_font_descent'), keeping it above that edge instead. */
-    if (need_full_repaint && g_cycle_menu.count > g_cycle_menu.viewport_rows) {
+     * top/bottom padding strips are each only 'pad_y' pixels tall (the
+     * default theme's 4px is smaller than most fonts' own ascent), so
+     * a naive baseline offset clips the glyph against whichever window
+     * edge is closer: the top indicator's baseline sits at the font's
+     * own ascent from Y=0 (see 'text_font_ascent'), keeping it below
+     * the window's top edge; the bottom indicator's sits 'descent'
+     * pixels above the window's bottom edge (see 'text_font_descent'),
+     * keeping it above that edge instead. */
+    if (need_full_repaint && g_cycle_menu.count >
+                g_cycle_menu.viewport_rows) {
         int16_t top_baseline_y = text_font_ascent();
 
         /* Up arrow: entries exist above the viewport */

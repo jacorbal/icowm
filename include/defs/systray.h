@@ -21,10 +21,10 @@
  * @brief Upper bound on simultaneously docked icons
  *
  * A plain fixed array is enough for a systray and keeps this module
- * allocation-free.  Unlike a docked icon's own pixel size and padding
- * (@c theme.systray.pixmap.size/padding, configurable per theme since
- * this array's own capacity is fixed at compile time), this stays a
- * compile-time constant on purpose.
+ * allocation-free.
+ *
+ * @note Unlike a docked icon's own pixel size and padding, this stays
+ *       a compile-time constant on purpose
  */
 #define WM_SYSTRAY_MAX_ICONS (32u)
 

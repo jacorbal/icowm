@@ -4,12 +4,12 @@
  * @brief Systray protocol handling: selection ownership, window
  *        creation, and icon docking
  *
- * The low-level mechanics of being a system tray manager: interning
- * the atoms the protocol needs, creating the dock window, acquiring
- * and releasing the @c _NET_SYSTEM_TRAY_Sn selection per the ICCCM
+ * The low-level mechanics of being a system tray manager: interning the
+ * atoms the protocol needs, creating the dock window, acquiring and
+ * releasing the @c _NET_SYSTEM_TRAY_Sn selection per the ICCCM
  * manager-selection convention, and reparenting/embedding an icon
- * window that requests to dock.  Where the tray and its icons end up
- * on screen is a separate concern; see @c systray/layout.c.
+ * window that requests to dock.  Where the tray and its icons end up on
+ * screen is a separate concern; see @c systray/layout.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -65,7 +65,6 @@ static void s_systray_fetch_sort_key(xcb_window_t icon,
     xcb_get_property_reply_t *reply;
     const char *value;
     int len;
-    size_t copy_len;
 
     out[0] = '\0';
     if (out_size == 0u) {
@@ -82,6 +81,8 @@ static void s_systray_fetch_sort_key(xcb_window_t icon,
     value = (const char *) xcb_get_property_value(reply);
     len = xcb_get_property_value_length(reply);
     if (value != NULL && len > 0) {
+        size_t copy_len;
+
         /* 'WM_CLASS' is "instance\0class\0"; take the instance name up
          * to its terminating NUL, or the whole reply if it has none */
         for (copy_len = 0u;
@@ -103,17 +104,18 @@ static void s_systray_fetch_sort_key(xcb_window_t icon,
 /**
  * @brief Index at which a newly docked icon should be inserted
  *
- * Implements the @c systray.order configuration policy: appends,
- * prepends, or finds the correct position to keep @c s_tray.icons
+ * Implements the @p systray.order configuration policy: appends,
+ * prepends, or finds the correct position to keep @p s_tray.icons
  * sorted by @p sort_key.
  *
- * @param sort_key Candidate icon's sort key (see
- *                  @c s_systray_fetch_sort_key)
+ * @param sort_key Candidate icon's sort key
  *
- * @return Index in @c [0, s_tray.icon_count] at which to insert
+ * @return Index in [0, @p s_tray.icon_count] at which to insert
  *
  * @note Complexity: @e O(n) for the alphabetical policies, @e O(1)
  *       otherwise, where @e n is the current icon count
+ *
+ * @see @a s_systray_fetch_sort_key
  */
 static uint16_t s_systray_insert_index(const char *sort_key)
 {
@@ -149,21 +151,7 @@ static uint16_t s_systray_insert_index(const char *sort_key)
 
 
 /* Re-sort every already-docked icon by the current 's_tray.order'
- * policy
- *
- * 's_systray_insert_index' above only ever decides where a newly
- * docked icon goes; it is never consulted again for icons already in
- * 's_tray.icons', so a configuration reload that changes 'order'
- * would otherwise have no visible effect on anything already docked.
- * A no-op for CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT and
- * CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT: both are pure insertion-order
- * policies with no single "correct" arrangement to recompute from
- * icon state alone once the original insertion order is gone, so
- * reloading into either one leaves already-docked icons exactly where
- * they were.
- *
- * Complexity: O(n^2), where n is 's_tray.icon_count'; fine at the
- * tray's small fixed icon-count ceiling (WM_SYSTRAY_MAX_ICONS). */
+ * policy */
 void systray_protocol_resort(void)
 {
     if (s_tray.order != CONFIG_SYSTRAY_ORDER_ASCENDING &&
@@ -256,22 +244,9 @@ void systray_protocol_dock(xcb_window_t icon)
 }
 
 
-/* Re-apply the theme's background color, border color, and border
- * width to the already-existing tray window
- *
- * 'systray_protocol_ensure_window' only ever sets these once, at
- * creation time, and the window is never destroyed and recreated
- * just because 'is-enabled' toggles off and back on (see its own doc
- * comment for why); without this, a font/color/border change in the
- * theme file would take effect for the clock text (drawn fresh on
- * every repaint) and for the tray's own height (re-applied by every
- * reflow), but never for the tray window's own background or border,
- * which a configuration reload would otherwise leave stuck at
- * whatever they were when the window was first created.
- *
- * A no-op if the window does not exist yet or there is no theme to
- * read from. */
-void systray_protocol_apply_theme_style(void)
+/* Re-apply the theme's background color, border color, and border width
+ * to the already-existing tray window */
+ void systray_protocol_apply_theme_style(void)
 {
     if (!s_tray.window_ready || s_tray.theme == NULL) {
         return;
@@ -293,7 +268,7 @@ void systray_protocol_apply_theme_style(void)
 /* Create the tray window and intern its atoms, once
  *
  * Idempotent: does nothing (beyond returning success) if
- * 's_tray.window_ready' is already true.  Does not acquire the
+ * 's_tray.window_ready' is already 'true'.  Does not acquire the
  * selection; see 'systray_protocol_acquire_selection'. */
 bool systray_protocol_ensure_window(wm_td *wm)
 {
@@ -351,12 +326,11 @@ bool systray_protocol_ensure_window(wm_td *wm)
     values[2] = 1;   /* override_redirect: never managed as a client */
     values[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
         /* Without this, a docked icon's own resize attempt on itself
-         * (many apps resize their tray icon for DPI or content
-         * reasons) is applied by the server directly with no
-         * 'ConfigureRequest' ever generated, silently undoing the
-         * configured 's_tray.pixmap_size' this module forces on it
-         * at dock time; see 'systray_enforce_icon_size' in
-         * systray.c. */
+         * (many apps resize their tray icon for DPI or content reasons)
+         * is applied by the server directly with no 'ConfigureRequest'
+         * ever generated, silently undoing the configured
+         * 's_tray.pixmap_size' this module forces on it at dock time;
+         * see 'systray_enforce_icon_size' in 'systray.c'. */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
 
     xcb_create_window(wm->connection, XCB_COPY_FROM_PARENT,
@@ -395,7 +369,7 @@ bool systray_protocol_acquire_selection(void)
         return false;
     }
 
-    orientation = 0u;   /* _NET_SYSTEM_TRAY_ORIENTATION_HORZ */
+    orientation = 0u;   /* '_NET_SYSTEM_TRAY_ORIENTATION_HORZ' */
     xcb_change_property(s_tray.connection, XCB_PROP_MODE_REPLACE,
             s_tray.window, s_tray.orientation_atom, XCB_ATOM_CARDINAL,
             32, 1, &orientation);
@@ -415,12 +389,7 @@ bool systray_protocol_acquire_selection(void)
 }
 
 
-/* Release the tray selection, keeping the window and icons
- *
- * The tray window and any currently docked icons are left exactly as
- * they are, just hidden (see the 's_tray' struct comment on
- * 'window_ready').  Safe to call when the selection is not currently
- * owned. */
+/* Release the tray selection, keeping the window and icons */
 void systray_protocol_release_selection(void)
 {
     if (!s_tray.selection_owned) {
@@ -430,12 +399,12 @@ void systray_protocol_release_selection(void)
     xcb_set_selection_owner(s_tray.connection, XCB_NONE,
             s_tray.selection_atom, XCB_CURRENT_TIME);
     s_tray.selection_owned = false;
-    /* Actually unmaps only if 'is_active' is also already false by
-     * now: systray_reload's own 'disabled' path always sets that
-     * first, right before calling this.  Still safe to call from
+    /* Actually unmaps only if 'is_active' is also already false by now:
+     * systray_reload's own 'disabled' path always sets that first,
+     * right before calling this.  Still safe to call from
      * systray_shutdown instead, where 'is_active' may still be true
-     * here, since that caller destroys the window outright right
-     * after regardless of whether this unmapped it first. */
+     * here, since that caller destroys the window outright right after
+     * regardless of whether this unmapped it first. */
     systray_layout_reflow();
 
     LOGGER_INFO("Systray selection released (%u icon(s) kept docked" \

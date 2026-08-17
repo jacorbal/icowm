@@ -7,7 +7,7 @@
  * the default configuration base directory.  This directory depends on
  * the environment variables: @c XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
  * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
- * classic @c HOME/.ICOWM_NAME_PROG.
+ * classic @c ($HOME/.ICOWM_NAME_PROG).
  *
  * @defgroup config Configuration loading
  * @ingroup wm
@@ -114,14 +114,15 @@ struct config_base_s {
         } placement_policy;
 
         /**
-         * Which physical monitor a placement decision is resolved
-         * against, on a surface made of more than one sharing the same
-         * combined X screen: @c pointer (default) picks whichever
-         * monitor the pointer is currently on (not necessarily where on
-         * that monitor the pointer actually is; the window can still
-         * land far from the cursor within it, depending on the
-         * placement policy), @c primary always picks the one RandR
-         * reports as primary.
+         * @brief Which physical monitor a placement decision is
+         *        resolved against, on a surface made of more than one
+         *        sharing the same combined X screen
+         *
+         * @c pointer (default) picks whichever monitor the pointer is
+         * currently on (not necessarily where on that monitor the
+         * pointer actually is; the window can still land far from the
+         * cursor within it, depending on the placement policy),
+         * @c primary always picks the one RandR reports as primary.
          *
          * @see @a place_apply, @a place_smart
          */
@@ -131,10 +132,10 @@ struct config_base_s {
         } monitor_policy;
 
         /**
-         * Cluster a newly placed window next to others sharing its
-         * @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g., several
-         * windows of the same application) instead of running the
-         * placement policy above for it.
+         * @brief Cluster a newly placed window next to others sharing
+         *        its @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g.,
+         *        several windows of the same application) instead of
+         *        running the placement policy above for it
          *
          * @see @a place_apply
          */
@@ -163,8 +164,8 @@ struct config_base_s {
      * here together, rather than the emergency shortcut sitting apart
      * at the top level, since both are about how the window manager
      * itself shuts down, just by two entirely different paths that
-     * never interact with each other; see each field's own doc comment
-     * below for exactly how they differ.
+     * never interact with each other; see each field's comment below for
+     * exactly how they differ.
      */
     struct {
         /**
@@ -174,7 +175,7 @@ struct config_base_s {
          * Off (@c false) by default.  When enabled, this shortcut
          * terminates the window manager immediately: no confirmation
          * dialog, no menu, none of the coordinated wait
-         * @c timeout_seconds below governs for the normal quit action,
+         * @p timeout_seconds below governs for the normal quit action,
          * and not even the exit session hooks that a normal
          * quit or @c SIGTERM otherwise runs.  This is deliberate, not
          * an oversight: this shortcut exists specifically as a last
@@ -212,13 +213,13 @@ struct config_base_s {
          * application with unsaved changes gets the same chance to warn
          * the user it already gets when its own window is closed
          * individually), rather than the window manager simply exiting
-         * out from under them.  @c timeout_seconds bounds how long this
+         * out from under them.  @p timeout_seconds bounds how long this
          * wait lasts before whichever clients are still open get forced
          * closed regardless and the window manager exits anyway.
          * Seconds to wait; @c 0 skips the wait entirely and
          * force-closes every remaining client right away.
          *
-         * @note Never consulted by @c enable_emergency_shortcut above,
+         * @note Never consulted by @p enable_emergency_shortcut above,
          *       which bypasses this, the coordinated wait it governs,
          *       and even the exit session hooks, entirely
          *
@@ -254,9 +255,9 @@ struct config_base_s {
      * @brief Whether launching a program begins a startup-notification
      *        sequence at all, and that sequence's own timeout
      *
-     * @see @p sn_begin (its only call site checks @c is_enabled first)
+     * @see @p sn_begin (its only call site checks @p is_enabled first)
      *      and @p sn_set_timeout_seconds / @c SN_TIMEOUT_SECONDS in
-     *      @c sn.h for what @c timeout_seconds controls and its
+     *      @c sn.h for what @p timeout_seconds controls and its
      *      built-in default.
      */
     struct {
@@ -301,14 +302,14 @@ struct config_base_s {
          *        on a surface made of more than one sharing the same
          *        combined X screen
          *
-         * @p anchor picks the strategy: @c surface (default) anchors
+         * @p anchor picks the strategy: @p surface (default) anchors
          * @p position's corner to the whole combined surface, exactly
-         * as if there were only one monitor; @c primary anchors it to
-         * the monitor RandR reports as primary; @c index anchors it to
-         * @c monitor.index specifically, a zero-based index into that
+         * as if there were only one monitor; @p primary anchors it to
+         * the monitor RandR reports as primary; @p index anchors it to
+         * @p monitor.index specifically, a zero-based index into that
          * surface's own monitor list (falls back to monitor 0 if it
          * does not exist, logging a warning, the same as @c rules.json's
-         * own @c apply.monitor).
+         * own @p apply.monitor).
          *
          * Only one tray dock ever exists at a time regardless of this
          * setting: the @c _NET_SYSTEM_TRAY_Sn specification permits
@@ -356,7 +357,7 @@ struct config_base_s {
          * always sets it @c false, as a fixed part of that mode's own
          * profile rather than something @c memguard.json itself is
          * allowed to configure.  With this @c false, the tray still
-         * shows its own clock and battery text when @c is_enabled is
+         * shows its own clock and battery text when @p is_enabled is
          * also @c true; only docking a third party's own icon is ever
          * affected.
          *
@@ -387,14 +388,14 @@ struct config_base_s {
          *        already reserves for the tray itself, on each of the
          *        four screen edges
          *
-         * Mirrors @c config_desktop_s's own @p margins exactly: added
+         * Mirrors @p config_desktop_s's own @p margins exactly: added
          * to the tray's own computed strut rather than replacing it, so
          * a taller reservation than the tray's own exact visual
          * footprint is possible without having to fake it by inflating
-         * @c height instead.  All zero by default, same as no extra
-         * margin at all.  Has no effect when @c reserve_space is
+         * @p height instead.  All zero by default, same as no extra
+         * margin at all.  Has no effect when @p reserve_space is
          * @c false: an all-zero strut plus a margin is still all zero
-         * from @c desktop_update_workarea's own point of view, so there
+         * from @p desktop_update_workarea's own point of view, so there
          * is nothing meaningful to add to.
          *
          * @see @a s_systray_update_strut in @c systray/layout.c
@@ -458,12 +459,11 @@ struct config_base_s {
 
             struct {
                 uint32_t charged;   /**< Percentage at/above which the
-                                          status reads "Full" */
+                                         status reads "Full" */
                 uint32_t low;       /**< Percentage at/below which a
-                                          single '!' is appended */
+                                         single '!' is appended */
                 uint32_t critical;  /**< Percentage at/below which two
-                                          '!' are appended instead of
-                                          one */
+                                         '!' are appended instead of one */
             } threshold;
 
             /**
@@ -494,7 +494,8 @@ struct config_base_s {
              * @brief Seconds between re-reading the battery status
              *
              * @see @c WM_SYSTRAY_BATTERY_POLL_SECONDS in
-             *      @c defs/loop.h for the built-in default this overrides
+             *      @c defs/loop.h for the built-in default this
+             *      overrides
              */
             uint32_t poll_seconds;
         } battery;
@@ -556,7 +557,7 @@ struct config_base_s {
 
         /**
          * @brief Either dimension, given as a fixed pixel count or as
-         *        the string @c max, meaning "however much of that axis
+         *        the string "max", meaning "however much of that axis
          *        is actually available", so a user is never forced to
          *        hard-code a resolution that may change later
          *
@@ -580,7 +581,7 @@ struct config_base_s {
 
         /**
          * @brief Whether the scratchpad's own placement skips
-         *       @c desktops.margins and the systray's own reserved
+         *       @p desktops.margins and the systray's own reserved
          *       space
          *
          * @c false (the default) places it the same way an ordinary
@@ -615,14 +616,14 @@ struct config_bindings_s {
              * @brief Keyboard shortcuts that open a menu with no
              *        inherent screen position of their own
              *
-             * @see @c config.menus.* for where each one appears
+             * @see @p config.menus.* for where each one appears
              */
             struct {
                 /**
                  * @brief Keyboard shortcuts that open a menu with no
                  *        inherent screen position of their own
                  *
-                 * @see @c config.menus.* for where each one appears
+                 * @see @p config.menus.* for where each one appears
                  */
                 char root[CONFIG_MAX_LENGTH_BINDING];
                 char windows[CONFIG_MAX_LENGTH_BINDING];
@@ -859,7 +860,8 @@ struct config_theme_s {
 
         struct {
             uint32_t height;    /**< Setting it to zero is equivalent to
-                                     "@c window.is-decorated": @c false */
+                                     @c ("window.is-decorated": false) */
+
             enum config_titlebar_alignment_e {
                 CONFIG_TITLEBAR_ALIGN_LEFT = 0,
                 CONFIG_TITLEBAR_ALIGN_CENTER,
@@ -883,10 +885,10 @@ struct config_theme_s {
                  * @brief Button glyph colors, independent of the
                  *        titlebar's own text foreground
                  *
-                 * - @c on for a button whose state is currently engaged
+                 * - @p on for a button whose state is currently engaged
                  *   (pinned, a non-normal layer, or simply the
                  *   focused-window state every other button reflects);
-                 * - @c off otherwise.
+                 * - @p off otherwise.
                  *
                  * A button that cannot currently do anything (e.g.,
                  * maximize on a non-resizable client) is not drawn at
@@ -957,9 +959,9 @@ struct config_theme_s {
         /**
          * @brief Sizing for each docked icon's own embed window
          *
-         * Every docked icon is forced to exactly @c size by @c size
+         * Every docked icon is forced to exactly @p size by @p size
          * pixels regardless of whatever size it originally requested,
-         * with @c padding pixels of breathing room around and between
+         * with @p padding pixels of breathing room around and between
          * icons.
          *
          * @see @p systray_enforce_icon_size in @c systray.c
@@ -1032,8 +1034,8 @@ struct config_theme_s {
      * Applies to every context menu (root menu, per-window menu, the
      * all-desktops window list, and their submenus) and to the
      * @c Alt+Tab style cycle menu's own window chrome.  The cycle
-     * menu's individual icon cells keep using @c icon.active /
-     * @c icon.inactive above instead of this, since that is what
+     * menu's individual icon cells keep using @p icon.active /
+     * @p icon.inactive above instead of this, since that is what
      * already themes "the icon currently selected while cycling"
      * specifically.
      */
@@ -1435,7 +1437,7 @@ struct config_desktop_s {
      * (such as, say, Conky).  Applies identically to every desktop on
      * every screen; there is no per-desktop or per-screen override.
      *
-     * @see @a desktop_update_workarea)
+     * @see @a desktop_update_workarea
      */
     struct {
         uint32_t top;
@@ -1470,7 +1472,7 @@ struct config_a11y_s {
     /**
      * @brief Gates every field below at once
      *
-     * @see This struct's own doc comment above
+     * @see This struct's comment above
      */
     bool is_enabled;
 

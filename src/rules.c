@@ -81,7 +81,6 @@ static void s_rules_load_match_list(cJSON *match_json, const char *key,
         bool *has_flag_out)
 {
     cJSON *item;
-    cJSON *elem;
     uint8_t n;
 
     item = json_get_item(match_json, key);
@@ -94,6 +93,8 @@ static void s_rules_load_match_list(cJSON *match_json, const char *key,
         safe_strncpy(dest[0], item->valuestring, CONFIG_MAX_LENGTH_NAME);
         n = 1u;
     } else if (cJSON_IsArray(item)) {
+        cJSON *elem;
+
         cJSON_ArrayForEach(elem, item) {
             if (n >= (uint8_t) RULES_MATCH_MAX_VALUES) {
                 break;

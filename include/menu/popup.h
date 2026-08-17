@@ -3,9 +3,9 @@
  *
  * @brief Informational client popup window interface
  *
- * Declares the functions for showing, closing, and repainting the
- * small popup that displays basic information about the currently
- * focused client.  All popup state is private to the implementation.
+ * Declares the functions for showing, closing, and repainting the small
+ * popup that displays basic information about the currently focused
+ * client.  All popup state is private to the implementation.
  *
  * @defgroup menu Popup menu system
  * @ingroup wm
@@ -61,7 +61,8 @@
  * @note Complexity: @e O(1)
  */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        surface_td *surface, const desktop_td *desktop,
+        client_td *client,
         uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg);
 
 /**
@@ -114,7 +115,7 @@ xcb_window_t popup_window(void);
  * Used by the key-release handler to detect when to auto-close.
  *
  * @return The modifier mask, with locking bits already stripped, or
- *         0 if the popup was opened without a modifier (never
+ *         @c 0 if the popup was opened without a modifier (never
  *         auto-closes)
  *
  * @note Complexity: @e O(1)
@@ -127,7 +128,7 @@ uint16_t popup_modifier(void);
  * Used by the key-release handler to detect when to auto-close on
  * release of the binding key itself.
  *
- * @return Opening keycode, or 0 if no popup is open
+ * @return Opening keycode, or @c 0 if no popup is open
  *
  * @note Complexity: @e O(1)
  */
@@ -141,7 +142,8 @@ xcb_keycode_t popup_keycode(void);
  * already expired, and -1 when no popup is currently open or the open
  * time was not recorded.
  *
- * @return Milliseconds until auto-close, 0 if expired, -1 if no popup
+ * @return Milliseconds until auto-close, @c 0 if expired, @c -1 if
+ *         no popup
  *
  * @note Complexity: @e O(1)
  */

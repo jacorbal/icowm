@@ -220,7 +220,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     for (uint32_t did = 0; did < surface->desktop_count; ++did) {
         desktop_td *desktop = surface_desktop_get(surface, did);
         cdlist_item_td *node;
-        cdlist_item_td *initial;
+        const cdlist_item_td *initial;
 
         if (desktop == NULL || desktop->stacking == NULL ||
                 cdlist_size(desktop->stacking) == 0) {
@@ -234,7 +234,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
         }
 
         do {
-            client_td *client = (client_td *) cdlist_data(node);
+            const client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL && client->window != XCB_NONE &&
                     idx < total_clients) {
                 stacking_list[idx++] = client->window;
@@ -272,7 +272,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
 
     names_len = 0u;
     for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        desktop_td *desktop = surface_desktop_get(surface, did);
+        const desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop != NULL && desktop->name[0] != '\0') {
             names_len += safe_strlen(desktop->name) + 1u;
         } else {
@@ -348,7 +348,8 @@ static void s_wm_sync_desktop_names(surface_td *surface)
  * @note Complexity: @e O(1)
  */
 static void s_wm_ping_client(client_td *client,
-        xcb_ewmh_connection_t *ewmh, uint32_t now, uint32_t timeout)
+        const xcb_ewmh_connection_t *ewmh,
+        uint32_t now, uint32_t timeout)
 {
     xcb_client_message_event_t ev;
 
@@ -386,9 +387,11 @@ static void s_wm_ping_client(client_td *client,
 }
 
 
-/** Context @c s_wm_ping_client_action passes @c s_wm_ping_client's
- *  own extra arguments through @c wm_for_each_client's single @c
- *  void* userdata slot */
+/**
+ * @brief Context @c s_wm_ping_client_action passes
+ *        @a s_wm_ping_client's own extra arguments through
+ *        @a wm_for_each_client's single @c void* userdata slot
+ */
 struct s_wm_ping_ctx_s {
     xcb_ewmh_connection_t *ewmh;
     uint32_t now;
@@ -407,7 +410,8 @@ struct s_wm_ping_ctx_s {
  */
 static void s_wm_ping_client_action(client_td *client, void *userdata)
 {
-    struct s_wm_ping_ctx_s *ctx = (struct s_wm_ping_ctx_s *) userdata;
+    const struct s_wm_ping_ctx_s *ctx =
+        (struct s_wm_ping_ctx_s *) userdata;
 
     s_wm_ping_client(client, ctx->ewmh, ctx->now, ctx->timeout);
 }
@@ -565,7 +569,6 @@ int wm_ewmh_init(void)
         if (manager_atom != XCB_ATOM_NONE) {
             char selection_name[16];
             xcb_atom_t selection_atom = XCB_ATOM_NONE;
-            xcb_get_selection_owner_reply_t *owner_reply;
             xcb_client_message_event_t manager_event;
 
             snprintf(selection_name, sizeof(selection_name),
@@ -574,6 +577,8 @@ int wm_ewmh_init(void)
                     selection_name, false);
 
             if (selection_atom != XCB_ATOM_NONE) {
+                xcb_get_selection_owner_reply_t *owner_reply;
+
                 xcb_set_selection_owner(wm->connection, support,
                         selection_atom, XCB_CURRENT_TIME);
                 owner_reply = xcb_get_selection_owner_reply(wm->connection,
@@ -651,8 +656,9 @@ void wm_ewmh_sync(void)
 
         current = surface_desktop_get(surface, surface->desktop_cur);
         if (current != NULL && current->client_active_id != XCB_NONE) {
-            client_td *active_client = lookup_find_client(wm->surfaces,
-                    current->client_active_id, NULL, NULL);
+            const client_td *active_client =
+                lookup_find_client(wm->surfaces,
+                        current->client_active_id, NULL, NULL);
             if (active_client != NULL) {
                 active = active_client->window;
             }
@@ -670,8 +676,6 @@ void wm_ewmh_sync(void)
 
     xcb_flush(wm->connection);
 }
-
-
 
 
 /* Perform periodic EWMH maintenance: ping and timeout handling */

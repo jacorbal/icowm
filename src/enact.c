@@ -20,7 +20,6 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
-#include <adt/list.h>
 
 /* Project includes */
 #include <client.h>
@@ -61,19 +60,19 @@
  * @brief Broadcast an event whose payload is just the standard
  *        client/desktop/surface identifier triple
  *
- * Shared by every 'enact_client_*' action below whose own IPC event
+ * Shared by every @a enact_client_* action below whose own IPC event
  * needs nothing beyond identifying which client it happened to and
- * where; avoids repeating the same three-field 'cJSON' object at
- * each of those call sites individually. Not used by an action whose
- * own event payload needs anything more than these three fields
- * (e.g., a renamed client's own new name).
+ * where.  Avoids repeating the same three-field @c cJSON object at each
+ * of those call sites individually.  Not used by an action whose own
+ * event payload needs anything more than these three fields (e.g.,
+ * a renamed client's own new name).
  *
- * @param client Client the event happened to; a NULL client is a
- *               silent no-op, matching every caller's own existing
- *               'if (client != NULL)' guard around its own
- *               'xcb_flush'
+ * @param client Client the event happened to
  * @param type   Which event this is
  *
+ * @note A null client is a silent no-op, matching every caller's own
+ *       existing @c if @c (client != NULL) guard around its own
+ *       @a xcb_flush
  * @note Complexity: @e O(1)
  */
 static void s_broadcast_client_event(client_td *client,
@@ -103,10 +102,10 @@ static void s_broadcast_client_event(client_td *client,
  *        desktop/surface identifier pair, with no specific client
  *        involved
  *
- * @param desktop Desktop the event happened to; a NULL desktop is a
- *                silent no-op
+ * @param desktop Desktop the event happened to
  * @param type    Which event this is
  *
+ * @note A null desktop is a silent no-op
  * @note Complexity: @e O(1)
  */
 static void s_broadcast_desktop_event(desktop_td *desktop,
@@ -129,7 +128,7 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
 }
 
 
-/* == action_client_e == */
+/* 'action_client_e' */
 
 /* Close the client's window */
 void enact_client_close(client_td *client)
@@ -246,10 +245,10 @@ void enact_client_move_to_monitor(client_td *client,
 void enact_client_reclass(client_td *client, const char *class_name,
         const char *instance_name)
 {
-    cJSON *fields;
-
     ccmd_client_reclass(client, class_name, instance_name);
     if (client != NULL) {
+        cJSON *fields;
+
         xcb_flush(client->connection);
 
         fields = cJSON_CreateObject();
@@ -273,10 +272,10 @@ void enact_client_reclass(client_td *client, const char *class_name,
 /* Change the client's 'WM_WINDOW_ROLE' */
 void enact_client_rerole(client_td *client, const char *role)
 {
-    cJSON *fields;
-
     ccmd_client_rerole(client, role);
     if (client != NULL) {
+        cJSON *fields;
+
         xcb_flush(client->connection);
 
         fields = cJSON_CreateObject();
@@ -298,10 +297,10 @@ void enact_client_rerole(client_td *client, const char *role)
 /* Rename the client's window title */
 void enact_client_rename(client_td *client, const char *name)
 {
-    cJSON *fields;
-
     ccmd_client_rename(client, name);
     if (client != NULL) {
+        cJSON *fields;
+
         xcb_flush(client->connection);
 
         fields = cJSON_CreateObject();
@@ -449,7 +448,8 @@ void enact_client_toggle_pin(client_td *client)
     if (client != NULL) {
         xcb_flush(client->connection);
         s_broadcast_client_event(client, client_is_pinned(client)
-                ? IPC_EVENT_PIN_SET : IPC_EVENT_PIN_CLEARED);
+                ? IPC_EVENT_PIN_SET
+                : IPC_EVENT_PIN_CLEARED);
     }
 }
 
@@ -483,7 +483,8 @@ void enact_client_toggle_fullscreen(client_td *client)
     if (client != NULL) {
         xcb_flush(client->connection);
         s_broadcast_client_event(client, client_is_fullscreen(client)
-                ? IPC_EVENT_FULLSCREEN_SET : IPC_EVENT_FULLSCREEN_CLEARED);
+                ? IPC_EVENT_FULLSCREEN_SET
+                : IPC_EVENT_FULLSCREEN_CLEARED);
     }
 }
 
@@ -577,10 +578,10 @@ void enact_client_unurge(client_td *client)
 /* Set the client's icon name */
 void enact_client_set_icon(client_td *client, const char *icon_name)
 {
-    cJSON *fields;
-
     ccmd_client_set_icon(client, icon_name);
     if (client != NULL) {
+        cJSON *fields;
+
         xcb_flush(client->connection);
 
         fields = cJSON_CreateObject();
@@ -606,12 +607,13 @@ void enact_client_toggle_decorate(client_td *client)
     if (client != NULL) {
         xcb_flush(client->connection);
         s_broadcast_client_event(client, client_is_decorated(client)
-                ? IPC_EVENT_DECORATION_SET : IPC_EVENT_DECORATION_CLEARED);
+                ? IPC_EVENT_DECORATION_SET
+                : IPC_EVENT_DECORATION_CLEARED);
     }
 }
 
 
-/* == action_desktop_e == */
+/* 'action_desktop_e' */
 
 /* Set the desktop's background color */
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
@@ -634,8 +636,8 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     /* Marking only 'desktop->is_outdated' is not enough on its own:
      * 'loop_update' only calls 'surface_render_all_desktops' at all
      * when this desktop's own surface is itself outdated (see
-     * 'enact_desktop_show', right below, for the same pattern);
-     * without this, the new color never actually repaints until
+     * 'enact_desktop_show', right below, for the same pattern).
+     * Without this, the new color never actually repaints until
      * something else marks the surface outdated for an unrelated
      * reason, e.g., switching desktops away and back. */
     surface->is_outdated = true;
@@ -786,51 +788,52 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
 
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
-        /* 'desktop->stacking' is circular (see 'cdlist_next''s own
-         * doc comment in adt/cdlist.h): its own tail wraps back to
-         * its own head rather than ever handing back NULL, so a
-         * caller has to remember where it started and stop once it
-         * gets back there, the same 'initial' pattern already used
-         * to walk this same list elsewhere (e.g.,
-         * 'desktop_action_client_rem' in desktop/dclient.c).  A
-         * plain 'for (...; node != NULL; ...)' loop over it, as this
-         * one used to be, never terminates for a non-empty desktop:
-         * it silently spins inside this one call forever, which
-         * blocks the whole event loop (this function's own caller
-         * runs synchronously from it) from ever processing another
-         * key press, mouse click, or menu, until the process is
-         * killed from outside. */
-        cdlist_item_td *initial = node;
+        /* 'desktop->stacking' is circular (see 'cdlist_next''s comment
+         * in 'adt/cdlist.h').  Its own tail wraps back to its own head
+         * rather than ever handing back a null, so a caller has to
+         * remember where it started and stop once it gets back there,
+         * the same 'initial' pattern already used to walk this same
+         * list elsewhere (e.g., 'desktop_action_client_rem' in
+         * 'desktop/dclient.c').
+         *
+         * A plain 'for (...; node != NULL; ...)' loop over it, as this
+         * one used to be, never terminates for a non-empty desktop: it
+         * silently spins inside this one call forever, which blocks the
+         * whole event loop (this function's own caller runs
+         * synchronously from it) from ever processing another key
+         * press, mouse click, or menu, until the process is killed from
+         * outside. */
+        const cdlist_item_td *initial = node;
 
         do {
             client_td *client = (client_td *) cdlist_data(node);
 
             if (client != NULL && !client_is_locked(client)) {
                 /* Every client on the desktop goes through
-                 * 'place_apply' / 'place_apply_cascade', the same
+                 * 'place_apply'/'place_apply_cascade', the same
                  * general-purpose placement engine a newly mapped
                  * window is run through, not a simplified
-                 * rearrange-only positioning routine.  That means a
-                 * transient dialog among them (a client with its own
+                 * rearrange-only positioning routine.  That means
+                 * a transient dialog among them (a client with its own
                  * 'transient_for' set) is not repositioned by the
-                 * configured placement policy below at all:
-                 * 'place_apply' re-centers it over its own parent
-                 * per ICCCM §4.1.2.6 instead, the same as it would
-                 * have been placed there in the first place.
-                 * Finding that parent is why this function needs the
-                 * full 'wm_td' rather than just 'desktop' or
-                 * 'config': the parent can live on a different
-                 * surface entirely, so locating it means searching
-                 * 'wm->surfaces' as a whole (see
-                 * 's_place_transient_centered' in policy/
-                 * placement.c). */
+                 * configured placement policy below at all.
+                 *
+                 * 'place_apply' re-centers it over its own parent per
+                 * ICCCM §4.1.2.6 instead, the same as it would have
+                 * been placed there in the first place.  Finding that
+                 * parent is why this function needs the full 'wm_td'
+                 * rather than just 'desktop' or 'config'.  The parent
+                 * can live on a different surface entirely, so locating
+                 * it means searching 'wm->surfaces' as a whole (see
+                 * 's_place_transient_centered' in
+                 * 'policy/placement.c'). */
 
-                /* 'centered'/'under-mouse' always resolve to the
-                 * exact same single spot, so every client after the
-                 * first would land stacked on top of one another;
-                 * only the first client uses the real configured
-                 * policy, the rest fall back to cascade so the
-                 * desktop ends up spread out instead of piled up */
+                /* 'centered'/'under-mouse' always resolve to the exact
+                 * same single spot, so every client after the first
+                 * would land stacked on top of one another; only the
+                 * first client uses the real configured policy, the
+                 * rest fall back to cascade so the desktop ends up
+                 * spread out instead of piled up */
                 if (single_spot_policy && !is_first) {
                     place_apply_cascade(wm, surface, client);
                 } else {
@@ -871,15 +874,15 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop)
 
 
 /* Cycle input focus to the next non-iconified client */
-void enact_desktop_cycle_clients_active(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg)
 {
     if (surface == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(surfaces, connection, surface, desktop, false, 1,
+    cycle_init(connection, surface, desktop, false, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -887,15 +890,15 @@ void enact_desktop_cycle_clients_active(list_td *surfaces,
 
 
 /* Cycle input focus to the previous non-iconified client */
-void enact_desktop_cycle_clients_prev(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg)
 {
     if (surface == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(surfaces, connection, surface, desktop, false, -1,
+    cycle_init(connection, surface, desktop, false, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -903,15 +906,15 @@ void enact_desktop_cycle_clients_prev(list_td *surfaces,
 
 
 /* Cycle input focus to the next iconified client */
-void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg)
 {
     if (surface == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(surfaces, connection, surface, desktop, true, 1,
+    cycle_init(connection, surface, desktop, true, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -919,15 +922,15 @@ void enact_desktop_cycle_clients_icons_next(list_td *surfaces,
 
 
 /* Cycle input focus to the previous iconified client */
-void enact_desktop_cycle_clients_icons_prev(list_td *surfaces,
-        xcb_connection_t *connection, surface_td *surface,
-        desktop_td *desktop, uint16_t modifier, const config_td *cfg)
+void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
+        surface_td *surface, desktop_td *desktop,
+        uint16_t modifier, const config_td *cfg)
 {
     if (surface == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(surfaces, connection, surface, desktop, true, -1,
+    cycle_init(connection, surface, desktop, true, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
@@ -939,9 +942,6 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
         const char *command)
 {
     int result;
-    char msg[256];
-    surface_td *surface;
-    const config_td *config;
 
     if (desktop == NULL || command == NULL) {
         return -1;
@@ -950,10 +950,15 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
     result = desktop_action_process_launch(desktop, command);
 
     if (result == -2) {
+        char msg[256];
+        surface_td *surface;
+        const config_td *config;
+
         /* 'execvp' failed: already logged by
-         * 'desktop_action_process_launch'.  Also show an informational
-         * dialog so the user gets feedback. */
-        (void) snprintf(msg, sizeof(msg), "Cannot launch: '%s'", command);
+         * 'desktop_action_process_launch'.
+         * Also show an informational dialog so user gets feedback. */
+        (void) snprintf(msg, sizeof(msg), "Cannot launch: '%s'",
+                command);
 
         surface = wm_get_surface_by_id(desktop->screen_id);
         config = (surface != NULL) ? surface->config : NULL;
@@ -969,14 +974,14 @@ pid_t enact_desktop_command_launch(desktop_td *desktop,
 }
 
 
-/* == action_surface_e == */
+/* 'action_surface_e' */
 
 /* Switch the surface to a specific desktop */
 /**
  * @brief Broadcast a 'desktop_switched' event for the surface's own
  *        current desktop, as it stands right now
  *
- * Shared by @c enact_surface_desktop_switch and both of its own
+ * Shared by @a enact_surface_desktop_switch and both of its own
  * next/prev siblings just below, all three of which change the same
  * one thing (which desktop is current) and so broadcast the exact
  * same event afterward, differing only in how they got there.
@@ -999,7 +1004,8 @@ static void s_broadcast_desktop_switched(const surface_td *surface)
 }
 
 
-void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
+void enact_surface_desktop_switch(surface_td *surface,
+        uint32_t desktop_id)
 {
     scmd_surface_desktop_switch(surface, desktop_id);
     s_broadcast_desktop_switched(surface);
@@ -1022,7 +1028,7 @@ void enact_surface_desktop_switch_prev(surface_td *surface)
 }
 
 
-/* == action_wm_e == */
+/* 'action_wm_e' */
 
 /* Request that the window manager stop and exit */
 int enact_wm_exit(void)

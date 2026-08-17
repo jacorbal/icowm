@@ -15,8 +15,8 @@
  * Exit
  * @endcode
  *
- * "Reload configuration", "Redraw all windows", and "Exit" map directly
- * to the corresponding window manager keyboard actions.
+ * @note "Reload configuration", "Redraw all windows", and "Exit" map
+ *       directly to the corresponding window manager keyboard actions
  *
  * @ingroup menu_context
  */
@@ -49,8 +49,8 @@
 
 /**
  * @brief Number of fixed footer entries appended after the JSON
- *        entries: separator, "Reload configuration", "Redraw all
- *        windows", separator, "Exit"
+ *        entries: <separator>, "Reload configuration", "Redraw all
+ *        windows", <separator>, "Exit"
  */
 #define ROOTMENU_FOOTER_COUNT (5)
 
@@ -73,20 +73,19 @@
  * Parses @c menu.json (located in the active configuration directory)
  * once into a persistent buffer that every subsequent @c rootmenu_show
  * reuses as-is, rather than re-parsing the file from disk on every
- * single menu open the way every other one of this window manager's
- * own JSON configuration files is not.  Call once at startup (see
- * @c wm_init) and again on every configuration reload (see
- * @c wm_action_config_reload) -- never from @c rootmenu_show itself.
- * Safe to call again later: a previous call's own entries, if any,
- * are freed first.
+ * single menu open the way every other one of this window manager's own
+ * JSON configuration files is not.
  *
- * @param config_dir Path to the configuration directory (used to
- *                    locate @c menu.json)
+ * @param config_dir Path to the configuration directory (used to locate
+ *                   @c menu.json)
  *
- * @note A no-op, not a failure, if @c menu.json does not exist or
- *       fails to parse: the root menu simply shows its own fixed
- *       footer with no JSON entries above it, the same as before this
- *       function's own introduction
+ * @note A no-op, not a failure, if @c menu.json does not exist or fails
+ *       to parse; the root menu simply shows its own fixed footer with
+ *       no JSON entries above it
+ * @note Call once at startup and again on every configuration reload,
+ *       never from @a rootmenu_show itself
+ * @note Safe to call again later; a previous call's own entries, if
+ *       any, are freed first
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries in @c menu.json
  */
@@ -95,9 +94,8 @@ void rootmenu_load_menu_json(const char *config_dir);
 /**
  * @brief Free the entries loaded by @c rootmenu_load_menu_json
  *
- * Call at window-manager shutdown.  Safe to call even if nothing was
- * ever loaded.
- *
+ * @note Call at window manager shutdown
+ * @note Safe to call even if nothing was ever loaded
  * @note Complexity: @e O(1)
  */
 void rootmenu_free_menu_json(void);
@@ -105,7 +103,7 @@ void rootmenu_free_menu_json(void);
 /**
  * @brief Display the root desktop menu
  *
- * Combines the entries @c rootmenu_load_menu_json already parsed with
+ * Combines the entries @a rootmenu_load_menu_json already parsed with
  * the fixed footer entries, and shows the result at (@p x, @p y).  Any
  * previously open root menu is closed first.
  *
@@ -126,11 +124,11 @@ void rootmenu_show(xcb_connection_t *connection,
  * @brief Close the root desktop menu
  *
  * Destroys the menu window and frees the combined entry buffer built
- * for this particular open (JSON entries plus footer).  The
- * underlying JSON-loaded entries themselves are untouched: they stay
- * loaded for the next @c rootmenu_show, and are only freed by
- * @c rootmenu_load_menu_json (on the next reload) or
- * @c rootmenu_free_menu_json (at shutdown).
+ * for this particular open (JSON entries plus footer).  The underlying
+ * JSON-loaded entries themselves are untouched, as they stay loaded for
+ * the next @a rootmenu_show, and are only freed by
+ * @a rootmenu_load_menu_json (on the next reload) or
+ * @a rootmenu_free_menu_json (at shutdown).
  *
  * @note Complexity: @e O(n)
  */
@@ -151,7 +149,6 @@ void rootmenu_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param root_x     Pointer X in root (screen) coordinates
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
@@ -160,7 +157,7 @@ void rootmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_x, int root_y,
+        surface_td *surface, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -203,7 +200,7 @@ bool rootmenu_owns_window(xcb_window_t win);
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
- * @return @c true if the event was consumed, @c false otherwise
+ * @return @c true if the event was consumed
  *
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
@@ -214,7 +211,8 @@ bool rootmenu_handle_keypress(xcb_connection_t *connection,
 /**
  * @brief Handle a pointer-motion event over a root desktop menu window
  *
- * Finds the menu state that owns @p win and updates its hover highlight.
+ * Finds the menu state that owns @p win and updates its hover
+ * highlight.
  *
  * @param win Window that received the motion event
  * @param x   Pointer X relative to @p win

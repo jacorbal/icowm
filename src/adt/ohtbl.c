@@ -109,7 +109,6 @@ void ohtbl_reset(ohtbl_td *htbl)
 /* Insert a new item in the hash table */
 int ohtbl_insert(ohtbl_td *htbl, const void *data)
 {
-    size_t position;
     size_t insert_pos = 0;
     bool has_insert_pos = false;
 
@@ -128,7 +127,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
      * position; a null slot ends the probe chain (no duplicate can lie
      * beyond it), so we commit there immediately. */
     for (size_t i = 0; i < htbl->positions; ++i) {
-        position = (htbl->h1(data) +
+        size_t position = (htbl->h1(data) +
                 (i * htbl->h2(data))) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
@@ -170,11 +169,9 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 /* Update an existing element, or insert it as new if didn't exist */
 int ohtbl_update(ohtbl_td *htbl, const void *data)
 {
-    size_t position;
-
     /* Use double hashing to hash the key */
     for (size_t i = 0; i < htbl->positions; ++i) {
-        position = (htbl->h1(data) +
+        size_t position = (htbl->h1(data) +
                 (i * htbl->h2(data))) % htbl->positions;
 
         if (htbl->table[position] == NULL ||
@@ -217,10 +214,8 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
 /* Remove an item from the hash table */
 int ohtbl_remove(ohtbl_td *htbl, void **data)
 {
-    size_t position;
-
     for (size_t i = 0; i < htbl->positions; ++i) {
-        position = (htbl->h1(*data) +
+        size_t position = (htbl->h1(*data) +
                 (i * htbl->h2(*data))) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
@@ -262,11 +257,9 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
 /* Look up in the hash table */
 int ohtbl_lookup(const ohtbl_td *htbl, void **data)
 {
-    size_t position;
-
     /* Use double hashing to hash the key */
     for (size_t i = 0; i < htbl->positions; ++i) {
-        position = (htbl->h1(*data) +
+        size_t position = (htbl->h1(*data) +
                 (i * htbl->h2(*data))) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
@@ -303,10 +296,9 @@ int ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
         void *element = htbl->table[i];
         if (element != NULL && element != htbl->vacated) {
             /* Only re-insert valid elements */
-            size_t position;
             for (size_t j = 0; j < new_positions; ++j) {
                 /* Search new position */
-                position = (htbl->h1(element) +
+                size_t position = (htbl->h1(element) +
                         (j * htbl->h2(element))) % new_positions;
                 if (new_table[position] == NULL) {
                     /* Found empty position */

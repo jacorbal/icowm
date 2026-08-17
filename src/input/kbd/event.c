@@ -181,18 +181,20 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 
 /**
  * @brief Handle a key press while the generic confirm dialog is open
- *        (backs both the quit-confirmation dialog and any other
- *        two-button confirm dialog built on 'menu/dialog/confirm.h',
- *        e.g., 'menu/dialog/rrsafe.h')
+ *
+ * Backs both the quit-confirmation dialog and any other two-button
+ * confirm dialog built on @c menu/dialog/confirm.h, e.g.,
+ * @c menu/dialog/rrsafe.h.
  *
  * @c Tab / @c Left / @c Right toggle the selected button; @c Enter
  * activates it; @c Escape always cancels the dialog, regardless of
- * which button happens to be selected at the time (see @c
- * menu_confirm_dialog_cancel).
+ * which button happens to be selected at the time.
  *
  * @param keysym  Keysym of the pressed key
  * @param surface Surface for drawing (may be null)
  * @param config  Active configuration
+ *
+ * @see @a menu_confirm_dialog_cancel
  */
 static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         surface_td *surface, const config_td *config)
@@ -326,7 +328,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         uint16_t bmm, xcb_keycode_t detail,
         const config_td *config)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
     client_td *client;
 
     if (surface == NULL) {
@@ -735,11 +737,11 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                         lookup_current_desktop(surface);
                     if (desktop != NULL) {
                         if (btype == KEYBIND_CLIENT_CYCLE_NEXT) {
-                            enact_desktop_cycle_clients_active(surfaces,
+                            enact_desktop_cycle_clients_active(
                                     surface->connection, surface,
                                     desktop, bmm, config);
                         } else {
-                            enact_desktop_cycle_clients_prev(surfaces,
+                            enact_desktop_cycle_clients_prev(
                                     surface->connection, surface,
                                     desktop, bmm, config);
                         }
@@ -755,11 +757,11 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                     if (desktop != NULL) {
                         if (btype == KEYBIND_DESKTOP_ICON_NEXT) {
                             enact_desktop_cycle_clients_icons_next(
-                                    surfaces, surface->connection,
+                                    surface->connection,
                                     surface, desktop, bmm, config);
                         } else {
                             enact_desktop_cycle_clients_icons_prev(
-                                    surfaces, surface->connection,
+                                    surface->connection,
                                     surface, desktop, bmm, config);
                         }
                     }

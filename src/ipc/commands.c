@@ -23,10 +23,12 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
-#include <string.h>     /* strcmp */
 
 /* JSON includes */
 #include <cjson/cJSON.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <wm.h>
@@ -75,12 +77,11 @@ struct s_ipc_cmd_def_s {
 /** The dispatch table itself, grouped by the same categories as
  *  ipc/actions/ itself
  *
- * @note 'tools/icowm-msg.c' keeps its own hand-maintained snapshot of
- *       every command name here, 's_known_commands', used only for
- *       its own offline '-L' listing (see that array's own doc
- *       comment for why it is not simply queried live instead).
- *       Adding or removing an entry here means updating that array
- *       to match. */
+ * @note @c tools/icowm-msg.c keeps its own hand-maintained snapshot of
+ *       every command name here, @a s_known_commands, used only for its
+ *       own offline @c -L listing (see that array's comment for why it
+ *       is not simply queried live instead).  Adding or removing an
+ *       entry here means updating that array to match. */
 static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Queries: ipc/actions/query.h */
     { "get_version",              ipc_action_get_version },
@@ -192,18 +193,18 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
 
     /* 'subscribe'/'unsubscribe' ahead of the ordinary table: the
      * only two commands whose own effect belongs to this specific
-     * connection (see ipc.h's own doc comment on each) rather than
-     * to 'wm', so neither one fits the table's own handler shape at
-     * all. */
-    if (strcmp(cmd_item->valuestring, "subscribe") == 0) {
+     * connection (see 'ipc.h''s comment on each) rather than to 'wm',
+     * so neither one fits the table's own handler shape at all */
+    if (safe_strcmp(cmd_item->valuestring, "subscribe") == 0) {
         found = true;
         resp = ipc_client_subscribe(client_idx, parsed);
-    } else if (strcmp(cmd_item->valuestring, "unsubscribe") == 0) {
+    } else if (safe_strcmp(cmd_item->valuestring, "unsubscribe") == 0) {
         found = true;
         resp = ipc_client_unsubscribe(client_idx, parsed);
     } else {
         for (size_t i = 0; i < S_IPC_COMMAND_COUNT; ++i) {
-            if (strcmp(s_commands[i].name, cmd_item->valuestring) == 0) {
+            if (safe_strcmp(s_commands[i].name,
+                        cmd_item->valuestring) == 0) {
                 found = true;
                 resp = s_commands[i].handler(wm, parsed);
                 break;
@@ -213,9 +214,9 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
 
     if (!found) {
         /* No entry in 's_commands' matched 'cmd' at all, as opposed
-         * to matching one whose own handler returned NULL from an
-         * allocation failure (the 'resp == NULL' case just below):
-         * that second case keeps a more specific message, since a
+         * to matching one whose own handler returned null from an
+         * allocation failure (the 'resp == NULL' case just below).
+         * That second case keeps a more specific message, since a
          * handler whose own request DID match a real command is a
          * different failure than the request never matching one at
          * all. */

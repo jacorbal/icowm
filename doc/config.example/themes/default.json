@@ -1,5 +1,6 @@
 {
     "name": "Default theme",
+
     "-author": "J. A. Corbal",
     "-creation-date": "Sat Aug  1 03:57:31 UTC 2026",
     "-modified-date": "Sat Aug  8 05:12:38 UTC 2026",
@@ -204,7 +205,7 @@
     "systray": {
         "opacity": 100,
         "font": "fixed bold",
-        "height": 22,
+        "height": 24,
         "border": {
             "color": "#7f9ab6",
             "width": 1

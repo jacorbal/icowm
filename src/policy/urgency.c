@@ -52,11 +52,11 @@ static struct timespec s_last_toggle;
  * @brief Whether at least one client was found urgent as of the most
  *        recent @c urgency_blink_tick call
  *
- * Cached here rather than recomputed by @c urgency_blink_ms_remaining
- * itself, so the one full scan over every client each iteration
- * needs happens exactly once, in @c urgency_blink_tick, the same way
- * @c systray_clock_tick and @c systray_clock_ms_remaining split the
- * same two responsibilities (src/systray/text.c).
+ * Cached here rather than recomputed by @a urgency_blink_ms_remaining
+ * itself, so the one full scan over every client each iteration needs
+ * happens exactly once, in @c urgency_blink_tick, the same way
+ * @a systray_clock_tick and @a systray_clock_ms_remaining split the
+ * same two responsibilities (@c src/systray/text.c).
  */
 static bool s_has_urgent = false;
 
@@ -91,15 +91,13 @@ static long s_ms_since(const struct timespec *since)
  *        its urgency hint set
  *
  * A pure scan with no side effects at all, safe to call on every
- * single @c urgency_blink_tick (i.e., every main-loop iteration, not
- * just at the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence): the
- * blink phase itself must keep advancing consistently regardless of
- * which desktop the urgent client happens to sit on, or how often
- * this is called, so this deliberately still looks at every desktop
- * of every surface, not only each surface's own currently visible
- * one (see @c s_repaint_urgent_clients for that narrower scope,
- * which is where the actual, comparatively expensive repainting
- * happens instead).
+ * single @a urgency_blink_tick (i.e., every main-loop iteration, not
+ * just at the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence).
+ *
+ * The blink phase itself must keep advancing consistently regardless of
+ * which desktop the urgent client happens to sit on, or how often this
+ * is called, so this deliberately still looks at every desktop of every
+ * surface, not only each surface's own currently visible one.
  *
  * @param surfaces All managed surfaces
  *
@@ -107,6 +105,10 @@ static long s_ms_since(const struct timespec *since)
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
+ *
+ * @see @a s_repaint_urgent_clients for that narrower scope, which is
+ *      where the actual, comparatively expensive repainting happens
+ *      instead
  */
 static bool s_any_client_urgent(list_td *surfaces)
 {
@@ -131,7 +133,7 @@ static bool s_any_client_urgent(list_td *surfaces)
             }
 
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *c = (client_td *) elem;
+                const client_td *c = (client_td *) elem;
 
                 if (c != NULL && client_is_urgent(c)) {
                     return true;
@@ -145,34 +147,36 @@ static bool s_any_client_urgent(list_td *surfaces)
 
 
 /**
- * @brief Repaint every currently visible urgent client directly,
- *        to match the blink phase that just took effect
+ * @brief Repaint every currently visible urgent client directly, to
+ *        match the blink phase that just took effect
  *
  * Deliberately narrow in both scope and mechanism, unlike an earlier
  * version of this function that instead marked whole surfaces and
- * desktops outdated and let the ordinary full-render path pick that
- * up: that meant every single client on a desktop with an urgent one
+ * desktops outdated and let the ordinary full-render path pick that up.
+ * That meant every single client on a desktop with an urgent one
  * repainted alongside it, on every call, and since this used to be
  * called on every main-loop iteration rather than only at the real
  * blink cadence, that full-desktop repaint fired far more often than
  * the blink itself ever changed, visibly flickering every window and
- * icon on the desktop, not just the urgent one, and stomping over
- * other clients' own independent, transient render state along the
- * way (e.g., an icon's cycle-selection highlight mid-drag). Only ever
- * called from the actual blink-phase-toggle branch of
- * @c urgency_blink_tick now, this instead calls @c desktop_render_
- * one_client / @c ri_render_client_icon directly, one at a time, for
- * only the specific client(s) that are both urgent and on a desktop
- * currently visible on some surface (an urgent client sitting on a
- * desktop nobody is looking at right now has nothing to visibly
- * repaint at all: its own clients are not even mapped, see
- * @c desktop_render_clients's own doc comment), leaving every other
- * client on that same desktop untouched.
+ * icon on the desktop, not just the urgent one, and stomping over other
+ * clients' own independent, transient render state along the
+ * way (e.g., an icon's cycle-selection highlight mid-drag).
+ *
+ * Only ever called from the actual blink-phase-toggle branch of
+ * @a urgency_blink_tick now, this instead calls
+ * @a desktop_render_one_client / @a ri_render_client_icon directly, one
+ * at a time, for only the specific client(s) that are both urgent and
+ * on a desktop currently visible on some surface (an urgent client
+ * sitting on a desktop nobody is looking at right now has nothing to
+ * visibly repaint at all.  Its own clients are not even mapped, leaving
+ * every other client on that same desktop untouched.
  *
  * @param surfaces All managed surfaces
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       each surface's own currently visible desktop
+ *
+ * @see @a desktop_render_clients's own comment
  */
 static void s_repaint_urgent_clients(list_td *surfaces)
 {
@@ -241,10 +245,10 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
     s_has_urgent = s_any_client_urgent(surfaces);
 
     /* Sound the accessibility bell right on the transition into
-     * urgency, never again on every later tick while it stays
-     * urgent, and never while it clears: an audible cue alongside
-     * the visual blink every urgent client already gets regardless
-     * of this setting */
+     * urgency, never again on every later tick while it stays urgent,
+     * and never while it clears: an audible cue alongside the visual
+     * blink every urgent client already gets regardless of this
+     * setting */
     if (!had_urgent && s_has_urgent && config != NULL &&
             config->a11y.urgency.audible_bell &&
             surfaces != NULL && !list_is_empty(surfaces)) {

@@ -1,8 +1,9 @@
 {
     "name": "High contrast dark theme",
+
     "-author": "J. A. Corbal",
-    "-creation-date": "Fri Aug 14 00:00:00 UTC 2026",
-    "-modified-date": "Fri Aug 14 00:00:00 UTC 2026",
+    "-creation-date": "Fri Aug 14 13:31:13 UTC 2026",
+    "-modified-date": "Fri Aug 14 13:31:13 UTC 2026",
     "-notes": "Active window inverted to solid yellow-on-black to stand out sharply against an otherwise near-black palette; every pair AA or better (most AAA).",
 
     "desktop": {

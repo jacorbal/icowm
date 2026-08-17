@@ -98,7 +98,6 @@ struct cycle_menu_state_s g_cycle_menu = {
  */
 static void s_cycle_preview_restore(xcb_connection_t *connection)
 {
-    client_td *client;
     xcb_window_t target;
     uint32_t border_color;
     bool is_active;
@@ -109,7 +108,7 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
     }
 
     for (int i = 0; i < g_cycle_menu.count; ++i) {
-        client = g_cycle_menu.clients[i];
+        const client_td *client = g_cycle_menu.clients[i];
         if (client == NULL) {
             continue;
         }
@@ -168,14 +167,13 @@ static void s_cycle_scroll_to_selection(void)
 
 
 /* Initialize the cycle menu for window or icon cycling */
-void cycle_init(list_td *surfaces,
-        xcb_connection_t *connection,
+void cycle_init(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
         bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg)
 {
     cdlist_item_td *node;
-    cdlist_item_td *initial;
+    const cdlist_item_td *initial;
     xcb_get_input_focus_cookie_t foc_cookie;
     xcb_get_input_focus_reply_t *foc_reply;
     uint32_t mask;
@@ -429,11 +427,11 @@ void cycle_init(list_td *surfaces,
 
     /* Already applies the same "selected" icon render (active colors,
      * caption and hints, no pixmap) that every later navigation call
-     * gets via 's_cycle_repaint_icon' -- see 'mi_cycle_preview_apply'
-     * 's own implementation in menu/cycledraw.c, which calls
+     * gets via 's_cycle_repaint_icon' (see 'mi_cycle_preview_apply''s
+     * implementation in 'menu/cycledraw.c', which calls
      * 'ri_render_client_icon_selected' directly for exactly this
-     * reason -- so the cycle's own initial preselection needs no
-     * separate call here to match it. */
+     * reason) so the cycle's own initial preselection needs no separate
+     * call here to match it. */
     mi_cycle_preview_apply(connection, cfg);
 
     xcb_flush(connection);
@@ -533,28 +531,26 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
  *        own preview), so it reflects a just-changed cycle-selection
  *        state right away
  *
- * 'cycle_navigate_to'/'_next'/'_prev' only ever touch the floating
- * cycle menu's own selection state; nothing about the real icon
- * window sitting on the desktop underneath it is otherwise told to
- * repaint when that selection moves on, so a client that was
- * highlighted and then passed over stays visually stuck showing that
- * highlight until something unrelated (e.g., 'cycle_destroy') eventually
- * forces a full desktop repaint.  Called for both the previously- and
- * newly-selected client on every navigation, this keeps their real
- * icons in sync with the menu immediately instead.  (The cycle's own
- * initial preselection at 'cycle_init' time needs no separate call
- * here: see 'mi_cycle_preview_apply' in menu/cycledraw.c, which
- * already applies the very same "selected" render this function
- * itself calls below.)
+ * @a cycle_navigate_to / @a cycle_navigate_to_next /
+ * @a cycle_navigate_prev only ever touch the floating cycle menu's own
+ * selection state; nothing about the real icon window sitting on the
+ * desktop underneath it is otherwise told to repaint when that
+ * selection moves on, so a client that was highlighted and then passed
+ * over stays visually stuck showing that highlight until something
+ * unrelated (e.g., @a cycle_destroy) eventually forces a full desktop
+ * repaint.
+ *
+ * Called for both the previously-selected and newly-selected client on
+ * every navigation, this keeps their real icons in sync with the menu
+ * immediately instead.
  *
  * @p is_selected picks which of the two very different renders that
- * sync actually needs: the client this cycle just selected gets @c
- * ri_render_client_icon_selected -- active colors, its caption, and
- * its own hint indicators, but deliberately no pixmap (see that
- * function's own doc comment in render/icon.h for why) -- while the
- * client just passed over gets a full @c ri_render_client_icon render
- * instead, back to its ordinary inactive appearance, pixmap, caption,
- * and hint indicators all included.
+ * sync actually needs: the client this cycle just selected gets
+ * @a ri_render_client_icon_selected (active colors, its caption, and
+ * its own hint indicators, but deliberately no pixmap) while the client
+ * just passed over gets a full @a ri_render_client_icon render instead,
+ * back to its ordinary inactive appearance, pixmap, caption, and hint
+ * indicators all included.
  *
  * A no-op for a client that is not actually an iconified icon (or
  * @c NULL, or with no cycle menu open at all); both render functions
@@ -565,7 +561,15 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
  *                     selected entry (@c true), or the one just
  *                     passed over (@c false)
  *
+ * @note The cycle's own initial preselection at @a cycle_init time
+ *       needs no separate call here
  * @note Complexity: @e O(1)
+ *
+ * @see @a ri_render_client_icon_selected's own comment in
+ *      @c render/icon.h
+ * @ see @a mi_cycle_preview_apply in @c menu/cycledraw.c, which already
+ *       applies the very same "selected" render this function itself
+ *       calls below.
  */
 static void s_cycle_repaint_icon(client_td *client, bool is_selected)
 {
@@ -607,8 +611,8 @@ void cycle_navigate_to(unsigned int idx)
 }
 
 
-/* Force the next 'cycle_draw' call to repaint the whole viewport; see
- * this function's own doc comment in menu/cycle.h */
+/* Force the next 'cycle_draw' call to repaint the whole viewport
+ * (see this function's own comment in 'menu/cycle.h') */
 void cycle_force_full_repaint(void)
 {
     g_cycle_menu.has_drawn_once = false;

@@ -18,13 +18,8 @@
 
 
 /**
- * @brief 'WM_CLASS' class name a newly mapped client must carry to be
- *        recognized as the scratchpad
- *
- * 'scratchpad.command' (config.json) is expected to pass this along,
- * e.g., 'xterm -class Scratchpad'; a command that does not set this
- * class is never recognized as the scratchpad client, no matter what
- * it launches.
+ * @brief Class name for @c WM_CLASS hint on a newly mapped client must
+ *        carry to be recognized as the scratchpad
  */
 #define WM_SCRATCHPAD_WM_CLASS "Scratchpad"
 

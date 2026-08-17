@@ -29,8 +29,8 @@ bool safeflg_is_valid(uint16_t flag, uint16_t max_flags)
 
     /* Check whether the specified flag is a valid, single-bit flag.
      * A valid flag must be a power of 2 and must be strictly less than
-     * 'max_flags' (which callers pass as '1 << CLIENT_FLAG_MAX',
-     * i.e., the exclusive upper bound on valid flag values). */
+     * 'max_flags' (which callers pass as '1 << CLIENT_FLAG_MAX', i.e.,
+     * the exclusive upper bound on valid flag values). */
     return (flag != 0 && (flag & (flag - 1)) == 0 &&
             flag < max_flags);
 }

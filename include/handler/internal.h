@@ -70,7 +70,7 @@ void hi_refresh_workareas(surface_td *surface);
  */
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
-        xcb_ewmh_connection_t *ewmh,
+        const xcb_ewmh_connection_t *ewmh,
         surface_td *surface, desktop_td *desktop);
 
 
@@ -110,20 +110,48 @@ void hi_handle_net_wm_desktop(wm_td *wm,
         client_td *client, surface_td *surface,
         desktop_td *src_desktop);
 
-
 /**
- * @brief Handle a @c _NET_MOVERESIZE_WINDOW client message
+ * @brief Handle a @c _NET_WM_MOVERESIZE client message
  *
- * Applies the requested geometry change to @p client.
+ * Lets a @c Client that draws its own titlebar or resize grips (common
+ * among GTK/Qt applications using client-side decoration) ask icowm to
+ * take over an interactive move or resize, the same way dragging
+ * icowm's own decoration would, rather than the Client having to track
+ * pointer motion itself.
+ *
+ * A @c Client MAY choose to grab the pointer directly instead and never
+ * send this message at all, so receiving it is optional to begin with,
+ * but a @c Client that does relies on getting the exact same
+ * move/resize behavior (edge snapping and so on) icowm's own decoration
+ * already provides.
+ *
+ * @p direction selects the operation:
+ * @c XCB_EWMH_WM_MOVERESIZE_MOVE starts a move; one of the eight
+ * @c XCB_EWMH_WM_MOVERESIZE_SIZE_* values starts a resize anchored on;
+ * @c XCB_EWMH_WM_MOVERESIZE_CANCEL cancels whichever of the two is
+ * currently active for this same client, if any.
+ *
+ * The message itself carries no timestamp (@p only x_root, @p y_root,
+ * direction, button, and source indication), so @c XCB_CURRENT_TIME is
+ * used for both the pointer grab and, where a move is requested, the
+ * drag state that would otherwise want the triggering event's own time.
+ * The keyboard variants (@c XCB_EWMH_WM_MOVERESIZE_MOVE_KEYBOARD and
+ * @c _SIZE_KEYBOARD) have no continuous, pointer-free equivalent in
+ * @c icowm's own move/resize machinery to hand off to, so they are
+ * acknowledged by being recognized at all but otherwise silently
+ * ignored, the same way some other window managers (e.g., i3) treat the
+ * full set of possible directions as more complexity than the few
+ * @c Clients actually relying on this message call for.
  *
  * @param wm      Window manager state
- * @param event   Client-message event carrying the requested geometry
- * @param client  Target client
- * @param surface Surface containing the client
- * @param desktop Desktop containing the client
+ * @param event   Incoming client message event
+ * @param client  Client the message targets
+ * @param surface Surface (screen) @p client is on
+ * @param desktop Desktop @p client is on
  *
- * @note Implemented in @c handler/ewmhmsg.c
  * @note Complexity: @e O(1)
+ *
+ * @see @a s_moveresize_direction_to_anchor
  */
 void hi_handle_net_moveresize_window(wm_td *wm,
         xcb_client_message_event_t *event,

@@ -31,12 +31,12 @@
  */
 struct util_cursor_ctx_s {
     xcb_connection_t *connection;
-    xcb_cursor_context_t *theme_ctx; /**< NULL if the theme lookup
-                                           itself could not be set up;
-                                           every load then falls back
-                                           to the X core font */
+    xcb_cursor_context_t *theme_ctx; /**< @c NULL if the theme lookup
+                                          itself could not be set up;
+                                          every load then falls back
+                                          to the X core font */
     xcb_font_t fallback_font;        /**< Opened lazily, on first
-                                           actual fallback use */
+                                          actual fallback use */
     bool fallback_font_open;
 };
 
@@ -61,10 +61,10 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
     ctx->fallback_font_open = false;
 
     if (xcb_cursor_context_new(connection, screen, &ctx->theme_ctx) < 0) {
-        /* Theme lookup unavailable (no theme installed, or the
-         * library itself could not initialize): every load will use
-         * the fallback font instead, still through this same context
-         * so the caller's code does not have to change either way. */
+        /* Theme lookup unavailable (no theme installed, or the library
+         * itself could not initialize): every load will use the
+         * fallback font instead, still through this same context so the
+         * caller's code does not have to change either way. */
         ctx->theme_ctx = NULL;
     }
 
@@ -78,7 +78,7 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
  *
  * @param ctx            Context to open (and cache) the font on
  * @param fallback_glyph Source glyph; the mask glyph is
- *                        @p fallback_glyph + 1
+ *                       @p (fallback_glyph + 1)
  *
  * @return The loaded cursor, or @c XCB_NONE if @p ctx is @c NULL
  *

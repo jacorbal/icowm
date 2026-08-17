@@ -26,10 +26,10 @@
  * structure as windows are added to the open-addressed hash table.
  *
  * Only the fallback used when restricted-memory mode is not active at
- * all (see @c memguard_max_clients, which @c desktop_init prefers
- * over this whenever @c -M is given); smaller under
- * @c COMPACT (see @c defs/compact.h) regardless, so a
- * compact build run without @c -M still starts with a more modest
+ * all (see @a memguard_max_clients, which @a desktop_init prefers over
+ * this whenever @c -M is given).  Smaller under @c COMPACT (for
+ * a comment on this mode, see @c defs/compact.h, or not) regardless, so
+ * a compact build run without @c -M still starts with a more modest
  * initial allocation than an ordinary build would.
  */
 #ifdef COMPACT
@@ -44,33 +44,43 @@
  */
 #define WM_DESKTOP_MAX_LENGTH_NAME (64)
 
-/** Desktop identifier when the client is pinned to all desktops */
+/**
+ * @brief Desktop identifier when the client is pinned to all desktops
+ */
 #define WM_DESKTOP_ID_ALL (0xFFFFFFFFu)
 
 /**
  * @brief Sentinel meaning a desktop's own @c background-color
- *        (config.json) was never explicitly set
+ *        (@c config.json) was never explicitly set
  *
  * Distinguishes "this desktop's entry did not set its own color" from
- * "this desktop's entry explicitly set this exact color", so a
- * desktop with no override of its own correctly falls back to
- * @c theme.desktop.color.background (theme.json) instead: any real,
- * explicitly configured 24-bit color always has its own top byte
+ * "this desktop's entry explicitly set this exact color", so a desktop
+ * with no override of its own correctly falls back to
+ * @p theme.desktop.color.background (in @c theme.json) instead.  Any
+ * real, explicitly configured 24-bit color always has its own top byte
  * zero, so this reserved value (top byte @c 0xFF) can never collide
  * with one.
  *
- * @see @c desktop_init in desktop.c, where this fallback is applied
+ * @see @a desktop_init in @c desktop.c, where this fallback is applied
  */
 #define WM_DESKTOP_BG_COLOR_UNSET (0xFF000000u)
 
-/** Duration in milliseconds for the desktop-switch notification */
+/**
+ * @brief Duration in milliseconds for the desktop-switch notification
+ */
 #define WM_DESKTOP_NOTIFY_TIMEOUT_MS (400)
 
-/** How long, in milliseconds, a window or icon drag has to hold the
- *  pointer against a screen edge before 'desktops.enable_edge_warp' (config.json;
- *  see config_desktop_s) switches to the adjacent desktop with the
- *  drag still held.  Long enough that merely passing through the edge
- *  on the way to a normal drop elsewhere does not trigger it. */
+/**
+ * @brief Milliseconds a window or icon drag has to hold the pointer
+ *        against a screen edge before switching to the adjacent desktop
+ *
+ * Milliseconds before @p desktops.enable_edge_warp (@c config.json)
+ * switches to the adjacent desktop with the drag still held.  Long
+ * enough that merely passing through the edge on the way to a normal
+ * drop elsewhere does not trigger it.
+ *
+ * @see @c config_desktop_s
+ */
 #define WM_DESKTOP_WARP_DELAY_MS (500)
 
 

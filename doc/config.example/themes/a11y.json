@@ -1,8 +1,9 @@
 {
     "name": "Accessibility theme",
+
     "-author": "J. A. Corbal",
-    "-creation-date": "Fri Aug 14 00:00:00 UTC 2026",
-    "-modified-date": "Fri Aug 14 00:00:00 UTC 2026",
+    "-creation-date": "Fri Aug 14 13:31:13 UTC 2026",
+    "-modified-date": "Fri Aug 14 13:31:13 UTC 2026",
     "-notes": "Blue/orange palette (safe for red-green color blindness, the most common kind) with every foreground/background pair checked against WCAG contrast ratios: AA (4.5:1) or better throughout, most pairs AAA (7:1) or better.",
 
     "desktop": {

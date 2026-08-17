@@ -5,13 +5,12 @@
  *        selection-owning manager
  *
  * Claiming a @c MANAGER-convention selection (@c _NET_SYSTEM_TRAY_Sn
- * for the systray, @c _XSETTINGS_Sn for the XSETTINGS manager, and
- * any future one) always follows the same three ICCCM steps: set
- * ownership, verify the server actually granted it, and broadcast the
- * standard @c MANAGER client message on the root window so other
- * tools notice.  This one implementation replaces what used to be an
- * identical sequence copied into @c systray/protocol.c and
- * @c xsettings.c.
+ * for the systray, @c _XSETTINGS_Sn for the XSETTINGS manager, and any
+ * future one) always follows the same three ICCCM steps: set ownership,
+ * verify the server actually granted it, and broadcast the standard
+ * MANAGER client message on the root window so other tools notice.
+ * This one implementation replaces what used to be an identical
+ * sequence copied into @c systray/protocol.c and @c xsettings.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -64,7 +63,8 @@ bool util_xcb_acquire_manager_selection(xcb_connection_t *connection,
     manager_ev.data.data32[1] = selection_atom;
     manager_ev.data.data32[2] = window;
     xcb_send_event(connection, 0, root,
-            XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &manager_ev);
+            XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+            (const char *) &manager_ev);
 
     return true;
 }

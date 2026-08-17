@@ -91,11 +91,11 @@ void dlgutil_draw_button_border(xcb_connection_t *connection,
  *        against
  *
  * Whichever monitor the pointer currently sits on, the same default
- * @c CONFIG_PLACEMENT_MONITOR_POINTER uses for window placement,
- * since a dialog has no window of its own to anchor a monitor
- * resolution to the way client placement does.  Falls back to a
- * monitor spanning the whole surface if the pointer query fails or
- * @p surface has no monitors of its own.
+ * @c CONFIG_PLACEMENT_MONITOR_POINTER uses for window placement, since
+ * a dialog has no window of its own to anchor a monitor resolution to
+ * the way client placement does.  Falls back to a monitor spanning the
+ * whole surface if the pointer query fails or @p surface has no
+ * monitors of its own.
  *
  * @param connection XCB connection, for the pointer query
  * @param surface    Surface to resolve a monitor on

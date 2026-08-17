@@ -40,28 +40,44 @@
 #include <render/glyph.h>
 
 
-/** Maximum distinct codepoints this renderer will cache and upload
- *  for one font; a WM's own text uses a small, stable alphabet, so a
- *  flat array with linear search is simpler than a hash table and
- *  fast enough at this size */
+/**
+ * @brief Maximum distinct codepoints this renderer will cache and
+ *        upload for one font
+ *
+ * A WM's own text uses a small, stable alphabet, so a flat array with
+ * linear search is simpler than a hash table and fast enough at this
+ * size
+ */
 #define GLYPH_CACHE_MAX (512u)
 
-/** Fallback pixel size when fontconfig's match does not resolve one */
+/**
+ * @brief Fallback pixel size when fontconfig's match does not resolve
+ *        one
+ */
 #define GLYPH_DEFAULT_PIXEL_SIZE (12)
 
-/** Maximum codepoints drawn or measured in a single call; long enough
- *  for any label this window manager itself draws (window titles,
- *  menu entries, dialog text) */
+/**
+ * @brief Maximum codepoints drawn or measured in a single call
+ *
+ * Long enough for any label this window manager itself draws (window
+ * titles, menu entries, dialog text)
+ */
 #define GLYPH_MAX_STRING_LEN (512u)
 
 
-/** One rasterized-and-uploaded glyph's cached metrics */
+/**
+ * @brief One rasterized-and-uploaded glyph's cached metrics
+ */
 typedef struct {
     uint32_t codepoint;
     int16_t advance_x;
 } s_glyph_cache_entry_td;
 
 
+
+/**
+ * @brief Global state for X Render glyph loading, caching, and drawing
+ */
 static struct {
     xcb_connection_t *connection;
     char font_name[256];
@@ -236,7 +252,7 @@ static bool s_resolve_font(const char *font_name, char *out_file,
  * @brief Free every xcb-render object the renderer currently owns,
  *        without touching the FreeType or fontconfig state
  *
- * Shared by @c glyph_renderer_destroy and by @c glyph_renderer_init
+ * Shared by @a glyph_renderer_destroy and by @a glyph_renderer_init
  * when reinitializing for a new font, since both need the previous
  * glyph set and picture gone before a new one is created.
  *
@@ -280,7 +296,7 @@ static void s_free_render_objects(void)
 static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
 {
     FT_UInt glyph_index;
-    FT_Bitmap *bitmap;
+    const FT_Bitmap *bitmap;
     xcb_render_glyphinfo_t ginfo;
     uint32_t gid;
     uint16_t stride;
@@ -391,7 +407,8 @@ int glyph_renderer_init(xcb_connection_t *connection,
     const xcb_render_pictvisual_t *visual_info;
     xcb_render_color_t color;
 
-    if (connection == NULL || font_name == NULL || font_name[0] == '\0') {
+    if (connection == NULL || font_name == NULL ||
+            font_name[0] == '\0') {
         return -1;
     }
 
@@ -434,8 +451,8 @@ int glyph_renderer_init(xcb_connection_t *connection,
     }
 
     /* Cached across calls (re-fetched only when the connection itself
-     * changes): this is queried on every font switch otherwise, and a
-     * single redraw pass can switch fonts many times (once per
+     * changes).  This is queried on every font switch otherwise, and
+     * a single redraw pass can switch fonts many times (once per
      * differently styled label), which would otherwise mean a full
      * round trip to the X server for something that never actually
      * changes while the connection is open. */

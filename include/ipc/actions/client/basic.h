@@ -3,10 +3,12 @@
  *
  * @brief IPC commands mirroring @c cmds/client/basic.h's own actions
  *
- * Every one of these is a thin @c ipc_dispatch_client_action call
- * around the matching @c enact_client_* function: resolve @c
- * "client_id", run the one action, report success or the reason it
- * could not be found.  See ipc/dispatch.h for that shared mechanism.
+ * Every one of these is a thin @a ipc_dispatch_client_action call
+ * around the matching @a enact_client_* function: resolve @c client_id,
+ * run the one action, report success or the reason it could not be
+ * found.
+ *
+ * @see @c ipc/dispatch.h for that shared mechanism
  *
  * @defgroup ipc_actions_client_basic IPC client lifecycle/flag actions
  * @ingroup ipc
@@ -31,44 +33,44 @@
 
 
 /* Public interface */
-/** "close_client": politely ask the client to close, or destroy its
+/** @c close_client: politely ask the client to close, or destroy its
  *  window directly if it does not support that */
 cJSON *ipc_action_close_client(wm_td *wm, const cJSON *args);
 
-/** "kill_client": forcibly terminate the client's own X connection */
+/** @c kill_client: forcibly terminate the client's own X connection */
 cJSON *ipc_action_kill_client(wm_td *wm, const cJSON *args);
 
-/** "deiconify_client": restore the client if it was iconified */
+/** @c deiconify_client: restore the client if it was iconified */
 cJSON *ipc_action_deiconify_client(wm_td *wm, const cJSON *args);
 
-/** "focus_client": focus and raise the client */
+/** @c focus_client: focus and raise the client */
 cJSON *ipc_action_focus_client(wm_td *wm, const cJSON *args);
 
-/** "unfocus_client": clear input focus from the client, if it had it */
+/** @c unfocus_client: clear input focus from the client, if it had it */
 cJSON *ipc_action_unfocus_client(wm_td *wm, const cJSON *args);
 
-/** "iconify_client": iconify (minimize) the client */
+/** @c iconify_client: iconify (minimize) the client */
 cJSON *ipc_action_iconify_client(wm_td *wm, const cJSON *args);
 
-/** "hide_client": hide the client without iconifying it */
+/** @c hide_client: hide the client without iconifying it */
 cJSON *ipc_action_hide_client(wm_td *wm, const cJSON *args);
 
-/** "unhide_client": undo "hide_client" */
+/** @c unhide_client: undo @c hide_client */
 cJSON *ipc_action_unhide_client(wm_td *wm, const cJSON *args);
 
-/** "pin_client": make the client visible on every desktop */
+/** @c pin_client: make the client visible on every desktop */
 cJSON *ipc_action_pin_client(wm_td *wm, const cJSON *args);
 
-/** "unpin_client": undo "pin_client" */
+/** @c unpin_client: undo @c pin_client */
 cJSON *ipc_action_unpin_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_pin_client" */
+/** @c toggle_pin_client */
 cJSON *ipc_action_toggle_pin_client(wm_td *wm, const cJSON *args);
 
-/** "urge_client": mark the client urgent */
+/** @c urge_client: mark the client urgent */
 cJSON *ipc_action_urge_client(wm_td *wm, const cJSON *args);
 
-/** "unurge_client": undo "urge_client" */
+/** @c unurge_client: undo @c urge_client */
 cJSON *ipc_action_unurge_client(wm_td *wm, const cJSON *args);
 
 

@@ -124,7 +124,7 @@ enum logger_level_e {
     LOG_ERROR,                  /**< Conditions on operations */
     LOG_CRITICAL,               /**< Conditions that may lead to failure */
     LOG_ALERT,                  /**< Immediate action is necessary */
-    LOG_FATAL,                  /**< Program in unusable: shutdown */
+    LOG_FATAL,                  /**< Program in unusable; shutting down */
     LOG_MAX_LEVEL = LOG_FATAL,
 };
 
@@ -175,14 +175,17 @@ typedef struct {
  * @brief Initializes a new logger
  *
  * The logging behavior is as follows:
- *  - If filename is keyword:
- *      - "NULL", the logger will be deactivated;
- *      - "STDOUT", all logs will be written to @c stdout;
- *      - "STDERR", all logs will be written to @c stderr;
- *      - "DEFAULT", debug and information logs are sent to @c stdout,
- *        warning and error logs are sent to @c stderr.
- *  - For any other name, the logger will open that filename to append
- *    newer information
+ *
+ * - If filename is keyword:
+ *
+ *    - "NULL", the logger will be deactivated;
+ *    - "STDOUT", all logs will be written to @c stdout;
+ *    - "STDERR", all logs will be written to @c stderr;
+ *    - "DEFAULT", debug and information logs are sent to @c stdout,
+ *      warning and error logs are sent to @c stderr.
+ *
+ * - For any other name, the logger will open that filename to append
+ *   newer information
  *
  * If it's a file, log entries are written to a buffer until it reaches
  * its capacity.  Once the buffer is full or an error occurs, the

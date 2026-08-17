@@ -1,16 +1,16 @@
 /**
  * @file i18n.h
  *
- * @brief GUI text translation: the @c _() lookup macro, and one-time
- *        setup
+ * @brief GUI text translation
  *
- * Covers dialog messages, buttons, and menu labels only (every @c STR_*
- * constant in @c defs/uistr.h).
+ * Sets the @a _() lookup macro, and one-time setup.  Covers dialog
+ * messages, buttons, and menu labels only (every @c STR_* constant in
+ * @c defs/uistr.h).
  *
- * @note The command line (@c main.c, @c icowm-msg) and @c LOGGER_*
- *       messages are deliberately never translated, the same
- *       distinction @c defs/uistr.h itself already draws, since both
- *       serve a diagnostic, not an end-user, audience.
+ * @note The command line and @c LOGGER_* messages are deliberately
+ *       never translated, the same distinction @c defs/uistr.h itself
+ *       already draws, since both serve a diagnostic, not an end-user,
+ *       audience
  *
  * @ingroup wm
  */
@@ -34,9 +34,9 @@
  * @brief Look up one GUI string's own translation for the current
  *        locale
  *
- * Wrapper around @c gettext itself, named the short, conventional way
- * every @c gettext project names it, so a translated string reads as
- * a normal argument at its own call site (@c _(STR_FOO)) rather than
+ * Wrapper around @a gettext itself, named the short, conventional way
+ * every @a gettext project names it, so a translated string reads as
+ * a normal argument at its own call site (@a _(STR_FOO)) rather than
  * a visibly separate lookup step.
  *
  * @param string Original, untranslated string (in practice, always one
@@ -50,7 +50,7 @@
  * @brief Set up GUI text translation for the rest of this process's own
  *        lifetime
  *
- * Reads the locale the environment already names (@c setlocale with an
+ * Reads the locale the environment already names (@a setlocale with an
  * empty string, the standard way to defer to @c LANG / @c LC_ALL rather
  * than hardcoding one), then points this domain (@c I18N_DOMAIN,
  * "default") at the compiled @c .mo catalogs this project ships under
@@ -59,13 +59,13 @@
  * absolute path baked in from @c ($(CURDIR)) at compile time, not
  * something a header could name on its own.
  *
- * Every @c _(STR_FOO) call anywhere in the process looks a translation
+ * Every @a _(STR_FOO) call anywhere in the process looks a translation
  * up through exactly this setup; called once, at startup, well before
  * the first dialog or menu could possibly be shown.
  *
  * @note A missing catalog for the current locale, or no locale support
  *       installed on the system at all, is never a startup failure
- *       because @c gettext itself already falls back to the original
+ *       because @a gettext itself already falls back to the original
  *       text when it cannot find or load a translation, silently and
  *       correctly, so this has nothing further to check or report.
  *

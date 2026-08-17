@@ -51,7 +51,7 @@ void loop_run(wm_td *wm);
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-void loop_update(wm_td *wm);
+void loop_update(const wm_td *wm);
 
 /**
  * @brief Force a full re-render of all surfaces
@@ -65,7 +65,7 @@ void loop_update(wm_td *wm);
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
  *       and @e m is the number of desktops
  */
-void loop_update_full(wm_td *wm);
+void loop_update_full(const wm_td *wm);
 
 
 #endif  /* ! LOOP_H */

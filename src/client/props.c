@@ -107,10 +107,6 @@ int ci_get_wm_class(xcb_connection_t *connection,
 {
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
-    char *value;
-    size_t value_len;
-    size_t inst_len;
-    size_t copy_len;
 
     if (class_buf == NULL || class_sz == 0) {
         return -1;
@@ -126,12 +122,13 @@ int ci_get_wm_class(xcb_connection_t *connection,
     }
 
     if (reply != NULL && reply->value_len > 0) {
-        value = (char *) xcb_get_property_value(reply);
-        value_len = reply->value_len;
+        char *value = (char *) xcb_get_property_value(reply);
+        size_t value_len = reply->value_len;
+        size_t inst_len = 0;
+        size_t copy_len;
 
         /* 'WM_CLASS' format: "instance\0class\0"
          * Find the first null terminator to separate the two strings */
-        inst_len = 0;
         for (size_t i = 0; i < value_len; ++i) {
             if (value[i] == '\0') {
                 inst_len = i;
@@ -205,7 +202,7 @@ static void s_client_read_legacy_name_prop(client_td *client,
     if (reply != NULL && reply->value_len > 0) {
         size_t len = (reply->value_len < 255u)
             ? reply->value_len : 254u;
-        char *value = (char *) xcb_get_property_value(reply);
+        const char *value = (char *) xcb_get_property_value(reply);
 
         memcpy(dest1, value, len);
         dest1[len] = '\0';

@@ -116,8 +116,7 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  * @brief Check whether a pointer position is near the edge of a client
  *
  * Returns @c true when the pointer's root coordinates fall within the
- * adaptive resize-grab margin (see @c im_resize_bounds in
- * input/mouse/bounds.h) of any edge of the client's current
+ * adaptive resize-grab margin of any edge of the client's current
  * bounding box, indicating that a border-drag resize should be
  * initiated.
  *
@@ -125,10 +124,11 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  * @param root_x Pointer X position in root-window coordinates
  * @param root_y Pointer Y position in root-window coordinates
  *
- * @return @c true if the pointer is on the resize border, @c false
- *         otherwise
+ * @return @c true if the pointer is on the resize border
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a im_resize_bounds in @c input/mouse/bounds.h
  */
 static bool s_mouse_near_edge(const client_td *client,
         int16_t root_x, int16_t root_y)
@@ -148,27 +148,27 @@ static bool s_mouse_near_edge(const client_td *client,
 }
 
 
-/* Overlay dismissal                                                    */
+/* Overlay dismissal */
 
 /**
  * @brief Handle a button press on one already-open context menu type
- *        (window menu, root menu, or window list): forward the click
+ *        (window menu, root menu, or window list), forward the click
  *        if it landed on that menu, or close it otherwise
  *
- * Shared by @c s_mouse_close_open_overlays' three near-identical
+ * Shared by @a s_mouse_close_open_overlays' three near-identical
  * context-menu cases below, which only differ in which module's own
- * @c owns_window/handle_click/close functions to call; each of those
+ * @a owns_window/handle_click/close functions to call; each of those
  * three menu types exposes the exact same signature for all three, so
  * passing them in directly loses no type safety over writing each
  * case out by hand.
  *
- * @param connection  XCB connection
- * @param surfaces    Surface list (for root lookup)
- * @param event       Incoming button-press event
- * @param config      Active configuration
- * @param owns_window The menu type's own @c X_owns_window
+ * @param connection   XCB connection
+ * @param surfaces     Surface list (for root lookup)
+ * @param event        Incoming button-press event
+ * @param config       Active configuration
+ * @param owns_window  The menu type's own @c X_owns_window
  * @param handle_click The menu type's own @c X_handle_click
- * @param close       The menu type's own @c X_close
+ * @param close        The menu type's own @c X_close
  *
  * @note Complexity: @e O(1)
  */
@@ -177,16 +177,17 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
         const config_td *config,
         bool (*owns_window)(xcb_window_t),
         bool (*handle_click)(xcb_connection_t *, surface_td *,
-                xcb_window_t, int, int, const config_td *),
+                xcb_window_t, int, const config_td *),
         void (*close)(void))
 {
-    surface_td *surface = lookup_surface_for_root(surfaces, event->root);
+    surface_td *surface = lookup_surface_for_root(surfaces,
+            event->root);
     bool owns_event = owns_window(event->event);
 
     if (owns_event || owns_window(event->child)) {
         xcb_window_t mw = (owns_event) ? event->event : event->child;
         (void) handle_click(connection, surface, mw,
-                (int) event->root_x, (int) event->root_y, config);
+                (int) event->root_y, config);
     } else {
         close();
     }
@@ -216,11 +217,11 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
-    surface_td *surface;
-
     /* Popup: close unconditionally on any click, then allow processing */
     if (popup_is_open()) {
-        surface = lookup_surface_for_root(surfaces, event->root);
+        surface_td *surface= lookup_surface_for_root(surfaces,
+                event->root);
+
         popup_close(connection);
         if (surface != NULL) {
             surface_render_current_desktop_repaint(surface);
@@ -332,17 +333,18 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
  * @brief Keep a sticky client's active-window state consistent across
  *        every desktop on its surface
  *
- * @c focus_apply only updates @c client_active_id on the one @p desktop
+ * @a focus_apply only updates @a client_active_id on the one @p desktop
  * passed to it.  For an ordinary client that is enough, but a sticky
- * one (visible on every desktop; see @c client_is_pinned) is expected
+ * one (visible on every desktop; see @a client_is_pinned) is expected
  * to keep showing as the active window no matter which desktop the
- * user switches to next.  Without this, @c surface_clients_sticky_
- * transfer_all's own "was this sticky client active on the desktop
- * being switched away from" check (see surface/actions.c) would only
- * see the single desktop @c focus_apply touched, silently dropping the
- * active-window highlight the next time the user switches through any
- * other desktop first.  A no-op for a non-sticky @p client, or when
- * either @p surface or @p client is @c NULL.
+ * user switches to next.  Without this,
+ * @a surface_clients_sticky_transfer_all's own "was this sticky client
+ * active on the desktop being switched away from" check (see
+ * surface/actions.c) would only see the single desktop @a focus_apply
+ * touched, silently dropping the active-window highlight the next time
+ * the user switches through any other desktop first.  A no-op for
+ * a non-sticky @p client, or when either @p surface or @p client is
+ * null.
  *
  * @param surface Surface whose desktops are kept in sync
  * @param desktop The one desktop @c focus_apply already updated,
@@ -353,10 +355,10 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
  *       @p surface
  */
 static void s_mouse_sync_sticky_active(surface_td *surface,
-        desktop_td *desktop, client_td *client)
+        const desktop_td *desktop, const client_td *client)
 {
     cdlist_item_td *dnode;
-    cdlist_item_td *dinitial;
+    const cdlist_item_td *dinitial;
 
     if (surface == NULL || surface->desktops == NULL ||
             client == NULL || !client_is_pinned(client)) {
@@ -372,7 +374,8 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
     do {
         desktop_td *d = (desktop_td *) cdlist_data(dnode);
 
-        if (d != NULL && d != desktop && d->client_active_id != client->id) {
+        if (d != NULL && d != desktop &&
+                d->client_active_id != client->id) {
             d->client_active_id = client->id;
             d->focus_dirty = true;
         }
@@ -406,7 +409,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         xcb_get_geometry_reply_t *gr;
         int32_t icon_x;
         int32_t icon_y;
-        surface_td *surface;
+        const surface_td *surface;
 
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, NULL);
@@ -599,7 +602,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 
 /**
  * @brief Mark a desktop and its surface outdated, either of which may
- *        be @c NULL
+ *        be null
  *
  * Shared by every titlebar-click and scroll case in @c s_mouse_hit_
  * titlebar_buttons that changes the client's state and needs the next
@@ -644,7 +647,7 @@ static bool s_titlebar_button_at(
  * @param client       Client whose titlebar was clicked
  * @param can_maximize Whether maximize/fullscreen are currently enabled
  * @param event        Incoming button-press event (button 1/2/3 select
- *                      full/vertical/horizontal maximize respectively)
+ *                     full/vertical/horizontal maximize respectively)
  */
 static void s_titlebar_button_action(enum config_titlebar_button_e button,
         client_td *client, bool can_maximize,
@@ -755,23 +758,22 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     }
 
     /* Per the X11 protocol, 'event_x'/'event_y' are always relative
-     * to the origin of 'event->event' -- here, 'client->frame', the
-     * window this whole button-press grab was established on (see
-     * this file's own comment on 'owner_events=0' by
-     * 'ci_create_decorations', client/geom.c) -- never to
-     * 'event->child' ('client->titlebar', the window the click
-     * actually landed in), regardless of which one the click hit.
-     * Every button position 'client_titlebar_layout' computes below
-     * is relative to the titlebar's own origin instead, the same
-     * origin the titlebar's own physical window is created and kept
-     * synced at -- '(left, title_y)' within the frame, both times
+     * to the origin of 'event->event' (here, 'client->frame', the
+     * window this whole button-press grab was established on) never to
+     * 'event->child' ('client->titlebar', the window the click actually
+     * landed in), regardless of which one the click hit.
+     *
+     * Every button position 'client_titlebar_layout' computes below is
+     * relative to the titlebar's own origin instead, the same origin
+     * the titlebar's own physical window is created and kept synced at,
+     * '(left, title_y)', within the frame, both times
      * ('ci_create_decorations' and 'client_sync_decoration_layout',
-     * both client/geom.c). Left unconverted, comparing a frame-
-     * relative click straight against titlebar-relative button
-     * positions is off by exactly that offset on both axes -- (left,
-     * title_y) -- imperceptible at the traditional 1px border this
-     * bug shipped with for years, severe with a large one, since the
-     * offset grows with it. */
+     * both client/geom.c). Left unconverted, comparing a frame-relative
+     * click straight against titlebar-relative button positions is off
+     * by exactly that offset on both axes, '(left, title_y)',
+     * imperceptible at the traditional 1px border this bug shipped with
+     * for years, severe with a large one, since the offset grows with
+     * it. */
     ex -= left_extent;
     ey -= title_y;
 
@@ -784,9 +786,9 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
      * determines 'btn_y' now that button rows can be vertically inset
      * by 'padding.vertical', not just centered in the full titlebar
      * height. */
-    client_titlebar_layout(client->theme, (uint16_t) fw, (uint16_t) title_h,
-            hide_pin, left, &left_n, right, &right_n, &title_x, &title_w,
-            &btn_y);
+    client_titlebar_layout(client->theme, (uint16_t) fw,
+            (uint16_t) title_h, hide_pin,
+            left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     /* Only test buttons when the click Y is within the button row */
     if (ey >= btn_y && ey < btn_y + (int) WM_DECOR_BTN_SIZE) {
@@ -825,8 +827,9 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 /**
  * @brief Handle a click on the client titlebar
  *
- * Delegates to @c s_mouse_hit_titlebar_buttons first.
+ * Delegates to @a s_mouse_hit_titlebar_buttons first.
  * If no button was hit:
+ *
  * - Left-click starts a move drag, or toggles shade on double-click.
  * - Right-click opens the window context menu.
  *
@@ -902,22 +905,22 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
 /**
  * @brief Test whether a button press should initiate a resize drag
  *
- * Returns @c true when the client is resizable, not fullscreen or
- * fully maximized (a fixed-size state with no border left to drag at
- * all: "Maximized windows can't be moved or resized", Karp, O'Reilly,
- * & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed., ch. 2), and the
- * click landed on the frame border or near the edge of an undecorated
- * window.  A client maximized on just one axis (horizontal-only or
- * vertical-only) is allowed here: its still-free axis can be resized
- * normally, while its maximized one gets locked out once the drag
- * actually starts (see @c drag_start_resize_axis_locked, called from
- * @c s_mouse_start_border_resize).
+ * Returns @c true when the client is resizable, not fullscreen or fully
+ * maximized (a fixed-size state with no border left to drag at all, and
+ * the click landed on the frame border or near the edge of an
+ * undecorated window.  A client maximized on just one axis
+ * (horizontal-only or vertical-only) is allowed here.  Its still-free
+ * axis can be resized normally, while its maximized one gets locked out
+ * once the drag actually starts.
  *
  * @param client Client to test
  * @param window The X window that received the event
  * @param event  Incoming button-press event
  *
  * @return @c true if a resize drag should begin
+ *
+ * @see @a drag_start_resize_axis_locked, called from
+ *      @a s_mouse_start_border_resize
  */
 static bool s_mouse_can_resize_client(const client_td *client,
         xcb_window_t window, const xcb_button_press_event_t *event)
@@ -1045,7 +1048,8 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
-    surface_td *surface = lookup_surface_for_root(surfaces, event->root);
+    surface_td *surface = lookup_surface_for_root(surfaces,
+            event->root);
 
     if (surface == NULL) {
         return;
@@ -1096,9 +1100,9 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
  * @brief Resolve the managed client under a button event, preferring
  *        its reparented child window over the frame it was grabbed on
  *
- * A button event's own @c child field names the deepest window under
- * the pointer -- usually the client's own reparented content window --
- * while @c event names whichever window the grab was actually
+ * A button event's own @p child field names the deepest window under
+ * the pointer (usually the client's own reparented content window)
+ * while @p event names whichever window the grab was actually
  * established on, usually the frame.  Tried in that order so a click
  * landing on the client's own content still resolves correctly even in
  * cases (an icon window, which has no frame of its own) where the
@@ -1107,14 +1111,16 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
  * @param connection  Unused; kept only so this matches the signature
  *                     shape of the other handlers around it
  * @param surfaces    Singly-linked list of @c surface_td pointers
- * @param event_win   The @c event field from the triggering XCB event
- * @param child_win   The @c child field from the triggering XCB event
+ * @param event_win   The @p event field from the triggering XCB event
+ * @param child_win   The @p child field from the triggering XCB event
  * @param out_desktop If non-null, receives the owning desktop
  *
  * @return Pointer to the matching client, or @c NULL if neither window
  *         belongs to one
  *
- * @note Complexity: @e O(s * d * c); see @c lookup_find_client
+ * @note Complexity: @e O(s * d * c)
+ *
+ * @see @a lookup_find_client
  */
 static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
         list_td *surfaces, xcb_window_t event_win, xcb_window_t child_win,
@@ -1125,10 +1131,12 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
     (void) connection;
 
     if (child_win != XCB_NONE) {
-        client = lookup_find_client(surfaces, child_win, NULL, out_desktop);
+        client = lookup_find_client(surfaces, child_win, NULL,
+                out_desktop);
     }
     if (client == NULL) {
-        client = lookup_find_client(surfaces, event_win, NULL, out_desktop);
+        client = lookup_find_client(surfaces, event_win, NULL,
+                out_desktop);
     }
 
     return client;
@@ -1336,10 +1344,8 @@ void mouse_handle_press(xcb_connection_t *connection,
         return;
     }
 
-    screen_w = (surface != NULL)
-        ? surface->properties.dim.w : 0u;
-    screen_h = (surface != NULL)
-        ? surface->properties.dim.h : 0u;
+    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
 
     /* A window maximized on just one axis still allows this
      * binding to resize its free axis, the same as a plain
@@ -1366,7 +1372,7 @@ void mouse_handle_press(xcb_connection_t *connection,
 
 /* Handle a button-release event to end a drag */
 void mouse_handle_release(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_release_event_t *event,
+        list_td *surfaces, const xcb_button_release_event_t *event,
         const config_td *config)
 {
     client_td *client;
@@ -1412,7 +1418,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
     }
 
     LOGGER_TRACE("Enter notify (event=0x%x, child=0x%x," \
-            " root=%d+%d, mode=%u, detail=%u)",
+            " root=%+d%+d, mode=%u, detail=%u)",
             event->event, event->child, event->root_x, event->root_y,
             event->mode, event->detail);
 

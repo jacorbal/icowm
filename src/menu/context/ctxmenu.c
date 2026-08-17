@@ -133,10 +133,10 @@ static uint16_t s_build_layout(ctxmenu_state_td *state)
  *        entries, in whichever font is currently active
  *
  * Shared by @c s_compute_width's own second and third measuring
- * passes (@c unselected.font and @c selected.font respectively): the
+ * passes (@c unselected.font and @c selected.font respectively).  The
  * two are otherwise identical, differing only in which font is active
- * when each is called; see @c s_compute_width's own doc comment for
- * why those stay two separate passes rather than one combined loop.
+ * when each is called; see @c s_compute_width's comment for why those
+ * stay two separate passes rather than one combined loop.
  *
  * @param entries     Entries to measure
  * @param entry_count Number of entries in @p entries
@@ -205,13 +205,13 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
 
     /* Space reserved for an entry's own icon plus one more gap (the
      * same width as the menu's own left padding) before its label;
-     * see 'theme.menu.show-pixmaps''s own doc comment in config.h. */
+     * see 'theme.menu.show-pixmaps''s comment in 'config.h' */
     if (config->theme.menu.show_pixmaps) {
         /* '#if', not a runtime ternary: both operands are fixed
          * compile-time constants, so a ternary here left one branch
          * provably unreachable to the compiler (-Wunreachable-code).
          * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently. */
+         * constant that would otherwise underflow silently */
 #if WM_CTXMENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         uint16_t icon_size = (uint16_t)
             (WM_CTXMENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -278,20 +278,16 @@ static uint16_t s_compute_width(xcb_connection_t *connection,
  */
 static int s_entry_at_y(const ctxmenu_state_td *state, int y)
 {
-    int lo;
-    int hi;
-    int mid;
-    int found;
     int cur_y;
     int row_h;
 
     if (state->entry_top_y != NULL) {
-        lo = 0;
-        hi = state->entry_count - 1;
-        found = -1;
+        int found = -1;
+        int lo = 0;
+        int hi = state->entry_count - 1;
 
         while (lo <= hi) {
-            mid = lo + (hi - lo) / 2;
+            int mid = lo + (hi - lo) / 2;
             if (state->entry_top_y[mid] <= y) {
                 found = mid;
                 lo = mid + 1;
@@ -478,7 +474,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
      * 1px for 'unselected'/'selected' and to 0 for 'label', so
      * heading rows stay plain by default.  This is separate from
      * 'menu.border', the menu window's own outer frame, entries
-     * aside; see that field's own doc comment in config.h. */
+     * aside; see that field's comment in 'config.h'. */
     if (e->type != CTXMENU_SEPARATOR && border_width > 0u) {
         xcb_gcontext_t border_gc = xcb_generate_id(conn);
         xcb_rectangle_t border_rect;
@@ -514,9 +510,9 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
     text_x = (int16_t) state->config->theme.menu.padding.horizontal;
 
-    /* An entry with an associated client (see 'icon_window''s own doc
-     * comment in ctxmenu.h) reserves this same square of space
-     * whether or not a real icon is actually drawn into it: a client
+    /* An entry with an associated client (see 'icon_window''s 
+     * comment in 'ctxmenu.h') reserves this same square of space
+     * whether or not a real icon is actually drawn into it.  A client
      * with no icon of its own to draw still leaves every row's text
      * aligned in the same column. */
     if (draw_icon) {
@@ -658,8 +654,6 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     int sel;
     ctxmenu_state_td *root;
     ctxmenu_state_td *child_state;
-    int16_t sub_x;
-    int16_t sub_y;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
         return false;
@@ -687,6 +681,9 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
             if (child_state != NULL &&
                     state->entries[sel].items != NULL &&
                     state->entries[sel].item_count > 0) {
+                int16_t sub_x;
+                int16_t sub_y;
+
                 if (state->child != NULL) {
                     ctxmenu_close(state->child);
                     state->child = NULL;
@@ -1008,11 +1005,9 @@ void ctxmenu_repaint(ctxmenu_state_td *state)
 /* Handle a button-press event inside a context menu window */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int x, int y, const config_td *config)
+        int y, const config_td *config)
 {
     int idx;
-    int16_t sub_x;
-    int16_t sub_y;
     ctxmenu_state_td *child_state;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
@@ -1036,6 +1031,9 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
     s_activated_by_keyboard = false;
 
     if (state->entries[idx].type == CTXMENU_SUBMENU) {
+        int16_t sub_x;
+        int16_t sub_y;
+
         /* Open or re-open the child submenu to the right.
          * The caller stores the child 'ctxmenu_state_td' pointer in the
          * entry's 'userdata' field. */
@@ -1206,20 +1204,7 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state)
 }
 
 
-/**
- * @brief Repaint whichever submenu under @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_repaint (root menu, window
- * menu, window list): each one only differs in which @c root state it
- * passes, so this one function replaces an identical lookup-then-
- * repaint sequence that used to be copied into each of them.
- *
- * @param root Top-level state of the concrete menu's own submenu tree
- * @param win  Window the repaint request arrived for
- *
- * @note No-op if @p win does not belong to any submenu under @p root
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
+/* Repaint whichever submenu under 'root' currently owns 'win' */
 void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win)
 {
     ctxmenu_state_td *state;
@@ -1231,22 +1216,8 @@ void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win)
 }
 
 
-/**
- * @brief Forward a pointer-motion event to whichever submenu under
- *        @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_handle_motion; see
- * @c ctxmenu_repaint_window's own doc comment for the general
- * reasoning.
- *
- * @param root Top-level state of the concrete menu's own submenu tree
- * @param win  Window the motion event arrived for
- * @param x    Pointer X position, in @p win's own coordinates
- * @param y    Pointer Y position, in @p win's own coordinates
- *
- * @note No-op if @p win does not belong to any submenu under @p root
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
+/* Forward a pointer-motion event to whichever submenu under 'root'
+ * currently owns 'win' */
 void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
         xcb_window_t win, int x, int y)
 {
@@ -1259,31 +1230,11 @@ void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
 }
 
 
-/**
- * @brief Forward a click, translated to menu-local coordinates, to
- *        whichever submenu under @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_handle_click; see
- * @c ctxmenu_repaint_window's own doc comment for the general
- * reasoning.
- *
- * @param connection XCB connection
- * @param surface    Surface the click occurred on
- * @param root       Top-level state of the concrete menu's own
- *                   submenu tree
- * @param win        Window the click event arrived for
- * @param x          Pointer X position, in @p win's own coordinates
- * @param y          Pointer Y position, in @p win's own coordinates
- * @param config     Active configuration
- *
- * @return @c true if @p win belonged to a submenu under @p root and
- *         the click was forwarded, @c false otherwise
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
+/* Forward a click, translated to menu-local coordinates, to whichever
+ * submenu under 'root' currently owns 'win' */
 bool ctxmenu_handle_click_window(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
-        int x, int y, const config_td *config)
+        int y, const config_td *config)
 {
     ctxmenu_state_td *state;
 
@@ -1292,35 +1243,12 @@ bool ctxmenu_handle_click_window(xcb_connection_t *connection,
         return false;
     }
 
-    x -= state->origin_x;
     y -= state->origin_y;
-    return ctxmenu_handle_click(connection, surface, state, x, y,
-            config);
+    return ctxmenu_handle_click(connection, surface, state, y, config);
 }
 
 
-/**
- * @brief Forward a keypress to the deepest currently open submenu
- *        under @p root
- *
- * Applies the keypress to the deepest open submenu, not always
- * @p root itself: without this, arrow keys would keep moving the
- * selection in a top-level list even while a nested submenu was open
- * in front of it, making that submenu look unresponsive to the
- * keyboard.  Shared by every concrete menu's own
- * @c X_handle_keypress.
- *
- * @param connection XCB connection
- * @param surface    Surface the key press occurred on
- * @param root       Top-level state of the concrete menu's own
- *                   submenu tree
- * @param keysym     Keysym of the pressed key
- * @param config     Active configuration
- *
- * @return @c true if the key was consumed, @c false otherwise
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
+/* Forward a keypress to the deepest currently open submenu under 'root' */
 bool ctxmenu_handle_keypress_deepest(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)

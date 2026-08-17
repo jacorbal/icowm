@@ -3,8 +3,8 @@
  *
  * @brief The read-only IPC commands: version, listings, focus status
  *
- * Unlike every other file under ipc/actions/, none of these mirror a
- * single @c enact_* function; they read state that already exists
+ * Unlike every other file under @c ipc/actions/, none of these mirror
+ * a single @a enact_* function; they read state that already exists
  * rather than acting on anything.
  *
  * @defgroup ipc_actions_query IPC read-only queries
@@ -30,16 +30,16 @@
 
 
 /* Public interface */
-/** "get_version": no arguments */
+/** @c get_version: no arguments */
 cJSON *ipc_action_get_version(wm_td *wm, const cJSON *args);
 
-/** "list_desktops": no arguments */
+/** @c list_desktops: no arguments */
 cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args);
 
-/** "list_clients": no arguments */
+/** @c list_clients: no arguments */
 cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args);
 
-/** "get_focused": no arguments */
+/** @c get_focused: no arguments */
 cJSON *ipc_action_get_focused(wm_td *wm, const cJSON *args);
 
 

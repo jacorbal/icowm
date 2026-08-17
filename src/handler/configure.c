@@ -64,7 +64,7 @@
  * @note Complexity: @e O(1)
  */
 static void s_handler_send_synthetic_configure_notify(
-        xcb_connection_t *connection, client_td *client)
+        xcb_connection_t *connection, const client_td *client)
 {
     client_send_synthetic_configure_notify(connection, client);
 }
@@ -131,7 +131,6 @@ void handler_configure_request(xcb_connection_t *connection,
     uint16_t target_mask;
     uint32_t target_values[7];
     bool geom_changed;
-    bool interactive_geom;
     int i;
 
     if (event == NULL) {
@@ -166,7 +165,7 @@ void handler_configure_request(xcb_connection_t *connection,
     if (client != NULL) {
         LOGGER_DEBUG("'ConfigureRequest' matched client window=0x%x:" \
                 " frame=0x%x, decorated=%d, on_inner=%d, mask=0x%x," \
-                " requested=%ux%u+%d+%d, operation=%u",
+                " requested=%ux%u+%+d%+d, operation=%u",
                 client->window, client->frame,
                 (int) client_is_decorated(client),
                 (int) (event->window == client->window),
@@ -179,19 +178,16 @@ void handler_configure_request(xcb_connection_t *connection,
     target_mask = 0;
     i = 0;
     if (client != NULL) {
+        bool interactive_geom;
         bool is_reparented = (client->frame != 0) &&
             client_is_decorated(client);
         bool on_inner = (event->window == client->window);
         bool send_synth = false;
         xcb_window_t target = event->window;
-        int32_t req_x;
-        int32_t req_y;
         uint32_t req_w = client->layout.geometry.cur.dim.w;
         uint32_t req_h = client->layout.geometry.cur.dim.h;
         uint32_t old_w = client->layout.geometry.cur.dim.w;
         uint32_t old_h = client->layout.geometry.cur.dim.h;
-        int32_t adj_x = 0;
-        int32_t adj_y = 0;
         uint16_t left = (uint16_t) client->layout.frame_extents.left;
         uint16_t right = (uint16_t) client->layout.frame_extents.right;
         uint16_t top = (uint16_t) client->layout.frame_extents.top;
@@ -261,6 +257,8 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         if (mask & XCB_CONFIG_WINDOW_X) {
+            int32_t req_x;
+
             if (client->rule_position_locked) {
                 /* Position was fixed by a rule; reject the client's
                  * attempt to move the window and keep the locked X */
@@ -285,6 +283,8 @@ void handler_configure_request(xcb_connection_t *connection,
         }
 
         if (mask & XCB_CONFIG_WINDOW_Y) {
+            int32_t req_y;
+
             if (client->rule_position_locked) {
                 /* Position was fixed by a rule; reject the client's
                  * attempt to move the window and keep the locked Y */
@@ -379,8 +379,9 @@ void handler_configure_request(xcb_connection_t *connection,
                     (uint16_t) CLIENT_GRAVITY_NORTH_WEST &&
                 client->layout.gravity !=
                     (uint16_t) CLIENT_GRAVITY_STATIC) {
-            adj_x = client->layout.geometry.cur.pos.x;
-            adj_y = client->layout.geometry.cur.pos.y;
+            int32_t adj_x = client->layout.geometry.cur.pos.x;
+            int32_t adj_y = client->layout.geometry.cur.pos.y;
+
             s_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
                     req_w, req_h, client->layout.gravity);
             if ((uint32_t) adj_x
@@ -468,7 +469,8 @@ void handler_configure_request(xcb_connection_t *connection,
              * background/text/buttons) in the next render pass only
              * runs for clients with 'is_outdated' set */
             LOGGER_TRACE("Marking window=0x%x outdated after" \
-                    " 'ConfigureRequest' (new frame geometry %ux%u+%d+%d)",
+                    " 'ConfigureRequest'" \
+                    " (new frame geometry %ux%u+%+d%+d)",
                     client->window,
                     client->layout.geometry.cur.dim.w,
                     client->layout.geometry.cur.dim.h,
@@ -490,8 +492,6 @@ void handler_configure_notify(xcb_connection_t *connection,
     client_td *client;
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
-    bool geom_changed;
-    bool size_changed;
 
     (void) connection;
 
@@ -502,7 +502,7 @@ void handler_configure_notify(xcb_connection_t *connection,
     }
 
     LOGGER_TRACE("Configure notify event (window=0x%x," \
-            " geom=%ux%u+%d+%d)",
+            " geom=%ux%u+%+d%+d)",
             event->window, event->width, event->height,
             event->x, event->y);
 
@@ -516,6 +516,8 @@ void handler_configure_notify(xcb_connection_t *connection,
         bool is_inner = (event->window == client->window);
 
         if (is_frame) {
+            bool geom_changed;
+            bool size_changed;
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 

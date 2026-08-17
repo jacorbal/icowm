@@ -3,7 +3,7 @@
  *
  * @brief Icon window rendering for iconified clients
  *
- * Implements @c ri_render_client_icon, which handles the visual
+ * Implements @a ri_render_client_icon, which handles the visual
  * representation of iconified clients.  Extracted from
  * @c render/desktop.c to separate icon rendering from the broader
  * desktop rendering pipeline.
@@ -43,20 +43,15 @@
 #include <render/wmicon.h>
 #include <systray.h>
 
-/* Local includes */
-#include <render/internal.h>
-
 
 /**
  * @brief Render the icon window for an iconified client
  *
  * Applies icon window attributes (background, border color and width,
- * stacking), optionally draws the client's own @c _NET_WM_ICON image
- * (see @c theme.icon.show-pixmaps), optionally draws a caption label,
- * and optionally draws the pinned/state-hint indicators (see
- * @c ri_draw_icon_hints and @c theme.icon.show-hints).  Called from
- * @c desktop_render_clients for clients that are both hidden and
- * iconified.
+ * stacking), optionally draws the client's own @c _NET_WM_ICON image,
+ * optionally draws a caption label, and optionally draws the
+ * pinned/state-hint indicators.  Called from @p desktop_render_clients
+ * for clients that are both hidden and iconified.
  *
  * @param desktop    Desktop whose rendering context and theme are used
  * @param client     The iconified client to render
@@ -64,6 +59,9 @@
  *
  * @note No-op when @p client has no icon window or is not icon-mapped
  * @note Complexity: @e O(1)
+ *
+ * @see @a ri_draw_icon_hints and @p theme.icon.show-hints, also
+ *      @p theme.icon.show-pixmaps
  */
 void ri_render_client_icon(desktop_td *desktop, client_td *client,
         bool is_current)
@@ -90,21 +88,22 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * geometry/decoration change on the client itself, and its
      * cycle-selection styling is unchanged), so this skips
      * re-sending every X request below.  This desktop's own outdated
-     * flag can be set by an entirely unrelated client (see
+     * flag can be set by an entirely unrelated client (cfr.
      * 'wm_request_client_redraw' marking the whole desktop), so
      * without this check every iconified client on it would
      * otherwise repeat this same work on every such render pass
-     * regardless of whether it, itself, changed at all.  This is the
-     * same needless-repaint reasoning already applied to normal
-     * windows in 's_desktop_render_one_client' (render/desktop.c),
-     * just not previously extended to icons.  A genuinely damaged
-     * icon (covered and uncovered by another window, say) still
-     * repaints correctly on its own via 'handler_expose', independent
-     * of this.  An urgent client is the one exception: its own
-     * attention blink (see 'policy/urgency.h') alternates this
-     * icon's own colors (and 'ri_draw_icon_hints''s own hint letter)
-     * between active and inactive, nothing this function's own
-     * skip-check tracks, so an urgent client always falls through
+     * regardless of whether it, itself, changed at all.
+     *
+     * This is the same needless-repaint reasoning already applied to
+     * normal windows in 's_desktop_render_one_client'
+     * (render/desktop.c), just not previously extended to icons.
+     * A genuinely damaged icon (covered and uncovered by another
+     * window, say) still repaints correctly on its own via
+     * 'handler_expose', independent of this.  An urgent client is the
+     * one exception.  Its own attention blink (cfr. 'policy/urgency.h')
+     * alternates this icon's own colors (and 'ri_draw_icon_hints''s own
+     * hint letter) between active and inactive, nothing this function's
+     * own skip-check tracks, so an urgent client always falls through
      * and repaints in full on every blink phase change regardless of
      * whether either tracked reason actually changed. */
     if (!client->is_outdated &&
@@ -115,15 +114,15 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     client->icon_last_cycle_sel = is_cycle_sel;
 
     /* What to actually display this frame: the icon's own real
-     * cycle-selection state, except during an urgent client's
-     * "on" blink phase, which swaps it to the opposite of
-     * whatever it would otherwise be -- the same active/inactive
-     * swap 's_desktop_render_one_client' (render/desktop.c)
-     * already applies to a titlebar for the same reason.  Kept
-     * separate from 'is_cycle_sel' itself (used above for the
-     * skip-check and 'icon_last_cycle_sel' tracking) so a
-     * transient blink flip is never mistaken for a real change
-     * in cycle-selection once the client stops being urgent. */
+     * cycle-selection state, except during an urgent client's "on"
+     * blink phase, which swaps it to the opposite of whatever it would
+     * otherwise be; the same active/inactive swap
+     * 's_desktop_render_one_client' (in 'render/desktop.c') already
+     * applies to a titlebar for the same reason.  Kept separate from
+     * 'is_cycle_sel' itself (used above for the skip-check and
+     * 'icon_last_cycle_sel' tracking) so a transient blink flip is
+     * never mistaken for a real change in cycle-selection once the
+     * client stops being urgent. */
     display_active = is_cycle_sel;
 
     if (client_is_urgent(client) && urgency_blink_is_on()) {
@@ -163,10 +162,13 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     xcb_clear_area(desktop->connection, 0,
             client->icon_window, 0, 0, 0, 0);
     xcb_map_window(desktop->connection, client->icon_window);
+
     /* Icons stay lower than the tray even within the shared 'below'
-     * layer, "stuck to the desktop"; see 'ccmd_client_iconify' for the
-     * fuller explanation of why an unqualified 'below' with no sibling
-     * is not enough to guarantee that on its own. */
+     * layer, "stuck to the desktop".
+     *
+     * See 'ccmd_client_iconify' for the fuller explanation of why an
+     * unqualified 'below' with no sibling is not enough to guarantee
+     * that on its own. */
     tray_below = systray_below_window();
     if (tray_below != XCB_WINDOW_NONE) {
         xcb_configure_window(desktop->connection, client->icon_window,
@@ -222,18 +224,18 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             desktop->config_theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.
-     * Only 's_desktop_render_one_client' (render/desktop.c) clears
+     * Only 's_desktop_render_one_client' ('render/desktop.c') clears
      * this flag, and that function is never reached for one (see
      * 'desktop_render_clients', which routes a hidden client here
-     * instead).  Left uncleared, it would stay 'true' forever once
-     * set, permanently defeating the skip check above. */
+     * instead).  Left uncleared, it would stay 'true' forever once set,
+     * permanently defeating the skip check above. */
     client->is_outdated = false;
 }
 
 
-/* Render an iconified client's icon window in its "currently
- * selected" state.  Active colors, its own caption, and its hint
- * indicators all stay visible.  Only the pixmap is left out. */
+/* Render an iconified client's icon window in its "currently selected"
+ * state.  Active colors, its own caption, and its hint indicators all
+ * stay visible.  Only the pixmap is left out. */
 void ri_render_client_icon_selected(xcb_connection_t *connection,
         client_td *client)
 {
@@ -242,11 +244,11 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
         return;
     }
 
-    /* Kept in sync with 'ri_render_client_icon''s own use of this
-     * same field.  Left untouched here, a client selected through
-     * this function (rather than a full 'ri_render_client_icon'
-     * render) would still read as 'icon_last_cycle_sel == false' the
-     * moment it is later deselected, matching the freshly computed
+    /* Kept in sync with 'ri_render_client_icon''s own use of this same
+     * field.  Left untouched here, a client selected through this
+     * function (rather than a full 'ri_render_client_icon' render)
+     * would still read as 'icon_last_cycle_sel == false' the moment it
+     * is later deselected, matching the freshly computed
      * 'is_cycle_sel == false' there and wrongly tripping that
      * function's own skip-check, silently discarding the full render
      * (pixmap, caption, hint indicators) deselecting is supposed to
@@ -279,15 +281,14 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
                 caption);
     }
 
-    /* Only the pixmap is deliberately omitted here, which is the
-     * entire point of this function as opposed to a full
+    /* Only the pixmap is deliberately omitted here, which is the entire
+     * point of this function as opposed to a full
      * 'ri_render_client_icon' render.  The caption above, and these
      * hint indicators, both stay exactly as visible as they would in
      * any ordinary render, just drawn against the plain active-color
      * background this function already cleared to instead of over
      * whatever pixmap would otherwise sit underneath them. */
-    ri_draw_icon_hints(connection, client, true, client->theme);
-}
+    ri_draw_icon_hints(connection, client, true, client->theme); }
 
 
 /* Draw the state-hint indicators in an iconified client's own top
@@ -308,15 +309,14 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
     is_urgent = client_is_urgent(client);
     blink_on = is_urgent && urgency_blink_is_on();
 
-    /* 'show-hints' off still hides the sticky pin and any state
-     * letter as documented, with one exception: an urgent client's
-     * attention blink (see 'policy/urgency.h') still gets the urgent
-     * letter drawn during its own "on" phase, appearing and
-     * disappearing in that corner every 'WM_URGENCY_BLINK_INTERVAL_
-     * MS' regardless of this setting, since drawing the user's
-     * attention to it is the entire point and should not be
-     * silenceable by a setting aimed at the unrelated state-letter
-     * feature. */
+    /* 'show-hints' off still hides the sticky pin and any state letter
+     * as documented, with one exception: an urgent client's attention
+     * blink (see 'policy/urgency.h') still gets the urgent letter drawn
+     * during its own "on" phase, appearing and disappearing in that
+     * corner every 'WM_URGENCY_BLINK_INTERVAL_ MS' regardless of this
+     * setting, since drawing the user's attention to it is the entire
+     * point and should not be silenceable by a setting aimed at the
+     * unrelated state-letter feature. */
     if (!theme->icon.show_hints) {
         if (!blink_on) {
             return;
@@ -331,15 +331,14 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
 
         /* Sized from 'WM_ICON_SQUARE_SIZE' and
          * 'WM_ICON_PIXMAP_SCALE_PERCENT' rather than picked by eye or
-         * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' own
-         * size, too large here relative to a 48px icon).  When
+         * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' own size,
+         * too large here relative to a 48px icon).  When
          * 'theme.icon.show-pixmaps' is on, the client's own pixmap is
-         * centered and scaled to 'WM_ICON_PIXMAP_SCALE_PERCENT' of
-         * the icon square, leaving an equal margin free on all four
-         * sides, 6 pixels at the built-in theme's own defaults, and
-         * that margin is exactly the space available in this corner
-         * before the square would start covering the pixmap
-         * itself. */
+         * centered and scaled to 'WM_ICON_PIXMAP_SCALE_PERCENT' of the
+         * icon square, leaving an equal margin free on all four sides,
+         * 6 pixels at the built-in theme's own defaults, and that
+         * margin is exactly the space available in this corner before
+         * the square would start covering the pixmap itself. */
         uint16_t pin_size = (uint16_t)
             ((WM_ICON_SQUARE_SIZE *
               (100u - WM_ICON_PIXMAP_SCALE_PERCENT)) / 200u);
@@ -353,10 +352,9 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
     }
 
     if (theme->icon.show_hints) {
-        /* An urgent client's "on" blink phase always shows the
-         * urgent letter here, alternating with whatever this corner
-         * would otherwise show (a state letter, or nothing at all);
-         * see this function's own doc comment. */
+        /* An urgent client's "on" blink phase always shows the urgent
+         * letter here, alternating with whatever this corner would
+         * otherwise show (a state letter, or nothing at all) */
         if (blink_on) {
             letter[0] = WM_ICON_HINT_URGENT;
         } else {
@@ -380,10 +378,10 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
         }
     }
 
-    /* Same font/color scheme as the caption text just below this
-     * corner (see the 'is_captioned' block in 'ri_render_client_icon'
-     * above), so both pieces of text on the icon read as one
-     * consistent style rather than two different-looking labels. */
+    /* Same font/color scheme as the caption text just below this corner
+     * (see the 'is_captioned' block in 'ri_render_client_icon' above),
+     * so both pieces of text on the icon read as one consistent style
+     * rather than two different-looking labels. */
     text_renderer_init(connection, theme->icon.inactive.font);
     text_renderer_set_color(
             (is_cycle_sel)

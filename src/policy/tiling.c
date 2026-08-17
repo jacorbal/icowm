@@ -9,12 +9,13 @@
  * window placement.
  *
  * @note "Tiling" here is the classic 1980s/90s window-manager sense
- *       (twm, fvwm, and similar): arranging iconified windows' own
- *       icon markers into a non-overlapping grid on the desktop, as
- *       @c place_icon does.  It is unrelated to the modern "tiling
- *       window manager" sense of tiling the application windows
- *       themselves; IcoWM places those as floating windows (see
- *       @c policy/placement.c).
+ *       (TWM, FVWM, and similar), i.e., arranging iconified windows'
+ *       own icon markers into a non-overlapping grid on the desktop, as
+ *       @a place_icon does.  Therefore, it is unrelated to the modern
+ *       "tiling window manager" sense of tiling the application windows
+ *       themselves, for IcoWM gently places those as floating windows.
+ *
+ * @see @c policy/placement.c
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -54,29 +55,30 @@
 
 
 /**
- * @brief Whether an icon-sized rectangle at (@p ix, @p iy) overlaps
- *        any already-occupied one
+ * @brief Whether an icon-sized rectangle at (@p ix, @p iy) overlaps any
+ *        already-occupied one
  *
- * Used by @c place_icon to reject a candidate slot the moment it
- * shares any area at all with an existing icon, rather than only
- * rejecting the exact grid cell that icon's own position happens to
- * fall into: an icon's saved @c icon_x/icon_y is not guaranteed to be
- * grid-aligned relative to whichever monitor a new icon is being
- * placed on (each monitor's own margin/step grid starts fresh from
- * its own origin), so comparing grid-cell indices instead of real
- * pixel overlap can miss a genuine, if partial, overlap.
+ * Used by @a place_icon to reject a candidate slot the moment it shares
+ * any area at all with an existing icon, rather than only rejecting the
+ * exact grid cell that icon's own position happens to fall into.
+ *
+ * An icon's saved @c icon_x / @c icon_y is not guaranteed to be
+ * grid-aligned relative to whichever monitor a new icon is being placed
+ * on (each monitor's own margin/step grid starts fresh from its own
+ * origin), so comparing grid-cell indices instead of real pixel overlap
+ * can miss a genuine, if partial, overlap.
  *
  * @param ix           Candidate rectangle's left edge
- * @param iy            Candidate rectangle's top edge
+ * @param iy           Candidate rectangle's top edge
  * @param icon_w       Icon width, in pixels
  * @param icon_h       Icon height, in pixels
- * @param border_twice Icon border width, doubled (both sides); added
- *                      to @p icon_w/@p icon_h the same way the
- *                      candidate's own on-screen footprint is grown by
- *                      it elsewhere in this file
+ * @param border_twice Icon border width, doubled (both sides); added to
+ *                     @p icon_w / @p icon_h the same way the
+ *                     candidate's own on-screen footprint is grown by
+ *                     it elsewhere in this file
  * @param occ_x        Occupied rectangles' left edges
  * @param occ_y        Occupied rectangles' top edges
- * @param occ_count     Number of entries in @p occ_x/@p occ_y
+ * @param occ_count    Number of entries in @p occ_x / @p occ_y
  *
  * @return @c true if the candidate rectangle overlaps any occupied one
  *
@@ -104,8 +106,8 @@ static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
 
 
 /**
- * @brief Convert a slot index to its top-left pixel position for one
- *        of the non-SMART edge-anchored placement policies
+ * @brief Convert a slot index to its top-left pixel position for one of
+ *        the non-SMART edge-anchored placement policies
  *
  * Shared by @c place_icon's own slot search (which needs every
  * candidate slot's pixel position to test for overlap; see
@@ -113,7 +115,7 @@ static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
  * slot search ends up choosing, so the two can never disagree about
  * what a given slot index actually means on screen.
  *
- * @param policy      Placement edge; @c CONFIG_ICON_PLACEMENT_SMART is
+ * @param policy       Placement edge; @c CONFIG_ICON_PLACEMENT_SMART is
  *                     not valid here (handled entirely separately)
  * @param slot         Slot index to convert
  * @param max_primary  Number of slots along the primary (edge) axis
@@ -139,14 +141,14 @@ static void s_icon_slot_to_pixel(enum config_icon_placement_e policy,
     uint16_t pri = (uint16_t) (slot % max_primary);
     uint16_t sec = (uint16_t) (slot / max_primary);
 
-    /* Deliberately no 'default:' below (see the switch itself): GCC
-     * cannot prove that exhaustive over every value the enum's
-     * underlying integer type could hold, only over the named
-     * members, so '-Wmaybe-uninitialized' sees a path where neither
-     * output is written.  This plain assignment ahead of the switch
-     * closes that path without adding a 'default:' case, which would
-     * silently swallow a future enum member added without a case
-     * here instead of letting '-Wswitch' catch the omission. */
+    /* Deliberately no 'default:' below (see the switch itself).
+     * GCC cannot prove that exhaustive over every value the enum's
+     * underlying integer type could hold, only over the named members,
+     * so '-Wmaybe-uninitialized' sees a path where neither output is
+     * written.  This plain assignment ahead of the switch closes that
+     * path without adding a 'default:' case, which would silently
+     * swallow a future enum member added without a case here instead of
+     * letting '-Wswitch' catch the omission. */
     *out_ix = (int32_t) margin;
     *out_iy = (int32_t) margin;
 
@@ -196,8 +198,6 @@ void place_icon(const client_td *client, desktop_td *desktop,
     int32_t occ_y[256];
     uint16_t occ_count;
     uint16_t chosen;
-    uint16_t pri;
-    uint16_t sec;
     int32_t ix;
     int32_t iy;
 
@@ -221,13 +221,13 @@ void place_icon(const client_td *client, desktop_td *desktop,
      * table, so a candidate only a few pixels into an existing icon's
      * footprint is correctly rejected even when that icon's own saved
      * position is not itself grid-aligned (e.g., it sits on a monitor
-     * whose own origin does not fall on a step_x/step_y multiple of
-     * this one, or a stale position momentarily left behind by a
-     * config or theme change since it was last placed). */
+     * whose own origin does not fall on a 'step_x'/'step_y' multiple of
+     * this one, or a stale position momentarily left behind by a config
+     * or theme change since it was last placed). */
     occ_count = 0u;
     if (desktop != NULL && desktop->stacking != NULL) {
         cdlist_item_td *node = cdlist_head(desktop->stacking);
-        cdlist_item_td *initial = node;
+        const cdlist_item_td *initial = node;
         if (node != NULL) {
             do {
                 const client_td *other =
@@ -256,6 +256,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
         uint16_t s;
         uint32_t iw_full;
         uint32_t ih_full;
+        uint16_t pri;
+        uint16_t sec;
 
         /* Compute max_primary for BOTTOM layout */
         max_primary = (screen_w > step_x)
@@ -300,7 +302,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
             /* Penalty for overlap with visible windows */
             if (desktop != NULL && desktop->stacking != NULL) {
                 cdlist_item_td *node = cdlist_head(desktop->stacking);
-                cdlist_item_td *initial = node;
+                const cdlist_item_td *initial = node;
                 if (node != NULL) {
                     do {
                         const client_td *other =
@@ -351,7 +353,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
         }
 
         LOGGER_DEBUG("Smart-placed icon (slot=%u, pri=%u, sec=%u," \
-                " pos=%d+%d)",
+                " pos=%+d%+d)",
                 (unsigned) chosen, (unsigned) pri, (unsigned) sec,
                 (int) *out_x, (int) *out_y);
         return;
@@ -395,8 +397,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
         chosen = 0u;
     }
 
-    /* Convert the chosen slot to pixel coordinates the same way its
-     * own candidacy was tested above, so the two can never disagree */
+    /* Convert the chosen slot to pixel coordinates the same way its own
+     * candidacy was tested above, so the two can never disagree */
     s_icon_slot_to_pixel(policy, chosen, max_primary, margin,
             step_x, step_y, icon_w, icon_h, screen_w, screen_h,
             border_twice, &ix, &iy);
@@ -412,8 +414,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
 }
 
 
-/* Push an icon's own proposed position away from the systray's
- * current rectangle, if the two would overlap there */
+/* Push an icon's own proposed position away from the systray's current
+ * rectangle, if the two would overlap there */
 bool icon_avoid_systray_overlap(const int16_t *io_x, int16_t *io_y,
         uint16_t icon_w, uint16_t icon_h,
         int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,

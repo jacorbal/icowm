@@ -33,8 +33,8 @@
  * @brief Read one small text file into @p out, trimming the trailing
  *        newline if present
  *
- * @param path    File to read
- * @param out     Buffer to receive the file's contents
+ * @param path     File to read
+ * @param out      Buffer to receive the file's contents
  * @param out_size Size of @p out in bytes
  *
  * @return @c true if the file was opened and at least one byte read
@@ -74,8 +74,8 @@ static bool s_battery_read_line(const char *path, char *out,
 /**
  * @brief Read an integer percentage (0-100) from a small sysfs file
  *
- * @param path   File expected to hold a plain integer
- * @param out    Receives the parsed value
+ * @param path File expected to hold a plain integer
+ * @param out  Receives the parsed value
  *
  * @return @c true if the file was read and held a valid integer
  *
@@ -102,13 +102,12 @@ static bool s_battery_read_uint(const char *path, uint32_t *out)
 
 
 /**
- * @brief Whether any @c /sys/class/power_supply entry of type
- *        @c "Mains" currently reports @c online = 1
+ * @brief Whether any @c /sys/class/power_supply entry of type @c Mains
+ *        currently reports @c (online = 1)
  *
- * Scans every entry rather than assuming a fixed name (@c AC,
- * @c ACAD, @c ADP0, @c ADP1, and others are all in use across
- * different hardware and kernel versions), stopping as soon as one
- * online supply is found.
+ * Scans every entry rather than assuming a fixed name (@c AC, @c ACAD,
+ * @c ADP0, @c ADP1, and others are all in use across different hardware
+ * and kernel versions), stopping as soon as one online supply is found.
  *
  * @return @c true if AC power is connected
  *
@@ -118,7 +117,7 @@ static bool s_battery_read_uint(const char *path, uint32_t *out)
 static bool s_battery_acpi_ac_online(void)
 {
     DIR *dir;
-    struct dirent *entry;
+    const struct dirent *entry;
     bool online = false;
 
     dir = opendir(BATTERY_ACPI_BASE_DIR);
@@ -161,8 +160,7 @@ static bool s_battery_acpi_ac_online(void)
 
 
 /**
- * @brief Read the ACPI battery at @p backend_number's charge
- *        percentage
+ * @brief Read the ACPI battery at @p backend_number's charge percentage
  *
  * @param backend_number Which @c BAT<N> to read
  * @param out_percent    Receives the battery's capacity, 0-100
@@ -187,14 +185,16 @@ static bool s_battery_acpi_read(uint32_t backend_number,
  * @brief Read the legacy APM battery percentage and AC status
  *
  * @c /proc/apm holds one line of whitespace-separated fields:
- * @c "driver_version apm_version apm_flags ac_line_status
- * battery_status battery_flags battery_percentage battery_time units".
+ * "@c driver_version @c apm_version @c apm_flags @c ac_line_status
+ *  @c battery_status @c battery_flags @c battery_percentage
+ *  @c battery_time @c units".
+ *
  * Only @c ac_line_status (@c 0x01 means AC connected) and
- * @c battery_percentage (a bare integer, optionally followed by
- * @c '%') are used here.
+ * @c battery_percentage (a bare integer, optionally followed by '%')
+ * are used here.
  *
  * @param out_percent Receives the battery's capacity, 0-100
- * @param out_ac       Receives whether AC power is connected
+ * @param out_ac      Receives whether AC power is connected
  *
  * @return @c true if @c /proc/apm was read and both fields parsed
  *
@@ -268,7 +268,8 @@ void battery_status_read(enum config_battery_backend_type_e backend_type,
     }
 
     if (!found) {
-        (void) safe_strncpy(out, _(STR_BATTERY_NOT_AVAILABLE), out_size - 1u);
+        (void) safe_strncpy(out, _(STR_BATTERY_NOT_AVAILABLE),
+                out_size - 1u);
         out[out_size - 1u] = '\0';
         return;
     }

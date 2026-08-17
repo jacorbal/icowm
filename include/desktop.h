@@ -46,10 +46,31 @@
 #include <config.h>
 
 
-/** Stable primary seed used by desktop client hash tables */
+/**
+ * @brief Stable primary seed used by desktop client hash tables
+ *
+ * The 32-bit golden ratio constant, @c floor(2^32 / phi), a classic
+ * multiplicative hashing seed whose own bit pattern is already close to
+ * maximally irregular, making it a reliable fixed seed without needing
+ * any further tuning of its own.
+ *
+ * @see Knuth, *The Art of Computer * Programming*, volume 3
+ */
 #define DESKTOP_HASH_SEED_PRIMARY (0x9E3779B9u)
 
-/** Stable secondary seed used by desktop client hash tables */
+/**
+ * @brief Stable secondary seed used by desktop client hash tables
+ *
+ * Not an arbitrary "different" value, since it is one of the two
+ * mixing constants (@a murmurhash3_32's own @e fmix32 step,
+ * @c utils/hash/murmurhash.c) MurmurHash3 itself already uses to
+ * scramble its own output into a well-avalanched final hash.
+ *
+ * Reusing it here as a seed, rather than picking a second unrelated
+ * number, implies that both seeds are already independently well-vetted
+ * for bit dispersion, which is exactly the property double hashing
+ * needs from @p h1 and @p h2 to stay uncorrelated for the same key.
+ */
 #define DESKTOP_HASH_SEED_SECONDARY (0x85EBCA6Bu)
 
 

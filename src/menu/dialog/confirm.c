@@ -108,16 +108,16 @@ static int s_confirm_timeout_last_shown = -1;
  * @brief Compute layout geometry for the confirm dialog
  *
  * Fills @p layout from the prompt and button label text already stored
- * in @c layout->prompt, @c layout->cancel_label, and
- * @c layout->confirm_label.
+ * in @p layout->prompt, @p layout->cancel_label, and
+ * @p layout->confirm_label.
  *
- * Button sizing measures every label in both @c button.unselected and
- * @c button.selected fonts and keeps the wider/taller of the two, so
+ * Button sizing measures every label in both @p button.unselected and
+ * @p button.selected fonts and keeps the wider/taller of the two, so
  * the button is always big enough for whichever one actually ends up
  * selected; the exact label position within that button is computed
- * separately at draw time (see @c s_confirm_draw), using whichever
+ * separately at draw time (see @a s_confirm_draw), using whichever
  * font is actually being drawn, so the text stays centered even when
- * @c selected is bold and therefore wider than @c unselected.
+ * @p selected is bold and therefore wider than @p unselected.
  *
  * @param connection XCB connection, needed to measure text in each
  *                   candidate font
@@ -172,12 +172,14 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
      * 'button.selected.font' (bold by default), and sizing off only
      * 'unselected' would leave no room for that, causing the
      * off-center look this whole function exists to avoid. */
-    text_renderer_init(connection, config->theme.dialog.button.unselected.font);
+    text_renderer_init(connection,
+            config->theme.dialog.button.unselected.font);
     cancel_w = menu_draw_measure(layout->cancel_label);
     confirm_w = menu_draw_measure(layout->confirm_label);
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
-    text_renderer_init(connection, config->theme.dialog.button.selected.font);
+    text_renderer_init(connection,
+            config->theme.dialog.button.selected.font);
     cancel_w = dlgutil_u16max(cancel_w,
             menu_draw_measure(layout->cancel_label));
     confirm_w = dlgutil_u16max(confirm_w,
@@ -267,19 +269,17 @@ static void s_confirm_draw(xcb_connection_t *connection,
     uint16_t label_w;
     int16_t label_x;
     int16_t label_y;
-    /* Sized well beyond 'DIALOG_TEXT_MAX_LEN' rather than exactly
-     * that: 'cancel_label' (itself up to that size) is only one part
-     * of what this formats (see 'STR_DIALOG_CONFIRM_TIMEOUT_FMT'),
-     * plus the fixed wording around it and the seconds count, so
-     * matching that size exactly leaves GCC's own static bound
-     * analysis unable to rule out '-Wformat-truncation' -- this
-     * headroom, together with that format string's own explicit
-     * '%.255s' precision (capping the part GCC cannot otherwise
-     * prove is bounded to the cancel label's own declared array
-     * size, rather than the rest of the struct after it), is what
-     * lets it actually prove 'snprintf' below can never truncate,
-     * not just widen the margin informally. */
-    char timeout_text[DIALOG_TEXT_MAX_LEN + 96u];
+    /* Sized well beyond 'DIALOG_TEXT_MAX_LEN' rather than exactly that.
+     * 'cancel_label' (itself up to that size) is only one part of what
+     * this formats (see 'STR_DIALOG_CONFIRM_TIMEOUT_FMT'), plus the
+     * fixed wording around it and the seconds count, so matching that
+     * size exactly leaves GCC's own static bound analysis unable to
+     * rule out '-Wformat-truncation', as this headroom, together with
+     * that format string's own explicit '%.255s' precision (capping the
+     * part GCC cannot otherwise prove is bounded to the cancel label's
+     * own declared array size, rather than the rest of the struct after
+     * it), is what lets it actually prove 'snprintf' below can never
+     * truncate, not just widen the margin informally. */
     const s_confirm_layout_td *lo = &s_confirm_layout;
 
     if (connection == NULL || config == NULL ||
@@ -360,6 +360,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
      * (recomputed here since the text itself changes every second,
      * unlike the prompt's fixed 'prompt_x'). */
     if (s_confirm_timeout_active) {
+        char timeout_text[DIALOG_TEXT_MAX_LEN + 96u];
         int timeout_ms = s_confirm_timeout_ms_remaining();
         int seconds = (timeout_ms >= 0) ? (timeout_ms + 999) / 1000 : 0;
         int16_t timeout_x;
@@ -482,7 +483,8 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 
     s_confirm_timeout_active = timeout_seconds > 0u;
     if (s_confirm_timeout_active) {
-        if (clock_gettime(CLOCK_MONOTONIC, &s_confirm_timeout_due) != 0) {
+        if (clock_gettime(CLOCK_MONOTONIC,
+                    &s_confirm_timeout_due) != 0) {
             /* Could not read the clock to schedule the countdown at
              * all: safer to run with no timeout (the dialog just
              * waits indefinitely, same as before this feature
@@ -599,10 +601,9 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  *        at zero rather than going negative once past it
  *
  * The request/reply-free clock computation
- * 's_confirm_timeout_ms_remaining' needs against the running
- * countdown's own absolute deadline (see 'timeout_seconds' on
- * 'menu_confirm_dialog_show'); the equivalent computation for the
- * click-triggered close/accept lives in 'menu/dialog/defer.c' instead,
+ * @a s_confirm_timeout_ms_remaining needs against the running
+ * countdown's own absolute deadline; the equivalent computation for the
+ * click-triggered close/accept lives in @c menu/dialog/defer.c instead,
  * shared with every other dialog that defers one the same way.
  *
  * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
@@ -611,6 +612,8 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  *         clock itself could not be read
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @p timeout_seconds on @a menu_confirm_dialog_show
  */
 static int s_confirm_ms_until(const struct timespec *due)
 {
@@ -685,8 +688,6 @@ int menu_confirm_dialog_ms_remaining(void)
 {
     int click_ms = menu_dialog_defer_ms_remaining();
     int timeout_ms = s_confirm_timeout_ms_remaining();
-    int wake_ms;
-    int shown_seconds;
 
     if (timeout_ms >= 0) {
         /* Wake at the countdown's own final expiry, or sooner still
@@ -694,8 +695,8 @@ int menu_confirm_dialog_ms_remaining(void)
          * (so the visible number counts down instead of only
          * changing once, from its starting value straight to
          * vanishing), whichever comes first. */
-        shown_seconds = (timeout_ms + 999) / 1000;
-        wake_ms = timeout_ms - ((shown_seconds - 1) * 1000);
+        int shown_seconds = (timeout_ms + 999) / 1000;
+        int wake_ms = timeout_ms - ((shown_seconds - 1) * 1000);
         if (wake_ms < 0) {
             wake_ms = 0;
         }

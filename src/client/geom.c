@@ -171,16 +171,16 @@ void client_resync_theme_layout(client_td *client, bool is_active)
         return;
     }
 
-    /* Recover the content window's own true on-screen position and
-     * size -- the one invariant across any border/titlebar change --
-     * from the OLD frame extents still in effect, before either of
-     * them is touched below.  Every field this function sets is then
-     * rebuilt from this recovered pair alone, never incrementally
-     * from the previous frame geometry the way an applied "delta"
-     * would (the frame growing or shrinking "by" some difference):
-     * anchoring each call to the content's own fixed truth instead
-     * of the prior call's own output leaves no way for any small
-     * per-call error to compound across repeated toggles. */
+    /* Recover the content window's own true on-screen position and size
+     * (the one invariant across any border/titlebar change) from the
+     * OLD frame extents still in effect, before either of them is
+     * touched below.  Every field this function sets is then rebuilt
+     * from this recovered pair alone, never incrementally from the
+     * previous frame geometry the way an applied "delta" would (the
+     * frame growing or shrinking "by" some difference).  Anchoring each
+     * call to the content's own fixed truth instead of the prior call's
+     * own output leaves no way for any small per-call error to compound
+     * across repeated toggles. */
     inner_x = client->layout.geometry.cur.pos.x +
         (int32_t) client->layout.frame_extents.left;
     inner_y = client->layout.geometry.cur.pos.y +
@@ -278,9 +278,9 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     /* A pin button dropped here (single-desktop surface, see
      * 'hide_pin') is skipped entirely rather than drawn inert: the
      * output index only advances for a button actually placed, so the
-     * next configured button slides into its slot and the extent
-     * below reflects the real, possibly-shorter row -- the same as if
-     * the theme itself had never listed pin at all. */
+     * next configured button slides into its slot and the extent below
+     * reflects the real, possibly-shorter row, the same as if the theme
+     * itself had never listed pin at all. */
     configured_left_n = theme->window.titlebar.buttons.left_count;
     if (configured_left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
         configured_left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;

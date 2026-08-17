@@ -56,10 +56,9 @@
 enum client_state_e {
     CLIENT_STATE_NORMAL,            /**< Regular state */
     CLIENT_STATE_ICONIFIED,         /**< Iconified */
-//    CLIENT_STATE_SHADED,            /**< Shaded (rolled-up), if decorated */
     CLIENT_STATE_MAXIMIZED,         /**< Maximized */
-    CLIENT_STATE_MAXIMIZED_HORZ,    /**< Maximized horiz. */
-    CLIENT_STATE_MAXIMIZED_VERT,    /**< Maximized vert. */
+    CLIENT_STATE_MAXIMIZED_HORZ,    /**< Maximized horizontally */
+    CLIENT_STATE_MAXIMIZED_VERT,    /**< Maximized vertically */
     CLIENT_STATE_FULLSCREEN,        /**< Full screen */
 };
 
@@ -144,15 +143,16 @@ enum window_flags_e {
      * Deliberately generic, not tied to any one feature, the same
      * spirit as @c CLIENT_FLAG_LOCKED above, i.e., set once by
      * whichever policy owns a client with this flag (the scratchpad,
-     * @c scratchpad.c, is the only one that does so now), then
-     * checked by every "who should get focus next" search on the
-     * current desktop (@a s_client_focus_fallback in
-     * @c cmds/client/basic.c, @a s_restore_focus_after_client_loss in
-     * @c handler/map.c), neither of which needs to know what feature
-     * actually set this, or why, only that this client's own visibility
-     * is managed by something else entirely (its own toggle, in the
-     * scratchpad's case) and should never be picked as an incidental
-     * side effect of another client merely losing focus.
+     * @c scratchpad.c, is the only one that does so now), then checked
+     * by every "who should get focus next?" search on the current
+     * desktop, neither of which needs to know what feature actually set
+     * this, or why, only that this client's own visibility is managed
+     * by something else entirely (its own toggle, in the scratchpad's
+     * case) and should never be picked as an incidental side effect of
+     * another client merely losing focus.
+     *
+     * @see @a s_client_focus_fallback in @c cmds/client/basic.c, and
+     *      @a s_restore_focus_after_client_loss in @c handler/map.c
      */
     CLIENT_FLAG_NO_FOCUS_FALLBACK = 1 << 13,
 
@@ -186,10 +186,10 @@ enum client_layer_e {
  * @brief Anchor point used to determine how a client's position is
  *        adjusted relative to its size when resized
  *
- * @note ICCCM: "Window Managers MUST honor the @c win_gravity field of
- *              @c WM_NORMAL_HINTS for both @c MapRequest @e and
- *              @c ConfigureRequest events (ICCCM Version 2.0, §4.1.2.3
- *              and §4.1.5)"
+ * @note ICCCM: "Window Managers MUST honor the @p win_gravity field of
+ *       @c WM_NORMAL_HINTS for both @c MapRequest @e and
+ *       @c ConfigureRequest events (ICCCM Version 2.0, §4.1.2.3 and
+ *       §4.1.5)"
  */
 enum client_gravity_e {         /* Reference point fixed on resize: */
     CLIENT_GRAVITY_NORTH_WEST = 1,  /**<  1: top-left corner of frame */
@@ -227,12 +227,15 @@ struct client_properties_s {
      *
      * Only meaningful while @p state is @c CLIENT_STATE_ICONIFIED;
      * @c CLIENT_STATE_NORMAL otherwise.  Also drives the icon's own
-     * state-hint letter (see @a ri_draw_icon_hints in @c render/icon.c):
+     * state-hint letter:
+     *
      * - nil for @c CLIENT_STATE_NORMAL;
      * - 'f' for @c CLIENT_STATE_FULLSCREEN;
      * - 'm' for @c CLIENT_STATE_MAXIMIZED;
      * - 'h' for @c CLIENT_STATE_MAXIMIZED_HORZ; and
      * - 'v' for @c CLIENT_STATE_MAXIMIZED_VERT.
+     *
+     * @see @a ri_draw_icon_hints in @c render/icon.c:
      */
     uint16_t pre_iconify_state;
 };
@@ -247,8 +250,8 @@ struct client_layout_s {
      *
      * @note The @p old one is to save the position when the @p cur one
      *       is needed to be recovered later; as in saving the current
-     *       geometry before maximizing, and restoring it with the @p old
-     *       position and dimensions.
+     *       geometry before maximizing, and restoring it with the
+     *       @p old position and dimensions.
      */
     struct {
         struct geometry_s cur;
@@ -260,7 +263,7 @@ struct client_layout_s {
      *        are marked off-bounds for client placement
      *
      * @note Traditional strut property will be @p strut_partial.sides
-     *       when @p .start and @p .end are zero
+     *        when @p .start and @p .end are zero
      */
     struct strut_partial_s strut_partial;
     uint16_t gravity;               /**< Window gravity */
@@ -326,14 +329,14 @@ typedef struct client_s {
                                                 resize, see
                                                 @a handler_configure_request */
 
-    uint32_t desktop_id;            /**< Desktop index (0xFFFFFFFF for all) */
-    uint32_t screen_id;             /**< Screen index */
+    uint32_t desktop_id;        /**< Desktop index (@c 0xFFFFFFFF for all) */
+    uint32_t screen_id;         /**< Screen index */
 
     struct {
-        char *name;                 /**< Window name */
-        char *visible_name;         /**< Visible name on taskbar */
-        char *role_name;            /**< Role (for compatibility) */
-        char *class_name[2];        /**< Window class (for grouping) */
+        char *name;             /**< Window name */
+        char *visible_name;     /**< Visible name on taskbar */
+        char *role_name;        /**< Role (for compatibility) */
+        char *class_name[2];    /**< Window class (for grouping) */
     } info;
 
     struct {
@@ -358,7 +361,7 @@ typedef struct client_s {
      * @brief A client's own border color and width, independent of
      *        @p theme->window.active/inactive.border
      *
-     * Deliberately generic, not tied to any one feature: unset by
+     * Deliberately generic, not tied to any one feature.  Unset by
      * default, in which case @a client_apply_border (@c client.h) falls
      * back to the usual @p theme->window.active/inactive.border a plain
      * client already gets on every focus change; a caller that sets
@@ -380,10 +383,10 @@ typedef struct client_s {
     /**
      * @brief Per-window opacity override from a matched rule
      *
-     * The rules engine's own equivalent of @p border_override above:
+     * The rules engine's own equivalent of @p border_override above.
      * @a is_set_active / @a is_set_inactive independently mark whether
-     * a rule overrode that one state's own percentage, since a rule
-     * may only ever override one of the two (see @c rules_apply_s in
+     * a rule overrode that one state's own percentage, since a rule may
+     * only ever override one of the two (see @c rules_apply_s in
      * @c rules/internal.h).  Whichever half is not overridden keeps
      * falling back to the theme's own @p window.active.opacity /
      * @p window.inactive.opacity, the same way @p border_override
@@ -600,10 +603,10 @@ void client_destroy(client_td *client);
  * @brief Apply a client's own themed border color and width to its own
  *        window, honoring @p border_override when set
  *
- * A no-op for a decorated client (@e client->frame != 0) or
+ * A no-op for a decorated client @p (client->frame != 0) or
  * a fullscreen one, regardless of decoration: a decorated client's own
- * border lives on its frame instead, repainted by @c
- * desktop_repaint_frame_decoration (render/desktop.c), not on
+ * border lives on its frame instead, repainted by
+ * @a desktop_repaint_frame_decoration (@c render/desktop.c), not on
  * @p client->window itself; a fullscreen client, decorated or not, is
  * never meant to show any border at all.  For every other (undecorated,
  * non-fullscreen) client, applies @p client->border_override's own
@@ -627,8 +630,8 @@ void client_apply_border(client_td *client, bool use_active_style);
  *        or frame with
  *
  * @p border_override's own width when @p is_set (the scratchpad,
- * @c scratchpad.c, is the only client that sets one today, and never
- * varies it with focus), or
+ * @c scratchpad.c, is the only client that sets one as for today, and
+ * never varies it with focus), or
  * @p theme->window.active/inactive.border.width otherwise (@p is_active
  * selects which); the same width @a client_apply_border applies for the
  * exact same client and focus state.  Meant for any caller that has to
@@ -662,7 +665,7 @@ static inline uint32_t client_border_width(const client_td *client,
      * the way 'client_apply_border' (above) draws one directly on an
      * undecorated client's own window.  A caller reserving room for
      * a client's own border has nothing to reserve here, so this
-     * returns 0 for a decorated client (frame != 0) even though
+     * returns 0 for a decorated client ('frame != 0') even though
      * 'window.active/inactive.border.width' below is not itself 0. */
     if (client == NULL || client->theme == NULL || client->frame != 0) {
         return 0u;
@@ -718,13 +721,13 @@ void client_sync_decoration_layout(client_td *client);
  * this grows or shrinks the frame's outer edge by the difference on
  * every side.
  *
- * @p window.titlebar.height can also have changed (e.g., a configuration
- * reload picked up an edited theme file), in which case only the top
- * edge grows or shrinks by that additional amount.  Either way the
- * client's own content window never moves or resizes (only how much
- * frame surrounds it changes) and the client is marked for a redraw so
- * the next render pass applies it and repaints the border, titlebar,
- * and its buttons at the new size.
+ * @p window.titlebar.height can also have changed (e.g.,
+ * a configuration reload picked up an edited theme file), in which case
+ * only the top edge grows or shrinks by that additional amount.  Either
+ * way the client's own content window never moves or resizes (only how
+ * much frame surrounds it changes) and the client is marked for
+ * a redraw so the next render pass applies it and repaints the border,
+ * titlebar, and its buttons at the new size.
  *
  * A fast no-op when neither value actually changed (the common case for
  * a plain focus change with the built-in default theme, whose active
@@ -756,7 +759,7 @@ struct titlebar_button_layout_s {
  * @brief Compute where every configured titlebar button goes, and the
  *        horizontal span left over for the title text
  *
- * The single source of truth for titlebar layout: both
+ * The single source of truth for titlebar layout.  Both
  * @a desktop_draw_titlebar_buttons (what gets painted) and the titlebar
  * click handler (what a click at a given X actually hits) call this, so
  * the two can never desynchronize the way two independently
@@ -840,9 +843,10 @@ void client_constrain_size(const client_td *client,
  *
  * This must be called after any WM-initiated change to the client's
  * screen-relative position or content size:
- *   - after the initial frame placement (@a place_apply)
- *   - after a keyboard or programmatic resize (@a ccmd_client_resize)
- *   - after a gravity-triggered repositioning
+ *
+ * - after the initial frame placement (@a place_apply);
+ * - after a keyboard or programmatic resize (@a ccmd_client_resize);
+ * - after a gravity-triggered repositioning.
  *
  * @param connection XCB connection handle
  * @param client     Target client; must have a valid @c window field
@@ -952,8 +956,8 @@ void client_props_refresh_wm_hints(client_td *client);
  * Re-reads @c WM_NORMAL_HINTS from the X server and updates the stored
  * size-hint fields (@c size_hints) in @p client.  Should be called both
  * at manage time and whenever a @c PROPERTY_NOTIFY event for
- * @c WM_NORMAL_HINTS is received, because applications such as gVim
- * update their increment grid and base size after initial startup.
+ * @c WM_NORMAL_HINTS is received (because applications such as gVim
+ * update their increment grid and base size after initial startup).
  *
  * @param client Client to update
  *

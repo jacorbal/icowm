@@ -4,9 +4,9 @@
  * @brief Read-only message modal dialog with a scrollable body and a
  *        single dismiss button
  *
- * Shows a message with an alert level (info, warning, or error) and a
- * single "OK" button.  Also backs the keyboard-shortcuts list (see
- * @c menu/dialog/shortcuts.h) and the @c fortune easter egg (see
+ * Shows a message with an alert level (info, warning, or error) and
+ * a single "OK" button.  Also backs the keyboard-shortcuts list (cfr.
+ * @c menu/dialog/shortcuts.h) and the @c fortune easter egg (cfr.
  * @c menu/dialog/fortune.h), both of which pass @c MENU_MSG_LEVEL_NONE
  * for content that is not itself an alert.
  *
@@ -50,11 +50,9 @@
  */
 typedef enum {
     MENU_MSG_LEVEL_NONE,    /**< No prefix at all; for content that is
-                                  not itself an alert or a notice, such
-                                  as the keyboard-shortcuts list or the
-                                  output of the @c fortune easter egg
-                                  (see @c dialog_shortcuts_show and
-                                  @c dialog_fortune_show) */
+                                 not itself an alert or a notice, such
+                                 as the keyboard-shortcuts list or the
+                                 output of the @c fortune easter egg */
     MENU_MSG_LEVEL_INFO,    /**< Informational message */
     MENU_MSG_LEVEL_WARNING, /**< Non-critical warning */
     MENU_MSG_LEVEL_ERROR    /**< Error or critical condition */
@@ -65,10 +63,9 @@ typedef enum {
  * @brief Open the message dialog centered on the screen
  *
  * Creates and maps a modal dialog window showing @p message with an
- * alert-level prefix.  A single "OK" button dismisses the dialog.
- * The dialog is capped to a fraction of its target monitor's height
- * and scrolls when the message does not fit; see
- * @c menu_message_dialog_scroll.
+ * alert-level prefix.  A single "OK" button dismisses the dialog.  The
+ * dialog is capped to a fraction of its target monitor's height and
+ * scrolls when the message does not fit.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the dialog
@@ -77,6 +74,8 @@ typedef enum {
  * @param level      Alert severity level
  *
  * @note Complexity: @e O(n), where @e n is the message text length
+ *
+ * @see @a menu_message_dialog_scroll
  */
 void menu_message_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
@@ -111,10 +110,9 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
  * @brief Handle a mouse click inside the message dialog
  *
  * Selects the "OK" button and repaints when the pointer lands inside
- * it, then defers the actual close for shortly after (see @c
- * menu_dialog_defer_schedule, menu/dialog/defer.h) so that newly
- * selected state is visible for a moment first, the same reasoning @c
- * menu_confirm_dialog_handle_click already applies to its own two
+ * it, then defers the actual close for shortly after.  So that newly
+ * selected state is visible for a moment first, the same reasoning
+ * @a menu_confirm_dialog_handle_click already applies to its own two
  * buttons.  Clicks outside the button are not handled.
  *
  * @param connection XCB connection
@@ -123,6 +121,8 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
  * @param y          Pointer Y coordinate relative to the dialog
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a menu_dialog_defer_schedule in @c menu/dialog/defer.h
  */
 void menu_message_dialog_handle_click(xcb_connection_t *connection,
         const config_td *config, int x, int y);
@@ -132,9 +132,9 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
  *        becomes due
  *
  * For the main loop to fold into its own @c poll timeout computation,
- * the same way @c popup_ms_remaining and similar already are.
+ * the same way @a popup_ms_remaining and similar already are.
  *
- * @return Milliseconds remaining (never negative), or -1 if none is
+ * @return Milliseconds remaining (never negative), or @c -1 if none is
  *         currently pending
  *
  * @note Complexity: @e O(1)
@@ -142,26 +142,25 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
 int menu_message_dialog_ms_remaining(void);
 
 /**
- * @brief Close the message dialog if a click-triggered close is
- *        pending and its own deadline has arrived
- *
- * A safe, cheap no-op when nothing is pending, including when no
- * dialog is open at all.
+ * @brief Close the message dialog if a click-triggered close is pending
+ *        and its own deadline has arrived
  *
  * @param connection XCB connection
  *
+ * @note A safe, cheap no-op when nothing is pending, including when no
+ *       dialog is open at all
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_tick(xcb_connection_t *connection);
 
 /**
  * @brief Query whether the currently visible message dialog requires
- *        the "OK" button to be explicitly selected before Enter or
- *        Space can activate it
+ *        the "OK" button to be explicitly selected before @c Enter or
+ *        @c Space can activate it
  *
  * @c true for @c MENU_MSG_LEVEL_WARNING and @c MENU_MSG_LEVEL_ERROR;
  * @c false for every other level, and when no dialog is open at all.
- * See @c menu_message_dialog_show for why.
+ * See @a menu_message_dialog_show for why.
  *
  * @return @c true if the dialog currently open requires this
  *
@@ -172,25 +171,25 @@ bool menu_message_dialog_requires_selection(void);
 /**
  * @brief Query whether the "OK" button is currently selected
  *
- * Always @c true for a dialog that does not require selection at all
- * (see @c menu_message_dialog_requires_selection); starts @c false
- * for one that does, until @c menu_message_dialog_select_ok is
- * called.
+ * Always @c true for a dialog that does not require selection at all.
+ * Starts @c false for one that does, until
+ * @a menu_message_dialog_select_ok is called.
  *
  * @return @c true if the button is currently selected
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a menu_message_dialog_requires_selection
  */
 bool menu_message_dialog_ok_selected(void);
 
 /**
  * @brief Select the "OK" button and repaint
  *
- * A no-op if it is already selected, or if the dialog is not open.
- *
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint
  *
+ * @note A no-op if it is already selected, or if the dialog is not open
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_select_ok(xcb_connection_t *connection,
@@ -199,19 +198,19 @@ void menu_message_dialog_select_ok(xcb_connection_t *connection,
 /**
  * @brief Scroll the message dialog's text by a number of lines
  *
- * A no-op when the whole message already fits without scrolling, when
- * @p delta would not actually move the current scroll position
- * (already at either end), or when the dialog is not open.  Repaints
- * immediately when it does move.
- *
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint
- * @param delta      Lines to scroll by; negative scrolls up (toward
- *                   the start), positive scrolls down (toward the
- *                   end).  Clamped to the valid range, so passing an
- *                   arbitrarily large magnitude is a safe way to
- *                   scroll all the way to either end in one call
+ * @param delta      Lines to scroll by; negative scrolls up (toward the
+ *                   start), positive scrolls down (toward the end).
  *
+ * @note Repaints immediately when there's motion
+ * @note Parameter @p delta is lamped to the valid range, so passing an
+ *       arbitrarily large magnitude is a safe way to scroll all the way
+ *       to either end in one call
+ * @note A no-op when the whole message already fits without scrolling,
+ *       when @p delta would not actually move the current scroll
+ *       position (already at either end), or when the dialog is not
+ *       open
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_scroll(xcb_connection_t *connection,

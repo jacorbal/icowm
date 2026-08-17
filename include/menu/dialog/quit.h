@@ -46,7 +46,7 @@
  * @brief Open the quit-confirmation dialog centered on the screen
  *
  * Builds the prompt from @c QUIT_DIALOG_PROMPT_FMT and the window
- * manager name, then delegates to @c menu_confirm_dialog_show.
+ * manager name, then delegates to @a menu_confirm_dialog_show.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the dialog
@@ -82,14 +82,15 @@ void dialog_quit_repaint(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint of a newly
- *                    selected button; see @c
- *                    menu_confirm_dialog_handle_click
+ *                   selected button
  * @param x          Pointer X coordinate relative to the dialog
  * @param y          Pointer Y coordinate relative to the dialog
  *
- * @return @c true if a button was activated, @c false otherwise
+ * @return @c true if a button was activated
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a menu_confirm_dialog_handle_click
  */
 bool dialog_quit_handle_click(xcb_connection_t *connection,
         const config_td *config, int x, int y);

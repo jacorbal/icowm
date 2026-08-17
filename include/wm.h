@@ -36,11 +36,17 @@
 
 #ifndef RULES_TD_DECLARED
 #define RULES_TD_DECLARED
+/**
+ * @brief Opaque window matching rules table
+ */
 typedef struct rules_s rules_td;
 #endif
 
 #ifndef SESSION_TD_DECLARED
 #define SESSION_TD_DECLARED
+/**
+ * @brief Opaque session hooks table
+ */
 typedef struct session_s session_td;
 #endif
 
@@ -57,8 +63,9 @@ typedef struct session_s session_td;
  * references to all surfaces being managed.  The @p config pointer
  * allows for customization of the window manager's settings; events
  * that affect window behavior and user interactions are dispatched
- * from @c loop_run instead (see @c loop.h), not tracked as a field
- * here.
+ * from @a loop_run instead, not tracked as a field here.
+
+ * @see @c loop.h
  */
 typedef struct {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
@@ -100,12 +107,13 @@ typedef struct {
      * @brief Restricted-memory mode's available-memory ceiling, in
      *        mebibytes, or @c 0 when the mode is not active
      *
-     * Set once at startup from the @c -M command-line option (see
-     * @c main.c) and never changed afterward.  Consulted by @a
-     * loop_run's periodic low-memory check, which warns once system-
-     * wide available memory (see @c utils/sysmem.h) drops below it.
+     * Set once at startup from the @c -M command-line option and never
+     * changed afterward.  Consulted by @a loop_run's periodic
+     * low-memory check, which warns once system-wide available memory
+     * drops below it.
      *
-     * @see @c wm_start
+     * @see @c main.c for the @c -M option, and @c utils/sysmem.h
+     * @see @a wm_start
      */
     uint32_t restricted_memory_mib;
 } wm_td;
@@ -121,39 +129,38 @@ typedef struct {
  * state.
  *
  * When @p restricted_memory_mib is non-zero, restricted-memory mode
- * is active (see @c -M in @c main.c): available system memory is
- * checked before doing anything else, refusing to start at all if it
- * is already below that many mebibytes; icon pixmaps and modern font
- * rendering are forced off regardless of what the theme itself says;
- * and each screen's desktop count defaults to a smaller number than
- * an ordinary session's when nothing else specifies one, though an
- * explicit @c config.json value is never overridden.  Everything else
- * (theme, window rules, session hooks, screen count) loads exactly as
- * it would without @p restricted_memory_mib at all.  See
- * @c config_load's own @p restricted_memory_mib parameter for the
- * precise details.
+ * is active.  Available system memory is checked before doing anything
+ * else, refusing to start at all if it is already below that many
+ * mebibytes; icon pixmaps and modern font rendering are forced off
+ * regardless of what the theme itself says; and each screen's desktop
+ * count defaults to a smaller number than an ordinary session's when
+ * nothing else specifies one, though an explicit @c config.json value
+ * is never overridden.  Everything else (theme, window rules, session
+ * hooks, screen count) loads exactly as it would without
+ * @p restricted_memory_mib at all.
  *
- * @param display_name      Name of the display, or @c NULL for default
- * @param config_dir_prefix Configuration directory, or @c NULL to use
- *                          the default value
- * @param restricted_memory_mib Restricted-memory mode's available-
- *                          memory ceiling in mebibytes, or @c 0 to
- *                          leave the mode off
- * @param ipc_disabled      When @c true, the IPC control socket
- *                          (@c ipc.h) is never brought up at all;
- *                          every other part of IcoWM runs exactly the
- *                          same either way
+ * @param display_name          Name of the display, or @c NULL for
+ *                              default
+ * @param config_dir_prefix     Configuration directory, or @c NULL to
+ *                              use the default value
+ * @param restricted_memory_mib Restricted-memory mode's
+ *                              available-memory ceiling in mebibytes,
+ *                              or @c 0 to leave the mode off
+ * @param ipc_disabled          When @c true, the IPC control socket is
+ *                              never brought up at all; every other
+ *                              part of IcoWM runs exactly the same
+ *                              either way
  *
  * @return Status of the initialization
- * @retval  0 Success
- * @retval  1 Failed to allocate memory
- * @retval  2 Cannot open X connection
- * @retval  3 Cannot open load configuration
- * @retval  4 to @c 10 Failed to initialize other internal data
- *            structures (surfaces, RandR, and so on)
- * @retval 11 Restricted-memory mode's ceiling is already below
- *            available system memory; refused to start at all
- * @retval -1 Singleton was already initialized; no action taken
+ * @retval    0 Success
+ * @retval    1 Failed to allocate memory
+ * @retval    2 Cannot open X connection
+ * @retval    3 Cannot open load configuration
+ * @retval 4-10 Failed to initialize other internal data structures
+ *              (surfaces, RandR, &c.)
+ * @retval   11 Restricted-memory mode's ceiling is already below
+ *              available system memory; refused to start at all
+ * @retval   -1 Singleton was already initialized; no action taken
  *
  * @note If @p display_name is @c NULL, the initialization attempts to
  *       get the "DISPLAY" environment variable, if set.
@@ -161,6 +168,10 @@ typedef struct {
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
  *       to initialize, and @e m the number of desktops per window, as
  *       for the initialization requires iterate over a list of lists
+ *
+ * @see @c main.c for the @c -M option
+ * @see @a config_load's own @p restricted_memory_mib parameter for the
+ *      precise details.
  */
 int wm_start(const char *display_name, const char *config_dir_prefix,
         uint32_t restricted_memory_mib, bool ipc_disabled);
@@ -170,37 +181,38 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
  *        the last call to @c json_syntax_errors_reset failed to
  *        parse
  *
- * A no-op if @c json_syntax_errors_count is @c 0 (see @c utils/
- * config/json.h): a JSON file simply not existing is an ordinary,
- * silent reason to fall back to defaults, and produces no entry there
- * at all, only a file that was found but could not actually be
- * parsed does.  One combined warning dialog lists every such file
- * recorded since the last reset, rather than one dialog per file.
- * Also a no-op if the singleton window manager instance is not
- * running, or has no surface to show the dialog on.
+ * A JSON file simply not existing is an ordinary, silent reason to fall
+ * back to defaults, and produces no entry there at all, only a file
+ * that was found but could not actually be parsed does.  One combined
+ * warning dialog lists every such file recorded since the last reset,
+ * rather than one dialog per file.
  *
- * Once shown, the recorded list is cleared (see @c json_syntax_
- * errors_reset), so calling this again without a fresh @c config_
- * load or @c menujson_load in between finds nothing left to warn
- * about; a menu.json still broken the next time the root menu is
- * opened records and warns about it again on its own.
+ * Once shown, the recorded list is cleared, so calling this again
+ * without a fresh @a config_load or @a menujson_load in between finds
+ * nothing left to warn about; a menu.json still broken the next time
+ * the root menu is opened records and warns about it again on its own.
  *
+ * @note A no-op if @a json_syntax_errors_count is @c 0 
+ * @note Also a no-op if the singleton window manager instance is not
+ *       running, or has no surface to show the dialog on
  * @note Complexity: @e O(n), where @e n is the number of files
  *       recorded
+ *
+ * @see @a json_syntax_errors_reset, also @c utils/config/json.h
  */
 void wm_warn_json_syntax_errors(void);
 
 /**
  * @brief Destroy window manager instance
  *
- * Deallocates the memory used by the @p wm_td structure, including the
+ * Deallocates the memory used by the @c wm_td structure, including the
  * managed windows and closes the connection to the X server.
  *
  * @return Status of the operation
- * @return  0 Success
- * @return  1 No operation has been performed
+ * @retval  0 Success
+ * @retval  1 No operation has been performed
  *
- * @note Passing a @c NULL pointer has no effect
+ * @note Passing a null pointer has no effect
  * @note Complexity: @e O(m * (1 + n^2)), where @e n is the number of
  *       surfaces, and @e m is the number of desktops per surface, as it
  *       iterates through the array of windows to free each one of them
@@ -214,8 +226,8 @@ int wm_stop(void);
  * teardown can happen from the main thread.
  *
  * @return Status of the operation
- * @retval 0 Success
- * @retval 1 If the window manager singleton is not initialized
+ * @retval  0 Success
+ * @retval  1 If the window manager singleton is not initialized
  */
 int wm_request_stop(void);
 
@@ -224,15 +236,20 @@ int wm_request_stop(void);
  *        every managed client a chance to close itself first
  *
  * Unlike @a wm_request_stop, which stops the main loop right away,
- * this asks every managed client to close (ICCCM 'WM_DELETE_WINDOW'
- * where supported) and only actually stops once every one of them
- * has closed on its own or a configured timeout elapses, whichever
- * comes first; see @c wm/shutdown.h for the full design.  Meant for
- * the normal quit action; the emergency exit shortcut deliberately
- * calls @a wm_request_stop directly instead, bypassing this entirely.
+ * this asks every managed client to close (ICCCM @c WM_DELETE_WINDOW
+ * where supported) and only actually stops once every one of them has
+ * closed on its own or a configured timeout elapses, whichever comes
+ * first.
+ *
+ * Meant for the normal quit action; the emergency exit shortcut
+ * deliberately calls @a wm_request_stop directly instead, bypassing
+ * this entirely.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients across every surface and desktop
+ *
+ * @see @c wm/shutdown.h for the full design on asking managed clients
+ *      when stopping the window manager
  */
 void wm_request_graceful_stop(void);
 
@@ -245,8 +262,8 @@ void wm_request_graceful_stop(void);
  *
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       saved because it involves reading from the configuration file
- * @note Reloads @c config->randr from @c randr.json but does not call
- *       @c surface_action_apply_randr_profiles; an edited profile
+ * @note Reloads @p config->randr from @c randr.json but does not call
+ *       @a surface_action_apply_randr_profiles; an edited profile
  *       takes effect at the next call to that function (startup, or
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
@@ -284,7 +301,7 @@ desktop_td *wm_get_client_desktop(const client_td *client);
  * @brief Return the managed surface with the given identifier
  *
  * Scans all surfaces handled by the singleton window manager instance
- * and returns the one whose @c id matches @p surface_id.
+ * and returns the one whose @p id matches @p surface_id.
  *
  * @param surface_id Surface identifier
  *
@@ -299,14 +316,16 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
 /**
  * @brief Query whether the XSync extension is available on this server
  *
- * Used by @c client_init to decide whether to create a per-client
+ * Used by @a client_init to decide whether to create a per-client
  * sync counter/alarm for @c _NET_WM_SYNC_REQUEST, and by
- * @c ccmd_client_resize to decide whether to throttle interactive
+ * @a ccmd_client_resize to decide whether to throttle interactive
  * resize on that client's acknowledgement.
  *
- * @return @c true when @c startup_sync_init found XSync present and
- *         queryable, @c false otherwise (including when the window
- *         manager is not initialized)
+ * @return Status of the query
+ * @retval  true when @a startup_sync_init found XSync present and
+ *               queryable
+ * @retval false otherwise (including when the window manager is not
+ *               initialized)
  *
  * @note Complexity: @e O(1)
  */
@@ -319,11 +338,11 @@ bool wm_sync_available(void);
  * Used by code outside @c src/wm/ (which cannot include the private
  * @c wm/internal.h singleton pointer directly) that needs the full
  * surface list rather than a single surface by ID (e.g.,
- * @c focus_apply) which needs it to look up and unfocus whichever
+ * @a focus_apply) which needs it to look up and unfocus whichever
  * client was previously active.
  *
- * @return The managed surfaces list, or @c NULL when the window
- *         manager is not initialized
+ * @return The managed surfaces list, or @c NULL when the window manager
+ *         is not initialized
  *
  * @note Complexity: @e O(1)
  */
@@ -333,14 +352,14 @@ list_td *wm_get_surfaces(void);
  * @brief Find which managed surface a given desktop belongs to
  *
  * @c desktop_td itself keeps no back-pointer to its own owning
- * @c surface_td (each surface's own @c desktops list points one way
+ * @c surface_td (each surface's own @p desktops list points one way
  * only, surface to desktop); this is the reverse lookup, used by
- * @c desktop_action_recompute_urgent (desktop/dclient.c) to find the
+ * @a desktop_action_recompute_urgent (@c desktop/dclient.c) to find the
  * surface a desktop's own cross-desktop urgency notification popup
- * needs to center on and compare @c desktop_cur against, without
- * that function's own signature having to grow a @c surface_td
- * parameter every one of its own several unrelated callers would
- * then also have to obtain and pass through.
+ * needs to center on and compare @p desktop_cur against, without that
+ * function's own signature having to grow a @c surface_td parameter
+ * every one of its own several unrelated callers would then also have
+ * to obtain and pass through.
  *
  * @param desktop Desktop to find the owning surface of
  *
@@ -359,16 +378,17 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop);
  *
  * Used by code outside @c src/wm/ (which cannot include the private
  * @c wm/internal.h singleton pointer directly) that needs to read
- * configuration without already having a @c client_td/@c desktop_td
- * of its own that caches the specific sub-section it needs (see,
- * e.g., @c client_td.config_base, @c desktop_td.config_base): @c
- * desktop_action_recompute_urgent (desktop/dclient.c) is the first
- * such caller, reading @c desktops.notify-activity.
+ * configuration without already having a @c client_td / @c desktop_td
+ * of its own that caches the specific sub-section it needs.
  *
- * @return The active configuration, or @c NULL when the window
- *         manager is not initialized
+ * @return The active configuration, or @c NULL when the window manager
+ *         is not initialized
  *
+ * @note @a desktop_action_recompute_urgent (@c desktop/dclient.c) is
+ *       the first such caller, reading @p desktops.notify-activity
  * @note Complexity: @e O(1)
+ *
+ * @see @p client_td.config_base and @p desktop_td.config_base
  */
 config_td *wm_get_config(void);
 

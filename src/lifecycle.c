@@ -170,7 +170,6 @@ void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
 {
     desktop_td *desktop;
     int result;
-    char msg[256];
 
     if (surface == NULL || prog == NULL || prog[0] == '\0') {
         return;
@@ -188,6 +187,8 @@ void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
     }
     if (result == -2 && surface->connection != NULL &&
             surface->config != NULL) {
+        char msg[256];
+
         (void) snprintf(msg, sizeof(msg),
                 "Failed to execute child process '%s';" \
                 " no such file or directory", prog);

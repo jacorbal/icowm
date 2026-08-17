@@ -30,8 +30,8 @@
 #define CONFIG_MAX_LENGTH_PATH_CONFIG \
     ((CONFIG_MAX_LENGTH_PATH_BASE) + (CONFIG_MAX_LENGTH_FILENAME))
 #define CONFIG_MAX_LENGTH_PATH_THEME \
-    ((CONFIG_MAX_LENGTH_PATH_BASE) + (CONFIG_MAX_LENGTH_FILENAME) \
-     + (CONFIG_MAX_LENGTH_FILENAME))
+    ((CONFIG_MAX_LENGTH_PATH_BASE) + (CONFIG_MAX_LENGTH_FILENAME) + \
+    (CONFIG_MAX_LENGTH_FILENAME))
 
 /* Base default directories */
 #define CONFIG_DIR_BASE "icowm"
@@ -47,10 +47,11 @@
 
 /* Default values when no value is given
  *
- * Smaller under COMPACT (see defs/compact.h): each
- * screen's own worth of desktops nests inside every screen slot, so
- * this pair sizes a genuinely multiplicative chunk of config_base_s,
- * not just two independent numbers. */
+ * Smaller under 'COMPACT' (see 'defs/compact.h' for a nice extended
+ * commetn on that topic).  Each screen's own worth of desktops nests
+ * inside every screen slot, so this pair sizes a genuinely
+ * multiplicative chunk of 'config_base_s', not just two independent
+ * numbers. */
 #ifdef COMPACT
 #define CONFIG_MAX_SCREENS (1)      /**< Initial max. number of screens */
 #define CONFIG_MAX_DESKTOPS (4)     /**< Initial max. desktops per screen */
@@ -61,13 +62,13 @@
 
 /* XRandR output profile configuration limits
  *
- * CONFIG_RANDR_MAX_OUTPUTS is also smaller under COMPACT, for the same
- * reason as CONFIG_MAX_SCREENS above: a target that build is meant
- * for is unlikely to drive many outputs at once regardless.  The
+ * 'CONFIG_RANDR_MAX_OUTPUTS' is also smaller under 'COMPACT', for the
+ * same reason as 'CONFIG_MAX_SCREENS' above.  A target that build is
+ * meant for is unlikely to drive many outputs at once regardless.  The
  * ordinary value covers real setups with several outputs across
- * multiple GPUs (a common shape in control rooms, digital signage,
- * or multi-card workstations), not just a typical single-GPU
- * laptop or desktop. */
+ * multiple GPUs (a common shape in control rooms, digital signage, or
+ * multi-card workstations), not just a typical single-GPU laptop or
+ * desktop. */
 #ifdef COMPACT
 #define CONFIG_RANDR_MAX_OUTPUTS (2)         /**< Max. per-output profiles */
 #else

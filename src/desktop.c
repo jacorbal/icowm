@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <string.h>     /* strncpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -52,10 +51,10 @@
  *
  * Tests whether the range defined by @p a_start and @p a_end intersects
  * the range defined by @p b_start and @p b_end, treating both endpoints
- * as inclusive. If the first range is given as @c 0..0, it is treated as
- * unbounded so legacy @c _NET_WM_STRUT values without explicit start/end
- * coordinates still match any target range. Invalid second ranges, where
- * @p b_end is less than @p b_start, are rejected.
+ * as inclusive.  If the first range is given as @c (0..0), it is
+ * treated as unbounded so legacy @c _NET_WM_STRUT values without
+ * explicit start/end coordinates still match any target range.  Invalid
+ * second ranges, where @p b_end is less than @p b_start, are rejected.
  *
  * @param a_start Start of the first range
  * @param a_end   End of the first range
@@ -69,8 +68,6 @@
 static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
         int32_t b_start, int32_t b_end)
 {
-    int32_t tmp;
-
     if (b_end < b_start) {
         return false;
     }
@@ -82,6 +79,8 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
     }
 
     if (a_start > a_end) {
+        int32_t tmp;
+
         tmp = a_start;
         a_start = a_end;
         a_end = tmp;
@@ -92,30 +91,30 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
 
 
 /**
- * @brief Fold one more strut into a running maximum reservation on
- *        each of the four screen edges
+ * @brief Fold one more strut into a running maximum reservation on each
+ *        of the four screen edges
  *
  * Shared by @c desktop_update_workarea for both a stacked client's
- * own @c layout.strut_partial and the systray's own reservation (see
- * @c systray_get_reserved_strut): the two are struts from
- * icowm's point of view either way, aggregated identically -- each
- * edge keeps whichever single source reserves the most there, the
- * struts are not summed together (unlike @c config_desktop_s's own
- * @c margins, a deliberately different, additive case; see the
- * comment where those are applied in @c desktop_update_workarea for
- * why).
+ * @c layout.strut_partial and the systray's own reservation.  The two
+ * are struts from IcoWM's point of view either way, aggregated
+ * identically; each edge keeps whichever single source reserves the
+ * most there, the struts are not summed together (unlike
+ * @a config_desktop_s's @p margins, a deliberately different, additive
+ * case.
  *
- * @param strut        Strut to fold in; a no-op when @c NULL
+ * @param strut        Strut to fold in; a no-op when null
  * @param screen_max_x Screen's own maximum X coordinate, for the
- *                      top/bottom range overlap check
+ *                     top/bottom range overlap check
  * @param screen_max_y Screen's own maximum Y coordinate, for the
- *                      left/right range overlap check
+ *                     left/right range overlap check
  * @param left         Running left reservation, updated in place
  * @param right        Running right reservation, updated in place
  * @param top          Running top reservation, updated in place
  * @param bottom       Running bottom reservation, updated in place
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a systray_get_reserved_strut and @a desktop_update_workarea
  */
 static void s_fold_strut(const struct strut_partial_s *strut,
         int32_t screen_max_x, int32_t screen_max_y,
@@ -206,12 +205,13 @@ static size_t s_h2(const void *data)
      * non-zero to guarantee a valid step size in double hashing. */
     hash2 = (hash2 == 0u) ? 1u : hash2;
 
-    /* Internal invariant, not external input validation: verifies
-     * this function's own documented postcondition (never zero) holds
-     * after the line just above, so a future edit to that forcing
-     * logic that accidentally breaks it is caught immediately in a
-     * debug build (see DEBUG=1/2 in the Makefile) rather than
-     * silently producing an invalid double-hashing step size.
+    /* Internal invariant, not external input validation that verifies
+     * this function's documented postcondition (never zero) holds after
+     * the line just above, so a future edit to that forcing logic that
+     * accidentally breaks it is caught immediately in a debug build
+     * rather than silently producing an invalid double-hashing step
+     * size.
+     *
      * Compiled out entirely in the default release build (NDEBUG). */
     assert(hash2 != 0u);
 
@@ -241,13 +241,15 @@ static bool s_client_match(const void *key1, const void *key2)
     const client_td *client2 = (const client_td *) key2;
 
     /* Internal invariant, not external input validation: this is an
-     * ohtbl comparator, called only by ohtbl.c's own internals with
-     * entries already stored in the table, never with attacker- or
-     * user-controlled input.  Catches a future bug in that internal
-     * calling logic immediately in a debug build (see DEBUG=1/2 in
-     * the Makefile) instead of the bare, unexplained segfault the
-     * dereferences just below would otherwise produce.  Compiled out
-     * entirely in the default release build (NDEBUG). */
+     * ohtbl comparator, called only by 'ohtbl.c''s internals with
+     * entries already stored in the table, never with
+     * attacker-controlled or user-controlled input.
+     *
+     * Catches a future bug in that internal calling logic immediately
+     * in a debug build instead of the bare, unexplained segfault the
+     * dereferences just below would otherwise produce.
+     *
+     * Compiled out entirely in the default release build ('NDEBUG'). */
     assert(key1 != NULL);
     assert(key2 != NULL);
 
@@ -289,12 +291,13 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->config_theme = config_theme;
 
     /* Set desktop name.  The config-provided name is copied with
-     * 'safe_strncpy' instead of 'snprintf("%s", ...)' because its
-     * source field is wider than 'desktop->name'.  GCC's own
-     * '-Wformat-truncation' cannot prove the copy never truncates,
-     * and truncating a name that does not fit is the desired,
-     * harmless behavior here anyway. */
-    if (config_base->screens[screen_id].desktops[desktop_id].name[0] == '\0') {
+     * 'safe_strncpy' ('utils/safe/safestr.h') instead of
+     * 'snprintf("%s", ...)' because its source field is wider than
+     * 'desktop->name'.  GCC's option '-Wformat-truncation' cannot prove
+     * the copy never truncates, and truncating a name that does not fit
+     * is the desired, harmless behavior here anyway. */
+    if (config_base->screens[screen_id].desktops[desktop_id].name[0] ==
+        '\0') {
         snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
     } else {
@@ -304,10 +307,10 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     }
 
     /* Set background color: a desktop entry that set its own
-     * 'background-color' (config.json) always keeps it; one that
-     * did not (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the
-     * sentinel every entry starts with) falls back to
-     * 'theme.desktop.color.background' (theme.json) instead. */
+     * 'background-color' (vid. 'config.json') always keeps it; one that
+     * did not (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the sentinel
+     * every entry starts with) falls back to
+     * 'theme.desktop.color.background' (vid. 'theme.json') instead. */
     desktop->background.is_image = false;
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color =
@@ -322,18 +325,18 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
 
-    /* Initialize hash table for quick client lookup.  In restricted-
-     * memory mode, sized to what 'memguard_max_clients' actually
-     * expects this desktop to ever hold instead of the usual, much
-     * larger 'WM_DESKTOP_INITIAL_CAPACITY': that default is meant for
-     * an ordinary session where the number of windows someone might
-     * open is not meaningfully bounded, which defeats the whole
-     * point of a mode meant to keep memory use predictable.  Doubled
-     * rather than sized to the cap exactly, since 'ohtbl_insert'
-     * resizes once occupancy reaches OHTBL_MAX_LOAD_FACTOR (75%) of
-     * positions; sizing to the cap exactly would mean hitting that
-     * threshold, and doubling the table anyway, before the cap itself
-     * is ever reached. */
+    /* Initialize hash table for quick client lookup.
+     * In restricted-memory mode, sized to what 'memguard_max_clients'
+     * actually expects this desktop to ever hold instead of the usual,
+     * much larger 'WM_DESKTOP_INITIAL_CAPACITY'.  That default is meant
+     * for an ordinary session where the number of windows someone might
+     * open is not meaningfully bounded, which defeats the whole point
+     * of a mode meant to keep memory use predictable.  Doubled rather
+     * than sized to the cap exactly, since 'ohtbl_insert' resizes once
+     * occupancy reaches OHTBL_MAX_LOAD_FACTOR (75%) of positions;
+     * sizing to the cap exactly would mean hitting that threshold, and
+     * doubling the table anyway, before the cap itself is ever
+     * reached. */
     initial_positions = memguard_max_clients();
     initial_positions = (initial_positions > 0u)
         ? (initial_positions * 2u)
@@ -387,9 +390,9 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     screen = iter.data;
 
-    /* Kept for every later O(1) lookup of this desktop's own screen
-     * (see the field's own doc comment, desktop.h); this same walk
-     * already had to resolve it just above to read its dimensions */
+    /* Kept for every later 'O(1)' lookup of this desktop's own screen.
+     * This same walk already had to resolve it just above to read its
+     * dimensions. */
     desktop->screen = screen;
 
     /* Initialize geometry with screen dimensions */
@@ -423,7 +426,6 @@ void desktop_update_workarea(desktop_td *desktop,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut)
 {
-    cdlist_item_td *node;
     cdlist_item_td *initial;
     int32_t left = 0;
     int32_t right = 0;
@@ -443,6 +445,8 @@ void desktop_update_workarea(desktop_td *desktop,
 
     if (desktop->stacking != NULL &&
             cdlist_size(desktop->stacking) > 0) {
+        cdlist_item_td *node;
+
         /* Aggregate maximum strut on each edge across all stacked
          * clients */
         initial = cdlist_head(desktop->stacking);
@@ -459,25 +463,24 @@ void desktop_update_workarea(desktop_td *desktop,
         } while (node != NULL && node != initial);
     }
 
-    /* The window manager's own built-in systray is not a managed
-     * client (its dock window is override-redirect; see
+    /* The window manager's own built-in systray is not a managed client
+     * (its dock window is override-redirect; see
      * 'systray_protocol_ensure_window'), so it never appears in
-     * 'desktop->stacking' above and needs folding in separately here
-     * -- aggregated the exact same way, since it is a strut source
-     * like any other from this function's own point of view. */
+     * 'desktop->stacking' above and needs folding in separately here;
+     * aggregated the exact same way, since it is a strut source like
+     * any other from this function's own point of view. */
     s_fold_strut(systray_strut, screen_max_x, screen_max_y,
             &left, &right, &top, &bottom);
 
-    /* Configured margins (config.json's own 'desktops.margins') add on
+    /* Configured margins ('config.json''s 'desktops.margins') add on
      * top of whatever clients themselves already reserve on each edge
-     * above, rather than only keeping whichever of the two is larger:
-     * they cover a distinct case -- a program that reserves screen
-     * space without publishing '_NET_WM_STRUT'/'_NET_WM_STRUT_PARTIAL'
-     * itself (e.g., Conky) -- so both are meant to coexist, not
-     * override one another.  Applied even with no clients at all
-     * (the early return this replaced never used to reach here), so a
-     * configured margin still reserves its space on an empty
-     * desktop. */
+     * above, rather than only keeping whichever of the two is larger.
+     * They cover a distinct case (a program that reserves screen space
+     * without publishing '_NET_WM_STRUT'/'_NET_WM_STRUT_PARTIAL'
+     * itself, e.g., Conky) so both are meant to coexist, not override
+     * one another.  Applied even with no clients at all (the early
+     * return this replaced never used to reach here), so a configured
+     * margin still reserves its space on an empty desktop. */
     if (config_desktop != NULL) {
         left += (int32_t) config_desktop->margins.left;
         right += (int32_t) config_desktop->margins.right;
@@ -493,7 +496,7 @@ void desktop_update_workarea(desktop_td *desktop,
     desktop->workarea.dim.w = (new_w > 0) ? (uint32_t) new_w : 0U;
     desktop->workarea.dim.h = (new_h > 0) ? (uint32_t) new_h : 0U;
 
-    LOGGER_TRACE("Desktop %u workarea: %ux%u+%d+%d",
+    LOGGER_TRACE("Desktop %u workarea: %ux%u+%+d%+d",
             desktop->id,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
             desktop->workarea.pos.x, desktop->workarea.pos.y);

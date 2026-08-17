@@ -3,10 +3,10 @@
  *
  * @brief EWMH-related constants for the window manager
  *
- * Centralizes every constant that relates to the Extended Window Manager
- * Hints protocol, keeping them separate from the other, domain-specific
- * constant headers under @c defs/ so that EWMH compliance can be
- * audited and maintained in one place.
+ * Centralizes every constant that relates to the Extended Window
+ * Manager Hints protocol, keeping them separate from the other,
+ * domain-specific constant headers under @c defs/ so that EWMH
+ * compliance can be audited and maintained in one place.
  *
  * @ingroup defs
  */
@@ -30,7 +30,6 @@
  * build-time @c PROJECT_NAME_SHORT macro when available and falls back
  * to a portable default otherwise.
  */
-
 #ifdef PROJECT_NAME_SHORT
 #define WM_EWMH_NAME PROJECT_NAME_SHORT
 #else
@@ -103,14 +102,14 @@
 #define WM_EWMH_PING_TIMEOUT_SECONDS (15)
 
 /**
- * @brief '_NET_WM_STATE' action values, per EWMH §5.8
+ * @brief Action values of @c _NET_WM_STATE, per EWMH §5.8
  */
 #define WM_STATE_ACTION_REMOVE (0)
 #define WM_STATE_ACTION_ADD (1)
 #define WM_STATE_ACTION_TOGGLE (2)
 
 /**
- * @brief '_NET_MOVERESIZE_WINDOW' flag bits, per EWMH §5.11
+ * @brief Flag bits of @c _NET_MOVERESIZE_WINDOW, per EWMH §5.11
  */
 #define WM_MOVERESIZE_FLAG_X (1u << 8)
 #define WM_MOVERESIZE_FLAG_Y (1u << 9)
@@ -118,7 +117,7 @@
 #define WM_MOVERESIZE_FLAG_HEIGHT (1u << 11)
 
 /**
- * @brief '_NET_RESTACK_WINDOW' detail values, per EWMH §4.3
+ * @brief Detail values of @c _NET_RESTACK_WINDOW, per EWMH §4.3
  */
 #define WM_RESTACK_DETAIL_ABOVE (0u)
 #define WM_RESTACK_DETAIL_BELOW (1u)

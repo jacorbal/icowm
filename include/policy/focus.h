@@ -67,9 +67,9 @@ bool focus_is_sloppy(const config_td *cfg);
  * @note Passing @c NULL for @p surfaces suppresses the unfocus-previous
  *       step; this is safe when the caller has already handled it.
  */
-void focus_apply(list_td *surfaces,
-        surface_td *surface, desktop_td *desktop,
-        client_td *client, bool raise, const config_td *cfg);
+void focus_apply(list_td *surfaces, surface_td *surface,
+        desktop_td *desktop, client_td *client,
+        bool raise, const config_td *cfg);
 
 
 #endif  /* ! POLICY_FOCUS_H */

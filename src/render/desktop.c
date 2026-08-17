@@ -52,7 +52,23 @@
 /* Local includes */
 #include <render/desktop.h>
 #include <render/icon.h>
-#include <render/internal.h>
+
+
+/* Per-screen (not per-desktop) cache of the root window's own last
+ * solid-color fill, indexed by 'screen_id'.  Every virtual desktop on
+ * a given screen shares that one same root window as an X resource, so
+ * whether it still shows a particular desktop's own configured color
+ * has to be tracked per screen too, not per desktop.
+ *
+ * A field on 'desktop_td' itself (as this used to be) instead lets each
+ * desktop believe its own color remains applied purely because it was
+ * the last one THAT desktop painted, even after some other desktop
+ * sharing the same root window repainted over it with a different one;
+ * and, since a config reload does not reset any of this, leaves that
+ * other, now-stale color on screen indefinitely, with no further
+ * repaint ever believing there is anything left to fix. */
+static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
+static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 
 
 /**
@@ -80,27 +96,31 @@ static const char *const s_bg_prop_names[3] = {
  * None of these ever changes once interned (an atom, once assigned by
  * the X server, is permanent for the life of the connection), so
  * resolving them again on every lookup would be pure waste; resolved
- * lazily by @c s_resolve_bg_atoms on first use, retried on any later
- * call for whichever of the three are still unresolved (see that
- * function's own comment for why a resolution failure, unlike a
- * success, is not permanent here).
+ * lazily by @a s_resolve_bg_atoms on first use, retried on any later
+ * call for whichever of the three are still unresolved.
+ *
+ * @see @a s_resolve_bg_atoms's own comment for why a resolution
+ *       failure, unlike a success, is not permanent here
  */
 static xcb_atom_t s_bg_atoms[3] = {
     XCB_ATOM_NONE, XCB_ATOM_NONE, XCB_ATOM_NONE
 };
 
+
 /**
  * @brief Cached resolution of the root window's background pixmap
  *
  * A well-behaved system sets this once (a wallpaper tool such as
- * @c feh, @c nitrogen, or @c hsetroot runs once at session start) and
+ * feh, nitrogen, or hsetroot runs once at session start) and
  * essentially never changes it again during a normal session, so
- * resolving it fresh on every @c s_get_root_background_pixmap call
- * (up to three property fetches, each a round trip to the X server)
- * would be paying that cost repeatedly for something that stays the
- * same almost every single time.  Cached here instead, and only
- * re-resolved once @c desktop_invalidate_background_pixmap_cache says
- * the underlying property actually changed.
+ * resolving it fresh on every @a s_get_root_background_pixmap call (up
+ * to three property fetches, each a round trip to the X server) would
+ * be paying that cost repeatedly for something that stays the same
+ * almost every single time.
+ *
+ * @note Cached here instead, and only re-resolved once
+ *       @a desktop_invalidate_background_pixmap_cache says the
+ *       underlying property actually changed
  */
 static bool s_bg_pixmap_resolved = false;
 static xcb_pixmap_t s_bg_pixmap_cache = XCB_NONE;
@@ -120,17 +140,19 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
     bool any_unresolved = false;
 
     /* Re-attempts only whichever of the three atoms are still
-     * XCB_ATOM_NONE, rather than giving up on all three permanently
-     * the moment any single attempt is made: 'only_if_exists=true' in
-     * 'atom_intern' means a name that does not exist yet on the X
-     * server resolves to none, which is correct at that moment, but
-     * unlike a successful resolution (an atom, once it exists, is
-     * permanent for the life of the connection) that failure is not
-     * itself permanent: a wallpaper tool run for the first time
-     * after this module's own first lookup, before any of these
-     * three names had ever been interned by anyone, would otherwise
-     * be watched for forever using an atom id that was cached as
-     * none before it ever existed. */
+     * 'XCB_ATOM_NONE', rather than giving up on all three permanently
+     * the moment any single attempt is made.
+     *
+     * 'only_if_exists=true' in 'atom_intern' means a name that does not
+     * exist yet on the X server resolves to none, which is correct at
+     * that moment, but unlike a successful resolution (an atom, once it
+     * exists, is permanent for the life of the connection) that failure
+     * is not itself permanent.
+     *
+     * A wallpaper tool run for the first time after this module's own
+     * first lookup, before any of these three names had ever been
+     * interned by anyone, would otherwise be watched for forever using
+     * an atom id that was cached as none before it ever existed. */
     for (size_t i = 0; i < 3u; ++i) {
         if (s_bg_atoms[i] == XCB_ATOM_NONE) {
             any_unresolved = true;
@@ -159,18 +181,20 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
  * and returns the first non-@c XCB_NONE pixmap found, or @c XCB_NONE if
  * no valid pixmap is present.
  *
+ * A cache hit costs nothing beyond returning the cached value, in
+ * contrast to a miss, which pays for up to three property fetches, each
+ * its own round trip to the X server
+ *
  * @param connection XCB connection to the X server
  * @param root       Root window to query for background pixmap
  *
  * @return Root background pixmap, or @c XCB_NONE if not available
  *
- * @note Resolved once and cached from then on (see
- *       @c s_bg_pixmap_resolved above); a cache hit costs nothing
- *       beyond returning the cached value, in contrast to a miss,
- *       which pays for up to three property fetches, each its own
- *       round trip to the X server
+ * @note Resolved once and cached from then on
  * @note Complexity: @e O(1) on a cache hit; @e O(n) in the number of
  *       candidate properties on a cache miss
+ *
+ * @see @a s_bg_pixmap_resolved above
  */
 static xcb_pixmap_t
     s_get_root_background_pixmap(xcb_connection_t *connection,
@@ -217,8 +241,8 @@ static xcb_pixmap_t
     }
 
     /* No wallpaper tool has set any of the candidate properties; that
-     * is itself a stable outcome worth caching too, not just a
-     * successful resolution, so a desktop with no such tool running
+     * is itself a stable outcome worth caching too, not just
+     * a successful resolution, so a desktop with no such tool running
      * does not keep paying for this same negative lookup either */
     LOGGER_TRACE("No external root pixmap property found" \
             " (checked atoms 0x%x, 0x%x, 0x%x); using configured" \
@@ -237,8 +261,8 @@ void desktop_invalidate_background_pixmap_cache(void)
 }
 
 
-/* Recognize whether an atom is one of the background pixmap
- * properties this module watches */
+/* Recognize whether an atom is one of the background pixmap properties
+ * this module watches */
 bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
         xcb_atom_t atom)
 {
@@ -256,22 +280,6 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
 
     return false;
 }
-
-
-/* Per-screen (not per-desktop) cache of the root window's own last
- * solid-color fill, indexed by 'screen_id': every virtual desktop on
- * a given screen shares that one same root window as an X resource,
- * so whether it still shows a particular desktop's own configured
- * color has to be tracked per screen too, not per desktop.  A field
- * on 'desktop_td' itself (as this used to be) instead lets each
- * desktop believe its own color remains applied purely because it was
- * the last one *that desktop* painted, even after some other desktop
- * sharing the same root window repainted over it with a different
- * one -- and, since a config reload does not reset any of this,
- * leaves that other, now-stale color on screen indefinitely, with no
- * further repaint ever believing there is anything left to fix. */
-static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
-static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 
 
 /* Draw the background of a desktop */
@@ -310,8 +318,8 @@ int desktop_render_background(desktop_td *desktop)
     root_pixmap = s_get_root_background_pixmap(desktop->connection,
             screen->root);
     if (root_pixmap != XCB_NONE) {
-        /* An external tool ('xsetbg', 'feh', 'xsetroot', 'nitrogen',
-         * etc.) painted the root window and recorded the pixmap ID in
+        /* An external tool ('xsetbg', 'xsetroot', 'nitrogen', 'feh',
+         * &c.) painted the root window and recorded the pixmap ID in
          * a well-known atom.  Record that fact so that subsequent
          * repaints do not overwrite the wallpaper with our color.
          */
@@ -324,13 +332,13 @@ int desktop_render_background(desktop_td *desktop)
          *       'BadDrawable' X error and an abrupt crash. */
         desktop->background.use_root_pixmap = true;
         /* So that if the WM ever owns the background again later (the
-         * external pixmap atom disappears), the solid-color path
-         * below always re-applies at least once even if that color
-         * happens to equal whatever it last applied before this
-         * external pixmap appeared -- otherwise this screen's shared
-         * root window would be left showing the stale external
-         * wallpaper under the mistaken belief that the WM's own color
-         * was already correctly in place. */
+         * external pixmap atom disappears), the solid-color path below
+         * always re-applies at least once even if that color happens to
+         * equal whatever it last applied before this external pixmap
+         * appeared.  Otherwise this screen's shared root window would
+         * be left showing the stale external wallpaper under the
+         * mistaken belief that the WM's own color was already correctly
+         * in place. */
         s_root_bg_applied_once[desktop->screen_id] = false;
         LOGGER_TRACE("External root pixmap 0x%x detected for" \
                 " desktop %u ('%s'); skipping color fill",
@@ -529,7 +537,6 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
         enum config_titlebar_alignment_e alignment)
 {
     char buf[CONFIG_MAX_LENGTH_NAME];
-    size_t len;
     uint16_t text_w;
     int16_t draw_x;
 
@@ -542,7 +549,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
     text_w = text_measure_string(buf);
 
     if (text_w > title_w) {
-        len = safe_strlen(buf);
+        size_t len = safe_strlen(buf);
         while (len > 0u && text_w > title_w) {
             --len;
             buf[len] = '\0';
@@ -706,21 +713,19 @@ static void s_repaint_frame_decoration_unless_hidden(
 void desktop_render_one_client(desktop_td *desktop,
         client_td *client, bool is_current)
 {
-    uint16_t mask;
-    int32_t values[4];
     xcb_window_t target;
     bool is_focused;
-    uint16_t left;
-    uint16_t right;
-    uint16_t top;
-    uint16_t bottom;
-    uint16_t title_h;
-    uint16_t inner_w;
-    uint16_t inner_h;
     bool hide_decoration;
     bool titlebar_visible;
     bool has_extra_window_border;
     uint32_t border_width;
+    uint16_t top;
+    uint16_t bottom;
+    uint16_t left;
+    uint16_t right;
+    uint16_t inner_h;
+    uint16_t inner_w;
+    uint16_t title_h;
 
     is_focused = (desktop->client_active_id == client->id);
 
@@ -833,6 +838,9 @@ void desktop_render_one_client(desktop_td *desktop,
     }
 
     if (client->is_outdated) {
+        uint16_t mask;
+        int32_t values[4];
+
         /* Configure position and size; only when the client's
          * geometry or decoration changed.  Skipping this for
          * up-to-date clients prevents the server from generating
@@ -840,7 +848,7 @@ void desktop_render_one_client(desktop_td *desktop,
          * other windows to unnecessarily redraw, which appears as
          * flicker during keyboard resize of an unrelated client. */
         LOGGER_TRACE("Render pass applying outdated geometry for" \
-                " window=0x%x: target=0x%x (%s frame), %ux%u+%d+%d",
+                " window=0x%x: target=0x%x (%s frame), %ux%u%+d%+d",
                 client->window, target,
                 (target != client->window) ? "has" : "no",
                 client->layout.geometry.cur.dim.w,
@@ -1022,7 +1030,7 @@ void desktop_render_one_client(desktop_td *desktop,
 int desktop_render_clients(desktop_td *desktop, bool is_current)
 {
     cdlist_item_td *stacking_node;
-    cdlist_item_td *stacking_initial;
+    const cdlist_item_td *stacking_initial;
     client_td *client;
     int client_count = 0;
     size_t stacking_size;
@@ -1133,14 +1141,14 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
     /* Every client just had its chance, in the loop above, to compare
      * itself against 'focus_dirty' and refresh its own decoration
-     * colors if the active client changed since the last full render;
-     * clearing it here consumes that signal so the next pass (e.g., a
+     * colors if the active client changed since the last full render.
+     * Clearing it here consumes that signal so the next pass (e.g., a
      * later resize of one otherwise-unrelated client, with focus
      * unchanged since) does not see it still set and re-trigger the
      * exact spurious 'xcb_clear_area + text-draw' repaint on every
-     * other window this flag exists to avoid.  See its own doc
-     * comment in desktop.h ("since last render pass") and the
-     * 'focus_dirty' branch in 'desktop_render_one_client' above. */
+     * other window this flag exists to avoid.  See its comment in
+     * 'desktop.h' ("since last render pass") and the 'focus_dirty'
+     * branch in 'desktop_render_one_client' above. */
     desktop->focus_dirty = false;
 
     /* NOTE: Do NOT flush here!  Let the surface handle the flushing */

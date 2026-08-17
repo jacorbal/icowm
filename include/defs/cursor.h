@@ -26,20 +26,22 @@
  */
 #define WM_CURSOR_LEFT_PTR_GLYPH (68u)
 
-/** Glyph index of the mask for @c XC_left_ptr in the X cursor font */
+/**
+ * @brief Glyph index of the mask for @c XC_left_ptr in the X cursor font
+ */
 #define WM_CURSOR_LEFT_PTR_MASK_GLYPH (69u)
 
 /**
- * @brief Glyph indices of the eight border-resize cursors in the X
- *        cursor font
+ * @brief Glyph indices of the eight border-resize cursors in the
+ *        X cursor font
  *
  * Each source glyph's mask is always the very next glyph index (the
  * font stores every shape as a source/mask pair), same convention as
  * @c WM_CURSOR_LEFT_PTR_GLYPH / @c WM_CURSOR_LEFT_PTR_MASK_GLYPH above,
- * so only the source glyph needs naming here; the mask is always
- * "this value plus one".  Used to show the matching resize direction
- * when the pointer hovers over a window's border or corner, before any
- * button is pressed.
+ * so only the source glyph needs naming here; the mask is always "this
+ * value plus one".  Used to show the matching resize direction when the
+ * pointer hovers over a window's border or corner, before any button is
+ * pressed.
  */
 #define WM_CURSOR_TOP_SIDE_GLYPH (138u)
 #define WM_CURSOR_BOTTOM_SIDE_GLYPH (16u)
@@ -54,7 +56,7 @@
  * @brief Glyph index of @c XC_fleur (source) in the X cursor font
  *
  * The four-way move cursor, shown for the duration of an interactive
- * window move (see @c drag_start in input/mouse/drag.c); its mask is,
+ * window move (see @p drag_start in @c input/mouse/drag.c); its mask is,
  * as with every other glyph here, the very next index.
  */
 #define WM_CURSOR_FLEUR_GLYPH (52u)
@@ -68,7 +70,9 @@
  */
 #define WM_CURSOR_WATCH_GLYPH (150u)
 
-/** Glyph index of the mask for @c XC_watch in the X cursor font */
+/**
+ * @brief Glyph index of the mask for @c XC_watch in the X cursor font
+ */
 #define WM_CURSOR_WATCH_MASK_GLYPH (151u)
 
 

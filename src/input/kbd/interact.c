@@ -4,13 +4,14 @@
  * @brief Direct keyboard interaction with the currently focused
  *        client: program launch, move, and resize bindings
  *
- * Split out of @c input/kbd/event.c: launching a program and moving
- * or resizing the active client are direct, immediate reactions to a
- * single keypress, independent from the cycle-menu, dialog, and
+ * Split out of @c input/kbd/event.c, launching a program and moving or
+ * resizing the active client are direct, immediate reactions to
+ * a single keypress, independent from the cycle-menu, dialog, and
  * open-menu key handling and the generic client-action dispatch that
- * remain there.  @c ik_get_active_client is the one piece of state
- * lookup genuinely shared between the two files (see
- * @c input/kbd/internal.h).
+ * remain there.  @a ik_get_active_client is the one piece of state
+ * lookup genuinely shared between the two files.
+ *
+ * @see @c input/kbd/internal.h
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -60,7 +61,7 @@
  * desktop pointers through @p cs_out and @p cd_out.
  *
  * @param surface  Surface to query
- * @param surfaces Full surface list (for @c lookup_find_client)
+ * @param surfaces Full surface list (for @a lookup_find_client)
  * @param cs_out   Receives the client's owning surface (may be null)
  * @param cd_out   Receives the client's owning desktop (may be null)
  *
@@ -118,7 +119,7 @@ client_td *ik_get_active_client(surface_td *surface,
  *
  * @return The target outer frame size for the selected axis after
  *         applying keyboard resize semantics and clamping via
- *         @c geom_clamp_dim.
+ *         @a geom_clamp_dim.
  *
  * @note With this, it's honored @c WM_NORMAL_HINTS increments when
  *       available, ensuring that keyboard resizing respects the
@@ -160,14 +161,14 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
             ? (int32_t) cur_frame + resize_step
             : (int32_t) cur_frame - resize_step;
         clamped = geom_clamp_dim(target);
-        /* A decorated client's own frame extents ('ext_a'/'ext_b',
-         * the border plus, on the vertical axis, the titlebar) are
-         * fixed regardless of how small its content shrinks: floored
-         * here so the titlebar in particular can never itself shrink
-         * away or disappear, no matter how far a resize keeps
-         * pushing this axis -- 'geom_clamp_dim' alone has no client
-         * in scope to know this frame carries a titlebar at all,
-         * only ever floors to a content-sized minimum on its own. */
+        /* A decorated client's own frame extents ('ext_a'/'ext_b', the
+         * border plus, on the vertical axis, the titlebar) are fixed
+         * regardless of how small its content shrinks: floored here so
+         * the titlebar in particular can never itself shrink away or
+         * disappear, no matter how far a resize keeps pushing this
+         * axis; 'geom_clamp_dim' alone has no client in scope to know
+         * this frame carries a titlebar at all, only ever floors to
+         * a content-sized minimum on its own. */
         return (uint16_t) ((clamped > floor_frame)
                 ? clamped : floor_frame);
     }
@@ -183,21 +184,20 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     }
 
     if (inc_i > 1) {
-        /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE'
-         * serves as the base for the increment grid */
+        /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE' serves
+         * as the base for the increment grid */
         uint32_t base = (base_i > 0)
             ? (uint32_t) base_i
             : ((min_i > 0) ? (uint32_t) min_i : 0u);
         uint32_t inc = (uint32_t) inc_i;
-        /* The client's own true floor, in units of 'inc' above
-         * 'base': its own 'min_w'/'min_h' if it provides one larger
-         * than the one-unit default (a client is free to demand more
-         * than one row/column at all times), or
-         * 'WM_MIN_WINDOW_DIMENSION_UNITS' (defs/client.h) otherwise
-         * -- never all the way down to 'base' itself, which without
-         * an explicit 'min_w'/'min_h' of the client's own leaves no
-         * floor at all ('cur_inner' below would allow shrinking to
-         * exactly 'base', 0 units). */
+        /* The client's own true floor, in units of 'inc' above 'base':
+         * its own 'min_w'/'min_h' if it provides one larger than the
+         * one-unit default (a client is free to demand more than one
+         * row/column at all times), or 'WM_MIN_WINDOW_DIMENSION_UNITS'
+         * (defs/client.h) otherwise.  Never all the way down to 'base'
+         * itself, which without an explicit 'min_w'/'min_h' of the
+         * client's own leaves no floor at all ('cur_inner' below would
+         * allow shrinking to exactly 'base', 0 units). */
         uint32_t floor_inner = base +
             WM_MIN_WINDOW_DIMENSION_UNITS * inc;
         uint32_t over;
@@ -243,7 +243,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
  *
  * Applies the resize synchronously without going through the event
  * queue.  This mirrors the interactive (mouse-drag) resize path so that
- * both input methods share identical behavior: the geometry is
+ * both input methods share identical behavior.  The geometry is
  * constrained per-axis, applied to the correct X window (frame for
  * decorated clients, content window for undecorated clients), and
  * followed by a synthetic @c ConfigureNotify so the application learns
@@ -346,11 +346,11 @@ static void s_kbd_resize_apply(client_td *client,
  * @brief Launch a configured program for the given binding type
  *
  * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @c lifecycle_dispatch_launch.
+ * configuration and calls @a lifecycle_dispatch_launch.
  *
  * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
  *                constants)
- * @param surface Current surface passed to @c lifecycle_dispatch_launch
+ * @param surface Current surface passed to @a lifecycle_dispatch_launch
  * @param config  Active configuration holding the program paths
  */
 void ik_handle_launch(enum wm_keybind_type_e btype,
@@ -451,8 +451,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
  * (@c KEYBIND_CLIENT_MOVE_TOP_LEFT...).
  *
  * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_MOVE_*
- *                 constants)
+ *                 @c KEYBIND_CLIENT_MOVE_* constants)
  * @param surface  Current surface
  * @param surfaces Full surface list
  * @param config   Active configuration (for the move step size)
@@ -594,11 +593,11 @@ void ik_handle_move(enum wm_keybind_type_e btype,
 /**
  * @brief Resize the focused client by keyboard
  *
- * Resolves the active client, checks that it is resizable and not in a
- * state that prevents resizing (fullscreen, maximized), and applies an
- * increment-aware size change in the direction indicated by @p btype.
- * @c Left / @c Up shrink from the right/bottom edge; @c Right / @c Down
- * grow that edge.
+ * Resolves the active client, checks that it is resizable and not in
+ * a state that prevents resizing (fullscreen, maximized), and applies
+ * an increment-aware size change in the direction indicated by
+ * @p btype.  @c Left / @c Up shrink from the right/bottom edge;
+ * @c Right / @c Down grow that edge.
  *
  * @param btype    Keyboard binding type (one of the
  *                 @c KEYBIND_CLIENT_RESIZE_* constants)
@@ -627,11 +626,11 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
 
     /* Refuse to resize clients in a fixed-size state entirely
      * ("Maximized windows can't be moved or resized", Karp, O'Reilly,
-     * & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed., ch. 2); a
-     * client maximized on just one axis still allows resizing its
+     * & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed., ch. 2);
+     * a client maximized on just one axis still allows resizing its
      * free axis below (see the per-direction axis-lock checks further
      * down), the same way a mouse border drag does (see
-     * 'drag_start_resize_axis_locked' in input/mouse/drag.c). */
+     * 'drag_start_resize_axis_locked' in 'input/mouse/drag.c'). */
     if (client_is_fullscreen(client) || client_is_maximized(client)) {
         return;
     }
@@ -639,8 +638,8 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     /* The maximized axis of a horizontal-only or vertical-only
      * maximized client is snapped exactly to its workarea edge, so it
      * has nothing left to grow or shrink by keyboard either; only the
-     * still-free axis (the other 'KEYBIND_CLIENT_RESIZE_*' pair)
-     * keeps working normally. */
+     * still-free axis (the other 'KEYBIND_CLIENT_RESIZE_*' pair) keeps
+     * working normally. */
     if ((btype == KEYBIND_CLIENT_RESIZE_LEFT ||
                 btype == KEYBIND_CLIENT_RESIZE_RIGHT) &&
             client_is_maximized_horz(client)) {

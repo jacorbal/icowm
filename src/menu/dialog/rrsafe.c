@@ -46,8 +46,8 @@ static void s_on_rrsafe_confirm(xcb_connection_t *connection)
 
 /**
  * @brief Callback invoked by the generic confirm dialog when the
- *        just-applied RandR profile is cancelled -- by a person, by
- *        Escape, or by the countdown elapsing
+ *        just-applied RandR profile is cancelled (by a user, by
+ *        @c Escape, or by the countdown elapsing)
  *
  * @param connection XCB connection
  */

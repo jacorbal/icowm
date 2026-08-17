@@ -61,18 +61,18 @@
  *        found, forward it to a per-message handler
  *
  * Shared by every @c _NET_* client-message case in
- * @c handler_client_message below whose handler takes the same
- * @c (wm, event, client, surface, desktop) shape: only the target
+ * @a handler_client_message below whose handler takes the same
+ * @p (wm, event, client, surface, desktop) shape: only the target
  * atom and the handler function differ between them.
  *
  * @param wm      Window manager state
  * @param event   Client-message event to resolve the target client for
  * @param handler Per-message handler to call once the client, its
  *                surface, and its desktop are resolved; not called at
- *                all when no managed client owns @c event->window
+ *                all when no managed client owns @a event->window
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients (for the @c lookup_find_client walk)
+ *       clients (for the @a lookup_find_client walk)
  */
 static void s_dispatch_to_client_handler(wm_td *wm,
         xcb_client_message_event_t *event,
@@ -224,7 +224,8 @@ void handler_client_message(wm_td *wm,
                         surface != NULL && desktop != NULL &&
                         surface->desktop_cur != desktop->id) {
                     desktop_td *cur_desktop =
-                        surface_desktop_get(surface, surface->desktop_cur);
+                        surface_desktop_get(surface,
+                                surface->desktop_cur);
 
                     if (cur_desktop != NULL && cur_desktop != desktop) {
                         desktop_action_client_rem(desktop, client);
@@ -269,7 +270,8 @@ void handler_client_message(wm_td *wm,
     }
 
     if (event->type == wm->ewmh->_NET_WM_DESKTOP) {
-        s_dispatch_to_client_handler(wm, event, hi_handle_net_wm_desktop);
+        s_dispatch_to_client_handler(wm, event,
+                hi_handle_net_wm_desktop);
         return;
     }
 
@@ -308,11 +310,10 @@ void handler_client_message(wm_td *wm,
     /* EWMH §5.13: show/hide all desktop windows */
     if (event->type == wm->ewmh->_NET_SHOWING_DESKTOP) {
         bool show = event->data.data32[0] != 0u;
-        surface_td *surf;
 
         for (list_item_td *snode = list_head(wm->surfaces);
                 snode != NULL; snode = list_next(snode)) {
-            surf = (surface_td *) list_data(snode);
+            surface_td *surf = (surface_td *) list_data(snode);
 
             if (surf == NULL) {
                 continue;

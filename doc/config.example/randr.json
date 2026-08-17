@@ -1,5 +1,5 @@
  {
-     "is-enabled": true,
+     "is-enabled": false,
      "outputs": [
          {
          "name": "HDMI-1",

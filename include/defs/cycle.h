@@ -28,11 +28,10 @@
  * @brief Maximum pixel width a single cycle-menu label may claim
  *        towards the menu's own width
  *
- * Caps how far one very long window title can stretch the whole
- * menu; a label wider than this truncates instead (see @c
- * s_cycle_draw_row in menu/cycledraw.c), the same reasoning @c
- * WM_SEARCH_NAME_MAX_WIDTH truncates a search result's own name
- * (defs/search.h).
+ * Caps how far one very long window title can stretch the whole menu;
+ * a label wider than this truncates instead (see @a s_cycle_draw_row in
+ * @c menu/cycledraw.c), the same reasoning @c WM_SEARCH_NAME_MAX_WIDTH
+ * truncates a search result's own name (@c defs/search.h).
  */
 #define WM_CYCLE_MENU_LABEL_MAX_WIDTH (280)
 
@@ -62,8 +61,8 @@
 #define WM_CYCLE_MENU_SCROLL_UP_INDICATOR "---"
 
 /**
- * @brief Text shown at the bottom of the cycle-menu viewport when
- *        there are more entries below the ones currently visible
+ * @brief Text shown at the bottom of the cycle-menu viewport when there
+ *        are more entries below the ones currently visible
  */
 #define WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR "---"
 

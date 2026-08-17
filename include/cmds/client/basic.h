@@ -41,7 +41,7 @@ void ccmd_client_close(client_td *client);
  *
  * Unlike @a ccmd_client_close (which only destroys the client's window
  * resource), this severs the client's entire X connection at the
- * protocol level via @c xcb_kill_client, matching the conventional
+ * protocol level via @a xcb_kill_client, matching the conventional
  * "force kill an unresponsive window" behavior (e.g., @c xkill).
  * Intended as a last resort for clients that do not react to a normal
  * close request.

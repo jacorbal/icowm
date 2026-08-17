@@ -161,7 +161,8 @@ $(O_DIR)/tests/ipc/test_dispatch: $(TESTS_DIR)/ipc/test_dispatch.c \
 
 $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 		$(S_DIR)/ipc/commands.c \
-		$(S_DIR)/ipc/response.c
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 
@@ -252,7 +253,8 @@ $(O_DIR)/tests/utils/test_geom: $(TESTS_DIR)/utils/test_geom.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/utils/test_sysmem: $(TESTS_DIR)/utils/test_sysmem.c \
-		$(S_DIR)/utils/sysmem.c
+		$(S_DIR)/utils/sysmem.c \
+		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

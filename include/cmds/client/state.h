@@ -108,9 +108,9 @@ void ccmd_client_toggle_fullscreen(client_td *client);
  * @brief Toggle window decoration on or off for the client
  *
  * If the client is currently decorated, removes the titlebar and
- * adjusts the frame extents so the frame covers only the client
- * content area plus border.  If undecorated, restores the titlebar
- * and the original frame extents.
+ * adjusts the frame extents so the frame covers only the client content
+ * area plus border.  If undecorated, restores the titlebar and the
+ * original frame extents.
  *
  * @param client Window whose decoration is to be toggled
  *

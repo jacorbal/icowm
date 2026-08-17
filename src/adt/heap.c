@@ -82,15 +82,15 @@ int heap_insert(heap_td *heap, const void *data)
 {
     void *temp;
     size_t ipos, ppos;
-    size_t new_cap;
 
     /* Grow the backing array only when full */
     if (heap->size == heap->capacity) {
-        new_cap = (heap->capacity == 0)
+        size_t new_cap = (heap->capacity == 0)
             ? HEAP_MIN_CAPACITY
             : heap->capacity * 2u;
 
-        if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) == NULL) {
+        if ((temp = realloc(heap->tree,
+                        new_cap * sizeof(void *))) == NULL) {
             return -1;
         }
         heap->tree = temp;
@@ -127,8 +127,8 @@ int heap_insert(heap_td *heap, const void *data)
 int heap_extract(heap_td *heap, void **data)
 {
     void *save, *temp;
-    size_t ipos, lpos, rpos, mpos;
-    size_t new_cap;
+    size_t ipos;
+    size_t mpos;
 
     /* Do not allow extraction from an empty heap */
     if (heap_size(heap) == 0) {
@@ -158,8 +158,10 @@ int heap_extract(heap_td *heap, void **data)
     if (heap->capacity > HEAP_MIN_CAPACITY &&
             heap->size <= (size_t) ((float) heap->capacity *
                 HEAP_SHRINK_LOAD_FACTOR)) {
-        new_cap = heap->capacity / 2u;
-        if ((temp = realloc(heap->tree, new_cap * sizeof(void *))) != NULL) {
+        size_t new_cap = heap->capacity / 2u;
+
+        if ((temp = realloc(heap->tree,
+                        new_cap * sizeof(void *))) != NULL) {
             heap->tree = temp;
             heap->capacity = new_cap;
         }
@@ -171,8 +173,8 @@ int heap_extract(heap_td *heap, void **data)
 
     while (true) {
         /* Select the child to swap with the current node */
-        lpos = s_heap_left(ipos);
-        rpos = s_heap_right(ipos);
+        size_t lpos = s_heap_left(ipos);
+        size_t rpos = s_heap_right(ipos);
 
         if (lpos < heap_size(heap) &&
                 heap->compare(heap->tree[lpos], heap->tree[ipos]) > 0) {

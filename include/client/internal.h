@@ -68,7 +68,9 @@ size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
  * @param inst_buf   Buffer for the instance name (may be null)
  * @param inst_sz    Size of @p inst_buf (ignored when null)
  *
- * @return 0 on success, -1 otherwise
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on failure
  */
 int ci_get_wm_class(xcb_connection_t *connection,
         xcb_window_t window,
@@ -81,7 +83,9 @@ int ci_get_wm_class(xcb_connection_t *connection,
  *
  * @param client Client to populate
  *
- * @return 0 on success, -1 on allocation failure
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on allocation failure
  */
 int ci_alloc_strings(client_td *client);
 
@@ -99,8 +103,9 @@ void ci_set_decoration_defaults(client_td *client,
  *
  * @param client Client for which decorations are created
  *
- * @return 0 on success or when decoration creation is skipped, non-zero
- *         on X11 failure
+ * @return Status of the operation
+ * @retval     0 on success or when decoration creation is skipped
+ * @retval non-0 on X11 failure
  */
 int ci_create_decorations(client_td *client);
 

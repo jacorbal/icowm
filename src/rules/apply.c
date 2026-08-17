@@ -4,10 +4,10 @@
  * @brief Applies a merged rule action descriptor to a client
  *
  * Split out of @c rules.c: @c rules_apply and its per-field helpers
- * form one coherent responsibility (mutating a client to match a
- * rule's merged action set) that is independent from loading and
- * parsing the rules table itself, and shares no file-scope state with
- * @c rules.c beyond the types already exposed in @c rules/internal.h.
+ * form one coherent responsibility (mutating a client to match a rule's
+ * merged action set) that is independent from loading and parsing the
+ * rules table itself, and shares no file-scope state with @c rules.c
+ * beyond the types already exposed in @c rules/internal.h.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -56,11 +56,11 @@
  * Removes @p client from the desktop pointed to by @p desktop_io, adds
  * it to the target desktop identified by @p apply->desktop, and updates
  * @p client->desktop_id and the EWMH @c _NET_WM_DESKTOP property.  If
- * the target desktop does not exist, falls back to desktop 0 (logging
- * a warning); if it is the same as the current one, or desktop 0 does
+ * the target desktop does not exist, falls back to 0th-desktop (logging
+ * a warning); if it is the same as the current one, or 0th-desktop does
  * not exist either, the function returns without doing anything.  On
- * failure to add the client to the target desktop it is re-added to
- * the original one.
+ * failure to add the client to the target desktop it is re-added to the
+ * original one.
  *
  * @param wm         Window manager instance (used for the connection
  *                   and EWMH handle)
@@ -157,23 +157,21 @@ static void s_rules_apply_layer(client_td *client,
  * applied independently: only the fields flagged as present are
  * touched.  When the client has a decoration frame, the
  * synchronization helper is called to keep the inner window aligned.
- * The function is a no-op when none of @p apply->has_position, @p
- * apply->has_size, or @p apply->has_monitor is @c true.
  *
  * Size is resolved before position so that a rule combining
  * @c ("position": "center") with an explicit @c size centers the client
- * at its @e new size, not whatever size it happened to have already been
- * placed at.
+ * at its @e new size, not whatever size it happened to have already
+ * been placed at.
  *
- * When @p apply->has_monitor is set, @p apply->monitor selects a
- * monitor within @p surface's own monitor list (out of range falls
- * back to monitor 0, logging a warning), and every position below
- * becomes relative to that monitor's own top-left corner instead of
- * the whole surface's: explicit @c x/@c y are offset by it, and
- * centering targets that monitor instead of the whole surface.  A
- * rule that sets @c monitor without an explicit @c position centers
- * on that monitor by default, since otherwise @c monitor alone would
- * have no visible effect at all.
+ * When @p apply->has_monitor is set, @p apply->monitor selects
+ * a monitor within @p surface's own monitor list (out of range falls
+ * back to 0th-monitor, logging a warning), and every position below
+ * becomes relative to that monitor's own top-left corner instead of the
+ * whole surface's, as explicit @c x / @c y are offset by it, and
+ * centering targets that monitor instead of the whole surface.  A rule
+ * that sets @c monitor without an explicit @c position centers on that
+ * monitor by default, since otherwise @c monitor alone would have no
+ * visible effect at all.
  *
  * @param connection XCB connection used to send the configure request
  * @param surface    Surface the client is on, used to compute the
@@ -182,6 +180,8 @@ static void s_rules_apply_layer(client_td *client,
  * @param client     Client whose geometry is to be set
  * @param apply      Action descriptor
  *
+ * @note The function is a no-op when none of @p apply->has_position,
+ *       @p apply->has_size, or @p apply->has_monitor is @c true.
  * @note Negative Y values in @p apply are clamped to zero
  * @note Complexity: @e O(1)
  */
@@ -213,13 +213,14 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         /* 'apply->w'/'apply->h' (rules.json's own 'apply.size.width'/
          * 'apply.size.height') name the decorated frame's own total,
          * border and titlebar included, the same as
-         * 'client->layout.geometry.cur.dim' itself already does --
-         * but the ICCCM size hints 'client_constrain_size' enforces
-         * are always about a client's own content alone, regardless
-         * of decoration, so convert to content space first, apply
-         * them there, then convert back, the same round trip
+         * 'client->layout.geometry.cur.dim' itself already does.
+         *
+         * But the ICCCM size hints 'client_constrain_size' enforces are
+         * always about a client's own content alone, regardless of
+         * decoration, so convert to content space first, apply them
+         * there, then convert back, the same round trip
          * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
-         * (input/kbd/interact.c) already make for their own resize
+         * (in 'input/kbd/interact.c') already make for their own resize
          * paths. */
         uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
@@ -282,8 +283,8 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     }
 
     /* Value list order must ascend by 'XCB_CONFIG_WINDOW_*' bit value:
-     * X, Y, then WIDTH, HEIGHT.  Built here in that order regardless
-     * of which of position/size were actually resolved above */
+     * X, Y, then WIDTH, HEIGHT.  Built here in that order regardless of
+     * which of position/size were actually resolved above */
     if (set_pos) {
         mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
         values[vi++] = (uint32_t) x;

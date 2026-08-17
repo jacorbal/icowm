@@ -1,129 +1,125 @@
 {
-  "theme": "default",
-  "screens": {
-    "count": 1,
-    "settings": {
-      "desktops": [
-        {
-          "count": 4,
-          "inaugural": 0,
-          "settings": [
+    "theme": "default",
+
+    "topology": {
+        "screens": {
+            "count": 1,
+            "desktops": [
             {
-              "name": "Desktop 0",
-              "background-color": "#4c5b6b"
-            },
-            {
-              "name": "Desktop 1",
-              "background-color": "#8a8f94"
-            },
-            {
-              "name": "Desktop 2",
-              "background-color": "#6a5470"
-            },
-            {
-              "name": "Desktop 3",
-              "background-color": "#5a7d6f"
+                "count": 5,
+                "inaugural": 0,
+                "settings": [
+                    { "background-color": "#5f7187", "name": "Desktop 0" },
+                    { "background-color": "#85648d", "name": "Desktop 1" },
+                    { "background-color": "#4d767d", "name": "Desktop 2" },
+                    { "background-color": "#936459", "name": "Desktop 3" },
+                    { "background-color": "#547768", "name": "Desktop 4" },
+                    { "background-color": "#6b7448", "name": "Desktop 5" }
+                ]
             }
-          ]
-        },
-        {
-          "count": 1,
-          "inaugural": 0,
-          "settings": [
-            {
-              "name": "Number Zero",
-              "background-color": "#c0c0c0"
-            }
-          ]
+            ]
         }
-      ]
-    }
-  },
-  "programs": {
-    "terminal": "xterm",
-    "launcher": "gmrun",
-    "editor": "gvim",
-    "file-manager": "pcmanfm",
-    "web-browser": "firefox"
-  },
-  "windows": {
-    "gravity": "north-west",
-    "show-geom": true,
-    "move-step": 10,
-    "snap": 4,
-    "focus": {
-      "policy": "click",
-      "is-new-focused": true,
-      "is-raised-on-focus": false
     },
-    "placement": {
-      "policy": "smart",
-      "group-related": true
-    }
-  },
-  "icons": {
-    "show-geom": false,
-    "placement": {
-      "policy": "smart"
-    }
-  },
-  "menus": {
-    "root": {
-      "position": "under-mouse"
+
+    "desktops": {
+        "notify-activity": true,
+        "show-overlay": true,
+        "is-circular": true,
+        "enable-edge-warp": true,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
+
     "windows": {
-      "position": "under-mouse"
-    }
-  },
-  "systray": {
-    "is-enabled": true,
-    "position": "top-right",
-    "order": "left-to-right",
-    "clock": {
-      "is-enabled": true,
-      "format": "%a %R"
+        "focus": {
+            "is-new-focused": true,
+            "is-raised-on-focus": false,
+            "policy": "click"
+        },
+        "gravity": "north-west",
+        "move-step": 10,
+        "placement": {
+            "group-related": true,
+            "monitor": "pointer",
+            "policy": "smart"
+        },
+        "show-geom": true,
+        "snap": 4
     },
-    "battery": {
-      "is-enabled": true,
-      "threshold": {
-        "charged": 100,
-        "low": 20,
-        "critical": 5
-      },
-      "backend": {
-        "type": "acpi",
-        "number": 0
-      },
-      "poll-seconds": 30
+
+    "icons": {
+        "placement": {
+            "policy": "smart"
+        },
+        "show-geom": false
     },
-    "text": {
-      "order": [
-        "battery",
-        "clock"
-      ],
-      "position": "right"
+
+    "menus": {
+        "root": {
+            "position": "under-mouse"
+        },
+        "windows": {
+            "position": "under-mouse"
+        }
+    },
+
+    "programs": {
+        "editor": "gvim",
+        "file-manager": "pcmanfm",
+        "launcher": "gmrun",
+        "terminal": "xterm",
+        "web-browser": "firefox"
+    },
+
+    "systray": {
+        "is-enabled": true,
+        "layer": "below",
+        "order": "left-to-right",
+        "battery": {
+            "is-enabled": false,
+            "poll-seconds": 30,
+            "backend": {
+                "number": 0,
+                "type": "acpi"
+            },
+            "threshold": {
+                "charged": 100,
+                "critical": 5,
+                "low": 20
+            }
+        },
+        "clock": {
+            "is-enabled": true,
+            "format": "%a %R"
+        },
+        "position": "top-left",
+        "text": {
+            "order": [ "clock", "battery" ],
+            "position": "left"
+        },
+        "reserve-space": false,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
+    },
+
+    "scratchpad": {
+        "is-enabled": true,
+        "command": "xterm -fg black -bg ivory -cr black",
+        "edge": "top",
+        "ignore-margins": false,
+        "width": "max",
+        "height": 300
+    },
+
+    "fortune": {
+        "is-enabled": true,
+        "command": "fortune"
+    },
+
+    "startup-notification": {
+        "timeout-seconds": 15
+    },
+
+    "shutdown": {
+        "enable-emergency-shortcut": false,
+        "timeout-seconds": 15
     }
-  },
-  "startup-notification": {
-    "timeout-seconds": 20
-  },
-  "desktops": {
-    "show-overlay": true,
-    "enable-edge-warp": true,
-    "is-circular": true,
-    "margins": {
-      "left": 0,
-      "top": 0,
-      "right": 0,
-      "bottom": 0
-    }
-  },
-  "shutdown": {
-    "enable-emergency-shortcut": true,
-    "timeout-seconds": 15
-  },
-  "fortune": {
-    "is-enabled": true,
-    "command": "fortune"
-  }
 }

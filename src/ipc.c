@@ -21,7 +21,7 @@
 #include <stddef.h>     /* NULL */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free */
-#include <string.h>     /* memchr, memmove, memset, strerror, strlen */
+#include <string.h>     /* memchr, memmove, memset, strerror */
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -37,6 +37,7 @@
 
 /* Utils includes */
 #include <utils/config/path.h>
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <logger.h>
@@ -190,14 +191,14 @@ int ipc_init(void)
      * always reads as a possible overflow to the compiler even when
      * it can never really happen; growing the destination past its
      * neighbors only relocates the same mismatch to whichever
-     * buffer receives it next (as happened here, into 's_ipc_
-     * socket_path' below, previously copied via that same 'snprintf
-     * ("%s", ...)' pattern). */
+     * buffer receives it next (as happened here, into
+     * 's_ipc_socket_path' below, previously copied via that same
+     * 'snprintf ("%s", ...)' pattern). */
     safe_strncpy(socket_path, runtime_dir, sizeof(socket_path));
     safe_strncat(socket_path, "/", sizeof(socket_path));
     safe_strncat(socket_path, IPC_SOCKET_FILENAME, sizeof(socket_path));
 
-    if (strlen(socket_path) >= sizeof(addr.sun_path)) {
+    if (safe_strlen(socket_path) >= sizeof(addr.sun_path)) {
         LOGGER_ERROR("IPC socket path '%s' is too long for" \
                 " 'sockaddr_un' (%zu bytes available)",
                 socket_path, sizeof(addr.sun_path));
@@ -206,12 +207,13 @@ int ipc_init(void)
 
     /* A leftover file from a run that did not shut down cleanly
      * (crash, 'SIGKILL') rather than a second live instance; see
-     * this function's own doc comment in ipc.h for why that is the
-     * only possibility left by the time this ever runs.  'unlink'
-     * failing only because there was nothing there to remove
-     * ('ENOENT') is expected and fine; any other failure means
-     * 'bind' below would fail anyway, so it is caught there instead
-     * of duplicating the same check twice. */
+     * this function's comment in 'ipc.h' for why that is the only
+     * possibility left by the time this ever runs.
+     *
+     * 'unlink' failing only because there was nothing there to remove
+     * ('ENOENT') is expected and fine.  Any other failure means 'bind'
+     * below would fail anyway, so it is caught there instead of
+     * duplicating the same check twice. */
     if (unlink(socket_path) != 0 && errno != ENOENT) {
         LOGGER_WARNING("Could not remove existing IPC socket file" \
                 " '%s': %s", socket_path, strerror(errno));
@@ -226,7 +228,7 @@ int ipc_init(void)
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    memcpy(addr.sun_path, socket_path, strlen(socket_path) + 1u);
+    memcpy(addr.sun_path, socket_path, safe_strlen(socket_path) + 1u);
 
     if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
         LOGGER_ERROR("Failed to bind IPC socket to '%s': %s",
@@ -370,7 +372,7 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
 static uint32_t s_event_name_to_bit(const char *name)
 {
     for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
-        if (strcmp(s_event_defs[i].name, name) == 0) {
+        if (safe_strcmp(s_event_defs[i].name, name) == 0) {
             return s_event_defs[i].bit;
         }
     }
@@ -458,7 +460,6 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
 cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
 {
     cJSON *events = cJSON_GetObjectItem(args, "events");
-    cJSON *item;
     cJSON *resp;
 
     if (events == NULL) {
@@ -472,6 +473,8 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
         }
         return resp;
     } else {
+        cJSON *item;
+
         cJSON_ArrayForEach(item, events) {
             uint32_t bit;
 
@@ -527,7 +530,7 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
     if (line == NULL) {
         return;
     }
-    len = strlen(line);
+    len = safe_strlen(line);
 
     for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
         if (s_clients[i].fd == -1 ||
@@ -689,7 +692,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
         *newline = '\0';
         response = ipc_commands_dispatch(wm, c->buf, idx);
         if (response != NULL) {
-            size_t resp_len = strlen(response);
+            size_t resp_len = safe_strlen(response);
             ssize_t written = write(c->fd, response, resp_len);
             ssize_t nl_written = -1;
 

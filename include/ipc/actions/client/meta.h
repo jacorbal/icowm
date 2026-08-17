@@ -3,10 +3,10 @@
  *
  * @brief IPC commands mirroring @c cmds/client/meta.h's own actions
  *
- * Unlike ipc/actions/client/basic.h and its siblings, every one of
- * these needs its own string argument alongside @c "client_id", so
- * none of them go through ipc/dispatch.h's shared wrapper; each
- * resolves the client and reads its own argument directly instead.
+ * Unlike @c ipc/actions/client/basic.h and its siblings, every one of
+ * these needs its own string argument alongside @c client_id, so none
+ * of them go through @c ipc/dispatch.h's shared wrapper.  Each resolves
+ * the client and reads its own argument directly instead.
  *
  * @defgroup ipc_actions_client_meta IPC client metadata actions
  * @ingroup ipc
@@ -31,17 +31,17 @@
 
 
 /* Public interface */
-/** "rename_client": arguments "client_id", "name" */
+/** @c rename_client: arguments @c client_id, @c name */
 cJSON *ipc_action_rename_client(wm_td *wm, const cJSON *args);
 
-/** "reclass_client": arguments "client_id", "class_name",
- *  "instance_name" */
+/** @c reclass_client: arguments @c client_id, @c class_name,
+ *  @c instance_name */
 cJSON *ipc_action_reclass_client(wm_td *wm, const cJSON *args);
 
-/** "rerole_client": arguments "client_id", "role" */
+/** @c rerole_client: arguments @c client_id, @c role */
 cJSON *ipc_action_rerole_client(wm_td *wm, const cJSON *args);
 
-/** "set_client_icon": arguments "client_id", "icon_name" */
+/** @c set_client_icon: arguments @c client_id, @c icon_name */
 cJSON *ipc_action_set_client_icon(wm_td *wm, const cJSON *args);
 
 

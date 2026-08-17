@@ -69,7 +69,7 @@ void config_set_default_values_memguard(config_td *config)
         WM_DESKTOP_BG_COLOR_UNSET;
 
     /* Launched-program defaults, in case memguard.json does not
-     * specify its own; identical to config_set_default_values's own
+     * specify its own; identical to 'config_set_default_values''s own
      * defaults, since restricted-memory mode has no particular reason
      * to prefer different programs. */
     safe_strncpy(config->base.programs.terminal, "xterm",
@@ -96,23 +96,23 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.focus.is_raised_on_focus = false;
 
     /* SMART's own cost is bounded (256 candidate slots, each checked
-     * against every already-docked icon, so O(256*n) at worst) and
-     * runs once per icon placed, not on any hot path, so it costs
-     * nothing meaningful to leave on by default here; overridable in
-     * memguard.json (see ci_memguard_load_json) the same as an
-     * ordinary session's own icons.placement. */
+     * against every already-docked icon, so O(256*n) at worst) and runs
+     * once per icon placed, not on any hot path, so it costs nothing
+     * meaningful to leave on by default here; overridable in
+     * memguard.json (see 'ci_memguard_load_json') the same as an
+     * ordinary session's 'icons.placement'. */
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
 
-    config->base.shutdown.enable_emergency_shortcut = false;
+    config->base.shutdown.enable_emergency_shortcut = true;
     config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = false;
     safe_strncpy(config->base.fortune.command, "fortune",
             sizeof(config->base.fortune.command));
 
     /* Accessibility (a11y): the exact same built-in defaults as an
-     * ordinary session's own (see 'config_set_default_a11y_values',
-     * config.c), including the same 'is_enabled=false' opt-in
+     * ordinary session's own (see 'config_set_default_a11y_values' in
+     * 'config.c'), including the same 'is_enabled=false' opt-in
      * posture; restricted-memory mode never has a reason to change
      * these, saving memory is never a reason to also give up basic
      * accessibility accommodations */
@@ -125,15 +125,15 @@ void config_set_default_values_memguard(config_td *config)
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
 
-    /* Systray defaults, in case memguard.json does not specify its
-     * own; a lower 'battery.poll_seconds' than an ordinary session's
-     * own default is the one deliberate difference here, both to
-     * check less often and since a stale battery reading for a few
-     * extra seconds matters little either way. */
+    /* Systray defaults, in case memguard.json does not specify its own.
+     * A lower 'battery.poll_seconds' than an ordinary session's own
+     * default is the one deliberate difference here, both to check less
+     * often and since a stale battery reading for a few extra seconds
+     * matters little either way. */
     config->base.systray.is_enabled = true;
     /* Fixed false for this mode, deliberately not something
-     * memguard.json is allowed to configure; see is_embedding_
-     * enabled's own doc comment in config.h */
+     * 'memguard.json' is allowed to configure; see
+     * 'is_embedding_enabled''s comment in 'config.h' */
     config->base.systray.is_embedding_enabled = false;
     config->base.systray.reserve_space = false;
     config->base.systray.margins.top = 0u;
@@ -167,11 +167,11 @@ void config_set_default_values_memguard(config_td *config)
     config->randr.is_enabled = false;
     config->randr.output_count = 0u;
 
-    /* Same reasoning as 'config_load''s own equivalent call: without
+    /* Same reasoning as 'config_load''s own equivalent call.  Without
      * this, a session with no theme named in 'memguard.json' at all
      * would leave 'config->theme' entirely zeroed (every color black,
-     * every font an empty string) rather than falling back to a
-     * sensible compiled-in theme, and a reload that switched away
+     * every font an empty string) rather than falling back to
+     * a sensible compiled-in theme, and a reload that switched away
      * from a theme specifying some field to one that does not would
      * leave that field stuck at the old theme's own value instead of
      * this default. */

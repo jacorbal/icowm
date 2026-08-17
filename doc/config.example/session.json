@@ -1,11 +1,16 @@
 {
     "on-start": [
-        "xsetbg -fullscreen ~/.background",
-        "redshift-gtk"
+        "nm-applet",
+        "redshift-gtk",
+        "xbindkeys -f ~/.xbindkeys",
+        "xidle -nw -program /usr/bin/xsecurelock -timeout 300",
+        "unclutter -idle 3"
     ],
+
     "on-reload": [
         "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
     ],
+
     "on-exit": [
         "notify-send -e -i 'exit' 'IcoWM' 'Shutting down session hooks'"
     ]

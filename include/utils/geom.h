@@ -33,7 +33,7 @@
  * @brief Clamp a signed dimension value to the supported client bounds
  *
  * Ensures that @p value stays within the minimum client window size
- * (@c WM_MIN_WINDOW_DIMENSION) and the maximum representable by
+ * @c (WM_MIN_WINDOW_DIMENSION) and the maximum representable by
  * @c uint16_t.
  *
  * @param value Dimension value to clamp
@@ -107,9 +107,9 @@ uint32_t geom_intersection_area(int32_t ax, int32_t ay,
  * @param bw Width of the second rectangle
  * @param bh Height of the second rectangle
  *
- * @return The overlapping rectangle, or a rectangle with zero width
- *         and height (position otherwise unspecified) if the two do
- *         not overlap
+ * @return Overlapping rectangle, or a rectangle with zero width and
+ *         height (position otherwise unspecified) if the two do not
+ *         overlap
  *
  * @note Complexity: @e O(1)
  */

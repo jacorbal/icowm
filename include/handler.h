@@ -35,7 +35,7 @@
 #include <wm.h>
 
 
-/** ICCCM 'WM_CHANGE_STATE' 'IconicState' value */
+/** ICCCM @c WM_CHANGE_STATE @c IconicState value */
 #define ICCCM_ICONIC_STATE (3)
 
 
@@ -91,8 +91,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event);
 /**
  * @brief Handle a @c MAP_NOTIFY event
  *
- * Triggers an EWMH resync for the affected managed client when a
- * non-override-redirect window is mapped.  Override-redirect windows
+ * Triggers an EWMH resync for the affected managed client when
+ * a non-override-redirect window is mapped.  Override-redirect windows
  * (tooltips, pop-up menus) are silently ignored.
  *
  * @param connection XCB connection
@@ -126,7 +126,7 @@ void handler_gravity_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c CIRCULATE_NOTIFY event
  *
- * Marks the affected surface as outdated so that @c wm_ewmh_sync
+ * Marks the affected surface as outdated so that @a wm_ewmh_sync
  * updates @c _NET_CLIENT_LIST_STACKING to reflect the new stacking
  * order on the next main-loop iteration.
  *
@@ -143,7 +143,7 @@ void handler_circulate_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c CIRCULATE_REQUEST event (ICCCM §4.1.7)
  *
- * Raises or lowers the target window as directed by the @c place field:
+ * Raises or lowers the target window as directed by the @p place field:
  * @c XCB_PLACE_ON_TOP maps to @c XCB_STACK_MODE_ABOVE and
  * @c XCB_PLACE_ON_BOTTOM maps to @c XCB_STACK_MODE_BELOW.  The WM must
  * honor this request to remain ICCCM-compliant.
@@ -225,7 +225,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
  *       surfaces
  */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces, xcb_focus_in_event_t *event);
+        list_td *surfaces, const xcb_focus_in_event_t *event);
 
 /**
  * @brief Handle a @c MAPPING_NOTIFY event
@@ -248,8 +248,8 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
 /**
  * @brief Handle an @c EXPOSE event for decoration repaints
  *
- * Repaints the info popup, cycle menu, icon window captions, and
- * client titlebars as needed.  Only the final event in a sequence
+ * Repaints the info popup, cycle menu, icon window captions, and client
+ * titlebars as needed.  Only the final event in a sequence
  * @c (count == 0) triggers a repaint.
  *
  * @param connection XCB connection

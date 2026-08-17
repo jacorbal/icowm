@@ -41,9 +41,12 @@
 /** Vertical padding (top/bottom) inside the search widget window */
 #define WM_SEARCH_PAD_Y (10)
 
-/** Fixed width of the search widget, in pixels; wide enough for the
- *  tabular name/desktop/hints layout without measuring every result
- *  up front */
+/**
+ * @brief Fixed width of the search widget, in pixels
+ *
+ * Wide enough for the tabular name/desktop/hints layout without
+ * measuring every result up front
+ */
 #define WM_SEARCH_WIDTH (480)
 
 /**
@@ -61,38 +64,36 @@
 #define WM_SEARCH_COLUMN_GAP (18)
 
 /**
- * @brief Pixels reserved on a row's right edge for its bracketed
- *        hints, regardless of whether that row has any
+ * @brief Pixels reserved on a row's right edge for its bracketed hints,
+ *        regardless of whether that row has any
  *
- * Wide enough for the longest possible combination (an exclusive
- * state letter plus every independent flag, e.g., "[f,s,p,!]"), so
- * the name and desktop-name columns always truncate against the same
- * boundary whether or not the hints they are making room for turn
- * out to be empty this row.
+ * Wide enough for the longest possible combination (an exclusive state
+ * letter plus every independent flag, e.g., "[f,s,p,!]"), so the name
+ * and desktop-name columns always truncate against the same boundary
+ * whether or not the hints they are making room for turn out to be
+ * empty this row.
  */
 #define WM_SEARCH_HINTS_RESERVED_WIDTH (60)
 
 /**
- * @brief Maximum pixel width of a row's name column before it
- *        truncates
+ * @brief Maximum pixel width of a row's name column before it truncates
  *
  * Leaves room for the desktop-name column beside it even for a very
- * long window title, the same reasoning @c s_titlebar_draw_title
- * (render/desktop.c) truncates a titlebar's own text against the
- * space its buttons leave rather than letting it run underneath
- * them.
+ * long window title, the same reasoning @a s_titlebar_draw_title
+ * (@c render/desktop.c) truncates a titlebar's own text against the
+ * space its buttons leave rather than letting it run underneath them.
  */
 #define WM_SEARCH_NAME_MAX_WIDTH (240)
 
 /**
- * @brief Text shown at the top of the results viewport when there
- *        are more entries above the ones currently visible
+ * @brief Text shown at the top of the results viewport when there are
+ *        more entries above the ones currently visible
  */
 #define WM_SEARCH_MENU_SCROLL_UP_INDICATOR "---"
 
 /**
- * @brief Text shown at the bottom of the results viewport when
- *        there are more entries below the ones currently visible
+ * @brief Text shown at the bottom of the results viewport when there
+ *        are more entries below the ones currently visible
  */
 #define WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR "---"
 

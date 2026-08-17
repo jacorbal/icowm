@@ -32,6 +32,7 @@
 #include <policy/focus.h>
 
 
+/* Determine whether the loaded focus policy follows the pointer */
 bool focus_is_sloppy(const config_td *cfg)
 {
     if (cfg == NULL) {
@@ -43,9 +44,10 @@ bool focus_is_sloppy(const config_td *cfg)
 }
 
 
-void focus_apply(list_td *surfaces,
-        surface_td *surface, desktop_td *desktop,
-        client_td *client, bool raise, const config_td *cfg)
+/* Focus a client and keep focus-related state in sync */
+void focus_apply(list_td *surfaces, surface_td *surface,
+        desktop_td *desktop, client_td *client,
+        bool raise, const config_td *cfg)
 {
     client_td *previous = NULL;
     bool should_raise;
@@ -57,24 +59,25 @@ void focus_apply(list_td *surfaces,
 
     /* Unfocus the previous active client, and focus this one,
      * synchronously and in that exact order, rather than through the
-     * queued 'client_send_event_unfocus'/'client_send_event_focus'
-     * pair this used to use: 'ccmd_client_unfocus' redirects the X
-     * server's real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see
-     * its own doc comment in cmds/client/basic.c), on the assumption that a
-     * caller unfocusing a client to immediately focus another
-     * "harmlessly overrides this a moment later".  That assumption
-     * only holds if the override actually runs before anything else
-     * can observe or act on the intervening pointer-follows-focus
-     * state; called directly from the same synchronous path a caller
-     * reached here from (e.g., 'ccmd_client_restore', which already
+     * queued 'client_send_event_unfocus'/'client_send_event_focus' pair
+     * this used to use: 'ccmd_client_unfocus' redirects the X server's
+     * real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see its own
+     * doc comment in 'cmds/client/basic.c'), on the assumption that
+     * a caller unfocusing a client to immediately focus another
+     * "harmlessly overrides this a moment later".  That assumption only
+     * holds if the override actually runs before anything else can
+     * observe or act on the intervening pointer-follows-focus state;
+     * called directly from the same synchronous path a caller reached
+     * here from (e.g., 'ccmd_client_restore', which already
      * synchronously focuses 'client' once before this function even
-     * runs, only for the unfocus below to then run afterward
-     * and undo it), nothing guarantees that ordering.  Calling both
-     * functions directly here removes the gap entirely: this
-     * function already holds both 'previous' and 'client' with a
-     * precise ordering requirement between them, so it needs neither
-     * the queue's own decoupling nor its reentrancy guarantees to
-     * begin with. */
+     * runs, only for the unfocus below to then run afterward and undo
+     * it), nothing guarantees that ordering.
+     *
+     * Calling both functions directly here removes the gap entirely:
+     * this function already holds both 'previous' and 'client' with
+     * a precise ordering requirement between them, so it needs neither
+     * the queue's own decoupling nor its reentrancy guarantees to begin
+     * with. */
     if (surfaces != NULL &&
             desktop->client_active_id != 0 &&
             desktop->client_active_id != client->id) {

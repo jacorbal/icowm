@@ -32,15 +32,14 @@
 
 
 /**
- * @brief Which backend @c text_renderer_init last successfully
- *        selected
+ * @brief Which backend @c text_renderer_init last successfully selected
  *
  * @c S_BACKEND_X11 renders through the X core font path this file
- * implements directly; @c S_BACKEND_GLYPH delegates every operation
- * to @c render/glyph.c instead, the xcb-render/FreeType2/fontconfig
- * fallback used for a font name that does not resolve to an X core
- * font (e.g., a TrueType/OpenType family name most cursor and icon
- * themes install but the X server's own bitmap font set does not).
+ * implements directly; @c S_BACKEND_GLYPH delegates every operation to
+ * @c render/glyph.c instead, the xcb-render/FreeType2/fontconfig
+ * fallback used for a font name that does not resolve to an X core font
+ * (e.g., a TrueType/OpenType family name most cursor and icon themes
+ * install but the X server's own bitmap font set does not).
  */
 enum s_text_backend_e {
     S_BACKEND_NONE = 0,
@@ -49,33 +48,50 @@ enum s_text_backend_e {
 };
 
 
+/**
+ * @brief Module state for the text renderer
+ *
+ * Stores the XCB core-font resources, the requested font name and its
+ * XLFD form, cached font metrics, and the active text-rendering
+ * backend.
+ *
+ * @note @p raw_font_name preserves the caller's original
+ *       fontconfig-compatible pattern so the glyph backend can be
+ *       selected as a fallback when the X core-font backend cannot load
+ *       the converted XLFD name
+ */
 static struct {
     xcb_connection_t *connection;
     xcb_font_t font;
     xcb_gcontext_t gc;
     char font_name[256];
-    char raw_font_name[256]; /**< 'font_name' as the caller passed it,
-                                   before the XLFD conversion below;
-                                   kept so a fallback to the glyph
-                                   backend can hand fontconfig its own
-                                   syntax instead of a mangled XLFD
-                                   pattern it would not understand */
+
+    /**
+     * @brief Just @p font_name as the caller passed it, before the XLFD
+     *        conversion below
+     *
+     * Kept so a fallback to the glyph backend can hand fontconfig its
+     * own syntax instead of a mangled XLFD pattern it would not
+     * understand.
+     */
+    char raw_font_name[256];
+
     uint16_t char_width;
-    int16_t ascent;      /**< Pixels the baseline sits below the top of
-                               a line of text, from the font's own
-                               metrics; used to vertically center or
-                               top/bottom-align text against a known
-                               pixel height (see 'text_font_ascent'
-                               and 'text_font_descent') */
-    int16_t descent;     /**< Pixels the baseline sits above the
-                               bottom of a line of text */
+
+    int16_t ascent;     /**< Pixels the baseline sits below the top of
+                             a line of text, from the font's own metrics.
+                             Used to vertically center or
+                             top/bottom-align text against a known
+                             pixel height (cfr. @a text_font_ascent) */
+    int16_t descent;    /**< Pixels the baseline sits above the bottom of
+                             a line of text.  (Cfr. @a text_font_descent) */
+
     enum s_text_backend_e backend;
-    bool initialized;
-    bool glyph_backend_disabled; /**< Set once, for the life of the
-                                       process, by @c text_renderer_
-                                       disable_glyph_backend; see that
-                                       function's own doc comment for
-                                       why */
+    bool is_initialized;
+
+    /** Set once, for the life of the process, by
+     *  @a text_renderer_disable_glyph_backend */
+    bool is_glyph_backend_disabled;
 } s_text = {
     .connection = NULL,
     .font = XCB_NONE,
@@ -86,8 +102,8 @@ static struct {
     .ascent = 10,
     .descent = 3,
     .backend = S_BACKEND_NONE,
-    .initialized = false,
-    .glyph_backend_disabled = false
+    .is_initialized = false,
+    .is_glyph_backend_disabled = false
 };
 
 
@@ -100,10 +116,10 @@ static struct {
  *   [family] [bold] [italic|oblique] [size] [registry-encoding]
  * @endcode
  *
- * All fields except @c family are optional.  @c registry-encoding is
+ * All fields except @p family are optional.  @p registry-encoding is
  * recognized as any whitespace-separated token that contains a hyphen
  * and is not a keyword; it is split at the last hyphen into the XLFD
- * @c charset_registry and @c charset_encoding fields.
+ * @p charset_registry and @p charset_encoding fields.
  *
  * Examples:
  * @code
@@ -304,9 +320,9 @@ static void s_font_config_to_xlfd(const char *input, char *output,
  *
  * @return @c true if the font opened and its metrics could be read
  *
- * @note On failure, any font resource this call opened is closed
- *       again before returning, so the caller never has to clean up
- *       a partial X11 attempt itself
+ * @note On failure, any font resource this call opened is closed again
+ *       before returning, so the caller never has to clean up a partial
+ *       X11 attempt itself
  * @note Complexity: @e O(1)
  */
 static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
@@ -327,7 +343,8 @@ static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
     }
 
     if (qf_reply->max_bounds.character_width > 0) {
-        s_text.char_width = (uint16_t) qf_reply->max_bounds.character_width;
+        s_text.char_width =
+            (uint16_t) qf_reply->max_bounds.character_width;
     }
     s_text.ascent = qf_reply->font_ascent;
     s_text.descent = qf_reply->font_descent;
@@ -350,11 +367,11 @@ static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
 }
 
 
-/* Permanently disable the glyph (xcb-render/FreeType2/fontconfig)
+/* Permanently disable the glyph ('xcb-render'/FreeType2/fontconfig)
  * backend for the life of the process */
 void text_renderer_disable_glyph_backend(void)
 {
-    s_text.glyph_backend_disabled = true;
+    s_text.is_glyph_backend_disabled = true;
 }
 
 
@@ -369,9 +386,11 @@ int text_renderer_init(xcb_connection_t *connection,
         return -1;
     }
 
-    raw = (font_name == NULL || font_name[0] == '\0') ? "fixed" : font_name;
+    raw = (font_name == NULL || font_name[0] == '\0')
+        ? "fixed"
+        : font_name;
 
-    if (s_text.initialized &&
+    if (s_text.is_initialized &&
             s_text.connection == connection &&
             safe_strcmp(s_text.raw_font_name, raw) == 0) {
         return 0;
@@ -379,46 +398,51 @@ int text_renderer_init(xcb_connection_t *connection,
 
     text_renderer_destroy();
 
-    /* Convert the config-style font description (e.g., "fixed bold 9")
+    /* Convert the config-style font description (e.g., "fixed bold 13")
      * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
     s_font_config_to_xlfd(raw, xlfd, sizeof(xlfd));
 
     s_text.connection = connection;
-    safe_strncpy(s_text.raw_font_name, raw, sizeof(s_text.raw_font_name));
+    safe_strncpy(s_text.raw_font_name, raw,
+            sizeof(s_text.raw_font_name));
 
     if (s_try_x11(connection, xlfd)) {
         safe_strncpy(s_text.font_name, xlfd, sizeof(s_text.font_name));
         s_text.backend = S_BACKEND_X11;
-        s_text.initialized = true;
+        s_text.is_initialized = true;
         return 0;
     }
 
-    /* 'xlfd' did not resolve to any X core font (e.g., a
-     * TrueType/OpenType family name most systems have via fontconfig
-     * but whose bitmap X font set does not include): fall back to
+    /* 'xlfd' did not resolve to any X core font (e.g.,
+     * a TrueType/OpenType family name most systems have via fontconfig
+     * but whose bitmap X font set does not include).  Fall back to
      * rendering it through xcb-render/FreeType2/fontconfig instead,
      * handing fontconfig the caller's original string rather than the
      * XLFD pattern just built for X11, since fontconfig has its own,
-     * different pattern syntax.  Never even attempted at all once
+     * different pattern syntax.
+     *
+     * Never even attempted at all once
      * 'text_renderer_disable_glyph_backend' has been called: falls
-     * straight through to the "fixed" fallback below instead, the
-     * same as if this attempt had failed. */
-    if (!s_text.glyph_backend_disabled &&
+     * straight through to the "fixed" fallback below instead, the same
+     * as if this attempt had failed. */
+    if (!s_text.is_glyph_backend_disabled &&
             glyph_renderer_init(connection, raw) == 0) {
         s_text.ascent = glyph_font_ascent();
         s_text.descent = glyph_font_descent();
         s_text.backend = S_BACKEND_GLYPH;
-        s_text.initialized = true;
+        s_text.is_initialized = true;
         return 0;
     }
 
     /* Both backends failed for this specific font description: fall
-     * back to "fixed", which every X server ships and is guaranteed
-     * to open, so the renderer is never left completely unusable. */
-    if (safe_strcmp(raw, "fixed") != 0 && s_try_x11(connection, "fixed")) {
-        safe_strncpy(s_text.font_name, "fixed", sizeof(s_text.font_name));
+     * back to "fixed", which every X server ships and is guaranteed to
+     * open, so the renderer is never left completely unusable. */
+    if (safe_strcmp(raw, "fixed") != 0 &&
+            s_try_x11(connection, "fixed")) {
+        safe_strncpy(s_text.font_name, "fixed",
+                sizeof(s_text.font_name));
         s_text.backend = S_BACKEND_X11;
-        s_text.initialized = true;
+        s_text.is_initialized = true;
         return 0;
     }
 
@@ -430,7 +454,7 @@ int text_renderer_init(xcb_connection_t *connection,
 /* Destroy global text renderer resources */
 void text_renderer_destroy(void)
 {
-    if (!s_text.initialized) {
+    if (!s_text.is_initialized) {
         return;
     }
 
@@ -452,7 +476,7 @@ void text_renderer_destroy(void)
     s_text.raw_font_name[0] = '\0';
     s_text.char_width = 8;
     s_text.backend = S_BACKEND_NONE;
-    s_text.initialized = false;
+    s_text.is_initialized = false;
 }
 
 
@@ -461,7 +485,7 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
 {
     uint32_t gc_values[2];
 
-    if (!s_text.initialized) {
+    if (!s_text.is_initialized) {
         return;
     }
 
@@ -483,25 +507,25 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
 
 /**
  * @brief Convert a UTF-8 string to single-byte Latin-1, for
- *        'xcb_image_text_8', which has no multi-byte encoding
- *        support of its own at all
+ *        @c xcb_image_text_8, which has no multi-byte encoding support
+ *        of its own at all
  *
- * Every codepoint in the Latin-1 range (U+0000-U+00FF, which is
- * fixed's own ISO 8859-1/8859-15 encoding, and covers every accented
- * letter Spanish, Galician, Catalan, French, Italian, German, and
- * Portuguese actually use) becomes the one byte that same numeric
- * value already is in that encoding; anything further out (Cyrillic,
- * CJK, most everything else) becomes a literal '?', since a bitmap X
- * core font like 'fixed' has no glyph for it regardless of how
- * faithfully the input text were decoded.
+ * Every codepoint in the Latin-1 range (U+0000-U+00FF, which is fixed's
+ * own ISO 8859-1/8859-15 encoding, and covers every accented letter
+ * Spanish, Galician, Catalan, French, Italian, German, and Portuguese
+ * actually use) becomes the one byte that same numeric value already is
+ * in that encoding.  Anything further out (Cyrillic, CJK, most
+ * everything else) becomes a literal '?', since a bitmap X core font
+ * like "fixed" has no glyph for it regardless of how faithfully the
+ * input text were decoded.
  *
  * @param text     Null-terminated UTF-8 string
  * @param out      Destination buffer
  * @param out_size Size of @p out, in bytes
  *
- * @return Length of the converted string in @p out, in bytes (always
- *         at most one byte per decoded codepoint, so never longer
- *         than @p text's own UTF-8 byte length)
+ * @return Length of the converted string in @p out, in bytes (always at
+ *         most one byte per decoded codepoint, so never longer than
+ *         @p text's own UTF-8 byte length)
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
@@ -540,23 +564,24 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    if (!s_text.initialized || s_text.connection != connection) {
+    if (!s_text.is_initialized || s_text.connection != connection) {
         if (text_renderer_init(connection, "fixed") != 0) {
             return;
         }
     }
 
-    /* Replace any control character (a stray newline in a window
-     * title set by a misbehaving client, most commonly) with a plain
-     * space before drawing, rather than passing it through as-is.
-     * Xft/FreeType glyphs happen not to draw anything visible for
-     * most control codes, which is what makes this go unnoticed with
-     * an Xft font; a bitmap X core font like 'fixed' has an actual
-     * glyph at nearly every code point in its table, including the
-     * control range, so the same character shows up as a visible box
-     * there instead.  Sanitizing once here, ahead of either backend,
-     * means neither depends on that difference in font behavior to
-     * look right. */
+    /* Replace any control character (a stray newline in a window title
+     * set by a misbehaving client, most commonly) with a plain space
+     * before drawing, rather than passing it through as-is.
+     *
+     * Xft/FreeType glyphs happen not to draw anything visible for most
+     * control codes, which is what makes this go unnoticed with an Xft
+     * font; a bitmap X core font like 'fixed' has an actual glyph at
+     * nearly every code point in its table, including the control
+     * range, so the same character shows up as a visible box there
+     * instead.  Sanitizing once here, ahead of either backend, means
+     * neither depends on that difference in font behavior to look
+     * right. */
     len = safe_strlen(text);
     if (len >= sizeof(sanitized)) {
         len = sizeof(sanitized) - 1u;
@@ -633,8 +658,8 @@ int16_t text_font_ascent(void)
 }
 
 
-/* Pixels the baseline sits above the bottom of a line, for the
- * current font */
+/* Pixels the baseline sits above the bottom of a line, for the current
+ * font */
 int16_t text_font_descent(void)
 {
     return s_text.descent;

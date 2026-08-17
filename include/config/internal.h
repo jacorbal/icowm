@@ -5,9 +5,9 @@
  *
  * Declares static helper functions that are used by more than one of
  * the config translation units (@c config/base.c, @c config.c,
- * @c config/randr.c, @c config/memguard.c and its own submodules
- * under @c config/memguard/) but must not be exposed as part of the
- * public configuration API declared in @c config.h.
+ * @c config/randr.c, @c config/memguard.c and its own submodules under
+ * @c config/memguard/) but must not be exposed as part of the public
+ * configuration API declared in @c config.h.
  *
  * @note This header is private to the config subsystem and must not be
  *       included outside of @c src/config/
@@ -38,14 +38,19 @@
  * @brief Resolve and write the configuration directory base path
  *
  * Writes the effective configuration directory into @p config_dir_base.
- * Resolution order: @p config_dir_prefix (when non-empty) >
- * @c $XDG_CONFIG_HOME/icowm > @c $HOME/.icowm > @c ./icowm.
+ *
+ * Resolution order:
+ *
+ * - @p config_dir_prefix (when non-empty) >
+ * - @c ($XDG_CONFIG_HOME/icowm) >
+ * - @c ($HOME/.icowm) >
+ * - @c (./icowm)
  *
  * @param config_dir_prefix Caller-supplied prefix, or @c NULL to use
  *                          the environment-based default
- * @param config_dir_base   Buffer that receives the resolved path;
- *                          should be at least
- *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long
+ * @param config_dir_base   Buffer that receives the resolved path
+ *                          (should be at least
+ *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long)
  *
  * @note Implemented in @c config.c
  * @note Complexity: @e O(1)
@@ -60,31 +65,33 @@ void ci_config_dir_set(const char *config_dir_prefix,
  * that attempt succeeded, failed, or was never even made because no
  * theme was named at all), so the answer to "was a theme actually
  * loaded, and did it set its own name" is already known by the time
- * this runs.  Three cases, per the project's own naming rule:
+ * this runs.
  *
- * - No theme file loaded at all (@p theme_file_name empty, or @p
- *   theme_loaded @c false): @p theme's own @c name becomes literally
- *   @c "Default (builtin)".
- * - A theme file loaded, but it set no @c "name" of its own (@p
- *   theme's own @c name field, as passed in, is still empty): @p
- *   theme's own @c name becomes @p theme_file_name verbatim.
- * - A theme file loaded and did set its own @c "name": @p theme's own
- *   @c name becomes @c "<that name> (<theme_file_name>)".
+ * Three cases, per own naming rule:
+ *
+ * - No theme file loaded at all (@p theme_file_name empty, or
+ *   @p theme_loaded @c false): @p theme's own @c name becomes literally
+ *   "Default (builtin)".
+ * - A theme file loaded, but it set no @c name of its own (@p theme's
+ *   own @c name field, as passed in, is still empty): @p theme's own
+ *   @c name becomes @p theme_file_name verbatim.
+ * - A theme file loaded and did set its own
+ *   @c ("name": "<theme_name>")'s own @c name becomes
+ *   "<that name> (<theme_file_name>)".
  *
  * @param theme           Theme structure whose own @c name this
- *                         settles; its @c name field, as passed in,
- *                         must already reflect whichever of the above
- *                         it actually is (empty for the first two
- *                         cases, whatever the file itself set for the
- *                         third)
- * @param theme_file_name The short name a theme was loaded under
- *                         (e.g., @c "default", the same string
- *                         @c "theme": @c "<this>" names in @c
- *                         memguard.json/config.json, not a path or
- *                         the @c ".json" extension), or @c NULL/empty
- *                         if none was ever named at all
- * @param theme_loaded     Whether @a config_load_theme actually
- *                         succeeded for @p theme_file_name
+ *                        settles; its @c name field, as passed in, must
+ *                        already reflect whichever of the above it
+ *                        actually is (empty for the first two cases,
+ *                        whatever the file itself set for the third)
+ * @param theme_file_name The short name a theme was loaded under (e.g.,
+ *                        "default", the same string
+ *                        @c ("theme": "<this>") names in
+ *                        @c memguard.json/config.json, not a path or
+ *                        the @c .json extension), or null/empty if none
+ *                        was ever named at all
+ * @param theme_loaded    Whether @a config_load_theme actually
+ *                        succeeded for @p theme_file_name
  *
  * @note Implemented in @c config.c
  * @note Complexity: @e O(1)
@@ -93,46 +100,45 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
         const char *theme_file_name, bool theme_loaded);
 
 /**
- * @brief Load @c "systray" (dock position/monitor/order/layer, and
- *        its nested @c "clock", @c "battery", and @c "text" objects)
- *        from a parsed @c config.json or @c memguard.json
+ * @brief Load @c systray (dock position/monitor/order/layer, and its
+ *        nested @c clock, @c battery, and @c text objects) from
+ *        a parsed @c config.json or @c memguard.json
  *
- * A no-op, leaving @p config_base's own systray fields at whatever
- * they already held, if @c "systray" itself is absent.  Each of the
- * three nested objects is likewise only consulted if present.
- * Declared here rather than kept private to @c config/base.c since
- * both it and @c config/memguard.c need this exact same parsing (the
- * @c "systray" object itself is identical between the two files), and
- * duplicating it would risk the two drifting apart over some future
- * change to one without the other.
+ * A no-op, leaving @p config_base's own systray fields at whatever they
+ * already held, if @c "systray" itself is absent.  Each of the three
+ * nested objects is likewise only consulted if present.  Declared here
+ * rather than kept private to @c config/base.c since both it and
+ * @c config/memguard.c need this exact same parsing (the @c systray
+ * object itself is identical between the two files), and duplicating it
+ * would risk the two drifting apart over some future change to one
+ * without the other.
  *
- * @param json        Parsed root of @c config.json or @c
- *                    memguard.json
+ * @param json        Parsed root of @c config.json or @c memguard.json
  * @param config_base Destination structure; its @c systray fields are
  *                    updated here
  *
  * @note Implemented in @c config/base.c
  * @note Complexity: @e O(1)
  */
-void ci_config_load_systray(cJSON *json, struct config_base_s *config_base);
+void ci_config_load_systray(cJSON *json,
+        struct config_base_s *config_base);
 
 /**
  * @brief Parse icon placement policy text into configuration
  *        enumeration
  *
- * Declared here rather than kept private to @c config/base.c since
- * both it and @c config/memguard.c need this exact same parsing (the
- * icon placement policy string accepted is identical between @c
- * config.json and @c memguard.json), and duplicating it would risk
- * the two drifting apart over some future change to one without the
- * other.
+ * Declared here rather than kept private to @c config/base.c since both
+ * it and @c config/memguard.c need this exact same parsing (the icon
+ * placement policy string accepted is identical between @c config.json
+ * and @c memguard.json), and duplicating it would risk the two drifting
+ * apart over some future change to one without the other.
  *
  * @param value Icon placement string from configuration
  *
  * @return Parsed icon placement policy enumeration value
  *
- * @note Supported values are @c bottom, @c top, @c left, @c right,
- *       and @c smart
+ * @note Supported values are @c bottom, @c top, @c left, @c right, and
+ *       @c smart
  * @note Implemented in @c config/base.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
@@ -143,12 +149,11 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  * @brief Parse window placement policy text into configuration
  *        enumeration
  *
- * Declared here rather than kept private to @c config/base.c since
- * both it and @c config/memguard.c need this exact same parsing (the
- * window placement policy string accepted is identical between @c
- * config.json and @c memguard.json), and duplicating it would risk
- * the two drifting apart over some future change to one without the
- * other.
+ * Declared here rather than kept private to @c config/base.c since both
+ * it and @c config/memguard.c need this exact same parsing (the window
+ * placement policy string accepted is identical between @c config.json
+ * and @c memguard.json), and duplicating it would risk the two drifting
+ * apart over some future change to one without the other.
  *
  * @param value Placement policy string from configuration
  *
@@ -159,26 +164,25 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  * @note Implemented in @c config/base.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-enum config_placement_policy_e ci_config_parse_placement_policy(
-        const char *value);
+enum config_placement_policy_e
+    ci_config_parse_placement_policy(const char *value);
 
 /**
  * @brief Apply restricted-memory mode's own theme restrictions on top
  *        of whatever @p config->theme was just loaded from
  *
- * Every font field not already naming some variant of the @c "fixed"
- * X core font family is replaced outright with plain @c
- * MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps (both
- * the icon square's own, @c icon.show-pixmaps, and the menu row/
- * cycle row icon shown alongside each entry, @c menu.show-pixmaps),
- * and icon hint indicators are all forced off unconditionally.
- * Every other theme field, colors, decoration, and @c is-captioned
- * included, is left exactly as the theme file specified: none of
- * those carry the ongoing memory cost the font backend and pixmap
- * compositing do.
+ * Every font field not already naming some variant of the "fixed"
+ * X core font family is replaced outright with plain
+ * @c MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps (both
+ * the icon square's own, @c icon.show-pixmaps, and the menu row/cycle
+ * row icon shown alongside each entry, @c menu.show-pixmaps), and icon
+ * hint indicators are all forced off unconditionally.  Every other
+ * theme field, colors, decoration, and @c is-captioned included, is
+ * left exactly as the theme file specified: none of those carry the
+ * ongoing memory cost the font backend and pixmap compositing do.
  *
- * @param config Configuration structure whose already-loaded theme
- *               this restricts; must not be @c NULL
+ * @param config Configuration structure whose already-loaded theme this
+ *               restricts (must not be null)
  *
  * @note Implemented in @c config/memguard/theme.c
  * @note Complexity: @e O(1), a fixed number of fields
@@ -186,29 +190,30 @@ enum config_placement_policy_e ci_config_parse_placement_policy(
 void ci_memguard_restrict_theme(config_td *config);
 
 /**
- * @brief Load @c memguard.json's own configurable fields into
- *        @p config
+ * @brief Load @c memguard.json's own configurable fields into @p config
  *
- * Everything restricted-memory mode still lets a person configure:
- * the active theme's name, launched programs, desktop margins, the
- * window move step and placement policy (via @a
- * ci_config_parse_placement_policy, shared verbatim with @c
- * config.json's own identical parsing), the icon placement policy
- * (via @a ci_config_parse_icon_placement, likewise shared), the
- * systray block (via @a ci_config_load_systray, shared verbatim with
- * @c config.json's own identical @c "systray" object, minus its own
- * @c text.position and @c order fields, which this mode always keeps
- * at their own fixed defaults regardless of what the file specifies),
- * and the emergency shortcut.  A no-op, leaving every field at
- * whatever @a config_set_default_values_memguard already set, for any
- * of these not present in the file.
+ * Everything restricted-memory mode still lets a person configure: the
+ * active theme's name, launched programs, desktop margins, the window
+ * move step and placement policy (via
+ * @a ci_config_parse_placement_policy, shared verbatim with
+ * @c config.json's own identical parsing), the icon placement policy
+ * (via @a ci_config_parse_icon_placement, likewise shared), the systray
+ * block (via @a ci_config_load_systray, shared verbatim with
+ * @c config.json's own identical @c systray object, minus its own
+ * @c text.position and @c order fields, which this mode always keeps at
+ * their own fixed defaults regardless of what the file specifies), and
+ * the emergency shortcut.
  *
  * @param filename Path to @c memguard.json
  * @param config   Configuration structure to update
  *
- * @return @c 0 on success, @c 1 if @p filename could not be loaded or
- *         parsed
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval  1 if @p filename could not be loaded or parsed
  *
+ * @note A no-op, leaving every field at whatever
+ *       @a config_set_default_values_memguard already set, for any of
+ *       these not present in the file
  * @note Implemented in @c config/memguard/load.c
  * @note Complexity: @e O(n), where @e n is the size of @p filename
  */

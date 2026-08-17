@@ -4,9 +4,9 @@
  * @brief Private helpers shared across surface implementation modules
  *
  * Declares helper functions that are used by more than one of the
- * surface translation units (@c surface.c,
- * @c surface/actions.c) but must not be exposed as part of the public
- * surface API declared in @c surface.h.
+ * surface translation units (@c surface.c, @c surface/actions.c) but
+ * must not be exposed as part of the public surface API declared in
+ * @c surface.h.
  *
  * @note This header is private to the surface subsystem and must not be
  *       included outside of @c src/surface/

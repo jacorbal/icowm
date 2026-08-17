@@ -118,14 +118,12 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 
 
 /* Load (or reload) 'menu.json''s own entries; see this function's
- * own doc comment in menu/context/rootmenu.h */
+ * comment in 'menu/context/rootmenu.h' */
 void rootmenu_load_menu_json(const char *config_dir)
 {
     char menu_path[ROOTMENU_PATH_MAX];
     ctxmenu_entry_td *json_entries = NULL;
     int json_count = 0;
-    const char *xdg;
-    const char *home;
 
     if (s_json_entries != NULL) {
         menujson_free(s_json_entries, s_json_count);
@@ -138,8 +136,9 @@ void rootmenu_load_menu_json(const char *config_dir)
         (void) snprintf(menu_path, sizeof(menu_path),
                 "%s/%s", config_dir, CONFIG_FILENAME_MENU);
     } else {
-        xdg = getenv("XDG_CONFIG_HOME");
-        home = getenv("HOME");
+        const char *xdg = getenv("XDG_CONFIG_HOME");
+        const char *home = getenv("HOME");
+
         if (xdg != NULL) {
             (void) snprintf(menu_path, sizeof(menu_path),
                     "%s/%s/%s", xdg, CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
@@ -168,7 +167,7 @@ void rootmenu_load_menu_json(const char *config_dir)
 
 
 /* Free the entries loaded by 'rootmenu_load_menu_json'; see this
- * function's own doc comment in menu/context/rootmenu.h */
+ * function's comment in 'menu/context/rootmenu.h' */
 void rootmenu_free_menu_json(void)
 {
     if (s_json_entries != NULL) {
@@ -179,8 +178,8 @@ void rootmenu_free_menu_json(void)
 }
 
 
-/* Display the root desktop menu; see this function's own doc comment
- * in menu/context/rootmenu.h */
+/* Display the root desktop menu; see this function's comment in
+ * 'menu/context/rootmenu.h' */
 void rootmenu_show(xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
         const config_td *config)
@@ -269,8 +268,8 @@ void rootmenu_close(void)
 
     /* Deliberately not freed here: 's_json_entries' persists across
      * opens/closes, and is only ever replaced (on reload) or freed
-     * (at shutdown) by 'rootmenu_load_menu_json'/
-     * 'rootmenu_free_menu_json'; see their own doc comments. */
+     * (at shutdown) by 'rootmenu_load_menu_json' or by
+     * 'rootmenu_free_menu_json' (read their comments for a change) */
     if (s_entries != NULL) {
         free(s_entries);
         s_entries = NULL;
@@ -291,11 +290,11 @@ void rootmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the root desktop menu */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
     return ctxmenu_handle_click_window(connection, surface, &s_root,
-            win, x, y, config);
+            win, y, config);
 }
 
 

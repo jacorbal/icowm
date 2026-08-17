@@ -76,6 +76,7 @@
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
+#include <wm/kill.h>
 #include <wm/shutdown.h>
 
 /* Local includes */
@@ -283,18 +284,14 @@ void loop_run(wm_td *wm)
     xcb_key_symbols_t *keysyms;
     xcb_generic_event_t *event;
     xcb_generic_event_t *pending_event = NULL; /**< One-event lookahead
-                                                     used to coalesce a
-                                                     run of consecutive
-                                                     'MotionNotify'
-                                                     events; see the
-                                                     comment at the
-                                                     'XCB_MOTION_NOTIFY'
-                                                     case below */
+                                                    used to coalesce
+                                                    a run of consecutive
+                                                    @c MotionNotify
+                                                    events (see the
+                                                    comment at the
+                                                    @c XCB_MOTION_NOTIFY
+                                                    case below) */
     struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
-    int nfds;
-    int poll_status;
-    int poll_timeout_ms;
-    int conn_error;
     const xcb_generic_error_t *proto_error;
     bool any_outdated;
 
@@ -339,6 +336,14 @@ void loop_run(wm_td *wm)
     LOGGER_DEBUG("Entering main event loop", L_NARG);
 
     while (wm->is_running) {
+        int nfds;
+        int poll_status;
+        int poll_timeout_ms;
+        int conn_error;
+        int ipc_fds[IPC_MAX_CLIENTS + 1];
+        int ipc_count = ipc_poll_fds(ipc_fds,
+                (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
+
         if (startup_stop_requested()) {
             LOGGER_INFO("Termination signal received;" \
                     " requesting shutdown", L_NARG);
@@ -377,17 +382,11 @@ void loop_run(wm_td *wm)
         pfd[0].revents = 0;
         nfds = 1;
 
-        {
-            int ipc_fds[IPC_MAX_CLIENTS + 1];
-            int ipc_count = ipc_poll_fds(ipc_fds,
-                    (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
-
-            for (int i = 0; i < ipc_count; ++i) {
-                pfd[nfds].fd = ipc_fds[i];
-                pfd[nfds].events = POLLIN;
-                pfd[nfds].revents = 0;
-                ++nfds;
-            }
+        for (int i = 0; i < ipc_count; ++i) {
+            pfd[nfds].fd = ipc_fds[i];
+            pfd[nfds].events = POLLIN;
+            pfd[nfds].revents = 0;
+            ++nfds;
         }
 
         /* Use a shorter poll timeout when the info popup is visible so
@@ -448,6 +447,12 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 wm_shutdown_ms_remaining());
 
+        /* Shorter still while a process kill is pending escalation
+         * to 'SIGKILL' (see 'wm_kill_tick' in wm/kill.h), for the
+         * same reason. */
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                wm_kill_ms_remaining());
+
         poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
             LOGGER_ERROR("Failed waiting on X connection: %s",
@@ -477,6 +482,7 @@ void loop_run(wm_td *wm)
         menu_message_dialog_tick(wm->connection);
         drag_warp_tick(wm->connection);
         wm_shutdown_tick();
+        wm_kill_tick();
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
             memguard_tick(wm->connection,
@@ -808,7 +814,7 @@ void loop_run(wm_td *wm)
         }
 
         /* Auto-close the info popup when its display timeout has
-         * elapsed.  Close before the loop_update call so any visual
+         * elapsed.  Close before the 'loop_update' call so any visual
          * update triggered by the close is handled in the same
          * iteration. */
         if (popup_is_open() && popup_ms_remaining() == 0) {
@@ -834,7 +840,7 @@ void loop_run(wm_td *wm)
         any_outdated = false;
         for (list_item_td *sync_node = list_head(wm->surfaces);
                 sync_node != NULL; sync_node = list_next(sync_node)) {
-            surface_td *s = (surface_td *) list_data(sync_node);
+            const surface_td *s = (surface_td *) list_data(sync_node);
             if (s != NULL && s->is_outdated) {
                 any_outdated = true;
                 break;
@@ -854,7 +860,7 @@ void loop_run(wm_td *wm)
 
 
 /* Perform a partial (outdated-only) surface update */
-void loop_update(wm_td *wm)
+void loop_update(const wm_td *wm)
 {
     if (wm == NULL || wm->surfaces == NULL) {
         return;
@@ -878,7 +884,7 @@ void loop_update(wm_td *wm)
 
 
 /* Force a full re-render of all surfaces */
-void loop_update_full(wm_td *wm)
+void loop_update_full(const wm_td *wm)
 {
     if (wm == NULL || wm->surfaces == NULL) {
         return;

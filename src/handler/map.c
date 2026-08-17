@@ -100,10 +100,11 @@ static void s_map_unmanaged(xcb_connection_t *connection,
  * root so keyboard grabs continue to work.
  */
 static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *lost_client)
+        surface_td *surface, desktop_td *desktop,
+        const client_td *lost_client)
 {
     cdlist_item_td *node;
-    cdlist_item_td *initial;
+    const cdlist_item_td *initial;
     bool focus_set = false;
 
     if (desktop == NULL || desktop->stacking == NULL) {
@@ -590,7 +591,7 @@ void handler_gravity_notify(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Gravity notify event (window=0x%x, pos=%d+%d)",
+    LOGGER_TRACE("Gravity notify event (window=0x%x, pos=%+d%+d)",
             event->window, event->x, event->y);
 
     /* The X server repositioned a frame window ('event->window') within

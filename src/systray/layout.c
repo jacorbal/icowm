@@ -3,13 +3,14 @@
  *
  * @brief Systray positioning, stacking, and drawing
  *
- * Everything about where the tray window and its docked icons end up
- * on screen, and what gets drawn there: sizing and moving the tray to
- * its configured corner, arranging icons in a row, drawing the clock/
+ * Everything about where the tray window and its docked icons end up on
+ * screen, and what gets drawn there.  Sizing and moving the tray to its
+ * configured corner, arranging icons in a row, drawing the clock or
  * battery text next to them, and applying the configured stacking
  * layer.  The text content itself (what the clock or battery status
- * actually says) is read and formatted elsewhere; see
- * @c systray/text.c.
+ * actually says) is read and formatted elsewhere.
+ *
+ * @see @c systray/text.c
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -47,11 +48,11 @@
  * @brief Pixel width the tray window needs for the current icon count
  *        and, if enabled, the clock and/or battery status text
  *
- * @return 0 when no icons are docked and neither text item is
+ * @return @c 0 when no icons are docked and neither text item is
  *         enabled (the tray window stays unmapped in that case),
  *         otherwise enough to fit every icon with padding around and
- *         between each, plus the combined text width when any of it
- *         is enabled
+ *         between each, plus the combined text width when any of it is
+ *         enabled
  */
 static uint16_t s_systray_content_width(void)
 {
@@ -71,8 +72,8 @@ static uint16_t s_systray_content_width(void)
  *         has no frame), scanning every desktop on every surface, or
  *         @c XCB_WINDOW_NONE if none is currently fullscreen
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every desktop and surface
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across every desktop and surface
  */
 static xcb_window_t s_systray_find_fullscreen_target(void)
 {
@@ -88,7 +89,7 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
             snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
-        cdlist_item_td *dinitial;
+        const cdlist_item_td *dinitial;
 
         if (surface == NULL || surface->desktops == NULL) {
             continue;
@@ -100,9 +101,8 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
         dinitial = dnode;
         do {
             desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
-            void *elem;
-
             if (desktop != NULL && desktop->clients != NULL) {
+                void *elem;
                 ohtbl_foreach(desktop->clients, elem) {
                     client_td *client = (client_td *) elem;
 
@@ -131,13 +131,15 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
  * restack ordering: the tray's own move to the bottom (an unqualified
  * @c XCB_STACK_MODE_BELOW, since the tray does not otherwise know of
  * any one icon to stack itself relative to) would otherwise claim the
- * absolute bottom of the sibling stack out from under any icon that
- * was already there, the same "whichever restacked most recently
- * wins" problem @c ccmd_client_iconify's own explicit stack-below
- * (see @c systray_below_window) handles for the opposite ordering.
+ * absolute bottom of the sibling stack out from under any icon that was
+ * already there, the same "whichever restacked most recently wins"
+ * problem @a ccmd_client_iconify's own explicit stack-below handles for
+ * the opposite ordering.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients across every desktop and surface
+ *
+ * @see @a systray_below_window
  */
 static void s_systray_push_icons_below(void)
 {
@@ -152,7 +154,7 @@ static void s_systray_push_icons_below(void)
             snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
-        cdlist_item_td *dinitial;
+        const cdlist_item_td *dinitial;
 
         if (surface == NULL || surface->desktops == NULL) {
             continue;
@@ -164,9 +166,9 @@ static void s_systray_push_icons_below(void)
         dinitial = dnode;
         do {
             desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
-            void *elem;
 
             if (desktop != NULL && desktop->clients != NULL) {
+                void *elem;
                 ohtbl_foreach(desktop->clients, elem) {
                     client_td *client = (client_td *) elem;
 
@@ -190,20 +192,20 @@ static void s_systray_push_icons_below(void)
 
 /* Apply the configured 'systray.layer' stacking rule
  *
- * - CONFIG_SYSTRAY_LAYER_BELOW (the default): stacks the tray window
+ * - 'CONFIG_SYSTRAY_LAYER_BELOW' (the default): stacks the tray window
  *   at the very bottom, behind every client window.
- * - CONFIG_SYSTRAY_LAYER_ABOVE: stacks it at the top, unless a client
+ * - 'CONFIG_SYSTRAY_LAYER_ABOVE': stacks it at the top, unless a client
  *   is currently fullscreen, in which case it stacks just below that
  *   client instead, so a fullscreen window still covers it; the same
- *   way a taskbar or panel gets covered by a fullscreen window in
- *   most desktop environments, instead of a systray floating above
- *   literally everything regardless of what the user is doing.
- *   Always resolved to its final position in one single
- *   'ConfigureWindow' call (see 's_systray_find_fullscreen_target'
- *   above), never by raising to the top and only then lowering in a
- *   second, separate request, which would flash the tray above
- *   fullscreen content for the brief moment between the two.
- * - CONFIG_SYSTRAY_LAYER_OVERLAY: stacks it at the top and leaves it
+ *   way a taskbar or panel gets covered by a fullscreen window in most
+ *   desktop environments, instead of a systray floating above literally
+ *   everything regardless of what the user is doing.  Always resolved
+ *   to its final position in one single 'ConfigureWindow' call (cfr.
+ *   's_systray_find_fullscreen_target' above), never by raising to the
+ *   top and only then lowering in a second, separate request, which
+ *   would flash the tray above fullscreen content for the brief moment
+ *   between the two.
+ * - 'CONFIG_SYSTRAY_LAYER_OVERLAY': stacks it at the top and leaves it
  *   there unconditionally, even over fullscreen windows.
  *
  * Safe to call whenever the tray's stacking might need reconsidering:
@@ -258,15 +260,16 @@ void systray_layout_restack(void)
 /**
  * @brief Resolve the rectangle the tray dock's corner is anchored to
  *
- * Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
- * @c s_tray.surface's own combined dimensions, exactly the previous,
- * always-whole-surface behavior, treated as one virtual monitor
- * spanning it (the same fallback @c s_surface_monitors_fallback uses
- * when RandR itself cannot supply a real monitor list).  Under @c
- * CONFIG_SYSTRAY_MONITOR_PRIMARY, returns whichever monitor RandR
- * reports as primary.  Under @c CONFIG_SYSTRAY_MONITOR_INDEX, returns
- * @c s_tray.monitor.index specifically (out of range falls back to
- * monitor 0, logging a warning).
+ * - Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
+ *   @p s_tray.surface's own combined dimensions, exactly the previous,
+ *   always-whole-surface behavior, treated as one virtual monitor
+ *   spanning it (the same fallback @a s_surface_monitors_fallback uses
+ *   when RandR itself cannot supply a real monitor list).
+ * 
+ * - Under @c CONFIG_SYSTRAY_MONITOR_PRIMARY, returns whichever monitor
+ *   RandR reports as primary.  Under @c CONFIG_SYSTRAY_MONITOR_INDEX,
+ *   returns @p s_tray.monitor.index specifically (out of range falls
+ *   back to monitor 0, logging a warning).
  *
  * @return The resolved anchor monitor
  *
@@ -303,23 +306,23 @@ static monitor_td s_systray_anchor_rect(void)
 
 
 /**
- * @brief Publish (or clear) the tray's own reserved-space strut on
- *        its dock window, and mirror the same values into
- *        's_tray.reserved_strut' for 'systray_get_reserved_strut'
+ * @brief Publish (or clear) the tray's own reserved-space strut on its
+ *        dock window, and mirror the same values into
+ *        @a s_tray.reserved_strut for @a systray_get_reserved_strut
  *
- * Per the specification's own recommendation for a docking area, a
- * taskbar, or a panel, the tray publishes '_NET_WM_STRUT_PARTIAL'
- * -- and, for compatibility with anything that only understands
- * the legacy property, plain
- * '_NET_WM_STRUT' alongside it -- covering the exact strip of screen
- * its own configured corner and current size occupy, so a maximized
- * window (and this window manager's own placement logic, via
- * 'desktop_update_workarea') both leave that strip alone the same
- * way they already do for an external panel or dock, plus
- * 'config.systray.margins' added on top of that strip.  Publishes an
- * all-zero strut instead when 'config.systray.reserve-space' is
- * false, for anyone who would rather windows stayed free to maximize
- * over or under the tray.
+ * Per the specification's own recommendation for a docking area,
+ * a taskbar, or a panel, the tray publishes @c _NET_WM_STRUT_PARTIAL
+ * (and, for compatibility with anything that only understands the
+ * legacy property, plain @c _NET_WM_STRUT alongside it) covering the
+ * exact strip of screen its own configured corner and current size
+ * occupy, so a maximized window (and this window manager's own
+ * placement logic, via @a desktop_update_workarea) both leave that
+ * strip alone the same way they already do for an external panel or
+ * dock, plus @p config.systray.margins added on top of that strip.
+ *
+ * Publishes an all-zero strut instead when
+ * @p config.systray.reserve-space is @c false, for anyone who would
+ * rather windows stayed free to maximize over or under the tray.
  *
  * @param x       Tray's own configured X position (root coordinates)
  * @param y       Tray's own configured Y position (root coordinates)
@@ -334,21 +337,20 @@ static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
         uint16_t h, int32_t border2)
 {
     xcb_ewmh_wm_strut_partial_t partial;
-    uint32_t screen_h;
 
     memset(&partial, 0, sizeof(partial));
 
     /* 'reserve_space == false' leaves 'partial' at the all-zero shape
-     * 'memset' above already set it to -- an explicit '{0, 0, 0, 0}'
+     * 'memset' above already set it to, an explicit '{0, 0, 0, 0}'
      * strut, published and stored exactly like any other, rather than
-     * simply skipping the publish/store below: a caller that reads
+     * simply skipping the publish/store below.  A caller that reads
      * 's_tray.reserved_strut' should see "reserves nothing" the same
-     * way it would for a real client with no strut of its own, not a
-     * stale value left over from whenever reservation was last
+     * way it would for a real client with no strut of its own, not
+     * a stale value left over from whenever reservation was last
      * enabled. */
     if (s_tray.reserve_space && s_tray.surface != NULL &&
             w > 0u && h > 0u) {
-        screen_h = s_tray.surface->properties.dim.h;
+        uint32_t screen_h = s_tray.surface->properties.dim.h;
 
         switch (s_tray.position) {
             case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
@@ -373,16 +375,16 @@ static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
             }
         }
 
-        /* 'config.systray.margins': added on top of whatever the
-         * switch above just computed from the tray's own actual
-         * geometry, the same way 'config_desktop_s''s own 'margins'
-         * adds on top of a client's published strut in
-         * 'desktop_update_workarea' -- not restricted to the edge the
-         * tray currently docks at (left/right add to a screen side
-         * the tray itself never reserves on its own), left with no
-         * start/end range of their own to honor (0..0), so they apply
-         * along the whole edge unconditionally, exactly like
-         * 'config_desktop_s''s own margins do. */
+        /* 'config.systray.margins': added on top of whatever the switch
+         * above just computed from the tray's own actual geometry, the
+         * same way 'config_desktop_s''s own 'margins' adds on top of
+         * a client's published strut in 'desktop_update_workarea'; not
+         * restricted to the edge the tray currently docks at
+         * (left/right add to a screen side the tray itself never
+         * reserves on its own), left with no start/end range of their
+         * own to honor (0..0), so they apply along the whole edge
+         * unconditionally, exactly like 'config_desktop_s''s own
+         * margins do. */
         partial.top += s_tray.strut_margins.top;
         partial.right += s_tray.strut_margins.right;
         partial.bottom += s_tray.strut_margins.bottom;
@@ -417,14 +419,13 @@ static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
  *
  * Unmaps the tray window while empty (nothing docked and neither the
  * clock nor the battery text enabled) or while the tray is not
- * currently active at all (disabled by configuration; see
- * 'is_active''s own doc comment in include/systray/internal.h), so it
- * never shows on screen in either case; otherwise sizes and moves it
- * to the configured corner of
- * 's_tray.surface' and arranges icons in a single horizontal row
+ * currently active at all (disabled by configuration; see 'is_active''s
+ * comment in 'include/systray/internal.h'), so it never shows on screen
+ * in either case; otherwise sizes and moves it to the configured corner
+ * of 's_tray.surface' and arranges icons in a single horizontal row
  * inside it, in 's_tray.icons' order (see 'systray_protocol_dock' in
- * systray/protocol.c for how that order is maintained per the
- * 'order' policy). */
+ * 'systray/protocol.c' for how that order is maintained per the 'order'
+ * policy). */
 void systray_layout_reflow(void)
 {
     uint16_t w;
@@ -512,8 +513,8 @@ void systray_layout_reflow(void)
     s_systray_update_strut(x, y, w, h, border2);
 
     /* Icons sit after the text block when it is on the left, or right
-     * at the tray's own left edge otherwise (text block on the
-     * right, or nothing enabled). */
+     * at the tray's own left edge otherwise (text block on the right,
+     * or nothing enabled). */
     icons_base_x = (text_w > 0u &&
             s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
         ? text_w : 0u;
@@ -527,10 +528,10 @@ void systray_layout_reflow(void)
 
         /* Every operand here is a non-negative 'uint16_t' to begin
          * with.  Plain 'uint16_t' arithmetic still promotes to 'int'
-         * before the addition though, which trips
-         * '-Wsign-conversion' on assignment to the 'uint32_t' array
-         * below.  The explicit casts keep every step of the
-         * arithmetic in 'uint32_t' instead. */
+         * before the addition though, which trips '-Wsign-conversion'
+         * on assignment to the 'uint32_t' array below.  The explicit
+         * casts keep every step of the arithmetic in 'uint32_t'
+         * instead. */
         icon_pos[0] = (uint32_t) icons_base_x +
             (uint32_t) s_tray.pixmap_pad + (uint32_t) i * stride;
         icon_pos[1] = icon_y;
@@ -558,10 +559,10 @@ void systray_layout_reflow(void)
                 s_tray.theme->systray.style.color.background);
 
         /* 'text_draw_string' takes the baseline, not the top of the
-         * text, so each alignment has to add the font's own ascent
-         * (see 'text_font_ascent') to whatever pixel the top of the
-         * text should land on.  Every item in 'text_order' shares one
-         * font, so this is computed once and reused for each. */
+         * text, so each alignment has to add the font's own ascent (see
+         * 'text_font_ascent') to whatever pixel the top of the text
+         * should land on.  Every item in 'text_order' shares one font,
+         * so this is computed once and reused for each. */
         ascent = text_font_ascent();
         descent = text_font_descent();
         item_h = (int16_t) (ascent + descent);
@@ -607,7 +608,7 @@ void systray_layout_reflow(void)
 
     /* The strut just published (or cleared) above changes what every
      * desktop on this same surface considers its own available
-     * 'workarea' -- recomputed here rather than left for whatever
+     * 'workarea'.  Recomputed here rather than left for whatever
      * unrelated trigger happens to call this next, the same reasoning
      * 'wm_action_config_reload' already applies to a changed
      * 'desktops.margins' (see its own comment in wm/actions.c). */

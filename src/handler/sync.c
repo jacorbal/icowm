@@ -55,7 +55,8 @@
  *
  * @see @c client_init
  */
-static client_td *s_find_client_by_alarm(list_td *surfaces, uint32_t alarm)
+static client_td *s_find_client_by_alarm(list_td *surfaces,
+        uint32_t alarm)
 {
     if (surfaces == NULL || alarm == 0u) {
         return NULL;
@@ -65,7 +66,7 @@ static client_td *s_find_client_by_alarm(list_td *surfaces, uint32_t alarm)
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
-        cdlist_item_td *dinitial;
+        const cdlist_item_td *dinitial;
 
         if (surface == NULL || surface->desktops == NULL ||
                 cdlist_size(surface->desktops) == 0) {

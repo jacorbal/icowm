@@ -192,7 +192,6 @@ void ccmd_client_cycle_layer(client_td *client)
 void ccmd_desktop_enforce_layers(desktop_td *desktop)
 {
     cdlist_item_td *node;
-    cdlist_item_td *initial;
     client_td *c;
     enum client_layer_e layer_order[] = {
         CLIENT_LAYER_BELOW,
@@ -211,6 +210,8 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
     for (size_t li = 0;
             li < sizeof(layer_order) / sizeof(layer_order[0]);
             ++li) {
+        const cdlist_item_td *initial;
+
         node = cdlist_head(desktop->stacking);
         initial = node;
         if (node == NULL) {

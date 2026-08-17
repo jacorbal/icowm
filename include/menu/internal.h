@@ -68,21 +68,21 @@ struct cycle_menu_state_s {
     const config_td *config;
     int scroll_offset;
     int viewport_rows;
-    int last_drawn_selected;    /**< 'selected' as of 'cycle_draw''s
-                                      own most recent call, so it can
-                                      redraw only the rows that
-                                      actually changed selection
-                                      instead of the whole viewport
-                                      when 'scroll_offset' did not
-                                      also change; meaningless until
-                                      'has_drawn_once' */
-    int last_drawn_scroll_offset; /**< See 'last_drawn_selected' */
-    bool has_drawn_once;         /**< Whether 'last_drawn_selected'/
-                                      'last_drawn_scroll_offset' hold a
-                                      real prior draw yet; false right
-                                      after 'cycle_init' so its first
-                                      'cycle_draw' always paints the
-                                      whole viewport regardless */
+    int last_drawn_selected;     /**< @p selected as of @a cycle_draw's
+                                       own most recent call, so it can
+                                       redraw only the rows that actually
+                                       changed selection instead of the
+                                       whole viewport when
+                                       @p scroll_offset did not also
+                                       change; meaningless until
+                                       @p has_drawn_once */
+    int last_drawn_scroll_offset; /**< See @p last_drawn_selected */
+    bool has_drawn_once;          /**< Whether @p last_drawn_selected /
+                                       @p last_drawn_scroll_offset hold
+                                       a real prior draw yet; false
+                                       right after @a cycle_init so its
+                                       first @a cycle_draw always paints
+                                       the whole viewport regardless */
 };
 
 
@@ -107,13 +107,11 @@ extern struct cycle_menu_state_s g_cycle_menu;
 xcb_window_t mi_cycle_preview_target(const client_td *client,
         bool is_icon_menu);
 
-
 /**
  * @brief Apply cycle preview highlighting and stacking
  *
- * Updates border color and stacking of the currently selected client
- * in the preview.  Restores the previous preview client's border
- * color.
+ * Updates border color and stacking of the currently selected client in
+ * the preview.  Restores the previous preview client's border color.
  *
  * @param connection XCB connection
  * @param cfg        Active configuration (theme data)
@@ -123,7 +121,6 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  */
 void mi_cycle_preview_apply(xcb_connection_t *connection,
         const config_td *cfg);
-
 
 /**
  * @brief Return the border width for a cycle-preview target
@@ -140,7 +137,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
  */
 uint32_t mi_cycle_preview_border_width(const client_td *client,
         const config_td *cfg, bool is_icon_menu, bool is_highlighted);
-
 
 /**
  * @brief Apply preview border color and width to a target window

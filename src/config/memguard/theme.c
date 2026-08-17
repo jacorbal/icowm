@@ -19,7 +19,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
-#include <string.h>     /* strchr, strcspn, strncmp */
+#include <string.h>     /* strchr, strcspn */
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -91,7 +91,7 @@ static bool s_memguard_is_fixed_variant(const char *font)
         : safe_strlen(family_start);
 
     return (family_len == 5u) &&
-        (strncmp(family_start, "fixed", 5u) == 0);
+        (safe_strncmp(family_start, "fixed", 5u) == 0);
 }
 
 

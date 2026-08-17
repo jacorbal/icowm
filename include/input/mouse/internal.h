@@ -43,11 +43,10 @@
  * @brief Recompute and apply the resize-border cursor for a client
  *        window at a given pointer position
  *
- * Shared by @c mouse_handle_motion_hover and @c mouse_hover_poll_tick
- * (in hover.c) and @c mouse_handle_enter (in event.c), since any one
- * kind of event or poll can be the only signal a given transition
- * actually produces; see the implementation's own doc comment in
- * cursor.c for the full reasoning.
+ * Shared by @a mouse_handle_motion_hover and @a mouse_hover_poll_tick
+ * (in @c hover.c) and @a mouse_handle_enter (in @c event.c), since any
+ * one kind of event or poll can be the only signal a given transition
+ * actually produces
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the client
@@ -70,18 +69,20 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
  * @brief Start (or clear) hover-poll tracking of a window's resize
  *        cursor
  *
- * Called from @c mouse_handle_enter (in event.c) whenever the pointer
- * crosses into a window: an undecorated client has no separate frame
- * to fall back on, so moving from its border to its interior happens
- * entirely within one window, with no further @c EnterNotify for that
- * transition to catch; periodic polling (see @c mouse_hover_poll_tick
- * in hover.c) is the only way to still re-evaluate the cursor there.
+ * Called from @a mouse_handle_enter (in @c event.c) whenever the
+ * pointer crosses into a window: an undecorated client has no separate
+ * frame to fall back on, so moving from its border to its interior
+ * happens entirely within one window, with no further @c EnterNotify
+ * for that transition to catch; periodic polling is the only way to
+ * still re-evaluate the cursor there.
  *
  * @param window Window to track, or @c XCB_WINDOW_NONE to stop
  *               tracking (the common case: most entered windows do
  *               not need this fallback at all)
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a mouse_hover_poll_tick in @c hover.c
  */
 void im_hover_track(xcb_window_t window);
 

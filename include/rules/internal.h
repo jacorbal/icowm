@@ -38,14 +38,15 @@
 #define RULES_MAX (256u)
 
 /**
- * @brief Maximum alternative values a single match criterion (e.g.,
- *        @c title) can hold when given as a JSON array instead of a
- *        single string
+ * @brief Maximum alternative values a single match criterion can hold
+ *        when given as a JSON array instead of a single string
  *
- * A window matches the criterion if it matches *any* one of these
- * (an "or" within the field); a rule with several different criteria
- * present (e.g., both @c title and @c class) still requires *all* of
- * them to match (an "and" across fields), see @c ri_client_matches.
+ * A window matches the criterion if it matches ANY one of these (an
+ * "or" within the field); a rule with several different criteria
+ * present (e.g., both @c title and @c class) still requires ALL of them
+ * to match (an "and" across fields).
+ *
+ * @see @a ri_client_matches
  */
 #define RULES_MATCH_MAX_VALUES (6u)
 
@@ -61,7 +62,7 @@ enum rules_when_e {
 /**
  * @brief Criteria used to match a client against one rule entry
  *
- * Each @c has_* criterion, when present, may hold one or more
+ * Each @p has_* criterion, when present, may hold one or more
  * alternative values (see @c RULES_MATCH_MAX_VALUES): the client
  * matches that criterion if it matches any one of them.  A client must
  * match every criterion that is present to match the rule as a whole.
@@ -93,17 +94,17 @@ struct rules_match_s {
  */
 struct rules_apply_s {
     bool has_desktop;
-    bool has_monitor;        /**< Target monitor within the client's
-                                  own surface; see 'monitor' below */
+    bool has_monitor;       /**< Target monitor within the client's
+                                 own surface; see 'monitor' below */
     bool has_layer;
     bool has_focus;
-    bool has_position;      /**< @c x & @c y, or @c position_centered,
-                                 set independently of @c size */
+    bool has_position;      /**< @p x & @p y, or @p position_centered,
+                                 set independently of @p size */
     bool position_centered; /**< @c ("position": "center") was given
-                                 instead of an @c {x,y} object: center
+                                 instead of an @c ({x,y}) object: center
                                  the client on its screen at apply time
-                                 instead of using @c x and @c y */
-    bool has_size;          /**< @c width & @c height independent of
+                                 instead of using @p x and @p y */
+    bool has_size;          /**< @p width & @p height independent of
                                  position */
     bool has_sticky;
     bool has_decorated;
@@ -111,18 +112,20 @@ struct rules_apply_s {
     bool has_opacity_inactive;
 
     uint32_t desktop;
+
     /**
      * @brief Index into the client's own surface's monitor list
      *
-     * Named 'monitor', not 'screen': this project's own @c screen_id/
-     * @c screens[] terminology refers to a whole X screen, and this
-     * codebase has no notion of moving a client between X screens at
-     * all, desktop reassignment above included, so a rule field with
-     * that name would misleadingly suggest a capability that does not
-     * exist.  Scoped to one physical monitor within the client's
-     * current surface only.
+     * Named @p monitor, not @p screen': this project's own
+     * @p screen_id / @p (screens[]) terminology refers to a whole
+     * X screen, and this codebase has no notion of moving a client
+     * between X screens at all, desktop reassignment above included, so
+     * a rule field with that name would misleadingly suggest
+     * a capability that does not exist.  Scoped to one physical monitor
+     * within the client's current surface only.
      */
     uint32_t monitor;
+
     uint16_t layer;
     bool focus;
     int32_t x;
@@ -132,10 +135,15 @@ struct rules_apply_s {
     bool pinned;
     bool decorated;
 
-    /** Percentage, 0 to 100, overriding the theme's own 'window.
-     *  active.opacity'/'window.inactive.opacity' for this one client;
-     *  see 'config_theme_opacity_to_raw' (config.h) for how this
-     *  reaches '_NET_WM_WINDOW_OPACITY' */
+    /**
+     * @brief Percentage, 0 to 100, overriding the theme's own 'window
+     *
+     * Applies to @p active.opacity / @p window.inactive.opacity for
+     * this one client.
+     *
+     * @see @a config_theme_opacity_to_raw in @c config.h for how this
+     *      reaches @c _NET_WM_WINDOW_OPACITY
+     */
     uint8_t opacity_active;
     uint8_t opacity_inactive;
 };
@@ -154,7 +162,8 @@ struct rules_rule_s {
  * @brief Rules table holding all loaded rule entries and their count
  *
  * @note The type name @c rules_s is declared as opaque @c rules_td in
- *       the public header; internal modules use the full struct directly
+ *       the public header; internal modules use the full structure
+ *       directly
  */
 struct rules_s {
     uint32_t count;

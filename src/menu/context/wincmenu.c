@@ -618,7 +618,6 @@ static int s_build_monitor_entries(surface_td *surface, client_td *client)
     monitor_td cur_monitor;
     int32_t center_x;
     int32_t center_y;
-    bool is_cur;
 
     center_x = client->layout.geometry.cur.pos.x +
         (int32_t) (client->layout.geometry.cur.dim.w / 2u);
@@ -628,6 +627,7 @@ static int s_build_monitor_entries(surface_td *surface, client_td *client)
 
     for (uint32_t m_idx = 0; m_idx < surface->monitor_count &&
             n < WINCMENU_MAX_MONITORS; ++m_idx) {
+        bool is_cur;
         const monitor_td *m = &surface->monitors[m_idx];
 
         is_cur = (m->x == cur_monitor.x &&
@@ -908,11 +908,11 @@ void wincmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window context menu */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
     return ctxmenu_handle_click_window(connection, surface, &s_root,
-            win, x, y, config);
+            win, y, config);
 }
 
 

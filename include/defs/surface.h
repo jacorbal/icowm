@@ -17,14 +17,16 @@
 #define DEFS_SURFACE_H
 
 
-/** Maximum number of physical monitors tracked per surface
+/**
+ * @brief Maximum number of physical monitors tracked per surface
  *
- * Smaller under @c COMPACT (see @c defs/compact.h): a target that build
- * is meant for is unlikely to drive many monitors at once regardless.
- * The ordinary value matches @c CONFIG_RANDR_MAX_OUTPUTS (see
- * @c defs/config.h) for the same reason that one covers real setups
+ * Smaller under @c COMPACT (see @c defs/compact.h).  A target that
+ * build is meant for is unlikely to drive many monitors at once
+ * regardless.  The ordinary value matches @c CONFIG_RANDR_MAX_OUTPUTS
+ * (@c defs/config.h) for the same reason that one covers real setups
  * spanning multiple GPUs, not just a typical single-GPU laptop or
- * desktop. */
+ * desktop.
+ */
 #ifdef COMPACT
 #define WM_SURFACE_MAX_MONITORS (2)
 #else

@@ -5,7 +5,7 @@
  *
  * Provides thin inline helpers that mark a @c surface_td or
  * @c desktop_td as requiring a repaint on the next render cycle.
- * Centralizing the pattern here prevents ad-hoc @c is_outdated
+ * Centralizing the pattern here prevents ad-hoc @p is_outdated
  * assignments from spreading across unrelated modules.
  *
  * @ingroup render
@@ -33,13 +33,13 @@
  *
  * Sets the per-client @p is_outdated flag so that the next
  * @c desktop_render_clients pass issues the heavyweight
- * @c xcb_configure_window, @c xcb_clear_area (with exposures), and
+ * @a xcb_configure_window, @a xcb_clear_area (with exposures), and
  * synthetic @c ConfigureNotify calls only for this client rather than
  * for every client on the desktop.  This avoids triggering spurious
  * redraws (and visible flicker) in other windows during a keyboard
  * resize or any operation that affects only a single client.
  *
- * @param c Client to mark outdated, or @c NULL (no-op)
+ * @param c Client to mark outdated, or null (no-op)
  *
  * @note Complexity: @e O(1)
  */
@@ -54,7 +54,7 @@ static inline void wm_outdate_client(client_td *c)
 /**
  * @brief Mark a surface as needing a repaint
  *
- * @param s Surface to mark outdated, or @c NULL (no-op)
+ * @param s Surface to mark outdated, or null (no-op)
  *
  * @note Complexity: @e O(1)
  */
@@ -69,7 +69,7 @@ static inline void wm_outdate_surface(surface_td *s)
 /**
  * @brief Mark a desktop as needing a repaint
  *
- * @param d Desktop to mark outdated, or @c NULL (no-op)
+ * @param d Desktop to mark outdated, or null (no-op)
  *
  * @note Complexity: @e O(1)
  */

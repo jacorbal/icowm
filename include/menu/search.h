@@ -100,23 +100,23 @@ bool search_owns_window(xcb_window_t win);
 /**
  * @brief Handle a key press while the search widget is open
  *
- * A printable character appends to the query and re-filters the
- * match list; @c Backspace removes the last character; @c Up / @c
- * Down, or @c Tab / @c Shift+Tab, move the selection (@c Tab acting
- * like @c Down, @c Shift+Tab like @c Up, so the widget stays
- * navigable with one hand the same way a plain @c Tab-completion
- * list would); @c Return confirms the selected entry (switching to
- * its desktop, restoring it if iconified or shaded, and focusing
- * and raising it); @c Escape cancels and restores previous focus.
- * Every other key is ignored.
+ * A printable character appends to the query and re-filters the match
+ * list; @c Backspace removes the last character; @c Up / @c Down, or
+ * @c Tab / @c Shift+Tab, move the selection (@c Tab acting like
+ * @c Down, @c Shift+Tab like @c Up, so the widget stays navigable with
+ * one hand the same way a plain @c Tab completion list would);
+ * @c Return confirms the selected entry (switching to its desktop,
+ * restoring it if iconified or shaded, and focusing and raising it);
+ * @c Escape cancels and restores previous focus.  Every other key is
+ * unworthy, therefore ignored.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (passed to focus_apply on
+ * @param surfaces   All managed surfaces (passed to @p focus_apply on
  *                   confirm)
  * @param keysym     Key symbol of the pressed key
- * @param state      Modifier mask of the pressed key, with locking
- *                   bits already stripped, used only to tell a
- *                   plain @c Tab from @c Shift+Tab
+ * @param state      Modifier mask of the pressed key, with locking bits
+ *                   already stripped, used only to tell a plain @c Tab
+ *                   from @c Shift+Tab
  * @param cfg        Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of collected
@@ -134,7 +134,7 @@ void search_handle_keypress(xcb_connection_t *connection,
  * (the text-entry bar) does nothing but is still consumed.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (passed to focus_apply on
+ * @param surfaces   All managed surfaces (passed to @p focus_apply on
  *                   confirm)
  * @param x          Pointer X, relative to the widget window
  * @param y          Pointer Y, relative to the widget window
@@ -166,8 +166,8 @@ void search_handle_motion(int16_t x, int16_t y);
  * @param connection XCB connection
  * @param cfg        Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of visible
- *       result rows
+ * @note Complexity: @e O(n), where @e n is the number of visible result
+ *       rows
  */
 void search_draw(xcb_connection_t *connection, const config_td *cfg);
 

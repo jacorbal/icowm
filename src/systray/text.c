@@ -4,8 +4,8 @@
  * @brief Clock and battery status text: reading, formatting, and
  *        measuring the text shown alongside docked icons
  *
- * Only the text content itself lives here: reading the system clock
- * and battery state into @c s_tray.clock_text/battery_text, and
+ * Only the text content itself lives here: reading the system clock and
+ * battery state into @a s_tray.clock_text / @a s_tray.battery_text, and
  * measuring how much pixel width the currently enabled items need.
  * Actually drawing that text on screen is part of the tray's overall
  * visual layout instead; see @c systray/layout.c.
@@ -38,7 +38,7 @@
 void systray_text_refresh_clock(void)
 {
     time_t now;
-    struct tm *local;
+    const struct tm *local;
 
     if (!s_tray.clock_enabled) {
         s_tray.clock_text[0] = '\0';
@@ -61,8 +61,7 @@ void systray_text_refresh_clock(void)
 }
 
 
-/* Read and format the current battery status into
- * 's_tray.battery_text' */
+/* Read and format the current battery status into 's_tray.battery_text' */
 void systray_text_refresh_battery(void)
 {
     if (!s_tray.battery_enabled) {
@@ -160,8 +159,8 @@ int systray_clock_ms_remaining(void)
     /* Neither is due yet.  A flat, small poll timeout is used instead
      * of computing the exact remaining fraction of a second: good
      * enough for a display that only needs second-level precision for
-     * the clock (the battery's own interval is far coarser still),
-     * and simpler than reasoning about clock skew between 'time(NULL)'
+     * the clock (the battery's own interval is far coarser still), and
+     * simpler than reasoning about clock skew between 'time(NULL)'
      * calls. */
     return WM_SYSTRAY_CLOCK_POLL_MS;
 }

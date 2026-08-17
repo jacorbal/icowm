@@ -3,11 +3,10 @@
  *
  * @brief IPC commands mirroring @c cmds/client/state.h's own actions
  *
- * See ipc/actions/client/basic.h for the shared shape every one of
- * these follows.
+ * @see @c ipc/actions/client/basic.h for the shared shape every one of
+ *      these follows
  *
- * @defgroup ipc_actions_client_state IPC client shade/fullscreen/
- *           decoration actions
+ * @defgroup ipc_actions_client_state IPC client shade/fullscreen/decoration
  * @ingroup ipc
  */
 /*
@@ -30,25 +29,25 @@
 
 
 /* Public interface */
-/** "shade_client": roll the client up into just its own titlebar */
+/** @c shade_client: roll the client up into just its own titlebar */
 cJSON *ipc_action_shade_client(wm_td *wm, const cJSON *args);
 
-/** "unshade_client": undo "shade_client" */
+/** @c unshade_client: undo @c shade_client */
 cJSON *ipc_action_unshade_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_shade_client" */
+/** @c toggle_shade_client */
 cJSON *ipc_action_toggle_shade_client(wm_td *wm, const cJSON *args);
 
-/** "fullscreen_client" */
+/** @c fullscreen_client */
 cJSON *ipc_action_fullscreen_client(wm_td *wm, const cJSON *args);
 
-/** "unfullscreen_client": undo "fullscreen_client" */
+/** @c unfullscreen_client: undo @c fullscreen_client */
 cJSON *ipc_action_unfullscreen_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_fullscreen_client" */
+/** @c toggle_fullscreen_client */
 cJSON *ipc_action_toggle_fullscreen_client(wm_td *wm, const cJSON *args);
 
-/** "toggle_decorate_client": show or hide the client's own titlebar
+/** @c toggle_decorate_client: show or hide the client's own titlebar
  *  and border */
 cJSON *ipc_action_toggle_decorate_client(wm_td *wm, const cJSON *args);
 

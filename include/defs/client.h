@@ -20,37 +20,39 @@
 
 
 /**
- * @brief Absolute minimum a client's own content area (its window,
- *        not counting decoration) can ever be resized down to, in
- *        pixels, when it has no own resize-increment hint of its
- *        own (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
- *        §4.1.2.3) to measure itself in instead -- see
- *        @c WM_MIN_WINDOW_DIMENSION_UNITS below for that case.
+ * @brief Absolute minimum a client's own content area (its window, not
+ *        counting decoration) can ever be resized down to, in pixels,
+ *        when it has no own resize-increment hint of its own
+ *        (@c WM_NORMAL_HINTS's @c width_inc / @c height_inc, ICCCM
+ *        §4.1.2.3) to measure itself in instead
  *
  * The one true floor every resize path is guaranteed to respect,
  * interactive (mouse or keyboard) or not, regardless of whether that
- * particular path also happens to know about a client's own size
- * hints: @c geom_clamp_dim (utils/geom.c), the lowest-level generic
- * clamp several of them share, floors to exactly this value on its
- * own, with no client or hints in scope to reason about a floor any
- * more specific than "always safe to show and still grab".
+ * particular path also happens to know about a client's own size hints:
+ * @a geom_clamp_dim (@c utils/geom.c), the lowest-level generic clamp
+ * several of them share, floors to exactly this value on its own, with
+ * no client or hints in scope to reason about a floor any more specific
+ * than "always safe to show and still grab".
+ *
+ * @see @c WM_MIN_WINDOW_DIMENSION_UNITS below for windows with
+ *      resize-increments hints
  */
 #define WM_MIN_WINDOW_DIMENSION (4u)
 
 /**
  * @brief Absolute minimum a client's own content area can be resized
- *        down to, in resize-increment units, for a client that
- *        provides one (@c WM_NORMAL_HINTS's @c width_inc/height_inc,
- *        ICCCM §4.1.2.3) -- a terminal counting in character columns
- *        and rows, say, rather than raw pixels.
+ *        down to, in resize-increment units, for a client that provides
+ *        one (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
+ *        §4.1.2.3).  A terminal counting in character columns and rows,
+ *        say, rather than raw pixels.
  *
- * Applied only by @c client_constrain_size (client/geom.c), the one
- * path that actually resolves a client's own hints, as the floor
- * such a client's own @c min_w/min_h defaults to when it does not
- * specify one itself; a real @c min_w/min_h the client does specify
- * always still wins if larger.  Left unscaled by the client's own
- * @c width_inc/height_inc on purpose (1 unit's own true pixel size,
- * whatever that happens to be, already exceeds
+ * Applied only by @a client_constrain_size (@c client/geom.c), the one
+ * path that actually resolves a client's own hints, as the floor such
+ * a client's own @c min_w / @c min_h defaults to when it does not
+ * specify one itself; a real @c min_w / @c min_h the client does
+ * specify always still wins if larger.  Left unscaled by the client's
+ * own @c width_inc / @c height_inc on purpose (1 unit's own true pixel
+ * size, whatever that happens to be, already exceeds
  * @c WM_MIN_WINDOW_DIMENSION above for every increment size any real
  * client is ever likely to use, so that floor is never actually the
  * binding one for a client of this kind in practice).
@@ -63,18 +65,24 @@
  */
 #define WM_CLIENT_DEFAULT_DIM (100u)
 
-/** Default titlebar height in pixels */
+/**
+ * @brief Default titlebar height in pixels
+ */
 #define WM_TITLEBAR_DEFAULT_HEIGHT (22u)
 
-/** Decoration button side pixels */
+/**
+ * @brief Decoration button side pixels
+ */
 #define WM_DECOR_BTN_SIZE (12u)
 
-/** Gap between buttons */
+/**
+ * @brief Gap between buttons
+ */
 #define WM_DECOR_BTN_GAP (2u)
 
 /**
- * @brief Maximum consecutive interactive-resize steps to wait for a
- *        client's @c _NET_WM_SYNC_REQUEST acknowledgement
+ * @brief Maximum consecutive interactive-resize steps to wait for
+ *        a client's @c _NET_WM_SYNC_REQUEST acknowledgement
  *
  * Each unit is one resize attempt while the pointer is being dragged
  * (i.e., roughly one @c MotionNotify), not a fixed time interval, so
@@ -85,7 +93,7 @@
  * unresponsive client can never freeze interactive resize.
  *
  * @note Kept small on purpose: this is the fallback for a client that
- *       never acknowledges at all (including one whose 'AlarmNotify'
+ *       never acknowledges at all (including one whose @c AlarmNotify
  *       never arrives due to some as-yet-undiscovered XSync protocol
  *       mismatch on the window manager's side), and a resize should
  *       still feel reasonably responsive even in that worst case rather
@@ -96,15 +104,17 @@
 
 /**
  * @brief Grace period in milliseconds after a shade or unshade during
- *        which a client's own geometry 'ConfigureRequest' is ignored
+ *        which a client's own geometry @c ConfigureRequest is ignored
  *
  * A shade/unshade transition briefly (and drastically) resizes the
- * client's own content window, which some clients react to with a
- * delayed 'ConfigureRequest' of their own once they catch up
- * processing the resulting 'ConfigureNotify' sequence; if that
- * request lands after the window manager has already restored the
- * client's true geometry, honoring it silently undoes the shade or
- * unshade the user just asked for.  See 'handler_configure_request'.
+ * client's own content window, which some clients react to with
+ * a delayed @c ConfigureRequest of their own once they catch up
+ * processing the resulting @c ConfigureNotify sequence; if that request
+ * lands after the window manager has already restored the client's true
+ * geometry, honoring it silently undoes the shade or unshade the user
+ * just asked for.
+ *
+ * @see @a handler_configure_request
  */
 #define WM_SHADE_CONFIGURE_COOLDOWN_MS (250)
 

@@ -44,7 +44,7 @@
  */
 static void s_show_desktop_overlay(surface_td *surface)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
 
     if (surface == NULL || surface->connection == NULL ||
             surface->config == NULL) {

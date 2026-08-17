@@ -63,9 +63,9 @@ static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
 void config_resolve_dir(const char *config_dir_prefix,
         char *config_dir_base)
 {
-    char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
-
     if (config_dir_prefix) {
+        char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
+
         snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s", config_dir_prefix);
         path_simplify(temp_path);
@@ -104,26 +104,26 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
     }
 
     if (theme->name[0] == '\0') {
-        /* The loaded file set no "name" of its own: falls back to
-         * the file's own short name (the same string "theme":
-         * "<this>" in memguard.json/config.json names, not a path or
-         * the ".json" extension), same as if that had been its
-         * "name" all along. */
+        /* The loaded file set no "name" of its own: falls back to the
+         * file's own short name (the same string "theme": "<this>" in
+         * memguard.json/config.json names, not a path or the ".json"
+         * extension), same as if that had been its "name" all along. */
         safe_strncpy(theme->name, theme_file_name, sizeof(theme->name));
         return;
     }
 
-    /* Built with explicit, provably bounded 'memcpy' calls rather
-     * than 'snprintf' with two '%s' arguments of a priori unknown
-     * length: GCC's own '-Wformat-truncation' analysis cannot trace
-     * that the combined length here can never exceed 'combined''s own
-     * size through reasoning this indirect, and warns as if the call
-     * could write past it even though it provably cannot -- the same
-     * issue, and the same fix, already applied in
-     * 's_message_wrap_text' (menu/dialog/message.c).  Truncates
-     * either string in turn (theme name first, then the file name)
-     * rather than failing outright when the two together would not
-     * fit: this is a display label, not something anything else
+    /* Built with explicit, provably bounded 'memcpy' calls rather than
+     * 'snprintf' with two '%s' arguments of a priori unknown length:
+     * GCC's own '-Wformat-truncation' analysis cannot trace that the
+     * combined length here can never exceed 'combined''s own size
+     * through reasoning this indirect, and warns as if the call could
+     * write past it even though it provably cannot, the very same
+     * issue, and the same fix, already applied in 's_message_wrap_text'
+     * (in 'menu/dialog/message.c').
+     *
+     * Truncates either string in turn (theme name first, then the file
+     * name) rather than failing outright when the two together would
+     * not fit: this is a display label, not something anything else
      * parses back apart, so a truncated one is a fully acceptable
      * outcome here, unlike it would be for, say, a file path. */
     name_len = safe_strlen(theme->name);
@@ -142,7 +142,8 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
     ++pos;
 
     /* Reserves the 2 bytes ')' + '\0' still need beyond 'pos'. */
-    avail = (pos < sizeof(combined) - 2u) ? sizeof(combined) - 2u - pos
+    avail = (pos < sizeof(combined) - 2u)
+        ? sizeof(combined) - 2u - pos
         : 0u;
     fit = (file_len > avail) ? avail : file_len;
     memcpy(combined + pos, theme_file_name, fit);
@@ -210,7 +211,8 @@ void config_missing_theme_reset(void)
  * missing, if any */
 const char *config_missing_theme_get(void)
 {
-    return (s_missing_theme_file[0] != '\0') ? s_missing_theme_file : NULL;
+    return (s_missing_theme_file[0] != '\0')
+        ? s_missing_theme_file : NULL;
 }
 
 
@@ -240,7 +242,8 @@ int config_load(config_td *config, const char *config_prefix)
                 " default values will be used", L_NARG);
         return 1;
     }
-    LOGGER_DEBUG("Loaded base configuration from '%s'", config_base_file);
+    LOGGER_DEBUG("Loaded base configuration from '%s'",
+            config_base_file);
 
     /* Set bindings configuration path */
     snprintf(config_bindings_file, sizeof(config_bindings_file),
@@ -265,11 +268,11 @@ int config_load(config_td *config, const char *config_prefix)
 
     /* Reset every field back to its own known default first, on every
      * call here, not just the first: 'config_load_theme' below only
-     * ever overwrites whichever fields the theme file itself
-     * specifies, so without this a reload that switched to a theme
-     * missing some field the previous one did specify would leave
-     * that field stuck at the old theme's own value instead of
-     * falling back to this default. */
+     * ever overwrites whichever fields the theme file itself specifies,
+     * so without this a reload that switched to a theme missing some
+     * field the previous one did specify would leave that field stuck
+     * at the old theme's own value instead of falling back to this
+     * default. */
     config_set_default_theme_values(&config->theme);
 
     /* Load theme if it's specified, i.e., not empty string */
@@ -281,14 +284,13 @@ int config_load(config_td *config, const char *config_prefix)
     } else {
         /* Snapshot the syntax-error count before attempting the load,
          * so a load failure can be told apart from one that
-         * 'json_load_config' (via 'config_load_theme') already
-         * recorded there itself: a theme file that exists but fails
-         * to parse is a syntax error like any other JSON file's, and
-         * already covered that way; a theme file that simply is not
-         * there at all is a different, narrower case, worth its own
-         * note (see 'config_missing_theme_get') precisely because
-         * that one, unlike a syntax error, is otherwise silent by
-         * design. */
+         * 'json_load_config' (via 'config_load_theme') already recorded
+         * there itself: a theme file that exists but fails to parse is
+         * a syntax error like any other JSON file's, and already
+         * covered that way; a theme file that simply is not there at
+         * all is a different, narrower case, worth its own note (see
+         * 'config_missing_theme_get') precisely because that one,
+         * unlike a syntax error, is otherwise silent by design. */
         uint32_t syntax_errors_before = json_syntax_errors_count();
         bool theme_loaded;
 

@@ -39,8 +39,7 @@
  * @brief Convert a hexadecimal color string to an unsigned 32-bit
  *        integer
  *
- * @param hex_color Hexadecimal color string, optionally prefixed with
- *                  @c '#'
+ * @param hex_color Hexadecimal color string, optionally with prefix '#'
  *
  * @return Color value as @c uint32_t, or @c 0 on parse failure
  *
@@ -59,8 +58,10 @@ uint32_t json_hex2uint32(const char *hex_color);
  * @param field_norm Destination buffer for the normalized field name
  * @param size       Size of @p field_norm in bytes
  *
- * @return @c true if normalization succeeded; @c false on invalid
- *         arguments or when the name does not fit in @p field_norm
+ * @return Status of the operation
+ * @retval  true if normalization succeeded
+ * @retval false on invalid arguments or when the name does not fit in
+ *               @p field_norm
  *
  * @note Complexity: @e O(n), where @e n is the length of @p field
  */
@@ -94,7 +95,9 @@ cJSON *json_get_item(cJSON *json, const char *field);
  * @param field Name of the field to read
  * @param dest  Destination color value
  *
- * @return @c 0 on success, @c 1 on failure
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval  1 on failure
  *
  * @note @p dest is left unchanged on failure
  * @note Complexity: @e O(k * n + m), where @e k is the number of
@@ -114,7 +117,9 @@ int json_load_color(cJSON *json, const char *field, uint32_t *dest);
  * @param dest  Destination buffer
  * @param size  Capacity of @p dest including the null terminator
  *
- * @return @c 0 on success, @c 1 on failure
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval  1 on failure
  *
  * @note @p dest is always null-terminated on success
  * @note Complexity: @e O(k * n + m), where @e k is the number of
@@ -134,7 +139,9 @@ int json_load_string(cJSON *json, const char *field,
  * @param field Name of the field to read
  * @param dest  Destination unsigned integer
  *
- * @return @c 0 on success, @c 1 on failure
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval  1 on failure
  *
  * @note @p dest is left unchanged on failure
  * @note Complexity: @e O(k * n), where @e k is the number of fields and
@@ -171,9 +178,9 @@ int json_load_bool(cJSON *json, const char *field, bool *dest);
  * @param data     Output pointer; receives the allocated buffer address
  *
  * @return Status of the operation
- * @retval 0 Success
- * @retval 1 File not found or unreadable
- * @retval 2 Memory allocation failure
+ * @retval  0 Success
+ * @retval  1 File not found or unreadable
+ * @retval  2 Memory allocation failure
  *
  * @note @p *data is set to @c NULL on failure
  * @note Complexity: @e O(n), where @e n is the file size in bytes
@@ -191,30 +198,33 @@ int json_load_file(const char *filename, char **data);
  * @param json_out  Output pointer; receives the parsed object
  *
  * @return Status of the operation
- * @retval 0 Success
- * @retval 1 Error reading the file
- * @retval 2 Error parsing the JSON data
+ * @retval  0 Success
+ * @retval  1 Error reading the file
+ * @retval  2 Error parsing the JSON data
  *
- * @note The caller must call @c cJSON_Delete on @p *json_out when done
+ * @note The caller must call @a cJSON_Delete on @p *json_out when done
  * @note Complexity: @e O(n), where @e n is the file size in bytes
  */
 int json_load_config(const char *filename, cJSON **json_out);
 
-/** Maximum number of files whose syntax errors can be tracked across
- *  one full configuration-loading sequence; comfortably above the
- *  actual number of JSON files IcoWM ever reads in a single run
- *  (config.json, bindings.json, a theme file, randr.json, rules.json,
- *  session.json, menu.json) */
+/**
+ * @brief Maximum number of files whose syntax errors can be tracked
+ *        across one full configuration-loading sequence
+ *
+ * Comfortably above the actual number of JSON files IcoWM ever reads in
+ * a single run (@c config.json, @c bindings.json, a theme file,
+ * @c randr.json, @c rules.json, @c session.json, @c menu.json)
+ */
 #define JSON_SYNTAX_ERROR_MAX_FILES (8)
 
 /**
- * @brief Clear the list of files @c json_load_config has recorded a
- *        syntax error for
+ * @brief Clear the list of files @c json_load_config has recorded
+ *        a syntax error for
  *
  * Called once at the start of a full configuration-loading sequence
- * (see @c wm_start and @c wm_action_config_reload), so a warning
- * shown for a previous load or reload is never repeated for a file
- * that has since been fixed, or attributed to the wrong one.
+ * (see @a wm_start and @a wm_action_config_reload), so a warning shown
+ * for a previous load or reload is never repeated for a file that has
+ * since been fixed, or attributed to the wrong one.
  *
  * @note Complexity: @e O(1)
  */
@@ -223,15 +233,15 @@ void json_syntax_errors_reset(void);
 /**
  * @brief Record that @p filename failed to parse as JSON
  *
- * Called internally by @c json_load_config itself when a file was
- * read successfully but @c cJSON_Parse could not make sense of its
- * contents, distinct from the file simply not existing at all (an
- * ordinary, silent reason to fall back to defaults; see @c
- * json_load_file).  A no-op once @c JSON_SYNTAX_ERROR_MAX_FILES has
- * already been reached, or if @p filename is already recorded.
+ * Called internally by @a json_load_config itself when a file was read
+ * successfully but @a cJSON_Parse could not make sense of its contents,
+ * distinct from the file simply not existing at all (an ordinary,
+ * silent reason to fall back to defaults; see @a json_load_file).
  *
  * @param filename Path of the file that failed to parse
  *
+ * @note A no-op once @c JSON_SYNTAX_ERROR_MAX_FILES has already been
+ *       reached, or if @p filename is already recorded
  * @note Complexity: @e O(n), where @e n is the number of files
  *       already recorded
  */
@@ -240,7 +250,7 @@ void json_syntax_errors_record(const char *filename);
 /**
  * @brief Number of files currently recorded as having failed to parse
  *
- * @return The count, capped at @c JSON_SYNTAX_ERROR_MAX_FILES
+ * @return Count, capped at @c JSON_SYNTAX_ERROR_MAX_FILES
  *
  * @note Complexity: @e O(1)
  */
@@ -250,10 +260,9 @@ uint32_t json_syntax_errors_count(void);
  * @brief Retrieve one recorded filename by index
  *
  * @param index Index, from @c 0 up to (but not including) whatever
- *              @c json_syntax_errors_count returns
+ *              @a json_syntax_errors_count returns
  *
- * @return The filename at @p index, or @c NULL if @p index is out of
- *         range
+ * @return Filename at @p index, or @c NULL if @p index is out of range
  *
  * @note Complexity: @e O(1)
  */

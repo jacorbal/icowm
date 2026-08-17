@@ -5,8 +5,8 @@
  *        implementation
  *
  * Split out of @c config/memguard.c to keep that file focused on
- * orchestrating restricted-memory mode's own config loading, not on
- * any one loaded file's own contents.
+ * orchestrating restricted-memory mode's own config loading, not on any
+ * one loaded file's own contents.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,7 +41,6 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     cJSON *theme_item;
     cJSON *programs;
     cJSON *desktops_item;
-    cJSON *margins;
     cJSON *windows_item;
     cJSON *icons_item;
     cJSON *systray_item;
@@ -78,7 +77,9 @@ int ci_memguard_load_json(const char *filename, config_td *config)
 
     desktops_item = cJSON_GetObjectItem(json, "desktops");
     if (desktops_item != NULL) {
-        margins = cJSON_GetObjectItem(desktops_item, "margins");
+        cJSON *margins =
+            cJSON_GetObjectItem(desktops_item, "margins");
+
         if (margins != NULL) {
             json_load_uint(margins, "top",
                     &config->desktops.margins.top);
@@ -131,15 +132,14 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     /* 'text.position' and 'order' deliberately not something
      * memguard.json is allowed to configure, unlike an ordinary
      * session's own config.json: both only ever affect docked pixmap
-     * icons (where the text block sits relative to them, and the
-     * order newly docked ones are placed in), and this mode never
-     * docks any (embedding is always off; see is_embedding_enabled's
-     * own doc comment in config.h), so neither has any visible
-     * effect here at all.  'ci_config_load_systray' just above still
-     * loads both (shared verbatim with config.json's own identical
-     * "systray" object), so this puts each back to its own fixed
-     * default afterward rather than duplicating that whole function
-     * just to omit two fields. */
+     * icons (where the text block sits relative to them, and the order
+     * newly docked ones are placed in), and this mode never docks any
+     * (embedding is always off; see is_embedding_enabled's comment in
+     * 'config.h'), so neither has any visible effect here at all.
+     * 'ci_config_load_systray' just above still loads both (shared
+     * verbatim with config.json's own identical "systray" object), so
+     * this puts each back to its own fixed default afterward rather
+     * than duplicating that whole function just to omit two fields. */
     systray_item = cJSON_GetObjectItem(json, "systray");
     if (systray_item != NULL) {
         cJSON *text_item = cJSON_GetObjectItem(systray_item, "text");

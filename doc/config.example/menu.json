@@ -1,20 +1,23 @@
 {
   "menu": [
-    { "type": "command", "name": "Terminal", "command": "xterm" },
-    { "type": "command", "name": "Editor",   "command": "gvim" },
+    { "type": "command", "name": "Terminal",    "command": "xterm" },
+    { "type": "command", "name": "File manager","command": "pcmanfm" },
+    { "type": "command", "name": "Editor",      "command": "gvim" },
     { "type": "separator" },
-    { "type": "command", "name": "Browser",  "command": "firefox" },
-    { "type": "command", "name": "Mail",     "command": "thunderbird" },
+    { "type": "command", "name": "WWW Browser", "command": "firefox" },
+    { "type": "command", "name": "E-Mail",      "command": "thunderbird" },
     { "type": "separator" },
     { "type": "submenu",
       "name": "Games",
       "items": [
-        { "type": "label", "name": "On console" },
+        { "type": "label", "name": "TUI" },
         { "type": "command", "name": "NetHack", "command": "xterm -e nethack" },
+        { "type": "label", "name": "GUI" },
+        { "type": "command", "name": "Enigma",  "command": "enigma" },
+        { "type": "command", "name": "Endgame: Singularity", "command": "singularity" },
         { "type": "separator" },
-        { "type": "label", "name": "Non-console" },
-        { "type": "command", "name": "Nexuiz",  "command": "nexuiz" },
-        { "type": "command", "name": "Chess",   "command": "gnuchess" }
+        { "type": "command", "name": "DOSBox",  "command": "dosbox" },
+        { "type": "command", "name": "ScummVM", "command": "scummvm" }
       ]
     },
     { "type": "separator" },

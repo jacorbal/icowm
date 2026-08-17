@@ -88,7 +88,6 @@ int surface_render_all_desktops(surface_td *surface)
 {
     cdlist_item_td *desktop_node;
     cdlist_item_td *desktop_initial;
-    desktop_td *desktop;
     desktop_td *cur;
     uint32_t rendered_count = 0;
 
@@ -116,7 +115,7 @@ int surface_render_all_desktops(surface_td *surface)
 
     /* Iterate through all desktops (circular list) */
     do {
-        desktop = (desktop_td *) cdlist_data(desktop_node);
+        desktop_td *desktop = (desktop_td *) cdlist_data(desktop_node);
 
         if (desktop == NULL) {
             LOGGER_WARNING("Desktop in list at position %u is null",
@@ -139,7 +138,7 @@ int surface_render_all_desktops(surface_td *surface)
         /* Pass wether this is the surface's currently displayed desktop
          * so that 'desktop_render_full()' never (re-)maps clients that
          * belong to a desktop the user is not currently looking at.
-         * See 'desktop_render_clients' */
+         * See 'desktop_render_clients' if you want. */
         if (desktop->is_outdated) {
             if (desktop_render_full(desktop,
                         rendered_count == surface->desktop_cur) != 0) {

@@ -5,14 +5,15 @@
  *
  * Provides a reusable popup context menu that can be used by the window
  * context menu, the root desktop menu, and the window list menu.  Each
- * menu is described by an array of @c ctxmenu_entry_s structures that
- * the caller fills in before calling @c ctxmenu_show.
+ * menu is described by an array of @p ctxmenu_entry_s structures that
+ * the caller fills in before calling @a ctxmenu_show.
  *
  * Entry types:
- *   - @c CTXMENU_COMMAND: clickable item with a label and a command.
- *   - @c CTXMENU_SUBMENU: entry that opens a nested child menu.
- *   - @c CTXMENU_SEPARATOR: non-clickable horizontal rule.
- *   - @c CTXMENU_LABEL: non-clickable heading text.
+ *
+ * - @c CTXMENU_COMMAND: clickable item with a label and a command;
+ * - @c CTXMENU_SUBMENU: entry that opens a nested child menu;
+ * - @c CTXMENU_SEPARATOR: non-clickable horizontal rule; and
+ * - @c CTXMENU_LABEL: non-clickable heading text.
  *
  * At most one context menu (at any nesting level) can be visible at
  * a time.  Opening a new menu always closes the currently open one
@@ -54,8 +55,8 @@
 /**
  * @brief Label prefix prepended to non-clickable desktop headings
  *
- * Used by @c winlist_show to decorate desktop label entries.
- * Change this token to alter the visual style of all label entries.
+ * Used by @a winlist_show to decorate desktop label entries.  Change
+ * this token to alter the visual style of all label entries.
  *
  * @note The prefix goes without separation before the next word unless
  *       it's specified here
@@ -74,6 +75,7 @@
 #define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX ""    //" ---"
 
 /**
+ * @brief Label to indicate this menu item is a submenu
  */
 #define MENU_CONTEXT_CTXMENU_SUBMENU_ARROW ">"
 
@@ -96,47 +98,45 @@ typedef enum {
  * (the command string) plus an optional @p on_activate callback.  For
  * @c CTXMENU_SUBMENU @p items and @p item_count describe the child
  * entries.  @c CTXMENU_SEPARATOR and @c CTXMENU_LABEL only use @p label
- * (label may be NULL for separators).  The @p is_disabled flag applies
+ * (label may be null for separators).  The @p is_disabled flag applies
  * to @c CTXMENU_COMMAND and @c CTXMENU_SUBMENU entries only.
  */
 typedef struct ctxmenu_entry_s {
-    ctxmenu_entry_type_e type;               /**< Entry kind */
-    char label[WM_CTXMENU_LABEL_MAX_LENGTH]; /**< Visible text */
-    char command[WM_CTXMENU_CMD_MAX_LENGTH]; /**< Shell command (COMMAND) */
-    char class_name[CONFIG_MAX_LENGTH_NAME]; /**< 'WM_CLASS' override */
-    bool is_disabled;                        /**< Grayed-out when true */
+    ctxmenu_entry_type_e type;                  /**< Entry kind */
+    char label[WM_CTXMENU_LABEL_MAX_LENGTH];    /**< Visible text */
+    char command[WM_CTXMENU_CMD_MAX_LENGTH];    /**< Shell command */
+    char class_name[CONFIG_MAX_LENGTH_NAME];    /**< @c WM_CLASS override */
+    bool is_disabled;                           /**< Grayed-out if @c true */
 
     /** Optional callback invoked when the entry is activated */
     void (*on_activate)(xcb_connection_t *, void *userdata);
-    void *userdata;                             /**< Passed to @p on_activate */
+    void *userdata;     /**< User data passed to @p on_activate */
 
     /** Child entries for @c CTXMENU_SUBMENU */
     struct ctxmenu_entry_s *items;
     int item_count;
 
     /**
-     * @brief Client window whose own icon to draw to this entry's
-     *        left, or @c XCB_WINDOW_NONE for an entry with no
-     *        associated client (the common case: the root menu, a
-     *        window's own command entries, and so on)
+     * @brief Client window whose own icon to draw to this entry's left,
+     *        or @c XCB_WINDOW_NONE for an entry with no associated
+     *        client
      *
      * Only ever set by a caller whose entries genuinely represent
      * client windows (@c menu/context/winlist.c); left at its default
-     * of @c XCB_WINDOW_NONE elsewhere, which reserves no icon space
-     * and draws no icon regardless of @c theme.menu.show-pixmaps.  See
-     * that setting's own doc comment in config.h for the full
-     * behavior.
+     * of @c XCB_WINDOW_NONE elsewhere, which reserves no icon space and
+     * draws no icon regardless of @p theme.menu.show-pixmaps.
+     *
+     * @see For that setting full behavior, see @c config.h
      */
     xcb_window_t icon_window;
 
     /**
-     * @brief That client's own icon cache slot (e.g.,
-     *        @c &client->icon_pixmap_cache), reused across repaints
+     * @brief That client's own icon cache slot reused across repaints
      *        the same way the client's own desktop icon does
      *
      * Ignored when @p icon_window is @c XCB_WINDOW_NONE.  A pointer
-     * into storage this struct does not own, since the client (and
-     * its cache slot) outlives any one menu that happens to list it.
+     * into storage this struct does not own, since the client (and its
+     * cache slot) outlives any one menu that happens to list it.
      */
     wmicon_cache_td *icon_cache;
 } ctxmenu_entry_td;
@@ -146,8 +146,8 @@ typedef struct ctxmenu_entry_s {
  * @brief Context menu instance state
  *
  * Caller allocates this on the stack or statically, fills in @p entries
- * and @p entry_count, then passes it to @c ctxmenu_show.  The library
- * owns @p window after @c ctxmenu_show returns.
+ * and @p entry_count, then passes it to @a ctxmenu_show.  The library
+ * owns @p window after @a ctxmenu_show returns.
  */
 typedef struct ctxmenu_state_s {
     xcb_window_t window;            /**< XCB window, or @c XCB_WINDOW_NONE */
@@ -160,28 +160,30 @@ typedef struct ctxmenu_state_s {
     int16_t origin_y;               /**< Actual Y origin after clamping */
 
     /**
-     * Cached top-Y pixel offset per entry, allocated by @c ctxmenu_show
-     * (size @p entry_count) and freed by @c ctxmenu_close; @c NULL when
-     * the allocation failed, in which case row lookups fall back to
-     * walking @p entries directly
+     * @brief Cached top-Y pixel offset per entry
+     *
+     * Allocated by @a ctxmenu_show (size @p entry_count) and freed by
+     * @a ctxmenu_close.  It's null when the allocation failed, in which
+     * case row lookups fall back to walking @p entries directly
      */
     int32_t *entry_top_y;
 
     /**
-     * Window-relative Y of the last 'MotionNotify' actually processed
-     * by @c ctxmenu_handle_motion, or -1 before the first one.
+     * @brief Window-relative Y of the last @c MotionNotify actually
+     *        processed by @a ctxmenu_handle_motion, or @c -1 before the
+     *        first one
      *
      * Used to ignore a motion event that reports the exact same
-     * position as the last one: X can deliver such a "no-op" event
+     * position as the last one.  X can deliver such a "no-op" event
      * right after a submenu maps under an already-resting pointer,
      * which would otherwise silently override a selection just made
      * with the keyboard even though the mouse never actually moved.
      */
     int32_t last_motion_y;
 
-    /** Currently open child menu, or NULL */
+    /** Currently open child menu, or null */
     struct ctxmenu_state_s *child;
-    /** Back-pointer to the parent menu, or NULL */
+    /** Back-pointer to the parent menu, or null */
     struct ctxmenu_state_s *parent;
 
     xcb_connection_t *connection;   /**< Cached connection for repaints */
@@ -242,27 +244,27 @@ void ctxmenu_repaint(ctxmenu_state_td *state);
  * @brief Handle a button-press event inside a context menu window
  *
  * Activates the entry at the pointer coordinates.  For
- * @c CTXMENU_COMMAND entries, invokes @c on_activate if set and then
+ * @c CTXMENU_COMMAND entries, invokes @p on_activate if set and then
  * closes the whole menu hierarchy.  For @c CTXMENU_SUBMENU entries,
  * opens the child menu.  Disabled entries are ignored.
  *
  * @param connection XCB connection
  * @param surface    Surface on which the menu is displayed
  * @param state      Menu state that owns the window receiving the event
- * @param root_x     Pointer X in root (screen) coordinates
- * @param root_y     Pointer Y in root (screen) coordinates
+ * @param y          Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
- * @return @c true if the event was consumed, @c false otherwise
+ * @return @c true if the event was consumed
  *
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int root_x, int root_y, const config_td *config);
+        int y, const config_td *config);
 
 /**
- * @brief Query whether the context menu (or any child) is currently open
+ * @brief Query whether the context menu (or any child) is currently
+ *        open
  *
  * @param state Menu state to inspect
  *
@@ -331,9 +333,9 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
  * - @c Return / @c KP_Enter: activate the currently selected entry.
  * - @c Escape: close the entire menu hierarchy from the root.
  * - Any printable character: scan entries whose label begins with that
- *   character (case-insensitive).  If exactly one match is found the
- *   entry is activated immediately.  If more than one match is found
- *   the first match is highlighted without activating.
+ *   character (case-insensitive); if exactly one match is found the
+ *   entry is activated immediately; if more than one match is found the
+ *   first match is highlighted without activating.
  *
  * The @p state parameter should be the deepest currently open level
  * (i.e., the visible submenu, or the root if no submenu is open).
@@ -344,7 +346,7 @@ void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
- * @return @c true if the event was consumed, @c false otherwise
+ * @return @c true if the event was consumed
  *
  * @note Complexity: @e O(n), where @e n is @p state->entry_count
  */
@@ -373,13 +375,13 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
  * @brief Query whether the last activated entry was triggered by the
  *        keyboard rather than a mouse click
  *
- * Set right before an entry's @c on_activate callback runs: @c true
+ * Set right before an entry's @p on_activate callback runs: @c true
  * when activation came from @c Return / @c KP_Enter or a printable
- * character shortcut inside @c ctxmenu_handle_keypress, @c false when
- * it came from @c ctxmenu_handle_click.  Callbacks that need to behave
+ * character shortcut inside @a ctxmenu_handle_keypress, @c false when
+ * it came from @a ctxmenu_handle_click.  Callbacks that need to behave
  * differently for keyboard vs. mouse activation (e.g., window move or
  * resize, which use keyboard modal mode vs. a pointer drag) should
- * query this at the top of @c on_activate.
+ * query this at the top of @p on_activate.
  *
  * @return @c true if the most recent activation was keyboard-driven
  *
@@ -391,7 +393,7 @@ bool ctxmenu_last_activation_was_keyboard(void);
  * @brief Repaint whichever submenu under @p root currently owns @p win
  *
  * Shared by every concrete menu's own @c X_repaint (root menu, window
- * menu, window list): each one only differs in which @c root state it
+ * menu, window list): each one only differs in which @p root state it
  * passes, so this one function replaces an identical lookup-then-
  * repaint sequence that used to be copied into each of them.
  *
@@ -408,8 +410,7 @@ void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win);
  *        @p root currently owns @p win
  *
  * Shared by every concrete menu's own @c X_handle_motion; see
- * @c ctxmenu_repaint_window's own doc comment for the general
- * reasoning.
+ * @a ctxmenu_repaint_window's comment for the general reasoning.
  *
  * @param root Top-level state of the concrete menu's own submenu tree
  * @param win  Window the motion event arrived for
@@ -426,38 +427,36 @@ void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
  * @brief Forward a click, translated to menu-local coordinates, to
  *        whichever submenu under @p root currently owns @p win
  *
- * Shared by every concrete menu's own @c X_handle_click; see
- * @c ctxmenu_repaint_window's own doc comment for the general
- * reasoning.
+ * Shared by every concrete menu's own @c X_handle_click.
  *
  * @param connection XCB connection
  * @param surface    Surface the click occurred on
  * @param root       Top-level state of the concrete menu's own
  *                   submenu tree
  * @param win        Window the click event arrived for
- * @param x          Pointer X position, in @p win's own coordinates
  * @param y          Pointer Y position, in @p win's own coordinates
  * @param config     Active configuration
  *
  * @return @c true if @p win belonged to a submenu under @p root and
- *         the click was forwarded, @c false otherwise
+ *         the click was forwarded
  *
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
+ *
+ * @see @a ctxmenu_repaint_window
  */
 bool ctxmenu_handle_click_window(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
-        int x, int y, const config_td *config);
+        int y, const config_td *config);
 
 /**
  * @brief Forward a keypress to the deepest currently open submenu
  *        under @p root
  *
- * Applies the keypress to the deepest open submenu, not always
- * @p root itself: without this, arrow keys would keep moving the
- * selection in a top-level list even while a nested submenu was open
- * in front of it, making that submenu look unresponsive to the
- * keyboard.  Shared by every concrete menu's own
- * @c X_handle_keypress.
+ * Applies the keypress to the deepest open submenu, not always @p root
+ * itself.  Without this, arrow keys would keep moving the selection in
+ * a top-level list even while a nested submenu was open in front of it,
+ * making that submenu look unresponsive to the keyboard.  Shared by
+ * every concrete menu's own @c X_handle_keypress.
  *
  * @param connection XCB connection
  * @param surface    Surface the key press occurred on
@@ -466,7 +465,7 @@ bool ctxmenu_handle_click_window(xcb_connection_t *connection,
  * @param keysym     Keysym of the pressed key
  * @param config     Active configuration
  *
- * @return @c true if the key was consumed, @c false otherwise
+ * @return @c true if the key was consumed
  *
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */

@@ -152,5 +152,5 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
             LOGGER_DEBUG("Processed XRandR notify subcode=%u",
                     (unsigned int) randr_event->subCode);
         }
-    }
+    } /* ! if (event_type) */
 }

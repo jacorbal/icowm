@@ -15,13 +15,15 @@
 /* System includes */
 #include <stdint.h>
 #include <stddef.h>     /* NULL */
-#include <string.h>     /* strlen */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
 /* Render includes */
 #include <render/text.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -86,7 +88,7 @@ void menu_draw_truncate(char *buf, uint16_t max_w)
         return;
     }
 
-    len = strlen(buf);
+    len = safe_strlen(buf);
     while (len > 0u && menu_draw_measure(buf) > max_w) {
         --len;
         buf[len] = '\0';

@@ -8,8 +8,8 @@
  * dialog has only one button ("OK") to dismiss it.
  *
  * The implementation is a thin wrapper around the generic
- * @c menu_message_dialog API declared in @c menu/dialog/message.h;
- * all layout and rendering logic lives there.
+ * @a menu_message_dialog API declared in @c menu/dialog/message.h; all
+ * layout and rendering logic lives there.
  *
  * Example usage:
  * @code
@@ -93,8 +93,7 @@ void dialog_info_repaint(xcb_connection_t *connection,
  * @brief Handle a mouse click inside the informational dialog
  *
  * Selects and repaints the "OK" button when the pointer lands inside
- * it, then defers the actual close for shortly after; see @c
- * menu_message_dialog_handle_click for the full reasoning.
+ * it, then defers the actual close for shortly after.
  *
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint
@@ -102,6 +101,8 @@ void dialog_info_repaint(xcb_connection_t *connection,
  * @param y          Pointer Y coordinate relative to the dialog
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a menu_message_dialog_handle_click for the full reasoning
  */
 void dialog_info_handle_click(xcb_connection_t *connection,
         const config_td *config, int x, int y);

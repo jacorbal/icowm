@@ -46,8 +46,8 @@ enum wm_mousebind_type_e {
     MOUSEBIND_MOVE,             /**< Move the clicked client */
     MOUSEBIND_RESIZE,           /**< Resize the clicked client */
     MOUSEBIND_LOWER,            /**< Lower the clicked client */
-    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel 5) */
-    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel 4) */
+    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel, 4) */
+    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel, 5) */
 };
 
 
@@ -99,13 +99,11 @@ int mousebind_count(void);
  * binding at position @p idx in the binding table.
  *
  * @param idx         Zero-based index into the binding table
- * @param button_out  Receives the binding's button index (may be
- *                    @c NULL)
- * @param modmask_out Receives the binding's modifier mask (may be
- *                    @c NULL)
+ * @param button_out  Receives the binding's button index (may be null)
+ * @param modmask_out Receives the binding's modifier mask (may be null)
  *
- * @return Action type for that entry, or @c MOUSEBIND_NONE if out
- *         of range
+ * @return Action type for that entry, or @c MOUSEBIND_NONE if out of
+ *         range
  *
  * @note Complexity: @e O(1)
  */
@@ -145,33 +143,32 @@ void mouse_handle_press(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void mouse_handle_release(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_release_event_t *event,
+        list_td *surfaces, const xcb_button_release_event_t *event,
         const config_td *config);
 
 /**
  * @brief Re-evaluate the resize cursor, then apply focus-follows-mouse,
  *        on an enter-notify event
  *
- * The cursor re-evaluation runs unconditionally as long as the event
- * is a normal one (gated only by @c event->mode below, not by whether
- * focus-follows-mouse is even enabled): a resizable client that
+ * The cursor re-evaluation runs unconditionally as long as the event is
+ * a normal one (gated only by @p event->mode below, not by whether
+ * focus-follows-mouse is even enabled).  A resizable client that
  * selects @c PointerMotion for its own purposes (common in GTK/Qt
  * applications tracking hover for their own UI) intercepts motion
- * events at the X11 propagation level before @c mouse_handle_motion_hover
- * ever sees them, which otherwise leaves whichever resize-border
- * cursor was last set stuck for as long as the pointer stays over that
- * client's own content.  This enter-notify still fires reliably even
- * then, since it is selected directly on the client's own window (see
- * client.c), giving the cursor logic a second, independent chance
- * motion alone might have missed.
+ * events at the X11 propagation level before
+ * @a mouse_handle_motion_hover ever sees them, which otherwise leaves
+ * whichever resize-border cursor was last set stuck for as long as the
+ * pointer stays over that client's own content.  This enter-notify
+ * still fires reliably even then, since it is selected directly on the
+ * client's own window (cfr. @c client.c), giving the cursor logic
+ * a second, independent chance motion alone might have missed.
  *
  * Focus itself is then applied to the client under the pointer only
- * when the configured focus policy is @c sloppy.  Normal events
- * on managed client frames raise no stacking change; an inferior
+ * when the configured focus policy is @c sloppy.  Normal events on
+ * managed client frames raise no stacking change; an inferior
  * transition (entering this same client's own content area from its
  * frame) skips focus re-evaluation, since the client was already
- * focused to get there, but still gets the cursor re-evaluation
- * above.
+ * focused to get there, but still gets the cursor re-evaluation above.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
@@ -187,12 +184,11 @@ void mouse_handle_enter(xcb_connection_t *connection,
 /**
  * @brief Test whether a hover-triggered focus transfer is in progress
  *
- * Returns @c true when @c mouse_handle_enter has initiated
+ * Returns @c true when @a mouse_handle_enter has initiated
  * a focus-follows-mouse transfer but the corresponding @c FocusIn event
  * has not yet been processed.
  *
- * @return @c true if a hover-triggered transfer is pending, @c false
- *         otherwise
+ * @return @c true if a hover-triggered transfer is pending
  *
  * @note Complexity: @e O(1)
  */
@@ -201,7 +197,7 @@ bool mouse_enter_focus_is_active(void);
 /**
  * @brief Clear the hover-triggered focus flag
  *
- * Resets the internal flag set by @c mouse_handle_enter after the
+ * Resets the internal flag set by @a mouse_handle_enter after the
  * corresponding focus change has been processed.
  *
  * @note Complexity: @e O(1)
@@ -215,8 +211,8 @@ void mouse_enter_focus_clear(void);
  * Call from the @c LeaveNotify handler for every window a client owns
  * (its own window at minimum), so a client the pointer has actually
  * left stops being polled; a stale poll target left set after the
- * pointer leaves would keep re-querying and re-applying a cursor to a
- * window the pointer is no longer over.
+ * pointer leaves would keep re-querying and re-applying a cursor to
+ * a window the pointer is no longer over.
  *
  * @param window Window to compare against the currently tracked one
  *
@@ -230,12 +226,12 @@ void mouse_hover_poll_clear(xcb_window_t window);
  *        should next be re-evaluated
  *
  * For the main loop to fold into its own @c poll timeout computation,
- * the same way @c popup_ms_remaining and similar already are, so the
- * loop wakes up promptly enough for @c mouse_hover_poll_tick to feel
+ * the same way @a popup_ms_remaining and similar already are, so the
+ * loop wakes up promptly enough for @a mouse_hover_poll_tick to feel
  * responsive without polling on every single iteration regardless of
  * whether anything is actually being tracked.
  *
- * @return Milliseconds remaining (never negative), or -1 if nothing
+ * @return Milliseconds remaining (never negative), or @c -1 if nothing
  *         is currently being tracked
  *
  * @note Complexity: @e O(1)
@@ -243,22 +239,22 @@ void mouse_hover_poll_clear(xcb_window_t window);
 int mouse_hover_poll_ms_remaining(void);
 
 /**
- * @brief Re-evaluate the resize cursor for the tracked poll target,
- *        if one is set and its next scheduled poll is due
+ * @brief Re-evaluate the resize cursor for the tracked poll target, if
+ *        one is set and its next scheduled poll is due
  *
  * An undecorated client has no separate frame window for
- * @c mouse_handle_motion_hover or @c mouse_handle_enter to fall back
- * on: moving from its border to its interior (or back) happens
+ * @a mouse_handle_motion_hover or @a mouse_handle_enter to fall back
+ * on.  Moving from its border to its interior (or back) happens
  * entirely within that one same window, with no window crossing
  * whatsoever for an @c EnterNotify to catch, and its own
- * @c PointerMotion may be just as intercepted by the client's own
- * event selection as any other client's (common in GTK/Qt
- * applications tracking hover for their own UI).  Periodically
- * polling the actual pointer position via @c xcb_query_pointer, which
- * does not depend on any event ever being delivered at all, is the
- * only mechanism left that still catches that transition; see
- * @c mouse_handle_enter for where a client starts being tracked this
- * way, and @c mouse_hover_poll_clear for where it stops.
+ * @c PointerMotion may be just as intercepted by the client's own event
+ * selection as any other client's (common in GTK/Qt applications
+ * tracking hover for their own UI).  Periodically polling the actual
+ * pointer position via @a xcb_query_pointer, which does not depend on
+ * any event ever being delivered at all, is the only mechanism left
+ * that still catches that transition; see @a mouse_handle_enter for
+ * where a client starts being tracked this way, and
+ * @a mouse_hover_poll_clear for where it stops.
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the tracked
@@ -274,14 +270,14 @@ void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces);
  * @brief Create the eight border-resize cursors used for hover feedback
  *
  * Allocates the cursors once for the whole session (matching the
- * left-pointer cursor already set up in @c startup_subscribe_root_events)
- * so that @c mouse_handle_motion_hover only ever has to look one up,
- * never create one. Safe to call more than once; only the first call
- * actually allocates anything. Call @c mouse_destroy_resize_cursors at
- * shutdown to free them.
+ * left-pointer cursor already set up in @a startup_subscribe_root_events)
+ * so that @a mouse_handle_motion_hover only ever has to look one up,
+ * never create one.  Safe to call more than once; only the first call
+ * actually allocates anything.
  *
  * @param connection XCB connection used to create the cursors
  *
+ * @note Call @a mouse_destroy_resize_cursors at shutdown to free them
  * @note Complexity: @e O(1)
  */
 void mouse_create_resize_cursors(xcb_connection_t *connection);
@@ -302,19 +298,20 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection);
  *        @c S_RESIZE_ZONE_NONE
  *
  * Meant for a client's own window to be given this cursor explicitly,
- * once, at decoration time (see @c ci_create_decorations in
- * client/geom.c), rather than left to inherit whatever the frame's
- * own cursor happens to currently be set to.  Explicit beats
- * inherited: once the client's own window has its own cursor, the X
- * server shows it the instant the pointer crosses into that window,
- * with no window-manager-side event handling required at all, unlike
- * relying on catching every possible crossing or motion event (which
- * a client that intercepts pointer motion for its own purposes, e.g.,
- * to track hover for its own UI, can prevent from ever reaching this
- * window manager in the first place).
+ * once, at decoration time (see @a ci_create_decorations in
+ * @c client/geom.c), rather than left to inherit whatever the frame's
+ * own cursor happens to currently be set to.
  *
- * @return The plain-pointer cursor, or 0 if
- *         @c mouse_create_resize_cursors has not run yet
+ * Explicit beats inherited.  Once the client's own window has its own
+ * cursor, the X server shows it the instant the pointer crosses into
+ * that window, with no window-manager-side event handling required at
+ * all, unlike relying on catching every possible crossing or motion
+ * event (which a client that intercepts pointer motion for its own
+ * purposes, e.g., to track hover for its own UI, can prevent from ever
+ * reaching this window manager in the first place).
+ *
+ * @return The plain-pointer cursor, or @c 0 if
+ *         @a mouse_create_resize_cursors has not run yet
  *
  * @note Complexity: @e O(1)
  */
@@ -324,14 +321,14 @@ xcb_cursor_t mouse_plain_cursor(void);
  * @brief The four-way move cursor, shown for the duration of an
  *        interactive window move
  *
- * Passed as @c xcb_grab_pointer's own cursor argument by
- * @c drag_start (see input/mouse/drag.c) so the cursor stays the move
- * shape for the whole drag regardless of which window the pointer
- * happens to be over, rather than left to whatever cursor that
- * window's own attribute is separately set to.
+ * Passed as @a xcb_grab_pointer's own cursor argument by @a drag_start
+ * (see @c input/mouse/drag.c) so the cursor stays the move shape for
+ * the whole drag regardless of which window the pointer happens to be
+ * over, rather than left to whatever cursor that window's own attribute
+ * is separately set to.
  *
- * @return The move cursor, or 0 if @c mouse_create_resize_cursors has
- *         not run yet
+ * @return The move cursor, or @c 0 if @a mouse_create_resize_cursors
+ *         has not run yet
  *
  * @note Complexity: @e O(1)
  */
@@ -341,14 +338,14 @@ xcb_cursor_t mouse_move_cursor(void);
  * @brief The border-resize cursor matching a given resize drag's own
  *        axis/anchor combination
  *
- * Passed as @c xcb_grab_pointer's own cursor argument by
- * @c drag_start for a resize drag, the same way @c mouse_move_cursor
- * is for a move: @p resize_w / @p resize_h say which axis (or both,
- * for a corner) the drag actually changes, and @p anchor_right /
- * @p anchor_bottom say which edge of that axis stays fixed (see
- * @c drag_start_directed's own doc comment in input/mouse/drag.h for
- * their exact meaning), together resolving to exactly one of the
- * eight border cursors @c mouse_create_resize_cursors already loaded.
+ * Passed as @a xcb_grab_pointer's own cursor argument by @a drag_start
+ * for a resize drag, the same way @a mouse_move_cursor is for a move:
+ * @p resize_w / @p resize_h say which axis (or both, for a corner) the
+ * drag actually changes, and @p anchor_right / @p anchor_bottom say
+ * which edge of that axis stays fixed (see @a drag_start_directed's own
+ * doc comment in input/mouse/drag.h for their exact meaning), together
+ * resolving to exactly one of the eight border cursors
+ * @a mouse_create_resize_cursors already loaded.
  *
  * @param resize_w      Whether this drag changes the width
  * @param resize_h      Whether this drag changes the height
@@ -357,8 +354,8 @@ xcb_cursor_t mouse_move_cursor(void);
  * @param anchor_bottom Whether the bottom edge stays fixed (only
  *                      meaningful when @p resize_h is @c true)
  *
- * @return The matching resize cursor, or the plain-pointer cursor
- *         (see @c mouse_plain_cursor) when neither @p resize_w nor
+ * @return Matching resize cursor, or the plain-pointer cursor
+ *         (see @a mouse_plain_cursor) when neither @p resize_w nor
  *         @p resize_h is @c true
  *
  * @note Complexity: @e O(1)
@@ -391,8 +388,8 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients (for the lookup)
  *
- * @see @c drag_is_active, @c lookup_find_client and
- *      @c mouse_create_resize_cursors
+ * @see @a drag_is_active, @a lookup_find_client and
+ *      @a mouse_create_resize_cursors
  */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
         list_td *surfaces, xcb_motion_notify_event_t *event);

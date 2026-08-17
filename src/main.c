@@ -328,6 +328,7 @@ int main(int argc, char *const argv[])
     bool verbose = true;
     bool lint_requested = false;
     bool ipc_disabled = false;
+    long mib;
 #ifdef COMPACT
     /* A COMPACT build enables restricted-memory mode on its own, at
      * the minimum ceiling, unless '-M' below overrides it with a
@@ -413,8 +414,8 @@ int main(int argc, char *const argv[])
                     log_level_min = (enum logger_level_e) opt_level;
                 } else {
                     fprintf(stderr, "Log level out of range:" \
-                                    " using default level %d\n",
-                                    ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
+                            " using default level %d\n",
+                            ICOWM_DEFAULT_LOGGER_LEVEL_MIN);
                 }
                 break;
 
@@ -428,22 +429,18 @@ int main(int argc, char *const argv[])
                 break;
 
             case 'M':
-                {
-                    long mib = atol(optarg);
-
-                    if (mib >= (long) MEMGUARD_MIN_CEILING_MIB) {
-                        restricted_memory_mib = (uint32_t) mib;
-                    } else {
-                        fprintf(stderr, "Invalid memory ceiling" \
-                                " for '-M': must be at least %u" \
-                                " mebibytes; IcoWM cannot realistically" \
-                                " run in less than that\n",
-                                (unsigned int) MEMGUARD_MIN_CEILING_MIB);
-                        s_deallocate_buffers(&log_filename,
-                                             &display_name,
-                                             &config_dir);
-                        return -1;
-                    }
+                mib = atol(optarg);
+                if (mib >= (long) MEMGUARD_MIN_CEILING_MIB) {
+                    restricted_memory_mib = (uint32_t) mib;
+                } else {
+                    fprintf(stderr, "Invalid memory ceiling" \
+                            " for '-M': must be at least %u" \
+                            " mebibytes; IcoWM cannot realistically" \
+                            " run in less than that\n",
+                            (unsigned int) MEMGUARD_MIN_CEILING_MIB);
+                    s_deallocate_buffers(&log_filename,
+                            &display_name, &config_dir);
+                    return -1;
                 }
                 break;
 

@@ -6,7 +6,7 @@
  * Provides a session table that stores shell commands to run at
  * specific window manager lifecycle events: startup, configuration
  * reload, and exit.  Commands are loaded from a JSON file and executed
- * via @c fork / @c execvp.  Child process accounting lets the main loop
+ * via @a fork / @a execvp.  Child process accounting lets the main loop
  * reap zombies cleanly through @a session_reap_children.
  *
  * @defgroup session Session lifecycle hooks
@@ -87,7 +87,7 @@ void session_destroy(session_td *session);
  * @brief Load session hook commands from a JSON configuration file
  *
  * Reads the session file in the directory resolved from
- * @p config_dir_prefix (or the XDG/home default when @c NULL) and
+ * @a config_dir_prefix (or the XDG/home default when @c NULL) and
  * populates @p session with up to the internal per-hook maximum number
  * of command strings.  A missing or malformed file is silently treated
  * as an empty hook set.
@@ -110,12 +110,12 @@ int session_load(session_td *session, const char *config_dir_prefix);
  * @brief Execute all commands registered for a lifecycle hook
  *
  * Iterates over the command list for @p hook and spawns each entry via
- * @c fork / @c execvp.  The XCB file descriptor is closed in the child
+ * @a fork / @a execvp.  The XCB file descriptor is closed in the child
  * before execution to prevent interference with the parent's
  * X connection.
  *
- * @param session    Session table that holds the command lists;
- *                   if @c NULL the function returns immediately
+ * @param session    Session table that holds the command lists; if
+ *                   @c NULL the function returns immediately
  * @param connection XCB connection whose file descriptor is closed in
  *                   each child before @c execvp (may be null)
  * @param hook       Lifecycle event whose commands are to be run
@@ -131,7 +131,7 @@ void session_run_hook(const session_td *session,
 /**
  * @brief Reap all finished child processes spawned by session hooks
  *
- * Calls @c waitpid in a non-blocking loop until no more children have
+ * Calls @p waitpid in a non-blocking loop until no more children have
  * exited.  For each PID found in the internal tracking table its exit
  * status is logged and the entry is cleared; untracked PIDs are logged
  * at debug level only.

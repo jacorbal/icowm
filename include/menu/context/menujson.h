@@ -51,8 +51,8 @@
  *
  * Opens and parses @p json_path, which must conform to the menu JSON
  * schema.  Allocates and populates a flat array of @c ctxmenu_entry_td
- * structs (including nested sub-arrays for @p submenu entries).  Each
- * @c CTXMENU_SUBMENU entry has its @p userdata pointer set to
+ * structs (including nested sub-arrays for @p submenu entries).
+ * Each @c CTXMENU_SUBMENU entry has its @p userdata pointer set to
  * a heap-allocated @c ctxmenu_state_td so that @a ctxmenu_handle_click
  * can open the child menu without additional caller setup.
  *
@@ -61,7 +61,9 @@
  *                    free with @a menujson_free)
  * @param out_count   Receives the number of top-level entries
  *
- * @return @c true on success; @c false on file error or parse failure
+ * @return Status of the operation
+ * @retval  true on success
+ * @retval false on file error or parse failure
  *
  * @note Complexity: @e O(n), where @e n is the total number of entries
  *       across all nesting levels

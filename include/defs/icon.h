@@ -42,14 +42,14 @@
  *        @c _NET_WM_ICON image is scaled to fill
  *
  * Applies uniformly regardless of whichever size the client actually
- * published (see @c wmicon_draw in render/wmicon.h), so every icon
- * ends up the same visual size on screen instead of each one being
- * however large or small its own source image happened to be.  Kept
- * below @c 100 so the image sits with a small margin inside the
- * square rather than touching its edges.  An integer percentage
- * rather than a @c 0.0-1.0 scale factor: every consumer only ever
- * needs @c (value @c * @c PERCENT) @c / @c 100, plain integer
- * arithmetic with no float/double promotion or truncation involved.
+ * published (see @c wmicon_draw in render/wmicon.h), so every icon ends
+ * up the same visual size on screen instead of each one being however
+ * large or small its own source image happened to be.  Kept below
+ * @c 100 so the image sits with a small margin inside the square rather
+ * than touching its edges.  An integer percentage rather than a
+ * @c 0.0-1.0 scale factor: every consumer only ever needs
+ * @c (value * PERCENT / 100), plain integer arithmetic with no
+ * float/double promotion or truncation involved.
  */
 #define WM_ICON_PIXMAP_SCALE_PERCENT (75u)
 
@@ -60,12 +60,13 @@
  * @brief Vertical gap, in pixels, kept between an icon and the
  *        systray's own rectangle when the two would otherwise overlap
  *
- * See @c icon_avoid_systray_overlap (policy/placement.h): applied on
- * whichever side the icon actually gets pushed toward, so it never
- * ends up sitting flush against the tray's own edge.  Kept equal to
- * @c WM_ICON_GRID_MARGIN on purpose, the same spacing an icon already
- * keeps from a screen edge or another icon, rather than some other
- * value picked independently.
+ * Applied on whichever side the icon actually gets pushed toward, so it
+ * never ends up sitting flush against the tray's own edge.  Kept equal
+ * to @c WM_ICON_GRID_MARGIN on purpose, the same spacing an icon
+ * already keeps from a screen edge or another icon, rather than some
+ * other value picked independently.
+ *
+ * @see @a icon_avoid_systray_overlap in @c policy/placement.h
  */
 #define WM_ICON_SYSTRAY_GAP (8u)
 
@@ -74,15 +75,17 @@
 
 /**
  * @brief Single-letter state-hint characters drawn in an iconified
- *        client's own top-right corner (see @c ri_draw_icon_hints in
- *        render/icon.c), one per @c pre_iconify_state value it
- *        restores to on de-iconify (@c CLIENT_STATE_NORMAL draws
- *        none); also drawn, this same set plus
- *        @c WM_ICON_HINT_HIDDEN below, next to a matching client's
- *        own row in the fuzzy window-search widget (see
- *        @c s_search_build_hints, menu/search.c), where a hidden
- *        client is a state of its own @c pre_iconify_state never
- *        covers.
+ *        client's own top-right corner and in the fuzzy window-search
+ *
+ * One is drawn for each @p pre_iconify_state restored when a client is
+ * de-iconified; @c CLIENT_STATE_NORMAL draws no indicator.  The same
+ * indicators, together with @c WM_ICON_HINT_HIDDEN, are also drawn
+ * beside the matching client's row in the fuzzy window-search widget.
+ * A hidden client has its own indicator because @p pre_iconify_state
+ * never records the hidden state.
+ *
+ * @see @a ri_draw_icon_hints in @c render/icon.c, and
+ *      @a s_search_build_hints, @c menu/search.c
  */
 #define WM_ICON_HINT_FULLSCREEN 'f'
 #define WM_ICON_HINT_MAXIMIZED 'm'
@@ -92,16 +95,13 @@
 #define WM_ICON_HINT_PINNED 'p'
 #define WM_ICON_HINT_URGENT '!'
 #define WM_ICON_HINT_ICONIFIED '_'
-#define WM_ICON_HINT_HIDDEN '~'  /**< Hidden, but NOT
-                                                iconified; an
-                                                iconified client is
-                                                already hidden as
-                                                well (see @c
-                                                client_hide), so this
-                                                one is only ever
-                                                shown when @c
-                                                WM_ICON_HINT_ICONIFIED
-                                                is not */
+#define WM_ICON_HINT_HIDDEN '~'     /**< Hidden, yet NOT iconified; an
+                                         iconified client is already
+                                         hidden as well
+                                         (cfr. @a client_hide), so this
+                                         one is only ever shown when
+                                         @c WM_ICON_HINT_ICONIFIED
+                                         is not */
 
 
 #endif  /* ! DEFS_ICON_H */

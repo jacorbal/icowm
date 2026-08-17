@@ -512,7 +512,6 @@ void xsettings_shutdown(wm_td *wm)
 void xsettings_reload(wm_td *wm)
 {
     bool should_be_enabled;
-    bool values_changed;
 
     if (wm == NULL || wm->config == NULL) {
         return;
@@ -536,7 +535,8 @@ void xsettings_reload(wm_td *wm)
     }
 
     if (s_xs.selection_owned) {
-        values_changed = s_xs_config_changed(wm);
+        bool values_changed = s_xs_config_changed(wm);
+
         s_xs_load_config(wm);
         if (values_changed) {
             s_xs_publish();

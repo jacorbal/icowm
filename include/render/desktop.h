@@ -40,12 +40,13 @@
  * @retval  0 Success
  * @retval  1 Failed to draw background
  *
- * @note The root window's background pixmap (see
- *       @c desktop_invalidate_background_pixmap_cache) is resolved
- *       once and cached from then on, so this is @e O(1) after the
- *       first call rather than the handful of round trips to the X
- *       server a naive re-resolve on every call would cost
+ * @note The root window's background pixmap is resolved once and cached
+ *       from then on, so this is @e O(1) after the first call rather
+ *       than the handful of round trips to the X server a naive
+ *       re-resolve on every call would cost
  * @note Complexity: @e O(1)
+ *
+ * @see @a desktop_invalidate_background_pixmap_cache
  */
 int desktop_render_background(desktop_td *desktop);
 
@@ -54,36 +55,37 @@ int desktop_render_background(desktop_td *desktop);
  *
  * Call this whenever one of the (several, mutually exclusive)
  * conventions a wallpaper-setting tool might use to publish its own
- * background pixmap on the root window changes (see
- * @c s_get_root_background_pixmap in render/desktop.c for the exact
- * property names watched), so the next @c desktop_render_background
- * call re-resolves it instead of continuing to draw whatever was
- * cached from before the change.
+ * background pixmap on the root window changes, so the next
+ * @a desktop_render_background call re-resolves it instead of
+ * continuing to draw whatever was cached from before the change.
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a s_get_root_background_pixmap in @c render/desktop.c for the
+ *      exact property names watched
  */
 void desktop_invalidate_background_pixmap_cache(void);
 
 /**
- * @brief Recognize whether an atom is one of the root window
- *        background pixmap properties this module watches
+ * @brief Recognize whether an atom is one of the root window background
+ *        pixmap properties this module watches
  *
- * For the @c PropertyNotify handler in handler/focus.c to check a
- * changed atom against, so it can call
- * @c desktop_invalidate_background_pixmap_cache only when the change
- * is actually relevant, rather than on every root window property
- * change regardless of which one it was (many of which, including
- * ones icowm's own EWMH state syncing writes to the root window
- * itself, have nothing to do with the background pixmap at all).
+ * For the @c PropertyNotify handler in handler/focus.c to check
+ * a changed atom against, so it can call
+ * @a desktop_invalidate_background_pixmap_cache only when the change is
+ * actually relevant, rather than on every root window property change
+ * regardless of which one it was (many of which, including ones icowm's
+ * own EWMH state syncing writes to the root window itself, have nothing
+ * to do with the background pixmap at all).
  *
  * @param connection XCB connection, used to intern the candidate atom
  *                   names the first time this or
- *                   @c desktop_render_background is called, whichever
+ *                   @a desktop_render_background is called, whichever
  *                   comes first; a no-op on every call after that
  * @param atom       Atom to check
  *
- * @return @c true if @p atom is one of the candidate background
- *         pixmap properties
+ * @return @c true if @p atom is one of the candidate background pixmap
+ *         properties
  *
  * @note Complexity: @e O(1)
  */
@@ -119,22 +121,22 @@ int desktop_render_clients(desktop_td *desktop, bool is_current);
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
- * Applies the client's own border width (only when it actually
- * changed, to avoid needless server round trips), maps or unmaps its
+ * Applies the client's own border width (only when it actually changed,
+ * to avoid needless server round trips), maps or unmaps its
  * frame/titlebar/content window as appropriate for whether @p desktop
- * is the surface's currently displayed one, and either reconfigures
- * its full geometry and decoration (when @c is_outdated) or, more
- * cheaply, only refreshes focus-sensitive decoration colors (when
+ * is the surface's currently displayed one, and either reconfigures its
+ * full geometry and decoration (when @c is_outdated) or, more cheaply,
+ * only refreshes focus-sensitive decoration colors (when
  * only @p desktop's own @c focus_dirty changed).
  *
  * Meant to be called directly for one specific client outside of an
- * ordinary full @c desktop_render_clients pass, e.g., by @c policy/
- * urgency.c to repaint just the urgent client(s) on an urgent
- * client's own blink-phase change, without forcing every other
- * client on the same desktop to repaint along with it.
+ * ordinary full @a desktop_render_clients pass, e.g., by
+ * @c policy/urgency.c to repaint just the urgent client(s) on an urgent
+ * client's own blink-phase change, without forcing every other client
+ * on the same desktop to repaint along with it.
  *
  * @param desktop    Desktop the client belongs to
- * @param client     Client to render; assumed non-@c NULL and not
+ * @param client     Client to render; assumed non-null and not
  *                   currently hidden
  * @param is_current Whether @p desktop is the surface's currently
  *                   displayed desktop
@@ -228,13 +230,12 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  * path in the codebase (the render pass's "geometry changed" and "only
  * focus changed" branches, and the @c Expose-event handler), so none of
  * them can ever end up drawing the title or buttons differently from
- * one another. Computes the button layout itself via
- * @c client_titlebar_layout and draws the title text through
- * @c s_titlebar_draw_title (alignment- and width-aware, so a title too
- * long for the space the buttons leave is truncated rather than drawn
- * underneath them) before calling
- * @c desktop_draw_titlebar_buttons.  A no-op if @p client has no
- * titlebar window.
+ * one another.  Computes the button layout itself via
+ * @a client_titlebar_layout and draws the title text through
+ * @a s_titlebar_draw_title (alignment-aware & width-aware, so a title
+ * too long for the space the buttons leave is truncated rather than
+ * drawn underneath them) before calling
+ * @a desktop_draw_titlebar_buttons.
  *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted
@@ -253,6 +254,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  * @param title_h    Titlebar height in pixels
  * @param theme      Theme providing colors, font, and titlebar layout
  *
+ * @note A no-op if @p client has no titlebar window
  * @note Complexity: @e O(n), where @e n is the number of configured
  *       titlebar buttons plus the length of the client's title
  */

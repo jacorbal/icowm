@@ -19,13 +19,16 @@
 
 /**
  * @brief Default seconds a startup-notification sequence waits before
- *        being expired automatically, overridable via
- *        @c startup-notification.timeout-seconds in @c config.json
- *        (see @c sn_set_timeout_seconds)
+ *        being expired automatically
  *
- * Not every launched application is startup-notification aware, so
- * this is what keeps the busy cursor from staying on indefinitely
- * when nothing ever broadcasts a "remove:" message.
+ * Not every launched application is startup-notification aware, so this
+ * is what keeps the busy cursor from staying on indefinitely when
+ * nothing ever broadcasts a "remove:" message.
+ *
+ * @note Overridable via @a startup-notification.timeout-seconds in
+ *       @c config.json
+ *
+ * @see @p sn_set_timeout_seconds
  */
 #define SN_TIMEOUT_SECONDS (15)
 

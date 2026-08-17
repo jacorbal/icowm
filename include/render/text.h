@@ -27,24 +27,26 @@
 
 /* Public interface */
 /**
- * @brief Permanently disable the glyph (xcb-render/FreeType2/
+ * @brief Permanently disable the glyph (@c xcb-render / FreeType2 /
  *        fontconfig) rendering backend for the life of the process
  *
- * @a text_renderer_init never even attempts that backend afterward
- * for any font name that fails to resolve to an X core font, falling
- * straight through to its own "fixed" fallback instead, the same as
- * if the attempt had simply failed.  Meant for restricted-memory mode
- * specifically, called once at startup: that mode already forces
- * every theme font to some variant of "fixed" (config/memguard.h),
- * which always resolves as an X core font on its own, so the glyph
- * backend is never actually needed there.  This closes the one
- * remaining way it could still end up loaded anyway, a font name that
- * happens to resolve to an X core font under a case-sensitive match
- * but not under one that ignores case (e.g., a real Xft family
- * literally named @c "Fixed Bold", capitalized, distinct from the
- * plain lowercase @c "fixed bold" restricted-memory mode's own font
- * substitution rule intentionally treats as the X core family instead)
- * without relying on that font-name matching to be perfect.
+ * @a text_renderer_init never even attempts that backend afterward for
+ * any font name that fails to resolve to an X core font, falling
+ * straight through to its own "fixed" fallback instead, the same as if
+ * the attempt had simply failed.  Meant for restricted-memory mode
+ * specifically, called once at startup.  That mode already forces every
+ * theme font to some variant of "fixed" (@c config/memguard.h), which
+ * always resolves as an X core font on its own, so the glyph backend is
+ * never actually needed there.
+ *
+ * This closes the one remaining way it could still end up loaded
+ * anyway, a font name that happens to resolve to an X core font under
+ * a case-sensitive match but not under one that ignores case (e.g.,
+ * a hipothetical Xft family literally named "Fixed Bold", capitalized,
+ * distinct from the plain lowercase "fixed bold" restricted-memory
+ * mode's own font substitution rule intentionally treats as the X core
+ * family instead) without relying on that font-name matching to be
+ * perfect.
  *
  * @note Complexity: @e O(1)
  */
@@ -60,10 +62,12 @@ void text_renderer_disable_glyph_backend(void);
  * @param connection Pointer to the XCB connection
  * @param font_name  Name of the font to load, or @c NULL to use default
  *
- * @return 0 on success, -1 on failure
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on failure
  *
- * @note If @p font_name is @c NULL or empty, the default font
- *       @c fixed is used
+ * @note If @p font_name is @c NULL or empty, the default font "fixed"
+ *       is used
  * @note Reinitialization with the same connection is skipped when the
  *       renderer is already initialized
  * @note Complexity: @e O(1)
@@ -139,15 +143,15 @@ uint16_t text_measure_string(const char *text);
  * @brief Pixels the baseline sits below the top of a line, for
  *        whichever font @c text_renderer_init last selected
  *
- * Together with @c text_font_descent, lets a caller vertically center
+ * Together with @a text_font_descent, lets a caller vertically center
  * or top/bottom-align a line of text against a known pixel height
- * without needing its own hardcoded assumption about font metrics:
- * the Y coordinate @c text_draw_string expects is the baseline, so
- * placing text @p top pixels from the top of a box of height @p box_h
- * means passing @c top @c + @c text_font_ascent() as that Y coordinate.
+ * without needing its own hardcoded assumption about font metrics: the
+ * Y coordinate @a text_draw_string expects is the baseline, so placing
+ * text @p top pixels from the top of a box of height @p box_h means
+ * passing @c top @c + @a text_font_ascent() as that Y coordinate.
  *
  * @return Font ascent in pixels; a small built-in default before the
- *         first successful @c text_renderer_init call
+ *         first successful @a text_renderer_init call
  *
  * @note Complexity: @e O(1)
  */
@@ -155,10 +159,10 @@ int16_t text_font_ascent(void);
 
 /**
  * @brief Pixels the baseline sits above the bottom of a line, for
- *        whichever font @c text_renderer_init last selected
+ *        whichever font @a text_renderer_init last selected
  *
  * @return Font descent in pixels; a small built-in default before the
- *         first successful @c text_renderer_init call
+ *         first successful @a text_renderer_init call
  *
  * @note Complexity: @e O(1)
  */

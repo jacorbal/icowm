@@ -5,12 +5,12 @@
  *
  * Declares the key-binding action type, the resolved-binding record,
  * and the public functions for loading key grabs from configuration,
- * translating raw key-press events into action identifiers, and querying
- * the active binding table.
+ * translating raw key-press events into action identifiers, and
+ * querying the active binding table.
  *
  * This module has no knowledge of the window manager singleton; every
- * function receives explicit parameters for the XCB connection,
- * surface list, and configuration pointer.
+ * function receives explicit parameters for the XCB connection, surface
+ * list, and configuration pointer.
  *
  * @ingroup input_kbd
  */
@@ -65,7 +65,7 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
     KEYBIND_CLIENT_CENTER,              /**< Center focused client */
     KEYBIND_CLIENT_MOVE_NEXT_MONITOR,   /**< Move focused client to the
-                                              next monitor */
+                                             next monitor */
     KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
     KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle foc. client fullscreen */
     KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */
@@ -75,9 +75,9 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
     KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
     KEYBIND_CLIENT_WINDOW_MENU,         /**< Open this client's context
-                                              menu (fixed 'Alt+Space',
-                                              unrelated to
-                                              'KEYBIND_WM_WINDOWS_MENU') */
+                                             menu (fixed 'Alt+Space',
+                                             unrelated to
+                                             'KEYBIND_WM_WINDOWS_MENU') */
     KEYBIND_DESKTOP_ICON_NEXT,          /**< Cycle to next iconified client */
     KEYBIND_DESKTOP_ICON_PREV,          /**< Cycle to prev iconified client */
 
@@ -110,9 +110,9 @@ enum wm_keybind_type_e {
     /* Iconify/restore all clients on the desktop */
     KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL,   /**< Iconify every client */
     KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL, /**< Restore every iconified
-                                                 client */
+                                                client */
     KEYBIND_DESKTOP_CLIENTS_REARRANGE,     /**< Re-apply placement
-                                                 policy to every client */
+                                                policy to every client */
 
     /* Direct desktop go-to (indices 0-9) */
     KEYBIND_DESKTOP_GOTO_0,             /**< Switch directly to desktop 0 */
@@ -182,9 +182,10 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
  * @param modmask_out Receives the matching modifier mask (set to 0 on
  *                    failure)
  *
- * @return @c true when a matching binding is found, @c false otherwise
+ * @return @c true when a matching binding is found
  *
- * @note Complexity: @e O(n), where @e n is the number of loaded bindings
+ * @note Complexity: @e O(n), where @e n is the number of loaded
+ *       bindings
  */
 bool keyboard_find(enum wm_keybind_type_e type,
         xcb_keysym_t *keysym_out, uint16_t *modmask_out);
@@ -204,7 +205,7 @@ bool keyboard_find(enum wm_keybind_type_e type,
  * @param raw_modmask_out Receives the raw modifier mask of the matched
  *                        binding (useful for passing to the cycle menu)
  *
- * @return @c true when a binding is matched, @c false otherwise
+ * @return @c true when a binding is matched
  *
  * @note Complexity: @e O(n), where @e n is the number of loaded
  *       bindings
@@ -215,8 +216,8 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
         uint16_t *raw_modmask_out);
 
 /**
- * @brief Test whether a keysym corresponds to a modifier covered by
- *        the given modifier mask
+ * @brief Test whether a keysym corresponds to a modifier covered by the
+ *        given modifier mask
  *
  * Used by the key-release handler to detect when the modifier that
  * opened the cycle menu is released, so the selection can be confirmed
@@ -227,7 +228,7 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
  *               already stripped)
  *
  * @return @c true when @p keysym maps to a modifier bit present in
- *         @p mask, @c false otherwise
+ *         @p mask
  *
  * @note Complexity: @e O(1)
  */
@@ -253,7 +254,8 @@ int keyboard_binding_count(void);
  * @param keysym_out  Receives the binding's keysym
  * @param modmask_out Receives the binding's modifier mask
  *
- * @return Action type for that entry, or @c KEYBIND_NONE if out of range
+ * @return Action type for that entry, or @c KEYBIND_NONE if out of
+ *         range
  *
  * @note Complexity: @e O(1)
  */

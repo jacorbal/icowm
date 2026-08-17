@@ -6,13 +6,12 @@
  *
  * Every cursor this window manager shows (the eight border-resize
  * cursors, the default pointer, the startup-notification busy cursor)
- * goes through this one helper, so the whole project draws cursors
- * from the user's actual cursor theme (the same one published via
- * @c xsettings.cursor-theme-name) via @c libxcb-cursor, rather than
- * the fixed, low-resolution glyphs built into the X server's own
- * "cursor" font.  The X core font is used only as an automatic
- * fallback, for a cursor name the active theme happens not to
- * provide.
+ * goes through this one helper, so the whole project draws cursors from
+ * the user's actual cursor theme (the same one published via
+ * @p xsettings.cursor-theme-name) via @c libxcb-cursor, rather than the
+ * fixed, low-resolution glyphs built into the X server's own "cursor"
+ * font.  The X core font is used only as an automatic fallback, for
+ * a cursor name the active theme happens not to provide.
  *
  * @ingroup utils
  */
@@ -51,8 +50,8 @@ typedef struct util_cursor_ctx_s util_cursor_ctx_td;
  * @param screen     Screen the context loads cursors for
  *
  * @return The new context, or @c NULL on failure (in which case
- *         @c util_cursor_load still works for every call, falling
- *         back to the X core font every time, just without the
+ *         @a util_cursor_load still works for every call, falling back
+ *         to the X core font every time, just without the
  *         reused-lookup-handle savings)
  *
  * @note Complexity: @e O(1), aside from the underlying library's own
@@ -64,13 +63,13 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
 /**
  * @brief Load a cursor by its standard Xcursor name
  *
- * @param ctx            Context from @c util_cursor_ctx_new, or
+ * @param ctx             Context from @c util_cursor_ctx_new, or
  *                        @c NULL to always use the fallback font
- * @param name            Standard Xcursor name (e.g., @c "left_ptr",
- *                        @c "watch", @c "top_side")
+ * @param name            Standard Xcursor name (e.g., "left_ptr",
+ *                        "watch", "top_side")
  * @param fallback_glyph  X core cursor-font glyph to fall back to
- *                        (see @c defs/cursor.h) if the active cursor
- *                        theme does not provide @p name
+ *                        if the active cursor theme does not provide
+ *                        @p name
  *
  * @return Identifier of the loaded cursor resource, or @c XCB_NONE if
  *         even the fallback could not be created

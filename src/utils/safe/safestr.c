@@ -189,9 +189,9 @@ int safe_strncmp(const char *s1, const char *s2, size_t n)
 /* Safely compares two strings */
 int safe_strcmp(const char *s1, const char *s2)
 {
-    /* 'n == (size_t) -1' in 'safe_strncmp' only signals its own
-     * limit was reached without finding a difference, which cannot
-     * happen here: exhausting 'SIZE_MAX' comparisons would require a
-     * string that size, far beyond any real allocation. */
+    /* 'n == (size_t) -1' in 'safe_strncmp' only signals its own limit
+     * was reached without finding a difference, which cannot happen
+     * here: exhausting 'SIZE_MAX' comparisons would require a string
+     * that size, far beyond any real allocation. */
     return safe_strncmp(s1, s2, SIZE_MAX);
 }

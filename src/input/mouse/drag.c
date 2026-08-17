@@ -4,8 +4,8 @@
  * @brief Mouse drag-operation state and implementation
  *
  * Manages the singleton drag state used by the move/resize and
- * icon-drag interactions.  All mutable drag state is @c static in
- * this translation unit; no other module accesses it directly.
+ * icon-drag interactions.  All mutable drag state is @c static in this
+ * translation unit; no other module accesses it directly.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -321,8 +321,6 @@ static void s_drag_overlay_show(xcb_connection_t *connection,
     uint16_t overlay_w;
     int16_t overlay_x;
     int16_t overlay_y;
-    uint16_t create_mask;
-    uint32_t create_values[4];
 
     if (connection == NULL || s_drag.client == NULL || text == NULL ||
             text[0] == '\0') {
@@ -347,6 +345,9 @@ static void s_drag_overlay_show(xcb_connection_t *connection,
             overlay_w, WM_DRAG_OVERLAY_HEIGHT, &overlay_x, &overlay_y);
 
     if (s_drag.overlay_window == XCB_WINDOW_NONE) {
+        uint16_t create_mask;
+        uint32_t create_values[4];
+
         s_drag.overlay_window = xcb_generate_id(connection);
         create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
@@ -494,7 +495,7 @@ static void s_drag_snap_move(int32_t *x, int32_t *y,
     if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
-        cdlist_item_td *initial;
+        const cdlist_item_td *initial;
         /* One past 'snap' itself, not 'snap' itself: 'abs(delta) <=
          * snap' below is what decides whether a candidate actually
          * applies, so starting exactly at 'snap' would make that
@@ -503,7 +504,7 @@ static void s_drag_snap_move(int32_t *x, int32_t *y,
          * exactly the snap distance with no nearby window at all
          * responsible for it. */
         int32_t dx = snap + 1;
-        int32_t dy = snap + 1;
+        int32_t dy = dx;
 
         node = cdlist_head(s_drag.desktop->stacking);
         initial = node;
@@ -861,11 +862,11 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
     if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
-        cdlist_item_td *initial;
+        const cdlist_item_td *initial;
         /* See the matching comment in 's_drag_snap_move' for why this
          * is 'snap + 1', not 'snap' itself. */
         int32_t d_horiz = snap + 1;
-        int32_t d_vert = snap + 1;
+        int32_t d_vert = d_horiz;
 
         node = cdlist_head(s_drag.desktop->stacking);
         initial = node;
@@ -982,19 +983,21 @@ static void s_drag_snap_resize(int32_t *x, int32_t *y,
  *
  * Starts (or keeps running, without restarting it) a countdown to
  * switching desktops when the pointer is held against the left or
- * right screen edge, per @c desktops.enable_edge_warp in config.json (see @c
- * config_desktop_s and @c drag_warp_tick, which actually performs the
- * switch once the countdown elapses); cancels it the moment the
- * pointer leaves either edge, or when warping is disabled, there is
- * only one desktop, or no configuration can be resolved at all.
+ * right screen edge, per @a desktops.enable_edge_warp in
+ * @c config.json; moment the pointer leaves either edge, or when
+ * warping is disabled, there is only one desktop, or no configuration
+ * can be resolved at all.
  *
  * @param root_x Pointer's current root-relative X position
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @p config_desktop_s and @a drag_warp_tick, which actually
+ *      performs the switch once the countdown elapses
  */
 static void s_drag_check_warp_edge(int16_t root_x)
 {
-    surface_td *surface;
+    const surface_td *surface;
     bool at_left;
     bool at_right;
 
@@ -1078,7 +1081,6 @@ void drag_update(xcb_connection_t *connection,
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
             s_drag.drag_window != XCB_WINDOW_NONE &&
             s_drag.drag_window == client->icon_window) {
-        char geom_buf[24];
         bool show_geom = client->config_base != NULL &&
             client->config_base->icons.show_geom;
         int32_t new_x = s_drag.client_start_x + dx;
@@ -1092,7 +1094,10 @@ void drag_update(xcb_connection_t *connection,
         vals[1] = (uint32_t) new_y;
         xcb_configure_window(connection, client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+
         if (show_geom) {
+            char geom_buf[24];
+
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
             s_drag_overlay_show(connection, true,
@@ -1106,7 +1111,6 @@ void drag_update(xcb_connection_t *connection,
         s_drag_check_warp_edge(root_x);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
-        char geom_buf[24];
         bool show_geom = client->config_base != NULL &&
             client->config_base->windows.show_geom;
         int32_t new_x = s_drag.client_start_x + dx;
@@ -1118,7 +1122,10 @@ void drag_update(xcb_connection_t *connection,
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
         enact_client_move(client, new_x, new_y);
+
         if (show_geom) {
+            char geom_buf[24];
+
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
             s_drag_overlay_show(connection, false,
@@ -1130,7 +1137,6 @@ void drag_update(xcb_connection_t *connection,
         }
         s_drag_check_warp_edge(root_x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
-        char geom_buf[24];
         bool show_geom = client->config_base != NULL &&
             client->config_base->windows.show_geom;
         int32_t new_x = s_drag.client_start_x;
@@ -1194,19 +1200,21 @@ void drag_update(xcb_connection_t *connection,
 
         /* 'client_constrain_size' (client/geom.c) expects its own
          * width/height in terms of the client's own content window
-         * (what its own WM_NORMAL_HINTS actually describe, per
+         * (what its own 'WM_NORMAL_HINTS' actually describe, per
          * ICCCM), not 'new_w'/'new_h' here, which are frame-relative
-         * (this whole function's own 'client_start_w'/'_h', what
-         * they were seeded from, already store
-         * 'geometry.cur.dim.w'/'.h', established elsewhere
-         * (ci_create_decorations, client/geom.c) as the frame's own
-         * total, decoration included) -- converted here to content
-         * space, constrained, then back, the same round trip
-         * 's_kb_resize_axis_target' (input/kbd/interact.c) already
-         * makes for the keyboard resize path.  Only ever grows
-         * either dimension past what the drag alone would have left
-         * it at, never shrinks one back down, since that would fight
-         * the user's own drag instead of merely flooring it. */
+         * (this whole function's own 'client_start_w'/'_h', what they
+         * were seeded from, already store 'geometry.cur.dim.w'/'.h',
+         * established elsewhere ('ci_create_decorations', in
+         * 'client/geom.c') as the frame's own total, decoration
+         * included), converted here to content space, constrained, then
+         * back, the same round trip 's_kb_resize_axis_target'
+         * ('input/kbd/interact.c') already makes for the keyboard
+         * resize path.
+         *
+         * Only ever grows either dimension past what the drag alone
+         * would have left it at, never shrinks one back down, since
+         * that would fight the user's own drag instead of merely
+         * flooring it. */
         resize_ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
         resize_ext_h = (uint32_t) client->layout.frame_extents.top +
@@ -1218,7 +1226,8 @@ void drag_update(xcb_connection_t *connection,
         resize_floor_w = resize_ext_w + WM_MIN_WINDOW_DIMENSION;
         resize_floor_h = resize_ext_h + WM_MIN_WINDOW_DIMENSION;
 
-        client_constrain_size(client, &resize_content_w, &resize_content_h);
+        client_constrain_size(client,
+                &resize_content_w, &resize_content_h);
         resize_constrained_w = resize_content_w + resize_ext_w;
         resize_constrained_h = resize_content_h + resize_ext_h;
         if (resize_constrained_w < resize_floor_w) {
@@ -1244,25 +1253,27 @@ void drag_update(xcb_connection_t *connection,
         enact_client_resize(client, new_x, new_y, new_w, new_h);
         if (show_geom) {
             /* 'new_w'/'new_h' are the decorated frame's own total
-             * (border and titlebar included, established elsewhere;
-             * see 'ci_create_decorations', client/geom.c), the same
-             * as 'client->layout.geometry.cur.dim' itself -- but
-             * both the size hints below (ICCCM, always about
-             * a client's own content, decoration notwithstanding)
-             * and the geometry text shown here are about that
-             * content alone, so convert to content space first, the
-             * same round trip the resize-floor block above already
-             * makes. */
-            uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
+             * (border and titlebar included, established elsewhere; see
+             * 'ci_create_decorations', in client/geom.c), the same as
+             * 'client->layout.geometry.cur.dim' itself, but both the
+             * size hints below (ICCCM, always about a client's own
+             * content, decoration notwithstanding) and the geometry
+             * text shown here are about that content alone, so convert
+             * to content space first, the same round trip the
+             * resize-floor block above already makes. */
+            uint32_t ext_w = (uint32_t)
+            client->layout.frame_extents.left +
                 (uint32_t) client->layout.frame_extents.right;
             uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
                 (uint32_t) client->layout.frame_extents.bottom;
             uint32_t content_w = (new_w > ext_w) ? new_w - ext_w : 0u;
             uint32_t content_h = (new_h > ext_h) ? new_h - ext_h : 0u;
+            char geom_buf[24];
 
             if (client->size_hints.inc_w > 1 &&
                     client->size_hints.inc_h > 1) {
-                /* ICCCM 4.1.2.3: falls back to MIN_SIZE as the grid base */
+                /* ICCCM §4.1.2.3: falls back to 'MIN_SIZE' as the grid
+                 * base */
                 uint32_t base_w = (client->size_hints.base_w > 0)
                     ? (uint32_t) client->size_hints.base_w
                     : ((client->size_hints.min_w > 0)
@@ -1287,9 +1298,8 @@ void drag_update(xcb_connection_t *connection,
                         new_w, new_h);
                 */
             } else {
-                /* Raw pixel dimensions, content only, not the
-                 * decorated frame's own total; see this block's own
-                 * doc comment above for why */
+                /* Raw pixel dimensions, content only, not the decorated
+                 * frame's own total; see this block's comment above */
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
                         content_w, content_h);
             }
@@ -1358,7 +1368,8 @@ void drag_end(xcb_connection_t *connection,
                             (uint16_t) WM_ICON_SQUARE_SIZE,
                             (uint16_t) WM_ICON_SQUARE_SIZE,
                             tray_x, tray_y, tray_w, tray_h,
-                            (desktop != NULL) ? &desktop->workarea : NULL);
+                            (desktop != NULL)
+                                ? &desktop->workarea : NULL);
                 }
 
                 s_drag.client->icon_x = new_icon_x;
@@ -1385,13 +1396,12 @@ void drag_end(xcb_connection_t *connection,
 
                 /* Restacking already happens on its own every second
                  * or so, driven by the systray's own clock tick (see
-                 * 'systray_layout_restack''s own doc comment), so an
-                 * icon dropped over the tray's own area does not stay
+                 * 'systray_layout_restack''s comment), so an icon
+                 * dropped over the tray's own area does not stay
                  * visually on top of it for long either way.  Forced
                  * here too, right as the icon settles into its final
                  * position, so there is no window at all, however
-                 * brief, where it could still be showing over the
-                 * tray. */
+                 * brief, where it could still be showing over the tray. */
                 systray_restack();
             }
         }
@@ -1399,7 +1409,8 @@ void drag_end(xcb_connection_t *connection,
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
         s_drag.client->is_icon_mapped = s_drag.icon_was_mapped;
 
-        if (connection != NULL && s_drag.drag_window != XCB_WINDOW_NONE &&
+        if (connection != NULL &&
+                s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window == s_drag.client->icon_window) {
             xcb_clear_area(connection, 0, s_drag.client->icon_window,
                     0, 0, 0, 0);
@@ -1540,19 +1551,20 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     /* Horizontally centered within the overlay window's own actual
      * width, computed with the exact same formula 's_drag_overlay_
      * show' used to size that window in the first place, rather than
-     * a separately hardcoded threshold that happened to only agree
-     * with it for a wide-enough or narrow-enough string.  Those two
-     * thresholds ('text_w + 2*PAD_X < MIN_WIDTH' here versus 'text_w
-     * < MIN_WIDTH' in the box-sizing formula) disagreeing for a
-     * string in between the two -- long enough to push the box wider
-     * than 'MIN_WIDTH', but still short enough of 'MIN_WIDTH' itself
-     * to take the "narrow" branch here -- is what left text looking
-     * pinned to the left with a lopsided gap on the right (worst for
-     * a string a few pixels short of exactly 'MIN_WIDTH', which could
-     * end up with zero left margin at all): computing the box's own
-     * width the same way here removes the mismatch entirely, for any
-     * string length, not just the ones on either side of it that
-     * happened not to expose the bug. */
+     * a separately hardcoded threshold that happened to only agree with
+     * it for a wide-enough or narrow-enough string.
+     *
+     * Those two thresholds ('text_w + 2*PAD_X < MIN_WIDTH' here versus
+     * 'text_w < MIN_WIDTH' in the box-sizing formula) disagreeing for
+     * a string in between the two (long enough to push the box wider
+     * than 'MIN_WIDTH', but still short enough of 'MIN_WIDTH' itself to
+     * take the "narrow" branch here) is what left text looking pinned
+     * to the left with a lopsided gap on the right (worst for a string
+     * a few pixels short of exactly 'MIN_WIDTH', which could end up
+     * with zero left margin at all).  Computing the box's own width the
+     * same way here removes the mismatch entirely, for any string
+     * length, not just the ones on either side of it that happened not
+     * to expose the bug. */
     overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
 
     if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
@@ -1562,8 +1574,8 @@ void drag_repaint_overlay(xcb_connection_t *connection)
 
     /* Vertically centered baseline for whatever font this theme
      * actually configures, rather than a single Y hardcoded for one
-     * particular font size: see 'text_font_ascent's own doc comment
-     * in render/text.h for the derivation (ascent placed 'top' pixels
+     * particular font size: see 'text_font_ascent's comment in
+     * 'render/text.h' for the derivation (ascent placed 'top' pixels
      * below the box's own top edge, here with 'top' itself computed
      * from ascent/descent so half the leftover vertical space sits on
      * each side). */
@@ -1636,10 +1648,10 @@ void drag_warp_tick(xcb_connection_t *connection)
             s_drag.operation != CLIENT_OPERATION_MOVING ||
             (s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window != s_drag.client->icon_window)) {
-        /* Not (or no longer) a plain window move or icon move;
-         * nothing to warp for -- a resize never sets 'warp_pending'
-         * in the first place (see 's_drag_check_warp_edge'), but this
-         * still guards against it having somehow become stale. */
+        /* Not (or no longer) a plain window move or icon move; nothing
+         * to warp for, as a resize never sets 'warp_pending' in the
+         * first place (see 's_drag_check_warp_edge'), but this still
+         * guards against it having somehow become stale. */
         return;
     }
 
@@ -1678,15 +1690,14 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* 'desktop_action_client_rem'/'_add' above only move the client
      * between each desktop's own stacking list and lookup table;
      * neither one touches the client's own recorded 'desktop_id'
-     * (unlike 'desktop_action_send_client', the normal "send to
-     * another desktop" path, which does).  Left stale here, anything
-     * that reads a client's desktop from that field directly instead
-     * of from whichever desktop's stacking list it is actually in --
-     * the window list menu's own per-desktop grouping foremost among
-     * them (see 'winlist.c') -- would keep showing the just-warped
-     * client under the desktop it left, or drop it from view
-     * entirely, even though the warp itself already moved it
-     * correctly everywhere else. */
+     * (unlike 'desktop_action_send_client', the normal "send to another
+     * desktop" path, which does).  Left stale here, anything that reads
+     * a client's desktop from that field directly instead of from
+     * whichever desktop's stacking list it is actually in (the window
+     * list menu's own per-desktop grouping foremost among them) would
+     * keep showing the just-warped client under the desktop it left, or
+     * drop it from view entirely, even though the warp itself already
+     * moved it correctly everywhere else. */
     s_drag.client->desktop_id = new_desktop->id;
 
     surface->desktop_cur = new_desktop->id;
@@ -1718,21 +1729,22 @@ void drag_warp_tick(xcb_connection_t *connection)
 
     /* Move the dragged window or icon by the exact same delta the
      * pointer itself is about to jump, so it stays under the cursor
-     * across the warp instead of being left behind on the old
-     * desktop's own edge.  Shifting 'client_cur_x' (the position
-     * 'drag_update' last actually applied, which already folds in
-     * any edge-snapping) is what 'pointer_start_x'/'client_start_x'
-     * being left untouched below relies on: with both of those
-     * unchanged, the very next real motion notify's own 'new_x =
-     * client_start_x + (root_x - pointer_start_x)' is a plain linear
-     * function of 'root_x', so it naturally reflects the same shift
-     * automatically -- adjusting either baseline here instead would
-     * cancel that shift back out (the bug an earlier version of this
-     * function actually had: shifting 'pointer_start_x' to
-     * compensate for the pointer jump made the computed position
-     * identical before and after the warp, keeping the dragged
-     * window or icon pinned at its old spot rather than following
-     * the pointer to the new one). */
+     * across the warp instead of being left behind on the old desktop's
+     * own edge.  Shifting 'client_cur_x' (the position 'drag_update'
+     * last actually applied, which already folds in any edge-snapping)
+     * is what 'pointer_start_x'/'client_start_x' being left untouched
+     * below relies on.
+     *
+     * With both of those unchanged, the very next real motion notify's
+     * own 'new_x = client_start_x + (root_x - pointer_start_x)' is
+     * a plain linear function of 'root_x', so it naturally reflects the
+     * same shift automatically, for adjusting either baseline here
+     * instead would cancel that shift back out (the bug an earlier
+     * version of this function actually had, i.e, shifting
+     * 'pointer_start_x' to compensate for the pointer jump made the
+     * computed position identical before and after the warp, keeping
+     * the dragged window or icon pinned at its old spot rather than
+     * following the pointer to the new one). */
     new_window_x = s_drag.client_cur_x +
         ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
 
@@ -1756,12 +1768,12 @@ void drag_warp_tick(xcb_connection_t *connection)
                 s_drag.client_cur_y);
     }
 
-    /* Same geometry overlay 'drag_update' keeps current on every
-     * real motion notify: without this, it would stay painted at
-     * the position the window (or icon) had right before the
-     * warp -- on the old desktop's own edge -- until whatever
-     * real pointer motion happens to come next, rather than
-     * following it across immediately. */
+    /* Same geometry overlay 'drag_update' keeps current on every real
+     * motion notify.  Without this, it would stay painted at the
+     * position the window (or icon) had right before the warp (on the
+     * old desktop's own edge) until whatever real pointer motion
+     * happens to come next, rather than following it across
+     * immediately. */
     if (show_geom) {
         char geom_buf[24];
 

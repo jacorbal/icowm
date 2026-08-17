@@ -6,17 +6,18 @@
  *
  * Menu labels, dialog prompts, and button labels live here as plain
  * macros, not scattered as literals through the source files that use
- * them. This is groundwork for gettext: once wired in, each of these
+ * them as though this were code from the pre-coding-standards era.
+ * This is groundwork for @c gettext.  Once wired in, each of these
  * becomes an argument to a translation lookup (e.g., @c _(STR_FOO))
- * instead of a raw literal, and this file becomes the single place a
- * translator's @c .pot extraction pass has to look at.
+ * instead of a raw literal, and this file becomes the single place
+ * a translator's @c .pot extraction pass has to look at.
  *
- * @c LOGGER_* messages are deliberately excluded: they are diagnostic
- * text for whoever is running or debugging the window manager, not
- * something an end user reads, so they stay as plain literals at their
- * call sites. The handful of literals in @c main.c (command-line usage
- * text) are excluded the same way, since they serve the same
- * diagnostic-audience role @c LOGGER_* messages do.
+ * @c LOGGER_* messages are deliberately excluded, for they are
+ * diagnostic text for whoever is running or debugging the window
+ * manager, not something an end user reads, so they stay as plain
+ * literals at their call sites.  The handful of literals in @c main.c
+ * (command-line usage text) are excluded the same way, since they serve
+ * the same diagnostic-audience role @c LOGGER_* messages do.
  *
  * @ingroup defs
  */
@@ -123,11 +124,11 @@
 #define STR_SHORTCUTS_RELOAD_CONFIG "Reload configuration"
 #define STR_SHORTCUTS_QUIT "Quit"
 #define STR_SHORTCUTS_THIS_LIST "This list"
-/* Both whole, fixed lines on their own (no combo of their own to pair
- * with; the combo is itself hardcoded, not user-configurable) */
-#define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
 #define STR_SHORTCUTS_FORTUNE "Fortune"
 #define STR_SHORTCUTS_SCRATCHPAD "Scratchpad"
+/* Whole, fixed line on its own (no combo of its own to pair with; the
+ * combo is itself hardcoded, not user-configurable) */
+#define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
 
 #define STR_SHORTCUTS_TERMINAL "Terminal"
 #define STR_SHORTCUTS_LAUNCHER "Launcher"
@@ -168,7 +169,7 @@
  * instead of living here; translating only one half of that pairing
  * would read as more inconsistent than helpful. */
 
-/* TRANSLATORS: '%.*s' and '<0-9>' together spell out a shared key combo
+/* TRANSLATION: '%.*s' and '<0-9>' together spell out a shared key combo
  * prefix followed by a literal digit placeholder; '%u' and the second
  * '%s' are a desktop's own index and its own combo.  Keep every
  * placeholder, in this exact order, in translation. */
@@ -181,13 +182,16 @@
  * dialog ('menu/dialog/message.h') at 'MENU_MSG_LEVEL_INFO', when
  * a client becomes urgent on a desktop other than the one currently
  * visible on its own surface (see 'desktops.notify-activity' in
- * config.json); TRANSLATORS: keep every '%u' (a desktop's own index,
- * or, only in the surface-suffix variant, a surface's own index) and
- * every '%s' (a desktop's own name) */
+ * config.json).
+ *
+ * TRANSLATION: keep every '%u' (a desktop's own index, or, only in the
+ * surface-suffix variant, a surface's own index) and every '%s' (a
+ * desktop's own name) */
 #define STR_DESKTOP_ACTIVITY_NAMED_FMT \
     "Detected activity on desktop [%u] -- %s"
 #define STR_DESKTOP_ACTIVITY_UNNAMED_FMT \
     "Detected activity on desktop [%u]"
+
 /* Appended to either message above, only when more than one surface is
  * managed (a single-surface setup, by far the common case, has nothing
  * to disambiguate) */
@@ -198,6 +202,7 @@
 #define STR_BATTERY_NOT_AVAILABLE "N/A"
 #define STR_BATTERY_FULL_AC "Full, AC"
 #define STR_BATTERY_FULL "Full"
+
 /* The percentage itself, formatted on its own before being embedded
  * into any of the longer strings below (e.g., before 'STR_BATTERY_AC'
  * to form "34% AC"): kept as its own translatable format string,
@@ -206,6 +211,7 @@
  * typographic convention, not something a single hardcoded "%u%%" can
  * get right for every locale at once. */
 #define STR_BATTERY_PERCENT "%u%%"
+
 /* Standalone, appended after a percentage (e.g., "34% AC"): kept as its
  * own string, separate from 'STR_BATTERY_FULL_AC' above, since
  * a translation cannot derive one from the other by substring; some
@@ -225,9 +231,10 @@
      " predictable.")
 
 /* Configuration-file syntax-error dialog ('src/wm.c',
- * 'wm_warn_json_syntax_errors'), one file or several; TRANSLATORS: keep
- * the single '%s' in the first, and the trailing '%s' in the second (a
- * filename list is appended after it, comma-separated) */
+ * 'wm_warn_json_syntax_errors'), one file or several.
+ *
+ * TRANSLATION: keep the single '%s' in the first, and the trailing '%s'
+ * in the second (a filename list is appended after it, comma-separated) */
 #define STR_WM_JSON_SYNTAX_ERROR_SINGLE_FMT \
     ("Error parsing '%s'; possible syntax error." \
      "  Reverted to default values.")
@@ -235,16 +242,20 @@
     ("Error parsing the following file(s); possible" \
      " syntax error(s).  Reverted to default values" \
      " for each: '%s'")
+
 /* Appended to either message above when the theme file itself was also
- * missing; TRANSLATORS: keep the single '%s' (the theme filename), and
+ * missing.
+ *
+ * TRANSLATION: keep the single '%s' (the theme filename), and
  * 'config.json' unchanged (a real filename, not prose) */
 #define STR_WM_MISSING_THEME_FMT \
     ("  Additionally, the theme file '%s' named by" \
      " 'config.json' was not found; using the" \
      " built-in default theme instead.")
 
-/* Restricted-memory mode's own two warning dialogs ('src/memguard.c');
- * TRANSLATORS: keep every '%u' (a MiB count, or a window count) and the
+/* Restricted-memory mode's own two warning dialogs ('src/memguard.c').
+ *
+ * TRANSLATION: keep every '%u' (a MiB count, or a window count) and the
  * literal '-M' (the command-line option's own name, unchanged in every
  * language) */
 #define STR_MEMGUARD_CEILING_REACHED_FMT \

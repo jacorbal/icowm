@@ -4,11 +4,11 @@
  * @brief Typed extraction of a request's own arguments
  *
  * Every command's own arguments live as extra fields alongside its
- * @c "cmd" field, in the same request object; these read one field
- * at a time by name, each failing cleanly (returning @c false,
- * leaving @p out untouched) when the field is missing or not of the
- * expected JSON type, rather than ever guessing a default a caller
- * did not ask for.
+ * @p cmd field, in the same request object; these read one field at
+ * a time by name, each failing cleanly (returning @c false, leaving
+ * @p out untouched) when the field is missing or not of the expected
+ * JSON type, rather than ever guessing a default a caller did not ask
+ * for.
  *
  * @defgroup ipc_args IPC argument extraction
  * @ingroup ipc
@@ -37,16 +37,15 @@
 /**
  * @brief Read a required unsigned integer field
  *
- * Meant for IDs (client, desktop, surface) and other values that
- * are never meaningfully negative; a negative JSON number is
- * rejected rather than silently reinterpreted.
+ * Meant for IDs (client, desktop, surface) and other values that are
+ * never meaningfully negative.  A negative JSON number is rejected
+ * rather than silently reinterpreted.
  *
  * @param args  The request object
  * @param field Field name to read
- * @param out   Receives the value on success; untouched on failure
+ * @param out   Receives the value on success, untouched on failure
  *
- * @return @c true when @p field was present, a number, and not
- *         negative; @c false otherwise
+ * @return @c true when @p field was present, a number, and non-negative
  *
  * @note Complexity: @e O(1)
  */
@@ -57,15 +56,14 @@ bool ipc_args_get_uint(const cJSON *args, const char *field,
  * @brief Read a required signed integer field
  *
  * Meant for window coordinates, which are meaningfully negative on
- * a multi-monitor setup (a monitor placed above or to the left of
- * the one at the coordinate origin).
+ * a multi-monitor setup (a monitor placed above or to the left of the
+ * one at the coordinate origin).
  *
  * @param args  The request object
  * @param field Field name to read
- * @param out   Receives the value on success; untouched on failure
+ * @param out   Receives the value on success, untouched on failure
  *
- * @return @c true when @p field was present and a number, @c false
- *         otherwise
+ * @return @c true when @p field was present and a number
  *
  * @note Complexity: @e O(1)
  */
@@ -78,11 +76,10 @@ bool ipc_args_get_int(const cJSON *args, const char *field,
  * @param args  The request object
  * @param field Field name to read
  * @param out   Receives a pointer into @p args's own storage on
- *              success (valid only as long as @p args is); untouched
- *              on failure
+ *              success (valid only as long as @p args is), untouched on
+ *              failure
  *
- * @return @c true when @p field was present and a string, @c false
- *         otherwise
+ * @return @c true when @p field was present and a string
  *
  * @note Complexity: @e O(1)
  */
@@ -94,10 +91,9 @@ bool ipc_args_get_string(const cJSON *args, const char *field,
  *
  * @param args  The request object
  * @param field Field name to read
- * @param out   Receives the value on success; untouched on failure
+ * @param out   Receives the value on success, untouched on failure
  *
- * @return @c true when @p field was present and a boolean, @c false
- *         otherwise
+ * @return @c true when @p field was present and a boolean
  *
  * @note Complexity: @e O(1)
  */

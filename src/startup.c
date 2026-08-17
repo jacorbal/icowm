@@ -156,7 +156,6 @@ static void s_startup_handle_crash(int signum)
         " rest)\n";
     char rev[4];
     char digits[4];
-    int rlen = 0;
     int len = 0;
     int n = signum;
     struct sigaction sa;
@@ -166,6 +165,8 @@ static void s_startup_handle_crash(int signum)
     if (n <= 0) {
         digits[len++] = '0';
     } else {
+        int rlen = 0;
+
         while (n > 0 && rlen < (int) sizeof(rev)) {
             rev[rlen++] = (char) ('0' + (n % 10));
             n /= 10;
@@ -291,7 +292,7 @@ int startup_randr_init(wm_td *wm)
 
             if (crtc_info->mode != XCB_NONE &&
                     crtc_info->num_outputs > 0) {
-                xcb_randr_output_t *out_ids =
+                const xcb_randr_output_t *out_ids =
                     xcb_randr_get_crtc_info_outputs(crtc_info);
 
                 surface->randr.is_known = true;

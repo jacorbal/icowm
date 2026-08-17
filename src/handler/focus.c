@@ -103,7 +103,6 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     xcb_atom_t wm_window_role = XCB_ATOM_NONE;
     xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
     xcb_get_property_cookie_t motif_ck;
-    xcb_get_property_reply_t *motif_r;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in property handler",
@@ -182,8 +181,8 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
          * 's_desktop_render_one_client', render/desktop.c) means its
          * titlebar keeps showing the old title until some unrelated
          * event (focus change, move, resize...) happens to mark that
-         * client outdated for a different reason -- rather than
-         * updating the moment this property notify itself arrives. */
+         * client outdated for a different reason, rather than updating
+         * the moment this property notify itself arrives. */
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
@@ -202,18 +201,18 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
 
     /* '_NET_WM_ICON' (the icon image itself, unlike '_NET_WM_ICON_NAME'
      * above, which is only its taskbar label text) has no cached data
-     * of its own to refresh here: 'wmicon_draw' (see render/wmicon.h)
+     * of its own to refresh here: 'wmicon_draw' (see 'render/wmicon.h')
      * always reads the property fresh on a cache miss, so all that is
      * needed is throwing away whatever it cached from the property's
      * old value, which would otherwise keep being reused (that is the
      * entire point of the cache) even though it no longer matches what
-     * the application just published.  'WM_HINTS' is included here
-     * too: 'wmicon_draw' falls back to its own 'icon_pixmap'/
-     * 'icon_mask' fields when '_NET_WM_ICON' is absent (see
-     * render/wmicon.c), so a client updating those at runtime needs
-     * the exact same cache invalidation, even though most of
-     * 'WM_HINTS' otherwise unrelated to icons (input model, urgency,
-     * window group) is not itself re-read here. */
+     * the application just published.  'WM_HINTS' is included here too:
+     * 'wmicon_draw' falls back to its own 'icon_pixmap'/ 'icon_mask'
+     * fields when '_NET_WM_ICON' is absent (see 'render/wmicon.c'), so
+     * a client updating those at runtime needs the exact same cache
+     * invalidation, even though most of 'WM_HINTS' otherwise unrelated
+     * to icons (input model, urgency, window group) is not itself
+     * re-read here. */
     if ((client->ewmh != NULL &&
                 event->atom == client->ewmh->_NET_WM_ICON) ||
             event->atom == XCB_ATOM_WM_HINTS) {
@@ -241,15 +240,17 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     }
 
     /* Applications that dynamically toggle their own decoration request
-     * (e.g., 'Xpad') do so by re-setting '_MOTIF_WM_HINTS' at runtime
-     * and rely on the window manager noticing the change; the same
-     * freaking de-facto hint 'client_init' already reads once at
-     * initial map time (see there for the field layout), just applied
-     * live here whenever it actually changes. */
+     * (e.g., Xpad) do so by re-setting '_MOTIF_WM_HINTS' at runtime and
+     * rely on the window manager noticing the change; the same freaking
+     * de-facto hint 'client_init' already reads once at initial map
+     * time (see there for the field layout), just applied live here
+     * whenever it actually changes. */
     motif_hints_atom = atom_intern(client->connection, "_MOTIF_WM_HINTS",
             true);
     if (motif_hints_atom != XCB_ATOM_NONE &&
             event->atom == motif_hints_atom) {
+        xcb_get_property_reply_t *motif_r;
+
         motif_ck = xcb_get_property(client->connection, 0,
                 client->window, motif_hints_atom, motif_hints_atom,
                 0, 5);
@@ -262,10 +263,11 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                 const uint32_t *motif_vals = (const uint32_t *)
                     xcb_get_property_value(motif_r);
                 uint32_t motif_flags = motif_vals[0];
-                uint32_t motif_decorations = motif_vals[2];
                 bool wants_decorated = client_is_decorated(client);
 
                 if ((motif_flags & 0x2u) != 0u) {
+                    uint32_t motif_decorations = motif_vals[2];
+
                     if (motif_decorations == 0u) {
                         wants_decorated = false;
                     } else if (client->theme != NULL &&
@@ -351,7 +353,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
 
 /* Handle a 'FOCUS_IN' event */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces, xcb_focus_in_event_t *event)
+        list_td *surfaces, const xcb_focus_in_event_t *event)
 {
     (void) connection;
     (void) surfaces;
@@ -391,7 +393,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
     if (surfaces != NULL) {
         list_item_td *head = list_head(surfaces);
         if (head != NULL) {
-            surface_td *first = (surface_td *) list_data(head);
+            const surface_td *first = (surface_td *) list_data(head);
             if (first != NULL) {
                 connection = first->connection;
             }

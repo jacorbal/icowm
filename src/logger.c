@@ -107,7 +107,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz)
 {
     struct timeval tv;
     struct tm tm_info;
-    char tz_sign = '+';
+    char tz_sign;
     int tz_hours = 0;
     int tz_minutes = 0;
     long tz_offset_seconds;
@@ -307,11 +307,13 @@ int logger_msg(enum logger_level_e level, const char *prefix,
     const char *level_str = NULL;
     char msg[LOGGER_MAX_LENGTH_MSG];
     va_list args;
-    int len, len_fmt;
+    int len;
     int retval = 0;
 
     pthread_mutex_lock(&logger_mutex);
     do {
+        int len_fmt;
+
         /* If the logger is not set, do nothing */
         if (logger == NULL || logger->file.fp_out == NULL) {
             retval = -1;

@@ -42,9 +42,13 @@
 /** The current scratchpad client, or @c NULL when none is alive */
 static client_td *s_scratchpad_client = NULL;
 
-/** Set right after launching the configured command, until the next
- *  client to be created is claimed as the scratchpad; guards against
- *  a second launch stacking up while the first one is still starting */
+/**
+ * @brief Set right after launching the configured command, until the
+ *        next client to be created is claimed as the scratchpad
+ *
+ * Guards against a second launch stacking up while the first one is
+ * still starting.
+ */
 static bool s_awaiting_scratchpad = false;
 
 
@@ -71,8 +75,6 @@ static uint32_t s_resolve_size(struct config_scratchpad_size_s size,
  * running */
 void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
 {
-    surface_td *surface;
-
     if (wm == NULL || desktop == NULL || wm->config == NULL ||
             !wm->config->base.scratchpad.is_enabled) {
         return;
@@ -90,6 +92,8 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
     }
 
     if (client_is_hidden(s_scratchpad_client)) {
+        surface_td *surface;
+
         if (s_scratchpad_client->desktop_id != desktop->id) {
             desktop_td *source = wm_get_client_desktop(
                     s_scratchpad_client);
@@ -101,20 +105,20 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
         }
         enact_client_unhide(s_scratchpad_client);
 
-        /* Actually focuses the scratchpad, not merely raising it
-         * above whatever else was on screen: a dropdown terminal is
-         * expected to be ready to type into the moment it appears,
-         * with no separate click first needed to focus it.  Routed
-         * through 'focus_apply' (policy/focus.h) rather than
-         * 'enact_client_raise' + some 'ccmd_client_focus' call of
-         * its own, since 'focus_apply' is the one place that
-         * already unfocuses whatever was previously active first
-         * (border and titlebar repainted back to its own inactive
-         * style there, 'ccmd_client_unfocus', cmds/client/basic.c)
-         * before focusing this one -- skipping it left whatever was
-         * focused a moment ago with no real unfocus ever applied to
-         * it at all, this client's own raise just visually covering
-         * it instead. */
+        /* Actually focuses the scratchpad, not merely raising it above
+         * whatever else was on screen: a dropdown terminal is expected
+         * to be ready to type into the moment it appears, with no
+         * separate click first needed to focus it.
+         *
+         * Routed through 'focus_apply' ('policy/focus.h') rather than
+         * 'enact_client_raise' + some 'ccmd_client_focus' call of its
+         * own, since 'focus_apply' is the one place that already
+         * unfocuses whatever was previously active first (border and
+         * titlebar repainted back to its own inactive style there,
+         * 'ccmd_client_unfocus', in 'cmds/client/basic.c') before
+         * focusing this one.  Skipping it left whatever was focused
+         * a moment ago with no real unfocus ever applied to it at all,
+         * this client's own raise just visually covering it instead. */
         surface = wm_get_surface_by_id(desktop->screen_id);
 
         focus_apply(wm->surfaces, surface, desktop,
@@ -145,19 +149,21 @@ void scratchpad_notice_client_created(client_td *client)
     client->rule_position_locked = true;
 
     /* Removed here, before 'client_lock' below, rather than left for
-     * whatever theme default 'ci_create_decorations' (client.c)
-     * already applied moments earlier in this same 'client_init'
-     * call: never decorated is a hard guarantee of this feature, not
+     * whatever theme default 'ci_create_decorations' (vid. 'client.c')
+     * already applied moments earlier in this same 'client_init' call.
+     * Never decorated is a hard guarantee of this feature, not
      * something any theme's own 'window.is-decorated' gets a say in.
-     * 'ccmd_client_toggle_decorate' (cmds/client/state.c) is safe to
+     *
+     * 'ccmd_client_toggle_decorate' ('cmds/client/state.c') is safe to
      * call this early, with 'client' not yet on any desktop: its own
      * 'wm_get_client_desktop' lookup already handles a NULL result,
      * skipping only the focus/redraw bookkeeping a client with no
-     * desktop yet has no use for regardless. Ordered before
-     * 'client_lock': that flag is what makes
+     * desktop yet has no use for regardless.
+     *
+     * Ordered before 'client_lock': that flag is what makes
      * 'ccmd_client_toggle_decorate' itself refuse to run at all past
-     * this point, so undoing decoration has to happen first, while
-     * it can still act. */
+     * this point, so undoing decoration has to happen first, while it
+     * can still act. */
     if (client_is_decorated(client)) {
         ccmd_client_toggle_decorate(client);
     }
@@ -167,22 +173,25 @@ void scratchpad_notice_client_created(client_td *client)
      * (client->theme->window.active/inactive.border, meant for an
      * ordinary decorated client, not this always-undecorated one):
      * the scratchpad themes its own border independently
-     * (config_theme_s::scratchpad.border, config.h).  Setting
-     * 'border_override' rather than applying the border directly
-     * here is what makes it survive every later focus change too:
-     * 'ccmd_client_focus'/'_unfocus' (cmds/client/basic.c) already
-     * re-apply a client's own border on every single one via
-     * 'client_apply_border' (client.h), which already prefers this
-     * field over the theme's own default whenever it is set,
-     * without needing to know anything about the scratchpad
-     * specifically.  Applying it once more here regardless, rather
-     * than only ever relying on the next focus change to do it,
-     * covers 'focus.is-new-focused: false', where a freshly mapped
-     * client is not focused at all and so would otherwise show no
-     * border until the first time it is.  A theme reload only ever
-     * affects the next scratchpad launched, not this one still
-     * running (see config.md's own note on this), since this whole
-     * block runs once, right here. */
+     * ('config_theme_s::scratchpad.border', in 'config.h').
+     *
+     * Setting 'border_override' rather than applying the border
+     * directly here is what makes it survive every later focus change
+     * too: 'ccmd_client_focus'/'ccmd_client_unfocus' (both in
+     * 'cmds/client/basic.c') already re-apply a client's own border on
+     * every single one via 'client_apply_border' ('client.h'), which
+     * already prefers this field over the theme's own default whenever
+     * it is set, without needing to know anything about the scratchpad
+     * specifically.
+     *
+     * Applying it once more here regardless, rather than only ever
+     * relying on the next focus change to do it, covers
+     * 'focus.is-new-focused: false', where a freshly mapped client is
+     * not focused at all and so would otherwise show no border until
+     * the first time it is.  A theme reload only ever affects the next
+     * scratchpad launched, not this one still running (see
+     * 'config.md''s note on this), since this whole block runs once,
+     * right here. */
     if (client->theme != NULL) {
         client->border_override.is_set = true;
         client->border_override.color =
@@ -194,8 +203,8 @@ void scratchpad_notice_client_created(client_td *client)
 
     client_lock(client);
 
-    /* Never a valid fallback focus target on its own, e.g., after
-     * some other client on the same desktop shades or hides: its own
+    /* Never a valid fallback focus target on its own, e.g., after some
+     * other client on the same desktop shades or hides.  Its own
      * visibility is managed entirely by 'scratchpad_toggle', not by
      * anything that picks a next client to focus generically; see
      * 'CLIENT_FLAG_NO_FOCUS_FALLBACK' (client.h) */
@@ -245,29 +254,30 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
         area_h = desktop->workarea.dim.h;
     }
 
-    /* Per the X11 protocol (ConfigureWindow), 'x'/'y' name a window's
+    /* Per the X11 protocol ('ConfigureWindow'), 'x'/'y' name a window's
      * own top-left corner including its border, if any, which is then
-     * drawn growing rightward/downward from there -- meaning the full
-     * on-screen footprint of a client with a border reaches all the
-     * way to 'x + 2 * border + width' (equivalently for height), 2 *
-     * border wider/taller than 'width'/'height' alone.  Reserving
-     * that much here, before 'width'/'height' are ever resolved
-     * against 'area_w'/'area_h' below (rather than only afterward,
-     * e.g., by shrinking a "max" result in place), keeps that full
-     * footprint within the configured edge's own area on every side,
-     * not just flush against whichever edge 'x'/'y' themselves
-     * already sit on: an unadjusted "max" width, say, already flush
-     * with the left edge at 'x == area_x', would otherwise still run
-     * its own right-hand border 2 * border past 'area_x + area_w' on
-     * the right, off whatever the configured edge's own area was
-     * ever meant to stay within. */
-    /* 'client_border_width' (client.h) already reflects both
+     * drawn growing rightward/downward from there, meaning the full
+     * on-screen footprint of a client with a border reaches all the way
+     * to 'x + 2 * border + width' (equivalently for height),
+     * '2 * border' wider/taller than 'width'/'height' alone.  Reserving
+     * that much here, before 'width'/'height' are ever resolved against
+     * 'area_w'/'area_h' below (rather than only afterward, e.g., by
+     * shrinking a "max" result in place), keeps that full footprint
+     * within the configured edge's own area on every side, not just
+     * flush against whichever edge 'x'/'y' themselves already sit on.
+     *
+     * An unadjusted "max" width, say, already flush with the left edge
+     * at 'x == area_x', would otherwise still run its own right-hand
+     * border '2 * border' past 'area_x + area_w' on the right, off
+     * whatever the configured edge's own area was ever meant to stay
+     * within. */
+    /* 'client_border_width' ('client.h') already reflects both
      * 'border_override' set just above in 'scratchpad_notice_
-     * client_created' and any 'a11y.focus-indicator.min-border-
-     * width' floor over it, the exact width 'client_apply_border'
-     * itself will actually draw, rather than 'border_override.width'
-     * alone, which could be narrower than what a11y ends up
-     * enforcing and so reserve too little room here for it. */
+     * client_created' and any 'a11y.focus-indicator.min-border-width'
+     * floor over it, the exact width 'client_apply_border' itself will
+     * actually draw, rather than 'border_override.width' alone, which
+     * could be narrower than what a11y ends up enforcing and so reserve
+     * too little room here for it. */
     border = client_border_width(client, true);
     avail_w = (area_w > 2u * border) ? area_w - 2u * border : 0u;
     avail_h = (area_h > 2u * border) ? area_h - 2u * border : 0u;
@@ -304,8 +314,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
 }
 
 
-/* Release the scratchpad client reference, if the given client was
- * it */
+/* Release the scratchpad client reference, if the given client was it */
 void scratchpad_notice_client_destroyed(const client_td *client)
 {
     if (client != NULL && client == s_scratchpad_client) {

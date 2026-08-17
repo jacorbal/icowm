@@ -141,7 +141,8 @@ static void s_client_init_common(client_td *client,
  * @param client Client to update
  * @param name   Source title string
  */
-static void s_client_set_display_name(client_td *client, const char *name)
+static void s_client_set_display_name(client_td *client,
+        const char *name)
 {
     if (client == NULL || name == NULL || name[0] == '\0') {
         return;
@@ -305,6 +306,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
     client->has_wm_take_focus = false;
     client->has_net_wm_ping = false;
     client->has_net_wm_sync_request = false;
+
     memset(&proto, 0, sizeof(proto));
     if (xcb_icccm_get_wm_protocols_reply(connection,
                 xcb_icccm_get_wm_protocols(connection, window,
@@ -429,7 +431,6 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
 {
     xcb_atom_t client_leader_atom;
     xcb_get_property_cookie_t client_leader_cookie;
-    xcb_get_property_reply_t *client_leader_reply;
     xcb_icccm_wm_hints_t wm_hints;
     xcb_window_t transient = XCB_WINDOW_NONE;
 
@@ -460,6 +461,8 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
     client->client_leader = XCB_WINDOW_NONE;
     client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
     if (client_leader_atom != XCB_ATOM_NONE) {
+        xcb_get_property_reply_t *client_leader_reply;
+
         client_leader_cookie = xcb_get_property(connection, 0, window,
                 client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
         client_leader_reply = xcb_get_property_reply(connection,
@@ -684,15 +687,16 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_client_read_motif_hints(xcb_connection_t *connection,
-        xcb_window_t window, struct config_theme_s *theme,
+        xcb_window_t window, const struct config_theme_s *theme,
         client_td *client)
 {
     xcb_atom_t motif_hints_atom;
     xcb_get_property_cookie_t motif_ck;
-    xcb_get_property_reply_t *motif_r;
 
     motif_hints_atom = atom_intern(connection, "_MOTIF_WM_HINTS", true);
     if (motif_hints_atom != XCB_ATOM_NONE) {
+        xcb_get_property_reply_t *motif_r;
+
         motif_ck = xcb_get_property(connection, 0, window,
                 motif_hints_atom, motif_hints_atom, 0, 5);
         motif_r = xcb_get_property_reply(connection, motif_ck, NULL);
@@ -703,9 +707,10 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
                 const uint32_t *motif_vals = (const uint32_t *)
                     xcb_get_property_value(motif_r);
                 uint32_t motif_flags = motif_vals[0];
-                uint32_t motif_decorations = motif_vals[2];
 
                 if ((motif_flags & 0x2u) != 0u) {
+                    uint32_t motif_decorations = motif_vals[2];
+
                     /* MWM_HINTS_DECORATIONS set: 'decorations' is
                      * meaningful */
                     if (motif_decorations == 0u) {
@@ -729,18 +734,18 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  *        states an application sets on itself before ever mapping
  *        are honored from the start
  *
- * Without this, such a state would only take effect the first time
- * the application happens to resend it later via a '_NET_WM_STATE'
- * 'ClientMessage' (i.e., before the window manager has a chance to
- * intervene; e.g., toggling a "skip taskbar" preference off and back
- * on in xpad's settings): panels and dock windows that set
- * '_NET_WM_STATE_BELOW' (e.g., tint2) get the BELOW layer, and
- * applications that set '_NET_WM_STATE_SKIP_TASKBAR'/'_NET_WM_STATE_
- * SKIP_PAGER' (e.g., xpad's "hide from taskbar" option, enabled from
- * its own startup) are excluded from the cycle menu and window list
- * immediately rather than only after the user re-toggles the same
- * preference in that application once the window manager is already
- * running.
+ * Without this, such a state would only take effect the first time the
+ * application happens to resend it later via a @c _NET_WM_STATE
+ * @c ClientMessage (i.e., before the window manager has a chance to
+ * intervene; e.g., toggling a "skip taskbar" preference off and back on
+ * in xpad's settings): panels and dock windows that set
+ * @c _NET_WM_STATE_BELOW (e.g., tint2) get the BELOW layer, and
+ * applications that set @c _NET_WM_STATE_SKIP_TASKBAR /
+ * @c _NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from taskbar"
+ * option, enabled from its own startup) are excluded from the cycle
+ * menu and window list immediately rather than only after the user
+ * re-toggles the same preference in that application once the window
+ * manager is already running.
  *
  * @param connection XCB connection
  * @param ewmh       EWMH connection; a no-op if @c NULL
@@ -757,7 +762,6 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
 {
     if (ewmh != NULL) {
         xcb_get_property_cookie_t state_ck;
-        xcb_get_property_reply_t *state_r;
         xcb_atom_t atom_below;
         xcb_atom_t atom_skip_taskbar;
         xcb_atom_t atom_skip_pager;
@@ -771,13 +775,15 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         if (atom_below != XCB_ATOM_NONE ||
                 atom_skip_taskbar != XCB_ATOM_NONE ||
                 atom_skip_pager != XCB_ATOM_NONE) {
+            xcb_get_property_reply_t *state_r;
+
             state_ck = xcb_ewmh_get_wm_state(ewmh, window);
             state_r = xcb_get_property_reply(connection, state_ck, NULL);
             if (state_r != NULL) {
                 uint32_t natoms = (uint32_t)
                     xcb_get_property_value_length(state_r) /
                     sizeof(xcb_atom_t);
-                xcb_atom_t *atoms = (xcb_atom_t *)
+                const xcb_atom_t *atoms = (xcb_atom_t *)
                     xcb_get_property_value(state_r);
                 for (uint32_t si = 0; si < natoms; ++si) {
                     if (atoms[si] == atom_below) {
@@ -901,7 +907,6 @@ client_td *client_init(xcb_connection_t *connection,
     client_td *client;
     xcb_get_geometry_reply_t *geom_reply;
     xcb_get_window_attributes_reply_t *attr_reply;
-    char wm_name[256];
     char wm_class[256];
     char wm_instance[256];
     char net_wm_name[256];
@@ -974,6 +979,7 @@ client_td *client_init(xcb_connection_t *connection,
     if (net_wm_name[0] != '\0') {
         s_client_set_display_name(client, net_wm_name);
     } else {
+        char wm_name[256];
         ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
         s_client_set_display_name(client, wm_name);
     }
@@ -1010,8 +1016,8 @@ client_td *client_init(xcb_connection_t *connection,
      * decoration */
     s_client_read_window_type(connection, ewmh, window, client);
 
-    /* Read '_MOTIF_WM_HINTS': see the sibling function's own doc
-     * comment for the full rationale. */
+    /* Read '_MOTIF_WM_HINTS': see the sibling function's comment for
+     * the full rationale */
     s_client_read_motif_hints(connection, window, theme, client);
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
@@ -1023,7 +1029,7 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Read the pre-existing '_NET_WM_STATE' property; see the sibling
-     * function's own doc comment for the full rationale. */
+     * function's comment for the full explanation */
     s_client_read_pre_existing_state(connection, ewmh, window, client);
 
     /* Read '_NET_WM_PID': associate X window with its owning process */
@@ -1046,8 +1052,7 @@ client_td *client_init(xcb_connection_t *connection,
     ccmd_client_update_allowed_actions(client);
 
     /* Subscribe to events, apply border width, and set the default
-     * cursor; see the sibling function's own doc comment for the
-     * full rationale. */
+     * cursor; see the sibling function's comment for more information */
     s_client_subscribe_events(connection, window, theme, client);
 
     /* Ignore return value, as decoration creation is non-fatal here */

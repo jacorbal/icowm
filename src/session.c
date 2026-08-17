@@ -437,5 +437,5 @@ void session_reap_children(void)
                         (int) pid, WTERMSIG(status));
             }
         }
-    }
+    } /* ! while (pid) */
 }

@@ -3,21 +3,23 @@
  *
  * @brief Physical monitor rectangle type
  *
- * @c monitor_td is deliberately its own type, not a typedef or reuse
- * of @c struct geometry_s (@c types/pair.h): the two happen to hold
- * the same four numbers, but a monitor and an arbitrary rectangle
+ * @p monitor_td is deliberately its own type, not a @c typedef or reuse
+ * of @p (struct geometry_s) (in @c types/pair.h).  The two happen to
+ * hold the same four numbers, but a monitor and an arbitrary rectangle
  * (a window's geometry, a work area, a clipped intersection) are not
  * the same thing, and sharing one type between them lets either be
- * passed where the other was meant without the compiler ever
- * noticing.  Keeping them distinct also means the many far more
- * common consumers of @c geometry_s (windows, work areas, menus, ...)
- * never need to pull in this header at all, and this header never
- * needs to pull in @c types/pair.h.
+ * passed where the other was meant without the compiler ever noticing.
+ * Keeping them distinct also means the many far more common consumers
+ * of @p geometry_s (windows, work areas, menus, ...) never need to pull
+ * in this header at all, and this header never needs to pull in
+ * @c types/pair.h.
  *
- * The duplication of @c { x, y, w, h } this creates is intentional; see
- * @c types/pair.h's own file comment for the project's established
- * stance on repeating a small struct shape for clarity instead of
- * typedef'ing one shared one.
+ * @note The duplication of @p ({ x, y, w, h }) this creates is
+ *       intentional
+ *
+ * @see @c types/pair.h's own file comment for the project's established
+ *      stance on repeating a small struct shape for clarity instead of
+ *      typedef'ing one shared one
  *
  * @defgroup monitor Physical monitor geometry
  * @ingroup surface
@@ -42,7 +44,7 @@
  * @brief One physical monitor's rectangle within its surface
  *
  * Always in the same coordinate space as the surface it belongs to:
- * @c x/@c y are the monitor's own top-left corner relative to that
+ * @p x / @p y are the monitor's own top-left corner relative to that
  * surface's own top-left corner, not relative to the monitor itself.
  */
 typedef struct {

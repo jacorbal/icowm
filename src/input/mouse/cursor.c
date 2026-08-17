@@ -74,16 +74,16 @@ static xcb_cursor_t s_move_cursor;
 /**
  * @brief Determine which border/corner zone, if any, a point falls in
  *
- * Uses the same adaptive resize-grab margins as @c s_mouse_near_edge
- * (both call @c im_resize_bounds), so the cursor changes exactly where
+ * Uses the same adaptive resize-grab margins as @a s_mouse_near_edge
+ * (both call @a im_resize_bounds), so the cursor changes exactly where
  * a resize can actually start, including the same titlebar-row
- * exclusion for the left/right margins (see @c im_resize_bounds_td's
- * own doc comment): a titlebar button such as close, typically placed
- * near the frame's own right edge, would otherwise still register as
- * near that edge, showing a resize cursor over it even though clicking
- * it still correctly closes the window rather than starting a resize
- * (titlebar buttons take priority over a border drag in the
- * button-press handler regardless of this function).
+ * exclusion for the left/right margins (see @a im_resize_bounds_td's
+ * comment).  A titlebar button such as close, typically placed near the
+ * frame's own right edge, would otherwise still register as near that
+ * edge, showing a resize cursor over it even though clicking it still
+ * correctly closes the window rather than starting a resize (titlebar
+ * buttons take priority over a border drag in the button-press handler
+ * regardless of this function).
  *
  * @param client Client whose geometry is used for the test
  * @param root_x Pointer X position in root-window coordinates
@@ -211,8 +211,7 @@ xcb_cursor_t mouse_plain_cursor(void)
 }
 
 
-/* The four-way move cursor; see this function's own doc comment in
- * mouse.h */
+/* The four-way move cursor; see this function's comment in 'mouse.h' */
 xcb_cursor_t mouse_move_cursor(void)
 {
     return s_move_cursor;
@@ -220,8 +219,8 @@ xcb_cursor_t mouse_move_cursor(void)
 
 
 /* The border-resize cursor matching a given resize drag's own
- * axis/anchor combination; see this function's own doc comment in
- * mouse.h for what each parameter means */
+ * axis/anchor combination; see this function's comment in 'mouse.h' for
+ * what each parameter means */
 xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
         bool anchor_right, bool anchor_bottom)
 {
@@ -250,18 +249,18 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * Shared by @c mouse_handle_motion_hover (every pointer motion),
  * @c mouse_handle_enter (every time the pointer crosses into a new
  * window), and @c mouse_hover_poll_tick (a periodic fallback poll;
- * see its own doc comment for why one is needed at all), since any
- * one kind of event or poll can be the only signal a given transition
- * actually produces: a client that selects @c PointerMotion for its
- * own purposes (common in GTK/Qt applications tracking hover for
- * their own UI) intercepts motion events before they propagate to
- * whichever window this logic is watching, leaving @c EnterNotify as
- * the only remaining signal for a decorated client (where hovering
- * the frame's own border and then crossing into the client's own
- * child window is what needs catching); an undecorated client has no
- * separate frame to fall back on at all, so moving from its border to
- * its interior happens within one single window with no crossing
- * whatsoever, leaving periodic polling as the only remaining option.
+ * see its comment for why one is needed at all), since any one kind of
+ * event or poll can be the only signal a given transition actually
+ * produces: a client that selects @c PointerMotion for its own purposes
+ * (common in GTK/Qt applications tracking hover for their own UI)
+ * intercepts motion events before they propagate to whichever window
+ * this logic is watching, leaving @c EnterNotify as the only remaining
+ * signal for a decorated client (where hovering the frame's own border
+ * and then crossing into the client's own child window is what needs
+ * catching); an undecorated client has no separate frame to fall back
+ * on at all, so moving from its border to its interior happens within
+ * one single window with no crossing whatsoever, leaving periodic
+ * polling as the only remaining option.
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the client
@@ -293,7 +292,7 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
     client = lookup_find_client(surfaces, window, &surface, &desktop);
     if (client == NULL || !client_is_resizable(client)) {
         LOGGER_TRACE("No resizable client for resize cursor" \
-                " (window=0x%x, root=%d+%d, client=%p)",
+                " (window=0x%x, root=%+d%+d, client=%p)",
                 window, root_x, root_y, (void *) client);
         return NULL;
     }
@@ -301,7 +300,7 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
     zone = s_mouse_resize_zone(client, root_x, root_y);
 
     LOGGER_TRACE("Set resize cursor (window=0x%x, client-window=0x%x," \
-            " frame=0x%x, root=%d+%d, zone=%d, cursor=0x%x)",
+            " frame=0x%x, root=%+d%+d, zone=%d, cursor=0x%x)",
             window, client->window, client->frame, root_x, root_y,
             (int) zone, s_resize_cursors[zone]);
 

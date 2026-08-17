@@ -3,17 +3,18 @@
  *
  * @brief RandR output-profile confirm dialog (thin wrapper)
  *
- * Shown after @c wm_action_config_reload applies a changed
- * @c randr.json, offering a chance to revert it before it sticks: a
- * generic @c menu_confirm_dialog with a countdown, whose cancel
+ * Shown after @a wm_action_config_reload applies a changed
+ * @c randr.json, offering a chance to revert it before it sticks.
+ * A generic @a menu_confirm_dialog with a countdown, whose cancel
  * button (selected by default) undoes the change if picked or if the
  * countdown itself elapses; the confirm button just keeps it.  Unlike
  * @c menu/dialog/quit.h, only the show entry point is needed here:
  * keyboard, mouse, and repaint handling for the underlying dialog are
- * already generic (see @c menu_confirm_dialog_is_open and its
- * siblings, called directly from @c input/kbd/event.c, @c
- * input/mouse/event.c, and @c handler/expose.c), with nothing left
- * that needs a dialog-specific wrapper of its own.
+ * already generic (could be interesting to check as well all the
+ * family, @a menu_confirm_dialog_is_open and its siblings, called
+ * directly from @c input/kbd/event.c, @c input/mouse/event.c, and
+ * @c handler/expose.c), with nothing left that needs a dialog-specific
+ * wrapper of its own.
  *
  * @ingroup menu_dialog
  */
@@ -41,18 +42,20 @@
  * @brief Open the RandR output-profile confirm dialog centered on
  *        the screen
  *
- * Delegates to @c menu_confirm_dialog_show with a fixed prompt (see
- * @c STR_DIALOG_RANDR_CONFIRM_PROMPT), the cancel button reverting
- * the just-applied profile (see @c surface_action_revert_randr_
- * profiles) if picked or left to the countdown, and the confirm
- * button doing nothing beyond closing the dialog, since the profile
- * is already live by the time this is shown.
+ * Delegates to @a menu_confirm_dialog_show with a fixed prompt, the
+ * cancel button reverting the just-applied profile if picked or left to
+ * the countdown, and the confirm button doing nothing beyond closing
+ * the dialog, since the profile is already live by the time this is
+ * shown.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @c STR_DIALOG_RANDR_CONFIRM_PROMPT and
+ *      @a surface_action_revert_randr_profiles
  */
 void dialog_rrsafe_show(xcb_connection_t *connection, surface_td *surface,
         const config_td *config);

@@ -106,7 +106,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix);
  *
  * Iterates over every rule in @p wm->rules, merging the actions from
  * all entries that match the client's current properties and whose
- * @c when condition is compatible with @p trigger.  Later rules take
+ * @p when condition is compatible with @p trigger.  Later rules take
  * precedence for each individual field.  The merged action set is then
  * applied: desktop assignment, monitor assignment, stacking layer,
  * geometry, flags, and focus.
@@ -122,8 +122,8 @@ int rules_load(rules_td *rules, const char *config_dir_prefix);
  * @param trigger    Event that caused this evaluation
  *
  * @return Whether any rule matched and produced a visible change
- * @retval true  At least one rule matched and at least one property
- *               was altered
+ * @retval true  At least one rule matched and at least one property was
+ *               altered
  * @retval false No rule matched, or any required pointer is invalid
  *
  * @note Complexity: @e O(n), where @e n is the number of loaded rules

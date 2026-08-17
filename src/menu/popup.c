@@ -61,7 +61,8 @@ static struct timespec s_popup_open_time = { 0, 0 };
 
 /* Show a popup near the client window with focused-client information */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        surface_td *surface, const desktop_td *desktop,
+        client_td *client,
         uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg)
 {
     const char *name;
@@ -130,7 +131,7 @@ void popup_show(xcb_connection_t *connection,
             client->frame, client->id, desktop->id, surface->id,
             monitor_id);
     snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
-            "geom=%ux%u+%d+%d",
+            "geom=%ux%u%+d%+d",
             client->layout.geometry.cur.dim.w,
             client->layout.geometry.cur.dim.h,
             client->layout.geometry.cur.pos.x,
@@ -142,7 +143,7 @@ void popup_show(xcb_connection_t *connection,
     /* 'text_measure_string' needs the renderer already set up for
      * this popup's own font; safe and cheap to call here even though
      * 'popup_repaint' calls it again later; it is a same-connection,
-     * same-font no-op the second time (see its own doc comment). */
+     * same-font no-op the second time (see its not-so-long comment). */
     text_renderer_init(connection, cfg->theme.overlay.font);
     for (size_t i = 0; i < 4; ++i) {
         uint16_t line_width = text_measure_string(s_popup_lines[i]);

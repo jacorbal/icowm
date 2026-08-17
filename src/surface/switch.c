@@ -35,12 +35,12 @@ int surface_action_desktop_add(surface_td *surface)
 {
     desktop_td *desktop;
 
-    LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
-
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
 
     desktop = desktop_init(surface->connection,
             surface->ewmh,
@@ -70,14 +70,14 @@ int surface_action_desktop_add(surface_td *surface)
 int surface_action_desktop_remove(surface_td *surface)
 {
     cdlist_item_td *tail_item;
-    desktop_td *desktop;
-
-    LOGGER_DEBUG("Removing desktop from surface %u", surface->id);
+    const desktop_td *desktop;
 
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Removing desktop from surface %u", surface->id);
 
     /* Need at least two desktops to remove one */
     if (surface->desktop_count <= 1) {
@@ -121,13 +121,13 @@ int surface_action_desktop_switch(surface_td *surface,
 {
     uint32_t old_id;
 
-    LOGGER_DEBUG("Switching to desktop %u on surface %u",
-            desktop_id, surface->id);
-
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Switching to desktop %u on surface %u",
+            desktop_id, surface->id);
 
     old_id = surface->desktop_cur;
     if (desktop_id == old_id) {
@@ -154,13 +154,13 @@ int surface_action_desktop_switch(surface_td *surface,
 /* Toggle full-surface mode */
 int surface_action_toggle_fullsurface(surface_td *surface)
 {
-    LOGGER_DEBUG("Toggling full-surface mode on surface %u",
-            surface->id);
-
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
+
+    LOGGER_DEBUG("Toggling full-surface mode on surface %u",
+            surface->id);
 
     surface->fullsurface = !surface->fullsurface;
     surface->is_outdated = true;

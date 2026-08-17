@@ -27,6 +27,9 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 #include <defs/search.h>
@@ -124,8 +127,8 @@ static int s_search_fuzzy_score(const char *query, const char *text)
 {
     size_t qi = 0;
     size_t ti = 0;
-    size_t qlen = strlen(query);
-    size_t tlen = strlen(text);
+    size_t qlen = safe_strlen(query);
+    size_t tlen = safe_strlen(text);
     int score = 0;
     bool prev_matched = false;
 
@@ -250,7 +253,7 @@ static void s_search_collect_candidates(void)
             s_search.candidate_count < WM_SEARCH_MAX_ENTRIES; ++di) {
         desktop_td *desktop = surface_desktop_get(s_search.surface, di);
         cdlist_item_td *node;
-        cdlist_item_td *initial;
+        const cdlist_item_td *initial;
 
         if (desktop == NULL || desktop->stacking == NULL) {
             continue;
@@ -545,9 +548,9 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
             XCB_CURRENT_TIME);
 
     /* Paint immediately: every candidate is shown right away with an
-     * empty query (see 's_search_refilter''s own doc comment), so the
-     * widget must never open blank and wait for the first keystroke
-     * to show anything */
+     * empty query (see 's_search_refilter''s comment), so the widget
+     * must never open blank and wait for the first keystroke to show
+     * anything */
     search_draw(connection, cfg);
 }
 
@@ -622,7 +625,8 @@ static void s_search_confirm(xcb_connection_t *connection,
         enact_surface_desktop_switch(surface, desktop->id);
     }
 
-    focus_apply(surfaces, surface, desktop, client, true, s_search.config);
+    focus_apply(surfaces, surface, desktop, client, true,
+            s_search.config);
 }
 
 
@@ -791,7 +795,6 @@ static void s_search_draw_row(xcb_connection_t *connection,
     int16_t safe_right = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
             WM_SEARCH_HINTS_RESERVED_WIDTH);
     char name_buf[WM_SEARCH_ENTRY_LENGTH];
-    char desk_buf[WM_SEARCH_ENTRY_LENGTH];
     uint32_t fg;
     uint32_t bg;
     bool is_sel = (i == s_search.selected);
@@ -839,6 +842,8 @@ static void s_search_draw_row(xcb_connection_t *connection,
                 menu_draw_measure(name_buf) + WM_SEARCH_COLUMN_GAP);
 
         if (desk_x < safe_right) {
+            char desk_buf[WM_SEARCH_ENTRY_LENGTH];
+
             if (r->desktop->name[0] != '\0') {
                 snprintf(desk_buf, sizeof(desk_buf), "[%u] -- %s",
                         r->desktop->id, r->desktop->name);

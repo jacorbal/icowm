@@ -3,8 +3,8 @@
  *
  * @brief IPC commands mirroring @c cmds/client/layer.h's own actions
  *
- * See ipc/actions/client/basic.h for the shared shape every one of
- * these follows.
+ * @see @c ipc/actions/client/basic.h for the shared shape every one of
+ *      these follows
  *
  * @defgroup ipc_actions_client_layer IPC client stacking-order actions
  * @ingroup ipc
@@ -29,22 +29,22 @@
 
 
 /* Public interface */
-/** "raise_client" */
+/** @c raise_client */
 cJSON *ipc_action_raise_client(wm_td *wm, const cJSON *args);
 
-/** "lower_client" */
+/** @c lower_client */
 cJSON *ipc_action_lower_client(wm_td *wm, const cJSON *args);
 
-/** "set_layer_above_client": move the client to the "always on top" layer */
+/** @c set_layer_above_client: move the client to the "always on top" layer */
 cJSON *ipc_action_set_layer_above_client(wm_td *wm, const cJSON *args);
 
-/** "set_layer_normal_client": move the client back to the ordinary layer */
+/** @c set_layer_normal_client: move the client back to the ordinary layer */
 cJSON *ipc_action_set_layer_normal_client(wm_td *wm, const cJSON *args);
 
-/** "set_layer_below_client": move the client to the "always below" layer */
+/** @c set_layer_below_client: move the client to the "always below" layer */
 cJSON *ipc_action_set_layer_below_client(wm_td *wm, const cJSON *args);
 
-/** "cycle_layer_client": cycle the client through above/normal/below */
+/** @c cycle_layer_client: cycle the client through above/normal/below */
 cJSON *ipc_action_cycle_layer_client(wm_td *wm, const cJSON *args);
 
 

@@ -17,7 +17,9 @@
 #define DEFS_POPUP_H
 
 
-/** Maximum length of each info popup text line */
+/**
+ * @brief Maximum length of each info popup text line
+ */
 #define WM_INFO_POPUP_LINE_MAX_LENGTH (256)
 
 /**

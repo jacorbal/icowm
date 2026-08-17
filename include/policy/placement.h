@@ -74,12 +74,12 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client);
 /**
  * @brief Place the client following the cascade policy, unconditionally
  *
- * Ignores @c windows.placement.policy entirely and always steps the
+ * Ignores @p windows.placement.policy entirely and always steps the
  * client to the next cascade slot, regardless of which policy is
  * actually configured.  Meant for callers that need a predictable,
  * non-overlapping spread across several clients in a row (see
- * @c enact_desktop_clients_rearrange), not for placing a single newly
- * mapped client, which should call @c place_apply instead
+ * @a enact_desktop_clients_rearrange), not for placing a single newly
+ * mapped client, which should call @a place_apply instead
  *
  * @param wm      Window manager instance
  * @param surface Surface the client lives on
@@ -122,20 +122,21 @@ void place_icon(const client_td *client, desktop_td *desktop,
  *        current rectangle, if the two would overlap there
  *
  * Direction-aware, unlike always pushing toward one fixed edge: pushes
- * below the tray's own bottom edge when the tray sits in the upper
- * half of @p workarea, or above its own top edge when the tray sits
- * in the lower half, so the icon is never pushed toward whichever
- * edge the tray already occupies (which, near a screen edge, could
- * otherwise push the icon straight off the visible workarea entirely
- * -- e.g., a tray docked at the bottom, pushing "further down" would
- * leave the icon below the workarea's own bottom edge, off-screen or
- * inside a reserved margin, rather than clear of the tray at all).
- * A small fixed gap (@c WM_ICON_SYSTRAY_GAP, defs/icon.h) is left
- * between the two either way, so the icon does not end up sitting
- * flush against the tray's own edge.  The result is then clamped to
- * stay fully within @p workarea's own vertical bounds regardless, in
- * case the tray's own height leaves less room than the icon and its
- * gap together need.
+ * below the tray's own bottom edge when the tray sits in the upper half
+ * of @p workarea, or above its own top edge when the tray sits in the
+ * lower half, so the icon is never pushed toward whichever edge the
+ * tray already occupies (which, near a screen edge, could otherwise
+ * push the icon straight off the visible workarea entirely, pushing
+ * "further down" would leave the icon below the workarea's own bottom
+ * edge, off-screen or inside a reserved margin, rather than clear of
+ * the tray at all).
+ *
+ * A small fixed gap (@c WM_ICON_SYSTRAY_GAP, @c defs/icon.h) is left
+ * between the two either way, so the icon does not end up sitting flush
+ * against the tray's own edge.  The result is then clamped to stay
+ * fully within @p workarea's own vertical bounds regardless, in case
+ * the tray's own height leaves less room than the icon and its gap
+ * together need.
  *
  * @param io_x     Icon's proposed X position; read but never adjusted
  *                 by this function (the tray's own width is not
@@ -144,19 +145,19 @@ void place_icon(const client_td *client, desktop_td *desktop,
  *                 with the adjusted position if pushed
  * @param icon_w   Icon width, in pixels
  * @param icon_h   Icon height, in pixels
- * @param tray_x   Tray's own current rectangle, e.g., from @c
- *                 systray_get_geometry
+ * @param tray_x   Tray's own current rectangle
  * @param tray_y   See @p tray_x
- * @param tray_w   See @p tray_x
- * @param tray_h   See @p tray_x
- * @param workarea Desktop's own current work area (@c desktop->
- *                 workarea); a @c NULL skips the final clamp and
- *                 assumes the tray sits in the upper half, same as an
- *                 unknown workarea would in practice always place it
+ * @param tray_w   Also see @p tray_x
+ * @param tray_h   Told you to see @p tray_x
+ * @param workarea Desktop's own current work area; a @c NULL skips the
+ *                 final clamp and assumes the tray sits in the upper
+ *                 half, same as an unknown workarea would in practice
+ *                 always place it
  *
- * @return @c true if @p io_y was adjusted (the icon did overlap the
- *         tray's own rectangle at its proposed position); @c false if
- *         left untouched
+ * @return Status of the operation
+ * @retval  true if @p io_y was adjusted (the icon did overlap the
+ *               tray's own rectangle at its proposed position)
+ * @retval false if left untouched
  *
  * @note Complexity: @e O(1)
  */

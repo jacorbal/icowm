@@ -95,7 +95,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
             snode != NULL; snode = list_next(snode)) {
         surface_td *surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
-        cdlist_item_td *dinitial;
+        const cdlist_item_td *dinitial;
 
         if (surface == NULL || surface->desktops == NULL ||
                 cdlist_size(surface->desktops) == 0) {

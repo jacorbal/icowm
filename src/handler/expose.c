@@ -67,7 +67,6 @@ void handler_expose(xcb_connection_t *connection,
     desktop_td *desktop;
     bool is_focused;
     bool is_active_visual;
-    bool is_icon_dragging;
     bool use_active_style;
     client_td *cycle_client;
     uint16_t left;
@@ -83,7 +82,7 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Expose event (window=0x%x, region=%ux%u+%d+%d)",
+    LOGGER_TRACE("Expose event (window=0x%x, region=%ux%u+%+d%+d)",
             event->window, event->width, event->height,
             event->x, event->y);
 
@@ -155,18 +154,20 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Icon window: repaint caption */
     if (client->icon_window == event->window) {
+        bool is_icon_dragging;
+
         cycle_client = cycle_get_selected_client();
         is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
             drag_client() == client;
         /* The icon's own drag ('drag_start_icon' in
-         * input/mouse/drag.c) sets the active styling once, at the
+         * 'input/mouse/drag.c') sets the active styling once, at the
          * start of the drag, and nothing re-applies it afterward; an
          * icon passing behind another window mid-drag gets exposed
-         * again once it re-emerges, and without this check that
-         * repaint would fall back to the inactive styling for the
-         * rest of the drag, well after it visually cleared whatever
-         * it had passed behind, since being-dragged is not otherwise
-         * part of what decides active vs. inactive here. */
+         * again once it re-emerges, and without this check that repaint
+         * would fall back to the inactive styling for the rest of the
+         * drag, well after it visually cleared whatever it had passed
+         * behind, since being-dragged is not otherwise part of what
+         * decides active vs. inactive here. */
         is_active_visual = (cycle_is_open() && cycle_client == client) ||
             is_icon_dragging;
 
@@ -186,23 +187,24 @@ void handler_expose(xcb_connection_t *connection,
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
 
         /* Deliberately skipped while this same icon is either being
-         * dragged ('s_drag_sync_icon_active_visual' in input/mouse/
-         * drag.c clears the icon window without drawing its pixmap
-         * when the drag starts, on purpose) or currently selected in
-         * the icon cycle menu ('ri_render_client_icon_selected' in
-         * render/icon.c does the exact same thing when a cycle
-         * selection lands on it) -- both cases already folded into
-         * 'is_active_visual' above. Without this check, an Expose
-         * from passing behind another window (or the cycle menu's
-         * own floating window happening to overlap it) mid-drag or
-         * mid-selection would redraw the pixmap this same repaint
-         * just cleared, bringing it back despite neither one ever
-         * wanting it shown in the first place. */
+         * dragged ('s_drag_sync_icon_active_visual' in
+         * 'input/mouse/drag.c' clears the icon window without drawing
+         * its pixmap when the drag starts, on purpose) or currently
+         * selected in the icon cycle menu
+         * ('ri_render_client_icon_selected' in 'render/icon.c' does the
+         * exact same thing when a cycle selection lands on it), both
+         * cases already folded into 'is_active_visual' above.
+         *
+         * Without this check, an 'Expose' from passing behind another
+         * window (or the cycle menu's own floating window happening to
+         * overlap it) mid-drag or mid-selection would redraw the pixmap
+         * this same repaint just cleared, bringing it back despite
+         * neither one ever wanting it shown in the first place. */
         if (cfg->theme.icon.show_pixmaps && !is_active_visual) {
             /* Always 'inactive' here, never a ternary against
-             * 'is_active_visual': this whole block is already gated
-             * on '!is_active_visual' above, so it is always false by
-             * the time this runs. */
+             * 'is_active_visual': this whole block is already gated on
+             * '!is_active_visual' above, so it is always false by the
+             * time this runs */
             wmicon_draw(connection, client->ewmh, client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
                     cfg->theme.icon.inactive.color.foreground,
@@ -255,9 +257,10 @@ void handler_expose(xcb_connection_t *connection,
          * Expose (e.g., a click landing on it while it happens to
          * still exist as an X window underneath, even though it is
          * never shown decorated), and this path used to repaint the
-         * theme's regular border onto it unconditionally regardless;
-         * same condition 's_desktop_render_one_client' (render/
-         * desktop.c) already uses for its own 'hide_decoration'. */
+         * theme's regular border onto it unconditionally regardless.
+         * Same condition 's_desktop_render_one_client'
+         * ('render/desktop.c') already uses for its own
+         * 'hide_decoration'. */
         if (!(client_is_fullscreen(client) &&
                     client->was_decorated_fullscreen)) {
             desktop_repaint_frame_decoration(connection, client,

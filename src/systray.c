@@ -4,10 +4,10 @@
  * @brief Built-in systray dock: shared state, public event
  *        dispatchers, and configuration-driven lifecycle
  *
- * The @c s_tray state every file @ *.c in @c src/systray/ shares is
+ * The @p s_tray state every file @ *.c in @c src/systray/ shares is
  * defined here (see @c systray/internal.h), along with the public entry
  * points every other subsystem calls into (init/shutdown/reload, and
- * every event handler): the actual work of reading clock/battery
+ * every event handler).   The actual work of reading clock/battery
  * text, positioning and drawing the tray, and speaking the systray
  * protocol lives in @c systray/text.c, @c systray/layout.c, and
  * @c systray/protocol.c respectively.
@@ -46,17 +46,17 @@ struct systray_state_s s_tray;
 
 
 /**
- * @brief Copy every systray setting from @p wm->config into @c s_tray,
+ * @brief Copy every systray setting from @p wm->config into @p s_tray,
  *        and refresh the clock/battery text for the values just copied
  *
- * The part @c systray_init and @c systray_reload both need identically
- * (every field @c config.json's own @c systray object can set, plus
+ * The part @a systray_init and @a systray_reload both need identically
+ * (every field @c config.json's own @p systray object can set, plus
  * re-rendering the clock and battery text so a changed format or
  * threshold takes effect immediately rather than waiting for the next
- * scheduled tick); what differs between the two callers is only what
+ * scheduled tick).  What differs between the two callers is only what
  * happens before and after this, not this copy itself.
  *
- * @param wm Window manager state, for its current @c config
+ * @param wm Window manager state, for its current @p config
  *
  * @note Complexity: @e O(1)
  */
@@ -135,10 +135,10 @@ void systray_init(wm_td *wm)
     /* Never acquired at all when 'is_embedding_enabled' is false, own
      * clock/battery text still shown regardless via the explicit
      * 'systray_layout_reflow' call below, since
-     * 'systray_protocol_acquire_selection' does not trigger one on
-     * its own: see 'is_embedding_enabled''s own doc comment in
-     * config.h for why restricted-memory mode is the one profile
-     * that always leaves it false. */
+     * 'systray_protocol_acquire_selection' does not trigger one on its
+     * own: see 'is_embedding_enabled''s comment in 'config.h' for why
+     * restricted-memory mode is the one profile that always leaves it
+     * 'false' */
     if (wm->config->base.systray.is_embedding_enabled) {
         (void) systray_protocol_acquire_selection();
     }
@@ -156,8 +156,8 @@ void systray_shutdown(wm_td *wm)
 
     if (s_tray.window_ready && s_tray.connection != NULL &&
             s_tray.window != XCB_WINDOW_NONE) {
-        /* Destroying the tray window implicitly reparents any still-
-         * docked icons back to the root window; each icon's own
+        /* Destroying the tray window implicitly reparents any
+         * still-docked icons back to the root window; each icon's own
          * application is responsible for re-docking if a tray reappears
          * later, exactly as with every other systray.  This full
          * teardown is only for the window manager itself exiting;
@@ -205,10 +205,9 @@ const struct strut_partial_s *systray_get_reserved_strut(
 
     /* 'reserved_strut' is kept at all-zero sides by
      * 'systray_layout_reflow' itself whenever the tray is unmapped
-     * (disabled, empty, or another tray manager owns the selection),
-     * so no separate check for that is needed here: a caller adding
-     * an all-zero strut to a workarea calculation is a no-op either
-     * way. */
+     * (disabled, empty, or another tray manager owns the selection), so
+     * no separate check for that is needed here: a caller adding an
+     * all-zero strut to a workarea calculation is a no-op either way */
     return &s_tray.reserved_strut;
 }
 
@@ -235,10 +234,10 @@ bool systray_get_geometry(const surface_td *surface, int32_t *out_x,
     }
 
     /* 'reply->x'/'reply->y' are relative to the tray window's own
-     * parent, the same root every other top-level window this
-     * project creates (icon windows included) shares, so directly
-     * comparable against an icon's own root-relative position with
-     * no extra translation needed. */
+     * parent, the same root every other top-level window this project
+     * creates (icon windows included) shares, so directly comparable
+     * against an icon's own root-relative position with no extra
+     * translation needed */
     *out_x = (int32_t) reply->x;
     *out_y = (int32_t) reply->y;
     *out_w = reply->width;
@@ -275,33 +274,35 @@ bool systray_enforce_icon_size(xcb_window_t window)
 
 /**
  * @brief Force every already-docked icon back to the tray's current
- *        @c pixmap.size
+ *        @p pixmap.size
  *
  * A docked icon's own size is otherwise only ever set once, at dock
- * time (see 'systray_protocol_dock' in systray/protocol.c): reparent,
- * resize, only then map -- the icon is never actually visible at its
- * old size in the first place, so it never needs to redraw itself to
- * fit a new one either.  Nothing about reloading the configuration on
- * its own revisits an icon that was already docked (and already
- * mapped, already painted once) under a previous, possibly different
- * @c pixmap.size.  'systray_layout_reflow', called separately, does
- * reposition every icon using the newly reloaded size and padding for
- * its own spacing math, but repositioning is not resizing.
+ * time (see @a systray_protocol_dock in @c systray/protocol.c).
+ * Reparent, resize, only then map, the icon is never actually visible
+ * at its old size in the first place, so it never needs to redraw
+ * itself to fit a new one either.  Nothing about reloading the
+ * configuration on its own revisits an icon that was already docked
+ * (and already mapped, already painted once) under a previous, possibly
+ * different @p pixmap.size.
+ *
+ * @a systray_layout_reflow, called separately, does reposition every
+ * icon using the newly reloaded size and padding for its own spacing
+ * math, but repositioning is not resizing.
  *
  * Unmapping first, then resizing, then remapping mirrors that same
  * dock-time sequence as closely as possible, rather than resizing the
  * icon in place while still mapped and already painted: many minimal
  * XEmbed tray-icon implementations paint themselves once at whatever
  * size they were first mapped at and never repaint in response to a
- * later live 'ConfigureNotify' the way a full GTK/Qt widget would --
+ * later live @c ConfigureNotify the way a full GTK/Qt widget would;
  * an in-place resize left the icon showing as a blank square in at
  * least one real client, not a correctly rescaled one, since nothing
  * in that client ever repainted it.  Briefly unmapping first, so the
  * icon is invisible precisely while it does not yet have its new
  * size, and only remapping once it does, gives it the same "resized
  * before ever visible at the new size" situation dock time already
- * relies on -- though, without XEmbed guaranteeing this, an
- * individual client could still fail to repaint correctly here too.
+ * relies on, though, without XEmbed guaranteeing this, an individual
+ * client could still fail to repaint correctly here too.
  *
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */
@@ -406,13 +407,13 @@ void systray_reload(wm_td *wm)
     systray_protocol_apply_theme_style();
 
     /* Unconditional, before the enabled/disabled branches below: an
-     * icon already docked before this reload keeps whatever size it
-     * was forced to at dock time otherwise (see this function's own
-     * doc comment), regardless of whether the tray ends up enabled,
-     * disabled, or unchanged by this same reload -- so a size picked
-     * up while momentarily disabled is still correct the next time
-     * the tray is shown again, without needing every application to
-     * re-dock itself. */
+     * icon already docked before this reload keeps whatever size it was
+     * forced to at dock time otherwise (see this function's own doc
+     * comment), regardless of whether the tray ends up enabled,
+     * disabled, or unchanged by this same reload, so a size picked up
+     * while momentarily disabled is still correct the next time the
+     * tray is shown again, without needing every application to re-dock
+     * itself. */
     s_systray_resize_docked_icons();
 
     if (was_active && !should_be_enabled) {
@@ -424,7 +425,7 @@ void systray_reload(wm_td *wm)
         /* 'systray_protocol_release_selection' already triggers
          * 'systray_layout_reflow' itself once it releases the
          * selection, but only when 'selection_owned' was actually
-         * true to begin with; with embedding disabled, it was never
+         * 'true' to begin with.  With embedding disabled, it was never
          * acquired at all, so this still needs to unmap the window
          * itself directly instead. */
         if (s_tray.selection_owned) {
@@ -440,11 +441,11 @@ void systray_reload(wm_td *wm)
 
         s_tray.is_active = ready;
 
-        /* Selection acquisition only even attempted, let alone
-         * required for success here, when embedding is actually
-         * allowed; with it disabled the window alone (already
-         * showing its own clock/battery text via
-         * 's_systray_apply_config' above) is enough on its own. */
+        /* Selection acquisition only even attempted, let alone required
+         * for success here, when embedding is actually allowed; with it
+         * disabled the window alone (already showing its own
+         * clock/battery text via 's_systray_apply_config' above) is
+         * enough on its own */
         if (ready && wm->config->base.systray.is_embedding_enabled) {
             (void) systray_protocol_acquire_selection();
         }

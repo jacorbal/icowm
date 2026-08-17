@@ -284,11 +284,11 @@ int config_load_bindings(const char *filename,
         cJSON *launch;
         cJSON *window;
         cJSON *cycle;
-        cJSON *go_to;
 
         wm = cJSON_GetObjectItem(keyboard, "wm");
         if (wm) {
             cJSON *wm_menus;
+            cJSON *go_to;
 
             wm_menus = cJSON_GetObjectItem(wm, "menus");
             if (wm_menus) {

@@ -36,10 +36,10 @@
 /**
  * @brief Test whether a shell glob pattern matches a string value
  *
- * Wraps @c fnmatch with default flags, returning @c false whenever
+ * Wraps @a fnmatch with default flags, returning @c false whenever
  * either argument is null.
  *
- * @param pattern Shell glob pattern (may contain @c * and @c ?)
+ * @param pattern Shell glob pattern (may contain '*' and '?')
  * @param value   String to test against @p pattern
  *
  * @return Whether @p pattern matches @p value

@@ -70,7 +70,7 @@ void ccmd_client_layer_below(client_td *client);
 
 /**
  * @brief Cycle the client's layer:
- *        @c (normal -> above -> below -> normal -> above -> ...)
+ *        @e (normal -> above -> below -> normal -> above -> ...)
  *
  * @param client Window whose layer is to be cycled
  *
@@ -89,11 +89,10 @@ void ccmd_client_cycle_layer(client_td *client);
  *
  * @param desktop Desktop whose clients are to be restacked
  *
- * @note No-op when @p desktop is null or has no stacking list
+ * @note A no-op when @p desktop is null or has no stacking list
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
 void ccmd_desktop_enforce_layers(desktop_td *desktop);
-
 
 
 #endif  /* ! CMDS_CCMD_LAYER_H */

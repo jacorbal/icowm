@@ -588,16 +588,15 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
- * @brief Detect which of the two accepted 'topology.screens.desktops'
- *        shapes a JSON array is using, looking at its first entry
- *        alone
+ * @brief Detect which of the two accepted @p topology.screens.desktops
+ *        shapes a JSON array is using, looking at its first entry alone
  *
- * The flat, single-screen shape has plain desktop entries (name/
- * background color and the like); the per-screen shape instead has
- * each entry carrying its own 'settings'/'count'/'inaugural' fields
- * describing a whole screen.
+ * The flat, single-screen shape has plain desktop entries
+ * (name/background color and the like).  The per-screen shape instead
+ * has each entry carrying its own @p settings / @p count / @p inaugural
+ * fields describing a whole screen.
  *
- * @param desktops_array The 'topology.screens.desktops' array itself
+ * @param desktops_array The @p topology.screens.desktops array itself
  *
  * @return @c true if the per-screen (nested) shape is in use
  *
@@ -620,8 +619,9 @@ static bool s_config_screens_uses_nested_layout(cJSON *desktops_array)
 
 
 /**
- * @brief Load the flat 'topology.screens.desktops' shape: every array
- *        entry is a plain desktop, all applied to screen 0
+ * @brief Load the flat @p topology.screens.desktops shape
+ *
+ * Every array entry is a plain desktop, all applied to screen 0.
  *
  * @param desktops_array The 'topology.screens.desktops' array itself
  * @param desktop_count  Number of entries in @p desktops_array,
@@ -656,12 +656,12 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
 
 /**
  * @brief Load one screen's own entry within the per-screen (nested)
- *        'topology.screens.desktops' shape
+ *        @p topology.screens.desktops shape
  *
- * Reads that one screen's own 'count'/'inaugural', clamping the
+ * Reads that one screen's @p count / @p inaugural, clamping the
  * inaugural desktop back to 0 if it names one past the screen's own
- * desktop count, then loads every desktop named in its own
- * 'settings' array.
+ * desktop count, then loads every desktop named in its @p settings
+ * array.
  *
  * @param desktop_item One entry of 'topology.screens.desktops',
  *                     describing screen @p screen_idx
@@ -718,8 +718,10 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
 
 
 /**
- * @brief Load the per-screen (nested) 'topology.screens.desktops'
- *        shape: every array entry describes one whole screen
+ * @brief Load the per-screen (nested) @p topology.screens.desktops
+ *        shape
+ *
+ * Every array entry describes one whole screen
  *
  * @param desktops_array The 'topology.screens.desktops' array itself
  * @param desktop_count  Number of entries in @p desktops_array,
@@ -755,30 +757,31 @@ static void s_config_load_screens_nested(cJSON *desktops_array,
 
 
 /**
- * @brief Load @c "topology.screens" (screen count, and each screen's
+ * @brief Load @c topology.screens (screen count, and each screen's
  *        desktop count/inaugural desktop/desktop entries) from parsed
  *        @c config.json
  *
- * Accepts two on-disk shapes for the @c "topology.screens.desktops"
- * array: a flat list of desktop entries applied to screen 0 (the
- * common, single-screen case, see @c s_config_load_screens_flat), or,
- * when any entry in that array itself carries its own @c "settings"/
- * "count"/"inaugural" fields, a nested layout where each entry
- * instead describes one whole screen (multi-screen configurations,
- * see @c s_config_load_screens_nested).  Which shape is in use is
- * detected from the first array entry alone (see @c
- * s_config_screens_uses_nested_layout).  A missing @c "topology" or
- * @c "screens" object, or a missing/non-array @c "desktops" within
- * it, leaves whatever @p config_base already held (its compiled-in or
+ * Accepts two on-disk shapes for the @p topology.screens.desktops
+ * array.  A flat list of desktop entries applied to screen 0 (the
+ * common, single-screen case, see @a s_config_load_screens_flat), or,
+ * when any entry in that array itself carries its @p settings /
+ * @p count / @p inaugural fields, a nested layout where each entry
+ * instead describes one whole screen (multi-screen configurations, see
+ * @a s_config_load_screens_nested).
+ *
+ * Which shape is in use is detected from the first array entry alone
+ * (see @a s_config_screens_uses_nested_layout).  A missing @p topology
+ * or @p screens object, or a missing/non-array @p desktops within it,
+ * leaves whatever @p config_base already held (its compiled-in or
  * previously-loaded defaults) untouched, logging why.
  *
- * @c "topology" (and everything under it, including @c "screens")
- * only ever takes effect at startup: unlike the rest of @c
- * config.json, a configuration reload does not re-run this function,
- * since changing screen or desktop counts at runtime would mean
- * deciding what happens to whatever clients, focus, and EWMH state
- * already live on a desktop being removed, which nothing in the
- * window manager currently does (see the "Reload behavior" note).
+ * @p topology (and everything under it, including @p screens) only ever
+ * takes effect at startup: unlike the rest of @c config.json,
+ * a configuration reload does not re-run this function, since changing
+ * screen or desktop counts at runtime would mean deciding what happens
+ * to whatever clients, focus, and EWMH state already live on a desktop
+ * being removed, which nothing in the window manager currently does
+ * (see the "Reload behavior" note).
  *
  * @param json        Parsed root of @c config.json
  * @param config_base Destination structure; its @c screen_count and
@@ -811,11 +814,10 @@ static void s_config_load_screens(cJSON *json,
     s_config_enforce_min_count(&config_base->screen_count, 1u,
             "topology.screens.count", filename);
 
-    /* 'desktops' sits directly under 'topology.screens' -- no
-     * intervening 'settings' object (unlike each individual screen
-     * entry's own per-desktop 'settings[]' array below, which is a
-     * different, unrelated thing this schema keeps as it already
-     * was). */
+    /* 'desktops' sits directly under 'topology.screens'; no intervening
+     * 'settings' object (unlike each individual screen entry's own
+     * per-desktop 'settings[]' array below, which is a different,
+     * unrelated thing this schema keeps as it already was) */
     desktops_array = cJSON_GetObjectItem(screen_settings, "desktops");
     if (desktops_array == NULL || !cJSON_IsArray(desktops_array)) {
         LOGGER_WARNING("No 'desktops' array found under" \
@@ -840,18 +842,17 @@ static void s_config_load_screens(cJSON *json,
 
 
 /**
- * @brief Load @c "desktops" (desktop-navigation and reserved-space
- *        behavior: @c warp, @c cycle, @c margins) from parsed
- *        @c config.json
+ * @brief Load @c desktops (desktop-navigation and reserved-space
+ *        behavior
  *
- * A sibling of @c "topology" at the root of @c config.json, not
- * nested inside it (see @c config_desktop_s's own doc comment in
- * config.h for why): unlike @c "topology", every field this loads is
- * meant to take effect again on a configuration reload, so
- * @c s_config_load_screens and this function are deliberately kept
- * separate despite both being called from @c config_load_base.  A
- * missing @c "desktops" object, or a missing @c "margins" within it,
- * leaves whatever @p config_desktop already held untouched.
+ * A sibling of @p topology at the root of @c config.json, not nested
+ * inside it (see @p config_desktop_s's comment in @c config.h for why).
+ * Unlike @p topology, every field this loads is meant to take effect
+ * again on a configuration reload, so @a s_config_load_screens and this
+ * function are deliberately kept separate despite both being called
+ * from @a config_load_base.  A missing @p desktops object, or a missing
+ * @p margins within it, leaves whatever @p config_desktop already held
+ * untouched.
  *
  * @param json           Parsed root of @c config.json
  * @param config_desktop Destination structure to populate
@@ -897,9 +898,8 @@ static void s_config_load_desktop_behavior(cJSON *json,
 
 /* Populate default values for the base and desktop-navigation
  * configuration structures, used both as the initial process-wide
- * default and, before applying config.json (or memguard.json) found,
- * as the known-good starting point that file's own fields then
- * overlay */
+ * default and, before applying config.json (or 'memguard.json') found,
+ * as the known-good starting point that file's own fields then overlay */
 void config_set_default_base_values(struct config_base_s *config_base,
         struct config_desktop_s *config_desktop)
 {
@@ -907,12 +907,12 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->theme[0] = '\0';
     config_base->screen_count = 1;
 
-    /* Desktop-navigation and reserved-space behavior (config.json's
-     * own top-level 'desktop', a sibling of 'topology'; see config_
-     * desktop_s's own doc comment in config.h) -- meaningless with
-     * only one desktop for 'enable_edge_warp'/'is_circular', but set
-     * regardless of how many desktops end up configured, the same
-     * as every other default here. */
+    /* Desktop-navigation and reserved-space behavior ('config.json''s
+     * top-level 'desktop', a sibling of 'topology'; see
+     * config_desktop_s's comment in 'config.h').  Meaningless with only
+     * one desktop for 'enable_edge_warp'/'is_circular', but set
+     * regardless of how many desktops end up configured, the same as
+     * every other default here. */
     config_desktop->show_overlay = true;
     config_desktop->notify_activity = true;
     config_desktop->enable_edge_warp = true;
@@ -923,15 +923,15 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_desktop->margins.left = 0u;
 
     /* Every screen and desktop slot the fixed-size 'screens' and
-     * 'desktops' arrays can ever hold gets the sentinel here, not
-     * just the ones this function is about to treat as active by
-     * default below: 'config_load_base' can fill in far more screens
-     * or desktops than that default, straight into these same
-     * arrays, and a slot it does not itself set a color for would
-     * otherwise still be sitting at zero from this whole structure's
-     * initial 'calloc' rather than at the sentinel, which reads as an
-     * opaque black background instead of falling back to the theme's
-     * own color the way an genuinely unset one should. */
+     * 'desktops' arrays can ever hold gets the sentinel here, not just
+     * the ones this function is about to treat as active by default
+     * below: 'config_load_base' can fill in far more screens or
+     * desktops than that default, straight into these same arrays, and
+     * a slot it does not itself set a color for would otherwise still
+     * be sitting at zero from this whole structure's initial 'calloc'
+     * rather than at the sentinel, which reads as an opaque black
+     * background instead of falling back to the theme's own color the
+     * way an genuinely unset one should. */
     LOGGER_TRACE("Setting background-color sentinel for every" \
             " possible screen and desktop slot", L_NARG);
     for (unsigned int i = 0; i < CONFIG_MAX_SCREENS; ++i) {
@@ -943,13 +943,12 @@ void config_set_default_base_values(struct config_base_s *config_base,
 
     LOGGER_TRACE("Setting configuration for each screen", L_NARG);
     for (unsigned int i = 0; i < config_base->screen_count; ++i) {
-        /* 4 desktops by default, unless 'CONFIG_MAX_DESKTOPS' itself
-         * is smaller than that.  Purely a fallback for when nothing
-         * else specifies a count at all: a 'config.json' that
-         * specifies its own 'desktops.count' always overrides this
-         * default, since 'config_load_base' runs after this and
-         * simply replaces it; nothing caps that value back down
-         * afterward. */
+        /* 4 desktops by default, unless 'CONFIG_MAX_DESKTOPS' itself is
+         * smaller than that.  Purely a fallback for when nothing else
+         * specifies a count at all: a 'config.json' that specifies its
+         * own 'desktops.count' always overrides this default, since
+         * 'config_load_base' runs after this and simply replaces it;
+         * nothing caps that value back down afterward. */
         uint32_t desktop_default = 4u;
 
         config_base->screens[i].desktop_count =
@@ -1051,8 +1050,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
 
 
 /* Load "systray" (dock position/monitor/order/layer, and its nested
- * "clock", "battery", and "text" objects) from a parsed config.json
- * or memguard.json */
+ * "clock", "battery", and "text" objects) from a parsed 'config.json'
+ * or 'memguard.json' */
 void ci_config_load_systray(cJSON *json,
         struct config_base_s *config_base)
 {
@@ -1078,7 +1077,8 @@ void ci_config_load_systray(cJSON *json,
 
     margins = cJSON_GetObjectItem(systray, "margins");
     if (margins != NULL) {
-        json_load_uint(margins, "top", &config_base->systray.margins.top);
+        json_load_uint(margins, "top",
+                &config_base->systray.margins.top);
         json_load_uint(margins, "right",
                 &config_base->systray.margins.right);
         json_load_uint(margins, "bottom",
@@ -1206,8 +1206,7 @@ void ci_config_load_systray(cJSON *json,
 }
 
 
-
-
+/* Load base configuration settings from a JSON file */
 int config_load_base(const char *filename,
         struct config_base_s *config_base,
         struct config_desktop_s *config_desktop)

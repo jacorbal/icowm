@@ -2,7 +2,7 @@
  * @file ipc/actions/surface.h
  *
  * @brief IPC commands mirroring @c enact.h's own
- *        @c enact_surface_desktop_switch* actions
+ *        @a enact_surface_desktop_switch* actions
  *
  * @defgroup ipc_actions_surface IPC desktop-switching actions
  * @ingroup ipc
@@ -27,14 +27,14 @@
 
 
 /* Public interface */
-/** "goto_desktop": arguments "desktop_id" (required), "surface_id"
+/** @c goto_desktop: arguments @c desktop_id (required), @c surface_id
  *  (optional) */
 cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args);
 
-/** "goto_next_desktop": argument "surface_id" (optional) */
+/** @c goto_next_desktop: argument @c surface_id (optional) */
 cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args);
 
-/** "goto_prev_desktop": argument "surface_id" (optional) */
+/** @c goto_prev_desktop: argument @c surface_id (optional) */
 cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args);
 
 

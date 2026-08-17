@@ -45,6 +45,7 @@
 #include <lookup.h>
 #include <systray.h>
 #include <wm.h>
+#include <wm/kill.h>
 
 /* Local includes */
 #include <cmds/client/basic.h>
@@ -73,7 +74,6 @@ static void s_client_focus_fallback(client_td *client)
     surface_td *surface;
     desktop_td *desktop;
     cdlist_item_td *node;
-    cdlist_item_td *initial;
     client_td *next_focus;
 
     if (client == NULL) {
@@ -95,6 +95,8 @@ static void s_client_focus_fallback(client_td *client)
     next_focus = NULL;
 
     if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+        const cdlist_item_td *initial;
+
         node = cdlist_tail(desktop->stacking);
         initial = node;
         if (node != NULL) {
@@ -175,6 +177,17 @@ void ccmd_client_kill(client_td *client)
      * ENTIRE connection to the X server.  Meant as a last resort for
      * unresponsive clients that ignore a normal close request. */
     xcb_kill_client(client->connection, client->window);
+
+    /* Enough for the common case: losing its own X connection is
+     * normally fatal to whatever toolkit the client is built on, so the
+     * process exits on its own shortly after.
+     *
+     * A genuinely unresponsive client, stuck in some loop that never
+     * processes its own X connection at all, never notices that loss
+     * and keeps running regardless; 'wm_kill_register' watches for
+     * exactly that and sends a real 'SIGKILL' if it is still alive once
+     * its own bounded window elapses. */
+    wm_kill_register(client->process.pid);
 }
 
 
@@ -330,26 +343,25 @@ void ccmd_client_focus(client_td *client)
     ccmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     xcb_map_window(client->connection, client->window);
-    /* 'client_apply_border' (client.h) preserves this same
-     * condition (undecorated-or-frameless, never fullscreen)
-     * internally, and additionally honors 'border_override' for a
-     * client that themes its own border independently of
-     * 'theme->window.active/inactive' (the scratchpad,
-     * scratchpad.c, is the only one that does so today) --
-     * unconditionally applying the theme's own real border width
-     * here on every single focus change (this function runs on
-     * every click, via 'focus_apply') used to undo the zero width
-     * 'ccmd_client_fullscreen' (cmds/state.c) had already set,
-     * putting a real, visible border back on an undecorated
-     * fullscreen client's own window -- confirmed directly from
-     * runtime diagnostics: an undecorated client (e.g., mpv, which
-     * requests no decoration of its own from the very start, so
-     * 'client_is_decorated' is already false before it ever goes
-     * fullscreen, unlike a client that only loses decoration
-     * because it went fullscreen) has no separate frame at all
-     * ('client->frame' stays 0 throughout, this branch's own
-     * 'hide_decoration' equivalent everywhere else in the project
-     * never even applies to it), so this call is the only place
+    /* 'client_apply_border' ('client.h') preserves this same condition
+     * (undecorated-or-frameless, never fullscreen) internally, and
+     * additionally honors 'border_override' for a client that themes
+     * its own border independently of 'theme->window.active/inactive'
+     * (the scratchpad, 'scratchpad.c', is the only one that does so
+     * today) unconditionally applying the theme's own real border width
+     * here on every single focus change (this function runs on every
+     * click, via 'focus_apply') used to undo the zero width
+     * 'ccmd_client_fullscreen' ('cmds/state.c') had already set,
+     * putting a real, visible border back on an undecorated fullscreen
+     * client's own window; confirmed directly from runtime diagnostics.
+     *
+     * An undecorated client (e.g., 'mpv', which requests no decoration
+     * of its own from the very start, so 'client_is_decorated' is
+     * already false before it ever goes fullscreen, unlike a client
+     * that only loses decoration because it went fullscreen) has no
+     * separate frame at all ('client->frame' stays 0 throughout, this
+     * branch's own 'hide_decoration' equivalent everywhere else in the
+     * project never even applies to it), so this call is the only place
      * actually restoring its border on focus. */
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL && !client_is_fullscreen(client)) {
@@ -444,7 +456,7 @@ static bool s_icon_slot_is_taken(const client_td *client,
 {
     desktop_td *desktop;
     cdlist_item_td *node;
-    cdlist_item_td *initial;
+    const cdlist_item_td *initial;
 
     if (client == NULL || client->icon_x < 0 || client->icon_y < 0) {
         return false;
@@ -529,18 +541,18 @@ static void s_client_ensure_icon_window(client_td *client,
             /* dimensions updated */
         }
 
-        /* 'monitor' above is deliberately raw (see ccmd_client_
-         * monitor's own doc comment), the same as 'desktop_update_
-         * workarea' (desktop.c) starts from before folding in
-         * 'desktops.margins' and the systray's own reservation for
-         * windows; applied here the same way, per monitor rather than
-         * once across the whole surface: top/left shift this
-         * monitor's own placement origin inward, and right/bottom
-         * shrink the available area, so the icon grid never lands
-         * within a margin a window's own maximize and placement
-         * already stay clear of, nor under the systray's own dock
-         * window (which would otherwise sit right on top of a
-         * restored icon left behind there, blocking that dock
+        /* 'monitor' above is deliberately raw (see
+         * 'ccmd_client_monitor''s comment), the same as
+         * 'desktop_update_workarea' (in 'desktop.c') starts from before
+         * folding in 'desktops.margins' and the systray's own
+         * reservation for windows; applied here the same way, per
+         * monitor rather than once across the whole surface: top/left
+         * shift this monitor's own placement origin inward, and
+         * right/bottom shrink the available area, so the icon grid
+         * never lands within a margin a window's own maximize and
+         * placement already stay clear of, nor under the systray's own
+         * dock window (which would otherwise sit right on top of
+         * a restored icon left behind there, blocking that dock
          * window's own repaint). */
         if (surface != NULL) {
             const struct strut_partial_s *tray_strut =
@@ -622,13 +634,13 @@ static void s_client_ensure_icon_window(client_td *client,
          * systray/layout.c): the tray still visually occupies real
          * screen space either way, so a final check against its
          * actual current rectangle, the same one a drag or a config
-         * reload already goes through (see 'icon_avoid_systray_
-         * overlap''s own doc comment), catches what that coarser
-         * shrink alone still misses -- a tray docked in a corner,
-         * reaching only partway along an edge, being the case that
-         * shrink cannot express at all: it only ever knows the
-         * tray's own side widths, nothing about how far along that
-         * edge it actually reaches. */
+         * reload already goes through (see
+         * 'icon_avoid_systray_overlap''s comment), catches what that
+         * coarser shrink alone still misses.  A tray docked in
+         * a corner, reaching only partway along an edge, being the case
+         * that shrink cannot express at all: it only ever knows the
+         * tray's own side widths, nothing about how far along that edge
+         * it actually reaches. */
         if (surface != NULL) {
             int32_t tray_x;
             int32_t tray_y;
@@ -688,8 +700,6 @@ void ccmd_client_iconify(client_td *client)
     xcb_atom_t net_wm_state_atom;
     xcb_atom_t icon_geom_atom;
     xcb_atom_t skip_atoms[2];
-    uint32_t wm_state_vals[2];
-    uint32_t icon_geom[4];
     uint16_t icon_h_out;
     bool skip_icon_win;
 
@@ -774,6 +784,8 @@ void ccmd_client_iconify(client_td *client)
 
     if (!skip_icon_win) {
         xcb_window_t tray_below;
+        uint32_t wm_state_vals[2];
+        uint32_t icon_geom[4];
 
         xcb_map_window(client->connection, client->icon_window);
 
@@ -980,8 +992,8 @@ void ccmd_client_pin(client_td *client)
 /* Remove client pin mode */
 void ccmd_client_unpin(client_td *client)
 {
-    desktop_td *owner_desktop;
-    desktop_td *current_desktop;
+    const desktop_td *owner_desktop;
+    const desktop_td *current_desktop;
     surface_td *surface;
     xcb_window_t target;
 
@@ -1039,7 +1051,7 @@ void ccmd_client_unpin(client_td *client)
 /* Toggle stickiness */
 void ccmd_client_toggle_pin(client_td *client)
 {
-    surface_td *surface;
+    const surface_td *surface;
 
     if (client == NULL || client_is_locked(client)) {
         return;

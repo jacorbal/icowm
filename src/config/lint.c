@@ -401,15 +401,15 @@ static const config_lint_key_td s_schema_bindings[] = {
 };
 
 
-/* --- theme.json schema: validated to the same full depth as every
- *     other fixed-shape file (config.json, bindings.json, a11y.json).
- *     Unlike randr.json's own "outputs" or rules.json's own "rules",
- *     nothing under theme.json is genuinely polymorphic (see the
- *     opaque-subtree rule in config/lint.h for what that means and
- *     why it does not apply here): every field's own shape is fixed
- *     and known ahead of time, so there is no risk of a false
- *     positive on a legitimate but less common shape the way there
- *     would be for those. --- */
+/* `theme.json` schema: validated to the same full depth as every other
+ *      fixed-shape file ('config.json', 'bindings.json', 'a11y.json').
+ *      Unlike 'randr.json''s own "outputs" or 'rules.json''s own
+ *      "rules", nothing under theme.json is genuinely polymorphic (see
+ *      the opaque-subtree rule in 'config/lint.h' for what that means
+ *      and why it does not apply here): every field's own shape is
+ *      fixed and known ahead of time, so there is no risk of a false
+ *      positive on a legitimate but less common shape the way there
+ *      would be for those. */
 
 /* The { font, color: {background, foreground}, border: {color,
  * width} } shape shared by every themeable surface's own row or
@@ -706,9 +706,9 @@ static const config_lint_key_td s_schema_a11y[] = {
 };
 
 
-/* --- memguard.json schema: a stricter subset of config.json's own,
- *     since restricted-memory mode accepts fewer fields per section
- *     than an ordinary session does (see config.md section 10.1) --- */
+/* memguard.json schema: a stricter subset of config.json's own,
+ *      since restricted-memory mode accepts fewer fields per section
+ *      than an ordinary session does (see 'config.md' §10.1) */
 
 static const config_lint_key_td s_schema_memguard_windows_placement[] = {
     {"policy", NULL, 0u}
@@ -955,7 +955,7 @@ static void s_lint_themes(const char *config_dir, int *unknown_count)
 {
     char themes_dir[512];
     DIR *dir;
-    struct dirent *entry;
+    const struct dirent *entry;
 
     (void) snprintf(themes_dir, sizeof(themes_dir), "%s/themes",
             config_dir);

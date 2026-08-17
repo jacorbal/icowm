@@ -16,7 +16,7 @@
 #include <stdio.h>      /* snprintf */
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, malloc */
-#include <string.h>     /* memcpy, strlen */
+#include <string.h>     /* memcpy */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -225,12 +225,12 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     memguard_init(wm->restricted_memory_mib);
 
     /* Restricted-memory mode already forces every theme font to some
-     * variant of "fixed" (config/memguard.h), which always resolves
-     * as an X core font on its own, so the heavier xcb-render/
+     * variant of "fixed" ('config/memguard.h'), which always resolves
+     * as an X core font on its own, so the heavier 'xcb-render'/
      * FreeType2/fontconfig backend is never actually needed for the
-     * rest of this process's own life; see 'text_renderer_disable_
-     * glyph_backend''s own doc comment for why this closes a gap that
-     * font-name matching alone could not. */
+     * rest of this process's own life; see
+     * 'text_renderer_disable_glyph_backend''s comment for why this
+     * closes a gap that font-name matching alone could not. */
     if (wm->restricted_memory_mib > 0u) {
         text_renderer_disable_glyph_backend();
     }

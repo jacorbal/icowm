@@ -67,7 +67,6 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
         int32_t center_x, int32_t center_y)
 {
     cdlist_item_td *node;
-    cdlist_item_td *initial;
     uint64_t cost;
     int32_t dx;
     int32_t dy;
@@ -78,7 +77,8 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
             cdlist_size(desktop->stacking) != 0u) {
         node = cdlist_head(desktop->stacking);
         if (node != NULL) {
-            initial = node;
+            const cdlist_item_td *initial = node;
+
             do {
                 const client_td *other =
                     (const client_td *) cdlist_data(node);
@@ -598,8 +598,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
         }
     }
 
-    LOGGER_DEBUG("Smart-placed window (pos=%d+%d, cost=%lu," \
-            " wa-pos=%d+%d, wa-size=%ux%u)",
+    LOGGER_DEBUG("Smart-placed window (pos=%+d%+d, cost=%lu," \
+            " wa-pos=%+d%+d, wa-size=%ux%u)",
             best_x, best_y, (unsigned long) best_cost,
             wa_x, wa_y, wa_w, wa_h);
 
@@ -637,7 +637,7 @@ static void s_place_workarea(wm_td *wm, surface_td *surface,
         struct dimensions_s *out_mon_sz)
 {
     struct dimensions_s screen;
-    desktop_td *desktop;
+    const desktop_td *desktop;
 
     screen.w = surface->properties.dim.w;
     screen.h = surface->properties.dim.h;
@@ -678,7 +678,7 @@ static void s_place_workarea(wm_td *wm, surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_finalize(wm_td *wm, surface_td *surface,
+static void s_place_finalize(wm_td *wm, const surface_td *surface,
         client_td *client, int32_t wa_x, int32_t wa_y,
         int32_t new_x, int32_t new_y)
 {
@@ -708,7 +708,6 @@ void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
 {
     const uint32_t cascade_step = 24u;
     uint32_t max_steps;
-    uint32_t my;
     uint32_t fw;
     uint32_t fh;
     struct geometry_s wa;
@@ -728,7 +727,8 @@ void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
 
     max_steps = (mon_sz.w > fw) ? (mon_sz.w - fw) / cascade_step : 1u;
     if (mon_sz.h > fh) {
-        my = (mon_sz.h - fh) / cascade_step;
+        uint32_t my = (mon_sz.h - fh) / cascade_step;
+
         if (my < max_steps) {
             max_steps = my;
         }
@@ -754,7 +754,6 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 {
     const uint32_t cascade_step = 24u;
     xcb_query_pointer_cookie_t pointer_cookie;
-    xcb_query_pointer_reply_t *pointer_reply;
     struct dimensions_s screen;
     uint32_t fw;
     uint32_t fh;
@@ -838,9 +837,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
             }
 
             sibling_count++;
-            if (anchor == NULL) {
-                anchor = sibling;
-            }
+            anchor = sibling;
         }
 
         if (anchor != NULL) {
@@ -908,6 +905,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         if (new_x < mon_wa.pos.x) { new_x = mon_wa.pos.x; }
         if (new_y < mon_wa.pos.y) { new_y = mon_wa.pos.y; }
     } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
+        xcb_query_pointer_reply_t *pointer_reply;
+
         pointer_cookie = xcb_query_pointer(wm->connection,
                 surface->screen->root);
         pointer_reply = xcb_query_pointer_reply(wm->connection,

@@ -7,10 +7,11 @@
  * the user middle-clicks on the root window (empty desktop).
  *
  * Each desktop group is introduced by a non-clickable label entry of
- * the form "--- [index] -- <desktop name> ---" (or "--- [index] ---" if
- * the name is empty).  Each client window inside that group is listed
- * as a clickable command entry that focuses and raises the window
- * when activated.
+ * the form "<prefix>[index] -- <desktop name><suffix>" (or just
+ * "<prefix>[index]<suffix>" if the name is empty or null).  Each client
+ * window inside that group is listed as a clickable command entry that
+ * focuses and raises the window when
+ * activated.
  *
  * @ingroup menu_context
  */
@@ -41,8 +42,8 @@
 /**
  * @brief Maximum desktops shown as top-level entries
  *
- * A generous cap on how many per-desktop submenus can exist at once;
- * far above any realistic desktop count.
+ * A cap on how many per-desktop submenus can exist at once; far above
+ * any realistic desktop count.
  */
 #define WINLIST_MAX_DESKTOPS (16)
 
@@ -77,15 +78,15 @@
  * @brief Maximum pixel width a client entry's own label may claim
  *        towards the windows-menu's width
  *
- * Caps how far one very long window title can stretch the whole
- * menu; a label wider than this truncates instead (see
- * 's_format_client_label' in menu/context/winlist.c), the same
- * reasoning 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' truncates a cycle-menu
- * entry (defs/cycle.h).  Application-group and desktop submenu
- * labels are short, fixed phrases the user themselves configures
- * (a desktop's own name, an application's own class name) rather
- * than an arbitrary window title, so this only applies to the
- * per-client entries.
+ * Caps how far one very long window title can stretch the whole menu;
+ * a label wider than this truncates instead, the same reasoning
+ * @c WM_CYCLE_MENU_LABEL_MAX_WIDTH truncates a cycle-menu entry
+ * (@c defs/cycle.h).  Application-group and desktop submenu labels are
+ * short, fixed phrases the user themselves configures (a desktop's own
+ * name, an application's own class name) rather than an arbitrary
+ * window title, so this only applies to the per-client entries.
+ *
+ * @see @a s_format_client_label in @c menu/context/winlist.c
  */
 #define WINLIST_LABEL_MAX_WIDTH (280)
 
@@ -146,7 +147,6 @@ void winlist_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param root_x     Pointer X in root (screen) coordinates
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
@@ -155,7 +155,7 @@ void winlist_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_x, int root_y,
+        surface_td *surface, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**

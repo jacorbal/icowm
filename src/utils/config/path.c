@@ -40,10 +40,10 @@ struct xdg_dir_def_s {
                                     is unset or empty, already including
                                     this project's own name in whatever
                                     form that kind's own convention uses
-                                    (see @a xdg_resolve_dir's own doc
-                                    comment in @c path.h); @c NULL for
-                                    the one kind with no such fallback
-                                    tier at all */
+                                    (see @a xdg_resolve_dir's comment
+                                    in @c path.h); @c NULL for the one
+                                    kind with no such fallback tier
+                                    at all */
 };
 
 /**

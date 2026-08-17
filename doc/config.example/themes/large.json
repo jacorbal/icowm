@@ -1,13 +1,17 @@
 {
     "name": "Default theme (large font)",
+
     "-author": "J. A. Corbal",
-    "-creation-date": "Fri Aug 14 00:00:00 UTC 2026",
-    "-modified-date": "Fri Aug 14 00:00:00 UTC 2026",
+    "-creation-date": "Fri Aug 14 13:31:13 UTC 2026",
+    "-modified-date": "Fri Aug 14 13:31:13 UTC 2026",
+    "-notes": "Identical to 'default.json' except every font field is 'fixed 15' or 'fixed bold 15'.",
+
     "desktop": {
         "color": {
             "background": "#5f7187"
         }
     },
+
     "window": {
         "is-decorated": true,
         "active": {
@@ -58,6 +62,7 @@
             }
         }
     },
+
     "icon": {
         "is-captioned": true,
         "show-hints": true,
@@ -87,6 +92,7 @@
             "font": "fixed 15"
         }
     },
+
     "menu": {
         "opacity": 100,
         "show-pixmaps": true,
@@ -140,6 +146,7 @@
             "font": "fixed 15"
         }
     },
+
     "dialog": {
         "opacity": 100,
         "border": {
@@ -189,6 +196,7 @@
             }
         }
     },
+
     "overlay": {
         "opacity": 100,
         "font": "fixed 15",
@@ -201,6 +209,7 @@
             "foreground": "#4a5566"
         }
     },
+
     "systray": {
         "opacity": 100,
         "font": "fixed bold 15",
@@ -222,12 +231,14 @@
             "valign": "center"
         }
     },
+
     "scratchpad": {
         "border": {
             "color": "#4a5566",
             "width": 2
         }
     },
+
     "xsettings": {
         "dpi": 96,
         "is-enabled": false,
@@ -237,6 +248,5 @@
             "cursor-theme-name": "Adwaita",
             "cursor-theme-size": 24
         }
-    },
-    "-notes": "Identical to default.json except every font field is fixed 15 / fixed bold 15."
+    }
 }

@@ -34,10 +34,10 @@
 /**
  * @brief Parse a titlebar button name into its enumeration value
  *
- * @param name  Button name as it appears in a theme's
- *              @c window.titlebar.buttons.left / .right list
- * @param out   Receives the parsed value; untouched if @p name is not
- *              a recognized button name
+ * @param name Button name as it appears in a theme's
+ *             @p window.titlebar.buttons.left / @p .right list
+ * @param out  Receives the parsed value; untouched if @p name is not
+ *             a recognized button name
  *
  * @return @c true if @p name was recognized
  *
@@ -71,8 +71,8 @@ static bool s_parse_titlebar_button(const char *name,
 
 
 /**
- * @brief Load a titlebar button list (@c "left" or @c "right") from
- *        @c window.titlebar.buttons
+ * @brief Load a titlebar button list (@c left or @c right) from
+ *        @a window.titlebar.buttons
  *
  * A button name the theme repeats is kept only for its first
  * occurrence; later repeats are silently skipped rather than
@@ -373,14 +373,9 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->systray.style.border.color = json_hex2uint32("7F9AB6");
     theme->systray.style.border.width = 1u;
     theme->systray.style.opacity = 100u;
-    theme->systray.height = 22u;
+    theme->systray.height = 24u;
     theme->systray.pixmap.size = 24u;
     theme->systray.pixmap.padding = 4u;
-    /* 'height' (22) actually sits below 'pixmap.size' (24) here: per
-     * 's_systray_apply_config' in systray.c, the tray's own real,
-     * effective height is clamped up to whichever of the two is
-     * larger, so 24 -- not 22 -- is what actually applies, leaving no
-     * room for 'systray.text.valign' to have any visible effect. */
     theme->systray.text.gap = 12u;
     theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 

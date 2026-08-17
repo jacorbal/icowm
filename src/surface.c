@@ -259,7 +259,7 @@ void surface_update_full(surface_td *surface)
     if (desktop_node != NULL) {
         /* Reference to the initial node not to end up an infinite loop
          * in this circular list */
-        cdlist_item_td *desktop_initial = desktop_node;
+        const cdlist_item_td *desktop_initial = desktop_node;
         do {
             desktop_td *desktop_cur =
                 (desktop_td *) cdlist_data(desktop_node);
@@ -278,13 +278,8 @@ void surface_update_full(surface_td *surface)
 void surface_resize(surface_td *surface,
         uint32_t width, uint32_t height)
 {
-    if (surface->properties.dim.w != width) {
-        surface->properties.dim.w = width;
-    }
-
-    if (surface->properties.dim.h != height) {
-        surface->properties.dim.h = height;
-    }
+    surface->properties.dim.w = width;
+    surface->properties.dim.h = height;
 
     /* Dimensions are updated lazily by render/update paths. */
 }
@@ -484,7 +479,7 @@ monitor_td surface_primary_monitor(const surface_td *surface)
 
 
 /* Add a new desktop to the list */
-int surface_desktop_add(surface_td *surface, desktop_td *desktop)
+int surface_desktop_add(surface_td *surface, const desktop_td *desktop)
 {
     if (surface == NULL || desktop == NULL) {
         return -1;
@@ -515,7 +510,8 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
     }
 
     current_item = cdlist_head(surface->desktops);
-    for (size_t i = 0; i < surface->desktop_count && current_item != NULL;
+    for (size_t i = 0;
+            i < surface->desktop_count && current_item != NULL;
             ++i) {
         desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
@@ -581,7 +577,9 @@ desktop_td *surface_desktop_prev(surface_td *surface,
 
     current_item = cdlist_head(surface->desktops);
     for (size_t i = 0; i < surface->desktop_count; ++i) {
-        desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
+        const desktop_td *desktop =
+            (desktop_td *) cdlist_data(current_item);
+
         if (desktop->id == desktop_id) {
             cdlist_item_td *prev_item = cdlist_prev(current_item);
             /* Wrapping is detected when the computed previous item is
@@ -626,7 +624,9 @@ desktop_td *surface_desktop_next(surface_td *surface,
 
     current_item = cdlist_head(surface->desktops);
     for (size_t i = 0; i < surface->desktop_count; ++i) {
-        desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
+        const desktop_td *desktop =
+            (desktop_td *) cdlist_data(current_item);
+
         if (desktop->id == desktop_id) {
             cdlist_item_td *next_item = cdlist_next(current_item);
             if (next_item == cdlist_head(surface->desktops)) {
@@ -652,7 +652,7 @@ desktop_td *surface_desktop_next(surface_td *surface,
 /* Select the previous desktop, optionally cycling */
 int surface_desktop_select_prev(surface_td *surface, bool cycle)
 {
-    desktop_td *prev_desktop;
+    const desktop_td *prev_desktop;
 
     if (surface == NULL || surface->desktop_count == 0) {
         return -1;
@@ -674,7 +674,7 @@ int surface_desktop_select_prev(surface_td *surface, bool cycle)
 /* Select the next desktop, optionally cycling */
 int surface_desktop_select_next(surface_td *surface, bool cycle)
 {
-    desktop_td *next_desktop;
+    const desktop_td *next_desktop;
 
     if (surface == NULL || surface->desktop_count == 0) {
         return -1;
@@ -705,7 +705,8 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
     /* Iterate through the desktops list to check if ID is valid */
     current_item = cdlist_head(surface->desktops);
     for (size_t i = 0; i < surface->desktop_count; ++i) {
-        desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
+        const desktop_td *desktop =
+            (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             /* Update ID of new current desktop */
             surface->desktop_cur = desktop_id;

@@ -28,21 +28,22 @@
 /**
  * @brief Acquire an ICCCM manager selection, announcing it on @p root
  *
- * Sets ownership of @p selection_atom on @p window, verifies the
- * server actually granted it (another already-running manager may
- * already hold it), and if so broadcasts the standard @c MANAGER
- * client message on @p root so other tools notice.
+ * Sets ownership of @p selection_atom on @p window, verifies the server
+ * actually granted it (another already-running manager may already hold
+ * it), and if so broadcasts the standard @c MANAGER client message on
+ * @p root so other tools notice.
  *
  * @param connection     XCB connection
  * @param window         Window that should own the selection
  * @param selection_atom Manager-selection atom to acquire (e.g.,
  *                       @c _NET_SYSTEM_TRAY_S0)
- * @param manager_atom   Interned @c MANAGER atom, used as the
- *                       broadcast client message's own type
+ * @param manager_atom   Interned @c MANAGER atom, used as the broadcast
+ *                       client message's own type
  * @param root           Root window the @c MANAGER message is sent on
  *
- * @return @c true if ownership was acquired, @c false if another
- *         manager already owns the selection
+ * @return Status of the operation
+ * @retval  true if ownership was acquired
+ * @retval false if another manager already owns the selection
  *
  * @note Complexity: @e O(1), two round trips
  */

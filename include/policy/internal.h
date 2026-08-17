@@ -5,7 +5,9 @@
  *
  * Declares cost-weight constants used by both @c policy/placement.c
  * (for window scoring) and @c policy/tiling.c (for icon placement
- * scoring).  Must not be included outside of @c src/policy/.
+ * scoring).
+ *
+ * @note Must not be included outside of @c src/policy/
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

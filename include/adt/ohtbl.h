@@ -24,21 +24,21 @@
 /**
  * @brief Maximum hash table load factor
  *
- * Determines the occupancy threshold that, if exceeded, will trigger a
- * resize of the hash table.  On a new insertion, the table will be
+ * Determines the occupancy threshold that, if exceeded, will trigger
+ * a resize of the hash table.  On a new insertion, the table will be
  * re-dimensioned and re-hashed when its @p ohtbl->size is equal or
  * bigger than the (100 *  @c OHTBL_MAX_LOAD_FACTOR)% of its positions
  * given by @p ohtbl->positions.
  *
- *  - If the value is 0, the condition for resizing will always be
- *    @c true, as the current size will always be greater than or equal
- *    to 0.  This means the table will attempt to resize every time an
- *    element is added, which can lead to inefficient performance.
- *  - If the value is greater than 1, the hash table will permit an
- *    excessive number of elements, leading to a significant decrease in
- *    search and insertion efficiency due to increased collisions
+ * - If the value is @c 0, the condition for resizing will always be
+ *   @c true, as the current size will always be greater than or equal
+ *   to @c 0.  This means the table will attempt to resize every time an
+ *   element is added, which can lead to inefficient performance.
+ * - If the value is greater than @c 1, the hash table will permit an
+ *   excessive number of elements, leading to a significant decrease in
+ *   search and insertion efficiency due to increased collisions
  *
- * @note This value must be in the domain [0.0f ,1.0f]
+ * @note This value must be in the domain [0.0f, 1.0f]
  * @note A suggested value is 0.75f
  *
  * @see @a ohtbl_insert, @a ohtbl_update
@@ -51,14 +51,14 @@
  * Determines the occupancy threshold below which the hash table will
  * attempt to resize downwards. If the size of the table falls below the
  * (100 *  @c OHTBL_MIN_LOAD_FACTOR)% of its positions given by
- * @p ohtbl->positions, the table will be resized to reduce its
- * capacity and re-hashed.
+ * @p ohtbl->positions, the table will be resized to reduce its capacity
+ * and re-hashed.
  *
- * - If the value is 1, the condition for resizing will always be
+ * - If the value is @c 1, the condition for resizing will always be
  *   @c false, as the number of elements can never exceed the total
  *   number of positions.  This means the table will not shrink even
  *   when it is sparsely populated, potentially wasting memory.
- * - If the value is less than 0, the behavior is undefined.
+ * - If the value is less than @c 0, the behavior is undefined.
  *
  * @note This value must be in the domain [0.0f, 1.0f]
  * @note A suggested value is 0.25f
@@ -102,9 +102,9 @@ typedef struct {
      *
      * @note Vacated positions can be reused for new insertions to
      *       maintain compactness and efficiency of the hash table
-     * @note It is essential to distinguish between @c NULL (indicating
-     *       an empty slot) and vacated slots, as this affects the logic
-     *       of search and insertion operations.
+     * @note It is essential to distinguish between null (indicating an
+     *       empty slot) and vacated slots, as this affects the logic of
+     *       search and insertion operations.
      */
     void *vacated;
 
@@ -150,8 +150,8 @@ typedef struct {
  *         @c NULL otherwise
  *
  * @note If @p min_positions is initialized to zero, or to a value
- *       greater that the initial positions, it will assume that
- *       the minimum number of positions is the same as the initial
+ *       greater that the initial positions, it will assume that the
+ *       minimum number of positions is the same as the initial
  *       @p positions of with which the table was created
  * @note This operation must be called for a open-addressed hash table
  *       before the hash table can be used with any other operation

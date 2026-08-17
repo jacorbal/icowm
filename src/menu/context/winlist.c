@@ -178,21 +178,21 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     }
 
     /* Always the desktop this entry was actually listed under (see
-     * 's_append_client_entry''s own doc comment for 'did'), never
-     * 'data->client->desktop_id': for a plain client the two agree
-     * anyway, since it can only ever be listed under its own
-     * desktop, but for a sticky one they routinely do not -- a sticky
-     * client's own 'desktop_id' is nominal at best (see the "sticky
-     * clients live wherever the desktop switch last put them" comment
-     * in 's_build_desktop_entries') and does not track
-     * which of the (six shown as its own submenu here) desktops this
-     * particular entry actually came from.  Using it instead of
-     * 'data->desktop_id' meant activating a sticky client's entry
-     * under a desktop other than the current one silently did
-     * nothing: since a sticky client already stays visible wherever
-     * the desktop switch last left it, 'target_did' would resolve to
-     * that same already-current desktop regardless of which
-     * desktop's own submenu the entry was actually picked from. */
+     * 's_append_client_entry''s comment for 'did'), never
+     * 'data->client->desktop_id'.  For a plain client the two agree
+     * anyway, since it can only ever be listed under its own desktop,
+     * but for a sticky one they routinely do not, for a sticky client's
+     * own 'desktop_id' is nominal at best (see the "sticky clients live
+     * wherever the desktop switch last put them" comment in
+     * 's_build_desktop_entries') and does not track which of the (six
+     * shown as its own submenu here) desktops this particular entry
+     * actually came from.  Using it instead of 'data->desktop_id' meant
+     * activating a sticky client's entry under a desktop other than the
+     * current one silently did nothing: since a sticky client already
+     * stays visible wherever the desktop switch last left it,
+     * 'target_did' would resolve to that same already-current desktop
+     * regardless of which desktop's own submenu the entry was actually
+     * picked from. */
     target_did = data->desktop_id;
 
     s_switch_to_desktop(data->surface, target_did);
@@ -424,11 +424,8 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     bool placed[WINLIST_MAX_COLLECTED];
     int collected_n;
     desktop_td *desktop;
-    desktop_td *home_desktop;
     client_td *client;
     cdlist_item_td *dnode;
-    cdlist_item_td *dinitial;
-    int group_idx;
     int group_n;
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     int n;
@@ -462,11 +459,14 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     }
 
     if (surface->desktops != NULL) {
+        const cdlist_item_td *dinitial;
+
         dnode = cdlist_head(surface->desktops);
         if (dnode != NULL) {
             dinitial = dnode;
             do {
-                home_desktop = (desktop_td *) cdlist_data(dnode);
+                desktop_td *home_desktop=
+                    (desktop_td *) cdlist_data(dnode);
                 if (home_desktop != NULL && home_desktop != desktop &&
                         home_desktop->clients != NULL) {
                     ohtbl_foreach(home_desktop->clients, client) {
@@ -489,6 +489,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     for (int i = 0; i < collected_n; ++i) {
         xcb_window_t leader;
         client_td *members[WINLIST_MAX_APPGROUP_SIZE];
+        int group_idx;
         int member_n;
 
         if (placed[i]) {
@@ -580,7 +581,6 @@ void winlist_show(xcb_connection_t *connection,
     desktop_td *desktop;
     int n;
     int desktop_count;
-    const char *label_fmt;
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     ctxmenu_entry_td *root_target;
 
@@ -633,6 +633,7 @@ void winlist_show(xcb_connection_t *connection,
     } else {
         for (uint32_t did = 0; (int) did < desktop_count; ++did) {
             winlist_entry_data_td *data;
+            const char *label_fmt;
             int desktop_n;
             bool is_cur;
 
@@ -779,11 +780,11 @@ void winlist_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window list menu */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int x, int y,
+        surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
     return ctxmenu_handle_click_window(connection, surface, &s_root,
-            win, x, y, config);
+            win, y, config);
 }
 
 

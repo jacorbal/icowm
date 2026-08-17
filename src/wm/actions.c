@@ -65,12 +65,11 @@
  * @brief Resynchronize every already-managed surface, desktop, and
  *        client after a configuration reload
  *
- * A configuration reload updates @c wm->config in place, but anything
+ * A configuration reload updates @p wm->config in place, but anything
  * already derived from it before the reload (a desktop's resolved
  * background color, a client's cached frame dimensions) has to be
  * explicitly recomputed or repainted; nothing else does that on its
- * own just because the underlying configuration changed underneath
- * it.
+ * own just because the underlying configuration changed underneath it.
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
  *       surfaces, @e d the number of desktops per surface, and @e c
@@ -87,10 +86,10 @@ static void s_resync_after_reload(void)
         uint16_t tray_w;
         uint16_t tray_h;
         /* Queried once per surface here, ahead of the desktop/client
-         * loop below, rather than once per icon inside it: this is a
-         * synchronous round trip to the X server (see 'systray_get_
-         * geometry''s own doc comment), and every icon on this same
-         * surface shares the identical tray rectangle regardless. */
+         * loop below, rather than once per icon inside it.  This is
+         * a synchronous round trip to the X server (see 'systray_get_
+         * geometry''s comment), and every icon on this same surface
+         * shares the identical tray rectangle regardless. */
         bool tray_visible = systray_get_geometry(s, &tray_x, &tray_y,
                 &tray_w, &tray_h);
 
@@ -112,10 +111,10 @@ static void s_resync_after_reload(void)
              * just-reloaded theme's own 'desktop.color.background'
              * instead, mirroring 'desktop_init''s own fallback
              * exactly.  Assigning the sentinel value itself as though
-             * it were a real color (as this block used to, before
-             * this check existed) renders as black, since its low 24
-             * bits are all zero: only the top byte, some other flag,
-             * is actually set. */
+             * it were a real color (as this block used to, before this
+             * check existed) renders as black, since its low 24 bits
+             * are all zero: only the top byte, some other flag, is
+             * actually set. */
             if (!d->background.is_image &&
                     !d->background.use_root_pixmap) {
                 uint32_t new_color = cb->screens[s->id].desktops[i]
@@ -147,17 +146,17 @@ static void s_resync_after_reload(void)
                     if (c != NULL) {
                         client_resync_theme_layout(c,
                                 d->client_active_id == c->id);
-                        /* 'client_resync_theme_layout' above only
-                         * marks 'c' outdated (which is what actually
-                         * makes the render pass repaint its border
-                         * and titlebar, see 'desktop_render_clients')
-                         * when the border width or titlebar height
+                        /* 'client_resync_theme_layout' above only marks
+                         * 'c' outdated (which is what actually makes
+                         * the render pass repaint its border and
+                         * titlebar, see 'desktop_render_clients') when
+                         * the border width or titlebar height
                          * numerically changed; a reload that only
-                         * changed a color or font, with every
-                         * dimension unchanged, would otherwise never
-                         * repaint anything already on screen even
-                         * though 'client->theme' itself already
-                         * points at the freshly reloaded values. */
+                         * changed a color or font, with every dimension
+                         * unchanged, would otherwise never repaint
+                         * anything already on screen even though
+                         * 'client->theme' itself already points at the
+                         * freshly reloaded values. */
                         wm_request_client_redraw(c);
 
                         /* An icon left sitting exactly where the tray
@@ -167,8 +166,7 @@ static void s_resync_after_reload(void)
                          * else) re-checks an already-placed icon's own
                          * position against the tray's, only a fresh
                          * 'place_icon' call or a drag ever does (see
-                         * 'icon_avoid_systray_overlap''s own doc
-                         * comment). */
+                         * 'icon_avoid_systray_overlap''s comment). */
                         if (tray_visible && c->is_icon_mapped &&
                                 c->icon_window != 0u) {
                             int16_t icon_x = c->icon_x;
@@ -190,7 +188,7 @@ static void s_resync_after_reload(void)
                                         tray_h, &d->workarea)) {
                                 uint32_t vals[2];
 
-                                c->icon_x = icon_x;
+                                //c->icon_x = icon_x;   /* 'tis a no-op */
                                 c->icon_y = icon_y;
                                 vals[0] = (uint32_t) icon_x;
                                 vals[1] = (uint32_t) icon_y;
@@ -213,15 +211,15 @@ static void s_resync_after_reload(void)
         /* 'config->desktops.margins' just reloaded above (config_load,
          * called from 'wm_action_config_reload' before this function
          * runs) is not something anything else here re-derives on its
-         * own: 'desktop->workarea' -- what maximize and placement
-         * actually use -- is only otherwise recomputed on its own
-         * trigger (a client mapping/unmapping, a RandR change...),
-         * none of which a reload is. Without this, a changed margin
-         * would stay invisible until one of those unrelated triggers
-         * happened to fire, e.g., by switching desktops (switching
-         * away and back hides and shows clients, an unmap/map pair
-         * that reaches 'surface_refresh_workareas' as a side effect
-         * of something else entirely). */
+         * own: 'desktop->workarea' (what maximize and placement
+         * actually use) is only otherwise recomputed on its own trigger
+         * (a client mapping/unmapping, a RandR change...), none of
+         * which a reload is. Without this, a changed margin would stay
+         * invisible until one of those unrelated triggers happened to
+         * fire, e.g., by switching desktops (switching away and back
+         * hides and shows clients, an unmap/map pair that reaches
+         * 'surface_refresh_workareas' as a side effect of something
+         * else entirely). */
         surface_refresh_workareas(s);
     }
 }
@@ -242,7 +240,7 @@ int wm_action_config_reload(void)
     json_syntax_errors_reset();
     config_missing_theme_reset();
     /* Same two entirely separate paths 'wm_start' chooses between
-     * (config/memguard.h); a reload takes the same one it started
+     * ('config/memguard.h'); a reload takes the same one it started
      * with, since 'wm->restricted_memory_mib' never changes for the
      * life of the process. */
     load_result = (wm->restricted_memory_mib > 0u)
@@ -250,28 +248,28 @@ int wm_action_config_reload(void)
         : config_load(wm->config, wm->config_dir_prefix);
     if (load_result != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
-        /* Whatever caused the load to fail outright is far more
-         * likely to be a syntax error introduced while editing an
-         * already-working configuration file than the file simply
-         * not existing at all, unlike at first startup; worth
-         * surfacing here even on this early-failure path, not just
-         * after a successful reload below. */
+        /* Whatever caused the load to fail outright is far more likely
+         * to be a syntax error introduced while editing an
+         * already-working configuration file than the file simply not
+         * existing at all, unlike at first startup; worth surfacing
+         * here even on this early-failure path, not just after
+         * a successful reload below. */
         wm_warn_json_syntax_errors();
         return 1;
     }
 
-    /* Apply any 'randr.json' output profile that changed since the
-     * last load, offering a chance to revert it (see 'dialog_rrsafe_
-     * show') before 's_resync_after_reload' below, so any surface or
-     * client resync there already reflects the new screen geometry if
-     * RandR itself just changed it.  Every surface still gets its own
+    /* Apply any 'randr.json' output profile that changed since the last
+     * load, offering a chance to revert it (see 'dialog_rrsafe_ show')
+     * before 's_resync_after_reload' below, so any surface or client
+     * resync there already reflects the new screen geometry if RandR
+     * itself just changed it.  Every surface still gets its own
      * profiles applied even when more than one changes, but only the
      * first one to actually change is snapshotted and offered the
      * confirm dialog: 'menu_confirm_dialog' allows only one instance
-     * open at a time, and 'surface_action_revert_randr_profiles'
-     * itself remembers only the single most recent snapshot, so a
-     * second surface changing in the same reload has no dialog of its
-     * own to revert through regardless. */
+     * open at a time, and 'surface_action_revert_randr_profiles' itself
+     * remembers only the single most recent snapshot, so a second
+     * surface changing in the same reload has no dialog of its own to
+     * revert through regardless. */
     if (wm->surfaces != NULL) {
         bool dialog_shown = false;
 

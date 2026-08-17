@@ -467,7 +467,7 @@ bool ccmd_client_monitor_workarea(client_td *client,
         uint16_t *out_w, uint16_t *out_h)
 {
     surface_td *surface = NULL;
-    desktop_td *desktop;
+    const desktop_td *desktop;
     monitor_td monitor;
     struct geometry_s clipped;
     uint32_t did;
@@ -550,7 +550,7 @@ void ccmd_client_maximize_horz(client_td *client)
     uint16_t sw;
     uint16_t unused_h;
     xcb_window_t target;
-    desktop_td *own_desktop;
+    const desktop_td *own_desktop;
     bool is_active;
     uint32_t border;
 
@@ -670,7 +670,7 @@ void ccmd_client_maximize_vert(client_td *client)
     uint16_t sh;
     uint16_t unused_w;
     xcb_window_t target;
-    desktop_td *own_desktop;
+    const desktop_td *own_desktop;
     bool is_active;
     uint32_t border;
 
@@ -789,7 +789,7 @@ void ccmd_client_maximize(client_td *client)
     uint16_t sw;
     uint16_t sh;
     xcb_window_t target;
-    desktop_td *own_desktop;
+    const desktop_td *own_desktop;
     bool is_active;
     uint32_t border;
 
@@ -832,20 +832,22 @@ void ccmd_client_maximize(client_td *client)
         return;
     }
 
-    /* Per the X11 protocol (ConfigureWindow), 'x'/'y' name a
-     * window's own top-left corner including its native border, if
-     * any, drawn growing rightward/downward from there: the full
-     * on-screen footprint of a client with one reaches all the way
-     * to 'x + 2 * border + w', 2 * border wider/taller than 'w'
-     * alone (equivalently for height).  'client_border_width'
-     * (client.h) is 0 for a decorated client (its own frame is
-     * always created with a native border of 0; its themed margin
-     * is already fully accounted for elsewhere, in its own frame
-     * dimensions), so this only ever actually shrinks the target
-     * for an undecorated one -- keeping its own full footprint
-     * within the workarea/monitor rect 'sw'/'sh' just resolved
-     * above, rather than spilling its own border past its own
-     * right/bottom edge. */
+    /* Per the X11 protocol (ConfigureWindow), 'x'/'y' name a window's
+     * own top-left corner including its native border, if any, drawn
+     * growing rightward/downward from there: the full on-screen
+     * footprint of a client with one reaches all the way to
+     * 'x + 2 * border + w', 2 * border wider/taller than 'w' alone
+     * (equivalently for height).
+     *
+     * 'client_border_width' (obviously in 'client.h') is 0 for
+     * a decorated client (its own frame is always created with a native
+     * border of 0; its themed margin is already fully accounted for
+     * elsewhere, in its own frame dimensions), so this only ever
+     * actually shrinks the target for an undecorated one.
+     *
+     * Keeping its own full footprint within the workarea/monitor rect
+     * 'sw'/'sh' just resolved above, rather than spilling its own
+     * border past its own right/bottom edge. */
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
@@ -858,10 +860,10 @@ void ccmd_client_maximize(client_td *client)
     /* Only remember the geometry to restore to if it is not already
      * a maximized state's geometry: switching from horizontal-only or
      * vertical-only maximize to full maximize must not overwrite the
-     * true pre-maximize geometry already held in
-     * 'layout.geometry.old' (see 'client_is_maximized_any'), or
-     * restoring later would land at whichever partial-maximize size
-     * happened to be current, instead of the window's original one */
+     * true pre-maximize geometry already held in 'layout.geometry.old'
+     * (see 'client_is_maximized_any'), or restoring later would land at
+     * whichever partial-maximize size happened to be current, instead
+     * of the window's original one */
     if (!client_is_maximized_any(client)) {
         client_geometry_save(client);
     }

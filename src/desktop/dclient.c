@@ -35,6 +35,9 @@
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Command includes */
 #include <cmds/client/layer.h>
 
@@ -163,7 +166,7 @@ static bool s_desktop_layout_supported(const char *layout)
 static int s_desktop_cycle_clients(desktop_td *desktop, bool forward)
 {
     cdlist_item_td *node;
-    cdlist_item_td *initial;
+    const cdlist_item_td *initial;
     cdlist_item_td *active_node = NULL;
 
     node = cdlist_head(desktop->stacking);
@@ -174,7 +177,7 @@ static int s_desktop_cycle_clients(desktop_td *desktop, bool forward)
     /* Find the node holding the currently active client */
     initial = node;
     do {
-        client_td *c = (client_td *) cdlist_data(node);
+        const client_td *c = (client_td *) cdlist_data(node);
         if (c != NULL && c->id == desktop->client_active_id) {
             active_node = node;
             break;
@@ -377,7 +380,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
     /* Remove from stacking list (iterate and find the matching client) */
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
-        cdlist_item_td *initial = node;
+        const cdlist_item_td *initial = node;
         do {
             if (cdlist_data(node) == (void *) client) {
                 /* Found it, remove it */
@@ -417,7 +420,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     was_urgent = desktop->is_urgent;
 
     ohtbl_foreach(desktop->clients, elem) {
-        client_td *c = (client_td *) elem;
+        const client_td *c = (client_td *) elem;
 
         if (c != NULL && client_is_urgent(c)) {
             found = true;
@@ -434,16 +437,15 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
      * screen. */
     if (!was_urgent && found) {
         surface_td *surface = wm_get_desktop_surface(desktop);
-        config_td *config = wm_get_config();
+        const config_td *config = wm_get_config();
 
         if (surface != NULL && desktop->id != surface->desktop_cur &&
                 config != NULL && config->desktops.notify_activity &&
                 !menu_message_dialog_is_open()) {
-            list_td *surfaces = wm_get_surfaces();
+            const list_td *surfaces = wm_get_surfaces();
             uint32_t surface_count = (surfaces != NULL)
                 ? (uint32_t) list_size(surfaces) : 0u;
             char text[WM_DESKTOP_MAX_LENGTH_NAME + 48];
-            size_t used;
 
             if (desktop->name[0] != '\0') {
                 snprintf(text, sizeof(text),
@@ -456,7 +458,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
             }
 
             if (surface_count > 1u) {
-                used = strlen(text);
+                size_t used = safe_strlen(text);
                 if (used < sizeof(text)) {
                     snprintf(text + used, sizeof(text) - used,
                             _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
@@ -535,7 +537,6 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
 int desktop_action_clients_deiconify_all(desktop_td *desktop)
 {
     void *elem;
-    client_td *client;
 
     if (desktop == NULL) {
         LOGGER_ERROR("Invalid desktop pointer", L_NARG);
@@ -549,7 +550,7 @@ int desktop_action_clients_deiconify_all(desktop_td *desktop)
      * ones currently iconified, leaving every other client (normal,
      * maximized, fullscreen) untouched */
     ohtbl_foreach(desktop->clients, elem) {
-        client = (client_td *) elem;
+        client_td *client = (client_td *) elem;
         if (client != NULL && client_is_iconified(client)) {
             enact_client_restore(client);
         }
@@ -606,9 +607,9 @@ int desktop_action_cycle_clients_icons(desktop_td *desktop)
     /* Find first iconified client */
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
-        cdlist_item_td *initial = node;
+        const cdlist_item_td *initial = node;
         do {
-            client_td *client = (client_td *) cdlist_data(node);
+            const client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL && client_is_iconified(client)) {
                 target = node;
                 break;

@@ -110,11 +110,13 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
     if (strcasecmp(token, "home") == 0)       { return KS_HOME; }
     if (strcasecmp(token, "end") == 0)        { return KS_END; }
     if (strcasecmp(token, "pageup") == 0 ||
+            strcasecmp(token, "pgup") == 0 ||
             strcasecmp(token, "prior") == 0 ||
-            strcasecmp(token, "pgup") == 0)   { return KS_PAGE_UP; }
+            strcasecmp(token, "previous") == 0 ||
+            strcasecmp(token, "prev") == 0)   { return KS_PAGE_UP; }
     if (strcasecmp(token, "pagedown") == 0 ||
-            strcasecmp(token, "next") == 0 ||
-            strcasecmp(token, "pgdn") == 0)   { return KS_PAGE_DOWN; }
+            strcasecmp(token, "pgdn") == 0 ||
+            strcasecmp(token, "next") == 0)   { return KS_PAGE_DOWN; }
     if (strcasecmp(token, "pause") == 0)      { return KS_PAUSE; }
     if (strcasecmp(token, "sysreq") == 0 ||
             strcasecmp(token, "sysrq") == 0)  { return KS_SYS_REQ; }

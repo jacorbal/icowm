@@ -8,18 +8,19 @@
  * with that surface and an index indicating which workspace is
  * currently active.
  *
- * Named "surface" rather than "screen" specifically to avoid a
- * conceptual collision with @c xcb_screen_t, XCB's own raw protocol
- * struct for a screen: @c surface_td is a wrapper around one (see its
- * own @c screen field) that adds everything the window manager itself
- * tracks about it -- desktops, monitors, RandR state, and a reference
- * to the active configuration -- so the two names stay distinct even
- * though, conceptually, one @c surface_td corresponds to exactly one
- * X screen.  @c config.json's own @c screens section (see @c
- * config_base_s, config.h) refers to this same thing under its more
- * X11-familiar name instead, deliberately: that name is for whoever
- * writes @c config.json, not for this header's own internal
- * implementation detail.
+ * Named "surface" rather than "screen" specifically to avoid
+ * a conceptual collision with @c xcb_screen_t, XCB's own raw protocol
+ * struct for a screen, the type @c surface_td is a wrapper around one
+ * (see its own @p screen field) that adds everything the window manager
+ * itself tracks about it (desktops, monitors, RandR state, and
+ * a reference to the active configuration) so the two names stay
+ * distinct even though, conceptually, one @c surface_td corresponds to
+ * exactly one X screen.  @c config.json's own @c screens section refers
+ * to this same thing under its more X11-familiar name instead,
+ * deliberately, as that name is for whoever writes @c config.json, not
+ * for this header's own internal implementation detail.
+ *
+ * @see @p config_base_s, in @c config.h
  *
  * @defgroup surface Physical surface (screen) management
  * @ingroup wm
@@ -121,25 +122,27 @@ typedef struct surface_s {
     /**
      * @brief Physical monitors within this surface's combined area
      *
-     * Populated from the RandR 1.5 monitor list (@c
-     * surface_refresh_monitors), or a single entry spanning the whole
-     * surface when RandR is unavailable or reports none.  Lets
-     * placement and maximize resolve which physical monitor a point
-     * or window falls on, instead of always treating the surface's
-     * whole combined area (every monitor sharing this one X screen,
-     * the common case in a modern multi-monitor setup) as one block.
+     * Populated from the RandR 1.5 monitor list
+     * (@a surface_refresh_monitors), or a single entry spanning the
+     * whole surface when RandR is unavailable or reports none.
+     *
+     * Lets placement and maximize resolve which physical monitor
+     * a point or window falls on, instead of always treating the
+     * surface's whole combined area (every monitor sharing this one
+     * X screen, the common case in a modern multi-monitor setup) as one
+     * block.
      */
     monitor_td monitors[WM_SURFACE_MAX_MONITORS];
-    uint32_t monitor_count;         /**< No. of entries in 'monitors' */
+    uint32_t monitor_count;         /**< No. of entries in @p monitors */
     uint32_t primary_monitor_index; /**< Index into 'monitors' RandR
-                                         reports as primary, or 0 (the
+                                         reports as primary, or @c 0 (the
                                          first monitor) if none was
                                          flagged */
 
     config_td *config;              /**< Configuration */
 
     bool fullsurface;               /**< Full surface or not */
-    bool showing_desktop;           /**< EWMH '_NET_SHOWING_DESKTOP' state */
+    bool showing_desktop;           /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 } surface_td;
 
@@ -209,13 +212,13 @@ void surface_resize(surface_td *surface,
 /**
  * @brief Refresh the surface's own list of physical monitors
  *
- * Queries the RandR 1.5 monitor list (@c xcb_randr_get_monitors) for
+ * Queries the RandR 1.5 monitor list (@a xcb_randr_get_monitors) for
  * @p surface's root window and rebuilds @p surface->monitors from the
- * reply, clamped to @c WM_SURFACE_MAX_MONITORS entries.  Falls back
- * to a single entry spanning @p surface->properties.dim (the whole
- * combined surface) when RandR is unavailable, the query fails, or
- * the reply lists no monitors, so @p surface->monitor_count is never
- * left at zero.
+ * reply, clamped to @c WM_SURFACE_MAX_MONITORS entries.  Falls back to
+ * a single entry spanning @p surface->properties.dim (the whole
+ * combined surface) when RandR is unavailable, the query fails, or the
+ * reply lists no monitors, so @p surface->monitor_count is never left
+ * at zero.
  *
  * @param surface Pointer to the surface whose monitor list to refresh
  *
@@ -231,11 +234,11 @@ void surface_refresh_monitors(surface_td *surface);
  * @param x       X coordinate, in the surface's own space
  * @param y       Y coordinate, in the surface's own space
  *
- * @return The containing monitor, or, if the point falls
- *         outside every known monitor (e.g., a stale coordinate after
- *         a monitor was unplugged), the closest one by center-point
- *         distance.  Spans the whole surface if @p surface has no
- *         monitors of its own or @p surface is @c NULL.
+ * @return The containing monitor, or, if the point falls outside every
+ *         known monitor (e.g., a stale coordinate after a monitor was
+ *         unplugged), the closest one by center-point distance.  Spans
+ *         the whole surface if @p surface has no monitors of its own or
+ *         @p surface is @c NULL.
  *
  * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
  */
@@ -247,11 +250,10 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
  *
  * @param surface Pointer to the surface to query
  *
- * @return The monitor RandR reports as primary.  Falls
- *         back to @p surface->monitors[0] if none was flagged as
- *         primary, and to a monitor spanning the whole surface if
- *         @p surface has no monitors of its own or @p surface is
- *         @c NULL.
+ * @return The monitor RandR reports as primary.  Falls back to
+ *         @p (surface->monitors[0]) if none was flagged as primary, and
+ *         to a monitor spanning the whole surface if @p surface has no
+ *         monitors of its own or @p surface is @c NULL.
  *
  * @note Complexity: @e O(1)
  */
@@ -268,7 +270,7 @@ monitor_td surface_primary_monitor(const surface_td *surface);
  * @retval  1 Failed to insert the desktop to the list
  * @retval -1 Invalid surface
  */
-int surface_desktop_add(surface_td *surface, desktop_td *desktop);
+int surface_desktop_add(surface_td *surface, const desktop_td *desktop);
 
 /**
  * @brief Remove a desktop from the list by its ID
@@ -288,8 +290,7 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id);
  * @brief Get a desktop from the list by its ID
  *
  * Retrieves a pointer to a desktop with the specified ID from the
- * surface.  If the desktop is found, its pointer is returned;
- * otherwise, @c NULL is returned.
+ * surface.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to retrieve
@@ -312,8 +313,8 @@ desktop_td *surface_desktop_get(surface_td *surface,
  * @param cycle      If @c true, the function will cycle back to the
  *                   last desktop if the current is the first
  *
- * @return Pointer to the previous desktop or @c NULL if not
- *         found or not invalid
+ * @return Pointer to the previous desktop or @c NULL if not found or
+ *         not invalid
  */
 desktop_td *surface_desktop_prev(surface_td *surface,
         uint32_t desktop_id, bool cycle);
@@ -389,8 +390,7 @@ int surface_desktop_select_next(surface_td *surface, bool cycle);
  * @retval  1 No next desktop found
  * @retval -1 Invalid surface or no desktops
  */
-int surface_desktop_select(surface_td *surface,
-        uint32_t desktop_id);
+int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 
 /**
  * @brief Add a new desktop associated with the surface
@@ -480,31 +480,28 @@ int surface_action_set_resolution(surface_td *surface,
 int surface_action_set_orientation(surface_td *surface, int orientation);
 
 /**
- * @brief Apply every configured RandR output profile (see
- *        @c config_randr_s, loaded from @c randr.json) that matches
+ * @brief Apply every configured RandR output profile that matches
  *        a currently-connected output on this surface
  *
- * A no-op when @p surface, its connection, or its screen is @c NULL,
- * or when RandR profile management is off altogether (@c
- * config->randr.is_enabled is @c false).  Otherwise, for each
- * configured profile whose name matches a currently-connected
- * output: an enabled profile's desired resolution (falling back to
- * whatever mode is already active, or the output's own preferred
- * mode, when none is configured or none of the screen's modes
- * matches it), position, and rotation are compared against that
- * output's own CRTC's actual current state first, and @c
- * xcb_randr_set_crtc_config is issued only when at least one of them
- * actually differs (claiming a free compatible CRTC first if the
- * output had none, which always counts as a difference, since it was
- * driving nothing at all before); @c is_primary is compared and, if
- * needed, applied the same way as a separate, independent step
- * afterward.  A disabled profile instead turns the output's own CRTC
- * off, but only if it is not already off.  A configured profile whose
- * name matches no currently-connected output is skipped, logged at
- * debug level only, not as a warning.  This comparison is what keeps
- * an unchanged @c randr.json from writing anything to the X server at
- * all on a reload that touched some other file instead, or on a
- * hotplug event for an unrelated output.
+ * For each configured profile whose name matches a currently-connected
+ * output.  An enabled profile's desired resolution (falling back to
+ * whatever mode is already active, or the output's own preferred mode,
+ * when none is configured or none of the screen's modes matches it),
+ * position, and rotation are compared against that output's own CRTC's
+ * actual current state first, and @a xcb_randr_set_crtc_config is
+ * issued only when at least one of them actually differs (claiming
+ * a free compatible CRTC first if the output had none, which always
+ * counts as a difference, since it was driving nothing at all before);
+ * @p is_primary is compared and, if needed, applied the same way as
+ * a separate, independent step afterward.
+ *
+ * A disabled profile instead turns the output's own CRTC off, but only
+ * if it is not already off.  A configured profile whose name matches no
+ * currently-connected output is skipped, logged at debug level only,
+ * not as a warning.  This comparison is what keeps an unchanged
+ * @c randr.json from writing anything to the X server at all on
+ * a reload that touched some other file instead, or on a hotplug event
+ * for an unrelated output.
  *
  * Meant to be called once at startup (after RandR is confirmed
  * available) and again whenever @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE
@@ -514,41 +511,47 @@ int surface_action_set_orientation(surface_td *surface, int orientation);
  * @param surface       Surface whose outputs to apply configured
  *                      profiles to
  * @param take_snapshot Whether to save each changed CRTC's prior
- *                      state first, so a subsequent @c surface_
- *                      action_revert_randr_profiles call can put it
- *                      back; pass @c false for a startup or hotplug
- *                      call, where there is nothing to revert to
- *                      (the newly-applied state @e is the intended
- *                      one), and @c true only when the caller means
- *                      to offer a person a chance to undo this
- *                      specific call (see @c wm_action_config_reload)
+ *                      state first, so a subsequent
+ *                      @a surface_action_revert_randr_profiles call can
+ *                      put it back; pass @c false for a startup or
+ *                      hotplug call, where there is nothing to revert
+ *                      to (the newly-applied state @e is the intended
+ *                      one), and @c true only when the caller means to
+ *                      offer a person a chance to undo this specific
+ *                      call
  *
- * @return @c true if at least one output's actual state was changed;
- *         @c false if every configured profile already matched (or
- *         @p surface, RandR management, or every matching output
- *         could not be resolved at all)
+ * @return Status of the operation
+ * @retval  true if at least one output's actual state was changed
+ * @retval false if every configured profile already matched (or
+ *               @p surface, RandR management, or every matching output
+ *               could not be resolved at all)
  *
+ * @note A no-op when @p surface, its connection, or its screen is
+ *       @c NULL, or when RandR profile management is off altogether
+ *       (@p config->randr.is_enabled is @c false)
+ * @note @p config->randr.outputs is not scoped per screen
  * @note Complexity: @e O(p * (n + c)), where @e p is the number of
  *       configured profiles, @e n the number of outputs the screen
  *       currently reports, and @e c the number of CRTCs compatible
  *       with whichever output a profile matches (only when it has
  *       none active yet)
- * @note @c config->randr.outputs is not scoped per screen; see
- *       @c config_randr_s
+ *
+ * @see @a wm_action_config_reload, and @p config_randr_s, loaded from
+ *      @c randr.json
  */
 bool surface_action_apply_randr_profiles(surface_td *surface,
         bool take_snapshot);
 
 /**
- * @brief Undo the most recent snapshotting @c surface_action_apply_
- *        randr_profiles call
+ * @brief Undo the most recent snapshotting
+ *        @a surface_action_apply_randr_profiles call
  *
  * Restores every CRTC that call actually changed to exactly the state
  * it captured first (mode, position, rotation, or off if it was off),
  * and RandR's primary output to whichever one held it before, then
  * clears the snapshot.  A safe, cheap no-op if nothing is currently
- * snapshotted, including when the surface it belonged to no longer
- * has a usable connection.
+ * snapshotted, including when the surface it belonged to no longer has
+ * a usable connection.
  *
  * @note Complexity: @e O(s), where @e s is the number of CRTCs the
  *       snapshotted call actually changed
@@ -572,9 +575,9 @@ int surface_action_configure_settings(surface_td *surface);
  * @brief Unmap all non-sticky client windows belonging to a desktop
  *
  * Iterates the stacking list of the specified desktop and calls
- * @c xcb_unmap_window for each client that does not have the
- * @c CLIENT_FLAG_PIN flag set.  Used when switching away from a
- * desktop to hide its windows.
+ * @a xcb_unmap_window for each client that does not have the
+ * @c CLIENT_FLAG_PIN flag set.  Used when switching away from a desktop
+ * to hide its windows.
  *
  * @param surface    Pointer to the surface that owns the desktop
  * @param desktop_id ID of the desktop whose clients should be hidden
@@ -588,7 +591,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id);
  * @brief Map all visible client windows belonging to a desktop
  *
  * Iterates the stacking list of the specified desktop and calls
- * @c xcb_map_window for each client that is neither hidden
+ * @a xcb_map_window for each client that is neither hidden
  * (@c CLIENT_FLAG_HIDDEN) nor iconified
  * (@c CLIENT_STATE_ICONIFIED).  Used when switching to a desktop to
  * reveal its windows.
@@ -638,19 +641,19 @@ void surface_refresh_workareas(surface_td *surface);
  * @brief Reposition clients left with no overlap against any known
  *        monitor
  *
- * Iterates all desktops and their stacking lists.  A client whose
- * frame (or client window when undecorated) still overlaps at least
- * one of @p surface's own monitors (see @c surface->monitors) is left
- * untouched, even if it is not fully contained within a single one:
- * a window legitimately spanning two adjacent monitors must not be
+ * Iterates all desktops and their stacking lists.  A client whose frame
+ * (or client window when undecorated) still overlaps at least one of
+ * @p surface's own monitors (see @p surface->monitors) is left
+ * untouched, even if it is not fully contained within a single one.
+ * A window legitimately spanning two adjacent monitors must not be
  * "corrected" just for straddling their seam.  Only a client with no
- * overlap against any current monitor at all (typically because the
- * one it used to be on was disconnected, or a RandR layout change
- * left it in a gap) is moved, clamped into whichever monitor @c
- * surface_monitor_for_point resolves for its own center point so that
- * at least a minimum strip of the window remains visible there.  Both
- * the X server geometry and the cached @c client->layout.geometry.cur
- * are updated.
+ * overlap against any current monitor at all (typically because the one
+ * it used to be on was disconnected, or a RandR layout change left it
+ * in a gap) is moved, clamped into whichever monitor
+ * @a surface_monitor_for_point resolves for its own center point so
+ * that at least a minimum strip of the window remains visible there.
+ * Both the X server geometry and the cached
+ * @p client->layout.geometry.cur are updated.
  *
  * @param surface Pointer to the surface whose clients will be reflowed
  *

@@ -74,41 +74,41 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
 /**
  * @brief Begin a resize drag with an explicit anchor, rather than one
- *        @c drag_start would infer from @p root_x / @p root_y
+ *        @a drag_start would infer from @p root_x / @p root_y
  *
- * For @c '_NET_WM_MOVERESIZE' (see @c hi_handle_net_wm_moveresize in
- * handler/ewmhmsg.c): the requesting client names which edge or
+ * For @c _NET_WM_MOVERESIZE (see @a hi_handle_net_wm_moveresize in
+ * @c handler/ewmhmsg.c).  The requesting client names which edge or
  * corner it wants resized directly, rather than icowm inferring one
  * from where the pointer happens to be, since that position (wherever
  * the client's own custom resize grip was clicked) has no fixed
  * relationship to the client's actual border the way a normal
- * border-drag's position does.  Calls @c drag_start itself for
- * everything else (state recording, the pointer grab), then
- * overwrites just the anchor and per-axis resize flags it would
- * otherwise have inferred; every existing caller of @c drag_start
- * itself is completely unaffected.
+ * border-drag's position does.  Calls @a drag_start itself for
+ * everything else (state recording, the pointer grab), then overwrites
+ * just the anchor and per-axis resize flags it would otherwise have
+ * inferred; every existing caller of @a drag_start itself is completely
+ * unaffected.
  *
- * @param connection  XCB connection
- * @param root        Root window on which to grab the pointer
- * @param client      Client being resized
- * @param desktop     Desktop that owns @p client (may be null)
- * @param event_time  Timestamp from the triggering request
- * @param root_x      Root-relative X of the pointer at request time
- * @param root_y      Root-relative Y of the pointer at request time
- * @param screen_w    Screen width in pixels (0 to disable snap)
- * @param screen_h    Screen height in pixels (0 to disable snap)
- * @param snap        Snap distance in pixels (0 to disable snap)
- * @param anchor_right @c true if the right edge stays fixed (a left,
- *                    top-left, or bottom-left drag)
+ * @param connection    XCB connection
+ * @param root          Root window on which to grab the pointer
+ * @param client        Client being resized
+ * @param desktop       Desktop that owns @p client (may be null)
+ * @param event_time    Timestamp from the triggering request
+ * @param root_x        Root-relative X of the pointer at request time
+ * @param root_y        Root-relative Y of the pointer at request time
+ * @param screen_w      Screen width in pixels (0 to disable snap)
+ * @param screen_h      Screen height in pixels (0 to disable snap)
+ * @param snap          Snap distance in pixels (0 to disable snap)
+ * @param anchor_right  @c true if the right edge stays fixed (a left,
+ *                      top-left, or bottom-left drag)
  * @param anchor_bottom @c true if the bottom edge stays fixed (a top,
- *                    top-left, or top-right drag)
- * @param resize_w    @c true if this direction changes the width
- * @param resize_h    @c true if this direction changes the height
+ *                      top-left, or top-right drag)
+ * @param resize_w      @c true if this direction changes the width
+ * @param resize_h      @c true if this direction changes the height
  *
  * @note Complexity: @e O(1)
  */
-void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
-        client_td *client, desktop_td *desktop,
+void drag_start_directed(xcb_connection_t *connection,
+        xcb_window_t root, client_td *client, desktop_td *desktop,
         xcb_timestamp_t event_time,
         int16_t root_x, int16_t root_y,
         uint32_t screen_w, uint32_t screen_h,
@@ -120,21 +120,18 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
  * @brief Begin a resize drag, locking out whichever axis (or axes)
  *        @p axis_w_locked / @p axis_h_locked mark as unavailable
  *
- * For a client maximized on one axis only (horizontal or vertical;
- * see @c client_is_maximized_horz / @c client_is_maximized_vert): that
- * axis is snapped exactly to its workarea edge, so it has nothing
- * left to drag it wider or narrower with, the same way a fully
- * maximized or fullscreen client cannot be resized at all (Karp,
- * O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed.,
- * ch. 2: "Maximized windows can't be moved or resized").  The other,
- * still-free axis keeps working exactly as a normal border drag
- * would.  Calls @c drag_start for everything else (state recording,
- * the pointer grab, and its own normal per-axis inference from
- * @p root_x / @p root_y), then clears whichever axis flag(s) @p
- * axis_w_locked / @p axis_h_locked ask for; if that leaves neither
- * axis resizable at all (the grab point was only ever near the locked
- * edge), the drag is cancelled outright via @c drag_cancel rather
- * than left running inert.
+ * For a client maximized on one axis only (horizontal or vertical; see
+ * @a client_is_maximized_horz / @a client_is_maximized_vert), that axis
+ * is snapped exactly to its workarea edge, so it has nothing left to
+ * drag it wider or narrower with, the same way a fully maximized or
+ * fullscreen client cannot be resized at all.  The other, still-free
+ * axis keeps working exactly as a normal border drag would.  Calls @c
+ * drag_start for everything else (state recording, the pointer grab,
+ * and its own normal per-axis inference from @p root_x / @p root_y),
+ * then clears whichever axis flag(s) @p axis_w_locked /
+ * @p axis_h_locked ask for; if that leaves neither axis resizable at all
+ * (the grab point was only ever near the locked edge), the drag is
+ * cancelled outright via @a drag_cancel rather than left running inert.
  *
  * @param connection    XCB connection
  * @param root          Root window on which to grab the pointer
@@ -151,6 +148,8 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
  * @param axis_h_locked @c true to force the height axis unresizable
  *                      regardless of where @p root_y fell
  *
+ * @note Cfr. Karp, O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell',
+ *       2nd ed., ch. 2: "Maximized windows can't be moved or resized")
  * @note Complexity: @e O(1)
  */
 void drag_start_resize_axis_locked(xcb_connection_t *connection,
@@ -171,25 +170,16 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
  * @param root       Root window on which to grab the pointer
  * @param client     Client whose icon window is being dragged
  * @param desktop    Desktop @p client currently sits on; needed for
- *                    @c desktops.enable_edge_warp (see @c drag_warp_tick), the
- *                    same as @a drag_start's own @p desktop parameter
+ *                   @p desktops.enable_edge_warp (see
+ *                   @a drag_warp_tick), the same as @a drag_start's own
+ *                   @p desktop parameter
  * @param icon_x     Current icon window X (screen-relative)
  * @param icon_y     Current icon window Y (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
  * @param root_x     Root-relative X of the pointer at press time
  * @param root_y     Root-relative Y of the pointer at press time
- * @param screen_w   Surface width, for edge snapping and @c desktops.
- *                    warp's own edge detection (see @c
- *                    s_drag_check_warp_edge); left unset before this
- *                    parameter existed, an icon drag's warp-edge check
- *                    ran against whatever @c s_drag.screen_w happened
- *                    to still hold from an earlier window drag, or
- *                    zero if none had happened yet -- either stale or
- *                    zero, comparing the pointer's real position
- *                    against it read as "past the right edge" far too
- *                    often, re-arming the warp repeatedly and
- *                    dragging the pointer back left on every
- *                    countdown
+ * @param screen_w   Surface width, for edge snapping and
+ *                   @p desktops.warp's own edge detection
  * @param screen_h   Surface height, for the same reason
  *
  * @note Complexity: @e O(1)
@@ -222,7 +212,7 @@ void drag_update(xcb_connection_t *connection,
  * @brief Finish the drag on a button-release event
  *
  * For icon drags, decides whether the pointer displacement exceeds the
- * click threshold: if not, restores the iconified client and focuses
+ * click threshold.  If not, restores the iconified client and focuses
  * it; if yes, persists the new icon position.  For normal drags, just
  * resets the drag state.  Releases the pointer grab in all cases.
  *
@@ -322,10 +312,11 @@ void drag_current_pos(int32_t *x, int32_t *y);
  * @brief Milliseconds until a pointer held against a warp-eligible
  *        screen edge is due to switch desktops
  *
- * Tracked by @c drag_update as the pointer moves (see @c desktops.enable_edge_warp
- * in config.json, @c config_desktop_s); serviced by @c drag_warp_tick.
+ * Tracked by @c drag_update as the pointer moves (see
+ * @p desktops.enable_edge_warp in @c config.json, @c config_desktop_s);
+ * serviced by @a drag_warp_tick.
  *
- * @return Milliseconds remaining (never negative), or -1 if the
+ * @return Milliseconds remaining (never negative), or @c -1 if the
  *         pointer is not currently held against an eligible edge
  *
  * @note Complexity: @e O(1)
@@ -335,28 +326,28 @@ int drag_warp_ms_remaining(void);
 /**
  * @brief Perform the pending edge warp, if its countdown has elapsed
  *
- * Meant to be called on every main-loop iteration, the same way @c
- * menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
+ * Meant to be called on every main-loop iteration, the same way
+ * @a menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
  * resting against a screen edge during a window or icon move still
  * switches desktops even with no further @c MotionNotify arriving to
  * drive it.  A no-op when no warp is currently pending, its countdown
  * has not yet elapsed, the drag it belonged to is no longer a plain
- * window or icon move, warping is disabled, there is only one
- * desktop, or (with @c desktops.is_circular off) the edge held is already
- * the first or last desktop.
+ * window or icon move, warping is disabled, there is only one desktop,
+ * or (with @p desktops.is_circular off) the edge held is already the
+ * first or last desktop.
  *
- * Moves the dragged client to the adjacent desktop without unmapping
- * it at any point (it must stay visible throughout), switches the
+ * Moves the dragged client to the adjacent desktop without unmapping it
+ * at any point (it must stay visible throughout), switches the
  * surface's own current desktop to match, and repositions the pointer
- * to the opposite edge -- adjusting the drag's own internal state so
- * that jump does not make the dragged window visually snap on the
- * next @c MotionNotify.
+ * to the opposite edge.  Adjusting the drag's own internal state so
+ * that jump does not make the dragged window visually snap on the next
+ * @c MotionNotify.
  *
  * @param connection XCB connection
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       either desktop involved (from @c surface_clients_hide/@c
- *       _show)
+ *       either desktop involved (from @a surface_clients_hide /
+ *       @a surface_clients_show)
  */
 void drag_warp_tick(xcb_connection_t *connection);
 

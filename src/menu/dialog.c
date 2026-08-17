@@ -66,7 +66,6 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
         const surface_td *surface)
 {
     xcb_query_pointer_cookie_t cookie;
-    xcb_query_pointer_reply_t *reply;
     monitor_td monitor = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 
     if (surface == NULL) {
@@ -74,6 +73,8 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
     }
 
     if (connection != NULL && surface->screen != NULL) {
+        xcb_query_pointer_reply_t *reply;
+
         cookie = xcb_query_pointer(connection, surface->screen->root);
         reply = xcb_query_pointer_reply(connection, cookie, NULL);
         if (reply != NULL) {

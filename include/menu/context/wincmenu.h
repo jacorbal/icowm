@@ -48,8 +48,8 @@
 
 /**
  * @brief Maximum number of monitors shown in the "Send to monitor"
- *        submenu; matches @c WM_SURFACE_MAX_MONITORS, the real cap
- *        on how many a surface can ever report
+ *        submenu; matches @c WM_SURFACE_MAX_MONITORS, the real cap on
+ *        how many a surface can ever report
  */
 #define WINCMENU_MAX_MONITORS (WM_SURFACE_MAX_MONITORS)
 
@@ -59,16 +59,18 @@
 #define WINCMENU_LAYER_COUNT (3)
 
 /**
- * @brief Number of fixed top-level entries in the window context menu:
- *        THREE submenus (Send to desktop, Send to monitor, Layer) +
- *        ONE separator + NINE commands (Restore, Move, Resize,
- *        Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
- *        Un/decorate) + ONE separator + ONE command (Close) = FIFTEEN
- *        total.  "Send to monitor" only actually appears on a
- *        surface with more than one monitor, so this counts it as
- *        always present for a simple, constant capacity bound rather
- *        than optimizing the array size for the common single-monitor
- *        case.
+ * @brief Number of fixed top-level entries in the window context menu
+ *
+ * THREE submenus (Send to desktop, Send to monitor, Layer) + ONE
+ * separator + NINE commands (Restore, Move, Resize, Iconify, Hide,
+ * Maximize, Un/fullscreen, Un/shade, Un/decorate) + ONE separator + ONE
+ * command (Close) = FIFTEEN total.
+ *
+ * "Send to monitor" only actually appears on a surface with more than
+ * one monitor, so this counts it as always present for a simple,
+ * constant capacity bound rather than optimizing the array size for the
+ * common single-monitor case.  "Send to desktop" does not appear when
+ * the topology is set to just one desktop.
  */
 #define WINCMENU_FIXED_ENTRIES (15)
 
@@ -131,7 +133,6 @@ void wincmenu_repaint(xcb_window_t win);
  * @param connection XCB connection
  * @param surface    Surface associated with the event
  * @param win        Window that received the press
- * @param root_x     Pointer X in root (screen) coordinates
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
  *
@@ -140,7 +141,7 @@ void wincmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_x, int root_y,
+        surface_td *surface, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -184,7 +185,7 @@ bool wincmenu_owns_window(xcb_window_t win);
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
- * @return @c true if the event was consumed, @c false otherwise
+ * @return @c true if the event was consumed
  *
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
@@ -193,7 +194,8 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
         const config_td *config);
 
 /**
- * @brief Handle a pointer-motion event over a window context menu window
+ * @brief Handle a pointer-motion event over a window context menu
+ *        window
  *
  * Finds the menu state that owns @p win and updates its hover highlight
  * based on the pointer position (@p x, @p y) relative to that window.
