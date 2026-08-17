@@ -417,15 +417,19 @@ typedef struct client_s {
      * @brief ICCCM @c WM_NORMAL_HINTS size constraints
      */
     struct {
-        bool valid;         /**< True when hints were read from server */
-        int32_t min_w;      /**< Minimum width  (0 = unset) */
-        int32_t min_h;      /**< Minimum height (0 = unset) */
-        int32_t max_w;      /**< Maximum width  (0 = unset) */
-        int32_t max_h;      /**< Maximum height (0 = unset) */
-        int32_t base_w;     /**< Base width for increment arithmetic */
-        int32_t base_h;     /**< Base height for increment arithmetic */
-        int32_t inc_w;      /**< Width increment  (0 or 1 = no grid) */
-        int32_t inc_h;      /**< Height increment (0 or 1 = no grid) */
+        bool valid;             /**< True when hints were read from server */
+        int32_t min_w;          /**< Minimum width  (0 = unset) */
+        int32_t min_h;          /**< Minimum height (0 = unset) */
+        int32_t max_w;          /**< Maximum width  (0 = unset) */
+        int32_t max_h;          /**< Maximum height (0 = unset) */
+        int32_t base_w;         /**< Base width for increment arithmetic */
+        int32_t base_h;         /**< Base height for increment arithmetic */
+        int32_t inc_w;          /**< Width increment  (0 or 1 = no grid) */
+        int32_t inc_h;          /**< Height increment (0 or 1 = no grid) */
+        int32_t min_aspect_num; /**< Minimum w/h ratio numerator (0 = unset) */
+        int32_t min_aspect_den; /**< Minimum w/h ratio denominator */
+        int32_t max_aspect_num; /**< Maximum w/h ratio numerator (0 = unset) */
+        int32_t max_aspect_den; /**< Maximum w/h ratio denominator */
     } size_hints;
 
     /**

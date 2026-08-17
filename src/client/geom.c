@@ -499,6 +499,16 @@ void client_constrain_size(const client_td *client,
             req_h = base + (over / inc) * inc;
         }
 
+        /* ICCCM §4.1.2.3: clamp the width/height ratio into
+         * ['min_aspect', 'max_aspect'], adjusting 'req_h' rather than
+         * 'req_w' so the axis the person is actively dragging (most
+         * often width, e.g. a corner or side handle) is left exactly as
+         * requested; comparisons cross-multiply instead of dividing so
+         * no fractional rounding of the ratio itself ever creeps in.
+         * Kept as the very last adjustment in this whole block, after
+         * every other constraint above (including the grid and the
+         * second 'min_w'/'min_h' floor just below), so nothing that
+         * runs afterward can push the ratio back out of range again. */
         if (client->size_hints.min_w > 0 &&
                 req_w < (uint32_t) client->size_hints.min_w) {
             req_w = (uint32_t) client->size_hints.min_w;
@@ -507,6 +517,34 @@ void client_constrain_size(const client_td *client,
         if (client->size_hints.min_h > 0 &&
                 req_h < (uint32_t) client->size_hints.min_h) {
             req_h = (uint32_t) client->size_hints.min_h;
+        }
+
+        if (client->size_hints.min_aspect_num > 0 &&
+                client->size_hints.min_aspect_den > 0) {
+            uint64_t lhs = (uint64_t) req_w *
+                (uint64_t) client->size_hints.min_aspect_den;
+            uint64_t rhs = (uint64_t) client->size_hints.min_aspect_num *
+                (uint64_t) req_h;
+
+            if (lhs < rhs) {
+                req_h = (uint32_t) (((uint64_t) req_w *
+                            (uint64_t) client->size_hints.min_aspect_den) /
+                        (uint64_t) client->size_hints.min_aspect_num);
+            }
+        }
+
+        if (client->size_hints.max_aspect_num > 0 &&
+                client->size_hints.max_aspect_den > 0) {
+            uint64_t lhs = (uint64_t) req_w *
+                (uint64_t) client->size_hints.max_aspect_den;
+            uint64_t rhs = (uint64_t) client->size_hints.max_aspect_num *
+                (uint64_t) req_h;
+
+            if (lhs > rhs) {
+                req_h = (uint32_t) (((uint64_t) req_w *
+                            (uint64_t) client->size_hints.max_aspect_den) /
+                        (uint64_t) client->size_hints.max_aspect_num);
+            }
         }
     }
 

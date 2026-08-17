@@ -385,6 +385,13 @@ void client_props_refresh_normal_hints(client_td *client)
         client->layout.gravity = (uint16_t) hints.win_gravity;
     }
 
+    if (hints.flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) {
+        client->size_hints.min_aspect_num = (int32_t) hints.min_aspect_num;
+        client->size_hints.min_aspect_den = (int32_t) hints.min_aspect_den;
+        client->size_hints.max_aspect_num = (int32_t) hints.max_aspect_num;
+        client->size_hints.max_aspect_den = (int32_t) hints.max_aspect_den;
+    }
+
     /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
      * one axis.  Some applications (e.g., gmrun) constrain only height,
      * leaving width free; the window is still effectively non-resizable
