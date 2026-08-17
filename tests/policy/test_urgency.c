@@ -140,7 +140,7 @@ int main(void)
             s_id_match, NULL);
     s_desktops_by_id[0] = &desktop;
     config.a11y.urgency.blink_interval_ms = 5u;
-    config.a11y.urgency.audible_bell = false;
+    config.a11y.urgency.sound_bell = false;
 
     surfaces = list_init(NULL);
     list_ins_next(surfaces, NULL, &surface);

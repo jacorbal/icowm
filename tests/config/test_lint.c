@@ -223,7 +223,7 @@ static void s_test_nested_unrecognized_key_found(void)
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "config.json",
-            "{\"desktops\": {\"enable-edge-warp\": true, "
+            "{\"desktops\": {\"warp-on-edge-drag\": true, "
             "\"bogus-nested\": 1}}");
     TAP_EQ_INT(s_lint_quietly(dir), 1,
             "an unrecognized key nested under a recognized parent"

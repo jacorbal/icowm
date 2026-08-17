@@ -299,7 +299,7 @@ static void s_test_representative_fields(void)
         "  \"snap\": 8,"
         "  \"gravity\": \"center\","
         "  \"focus\": {\"policy\": \"sloppy\","
-        "    \"is-new-focused\": false},"
+        "    \"focus-new\": false},"
         "  \"placement\": {\"policy\": \"cascade\", \"monitor\": \"primary\"}"
         "},"
         "\"icons\": {\"placement\": {\"policy\": \"top\"}},"
@@ -319,8 +319,8 @@ static void s_test_representative_fields(void)
             "windows.gravity");
     TAP_EQ_INT(base.windows.focus_policy, CONFIG_FOCUS_POLICY_SLOPPY,
             "windows.focus.policy");
-    TAP_OK(!base.windows.focus.is_new_focused,
-            "windows.focus.is-new-focused");
+    TAP_OK(!base.windows.focus.focus_new,
+            "windows.focus.focused-new");
     TAP_EQ_INT(base.windows.placement_policy,
             CONFIG_PLACEMENT_POLICY_CASCADE, "windows.placement.policy");
     TAP_EQ_INT(base.windows.monitor_policy,
@@ -384,7 +384,7 @@ static void s_test_icons_placement_legacy_windows_location(void)
 }
 
 
-/* desktops.show-overlay/enable-edge-warp/is-circular/margins, a
+/* desktops.show-overlay/warp_on_edge_drag/wrap_at_bounds/margins, a
  * sibling of 'topology' at the config root, meant to still apply on
  * every reload (unlike topology) */
 static void s_test_desktop_behavior(void)
@@ -394,12 +394,12 @@ static void s_test_desktop_behavior(void)
 
     s_load(
         "{\"desktops\": {\"show-overlay\": true,"
-        " \"enable-edge-warp\": true, \"is-circular\": true,"
+        " \"warp-on-edge-drag\": true, \"wrap-at-bounds\": true,"
         " \"margins\": {\"top\": 3, \"left\": 7}}}", &base, &desktop);
 
     TAP_OK(desktop.show_overlay, "desktops.show-overlay");
-    TAP_OK(desktop.enable_edge_warp, "desktops.enable-edge-warp");
-    TAP_OK(desktop.is_circular, "desktops.is-circular");
+    TAP_OK(desktop.warp_on_edge_drag, "desktops.warp-on-edge-drag");
+    TAP_OK(desktop.wrap_at_bounds, "desktops.is-wrap-at-bounds");
     TAP_EQ_INT((int) desktop.margins.top, 3, "desktops.margins.top");
     TAP_EQ_INT((int) desktop.margins.left, 7, "desktops.margins.left");
 }

@@ -68,7 +68,7 @@ static void s_test_empty_object_resets_to_defaults(void)
     a11y.is_enabled = true;
     a11y.interaction.double_click_ms = 999u;
     a11y.focus_indicator.min_border_width = 7u;
-    a11y.urgency.audible_bell = true;
+    a11y.urgency.sound_bell = true;
     a11y.urgency.blink_interval_ms = 111u;
 
     s_write_temp_file(path, sizeof(path), "{}");
@@ -81,8 +81,8 @@ static void s_test_empty_object_resets_to_defaults(void)
             "double_click_ms resets to its own built-in default");
     TAP_EQ_INT((int) a11y.focus_indicator.min_border_width, 0,
             "min_border_width resets to its own built-in default");
-    TAP_OK(!a11y.urgency.audible_bell,
-            "audible_bell resets to its own built-in default");
+    TAP_OK(!a11y.urgency.sound_bell,
+            "sound_bell resets to its own built-in default");
     TAP_EQ_INT((int) a11y.urgency.blink_interval_ms,
             WM_URGENCY_BLINK_INTERVAL_MS,
             "blink_interval_ms resets to its own built-in default");
@@ -103,7 +103,7 @@ static void s_test_is_enabled_absent_ignores_other_fields(void)
     s_write_temp_file(path, sizeof(path),
         "{\"interaction\": {\"double-click-ms\": 250},"
         "\"focus-indicator\": {\"min-border-width\": 4},"
-        "\"urgency\": {\"audible-bell\": true,"
+        "\"urgency\": {\"sound-bell\": true,"
         "\"blink-interval-ms\": 300}}");
 
     TAP_EQ_INT(config_load_a11y(path, &a11y), 0,
@@ -115,8 +115,8 @@ static void s_test_is_enabled_absent_ignores_other_fields(void)
             "double-click-ms ignored while not enabled");
     TAP_EQ_INT((int) a11y.focus_indicator.min_border_width, 0,
             "min-border-width ignored while not enabled");
-    TAP_OK(!a11y.urgency.audible_bell,
-            "audible-bell ignored while not enabled");
+    TAP_OK(!a11y.urgency.sound_bell,
+            "sound-bell ignored while not enabled");
     TAP_EQ_INT((int) a11y.urgency.blink_interval_ms,
             WM_URGENCY_BLINK_INTERVAL_MS,
             "blink-interval-ms ignored while not enabled");
@@ -157,7 +157,7 @@ static void s_test_full_file_enabled(void)
         "{\"is-enabled\": true,"
         "\"interaction\": {\"double-click-ms\": 250},"
         "\"focus-indicator\": {\"min-border-width\": 4},"
-        "\"urgency\": {\"audible-bell\": true,"
+        "\"urgency\": {\"sound-bell\": true,"
         "\"blink-interval-ms\": 300}}");
 
     TAP_EQ_INT(config_load_a11y(path, &a11y), 0,
@@ -167,8 +167,8 @@ static void s_test_full_file_enabled(void)
             "double-click-ms loaded correctly");
     TAP_EQ_INT((int) a11y.focus_indicator.min_border_width, 4,
             "min-border-width loaded correctly");
-    TAP_OK(a11y.urgency.audible_bell,
-            "audible-bell loaded correctly");
+    TAP_OK(a11y.urgency.sound_bell,
+            "sound-bell loaded correctly");
     TAP_EQ_INT((int) a11y.urgency.blink_interval_ms, 300,
             "blink-interval-ms loaded correctly");
     unlink(path);
