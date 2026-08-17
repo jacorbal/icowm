@@ -74,9 +74,9 @@
 /**
  * @brief Map a window without adopting it under window manager control
  *
- * Shared by every early-return path in @c handler_map_request below
+ * Shared by every early-return path in @a handler_map_request below
  * that declines to manage the window (an unresolvable surface or
- * current desktop, @c client_init itself failing, or the client
+ * current desktop, @a client_init itself failing, or the client
  * failing to be added to its desktop): the requesting application
  * gets its window on screen either way, just without a frame or any
  * window-manager tracking.
@@ -91,65 +91,6 @@ static void s_map_unmanaged(xcb_connection_t *connection,
 {
     xcb_map_window(connection, window);
     xcb_flush(connection);
-}
-
-
-/**
- * @brief Restore focus after the active client disappears from a desktop
- *
- * Selects the most recent visible focusable client in reverse stacking
- * order and focuses it.  If none is found, focus is released to pointer
- * root so keyboard grabs continue to work.
- */
-static void s_restore_focus_after_client_loss(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
-        const client_td *lost_client)
-{
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
-    bool focus_set = false;
-
-    if (desktop == NULL || desktop->stacking == NULL) {
-        return;
-    }
-
-    node = cdlist_tail(desktop->stacking);
-    initial = node;
-    if (node != NULL) {
-        do {
-            client_td *c = (client_td *) cdlist_data(node);
-            if (c != NULL && c != lost_client &&
-                    !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_shaded(c) &&
-                    c->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED &&
-                    (c->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
-                    !client_has_no_focus_fallback(c)) {
-                desktop->client_active_id = c->id;
-                desktop->focus_dirty = true;
-
-                if (connection != NULL) {
-                    xcb_set_input_focus(connection,
-                            XCB_INPUT_FOCUS_PARENT,
-                            c->window, XCB_CURRENT_TIME);
-                }
-                wm_outdate_desktop(desktop);
-                wm_outdate_surface(surface);
-                focus_set = true;
-                break;
-            }
-            node = cdlist_prev(node);
-        } while (node != NULL && node != initial);
-    }
-
-    if (!focus_set && connection != NULL) {
-        xcb_set_input_focus(connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
-        wm_outdate_desktop(desktop);
-        wm_outdate_surface(surface);
-    }
 }
 
 
@@ -407,10 +348,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
 
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
-            desktop->client_active_id = 0;
-            desktop->focus_dirty = true;
-            s_restore_focus_after_client_loss(connection, surface,
-                    desktop, client);
+            client_focus_fallback(desktop, surface, client);
         }
 
         /* When a managed client withdraws itself (for example, to
@@ -471,10 +409,7 @@ void handler_destroy_notify(xcb_connection_t *connection,
     }
 
     if (desktop != NULL && desktop->client_active_id == client->id) {
-        desktop->client_active_id = 0;
-        desktop->focus_dirty = true;
-        s_restore_focus_after_client_loss(connection, surface,
-                desktop, client);
+        client_focus_fallback(desktop, surface, client);
         if (connection != NULL) {
             xcb_flush(connection);
         }

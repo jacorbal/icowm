@@ -43,6 +43,7 @@
 #include <desktop.h>
 #include <ipc.h>
 #include <lookup.h>
+#include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
 #include <wm/kill.h>
@@ -60,12 +61,15 @@
  * @brief Transfer focus away from a client that is leaving the current
  *        visible focus chain
  *
- * Picks the most recently used visible focusable client on the current
- * desktop and focuses it.  If no such client exists, focus is released
- * to the pointer root so global grabs continue working.
+ * Thin wrapper resolving @p client's own surface/desktop before
+ * deferring to @a client_focus_fallback itself.
  *
  * @param client Client that is being hidden or iconified
  *
+ * @note A no-op unless @p client is genuinely this desktop's own
+ *       current active client, since some other, already-unfocused
+ *       client being hidden or iconified has no focus of its own to
+ *       hand off in the first place.
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       current desktop
  */
@@ -73,8 +77,6 @@ static void s_client_focus_fallback(client_td *client)
 {
     surface_td *surface;
     desktop_td *desktop;
-    cdlist_item_td *node;
-    client_td *next_focus;
 
     if (client == NULL) {
         return;
@@ -90,11 +92,28 @@ static void s_client_focus_fallback(client_td *client)
         return;
     }
 
+    client_focus_fallback(desktop, surface, client);
+}
+
+
+/* Transfer input focus away from a client that is leaving the current
+ * visible focus chain, to the most recently used other visible,
+ * focusable client on the same desktop */
+void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+        const client_td *exclude)
+{
+    cdlist_item_td *node;
+    client_td *next_focus = NULL;
+
+    if (desktop == NULL) {
+        return;
+    }
+
     desktop->client_active_id = 0;
     desktop->focus_dirty = true;
-    next_focus = NULL;
 
-    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+    if (desktop->stacking != NULL &&
+            cdlist_size(desktop->stacking) > 0) {
         const cdlist_item_td *initial;
 
         node = cdlist_tail(desktop->stacking);
@@ -102,7 +121,7 @@ static void s_client_focus_fallback(client_td *client)
         if (node != NULL) {
             do {
                 client_td *candidate = (client_td *) cdlist_data(node);
-                if (candidate != NULL && candidate != client &&
+                if (candidate != NULL && candidate != exclude &&
                         !(candidate->properties.flags &
                             CLIENT_FLAG_HIDDEN) &&
                         !client_is_shaded(candidate) &&
@@ -110,7 +129,13 @@ static void s_client_focus_fallback(client_td *client)
                             (uint16_t) CLIENT_STATE_ICONIFIED &&
                         (candidate->properties.flags &
                          CLIENT_FLAG_FOCUSABLE) &&
-                        !client_has_no_focus_fallback(candidate)) {
+                        !client_has_no_focus_fallback(candidate) &&
+                        (!(candidate->properties.flags &
+                             CLIENT_FLAG_SKIP_TASKBAR) ||
+                         client_is_modal(candidate) ||
+                         client_is_urgent(candidate) ||
+                         candidate->properties.type ==
+                             (uint16_t) CLIENT_TYPE_DIALOG)) {
                     next_focus = candidate;
                     break;
                 }
@@ -124,15 +149,15 @@ static void s_client_focus_fallback(client_td *client)
         desktop->focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, next_focus);
         ccmd_client_focus(next_focus);
-    } else {
-        xcb_set_input_focus(client->connection,
+    } else if (desktop->connection != NULL) {
+        xcb_set_input_focus(desktop->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_CURRENT_TIME);
     }
 
-    desktop->is_outdated = true;
-    surface->is_outdated = true;
+    wm_outdate_desktop(desktop);
+    wm_outdate_surface(surface);
 }
 
 
@@ -180,13 +205,13 @@ void ccmd_client_kill(client_td *client)
 
     /* Enough for the common case: losing its own X connection is
      * normally fatal to whatever toolkit the client is built on, so the
-     * process exits on its own shortly after.
-     *
-     * A genuinely unresponsive client, stuck in some loop that never
-     * processes its own X connection at all, never notices that loss
-     * and keeps running regardless; 'wm_kill_register' watches for
-     * exactly that and sends a real 'SIGKILL' if it is still alive once
-     * its own bounded window elapses. */
+     * process exits on its own shortly after.  A genuinely unresponsive
+     * client, stuck in some loop that never processes its own
+     * X connection at all, never notices that loss and keeps running
+     * regardless; 'wm_kill_register' watches for exactly that and sends
+     * a real 'SIGKILL' if it is still alive once its own bounded window
+     * elapses.  See 'wm/kill.h''s own doc comment for the full
+     * reasoning.  */
     wm_kill_register(client->process.pid);
 }
 

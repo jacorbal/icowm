@@ -24,6 +24,8 @@
 
 /* Project includes */
 #include <client.h>
+#include <desktop.h>
+#include <surface.h>
 
 
 /* Public interface */
@@ -70,6 +72,52 @@ void ccmd_client_restore(client_td *client);
  * @note Complexity: @e O(1)
  */
 void ccmd_client_focus(client_td *client);
+
+/**
+ * @brief Transfer input focus away from a client that is leaving the
+ *        current visible focus chain (closed, iconified, hidden, or
+ *        no longer the desktop's own remembered active client), to
+ *        the most recently used other visible, focusable client on
+ *        the same desktop
+ *
+ * Searches @p desktop's own stacking order from the top down for the
+ * first client that is not @p exclude, not hidden, not shaded, not
+ * iconified, focusable, not flagged @c CLIENT_FLAG_NO_FOCUS_FALLBACK
+ * (the scratchpad; see @a client_set_no_focus_fallback), and not
+ * flagged @c CLIENT_FLAG_SKIP_TASKBAR unless it is modal, urgent, or
+ * a dialog (each already important enough on its own to reach for
+ * regardless, the same three exceptions @c CLIENT_TYPE_DIALOG,
+ * @a client_is_modal, and @a client_is_urgent already carve out
+ * elsewhere for the identical reasoning).  The winner, if any, is
+ * given real focus through @a ccmd_client_focus itself (not a raw
+ * @a xcb_set_input_focus), so urgency clearing, the ICCCM input
+ * model, @c WM_TAKE_FOCUS, and every other side effect real focus
+ * already carries apply here exactly as they do anywhere else focus
+ * is granted.  Relinquishes focus to @c PointerRoot instead when no
+ * candidate qualifies, so the desktop is never left with stale
+ * keyboard focus on a client no longer meant to hold it.
+ *
+ * Deliberately never falls back onto a client that merely happens to
+ * be visible without anyone having actually focused it themselves,
+ * e.g., a pinned window on loan from whichever desktop it actually
+ * got focused on.  Callers that only want a fallback under that
+ * narrower condition already gate the call on their own desktop's
+ * remembered active client having been genuinely set (see
+ * @a surface_clients_show's own two-block split, @c surface/actions.c,
+ * for exactly this distinction).
+ *
+ * @param desktop Desktop whose stacking order is searched, and whose
+ *                own @c client_active_id / @p focus_dirty are updated
+ * @param surface Surface @p desktop belongs to, marked outdated
+ * @param exclude Client to exclude from the search (the one losing
+ *                focus); may be null
+ *
+ * @note No-op if @p desktop is null
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+        const client_td *exclude);
 
 /**
  * @brief Remove focus from the given client

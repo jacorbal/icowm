@@ -27,7 +27,8 @@
 /* Utils includes */
 #include <utils/geom.h>
 
-/* Default initial values */
+/* Commands includes */
+#include <cmds/client/basic.h>
 
 /* Project includes */
 #include <client.h>
@@ -109,20 +110,22 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
 {
     int output_count;
     xcb_randr_output_t *outputs;
-    /* Declared once here, outside the loop, rather than once per
-     * iteration inside it: '-fanalyzer' traced two separate
-     * iterations reaching a loop-scoped declaration of this same
-     * array (see this function's own history for the two prior,
-     * differently-structured attempts at silencing it, both zeroing
-     * the array at its own declaration point, that made no
-     * difference at all) before reporting a "use of uninitialized
-     * value" with no source location at all for the read itself --
-     * itself a strong sign of a known class of '-fanalyzer' false
-     * positive around a fixed array declared inside a loop with an
+    /* Declare this array once, outside the loop, rather than once per
+     * iteration inside it.  '-fanalyzer' traced two distinct iterations
+     * to a loop-scoped declaration of this array (see this function's
+     * history for two earlier, differently structured attempts to
+     * silence the warning).  Both initialized the array at its
+     * declaration, but neither affected the diagnostic.
+     *
+     * It then reported a “use of uninitialized value” without
+     * identifying any source location for the alleged read.  That
+     * strongly suggests a known class of '-fanalyzer' false positive
+     * involving a fixed-size array declared inside a loop that has an
      * early 'continue', rather than a real, traceable read of
-     * anything actually uninitialized.  A single declaration, reached
-     * only once regardless of how many times the loop runs, removes
-     * that whole shape entirely. */
+     * uninitialized storage.
+     *
+     * A single declaration, reached once regardless of the number of
+     * loop iterations, removes that control-flow shape entirely. */
     char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH] = {0};
 
     output_count =
@@ -659,7 +662,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                  * window=target).  An additional event arrives for the
                  * titlebar via the frame's 'SubstructureNotify'.
                  * Desktop switches must not toggle
-                 * 'CLIENT_FLAG_HIDDEN': that flag represents an
+                 * 'CLIENT_FLAG_HIDDEN'.  That flag represents an
                  * explicit user/application hidden state, not temporary
                  * invisibility on another desktop. */
                 client->ignore_unmap += 2u;
@@ -691,7 +694,6 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     desktop_td *desktop;
     cdlist_item_td *node;
     const cdlist_item_td *initial;
-    bool focus_restored;
     client_td *focus_target;
 
     if (surface == NULL) {
@@ -806,7 +808,6 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* Restore input focus to the previously active client.
      * If no suitable client is found, relinquish focus to 'PointerRoot'
      * so the previous desktop's windows do not retain keyboard input. */
-    focus_restored = false;
     focus_target = NULL;
     if (desktop->client_active_id != 0) {
         node = cdlist_head(desktop->stacking);
@@ -830,55 +831,16 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     }
 
 
-    /* Falls back to whichever client is topmost, but only when this
-     * desktop genuinely had an active client remembered that turned out
-     * no longer valid (closed, hidden, iconified, or no longer
-     * focusable) while the surface was elsewhere: dropping focus
-     * entirely there would needlessly abandon a desktop the person was
-     * actively using.  Never runs when 'client_active_id' was 0 to
-     * begin with, i.e., nobody ever focused anything on this desktop
-     * themselves, such as a desktop whose only client is a pinned
-     * window merely visible there on loan from wherever it actually got
-     * focused; that case already falls through to relinquishing focus
-     * to 'PointerRoot' below, matching this whole block's own comment
-     * above.
-     *
-     * A skip-taskbar client is excluded from this guess (unlike the
-     * block just above, which restores whatever the person themselves
-     * deliberately focused before, skip-taskbar or not, since that flag
-     * only means "keep me out of the taskbar and pager", not "never
-     * deserve to keep focus already explicitly given").  Such a client
-     * is meant to stay unobtrusive, so guessing it as this desktop's
-     * new focus is no more welcome than a pinned window merely on loan
-     * would be, unless it is modal, urgent, or a dialog, each already
-     * important enough on its own to reach for regardless. */
-    if (focus_target == NULL && desktop->client_active_id != 0 &&
-            desktop->stacking != NULL) {
-        node = cdlist_tail(desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                client_td *c = (client_td *) cdlist_data(node);
-                if (c != NULL &&
-                        !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        !client_is_shaded(c) &&
-                        c->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED &&
-                        (c->properties.flags &
-                             CLIENT_FLAG_FOCUSABLE) &&
-                        (!(c->properties.flags &
-                             CLIENT_FLAG_SKIP_TASKBAR) ||
-                         client_is_modal(c) || client_is_urgent(c) ||
-                         c->properties.type ==
-                             (uint16_t) CLIENT_TYPE_DIALOG)) {
-                    focus_target = c;
-                    break;
-                }
-                node = cdlist_prev(node);
-            } while (node != NULL && node != initial);
-        }
-    }
-
+    /* When the desktop's own remembered active client could not be
+     * restored above, only let 'client_focus_fallback' guess another
+     * reasonable visible, focusable client on this same desktop (see
+     * its comment, 'cmds/client/basic.h', for the exact criteria,
+     * skip-taskbar exclusion included) when a 'client_active_id'
+     * genuinely existed to begin with, i.e., someone really had focused
+     * something on this desktop before; relinquish focus to
+     * 'PointerRoot' directly otherwise, without ever guessing, e.g. for
+     * a desktop whose only client is a pinned window merely visible
+     * there on loan from wherever it actually got focused. */
     if (focus_target != NULL) {
         desktop->client_active_id = focus_target->id;
         desktop->focus_dirty = true;
@@ -886,17 +848,15 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                 XCB_INPUT_FOCUS_PARENT,
                 focus_target->window, XCB_CURRENT_TIME);
         (void) desktop_action_client_send_front(desktop, focus_target);
-        focus_restored = true;
-    }
-
-    if (!focus_restored) {
+    } else if (desktop->client_active_id != 0) {
+        client_focus_fallback(desktop, surface, NULL);
+    } else {
         desktop->client_active_id = 0;
         desktop->focus_dirty = true;
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_CURRENT_TIME);
-
     }
 
     desktop->is_outdated = true;
