@@ -830,7 +830,20 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     }
 
 
-    if (focus_target == NULL && desktop->stacking != NULL) {
+    /* Falls back to whichever client is topmost, but only when this
+     * desktop genuinely had an active client remembered that turned out
+     * no longer valid (closed, hidden, iconified, or no longer
+     * focusable) while the surface was elsewhere: dropping focus
+     * entirely there would needlessly abandon a desktop the person was
+     * actively using.  Never runs when 'client_active_id' was 0 to
+     * begin with, i.e. nobody ever focused anything on this desktop
+     * themselves, such as a desktop whose only client is a pinned
+     * window merely visible there on loan from wherever it actually got
+     * focused; that case already falls through to relinquishing focus
+     * to 'PointerRoot' below, matching this whole block's own comment
+     * above. */
+    if (focus_target == NULL && desktop->client_active_id != 0 &&
+            desktop->stacking != NULL) {
         node = cdlist_tail(desktop->stacking);
         initial = node;
         if (node != NULL) {

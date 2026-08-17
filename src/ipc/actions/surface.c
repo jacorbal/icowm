@@ -33,7 +33,7 @@
 cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
-    desktop_td *desktop;
+    const desktop_td *desktop;
     cJSON *error = NULL;
 
     desktop = ipc_resolve_desktop(wm, args, true, &surface, &error);

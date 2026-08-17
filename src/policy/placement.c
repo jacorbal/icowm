@@ -822,9 +822,9 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     if (leader != XCB_WINDOW_NONE && desktop != NULL &&
             desktop->clients != NULL &&
             wm->config->base.windows.group_related) {
-        void *elem;
         client_td *anchor = NULL;
         uint32_t sibling_count = 0u;
+        void *elem;
 
         ohtbl_foreach(desktop->clients, elem) {
             client_td *sibling = (client_td *) elem;

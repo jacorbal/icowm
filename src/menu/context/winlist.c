@@ -459,11 +459,10 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     }
 
     if (surface->desktops != NULL) {
-        const cdlist_item_td *dinitial;
-
         dnode = cdlist_head(surface->desktops);
         if (dnode != NULL) {
-            dinitial = dnode;
+            const cdlist_item_td *dinitial = dnode;
+
             do {
                 desktop_td *home_desktop=
                     (desktop_td *) cdlist_data(dnode);

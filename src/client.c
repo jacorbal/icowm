@@ -154,6 +154,115 @@ static void s_client_set_display_name(client_td *client,
 }
 
 
+
+
+/* Destroy the specified client and free associated resources */
+void client_destroy(client_td *client)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    scratchpad_notice_client_destroyed(client);
+
+    LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
+            (void *) client, client->window, client->info.name);
+
+    /* Destroy the XCB window representation and flush the output buffer
+     * to ensure the request is processed */
+    if (client->connection != NULL && client->window != 0) {
+        xcb_destroy_window(client->connection, client->window);
+        xcb_flush(client->connection);
+    }
+
+    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
+     * a server-side resource owned by the window manager's own
+     * connection (unlike the counter it watches, which belongs to the
+     * client and is not ours to destroy), so it is not freed
+     * automatically when the client window above is destroyed */
+    if (client->connection != NULL && client->sync_alarm != 0u) {
+        xcb_sync_destroy_alarm(client->connection,
+                (xcb_sync_alarm_t) client->sync_alarm);
+    }
+
+    /* Destroy decorations if any */
+    if (client->connection != NULL && client->titlebar != 0) {
+        xcb_destroy_window(client->connection, client->titlebar);
+    }
+    if (client->connection != NULL && client->icon_window != 0) {
+        xcb_destroy_window(client->connection, client->icon_window);
+    }
+    /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
+     * (see render/wmicon.h), if any; a no-op if nothing was ever
+     * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
+     * draw anything for it in the first place */
+    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
+    if (client->connection != NULL && client->frame != 0) {
+        xcb_destroy_window(client->connection, client->frame);
+    }
+
+    /* Free all allocated string buffers */
+    s_client_release_heap_fields(client);
+
+    /* Free the client structure itself */
+    free(client);
+}
+
+
+/* Apply a client's own themed border color and width to its own
+ * window, honoring 'border_override' when set */
+void client_apply_border(client_td *client, bool use_active_style)
+{
+    uint32_t color;
+    uint32_t width;
+    uint8_t opacity_percent;
+
+    if (client == NULL || client->connection == NULL ||
+            client->theme == NULL || client_is_fullscreen(client) ||
+            (client_is_decorated(client) && client->frame != 0)) {
+        return;
+    }
+
+    if (client->border_override.is_set) {
+        color = client->border_override.color;
+        width = client->border_override.width;
+    } else if (use_active_style) {
+        color = client->theme->window.active.border.color;
+        width = client->theme->window.active.border.width;
+    } else {
+        color = client->theme->window.inactive.border.color;
+        width = client->theme->window.inactive.border.width;
+    }
+
+    if (use_active_style) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : client->theme->window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : client->theme->window.inactive.opacity;
+    }
+
+    /* Accessibility: never let the focus indicator go thinner than
+     * 'a11y.focus-indicator.min-border-width', regardless of
+     * what the theme itself specifies */
+    if (client->a11y != NULL &&
+            width < client->a11y->focus_indicator
+                .min_border_width) {
+        width = client->a11y->focus_indicator.min_border_width;
+    }
+
+    xcb_change_window_attributes(client->connection, client->window,
+            XCB_CW_BORDER_PIXEL, &color);
+    xcb_configure_window(client->connection, client->window,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) { width });
+    atom_set_window_opacity(client->connection, client->window,
+            config_theme_opacity_to_raw(opacity_percent));
+}
+
+
 /**
  * @brief Read @c WM_PROTOCOLS and set up @c _NET_WM_SYNC_REQUEST
  *         support
@@ -260,7 +369,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
              * 'VALUE' entirely and treating 'DELTA' as one word (an
              * earlier version of this code did both) leaves the
              * value-list shorter than what the request's own mask calls
-             * for, which the server rejects; the alarm XID above then
+             * for, which the server rejects.  The alarm XID above then
              * never actually exists server-side, so it can never fire,
              * and every resize silently falls back to only ever
              * applying once every 'WM_SYNC_MAX_WAIT_TICKS' attempts
@@ -656,6 +765,7 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_atom_t atom_below;
         xcb_atom_t atom_skip_taskbar;
         xcb_atom_t atom_skip_pager;
+        xcb_atom_t atom_fullscreen;
 
         atom_above = atom_intern(connection,
                 "_NET_WM_STATE_ABOVE", true);
@@ -665,11 +775,14 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                 "_NET_WM_STATE_SKIP_TASKBAR", true);
         atom_skip_pager = atom_intern(connection,
                 "_NET_WM_STATE_SKIP_PAGER", true);
+        atom_fullscreen = atom_intern(connection,
+                "_NET_WM_STATE_FULLSCREEN", true);
 
         if (atom_above != XCB_ATOM_NONE ||
                 atom_below != XCB_ATOM_NONE ||
                 atom_skip_taskbar != XCB_ATOM_NONE ||
-                atom_skip_pager != XCB_ATOM_NONE) {
+                atom_skip_pager != XCB_ATOM_NONE ||
+                atom_fullscreen != XCB_ATOM_NONE) {
             xcb_get_property_reply_t *state_r;
 
             state_ck = xcb_ewmh_get_wm_state(ewmh, window);
@@ -689,15 +802,19 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                         client_skip_taskbar(client);
                     } else if (atoms[si] == atom_skip_pager) {
                         client_skip_pager(client);
+                    } else if (atoms[si] == atom_fullscreen) {
+                        client->initial_fullscreen = true;
                     }
                 }
                 LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
-                        " layer=%u, skip_taskbar=%d, skip_pager=%d",
+                        " layer=%u, skip_taskbar=%d, skip_pager=%d," \
+                        " fullscreen=%d",
                         window, (unsigned int) client->properties.layer,
                         (int) ((client->properties.flags &
                                 CLIENT_FLAG_SKIP_TASKBAR) != 0u),
                         (int) ((client->properties.flags &
-                                CLIENT_FLAG_SKIP_PAGER) != 0u));
+                                CLIENT_FLAG_SKIP_PAGER) != 0u),
+                        (int) client->initial_fullscreen);
                 free(state_r);
             } /* ! if (!state_r) */
         } /* ! if (atom_above) */
@@ -789,114 +906,6 @@ static void s_client_subscribe_events(xcb_connection_t *connection,
             XCB_CW_EVENT_MASK | XCB_CW_CURSOR, values);
     LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)", window,
             values[1]);
-}
-
-
-/* Destroy the specified client and free associated resources */
-void client_destroy(client_td *client)
-{
-    if (client == NULL) {
-        return;
-    }
-
-    scratchpad_notice_client_destroyed(client);
-
-    LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
-            (void *) client, client->window, client->info.name);
-
-    /* Destroy the XCB window representation and flush the output buffer
-     * to ensure the request is processed */
-    if (client->connection != NULL && client->window != 0) {
-        xcb_destroy_window(client->connection, client->window);
-        xcb_flush(client->connection);
-    }
-
-    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
-     * a server-side resource owned by the window manager's own
-     * connection (unlike the counter it watches, which belongs to the
-     * client and is not ours to destroy), so it is not freed
-     * automatically when the client window above is destroyed */
-    if (client->connection != NULL && client->sync_alarm != 0u) {
-        xcb_sync_destroy_alarm(client->connection,
-                (xcb_sync_alarm_t) client->sync_alarm);
-    }
-
-    /* Destroy decorations if any */
-    if (client->connection != NULL && client->titlebar != 0) {
-        xcb_destroy_window(client->connection, client->titlebar);
-    }
-    if (client->connection != NULL && client->icon_window != 0) {
-        xcb_destroy_window(client->connection, client->icon_window);
-    }
-
-    /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
-     * (see 'render/wmicon.h'), if any; a no-op if nothing was ever
-     * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
-     * draw anything for it in the first place */
-    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
-    if (client->connection != NULL && client->frame != 0) {
-        xcb_destroy_window(client->connection, client->frame);
-    }
-
-    /* Free all allocated string buffers */
-    s_client_release_heap_fields(client);
-
-    /* Free the client structure itself */
-    free(client);
-}
-
-
-/* Apply a client's own themed border color and width to its own
- * window, honoring 'border_override' when set */
-void client_apply_border(client_td *client, bool use_active_style)
-{
-    uint32_t color;
-    uint32_t width;
-    uint8_t opacity_percent;
-
-    if (client == NULL || client->connection == NULL ||
-            client->theme == NULL || client_is_fullscreen(client) ||
-            (client_is_decorated(client) && client->frame != 0)) {
-        return;
-    }
-
-    if (client->border_override.is_set) {
-        color = client->border_override.color;
-        width = client->border_override.width;
-    } else if (use_active_style) {
-        color = client->theme->window.active.border.color;
-        width = client->theme->window.active.border.width;
-    } else {
-        color = client->theme->window.inactive.border.color;
-        width = client->theme->window.inactive.border.width;
-    }
-
-    if (use_active_style) {
-        opacity_percent = (client->opacity_override.is_set_active)
-            ? client->opacity_override.active
-            : client->theme->window.active.opacity;
-    } else {
-        opacity_percent = (client->opacity_override.is_set_inactive)
-            ? client->opacity_override.inactive
-            : client->theme->window.inactive.opacity;
-    }
-
-    /* Accessibility: never let the focus indicator go thinner than
-     * 'a11y.focus-indicator.min-border-width', regardless of
-     * what the theme itself specifies */
-    if (client->a11y != NULL &&
-            width < client->a11y->focus_indicator
-                .min_border_width) {
-        width = client->a11y->focus_indicator.min_border_width;
-    }
-
-    xcb_change_window_attributes(client->connection, client->window,
-            XCB_CW_BORDER_PIXEL, &color);
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            (const uint32_t[]) { width });
-    atom_set_window_opacity(client->connection, client->window,
-            config_theme_opacity_to_raw(opacity_percent));
 }
 
 

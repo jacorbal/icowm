@@ -451,6 +451,22 @@ typedef struct client_s {
                                      windows belonging to the same
                                      application for placement */
 
+    /**
+     * @brief Whether the client's own pre-existing @c _NET_WM_STATE
+     *        (read before this window was ever mapped) already included
+     *        @c _NET_WM_STATE_FULLSCREEN
+     *
+     * EWMH's own correct way for a client to request fullscreen from
+     * the outset, distinct from @p initial_iconic just above (ICCCM
+     * @c WM_HINTS, not EWMH) though serving the exact same role:
+     * @a handler_map_request consults this once the newly mapped
+     * client's own frame/decoration already exist, the same way it
+     * already consults @p initial_iconic for @c IconicState.
+     *
+     * @see @a s_client_read_pre_existing_state in @c client.c
+     */
+    bool initial_fullscreen;
+
     bool rule_position_locked;  /**< Position was set by a rule; ignore
                                      client-initiated @c ConfigureRequests
                                      that try to move the window */

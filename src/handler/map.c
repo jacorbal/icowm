@@ -57,6 +57,7 @@
 #include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/state.h>
 
 /* IPC includes */
 #include <ipc.h>
@@ -319,6 +320,19 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * move forces a redraw. */
         client_send_synthetic_configure_notify(wm->connection, client);
         xcb_clear_area(wm->connection, 1, client->window, 0, 0, 0, 0);
+
+        /* EWMH's own correct way for a client to request fullscreen
+         * from the outset (see 'initial_fullscreen''s own doc comment,
+         * 'client.h') rather than waiting for a 'ClientMessage' after
+         * mapping.  Deliberately last in this whole block, after the
+         * synthetic 'ConfigureNotify' just above.
+         * 'ccmd_client_fullscreen' sends its own with the true
+         * fullscreen geometry, and sending the ordinary one afterward
+         * would tell the client its old, pre-fullscreen position and
+         * size right after telling it the correct one. */
+        if (client->initial_fullscreen) {
+            ccmd_client_fullscreen(client);
+        }
     }
 
     /* Re-apply layer stacking so newly mapped windows do not obscure
@@ -559,15 +573,14 @@ void handler_map_notify(xcb_connection_t *connection,
         if (event->window == client->window) {
             xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
-            /* Re-assert the plain-pointer cursor 'client_init'
-             * already set once on this same window (see client.c).
-             * Many GTK/GDK applications explicitly set their own
-             * top-level window's cursor as part of their own
-             * realization, which can run after (and so silently
-             * overwrite) that first assignment; MapNotify, confirming
-             * the window has actually become visible, is reliably
-             * later than that realization, so setting it again here
-             * wins whatever race existed. */
+            /* Re-assert the plain-pointer cursor 'client_init' already
+             * set once on this same window (see 'client.c').  Many
+             * GTK/GDK applications explicitly set their own top-level
+             * window's cursor as part of their own realization, which
+             * can run after (and so silently overwrite) that first
+             * assignment; MapNotify, confirming the window has actually
+             * become visible, is reliably later than that realization,
+             * so setting it again here wins whatever race existed. */
             xcb_change_window_attributes(connection, client->window,
                     XCB_CW_CURSOR,
                     (const uint32_t[]) { mouse_plain_cursor() });
