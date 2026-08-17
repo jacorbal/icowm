@@ -766,6 +766,9 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_atom_t atom_skip_taskbar;
         xcb_atom_t atom_skip_pager;
         xcb_atom_t atom_fullscreen;
+        xcb_atom_t atom_max_horz;
+        xcb_atom_t atom_max_vert;
+        xcb_atom_t atom_demands_attention;
 
         atom_above = atom_intern(connection,
                 "_NET_WM_STATE_ABOVE", true);
@@ -777,12 +780,21 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                 "_NET_WM_STATE_SKIP_PAGER", true);
         atom_fullscreen = atom_intern(connection,
                 "_NET_WM_STATE_FULLSCREEN", true);
+        atom_max_horz = atom_intern(connection,
+                "_NET_WM_STATE_MAXIMIZED_HORZ", true);
+        atom_max_vert = atom_intern(connection,
+                "_NET_WM_STATE_MAXIMIZED_VERT", true);
+        atom_demands_attention = atom_intern(connection,
+                "_NET_WM_STATE_DEMANDS_ATTENTION", true);
 
         if (atom_above != XCB_ATOM_NONE ||
                 atom_below != XCB_ATOM_NONE ||
                 atom_skip_taskbar != XCB_ATOM_NONE ||
                 atom_skip_pager != XCB_ATOM_NONE ||
-                atom_fullscreen != XCB_ATOM_NONE) {
+                atom_fullscreen != XCB_ATOM_NONE ||
+                atom_max_horz != XCB_ATOM_NONE ||
+                atom_max_vert != XCB_ATOM_NONE ||
+                atom_demands_attention != XCB_ATOM_NONE) {
             xcb_get_property_reply_t *state_r;
 
             state_ck = xcb_ewmh_get_wm_state(ewmh, window);
@@ -804,17 +816,28 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                         client_skip_pager(client);
                     } else if (atoms[si] == atom_fullscreen) {
                         client->initial_fullscreen = true;
+                    } else if (atoms[si] == atom_max_horz) {
+                        client->initial_maximized_horz = true;
+                    } else if (atoms[si] == atom_max_vert) {
+                        client->initial_maximized_vert = true;
+                    } else if (atoms[si] == atom_demands_attention) {
+                        client_urge(client);
                     }
                 }
+
                 LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
                         " layer=%u, skip_taskbar=%d, skip_pager=%d," \
-                        " fullscreen=%d",
+                        " fullscreen=%d, maximized_horz=%d," \
+                        " maximized_vert=%d, urgent=%d",
                         window, (unsigned int) client->properties.layer,
                         (int) ((client->properties.flags &
                                 CLIENT_FLAG_SKIP_TASKBAR) != 0u),
                         (int) ((client->properties.flags &
                                 CLIENT_FLAG_SKIP_PAGER) != 0u),
-                        (int) client->initial_fullscreen);
+                        (int) client->initial_fullscreen,
+                        (int) client->initial_maximized_horz,
+                        (int) client->initial_maximized_vert,
+                        (int) client_is_urgent(client));
                 free(state_r);
             } /* ! if (!state_r) */
         } /* ! if (atom_above) */

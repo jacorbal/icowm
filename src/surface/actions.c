@@ -836,12 +836,22 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * focusable) while the surface was elsewhere: dropping focus
      * entirely there would needlessly abandon a desktop the person was
      * actively using.  Never runs when 'client_active_id' was 0 to
-     * begin with, i.e. nobody ever focused anything on this desktop
+     * begin with, i.e., nobody ever focused anything on this desktop
      * themselves, such as a desktop whose only client is a pinned
      * window merely visible there on loan from wherever it actually got
      * focused; that case already falls through to relinquishing focus
      * to 'PointerRoot' below, matching this whole block's own comment
-     * above. */
+     * above.
+     *
+     * A skip-taskbar client is excluded from this guess (unlike the
+     * block just above, which restores whatever the person themselves
+     * deliberately focused before, skip-taskbar or not, since that flag
+     * only means "keep me out of the taskbar and pager", not "never
+     * deserve to keep focus already explicitly given").  Such a client
+     * is meant to stay unobtrusive, so guessing it as this desktop's
+     * new focus is no more welcome than a pinned window merely on loan
+     * would be, unless it is modal, urgent, or a dialog, each already
+     * important enough on its own to reach for regardless. */
     if (focus_target == NULL && desktop->client_active_id != 0 &&
             desktop->stacking != NULL) {
         node = cdlist_tail(desktop->stacking);
@@ -855,7 +865,12 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                         c->properties.state !=
                             (uint16_t) CLIENT_STATE_ICONIFIED &&
                         (c->properties.flags &
-                             CLIENT_FLAG_FOCUSABLE)) {
+                             CLIENT_FLAG_FOCUSABLE) &&
+                        (!(c->properties.flags &
+                             CLIENT_FLAG_SKIP_TASKBAR) ||
+                         client_is_modal(c) || client_is_urgent(c) ||
+                         c->properties.type ==
+                             (uint16_t) CLIENT_TYPE_DIALOG)) {
                     focus_target = c;
                     break;
                 }

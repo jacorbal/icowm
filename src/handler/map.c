@@ -58,6 +58,7 @@
 #include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/state.h>
+#include <cmds/client/geom.h>
 
 /* IPC includes */
 #include <ipc.h>
@@ -332,6 +333,21 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * size right after telling it the correct one. */
         if (client->initial_fullscreen) {
             ccmd_client_fullscreen(client);
+        } else if (client->initial_maximized_horz &&
+                client->initial_maximized_vert) {
+            /* Same reasoning as 'initial_fullscreen' just above, for
+             * the same EWMH pre-existing-state mechanism applied to
+             * 'initial_maximized_horz'/'_vert' (in 'client.h') instead.
+             * A client requesting both at once is maximized on both
+             * axes together, one call, rather than two in sequence each
+             * sending its own synthetic 'ConfigureNotify' for an
+             * intermediate, single-axis geometry the client never
+             * actually asked for. */
+            ccmd_client_maximize(client);
+        } else if (client->initial_maximized_horz) {
+            ccmd_client_maximize_horz(client);
+        } else if (client->initial_maximized_vert) {
+            ccmd_client_maximize_vert(client);
         }
     }
 

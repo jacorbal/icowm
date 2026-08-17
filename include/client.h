@@ -458,7 +458,7 @@ typedef struct client_s {
      *
      * EWMH's own correct way for a client to request fullscreen from
      * the outset, distinct from @p initial_iconic just above (ICCCM
-     * @c WM_HINTS, not EWMH) though serving the exact same role:
+     * @c WM_HINTS, not EWMH) though serving the exact same role.
      * @a handler_map_request consults this once the newly mapped
      * client's own frame/decoration already exist, the same way it
      * already consults @p initial_iconic for @c IconicState.
@@ -466,6 +466,22 @@ typedef struct client_s {
      * @see @a s_client_read_pre_existing_state in @c client.c
      */
     bool initial_fullscreen;
+
+    /**
+     * @brief Whether the client's own pre-existing @c _NET_WM_STATE
+     *        already included @c _NET_WM_STATE_MAXIMIZED_HORZ /
+     *        @c _NET_WM_STATE_MAXIMIZED_VERT, respectively
+     *
+     * Same role and same reasoning as @p initial_fullscreen just
+     * above; consulted together once the newly mapped client's own
+     * frame/decoration already exist, since maximizing needs both
+     * the same way fullscreen does.  A client requesting both is
+     * maximized on both axes at once, rather than one call each.
+     *
+     * @see @a s_client_read_pre_existing_state (@c client.c)
+     */
+    bool initial_maximized_horz;
+    bool initial_maximized_vert;
 
     bool rule_position_locked;  /**< Position was set by a rule; ignore
                                      client-initiated @c ConfigureRequests
