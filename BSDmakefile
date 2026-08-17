@@ -48,6 +48,22 @@ RELEASE_DATE = "20261221 (intended)"
 # '.CURDIR' everywhere directly, purely to keep every directory
 # variable below an exact, line-by-line match for 'GNUmakefile''s own.
 PWD = ${.CURDIR}
+# bmake, unlike GNU Make, searches for a directory literally named
+# 'obj' (among a few other candidates) in the launch directory and,
+# if one exists, 'chdir's into it before doing anything else at all,
+# including parsing the rest of this very file; confirmed as a
+# built-in part of bmake itself, not something requiring any system
+# makefile ('sys.mk'/'bsd.obj.mk') to be included first.  Since
+# 'O_DIR' below is that exact directory name, and every relative,
+# non-'.CURDIR'-based bare filename further down ('BUILD_NUMBER_FILE',
+# 'DOXIGEN_FILE') would then resolve inside it instead of the project
+# root the moment 'mkdirs' has ever created it once, this pins
+# bmake's own notion of '.OBJDIR' to be '.CURDIR' outright, disabling
+# that search entirely; every directory this file manages itself
+# ('O_DIR' and the rest) is already tracked through its own absolute,
+# '.CURDIR'-derived variables regardless, so bmake's own separate
+# src/obj-splitting mechanism was never being relied on to begin with.
+.OBJDIR: ${.CURDIR}
 I_DIR = ${PWD}/include
 S_DIR = ${PWD}/src
 T_DIR = ${PWD}/tools
