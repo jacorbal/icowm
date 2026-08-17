@@ -250,6 +250,11 @@ Software Licenses](https://www.isc.org/licenses/).
 
 Copyright (c) 2026, J. A. Corbal.
 
+Bugs
+----
+
+Yes.
+
 Contact information
 -------------------
 
