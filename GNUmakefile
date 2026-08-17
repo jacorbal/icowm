@@ -26,10 +26,10 @@ PWD = $(CURDIR)
 I_DIR = $(PWD)/include
 S_DIR = $(PWD)/src
 T_DIR = $(PWD)/tools
-TESTS_DIR = $(PWD)/tests
 L_DIR = $(PWD)/lib
 O_DIR = $(PWD)/obj
 B_DIR = $(PWD)/bin
+TESTS_DIR = $(PWD)/tests
 
 SHELL=/bin/sh
 JOBS ?= $(shell nproc)
@@ -255,7 +255,11 @@ $(O_DIR)/tools/%.o: $(T_DIR)/%.c
 # Included, not sub-made, so it shares this Makefile's own variables
 # ('CC', 'CCSTD', 'I_DIR', 'S_DIR', and so on) directly, with no need to
 # re-export or duplicate any of them.
-include tests/Makefile.mk
+ifeq ($(wildcard $(TESTS_DIR)/Makefile.mk),)
+    $(error Cannot find $(TESTS_DIR)/Makefile.mk)
+else
+    include $(TESTS_DIR)/Makefile.mk
+endif
 
 
 # Other options

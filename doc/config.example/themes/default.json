@@ -225,6 +225,55 @@
 
     },
 
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#4a5566"
+            }
+        },
+        "selected": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#253040"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        }
+    },
+
     "scratchpad": {
         "border": {
             "color": "#4a5566",

@@ -381,15 +381,15 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
     /* Same hue family (~213 degrees) as the rest of the theme's
-     * D0D9E5/4A5566-family colors, but deliberately darker than the
-     * UI chrome: a desktop background is a large, full-screen area
-     * rather than a small UI element, so it wants a more neutral,
-     * less attention-grabbing tone, and staying darker gives windows
-     * placed on top of it more contrast to stand out against than a
-     * light background would.  Landed on this specific value (rather
-     * than an even darker one first tried) so it does not sit almost
-     * as dark as the theme's own text/border colors, which left it
-     * feeling heavier than a full-screen area calls for. */
+     * D0D9E5/4A5566-family colors, but deliberately darker than the UI
+     * chrome.  A desktop background is a large, full-screen area rather
+     * than a small UI element, so it wants a more neutral, less
+     * attention-grabbing tone, and staying darker gives windows placed
+     * on top of it more contrast to stand out against than a light
+     * background would.  Landed on this specific value (rather than an
+     * even darker one first tried) so it does not sit almost as dark as
+     * the theme's own text/border colors, which left it feeling heavier
+     * than a full-screen area calls for. */
     theme->desktop.color.background = json_hex2uint32("5F7187");
 
     safe_strncpy(theme->menu.unselected.font,
