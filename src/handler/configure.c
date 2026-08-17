@@ -178,7 +178,7 @@ void handler_configure_request(xcb_connection_t *connection,
     target_mask = 0;
     i = 0;
     if (client != NULL) {
-        bool interactive_geom;
+        bool wm_owns_geometry;
         bool is_reparented = (client->frame != 0) &&
             client_is_decorated(client);
         bool on_inner = (event->window == client->window);
@@ -198,10 +198,25 @@ void handler_configure_request(xcb_connection_t *connection,
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT;
 
-        interactive_geom =
+        /* Ignored the same way, and for the same reason, whether the
+         * WM itself is actively moving/resizing this client right
+         * now, or the client is in fullscreen: either way, ITS OWN
+         * request for a different position/size is a stale echo of
+         * whatever geometry it would rather have, not something to
+         * honor, since the WM (not the client) owns this window's
+         * geometry for as long as either holds.  Without this, a client
+         * that fixes its own size in 'WM_NORMAL_HINTS' (e.g.,
+         * 'min_width == max_width') and reacts to being forced into
+         * fullscreen by re-requesting its own preferred size right back
+         * would immediately shrink back down, undoing
+         * 'ccmd_client_fullscreen''s own deliberate choice (see its own
+         * doc comment in 'cmds/client/state.c') to bypass every one of
+         * the client's size hints while fullscreen. */
+        wm_owns_geometry =
             client->properties.operation == CLIENT_OPERATION_MOVING ||
-            client->properties.operation == CLIENT_OPERATION_RESIZING;
-        if (interactive_geom && (mask & geom_mask)) {
+            client->properties.operation == CLIENT_OPERATION_RESIZING ||
+            client_is_fullscreen(client);
+        if (wm_owns_geometry && (mask & geom_mask)) {
             mask = (uint16_t) (mask & ~geom_mask);
             if (mask == 0) {
                 if (connection != NULL && is_reparented) {
