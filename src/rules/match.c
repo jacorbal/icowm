@@ -17,17 +17,20 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112L /* fnmatch */
+
 
 /* System includes */
-#include <fnmatch.h>
+#include <fnmatch.h>    /* fnmatch */
 #include <stdbool.h>
 #include <stdint.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>
 #include <logger.h>
-#include <utils/safe/safestr.h>
 
 /* Local includes */
 #include <rules/internal.h>

@@ -719,11 +719,8 @@ void desktop_render_one_client(desktop_td *desktop,
     bool titlebar_visible;
     bool has_extra_window_border;
     uint32_t border_width;
-    uint16_t top;
-    uint16_t bottom;
     uint16_t left;
     uint16_t right;
-    uint16_t inner_h;
     uint16_t inner_w;
     uint16_t title_h;
 
@@ -866,6 +863,10 @@ void desktop_render_one_client(desktop_td *desktop,
         xcb_configure_window(desktop->connection, target, mask,
                 (uint32_t *) values);
         if (target != client->window) {
+            uint16_t top;
+            uint16_t bottom;
+            uint16_t inner_h;
+
             /* Forced to zero outright for a fullscreen client, rather
              * than trusting 'frame_extents' to already be zero: this
              * is the exact geometry a click or a losing-focus repaint
@@ -873,7 +874,7 @@ void desktop_render_one_client(desktop_td *desktop,
              * 'frame_extents' happened to hold, showing the frame's
              * own background (set to the theme's border color by
              * 'desktop_repaint_frame_decoration') through the gap left
-             * along the content window's own top and left edges --
+             * along the content window's own top and left edges;
              * visually indistinguishable from a real border, though
              * neither an X11 border nor that repaint function was
              * ever actually involved. */
@@ -1118,7 +1119,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     /* Draw background, but only for the desktop currently shown on
      * screen: a non-current desktop's own background is never
      * actually visible (the surface-level repaint that calls this,
-     * in render/surface.c, re-applies the current desktop's own
+     * in 'render/surface.c', re-applies the current desktop's own
      * background again right after every desktop in the list has
      * been rendered, specifically because earlier ones painting
      * theirs would otherwise overwrite it on the one shared root

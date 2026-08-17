@@ -73,7 +73,7 @@
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       current desktop
  */
-static void s_client_focus_fallback(client_td *client)
+static void s_client_focus_fallback(const client_td *client)
 {
     surface_td *surface;
     desktop_td *desktop;

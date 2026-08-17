@@ -524,7 +524,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
  *       on @p desktop
  */
 static void s_desktop_raise_transients(desktop_td *desktop,
-        client_td *client)
+        const client_td *client)
 {
     queue_td *pending;
     size_t max_iterations;

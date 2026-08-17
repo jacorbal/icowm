@@ -1194,7 +1194,10 @@ void client_props_refresh_normal_hints(client_td *client);
  *        32-bit wraparound X11 timestamps undergo roughly every
  *        49.7 days of continuous X server uptime
  *
- * A naive @c a @c > @c b comparison breaks exactly once per wraparound:
+ * Nothing breaks server-side at that wraparound; the millisecond
+ * counter, defined by the X11 protocol itself as a plain @c CARD32,
+ * just wraps back to 0 and keeps counting, ordinary unsigned overflow.
+ * But a naive @c (a > b) comparison breaks exactly once per wraparound:
  * right after it, every fresh timestamp is numerically small again, so
  * it would wrongly look older than any timestamp from just before the
  * wraparound.  Subtracting first and reinterpreting the result as
