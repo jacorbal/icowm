@@ -290,7 +290,7 @@
 
 /* 'lifecycle_dispatch_launch' ('src/lifecycle.c'): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
- * a keybind-triggered program (e.g. 'programs.terminal') could not be
+ * a keybind-triggered program (e.g., 'programs.terminal') could not be
  * found or executed.  Unlike the run-box, where a bad command is a
  * one-off typo the person just made, this always means the very same
  * configured program will keep failing every single time that same

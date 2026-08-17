@@ -34,6 +34,7 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>
+#include <adt/queue.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -473,11 +474,87 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 }
 
 
-/* Send a client to the front of the desktop's window stack */
+/**
+ * @brief Raise every transient descendant of a client along with it
+ *
+ * Breadth-first search through @p desktop's own stacking order.  Any
+ * client whose own @p transient_for names @p client's window is raised
+ * right after it, then the search continues from each of those in turn,
+ * so a chain of dialogs (a dialog's own dialog, and so on) rises
+ * together rather than only the direct child.
+ *
+ * @param desktop Desktop whose stacking order is searched and updated
+ * @param client  Client whose transient descendants get raised too
+ *
+ * @note Bounded by @p desktop's own total client count, so a
+ *       @p transient_for cycle (a misbehaving client announcing itself,
+ *       directly or indirectly, transient for its own descendant) can
+ *       never loop indefinitely; the bound alone is enough to guarantee
+ *       termination, so no separate visited set is needed on top of it
+ * @note Complexity: @e O(n ^ 2), where @e n is the number of clients
+ *       on @p desktop
+ */
+static void s_desktop_raise_transients(desktop_td *desktop,
+        client_td *client)
+{
+    queue_td *pending;
+    size_t max_iterations;
+    size_t processed;
+
+    pending = queue_init(NULL);
+    if (pending == NULL) {
+        return;
+    }
+
+    max_iterations = cdlist_size(desktop->stacking);
+    processed = 0;
+    (void) queue_enqueue(pending, client);
+
+    while (!queue_is_empty(pending) && processed < max_iterations) {
+        void *data;
+        const client_td *parent;
+        cdlist_item_td *node;
+        const cdlist_item_td *initial;
+
+        (void) queue_dequeue(pending, &data);
+        parent = (client_td *) data;
+        ++processed;
+
+        node = cdlist_head(desktop->stacking);
+        if (node == NULL) {
+            continue;
+        }
+        initial = node;
+        do {
+            client_td *candidate = (client_td *) cdlist_data(node);
+            if (candidate != NULL &&
+                    candidate->transient_for == parent->window) {
+                (void) s_desktop_client_send_to_end(desktop, candidate,
+                        true);
+                (void) queue_enqueue(pending, candidate);
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    queue_destroy(pending);
+}
+
+
+/* Send a client to the front of the desktop's window stack, along with
+ * every transient descendant it has (a dialog stays above the window it
+ * belongs to) */
 int desktop_action_client_send_front(desktop_td *desktop,
         client_td *client)
 {
-    return s_desktop_client_send_to_end(desktop, client, true);
+    int status;
+
+    status = s_desktop_client_send_to_end(desktop, client, true);
+    if (status == 0) {
+        s_desktop_raise_transients(desktop, client);
+    }
+
+    return status;
 }
 
 

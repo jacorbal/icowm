@@ -324,7 +324,9 @@ int desktop_action_background_update(desktop_td *desktop,
 /**
  * @brief Set a client to the front
  *
- * Brings the specified client to the top of the stacking order.
+ * Brings the specified client to the top of the stacking order, along
+ * with every transient descendant it has (e.g., an open dialog
+ * belonging to it), so none of them get left behind below it.
  *
  * @param desktop Pointer to the desktop to receive the action
  * @param client  Pointer to the client to be sent to the front
@@ -333,7 +335,8 @@ int desktop_action_background_update(desktop_td *desktop,
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n ^ 2), where @e n is the number of clients on
+ *       @p desktop
  */
 int desktop_action_client_send_front(desktop_td *desktop,
         client_td *client);

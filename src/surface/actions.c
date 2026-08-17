@@ -838,8 +838,8 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * skip-taskbar exclusion included) when a 'client_active_id'
      * genuinely existed to begin with, i.e., someone really had focused
      * something on this desktop before; relinquish focus to
-     * 'PointerRoot' directly otherwise, without ever guessing, e.g. for
-     * a desktop whose only client is a pinned window merely visible
+     * 'PointerRoot' directly otherwise, without ever guessing, e.g.,
+     * for a desktop whose only client is a pinned window merely visible
      * there on loan from wherever it actually got focused. */
     if (focus_target != NULL) {
         desktop->client_active_id = focus_target->id;

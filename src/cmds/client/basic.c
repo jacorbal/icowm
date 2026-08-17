@@ -98,7 +98,8 @@ static void s_client_focus_fallback(client_td *client)
 
 /* Transfer input focus away from a client that is leaving the current
  * visible focus chain, to the most recently used other visible,
- * focusable client on the same desktop */
+ * focusable client on the same desktop, or to 'PointerRoot' if non
+ * qualifies */
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         const client_td *exclude)
 {

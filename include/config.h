@@ -91,7 +91,7 @@ struct config_base_s {
      *
      * @p is_enabled defaults to @c true in restricted-memory mode,
      * where avoiding the extra process @p programs.launcher itself
-     * would otherwise spawn (even a minimal one, e.g. 'gmrun', this
+     * would otherwise spawn (even a minimal one, e.g., 'gmrun', this
      * mode's own default for it) fits that mode's whole reason for
      * existing.
      *
