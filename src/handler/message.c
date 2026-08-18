@@ -185,7 +185,8 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
-            desktop_td *const active_desktop = lookup_current_desktop(surface);
+            const desktop_td *const active_desktop =
+                lookup_current_desktop(surface);
 
             /* EWMH's own focus-stealing prevention: a client asking
              * for '_NET_ACTIVE_WINDOW' does not automatically deserve
@@ -222,7 +223,7 @@ void handler_client_message(wm_td *wm,
             if (active_desktop != NULL &&
                     active_desktop->client_active_id != 0 &&
                     active_desktop->client_active_id != client->id) {
-                client_td *const active = desktop_find_client_by_id(
+                const client_td *const active = desktop_find_client_by_id(
                         active_desktop,
                         active_desktop->client_active_id);
 

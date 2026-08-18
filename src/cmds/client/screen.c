@@ -24,9 +24,7 @@
 /* Project includes */
 #include <client.h>
 #include <surface.h>
-
-/* Internal includes */
-#include <wm/internal.h>     /* the global 'wm' singleton */
+#include <wm.h>
 
 /* Local includes */
 #include <cmds/client/basic.h>
@@ -81,13 +79,13 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
     surface_td *surface = NULL;
     int32_t center_x;
     int32_t center_y;
+    list_td *surfaces = wm_get_surfaces();
 
-    if (client == NULL || out_monitor == NULL ||
-            wm == NULL || wm->surfaces == NULL) {
+    if (client == NULL || out_monitor == NULL || surfaces == NULL) {
         return false;
     }
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const s = (surface_td *) list_data(node);
 

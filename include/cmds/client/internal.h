@@ -136,7 +136,7 @@ void ccmd_publish_frame_extents(client_td *client,
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       current desktop
  */
-void ccmd_client_focus_fallback(client_td *client);
+void ccmd_client_focus_fallback(const client_td *client);
 
 /**
  * @brief Create the client's icon window if it does not exist yet, or

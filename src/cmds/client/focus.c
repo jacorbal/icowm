@@ -100,7 +100,7 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
 /* Transfer focus away from a client that is leaving the current
  * visible focus chain; see cmds/client/internal.h for the full
  * doc comment */
-void ccmd_client_focus_fallback(client_td *client)
+void ccmd_client_focus_fallback(const client_td *client)
 {
     surface_td *surface;
     desktop_td *desktop;
