@@ -300,8 +300,8 @@ int logger_stop(void)
 
 
 /* Log messages with varying levels of severity */
-int logger_msg(enum logger_level_e level, const char *prefix,
-        const char *fmt, ...)
+int logger_msg(enum logger_level_e level, const char *restrict prefix,
+        const char *restrict fmt, ...)
 {
     char timestamp[64];
     const char *level_str = NULL;

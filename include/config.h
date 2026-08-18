@@ -1822,8 +1822,8 @@ const char *config_missing_theme_get(void);
  *       @c CONFIG_MAX_LENGTH_PATH_BASE bytes
  * @note Complexity: @e O(1)
  */
-void config_resolve_dir(const char *config_dir_prefix,
-        char *config_dir_base);
+void config_resolve_dir(const char *restrict config_dir_prefix,
+        char *restrict config_dir_base);
 
 /**
  * @brief Populate default values for the base and desktop-navigation

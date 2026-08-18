@@ -101,7 +101,8 @@ void sn_set_timeout_seconds(uint32_t seconds);
  *       surfaces
  */
 bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
-        const char *name, char *out_id, size_t out_id_size);
+        const char *restrict name, char *restrict out_id,
+        size_t out_id_size);
 
 /**
  * @brief Handle a @c _NET_STARTUP_INFO_BEGIN or @c _NET_STARTUP_INFO

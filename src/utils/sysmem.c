@@ -45,8 +45,8 @@
  * @note @p out_mib is left untouched if returns @c false
  * @note Complexity: @e O(n), where @e n is the file's size in bytes
  */
-static bool s_sysmem_read_kib_field(const char *filepath,
-        const char *label, uint32_t *out_mib)
+static bool s_sysmem_read_kib_field(const char *restrict filepath,
+        const char *restrict label, uint32_t *out_mib)
 {
     FILE *f;
     char buf[SYSMEM_LINE_MAX_LEN];

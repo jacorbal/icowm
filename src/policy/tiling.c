@@ -86,7 +86,8 @@
  */
 static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
         uint16_t icon_w, uint16_t icon_h, int32_t border_twice,
-        const int32_t *occ_x, const int32_t *occ_y, uint16_t occ_count)
+        const int32_t *restrict occ_x, const int32_t *restrict occ_y,
+        uint16_t occ_count)
 {
     uint32_t iw_full = (border_twice > 0)
         ? (uint32_t) icon_w + (uint32_t) border_twice
@@ -187,7 +188,7 @@ void place_icon(const client_td *client, desktop_td *desktop,
         enum config_icon_placement_e policy,
         uint16_t icon_w, uint16_t icon_h,
         uint16_t screen_w, uint16_t screen_h,
-        int16_t *out_x, int16_t *out_y)
+        int16_t *restrict out_x, int16_t *restrict out_y)
 {
     const uint16_t margin = (uint16_t) WM_ICON_GRID_MARGIN;
     const uint16_t step_x = (uint16_t) (icon_w + margin);
@@ -432,7 +433,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
 
 /* Push an icon's own proposed position away from the systray's current
  * rectangle, if the two would overlap there */
-bool icon_avoid_systray_overlap(const int16_t *io_x, int16_t *io_y,
+bool icon_avoid_systray_overlap(const int16_t *restrict io_x,
+        int16_t *restrict io_y,
         uint16_t icon_w, uint16_t icon_h,
         int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,
         const struct geometry_s *workarea)

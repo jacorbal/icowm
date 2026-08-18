@@ -63,8 +63,9 @@ void ccmd_client_rename(client_td *client, const char *name)
 
 
 /* Change the 'WM_CLASS' of the client window */
-void ccmd_client_reclass(client_td *client, const char *class_name,
-        const char *instance_name)
+void ccmd_client_reclass(client_td *client,
+        const char *restrict class_name,
+        const char *restrict instance_name)
 {
     char *wm_class_combined;
     size_t wm_class_combined_len;

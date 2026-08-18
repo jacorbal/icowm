@@ -123,7 +123,8 @@ static struct {
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
-static int s_search_fuzzy_score(const char *query, const char *text)
+static int s_search_fuzzy_score(const char *restrict query,
+        const char *restrict text)
 {
     size_t qi = 0;
     size_t ti = 0;

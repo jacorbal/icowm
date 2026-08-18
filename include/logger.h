@@ -246,8 +246,8 @@ int logger_stop(void);
  * @note Complexity: @e O(n), where @e n is the length of the formatted
  *       string (because of @a vsnprintf)
  */
-int logger_msg(enum logger_level_e level, const char *prefix,
-        const char *fmt, ...);
+int logger_msg(enum logger_level_e level, const char *restrict prefix,
+        const char *restrict fmt, ...);
 
 /**
  * @brief Set the logger to always show the calling function in messages

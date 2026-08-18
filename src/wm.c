@@ -283,7 +283,8 @@ static void s_wm_cleanup(void)
 
 
 /* Initialize a window manager instance */
-int wm_start(const char *display_name, const char *config_dir_prefix,
+int wm_start(const char *restrict display_name,
+        const char *restrict config_dir_prefix,
         uint32_t restricted_memory_mib, bool ipc_disabled)
 {
     uint32_t screens_detected;

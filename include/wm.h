@@ -173,7 +173,8 @@ typedef struct {
  * @see @a config_load's own @p restricted_memory_mib parameter for the
  *      precise details.
  */
-int wm_start(const char *display_name, const char *config_dir_prefix,
+int wm_start(const char *restrict display_name,
+        const char *restrict config_dir_prefix,
         uint32_t restricted_memory_mib, bool ipc_disabled);
 
 /**

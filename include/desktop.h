@@ -548,7 +548,8 @@ int desktop_action_process_launch(desktop_td *desktop,
 
 
 int desktop_action_process_launch_with_class(desktop_td *desktop,
-        const char *executable_path, const char *class_name);
+        const char *restrict executable_path,
+        const char *restrict class_name);
 
 /**
  * @brief Terminate a process

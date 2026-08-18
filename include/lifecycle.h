@@ -57,8 +57,8 @@ void lifecycle_existing_scan(wm_td *wm);
  *
  * @note Complexity: @e O(1)
  */
-void lifecycle_launch_dispatch(surface_td *surface, const char *prog,
-        const char *class_name);
+void lifecycle_launch_dispatch(surface_td *surface, const char *restrict prog,
+        const char *restrict class_name);
 
 
 #endif  /* ! LIFECYCLE_H */

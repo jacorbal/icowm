@@ -178,8 +178,9 @@ void enact_client_move_to_monitor(client_td *client,
 
 
 /* Change the client's 'WM_CLASS' class and instance names */
-void enact_client_reclass(client_td *client, const char *class_name,
-        const char *instance_name)
+void enact_client_reclass(client_td *client,
+        const char *restrict class_name,
+        const char *restrict instance_name)
 {
     ccmd_client_reclass(client, class_name, instance_name);
     if (client != NULL) {

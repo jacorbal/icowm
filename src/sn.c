@@ -283,7 +283,8 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
  *       pending sequences
  */
 static void s_complete_by_id(xcb_connection_t *connection,
-        list_td *surfaces, const char *id, const char *reason)
+        list_td *surfaces, const char *restrict id,
+        const char *restrict reason)
 {
     for (uint8_t i = 0u; i < s_pending_count; ++i) {
         if (safe_strcmp(s_pending[i].id, id) == 0) {
@@ -348,7 +349,8 @@ static void s_handle_complete_message(xcb_connection_t *connection,
 
 /* Begin a startup-notification sequence for a launched process */
 bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
-        const char *name, char *out_id, size_t out_id_size)
+        const char *restrict name, char *restrict out_id,
+        size_t out_id_size)
 {
     char id[SN_ID_MAX_LEN];
     char message[SN_MSG_MAX_LEN];

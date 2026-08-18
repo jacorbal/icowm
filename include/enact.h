@@ -152,8 +152,9 @@ void enact_client_move_to_monitor(client_td *client,
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_reclass(client_td *client, const char *class_name,
-        const char *instance_name);
+void enact_client_reclass(client_td *client,
+        const char *restrict class_name,
+        const char *restrict instance_name);
 
 /**
  * @brief Change the client's @c WM_WINDOW_ROLE

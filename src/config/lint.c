@@ -933,8 +933,9 @@ static void s_lint_object(const cJSON *obj,
  * @note Complexity: @e O(n), where @e n is the number of keys in the
  *       file
  */
-static void s_lint_file(const char *config_dir,
-        const config_lint_file_spec_td *spec, const char *display_name,
+static void s_lint_file(const char *restrict config_dir,
+        const config_lint_file_spec_td *spec,
+        const char *restrict display_name,
         int *unknown_count)
 {
     char path[512];

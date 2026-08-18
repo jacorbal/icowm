@@ -50,8 +50,8 @@
  *
  * @note Complexity: @e O(n), where @e n is the formatted line's length
  */
-static void s_append_line(char *buf, size_t buf_size, size_t *offset,
-        const char *fmt, ...)
+static void s_append_line(char *restrict buf, size_t buf_size,
+        size_t *offset, const char *restrict fmt, ...)
 {
     va_list args;
     int written;
@@ -114,8 +114,9 @@ static void s_append_blank_line(char *buf, size_t buf_size, size_t *offset)
  *
  * @note Complexity: @e O(1)
  */
-static void s_append_binding(char *buf, size_t buf_size, size_t *offset,
-        const char *label, const char *combo)
+static void s_append_binding(char *restrict buf, size_t buf_size,
+        size_t *offset, const char *restrict label,
+        const char *restrict combo)
 {
     if (combo == NULL || combo[0] == '\0') {
         return;
@@ -196,8 +197,9 @@ static void s_append_goto_desktop(char *buf, size_t buf_size,
  *
  * @note Complexity: @e O(n), where @e n is @p count
  */
-static void s_append_group(char *buf, size_t buf_size, size_t *offset,
-        const char *label, const char *const *names,
+static void s_append_group(char *restrict buf, size_t buf_size,
+        size_t *offset, const char *restrict label,
+        const char *const *names,
         const char *const *combos, uint8_t count)
 {
     char line[DIALOG_MSG_LINE_MAX_LENGTH];

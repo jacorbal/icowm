@@ -41,8 +41,8 @@
  *
  * @note Complexity: @e O(1), a single short read
  */
-static bool s_battery_read_line(const char *path, char *out,
-        size_t out_size)
+static bool s_battery_read_line(const char *restrict path,
+        char *restrict out, size_t out_size)
 {
     FILE *f;
     size_t len;

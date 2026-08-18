@@ -167,8 +167,8 @@ static const list_td *s_session_hook_list_const(const session_td *session,
  *
  * @note Complexity: @e O(n), where @e n is @c SESSION_TRACKED_PIDS_MAX
  */
-static void s_session_track_pid(pid_t pid, const char *hook,
-        const char *command)
+static void s_session_track_pid(pid_t pid, const char *restrict hook,
+        const char *restrict command)
 {
     for (uint32_t i = 0u; i < SESSION_TRACKED_PIDS_MAX; ++i) {
         if (s_session_tracked[i].pid == 0) {
@@ -227,7 +227,7 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
  * @note Complexity: @e O(1) in the parent path
  */
 static int s_session_spawn_command(xcb_connection_t *connection,
-        const char *command, const char *hook)
+        const char *restrict command, const char *restrict hook)
 {
     pid_t pid;
 

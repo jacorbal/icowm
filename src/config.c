@@ -60,8 +60,8 @@ static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
 
 /* Resolve the configuration directory from a prefix, or environment
  * variables when none is given (see config.h for the fallback order) */
-void config_resolve_dir(const char *config_dir_prefix,
-        char *config_dir_base)
+void config_resolve_dir(const char *restrict config_dir_prefix,
+        char *restrict config_dir_base)
 {
     if (config_dir_prefix) {
         char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];

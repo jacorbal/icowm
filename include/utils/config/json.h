@@ -126,8 +126,8 @@ int json_load_color(cJSON *json, const char *field, uint32_t *dest);
  *       fields, @e n is the average field name length, and @e m is the
  *       string length
  */
-int json_load_string(cJSON *json, const char *field,
-        char *dest, size_t size);
+int json_load_string(cJSON *json, const char *restrict field,
+        char *restrict dest, size_t size);
 
 /**
  * @brief Load an unsigned integer value from a JSON object

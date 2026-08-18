@@ -56,7 +56,7 @@
 static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
         uint16_t target_w, uint16_t target_h,
         uint16_t overlay_w, uint16_t overlay_h,
-        int16_t *out_x, int16_t *out_y)
+        int16_t *restrict out_x, int16_t *restrict out_y)
 {
     int32_t centered_x;
     int32_t centered_y;

@@ -221,12 +221,12 @@ void client_theme_layout_resync(client_td *client, bool is_active)
 /* Compute where every configured titlebar button goes */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
-        struct titlebar_button_layout_s *out_left,
-        uint8_t *out_left_n,
-        struct titlebar_button_layout_s *out_right,
-        uint8_t *out_right_n,
-        int16_t *out_title_x, uint16_t *out_title_w,
-        int16_t *out_btn_y)
+        struct titlebar_button_layout_s *restrict out_left,
+        uint8_t *restrict out_left_n,
+        struct titlebar_button_layout_s *restrict out_right,
+        uint8_t *restrict out_right_n,
+        int16_t *restrict out_title_x, uint16_t *restrict out_title_w,
+        int16_t *restrict out_btn_y)
 {
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
@@ -435,7 +435,7 @@ void client_aspect_ratio_clamp(const client_td *client,
 
 /* Apply ICCCM size-hint constraints to a requested width and height */
 void client_size_constrain(const client_td *client,
-        uint32_t *width, uint32_t *height)
+        uint32_t *restrict width, uint32_t *restrict height)
 {
     uint32_t req_w;
     uint32_t req_h;

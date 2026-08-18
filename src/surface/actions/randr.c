@@ -404,7 +404,7 @@ static bool s_surface_randr_blank_crtc(surface_td *surface,
  * @note Complexity: @e O(1)
  */
 static int16_t s_surface_randr_clamp_position(int32_t value,
-        const char *axis, const char *output_name)
+        const char *restrict axis, const char *restrict output_name)
 {
     if (value < (int32_t) INT16_MIN || value > (int32_t) INT16_MAX) {
         LOGGER_WARNING("XRandR: configured position.%s=%d for output" \

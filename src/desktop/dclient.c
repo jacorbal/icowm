@@ -828,7 +828,8 @@ int desktop_action_process_launch(desktop_td *desktop,
 
 /* Launch a process on the desktop with 'WM_CLASS' override */
 int desktop_action_process_launch_with_class(desktop_td *desktop,
-        const char *executable_path, const char *class_name)
+        const char *restrict executable_path,
+        const char *restrict class_name)
 {
     pid_t pid;
     int err_pipe[2];

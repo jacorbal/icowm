@@ -46,8 +46,9 @@ void ccmd_client_rename(client_td *client, const char *name);
  * @note Complexity: @e O(n), where @e n is the combined class name
  *       length
  */
-void ccmd_client_reclass(client_td *client, const char *class_name,
-        const char *instance_name);
+void ccmd_client_reclass(client_td *client,
+        const char *restrict class_name,
+        const char *restrict instance_name);
 
 /**
  * @brief Change the @c WM_WINDOW_ROLE of the client window

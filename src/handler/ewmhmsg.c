@@ -296,8 +296,8 @@ static void s_handle_wm_state_atom(client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_moveresize_direction_to_anchor(uint32_t direction,
-        bool *out_anchor_right, bool *out_anchor_bottom,
-        bool *out_resize_w, bool *out_resize_h)
+        bool *restrict out_anchor_right, bool *restrict out_anchor_bottom,
+        bool *restrict out_resize_w, bool *restrict out_resize_h)
 {
     switch (direction) {
         case XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT:

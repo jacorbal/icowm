@@ -135,8 +135,8 @@ int json_load_color(cJSON *json, const char *field, uint32_t *dest)
 
 
 /* Load a string value from a JSON object into a buffer */
-int json_load_string(cJSON *json, const char *field,
-        char *dest, size_t size)
+int json_load_string(cJSON *json, const char *restrict field,
+        char *restrict dest, size_t size)
 {
     cJSON *item;
 

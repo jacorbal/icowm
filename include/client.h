@@ -892,12 +892,12 @@ struct titlebar_button_layout_s {
  */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
-        struct titlebar_button_layout_s *out_left,
-        uint8_t *out_left_n,
-        struct titlebar_button_layout_s *out_right,
-        uint8_t *out_right_n,
-        int16_t *out_title_x, uint16_t *out_title_w,
-        int16_t *out_btn_y);
+        struct titlebar_button_layout_s *restrict out_left,
+        uint8_t *restrict out_left_n,
+        struct titlebar_button_layout_s *restrict out_right,
+        uint8_t *restrict out_right_n,
+        int16_t *restrict out_title_x, uint16_t *restrict out_title_w,
+        int16_t *restrict out_btn_y);
 
 /**
  * @brief Apply ICCCM size hints to a requested client size
@@ -915,7 +915,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
  * @note Complexity: @e O(1)
  */
 void client_size_constrain(const client_td *client,
-        uint32_t *width, uint32_t *height);
+        uint32_t *restrict width, uint32_t *restrict height);
 
 /**
  * @brief Clamp a width/height pair into a client's own aspect-ratio

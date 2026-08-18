@@ -191,8 +191,8 @@ void lifecycle_existing_scan(wm_td *wm)
 
 
 /* Build and enqueue a launch event for a desktop */
-void lifecycle_launch_dispatch(surface_td *surface, const char *prog,
-        const char *class_name)
+void lifecycle_launch_dispatch(surface_td *surface, const char *restrict prog,
+        const char *restrict class_name)
 {
     desktop_td *desktop;
     int result;

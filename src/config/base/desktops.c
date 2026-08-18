@@ -102,7 +102,7 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
  * @note Complexity: @e O(1)
  */
 static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
-        const char *field_label, const char *filename)
+        const char *restrict field_label, const char *restrict filename)
 {
     if (*value >= minimum) {
         return;

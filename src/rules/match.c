@@ -48,7 +48,8 @@
  *
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-static bool s_match_str(const char *pattern, const char *value)
+static bool s_match_str(const char *restrict pattern,
+        const char *restrict value)
 {
     if (pattern == NULL || value == NULL) {
         return false;

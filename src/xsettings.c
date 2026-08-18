@@ -106,7 +106,8 @@ static size_t s_xs_int_entry_size(const char *name)
  *
  * @return Size in bytes this entry occupies in the property
  */
-static size_t s_xs_string_entry_size(const char *name, const char *value)
+static size_t s_xs_string_entry_size(const char *restrict name,
+        const char *restrict value)
 {
     return 1u + 1u + 2u + s_xs_padded_len(safe_strlen(name)) + 4u
         + 4u + s_xs_padded_len(safe_strlen(value));
@@ -193,7 +194,8 @@ static void s_xs_write_int_entry(uint8_t *buf, size_t *off,
  * @param value  String value
  */
 static void s_xs_write_string_entry(uint8_t *buf, size_t *off,
-        const char *name, uint32_t serial, const char *value)
+        const char *restrict name, uint32_t serial,
+        const char *restrict value)
 {
     size_t name_len = safe_strlen(name);
     size_t value_len = safe_strlen(value);
