@@ -100,21 +100,6 @@
 #define MEMGUARD_FONT_NAME "fixed"
 
 /**
- * @brief Default desktops per screen when restricted-memory mode is
- *        active and nothing else specifies a count
- *
- * Used only as the fallback desktop count @a config_set_default_values
- * gives a screen when neither @c config.json nor anything else says
- * otherwise, the same role @c 4u plays for an ordinary session.  Never
- * enforced as a cap, a @c config.json that explicitly defines @e n
- * desktops gets @e n desktops under restricted-memory mode too, exactly
- * as an ordinary session would.  This value only ever governs what
- * happens in the absence of that information, not something layered on
- * top of it.
- */
-#define MEMGUARD_DEFAULT_DESKTOPS (2u)
-
-/**
  * @brief Estimated resident memory cost of one additional managed
  *        client, in kibibytes
  *

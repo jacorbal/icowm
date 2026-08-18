@@ -289,6 +289,8 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `goto_desktop`                | `desktop_id` [`surface_id`]              | Switches the resolved surface to that desktop |
 | `goto_next_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own next desktop |
 | `goto_prev_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own previous desktop |
+| `add_desktop`                 | [`surface_id`]                           | Adds a new desktop after the resolved surface's own last one. Refused, with an error, once `CONFIG_MAX_DESKTOPS` is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`              | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it. Refused, with an error, while only one desktop remains |
 | `exit_wm`                     | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`               | none                                     | Reloads every configuration file |
 | `toggle_scratchpad`           | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |

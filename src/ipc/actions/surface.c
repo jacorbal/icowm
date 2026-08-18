@@ -21,6 +21,7 @@
 /* Project includes */
 #include <desktop.h>
 #include <enact.h>
+#include <memguard.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -78,6 +79,11 @@ cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args)
 
     if (surface == NULL) {
         return ipc_response_error("no such surface");
+    }
+
+    if (memguard_max_clients() > 0u) {
+        return ipc_response_error(
+                "restricted-memory mode is locked to a single desktop");
     }
 
     if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {

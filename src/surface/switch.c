@@ -29,6 +29,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
+#include <memguard.h>
 #include <surface.h>
 
 /* Local includes */
@@ -93,6 +94,22 @@ int surface_action_desktop_add(surface_td *surface)
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
+    }
+
+    /* Restricted-memory mode is deliberately locked to exactly one
+     * desktop, always; see 'config_set_default_values_memguard'
+     * (config/memguard/defaults.c), which never lets 'memguard.json'
+     * override 'desktop_count' away from its own hardcoded '1u'.
+     * Refused here too, not just left to whichever caller happens to
+     * check first, so every path that could reach this function
+     * (the window list's own "Add new desktop" entry, its keyboard
+     * shortcut, and any future one) is covered by the same single
+     * guard. */
+    if (memguard_max_clients() > 0u) {
+        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
+                " restricted-memory mode is locked to a single" \
+                " desktop", surface->id);
+        return 1;
     }
 
     /* 'config_base->screens[screen_id].desktops[desktop_id]'

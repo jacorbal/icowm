@@ -37,6 +37,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <memguard.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -830,8 +831,17 @@ void winlist_show(xcb_connection_t *connection,
      * on the one desktop that exists, in the flattened single-desktop
      * case): skipped outright rather than overflowing it, the same
      * defensive reasoning the "Go there" prepend above already
-     * follows for the exact same kind of buffer. */
-    if (n + 3 <= ((desktop_count <= 1)
+     * follows for the exact same kind of buffer.  Also skipped
+     * outright, omitted rather than merely disabled, under
+     * restricted-memory mode, which is deliberately locked to
+     * exactly one desktop always (see
+     * 'surface_action_desktop_add''s own doc comment): a person
+     * running that mode has no use for either action ever
+     * succeeding, unlike an ordinary session's own "only one desktop
+     * remains for now" case just below, where adding a second one
+     * back remains a real possibility worth surfacing. */
+    if (memguard_max_clients() == 0u &&
+            n + 3 <= ((desktop_count <= 1)
                 ? WINLIST_MAX_ENTRIES_PER_DESKTOP
                 : (int) (sizeof(s_root_entries) /
                     sizeof(s_root_entries[0])))) {

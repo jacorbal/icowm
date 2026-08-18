@@ -229,7 +229,7 @@ Per-screen layout fields:
 
 | Key                           | Type    | Default      | Description |
 |-------------------------------|---------|--------------|-------------|
-| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`). Maximum is `10`. |
+| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`). Maximum is `32`. Always `1`, regardless of this value, under restricted-memory mode (`-M`); see that mode's own section. |
 | `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
 | `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
 | `settings[].background-color` | string  | none         | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset, a desktop falls back to `theme.desktop.color.background` (section 4.4). |
@@ -2474,7 +2474,11 @@ one falls back to a fixed built-in profile.
 Only the fields below are ever read from it; anything else present in
 the file is silently ignored, and every field this mode's own screen and
 desktop counts, RandR handling, and startup-notification setting are
-fixed and cannot be configured here at all.
+fixed and cannot be configured here at all.  The single desktop this
+mode always starts with stays that way for the whole session too: the
+window list's own "Add new desktop" and "Remove last desktop" entries,
+and their keyboard shortcuts, do not even appear while this mode is
+active, not merely refuse to act.
 
 ### 10.1. Configurable fields
 

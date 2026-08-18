@@ -479,6 +479,8 @@ merely deferred.
 | `goto_desktop` | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
 | `goto_next_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own next desktop, wrapping around after the last one |
 | `goto_prev_desktop` | `surface_id` (optional)                     | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
+| `add_desktop` | `surface_id` (optional)                            | Adds a new desktop after the resolved surface's own last one. Refused, with an error, once `CONFIG_MAX_DESKTOPS` is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop` | `surface_id` (optional)                         | Removes the resolved surface's own last desktop, moving any client still on it to the one before it. Refused, with an error, while only one desktop remains |
 
 #### 5.3.6. Whole window manager
 

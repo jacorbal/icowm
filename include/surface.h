@@ -408,14 +408,19 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
  * @c screens[screen_id].desktops array (@c config.h) is a
  * fixed-size array of exactly that many slots, indexed by the new
  * desktop's own ID, so adding one more past that point would index
- * past the end of it.
+ * past the end of it.  Also refused outright, regardless of the
+ * current count, while restricted-memory mode is active
+ * (@a memguard_max_clients), which is deliberately locked to a
+ * single desktop always (see
+ * @a config_set_default_values_memguard).
  *
  * @param surface Pointer to the surface to receive the action
  *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to perform the action, including already being
- *            at @c CONFIG_MAX_DESKTOPS
+ *            at @c CONFIG_MAX_DESKTOPS, or restricted-memory mode
+ *            being active
  *
  * @note Complexity: @e O(1)
  */
@@ -426,7 +431,12 @@ int surface_action_desktop_add(surface_td *surface);
  *        still on it to the desktop immediately before it first
  *
  * Refuses outright when only one desktop remains (@c surface's own
- * desktop count must stay at least @c 1).  Every client still on the
+ * desktop count must stay at least @c 1).  Restricted-memory mode
+ * always has exactly one desktop and no way to reach a second one
+ * (see @a surface_action_desktop_add's own doc comment), so that
+ * same guard alone already refuses this call every time it runs
+ * under that mode too, with no separate check of its own needed
+ * here.  Every client still on the
  * desktop being removed, pinned or not, is moved onto what becomes
  * the new last desktop before the old one is destroyed: destroying a
  * desktop that still holds clients would otherwise destroy those

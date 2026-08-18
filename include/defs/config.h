@@ -57,7 +57,7 @@
 #define CONFIG_MAX_DESKTOPS (4)     /**< Initial max. desktops per screen */
 #else
 #define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */
-#define CONFIG_MAX_DESKTOPS (10)    /**< Initial max. desktops per screen */
+#define CONFIG_MAX_DESKTOPS (32)    /**< Initial max. desktops per screen */
 #endif
 
 /* XRandR output profile configuration limits
