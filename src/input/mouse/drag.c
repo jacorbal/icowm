@@ -777,9 +777,21 @@ void drag_end(xcb_connection_t *connection,
                 /* An outline drag never touched the real window until
                  * now; apply the final position (and size, for a
                  * resize) in one single call, then destroy the 4
-                 * strip windows that made up the outline stand-in. */
+                 * strip windows that made up the outline stand-in.
+                 * The resize path forces this call through rather
+                 * than going via the normal 'enact_client_resize'
+                 * (see 'ccmd_client_resize_force''s own doc comment):
+                 * with the real window left parked off screen for
+                 * the whole drag (see 'drag_client_move_offscreen'),
+                 * a client already mid-exchange from some earlier,
+                 * unrelated resize would otherwise have this one
+                 * single, final call silently queued behind that
+                 * exchange's own 'AlarmNotify' instead of applied,
+                 * leaving it stuck off screen with no further call
+                 * ever coming to retry it, unlike a solid drag's own
+                 * live sequence of many resize calls along the way. */
                 if (finalize_resize) {
-                    enact_client_resize(s_drag.client,
+                    enact_client_resize_force(s_drag.client,
                             s_drag.client_cur_x, s_drag.client_cur_y,
                             final_w, final_h);
                 } else {

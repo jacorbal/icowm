@@ -132,6 +132,19 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
 }
 
 
+/* Resize the client to a specific frame geometry immediately,
+ * bypassing any in-flight sync throttling */
+void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    ccmd_client_resize_force(client, x, y, w, h);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+        enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
+    }
+}
+
+
 /* Move the client to a specific position */
 void enact_client_move(client_td *client, int32_t x, int32_t y)
 {
@@ -548,4 +561,3 @@ void enact_client_toggle_decorate(client_td *client)
                 : IPC_EVENT_DECORATION_CLEARED);
     }
 }
-

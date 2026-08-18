@@ -55,6 +55,18 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
 }
 
 
+void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    (void) client;
+    s_resize_called = true;
+    s_resize_x = x;
+    s_resize_y = y;
+    s_resize_w = w;
+    s_resize_h = h;
+}
+
+
 /** Link-only stand-ins: nothing here simulates real behavior, except
  *  desktop_action_process_launch_with_class, whose success (return
  *  0) is what legitimately arms scratchpad_toggle's own "awaiting a

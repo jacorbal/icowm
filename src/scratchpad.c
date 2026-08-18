@@ -310,7 +310,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
         break;
     }
 
-    enact_client_resize(client, x, y, width, height);
+    enact_client_resize_force(client, x, y, width, height);
 }
 
 

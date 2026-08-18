@@ -91,6 +91,33 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
         uint32_t w, uint32_t h);
 
 /**
+ * @brief Resize the client to new dimensions immediately, bypassing
+ *        any in-flight @c _NET_WM_SYNC_REQUEST throttling
+ *
+ * @c ccmd_client_resize's own queue-behind-the-outstanding-
+ * acknowledgment behavior exists to avoid piling up unacknowledged
+ * configures during a live sequence of rapid resize calls (an
+ * ordinary interactive drag).  It is the wrong behavior for a single,
+ * already-final geometry with no further calls to follow, since a
+ * client that happens to still be mid-exchange from an earlier,
+ * unrelated resize would otherwise have this one silently queued
+ * behind that exchange's own @c AlarmNotify, with nothing left to
+ * ever flush it once no further resize call arrives to retry it.
+ * Callers with exactly that shape (one call, known to be the last)
+ * should call this instead of @a ccmd_client_resize.
+ *
+ * @param client Window to resize
+ * @param x      New frame X position
+ * @param y      New frame Y position
+ * @param w      New frame width
+ * @param h      New frame height
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_resize_force(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h);
+
+/**
  * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled
  *        resize
  *

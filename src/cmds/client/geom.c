@@ -358,21 +358,21 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
 }
 
 
-/* Resize the client to new dimensions */
-/* Resize the client to new dimensions */
-void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+/**
+ * @brief Shared precondition check for either resize entry point
+ *
+ * Resizing is forbidden while the client is maximized or fullscreen;
+ * a shaded client is first restored so the requested size applies to
+ * the normal window geometry instead of the rolled-up titlebar.
+ *
+ * @param client Client about to be resized
+ *
+ * @return @c true if resizing @p client is currently allowed
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_ccmd_resize_allowed(client_td *client)
 {
-    bool synced;
-
-    if (client == NULL) {
-        return;
-    }
-
-    /* Resizing is forbidden while the client is maximized or
-     * fullscreen; shaded clients are first restored so the requested
-     * size applies to the normal window geometry instead of the
-     * rolled-up titlebar */
     if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED ||
@@ -380,11 +380,25 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT ||
             client->properties.state ==
                 (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
-        return;
+        return false;
     }
 
     if (client_is_shaded(client)) {
         ccmd_client_unshade(client);
+    }
+
+    return true;
+}
+
+
+/* Resize the client to new dimensions */
+void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    bool synced;
+
+    if (client == NULL || !s_ccmd_resize_allowed(client)) {
+        return;
     }
 
     synced = client->has_net_wm_sync_request && wm_sync_is_available();
@@ -417,6 +431,35 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
     client->sync_pending_geom.w = w;
     client->sync_pending_geom.h = h;
     client->sync_has_pending = true;
+}
+
+
+/* Resize the client to new dimensions immediately, bypassing any
+ * in-flight sync throttling */
+void ccmd_client_resize_force(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h)
+{
+    if (client == NULL || !s_ccmd_resize_allowed(client)) {
+        return;
+    }
+
+    /* Discard any geometry left queued by an earlier, still-
+     * unacknowledged exchange: applying this call's own geometry
+     * below already supersedes it, and leaving it set would let a
+     * late 'AlarmNotify' for that older exchange silently revert
+     * this one the next time 'ccmd_client_resize_flush_pending' runs */
+    client->sync_has_pending = false;
+
+    if (client->has_net_wm_sync_request && wm_sync_is_available()) {
+        /* Still tells a sync-aware client about the new size (so its
+         * own internal counter stays in step), but this call itself
+         * never waits on or queues behind that acknowledgment the
+         * way 'ccmd_client_resize' does; see the header's own doc
+         * comment for when this is the right call to make instead */
+        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
+    } else {
+        s_ccmd_resize_configure(client, x, y, w, h);
+    }
 }
 
 

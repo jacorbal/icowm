@@ -104,6 +104,24 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
         uint32_t w, uint32_t h);
 
 /**
+ * @brief Resize the client to a specific frame geometry immediately,
+ *        bypassing any in-flight sync throttling
+ *
+ * @see @a ccmd_client_resize_force for when this, rather than
+ *      @a enact_client_resize, is the right call to make
+ *
+ * @param client Client to resize
+ * @param x      New frame X position
+ * @param y      New frame Y position
+ * @param w      New frame width
+ * @param h      New frame height
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
+        uint32_t w, uint32_t h);
+
+/**
  * @brief Move the client to a specific position
  *
  * @param client Client to move

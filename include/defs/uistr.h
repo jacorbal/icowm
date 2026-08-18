@@ -296,7 +296,7 @@
  *
  * TRANSLATION: keep the single '%s' (the command as typed) */
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
-    "Command '%s' not found."
+  "Command '%s' not found."
 
 /* 'lifecycle_launch_dispatch' (src/lifecycle.c): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
@@ -309,7 +309,7 @@
  *
  * TRANSLATION: keep the single '%s' (the configured command) */
 #define STR_LAUNCH_COMMAND_NOT_FOUND_FMT \
-    "Failed to execute '%s': command not found."
+  "Failed to execute '%s': command not found."
 
 /* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead when
  * the configured 'fortune.command' is missing or produces no output;
