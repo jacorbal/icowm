@@ -422,6 +422,22 @@ with a bare `{"ok": true}` on success.
 | `set_layer_normal_client`  | Moves the client back to the ordinary layer |
 | `set_layer_below_client`   | Moves the client to the "always below" layer |
 | `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order |
+
+A fullscreen client's own stacking is always forced above every other
+client while it holds focus, including every other above-layer one,
+the same way a fullscreen application covers a taskbar or panel in
+most desktop environments; see the `fullscreen`/`unfullscreen`
+commands below.  Its real layer (whatever the four commands above
+last set it to) is untouched the whole time, and takes effect again,
+with no command of its own needed, as soon as it loses focus.  While
+it holds focus and is fullscreen, `set_layer_above_client`,
+`set_layer_normal_client`, `set_layer_below_client`, and
+`cycle_layer_client` are all silently no-ops for it, and the window
+context menu's own "Layer" submenu is disabled the same way, for the
+same reason: choosing a layer here would have no visible effect until
+it later leaves fullscreen, which would read as broken rather than
+merely deferred.
+
 | `shade_client`             | Rolls the client up into just its own titlebar |
 | `unshade_client`           | Undoes `shade_client` |
 | `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client` |

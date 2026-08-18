@@ -272,6 +272,20 @@ void wm_request_graceful_stop(void);
 int wm_action_config_reload(void);
 
 /**
+ * @brief Rearrange every visible window on the given surface's own
+ *        current desktop
+ *
+ * A thin wrapper around @a enact_desktop_clients_rearrange for callers
+ * (the root menu) that only have a @c surface_td, not the window
+ * manager singleton itself.
+ *
+ * @param surface Surface whose current desktop to rearrange
+ *
+ * @note No-op if @p surface is null or has no current desktop
+ */
+void wm_action_rearrange(surface_td *surface);
+
+/**
  * @brief Perform actions required before destroying the window manager
  *
  * Executes necessary actions required before invoking @a wm_stop

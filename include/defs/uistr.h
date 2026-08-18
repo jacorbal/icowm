@@ -42,6 +42,7 @@
  * every root menu gets, below whatever 'menus.json' configures */
 #define STR_ROOTMENU_STRUTLESS_MAXIMIZATION "Strutless maximization"
 #define STR_ROOTMENU_STRUTTED_MAXIMIZATION "Strutted maximization"
+#define STR_ROOTMENU_REARRANGE "Rearrange windows"
 #define STR_ROOTMENU_RELOAD_CONFIG "Reload configuration"
 #define STR_ROOTMENU_REDRAW_ALL "Redraw all windows"
 #define STR_ROOTMENU_EXIT "Exit"
@@ -101,15 +102,15 @@
  * array bound rather than somewhere later in the struct, so without
  * this it assumes the width of every field after it too. */
 #define STR_DIALOG_CONFIRM_TIMEOUT_FMT \
-  "Automatically selecting '%.255s' in %d second(s)"
+    "Automatically selecting '%.255s' in %d second(s)"
 
 /* RandR output-profile confirm dialog ('src/menu/dialog/ rrsafe.c'),
  * shown after 'surface_action_apply_randr_profiles' is called from
  * a configuration reload (see 'wm_action_config_reload'), never at
  * startup or on a hotplug 'OUTPUT_CHANGE' */
 #define STR_DIALOG_RANDR_CONFIRM_PROMPT \
-  "The 'randr.json' configuration has been applied.  Keep it, or revert to " \
-  "the previous one?"
+    "The 'randr.json' configuration has been applied.  Keep it, or " \
+    "revert to the previous one?"
 #define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
 #define STR_DIALOG_RANDR_CONFIRM_OK "[ Keep ]"
 
@@ -133,7 +134,8 @@
 #define STR_SHORTCUTS_SCRATCHPAD "Scratchpad"
 #define STR_SHORTCUTS_DESKTOP_ADD "Add desktop"
 #define STR_SHORTCUTS_DESKTOP_REMOVE "Remove desktop"
-#define STR_SHORTCUTS_TOGGLE_STRUTLESS_MAXIMIZE "Toggle strutless maximization"
+#define STR_SHORTCUTS_TOGGLE_STRUTLESS_MAXIMIZE \
+    "Toggle strutless maximization"
 /* Whole, fixed line on its own (no combo of its own to pair with; the
  * combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
@@ -237,13 +239,14 @@
  * "fully charged, on AC power" */
 #define STR_BATTERY_AC "AC"
 
-/* Restricted-memory mode announcement, shown once at startup ('src/wm.c') */
+/* Restricted-memory mode announcement, shown once at startup
+ * ('src/wm.c') */
 #define STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE \
-  "IcoWM is running in restricted-memory mode.  In this mode: application " \
-  "icons are shown without their own picture, text is drawn with simpler " \
-  "fonts, and there is a limit on how many windows can be open at once.  " \
-  "All of this trades some visual polish for keeping memory use low and " \
-  "predictable."
+    "IcoWM is running in restricted-memory mode.  In this mode: " \
+    "application icons are shown without their own picture, text is " \
+    "drawn with simpler fonts, and there is a limit on how many " \
+    "windows can be open at once.  All of this trades some visual " \
+    "polish for keeping memory use low and predictable."
 
 /* Configuration-file syntax-error dialog ('src/wm.c',
  * 'wm_json_syntax_errors_warn'), one file or several.
@@ -251,10 +254,11 @@
  * TRANSLATION: keep the single '%s' in the first, and the trailing '%s'
  * in the second (a filename list is appended after it, comma-separated) */
 #define STR_WM_JSON_SYNTAX_ERROR_SINGLE_FMT \
-  "Error parsing '%s'; possible syntax error.  Reverted to default values."
+    "Error parsing '%s'; possible syntax error.  Reverted to " \
+    "default values."
 #define STR_WM_JSON_SYNTAX_ERROR_MULTIPLE_FMT \
-  "Error parsing the following file(s); possible syntax error(s).  Reverted " \
-  "to default values for each: '%s'"
+    "Error parsing the following file(s); possible syntax " \
+    "error(s).  Reverted to default values for each: '%s'"
 
 /* Appended to either message above when the theme file itself was also
  * missing.
@@ -262,8 +266,8 @@
  * TRANSLATION: keep the single '%s' (the theme filename), and
  * 'config.json' unchanged (a real filename, not prose) */
 #define STR_WM_MISSING_THEME_FMT \
-  "  Additionally, the theme file '%s' named by 'config.json' was not " \
-  "found; using the built-in default theme instead."
+    "  Additionally, the theme file '%s' named by 'config.json' was " \
+    "not found; using the built-in default theme instead."
 
 /* Restricted-memory mode's own two warning dialogs ('src/memguard.c').
  *
@@ -271,18 +275,18 @@
  * literal '-M' (the command-line option's own name, unchanged in every
  * language) */
 #define STR_MEMGUARD_CEILING_REACHED_FMT \
-  "IcoWM has reached its configured memory ceiling: using %u MiB of the %u " \
-  "MiB allowed (see the '-M' command-line option).  Close some windows to " \
-  "free up memory before opening more."
+    "IcoWM has reached its configured memory ceiling: using %u MiB " \
+    "of the %u MiB allowed (see the '-M' command-line option).  " \
+    "Close some windows to free up memory before opening more."
 #define STR_MEMGUARD_CLIENT_CAP_REACHED_FMT \
-  "IcoWM is running in restricted-memory mode and will not manage more than " \
-  "%u window(s) at once (see the '-M' command-line option).  Close a window " \
-  "before opening another."
+    "IcoWM is running in restricted-memory mode and will not manage " \
+    "more than %u window(s) at once (see the '-M' command-line " \
+    "option).  Close a window before opening another."
 
 /* Fuzzy window-search widget ('src/menu/search.c'): shown instead of
  * opening the widget itself when there is nothing to search for */
 #define STR_SEARCH_NO_WINDOWS \
-  "There are no open windows in this session at the moment."
+    "There are no open windows in this session at the moment."
 
 /* Built-in run-box ('src/menu/dialog/run.c'): the prompt preceding its
  * own text field.  Kept short and distinct from 'STR_SEARCH_NO_WINDOWS'
@@ -296,7 +300,7 @@
  *
  * TRANSLATION: keep the single '%s' (the command as typed) */
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
-  "Command '%s' not found."
+    "Command '%s' not found."
 
 /* 'lifecycle_launch_dispatch' (src/lifecycle.c): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
@@ -309,18 +313,19 @@
  *
  * TRANSLATION: keep the single '%s' (the configured command) */
 #define STR_LAUNCH_COMMAND_NOT_FOUND_FMT \
-  "Failed to execute '%s': command not found."
+    "Failed to execute '%s': command not found."
 
 /* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead when
  * the configured 'fortune.command' is missing or produces no output;
  * deliberately overwrought and archaic, per its whole point being
  * a small joke rather than a plain error message */
 #define STR_FORTUNE_FALLBACK \
-  "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no " \
-  "wisdom of the ancients may this day be divined.  Prithee, entreat thy " \
-  "package steward with an incantation such as 'sudo apt install " \
-  "fortune-mod' (or whate'er charm thy distribution demandeth), that the " \
-  "sages of yore might once more speak through this humble dialog."
+    "Alack!  The oracle 'fortune' abideth not upon this machine, " \
+    "wherefore no wisdom of the ancients may this day be divined.  " \
+    "Prithee, entreat thy package steward with an incantation such " \
+    "as 'sudo apt install fortune-mod' (or whate'er charm thy " \
+    "distribution demandeth), that the sages of yore might once " \
+    "more speak through this humble dialog."
 
 
 #endif  /* ! DEFS_UISTR_H */

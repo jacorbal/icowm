@@ -804,13 +804,20 @@ void wincmenu_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* Layer (submenu) */
+    /* Layer (submenu): disabled while fullscreen, since a focused
+     * fullscreen client's own stacking is always forced above
+     * everything else regardless of its own real layer (see
+     * 'ccmd_desktop_enforce_layers''s own doc comment); choosing a
+     * layer here would silently do nothing visible until the client
+     * later leaves fullscreen, which reads as broken rather than
+     * merely deferred. */
     s_entries[n].type = CTXMENU_SUBMENU;
     safe_strncpy(s_entries[n].label, _(STR_WINCMENU_LAYER),
             sizeof(s_entries[n].label) - 1u);
     s_entries[n].items = s_layer_entries;
     s_entries[n].item_count = WINCMENU_LAYER_COUNT;
     s_entries[n].userdata = &s_layer_state;
+    s_entries[n].is_disabled = client_is_fullscreen(client);
     ++n;
 
     /* Separator */

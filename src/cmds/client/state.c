@@ -541,6 +541,15 @@ void ccmd_client_fullscreen(client_td *client)
             "_NET_WM_STATE_MAXIMIZED_VERT");
     ccmd_add_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
 
+    /* Now genuinely fullscreen and focused both: stack it above every
+     * other client on this desktop, including every other ABOVE-layer
+     * one, right away rather than leaving it to whatever future
+     * stacking-order pass happens to run next; see
+     * 'ccmd_desktop_enforce_layers''s own doc comment on this. */
+    if (desktop != NULL) {
+        ccmd_desktop_enforce_layers(desktop);
+    }
+
     /* Let the systray reconsider its stacking now that a client just
      * became fullscreen: with 'systray.layer' set to "above" it should
      * drop below this window, the same way a taskbar or panel yields to
@@ -557,6 +566,7 @@ void ccmd_client_unfullscreen(client_td *client)
 {
     xcb_window_t target;
     uint16_t border_width;
+    desktop_td *desktop;
 
     if (client == NULL) {
         return;
@@ -685,6 +695,16 @@ void ccmd_client_unfullscreen(client_td *client)
             (uint32_t) client->layout.frame_extents.bottom);
 
     ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
+
+    /* No longer fullscreen, so the forced-above stacking
+     * 'ccmd_desktop_enforce_layers' gives a focused fullscreen client
+     * no longer applies to it either way; re-run it now so it settles
+     * straight back into its own real layer group rather than waiting
+     * on whatever future stacking-order pass happens to run next. */
+    desktop = wm_get_client_desktop(client);
+    if (desktop != NULL) {
+        ccmd_desktop_enforce_layers(desktop);
+    }
 
     /* The client that just left fullscreen may have been the one the
      * systray was lowered below; let it reconsider its stacking now

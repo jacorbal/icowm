@@ -280,6 +280,33 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
         } while (node != NULL && node != initial);
     }
 
+    /* A fullscreen client that currently holds focus always sits
+     * above every other client on this desktop, including every
+     * other ABOVE-layer one, the same way a fullscreen application
+     * covers a taskbar or panel in most desktop environments.
+     * Deliberately a stacking-order effect only, applied here fresh
+     * on every call rather than by ever writing 'properties.layer'
+     * itself: the client's own real layer stays exactly what it was
+     * chosen to be the whole time, so losing focus to something else
+     * needs no separate "restore" step of its own, just correctly
+     * falling out of this check and settling back into that real
+     * layer group via the loop above, on whatever future call to
+     * this same function focus next moves away on. */
+    if (desktop->client_active_id != 0u) {
+        client_td *active = desktop_find_client_by_id(desktop,
+                desktop->client_active_id);
+
+        if (active != NULL && client_is_fullscreen(active)) {
+            xcb_window_t active_target = ccmd_target_win(active);
+
+            if (active_target != XCB_WINDOW_NONE) {
+                xcb_configure_window(active->connection, active_target,
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+            }
+        }
+    }
+
     if (desktop->connection != NULL) {
         xcb_flush(desktop->connection);
     }

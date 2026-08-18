@@ -270,9 +270,9 @@ void systray_layout_restack(void);
  * @note Idempotent; does nothing (beyond returning success) if
  *       @p s_tray.window_ready is already @c true
  *
- * @see @p systray_protocol_acquire_selection
+ * @see @p systray_protocol_selection_acquire
  */
-bool systray_protocol_ensure_window(wm_td *wm);
+bool systray_protocol_window_ensure(wm_td *wm);
 
 /**
  * @brief Acquire the tray selection on the already-created window
@@ -282,7 +282,7 @@ bool systray_protocol_ensure_window(wm_td *wm);
  * @retval false if another tray manager already owns the selection or
  *               the window is not ready yet
  */
-bool systray_protocol_acquire_selection(void);
+bool systray_protocol_selection_acquire(void);
 
 /**
  * @brief Release the tray selection, keeping the window and icons
@@ -292,7 +292,7 @@ bool systray_protocol_acquire_selection(void);
  *
  * @note Safe to call when the selection is not currently owned
  */
-void systray_protocol_release_selection(void);
+void systray_protocol_selection_release(void);
 
 /**
  * @brief Dock an icon window: reparent it in, embed it, and reflow

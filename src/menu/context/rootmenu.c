@@ -72,6 +72,24 @@ static int s_json_count = 0;
 
 
 /**
+ * @brief Callback: rearrange every visible window on the current
+ *        desktop
+ *
+ * @param connection XCB connection (unused)
+ * @param userdata   Unused
+ */
+static void s_cb_rearrange(xcb_connection_t *connection, void *userdata)
+{
+    (void) connection;
+    (void) userdata;
+
+    if (s_surface != NULL) {
+        wm_action_rearrange(s_surface);
+    }
+}
+
+
+/**
  * @brief Callback: reload the window manager configuration
  *
  * @param connection XCB connection (unused)
@@ -262,6 +280,12 @@ void rootmenu_show(xcb_connection_t *connection,
                 : _(STR_ROOTMENU_STRUTLESS_MAXIMIZATION),
             sizeof(s_entries[fi].label) - 1u);
     s_entries[fi].on_activate = s_cb_toggle_strutless_maximize;
+    ++fi;
+
+    s_entries[fi].type = CTXMENU_COMMAND;
+    safe_strncpy(s_entries[fi].label, _(STR_ROOTMENU_REARRANGE),
+            sizeof(s_entries[fi].label) - 1u);
+    s_entries[fi].on_activate = s_cb_rearrange;
     ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;

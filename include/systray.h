@@ -229,7 +229,7 @@ bool systray_get_geometry(const surface_td *surface,
  *
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */
-bool systray_enforce_icon_size(xcb_window_t window);
+bool systray_icon_size_enforce(xcb_window_t window);
 
 /**
  * @brief Handle a @c ClientMessage addressed to the tray window

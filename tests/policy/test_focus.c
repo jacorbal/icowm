@@ -57,6 +57,11 @@ void enact_client_raise(client_td *client)
     (void) client;
 }
 
+void ccmd_desktop_enforce_layers(desktop_td *desktop)
+{
+    (void) desktop;
+}
+
 bool scratchpad_is_client(const client_td *client)
 {
     (void) client;

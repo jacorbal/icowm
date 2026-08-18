@@ -29,6 +29,7 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
+#include <cmds/client/layer.h>
 #include <policy/focus.h>
 
 
@@ -129,6 +130,18 @@ void focus_apply(list_td *surfaces, surface_td *surface,
              cfg->base.windows.focus.raise));
     if (should_raise) {
         enact_client_raise(client);
+    } else if (client_is_fullscreen(client) ||
+            (previous != NULL && client_is_fullscreen(previous))) {
+        /* 'enact_client_raise' above already re-enforces layer
+         * stacking as a side effect of raising, which is what
+         * actually forces a focused fullscreen client above
+         * everything else (see 'ccmd_desktop_enforce_layers''s own
+         * doc comment) and lets one that just lost focus fall back
+         * into its own real layer.  Without 'should_raise', neither
+         * of those would otherwise happen at all for this focus
+         * change, and that guarantee has to hold regardless of
+         * whether raise-on-focus itself is configured on. */
+        ccmd_desktop_enforce_layers(desktop);
     }
 
     fields = cJSON_CreateObject();

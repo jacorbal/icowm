@@ -295,7 +295,7 @@ void ccmd_client_ensure_icon_window(client_td *client,
          * only ever accounts for the tray's own *reserved* strut,
          * which stays all-zero whenever 'systray.reserve-space' is
          * left at its own default of 'false' (see the comment right
-         * by 'partial' staying all-zero in 's_systray_update_strut',
+         * by 'partial' staying all-zero in 's_systray_strut_update',
          * systray/layout.c): the tray still visually occupies real
          * screen space either way, so a final check against its
          * actual current rectangle, the same one a drag or a config

@@ -48,6 +48,8 @@
 #include <sn.h>
 #include <systray.h>
 #include <xsettings.h>
+#include <enact.h>
+#include <lookup.h>
 
 /* Policy includes */
 #include <policy/placement.h>
@@ -222,6 +224,24 @@ static void s_resync_after_reload(void)
          * else entirely). */
         surface_refresh_workareas(s);
     }
+}
+
+
+/* Rearrange every visible window on the current desktop */
+void wm_action_rearrange(surface_td *surface)
+{
+    desktop_td *desktop;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    enact_desktop_clients_rearrange(wm, surface, desktop);
 }
 
 

@@ -158,8 +158,8 @@ void handler_configure_request(xcb_connection_t *connection,
     /* A docked systray icon is not a managed client, so it would
      * otherwise fall through to the generic "forward the request
      * unmodified" path below, undoing the fixed size the tray forces
-     * on every icon at dock time; see 'systray_enforce_icon_size'. */
-    if (client == NULL && systray_enforce_icon_size(event->window)) {
+     * on every icon at dock time; see 'systray_icon_size_enforce'. */
+    if (client == NULL && systray_icon_size_enforce(event->window)) {
         return;
     }
 

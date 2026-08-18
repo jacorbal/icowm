@@ -53,6 +53,12 @@ bool focus_is_sloppy(const config_td *cfg);
  * Updates the active client for the desktop, sends focus and unfocus
  * events as needed, optionally raises the client, marks affected
  * surface and desktop as outdated, and triggers an immediate repaint.
+ * Also, regardless of @p raise or @p cfg's own raise-on-focus policy,
+ * re-enforces @p desktop's layer stacking whenever @p client or the
+ * client just losing focus is fullscreen, so a focused fullscreen
+ * client stays above everything else and one that just lost focus
+ * falls back into its own real layer immediately either way (see
+ * @a ccmd_desktop_enforce_layers's own doc comment).
  *
  * @param surfaces All managed surfaces (needed for unfocus lookup)
  * @param surface  Surface containing the client
@@ -62,7 +68,9 @@ bool focus_is_sloppy(const config_td *cfg);
  * @param cfg      Active configuration (for raise-on-focus policy)
  *
  * @note Complexity: @e O(1) for focus bookkeeping; up to @e O(n * m)
- *       when immediate surface redraw is triggered after raising
+ *       when immediate surface redraw is triggered after raising, or
+ *       @e O(n) when only the fullscreen-related re-enforcement above
+ *       runs
  *
  * @note Passing @c NULL for @p surfaces suppresses the unfocus-previous
  *       step; this is safe when the caller has already handled it.

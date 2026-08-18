@@ -60,7 +60,7 @@ struct systray_state_s s_tray;
  *
  * @note Complexity: @e O(1)
  */
-static void s_systray_apply_config(wm_td *wm)
+static void s_systray_config_apply(wm_td *wm)
 {
     s_tray.position = wm->config->base.systray.position;
     s_tray.reserve_space = wm->config->base.systray.reserve_space;
@@ -124,9 +124,9 @@ void systray_init(wm_td *wm)
         return;
     }
 
-    s_systray_apply_config(wm);
+    s_systray_config_apply(wm);
 
-    if (!systray_protocol_ensure_window(wm)) {
+    if (!systray_protocol_window_ensure(wm)) {
         return;
     }
 
@@ -135,12 +135,12 @@ void systray_init(wm_td *wm)
     /* Never acquired at all when 'is_embedding_enabled' is false, own
      * clock/battery text still shown regardless via the explicit
      * 'systray_layout_reflow' call below, since
-     * 'systray_protocol_acquire_selection' does not trigger one on its
+     * 'systray_protocol_selection_acquire' does not trigger one on its
      * own: see 'is_embedding_enabled''s comment in 'config.h' for why
      * restricted-memory mode is the one profile that always leaves it
      * 'false' */
     if (wm->config->base.systray.is_embedding_enabled) {
-        (void) systray_protocol_acquire_selection();
+        (void) systray_protocol_selection_acquire();
     }
 
     systray_layout_reflow();
@@ -152,7 +152,7 @@ void systray_shutdown(wm_td *wm)
 {
     (void) wm;
 
-    systray_protocol_release_selection();
+    systray_protocol_selection_release();
 
     if (s_tray.window_ready && s_tray.connection != NULL &&
             s_tray.window != XCB_WINDOW_NONE) {
@@ -163,7 +163,7 @@ void systray_shutdown(wm_td *wm)
          * teardown is only for the window manager itself exiting;
          * toggling 'is-enabled' off goes through 'systray_reload',
          * which keeps the window and icons alive via
-         * 'systray_protocol_release_selection' instead. */
+         * 'systray_protocol_selection_release' instead. */
         xcb_destroy_window(s_tray.connection, s_tray.window);
         xcb_flush(s_tray.connection);
     }
@@ -251,7 +251,7 @@ bool systray_get_geometry(const surface_td *surface,
 
 /* Query whether 'window' is a currently docked icon, and if so, force
  * it back to the tray's fixed icon size */
-bool systray_enforce_icon_size(xcb_window_t window)
+bool systray_icon_size_enforce(xcb_window_t window)
 {
     if (window == XCB_WINDOW_NONE) {
         return false;
@@ -307,7 +307,7 @@ bool systray_enforce_icon_size(xcb_window_t window)
  *
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */
-static void s_systray_resize_docked_icons(void)
+static void s_systray_icons_resize(void)
 {
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         xcb_window_t icon = s_tray.icons[i].window;
@@ -413,7 +413,7 @@ void systray_reload(wm_td *wm)
 
     should_be_enabled = wm->config->base.systray.is_enabled;
     was_active = s_tray.is_active;
-    s_systray_apply_config(wm);
+    s_systray_config_apply(wm);
     systray_protocol_apply_theme_style();
 
     /* Unconditional, before the enabled/disabled branches below: an
@@ -424,7 +424,7 @@ void systray_reload(wm_td *wm)
      * while momentarily disabled is still correct the next time the
      * tray is shown again, without needing every application to re-dock
      * itself. */
-    s_systray_resize_docked_icons();
+    s_systray_icons_resize();
 
     if (was_active && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \
@@ -432,14 +432,14 @@ void systray_reload(wm_td *wm)
                 " hidden in the background)", L_NARG);
         s_tray.is_active = false;
 
-        /* 'systray_protocol_release_selection' already triggers
+        /* 'systray_protocol_selection_release' already triggers
          * 'systray_layout_reflow' itself once it releases the
          * selection, but only when 'selection_owned' was actually
          * 'true' to begin with.  With embedding disabled, it was never
          * acquired at all, so this still needs to unmap the window
          * itself directly instead. */
         if (s_tray.selection_owned) {
-            systray_protocol_release_selection();
+            systray_protocol_selection_release();
         } else {
             systray_layout_reflow();
         }
@@ -447,17 +447,17 @@ void systray_reload(wm_td *wm)
     }
 
     if (!was_active && should_be_enabled) {
-        bool ready = systray_protocol_ensure_window(wm);
+        bool ready = systray_protocol_window_ensure(wm);
 
         s_tray.is_active = ready;
 
         /* Selection acquisition only even attempted, let alone required
          * for success here, when embedding is actually allowed; with it
          * disabled the window alone (already showing its own
-         * clock/battery text via 's_systray_apply_config' above) is
+         * clock/battery text via 's_systray_config_apply' above) is
          * enough on its own */
         if (ready && wm->config->base.systray.is_embedding_enabled) {
-            (void) systray_protocol_acquire_selection();
+            (void) systray_protocol_selection_acquire();
         }
 
         LOGGER_INFO("Systray enabled by configuration reload", L_NARG);

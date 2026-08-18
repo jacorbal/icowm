@@ -66,7 +66,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     if (keysym == KS_RIGHT) {
         sel = state->selected;
         if (sel >= 0 && sel < state->entry_count &&
-                state->entries[sel].type == CTXMENU_SUBMENU) {
+                state->entries[sel].type == CTXMENU_SUBMENU &&
+                !state->entries[sel].is_disabled) {
             child_state =
                 (ctxmenu_state_td *) state->entries[sel].userdata;
             if (child_state != NULL &&

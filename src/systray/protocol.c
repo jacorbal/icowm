@@ -58,7 +58,7 @@
  * @param out      Destination buffer
  * @param out_size Size of @p out in bytes
  */
-static void s_systray_fetch_sort_key(xcb_window_t icon,
+static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
         char *out, size_t out_size)
 {
     xcb_get_property_cookie_t cookie;
@@ -115,7 +115,7 @@ static void s_systray_fetch_sort_key(xcb_window_t icon,
  * @note Complexity: @e O(n) for the alphabetical policies, @e O(1)
  *       otherwise, where @e n is the current icon count
  *
- * @see @a s_systray_fetch_sort_key
+ * @see @a s_systray_icon_sort_key_fetch
  */
 static uint16_t s_systray_insert_index(const char *sort_key)
 {
@@ -244,7 +244,7 @@ void systray_protocol_dock(xcb_window_t icon)
     xcb_send_event(s_tray.connection, 0, icon, XCB_EVENT_MASK_NO_EVENT,
             (const char *) &ev);
 
-    s_systray_fetch_sort_key(icon, sort_key, sizeof(sort_key));
+    s_systray_icon_sort_key_fetch(icon, sort_key, sizeof(sort_key));
     insert_at = s_systray_insert_index(sort_key);
 
     for (uint16_t j = s_tray.icon_count; j > insert_at; --j) {
@@ -287,8 +287,8 @@ void systray_protocol_dock(xcb_window_t icon)
  *
  * Idempotent: does nothing (beyond returning success) if
  * 's_tray.window_ready' is already 'true'.  Does not acquire the
- * selection; see 'systray_protocol_acquire_selection'. */
-bool systray_protocol_ensure_window(wm_td *wm)
+ * selection; see 'systray_protocol_selection_acquire'. */
+bool systray_protocol_window_ensure(wm_td *wm)
 {
     surface_td *surface;
     char selection_name[32];
@@ -348,7 +348,7 @@ bool systray_protocol_ensure_window(wm_td *wm)
          * is applied by the server directly with no 'ConfigureRequest'
          * ever generated, silently undoing the configured
          * 's_tray.pixmap_size' this module forces on it at dock time;
-         * see 'systray_enforce_icon_size' in 'systray.c'. */
+         * see 'systray_icon_size_enforce' in 'systray.c'. */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
 
     xcb_create_window(wm->connection, XCB_COPY_FROM_PARENT,
@@ -368,7 +368,7 @@ bool systray_protocol_ensure_window(wm_td *wm)
 
 
 /* Acquire the tray selection on the already-created window */
-bool systray_protocol_acquire_selection(void)
+bool systray_protocol_selection_acquire(void)
 {
     uint32_t orientation;
 
@@ -408,7 +408,7 @@ bool systray_protocol_acquire_selection(void)
 
 
 /* Release the tray selection, keeping the window and icons */
-void systray_protocol_release_selection(void)
+void systray_protocol_selection_release(void)
 {
     if (!s_tray.selection_owned) {
         return;

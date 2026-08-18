@@ -138,7 +138,7 @@ void session_run_hook(const session_td *session,
  *
  * @note This function is intended to be called from the main loop
  *       whenever @c SIGCHLD has been received via
- *       @a startup_child_reap_requested
+ *       @a startup_requested_child_reap
  * @note Complexity: @e O(n * m), where @e n is the number of reaped
  *       children and @e m is the size of the tracking table
  */

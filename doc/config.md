@@ -652,9 +652,10 @@ ignoring insertion order entirely.
 The key `layer` controls where the dock sits in the stacking order:
 `"below"` (the default) keeps it behind every normal client window,
 `"above"` keeps it above normal windows but still lets a fullscreen
-window cover it, the same way a fullscreen window covers a taskbar or
-panel in most desktop environments, and `"overlay"` keeps it above
-absolutely everything, including fullscreen windows.
+window cover it while that window holds focus, the same way a
+fullscreen window covers a taskbar or panel in most desktop
+environments, and `"overlay"` keeps it above absolutely everything,
+including fullscreen windows.
 
 When enabled, IcoWM acquires the `_NET_SYSTEM_TRAY_Sn` manager selection
 on startup and embeds icon windows that request docking via the
