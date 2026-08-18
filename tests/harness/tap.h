@@ -55,8 +55,8 @@ static int tap_failed = 0;
  * @brief Announce how many assertions this test binary will make
  *
  * Always the first TAP call in @c main, per the protocol itself: a
- * consumer reading the output knows immediately how many @c ok/@c
- * not @c ok lines to expect, and a mismatch (the binary crashing
+ * consumer reading the output knows immediately how many @c ok /
+ * @c not @c ok lines to expect, and a mismatch (the binary crashing
  * partway through, skipping an assertion by accident) is visible as
  * a plan/count mismatch rather than silently passing.
  *

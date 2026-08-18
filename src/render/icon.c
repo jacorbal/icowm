@@ -205,12 +205,12 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         text_renderer_init(desktop->connection,
                 desktop->config_theme->icon.inactive.font);
         text_renderer_set_color(
-        (display_active)
-            ? desktop->config_theme->icon.active.color.foreground
-            : desktop->config_theme->icon.inactive.color.foreground,
-        (display_active)
-            ? desktop->config_theme->icon.active.color.background
-            : desktop->config_theme->icon.inactive.color.background);
+                (display_active)
+                    ? desktop->config_theme->icon.active.color.foreground
+                    : desktop->config_theme->icon.inactive.color.foreground,
+                (display_active)
+                    ? desktop->config_theme->icon.active.color.background
+                    : desktop->config_theme->icon.inactive.color.background);
 
         text_draw_string(desktop->connection,
                 client->icon_window, XCB_NONE,
@@ -288,7 +288,8 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
      * any ordinary render, just drawn against the plain active-color
      * background this function already cleared to instead of over
      * whatever pixmap would otherwise sit underneath them. */
-    ri_draw_icon_hints(connection, client, true, client->theme); }
+    ri_draw_icon_hints(connection, client, true, client->theme);
+}
 
 
 /* Draw the state-hint indicators in an iconified client's own top

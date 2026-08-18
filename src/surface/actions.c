@@ -27,11 +27,11 @@
 /* Utils includes */
 #include <utils/geom.h>
 
-/* Command includes */
-#include <cmds/client/basic.h>
+/* Default initial values */
 
 /* Project includes */
 #include <client.h>
+#include <cmds/client/basic.h>
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
@@ -110,22 +110,20 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
 {
     int output_count;
     xcb_randr_output_t *outputs;
-    /* Declare this array once, outside the loop, rather than once per
-     * iteration inside it.  '-fanalyzer' traced two distinct iterations
-     * to a loop-scoped declaration of this array (see this function's
-     * history for two earlier, differently structured attempts to
-     * silence the warning).  Both initialized the array at its
-     * declaration, but neither affected the diagnostic.
-     *
-     * It then reported a "use of uninitialized value" without
-     * identifying any source location for the alleged read.  That
-     * strongly suggests a known class of '-fanalyzer' false positive
-     * involving a fixed-size array declared inside a loop that has an
+    /* Declared once here, outside the loop, rather than once per
+     * iteration inside it: '-fanalyzer' traced two separate
+     * iterations reaching a loop-scoped declaration of this same
+     * array (see this function's own history for the two prior,
+     * differently-structured attempts at silencing it, both zeroing
+     * the array at its own declaration point, that made no
+     * difference at all) before reporting a "use of uninitialized
+     * value" with no source location at all for the read itself --
+     * itself a strong sign of a known class of '-fanalyzer' false
+     * positive around a fixed array declared inside a loop with an
      * early 'continue', rather than a real, traceable read of
-     * uninitialized storage.
-     *
-     * A single declaration, reached once regardless of the number of
-     * loop iterations, removes that control-flow shape entirely. */
+     * anything actually uninitialized.  A single declaration, reached
+     * only once regardless of how many times the loop runs, removes
+     * that whole shape entirely. */
     char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH] = {0};
 
     output_count =
@@ -662,7 +660,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                  * window=target).  An additional event arrives for the
                  * titlebar via the frame's 'SubstructureNotify'.
                  * Desktop switches must not toggle
-                 * 'CLIENT_FLAG_HIDDEN'.  That flag represents an
+                 * 'CLIENT_FLAG_HIDDEN': that flag represents an
                  * explicit user/application hidden state, not temporary
                  * invisibility on another desktop. */
                 client->ignore_unmap += 2u;
@@ -826,13 +824,14 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* When the desktop's own remembered active client could not be
      * restored above, only let 'client_focus_fallback' guess another
      * reasonable visible, focusable client on this same desktop (see
-     * its comment, 'cmds/client/basic.h', for the exact criteria,
-     * skip-taskbar exclusion included) when a 'client_active_id'
-     * genuinely existed to begin with, i.e., someone really had focused
-     * something on this desktop before; relinquish focus to
-     * 'PointerRoot' directly otherwise, without ever guessing, e.g.,
-     * for a desktop whose only client is a pinned window merely visible
-     * there on loan from wherever it actually got focused. */
+     * its own doc comment, cmds/client/basic.h, for the exact
+     * criteria, skip-taskbar exclusion included) when a
+     * 'client_active_id' genuinely existed to begin with, i.e.,
+     * someone really had focused something on this desktop before;
+     * relinquish focus to 'PointerRoot' directly otherwise, without
+     * ever guessing, e.g., for a desktop whose only client is a pinned
+     * window merely visible there on loan from wherever it actually
+     * got focused. */
     if (focus_target != NULL) {
         desktop->client_active_id = focus_target->id;
         desktop->focus_dirty = true;
@@ -1056,6 +1055,7 @@ void surface_reflow_clients(surface_td *surface)
 
                         client->layout.geometry.cur.pos.x = new_x;
                         client->layout.geometry.cur.pos.y = new_y;
+                        client->is_outdated = true;
                         desktop->is_outdated = true;
                     }
                 }

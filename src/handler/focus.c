@@ -202,6 +202,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         if (surface != NULL && desktop != NULL &&
                 rules_apply(wm, client, &surface, &desktop,
                     RULES_TRIGGER_PROPERTY)) {
+            wm_outdate_client(client);
             wm_outdate_surface(surface);
             wm_outdate_desktop(desktop);
         }
@@ -314,6 +315,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
     if (surface != NULL && desktop != NULL &&
             rules_apply(wm, client, &surface, &desktop,
                 RULES_TRIGGER_PROPERTY)) {
+        wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
     }
