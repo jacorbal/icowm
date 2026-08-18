@@ -869,7 +869,7 @@ automatically; and is skipped by `rearrange_desktop`.  `toggle
 fullscreen` is deliberately left alone: nothing above prevents it.
 
 **Reloading configuration never affects a scratchpad client already
-alive.**  Every field below (`command`, `edge`, `width`/`height`,
+alive.** Every field below (`command`, `edge`, `width`/`height`,
 `ignore-margins`) is only ever read the moment a fresh scratchpad is
 actually launched, never while the current one is still around, hidden
 or shown.  Changing `command` and reloading, say, has no effect on an
@@ -884,14 +884,14 @@ command-line tool with no display of its own, e.g., `"gvim
 ~/docs/my_notes.txt"` to always have the same notes file one toggle
 away, exactly as much as a shell would be.
 
-| Key                      | Type               | Default                    | Description |
-|--------------------------|--------------------|----------------------------|-------------|
-| `is-enabled`             | boolean            | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its own keybind does nothing at all while this is `false`. |
-| `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their own `-class`; see the note above on what kind of command this can be. |
-| `edge`                   | string             | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
-| `width`                  | integer or `"max"` | `"max"`                    | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
-| `height`                 | integer or `"max"` | `200`                      | Always-applied height, in pixels, or `"max"` (see `width` above). |
-| `ignore-margins`         | boolean            | `false` | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
+| Key                     | Type            | Default                    | Description |
+|--------------------------|-----------------|----------------------------|-------------|
+| `is-enabled`             | boolean         | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its own keybind does nothing at all while this is `false`. |
+| `command`                | string          | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their own `-class`; see the note above on what kind of command this can be. |
+| `edge`                   | string          | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
+| `width`                  | integer or `"max"` | `"max"`                  | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
+| `height`                 | integer or `"max"` | `200`                    | Always-applied height, in pixels, or `"max"` (see `width` above). |
+| `ignore-margins`         | boolean         | `false` | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
 
 Its own border is themed separately from every other window, since it
 never has any other decoration; see `themes/<name>.json` section
@@ -912,7 +912,7 @@ never has any other decoration; see `themes/<name>.json` section
 
 A single, always-centered text field for typing and launching a command
 directly, with no application listing, no fuzzy matching, and no cache
-of any kind, unlike `programs.launcher` (section 2.3).  A mistyped or
+of any kind, unlike `programs.launcher` (section 2.3): a mistyped or
 missing command shows an informational dialog (never a blocking warning
 or error) rather than doing nothing silently or interrupting further
 than necessary, and a successful one closes the box right away.
@@ -1058,15 +1058,18 @@ Resize the focused window by a fixed step in the given direction.
 
 Window manager control shortcuts.
 
-| Key            | Default binding       | Action |
-|----------------|-----------------------|--------|
-| `search`       | `modc+mod4+mods+s`    | Open the fuzzy window-search widget. |
-| `show-desktop` | `modc+mod4+mods+d`    | Hide all windows and show the empty desktop. |
-| `scratchpad`   | `modc+mod1+mods+F12`  | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
-| `redraw`       | `modc+mod1+mods+r`    | Force a full redraw of all windows. |
-| `reload`       | `modc+mod1+mods+c`    | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit`         | `modc+mod1+mods+x`    | Exit IcoWM. |
-| `shortcuts`    | `modc+mod4+F1`        | Show a dialog listing every currently active keyboard shortcut. |
+| Key            | Default binding    | Action |
+|----------------|--------------------|--------|
+| `search`       | `modc+mod4+mods+s` | Open the fuzzy window-search widget. |
+| `show-desktop` | `modc+mod4+mods+d` | Hide all windows and show the empty desktop. |
+| `scratchpad` | `modc+mod1+mods+F12` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
+| `desktop.add` | `modc+mod1+mods+Right` | Add a new, empty desktop to the end of the list. |
+| `desktop.remove` | `modc+mod1+mods+Left` | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
+| `toggle-fullsurface` | *(unbound)* | Toggle whether panel/tray struts are set aside when computing work areas on this surface (distraction-free mode); also reachable via IPC (`toggle_fullsurface`) and its own entry in the window context menu. |
+| `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
+| `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
+| `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |
+| `shortcuts`    | `modc+mod4+F1`     | Show a dialog listing every currently active keyboard shortcut. |
 | `fortune`      | `modc+mod4+Backspace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (section 2.6). |
 
 `search` opens a centered, live-filtered list of every window across
@@ -1132,6 +1135,33 @@ index 9 are not reachable by these shortcuts.
 If the interest is to use a 1-based indexing system, a trick could be
 setting `inaugural` to `1`.  Another is to change every single
 `keyboard.wm.go-to` binding.
+
+#### `keyboard.wm.desktop`
+
+Add or remove the surface's own last desktop.  A new desktop is
+always appended at the end; removing one always takes the last one,
+moving any client still on it to the new last desktop first (its own
+EWMH `_NET_WM_DESKTOP` is updated to match, unless it is pinned, whose
+property already holds the EWMH "all desktops" sentinel).  Removing a
+specific desktop by index is not offered: with removal always
+affecting the last one, every existing index below it stays exactly
+where it was, so no other binding (`go-to`, a rule's own `desktop`
+match, and so on) is ever silently invalidated by a removal elsewhere
+in the list.
+
+| Key      | Default binding        | Action |
+|----------|-------------------------|--------|
+| `add`    | `modc+mod1+mods+Right` | Add a new, empty desktop. |
+| `remove` | `modc+mod1+mods+Left`  | Remove the last desktop; refused while only one remains. |
+
+```json
+"wm": {
+    "desktop": {
+        "add": "modc+mod1+mods+Right",
+        "remove": "modc+mod1+mods+Left"
+    }
+}
+```
 
 ### 3.6. `keyboard.cycle`
 
@@ -1219,16 +1249,16 @@ Appearance settings for managed windows.
 
 #### `window.titlebar`
 
-| Key                  | Type             | Default            | Description |
-|----------------------|------------------|--------------------|-------------|
-| `height`             | integer          | `19`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
-| `alignment`          | string           | `"left"`           | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
-| `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
-| `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| Key                  | Type             | Default | Description |
+|----------------------|------------------|---------|-------------|
+| `height`             | integer          | `19` | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
+| `alignment`          | string           | `"left"` | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
+| `padding.horizontal` | integer          | `2` | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
+| `padding.vertical`   | integer          | `2` | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
 | `buttons.left`       | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
 | `buttons.right`      | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
-| `buttons.color.on`   | string           | `"#253040"`        | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
-| `buttons.color.off`  | string           | `"#4A5566"`        | Color for a button otherwise, i.e., not engaged. |
+| `buttons.color.on`   | string           | `"#253040"` | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
+| `buttons.color.off`  | string           | `"#4A5566"` | Color for a button otherwise, i.e., not engaged. |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
 `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`, `"maximize"`,
@@ -1306,7 +1336,7 @@ clock/battery text within it.
 | `border.color`     | string  | `"#7F9AB6"` |
 | `border.width`     | integer | `1`         |
 | `opacity`          | integer | `100`       |
-| `height`           | integer | `24`        |
+| `height`           | integer | `22`        |
 | `pixmap.size`      | integer | `24`        |
 | `pixmap.padding`   | integer | `4`         |
 | `text.gap`         | integer | `12`        |
@@ -1322,7 +1352,10 @@ and/or battery status text (when either is enabled, see
 `systray.clock`/`systray.battery` in `config.json`) are positioned
 within it according to `text.valign`, and centered for icons.  It is
 clamped up to at least `pixmap.size` if set any smaller, so a single
-icon never gets clipped.
+icon never gets clipped; with the default `height` of `22` actually
+sitting below the default `pixmap.size` of `24`, that clamp is exactly
+what applies in practice, leaving `text.valign` no visible room to work
+with until `height` is raised past `pixmap.size`.
 
 `text.gap` is the horizontal space, in pixels, between the clock and
 battery text when both are shown (see `systray.text.order` in
@@ -1340,7 +1373,7 @@ spacing and vertical alignment are theme concerns.
     "font": "fixed",
     "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
     "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 24,
+    "height": 22,
     "pixmap": {
         "size": 24,
         "padding": 4
@@ -1823,33 +1856,33 @@ from ordinary context menus if they want to.
 and `unselected` style a result row depending on whether it is the
 current hovered or keyboard-navigated one.
 
-| Key                                  | Type    | Default        | Description |
-|--------------------------------------|---------|----------------|-------------|
-| `search.input.font`                  | string  | `"fixed bold"` | Font for the query bar. |
-| `search.input.color.background`      | string  | `"#9AAEC8"`    | Query bar background. |
-| `search.input.color.foreground`      | string  | `"#253040"`    | Query bar text. |
-| `search.unselected.font`             | string  | `"fixed"`      | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
-| `search.unselected.color.background` | string  | `"#D0D9E5"`    | Unselected row background. |
-| `search.unselected.color.foreground` | string  | `"#4A5566"`    | Unselected row text. |
-| `search.selected.font`               | string  | `"fixed"`      | Font for the hovered or keyboard-navigated result row. |
-| `search.selected.color.background`   | string  | `"#9AAEC8"`    | Selected row background. |
-| `search.selected.color.foreground`   | string  | `"#253040"`    | Selected row text. |
-| `search.border.color`                | string  | `"#7F9AB6"`    | Widget window's own outer frame color. |
-| `search.border.width`                | integer | `2`            | Widget window's own outer frame width in pixels. |
+| Key                       | Type    | Default | Description |
+|---------------------------|---------|---------|-------------|
+| `search.input.font`       | string  | `"fixed"` | Font for the query bar. |
+| `search.input.color.background` | string | `"#9AAEC8"` | Query bar background. |
+| `search.input.color.foreground` | string | `"#253040"` | Query bar text. |
+| `search.unselected.font`  | string  | `"fixed"` | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
+| `search.unselected.color.background` | string | `"#D0D9E5"` | Unselected row background. |
+| `search.unselected.color.foreground` | string | `"#4A5566"` | Unselected row text. |
+| `search.selected.font`    | string  | `"fixed"` | Font for the hovered or keyboard-navigated result row. |
+| `search.selected.color.background` | string | `"#9AAEC8"` | Selected row background. |
+| `search.selected.color.foreground` | string | `"#253040"` | Selected row text. |
+| `search.border.color`     | string  | `"#7F9AB6"` | Widget window's own outer frame color. |
+| `search.border.width`     | integer | `2`     | Widget window's own outer frame width in pixels. |
 
 ```json
 "search": {
     "input": {
-        "font": "fixed bold",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
-    },
-    "selected": {
         "font": "fixed",
         "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "unselected": {
         "font": "fixed",
         "color": { "background": "#D0D9E5", "foreground": "#4A5566" }
+    },
+    "selected": {
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "border": { "color": "#7F9AB6", "width": 2 }
 }
@@ -1863,16 +1896,16 @@ drawn right next to it with its own independent font and colors, so
 the two can be told apart at a glance the same way `label` and `input`
 can be given different backgrounds below.
 
-| Key                             | Type    | Default        | Description |
-|---------------------------------|---------|----------------|-------------|
-| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt. |
-| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background. |
-| `prompt.label.color.foreground` | string  | `"#253040"`    | Prompt text. |
-| `prompt.input.font`             | string  | `"fixed bold"` | Font for the typed command. |
-| `prompt.input.color.background` | string  | `"#D0D9E5"`    | Typed-command background. |
-| `prompt.input.color.foreground` | string  | `"#253040"`    | Typed-command text. |
-| `prompt.border.color`           | string  | `"#7F9AB6"`    | Box's own outer frame color. |
-| `prompt.border.width`           | integer | `2`            | Box's own outer frame width in pixels. |
+| Key                      | Type    | Default | Description |
+|--------------------------|---------|---------|-------------|
+| `prompt.label.font`      | string  | `"fixed bold"` | Font for the "Run:" prompt. |
+| `prompt.label.color.background` | string | `"#9AAEC8"` | Prompt background. |
+| `prompt.label.color.foreground` | string | `"#253040"` | Prompt text. |
+| `prompt.input.font`      | string  | `"fixed"` | Font for the typed command. |
+| `prompt.input.color.background` | string | `"#9AAEC8"` | Typed-command background. |
+| `prompt.input.color.foreground` | string | `"#253040"` | Typed-command text. |
+| `prompt.border.color`    | string  | `"#7F9AB6"` | Box's own outer frame color. |
+| `prompt.border.width`    | integer | `2`     | Box's own outer frame width in pixels. |
 
 ```json
 "prompt": {
@@ -1881,8 +1914,8 @@ can be given different backgrounds below.
         "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "input": {
-        "font": "fixed bold",
-        "color": { "background": "#D0D9E5", "foreground": "#253040" }
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#253040" }
     },
     "border": { "color": "#7F9AB6", "width": 2 }
 }
@@ -2444,21 +2477,21 @@ fixed and cannot be configured here at all.
 
 ### 10.1. Configurable fields
 
-| Key                                      | Type    | Default     | Description |
-|------------------------------------------|---------|-------------|-------------|
+| Key                                      | Type    | Default | Description |
+|------------------------------------------|---------|---------|-------------|
 | `theme`                                  | string  | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor`                        | string  | `"gvim"`    | Same as `config.json`'s own `programs.editor`. |
+| `programs.editor`                        | string  | `"gvim"` | Same as `config.json`'s own `programs.editor`. |
 | `programs.file-manager`                  | string  | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
-| `programs.launcher`                      | string  | `"gmrun"`   | Same as `config.json`'s own `programs.launcher`. |
-| `programs.terminal`                      | string  | `"xterm"`   | Same as `config.json`'s own `programs.terminal`. |
+| `programs.launcher`                      | string  | `"gmrun"` | Same as `config.json`'s own `programs.launcher`. |
+| `programs.terminal`                      | string  | `"xterm"` | Same as `config.json`'s own `programs.terminal`. |
 | `programs.web-browser`                   | string  | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
-| `desktops.margins.top/right/bottom/left` | integer | `0`         | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step`                      | integer | `10`        | Same as `config.json`'s own `windows.move-step`. |
-| `windows.placement.policy`               | string  | `"smart"`   | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `icons.placement.policy`                 | string  | `"smart"`   | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object  | see 9.2     | The entire `systray` object, in the same shape as `config.json`'s own (section 2.9), with the two exceptions in 9.2. |
-| `shutdown.enable-emergency-shortcut`     | boolean | `false`     | Same as `config.json`'s own `shutdown.enable-emergency-shortcut`. |
-| `shutdown.timeout-seconds`               | integer | `15`        | Same as `config.json`'s own `shutdown.timeout-seconds`. |
+| `desktops.margins.top/right/bottom/left` | integer | `0` | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step`                      | integer | `10` | Same as `config.json`'s own `windows.move-step`. |
+| `windows.placement.policy`               | string  | `"smart"` | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `icons.placement.policy`                 | string  | `"smart"` | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object  | see 9.2 | The entire `systray` object, in the same shape as `config.json`'s own (section 2.9), with the two exceptions in 9.2. |
+| `shutdown.enable-emergency-shortcut`     | boolean | `false` | Same as `config.json`'s own `shutdown.enable-emergency-shortcut`. |
+| `shutdown.timeout-seconds`               | integer | `15`    | Same as `config.json`'s own `shutdown.timeout-seconds`. |
 
 ### 10.2. Fields this mode never lets `memguard.json` change
 
@@ -2540,16 +2573,7 @@ to whatever theme loads, unconditionally.
             ]
         }
     },
-    "programs": {
-        "terminal": "xterm",
-        "launcher": "gmrun",
-        "editor": "gvim",
-        "file-manager": "pcmanfm",
-        "web-browser": "firefox"
-    },
-    "prompt": {
-        "is-enabled": false
-    },
+
     "desktops": {
         "show-overlay": true,
         "notify-activity": true,
@@ -2562,29 +2586,40 @@ to whatever theme loads, unconditionally.
             "left": 0
         }
     },
+
+    "programs": {
+        "terminal": "xterm",
+        "launcher": "gmrun",
+        "editor": "gvim",
+        "file-manager": "pcmanfm",
+        "web-browser": "firefox"
+    },
+
     "windows": {
         "gravity": "north-west",
         "move-step": 10,
-        "show-geom": true,
         "snap": 4,
-        "solid-drag": false,
+        "show-geom": true,
+        "solid-drag": true,
         "focus": {
+            "policy": "click",
             "focus-new": true,
             "raise": false
-            "policy": "click"
         },
         "placement": {
-            "group-related": true,
+            "policy": "smart",
             "monitor": "pointer",
-            "policy": "smart"
+            "group-related": true
         }
     },
+
     "icons": {
         "show-geom": false,
         "placement": {
             "policy": "smart"
         }
     },
+
     "menus": {
         "root": {
             "position": "under-mouse"
@@ -2593,6 +2628,7 @@ to whatever theme loads, unconditionally.
             "position": "under-mouse"
         }
     },
+
     "systray": {
         "is-enabled": true,
         "reserve-space": false,
@@ -2631,6 +2667,11 @@ to whatever theme loads, unconditionally.
             "position": "right"
         }
     },
+
+    "startup-notification": {
+        "timeout-seconds": 20
+    },
+
     "scratchpad": {
         "is-enabled": true,
         "command": "xterm -fg black -bg ivory -cr black",
@@ -2639,9 +2680,11 @@ to whatever theme loads, unconditionally.
         "height": 200,
         "ignore-margins": false
     },
-    "startup-notification": {
-        "timeout-seconds": 20
+
+    "prompt": {
+        "is-enabled": false
     },
+
     "shutdown": {
         "enable-emergency-shortcut": false,
         "timeout-seconds": 15
@@ -2676,6 +2719,7 @@ to whatever theme loads, unconditionally.
             "web-browser": "modc+mod1+w",
             "editor": "modc+mod1+e"
         },
+
         "window": {
             "close": "modc+mod1+c",
             "kill": "modc+mod1+mods+Escape",
@@ -2713,6 +2757,7 @@ to whatever theme loads, unconditionally.
                 "down": "modc+mod1+mods+j"
             }
         },
+
         "wm": {
             "menus": {
                 "root": "modc+mod1+mods+m",
@@ -2726,6 +2771,7 @@ to whatever theme loads, unconditionally.
             "quit": "modc+mod1+mods+x",
             "shortcuts": "modc+mod4+F1"
         },
+
         "cycle": {
             "desktop": {
                 "prev": "modc+mod1+Left",
@@ -2741,6 +2787,7 @@ to whatever theme loads, unconditionally.
             }
         }
     },
+
     "mouse": {
         "window": {
             "move": "mod1+button1",
@@ -2788,6 +2835,7 @@ to whatever theme loads, unconditionally.
             "opacity": 100
         }
     },
+
     "icon": {
         "is-captioned": true,
         "show-pixmaps": true,
@@ -2805,12 +2853,13 @@ to whatever theme loads, unconditionally.
             "opacity": 100
         }
     },
+
     "systray": {
         "font": "fixed bold",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
         "opacity": 100,
-        "height": 24,
+        "height": 22,
         "pixmap": {
             "size": 24,
             "padding": 4
@@ -2820,9 +2869,11 @@ to whatever theme loads, unconditionally.
             "valign": "center"
         }
     },
+
     "desktop": {
         "color": { "background": "#5f7187" }
     },
+
     "menu": {
         "unselected": {
             "font": "fixed",
@@ -2853,12 +2904,9 @@ to whatever theme loads, unconditionally.
         },
         "show-pixmaps": true
     },
+
     "search": {
         "input": {
-            "font": "fixed bold",
-            "color": { "background": "#9aaec8", "foreground": "#253040" }
-        },
-        "selected": {
             "font": "fixed",
             "color": { "background": "#9aaec8", "foreground": "#253040" }
         },
@@ -2866,19 +2914,25 @@ to whatever theme loads, unconditionally.
             "font": "fixed",
             "color": { "background": "#d0d9e5", "foreground": "#4a5566" }
         },
+        "selected": {
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
+        },
         "border": { "color": "#7f9ab6", "width": 2 }
     },
+
     "prompt": {
         "label": {
             "font": "fixed bold",
             "color": { "background": "#9aaec8", "foreground": "#253040" }
         },
         "input": {
-            "font": "fixed bold",
-            "color": { "background": "#d0d9e5", "foreground": "#253040" }
+            "font": "fixed",
+            "color": { "background": "#9aaec8", "foreground": "#253040" }
         },
         "border": { "color": "#7f9ab6", "width": 2 }
     },
+
     "dialog": {
         "color": { "background": "#d0d9e5" },
         "border": { "color": "#7f9ab6", "width": 2 },
@@ -2903,12 +2957,14 @@ to whatever theme loads, unconditionally.
             "padding": { "horizontal": 12, "vertical": 6 }
         }
     },
+
     "overlay": {
         "font": "fixed",
         "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
         "border": { "color": "#7f9ab6", "width": 1 },
         "opacity": 100
     },
+
     "xsettings": {
         "is-enabled": false,
         "dpi": 96,
@@ -2919,6 +2975,7 @@ to whatever theme loads, unconditionally.
             "cursor-theme-size": 24
         }
     },
+
     "scratchpad": {
         "border": {
             "color": "#4A5566",
@@ -3092,12 +3149,12 @@ emits a final notification on exit.
 This example is only ever read when IcoWM is launched with `-M <mib>`;
 see `icowm.md`'s "Restricted-memory mode" section for what that flag
 does.  It names a theme of its own (`themes/compact.json`, not shown
-here), keeps the systray's clock and battery on, turns on the emergency
-shortcut, since a severely memory-constrained session is exactly the
-kind of place where a hung window is more likely and a guaranteed way
-out is worth having, and turns on the built-in `prompt` (section 2.12)
-instead of `programs.launcher` (`gmrun` here) to avoid that extra
-process altogether.
+here), keeps the systray's clock and battery on, turns on the
+emergency shortcut, since a severely memory-constrained session is
+exactly the kind of place where a hung window is more likely and
+a guaranteed way out is worth having, and turns on the built-in
+`prompt` (section 2.12) instead of `programs.launcher` (`gmrun`
+here) to avoid that extra process altogether.
 
 ### `a11y.json`
 

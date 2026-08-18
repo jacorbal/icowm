@@ -145,6 +145,19 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.wm.scratchpad,
             "modc+mod1+mods+F12",
             sizeof(config_bindings->keyboard.wm.scratchpad));
+    safe_strncpy(config_bindings->keyboard.wm.desktop.add,
+            "modc+mod1+mods+Right",
+            sizeof(config_bindings->keyboard.wm.desktop.add));
+    safe_strncpy(config_bindings->keyboard.wm.desktop.remove,
+            "modc+mod1+mods+Left",
+            sizeof(config_bindings->keyboard.wm.desktop.remove));
+
+    /* Deliberately empty: no key is bound to this out of the box,
+     * unlike every other binding above.  Explicit here, the same way
+     * every other default in this function is explicit, so this
+     * reads as an intentional choice rather than a forgotten one. */
+    safe_strncpy(config_bindings->keyboard.wm.toggle_fullsurface,
+            "", sizeof(config_bindings->keyboard.wm.toggle_fullsurface));
 
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
@@ -289,6 +302,7 @@ int config_load_bindings(const char *filename,
         if (wm) {
             cJSON *wm_menus;
             cJSON *go_to;
+            cJSON *wm_desktop;
 
             wm_menus = cJSON_GetObjectItem(wm, "menus");
             if (wm_menus) {
@@ -341,6 +355,23 @@ int config_load_bindings(const char *filename,
                             CONFIG_MAX_LENGTH_BINDING);
                 }
             }
+
+            /* Add/remove the surface's own last desktop; independent
+             * of 'go-to' above the same way that one is independent
+             * of 'window' below. */
+            wm_desktop = cJSON_GetObjectItem(wm, "desktop");
+            if (wm_desktop != NULL) {
+                json_load_string(wm_desktop, "add",
+                        config_bindings->keyboard.wm.desktop.add,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(wm_desktop, "remove",
+                        config_bindings->keyboard.wm.desktop.remove,
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
+
+            json_load_string(wm, "toggle-fullsurface",
+                    config_bindings->keyboard.wm.toggle_fullsurface,
+                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         launch = cJSON_GetObjectItem(keyboard, "launch");

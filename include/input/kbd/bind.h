@@ -126,6 +126,13 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_GOTO_8,             /**< Switch directly to desktop 8 */
     KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
 
+    /* Add/remove the surface's own last desktop */
+    KEYBIND_DESKTOP_ADD,                 /**< Add a new last desktop */
+    KEYBIND_DESKTOP_REMOVE,              /**< Remove the last desktop */
+
+    /* Distraction-free mode: set panel/tray struts aside */
+    KEYBIND_WM_TOGGLE_FULLSURFACE,       /**< Toggle full-surface mode */
+
     /* Window manager lifecycle */
     KEYBIND_WM_ROOT_MENU,               /**< Open root desktop menu */
     KEYBIND_WM_WINDOWS_MENU,            /**< Open windows desktop menu */

@@ -166,7 +166,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         clamped = geom_clamp_dim(target);
         /* A decorated client's own frame extents ('ext_a'/'ext_b', the
          * border plus, on the vertical axis, the titlebar) are fixed
-         * regardless of how small its content shrinks.  Floored here so
+         * regardless of how small its content shrinks: floored here so
          * the titlebar in particular can never itself shrink away or
          * disappear, no matter how far a resize keeps pushing this
          * axis; 'geom_clamp_dim' alone has no client in scope to know
@@ -410,6 +410,9 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_DESKTOP_ADD:
+        case KEYBIND_DESKTOP_REMOVE:
+        case KEYBIND_WM_TOGGLE_FULLSURFACE:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
@@ -425,7 +428,6 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_LAUNCH_TERMINAL:
             program = config->base.programs.terminal;
             break;
-
         case KEYBIND_LAUNCH_LAUNCHER:
             if (config->base.prompt.is_enabled) {
                 run_init(surface->connection, surface, config);
@@ -433,15 +435,12 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
             }
             program = config->base.programs.launcher;
             break;
-
         case KEYBIND_LAUNCH_FILE_MANAGER:
             program = config->base.programs.file_manager;
             break;
-
         case KEYBIND_LAUNCH_WEB_BROWSER:
             program = config->base.programs.web_browser;
             break;
-
         case KEYBIND_LAUNCH_EDITOR:
             program = config->base.programs.editor;
             break;
@@ -553,6 +552,9 @@ void ik_handle_move(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_DESKTOP_ADD:
+        case KEYBIND_DESKTOP_REMOVE:
+        case KEYBIND_WM_TOGGLE_FULLSURFACE:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
@@ -728,6 +730,9 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_DESKTOP_ADD:
+        case KEYBIND_DESKTOP_REMOVE:
+        case KEYBIND_WM_TOGGLE_FULLSURFACE:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_SEARCH_WINDOWS:
         case KEYBIND_WM_WINDOWS_MENU:
@@ -748,7 +753,6 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             new_h = (int32_t) aspect_h;
             new_x += (int32_t) old_w - new_w;
             break;
-
         case KEYBIND_CLIENT_RESIZE_RIGHT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, true);
@@ -756,7 +760,6 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
             break;
-
         case KEYBIND_CLIENT_RESIZE_UP:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, false);
@@ -765,7 +768,6 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             new_h = (int32_t) aspect_h;
             new_y += (int32_t) old_h - new_h;
             break;
-
         case KEYBIND_CLIENT_RESIZE_DOWN:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, true);

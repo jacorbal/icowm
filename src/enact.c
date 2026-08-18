@@ -1028,6 +1028,33 @@ void enact_surface_desktop_switch_prev(surface_td *surface)
 }
 
 
+/* Add a new, empty desktop to the end of the surface's own list */
+void enact_surface_desktop_add(surface_td *surface)
+{
+    if (surface_action_desktop_add(surface) == 0) {
+        s_broadcast_desktop_switched(surface);
+    }
+}
+
+
+/* Remove the surface's own last desktop */
+void enact_surface_desktop_remove(surface_td *surface)
+{
+    if (surface_action_desktop_remove(surface) == 0) {
+        s_broadcast_desktop_switched(surface);
+    }
+}
+
+
+/* Toggle whether panel/tray struts are set aside on this surface */
+void enact_surface_toggle_fullsurface(surface_td *surface)
+{
+    if (surface_action_toggle_fullsurface(surface) == 0) {
+        s_broadcast_desktop_switched(surface);
+    }
+}
+
+
 /* 'action_wm_e' */
 
 /* Request that the window manager stop and exit */

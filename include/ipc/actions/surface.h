@@ -2,9 +2,10 @@
  * @file ipc/actions/surface.h
  *
  * @brief IPC commands mirroring @c enact.h's own
- *        @a enact_surface_desktop_switch* actions
+ *        @a enact_surface_desktop_switch*, @a enact_surface_desktop_add,
+ *        and @a enact_surface_desktop_remove actions
  *
- * @defgroup ipc_actions_surface IPC desktop-switching actions
+ * @defgroup ipc_actions_surface IPC desktop actions
  * @ingroup ipc
  */
 /*
@@ -36,6 +37,16 @@ cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args);
 
 /** @c goto_prev_desktop: argument @c surface_id (optional) */
 cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args);
+
+/** @c add_desktop: argument @c surface_id (optional) */
+cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args);
+
+/** @c remove_desktop: argument @c surface_id (optional); refused with
+ *  an error when only one desktop remains on the target surface */
+cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args);
+
+/** @c toggle_fullsurface: argument @c surface_id (optional) */
+cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_SURFACE_H */

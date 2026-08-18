@@ -268,7 +268,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client);
  * @brief Find the client on a desktop matching a given client ID
  *
  * @param desktop Desktop whose own clients are searched
- * @param id      Client ID to search for
+ * @param id Client ID to search for
  *
  * @return Pointer to the matching client, or @c NULL if @p desktop is
  *         null, or no client on it has that ID
@@ -339,9 +339,9 @@ int desktop_action_background_update(desktop_td *desktop,
 /**
  * @brief Set a client to the front
  *
- * Brings the specified client to the top of the stacking order, along
- * with every transient descendant it has (e.g., an open dialog
- * belonging to it), so none of them get left behind below it.
+ * Brings the specified client to the top of the stacking order,
+ * along with every transient descendant it has (e.g., an open
+ * dialog belonging to it), so none of them get left behind below it.
  *
  * @param desktop Pointer to the desktop to receive the action
  * @param client  Pointer to the client to be sent to the front
@@ -350,8 +350,8 @@ int desktop_action_background_update(desktop_td *desktop,
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(n ^ 2), where @e n is the number of clients on
- *       @p desktop
+ * @note Complexity: @e O(n ^ 2), where @e n is the number of clients
+ *       on @p desktop
  */
 int desktop_action_client_send_front(desktop_td *desktop,
         client_td *client);
@@ -579,6 +579,15 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *                       @p desktop's surface; a @c NULL value folds in
  *                       nothing, same as if the systray reserved no
  *                       space
+ * @param ignore_struts  When @c true, neither @p systray_strut nor any
+ *                       client's own @c _NET_WM_STRUT_PARTIAL is
+ *                       folded in, only @p config_desktop's own
+ *                       @p margins (the surface's own "full surface"
+ *                       distraction-free toggle; see
+ *                       @a surface_action_toggle_fullsurface,
+ *                       surface.h): a deliberate, static reservation
+ *                       stays honored even then, only the dynamic
+ *                       presence of a panel or the tray is set aside
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop
@@ -590,7 +599,8 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
 void desktop_update_workarea(desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h,
         const struct config_desktop_s *config_desktop,
-        const struct strut_partial_s *systray_strut);
+        const struct strut_partial_s *systray_strut,
+        bool ignore_struts);
 
 /**
  * @brief Macro that evaluates to the active client of the desktop

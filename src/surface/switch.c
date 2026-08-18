@@ -1,12 +1,14 @@
 /**
  * @file surface/switch.c
  *
- * @brief Surface desktop management to add, remove, and switch desktops
+ * @brief Surface desktop management to add and remove desktops
  *
  * Implements the surface-level operations that create or destroy
- * desktops and switch the active desktop, including the fullscreen-
- * surface toggle.  Client visibility management and RandR operations
- * live in @c surface/actions.c.
+ * desktops, including the fullscreen-surface toggle.  Switching the
+ * current desktop itself lives in @c cmds/surface.c, alongside the
+ * sticky-client transfer a real desktop switch also needs; client
+ * visibility management and RandR operations live in
+ * @c surface/actions.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -66,11 +68,69 @@ int surface_action_desktop_add(surface_td *surface)
 }
 
 
+/**
+ * @brief Move every client still on @p from_desktop to
+ *        @p to_desktop, updating EWMH @c _NET_WM_DESKTOP along
+ *        the way
+ *
+ * Reads @c cdlist_head repeatedly rather than snapshotting the list
+ * first: each iteration's own @a desktop_action_client_rem already
+ * shrinks @p from_desktop's own stacking list by one, so the next
+ * head is always the next client still needing to move, with no
+ * separate bound on how many there can be.
+ *
+ * @param from_desktop Desktop being emptied
+ * @param to_desktop   Desktop every client moves to
+ *
+ * @note No-op if either desktop is @c NULL, or if @p from_desktop
+ *       has no clients to begin with
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p from_desktop
+ */
+static void s_surface_desktop_evacuate(desktop_td *from_desktop,
+        desktop_td *to_desktop)
+{
+    if (from_desktop == NULL || to_desktop == NULL ||
+            from_desktop->stacking == NULL) {
+        return;
+    }
+
+    while (cdlist_size(from_desktop->stacking) > 0) {
+        cdlist_item_td *head = cdlist_head(from_desktop->stacking);
+        client_td *client = (client_td *) cdlist_data(head);
+
+        if (client == NULL) {
+            break;
+        }
+
+        desktop_action_client_rem(from_desktop, client);
+        desktop_action_client_add(to_desktop, client);
+        client->desktop_id = to_desktop->id;
+
+        /* A pinned client's own '_NET_WM_DESKTOP' is already the
+         * EWMH 'all desktops' sentinel, set once by 'ccmd_client_pin'
+         * and never meant to track a specific desktop again; only a
+         * genuinely single-desktop client needs this property
+         * brought in line with where it actually landed. */
+        if (!client_is_pinned(client) && client->ewmh != NULL &&
+                client->connection != NULL) {
+            xcb_change_property(client->connection,
+                    XCB_PROP_MODE_REPLACE, client->window,
+                    client->ewmh->_NET_WM_DESKTOP, XCB_ATOM_CARDINAL,
+                    32, 1, &to_desktop->id);
+        }
+    }
+}
+
+
 /* Remove the last desktop from the surface */
 int surface_action_desktop_remove(surface_td *surface)
 {
     cdlist_item_td *tail_item;
-    const desktop_td *desktop;
+    cdlist_item_td *fallback_item;
+    desktop_td *desktop;
+    desktop_td *fallback;
+    bool was_current;
 
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
@@ -96,9 +156,32 @@ int surface_action_desktop_remove(surface_td *surface)
         return 1;
     }
 
-    /* If the desktop to be removed is the current one, switch first */
-    if (desktop->id == surface->desktop_cur) {
+    /* The desktop immediately before the tail becomes both the new
+     * tail once this one is gone, and the fallback home for any
+     * client still on it: 'desktop_destroy' (via
+     * 'surface_desktop_rem' below) frees its own 'clients' hash
+     * table through a 'client_destroy' callback on every entry left
+     * in it, which would otherwise silently destroy every real,
+     * live application window still on this desktop instead of just
+     * the virtual desktop container itself. */
+    fallback_item = cdlist_prev(tail_item);
+    fallback = (fallback_item != NULL)
+        ? (desktop_td *) cdlist_data(fallback_item) : NULL;
+    if (fallback == NULL) {
+        LOGGER_ERROR("No fallback desktop available on surface %u",
+                surface->id);
+        return 1;
+    }
+
+    was_current = (desktop->id == surface->desktop_cur);
+    if (was_current) {
         surface_clients_hide(surface, surface->desktop_cur);
+    }
+
+    s_surface_desktop_evacuate(desktop, fallback);
+
+    /* If the desktop to be removed is the current one, switch first */
+    if (was_current) {
         surface_desktop_select_prev(surface, false);
         surface_clients_show(surface, surface->desktop_cur);
     }
@@ -110,42 +193,6 @@ int surface_action_desktop_remove(surface_td *surface)
     }
 
     surface->is_outdated = true;
-
-    return 0;
-}
-
-
-/* Switch to a specific desktop by ID */
-int surface_action_desktop_switch(surface_td *surface,
-        uint32_t desktop_id)
-{
-    uint32_t old_id;
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_DEBUG("Switching to desktop %u on surface %u",
-            desktop_id, surface->id);
-
-    old_id = surface->desktop_cur;
-    if (desktop_id == old_id) {
-        return 0;
-    }
-
-    surface_clients_hide(surface, old_id);
-    if (surface_desktop_select(surface, desktop_id) != 0) {
-        /* Restore visibility on failure */
-        surface_clients_show(surface, old_id);
-        LOGGER_ERROR("Failed to switch to desktop %u on surface %u",
-                desktop_id, surface->id);
-        return 1;
-    }
-
-    surface_clients_show(surface, desktop_id);
-    surface->is_outdated = true;
-    xcb_flush(surface->connection);
 
     return 0;
 }
@@ -163,6 +210,16 @@ int surface_action_toggle_fullsurface(surface_td *surface)
             surface->id);
 
     surface->fullsurface = !surface->fullsurface;
+
+    /* Recompute every desktop's own work area right away: struts are
+     * now folded in, or set aside, differently than a moment ago (see
+     * 'desktop_update_workarea''s own 'ignore_struts' parameter,
+     * desktop.h), and nothing else is guaranteed to trigger that
+     * recomputation on its own until some unrelated event (a client
+     * mapping, an RandR change, and so on) happens to call
+     * 'surface_refresh_workareas' next. */
+    surface_refresh_workareas(surface);
+
     surface->is_outdated = true;
     xcb_flush(surface->connection);
 

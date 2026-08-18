@@ -59,38 +59,6 @@
 #include <handler.h>
 
 
-/**
- * @brief Recompute the work area for every desktop on a surface
- *
- * Iterates over all desktops belonging to the given surface and updates
- * each one's work area based on the surface's current dimensions,
- * accounting for reserved space such as docks or panels.
- *
- * @param surface Pointer to the target surface
- *
- * @note Complexity: @e O(n), where @e n is the number of desktops
- */
-static void s_handler_refresh_workareas(surface_td *surface)
-{
-    if (surface == NULL) {
-        return;
-    }
-
-    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        desktop_td *d = surface_desktop_get(surface, did);
-
-        if (d != NULL) {
-            desktop_update_workarea(d,
-                    surface->properties.dim.w,
-                    surface->properties.dim.h,
-                    (surface->config != NULL)
-                        ? &surface->config->desktops : NULL,
-                    systray_get_reserved_strut(surface));
-        }
-    }
-}
-
-
 /* Handle a 'PROPERTY_NOTIFY' event */
 void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_property_notify_event_t *event)
@@ -335,7 +303,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                 (int32_t) strut.bottom;
         }
 
-        s_handler_refresh_workareas(surface);
+        surface_refresh_workareas(surface);
 
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);

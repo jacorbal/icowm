@@ -51,6 +51,11 @@
 #define STR_WINCMENU_LAYER_ALWAYS_ON_TOP "Always on top"
 #define STR_WINCMENU_LAYER_NORMAL "Normal"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
+#define STR_WINCMENU_MANAGE_DESKTOPS "Manage desktops"
+#define STR_WINCMENU_DESKTOP_ADD "Add new desktop"
+#define STR_WINCMENU_DESKTOP_REMOVE "Remove last desktop"
+#define STR_WINCMENU_FULLSURFACE_ENABLE "Enable full-surface mode"
+#define STR_WINCMENU_FULLSURFACE_DISABLE "Disable full-surface mode"
 #define STR_WINCMENU_ALL_DESKTOPS_PIN "All desktops (pin)"
 #define STR_WINCMENU_THIS_DESKTOP_UNPIN "This desktop only (unpin)"
 #define STR_WINCMENU_RESTORE "Restore"
@@ -126,6 +131,9 @@
 #define STR_SHORTCUTS_THIS_LIST "This list"
 #define STR_SHORTCUTS_FORTUNE "Fortune"
 #define STR_SHORTCUTS_SCRATCHPAD "Scratchpad"
+#define STR_SHORTCUTS_DESKTOP_ADD "Add desktop"
+#define STR_SHORTCUTS_DESKTOP_REMOVE "Remove desktop"
+#define STR_SHORTCUTS_TOGGLE_FULLSURFACE "Toggle full-surface mode"
 /* Whole, fixed line on its own (no combo of its own to pair with; the
  * combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
@@ -288,7 +296,7 @@
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
     "Command '%s' not found."
 
-/* 'lifecycle_dispatch_launch' ('src/lifecycle.c'): shown as a blocking
+/* 'lifecycle_dispatch_launch' (src/lifecycle.c): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
  * a keybind-triggered program (e.g., 'programs.terminal') could not be
  * found or executed.  Unlike the run-box, where a bad command is a

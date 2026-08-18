@@ -81,23 +81,23 @@ struct config_base_s {
     } programs;
 
     /**
-     * @brief Whether @c KEYBIND_LAUNCH_LAUNCHER opens the built-in
+     * @brief Whether 'KEYBIND_LAUNCH_LAUNCHER' opens the built-in
      *        run-box instead of spawning @p programs.launcher
      *
      * Its own top-level section, rather than nested under @p programs
      * itself, specifically to avoid the confusion a second, differently
-     * typed "launcher" key nested right next to @p programs.launcher (a
-     * plain command string) would invite.
+     * typed "launcher" key nested right next to @p programs.launcher
+     * (a plain command string) would invite; see @c menu/dialog/run.h
+     * for the run-box itself.
      *
-     * @p is_enabled defaults to @c true in restricted-memory mode,
-     * where avoiding the extra process @p programs.launcher itself
-     * would otherwise spawn (even a minimal one, e.g., 'gmrun', this
-     * mode's own default for it) fits that mode's whole reason for
-     * existing.
+     * @p is_enabled defaults to @c false in normal mode; defaults to
+     * @c true in restricted-memory mode, where avoiding the extra
+     * process @p programs.launcher itself would otherwise spawn (even
+     * a minimal one, e.g., 'gmrun', this mode's own default for it)
+     * fits that mode's whole reason for existing.
      *
-     * @see @a ik_handle_launch in @c input/kbd/interact.c for where
-     *      this is consulted
-     * @see @c menu/dialog/run.h for the run-box itself
+     * @see @a ik_handle_launch (input/kbd/interact.c) for where this
+     *      is consulted
      */
     struct {
         bool is_enabled;
@@ -110,11 +110,11 @@ struct config_base_s {
         uint32_t resize_step;   /**< Keyboard resize step in pixels */
         bool show_geom;         /**< Show geometry overlay on move/resize */
         bool solid_drag;        /**< Move/resize the real window live, as
-                                     opposed to an outline stand-in
-                                     applied only once the drag ends */
+                                      opposed to an outline stand-in
+                                      applied only once the drag ends */
         struct {
             bool focus_new;
-            bool raise;         /**< Raise on focus */
+            bool raise;
         } focus;
         enum config_gravity_e {
             CONFIG_GRAVITY_NORTH_WEST = 1,
@@ -699,6 +699,31 @@ struct config_bindings_s {
             struct {
                 char desktop[10][CONFIG_MAX_LENGTH_BINDING];
             } go_to;
+
+            /**
+             * @brief Adds or removes the surface's own last desktop
+             *
+             * @see @a enact_surface_desktop_add,
+             *      @a enact_surface_desktop_remove (enact.h)
+             */
+            struct {
+                char add[CONFIG_MAX_LENGTH_BINDING];
+                char remove[CONFIG_MAX_LENGTH_BINDING];
+            } desktop;
+
+            /**
+             * @brief Toggles whether panel/tray struts are set aside
+             *        on this surface (distraction-free mode)
+             *
+             * Empty by default, unlike every other binding in this
+             * struct: no key combination is bound to it out of the
+             * box, only IPC (@c toggle_fullsurface) and the window
+             * context menu's own "Manage desktops" submenu reach it
+             * until a person opts in with their own binding here.
+             *
+             * @see @a surface_action_toggle_fullsurface (surface.h)
+             */
+            char toggle_fullsurface[CONFIG_MAX_LENGTH_BINDING];
         } wm;
 
         struct {
@@ -1176,8 +1201,8 @@ struct config_theme_s {
      * @brief Fuzzy window-search widget theme (@c menu/search.h)
      *
      * Its own dedicated section rather than reusing @p menu above: the
-     * two happened to share identical values when the widget was first
-     * built, but nothing ties them together architecturally, and
+     * two happened to share identical values when the widget was
+     * first built, but nothing ties them together architecturally, and
      * a person may want the widget to stand out from ordinary context
      * menus.
      */

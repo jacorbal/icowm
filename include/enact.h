@@ -650,6 +650,42 @@ void enact_surface_desktop_switch_next(surface_td *surface);
  */
 void enact_surface_desktop_switch_prev(surface_td *surface);
 
+/**
+ * @brief Add a new, empty desktop to the end of the surface's own
+ *        desktop list
+ *
+ * @param surface Surface to add a desktop to
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_surface_desktop_add(surface_td *surface);
+
+/**
+ * @brief Remove the surface's own last desktop, moving any client
+ *        still on it to the new last desktop first
+ *
+ * A no-op, silently, when only one desktop remains: see
+ * @a surface_action_desktop_remove (surface.h) for the exact refusal
+ * conditions.
+ *
+ * @param surface Surface to remove the last desktop from
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop being removed
+ */
+void enact_surface_desktop_remove(surface_td *surface);
+
+/**
+ * @brief Toggle whether panel/tray struts are set aside when
+ *        computing this surface's own desktops' work areas
+ *
+ * @param surface Surface to toggle full-surface mode on
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       @p surface
+ */
+void enact_surface_toggle_fullsurface(surface_td *surface);
+
 
 /* 'action_wm_e' */
 

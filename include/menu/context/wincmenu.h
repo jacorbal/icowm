@@ -59,20 +59,30 @@
 #define WINCMENU_LAYER_COUNT (3)
 
 /**
+ * @brief Number of fixed entries in the "Manage desktops" submenu
+ *        (Add desktop, Remove desktop)
+ */
+#define WINCMENU_MANAGE_DESKTOPS_COUNT (2)
+
+/**
  * @brief Number of fixed top-level entries in the window context menu
  *
- * THREE submenus (Send to desktop, Send to monitor, Layer) + ONE
- * separator + NINE commands (Restore, Move, Resize, Iconify, Hide,
- * Maximize, Un/fullscreen, Un/shade, Un/decorate) + ONE separator + ONE
- * command (Close) = FIFTEEN total.
+ * FOUR submenus (Send to desktop, Send to monitor, Layer, Manage
+ * desktops) + ONE command (Toggle full-surface mode) + ONE separator
+ * + NINE commands (Restore, Move, Resize, Iconify, Hide, Maximize,
+ * Un/fullscreen, Un/shade, Un/decorate) + ONE separator + ONE command
+ * (Close) = SEVENTEEN total.
  *
  * "Send to monitor" only actually appears on a surface with more than
  * one monitor, so this counts it as always present for a simple,
  * constant capacity bound rather than optimizing the array size for the
  * common single-monitor case.  "Send to desktop" does not appear when
- * the topology is set to just one desktop.
+ * the topology is set to just one desktop.  "Manage desktops" and
+ * "Toggle full-surface mode", unlike either of those two, always
+ * appear: a surface can always gain a new desktop and always has
+ * struts to set aside, regardless of its current topology.
  */
-#define WINCMENU_FIXED_ENTRIES (15)
+#define WINCMENU_FIXED_ENTRIES (17)
 
 /**
  * @brief Total top-level entry slots:

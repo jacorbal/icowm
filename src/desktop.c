@@ -424,7 +424,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 void desktop_update_workarea(desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h,
         const struct config_desktop_s *config_desktop,
-        const struct strut_partial_s *systray_strut)
+        const struct strut_partial_s *systray_strut,
+        bool ignore_struts)
 {
     cdlist_item_td *initial;
     int32_t left = 0;
@@ -443,7 +444,7 @@ void desktop_update_workarea(desktop_td *desktop,
     screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
     screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
 
-    if (desktop->stacking != NULL &&
+    if (!ignore_struts && desktop->stacking != NULL &&
             cdlist_size(desktop->stacking) > 0) {
         cdlist_item_td *node;
 
@@ -468,9 +469,13 @@ void desktop_update_workarea(desktop_td *desktop,
      * 'systray_protocol_ensure_window'), so it never appears in
      * 'desktop->stacking' above and needs folding in separately here;
      * aggregated the exact same way, since it is a strut source like
-     * any other from this function's own point of view. */
-    s_fold_strut(systray_strut, screen_max_x, screen_max_y,
-            &left, &right, &top, &bottom);
+     * any other from this function's own point of view.  Skipped, like
+     * every other strut above, when 'ignore_struts' asks for the full
+     * surface. */
+    if (!ignore_struts) {
+        s_fold_strut(systray_strut, screen_max_x, screen_max_y,
+                &left, &right, &top, &bottom);
+    }
 
     /* Configured margins ('config.json''s 'desktops.margins') add on
      * top of whatever clients themselves already reserve on each edge

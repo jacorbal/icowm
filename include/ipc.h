@@ -59,7 +59,26 @@
                                                              was destroyed */
 #define IPC_EVENT_DESKTOP_SWITCHED ((uint32_t) 1u << 2) /**< A surface's
                                                              own current
-                                                             desktop changed */
+                                                             desktop
+                                                             changed, its
+                                                             own desktop
+                                                             list itself
+                                                             grew or
+                                                             shrank, or
+                                                             its own
+                                                             full-surface
+                                                             mode was
+                                                             toggled (no
+                                                             free bit
+                                                             remained for
+                                                             a separate
+                                                             event once
+                                                             every one of
+                                                             this
+                                                             uint32_t
+                                                             mask's own 32
+                                                             was already
+                                                             spoken for) */
 #define IPC_EVENT_FOCUS_CHANGED ((uint32_t) 1u << 3)    /**< A desktop's
                                                              own active
                                                              client changed */

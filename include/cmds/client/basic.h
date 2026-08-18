@@ -88,9 +88,22 @@ void ccmd_client_focus(client_td *client);
  * a dialog (each already important enough on its own to reach for
  * regardless, the same three exceptions @c CLIENT_TYPE_DIALOG,
  * @a client_is_modal, and @a client_is_urgent already carve out
- * elsewhere for the identical reasoning).  The winner, if any, is
+ * elsewhere for the identical reasoning).
+ *
+ * Run twice, not once: a first pass over that same search restricted
+ * to clients sharing @p exclude's own @c WM_CLIENT_LEADER (ICCCM
+ * §4.1.2.5) takes precedence over an equally-recent but unrelated
+ * window, the same group-awareness @a place_apply
+ * (policy/placement.c) already applies when placing a new sibling
+ * window, and the same reasoning Openbox's own @c focus_valid_target
+ * (focus.c) weighs group membership for.  A second, plain pass with
+ * no group restriction runs only when the first finds nothing, so a
+ * client with no group-mates left visible falls back exactly as it
+ * always did.
+ *
+ * The winner, if any, is
  * given real focus through @a ccmd_client_focus itself (not a raw
- * @a xcb_set_input_focus), so urgency clearing, the ICCCM input
+ * @c xcb_set_input_focus), so urgency clearing, the ICCCM input
  * model, @c WM_TAKE_FOCUS, and every other side effect real focus
  * already carries apply here exactly as they do anywhere else focus
  * is granted.  Relinquishes focus to @c PointerRoot instead when no
@@ -100,14 +113,14 @@ void ccmd_client_focus(client_td *client);
  * Deliberately never falls back onto a client that merely happens to
  * be visible without anyone having actually focused it themselves,
  * e.g., a pinned window on loan from whichever desktop it actually
- * got focused on.  Callers that only want a fallback under that
+ * got focused on: callers that only want a fallback under that
  * narrower condition already gate the call on their own desktop's
  * remembered active client having been genuinely set (see
- * @a surface_clients_show's own two-block split, @c surface/actions.c,
+ * @c surface_clients_show's own two-block split, surface/actions.c,
  * for exactly this distinction).
  *
  * @param desktop Desktop whose stacking order is searched, and whose
- *                own @c client_active_id / @p focus_dirty are updated
+ *                own @c client_active_id / @c focus_dirty are updated
  * @param surface Surface @p desktop belongs to, marked outdated
  * @param exclude Client to exclude from the search (the one losing
  *                focus); may be null

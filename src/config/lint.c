@@ -280,6 +280,11 @@ static const config_lint_key_td s_schema_go_to[] = {
     {"desktop8", NULL, 0u}, {"desktop9", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_wm_desktop[] = {
+    {"add", NULL, 0u},
+    {"remove", NULL, 0u}
+};
+
 static const config_lint_key_td s_schema_kb_wm[] = {
     {"menus", s_schema_wm_menus,
         sizeof(s_schema_wm_menus) / sizeof(s_schema_wm_menus[0])},
@@ -292,7 +297,10 @@ static const config_lint_key_td s_schema_kb_wm[] = {
     {"shortcuts", NULL, 0u},
     {"fortune", NULL, 0u},
     {"go-to", s_schema_go_to,
-        sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])}
+        sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])},
+    {"desktop", s_schema_wm_desktop,
+        sizeof(s_schema_wm_desktop) / sizeof(s_schema_wm_desktop[0])},
+    {"toggle-fullsurface", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_kb_launch[] = {

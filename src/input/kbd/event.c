@@ -387,6 +387,9 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
+        case KEYBIND_DESKTOP_ADD:
+        case KEYBIND_DESKTOP_REMOVE:
+        case KEYBIND_WM_TOGGLE_FULLSURFACE:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_WINDOWS_MENU:
         case KEYBIND_WM_SEARCH_WINDOWS:
@@ -736,6 +739,24 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 if (surface != NULL) {
                     enact_surface_desktop_switch(surface,
                             (uint32_t) (btype - KEYBIND_DESKTOP_GOTO_0));
+                }
+                return;
+
+            case KEYBIND_DESKTOP_ADD:
+                if (surface != NULL) {
+                    enact_surface_desktop_add(surface);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_REMOVE:
+                if (surface != NULL) {
+                    enact_surface_desktop_remove(surface);
+                }
+                return;
+
+            case KEYBIND_WM_TOGGLE_FULLSURFACE:
+                if (surface != NULL) {
+                    enact_surface_toggle_fullsurface(surface);
                 }
                 return;
 

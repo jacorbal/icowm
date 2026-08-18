@@ -148,10 +148,13 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "deiconify_all",            ipc_action_deiconify_all },
     { "rearrange_desktop",        ipc_action_rearrange },
 
-    /* Surface (desktop switching): ipc/actions/surface.h */
+    /* Surface (desktop switching, adding, removing): ipc/actions/surface.h */
     { "goto_desktop",             ipc_action_goto_desktop },
     { "goto_next_desktop",        ipc_action_goto_next_desktop },
     { "goto_prev_desktop",        ipc_action_goto_prev_desktop },
+    { "add_desktop",              ipc_action_add_desktop },
+    { "remove_desktop",           ipc_action_remove_desktop },
+    { "toggle_fullsurface",       ipc_action_toggle_fullsurface },
 
     /* Whole window manager: ipc/actions/wm.h */
     { "exit_wm",                  ipc_action_exit_wm },

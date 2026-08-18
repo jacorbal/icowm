@@ -266,9 +266,20 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_SHOW_DESKTOP),
             config->bindings.keyboard.wm.show_desktop);
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_DESKTOP_ADD),
+            config->bindings.keyboard.wm.desktop.add);
+    if (surface->desktop_count > 1u) {
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_DESKTOP_REMOVE),
+                config->bindings.keyboard.wm.desktop.remove);
+    }
     if (surface->desktop_count > 1u) {
         s_append_goto_desktop(text, sizeof(text), &offset, config);
     }
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_TOGGLE_FULLSURFACE),
+            config->bindings.keyboard.wm.toggle_fullsurface);
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_REDRAW),
             config->bindings.keyboard.wm.redraw);

@@ -95,6 +95,42 @@ static void s_client_focus_fallback(client_td *client)
 }
 
 
+/**
+ * @brief Whether @p candidate qualifies as a focus-fallback target
+ *
+ * Shared by both passes @a client_focus_fallback itself makes over
+ * @p desktop's own stacking list: mapped and visible (not hidden,
+ * shaded, or iconified), able to take real focus by window type,
+ * not explicitly opted out via @c client_has_no_focus_fallback, and
+ * not skipping the taskbar unless it is modal, urgent, or a dialog
+ * (which need the person's attention regardless of that flag).
+ *
+ * @param candidate Client being considered as a fallback target
+ * @param exclude   Client that must never be chosen (the one
+ *                  leaving the current visible focus chain), or
+ *                  @c NULL when nothing is excluded
+ *
+ * @return @c true if @p candidate is a valid fallback target
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_client_focus_fallback_valid(const client_td *candidate,
+        const client_td *exclude)
+{
+    return candidate != NULL && candidate != exclude &&
+        !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
+        !client_is_shaded(candidate) &&
+        candidate->properties.state !=
+            (uint16_t) CLIENT_STATE_ICONIFIED &&
+        (candidate->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
+        !client_has_no_focus_fallback(candidate) &&
+        (!(candidate->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) ||
+         client_is_modal(candidate) ||
+         client_is_urgent(candidate) ||
+         candidate->properties.type == (uint16_t) CLIENT_TYPE_DIALOG);
+}
+
+
 /* Transfer input focus away from a client leaving the current
  * visible focus chain to the most recently used other visible,
  * focusable client on the same desktop, or to 'PointerRoot' if
@@ -104,6 +140,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 {
     cdlist_item_td *node;
     client_td *next_focus = NULL;
+    xcb_window_t exclude_leader;
 
     if (desktop == NULL) {
         return;
@@ -112,7 +149,22 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     desktop->client_active_id = 0;
     desktop->focus_dirty = true;
 
-    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+    /* A window left behind by 'exclude' from the same application
+     * (sharing its own 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more
+     * natural fallback than an unrelated one equally close in MRU
+     * order, the same reasoning 'place_apply' (policy/placement.c)
+     * already applies when placing a new sibling window near its
+     * own group; mirrors how Openbox's own 'focus_valid_target'
+     * (focus.c) weighs group membership when picking a focus
+     * target.  Tried first and only as a preference, not a
+     * requirement: falls through to the plain MRU search below,
+     * unchanged from before, whenever no such sibling qualifies. */
+    exclude_leader = (exclude != NULL)
+        ? client_group_leader(exclude) : XCB_WINDOW_NONE;
+
+    if (exclude_leader != XCB_WINDOW_NONE &&
+            desktop->stacking != NULL &&
+            cdlist_size(desktop->stacking) > 0) {
         const cdlist_item_td *initial;
 
         node = cdlist_tail(desktop->stacking);
@@ -120,21 +172,26 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         if (node != NULL) {
             do {
                 client_td *candidate = (client_td *) cdlist_data(node);
-                if (candidate != NULL && candidate != exclude &&
-                        !(candidate->properties.flags &
-                            CLIENT_FLAG_HIDDEN) &&
-                        !client_is_shaded(candidate) &&
-                        candidate->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED &&
-                        (candidate->properties.flags &
-                         CLIENT_FLAG_FOCUSABLE) &&
-                        !client_has_no_focus_fallback(candidate) &&
-                        (!(candidate->properties.flags &
-                             CLIENT_FLAG_SKIP_TASKBAR) ||
-                         client_is_modal(candidate) ||
-                         client_is_urgent(candidate) ||
-                         candidate->properties.type ==
-                             (uint16_t) CLIENT_TYPE_DIALOG)) {
+                if (s_client_focus_fallback_valid(candidate, exclude) &&
+                        client_group_leader(candidate) == exclude_leader) {
+                    next_focus = candidate;
+                    break;
+                }
+                node = cdlist_prev(node);
+            } while (node != NULL && node != initial);
+        }
+    }
+
+    if (next_focus == NULL &&
+            desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+        const cdlist_item_td *initial;
+
+        node = cdlist_tail(desktop->stacking);
+        initial = node;
+        if (node != NULL) {
+            do {
+                client_td *candidate = (client_td *) cdlist_data(node);
+                if (s_client_focus_fallback_valid(candidate, exclude)) {
                     next_focus = candidate;
                     break;
                 }

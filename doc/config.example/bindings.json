@@ -35,7 +35,12 @@
                 "desktop7": "modc+mod1+7",
                 "desktop8": "modc+mod1+8",
                 "desktop9": "modc+mod1+9"
-            }
+            },
+            "desktop": {
+                "add": "modc+mod1+mods+Right",
+                "remove": "modc+mod1+mods+Left"
+            },
+            "toggle-fullsurface": ""
         },
         "launch": {
             "terminal": "modc+mod1+Enter",

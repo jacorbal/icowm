@@ -150,6 +150,24 @@ cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args)
     (void) args;
     return NULL;
 }
+cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
 cJSON *ipc_action_hide_client(wm_td *wm, const cJSON *args)
 {
     (void) wm;

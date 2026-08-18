@@ -141,7 +141,15 @@ typedef struct surface_s {
 
     config_td *config;              /**< Configuration */
 
-    bool fullsurface;               /**< Full surface or not */
+    /**
+     * @brief Whether panel/tray struts are set aside when computing
+     *        every desktop's own work area on this surface
+     *
+     * @see @a surface_action_toggle_fullsurface (surface.h)
+     * @see @a desktop_update_workarea's own @p ignore_struts
+     *      (desktop.h), which this flag feeds directly
+     */
+    bool fullsurface;
     bool showing_desktop;           /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 } surface_td;
@@ -406,36 +414,49 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 int surface_action_desktop_add(surface_td *surface);
 
 /**
- * @brief Remove the specified desktop associated with the surface
+ * @brief Remove the last desktop from the surface, moving any client
+ *        still on it to the desktop immediately before it first
+ *
+ * Refuses outright when only one desktop remains (@c surface's own
+ * desktop count must stay at least @c 1).  Every client still on the
+ * desktop being removed, pinned or not, is moved onto what becomes
+ * the new last desktop before the old one is destroyed: destroying a
+ * desktop that still holds clients would otherwise destroy those
+ * clients' own @c client_td structures right along with it (see
+ * @a desktop_destroy, desktop.c), losing real, live application
+ * windows rather than just the virtual desktop container.  A moved
+ * client's own EWMH @c _NET_WM_DESKTOP is brought in line with its
+ * new desktop, except for a pinned one, whose property already holds
+ * the EWMH "all desktops" sentinel and is left alone.  If the
+ * desktop being removed is the current one, the view switches to the
+ * new last desktop first.
  *
  * @param surface Pointer to the surface to receive the action
  *
  * @return Status of the operation
  * @retval  0 Success
- * @retval  1 Failed to perform the action
+ * @retval  1 Refused (only one desktop left, no desktop to remove
+ *            from, no fallback desktop available, or the underlying
+ *            removal itself failed)
+ * @retval -1 @p surface is @c NULL
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop being removed
  */
 int surface_action_desktop_remove(surface_td *surface);
 
 /**
- * @brief Switch the current view to another specified desktop
+ * @brief Toggle whether panel/tray struts are set aside when
+ *        computing this surface's own desktops' work areas
  *
- * @param surface    Pointer to the surface to receive the action
- * @param desktop_id The identifier of the desktop to switch to
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int surface_action_desktop_switch(surface_td *surface,
-        uint32_t desktop_id);
-
-/**
- * @brief Toggle the current application into or out of full surface
- *        mode
+ * A distraction-free mode: while on, @a desktop_update_workarea
+ * (desktop.h) folds in only @c desktops.margins from configuration,
+ * never a panel's own @c _NET_WM_STRUT_PARTIAL nor the systray's own
+ * reservation, so a maximized or smart-placed window can use the
+ * full screen underneath wherever a panel would otherwise have
+ * reserved space.  Every desktop's own work area is recomputed
+ * immediately (@a surface_refresh_workareas), not left for whatever
+ * unrelated event happens to trigger that next.
  *
  * @param surface Pointer to the surface to receive the action
  *
@@ -443,7 +464,8 @@ int surface_action_desktop_switch(surface_td *surface,
  * @retval  0 Success
  * @retval  1 Failed to perform the action
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       @p surface
  */
 int surface_action_toggle_fullsurface(surface_td *surface);
 
