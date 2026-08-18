@@ -233,17 +233,57 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
 
 
 /**
+ * @brief Milliseconds remaining until an absolute deadline, floored
+ *        at zero rather than going negative once past it
+ *
+ * The request/reply-free clock computation
+ * @a s_confirm_timeout_ms_remaining needs against the running
+ * countdown's own absolute deadline; the equivalent computation for the
+ * click-triggered close/accept lives in @c menu/dialog/defer.c instead,
+ * shared with every other dialog that defers one the same way.
+ *
+ * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
+ *
+ * @return Milliseconds remaining (never negative), or @c 0 if the
+ *         clock itself could not be read
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @p timeout_seconds on @a menu_confirm_dialog_show
+ */
+static int s_confirm_ms_until(const struct timespec *due)
+{
+    struct timespec now;
+    long remaining_ms;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return 0;
+    }
+
+    remaining_ms =
+        (long) (due->tv_sec - now.tv_sec) * 1000L +
+        (due->tv_nsec - now.tv_nsec) / 1000000L;
+
+    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+}
+
+
+/**
  * @brief Milliseconds remaining until the running countdown timeout
- *        fully elapses; forward-declared here so 's_confirm_draw'
- *        (defined ahead of it, closer to the layout it renders) can
- *        show the live countdown number
+ *        fully elapses
  *
  * @return Milliseconds remaining (never negative), or -1 if no
  *         timeout is currently running
  *
  * @note Complexity: @e O(1)
  */
-static int s_confirm_timeout_ms_remaining(void);
+static int s_confirm_timeout_ms_remaining(void)
+{
+    if (!s_confirm_timeout_active) {
+        return -1;
+    }
+    return s_confirm_ms_until(&s_confirm_timeout_due);
+}
 
 
 /**
@@ -560,7 +600,7 @@ void menu_confirm_dialog_close(xcb_connection_t *connection)
     xcb_destroy_window(connection, s_confirm_window);
     xcb_flush(connection);
 
-    s_confirm_window= XCB_WINDOW_NONE;
+    s_confirm_window = XCB_WINDOW_NONE;
     s_confirm_selected = 0;
     s_confirm_callback = NULL;
     s_confirm_cancel_callback = NULL;
@@ -597,42 +637,6 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
 
 
 /**
- * @brief Milliseconds remaining until an absolute deadline, floored
- *        at zero rather than going negative once past it
- *
- * The request/reply-free clock computation
- * @a s_confirm_timeout_ms_remaining needs against the running
- * countdown's own absolute deadline; the equivalent computation for the
- * click-triggered close/accept lives in @c menu/dialog/defer.c instead,
- * shared with every other dialog that defers one the same way.
- *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
- *
- * @return Milliseconds remaining (never negative), or @c 0 if the
- *         clock itself could not be read
- *
- * @note Complexity: @e O(1)
- *
- * @see @p timeout_seconds on @a menu_confirm_dialog_show
- */
-static int s_confirm_ms_until(const struct timespec *due)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (due->tv_sec - now.tv_sec) * 1000L +
-        (due->tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
-
-
-/**
  * @brief Repaint the confirm dialog with its newly clicked selection,
  *        then defer the actual close/accept for shortly after
  *
@@ -662,24 +666,6 @@ static void s_confirm_defer_click(xcb_connection_t *connection,
 
     menu_dialog_defer_schedule(connection, DIALOG_CLICK_FEEDBACK_DELAY_MS,
             menu_confirm_dialog_accept);
-}
-
-
-/**
- * @brief Milliseconds remaining until the running countdown timeout
- *        fully elapses
- *
- * @return Milliseconds remaining (never negative), or -1 if no
- *         timeout is currently running
- *
- * @note Complexity: @e O(1)
- */
-static int s_confirm_timeout_ms_remaining(void)
-{
-    if (!s_confirm_timeout_active) {
-        return -1;
-    }
-    return s_confirm_ms_until(&s_confirm_timeout_due);
 }
 
 

@@ -85,7 +85,7 @@ static bool s_parse_titlebar_button(const char *name,
  * Omitting a side entirely (or listing zero buttons on it) simply
  * means no buttons are drawn there.
  *
- * @param buttons_json Parsed @c buttons JSON object
+ * @param buttons_json Parsed @c "buttons" JSON object
  * @param key          @c left or @c right
  * @param dest         Destination array, sized
  *                     @c CONFIG_MAX_TITLEBAR_BUTTONS
@@ -172,7 +172,7 @@ static enum config_titlebar_alignment_e s_parse_titlebar_alignment(
  * @brief Parse systray clock/battery text vertical alignment into
  *        configuration
  *
- * @param value Alignment text from configuration, e.g., @c top
+ * @param value Alignment text from configuration, e.g., @c "top"
  *
  * @return Parsed systray text vertical alignment enumeration value
  *
@@ -197,8 +197,8 @@ static enum config_systray_text_valign_e s_parse_systray_text_valign(
 
 
 /**
- * @brief Load one @c ({ font, color: {background, foreground},
- *        border: {color, width} }) block, the shape shared by every
+ * @brief Load one @c { font, color: {background, foreground},
+ *        border: {color, width} } block, the shape shared by every
  *        themeable surface (window active/inactive, icon
  *        active/inactive, systray)
  *
@@ -240,20 +240,19 @@ static void s_load_theme_colors(cJSON *json_obj,
  * @brief Load and clamp a 0 to 100 opacity percentage from a JSON
  *        object, into any one field that holds one
  *
- * Deliberately not part of @a s_load_theme_colors above: unlike
- * @p font / @p color / @p border, opacity only makes sense for a
- * @p config_theme_style_s instance that stands for one real, distinct
- * window or window-state on its own (@p window.active /
- * @p window.inactive, @p icon.active / @p icon.inactive,
- * @c systray.style, @c systray.overlay), never for one that styles
- * a row or button drawn inside a window shared with others
- * (@p menu.unselected / @p meu.selected / @p menu.label,
- * @p dialog.button.unselected / @p dialog.button.selected).
- * @c _NET_WM_WINDOW_OPACITY is a per-window property, so it cannot vary
- * per row or per button the way those share one window's own
- * background/border colors can.  Called individually, only at the sites
- * where it is actually meaningful, rather than folded into the shared
- * loader every one of those sites already calls.
+ * Deliberately not part of @c s_load_theme_colors above: unlike
+ * @c font/@c color/@c border, opacity only makes sense for a
+ * @c config_theme_style_s instance that stands for one real,
+ * distinct window or window-state on its own (@c window.active/
+ * @c inactive, @c icon.active/@c inactive, @c systray.style,
+ * @c overlay), never for one that styles a row or button drawn
+ * inside a window shared with others (@c menu.unselected/@c
+ * selected/@c label, @c dialog.button.unselected/@c selected):
+ * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it cannot
+ * vary per row or per button the way those share one window's own
+ * background/border colors can.  Called individually, only at the
+ * sites where it is actually meaningful, rather than folded into the
+ * shared loader every one of those sites already calls.
  *
  * @param json_obj Object that may contain @p key
  * @param key      Key name to look up
@@ -275,17 +274,18 @@ static void s_load_theme_opacity(cJSON *json_obj, const char *key,
 
 
 /* Populate default values for one theme structure, used both as the
- * compiled-in fallback theme and, before applying any theme file found,
- * as the known-good starting point that file's own fields then overlay */
+ * compiled-in fallback theme and, before applying any theme file
+ * found, as the known-good starting point that file's own fields
+ * then overlay */
 void config_set_default_theme_values(struct config_theme_s *theme)
 {
     LOGGER_TRACE("Setting default theme", L_NARG);
     /* Left empty here on purpose, rather than a name like "Default
-     * theme" outright: 'ci_config_resolve_theme_name' ('config.c')
-     * settles on the final name afterward, once it knows whether
-     * a theme file was actually loaded and whether that file set its
-     * own "name" (empty here means it did not), and this field staying
-     * empty is exactly the signal it checks for that. */
+     * theme" outright: 'ci_config_resolve_theme_name' (config.c)
+     * settles on the final name afterward, once it knows whether a
+     * theme file was actually loaded and whether that file set its
+     * own "name" (empty here means it did not), and this field
+     * staying empty is exactly the signal it checks for that. */
     theme->name[0] = '\0';
 
     theme->window.is_decorated = true;
@@ -381,15 +381,15 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
     /* Same hue family (~213 degrees) as the rest of the theme's
-     * D0D9E5/4A5566-family colors, but deliberately darker than the UI
-     * chrome.  A desktop background is a large, full-screen area rather
-     * than a small UI element, so it wants a more neutral, less
-     * attention-grabbing tone, and staying darker gives windows placed
-     * on top of it more contrast to stand out against than a light
-     * background would.  Landed on this specific value (rather than an
-     * even darker one first tried) so it does not sit almost as dark as
-     * the theme's own text/border colors, which left it feeling heavier
-     * than a full-screen area calls for. */
+     * D0D9E5/4A5566-family colors, but deliberately darker than the
+     * UI chrome: a desktop background is a large, full-screen area
+     * rather than a small UI element, so it wants a more neutral,
+     * less attention-grabbing tone, and staying darker gives windows
+     * placed on top of it more contrast to stand out against than a
+     * light background would.  Landed on this specific value (rather
+     * than an even darker one first tried) so it does not sit almost
+     * as dark as the theme's own text/border colors, which left it
+     * feeling heavier than a full-screen area calls for. */
     theme->desktop.color.background = json_hex2uint32("5F7187");
 
     safe_strncpy(theme->menu.unselected.font,
@@ -442,7 +442,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.show_pixmaps = true;
 
     safe_strncpy(theme->search.input.font,
-            "fixed bold", sizeof(theme->search.input.font));
+            "fixed", sizeof(theme->search.input.font));
     theme->search.input.color.background = json_hex2uint32("9AAEC8");
     theme->search.input.color.foreground = json_hex2uint32("253040");
     theme->search.input.opacity = 100u;
@@ -467,8 +467,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->prompt.label.color.foreground = json_hex2uint32("253040");
     theme->prompt.label.opacity = 100u;
     safe_strncpy(theme->prompt.input.font,
-            "fixed bold", sizeof(theme->prompt.input.font));
-    theme->prompt.input.color.background = json_hex2uint32("D0D9E5");
+            "fixed", sizeof(theme->prompt.input.font));
+    theme->prompt.input.color.background = json_hex2uint32("9AAEC8");
     theme->prompt.input.color.foreground = json_hex2uint32("253040");
     theme->prompt.input.opacity = 100u;
     theme->prompt.border.color = json_hex2uint32("7F9AB6");
@@ -528,7 +528,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
 }
 
 
-/* Convert a 0-100 opacity percentage to '_NET_WM_WINDOW_OPACITY''s own
+/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
  * 32-bit range */
 uint32_t config_theme_opacity_to_raw(uint8_t percent)
 {
@@ -602,11 +602,11 @@ int config_load_theme(const char *filename,
             }
 
             /* A titlebar shorter than its own buttons plus their
-             * vertical padding would draw those buttons overflowing its
-             * own bounds instead of centered within them (see
+             * vertical padding would draw those buttons overflowing
+             * its own bounds instead of centered within them (see
              * 'client_titlebar_layout''s own fallback branch,
-             * 'client/geom.c', taken once 'title_h' falls below this
-             * exact threshold).  Floored here to that same threshold,
+             * client/geom.c, taken once 'title_h' falls below this
+             * exact threshold); floored here to that same threshold,
              * unless 'height' is 0, which disables the titlebar
              * entirely and is left alone. */
             if (config_theme->window.titlebar.height != 0u) {
