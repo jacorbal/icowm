@@ -53,7 +53,7 @@
  *       current desktop
  */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
-        int32_t *out_x, int32_t *out_y);
+        int32_t *restrict out_x, int32_t *restrict out_y);
 
 /**
  * @brief Apply the configured placement policy to a newly mapped client

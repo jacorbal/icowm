@@ -12,7 +12,8 @@
  * keyboard, mouse, and repaint handling for the underlying dialog are
  * already generic (could be interesting to check as well all the
  * family, @a menu_confirm_dialog_is_open and its siblings, called
- * directly from @c input/kbd/event.c, @c input/mouse/event.c, and
+ * directly from @c input/kbd/event.c, @c input/mouse/event/press.c,
+ * and
  * @c handler/expose.c), with nothing left that needs a dialog-specific
  * wrapper of its own.
  *

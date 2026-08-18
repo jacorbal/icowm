@@ -820,14 +820,14 @@ static void s_search_draw_row(xcb_connection_t *connection,
         text_x = (int16_t) (text_x + icon_size + WM_SEARCH_PAD_X);
     }
 
-    /* 'text_renderer_init' destroys and recreates the shared GC (with
-     * neutral, unthemed colors) whenever the requested font differs
-     * from whichever one is currently loaded (see its comment in
-     * 'render/text.c'), so 'text_renderer_set_color' must ALWAYS run
-     * after it, never before.  This row's own real colors would
-     * otherwise survive only until the next row happens to request
-     * a different font than this one, right up until then looking like
-     * nothing was ever wrong at all. */
+    /* 'text_renderer_init' destroys and recreates the shared GC
+     * (with neutral, unthemed colors) whenever the requested font
+     * differs from whichever one is currently loaded (see its own
+     * doc comment, render/text.c), so 'text_renderer_set_color' must
+     * always run after it, never before: this row's own real colors
+     * would otherwise survive only until the next row happens to
+     * request a different font than this one, right up until then
+     * looking like nothing was ever wrong at all. */
     text_renderer_init(connection, is_sel
             ? cfg->theme.search.selected.font
             : cfg->theme.search.unselected.font);

@@ -46,11 +46,8 @@
 #include <menu/dialog/run.h>
 
 
-/**
- * @brief All state for the currently open run-box; a single global
- *        instance, the same way the fuzzy window-search widget's own
- *        @c s_search is
- */
+/** All state for the currently open run-box; a single global instance,
+ *  the same way the fuzzy window-search widget's own @c s_search is */
 static struct {
     xcb_window_t window;
     surface_td *surface;
@@ -65,14 +62,13 @@ static struct {
  * @brief Attempt to launch the currently typed command, showing an
  *        informational dialog if it could not be found or run
  *
- * Always closes the run-box itself first, whether the attempt succeeds
- * or not, the same way @a search_init already shows its own "nothing to
- * search for" dialog with the search widget itself never open behind
- * it.
+ * A no-op if the command is empty.  Always closes the run-box itself
+ * first, whether the attempt succeeds or not, the same way
+ * @a search_init already shows its own "nothing to search for"
+ * dialog with the search widget itself never open behind it.
  *
  * @param connection XCB connection
  *
- * @note A no-op if the command is empty
  * @note Complexity: @e O(1)
  */
 static void s_run_attempt_launch(xcb_connection_t *connection)
@@ -81,6 +77,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
     const config_td *cfg = s_run.config;
     desktop_td *desktop;
     char command[WM_RUN_COMMAND_MAX_LENGTH];
+    char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
     int result;
 
     if (s_run.command_len == 0) {
@@ -99,7 +96,6 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
 
     result = desktop_action_process_launch(desktop, command);
     if (result != 0) {
-        char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
         snprintf(message, sizeof(message),
                 _(STR_RUN_COMMAND_NOT_FOUND_FMT), command);
         dialog_info_show(connection, surface, cfg, message,
@@ -147,9 +143,9 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     height = (uint16_t) (WM_RUN_BAR_HEIGHT + 2 * WM_RUN_PAD_Y);
 
     /* Centered fully (both axes), unlike the fuzzy window-search
-     * widget's own one-third-from-the-top position.  One more visual
-     * cue, alongside the "Run:" prompt itself, that the two aren't the
-     * same widget. */
+     * widget's own one-third-from-the-top position: one more visual
+     * cue, alongside the "Run:" prompt itself, that the two are not
+     * the same widget. */
     widget_x = (int16_t) (((int32_t) surface->properties.dim.w -
                 (int32_t) WM_RUN_WIDTH) / 2);
     widget_y = (int16_t) (((int32_t) surface->properties.dim.h -
@@ -194,8 +190,8 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
 }
 
 
-/* Close the run-box and restore whichever window had input focus before
- * it opened */
+/* Close the run-box and restore whichever window had input focus
+ * before it opened */
 void run_destroy(xcb_connection_t *connection)
 {
     if (connection == NULL || s_run.window == XCB_WINDOW_NONE) {

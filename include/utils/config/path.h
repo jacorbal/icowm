@@ -121,7 +121,8 @@ void path_simplify(char *restrict path);
  *       path
  */
 void xdg_resolve_dir(enum xdg_dir_kind_e kind,
-        const char *final_fallback, char *out, size_t out_size);
+        const char *restrict final_fallback, char *restrict out,
+        size_t out_size);
 
 
 #endif  /* UTILS_CONFIG_PATH */

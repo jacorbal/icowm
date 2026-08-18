@@ -151,7 +151,7 @@ enum window_flags_e {
      * case) and should never be picked as an incidental side effect of
      * another client merely losing focus.
      *
-     * @see @a s_client_focus_fallback in @c cmds/client/basic.c, and
+     * @see @a ccmd_client_focus_fallback in @c cmds/client/focus.c, and
      *      @a s_restore_focus_after_client_loss in @c handler/map.c
      */
     CLIENT_FLAG_NO_FOCUS_FALLBACK = 1 << 13,
@@ -368,7 +368,7 @@ typedef struct client_s {
      * this (the scratchpad, @c scratchpad.c, is the only one that does
      * so today, from @p theme->scratchpad.border) needs no further
      * involvement from @a ccmd_client_focus or @a ccmd_client_unfocus
-     * (@c cmds/client/basic.c) beyond that single field: neither one
+     * (@c cmds/client/focus.c) beyond that single field: neither one
      * needs to know what feature set it, or why, only to prefer it over
      * the theme's own default whenever it is present, exactly the same
      * relationship @c CLIENT_FLAG_LOCKED (above) already has with its

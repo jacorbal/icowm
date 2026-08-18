@@ -36,7 +36,7 @@
 struct kill_pending_s {
     bool in_use;
     pid_t pid;
-    struct timespec deadline;   /* 'CLOCK_MONOTONIC' */
+    struct timespec deadline;   /* @c CLOCK_MONOTONIC */
 };
 
 /** Every process currently being watched for kill escalation */
@@ -44,19 +44,20 @@ static struct kill_pending_s s_kill_pending[WM_KILL_ESCALATE_MAX_PENDING];
 
 
 /**
- * @brief Milliseconds remaining until an absolute deadline, floored at
- *        zero rather than going negative once past it
+ * @brief Milliseconds remaining until an absolute deadline, floored
+ *        at zero rather than going negative once past it
  *
  * Same computation @c wm/shutdown.c's own @a s_shutdown_ms_until
  * already performs.  Kept as its own small copy here rather than
  * shared, the same way that one and @c menu/dialog/defer.c's own
- * equivalent already are two small copies of each other rather than one
- * shared utility.
+ * equivalent already are two small copies of each other rather than
+ * one shared utility.
  *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
+ * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure
+ *            against
  *
- * @return Milliseconds remaining (never negative), or @c 0 if the clock
- *         itself could not be read
+ * @return Milliseconds remaining (never negative), or @c 0 if the
+ *         clock itself could not be read
  *
  * @note Complexity: @e O(1)
  */

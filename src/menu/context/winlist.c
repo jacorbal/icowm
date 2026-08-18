@@ -300,7 +300,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
  * @param buf_size Size of @p buf in bytes
  */
 static void s_format_client_label(const client_td *client,
-        const char *name, char *buf, size_t buf_size)
+        const char *restrict name, char *restrict buf, size_t buf_size)
 {
     if (client == NULL || name == NULL || buf == NULL ||
             buf_size == 0u) {

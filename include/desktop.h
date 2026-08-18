@@ -149,7 +149,7 @@ typedef struct desktop_s {
      * (@c desktop/dclient.c), called from every site that could change
      * the answer.  A client's own urgency being set or cleared
      * (@a ccmd_client_urge and @a ccmd_client_unurge, in
-     * @c cmds/client/basic.c) while already on this desktop, and
+     * @c cmds/client/flags.c) while already on this desktop, and
      * a client entering or leaving it altogether
      * (@a desktop_action_client_add and @a desktop_action_client_rem,
      * this same file), which already covers a client created already

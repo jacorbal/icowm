@@ -490,8 +490,9 @@ void ik_handle_move(enum wm_keybind_type_e btype,
     }
 
     /* A fully maximized or fullscreen client cannot be moved at all,
-     * consistent with 'MOUSEBIND_MOVE' (input/mouse/event.c) and the
-     * window context menu's own 'can_move' (menu/context/wincmenu.c);
+     * consistent with 'MOUSEBIND_MOVE' (input/mouse/event/press.c)
+     * and the window context menu's own 'can_move'
+     * (menu/context/wincmenu.c);
      * a client maximized on just one axis is still free to move,
      * since only one axis is pinned to the workarea edge. */
     if (client_is_maximized(client) || client_is_fullscreen(client) ||

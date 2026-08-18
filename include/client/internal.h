@@ -74,8 +74,8 @@ size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
  */
 int ci_get_wm_class(xcb_connection_t *connection,
         xcb_window_t window,
-        char *class_buf, size_t class_sz,
-        char *inst_buf, size_t inst_sz);
+        char *restrict class_buf, size_t class_sz,
+        char *restrict inst_buf, size_t inst_sz);
 
 /* String/decoration helpers (implemented in 'client_geom.c') */
 /**

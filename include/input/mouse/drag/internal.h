@@ -238,7 +238,7 @@ void drag_overlay_show(xcb_connection_t *connection, bool is_icon,
  * @param width  Client width
  * @param height Client height
  */
-void drag_snap_move(int32_t *x, int32_t *y,
+void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         uint32_t width, uint32_t height);
 
 /**
@@ -250,8 +250,8 @@ void drag_snap_move(int32_t *x, int32_t *y,
  * @param width  Candidate width, updated in place if snapped
  * @param height Candidate height, updated in place if snapped
  */
-void drag_snap_resize(int32_t *x, int32_t *y,
-        uint32_t *width, uint32_t *height);
+void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
+        uint32_t *restrict width, uint32_t *restrict height);
 
 
 /* drag/outline.c */

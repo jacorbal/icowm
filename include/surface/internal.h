@@ -4,7 +4,8 @@
  * @brief Private helpers shared across surface implementation modules
  *
  * Declares helper functions that are used by more than one of the
- * surface translation units (@c surface.c, @c surface/actions.c) but
+ * surface translation units (@c surface.c, @c surface/actions/randr.c,
+ * @c surface/actions/clients.c) but
  * must not be exposed as part of the public surface API declared in
  * @c surface.h.
  *

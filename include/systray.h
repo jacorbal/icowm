@@ -201,8 +201,9 @@ const struct strut_partial_s
  * @note Complexity: @e O(1), plus one synchronous round trip to the
  *       X server
  */
-bool systray_get_geometry(const surface_td *surface, int32_t *out_x,
-        int32_t *out_y, uint16_t *out_w, uint16_t *out_h);
+bool systray_get_geometry(const surface_td *surface,
+        int32_t *restrict out_x, int32_t *restrict out_y,
+        uint16_t *restrict out_w, uint16_t *restrict out_h);
 
 /**
  * @brief Query whether @p window is a currently docked icon, and if

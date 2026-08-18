@@ -33,9 +33,9 @@
 /**
  * @brief Fixed width of the run-box, in pixels
  *
- * Narrower than @c WM_SEARCH_WIDTH (in @c defs/search.h).  A typed
- * command is ordinarily far shorter than a window title, and the two
- * widgets being visibly different sizes is one more cue, alongside the
+ * Narrower than @c WM_SEARCH_WIDTH (defs/search.h): a typed command is
+ * ordinarily far shorter than a window title, and the two widgets
+ * being visibly different sizes is one more cue, alongside the
  * "Run:" prompt itself, that they are not the same thing.
  */
 #define WM_RUN_WIDTH (320)

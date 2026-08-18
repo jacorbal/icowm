@@ -188,8 +188,10 @@ uint32_t glyph_utf8_next(const char *text, size_t *index)
  * @note Complexity: @e O(1), aside from fontconfig's own internal
  *       matching cost
  */
-static bool s_resolve_font(const char *font_name, char *out_file,
-        size_t out_file_size, int *out_face_index, int *out_pixel_size)
+static bool s_resolve_font(const char *restrict font_name,
+        char *restrict out_file,
+        size_t out_file_size, int *restrict out_face_index,
+        int *restrict out_pixel_size)
 {
     FcPattern *pattern;
     FcPattern *matched;

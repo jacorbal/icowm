@@ -165,7 +165,8 @@ static uint32_t s_premultiply(uint32_t argb)
  */
 static void s_apply_icon_scale(xcb_connection_t *connection,
         xcb_render_picture_t picture, uint32_t src_w, uint32_t src_h,
-        uint16_t draw_size, uint16_t *out_dest_w, uint16_t *out_dest_h)
+        uint16_t draw_size, uint16_t *restrict out_dest_w,
+        uint16_t *restrict out_dest_h)
 {
     xcb_render_transform_t transform;
     double scale_w;
@@ -251,7 +252,7 @@ static void s_apply_icon_scale(xcb_connection_t *connection,
 static xcb_render_picture_t s_build_icon_picture(
         xcb_connection_t *connection, const uint32_t *pixels,
         uint32_t width, uint32_t height, uint16_t draw_size,
-        uint16_t *out_dest_w, uint16_t *out_dest_h)
+        uint16_t *restrict out_dest_w, uint16_t *restrict out_dest_h)
 {
     xcb_screen_t *screen;
     xcb_pixmap_t pixmap;
@@ -378,7 +379,8 @@ typedef struct {
  */
 static s_icccm_icon_td s_build_icccm_icon_picture(
         xcb_connection_t *connection, xcb_window_t window,
-        uint16_t draw_size, uint16_t *out_dest_w, uint16_t *out_dest_h)
+        uint16_t draw_size, uint16_t *restrict out_dest_w,
+        uint16_t *restrict out_dest_h)
 {
     s_icccm_icon_td result = { XCB_NONE, XCB_NONE };
     xcb_icccm_wm_hints_t hints;

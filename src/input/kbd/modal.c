@@ -170,7 +170,8 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
  * @param nh     Frame height (in/out)
  */
 static void s_compute_resize(xcb_keysym_t keysym, int32_t step,
-        int32_t *nx, int32_t *ny, int32_t *nw, int32_t *nh)
+        int32_t *restrict nx, int32_t *restrict ny,
+        int32_t *restrict nw, int32_t *restrict nh)
 {
     switch (s_edge) {
         case KBD_EDGE_TOP:
@@ -218,9 +219,11 @@ static void s_compute_resize(xcb_keysym_t keysym, int32_t step,
 /**
  * @brief Handle one key press while in resize modal mode
  *
- * The first arrow key sets the active edge.  Subsequent arrow presses
- * grow or shrink the window along that edge.  Return confirms and
- * Escape restores the original geometry and cancels.
+ * The first arrow key both picks the active edge and, in that same
+ * press, already grows or shrinks the window along it; every arrow
+ * press after that keeps resizing along whichever edge is currently
+ * active.  Return confirms and Escape restores the original geometry
+ * and cancels.
  *
  * @param keysym      X keysym of the pressed key
  * @param resize_step Distance in pixels to resize per key press

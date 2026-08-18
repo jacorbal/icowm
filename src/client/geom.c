@@ -450,10 +450,10 @@ void client_constrain_size(const client_td *client,
     /* The absolute floor every resize is guaranteed never to fall
      * below, applied first so the client's own explicit 'min_w'/
      * 'min_h' just below (when it specifies one) can still only ever
-     * raise this, never lower it: 1 resize-increment unit for a client
-     * that measures itself in one (a terminal counting character
-     * columns/rows, say, via 'width_inc'/'height_inc'), or
-     * 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
+     * raise this, never lower it: 1 resize-increment unit for a
+     * client that measures itself in one (a terminal counting
+     * character columns/rows, say, via 'width_inc'/'height_inc'),
+     * or 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
     if (client->size_hints.valid && client->size_hints.inc_w > 1) {
         uint32_t base_w = (client->size_hints.base_w > 0)
             ? (uint32_t) client->size_hints.base_w

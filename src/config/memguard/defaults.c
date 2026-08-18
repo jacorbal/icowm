@@ -84,7 +84,7 @@ void config_set_default_values_memguard(config_td *config)
             sizeof(config->base.programs.web_browser));
 
     /* Unlike every program name just above, this one genuinely does
-     * differ from the normal-mode default (see 'base.c''s own).  The
+     * differ from the normal-mode default (see base.c's own): the
      * built-in run-box avoids spawning 'launcher' itself as a whole
      * extra process, even a minimal one such as this very mode's own
      * default for it above, fitting this mode's whole reason for

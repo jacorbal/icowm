@@ -3,7 +3,8 @@
  *
  * @brief Shared resize-border and adaptive grab-margin computation
  *
- * Declares @a im_resize_bounds, used by both @c input/mouse/event.c
+ * Declares @a im_resize_bounds, used by both
+ * @c input/mouse/event/press.c
  * (border-hit detection and the resize-cursor display) and
  * @c input/mouse/drag.c (picking which corner a resize drag anchors
  * to), so the three stay in agreement about exactly where a client's

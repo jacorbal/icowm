@@ -54,8 +54,8 @@ uint32_t json_hex2uint32(const char *hex_color)
 
 
 /* Normalize a JSON field name to a canonical separator form */
-bool json_field_normalize(const char *field, char *field_norm,
-        size_t size)
+bool json_field_normalize(const char *restrict field,
+        char *restrict field_norm, size_t size)
 {
     size_t i;
 

@@ -118,7 +118,8 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  */
 static void s_fold_strut(const struct strut_partial_s *strut,
         int32_t screen_max_x, int32_t screen_max_y,
-        int32_t *left, int32_t *right, int32_t *top, int32_t *bottom)
+        int32_t *restrict left, int32_t *restrict right,
+        int32_t *restrict top, int32_t *restrict bottom)
 {
     if (strut == NULL) {
         return;

@@ -8,7 +8,8 @@
  * require XCB geometry manipulation beyond a simple flag update:
  * shade/unshade, fullscreen/unfullscreen, and decoration toggle
  * (including the private helper that builds the frame and titlebar
- * windows).  Focus and visibility operations live in @c cmds/client/basic.c.
+ * windows).  Focus operations live in @c cmds/client/focus.c;
+ * visibility (iconify/hide/unhide) in @c cmds/client/visibility.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

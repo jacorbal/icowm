@@ -74,9 +74,9 @@
 /**
  * @brief Map a window without adopting it under window manager control
  *
- * Shared by every early-return path in @a handler_map_request below
+ * Shared by every early-return path in @c handler_map_request below
  * that declines to manage the window (an unresolvable surface or
- * current desktop, @a client_init itself failing, or the client
+ * current desktop, @c client_init itself failing, or the client
  * failing to be added to its desktop): the requesting application
  * gets its window on screen either way, just without a frame or any
  * window-manager tracking.
@@ -265,23 +265,23 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
         /* EWMH's own correct way for a client to request fullscreen
          * from the outset (see 'initial_fullscreen''s own doc comment,
-         * 'client.h') rather than waiting for a 'ClientMessage' after
+         * client.h) rather than waiting for a 'ClientMessage' after
          * mapping.  Deliberately last in this whole block, after the
-         * synthetic 'ConfigureNotify' just above.
-         * 'ccmd_client_fullscreen' sends its own with the true
-         * fullscreen geometry, and sending the ordinary one afterward
-         * would tell the client its old, pre-fullscreen position and
-         * size right after telling it the correct one. */
+         * synthetic 'ConfigureNotify' just above: 'ccmd_client_fullscreen'
+         * sends its own with the true fullscreen geometry, and sending
+         * the ordinary one afterward would tell the client its old,
+         * pre-fullscreen position and size right after telling it the
+         * correct one. */
         if (client->initial_fullscreen) {
             ccmd_client_fullscreen(client);
         } else if (client->initial_maximized_horz &&
                 client->initial_maximized_vert) {
             /* Same reasoning as 'initial_fullscreen' just above, for
              * the same EWMH pre-existing-state mechanism applied to
-             * 'initial_maximized_horz'/'_vert' (in 'client.h') instead.
-             * A client requesting both at once is maximized on both
-             * axes together, one call, rather than two in sequence each
-             * sending its own synthetic 'ConfigureNotify' for an
+             * 'initial_maximized_horz'/'_vert' (client.h) instead; a
+             * client requesting both at once is maximized on both
+             * axes together, one call, rather than two in sequence
+             * each sending its own synthetic 'ConfigureNotify' for an
              * intermediate, single-axis geometry the client never
              * actually asked for. */
             ccmd_client_maximize(client);
@@ -367,7 +367,17 @@ void handler_unmap_notify(xcb_connection_t *connection,
         ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
         ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
         ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
-        wm_request_client_redraw(client);
+        /* 'wm_outdate_client'/'_surface'/'_desktop' directly, not
+         * 'wm_request_client_redraw': 'surface' and 'desktop' are
+         * already resolved locally above (from the same
+         * 'lookup_find_client' call this whole handler already made),
+         * so calling the convenience wrapper here would only re-derive
+         * both through a redundant lookup of its own -- an O(n) scan
+         * over the global 'wm->surfaces' for 'surface' alone -- for
+         * values already sitting in scope. */
+        wm_outdate_client(client);
+        wm_outdate_surface(surface);
+        wm_outdate_desktop(desktop);
 
         if (connection != NULL) {
             xcb_flush(connection);
@@ -524,14 +534,15 @@ void handler_map_notify(xcb_connection_t *connection,
         if (event->window == client->window) {
             xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
-            /* Re-assert the plain-pointer cursor 'client_init' already
-             * set once on this same window (see 'client.c').  Many
-             * GTK/GDK applications explicitly set their own top-level
-             * window's cursor as part of their own realization, which
-             * can run after (and so silently overwrite) that first
-             * assignment; MapNotify, confirming the window has actually
-             * become visible, is reliably later than that realization,
-             * so setting it again here wins whatever race existed. */
+            /* Re-assert the plain-pointer cursor 'client_init'
+             * already set once on this same window (see client.c).
+             * Many GTK/GDK applications explicitly set their own
+             * top-level window's cursor as part of their own
+             * realization, which can run after (and so silently
+             * overwrite) that first assignment; MapNotify, confirming
+             * the window has actually become visible, is reliably
+             * later than that realization, so setting it again here
+             * wins whatever race existed. */
             xcb_change_window_attributes(connection, client->window,
                     XCB_CW_CURSOR,
                     (const uint32_t[]) { mouse_plain_cursor() });

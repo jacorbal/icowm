@@ -465,8 +465,8 @@ void ccmd_client_resize_flush_pending(client_td *client)
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 bool ccmd_client_monitor_workarea(client_td *client,
-        int32_t *out_x, int32_t *out_y,
-        uint16_t *out_w, uint16_t *out_h)
+        int32_t *restrict out_x, int32_t *restrict out_y,
+        uint16_t *restrict out_w, uint16_t *restrict out_h)
 {
     surface_td *surface = NULL;
     const desktop_td *desktop;

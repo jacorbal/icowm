@@ -306,7 +306,7 @@ void drag_repaint_overlay(xcb_connection_t *connection);
  *
  * @note Complexity: @e O(1)
  */
-void drag_current_pos(int32_t *x, int32_t *y);
+void drag_current_pos(int32_t *restrict x, int32_t *restrict y);
 
 /**
  * @brief Milliseconds until a pointer held against a warp-eligible

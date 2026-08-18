@@ -3,8 +3,9 @@
  *
  * @brief Private helpers shared across config implementation modules
  *
- * Declares static helper functions that are used by more than one of
- * the config translation units (@c config/base.c, @c config.c,
+ * Declares helper functions that are used by more than one of
+ * the config translation units (every @c config/base/ .c file,
+ * @c config.c,
  * @c config/randr.c, @c config/memguard.c and its own submodules under
  * @c config/memguard/) but must not be exposed as part of the public
  * configuration API declared in @c config.h.
@@ -107,7 +108,8 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
  * A no-op, leaving @p config_base's own systray fields at whatever they
  * already held, if @c "systray" itself is absent.  Each of the three
  * nested objects is likewise only consulted if present.  Declared here
- * rather than kept private to @c config/base.c since both it and
+ * rather than kept private to @c config/base/systray.c since both it
+ * and
  * @c config/memguard.c need this exact same parsing (the @c systray
  * object itself is identical between the two files), and duplicating it
  * would risk the two drifting apart over some future change to one
@@ -117,7 +119,7 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
  * @param config_base Destination structure; its @c systray fields are
  *                    updated here
  *
- * @note Implemented in @c config/base.c
+ * @note Implemented in @c config/base/systray.c
  * @note Complexity: @e O(1)
  */
 void ci_config_load_systray(cJSON *json,
@@ -127,8 +129,9 @@ void ci_config_load_systray(cJSON *json,
  * @brief Parse icon placement policy text into configuration
  *        enumeration
  *
- * Declared here rather than kept private to @c config/base.c since both
- * it and @c config/memguard.c need this exact same parsing (the icon
+ * Declared here rather than kept private to @c config/base/parse.c
+ * since both it and @c config/memguard.c need this exact same
+ * parsing (the icon
  * placement policy string accepted is identical between @c config.json
  * and @c memguard.json), and duplicating it would risk the two drifting
  * apart over some future change to one without the other.
@@ -139,7 +142,7 @@ void ci_config_load_systray(cJSON *json,
  *
  * @note Supported values are @c bottom, @c top, @c left, @c right, and
  *       @c smart
- * @note Implemented in @c config/base.c
+ * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_icon_placement_e ci_config_parse_icon_placement(
@@ -149,8 +152,9 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  * @brief Parse window placement policy text into configuration
  *        enumeration
  *
- * Declared here rather than kept private to @c config/base.c since both
- * it and @c config/memguard.c need this exact same parsing (the window
+ * Declared here rather than kept private to @c config/base/parse.c
+ * since both it and @c config/memguard.c need this exact same
+ * parsing (the window
  * placement policy string accepted is identical between @c config.json
  * and @c memguard.json), and duplicating it would risk the two drifting
  * apart over some future change to one without the other.
@@ -161,7 +165,7 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  *
  * @note Supported values are @c smart, @c cascade,
  *       @c centered, and @c under-mouse
- * @note Implemented in @c config/base.c
+ * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_placement_policy_e
@@ -218,6 +222,265 @@ void ci_memguard_restrict_theme(config_td *config);
  * @note Complexity: @e O(n), where @e n is the size of @p filename
  */
 int ci_memguard_load_json(const char *filename, config_td *config);
+
+
+/**
+ * @brief Parse focus policy text into configuration enumeration
+ *
+ * @param value Focus policy string from configuration
+ *
+ * @return Parsed focus policy enumeration value
+ *
+ * @note Supported values are @c click and @c sloppy
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_focus_policy_e
+    ci_config_parse_focus_policy(const char *value);
+
+/**
+ * @brief Parse placement monitor text into configuration enumeration
+ *
+ * @param value Placement monitor string from configuration
+ *
+ * @return Parsed placement monitor enumeration value
+ *
+ * @note Supported values are @c pointer and @c primary
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_placement_monitor_e
+    ci_config_parse_placement_monitor(const char *value);
+
+/**
+ * @brief Parse desktop menu position text into configuration
+ *        enumeration
+ *
+ * @param value Menu position string from configuration
+ *
+ * @return Parsed menu position enumeration value
+ *
+ * @note Supported values are @c center and @c under-mouse
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_menu_position_e
+    ci_config_parse_menu_position(const char *value);
+
+/**
+ * @brief Parse one scratchpad dimension from either a fixed pixel
+ *        count or the string @c "max"
+ *
+ * @param item Value from configuration, expected to be either a
+ *             number or the string @c "max"; any other JSON type,
+ *             or a negative number, leaves @p out untouched
+ * @param out  Destination dimension
+ *
+ * @note Complexity: @e O(1)
+ * @note Implemented in @c config/base/parse.c
+ */
+void ci_config_parse_scratchpad_size(const cJSON *item,
+        struct config_scratchpad_size_s *out);
+
+/**
+ * @brief Parse scratchpad edge text into configuration enumeration
+ *
+ * @param value Scratchpad edge string from configuration
+ *
+ * @return Parsed scratchpad edge enumeration value
+ *
+ * @note Supported values are @c top, @c bottom, @c left, and
+ *       @c right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_scratchpad_edge_e
+    ci_config_parse_scratchpad_edge(const char *value);
+
+/**
+ * @brief Parse systray dock position text into configuration
+ *        enumeration
+ *
+ * @param value Systray position string from configuration
+ *
+ * @return Parsed systray position enumeration value
+ *
+ * @note Supported values are @c top-left, @c top-right,
+ *       @c bottom-left, and @c bottom-right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_systray_position_e
+    ci_config_parse_systray_position(const char *value);
+
+/**
+ * @brief Parse systray monitor anchor text into configuration
+ *        enumeration
+ *
+ * @param value Systray monitor anchor string from configuration
+ *
+ * @return Parsed systray monitor anchor enumeration value
+ *
+ * @note Supported values are @c surface, @c primary, and @c index
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_systray_monitor_anchor_e
+    ci_config_parse_systray_monitor_anchor(const char *value);
+
+/**
+ * @brief Parse systray icon-ordering policy text into configuration
+ *        enumeration
+ *
+ * @param value Systray order string from configuration
+ *
+ * @return Parsed systray order enumeration value
+ *
+ * @note Supported values are @c left-to-right, @c right-to-left,
+ *       @c ascending, and @c descending
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_systray_order_e
+    ci_config_parse_systray_order(const char *value);
+
+/**
+ * @brief Parse systray stacking-layer text into configuration
+ *        enumeration
+ *
+ * @param value Systray layer string from configuration
+ *
+ * @return Parsed systray layer enumeration value
+ *
+ * @note Supported values are @c below (the default), @c above, and
+ *       @c overlay; an unrecognized value falls back to @c below
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_systray_layer_e
+    ci_config_parse_systray_layer(const char *value);
+
+/**
+ * @brief Parse systray clock/battery text position into configuration
+ *
+ * @param value Position text from configuration, e.g., @c "right"
+ *
+ * @return Parsed systray text position enumeration value
+ *
+ * @note Supported values are @c left and @c right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_systray_text_position_e
+    ci_config_parse_systray_text_position(const char *value);
+
+/**
+ * @brief Parse one systray text item name ("clock" or "battery") into
+ *        configuration
+ *
+ * @param value Item name from configuration
+ * @param out   Receives the parsed item; left untouched if @p value
+ *              does not match a known item name
+ *
+ * @return @c true if @p value matched a known item name
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+bool ci_config_parse_systray_text_item(const char *value,
+        enum config_systray_text_item_e *out);
+
+/**
+ * @brief Parse a systray battery backend type into configuration
+ *
+ * @param value Backend type text from configuration, e.g., @c "apm"
+ *
+ * @return Parsed backend type enumeration value
+ *
+ * @note Supported values are @c acpi and @c apm
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_battery_backend_type_e
+    ci_config_parse_battery_backend_type(const char *value);
+
+/**
+ * @brief Parse default window gravity text into configuration
+ *        enumeration
+ *
+ * @param value Gravity string from configuration
+ *
+ * @return Parsed gravity enumeration value
+ *
+ * @note Supported values are @c north-west, @c north, @c north-east,
+ *       @c east, @c south-east, @c south, @c south-west, @c west,
+ *       @c center, and @c static
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_gravity_e
+    ci_config_parse_gravity(const char *value);
+
+/**
+ * @brief Load @c topology.screens (screen count, and each screen's
+ *        desktop count/inaugural desktop/desktop entries) from parsed
+ *        @c config.json
+ *
+ * Accepts two on-disk shapes for the @p topology.screens.desktops
+ * array.  A flat list of desktop entries applied to screen 0 (the
+ * common, single-screen case), or, when any entry in that array
+ * itself carries its @p settings / @p count / @p inaugural fields, a
+ * nested layout where each entry instead describes one whole screen
+ * (multi-screen configurations).
+ *
+ * Which shape is in use is detected from the first array entry alone.
+ * A missing @p topology or @p screens object, or a missing/non-array
+ * @p desktops within it, leaves whatever @p config_base already held
+ * (its compiled-in or previously-loaded defaults) untouched, logging
+ * why.
+ *
+ * @p topology (and everything under it, including @p screens) only ever
+ * takes effect at startup: unlike the rest of @c config.json,
+ * a configuration reload does not re-run this function, since changing
+ * screen or desktop counts at runtime would mean deciding what happens
+ * to whatever clients, focus, and EWMH state already live on a desktop
+ * being removed, which nothing in the window manager currently does.
+ *
+ * @param json        Parsed root of @c config.json
+ * @param config_base Destination structure; its @c screen_count and
+ *                    each screen's own desktop settings are updated
+ *                    here
+ * @param filename    Path @p json was read from, for log messages only
+ *
+ * @note Implemented in @c config/base/desktops.c
+ * @note Complexity: @e O(s * d), where @e s is the number of screens
+ *       and @e d the number of desktops described
+ */
+void ci_config_load_screens(cJSON *json,
+        struct config_base_s *config_base, const char *filename);
+
+/**
+ * @brief Load @c desktops (desktop-navigation and reserved-space
+ *        behavior) from parsed @c config.json
+ *
+ * A sibling of @p topology at the root of @c config.json, not nested
+ * inside it. Unlike @p topology, every field this loads is meant to
+ * take effect again on a configuration reload, so
+ * @a ci_config_load_screens and this function are deliberately kept
+ * separate despite both being called from @a config_load_base.  A
+ * missing @p desktops object, or a missing @p margins within it,
+ * leaves whatever @p config_desktop already held untouched.
+ *
+ * @param json           Parsed root of @c config.json
+ * @param config_desktop Destination structure to populate
+ * @param filename       Path @p json was read from, for log messages
+ *                       only
+ *
+ * @note Implemented in @c config/base/desktops.c
+ * @note Complexity: @e O(1)
+ */
+void ci_config_load_desktop_behavior(cJSON *json,
+        struct config_desktop_s *config_desktop, const char *filename);
 
 
 #endif  /* ! CONFIG_INTERNAL_H */

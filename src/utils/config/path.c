@@ -179,7 +179,8 @@ void path_simplify(char *restrict path)
 
 /* Resolve one of IcoWM's own XDG base directories */
 void xdg_resolve_dir(enum xdg_dir_kind_e kind,
-        const char *final_fallback, char *out, size_t out_size)
+        const char *restrict final_fallback, char *restrict out,
+        size_t out_size)
 {
     const struct xdg_dir_def_s *def = &s_xdg_defs[kind];
     const char *xdg_value = getenv(def->env_var);

@@ -115,7 +115,7 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
          * own, since 'focus_apply' is the one place that already
          * unfocuses whatever was previously active first (border and
          * titlebar repainted back to its own inactive style there,
-         * 'ccmd_client_unfocus', in 'cmds/client/basic.c') before
+         * 'ccmd_client_unfocus', in 'cmds/client/focus.c') before
          * focusing this one.  Skipping it left whatever was focused
          * a moment ago with no real unfocus ever applied to it at all,
          * this client's own raise just visually covering it instead. */
@@ -178,7 +178,7 @@ void scratchpad_notice_client_created(client_td *client)
      * Setting 'border_override' rather than applying the border
      * directly here is what makes it survive every later focus change
      * too: 'ccmd_client_focus'/'ccmd_client_unfocus' (both in
-     * 'cmds/client/basic.c') already re-apply a client's own border on
+     * 'cmds/client/focus.c') already re-apply a client's own border on
      * every single one via 'client_apply_border' ('client.h'), which
      * already prefers this field over the theme's own default whenever
      * it is set, without needing to know anything about the scratchpad

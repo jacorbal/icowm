@@ -138,8 +138,8 @@ static struct {
  * @param output  Buffer for the resulting XLFD pattern
  * @param outsize Size of @p output in bytes
  */
-static void s_font_config_to_xlfd(const char *input, char *output,
-        size_t outsize)
+static void s_font_config_to_xlfd(const char *restrict input,
+        char *restrict output, size_t outsize)
 {
     char tokens[8][64];
     char family[128];
@@ -529,8 +529,8 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
-static size_t s_utf8_to_latin1(const char *text, char *out,
-        size_t out_size)
+static size_t s_utf8_to_latin1(const char *restrict text,
+        char *restrict out, size_t out_size)
 {
     size_t byte_index = 0u;
     size_t out_len = 0u;

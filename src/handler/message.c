@@ -230,7 +230,7 @@ void handler_client_message(wm_td *wm,
                 if (active != NULL &&
                         !client_user_time_is_newer(client->user_time,
                             active->user_time)) {
-                    /* 'ccmd_client_urge' (cmds/client/basic.c) already
+                    /* 'ccmd_client_urge' (cmds/client/flags.c) already
                      * covers the EWMH state publish and the IPC
                      * broadcast that setting the flag and recomputing
                      * urgency alone would leave out, on top of now

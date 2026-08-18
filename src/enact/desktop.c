@@ -179,10 +179,26 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
     LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
             " desktop %u", client->window, desktop->id, target->id);
 
+    /* If 'client' was the source desktop's own active client, hand
+     * focus there off to whatever else on that desktop qualifies
+     * before it leaves, the same way closing, hiding, or iconifying
+     * the active client already does everywhere else in this project
+     * (see 's_client_focus_fallback''s own doc comment); without
+     * this, the source desktop's 'client_active_id' was left pointing
+     * at a client no longer even in its own list, and because the
+     * client is unmapped below when it was visible, the X server's
+     * own real keyboard focus was left on a now-unmapped window
+     * instead of transferring to another visible one, rather than
+     * silently doing nothing as an already-inactive client being sent
+     * away correctly does. */
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (desktop->client_active_id == client->id) {
+        client_focus_fallback(desktop, surface, client);
+    }
+
     /* If the client is currently visible on the active desktop, unmap
      * it immediately so it disappears from the source desktop without
      * waiting for the user to switch away */
-    surface = wm_get_surface_by_id(client->screen_id);
     if (surface != NULL &&
             desktop->id == surface->desktop_cur &&
             !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&

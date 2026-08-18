@@ -27,14 +27,14 @@
 
 
 /** Absolute time the pending deferred action becomes due, valid only
- *  while 's_defer_pending' is true */
+ *  while @c s_defer_pending is true */
 static struct timespec s_defer_due;
 
 /** Whether a deferred action is currently pending */
 static bool s_defer_pending = false;
 
-/** Callback to run once 's_defer_due' arrives, valid only while
- *  's_defer_pending' is true */
+/** Callback to run once @c s_defer_due arrives, valid only while
+ *  @c s_defer_pending is true */
 static menu_dialog_defer_callback_td s_defer_callback = NULL;
 
 

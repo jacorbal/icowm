@@ -96,7 +96,7 @@ xcb_window_t ccmd_target_win(client_td *client);
  * @note Complexity: @e O(n), where @e n is the screen index
  */
 bool ccmd_screen_dim(client_td *client,
-        uint16_t *out_w, uint16_t *out_h);
+        uint16_t *restrict out_w, uint16_t *restrict out_h);
 
 /**
  * @brief Find which monitor a client is currently on
@@ -215,6 +215,48 @@ void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
  */
 void ccmd_publish_frame_extents(client_td *client,
         uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
+
+
+/**
+ * @brief Transfer focus away from a client that is leaving the current
+ *        visible focus chain
+ *
+ * Thin wrapper resolving @p client's own surface/desktop before
+ * deferring to @a client_focus_fallback itself; a no-op unless
+ * @p client is genuinely this desktop's own current active client,
+ * since some other, already-unfocused client being hidden or
+ * iconified has no focus of its own to hand off in the first place.
+ *
+ * @param client Client that is being hidden or iconified
+ *
+ * @note Implemented in @c cmds/client/focus.c
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       current desktop
+ */
+void ccmd_client_focus_fallback(client_td *client);
+
+/**
+ * @brief Create the client's icon window if it does not exist yet, or
+ *        reposition the existing one at its saved coordinates
+ *
+ * A new window is placed either at the client's own remembered
+ * @c icon_x/icon_y (if any, and not since claimed by another icon;
+ * see @c s_icon_slot_is_taken, private to @c cmds/client/icon.c) or
+ * via @c place_icon otherwise, then created with the theme's inactive
+ * icon colors.  An already-existing icon window is simply
+ * re-configured to its saved position, which may have changed since
+ * if the user dragged it.
+ *
+ * @param client     Client whose icon window to create or reposition
+ * @param icon_h_out Icon window height, including the caption band if
+ *                   the theme captions icons
+ *
+ * @note Implemented in @c cmds/client/icon.c
+ * @note Complexity: @e O(n), where @e n is the number of already-
+ *       iconified clients on the same desktop
+ */
+void ccmd_client_ensure_icon_window(client_td *client,
+        uint16_t icon_h_out);
 
 
 #endif  /* ! CMDS_CLIENT_INTERNAL_H */

@@ -90,7 +90,8 @@ static void s_handler_send_synthetic_configure_notify(
  *
  * @note Complexity: @e O(1)
  */
-static void s_gravity_adjust_pos(int32_t *out_x, int32_t *out_y,
+static void s_gravity_adjust_pos(int32_t *restrict out_x,
+        int32_t *restrict out_y,
         uint32_t old_w, uint32_t old_h,
         uint32_t new_w, uint32_t new_h,
         uint16_t gravity)

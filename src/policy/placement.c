@@ -148,7 +148,7 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
  * @note Complexity: @e O(1)
  */
 static void s_place_apply_gravity(const surface_td *surface,
-        const client_td *client, int32_t *x, int32_t *y)
+        const client_td *client, int32_t *restrict x, int32_t *restrict y)
 {
     int32_t nx;
     int32_t ny;
@@ -438,7 +438,7 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
 
 /* Find the best-scoring smart position for a newly mapped client */
 bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
-        int32_t *out_x, int32_t *out_y)
+        int32_t *restrict out_x, int32_t *restrict out_y)
 {
     desktop_td *desktop;
     const uint32_t step = 24u;
@@ -822,9 +822,9 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     if (leader != XCB_WINDOW_NONE && desktop != NULL &&
             desktop->clients != NULL &&
             wm->config->base.windows.group_related) {
+        void *elem;
         client_td *anchor = NULL;
         uint32_t sibling_count = 0u;
-        void *elem;
 
         ohtbl_foreach(desktop->clients, elem) {
             client_td *sibling = (client_td *) elem;

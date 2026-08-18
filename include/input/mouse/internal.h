@@ -4,9 +4,11 @@
  * @brief Private cross-file declarations shared across the mouse
  *        input subsystem
  *
- * Splitting @c src/input/mouse/event.c into per-topic files (resize
- * cursors, hover polling, titlebar interaction, and the main
- * press/release/enter dispatch) still leaves three functions each
+ * Splitting the mouse input subsystem into per-topic files (resize
+ * cursors, hover polling, titlebar interaction, and the press/
+ * release/enter dispatch, itself further split into
+ * @c input/mouse/event/press.c, @c event/release.c, and
+ * @c event/enter.c) still leaves three functions each
  * topic's own file exposes for at least one of the others to call
  * directly, since the underlying resize-cursor and hover state is
  * genuinely shared, not duplicated per file the way, say,
@@ -44,9 +46,9 @@
  *        window at a given pointer position
  *
  * Shared by @a mouse_handle_motion_hover and @a mouse_hover_poll_tick
- * (in @c hover.c) and @a mouse_handle_enter (in @c event.c), since any
- * one kind of event or poll can be the only signal a given transition
- * actually produces
+ * (in @c hover.c) and @a mouse_handle_enter (in @c event/enter.c),
+ * since any one kind of event or poll can be the only signal a given
+ * transition actually produces
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the client
@@ -69,7 +71,8 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
  * @brief Start (or clear) hover-poll tracking of a window's resize
  *        cursor
  *
- * Called from @a mouse_handle_enter (in @c event.c) whenever the
+ * Called from @a mouse_handle_enter (in @c event/enter.c) whenever
+ * the
  * pointer crosses into a window: an undecorated client has no separate
  * frame to fall back on, so moving from its border to its interior
  * happens entirely within one window, with no further @c EnterNotify
@@ -260,10 +263,10 @@ int32_t drag_abs_i32(int32_t value);
 int32_t drag_closer_delta(int32_t current, int32_t candidate);
 bool drag_ranges_close(int32_t start_a, int32_t end_a,
         int32_t start_b, int32_t end_b, int32_t snap);
-void drag_snap_move(int32_t *x, int32_t *y,
+void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         uint32_t width, uint32_t height);
-void drag_snap_resize(int32_t *x, int32_t *y,
-        uint32_t *width, uint32_t *height);
+void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
+        uint32_t *restrict width, uint32_t *restrict height);
 
 /* drag/outline.c */
 

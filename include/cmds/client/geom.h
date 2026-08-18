@@ -166,8 +166,8 @@ void ccmd_client_maximize(client_td *client);
  * @note Complexity: @e O(1)
  */
 bool ccmd_client_monitor_workarea(client_td *client,
-        int32_t *out_x, int32_t *out_y,
-        uint16_t *out_w, uint16_t *out_h);
+        int32_t *restrict out_x, int32_t *restrict out_y,
+        uint16_t *restrict out_w, uint16_t *restrict out_h);
 
 /**
  * @brief Re-fill an already-maximized client's own geometry against

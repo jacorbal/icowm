@@ -102,13 +102,14 @@ size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
 /* Retrieve the 'WM_CLASS' property of a window */
 int ci_get_wm_class(xcb_connection_t *connection,
         xcb_window_t window,
-        char *class_buf, size_t class_sz,
-        char *inst_buf, size_t inst_sz)
+        char *restrict class_buf, size_t class_sz,
+        char *restrict inst_buf, size_t inst_sz)
 {
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
 
-    if (class_buf == NULL || class_sz == 0) {
+    if (class_buf == NULL || class_sz == 0 ||
+            (inst_buf != NULL && inst_sz == 0)) {
         return -1;
     }
 
@@ -190,7 +191,8 @@ int ci_get_wm_class(xcb_connection_t *connection,
  * @note Complexity: @e O(1), a single round trip
  */
 static void s_client_read_legacy_name_prop(client_td *client,
-        xcb_atom_t atom, char *dest1, char *dest2, bool clear_on_empty)
+        xcb_atom_t atom, char *restrict dest1, char *restrict dest2,
+        bool clear_on_empty)
 {
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
@@ -386,10 +388,14 @@ void client_props_refresh_normal_hints(client_td *client)
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) {
-        client->size_hints.min_aspect_num = (int32_t) hints.min_aspect_num;
-        client->size_hints.min_aspect_den = (int32_t) hints.min_aspect_den;
-        client->size_hints.max_aspect_num = (int32_t) hints.max_aspect_num;
-        client->size_hints.max_aspect_den = (int32_t) hints.max_aspect_den;
+        client->size_hints.min_aspect_num =
+            (int32_t) hints.min_aspect_num;
+        client->size_hints.min_aspect_den =
+            (int32_t) hints.min_aspect_den;
+        client->size_hints.max_aspect_num =
+            (int32_t) hints.max_aspect_num;
+        client->size_hints.max_aspect_den =
+            (int32_t) hints.max_aspect_den;
     }
 
     /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least

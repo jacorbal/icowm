@@ -1676,8 +1676,9 @@ void config_destroy(config_td *config);
  *        session's own default values
  *
  * A thin dispatcher that delegates to each module's own
- * @a config_set_default_*_values (@c config/base.c, @c config/randr.c,
- * @c config/bindings.c, @c config/a11y.c, @c config/theme.c), rather
+ * @a config_set_default_*_values (@c config/base/defaults.c,
+ * @c config/randr.c, @c config/bindings.c, @c config/a11y.c,
+ * @c config/theme.c), rather
  * than setting any field directly itself.
  *
  * @param config Pointer to the configuration structure to set the

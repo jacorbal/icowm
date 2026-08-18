@@ -80,7 +80,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * queued 'client_send_event_unfocus'/'client_send_event_focus' pair
      * this used to use: 'ccmd_client_unfocus' redirects the X server's
      * real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see its own
-     * doc comment in 'cmds/client/basic.c'), on the assumption that
+     * doc comment in 'cmds/client/focus.c'), on the assumption that
      * a caller unfocusing a client to immediately focus another
      * "harmlessly overrides this a moment later".  That assumption only
      * holds if the override actually runs before anything else can

@@ -168,16 +168,15 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
             if (desktop == NULL || desktop->clients == NULL) {
                 continue;
             }
-
             ohtbl_foreach(desktop->clients, elem) {
-                const client_td *c = (client_td *) elem;
+                client_td *c = (client_td *) elem;
 
                 if (c != NULL && !client_is_locked(c)) {
                     s_append_client_summary(array, c, desktop, surface);
                 }
             }
-        } /* ! for (i) */
-    } /* ! for (node) */
+        }
+    }
 
     return resp;
 }

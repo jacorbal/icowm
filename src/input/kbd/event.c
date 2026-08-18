@@ -246,7 +246,7 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  * @note Complexity: @e O(1)
  */
 static void s_resolve_menu_position(surface_td *surface, bool under_mouse,
-        int16_t *out_x, int16_t *out_y)
+        int16_t *restrict out_x, int16_t *restrict out_y)
 {
     *out_x = (int16_t) (surface->properties.dim.w / 2u);
     *out_y = (int16_t) (surface->properties.dim.h / 2u);
@@ -599,7 +599,8 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
          * does nothing at all, and Enter/Space only activate "OK"
          * once it has actually been selected (Tab, just above, or a
          * direct click; see 'menu_message_dialog_handle_click' in
-         * input/mouse/event.c, which is not gated the same way, since
+         * input/mouse/event/press.c, which is not gated the same
+         * way, since
          * a deliberate click already demonstrates the same intent
          * selecting first and then pressing Enter/Space would).
          * Every other level keeps the previous, quicker-to-dismiss

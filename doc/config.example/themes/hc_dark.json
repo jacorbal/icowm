@@ -225,55 +225,6 @@
 
     },
 
-    "search": {
-        "input": {
-            "font": "fixed bold",
-            "color": {
-                "background": "#ffff00",
-                "foreground": "#000000"
-            }
-        },
-        "selected": {
-            "font": "fixed",
-            "color": {
-                "background": "#ffff00",
-                "foreground": "#000000"
-            }
-        },
-        "unselected": {
-            "font": "fixed",
-            "color": {
-                "background": "#1a1a1a",
-                "foreground": "#e0e0e0"
-            }
-        },
-        "border": {
-            "color": "#a0a0a0",
-            "width": 2
-        }
-    },
-
-    "prompt": {
-        "label": {
-            "font": "fixed bold",
-            "color": {
-                "background": "#ffff00",
-                "foreground": "#000000"
-            }
-        },
-        "input": {
-            "font": "fixed bold",
-            "color": {
-                "background": "#1a1a1a",
-                "foreground": "#e0e0e0"
-            }
-        },
-        "border": {
-            "color": "#a0a0a0",
-            "width": 2
-        }
-    },
-
     "scratchpad": {
         "border": {
             "color": "#ffff00",

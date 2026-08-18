@@ -61,7 +61,7 @@
 /**
  * @brief Thickness, in pixels, of each of the 4 strip windows an
  *        outline-mode drag draws as its own stand-in rectangle (see
- *        @c windows.solid-drag, in @c config.md)
+ *        @c windows.solid-drag, config.md)
  */
 #define WM_DRAG_OUTLINE_BORDER_WIDTH (4u)
 

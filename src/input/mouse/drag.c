@@ -933,7 +933,7 @@ bool drag_is_icon_drag(void)
         s_drag.drag_window == s_drag.client->icon_window;
 }
 
-void drag_current_pos(int32_t *x, int32_t *y)
+void drag_current_pos(int32_t *restrict x, int32_t *restrict y)
 {
     if (x != NULL) {
         *x = s_drag.client_cur_x;

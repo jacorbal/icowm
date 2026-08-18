@@ -121,7 +121,8 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
  */
 void menu_dialog_center(xcb_connection_t *connection,
         const surface_td *surface,
-        uint16_t width, uint16_t height, int16_t *out_x, int16_t *out_y);
+        uint16_t width, uint16_t height,
+        int16_t *restrict out_x, int16_t *restrict out_y);
 
 
 #endif  /* ! MENU_DIALOG_H */

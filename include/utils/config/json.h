@@ -65,8 +65,8 @@ uint32_t json_hex2uint32(const char *hex_color);
  *
  * @note Complexity: @e O(n), where @e n is the length of @p field
  */
-bool json_field_normalize(const char *field, char *field_norm,
-        size_t size);
+bool json_field_normalize(const char *restrict field,
+        char *restrict field_norm, size_t size);
 
 /**
  * @brief Retrieve a JSON object item by canonicalized field name

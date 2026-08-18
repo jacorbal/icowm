@@ -264,7 +264,8 @@ static void s_cb_move(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_resize_grab_corner(const client_td *client,
-        const surface_td *surface, int32_t *out_x, int32_t *out_y)
+        const surface_td *surface, int32_t *restrict out_x,
+        int32_t *restrict out_y)
 {
     int32_t win_center_x;
     int32_t win_center_y;

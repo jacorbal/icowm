@@ -320,7 +320,7 @@ static void s_test_representative_fields(void)
     TAP_EQ_INT(base.windows.focus_policy, CONFIG_FOCUS_POLICY_SLOPPY,
             "windows.focus.policy");
     TAP_OK(!base.windows.focus.focus_new,
-            "windows.focus.focused-new");
+            "windows.focus.focus-new");
     TAP_EQ_INT(base.windows.placement_policy,
             CONFIG_PLACEMENT_POLICY_CASCADE, "windows.placement.policy");
     TAP_EQ_INT(base.windows.monitor_policy,
@@ -384,7 +384,7 @@ static void s_test_icons_placement_legacy_windows_location(void)
 }
 
 
-/* desktops.show-overlay/warp_on_edge_drag/wrap_at_bounds/margins, a
+/* desktops.show-overlay/warp-on-edge-drag/wrap-at-bounds/margins, a
  * sibling of 'topology' at the config root, meant to still apply on
  * every reload (unlike topology) */
 static void s_test_desktop_behavior(void)
@@ -399,7 +399,7 @@ static void s_test_desktop_behavior(void)
 
     TAP_OK(desktop.show_overlay, "desktops.show-overlay");
     TAP_OK(desktop.warp_on_edge_drag, "desktops.warp-on-edge-drag");
-    TAP_OK(desktop.wrap_at_bounds, "desktops.is-wrap-at-bounds");
+    TAP_OK(desktop.wrap_at_bounds, "desktops.wrap-at-bounds");
     TAP_EQ_INT((int) desktop.margins.top, 3, "desktops.margins.top");
     TAP_EQ_INT((int) desktop.margins.left, 7, "desktops.margins.left");
 }

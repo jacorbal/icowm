@@ -89,12 +89,12 @@ static void s_client_release_heap_fields(client_td *client)
 /**
  * @brief Initialize the common non-zero client defaults
  *
- * @param client      Client structure to initialize
- * @param connection  XCB connection
- * @param ewmh        EWMH connection
- * @param theme       Theme configuration
- * @param config_base Base configuration
- * @param a11y        Accessibility (a11y) configuration
+ * @param client        Client structure to initialize
+ * @param connection    XCB connection
+ * @param ewmh          EWMH connection
+ * @param theme         Theme configuration
+ * @param config_base   Base configuration
+ * @param a11y          Accessibility (a11y) configuration
  */
 static void s_client_init_common(client_td *client,
         xcb_connection_t *connection,
@@ -209,8 +209,8 @@ void client_destroy(client_td *client)
 }
 
 
-/* Refresh a client's own user-time from a genuine input event that just
- * reached it */
+/* Refresh a client's own user-time from a genuine input event that
+ * just reached it */
 void client_update_user_time(client_td *client, uint32_t time)
 {
     if (client == NULL) {
@@ -278,26 +278,26 @@ void client_apply_border(client_td *client, bool use_active_style)
 
 
 /**
- * @brief Read @c WM_PROTOCOLS and set up @c _NET_WM_SYNC_REQUEST
- *         support
+ * @brief Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support
  *
- * Interns @c WM_DELETE_WINDOW, @c WM_TAKE_FOCUS, and @c _NET_WM_PING,
- * caches which of those (plus @c _NET_WM_SYNC_REQUEST) the window
- * advertises support for, and, when @c _NET_WM_SYNC_REQUEST is both
- * advertised and the XSync extension is available, reads the client-set
- * counter and creates the alarm watching it (see @a ccmd_client_resize
- * and @a handler_sync_event for how that alarm is consumed later).
+ * Interns 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS', and '_NET_WM_PING',
+ * caches which of those (plus '_NET_WM_SYNC_REQUEST') the window
+ * advertises support for, and, when '_NET_WM_SYNC_REQUEST' is both
+ * advertised and the XSync extension is available, reads the
+ * client-set counter and creates the alarm watching it (see
+ * 'ccmd_client_resize' and 'handler_sync_event' for how that alarm is
+ * consumed later).
  *
  * @param connection XCB connection
- * @param ewmh       EWMH connection, for @c WM_PROTOCOLS and
- *                   @c _NET_WM_SYNC_REQUEST_COUNTER
+ * @param ewmh       EWMH connection, for 'WM_PROTOCOLS' and
+ *                   '_NET_WM_SYNC_REQUEST_COUNTER'
  * @param window     Window being adopted
  * @param client     Client being initialized; its protocol-support
- *                   flags, @p sync_counter, and @p sync_alarm fields
+ *                   flags, 'sync_counter', and 'sync_alarm' fields
  *                   are set here
  *
  * @note Complexity: @e O(n), where @e n is the number of protocols
- *       @c WM_PROTOCOLS advertises
+ *       'WM_PROTOCOLS' advertises
  */
 static void s_client_read_wm_protocols(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
@@ -376,18 +376,18 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
             uint32_t alarm_values[7];
 
             client->sync_alarm = xcb_generate_id(connection);
-            /* Per the XSync value-list order (ascending 'CA_*' bit
-             * pos.): 'COUNTER', 'VALUE_TYPE', 'VALUE', 'TEST_TYPE',
-             * 'DELTA'.  'VALUE' and 'DELTA' are each a 64-bit 'INT64'
-             * (hi-word, then lo word), not a single 'CARD32'.  Omitting
-             * 'VALUE' entirely and treating 'DELTA' as one word (an
-             * earlier version of this code did both) leaves the
-             * value-list shorter than what the request's own mask calls
-             * for, which the server rejects.  The alarm XID above then
-             * never actually exists server-side, so it can never fire,
-             * and every resize silently falls back to only ever
-             * applying once every 'WM_SYNC_MAX_WAIT_TICKS' attempts
-             * instead of being acknowledged promptly. */
+            /* Per the XSync value-list order (ascending 'CA_*' bit pos.):
+             * 'COUNTER', 'VALUE_TYPE', 'VALUE', 'TEST_TYPE', 'DELTA'.
+             * 'VALUE' and 'DELTA' are each a 64-bit 'INT64' (hi-word,
+             * then lo word), not a single 'CARD32'.  Omitting 'VALUE'
+             * entirely and treating 'DELTA' as one word (an earlier
+             * version of this code did both) leaves the value-list
+             * shorter than what the request's own mask calls for, which
+             * the server rejects; the alarm XID above then never
+             * actually exists server-side, so it can never fire, and
+             * every resize silently falls back to only ever applying
+             * once every 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of
+             * being acknowledged promptly. */
             alarm_values[0] = client->sync_counter;         /* COUNTER */
             alarm_values[1] = (uint32_t) XCB_SYNC_VALUETYPE_RELATIVE;
                                                             /* VALUE_TYPE */
@@ -424,13 +424,14 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
 
 
 /**
- * @brief Read @c WM_HINTS, @c WM_CLIENT_LEADER, and @c WM_TRANSIENT_FOR
+ * @brief Read 'WM_HINTS', 'WM_CLIENT_LEADER', and 'WM_TRANSIENT_FOR'
  *
  * @c WM_HINTS supplies the input model, initial iconic state, window
  * group, and urgency; @c WM_CLIENT_LEADER (ICCCM §5.1) and
- * @c WM_HINTS' own window group together let @a client_group_leader and
- * @a place_apply cluster windows belonging to the same application;
- * @c WM_TRANSIENT_FOR identifies dialogs and their parent.
+ * @c WM_HINTS' own window group together let @c client_group_leader
+ * and @c place_apply cluster windows belonging to the same
+ * application; @c WM_TRANSIENT_FOR identifies dialogs and their
+ * parent.
  *
  * @param connection XCB connection
  * @param window     Window being adopted
@@ -503,17 +504,17 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
 
 
 /**
- * @brief Read @c _NET_WM_STRUT_PARTIAL, falling back to legacy
- *        @c _NET_WM_STRUT, for dock/panel windows
+ * @brief Read '_NET_WM_STRUT_PARTIAL', falling back to legacy
+ *        '_NET_WM_STRUT', for dock/panel windows
  *
  * @c _NET_WM_STRUT_PARTIAL additionally carries the start/end range
  * each edge's reservation applies to; the legacy, coordinate-less
- * @c _NET_WM_STRUT is only consulted when the partial form is absent.
+ * '_NET_WM_STRUT' is only consulted when the partial form is absent.
  *
  * @param ewmh   EWMH connection
  * @param window Window being adopted
  * @param client Client being initialized; its
- *               @p layout.strut_partial fields are set here
+ *               @c layout.strut_partial fields are set here
  *
  * @note Complexity: @e O(1)
  */
@@ -573,15 +574,15 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
 
 
 /**
- * @brief Read @c _NET_WM_WINDOW_TYPE to determine client type and
+ * @brief Read '_NET_WM_WINDOW_TYPE' to determine client type and
  *        decoration
  *
  * Dock and notification windows are additionally stripped of frame
  * extents, made sticky (dock only), excluded from taskbar/pager, and
  * unfocusable, on top of the type itself; every other recognized type
- * only sets @p properties.type, undecorating menu/splash windows.  The
- * first recognized type in @p type_reply wins; an unrecognized type
- * leaves @p properties.type at whatever @a client_init already
+ * only sets @c properties.type, undecorating menu/splash windows.
+ * The first recognized type in @c type_reply wins; an unrecognized
+ * type leaves @c properties.type at whatever @c client_init already
  * defaulted it to.
  *
  * @param connection XCB connection, to intern
@@ -593,7 +594,7 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  *                   set here
  *
  * @note Complexity: @e O(n), where @e n is the number of atoms
- *       @c _NET_WM_WINDOW_TYPE lists
+ *       '_NET_WM_WINDOW_TYPE' lists
  */
 static void s_client_read_window_type(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
@@ -670,29 +671,29 @@ static void s_client_read_window_type(xcb_connection_t *connection,
 
 
 /**
- * @brief Read @c _MOTIF_WM_HINTS to honor a client's own decoration
+ * @brief Read '_MOTIF_WM_HINTS' to honor a client's own decoration
  *        request
  *
  * The long-standing de-facto convention several toolkits and
  * applications (e.g., Xpad) still use to explicitly request no window
- * decorations, predating @c _NET_WM_WINDOW_TYPE.
+ * decorations, predating '_NET_WM_WINDOW_TYPE'.
  *
  * Format: 5x CARD32
  *      { flags, functions, decorations, input_mode, status };
  *
- * only 'flags' bit-1 (@c MWM_HINTS_DECORATIONS) and @p decorations are
+ * only 'flags' bit-1 ('MWM_HINTS_DECORATIONS') and 'decorations' are
  * consulted here.
  *
  * An explicit request to turn decorations off overrides whatever the
- * type-based defaults @a s_client_read_window_type already chose;
- * a request to turn them on is honored only if the theme itself
+ * type-based defaults @c s_client_read_window_type already chose; a
+ * request to turn them on is honored only if the theme itself
  * decorates windows by default, so this never re-decorates a client
  * type (dock, splash, menu, &c.) that is unconditionally undecorated
  * there.
  *
  * @param connection XCB connection
  * @param window     Window being adopted
- * @param theme      Active theme, to check @p window.is_decorated
+ * @param theme      Active theme, to check @c window.is_decorated
  *                   before honoring a request to turn decorations on
  * @param client     Client being initialized; its decoration flag and
  *                   frame extents may be changed here
@@ -737,28 +738,28 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
                 }
             }
             free(motif_r);
-        } /* ! if (!motif_r) */
-    } /* ! if (motif_hints_atom) */
+        }
+    }
 }
 
 
 /**
- * @brief Read the pre-existing @c _NET_WM_STATE property so that states
- *        an application sets on itself before ever mapping are honored
- *        from the start
+ * @brief Read the pre-existing '_NET_WM_STATE' property so that
+ *        states an application sets on itself before ever mapping
+ *        are honored from the start
  *
  * Without this, such a state would only take effect the first time the
  * application happens to resend it later via a @c _NET_WM_STATE
  * @c ClientMessage (i.e., before the window manager has a chance to
  * intervene; e.g., toggling a "skip taskbar" preference off and back on
- * in Xpad's settings).  Panels and dock windows that set
+ * in xpad's settings): panels and dock windows that set
  * @c _NET_WM_STATE_BELOW (e.g., tint2) get the BELOW layer, and
  * applications that set @c _NET_WM_STATE_SKIP_TASKBAR /
- * @c _NET_WM_STATE_SKIP_PAGER (e.g., Xpad's "hide from taskbar" option,
- * enabled from its own startup) are excluded from the cycle menu and
- * window list immediately rather than only after the user re-toggles
- * the same preference in that application once the window manager is
- * already running.
+ * @c _NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from taskbar"
+ * option, enabled from its own startup) are excluded from the cycle
+ * menu and window list immediately rather than only after the user
+ * re-toggles the same preference in that application once the window
+ * manager is already running.
  *
  * @param connection XCB connection
  * @param ewmh       EWMH connection; a no-op if @c NULL
@@ -767,7 +768,7 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  *                   skip-taskbar/skip-pager flags may be set here
  *
  * @note Complexity: @e O(n), where @e n is the number of atoms
- *       @c _NET_WM_STATE lists
+ *       '_NET_WM_STATE' lists
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
@@ -784,10 +785,8 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_atom_t atom_max_vert;
         xcb_atom_t atom_demands_attention;
 
-        atom_above = atom_intern(connection,
-                "_NET_WM_STATE_ABOVE", true);
-        atom_below = atom_intern(connection,
-                "_NET_WM_STATE_BELOW", true);
+        atom_above = atom_intern(connection, "_NET_WM_STATE_ABOVE", true);
+        atom_below = atom_intern(connection, "_NET_WM_STATE_BELOW", true);
         atom_skip_taskbar = atom_intern(connection,
                 "_NET_WM_STATE_SKIP_TASKBAR", true);
         atom_skip_pager = atom_intern(connection,
@@ -838,7 +837,6 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                         client_urge(client);
                     }
                 }
-
                 LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
                         " layer=%u, skip_taskbar=%d, skip_pager=%d," \
                         " fullscreen=%d, maximized_horz=%d," \
@@ -864,26 +862,26 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  *        width, and set its default cursor
  *
  * For dock and notification windows, preserves the application's own
- * event mask (which includes @c ButtonPress / @c ButtonRelease needed
- * for systray interaction) and ORs in only the window manager's
- * required events; replacing the mask wholesale would strip
- * @c ButtonPress, making systray icons non-interactive after a
- * @c PassiveGrab replay.  Every other client type gets a fresh mask
- * covering focus, geometry, and pointer tracking.
+ * event mask (which includes 'ButtonPress'/'ButtonRelease' needed for
+ * systray interaction) and ORs in only the window manager's required
+ * events; replacing the mask wholesale would strip 'ButtonPress',
+ * making systray icons non-interactive after a 'PassiveGrab' replay.
+ * Every other client type gets a fresh mask covering focus, geometry,
+ * and pointer tracking.
  *
  * The border width is applied before subscribing to
- * @c STRUCTURE_NOTIFY so the resulting @c ConfigureNotify is not
- * delivered to the window manager.  At this point the window has not
+ * 'STRUCTURE_NOTIFY' so the resulting 'ConfigureNotify' is not
+ * delivered to the window manager: at this point the window has not
  * yet been placed, so the event would carry the X-server-initial
- * position (typically @c (0,0)), and @a handler_configure_notify would
- * overwrite the placement position computed later by @a place_apply,
+ * position (typically (0,0)), and 'handler_configure_notify' would
+ * overwrite the placement position computed later by 'place_apply',
  * causing an undecorated window to flicker back to the origin on
  * every render cycle.  Dock windows always get zero border width.
  *
  * The explicit plain-pointer cursor set here, once, is what makes the
  * resize cursor set while hovering the frame's own border reliably
  * give way to a plain pointer the instant the pointer crosses into
- * this client's own content.  X11 always prefers the nearest explicit
+ * this client's own content: X11 always prefers the nearest explicit
  * cursor over an inherited one, resolved by the server itself on
  * every crossing, with no window-manager-side event handling
  * required.  A purely event-driven reset (motion, or even
@@ -946,8 +944,8 @@ static void s_client_subscribe_events(xcb_connection_t *connection,
 }
 
 
-/* Initialize a new client, adopting an existing X window under window
- * manager control */
+/* Initialize a new client, adopting an existing X window under
+ * window manager control */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
@@ -1025,8 +1023,7 @@ client_td *client_init(xcb_connection_t *connection,
     snprintf(client->info.visible_name,
             CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
 
-    /* Read '_NET_WM_NAME' (UTF-8) first;
-     * fall back to 'WM_NAME' (Latin-1) */
+    /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
     ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
         s_client_set_display_name(client, net_wm_name);

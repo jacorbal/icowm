@@ -214,8 +214,9 @@ const struct strut_partial_s *systray_get_reserved_strut(
 
 /* Return the tray's own current on-screen rectangle on 'surface', or
  * 'false' when it is not currently showing there at all */
-bool systray_get_geometry(const surface_td *surface, int32_t *out_x,
-        int32_t *out_y, uint16_t *out_w, uint16_t *out_h)
+bool systray_get_geometry(const surface_td *surface,
+        int32_t *restrict out_x, int32_t *restrict out_y,
+        uint16_t *restrict out_w, uint16_t *restrict out_h)
 {
     xcb_get_geometry_cookie_t cookie;
     xcb_get_geometry_reply_t *reply;

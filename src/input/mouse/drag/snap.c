@@ -109,7 +109,7 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
  * @note Complexity: @e O(n), where @e n is the number of clients in the
  *       stacking list
  */
-void drag_snap_move(int32_t *x, int32_t *y,
+void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         uint32_t width, uint32_t height)
 {
     int32_t snap;
@@ -216,8 +216,8 @@ void drag_snap_move(int32_t *x, int32_t *y,
 }
 
 
-void drag_snap_resize(int32_t *x, int32_t *y,
-        uint32_t *width, uint32_t *height)
+void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
+        uint32_t *restrict width, uint32_t *restrict height)
 {
     int32_t snap;
     int32_t right;

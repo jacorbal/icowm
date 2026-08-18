@@ -116,8 +116,8 @@ void ccmd_client_focus(client_td *client);
  * got focused on: callers that only want a fallback under that
  * narrower condition already gate the call on their own desktop's
  * remembered active client having been genuinely set (see
- * @c surface_clients_show's own two-block split, surface/actions.c,
- * for exactly this distinction).
+ * @c surface_clients_show's own two-block split,
+ * surface/actions/clients.c, for exactly this distinction).
  *
  * @param desktop Desktop whose stacking order is searched, and whose
  *                own @c client_active_id / @c focus_dirty are updated

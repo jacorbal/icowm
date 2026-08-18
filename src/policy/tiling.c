@@ -136,7 +136,8 @@ static void s_icon_slot_to_pixel(enum config_icon_placement_e policy,
         uint16_t slot, uint16_t max_primary, uint16_t margin,
         uint16_t step_x, uint16_t step_y, uint16_t icon_w,
         uint16_t icon_h, uint16_t screen_w, uint16_t screen_h,
-        int32_t border_twice, int32_t *out_ix, int32_t *out_iy)
+        int32_t border_twice, int32_t *restrict out_ix,
+        int32_t *restrict out_iy)
 {
     uint16_t pri = (uint16_t) (slot % max_primary);
     uint16_t sec = (uint16_t) (slot / max_primary);

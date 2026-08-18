@@ -363,9 +363,78 @@ static void s_test_representative_fields_remaining_sections(void)
 }
 
 
+/* A titlebar shorter than the button size plus its own vertical
+ * padding is floored to that exact threshold; 0 (which disables the
+ * titlebar entirely) is left untouched, and a value already at or
+ * above the threshold is left untouched too */
+static void s_test_titlebar_height_floor(void)
+{
+    char path[256];
+    struct config_theme_s theme;
+
+    /* Below the floor, no padding block in the file, so
+     * padding.vertical stays at whatever the caller's own struct
+     * already held (0 here, freshly zeroed): raised to
+     * WM_DECOR_BTN_SIZE (12) + 2 * 0 = 12 */
+    memset(&theme, 0, sizeof(theme));
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"height\": 1} } }");
+    config_load_theme(path, &theme);
+    TAP_EQ_INT((int) theme.window.titlebar.height, 12,
+            "height below the floor raised to the button size alone"
+            " when vertical padding is 0");
+    unlink(path);
+
+    /* Below the floor, custom padding.vertical (5) from the same
+     * file: raised to 12 + 2 * 5 = 22, confirming the floor uses the
+     * padding actually loaded, not a hardcoded default */
+    memset(&theme, 0, sizeof(theme));
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"height\": 1,"
+        " \"padding\": {\"vertical\": 5} } } }");
+    config_load_theme(path, &theme);
+    TAP_EQ_INT((int) theme.window.titlebar.height, 22,
+            "height below the floor raised using the theme's own"
+            " loaded vertical padding, not a hardcoded one");
+    unlink(path);
+
+    /* 0 disables the titlebar entirely; never touched by the floor */
+    memset(&theme, 0, sizeof(theme));
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"height\": 0} } }");
+    config_load_theme(path, &theme);
+    TAP_EQ_INT((int) theme.window.titlebar.height, 0,
+            "height of 0 (disables the titlebar) left untouched");
+    unlink(path);
+
+    /* Already at or above the floor: left untouched */
+    memset(&theme, 0, sizeof(theme));
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"height\": 30} } }");
+    config_load_theme(path, &theme);
+    TAP_EQ_INT((int) theme.window.titlebar.height, 30,
+            "height already above the floor left untouched");
+    unlink(path);
+
+    /* The realistic production sequence: defaults applied first
+     * (padding.vertical 2, per config_set_default_theme_values), then
+     * a file overriding only height; raised to 12 + 2 * 2 = 16 using
+     * that already-defaulted padding, confirmed independently of the
+     * bare-struct cases above */
+    config_set_default_theme_values(&theme);
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"height\": 1} } }");
+    config_load_theme(path, &theme);
+    TAP_EQ_INT((int) theme.window.titlebar.height, 16,
+            "height below the floor raised using the default vertical"
+            " padding when a file does not override it either");
+    unlink(path);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(41);
+    TAP_PLAN(46);
 
     s_test_missing_file();
     s_test_empty_file();
@@ -373,6 +442,7 @@ int main(void)
     s_test_button_list_deduplicates_first_wins();
     s_test_button_list_clamped_to_max();
     s_test_titlebar_alignment();
+    s_test_titlebar_height_floor();
     s_test_systray_text_valign();
     s_test_theme_colors_full_shape();
     s_test_unconditional_calls_are_safe_when_absent();

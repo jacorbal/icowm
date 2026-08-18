@@ -184,7 +184,11 @@ $(O_DIR)/tests/test_rules: $(TESTS_DIR)/test_rules.c \
 		$(S_DIR)/rules.c \
 		$(S_DIR)/rules/match.c \
 		$(S_DIR)/config.c \
-		$(S_DIR)/config/base.c \
+		$(S_DIR)/config/base/parse.c \
+		$(S_DIR)/config/base/desktops.c \
+		$(S_DIR)/config/base/defaults.c \
+		$(S_DIR)/config/base/systray.c \
+		$(S_DIR)/config/base/load.c \
 		$(S_DIR)/config/theme.c \
 		$(S_DIR)/config/bindings.c \
 		$(S_DIR)/config/randr.c \
@@ -339,7 +343,11 @@ $(O_DIR)/tests/config/test_memguard: \
 		$(S_DIR)/config/memguard/theme.c \
 		$(S_DIR)/config/memguard/load.c \
 		$(S_DIR)/config/memguard/defaults.c \
-		$(S_DIR)/config/base.c \
+		$(S_DIR)/config/base/parse.c \
+		$(S_DIR)/config/base/desktops.c \
+		$(S_DIR)/config/base/defaults.c \
+		$(S_DIR)/config/base/systray.c \
+		$(S_DIR)/config/base/load.c \
 		$(S_DIR)/config.c \
 		$(S_DIR)/config/theme.c \
 		$(S_DIR)/config/bindings.c \
@@ -363,7 +371,11 @@ $(O_DIR)/tests/config/test_lint: \
 
 $(O_DIR)/tests/config/test_base: \
 		$(TESTS_DIR)/config/test_base.c \
-		$(S_DIR)/config/base.c \
+		$(S_DIR)/config/base/parse.c \
+		$(S_DIR)/config/base/desktops.c \
+		$(S_DIR)/config/base/defaults.c \
+		$(S_DIR)/config/base/systray.c \
+		$(S_DIR)/config/base/load.c \
 		$(S_DIR)/utils/config/json.c \
 		$(S_DIR)/utils/safe/safestr.c \
 		$(S_DIR)/logger.c
@@ -373,7 +385,11 @@ $(O_DIR)/tests/config/test_base: \
 $(O_DIR)/tests/config/test_config: \
 		$(TESTS_DIR)/config/test_config.c \
 		$(S_DIR)/config.c \
-		$(S_DIR)/config/base.c \
+		$(S_DIR)/config/base/parse.c \
+		$(S_DIR)/config/base/desktops.c \
+		$(S_DIR)/config/base/defaults.c \
+		$(S_DIR)/config/base/systray.c \
+		$(S_DIR)/config/base/load.c \
 		$(S_DIR)/config/theme.c \
 		$(S_DIR)/config/bindings.c \
 		$(S_DIR)/config/randr.c \
