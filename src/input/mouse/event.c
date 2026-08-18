@@ -31,6 +31,7 @@
 #include <utils/cursor.h>
 
 /* Render includes */
+#include <render/outdate.h>
 #include <render/surface.h>
 
 /* Policy includes */
@@ -601,20 +602,24 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 /* Titlebar button hit-test */
 
 /**
- * @brief Mark a desktop and its surface outdated, either of which may
- *        be null
+ * @brief Mark a client, its own desktop, and its own surface as
+ *        outdated together
  *
  * Shared by every titlebar-click and scroll case in @c s_mouse_hit_
  * titlebar_buttons that changes the client's state and needs the next
  * render pass to pick it up.
  *
+ * @param client  Client whose own visual state just changed, or
+ *                @c NULL to skip
  * @param desktop Desktop to mark outdated, or @c NULL to skip
  * @param surface Surface to mark outdated, or @c NULL to skip
  *
  * @note Complexity: @e O(1)
  */
-static void s_mark_outdated(desktop_td *desktop, surface_td *surface)
+static void s_mark_outdated(client_td *client, desktop_td *desktop,
+        surface_td *surface)
 {
+    wm_outdate_client(client);
     if (desktop != NULL) { desktop->is_outdated = true; }
     if (surface != NULL) { surface->is_outdated = true; }
 }
@@ -796,7 +801,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
                 s_titlebar_button_at(right, right_n, (int16_t) ex,
                     &button)) {
             s_titlebar_button_action(button, client, can_maximize, event);
-            s_mark_outdated(desktop, surface);
+            s_mark_outdated(client, desktop, surface);
             return true;
         }
     }
@@ -805,7 +810,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_4) {
         if (!client_is_shaded(client)) {
             enact_client_shade(client);
-            s_mark_outdated(desktop, surface);
+            s_mark_outdated(client, desktop, surface);
         }
         return true;
     }
@@ -813,7 +818,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_5) {
         if (client_is_shaded(client)) {
             enact_client_unshade(client);
-            s_mark_outdated(desktop, surface);
+            s_mark_outdated(client, desktop, surface);
         }
         return true;
     }
@@ -867,7 +872,7 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
             s_last_titlebar_press_time = 0;
             s_last_titlebar_press_win = XCB_NONE;
             enact_client_toggle_shade(client);
-            s_mark_outdated(desktop, surface);
+            s_mark_outdated(client, desktop, surface);
         } else {
             /* Single left-click: start move drag */
             if (!client_is_maximized(client) &&

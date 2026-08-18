@@ -777,6 +777,15 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     state->selected = match_idx;
     s_ctxmenu_repaint_entries(state, sel, match_idx);
     if (match_count == 1) {
+        if (state->entries[match_idx].type == CTXMENU_SUBMENU) {
+            /* Open submenu on a unique typed-letter match, same as
+             * Enter and Right arrow already do; falling through to
+             * 's_ctxmenu_activate_entry' instead, which has no
+             * 'CTXMENU_SUBMENU' case of its own, would silently
+             * close the whole menu without ever opening it. */
+            return ctxmenu_handle_keypress(connection, surface,
+                    state, KS_RIGHT, config);
+        }
         s_activated_by_keyboard = true;
         return s_ctxmenu_activate_entry(state, match_idx);
     }
