@@ -413,4 +413,3 @@ void client_props_refresh_normal_hints(client_td *client)
         }
     }
 }
-

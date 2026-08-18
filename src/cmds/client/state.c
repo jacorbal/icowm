@@ -305,7 +305,7 @@ void ccmd_client_shade(client_td *client)
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
     client_shade(client);
-    client_sync_decoration_layout(client);
+    client_decoration_layout_sync(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     ccmd_add_states(client, 1, "_NET_WM_STATE_SHADED");
@@ -418,8 +418,8 @@ void ccmd_client_fullscreen(client_td *client)
     if (ccmd_client_monitor(client, NULL, &monitor)) {
         mx = monitor.x;
         my = monitor.y;
-        sw = geom_clamp_dim((int32_t) monitor.w);
-        sh = geom_clamp_dim((int32_t) monitor.h);
+        sw = geom_dim_clamp((int32_t) monitor.w);
+        sh = geom_dim_clamp((int32_t) monitor.h);
     } else if (!ccmd_screen_dim(client, &sw, &sh)) {
         return;
     }
@@ -980,7 +980,7 @@ void ccmd_client_toggle_decorate(client_td *client)
             }
 
             if (client->frame != 0) {
-                client_sync_decoration_layout(client);
+                client_decoration_layout_sync(client);
             }
         }
     }

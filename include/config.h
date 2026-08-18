@@ -424,7 +424,7 @@ struct config_base_s {
          * from @p desktop_update_workarea's own point of view, so there
          * is nothing meaningful to add to.
          *
-         * @see @a s_systray_update_strut in @c systray/layout.c
+         * @see @a s_systray_strut_update in @c systray/layout.c
          */
         struct {
             uint32_t left;
@@ -987,7 +987,7 @@ struct config_theme_s {
          * iconified ('f'/'m'/'h'/'v'; none for plain normal).
          *
          * @see @p client_properties_s.pre_iconify_state in @c client.h
-         *      and @a ri_draw_icon_hints in @c render/icon.c
+         *      and @a ri_icon_hints_draw in @c render/icon.c
          */
         bool show_hints;
 
@@ -1017,7 +1017,7 @@ struct config_theme_s {
          * with @p padding pixels of breathing room around and between
          * icons.
          *
-         * @see @p systray_enforce_icon_size in @c systray.c
+         * @see @p systray_icon_size_enforce in @c systray.c
          */
         struct {
             uint32_t size;      /**< Side length in pixels of each
@@ -1652,7 +1652,7 @@ typedef struct {
  * @note Complexity: @e O(1), as it only involves memory allocation and
  *       initialization
  *
- * @see @a config_init_memguard in @c config/memguard.h for its own
+ * @see @a config_memguard_init in @c config/memguard.h for its own
  *      completely separate path, which this function knows nothing
  *      about
  */

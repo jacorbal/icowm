@@ -133,7 +133,7 @@ void ci_set_decoration_defaults(client_td *client,
 
 /* Update a decorated client's border width and titlebar height to match
  * the current theme and focus state */
-void client_resync_theme_layout(client_td *client, bool is_active)
+void client_theme_layout_resync(client_td *client, bool is_active)
 {
     uint16_t new_border;
     uint16_t new_title_height;
@@ -210,7 +210,7 @@ void client_resync_theme_layout(client_td *client, bool is_active)
 
     /* The render pass picks this client up from here: it applies
      * 'geometry.cur' to the frame via 'xcb_configure_window' and then
-     * calls 'client_sync_decoration_layout' (below) to reposition the
+     * calls 'client_decoration_layout_sync' (below) to reposition the
      * content window and titlebar to match the new 'frame_extents'; the
      * exact same sequence any other geometry change already goes
      * through, so there is nothing further to duplicate here. */
@@ -338,7 +338,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
 
 /* Synchronize the inner and titlebar geometry with the current frame
  * extents */
-void client_sync_decoration_layout(client_td *client)
+void client_decoration_layout_sync(client_td *client)
 {
     uint16_t left;
     uint16_t right;
@@ -394,7 +394,7 @@ void client_sync_decoration_layout(client_td *client)
 
 
 /* Clamp a width/height pair into a client's own aspect-ratio bounds */
-void client_clamp_aspect_ratio(const client_td *client,
+void client_aspect_ratio_clamp(const client_td *client,
         uint32_t width, uint32_t *height)
 {
     if (client == NULL || height == NULL || !client->size_hints.valid) {
@@ -434,7 +434,7 @@ void client_clamp_aspect_ratio(const client_td *client,
 
 
 /* Apply ICCCM size-hint constraints to a requested width and height */
-void client_constrain_size(const client_td *client,
+void client_size_constrain(const client_td *client,
         uint32_t *width, uint32_t *height)
 {
     uint32_t req_w;
@@ -540,7 +540,7 @@ void client_constrain_size(const client_td *client,
         }
 
         /* ICCCM §4.1.2.3: clamp the width/height ratio into
-         * ['min_aspect', 'max_aspect'], via 'client_clamp_aspect_ratio'
+         * ['min_aspect', 'max_aspect'], via 'client_aspect_ratio_clamp'
          * (shared with 'ik_handle_resize' in input/kbd/interact.c, for
          * exactly the reasoning its own doc comment gives).  Kept as
          * the very last adjustment in this whole block, after every
@@ -557,7 +557,7 @@ void client_constrain_size(const client_td *client,
             req_h = (uint32_t) client->size_hints.min_h;
         }
 
-        client_clamp_aspect_ratio(client, req_w, &req_h);
+        client_aspect_ratio_clamp(client, req_w, &req_h);
     }
 
     *width = req_w;
@@ -726,7 +726,7 @@ int ci_create_decorations(client_td *client)
     client->layout.geometry.cur.dim.w = frame_w;
     client->layout.geometry.cur.dim.h = frame_h;
     client->layout.geometry.old = client->layout.geometry.cur;
-    client_sync_decoration_layout(client);
+    client_decoration_layout_sync(client);
 
     /* Publish '_NET_FRAME_EXTENTS' so clients and taskbars know the
      * size of the WM-added decoration around the content window */

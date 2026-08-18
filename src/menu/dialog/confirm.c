@@ -372,7 +372,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
     xcb_free_gc(connection, gc);
 
     /* Border around each button, from its own theme style */
-    dlgutil_draw_button_border(connection, s_confirm_window,
+    dlgutil_button_border_draw(connection, s_confirm_window,
             (s_confirm_selected == 0)
                 ? config->theme.dialog.button.selected.border.color
                 : config->theme.dialog.button.unselected.border.color,
@@ -380,7 +380,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
                 ? config->theme.dialog.button.selected.border.width
                 : config->theme.dialog.button.unselected.border.width,
             lo->cancel_x, lo->btn_y, lo->btn_w, lo->btn_h);
-    dlgutil_draw_button_border(connection, s_confirm_window,
+    dlgutil_button_border_draw(connection, s_confirm_window,
             (s_confirm_selected == 1)
                 ? config->theme.dialog.button.selected.border.color
                 : config->theme.dialog.button.unselected.border.color,

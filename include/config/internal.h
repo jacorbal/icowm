@@ -36,30 +36,6 @@
 
 
 /**
- * @brief Resolve and write the configuration directory base path
- *
- * Writes the effective configuration directory into @p config_dir_base.
- *
- * Resolution order:
- *
- * - @p config_dir_prefix (when non-empty) >
- * - @c ($XDG_CONFIG_HOME/icowm) >
- * - @c ($HOME/.icowm) >
- * - @c (./icowm)
- *
- * @param config_dir_prefix Caller-supplied prefix, or @c NULL to use
- *                          the environment-based default
- * @param config_dir_base   Buffer that receives the resolved path
- *                          (should be at least
- *                          @c CONFIG_MAX_LENGTH_PATH_BASE bytes long)
- *
- * @note Implemented in @c config.c
- * @note Complexity: @e O(1)
- */
-void ci_config_dir_set(const char *config_dir_prefix,
-        char *config_dir_base);
-
-/**
  * @brief Settle a theme's own final display name
  *
  * Called once, right after attempting to load a theme file (whether

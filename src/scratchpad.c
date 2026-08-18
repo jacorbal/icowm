@@ -179,7 +179,7 @@ void scratchpad_notice_client_created(client_td *client)
      * directly here is what makes it survive every later focus change
      * too: 'ccmd_client_focus'/'ccmd_client_unfocus' (both in
      * 'cmds/client/focus.c') already re-apply a client's own border on
-     * every single one via 'client_apply_border' ('client.h'), which
+     * every single one via 'client_border_apply' ('client.h'), which
      * already prefers this field over the theme's own default whenever
      * it is set, without needing to know anything about the scratchpad
      * specifically.
@@ -198,7 +198,7 @@ void scratchpad_notice_client_created(client_td *client)
             client->theme->scratchpad.border.color;
         client->border_override.width =
             client->theme->scratchpad.border.width;
-        client_apply_border(client, true);
+        client_border_apply(client, true);
     }
 
     client_lock(client);
@@ -274,7 +274,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
     /* 'client_border_width' ('client.h') already reflects both
      * 'border_override' set just above in 'scratchpad_notice_
      * client_created' and any 'a11y.focus-indicator.min-border-width'
-     * floor over it, the exact width 'client_apply_border' itself will
+     * floor over it, the exact width 'client_border_apply' itself will
      * actually draw, rather than 'border_override.width' alone, which
      * could be narrower than what a11y ends up enforcing and so reserve
      * too little room here for it. */

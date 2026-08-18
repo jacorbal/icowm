@@ -144,9 +144,9 @@ static void s_resync_after_reload(void)
                     client_td *c = (client_td *) elem;
 
                     if (c != NULL) {
-                        client_resync_theme_layout(c,
+                        client_theme_layout_resync(c,
                                 d->client_active_id == c->id);
-                        /* 'client_resync_theme_layout' above only marks
+                        /* 'client_theme_layout_resync' above only marks
                          * 'c' outdated (which is what actually makes
                          * the render pass repaint its border and
                          * titlebar, see 'desktop_render_clients') when
@@ -254,7 +254,7 @@ int wm_action_config_reload(void)
          * existing at all, unlike at first startup; worth surfacing
          * here even on this early-failure path, not just after
          * a successful reload below. */
-        wm_warn_json_syntax_errors();
+        wm_json_syntax_errors_warn();
         return 1;
     }
 
@@ -317,12 +317,12 @@ int wm_action_config_reload(void)
     if (wm->session != NULL) {
         (void) session_load(wm->session, wm->config_dir_prefix);
     }
-    rootmenu_load_menu_json(wm->config_dir_prefix);
+    rootmenu_menu_json_load(wm->config_dir_prefix);
 
     s_resync_after_reload();
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
-    wm_warn_json_syntax_errors();
+    wm_json_syntax_errors_warn();
     if (wm->session != NULL) {
         session_run_hook(wm->session, wm->connection,
                 SESSION_HOOK_RELOAD);

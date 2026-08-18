@@ -41,11 +41,18 @@
 #include <menu/notify/desktop.h>
 
 /* Local includes */
-#include <input/mouse/drag.h>
+#include <input/mouse/drag/icon.h>
 #include <input/mouse/drag/internal.h>
+#include <input/mouse/drag/overlay.h>
+#include <input/mouse/drag/outline.h>
+#include <input/mouse/drag/warp.h>
 
 
-void drag_check_warp_edge(int16_t root_x)
+/* Track whether the pointer is held against a warp-eligible screen
+ * edge, and schedule (or keep, or cancel) the pending desktop-warp
+ * countdown accordingly; see the header's own doc comment for the
+ * full reasoning */
+void drag_warp_edge_check(int16_t root_x)
 {
     const surface_td *surface;
     bool at_left;
@@ -96,6 +103,8 @@ void drag_check_warp_edge(int16_t root_x)
 }
 
 
+/* Milliseconds until a pointer held against a warp-eligible screen
+ * edge is due to switch desktops */
 int drag_warp_ms_remaining(void)
 {
     struct timespec now;
@@ -144,7 +153,7 @@ void drag_warp_tick(xcb_connection_t *connection)
                 s_drag.drag_window != s_drag.client->icon_window)) {
         /* Not (or no longer) a plain window move or icon move; nothing
          * to warp for, as a resize never sets 'warp_pending' in the
-         * first place (see 'drag_check_warp_edge'), but this still
+         * first place (see 'drag_warp_edge_check'), but this still
          * guards against it having somehow become stale. */
         return;
     }
@@ -206,7 +215,7 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* 'desktop_action_client_rem'/'_add' above only move the client
      * between each desktop's own stacking list and lookup table;
      * neither one touches the client's own recorded 'desktop_id'
-     * (unlike 'desktop_action_send_client', the normal "send to another
+     * (unlike 'desktop_action_client_send', the normal "send to another
      * desktop" path, which does).  Left stale here, anything that reads
      * a client's desktop from that field directly instead of from
      * whichever desktop's stacking list it is actually in (the window

@@ -1,7 +1,13 @@
 /**
  * @file startup.c
  *
- * @brief Window manager startup helpers implementation
+ * @brief Window manager startup helpers: extension probing
+ *
+ * Split by competency into @c startup/install.c (registering signal
+ * handlers), @c startup/handle.c (the handlers themselves and the
+ * flags they set), and @c startup/subscribe.c (X server event
+ * subscriptions), leaving this file with the two X extension probes
+ * that belong to no single one of those.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -11,16 +17,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* sigaction, sigemptyset */
-
-
 /* System includes */
-#include <signal.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free */
-#include <string.h>     /* memset */
-#include <unistd.h>     /* write */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -29,12 +28,6 @@
 
 /* ADT includes */
 #include <adt/list.h>
-
-/* Default initial values */
-#include <defs/cursor.h>
-
-/* Utils includes */
-#include <utils/cursor.h>
 
 /* Project includes */
 #include <logger.h>
@@ -45,185 +38,8 @@
 #include <startup.h>
 
 
-/**
- * @brief Flag written by the signal handler to request a graceful
- *        shutdown
- */
-static volatile sig_atomic_t s_stop_signal_received = 0;
-
-/**
- * @brief Flag written by @c SIGCONT (VT resume) to re-establish input
- * grabs
- */
-static volatile sig_atomic_t s_resume_signal_received = 0;
-
-/**
- * @brief Flag written by the @c SIGHUP handler to request
- *        a configuration reload
- */
-static volatile sig_atomic_t s_reload_signal_received = 0;
-
-/**
- * @brief Flag written by @c SIGCHLD so the main loop can reap children
- */
-static volatile sig_atomic_t s_child_reap_requested = 0;
-
-
-/**
- * @brief Signal handler for termination signals
- *
- * Records the signal number; the actual shutdown is handled from the
- * normal execution context in the main loop via
- * @c startup_stop_requested.
- *
- * @param signum Number of the received signal
- */
-static void s_startup_handle_signal(int signum)
-{
-    s_stop_signal_received = signum;
-}
-
-
-/**
- * @brief Signal handler for @c SIGHUP (configuration reload)
- *
- * Sets a flag consumed by @c startup_reload_requested.  The actual
- * reload is deferred to the main loop so that it runs in a safe context
- * without async-signal-safety constraints.
- *
- * @param signum Number of the received signal (always @c SIGHUP)
- */
-static void s_startup_handle_reload(int signum)
-{
-    (void) signum;
-    s_reload_signal_received = 1;
-}
-
-
-/**
- * @brief Signal handler for @c SIGCONT (VT resume)
- *
- * Sets a flag consumed by @c startup_resume_requested so that the main
- * loop can re-establish keyboard and mouse grabs after returning from
- * a virtual-terminal switch.
- *
- * @param signum Number of the received signal (always @c SIGCONT)
- */
-static void s_startup_handle_resume(int signum)
-{
-    (void) signum;
-    s_resume_signal_received = 1;
-}
-
-
-/**
- * @brief Signal handler for @c SIGCHLD
- *
- * Defers child reaping to the main loop so @c waitpid is only called in
- * normal execution context.
- *
- * @param signum Number of the received signal (always @c SIGCHLD)
- */
-static void s_startup_handle_child(int signum)
-{
-    (void) signum;
-    s_child_reap_requested = 1;
-}
-
-
-/**
- * @brief Async-signal-safe handler for fatal signals
- *
- * See @c startup_install_crash_handlers in startup.h for the full
- * reasoning: this cannot recover and keep running, only make sure
- * dying is not silent.  Every operation here is restricted to what
- * POSIX guarantees is safe from within a signal handler: the @c write
- * syscall directly to standard error (never the logger's own
- * buffered, allocating machinery), a hand-rolled digit-by-digit
- * conversion of the signal number (never @c snprintf or similar,
- * which are not on the guaranteed-safe list), @c sigaction to restore
- * the signal's default disposition, and @c raise to re-deliver it so
- * the process actually terminates through the normal mechanism
- * afterward.
- *
- * @param signum Number of the received fatal signal
- */
-static void s_startup_handle_crash(int signum)
-{
-    static const char s_prefix[] = "icowm: fatal signal ";
-    static const char s_suffix[] = "; terminating (see above for" \
-        " which signal number; a core dump, if enabled, has the" \
-        " rest)\n";
-    char rev[4];
-    char digits[4];
-    int len = 0;
-    int n = signum;
-    struct sigaction sa;
-    ssize_t write_result;
-
-    /* Every 'write' result below is deliberately unchecked: this
-     * handler is already on its way to re-raising 'signum' with its
-     * default disposition right after, terminating the process
-     * either way, so there is no meaningful recovery available if
-     * any one of them fails too.  Each captured in a real variable
-     * rather than cast to 'void' directly on the call, since GCC's
-     * own 'warn_unused_result' on 'write' does not treat a bare
-     * '(void)' cast as acknowledging it. */
-    write_result = write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);
-    (void) write_result;
-
-    if (n <= 0) {
-        digits[len++] = '0';
-    } else {
-        int rlen = 0;
-
-        while (n > 0 && rlen < (int) sizeof(rev)) {
-            rev[rlen++] = (char) ('0' + (n % 10));
-            n /= 10;
-        }
-        while (rlen > 0) {
-            digits[len++] = rev[--rlen];
-        }
-    }
-    write_result = write(STDERR_FILENO, digits, (size_t) len);
-    (void) write_result;
-    write_result = write(STDERR_FILENO, s_suffix, sizeof(s_suffix) - 1u);
-    (void) write_result;
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = SIG_DFL;
-    sigemptyset(&sa.sa_mask);
-    (void) sigaction(signum, &sa, NULL);
-
-    (void) raise(signum);
-}
-
-
-/**
- * @brief Install a single POSIX signal handler
- *
- * @param signum Signal number to configure
- * @param handler Function to invoke when the signal arrives
- * @param flags   Extra @c sigaction flags for the registration
- *
- * @return 0 on success, -1 if @c sigaction fails
- */
-static int s_startup_install_handler(int signum,
-        void (*handler)(int), int flags)
-{
-    struct sigaction sa;
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = handler;
-    sa.sa_flags = flags;
-    sigemptyset(&sa.sa_mask);
-
-    return sigaction(signum, &sa, NULL);
-}
-
-
 /* Probe XRandR support and cache extension metadata in 'wm' */
-int startup_randr_init(wm_td *wm)
+int startup_init_randr(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_randr_query_version_reply_t *ver_reply;
@@ -340,8 +156,9 @@ int startup_randr_init(wm_td *wm)
 }
 
 
+
 /* Probe XSync extension support and cache metadata in 'wm' */
-int startup_sync_init(wm_td *wm)
+int startup_init_sync(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_sync_initialize_reply_t *ver_reply;
@@ -378,233 +195,4 @@ int startup_sync_init(wm_td *wm)
     free(ver_reply);
 
     return 0;
-}
-
-
-/* Subscribe to XRandR notifications on each managed root window */
-int startup_subscribe_randr_events(wm_td *wm)
-{
-    if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
-        return -1;
-    }
-
-    if (!wm->randr_available) {
-        return 0;
-    }
-
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-        xcb_void_cookie_t cookie;
-        xcb_generic_error_t *err;
-        uint16_t mask;
-
-        if (surface == NULL || surface->screen == NULL) {
-            continue;
-        }
-
-        mask = XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
-               XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE   |
-               XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
-               XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY;
-
-        cookie = xcb_randr_select_input_checked(wm->connection,
-                surface->screen->root, mask);
-        err = xcb_request_check(wm->connection, cookie);
-        if (err != NULL) {
-            LOGGER_WARNING("Failed to subscribe XRandR events on"
-                    " surface %u (XCB error code %u)",
-                    surface->id, (unsigned int) err->error_code);
-            free(err);
-            continue;
-        }
-
-        LOGGER_DEBUG("Subscribed XRandR events on surface %u"
-                " (root %#x)", surface->id, surface->screen->root);
-    }
-
-    xcb_flush(wm->connection);
-    return 0;
-}
-
-
-/* Subscribe to root window events on all managed surfaces */
-int startup_subscribe_root_events(wm_td *wm)
-{
-    uint32_t values[1];
-    xcb_cursor_t cur;
-    uint32_t cur_val[1];
-    surface_td *first_surface;
-
-    if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
-        return -1;
-    }
-
-    values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY   |
-                XCB_EVENT_MASK_KEY_PRESS             |
-                XCB_EVENT_MASK_KEY_RELEASE           |
-                XCB_EVENT_MASK_BUTTON_PRESS          |
-                XCB_EVENT_MASK_BUTTON_RELEASE        |
-                XCB_EVENT_MASK_PROPERTY_CHANGE;
-
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-        xcb_void_cookie_t cookie;
-        xcb_generic_error_t *err;
-
-        if (surface == NULL || surface->screen == NULL) {
-            continue;
-        }
-
-        cookie = xcb_change_window_attributes_checked(
-                wm->connection, surface->screen->root,
-                XCB_CW_EVENT_MASK, values);
-        err = xcb_request_check(wm->connection, cookie);
-        if (err != NULL) {
-            LOGGER_FATAL("Cannot subscribe to root events on" \
-                    " surface %u; another window manager may be" \
-                    " running (XCB error code %d)",
-                    surface->id, err->error_code);
-            free(err);
-            return -1;
-        }
-
-        LOGGER_DEBUG("Subscribed to root events on surface %u"
-                " (root %#x)", surface->id, surface->screen->root);
-    }
-
-    /* Set a default left-pointer cursor on every root window so the
-     * cursor is visible even when no client window is under the
-     * pointer.  Loaded from the active cursor theme via
-     * 'util_cursor_load' (see 'utils/cursor.h'), falling back to the
-     * X core cursor font automatically if the theme has no
-     * "left_ptr" cursor; see 'defs/cursor.h' for that fallback
-     * glyph's named constant. */
-    first_surface = NULL;
-    for (list_item_td *node = list_head(wm->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
-
-        if (surface != NULL && surface->screen != NULL) {
-            first_surface = surface;
-            break;
-        }
-    }
-
-    cur = XCB_NONE;
-    if (first_surface != NULL) {
-        util_cursor_ctx_td *ctx = util_cursor_ctx_new(wm->connection,
-                first_surface->screen);
-
-        cur = util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
-        util_cursor_ctx_free(ctx);
-    }
-    if (cur == XCB_NONE) {
-        xcb_flush(wm->connection);
-        return 0;
-    }
-    cur_val[0] = (uint32_t) cur;
-    for (list_item_td *cn = list_head(wm->surfaces);
-            cn != NULL; cn = list_next(cn)) {
-        surface_td *sv = (surface_td *) list_data(cn);
-        if (sv == NULL || sv->screen == NULL) {
-            continue;
-        }
-        xcb_change_window_attributes(wm->connection,
-                sv->screen->root, XCB_CW_CURSOR, cur_val);
-    }
-    xcb_free_cursor(wm->connection, cur);
-
-    xcb_flush(wm->connection);
-    return 0;
-}
-
-
-/* Install POSIX signal handlers for graceful termination */
-int startup_install_signals(void)
-{
-    if (s_startup_install_handler(SIGHUP,
-                s_startup_handle_reload, 0) != 0 ||
-            s_startup_install_handler(SIGINT,
-                s_startup_handle_signal, 0) != 0 ||
-            s_startup_install_handler(SIGQUIT,
-                s_startup_handle_signal, 0) != 0 ||
-            s_startup_install_handler(SIGTERM,
-                s_startup_handle_signal, 0) != 0 ||
-            s_startup_install_handler(SIGCONT,
-                s_startup_handle_resume, 0) != 0 ||
-            s_startup_install_handler(SIGCHLD,
-                s_startup_handle_child, SA_NOCLDSTOP) != 0) {
-        LOGGER_ERROR("Failed to install startup signal handlers",
-                L_NARG);
-        return -1;
-    }
-
-    return 0;
-}
-
-
-/* Install handlers for fatal signals that log a diagnostic before
- * dying */
-int startup_install_crash_handlers(void)
-{
-    if (s_startup_install_handler(SIGSEGV,
-                s_startup_handle_crash, 0) != 0 ||
-            s_startup_install_handler(SIGABRT,
-                s_startup_handle_crash, 0) != 0 ||
-            s_startup_install_handler(SIGBUS,
-                s_startup_handle_crash, 0) != 0 ||
-            s_startup_install_handler(SIGFPE,
-                s_startup_handle_crash, 0) != 0) {
-        LOGGER_ERROR("Failed to install fatal-signal handlers",
-                L_NARG);
-        return -1;
-    }
-
-    return 0;
-}
-
-
-/* Query whether a termination signal has been received */
-bool startup_stop_requested(void)
-{
-    return s_stop_signal_received != 0;
-}
-
-
-/* Query whether a 'SIGHUP' configuration-reload request was received */
-bool startup_reload_requested(void)
-{
-    if (s_reload_signal_received != 0) {
-        s_reload_signal_received = 0;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* Query whether a 'SIGCONT' (VT resume) was received */
-bool startup_resume_requested(void)
-{
-    if (s_resume_signal_received != 0) {
-        s_resume_signal_received = 0;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* Query whether a pending child-reap request was received */
-bool startup_child_reap_requested(void)
-{
-    if (s_child_reap_requested != 0) {
-        s_child_reap_requested = 0;
-        return true;
-    }
-
-    return false;
 }

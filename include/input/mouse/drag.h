@@ -1,7 +1,14 @@
 /**
  * @file input/mouse/drag.h
  *
- * @brief Mouse drag-operation state and interface
+ * @brief Core mouse drag-operation state machine
+ *
+ * Only the generic lifecycle every kind of drag shares (start, update,
+ * end, cancel, and the small set of queries that apply regardless of
+ * what is being dragged).  Icon-specific concerns live in
+ * @c drag/icon.h, the feedback overlay window's own concerns in
+ * @c drag/overlay.h, and edge-triggered desktop warping in
+ * @c drag/warp.h.
  *
  * @ingroup input_mouse
  */
@@ -28,16 +35,6 @@
 #include <client.h>
 #include <desktop.h>
 #include <surface.h>
-
-
-/** Horizontal padding, in pixels, inside the drag-position overlay */
-#define WM_DRAG_OVERLAY_PAD_X (8u)
-
-/** Height, in pixels, of the drag-position overlay window */
-#define WM_DRAG_OVERLAY_HEIGHT (22u)
-
-/** Minimum width, in pixels, of the drag-position overlay window */
-#define WM_DRAG_OVERLAY_MIN_WIDTH (40u)
 
 
 /* Public interface */
@@ -161,38 +158,6 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
         bool axis_w_locked, bool axis_h_locked);
 
 /**
- * @brief Begin a drag operation for an icon window
- *
- * Like @a drag_start, but the drag target is the icon window of
- * @p client rather than the decorated client frame.
- *
- * @param connection XCB connection
- * @param root       Root window on which to grab the pointer
- * @param client     Client whose icon window is being dragged
- * @param desktop    Desktop @p client currently sits on; needed for
- *                   @p desktops.warp_on_edge_drag (see
- *                   @a drag_warp_tick), the same as @a drag_start's own
- *                   @p desktop parameter
- * @param icon_x     Current icon window X (screen-relative)
- * @param icon_y     Current icon window Y (screen-relative)
- * @param event_time Timestamp from the triggering button-press event
- * @param root_x     Root-relative X of the pointer at press time
- * @param root_y     Root-relative Y of the pointer at press time
- * @param screen_w   Surface width, for edge snapping and
- *                   @p desktops.warp's own edge detection
- * @param screen_h   Surface height, for the same reason
- *
- * @note Complexity: @e O(1)
- */
-void drag_start_icon(xcb_connection_t *connection,
-        xcb_window_t root,
-        client_td *client, desktop_td *desktop,
-        int32_t icon_x, int32_t icon_y,
-        xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h);
-
-/**
  * @brief Update the in-progress drag on a motion-notify event
  *
  * Applies the accumulated pointer delta to the client (move or resize)
@@ -253,26 +218,6 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client);
 bool drag_is_active(void);
 
 /**
- * @brief Query whether the active drag is on an icon window
- *
- * @return @c true when the active drag is moving an icon window
- *
- * @note Complexity: @e O(1)
- */
-bool drag_is_icon_drag(void);
-
-/**
- * @brief Query whether a window is the active drag overlay window
- *
- * @param window X window identifier to compare
- *
- * @return @c true when @p window is the drag overlay window
- *
- * @note Complexity: @e O(1)
- */
-bool drag_is_overlay_window(xcb_window_t window);
-
-/**
  * @brief Return the client currently being dragged, or @c NULL
  *
  * @return Pointer to the dragged @c client_td, or @c NULL
@@ -280,18 +225,6 @@ bool drag_is_overlay_window(xcb_window_t window);
  * @note Complexity: @e O(1)
  */
 client_td *drag_client(void);
-
-/**
- * @brief Repaint the active drag overlay window
- *
- * Redraws the current geometry text into the overlay window created for
- * interactive move/resize feedback.
- *
- * @param connection XCB connection
- *
- * @note Complexity: @e O(1)
- */
-void drag_repaint_overlay(xcb_connection_t *connection);
 
 /**
  * @brief Return the current drag position
@@ -309,47 +242,32 @@ void drag_repaint_overlay(xcb_connection_t *connection);
 void drag_current_pos(int32_t *restrict x, int32_t *restrict y);
 
 /**
- * @brief Milliseconds until a pointer held against a warp-eligible
- *        screen edge is due to switch desktops
+ * @brief Move the real window being dragged in outline mode off
+ *        screen, for the duration of the drag
  *
- * Tracked by @c drag_update as the pointer moves (see
- * @p desktops.warp_on_edge_drag in @c config.json, @c config_desktop_s);
- * serviced by @a drag_warp_tick.
+ * See @c WM_DRAG_OFFSCREEN_POS itself (@c defs/input.h) for why this,
+ * rather than unmapping it, is what keeps it out of sight without
+ * ever disturbing real input focus, sloppy focus tracking, or
+ * active-window rendering.  A plain @c xcb_configure_window, not
+ * @a enact_client_move, since this is a purely visual, temporary
+ * relocation with no logical meaning of its own: unlike a real move,
+ * it must never touch @p client's own @c layout.geometry.cur.pos,
+ * which every other part of the window manager still relies on to
+ * reflect wherever the drag is logically taking it, not this
+ * incidental physical parking spot.  Moving it back to its own
+ * genuine final position is left entirely to whichever one of
+ * @a enact_client_move/@a enact_client_resize @a drag_end itself
+ * already calls once the drag ends, rather than needing a
+ * symmetrical function of its own here.
  *
- * @return Milliseconds remaining (never negative), or @c -1 if the
- *         pointer is not currently held against an eligible edge
+ * @param connection X connection
+ * @param client Client to move off screen
  *
+ * @note No-op if @p connection or @p client is null
  * @note Complexity: @e O(1)
  */
-int drag_warp_ms_remaining(void);
-
-/**
- * @brief Perform the pending edge warp, if its countdown has elapsed
- *
- * Meant to be called on every main-loop iteration, the same way
- * @a menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
- * resting against a screen edge during a window or icon move still
- * switches desktops even with no further @c MotionNotify arriving to
- * drive it.  A no-op when no warp is currently pending, its countdown
- * has not yet elapsed, the drag it belonged to is no longer a plain
- * window or icon move, warping is disabled, there is only one desktop,
- * or (with @p desktops.wrap_at_bounds off) the edge held is already the
- * first or last desktop.
- *
- * Moves the dragged client to the adjacent desktop without unmapping it
- * at any point (it must stay visible throughout), switches the
- * surface's own current desktop to match, and repositions the pointer
- * to the opposite edge.  Adjusting the drag's own internal state so
- * that jump does not make the dragged window visually snap on the next
- * @c MotionNotify.
- *
- * @param connection XCB connection
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       either desktop involved (from @a surface_clients_hide /
- *       @a surface_clients_show)
- */
-void drag_warp_tick(xcb_connection_t *connection);
+void drag_client_move_offscreen(xcb_connection_t *connection,
+        client_td *client);
 
 
 #endif  /* ! INPUT_MOUSE_DRAG_H */

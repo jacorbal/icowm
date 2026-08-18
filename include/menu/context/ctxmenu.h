@@ -1,7 +1,8 @@
 /**
  * @file menu/context/ctxmenu.h
  *
- * @brief Generic context menu library
+ * @brief Generic context menu library: shared types and window
+ *        lifecycle
  *
  * Provides a reusable popup context menu that can be used by the window
  * context menu, the root desktop menu, and the window list menu.  Each
@@ -18,6 +19,16 @@
  * At most one context menu (at any nesting level) can be visible at
  * a time.  Opening a new menu always closes the currently open one
  * first.
+ *
+ * Split by competency into @c ctxmenu/layout.h (row geometry and
+ * hit-testing), @c ctxmenu/redraw.h (painting), @c ctxmenu/select.h
+ * (selection and activation), @c ctxmenu/handle.h (raw event
+ * handling for a single window, private to this subsystem), and
+ * @c ctxmenu/tree.h (dispatch across a submenu window tree, the
+ * public entry point every concrete menu actually uses).  This
+ * header keeps only the shared types every one of those needs, plus
+ * the window lifecycle (@a ctxmenu_show, @a ctxmenu_close) and
+ * @a ctxmenu_is_open, which belong to no single one of them.
  *
  * @defgroup menu_context Context menus
  * @ingroup menu
@@ -229,40 +240,6 @@ void ctxmenu_show(xcb_connection_t *connection,
 void ctxmenu_close(ctxmenu_state_td *state);
 
 /**
- * @brief Repaint the context menu window
- *
- * Called from the expose handler when @p state->window receives an
- * expose event.  Redraws all entries using the cached configuration.
- *
- * @param state Menu state to repaint
- *
- * @note Complexity: @e O(n), where @e n is @p state->entry_count
- */
-void ctxmenu_repaint(ctxmenu_state_td *state);
-
-/**
- * @brief Handle a button-press event inside a context menu window
- *
- * Activates the entry at the pointer coordinates.  For
- * @c CTXMENU_COMMAND entries, invokes @p on_activate if set and then
- * closes the whole menu hierarchy.  For @c CTXMENU_SUBMENU entries,
- * opens the child menu.  Disabled entries are ignored.
- *
- * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
- * @param state      Menu state that owns the window receiving the event
- * @param y          Pointer Y in root (screen) coordinates
- * @param config     Active configuration
- *
- * @return @c true if the event was consumed
- *
- * @note Complexity: @e O(1)
- */
-bool ctxmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
-        int y, const config_td *config);
-
-/**
  * @brief Query whether the context menu (or any child) is currently
  *        open
  *
@@ -273,205 +250,6 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_is_open(const ctxmenu_state_td *state);
-
-/**
- * @brief Return the deepest open window in the menu hierarchy
- *
- * Walks the child chain from @p state and returns the window of the
- * deepest open menu.  If @p state itself has no child, returns
- * @p state->window.
- *
- * @param state Root menu state
- *
- * @return Window ID of the deepest open menu, or @c XCB_WINDOW_NONE
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
-xcb_window_t ctxmenu_deepest_window(const ctxmenu_state_td *state);
-
-/**
- * @brief Find the state owning the given XCB window
- *
- * Searches @p state and all its open descendants for the one whose
- * @p window matches @p win.
- *
- * @param state Root menu state to search from
- * @param win   XCB window to find
- *
- * @return Pointer to the matching state, or @c NULL if not found
- *
- * @note Complexity: @e O(d), where @e d is the nesting depth
- */
-ctxmenu_state_td *ctxmenu_find_state_for_window(ctxmenu_state_td *state,
-        xcb_window_t win);
-
-/**
- * @brief Close the context menu when a click occurs outside all its
- *        windows
- *
- * Called when a button-press event arrives on a window that is not part
- * of the open menu hierarchy.  Closes the entire menu.
- *
- * @param state Root menu state
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
-void ctxmenu_close_on_outside_click(ctxmenu_state_td *state);
-
-/**
- * @brief Handle a key-press event while a context menu is open
- *
- * Dispatches navigation and activation keys:
- *
- * - @c Up / @c Down arrows: move the selection highlight to the
- *   previous or next selectable entry (skipping separators and labels),
- *   wrapping around at the ends.
- * - @c Right arrow: if the currently selected entry is a submenu, open
- *   it; otherwise no action.
- * - @c Left arrow: if @p state has a parent (i.e., it is a submenu),
- *   close this submenu and return focus to the parent.
- * - @c Return / @c KP_Enter: activate the currently selected entry.
- * - @c Escape: close the entire menu hierarchy from the root.
- * - Any printable character: scan entries whose label begins with that
- *   character (case-insensitive); if exactly one match is found the
- *   entry is activated immediately; if more than one match is found the
- *   first match is highlighted without activating.
- *
- * The @p state parameter should be the deepest currently open level
- * (i.e., the visible submenu, or the root if no submenu is open).
- *
- * @param connection XCB connection (used to open submenus)
- * @param surface    Surface on which the menu is displayed
- * @param state      Deepest open menu state
- * @param keysym     X keysym of the pressed key
- * @param config     Active configuration
- *
- * @return @c true if the event was consumed
- *
- * @note Complexity: @e O(n), where @e n is @p state->entry_count
- */
-bool ctxmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
-        xcb_keysym_t keysym, const config_td *config);
-
-/**
- * @brief Handle a pointer-motion event inside a context menu window
- *
- * Updates the hover highlight to the entry under the pointer position
- * @p y (relative to the menu window top edge).  Non-selectable entries
- * (separators, labels, disabled items) clear the selection instead of
- * highlighting.  Repaints the menu only when the selection changes.
- *
- * @param state Menu state that owns the window the pointer is over
- * @param x     Pointer X relative to the menu window (unused; kept for
- *              future use)
- * @param y     Pointer Y relative to the menu window top edge
- *
- * @note Complexity: @e O(n), where @e n is @p state->entry_count
- */
-void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y);
-
-/**
- * @brief Query whether the last activated entry was triggered by the
- *        keyboard rather than a mouse click
- *
- * Set right before an entry's @p on_activate callback runs: @c true
- * when activation came from @c Return / @c KP_Enter or a printable
- * character shortcut inside @a ctxmenu_handle_keypress, @c false when
- * it came from @a ctxmenu_handle_click.  Callbacks that need to behave
- * differently for keyboard vs. mouse activation (e.g., window move or
- * resize, which use keyboard modal mode vs. a pointer drag) should
- * query this at the top of @p on_activate.
- *
- * @return @c true if the most recent activation was keyboard-driven
- *
- * @note Complexity: @e O(1)
- */
-bool ctxmenu_last_activation_was_keyboard(void);
-
-/**
- * @brief Repaint whichever submenu under @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_repaint (root menu, window
- * menu, window list): each one only differs in which @p root state it
- * passes, so this one function replaces an identical lookup-then-
- * repaint sequence that used to be copied into each of them.
- *
- * @param root Top-level state of the concrete menu's own submenu tree
- * @param win  Window the repaint request arrived for
- *
- * @note No-op if @p win does not belong to any submenu under @p root
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
-void ctxmenu_repaint_window(ctxmenu_state_td *root, xcb_window_t win);
-
-/**
- * @brief Forward a pointer-motion event to whichever submenu under
- *        @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_handle_motion; see
- * @a ctxmenu_repaint_window's comment for the general reasoning.
- *
- * @param root Top-level state of the concrete menu's own submenu tree
- * @param win  Window the motion event arrived for
- * @param x    Pointer X position, in @p win's own coordinates
- * @param y    Pointer Y position, in @p win's own coordinates
- *
- * @note No-op if @p win does not belong to any submenu under @p root
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
-void ctxmenu_handle_motion_window(ctxmenu_state_td *root,
-        xcb_window_t win, int x, int y);
-
-/**
- * @brief Forward a click, translated to menu-local coordinates, to
- *        whichever submenu under @p root currently owns @p win
- *
- * Shared by every concrete menu's own @c X_handle_click.
- *
- * @param connection XCB connection
- * @param surface    Surface the click occurred on
- * @param root       Top-level state of the concrete menu's own
- *                   submenu tree
- * @param win        Window the click event arrived for
- * @param y          Pointer Y position, in @p win's own coordinates
- * @param config     Active configuration
- *
- * @return @c true if @p win belonged to a submenu under @p root and
- *         the click was forwarded
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- *
- * @see @a ctxmenu_repaint_window
- */
-bool ctxmenu_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
-        int y, const config_td *config);
-
-/**
- * @brief Forward a keypress to the deepest currently open submenu
- *        under @p root
- *
- * Applies the keypress to the deepest open submenu, not always @p root
- * itself.  Without this, arrow keys would keep moving the selection in
- * a top-level list even while a nested submenu was open in front of it,
- * making that submenu look unresponsive to the keyboard.  Shared by
- * every concrete menu's own @c X_handle_keypress.
- *
- * @param connection XCB connection
- * @param surface    Surface the key press occurred on
- * @param root       Top-level state of the concrete menu's own
- *                   submenu tree
- * @param keysym     Keysym of the pressed key
- * @param config     Active configuration
- *
- * @return @c true if the key was consumed
- *
- * @note Complexity: @e O(d), where @e d is the submenu nesting depth
- */
-bool ctxmenu_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
-        xcb_keysym_t keysym, const config_td *config);
 
 
 #endif  /* ! MENU_CONTEXT_CTXMENU_H */

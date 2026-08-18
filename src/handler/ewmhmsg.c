@@ -33,7 +33,6 @@
 #include <cmds/client/geom.h>
 #include <cmds/client/layer.h>
 #include <cmds/surface.h>
-#include <cmds/client/internal.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -567,7 +566,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
                 target_mask, target_values);
         if (size_changed &&
                 client_is_decorated(client) && client->frame != 0) {
-            client_sync_decoration_layout(client);
+            client_decoration_layout_sync(client);
         }
         xcb_flush(wm->connection);
         wm_outdate_client(client);

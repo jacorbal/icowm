@@ -31,8 +31,18 @@
 
 /* Local includes */
 #include <input/mouse/drag/internal.h>
+#include <input/mouse/drag/snap.h>
 
 
+/**
+ * @brief Return the absolute value of a signed 32-bit integer
+ *
+ * @param value Signed value to take the absolute value of
+ *
+ * @return @p value if non-negative, otherwise its negation
+ *
+ * @note Complexity: @e O(1)
+ */
 static int32_t s_drag_abs_i32(int32_t value)
 {
     return (value < 0) ? -value : value;
@@ -88,27 +98,7 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
 }
 
 
-/**
- * @brief Apply snapping behavior during client movement
- *
- * Adjusts the proposed position of a moving client so it "snaps" to
- * nearby window edges or screen boundaries when within a configurable
- * threshold.  It compares the moving window against other visible,
- * non-iconified clients on the same desktop and computes the smallest
- * adjustment needed to align edges.
- *
- * Snapping is applied independently along both axes and also considers
- * screen edges if available.
- *
- * @param x      Pointer to the proposed X coordinate (updated in place)
- * @param y      Pointer to the proposed Y coordinate (updated in place)
- * @param width  Width of the moving client
- * @param height Height of the moving client
- *
- * @note Requires a valid global @c s_drag context
- * @note Complexity: @e O(n), where @e n is the number of clients in the
- *       stacking list
- */
+/* Apply snapping behavior during client movement */
 void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         uint32_t width, uint32_t height)
 {
@@ -216,6 +206,7 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
 }
 
 
+/* Apply snapping behavior during client resize */
 void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         uint32_t *restrict width, uint32_t *restrict height)
 {
@@ -309,9 +300,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         if (s_drag_abs_i32(d_horiz) <= snap) {
             if (s_drag.anchor_right) {
                 *x += d_horiz;
-                *width = geom_clamp_dim((int32_t) *width - d_horiz);
+                *width = geom_dim_clamp((int32_t) *width - d_horiz);
             } else {
-                *width = geom_clamp_dim((int32_t) *width + d_horiz);
+                *width = geom_dim_clamp((int32_t) *width + d_horiz);
             }
             right = *x + (int32_t) *width;
         }
@@ -319,9 +310,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         if (s_drag_abs_i32(d_vert) <= snap) {
             if (s_drag.anchor_bottom) {
                 *y += d_vert;
-                *height = geom_clamp_dim((int32_t) *height - d_vert);
+                *height = geom_dim_clamp((int32_t) *height - d_vert);
             } else {
-                *height = geom_clamp_dim((int32_t) *height + d_vert);
+                *height = geom_dim_clamp((int32_t) *height + d_vert);
             }
             bottom = *y + (int32_t) *height;
         }
@@ -332,12 +323,12 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
             /* Dragging the left edge: it can snap to the screen's own
              * left edge, which a resize never checked for before. */
             if (s_drag_abs_i32(*x) <= snap) {
-                *width = geom_clamp_dim((int32_t) *width + *x);
+                *width = geom_dim_clamp((int32_t) *width + *x);
                 *x = 0;
             }
         } else if (s_drag_abs_i32(right -
                     (int32_t) s_drag.screen_w) <= snap) {
-            *width = geom_clamp_dim((int32_t) s_drag.screen_w - *x);
+            *width = geom_dim_clamp((int32_t) s_drag.screen_w - *x);
         }
     }
 
@@ -346,12 +337,12 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
             /* Dragging the top edge: same reasoning as the left edge
              * above, snapping to the screen's own top edge. */
             if (s_drag_abs_i32(*y) <= snap) {
-                *height = geom_clamp_dim((int32_t) *height + *y);
+                *height = geom_dim_clamp((int32_t) *height + *y);
                 *y = 0;
             }
         } else if (s_drag_abs_i32(bottom -
                     (int32_t) s_drag.screen_h) <= snap) {
-            *height = geom_clamp_dim((int32_t) s_drag.screen_h - *y);
+            *height = geom_dim_clamp((int32_t) s_drag.screen_h - *y);
         }
     }
 }

@@ -55,7 +55,7 @@
 
 
 /* Adopt all pre-existing mapped windows at window manager startup */
-void lifecycle_scan_existing(wm_td *wm)
+void lifecycle_existing_scan(wm_td *wm)
 {
     if (wm == NULL) {
         return;
@@ -191,7 +191,7 @@ void lifecycle_scan_existing(wm_td *wm)
 
 
 /* Build and enqueue a launch event for a desktop */
-void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
+void lifecycle_launch_dispatch(surface_td *surface, const char *prog,
         const char *class_name)
 {
     desktop_td *desktop;

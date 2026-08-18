@@ -71,7 +71,7 @@ void menu_draw_label(xcb_connection_t *connection,
 /**
  * @brief Measure the pixel width of a text string
  *
- * Wraps @p text_measure_string to provide a menu-module-local entry
+ * Wraps @p text_string_measure to provide a menu-module-local entry
  * point without requiring menu modules to include @c render/text.h
  * directly.
  *

@@ -152,7 +152,9 @@ msgid "Automatically selecting '%.255s' in %d second(s)"
 msgstr ""
 
 #: include/defs/uistr.h:109
-msgid "The 'randr.json' configuration has been applied.  Keep it, or revert to the previous one?"
+msgid ""
+"The 'randr.json' configuration has been applied.  "
+"Keep it, or revert to the previous one?"
 msgstr ""
 
 #: include/defs/uistr.h:112
@@ -340,27 +342,44 @@ msgid "AC"
 msgstr ""
 
 #: include/defs/uistr.h:240
-msgid "IcoWM is running in restricted-memory mode.  In this mode: application icons are shown without their own picture, text is drawn with simpler fonts, and there is a limit on how many windows can be open at once.  All of this trades some visual polish for keeping memory use low and predictable."
+msgid ""
+"IcoWM is running in restricted-memory mode.  In this mode: application "
+"icons are shown without their own picture, text is drawn with simpler "
+"fonts, and there is a limit on how many windows can be open at once.  "
+"All of this trades some visual polish for keeping memory use low and " 
+"predictable."
 msgstr ""
 
 #: include/defs/uistr.h:254
-msgid "Error parsing '%s'; possible syntax error.  Reverted to default values."
+msgid ""
+"Error parsing '%s'; possible syntax error.  "
+"Reverted to default values."
 msgstr ""
 
 #: include/defs/uistr.h:257
-msgid "Error parsing the following file(s); possible syntax error(s).  Reverted to default values for each: '%s'"
+msgid ""
+"Error parsing the following file(s); possible syntax error(s).  "
+"Reverted to default values for each: '%s'"
 msgstr ""
 
 #: include/defs/uistr.h:267
-msgid "  Additionally, the theme file '%s' named by 'config.json' was not found; using the built-in default theme instead."
+msgid "  "
+"Additionally, the theme file '%s' named by 'config.json' was not found; "
+"using the built-in default theme instead."
 msgstr ""
 
 #: include/defs/uistr.h:277
-msgid "IcoWM has reached its configured memory ceiling: using %u MiB of the %u MiB allowed (see the '-M' command-line option).  Close some windows to free up memory before opening more."
+msgid ""
+"IcoWM has reached its configured memory ceiling: using %u MiB of the "
+"%u MiB allowed (see the '-M' command-line option).  Close some windows "
+"to free up memory before opening more."
 msgstr ""
 
 #: include/defs/uistr.h:282
-msgid "IcoWM is running in restricted-memory mode and will not manage more than %u window(s) at once (see the '-M' command-line option).  Close a window before opening another."
+msgid ""
+"IcoWM is running in restricted-memory mode and will not manage more "
+"than %u window(s) at once (see the '-M' command-line option).  Close "
+"a window before opening another."
 msgstr ""
 
 #: include/defs/uistr.h:290
@@ -380,5 +399,10 @@ msgid "Failed to execute '%s': command not found."
 msgstr ""
 
 #: include/defs/uistr.h:324
-msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgid ""
+"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore "
+"no wisdom of the ancients may this day be divined.  Prithee, entreat "
+"thy package steward with an incantation such as 'sudo apt install "
+"fortune-mod' (or whate'er charm thy distribution demandeth), that the "
+"sages of yore might once more speak through this humble dialog."
 msgstr ""

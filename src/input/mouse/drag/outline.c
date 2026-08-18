@@ -29,8 +29,30 @@
 
 /* Local includes */
 #include <input/mouse/drag/internal.h>
+#include <input/mouse/drag/outline.h>
 
 
+/**
+ * @brief Create or reconfigure the 4 outline strip windows around
+ *        a rectangle
+ *
+ * Computes each strip's own position and size (top, bottom, left,
+ * right, in that fixed order) from the target rectangle, then either
+ * creates and maps all 4 (@p create true) or reconfigures the
+ * already-existing ones (@p create false) to match.
+ *
+ * @param connection XCB connection used to create or reconfigure the
+ *                   strip windows
+ * @param x      Left edge of the rectangle, in root coordinates
+ * @param y      Top edge of the rectangle, in root coordinates
+ * @param w      Width of the rectangle
+ * @param h      Height of the rectangle
+ * @param create @c true to create and map the 4 strip windows,
+ *               @c false to reconfigure the existing ones
+ *
+ * @note No-op if @p connection is null
+ * @note Complexity: @e O(1)
+ */
 static void s_drag_outline_place(xcb_connection_t *connection,
         int32_t x, int32_t y, uint32_t w, uint32_t h, bool create)
 {
@@ -110,19 +132,8 @@ static void s_drag_outline_place(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Begin an outline-mode drag: create and map the initial 4
- *        strip windows
- *
- * @param connection X connection
- * @param x Initial left edge, in root coordinates
- * @param y Initial top edge, in root coordinates
- * @param w Initial width
- * @param h Initial height
- *
- * @note No-op if 'connection' is null
- * @note Complexity: @e O(1)
- */
+/* Begin an outline-mode drag: create and map the initial 4 strip
+ * windows */
 void drag_outline_start(xcb_connection_t *connection,
         int32_t x, int32_t y, uint32_t w, uint32_t h)
 {
@@ -130,19 +141,8 @@ void drag_outline_start(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Move the outline stand-in's own 4 strip windows to a new
- *        rectangle
- *
- * @param connection X connection
- * @param x New left edge, in root coordinates
- * @param y New top edge, in root coordinates
- * @param w New width
- * @param h New height
- *
- * @note No-op if 'connection' is null
- * @note Complexity: @e O(1)
- */
+/* Move the outline stand-in's own 4 strip windows to a new
+ * rectangle */
 void drag_outline_move(xcb_connection_t *connection,
         int32_t x, int32_t y, uint32_t w, uint32_t h)
 {
@@ -150,14 +150,7 @@ void drag_outline_move(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief End an outline-mode drag: destroy the 4 strip windows
- *
- * @param connection X connection
- *
- * @note No-op if 'connection' is null, or no outline drag is active
- * @note Complexity: @e O(1)
- */
+/* End an outline-mode drag: destroy the 4 strip windows */
 void drag_outline_end(xcb_connection_t *connection)
 {
     if (connection == NULL ||
@@ -170,49 +163,4 @@ void drag_outline_end(xcb_connection_t *connection)
         s_drag.outline_windows[i] = XCB_WINDOW_NONE;
     }
     xcb_flush(connection);
-}
-
-
-/**
- * @brief Move the real window being dragged in outline mode off
- *        screen, for the duration of the drag
- *
- * See @c WM_DRAG_OFFSCREEN_POS itself (defs/input.h) for why this,
- * rather than unmapping it, is what keeps it out of sight without
- * ever disturbing real input focus, sloppy focus tracking, or
- * active-window rendering.  A plain @c xcb_configure_window, not
- * @a enact_client_move, since this is a purely visual, temporary
- * relocation with no logical meaning of its own: unlike a real move,
- * it must never touch @p client's own @c layout.geometry.cur.pos,
- * which every other part of the window manager still relies on to
- * reflect wherever the drag is logically taking it, not this
- * incidental physical parking spot.  Moving it back to its own
- * genuine final position is left entirely to whichever one of
- * @a enact_client_move/@a enact_client_resize @a drag_end itself
- * already calls once the drag ends, rather than needing a
- * symmetrical function of its own here.
- *
- * @param connection X connection
- * @param client Client to move off screen
- *
- * @note No-op if @p connection or @p client is null
- * @note Complexity: @e O(1)
- */
-void drag_move_client_offscreen(xcb_connection_t *connection,
-        client_td *client)
-{
-    xcb_window_t target;
-    const uint32_t vals[2] = {
-        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
-    };
-
-    if (connection == NULL || client == NULL) {
-        return;
-    }
-
-    target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame
-        : client->window;
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
 }

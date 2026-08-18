@@ -137,7 +137,7 @@ void text_draw_string(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(n), where @e n is the length of the text
  */
-uint16_t text_measure_string(const char *text);
+uint16_t text_string_measure(const char *text);
 
 /**
  * @brief Pixels the baseline sits below the top of a line, for

@@ -247,7 +247,7 @@
      " predictable.")
 
 /* Configuration-file syntax-error dialog ('src/wm.c',
- * 'wm_warn_json_syntax_errors'), one file or several.
+ * 'wm_json_syntax_errors_warn'), one file or several.
  *
  * TRANSLATION: keep the single '%s' in the first, and the trailing '%s'
  * in the second (a filename list is appended after it, comma-separated) */
@@ -304,7 +304,7 @@
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
     "Command '%s' not found."
 
-/* 'lifecycle_dispatch_launch' (src/lifecycle.c): shown as a blocking
+/* 'lifecycle_launch_dispatch' (src/lifecycle.c): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
  * a keybind-triggered program (e.g., 'programs.terminal') could not be
  * found or executed.  Unlike the run-box, where a bad command is a

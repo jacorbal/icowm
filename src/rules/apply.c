@@ -233,7 +233,7 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
          * border and titlebar included, the same as
          * 'client->layout.geometry.cur.dim' itself already does.
          *
-         * But the ICCCM size hints 'client_constrain_size' enforces are
+         * But the ICCCM size hints 'client_size_constrain' enforces are
          * always about a client's own content alone, regardless of
          * decoration, so convert to content space first, apply them
          * there, then convert back, the same round trip
@@ -247,7 +247,7 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         uint32_t content_w = (apply->w > ext_w) ? apply->w - ext_w : 0u;
         uint32_t content_h = (apply->h > ext_h) ? apply->h - ext_h : 0u;
 
-        client_constrain_size(client, &content_w, &content_h);
+        client_size_constrain(client, &content_w, &content_h);
         width = content_w + ext_w;
         height = content_h + ext_h;
         client->layout.geometry.cur.dim.w = width;
@@ -320,7 +320,7 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
     xcb_configure_window(connection, target, mask, values);
 
     if (client->frame != 0 && client_is_decorated(client)) {
-        client_sync_decoration_layout(client);
+        client_decoration_layout_sync(client);
     }
 }
 

@@ -60,7 +60,7 @@
  * @note No-op when @p client has no icon window or is not icon-mapped
  * @note Complexity: @e O(1)
  *
- * @see @a ri_draw_icon_hints and @p theme.icon.show-hints, also
+ * @see @a ri_icon_hints_draw and @p theme.icon.show-hints, also
  *      @p theme.icon.show-pixmaps
  */
 void ri_render_client_icon(desktop_td *desktop, client_td *client,
@@ -101,7 +101,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * window, say) still repaints correctly on its own via
      * 'handler_expose', independent of this.  An urgent client is the
      * one exception.  Its own attention blink (cfr. 'policy/urgency.h')
-     * alternates this icon's own colors (and 'ri_draw_icon_hints''s own
+     * alternates this icon's own colors (and 'ri_icon_hints_draw''s own
      * hint letter) between active and inactive, nothing this function's
      * own skip-check tracks, so an urgent client always falls through
      * and repaints in full on every blink phase change regardless of
@@ -220,7 +220,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
                 caption);
     }
 
-    ri_draw_icon_hints(desktop->connection, client, display_active,
+    ri_icon_hints_draw(desktop->connection, client, display_active,
             desktop->config_theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.
@@ -288,13 +288,13 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
      * any ordinary render, just drawn against the plain active-color
      * background this function already cleared to instead of over
      * whatever pixmap would otherwise sit underneath them. */
-    ri_draw_icon_hints(connection, client, true, client->theme);
+    ri_icon_hints_draw(connection, client, true, client->theme);
 }
 
 
 /* Draw the state-hint indicators in an iconified client's own top
  * corners */
-void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
+void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
         bool is_cycle_sel, const struct config_theme_s *theme)
 {
     char letter[2] = { 0, 0 };
@@ -392,7 +392,7 @@ void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
                 ? theme->icon.active.color.background
                 : theme->icon.inactive.color.background);
 
-    letter_w = text_measure_string(letter);
+    letter_w = text_string_measure(letter);
     text_draw_string(connection, client->icon_window, XCB_NONE,
             (int16_t) ((int32_t) WM_ICON_SQUARE_SIZE -
                 (int32_t) letter_w - 2),

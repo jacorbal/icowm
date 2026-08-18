@@ -82,7 +82,7 @@ uint16_t dlgutil_u16max(uint16_t a, uint16_t b);
  *
  * @note Complexity: @e O(1)
  */
-void dlgutil_draw_button_border(xcb_connection_t *connection,
+void dlgutil_button_border_draw(xcb_connection_t *connection,
         xcb_window_t window, uint32_t color, uint32_t width,
         int16_t x, int16_t y, uint16_t w, uint16_t h);
 

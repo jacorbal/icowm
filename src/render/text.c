@@ -620,7 +620,7 @@ void text_draw_string(xcb_connection_t *connection,
 
 
 /* Measure the rendered width of a string */
-uint16_t text_measure_string(const char *text)
+uint16_t text_string_measure(const char *text)
 {
     size_t char_count = 0u;
     size_t byte_index = 0u;

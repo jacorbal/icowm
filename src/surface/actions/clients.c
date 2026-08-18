@@ -374,7 +374,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 
 
 /* Reposition clients that no longer overlap any known monitor */
-void surface_reflow_clients(surface_td *surface)
+void surface_clients_reflow(surface_td *surface)
 {
     cdlist_item_td *dnode;
     const cdlist_item_td *dinitial;

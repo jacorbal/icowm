@@ -3,7 +3,7 @@
  *
  * @brief Shared resize-border and adaptive grab-margin computation
  *
- * Declares @a im_resize_bounds, used by both
+ * Declares @a im_bounds_resize, used by both
  * @c input/mouse/event/press.c
  * (border-hit detection and the resize-cursor display) and
  * @c input/mouse/drag.c (picking which corner a resize drag anchors
@@ -45,7 +45,7 @@
  * otherwise).  Members @p margin_left/top/right/bottom are how many
  * pixels beyond (outside @p left / @p top, inside @p right / @p bottom)
  * still count as "on that edge" for resize purposes; see
- * @a im_resize_bounds and @c WM_RESIZE_GRAB_THRESHOLD in
+ * @a im_bounds_resize and @c WM_RESIZE_GRAB_THRESHOLD in
  * @c defs/input.h for how each is derived from that edge's own actual
  * border width.
  *
@@ -92,7 +92,7 @@ typedef struct {
  *
  * @note Complexity: @e O(1)
  */
-im_resize_bounds_td im_resize_bounds(const client_td *client);
+im_resize_bounds_td im_bounds_resize(const client_td *client);
 
 
 #endif  /* ! INPUT_MOUSE_BOUNDS_H */

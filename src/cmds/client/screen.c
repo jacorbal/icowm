@@ -29,6 +29,7 @@
 #include <wm/internal.h>     /* the global 'wm' singleton */
 
 /* Local includes */
+#include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
 
 

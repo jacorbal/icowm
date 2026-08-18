@@ -163,7 +163,7 @@ static uint32_t s_premultiply(uint32_t argb)
  *
  * @note Complexity: @e O(1)
  */
-static void s_apply_icon_scale(xcb_connection_t *connection,
+static void s_icon_scale_apply(xcb_connection_t *connection,
         xcb_render_picture_t picture, uint32_t src_w, uint32_t src_h,
         uint16_t draw_size, uint16_t *restrict out_dest_w,
         uint16_t *restrict out_dest_h)
@@ -309,7 +309,7 @@ static xcb_render_picture_t s_build_icon_picture(
             argb_info->id, 0u, NULL);
     xcb_free_pixmap(connection, pixmap);
 
-    s_apply_icon_scale(connection, src_picture, width, height,
+    s_icon_scale_apply(connection, src_picture, width, height,
             draw_size, out_dest_w, out_dest_h);
     return src_picture;
 }
@@ -371,7 +371,7 @@ typedef struct {
  *         if the client set no usable @p icon_pixmap at all
  *
  * @see @a wmicon_invalidate, to free the returned Pictures
- * @see @a s_apply_icon_scale
+ * @see @a s_icon_scale_apply
  *
  * @note Complexity: @e O(1); no per-pixel work happens here, unlike
  *       @a s_build_icon_picture, since the source pixmap already
@@ -435,7 +435,7 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         result.mask = xcb_generate_id(connection);
         xcb_render_create_picture(connection, result.mask,
                 hints.icon_pixmap, mask_info->id, 0u, NULL);
-        s_apply_icon_scale(connection, result.mask, pixmap_geom->width,
+        s_icon_scale_apply(connection, result.mask, pixmap_geom->width,
                 pixmap_geom->height, draw_size, out_dest_w, out_dest_h);
 
         result.src = xcb_generate_id(connection);
@@ -457,7 +457,7 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         result.src = xcb_generate_id(connection);
         xcb_render_create_picture(connection, result.src,
                 hints.icon_pixmap, visual_info->format, 0u, NULL);
-        s_apply_icon_scale(connection, result.src, pixmap_geom->width,
+        s_icon_scale_apply(connection, result.src, pixmap_geom->width,
                 pixmap_geom->height, draw_size, out_dest_w, out_dest_h);
 
         if ((hints.flags & XCB_ICCCM_WM_HINT_ICON_MASK) &&
@@ -480,7 +480,7 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
                  * copies (set from 'icon_pixmap' just above) are never
                  * second- guessed by a mask whose geometry turned out
                  * to disagree. */
-                s_apply_icon_scale(connection, result.mask,
+                s_icon_scale_apply(connection, result.mask,
                         pixmap_geom->width, pixmap_geom->height,
                         draw_size, &mask_dest_w, &mask_dest_h);
             }

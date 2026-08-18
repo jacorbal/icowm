@@ -9,7 +9,7 @@
  * window manager compares a pressed key or held modifier against lives
  * here, so a given key is always named the same way regardless of which
  * of @c input/kbd/event.c, @c input/kbd/bind.c, @c input/kbd/modal.c,
- * or @c menu/context/ctxmenu.c happens to be checking for it.
+ * or @c menu/context/ctxmenu/handle.c happens to be checking for it.
  *
  * @ingroup defs
  */

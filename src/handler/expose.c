@@ -48,6 +48,8 @@
 
 /* Input includes */
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/icon.h>
+#include <input/mouse/drag/overlay.h>
 
 /* Default initial values */
 #include <defs/icon.h>
@@ -86,6 +88,12 @@ void handler_expose(xcb_connection_t *connection,
     LOGGER_TRACE("Expose event (window=0x%x, region=%ux%u+%+d%+d)",
             event->window, event->width, event->height,
             event->x, event->y);
+
+    /* Drag overlay repaint */
+    if (drag_is_overlay_window(event->window)) {
+        drag_overlay_repaint(connection);
+        return;
+    }
 
     /* Info popup repaint */
     if (popup_is_open() && event->window == popup_window()) {
@@ -166,8 +174,8 @@ void handler_expose(xcb_connection_t *connection,
         cycle_client = cycle_get_selected_client();
         is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
             drag_client() == client;
-        /* The icon's own drag ('drag_start_icon' in
-         * 'input/mouse/drag.c') sets the active styling once, at the
+        /* The icon's own drag ('drag_icon_start' in
+         * 'input/mouse/drag/icon.c') sets the active styling once, at the
          * start of the drag, and nothing re-applies it afterward; an
          * icon passing behind another window mid-drag gets exposed
          * again once it re-emerges, and without this check that repaint
@@ -194,10 +202,10 @@ void handler_expose(xcb_connection_t *connection,
         xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
 
         /* Deliberately skipped while this same icon is either being
-         * dragged ('s_drag_sync_icon_active_visual' in
-         * 'input/mouse/drag.c' clears the icon window without drawing
-         * its pixmap when the drag starts, on purpose) or currently
-         * selected in the icon cycle menu
+         * dragged ('drag_icon_sync_active_visual' in
+         * 'input/mouse/drag/icon.c' clears the icon window without
+         * drawing its pixmap when the drag starts, on purpose) or
+         * currently selected in the icon cycle menu
          * ('ri_render_client_icon_selected' in 'render/icon.c' does the
          * exact same thing when a cycle selection lands on it), both
          * cases already folded into 'is_active_visual' above.
@@ -245,7 +253,7 @@ void handler_expose(xcb_connection_t *connection,
                     caption);
         }
 
-        ri_draw_icon_hints(connection, client, is_active_visual,
+        ri_icon_hints_draw(connection, client, is_active_visual,
                 &cfg->theme);
 
         xcb_flush(connection);

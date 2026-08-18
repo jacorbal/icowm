@@ -28,6 +28,7 @@
 #include <client.h>
 
 /* Local includes */
+#include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
 
 

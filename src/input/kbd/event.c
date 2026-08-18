@@ -245,7 +245,7 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  *
  * @note Complexity: @e O(1)
  */
-static void s_resolve_menu_position(surface_td *surface, bool under_mouse,
+static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
         int16_t *restrict out_x, int16_t *restrict out_y)
 {
     *out_x = (int16_t) (surface->properties.dim.w / 2u);
@@ -660,7 +660,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
             (event->state & XCB_MOD_MASK_CONTROL) &&
             (event->state & XCB_MOD_MASK_1)) {
         LOGGER_NOTICE("Emergency exit key combination detected", L_NARG);
-        wm_enable_emergency_exit();
+        wm_emergency_exit_enable();
         raise(SIGTERM);
         return;
     }
@@ -842,7 +842,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                      * instead of always centered, query the current
                      * pointer position and use it, falling back to the
                      * screen center if the query fails */
-                    s_resolve_menu_position(surface,
+                    s_menu_position_resolve(surface,
                             config != NULL &&
                                 config->base.menus.root.position ==
                                     CONFIG_MENU_POSITION_UNDER_MOUSE,
@@ -862,7 +862,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                      * behavior as the root menu (see
                      * 'KEYBIND_WM_ROOT_MENU' above), just governed by
                      * its own 'menus.windows.position' setting */
-                    s_resolve_menu_position(surface,
+                    s_menu_position_resolve(surface,
                             config != NULL &&
                                 config->base.menus.windows.position ==
                                     CONFIG_MENU_POSITION_UNDER_MOUSE,

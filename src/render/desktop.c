@@ -5,7 +5,7 @@
  *
  * @note Decoration constants come from @c defs/client.h, icon constants
  *       from @c defs/icon.h; button colors come from the theme passed
- *       to @c desktop_draw_titlebar_buttons
+ *       to @c desktop_titlebar_buttons_draw
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -119,7 +119,7 @@ static xcb_atom_t s_bg_atoms[3] = {
  * almost every single time.
  *
  * @note Cached here instead, and only re-resolved once
- *       @a desktop_invalidate_background_pixmap_cache says the
+ *       @a desktop_background_pixmap_cache_invalidate says the
  *       underlying property actually changed
  */
 static bool s_bg_pixmap_resolved[CONFIG_MAX_SCREENS];
@@ -266,7 +266,7 @@ static xcb_pixmap_t
  * root belongs to) and this only ever runs on the comparatively rare
  * event of an external wallpaper tool actually changing something,
  * not on every render pass. */
-void desktop_invalidate_background_pixmap_cache(void)
+void desktop_background_pixmap_cache_invalidate(void)
 {
     for (size_t i = 0; i < (size_t) CONFIG_MAX_SCREENS; ++i) {
         s_bg_pixmap_resolved[i] = false;
@@ -441,7 +441,7 @@ static uint32_t s_titlebar_button_color(
 
 
 /* Draw the decoration button squares on a titlebar window */
-void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
+void desktop_titlebar_buttons_draw(xcb_connection_t *connection,
         xcb_window_t titlebar, int16_t btn_y,
         const struct titlebar_button_layout_s *left, uint8_t left_n,
         const struct titlebar_button_layout_s *right, uint8_t right_n,
@@ -560,14 +560,14 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
     }
 
     safe_strncpy(buf, text, sizeof(buf));
-    text_w = text_measure_string(buf);
+    text_w = text_string_measure(buf);
 
     if (text_w > title_w) {
         size_t len = safe_strlen(buf);
         while (len > 0u && text_w > title_w) {
             --len;
             buf[len] = '\0';
-            text_w = text_measure_string(buf);
+            text_w = text_string_measure(buf);
         }
         if (len == 0u) {
             return;
@@ -654,7 +654,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_resizable(client);
-    desktop_draw_titlebar_buttons(connection, client->titlebar,
+    desktop_titlebar_buttons_draw(connection, client->titlebar,
             btn_y, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),
             (client->properties.layer != CLIENT_LAYER_NORMAL),

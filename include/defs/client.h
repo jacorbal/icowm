@@ -29,7 +29,7 @@
  * The one true floor every resize path is guaranteed to respect,
  * interactive (mouse or keyboard) or not, regardless of whether that
  * particular path also happens to know about a client's own size hints:
- * @a geom_clamp_dim (@c utils/geom.c), the lowest-level generic clamp
+ * @a geom_dim_clamp (@c utils/geom.c), the lowest-level generic clamp
  * several of them share, floors to exactly this value on its own, with
  * no client or hints in scope to reason about a floor any more specific
  * than "always safe to show and still grab".
@@ -46,7 +46,7 @@
  *        §4.1.2.3).  A terminal counting in character columns and rows,
  *        say, rather than raw pixels.
  *
- * Applied only by @a client_constrain_size (@c client/geom.c), the one
+ * Applied only by @a client_size_constrain (@c client/geom.c), the one
  * path that actually resolves a client's own hints, as the floor such
  * a client's own @c min_w / @c min_h defaults to when it does not
  * specify one itself; a real @c min_w / @c min_h the client does

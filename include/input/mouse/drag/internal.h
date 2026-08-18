@@ -1,7 +1,7 @@
 /**
  * @file input/mouse/drag/internal.h
  *
- * @brief Private declarations shared across the drag/ modules
+ * @brief The one piece of state every drag/ module shares
  *
  * @c input/mouse/drag.c was split by sub-concern into
  * @c drag/overlay.c (the centered feedback window), @c drag/snap.c
@@ -9,21 +9,21 @@
  * outline stand-in), and @c drag/warp.c (the edge-drag desktop
  * warp), leaving @c drag.c itself with only the public state-machine
  * API (@c drag_start and its own siblings, @c drag_update,
- * @c drag_end, @c drag_cancel, and the small query functions).
+ * @c drag_end, @c drag_cancel, and the small query functions,
+ * declared in the public @c input/mouse/drag.h instead of here).
  *
- * Every function declared here is called from at least one of those
- * files other than the one that defines it; a helper only ever
- * called from within its own file (@c drag_abs_i32,
- * @c drag_closer_delta, and so on) stays @c static there instead and
- * has no business appearing in this header at all.
+ * @c s_drag, the module's own singleton drag state, is the one thing
+ * genuinely shared across all of them this way rather than through
+ * a function call: every file reads or writes some part of it
+ * directly.  Storage for it lives in @c drag.c; every other file
+ * only ever sees the @c extern declaration below.  Each drag/ file's
+ * own functions that its siblings call directly are declared in that
+ * file's own header instead (@c drag/overlay.h, @c drag/snap.h,
+ * @c drag/outline.h, @c drag/warp.h), not duplicated here.
  *
- * @c s_drag itself, the module's own singleton drag state, is shared
- * the exact same way: every one of these files reads or writes some
- * part of it.  Storage for it lives in @c drag.c; every other file
- * only ever sees the @c extern declaration below.
- *
- * @note This header is private to @c input/mouse/drag/ and must not
- *       be included outside of it.
+ * @note This header is private to @c input/mouse/drag/ (and @c
+ *       input/mouse/drag.c, which orchestrates every drag/ file) and
+ *       must not be included outside of them
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -174,141 +174,4 @@ typedef struct {
 extern drag_state_td s_drag;
 
 
-/* drag/overlay.c */
-
-/**
- * @brief Synchronize the active visual of the drag icon window
- *
- * @param connection XCB connection
- */
-void drag_sync_icon_active_visual(xcb_connection_t *connection);
-
-/**
- * @brief Saturating cast from @c uint32_t down to @c uint16_t
- *
- * @param value Value to clamp
- *
- * @return @p value, clamped to @c UINT16_MAX
- */
-uint16_t drag_u16_sat(uint32_t value);
-
-/**
- * @brief Full icon window height for @p client, caption band
- *        included if the theme captions icons
- *
- * @param client Client whose icon height to compute
- *
- * @return Icon height, in pixels
- */
-uint16_t drag_icon_height(const client_td *client);
-
-/**
- * @brief Hide the centered feedback overlay window, if currently
- *        shown
- *
- * @param connection XCB connection
- */
-void drag_overlay_hide(xcb_connection_t *connection);
-
-/**
- * @brief Show (creating it if needed) the centered feedback overlay
- *        window with the given geometry and text
- *
- * @param connection  XCB connection
- * @param is_icon     Whether this overlay belongs to an icon drag
- * @param target_x    Overlay target rectangle's own left edge
- * @param target_y    Overlay target rectangle's own top edge
- * @param target_w    Overlay target rectangle's own width
- * @param target_h    Overlay target rectangle's own height
- * @param text        Overlay text to display
- */
-void drag_overlay_show(xcb_connection_t *connection, bool is_icon,
-        int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h, const char *text);
-
-
-/* drag/snap.c */
-
-/**
- * @brief Snap a moving client's own candidate position against peer
- *        windows and screen edges
- *
- * @param x      Candidate X position, updated in place if snapped
- * @param y      Candidate Y position, updated in place if snapped
- * @param width  Client width
- * @param height Client height
- */
-void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
-        uint32_t width, uint32_t height);
-
-/**
- * @brief Snap a resized client's own candidate geometry against peer
- *        windows and screen edges
- *
- * @param x      Candidate X position, updated in place if snapped
- * @param y      Candidate Y position, updated in place if snapped
- * @param width  Candidate width, updated in place if snapped
- * @param height Candidate height, updated in place if snapped
- */
-void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
-        uint32_t *restrict width, uint32_t *restrict height);
-
-
-/* drag/outline.c */
-
-/**
- * @brief Begin an outline drag: create and place the 4 strip windows
- *
- * @param connection XCB connection
- * @param x          Initial outline X position
- * @param y          Initial outline Y position
- * @param w          Initial outline width
- * @param h          Initial outline height
- */
-void drag_outline_start(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h);
-
-/**
- * @brief Move the outline drag's own 4 strip windows to a new
- *        geometry
- *
- * @param connection XCB connection
- * @param x          New outline X position
- * @param y          New outline Y position
- * @param w          New outline width
- * @param h          New outline height
- */
-void drag_outline_move(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h);
-
-/**
- * @brief End an outline drag: destroy its own 4 strip windows
- *
- * @param connection XCB connection
- */
-void drag_outline_end(xcb_connection_t *connection);
-
-/**
- * @brief Move the real client window off-screen for the duration of
- *        an outline drag
- *
- * @param connection XCB connection
- * @param client     Client being outline-dragged
- */
-void drag_move_client_offscreen(xcb_connection_t *connection,
-        client_td *client);
-
-
-/* drag/warp.c */
-
-/**
- * @brief Check whether the pointer is currently held against a
- *        warp-eligible screen edge, arming or continuing the warp
- *        countdown accordingly
- *
- * @param root_x Root-relative pointer X position
- */
-void drag_check_warp_edge(int16_t root_x);
-
-
-#endif /* ! INPUT_MOUSE_DRAG_INTERNAL_H */
+#endif  /* ! INPUT_MOUSE_DRAG_INTERNAL_H */

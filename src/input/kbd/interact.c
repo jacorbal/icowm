@@ -123,7 +123,7 @@ client_td *ik_get_active_client(surface_td *surface,
  *
  * @return The target outer frame size for the selected axis after
  *         applying keyboard resize semantics and clamping via
- *         @a geom_clamp_dim.
+ *         @a geom_dim_clamp.
  *
  * @note With this, it's honored @c WM_NORMAL_HINTS increments when
  *       available, ensuring that keyboard resizing respects the
@@ -164,13 +164,13 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         target = (grow)
             ? (int32_t) cur_frame + resize_step
             : (int32_t) cur_frame - resize_step;
-        clamped = geom_clamp_dim(target);
+        clamped = geom_dim_clamp(target);
         /* A decorated client's own frame extents ('ext_a'/'ext_b', the
          * border plus, on the vertical axis, the titlebar) are fixed
          * regardless of how small its content shrinks: floored here so
          * the titlebar in particular can never itself shrink away or
          * disappear, no matter how far a resize keeps pushing this
-         * axis; 'geom_clamp_dim' alone has no client in scope to know
+         * axis; 'geom_dim_clamp' alone has no client in scope to know
          * this frame carries a titlebar at all, only ever floors to
          * a content-sized minimum on its own. */
         return (uint16_t) ((clamped > floor_frame)
@@ -225,7 +225,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
                 ? (snapped - inc) : floor_inner;
         }
 
-        return geom_clamp_dim((int32_t) (target_inner + ext_a + ext_b));
+        return geom_dim_clamp((int32_t) (target_inner + ext_a + ext_b));
     }
 
     frame_floor = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
@@ -233,7 +233,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     target = (grow)
         ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
         : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
-    frame_clamped = geom_clamp_dim(target);
+    frame_clamped = geom_dim_clamp(target);
     /* Same reasoning as the '!client->size_hints.valid' branch
      * above: a client with hints but no resize-increment of its
      * own still has fixed frame extents to protect. */
@@ -281,7 +281,7 @@ static void s_kbd_resize_apply(client_td *client,
 
     /* The caller ('ik_handle_resize' via 's_kb_resize_axis_target')
      * already produced fully snapped, increment-aligned frame
-     * dimensions.  Re-applying 'client_constrain_size' here would snap
+     * dimensions.  Re-applying 'client_size_constrain' here would snap
      * the values a second time and could produce a size different from
      * what the position correction ('new_y += old_h - new_h') was
      * computed for, causing the top edge of the window to shift by the
@@ -310,7 +310,7 @@ static void s_kbd_resize_apply(client_td *client,
     xcb_configure_window(client->connection, target_win, mask, values);
 
     /* Update the stored geometry after configuring X so that
-     * 'client_sync_decoration_layout' and the synthetic
+     * 'client_decoration_layout_sync' and the synthetic
      * 'ConfigureNotify' both see the final values */
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
@@ -319,7 +319,7 @@ static void s_kbd_resize_apply(client_td *client,
 
     /* Reposition and resize the inner window and titlebar to match the
      * new frame dimensions (no-op for undecorated clients) */
-    client_sync_decoration_layout(client);
+    client_decoration_layout_sync(client);
 
     /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
      * screen-relative coordinates so the application always knows its
@@ -331,7 +331,7 @@ static void s_kbd_resize_apply(client_td *client,
      * application draws at the correct screen-relative geometry.
      * Placing the 'Expose' here ensures it arrives in the client's
      * event queue after both the xcb_configure_window (from
-     * 'client_sync_decoration_layout') and the synthetic
+     * 'client_decoration_layout_sync') and the synthetic
      * 'ConfigureNotify', giving programs that rely on size and position
      * before their 'Expose' handler runs the correct geometry. */
     xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
@@ -350,11 +350,11 @@ static void s_kbd_resize_apply(client_td *client,
  * @brief Launch a configured program for the given binding type
  *
  * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @a lifecycle_dispatch_launch.
+ * configuration and calls @a lifecycle_launch_dispatch.
  *
  * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
  *                constants)
- * @param surface Current surface passed to @a lifecycle_dispatch_launch
+ * @param surface Current surface passed to @a lifecycle_launch_dispatch
  * @param config  Active configuration holding the program paths
  */
 void ik_handle_launch(enum wm_keybind_type_e btype,
@@ -447,7 +447,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
             break;
     }
 
-    lifecycle_dispatch_launch(surface, program, NULL);
+    lifecycle_launch_dispatch(surface, program, NULL);
 }
 
 
@@ -775,7 +775,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, false);
             aspect_h = (uint32_t) new_h;
-            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
             new_x += (int32_t) old_w - new_w;
             break;
@@ -783,14 +783,14 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, true);
             aspect_h = (uint32_t) new_h;
-            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
             break;
         case KEYBIND_CLIENT_RESIZE_UP:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, false);
             aspect_h = (uint32_t) new_h;
-            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
             new_y += (int32_t) old_h - new_h;
             break;
@@ -798,14 +798,14 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, true);
             aspect_h = (uint32_t) new_h;
-            client_clamp_aspect_ratio(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
             break;
     }
 
     s_kbd_resize_apply(client,
             new_x, new_y,
-            geom_clamp_dim(new_w),
-            geom_clamp_dim(new_h));
+            geom_dim_clamp(new_w),
+            geom_dim_clamp(new_h));
 }
 

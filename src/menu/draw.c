@@ -74,7 +74,7 @@ uint16_t menu_draw_measure(const char *text)
         return 0;
     }
 
-    return text_measure_string(text);
+    return text_string_measure(text);
 }
 
 

@@ -42,7 +42,27 @@
  *
  * @note Complexity: @e O(1)
  */
-uint16_t geom_clamp_dim(int32_t value);
+uint16_t geom_dim_clamp(int32_t value);
+
+/**
+ * @brief Saturate an unsigned 32-bit value to the 16-bit range
+ *
+ * Returns @p value converted to @c uint16_t, saturating to
+ * @c UINT16_MAX if the input exceeds the maximum 16-bit unsigned
+ * value.  Unlike @a geom_dim_clamp, this applies no minimum floor at
+ * all: a genuinely small or zero @p value passes through unchanged,
+ * which matters for a caller displaying an in-progress candidate
+ * value verbatim (e.g., an overlay showing the exact size a resize
+ * drag would currently apply) rather than a value about to become a
+ * client's own real, enforced geometry.
+ *
+ * @param value Unsigned 32-bit value to saturate
+ *
+ * @return @p value, saturated to @c UINT16_MAX
+ *
+ * @note Complexity: @e O(1)
+ */
+uint16_t geom_u16_sat(uint32_t value);
 
 /**
  * @brief Test whether two axis-aligned rectangles overlap

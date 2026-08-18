@@ -587,7 +587,7 @@ void systray_layout_reflow(void)
             text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
                     pen_x, item_y, text);
             pen_x = (int16_t) (pen_x +
-                    (int16_t) text_measure_string(text) +
+                    (int16_t) text_string_measure(text) +
                     (int16_t) s_tray.text_gap);
         }
     }

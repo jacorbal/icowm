@@ -61,13 +61,13 @@ enum s_resize_zone_e {
  * One allocated cursor per @c s_resize_zone_e value; index 0 (@c NONE)
  * holds the plain left-pointer cursor
  *
- * Zero (@c XCB_CURSOR_NONE) until @c mouse_create_resize_cursors runs */
+ * Zero (@c XCB_CURSOR_NONE) until @c mouse_resize_cursors_init runs */
 static xcb_cursor_t s_resize_cursors[S_RESIZE_ZONE_COUNT];
 
 /**
- * The four-way move cursor; see @c mouse_move_cursor
+ * The four-way move cursor; see @c mouse_cursor_move
  *
- * Zero (@c XCB_CURSOR_NONE) until @c mouse_create_resize_cursors runs */
+ * Zero (@c XCB_CURSOR_NONE) until @c mouse_resize_cursors_init runs */
 static xcb_cursor_t s_move_cursor;
 
 
@@ -75,7 +75,7 @@ static xcb_cursor_t s_move_cursor;
  * @brief Determine which border/corner zone, if any, a point falls in
  *
  * Uses the same adaptive resize-grab margins as @a s_mouse_near_edge
- * (both call @a im_resize_bounds), so the cursor changes exactly where
+ * (both call @a im_bounds_resize), so the cursor changes exactly where
  * a resize can actually start, including the same titlebar-row
  * exclusion for the left/right margins (see @a im_resize_bounds_td's
  * comment).  A titlebar button such as close, typically placed near the
@@ -110,7 +110,7 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
         return S_RESIZE_ZONE_NONE;
     }
 
-    b = im_resize_bounds(client);
+    b = im_bounds_resize(client);
 
     /* Do not add bounds checks here.  The caller only invokes this
      * function for motion events already known to belong to this
@@ -145,7 +145,7 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
 
 
 /* Load every resize-border cursor, plus the plain pointer, once */
-void mouse_create_resize_cursors(xcb_connection_t *connection)
+void mouse_resize_cursors_init(xcb_connection_t *connection)
 {
     xcb_screen_t *screen;
     util_cursor_ctx_td *ctx;
@@ -183,8 +183,8 @@ void mouse_create_resize_cursors(xcb_connection_t *connection)
 }
 
 
-/* Free the cursors created by 'mouse_create_resize_cursors' */
-void mouse_destroy_resize_cursors(xcb_connection_t *connection)
+/* Free the cursors created by 'mouse_resize_cursors_init' */
+void mouse_resize_cursors_destroy(xcb_connection_t *connection)
 {
     if (connection == NULL) {
         return;
@@ -212,7 +212,7 @@ xcb_cursor_t mouse_plain_cursor(void)
 
 
 /* The four-way move cursor; see this function's comment in 'mouse.h' */
-xcb_cursor_t mouse_move_cursor(void)
+xcb_cursor_t mouse_cursor_move(void)
 {
     return s_move_cursor;
 }

@@ -313,13 +313,13 @@ void cycle_init(xcb_connection_t *connection,
 
     /* Compute dimensions.  Every label is measured in both fonts an
      * entry could actually be drawn in ('unselected' and 'selected',
-     * bold by default), the same reasoning as 's_compute_width' in
-     * ctxmenu.c: sizing off only one leaves no room for the wider one
-     * once the highlight lands on it.  Each individual measurement is
-     * capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one very long
-     * window title cannot stretch the whole menu; such a label is
-     * truncated when actually drawn instead (see 's_cycle_draw_row'
-     * in menu/cycledraw.c). */
+     * bold by default), the same reasoning as 'ctxmenu_width_compute'
+     * in ctxmenu/layout.c: sizing off only one leaves no room for the
+     * wider one once the highlight lands on it.  Each individual
+     * measurement is capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one
+     * very long window title cannot stretch the whole menu; such a
+     * label is truncated when actually drawn instead (see
+     * 's_cycle_draw_row' in menu/cycledraw.c). */
     text_renderer_init(connection, cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
         uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);

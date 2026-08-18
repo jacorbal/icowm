@@ -27,7 +27,7 @@
 /* A NULL client yields every field zeroed, no crash */
 static void s_test_null_client(void)
 {
-    im_resize_bounds_td bounds = im_resize_bounds(NULL);
+    im_resize_bounds_td bounds = im_bounds_resize(NULL);
 
     TAP_EQ_INT(bounds.left, 0, "left is 0 for a NULL client");
     TAP_EQ_INT(bounds.right, 0, "right is 0 for a NULL client");
@@ -56,7 +56,7 @@ static void s_test_decorated_with_titlebar(void)
     client.layout.frame_extents.bottom = 5;
     client.title_height = 25u;
 
-    bounds = im_resize_bounds(&client);
+    bounds = im_bounds_resize(&client);
 
     TAP_EQ_INT(bounds.left, 100, "left matches the client's own x");
     TAP_EQ_INT(bounds.top, 50, "top matches the client's own y");
@@ -94,7 +94,7 @@ static void s_test_decorated_without_titlebar(void)
     client.layout.frame_extents.top = 5;
     client.title_height = 0u;
 
-    bounds = im_resize_bounds(&client);
+    bounds = im_bounds_resize(&client);
 
     TAP_OK(!bounds.has_titlebar_row,
             "no titlebar: has_titlebar_row is false");
@@ -116,7 +116,7 @@ static void s_test_undecorated_uses_theme_border(void)
     client.border_override.is_set = true;
     client.border_override.width = 3u;
 
-    bounds = im_resize_bounds(&client);
+    bounds = im_bounds_resize(&client);
 
     TAP_EQ_INT(bounds.margin_left, 3,
             "undecorated: left margin comes from the theme border");
@@ -142,7 +142,7 @@ static void s_test_negative_border_clamps_to_zero(void)
     client.layout.frame_extents.top = 10;
     client.title_height = 25u;  /* taller than frame_extents.top */
 
-    bounds = im_resize_bounds(&client);
+    bounds = im_bounds_resize(&client);
 
     /* border_top = 10 - 25 = -15, clamped to 0 */
     TAP_EQ_INT(bounds.margin_top, 0,

@@ -51,7 +51,7 @@ static int32_t s_grab_margin(int32_t border_width)
 
 
 /* Compute a client's resize border and adaptive grab margins */
-im_resize_bounds_td im_resize_bounds(const client_td *client)
+im_resize_bounds_td im_bounds_resize(const client_td *client)
 {
     im_resize_bounds_td bounds;
     int32_t border_left;

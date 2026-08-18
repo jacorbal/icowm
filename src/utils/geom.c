@@ -24,7 +24,7 @@
 
 
 /* Clamp a signed dimension value to the supported client bounds */
-uint16_t geom_clamp_dim(int32_t value)
+uint16_t geom_dim_clamp(int32_t value)
 {
     if (value < (int32_t) WM_MIN_WINDOW_DIMENSION) {
         return WM_MIN_WINDOW_DIMENSION;
@@ -35,6 +35,13 @@ uint16_t geom_clamp_dim(int32_t value)
     }
 
     return (uint16_t) value;
+}
+
+
+/* Saturate an unsigned 32-bit value to the 16-bit range */
+uint16_t geom_u16_sat(uint32_t value)
+{
+    return (value > UINT16_MAX) ? UINT16_MAX : (uint16_t) value;
 }
 
 

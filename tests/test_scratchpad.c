@@ -71,7 +71,7 @@ void ccmd_client_reclass(client_td *client, const char *class_name,
 
 void ccmd_client_toggle_decorate(client_td *client) { (void) client; }
 
-void client_apply_border(client_td *client, bool use_active_style)
+void client_border_apply(client_td *client, bool use_active_style)
 {
     (void) client;
     (void) use_active_style;

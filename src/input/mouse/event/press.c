@@ -76,6 +76,7 @@
 
 /* Local includes */
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/icon.h>
 #include <input/mouse/bounds.h>
 #include <input/mouse.h>
 
@@ -124,7 +125,7 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  *
- * @see @a im_resize_bounds in @c input/mouse/bounds.h
+ * @see @a im_bounds_resize in @c input/mouse/bounds.h
  */
 static bool s_mouse_near_edge(const client_td *client,
         int16_t root_x, int16_t root_y)
@@ -135,7 +136,7 @@ static bool s_mouse_near_edge(const client_td *client,
         return false;
     }
 
-    b = im_resize_bounds(client);
+    b = im_bounds_resize(client);
 
     return (int32_t) root_x < b.left + b.margin_left ||
         (int32_t) root_x >= b.right - b.margin_right ||
@@ -418,7 +419,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         }
 
         surface = wm_get_surface_by_id(client->screen_id);
-        drag_start_icon(connection, event->root, client, desktop,
+        drag_icon_start(connection, event->root, client, desktop,
                 icon_x, icon_y,
                 event->time, event->root_x, event->root_y,
                 (surface != NULL) ? surface->properties.dim.w : 0u,
@@ -708,7 +709,7 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
  *        button and dispatch its action
  *
  * Uses @c client_titlebar_layout to find each button's position, the
- * exact same computation @c desktop_draw_titlebar_buttons uses to
+ * exact same computation @c desktop_titlebar_buttons_draw uses to
  * paint them, so a click can never land "between" where a button
  * looks like it is and where this function thinks it is.  If the
  * click lands on a button its action is dispatched and the function
@@ -767,7 +768,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
      * relative to the titlebar's own origin instead, the same origin
      * the titlebar's own physical window is created and kept synced at,
      * '(left, title_y)', within the frame, both times
-     * ('ci_create_decorations' and 'client_sync_decoration_layout',
+     * ('ci_create_decorations' and 'client_decoration_layout_sync',
      * both client/geom.c). Left unconverted, comparing a frame-relative
      * click straight against titlebar-relative button positions is off
      * by exactly that offset on both axes, '(left, title_y)',
@@ -940,7 +941,7 @@ static bool s_mouse_can_resize_client(const client_td *client,
     }
 
     /* Undecorated: click within the resize-grab margin of any edge
-     * (see 's_mouse_near_edge' and 'im_resize_bounds') */
+     * (see 's_mouse_near_edge' and 'im_bounds_resize') */
     if (client->frame == 0 && window == client->window &&
             s_mouse_near_edge(client, event->root_x, event->root_y)) {
         return true;

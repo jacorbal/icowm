@@ -277,13 +277,13 @@ void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces);
  *
  * @param connection XCB connection used to create the cursors
  *
- * @note Call @a mouse_destroy_resize_cursors at shutdown to free them
+ * @note Call @a mouse_resize_cursors_destroy at shutdown to free them
  * @note Complexity: @e O(1)
  */
-void mouse_create_resize_cursors(xcb_connection_t *connection);
+void mouse_resize_cursors_init(xcb_connection_t *connection);
 
 /**
- * @brief Free the cursors created by @c mouse_create_resize_cursors
+ * @brief Free the cursors created by @c mouse_resize_cursors_init
  *
  * Safe to call even if they were never created.
  *
@@ -291,7 +291,7 @@ void mouse_create_resize_cursors(xcb_connection_t *connection);
  *
  * @note Complexity: @e O(1)
  */
-void mouse_destroy_resize_cursors(xcb_connection_t *connection);
+void mouse_resize_cursors_destroy(xcb_connection_t *connection);
 
 /**
  * @brief The plain-pointer cursor, the same one shown for
@@ -311,7 +311,7 @@ void mouse_destroy_resize_cursors(xcb_connection_t *connection);
  * reaching this window manager in the first place).
  *
  * @return The plain-pointer cursor, or @c 0 if
- *         @a mouse_create_resize_cursors has not run yet
+ *         @a mouse_resize_cursors_init has not run yet
  *
  * @note Complexity: @e O(1)
  */
@@ -327,25 +327,25 @@ xcb_cursor_t mouse_plain_cursor(void);
  * over, rather than left to whatever cursor that window's own attribute
  * is separately set to.
  *
- * @return The move cursor, or @c 0 if @a mouse_create_resize_cursors
+ * @return The move cursor, or @c 0 if @a mouse_resize_cursors_init
  *         has not run yet
  *
  * @note Complexity: @e O(1)
  */
-xcb_cursor_t mouse_move_cursor(void);
+xcb_cursor_t mouse_cursor_move(void);
 
 /**
  * @brief The border-resize cursor matching a given resize drag's own
  *        axis/anchor combination
  *
  * Passed as @a xcb_grab_pointer's own cursor argument by @a drag_start
- * for a resize drag, the same way @a mouse_move_cursor is for a move:
+ * for a resize drag, the same way @a mouse_cursor_move is for a move:
  * @p resize_w / @p resize_h say which axis (or both, for a corner) the
  * drag actually changes, and @p anchor_right / @p anchor_bottom say
  * which edge of that axis stays fixed (see @a drag_start_directed's own
  * doc comment in input/mouse/drag.h for their exact meaning), together
  * resolving to exactly one of the eight border cursors
- * @a mouse_create_resize_cursors already loaded.
+ * @a mouse_resize_cursors_init already loaded.
  *
  * @param resize_w      Whether this drag changes the width
  * @param resize_h      Whether this drag changes the height
@@ -389,7 +389,7 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  *       clients (for the lookup)
  *
  * @see @a drag_is_active, @a lookup_find_client and
- *      @a mouse_create_resize_cursors
+ *      @a mouse_resize_cursors_init
  */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
         list_td *surfaces, xcb_motion_notify_event_t *event);

@@ -55,6 +55,8 @@
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
+#include <menu/context/ctxmenu/select.h>
+#include <menu/context/ctxmenu/tree.h>
 #include <menu/context/wincmenu.h>
 
 
@@ -244,7 +246,7 @@ static void s_cb_move(xcb_connection_t *connection,
  * Determines which screen quadrant the window's center falls in and
  * returns the coordinates of the opposite corner of the window frame,
  * one pixel inside each edge so @c drag_start recognizes it as
- * a corner handle (see @c im_resize_bounds in
+ * a corner handle (see @c im_bounds_resize in
  * input/mouse/bounds.h):
  * - Window in the top-left quadrant    -> bottom-right corner.
  * - Window in the bottom-left quadrant -> top-right corner.
@@ -263,7 +265,7 @@ static void s_cb_move(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-static void s_resize_grab_corner(const client_td *client,
+static void s_resize_corner_grab(const client_td *client,
         const surface_td *surface, int32_t *restrict out_x,
         int32_t *restrict out_y)
 {
@@ -309,7 +311,7 @@ static void s_resize_grab_corner(const client_td *client,
  *   a pointer-driven resize drag from there, so the resize handle is
  *   always the corner furthest from the screen edge the window is
  *   closest to (and thus always reachable without the pointer having
- *   to leave the screen).  See @c s_resize_grab_corner.
+ *   to leave the screen).  See @c s_resize_corner_grab.
  */
 static void s_cb_resize(xcb_connection_t *connection,
         void *userdata)
@@ -352,7 +354,7 @@ static void s_cb_resize(xcb_connection_t *connection,
         return;
     }
 
-    s_resize_grab_corner(s_target_client, s_surface, &corner_x, &corner_y);
+    s_resize_corner_grab(s_target_client, s_surface, &corner_x, &corner_y);
     snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
 
     xcb_warp_pointer(connection, XCB_NONE, root_win,
@@ -903,7 +905,7 @@ void wincmenu_close(void)
 /* Repaint the window context menu */
 void wincmenu_repaint(xcb_window_t win)
 {
-    ctxmenu_repaint_window(&s_root, win);
+    ctxmenu_tree_redraw_window(&s_root, win);
 }
 
 
@@ -912,7 +914,7 @@ bool wincmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_handle_click_window(connection, surface, &s_root,
+    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
             win, y, config);
 }
 
@@ -934,7 +936,7 @@ xcb_window_t wincmenu_window(void)
 /* Check whether 'win' belongs to the window context menu hierarchy */
 bool wincmenu_owns_window(xcb_window_t win)
 {
-    return ctxmenu_find_state_for_window(&s_root, win) != NULL;
+    return ctxmenu_tree_state_find_for_window(&s_root, win) != NULL;
 }
 
 
@@ -943,7 +945,7 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
             &s_root, keysym, config);
 }
 
@@ -951,5 +953,5 @@ bool wincmenu_handle_keypress(xcb_connection_t *connection,
 /* Handle a pointer-motion event over the window context menu */
 void wincmenu_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_handle_motion_window(&s_root, win, x, y);
+    ctxmenu_tree_handle_motion_window(&s_root, win, x, y);
 }

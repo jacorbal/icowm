@@ -200,7 +200,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
  *
  * @see @a json_syntax_errors_reset, also @c utils/config/json.h
  */
-void wm_warn_json_syntax_errors(void);
+void wm_json_syntax_errors_warn(void);
 
 /**
  * @brief Destroy window manager instance
@@ -322,14 +322,14 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
  * resize on that client's acknowledgement.
  *
  * @return Status of the query
- * @retval  true when @a startup_sync_init found XSync present and
+ * @retval  true when @a startup_init_sync found XSync present and
  *               queryable
  * @retval false otherwise (including when the window manager is not
  *               initialized)
  *
  * @note Complexity: @e O(1)
  */
-bool wm_sync_available(void);
+bool wm_sync_is_available(void);
 
 /**
  * @brief Return the list of surfaces managed by the singleton window
@@ -482,7 +482,7 @@ void wm_ewmh_tick(void);
 /**
  * @brief Set the emergency exit flag to @c true
  */
-void wm_enable_emergency_exit(void);
+void wm_emergency_exit_enable(void);
 
 /**
  * @brief Macro that evaluates to the number of surfaces handled by the

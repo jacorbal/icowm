@@ -105,7 +105,7 @@ static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
  *
  * @note Complexity: @e O(1)
  */
-static int s_ensure_runtime_dir(const char *dir)
+static int s_runtime_dir_ensure(const char *dir)
 {
     struct stat st;
 
@@ -175,7 +175,7 @@ int ipc_init(void)
     xdg_resolve_dir(XDG_DIR_RUNTIME, tmp_fallback,
             runtime_dir, sizeof(runtime_dir));
 
-    if (s_ensure_runtime_dir(runtime_dir) != 0) {
+    if (s_runtime_dir_ensure(runtime_dir) != 0) {
         return -1;
     }
 
@@ -589,7 +589,7 @@ static bool s_errno_is_would_block(int err)
  * @note Complexity: @e O(n), where @e n is 'IPC_MAX_CLIENTS' (the
  *       free-slot scan)
  */
-static void s_accept_new_client(void)
+static void s_new_client_accept(void)
 {
     int fd = accept(s_ipc_fd, NULL, NULL);
     int flags;
@@ -773,7 +773,7 @@ void ipc_handle_readable(wm_td *wm, int fd)
     }
 
     if (fd == s_ipc_fd) {
-        s_accept_new_client();
+        s_new_client_accept();
         return;
     }
 

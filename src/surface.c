@@ -55,7 +55,7 @@
  *       unavailable
  * @note Complexity: @e O(1)
  */
-static void s_update_properties(surface_td *surface,
+static void s_properties_update(surface_td *surface,
         xcb_screen_t *screen)
 {
     xcb_depth_iterator_t depth_iter;
@@ -166,7 +166,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     surface->randr.rotation = 0u;
 
     /* Update surface properties */
-    s_update_properties(surface, surface->screen);
+    s_properties_update(surface, surface->screen);
 
     /* Discover this surface's own physical monitors, now that its
      * combined dimensions (the RandR-unavailable fallback) are

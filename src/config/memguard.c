@@ -40,7 +40,7 @@
 
 
 /* Allocate a new configuration structure, without populating it */
-config_td *config_init_memguard(void)
+config_td *config_memguard_init(void)
 {
     config_td *config;
 

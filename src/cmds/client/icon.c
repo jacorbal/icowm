@@ -200,8 +200,8 @@ void ccmd_client_ensure_icon_window(client_td *client,
         if (ccmd_client_monitor(client, &surface, &monitor)) {
             mx = monitor.x;
             my = monitor.y;
-            screen_w = geom_clamp_dim((int32_t) monitor.w);
-            screen_h = geom_clamp_dim((int32_t) monitor.h);
+            screen_w = geom_dim_clamp((int32_t) monitor.w);
+            screen_h = geom_dim_clamp((int32_t) monitor.h);
         } else if (ccmd_screen_dim(client, &screen_w, &screen_h)) {
             /* dimensions updated */
         }

@@ -62,7 +62,7 @@ static uint32_t s_saved_h = 0u;
 /**
  * @brief Release the active keyboard grab and flush the connection
  */
-static void s_release_grab(void)
+static void s_grab_release(void)
 {
     if (s_conn != NULL) {
         xcb_ungrab_keyboard(s_conn, XCB_CURRENT_TIME);
@@ -77,7 +77,7 @@ static void s_release_grab(void)
  * Used on ESC cancel.  The restore is applied through the same
  * function as normal geometry changes
  */
-static void s_restore_geometry(void)
+static void s_geometry_restore(void)
 {
     if (s_client == NULL) {
         return;
@@ -94,9 +94,9 @@ static void s_restore_geometry(void)
 /**
  * @brief Exit modal mode, releasing the keyboard grab and clearing state
  */
-static void s_exit_modal(void)
+static void s_modal_exit(void)
 {
-    s_release_grab();
+    s_grab_release();
     s_mode = KBD_MODAL_NONE;
     s_edge = KBD_EDGE_NONE;
     s_conn = NULL;
@@ -123,13 +123,13 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
     int32_t y;
 
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
-        s_exit_modal();
+        s_modal_exit();
         return;
     }
 
     if (keysym == KS_ESCAPE) {
-        s_restore_geometry();
-        s_exit_modal();
+        s_geometry_restore();
+        s_modal_exit();
         return;
     }
 
@@ -169,7 +169,7 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
  * @param nw     Frame width (in/out)
  * @param nh     Frame height (in/out)
  */
-static void s_compute_resize(xcb_keysym_t keysym, int32_t step,
+static void s_resize_compute(xcb_keysym_t keysym, int32_t step,
         int32_t *restrict nx, int32_t *restrict ny,
         int32_t *restrict nw, int32_t *restrict nh)
 {
@@ -236,13 +236,13 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
     int32_t nh;
 
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
-        s_exit_modal();
+        s_modal_exit();
         return;
     }
 
     if (keysym == KS_ESCAPE) {
-        s_restore_geometry();
-        s_exit_modal();
+        s_geometry_restore();
+        s_modal_exit();
         return;
     }
 
@@ -270,7 +270,7 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
     nw = (int32_t) s_client->layout.geometry.cur.dim.w;
     nh = (int32_t) s_client->layout.geometry.cur.dim.h;
 
-    s_compute_resize(keysym, resize_step, &nx, &ny, &nw, &nh);
+    s_resize_compute(keysym, resize_step, &nx, &ny, &nw, &nh);
 
     if (nw < 1) {
         nw = 1;
@@ -280,7 +280,7 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
     }
 
     enact_client_resize(s_client, nx, ny,
-            geom_clamp_dim(nw), geom_clamp_dim(nh));
+            geom_dim_clamp(nw), geom_dim_clamp(nh));
 }
 
 
@@ -305,7 +305,7 @@ bool kbd_modal_is_active(void)
  *
  * @note Complexity: @e O(1)
  */
-static void s_enter_modal(xcb_connection_t *connection,
+static void s_modal_enter(xcb_connection_t *connection,
         surface_td *surface, client_td *client, s_mode_e mode)
 {
     xcb_window_t root_win;
@@ -343,7 +343,7 @@ static void s_enter_modal(xcb_connection_t *connection,
 void kbd_modal_move_start(xcb_connection_t *connection,
         surface_td *surface, client_td *client)
 {
-    s_enter_modal(connection, surface, client, KBD_MODAL_MOVING);
+    s_modal_enter(connection, surface, client, KBD_MODAL_MOVING);
 }
 
 
@@ -351,7 +351,7 @@ void kbd_modal_move_start(xcb_connection_t *connection,
 void kbd_modal_resize_start(xcb_connection_t *connection,
         surface_td *surface, client_td *client)
 {
-    s_enter_modal(connection, surface, client, KBD_MODAL_RESIZING);
+    s_modal_enter(connection, surface, client, KBD_MODAL_RESIZING);
 }
 
 

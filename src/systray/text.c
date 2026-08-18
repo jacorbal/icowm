@@ -122,7 +122,7 @@ uint16_t systray_text_width(void)
         if (shown > 0u) {
             total = (uint16_t) (total + s_tray.text_gap);
         }
-        total = (uint16_t) (total + text_measure_string(text));
+        total = (uint16_t) (total + text_string_measure(text));
         ++shown;
     }
 

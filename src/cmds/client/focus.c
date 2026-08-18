@@ -416,7 +416,7 @@ void ccmd_client_focus(client_td *client)
     ccmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
 
     xcb_map_window(client->connection, client->window);
-    /* 'client_apply_border' ('client.h') preserves this same condition
+    /* 'client_border_apply' ('client.h') preserves this same condition
      * (undecorated-or-frameless, never fullscreen) internally, and
      * additionally honors 'border_override' for a client that themes
      * its own border independently of 'theme->window.active/inactive'
@@ -438,9 +438,9 @@ void ccmd_client_focus(client_td *client)
      * actually restoring its border on focus. */
     if ((!client_is_decorated(client) || client->frame == 0) &&
             client->theme != NULL && !client_is_fullscreen(client)) {
-        client_apply_border(client, true);
+        client_border_apply(client, true);
     } else {
-        client_resync_theme_layout(client, true);
+        client_theme_layout_resync(client, true);
     }
 
     if (client->ewmh != NULL) {
@@ -487,11 +487,11 @@ void ccmd_client_unfocus(client_td *client)
          * just above: skipped for a fullscreen client so a losing-
          * focus repaint cannot put a real border back on an
          * undecorated fullscreen client's own window either;
-         * 'client_apply_border' (client.h) additionally honors
+         * 'client_border_apply' (client.h) additionally honors
          * 'border_override' the same way that one does. */
-        client_apply_border(client, false);
+        client_border_apply(client, false);
     } else {
-        client_resync_theme_layout(client, false);
+        client_theme_layout_resync(client, false);
     }
 
     if (client->ewmh != NULL) {

@@ -691,7 +691,7 @@ void surface_refresh_workareas(surface_td *surface);
  *       desktops, @e n is the average number of clients per desktop,
  *       and @e m is @p surface->monitor_count
  */
-void surface_reflow_clients(surface_td *surface);
+void surface_clients_reflow(surface_td *surface);
 
 /**
  * @brief Macro that evaluates to the surface width

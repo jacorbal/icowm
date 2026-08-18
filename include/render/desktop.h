@@ -46,7 +46,7 @@
  *       re-resolve on every call would cost
  * @note Complexity: @e O(1)
  *
- * @see @a desktop_invalidate_background_pixmap_cache
+ * @see @a desktop_background_pixmap_cache_invalidate
  */
 int desktop_render_background(desktop_td *desktop);
 
@@ -64,7 +64,7 @@ int desktop_render_background(desktop_td *desktop);
  * @see @a s_get_root_background_pixmap in @c render/desktop.c for the
  *      exact property names watched
  */
-void desktop_invalidate_background_pixmap_cache(void);
+void desktop_background_pixmap_cache_invalidate(void);
 
 /**
  * @brief Recognize whether an atom is one of the root window background
@@ -72,7 +72,7 @@ void desktop_invalidate_background_pixmap_cache(void);
  *
  * For the @c PropertyNotify handler in handler/focus.c to check
  * a changed atom against, so it can call
- * @a desktop_invalidate_background_pixmap_cache only when the change is
+ * @a desktop_background_pixmap_cache_invalidate only when the change is
  * actually relevant, rather than on every root window property change
  * regardless of which one it was (many of which, including ones icowm's
  * own EWMH state syncing writes to the root window itself, have nothing
@@ -214,7 +214,7 @@ void desktop_render_flush(desktop_td *desktop);
  *
  * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
  */
-void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
+void desktop_titlebar_buttons_draw(xcb_connection_t *connection,
         xcb_window_t titlebar, int16_t btn_y,
         const struct titlebar_button_layout_s *left,
         uint8_t left_n,
@@ -235,7 +235,7 @@ void desktop_draw_titlebar_buttons(xcb_connection_t *connection,
  * @a s_titlebar_draw_title (alignment-aware & width-aware, so a title
  * too long for the space the buttons leave is truncated rather than
  * drawn underneath them) before calling
- * @a desktop_draw_titlebar_buttons.
+ * @a desktop_titlebar_buttons_draw.
  *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted

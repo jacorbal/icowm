@@ -40,7 +40,6 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/internal.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -67,7 +66,7 @@
  *
  * @param client Client whose owned buffers should be released
  */
-static void s_client_release_heap_fields(client_td *client)
+static void s_client_heap_fields_release(client_td *client)
 {
     if (client == NULL) {
         return;
@@ -141,7 +140,7 @@ static void s_client_init_common(client_td *client,
  * @param client Client to update
  * @param name   Source title string
  */
-static void s_client_set_display_name(client_td *client,
+static void s_client_display_name_set(client_td *client,
         const char *name)
 {
     if (client == NULL || name == NULL || name[0] == '\0') {
@@ -202,7 +201,7 @@ void client_destroy(client_td *client)
     }
 
     /* Free all allocated string buffers */
-    s_client_release_heap_fields(client);
+    s_client_heap_fields_release(client);
 
     /* Free the client structure itself */
     free(client);
@@ -225,7 +224,7 @@ void client_update_user_time(client_td *client, uint32_t time)
 
 /* Apply a client's own themed border color and width to its own
  * window, honoring 'border_override' when set */
-void client_apply_border(client_td *client, bool use_active_style)
+void client_border_apply(client_td *client, bool use_active_style)
 {
     uint32_t color;
     uint32_t width;
@@ -353,7 +352,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
      * unusable, not a crash. */
     client->sync_counter = 0u;
     client->sync_alarm = 0u;
-    if (client->has_net_wm_sync_request && wm_sync_available()) {
+    if (client->has_net_wm_sync_request && wm_sync_is_available()) {
         xcb_get_property_cookie_t counter_cookie;
         xcb_get_property_reply_t *counter_reply;
 
@@ -899,7 +898,7 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-static void s_client_subscribe_events(xcb_connection_t *connection,
+static void s_client_events_subscribe(xcb_connection_t *connection,
         xcb_window_t window, struct config_theme_s *theme,
         client_td *client)
 {
@@ -1026,11 +1025,11 @@ client_td *client_init(xcb_connection_t *connection,
     /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
     ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
-        s_client_set_display_name(client, net_wm_name);
+        s_client_display_name_set(client, net_wm_name);
     } else {
         char wm_name[256];
         ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
-        s_client_set_display_name(client, wm_name);
+        s_client_display_name_set(client, wm_name);
     }
 
     /* Read '_NET_WM_ICON_NAME'/'WM_ICON_NAME' for iconified caption */
@@ -1102,7 +1101,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Subscribe to events, apply border width, and set the default
      * cursor; see the sibling function's comment for more information */
-    s_client_subscribe_events(connection, window, theme, client);
+    s_client_events_subscribe(connection, window, theme, client);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

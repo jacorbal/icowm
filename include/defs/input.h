@@ -41,7 +41,7 @@
  *
  * A border already at least this wide needs no help: the border itself
  * is the margin.  A thinner border gets padded out to exactly this many
- * pixels of tolerance instead (see @a im_resize_bounds in
+ * pixels of tolerance instead (see @a im_bounds_resize in
  * @c input/mouse/bounds.h), so a 0px, 1px, or 2px border all feel the
  * same to grab rather than each requiring hitting a progressively
  * smaller number of exact pixels; the two cases meet exactly at this

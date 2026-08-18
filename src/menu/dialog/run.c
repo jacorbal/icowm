@@ -321,11 +321,11 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
     prompt = _(STR_RUN_PROMPT);
 
     /* Measured against 'label''s own font, which is also the one it
-     * gets drawn in just below, since 'text_measure_string' reports
+     * gets drawn in just below, since 'text_string_measure' reports
      * against whichever font 'text_renderer_init' was last set to. */
     text_renderer_init(connection, cfg->theme.prompt.label.font);
     label_w = (uint16_t) (WM_RUN_PAD_X +
-            text_measure_string(prompt) + WM_RUN_PAD_X / 2);
+            text_string_measure(prompt) + WM_RUN_PAD_X / 2);
     input_x = (int16_t) label_w;
 
     s_run_fill_rect(connection, s_run.window,

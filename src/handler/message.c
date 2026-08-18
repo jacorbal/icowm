@@ -35,7 +35,6 @@
 #include <cmds/client/geom.h>
 #include <cmds/client/layer.h>
 #include <cmds/surface.h>
-#include <cmds/client/internal.h>
 
 /* Policy includes */
 #include <policy/focus.h>

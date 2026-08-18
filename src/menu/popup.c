@@ -25,7 +25,7 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/client/internal.h>
+#include <cmds/client/basic.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
@@ -140,13 +140,13 @@ void popup_show(xcb_connection_t *connection,
             "flags=%#x state=%#x",
             client->properties.flags, client->properties.state);
 
-    /* 'text_measure_string' needs the renderer already set up for
+    /* 'text_string_measure' needs the renderer already set up for
      * this popup's own font; safe and cheap to call here even though
      * 'popup_repaint' calls it again later; it is a same-connection,
      * same-font no-op the second time (see its not-so-long comment). */
     text_renderer_init(connection, cfg->theme.overlay.font);
     for (size_t i = 0; i < 4; ++i) {
-        uint16_t line_width = text_measure_string(s_popup_lines[i]);
+        uint16_t line_width = text_string_measure(s_popup_lines[i]);
 
         if (line_width > widest_line) {
             widest_line = line_width;

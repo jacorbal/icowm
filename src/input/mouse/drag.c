@@ -54,7 +54,6 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <render/icon.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
@@ -63,7 +62,12 @@
 #include <input/mouse.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/bounds.h>
+#include <input/mouse/drag/icon.h>
 #include <input/mouse/drag/internal.h>
+#include <input/mouse/drag/overlay.h>
+#include <input/mouse/drag/snap.h>
+#include <input/mouse/drag/outline.h>
+#include <input/mouse/drag/warp.h>
 
 
 drag_state_td s_drag = {
@@ -150,11 +154,11 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
     /* For resize operations, make the visible corner handles define the
      * corner hit zones.  Outside those adaptive-margin corner zones
-     * (see 'im_resize_bounds' in input/mouse/bounds.h), keep the
+     * (see 'im_bounds_resize' in input/mouse/bounds.h), keep the
      * existing center-based fallback so the rest of the border still
      * behaves as a resize handle. */
     if (operation == CLIENT_OPERATION_RESIZING) {
-        im_resize_bounds_td b = im_resize_bounds(client);
+        im_resize_bounds_td b = im_bounds_resize(client);
         int32_t cx = s_drag.client_start_x +
             (int32_t) (s_drag.client_start_w / 2u);
         int32_t cy = s_drag.client_start_y +
@@ -179,7 +183,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         /* Track which axes are actively resized.  An axis is active
          * only when the grab point is near that edge.  Keeping the
          * other axis fixed at its start value prevents
-         * client_constrain_size from snapping it down by a full
+         * client_size_constrain from snapping it down by a full
          * increment due to sub-increment pointer noise on the
          * orthogonal axis, which for size-hinted clients would produce
          * a 'ConfigureRequest' feedback loop */
@@ -223,7 +227,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             XCB_GRAB_MODE_ASYNC,
             XCB_NONE,
             (operation == CLIENT_OPERATION_MOVING)
-                ? mouse_move_cursor()
+                ? mouse_cursor_move()
                 : mouse_resize_cursor_for_axes(s_drag.resize_w,
                         s_drag.resize_h, s_drag.anchor_right,
                         s_drag.anchor_bottom),
@@ -319,66 +323,7 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
 }
 
 
-/* Begin a drag operation for an icon window */
-void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
-        client_td *client, desktop_td *desktop,
-        int32_t icon_x, int32_t icon_y,
-        xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h)
-{
-    if (connection == NULL || client == NULL) {
-        return;
-    }
-
-    drag_overlay_hide(connection);
-    s_drag.active = true;
-    s_drag.client = client;
-    s_drag.desktop = desktop;
-    s_drag.drag_window = client->icon_window;
-    s_drag.operation = CLIENT_OPERATION_MOVING;
-    s_drag.pointer_start_x = root_x;
-    s_drag.pointer_start_y = root_y;
-    s_drag.client_start_x = icon_x;
-    s_drag.client_start_y = icon_y;
-    s_drag.client_start_w = 0;
-    s_drag.client_start_h = 0;
-    s_drag.client_cur_x = icon_x;
-    s_drag.client_cur_y = icon_y;
-    /* Icon drags are always solid, regardless of 'windows.solid-drag':
-     * moving just the small icon window live is cheap enough on its
-     * own that the outline machinery would add complexity for no
-     * real benefit here; see 'drag_end''s own comment on this same
-     * exclusion. */
-    s_drag.solid_drag = true;
-    s_drag.screen_w = screen_w;
-    s_drag.screen_h = screen_h;
-    s_drag.icon_was_mapped = client->is_icon_mapped;
-    s_drag.anchor_right = false;
-    s_drag.anchor_bottom = false;
-    s_drag.resize_w = false;
-    s_drag.resize_h = false;
-    s_drag.has_last_pos = false;
-    s_drag.warp_pending = false;
-
-    client->properties.operation = CLIENT_OPERATION_MOVING;
-    client->is_icon_mapped = true;
-    drag_sync_icon_active_visual(connection);
-
-    xcb_grab_pointer(connection,
-            0,
-            root,
-            XCB_EVENT_MASK_BUTTON_RELEASE |
-            XCB_EVENT_MASK_POINTER_MOTION,
-            XCB_GRAB_MODE_ASYNC,
-            XCB_GRAB_MODE_ASYNC,
-            XCB_NONE,
-            XCB_NONE,
-            event_time);
-    xcb_flush(connection);
-}
-
-
+/* Update the in-progress drag on a motion-notify event */
 void drag_update(xcb_connection_t *connection,
         int16_t root_x, int16_t root_y)
 {
@@ -395,7 +340,8 @@ void drag_update(xcb_connection_t *connection,
      * just theoretical: the X server can deliver one right after the
      * pointer grab starts under an already-resting pointer (the same
      * kind of spurious repeat already handled for menu selection in
-     * 'ctxmenu_handle_motion', menu/context/ctxmenu.c).  Skipping it
+     * 'ctxmenu_handle_motion', menu/context/ctxmenu/handle.c).
+     * Skipping it
      * here avoids repeating the same 'xcb_configure_window' and
      * 'xcb_flush' for a position that produces no visible change. */
     if (s_drag.has_last_pos && root_x == s_drag.last_root_x &&
@@ -412,13 +358,13 @@ void drag_update(xcb_connection_t *connection,
      * fires on every plain click with no way yet to tell a click
      * apart from a real drag; only now, confirmed a real drag rather
      * than a click that never moved, does the real window actually
-     * move off screen (see 'drag_move_client_offscreen''s own doc
+     * move off screen (see 'drag_client_move_offscreen''s own doc
      * comment).  'outline_offscreened' guards this so it only ever
      * happens once per drag.  Icon drags are always solid (see
-     * 'drag_start_icon''s own comment), so this never applies to
+     * 'drag_icon_start''s own comment), so this never applies to
      * them at all. */
     if (!s_drag.solid_drag && !s_drag.outline_offscreened) {
-        drag_move_client_offscreen(connection, client);
+        drag_client_move_offscreen(connection, client);
         s_drag.outline_offscreened = true;
     }
 
@@ -455,7 +401,7 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_check_warp_edge(root_x);
+        drag_warp_edge_check(root_x);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
         bool show_geom = client->config_base != NULL &&
@@ -487,7 +433,7 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_check_warp_edge(root_x);
+        drag_warp_edge_check(root_x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         bool show_geom = client->config_base != NULL &&
             client->config_base->windows.show_geom;
@@ -510,7 +456,7 @@ void drag_update(xcb_connection_t *connection,
          * shrinks/grows as the pointer moves right/left.  Similarly for
          * 'anchor_bottom' and the top edge.  When an axis is not
          * actively resized its dimension is frozen at the start value
-         * so that client_constrain_size cannot floor it due to
+         * so that client_size_constrain cannot floor it due to
          * sub-increment pointer noise, which would cause size-hinted
          * clients to lose a row or column and enter
          * a 'ConfigureRequest' loop. */
@@ -524,10 +470,10 @@ void drag_update(xcb_connection_t *connection,
                 clamped_dx = (int32_t) s_drag.client_start_w - min_w;
             }
             new_x = s_drag.client_start_x + clamped_dx;
-            new_w = geom_clamp_dim(
+            new_w = geom_dim_clamp(
                     (int32_t) s_drag.client_start_w - clamped_dx);
         } else {
-            new_w = geom_clamp_dim(
+            new_w = geom_dim_clamp(
                     (int32_t) s_drag.client_start_w + dx);
         }
 
@@ -541,16 +487,16 @@ void drag_update(xcb_connection_t *connection,
                 clamped_dy = (int32_t) s_drag.client_start_h - min_h;
             }
             new_y = s_drag.client_start_y + clamped_dy;
-            new_h = geom_clamp_dim(
+            new_h = geom_dim_clamp(
                     (int32_t) s_drag.client_start_h - clamped_dy);
         } else {
-            new_h = geom_clamp_dim(
+            new_h = geom_dim_clamp(
                     (int32_t) s_drag.client_start_h + dy);
         }
 
         drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
 
-        /* 'client_constrain_size' (client/geom.c) expects its own
+        /* 'client_size_constrain' (client/geom.c) expects its own
          * width/height in terms of the client's own content window
          * (what its own 'WM_NORMAL_HINTS' actually describe, per
          * ICCCM), not 'new_w'/'new_h' here, which are frame-relative
@@ -578,7 +524,7 @@ void drag_update(xcb_connection_t *connection,
         resize_floor_w = resize_ext_w + WM_MIN_WINDOW_DIMENSION;
         resize_floor_h = resize_ext_h + WM_MIN_WINDOW_DIMENSION;
 
-        client_constrain_size(client,
+        client_size_constrain(client,
                 &resize_content_w, &resize_content_h);
         resize_constrained_w = resize_content_w + resize_ext_w;
         resize_constrained_h = resize_content_h + resize_ext_h;
@@ -597,8 +543,8 @@ void drag_update(xcb_connection_t *connection,
                 resize_constrained_h > (uint32_t) new_h) {
             new_y -= (int32_t) (resize_constrained_h - (uint32_t) new_h);
         }
-        new_w = geom_clamp_dim((int32_t) resize_constrained_w);
-        new_h = geom_clamp_dim((int32_t) resize_constrained_h);
+        new_w = geom_dim_clamp((int32_t) resize_constrained_w);
+        new_h = geom_dim_clamp((int32_t) resize_constrained_h);
 
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
@@ -663,7 +609,7 @@ void drag_update(xcb_connection_t *connection,
             }
             drag_overlay_show(connection, false,
                     new_x, new_y,
-                    drag_u16_sat(new_w), drag_u16_sat(new_h),
+                    geom_u16_sat(new_w), geom_u16_sat(new_h),
                     geom_buf);
         } else {
             drag_overlay_hide(connection);
@@ -774,7 +720,7 @@ void drag_end(xcb_connection_t *connection,
 
                 /* Restore whatever mapped state the icon window had
                  * right before this drag began, the same value
-                 * 'drag_sync_icon_active_visual' (drag_start_icon)
+                 * 'drag_icon_sync_active_visual' (drag_icon_start)
                  * forced to 'true' for the duration of the drag to
                  * keep it visible while being moved.  Scoped to this
                  * branch alone, rather than run unconditionally for
@@ -806,7 +752,7 @@ void drag_end(xcb_connection_t *connection,
         }
 
         /* Icon drags never go through 'solid_drag'/the outline
-         * machinery at all (see 'drag_start_icon''s own comment,
+         * machinery at all (see 'drag_icon_start''s own comment,
          * intentionally always solid given how cheap moving just an
          * icon already is); their own final position is already
          * fully settled by the icon-specific block above, so this
@@ -870,7 +816,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
 
     drag_overlay_hide(connection);
     /* Moved back from its own off-screen parking spot first (see
-     * 'drag_move_client_offscreen''s own doc comment), to its own
+     * 'drag_client_move_offscreen''s own doc comment), to its own
      * genuine, never-actually-changed logical position, for a client
      * that survives the cancel (see the comment on
      * 'properties.operation' just below, for exactly this same
@@ -924,15 +870,7 @@ bool drag_is_active(void)
 }
 
 
-/* Query whether the active drag is on an icon window */
-bool drag_is_icon_drag(void)
-{
-    return s_drag.active &&
-        s_drag.drag_window != XCB_WINDOW_NONE &&
-        s_drag.client != NULL &&
-        s_drag.drag_window == s_drag.client->icon_window;
-}
-
+/* Return the current drag position */
 void drag_current_pos(int32_t *restrict x, int32_t *restrict y)
 {
     if (x != NULL) {
@@ -941,4 +879,34 @@ void drag_current_pos(int32_t *restrict x, int32_t *restrict y)
     if (y != NULL) {
         *y = s_drag.client_cur_y;
     }
+}
+
+
+/* Move the real window being dragged in outline mode off screen, for
+ * the duration of the drag; see the header's own doc comment for the
+ * full reasoning */
+void drag_client_move_offscreen(xcb_connection_t *connection,
+        client_td *client)
+{
+    xcb_window_t target;
+    const uint32_t vals[2] = {
+        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
+    };
+
+    if (connection == NULL || client == NULL) {
+        return;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+}
+
+
+/* Return the client currently being dragged, or NULL */
+client_td *drag_client(void)
+{
+    return s_drag.client;
 }

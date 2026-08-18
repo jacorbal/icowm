@@ -421,7 +421,7 @@ void handler_configure_request(xcb_connection_t *connection,
             xcb_configure_window(connection, target,
                     target_mask, target_values);
             if (is_reparented) {
-                client_sync_decoration_layout(client);
+                client_decoration_layout_sync(client);
                 if (send_synth) {
                     s_handler_send_synthetic_configure_notify(connection,
                             client);
@@ -646,12 +646,12 @@ void handler_configure_notify(xcb_connection_t *connection,
              *
              * Size changes are intentionally NOT reacted to here.  The
              * window manager controls the inner window size exclusively
-             * through 'client_sync_decoration_layout'; reacting to
+             * through 'client_decoration_layout_sync'; reacting to
              * a stale 'ConfigureNotify' with a different size would:
              *
              *   1. overwrite the stored geometry with the pre-snap
              *      value;
-             *   2. call client_sync_decoration_layout again, generating
+             *   2. call client_decoration_layout_sync again, generating
              *      another 'ConfigureNotify' with the old size;
              *   3. create a feedback loop visible as
              *      size-hint-constrained applications flickering and
@@ -659,7 +659,7 @@ void handler_configure_notify(xcb_connection_t *connection,
              *      character row on every keyboard resize keypress. */
             if ((int32_t) event->x != (int32_t) left ||
                     (int32_t) event->y != (int32_t) top) {
-                client_sync_decoration_layout(client);
+                client_decoration_layout_sync(client);
             }
         } /* ! if (is_frame) */
     } /* ! if (client) */

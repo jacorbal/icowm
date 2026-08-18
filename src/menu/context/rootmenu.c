@@ -42,6 +42,7 @@
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
+#include <menu/context/ctxmenu/tree.h>
 #include <menu/context/menujson.h>
 #include <menu/context/rootmenu.h>
 #include <menu/dialog/quit.h>
@@ -144,7 +145,7 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 
 /* Load (or reload) 'menu.json''s own entries; see this function's
  * comment in 'menu/context/rootmenu.h' */
-void rootmenu_load_menu_json(const char *config_dir)
+void rootmenu_menu_json_load(const char *config_dir)
 {
     char menu_path[ROOTMENU_PATH_MAX];
     ctxmenu_entry_td *json_entries = NULL;
@@ -178,7 +179,7 @@ void rootmenu_load_menu_json(const char *config_dir)
 
     /* Failure is non-fatal: an absent or unparsable 'menu.json' just
      * leaves the root menu showing its own fixed footer with no JSON
-     * entries above it.  Not followed by 'wm_warn_json_syntax_errors'
+     * entries above it.  Not followed by 'wm_json_syntax_errors_warn'
      * here: both of this function's own callers (startup, in wm.c;
      * reload, in wm/actions.c) already call it themselves once
      * everything for that pass has finished loading, so calling it
@@ -191,9 +192,9 @@ void rootmenu_load_menu_json(const char *config_dir)
 }
 
 
-/* Free the entries loaded by 'rootmenu_load_menu_json'; see this
+/* Free the entries loaded by 'rootmenu_menu_json_load'; see this
  * function's comment in 'menu/context/rootmenu.h' */
-void rootmenu_free_menu_json(void)
+void rootmenu_menu_json_free(void)
 {
     if (s_json_entries != NULL) {
         menujson_free(s_json_entries, s_json_count);
@@ -302,8 +303,8 @@ void rootmenu_close(void)
 
     /* Deliberately not freed here: 's_json_entries' persists across
      * opens/closes, and is only ever replaced (on reload) or freed
-     * (at shutdown) by 'rootmenu_load_menu_json' or by
-     * 'rootmenu_free_menu_json' (read their comments for a change) */
+     * (at shutdown) by 'rootmenu_menu_json_load' or by
+     * 'rootmenu_menu_json_free' (read their comments for a change) */
     if (s_entries != NULL) {
         free(s_entries);
         s_entries = NULL;
@@ -318,7 +319,7 @@ void rootmenu_close(void)
 /* Repaint the root desktop menu */
 void rootmenu_repaint(xcb_window_t win)
 {
-    ctxmenu_repaint_window(&s_root, win);
+    ctxmenu_tree_redraw_window(&s_root, win);
 }
 
 
@@ -327,7 +328,7 @@ bool rootmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_handle_click_window(connection, surface, &s_root,
+    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
             win, y, config);
 }
 
@@ -349,7 +350,7 @@ xcb_window_t rootmenu_window(void)
 /* Check whether 'win' belongs to the root menu hierarchy */
 bool rootmenu_owns_window(xcb_window_t win)
 {
-    return ctxmenu_find_state_for_window(&s_root, win) != NULL;
+    return ctxmenu_tree_state_find_for_window(&s_root, win) != NULL;
 }
 
 
@@ -358,7 +359,7 @@ bool rootmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
             &s_root, keysym, config);
 }
 
@@ -366,5 +367,5 @@ bool rootmenu_handle_keypress(xcb_connection_t *connection,
 /* Handle a pointer-motion event over the root desktop menu */
 void rootmenu_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_handle_motion_window(&s_root, win, x, y);
+    ctxmenu_tree_handle_motion_window(&s_root, win, x, y);
 }

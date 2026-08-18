@@ -750,6 +750,7 @@ void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
 }
 
 
+/* Apply the configured placement policy to a newly mapped client */
 void place_apply(wm_td *wm, surface_td *surface, client_td *client)
 {
     const uint32_t cascade_step = 24u;

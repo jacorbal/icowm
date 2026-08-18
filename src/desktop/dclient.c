@@ -79,7 +79,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
-static int s_desktop_set_clients_enabled(desktop_td *desktop,
+static int s_desktop_clients_enabled_set(desktop_td *desktop,
         bool enabled)
 {
     void *elem;
@@ -118,7 +118,7 @@ static int s_desktop_set_clients_enabled(desktop_td *desktop,
  * @note Complexity: @e O(k), where @e k is the number of supported
  *       layouts
  */
-static bool s_desktop_layout_supported(const char *layout)
+static bool s_desktop_layout_is_supported(const char *layout)
 {
     /* A tiling and a monocle layout were both considered at one
      * point, alongside this one, but neither was ultimately
@@ -296,7 +296,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
 
 
 /* Send a client to another desktop */
-int desktop_action_send_client(desktop_td *desktop, client_td *client,
+int desktop_action_client_send(desktop_td *desktop, client_td *client,
         uint32_t desktop_id)
 {
     if (desktop == NULL || client == NULL) {
@@ -532,7 +532,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
  * @note Complexity: @e O(n ^ 2), where @e n is the number of clients
  *       on @p desktop
  */
-static void s_desktop_raise_transients(desktop_td *desktop,
+static void s_desktop_transients_raise(desktop_td *desktop,
         client_td *client)
 {
     queue_td *pending;
@@ -589,7 +589,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
 
     status = s_desktop_client_send_to_end(desktop, client, true);
     if (status == 0) {
-        s_desktop_raise_transients(desktop, client);
+        s_desktop_transients_raise(desktop, client);
     }
 
     return status;
@@ -756,7 +756,7 @@ int desktop_action_lock(desktop_td *desktop)
     LOGGER_DEBUG("Locking desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    if (s_desktop_set_clients_enabled(desktop, false) != 0) {
+    if (s_desktop_clients_enabled_set(desktop, false) != 0) {
         return 1;
     }
     desktop->client_active_id = 0;
@@ -778,7 +778,7 @@ int desktop_action_unlock(desktop_td *desktop)
     LOGGER_DEBUG("Unlocking desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    if (s_desktop_set_clients_enabled(desktop, true) != 0) {
+    if (s_desktop_clients_enabled_set(desktop, true) != 0) {
         return 1;
     }
     desktop->is_outdated = true;
@@ -803,7 +803,7 @@ int desktop_action_set_layout(desktop_td *desktop, const char *layout)
         return 1;
     }
 
-    if (!s_desktop_layout_supported(layout)) {
+    if (!s_desktop_layout_is_supported(layout)) {
         LOGGER_WARNING("Unsupported desktop layout '%s'", layout);
         return 1;
     }

@@ -4,7 +4,7 @@
  * @brief Rendering an iconified client's own icon window, and the
  *        state-hint indicators drawn on it
  *
- * @a ri_draw_icon_hints is called from both @c render/icon.c (the
+ * @a ri_icon_hints_draw is called from both @c render/icon.c (the
  * normal desktop repaint path) and @c handler/expose.c (redrawing
  * a single icon window after it is exposed), so the two stay visually
  * consistent without duplicating the hint-drawing logic itself between
@@ -50,7 +50,7 @@
  * @a desktop_render_clients for clients with @c CLIENT_FLAG_HIDDEN set,
  * and from @c menu/cycle.c whenever the cycle menu's own selection
  * moves on to or off of @p client, so its real desktop icon (border
- * color, and the hint indicators @a ri_draw_icon_hints below draws)
+ * color, and the hint indicators @a ri_icon_hints_draw below draws)
  * reflects that immediately rather than staying stuck at whichever it
  * was the last time an unrelated full desktop repaint happened to run.
  *
@@ -72,7 +72,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
  *
  * Clears the icon window, redraws only its caption (when
  * @p theme.icon.is-captioned is set) and its hint indicators
- * (@a ri_draw_icon_hints below), all in the client's own active colors.
+ * (@a ri_icon_hints_draw below), all in the client's own active colors.
  * It deliberately omits only the pixmap a full render
  * (@a ri_render_client_icon above) would otherwise draw.
  *
@@ -88,7 +88,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
  * @param connection XCB connection
  * @param client     The iconified client to render
  *
- * @see @a s_drag_sync_icon_active_visual in input/mouse/drag.c
+ * @see @a drag_icon_sync_active_visual in input/mouse/drag/icon.c
  *
  * @note No-op when @p client has no icon window, is not icon-mapped, or
  *       its own @p theme is unset
@@ -138,7 +138,7 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
  *       or @p theme->icon.show_hints is @c false
  * @note Complexity: @e O(1)
  */
-void ri_draw_icon_hints(xcb_connection_t *connection, client_td *client,
+void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
         bool is_cycle_sel, const struct config_theme_s *theme);
 
 

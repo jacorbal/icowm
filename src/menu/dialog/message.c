@@ -498,7 +498,7 @@ static void s_message_draw(xcb_connection_t *connection,
     xcb_poly_fill_rectangle(connection, s_message_window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 
-    dlgutil_draw_button_border(connection, s_message_window,
+    dlgutil_button_border_draw(connection, s_message_window,
             (lo->ok_selected)
                 ? config->theme.dialog.button.selected.border.color
                 : config->theme.dialog.button.unselected.border.color,
@@ -537,7 +537,8 @@ static void s_message_draw(xcb_connection_t *connection,
      * 's_message_compute_layout').  Three rows: a blank spacer so
      * the footer reads as clearly separate from the message
      * above it, a drawn horizontal rule for the same reason
-     * (matching how 'ctxmenu.c' draws a context-menu separator,
+     * (matching how 'ctxmenu/redraw.c' draws a context-menu
+     * separator,
      * not a row of dashed text), and the "more above/below"
      * status/scroll-hint line itself. */
     if (lo->line_count > lo->visible_lines) {

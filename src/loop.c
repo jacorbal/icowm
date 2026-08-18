@@ -50,6 +50,7 @@
 #include <input/kbd/event.h>
 #include <input/mouse.h>
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/warp.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -72,7 +73,8 @@
 #include <logger.h>
 #include <memguard.h>
 #include <sn.h>
-#include <startup.h>
+#include <startup/handle.h>
+#include <startup/install.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
@@ -360,12 +362,12 @@ void loop_run(wm_td *wm)
     keyboard_load(wm->surfaces, keysyms, wm->config);
     mouse_load(wm->surfaces, wm->config);
 
-    lifecycle_scan_existing(wm);
+    lifecycle_existing_scan(wm);
     loop_update_full(wm);
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
-     * adopted by 'lifecycle_scan_existing'.  The earlier 'wm_ewmh_sync'
+     * adopted by 'lifecycle_existing_scan'.  The earlier 'wm_ewmh_sync'
      * call in 'wm_init' ran before any clients were managed, leaving
      * the list empty; 'loop_update_full' then cleared 'is_outdated', so
      * the first main-loop iteration would never trigger a sync on its
@@ -383,27 +385,27 @@ void loop_run(wm_td *wm)
         int ipc_count = ipc_poll_fds(ipc_fds,
                 (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
 
-        if (startup_stop_requested()) {
+        if (startup_requested_stop()) {
             LOGGER_INFO("Termination signal received;" \
                     " requesting shutdown", L_NARG);
             wm_request_stop();
             break;
         }
 
-        if (startup_reload_requested()) {
+        if (startup_requested_reload()) {
             LOGGER_INFO("'SIGHUP' received; reloading configuration",
                     L_NARG);
             (void) wm_action_config_reload();
         }
 
-        if (startup_resume_requested()) {
+        if (startup_requested_resume()) {
             LOGGER_INFO("'SIGCONT' received; re-establishing" \
                     " input grabs", L_NARG);
             keyboard_load(wm->surfaces, keysyms, wm->config);
             mouse_load(wm->surfaces, wm->config);
         }
 
-        if (startup_child_reap_requested()) {
+        if (startup_requested_child_reap()) {
             session_reap_children();
         }
 

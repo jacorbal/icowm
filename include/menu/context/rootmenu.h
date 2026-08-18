@@ -90,21 +90,21 @@
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries in @c menu.json
  */
-void rootmenu_load_menu_json(const char *config_dir);
+void rootmenu_menu_json_load(const char *config_dir);
 
 /**
- * @brief Free the entries loaded by @c rootmenu_load_menu_json
+ * @brief Free the entries loaded by @c rootmenu_menu_json_load
  *
  * @note Call at window manager shutdown
  * @note Safe to call even if nothing was ever loaded
  * @note Complexity: @e O(1)
  */
-void rootmenu_free_menu_json(void);
+void rootmenu_menu_json_free(void);
 
 /**
  * @brief Display the root desktop menu
  *
- * Combines the entries @a rootmenu_load_menu_json already parsed with
+ * Combines the entries @a rootmenu_menu_json_load already parsed with
  * the fixed footer entries, and shows the result at (@p x, @p y).  Any
  * previously open root menu is closed first.
  *
@@ -128,8 +128,8 @@ void rootmenu_show(xcb_connection_t *connection,
  * for this particular open (JSON entries plus footer).  The underlying
  * JSON-loaded entries themselves are untouched, as they stay loaded for
  * the next @a rootmenu_show, and are only freed by
- * @a rootmenu_load_menu_json (on the next reload) or
- * @a rootmenu_free_menu_json (at shutdown).
+ * @a rootmenu_menu_json_load (on the next reload) or
+ * @a rootmenu_menu_json_free (at shutdown).
  *
  * @note Complexity: @e O(n)
  */

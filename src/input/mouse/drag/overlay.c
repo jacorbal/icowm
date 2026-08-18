@@ -27,61 +27,11 @@
 
 /* Project includes */
 #include <client.h>
-#include <render/icon.h>
 #include <render/text.h>
 
 /* Local includes */
-#include <input/mouse/drag.h>
 #include <input/mouse/drag/internal.h>
-
-
-void drag_sync_icon_active_visual(xcb_connection_t *connection)
-{
-    ri_render_client_icon_selected(connection, s_drag.client);
-}
-
-
-/**
- * @brief Clamp a 32-bit unsigned value to the 16-bit range
- *
- * Returns @p value converted to @c uint16_t, saturating to
- * @c UINT16_MAX if the input exceeds the maximum 16-bit unsigned value.
- *
- * @param value Unsigned 32-bit value to clamp
- *
- * @return Clamped 16-bit unsigned value
- *
- * @note Complexity: @e O(1)
- */
-uint16_t drag_u16_sat(uint32_t value)
-{
-    return (value > UINT16_MAX) ? UINT16_MAX : (uint16_t) value;
-}
-
-
-/**
- * @brief Return the full icon-window height for a dragged client
- *
- * Computes the icon height from the base icon square size and adds the
- * caption height when the client theme uses captioned icons.
- *
- * @param client Client whose icon height is requested
- *
- * @return Total icon-window height in pixels
- *
- * @note Complexity: @e O(1)
- */
-uint16_t drag_icon_height(const client_td *client)
-{
-    if (client == NULL || client->theme == NULL) {
-        return (uint16_t) WM_ICON_SQUARE_SIZE;
-    }
-
-    return (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.is_captioned)
-                ? WM_ICON_CAPTION_HEIGHT
-                : 0u));
-}
+#include <input/mouse/drag/overlay.h>
 
 
 /**
@@ -132,16 +82,7 @@ static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
 }
 
 
-/**
- * @brief Destroy and reset the active drag overlay window
- *
- * Destroys the overlay window if it exists and clears the associated
- * overlay state.
- *
- * @param connection XCB connection used to destroy the overlay window
- *
- * @note Complexity: @e O(1)
- */
+/* Destroy and reset the active drag overlay window */
 void drag_overlay_hide(xcb_connection_t *connection)
 {
     if (connection != NULL && s_drag.overlay_window != XCB_WINDOW_NONE) {
@@ -154,24 +95,7 @@ void drag_overlay_hide(xcb_connection_t *connection)
 }
 
 
-/**
- * @brief Show or reposition the drag overlay window
- *
- * Updates the overlay text and mode, computes a centered overlay
- * rectangle for the given target geometry, and either creates the
- * overlay window or moves and resizes the existing one before
- * repainting it.
- *
- * @param connection XCB connection used to manage the overlay window
- * @param is_icon    Whether the overlay should use the active icon theme
- * @param target_x   Left coordinate of the target rectangle
- * @param target_y   Top coordinate of the target rectangle
- * @param target_w   Width of the target rectangle
- * @param target_h   Height of the target rectangle
- * @param text       Overlay text to display
- *
- * @note Complexity: @e O(1)
- */
+/* Show or reposition the drag overlay window */
 void drag_overlay_show(xcb_connection_t *connection,
         bool is_icon,
         int32_t target_x, int32_t target_y,
@@ -196,7 +120,7 @@ void drag_overlay_show(xcb_connection_t *connection,
             (is_icon)
                 ? s_drag.client->theme->icon.active.font
                 : s_drag.client->theme->window.active.font);
-    text_w = text_measure_string(s_drag.overlay_text);
+    text_w = text_string_measure(s_drag.overlay_text);
     overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
     if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
         overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
@@ -246,11 +170,12 @@ void drag_overlay_show(xcb_connection_t *connection,
                 });
     }
 
-    drag_repaint_overlay(connection);
+    drag_overlay_repaint(connection);
     xcb_flush(connection);
 }
 
 
+/* Query whether a window is the active drag overlay window */
 bool drag_is_overlay_window(xcb_window_t window)
 {
     return s_drag.overlay_window != XCB_WINDOW_NONE &&
@@ -258,15 +183,8 @@ bool drag_is_overlay_window(xcb_window_t window)
 }
 
 
-/* Return the client currently being dragged, or NULL */
-client_td *drag_client(void)
-{
-    return s_drag.client;
-}
-
-
 /* Repaint the active drag overlay window */
-void drag_repaint_overlay(xcb_connection_t *connection)
+void drag_overlay_repaint(xcb_connection_t *connection)
 {
     uint32_t bg;
     uint32_t fg;
@@ -306,7 +224,7 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     (void) text_renderer_init(connection, font_name);
     text_renderer_set_color(fg, bg);
 
-    text_w = text_measure_string(s_drag.overlay_text);
+    text_w = text_string_measure(s_drag.overlay_text);
     /* Horizontally centered within the overlay window's own actual
      * width, computed with the exact same formula 's_drag_overlay_
      * show' used to size that window in the first place, rather than
@@ -346,5 +264,3 @@ void drag_repaint_overlay(xcb_connection_t *connection)
     text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
             text_x, text_y, s_drag.overlay_text);
 }
-
-

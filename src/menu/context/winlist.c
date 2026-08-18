@@ -51,6 +51,7 @@
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
+#include <menu/context/ctxmenu/tree.h>
 #include <menu/context/winlist.h>
 #include <menu/draw.h>
 
@@ -240,7 +241,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     }
 
     /* Always the desktop this entry was actually listed under (see
-     * 's_append_client_entry''s comment for 'did'), never
+     * 's_client_entry_append''s comment for 'did'), never
      * 'data->client->desktop_id'.  For a plain client the two agree
      * anyway, since it can only ever be listed under its own desktop,
      * but for a sticky one they routinely do not, for a sticky client's
@@ -299,7 +300,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
  * @param buf      Destination buffer for the formatted label
  * @param buf_size Size of @p buf in bytes
  */
-static void s_format_client_label(const client_td *client,
+static void s_client_label_format(const client_td *client,
         const char *restrict name, char *restrict buf, size_t buf_size)
 {
     if (client == NULL || name == NULL || buf == NULL ||
@@ -350,7 +351,7 @@ static winlist_entry_data_td *s_alloc_entry_data(void)
  * @param out_count   Current entry count in @p out_entries; advanced by
  *                    one on success
  */
-static void s_append_client_entry(client_td *client, uint32_t did,
+static void s_client_entry_append(client_td *client, uint32_t did,
         surface_td *surface, ctxmenu_entry_td *out_entries,
         int out_cap, int *out_count)
 {
@@ -376,7 +377,7 @@ static void s_append_client_entry(client_td *client, uint32_t did,
 
     cname = (client->info.name != NULL && client->info.name[0] != '\0')
         ? client->info.name : "(unnamed)";
-    s_format_client_label(client, cname, name_buf, sizeof(name_buf));
+    s_client_label_format(client, cname, name_buf, sizeof(name_buf));
     menu_draw_truncate(name_buf, (uint16_t) WINLIST_LABEL_MAX_WIDTH);
     out_entries[n].type = CTXMENU_COMMAND;
     safe_strncpy(out_entries[n].label, name_buf,
@@ -449,7 +450,7 @@ static void s_appgroup_label(client_td * const *members, int member_n,
  *
  * @note Complexity: @e O(1)
  */
-static void s_collect_client(client_td *client,
+static void s_client_collect(client_td *client,
         client_td **collected, bool *placed, int *collected_n)
 {
     if (*collected_n < WINLIST_MAX_COLLECTED) {
@@ -516,7 +517,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                         client->desktop_id != did)) {
                 continue;
             }
-            s_collect_client(client, collected, placed, &collected_n);
+            s_client_collect(client, collected, placed, &collected_n);
         }
     }
 
@@ -537,7 +538,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                                     CLIENT_FLAG_SKIP_TASKBAR)) {
                             continue;
                         }
-                        s_collect_client(client, collected, placed,
+                        s_client_collect(client, collected, placed,
                                 &collected_n);
                     } /* ! ohtbl_foreach */
                 }
@@ -560,7 +561,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         leader = client_group_leader(collected[i]);
         if (leader == XCB_WINDOW_NONE) {
-            s_append_client_entry(collected[i], did, surface,
+            s_client_entry_append(collected[i], did, surface,
                     out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                     out_count);
             placed[i] = true;
@@ -581,7 +582,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         if (member_n <= 1) {
             if (member_n == 1) {
-                s_append_client_entry(members[0], did, surface,
+                s_client_entry_append(members[0], did, surface,
                         out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                         out_count);
             }
@@ -593,7 +594,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
             /* Out of submenu slots: fall back to listing this group's
              * windows directly rather than dropping them silently */
             for (int k = 0; k < member_n; ++k) {
-                s_append_client_entry(members[k], did, surface,
+                s_client_entry_append(members[k], did, surface,
                         out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                         out_count);
             }
@@ -606,7 +607,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         s_appgroup_used++;
         for (int k = 0; k < member_n; ++k) {
-            s_append_client_entry(members[k], did, surface,
+            s_client_entry_append(members[k], did, surface,
                     s_appgroup_entries[group_idx],
                     WINLIST_MAX_APPGROUP_SIZE, &group_n);
         }
@@ -655,7 +656,7 @@ void winlist_show(xcb_connection_t *connection,
     winlist_close();
 
     /* Every per-client label built below gets truncated against
-     * 'WINLIST_LABEL_MAX_WIDTH' (see 's_append_client_entry'), which
+     * 'WINLIST_LABEL_MAX_WIDTH' (see 's_client_entry_append'), which
      * measures in whatever font the text renderer currently has
      * active; initialized here, once, up front, so every one of
      * those measurements is against the actual menu font rather than
@@ -900,7 +901,7 @@ void winlist_close(void)
 /* Repaint the window list menu */
 void winlist_repaint(xcb_window_t win)
 {
-    ctxmenu_repaint_window(&s_root, win);
+    ctxmenu_tree_redraw_window(&s_root, win);
 }
 
 
@@ -909,7 +910,7 @@ bool winlist_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_handle_click_window(connection, surface, &s_root,
+    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
             win, y, config);
 }
 
@@ -931,7 +932,7 @@ xcb_window_t winlist_window(void)
 /* Check whether 'win' belongs to the window list menu */
 bool winlist_owns_window(xcb_window_t win)
 {
-    return ctxmenu_find_state_for_window(&s_root, win) != NULL;
+    return ctxmenu_tree_state_find_for_window(&s_root, win) != NULL;
 }
 
 
@@ -940,7 +941,7 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
             &s_root, keysym, config);
 }
 
@@ -948,5 +949,5 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
 /* Handle a pointer-motion event over the window list menu */
 void winlist_handle_motion(xcb_window_t win, int x, int y)
 {
-    ctxmenu_handle_motion_window(&s_root, win, x, y);
+    ctxmenu_tree_handle_motion_window(&s_root, win, x, y);
 }

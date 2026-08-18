@@ -42,7 +42,7 @@
  * @note Complexity: @e O(n), where @e n is the total number of
  *       pre-existing windows across all screens
  */
-void lifecycle_scan_existing(wm_td *wm);
+void lifecycle_existing_scan(wm_td *wm);
 
 /**
  * @brief Dispatch a program-launch event on the active desktop
@@ -57,7 +57,7 @@ void lifecycle_scan_existing(wm_td *wm);
  *
  * @note Complexity: @e O(1)
  */
-void lifecycle_dispatch_launch(surface_td *surface, const char *prog,
+void lifecycle_launch_dispatch(surface_td *surface, const char *prog,
         const char *class_name);
 
 

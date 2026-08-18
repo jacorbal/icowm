@@ -8,7 +8,7 @@
  * this whole file operates on; this test file owns the one real
  * instance, the same way test_clients.c owns 'wm'.
  * battery_status_read (systray/battery.c, its own dedicated test
- * elsewhere), text_renderer_init/text_measure_string (render/text.c,
+ * elsewhere), text_renderer_init/text_string_measure (render/text.c,
  * XCB-backed), and systray_layout_reflow (systray/layout.c,
  * XCB-backed) are all stubbed below as controllable stand-ins.
  */
@@ -64,7 +64,7 @@ void systray_layout_reflow(void)
 }
 
 
-/** Controllable stand-in for text_measure_string: returns a fixed
+/** Controllable stand-in for text_string_measure: returns a fixed
  *  width per non-empty character, so this file's own width
  *  calculations stay simple and exact to hand-compute */
 void text_renderer_init(xcb_connection_t *connection, const char *font)
@@ -73,7 +73,7 @@ void text_renderer_init(xcb_connection_t *connection, const char *font)
     (void) font;
 }
 
-uint16_t text_measure_string(const char *text)
+uint16_t text_string_measure(const char *text)
 {
     return (uint16_t) (strlen(text) * 10u);
 }

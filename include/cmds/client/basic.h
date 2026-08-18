@@ -28,6 +28,12 @@
 #include <surface.h>
 
 
+/* ICCCM WM_STATE property values (ICCCM section 4.1.3.1) */
+#define CCMD_WM_STATE_WITHDRAWN (0u)
+#define CCMD_WM_STATE_NORMAL (1u)
+#define CCMD_WM_STATE_ICONIC (3u)
+
+
 /* Public interface */
 /**
  * @brief Perform the action to close the client
@@ -261,6 +267,112 @@ void ccmd_client_unurge(client_td *client);
  * @note Complexity: @e O(1)
  */
 void ccmd_client_update_allowed_actions(client_td *client);
+
+/**
+ * @brief Return the frame window when decorated, otherwise the client
+ *        window
+ *
+ * @param client Pointer to the client to inspect
+ *
+ * @return Frame window when available, client window otherwise;
+ *         @c XCB_WINDOW_NONE if @p client is @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t ccmd_target_win(client_td *client);
+
+/**
+ * @brief Find which monitor a client is currently on
+ *
+ * Resolves @p client's surface from the global @c wm singleton, then
+ * finds whichever of that surface's monitors @p client's own center
+ * point currently falls on.
+ *
+ * @param client      Client to resolve a monitor for
+ * @param out_surface Receives the resolved surface (may be @c NULL)
+ * @param out_monitor Receives the resolved monitor's raw geometry
+ *                     (screen edges, not adjusted for panel/dock
+ *                     struts)
+ *
+ * @return @c true on success, @c false if the client's surface could
+ *         not be found; callers fall back to @c ccmd_screen_dim's raw
+ *         screen size in that case
+ *
+ * @note Implemented in @c cmds/client/screen.c
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+        monitor_td *out_monitor);
+
+/**
+ * @brief Passively grab all mouse buttons on an undecorated client
+ *
+ * Installs a synchronous passive grab on the client window so the
+ * window manager can focus the client on click before replaying or
+ * consuming the button event.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Implemented in @c cmds/client/grab.c
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_grab_buttons(client_td *client);
+
+/**
+ * @brief Write the ICCCM @c WM_STATE property for a client
+ *
+ * Stores the client state and optional icon window in the legacy
+ * @c WM_STATE property expected by pagers, taskbars, and older X11
+ * clients.
+ *
+ * @param client      Pointer to the client
+ * @param state       ICCCM window-manager state value
+ * @param icon_window Icon window associated with @p state, or
+ *                    @c XCB_NONE
+ *
+ * @note Implemented in @c cmds/client/ewmh.c
+ * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
+ */
+void ccmd_set_wm_state(client_td *client,
+        uint32_t state, xcb_window_t icon_window);
+
+/**
+ * @brief Remove the ICCCM @c WM_STATE property from a client
+ *
+ * Deletes the legacy @c WM_STATE property, typically when the client is
+ * being withdrawn from window-manager control.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Implemented in @c cmds/client/ewmh.c
+ * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
+ */
+void ccmd_clear_wm_state(client_td *client);
+
+/**
+ * @brief Add multiple EWMH window states to a client
+ *
+ * @param client     Pointer to the client
+ * @param num_states Number of state name strings that follow
+ * @param ...        @c (const char*) state name arguments
+ *
+ * @note Implemented in @c cmds/client/ewmh.c
+ * @note Complexity: @e O(n), where @e n is @p num_states
+ */
+void ccmd_add_states(client_td *client, uint32_t num_states, ...);
+
+/**
+ * @brief Remove multiple EWMH window states from a client
+ *
+ * @param client     Pointer to the client
+ * @param num_states Number of state name strings that follow
+ * @param ...        @c (const char*) state name arguments
+ *
+ * @note Implemented in @c cmds/client/ewmh.c
+ * @note Complexity: @e O(n * m), where @e n is @p num_states and @e m
+ *       is the current number of window states
+ */
+void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
 
 
 #endif  /* ! CMDS_CCMD_BASIC_H */

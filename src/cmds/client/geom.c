@@ -258,7 +258,7 @@ static void s_ccmd_resize_configure(client_td *client,
      * repositioned and resized to match the new frame dimensions.
      * 'ccmd_client_resize' is the single configure point, called
      * directly for every resize, interactive or not. */
-    client_sync_decoration_layout(client);
+    client_decoration_layout_sync(client);
 
     /* Use 'exposures=1' so the X server generates an 'Expose' event and
      * the client redraws the newly exposed area immediately after
@@ -277,7 +277,7 @@ static void s_ccmd_resize_configure(client_td *client,
      *
      * For decorated (reparented) clients the X server delivers
      * a frame-relative 'ConfigureNotify' (x=border, y=titlebar+border)
-     * from 'client_sync_decoration_layout'; the synthetic event
+     * from 'client_decoration_layout_sync'; the synthetic event
      * overrides that with screen-relative coordinates.
      *
      * For undecorated clients there is no reparenting, so the X server
@@ -387,7 +387,7 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
         ccmd_client_unshade(client);
     }
 
-    synced = client->has_net_wm_sync_request && wm_sync_available();
+    synced = client->has_net_wm_sync_request && wm_sync_is_available();
 
     if (!synced) {
         s_ccmd_resize_configure(client, x, y, w, h);
@@ -505,8 +505,8 @@ bool ccmd_client_monitor_workarea(client_td *client,
     if (out_y != NULL) {
         *out_y = clipped.pos.y;
     }
-    *out_w = geom_clamp_dim((int32_t) clipped.dim.w);
-    *out_h = geom_clamp_dim((int32_t) clipped.dim.h);
+    *out_w = geom_dim_clamp((int32_t) clipped.dim.w);
+    *out_h = geom_dim_clamp((int32_t) clipped.dim.h);
 
     return true;
 }
@@ -616,7 +616,7 @@ void ccmd_client_refill_maximized(client_td *client)
     }
 
     if (client->frame != 0) {
-        client_sync_decoration_layout(client);
+        client_decoration_layout_sync(client);
     }
 
     client_send_synthetic_configure_notify(client->connection, client);

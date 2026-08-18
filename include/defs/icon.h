@@ -84,7 +84,7 @@
  * A hidden client has its own indicator because @p pre_iconify_state
  * never records the hidden state.
  *
- * @see @a ri_draw_icon_hints in @c render/icon.c, and
+ * @see @a ri_icon_hints_draw in @c render/icon.c, and
  *      @a s_search_build_hints, @c menu/search.c
  */
 #define WM_ICON_HINT_FULLSCREEN 'f'

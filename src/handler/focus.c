@@ -105,7 +105,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
         }
         if (desktop_property_is_background_pixmap(connection,
                     event->atom)) {
-            desktop_invalidate_background_pixmap_cache();
+            desktop_background_pixmap_cache_invalidate();
             surface_render_current_desktop_repaint(s);
         }
         return;
@@ -124,7 +124,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
      * initialized), so the hints read at 'MAP_REQUEST' time may already
      * be stale by the time the first keyboard resize is attempted.
      * Keeping the stored size hints current ensures that
-     * 's_kb_resize_axis_target' and 'client_constrain_size' compute
+     * 's_kb_resize_axis_target' and 'client_size_constrain' compute
      * a target height that lies exactly on the application's current
      * increment grid, preventing the spurious ConfigureRequest that
      * otherwise causes 'RESIZE_UP' to also shrink the bottom edge. */

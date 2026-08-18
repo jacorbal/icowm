@@ -54,6 +54,7 @@
 #include <loop.h>
 #include <memguard.h>
 #include <startup.h>
+#include <startup/subscribe.h>
 #include <surface.h>
 #include <sn.h>
 #include <systray.h>
@@ -159,7 +160,7 @@ static void s_client_unmanage(client_td *client)
  * @note Complexity: @e O(n), where @e n is the total number of
  *       clients across every desktop of every managed surface
  */
-static void s_wm_unmanage_all_clients(void)
+static void s_wm_all_clients_unmanage(void)
 {
     list_item_td *snode;
 
@@ -220,12 +221,12 @@ static void s_wm_cleanup(void)
         return;
     }
 
-    s_wm_unmanage_all_clients();
+    s_wm_all_clients_unmanage();
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
     ipc_destroy();
-    mouse_destroy_resize_cursors(wm->connection);
+    mouse_resize_cursors_destroy(wm->connection);
 
     if (wm->session != NULL) {
         if (wm->is_emergency_exit) {
@@ -254,7 +255,7 @@ static void s_wm_cleanup(void)
         wm->session = NULL;
     }
 
-    rootmenu_free_menu_json();
+    rootmenu_menu_json_free();
 
     if (wm->config != NULL) {
         config_destroy(wm->config);
@@ -395,12 +396,12 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
     /* Two entirely separate configuration paths, not one with
      * restricted-memory branches woven through it: 'config_init'/
      * 'config_load' know nothing about restricted-memory mode at all,
-     * and 'config_init_memguard'/'config_load_memguard' (config/
+     * and 'config_memguard_init'/'config_load_memguard' (config/
      * memguard.h) know nothing about an ordinary session's own
      * 'config.json'.  Only the choice of which pair to call lives
      * here. */
     wm->config = (wm->restricted_memory_mib > 0u)
-        ? config_init_memguard()
+        ? config_memguard_init()
         : config_init();
     if (wm->config == NULL) {
         s_wm_cleanup();
@@ -432,7 +433,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
      * outside of the root menu itself), so it is owned by
      * menu/context/rootmenu.c and loaded directly rather than through
      * an 'init' handle here. */
-    rootmenu_load_menu_json(wm->config_dir_prefix);
+    rootmenu_menu_json_load(wm->config_dir_prefix);
 
     it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
     screens_detected = 0;
@@ -517,10 +518,10 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
         return 9;
     }
 
-    mouse_create_resize_cursors(wm->connection);
-    (void) startup_randr_init(wm);
+    mouse_resize_cursors_init(wm->connection);
+    (void) startup_init_randr(wm);
     (void) startup_subscribe_randr_events(wm);
-    (void) startup_sync_init(wm);
+    (void) startup_init_sync(wm);
 
     /* Not fatal if it fails, the same reasoning as EWMH root
      * metadata just below: a working window manager without its
@@ -566,7 +567,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
      * run; nothing else about that mode's own announcement is lost by
      * that, only delayed to whenever it is checked again (another
      * load or reload). */
-    wm_warn_json_syntax_errors();
+    wm_json_syntax_errors_warn();
 
     /* Restricted-memory mode's own presence is announced once, right
      * before entering the main loop, so it is never a silent surprise
@@ -589,7 +590,7 @@ int wm_start(const char *display_name, const char *config_dir_prefix,
 
 /* Warn through a message dialog if any JSON file loaded during the
  * last configuration load or reload failed to parse */
-void wm_warn_json_syntax_errors(void)
+void wm_json_syntax_errors_warn(void)
 {
     uint32_t count;
     char message[DIALOG_MSG_RAW_MAX_LENGTH];
@@ -738,7 +739,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 
 
 /* Query whether the XSync extension is available on this server */
-bool wm_sync_available(void)
+bool wm_sync_is_available(void)
 {
     return (wm != NULL) && (wm->sync_available);
 }
@@ -862,7 +863,7 @@ void wm_request_full_redraw(void)
 
 
 /* Set the emergency exit flag to true */
-void wm_enable_emergency_exit(void)
+void wm_emergency_exit_enable(void)
 {
     if (wm == NULL) {
         return;

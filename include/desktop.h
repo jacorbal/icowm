@@ -341,7 +341,7 @@ int desktop_action_rename(desktop_td *desktop, const char *name);
  *
  * @note Complexity: @e O(1)
  */
-int desktop_action_send_client(desktop_td *desktop, client_td *client,
+int desktop_action_client_send(desktop_td *desktop, client_td *client,
         uint32_t desktop_id);
 
 /**

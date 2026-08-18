@@ -86,12 +86,12 @@ static void s_remove_temp_dir(const char *path)
 }
 
 
-/* config_init_memguard allocates a usable, non-NULL structure */
+/* config_memguard_init allocates a usable, non-NULL structure */
 static void s_test_init_memguard(void)
 {
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
-    TAP_NOT_NULL(config, "config_init_memguard returns a non-NULL"
+    TAP_NOT_NULL(config, "config_memguard_init returns a non-NULL"
             " pointer");
     free(config);
 }
@@ -111,7 +111,7 @@ static void s_test_default_values_null_safe(void)
  * program/window defaults */
 static void s_test_default_values_key_fields(void)
 {
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     config_set_default_values_memguard(config);
 
@@ -141,7 +141,7 @@ static void s_test_default_values_key_fields(void)
 static void s_test_load_missing_file(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
     int status;
 
     s_make_temp_config_dir(dir, sizeof(dir));
@@ -162,7 +162,7 @@ static void s_test_load_missing_file(void)
 static void s_test_load_full_file(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "memguard.json",
@@ -199,7 +199,7 @@ static void s_test_load_full_file(void)
 static void s_test_systray_text_fields_forced_to_default(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "memguard.json",
@@ -229,7 +229,7 @@ static void s_test_systray_text_fields_forced_to_default(void)
 static void s_test_fixed_variant_forms_via_restrict(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "memguard.json", "{\"theme\": \"mytheme\"}");
@@ -269,7 +269,7 @@ static void s_test_fixed_variant_forms_via_restrict(void)
 static void s_test_restrict_forces_pixmaps_and_xsettings_off(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "memguard.json", "{\"theme\": \"mytheme\"}");
@@ -301,7 +301,7 @@ static void s_test_restrict_forces_pixmaps_and_xsettings_off(void)
 static void s_test_load_memguard_also_loads_bindings(void)
 {
     char dir[300];
-    config_td *config = config_init_memguard();
+    config_td *config = config_memguard_init();
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "bindings.json",

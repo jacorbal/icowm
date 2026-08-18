@@ -35,7 +35,7 @@
  *
  * @note Complexity: @e O(1)
  */
-config_td *config_init_memguard(void);
+config_td *config_memguard_init(void);
 
 /**
  * @brief Populate @p config with restricted-memory mode's own fixed

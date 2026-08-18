@@ -235,7 +235,7 @@ struct client_properties_s {
      * - 'h' for @c CLIENT_STATE_MAXIMIZED_HORZ; and
      * - 'v' for @c CLIENT_STATE_MAXIMIZED_VERT.
      *
-     * @see @a ri_draw_icon_hints in @c render/icon.c:
+     * @see @a ri_icon_hints_draw in @c render/icon.c:
      */
     uint16_t pre_iconify_state;
 };
@@ -352,7 +352,7 @@ typedef struct client_s {
      * @brief Accessibility ("a11y") timing/visual-feedback overrides
      *        @c a11y.json
      *
-     * @see see @ac client_apply_border, where
+     * @see see @ac client_border_apply, where
      *          @p focus_indicator.min_border_width is applied
      */
     const struct config_a11y_s *a11y;
@@ -362,7 +362,7 @@ typedef struct client_s {
      *        @p theme->window.active/inactive.border
      *
      * Deliberately generic, not tied to any one feature.  Unset by
-     * default, in which case @a client_apply_border (@c client.h) falls
+     * default, in which case @a client_border_apply (@c client.h) falls
      * back to the usual @p theme->window.active/inactive.border a plain
      * client already gets on every focus change; a caller that sets
      * this (the scratchpad, @c scratchpad.c, is the only one that does
@@ -710,7 +710,7 @@ void client_update_user_time(client_td *client, uint32_t time);
  *
  * @note Complexity: @e O(1)
  */
-void client_apply_border(client_td *client, bool use_active_style);
+void client_border_apply(client_td *client, bool use_active_style);
 
 /**
  * @brief The border width @p client currently themes its own window
@@ -720,7 +720,7 @@ void client_apply_border(client_td *client, bool use_active_style);
  * @c scratchpad.c, is the only client that sets one as for today, and
  * never varies it with focus), or
  * @p theme->window.active/inactive.border.width otherwise (@p is_active
- * selects which); the same width @a client_apply_border applies for the
+ * selects which); the same width @a client_border_apply applies for the
  * exact same client and focus state.  Meant for any caller that has to
  * reserve room for a border ahead of actually drawing on, e.g., sizing
  * a client to fill an area without its own border ever spilling past
@@ -749,7 +749,7 @@ static inline uint32_t client_border_width(const client_td *client,
      * own content is drawn as background color inset within the frame's
      * own declared width/height ('layout.frame_extents'), already fully
      * accounted for there, not as an X11 border layered on top of it
-     * the way 'client_apply_border' (above) draws one directly on an
+     * the way 'client_border_apply' (above) draws one directly on an
      * undecorated client's own window.  A caller reserving room for
      * a client's own border has nothing to reserve here, so this
      * returns 0 for a decorated client ('frame != 0') even though
@@ -775,7 +775,7 @@ static inline uint32_t client_border_width(const client_td *client,
     /* Accessibility: never let a caller reserve less room than
      * 'a11y.focus-indicator.min-border-width' actually needs,
      * regardless of what the theme or 'border_override' specify; the
-     * same floor 'client_apply_border' (above) already applies when it
+     * same floor 'client_border_apply' (above) already applies when it
      * actually draws the border this reserves room for */
     return (client->a11y != NULL &&
             client->a11y->focus_indicator.min_border_width > base_width)
@@ -796,7 +796,7 @@ static inline uint32_t client_border_width(const client_td *client,
  *
  * @note Complexity: @e O(1)
  */
-void client_sync_decoration_layout(client_td *client);
+void client_decoration_layout_sync(client_td *client);
 
 /**
  * @brief Update a decorated client's border width and titlebar height
@@ -832,7 +832,7 @@ void client_sync_decoration_layout(client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void client_resync_theme_layout(client_td *client, bool is_active);
+void client_theme_layout_resync(client_td *client, bool is_active);
 
 /**
  * @brief One computed titlebar button position
@@ -847,7 +847,7 @@ struct titlebar_button_layout_s {
  *        horizontal span left over for the title text
  *
  * The single source of truth for titlebar layout.  Both
- * @a desktop_draw_titlebar_buttons (what gets painted) and the titlebar
+ * @a desktop_titlebar_buttons_draw (what gets painted) and the titlebar
  * click handler (what a click at a given X actually hits) call this, so
  * the two can never desynchronize the way two independently
  * hand-written copies of the same arithmetic could.
@@ -914,7 +914,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
  * @note No-op if any pointer argument is null
  * @note Complexity: @e O(1)
  */
-void client_constrain_size(const client_td *client,
+void client_size_constrain(const client_td *client,
         uint32_t *width, uint32_t *height);
 
 /**
@@ -922,11 +922,11 @@ void client_constrain_size(const client_td *client,
  *        bounds, adjusting height only
  *
  * Applies the @c PAspect portion of @c WM_NORMAL_HINTS on its own
- * (ICCCM §4.1.2.3), separately from @a client_constrain_size's own
+ * (ICCCM §4.1.2.3), separately from @a client_size_constrain's own
  * minimum/maximum/increment handling, so a caller that already
  * produced a fully snapped size for one axis (see
  * @c input/kbd/interact.c's own @c ik_handle_resize) can still apply
- * just this one constraint without @a client_constrain_size's other
+ * just this one constraint without @a client_size_constrain's other
  * rules snapping the values a second time.
  *
  * @param client Pointer to the client owning the size hints
@@ -937,7 +937,7 @@ void client_constrain_size(const client_td *client,
  *       neither aspect-ratio bound
  * @note Complexity: @e O(1)
  */
-void client_clamp_aspect_ratio(const client_td *client,
+void client_aspect_ratio_clamp(const client_td *client,
         uint32_t width, uint32_t *height);
 
 /**

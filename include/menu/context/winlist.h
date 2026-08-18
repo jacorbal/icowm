@@ -86,7 +86,7 @@
  * name, an application's own class name) rather than an arbitrary
  * window title, so this only applies to the per-client entries.
  *
- * @see @a s_format_client_label in @c menu/context/winlist.c
+ * @see @a s_client_label_format in @c menu/context/winlist.c
  */
 #define WINLIST_LABEL_MAX_WIDTH (280)
 

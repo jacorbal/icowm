@@ -42,7 +42,7 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
 
     surface_refresh_monitors(surface);
     surface_refresh_workareas(surface);
-    surface_reflow_clients(surface);
+    surface_clients_reflow(surface);
     wm_outdate_surface(surface);
     for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
         wm_outdate_desktop(surface_desktop_get(surface, did));

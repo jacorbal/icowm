@@ -260,7 +260,7 @@ static bool s_resolve_font(const char *restrict font_name,
  *
  * @note Complexity: @e O(1)
  */
-static void s_free_render_objects(void)
+static void s_render_objects_free(void)
 {
     if (s_glyph.connection == NULL) {
         return;
@@ -295,7 +295,7 @@ static void s_free_render_objects(void)
  *       linear cache lookup; @e O(1) amortized in practice since the
  *       cache is small and lookups cluster around a stable alphabet
  */
-static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
+static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
 {
     FT_UInt glyph_index;
     const FT_Bitmap *bitmap;
@@ -386,28 +386,28 @@ static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
  * @brief Advance width for one codepoint, ensuring its glyph exists
  *        first
  *
- * A thin wrapper around @c s_ensure_glyph returning the advance width
+ * A thin wrapper around @c s_glyph_ensure returning the advance width
  * directly instead of through an output parameter, so a caller never
  * holds a local variable whose initialization depends on a call whose
  * own success or failure it does not otherwise care about; callers
  * that only need the width call this, callers that also need to know
  * whether the glyph was newly rendered (there are none currently, but
- * the distinction is real) would still call @c s_ensure_glyph
+ * the distinction is real) would still call @c s_glyph_ensure
  * directly instead.
  *
  * @param codepoint Unicode codepoint to look up or render
  *
  * @return The glyph's advance width in pixels; the same fallback
- *         value @c s_ensure_glyph itself falls back to when the glyph
+ *         value @c s_glyph_ensure itself falls back to when the glyph
  *         cannot be rendered
  *
- * @note Complexity: @e O(1) amortized (see @c s_ensure_glyph)
+ * @note Complexity: @e O(1) amortized (see @c s_glyph_ensure)
  */
 static int16_t s_glyph_advance_for(uint32_t codepoint)
 {
     int16_t advance = 0;
 
-    (void) s_ensure_glyph(codepoint, &advance);
+    (void) s_glyph_ensure(codepoint, &advance);
 
     return advance;
 }
@@ -519,7 +519,7 @@ int glyph_renderer_init(xcb_connection_t *connection,
 /* Destroy the glyph renderer's resources */
 void glyph_renderer_destroy(void)
 {
-    s_free_render_objects();
+    s_render_objects_free();
 
     if (s_glyph.ft_ready) {
         FT_Done_Face(s_glyph.ft_face);

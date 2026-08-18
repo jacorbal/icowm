@@ -19,36 +19,36 @@
 #include <utils/geom.h>
 
 
-/* geom_clamp_dim: a value already inside the supported range passes
+/* geom_dim_clamp: a value already inside the supported range passes
  * through unchanged */
 static void s_test_clamp_dim_within_range(void)
 {
-    TAP_EQ_INT(geom_clamp_dim(100), 100,
+    TAP_EQ_INT(geom_dim_clamp(100), 100,
             "a value comfortably inside the range is unchanged");
-    TAP_EQ_INT(geom_clamp_dim(4), 4,
+    TAP_EQ_INT(geom_dim_clamp(4), 4,
             "the minimum itself (4) passes through unchanged");
 }
 
 
-/* geom_clamp_dim: values below WM_MIN_WINDOW_DIMENSION (4) clamp up
+/* geom_dim_clamp: values below WM_MIN_WINDOW_DIMENSION (4) clamp up
  * to it, including negative values */
 static void s_test_clamp_dim_below_minimum(void)
 {
-    TAP_EQ_INT(geom_clamp_dim(3), 4, "just below the minimum clamps up");
-    TAP_EQ_INT(geom_clamp_dim(0), 4, "zero clamps up to the minimum");
-    TAP_EQ_INT(geom_clamp_dim(-100), 4,
+    TAP_EQ_INT(geom_dim_clamp(3), 4, "just below the minimum clamps up");
+    TAP_EQ_INT(geom_dim_clamp(0), 4, "zero clamps up to the minimum");
+    TAP_EQ_INT(geom_dim_clamp(-100), 4,
             "a negative value clamps up to the minimum");
 }
 
 
-/* geom_clamp_dim: values above UINT16_MAX clamp down to it */
+/* geom_dim_clamp: values above UINT16_MAX clamp down to it */
 static void s_test_clamp_dim_above_maximum(void)
 {
-    TAP_EQ_INT(geom_clamp_dim((int32_t) UINT16_MAX), UINT16_MAX,
+    TAP_EQ_INT(geom_dim_clamp((int32_t) UINT16_MAX), UINT16_MAX,
             "UINT16_MAX itself passes through unchanged");
-    TAP_EQ_INT(geom_clamp_dim((int32_t) UINT16_MAX + 1), UINT16_MAX,
+    TAP_EQ_INT(geom_dim_clamp((int32_t) UINT16_MAX + 1), UINT16_MAX,
             "just above UINT16_MAX clamps down to it");
-    TAP_EQ_INT(geom_clamp_dim(1000000), UINT16_MAX,
+    TAP_EQ_INT(geom_dim_clamp(1000000), UINT16_MAX,
             "a far larger value also clamps down to UINT16_MAX");
 }
 
