@@ -341,9 +341,25 @@ static bool s_ensure_glyph(uint32_t codepoint, int16_t *out_advance)
     if (padded == NULL) {
         return false;
     }
+
+    /* FreeType's own 'bitmap->pitch', not 'bitmap->width', is the real
+     * byte stride between rows in 'bitmap->buffer': the rasterizer is
+     * free to pad each row for its own alignment reasons, and a
+     * negative pitch means the bitmap is stored bottom-up rather than
+     * top-down (FreeType's own documented convention for either case).
+     * Copying at a fixed 'width'-sized stride regardless would read
+     * every row but the first from the wrong offset whenever the two
+     * differ, and in the wrong order entirely for a bottom-up bitmap;
+     * both silently produce a garbled or vertically flipped glyph
+     * rather than any error to notice. */
     for (uint16_t row = 0u; row < ginfo.height; ++row) {
-        memcpy(padded + (size_t) row * (size_t) stride,
-                bitmap->buffer + (size_t) row * bitmap->width,
+        const uint8_t *src_row = (bitmap->pitch >= 0)
+            ? bitmap->buffer + (size_t) row * (size_t) bitmap->pitch
+            : bitmap->buffer +
+                (size_t) (ginfo.height - 1u - row) *
+                    (size_t) (-bitmap->pitch);
+
+        memcpy(padded + (size_t) row * (size_t) stride, src_row,
                 bitmap->width);
     }
 

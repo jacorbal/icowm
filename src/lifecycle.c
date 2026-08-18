@@ -34,8 +34,12 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
+#include <rules.h>
 #include <surface.h>
 #include <wm.h>
+
+/* Render includes */
+#include <render/outdate.h>
 
 /* Default initial values */
 #include <defs/uistr.h>
@@ -138,6 +142,22 @@ void lifecycle_scan_existing(wm_td *wm)
                                     XCB_ATOM_CARDINAL, 32, 1, &did);
                         }
 
+                        /* Apply the same rules a client mapped after
+                         * this window manager started would already
+                         * get (handler_map_notify, handler/map.c):
+                         * without this, a rule assigning a desktop,
+                         * geometry, layer, or flag to some client
+                         * only ever took effect for one launched
+                         * fresh, silently skipping any window still
+                         * open from before this window manager's own
+                         * restart, e.g., surviving a crash or an
+                         * intentional reload via 'exec'. */
+                        if (rules_apply(wm, client, &surface, &desktop,
+                                    RULES_TRIGGER_MAP)) {
+                            wm_outdate_surface(surface);
+                            wm_outdate_desktop(desktop);
+                        }
+
                         /* ICCCM §4.2.3: inform the client of its
                          * screen-relative geometry now that the frame
                          * has been positioned.  Without this the client
@@ -154,16 +174,16 @@ void lifecycle_scan_existing(wm_td *wm)
                         LOGGER_DEBUG("Adopted pre-existing window %#x" \
                                 " on surface %u desktop %u",
                                 children[i], surface->id, desktop->id);
-                    } /* ! if (!client) */
-                } /* ! if (!desktop) */
+                    }
+                }
             }
 
             free(ar);
-        } /* ! for (i) */
+        }
 
         surface_refresh_workareas(surface);
         free(qt_reply);
-    } /* ! for (node) */
+    }
 
     xcb_flush(wm->connection);
     LOGGER_DEBUG("Finished scanning for pre-existing windows", L_NARG);
