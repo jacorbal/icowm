@@ -69,19 +69,21 @@ void ccmd_client_center(client_td *client)
     int32_t x;
     int32_t y;
     xcb_window_t target;
-    monitor_td monitor;
 
     if (client == NULL || client_is_maximized(client) ||
             client_is_fullscreen(client)) {
         return;
     }
 
-    if (ccmd_client_monitor(client, NULL, &monitor)) {
-        mx = monitor.x;
-        my = monitor.y;
-        sw = geom_clamp_dim((int32_t) monitor.w);
-        sh = geom_clamp_dim((int32_t) monitor.h);
-    } else if (!ccmd_screen_dim(client, &sw, &sh)) {
+    /* Centers within the workarea of whichever monitor 'client'
+     * currently sits on, not its raw dimensions: consistent with
+     * every other quick-position command in this project (maximize,
+     * smart placement, transient centering, and now the keyboard's
+     * own corner moves in 'ik_handle_move', input/kbd/interact.c),
+     * none of which would tuck a client under a panel or the tray
+     * reserving space at that same edge. */
+    if (!ccmd_client_monitor_workarea(client, &mx, &my, &sw, &sh) &&
+            !ccmd_screen_dim(client, &sw, &sh)) {
         return;
     }
 

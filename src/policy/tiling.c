@@ -234,11 +234,24 @@ void place_icon(const client_td *client, desktop_td *desktop,
                     (const client_td *) cdlist_data(node);
                 if (other != NULL && other != client &&
                         other->icon_window != 0u &&
-                        other->is_icon_mapped &&
-                        occ_count < 256u) {
-                    occ_x[occ_count] = other->icon_x;
-                    occ_y[occ_count] = other->icon_y;
-                    ++occ_count;
+                        other->is_icon_mapped) {
+                    if (occ_count < 256u) {
+                        occ_x[occ_count] = other->icon_x;
+                        occ_y[occ_count] = other->icon_y;
+                        ++occ_count;
+                    } else {
+                        /* Past this many simultaneously mapped icons
+                         * on one desktop, any further one is simply
+                         * left out of the overlap check below rather
+                         * than grown without bound: logged once here
+                         * so an unexpectedly icon-heavy desktop is at
+                         * least visible in the log, not just silently
+                         * risking a rare overlapping placement. */
+                        LOGGER_WARNING("More than 256 mapped icons on" \
+                                " desktop %u; overlap checking stops" \
+                                " counting past this many", desktop->id);
+                        break;
+                    }
                 }
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);

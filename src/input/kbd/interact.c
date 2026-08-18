@@ -35,6 +35,7 @@
 #include <utils/geom.h>
 
 /* Command includes */
+#include <cmds/client/geom.h>
 #include <cmds/client/state.h>
 
 /* Project includes */
@@ -477,6 +478,11 @@ void ik_handle_move(enum wm_keybind_type_e btype,
     int32_t new_y;
     int32_t max_x;
     int32_t max_y;
+    int32_t wa_x = 0;
+    int32_t wa_y = 0;
+    uint16_t wa_w = 0;
+    uint16_t wa_h = 0;
+    bool have_workarea;
 
     client = ik_get_active_client(surface, surfaces, &cs, NULL);
     if (client == NULL) {
@@ -497,14 +503,33 @@ void ik_handle_move(enum wm_keybind_type_e btype,
             ? config->base.windows.move_step : 1u);
     new_x = client->layout.geometry.cur.pos.x;
     new_y = client->layout.geometry.cur.pos.y;
-    max_x = (cs != NULL)
-        ? (int32_t) cs->properties.dim.w -
+
+    /* The corner destinations below need the workarea of whichever
+     * monitor 'client' actually sits on, not the whole surface's own
+     * raw dimensions: on a multi-monitor surface, the latter would
+     * send "top-right" to the far edge of the last monitor rather
+     * than the current one's, and either one alone would still tuck
+     * the client under a panel or the tray reserving space at that
+     * same edge.  Falls back to the whole-surface computation this
+     * function already used, unchanged, whenever a monitor or
+     * desktop cannot be resolved for 'client' at all. */
+    have_workarea = ccmd_client_monitor_workarea(client,
+            &wa_x, &wa_y, &wa_w, &wa_h);
+
+    max_x = (have_workarea)
+        ? wa_x + (int32_t) wa_w -
           (int32_t) client->layout.geometry.cur.dim.w
-        : new_x;
-    max_y = (cs != NULL)
-        ? (int32_t) cs->properties.dim.h -
+        : ((cs != NULL)
+            ? (int32_t) cs->properties.dim.w -
+              (int32_t) client->layout.geometry.cur.dim.w
+            : new_x);
+    max_y = (have_workarea)
+        ? wa_y + (int32_t) wa_h -
           (int32_t) client->layout.geometry.cur.dim.h
-        : new_y;
+        : ((cs != NULL)
+            ? (int32_t) cs->properties.dim.h -
+              (int32_t) client->layout.geometry.cur.dim.h
+            : new_y);
 
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
@@ -580,15 +605,15 @@ void ik_handle_move(enum wm_keybind_type_e btype,
             new_y += move_step;
             break;
         case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-            new_x = 0;
-            new_y = 0;
+            new_x = (have_workarea) ? wa_x : 0;
+            new_y = (have_workarea) ? wa_y : 0;
             break;
         case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
             new_x = max_x;
-            new_y = 0;
+            new_y = (have_workarea) ? wa_y : 0;
             break;
         case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-            new_x = 0;
+            new_x = (have_workarea) ? wa_x : 0;
             new_y = max_y;
             break;
         case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
