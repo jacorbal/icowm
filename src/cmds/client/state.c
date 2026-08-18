@@ -521,6 +521,8 @@ void ccmd_client_fullscreen(client_td *client)
     client_send_synthetic_configure_notify(client->connection, client);
 
     client->properties.state = CLIENT_STATE_FULLSCREEN;
+    (void) clock_gettime(CLOCK_MONOTONIC,
+            &client->fullscreen_transition_time);
 
     ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
 
@@ -687,6 +689,8 @@ void ccmd_client_unfullscreen(client_td *client)
     client_send_synthetic_configure_notify(client->connection, client);
 
     client->properties.state = CLIENT_STATE_NORMAL;
+    (void) clock_gettime(CLOCK_MONOTONIC,
+            &client->fullscreen_transition_time);
 
     ccmd_publish_frame_extents(client,
             (uint32_t) client->layout.frame_extents.left,

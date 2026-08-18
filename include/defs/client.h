@@ -118,5 +118,28 @@
  */
 #define WM_SHADE_CONFIGURE_COOLDOWN_MS (250)
 
+/**
+ * @brief Grace period in milliseconds after entering or leaving
+ *        fullscreen during which a client's own geometry and border
+ *        width @c ConfigureRequest is ignored
+ *
+ * The same reasoning as @c WM_SHADE_CONFIGURE_COOLDOWN_MS, for the
+ * same underlying reason: a fullscreen transition also briefly (and
+ * drastically) resizes the client's own content window, and its own
+ * delayed @c ConfigureRequest reacting to that, once it catches up
+ * processing the resulting @c ConfigureNotify sequence, is far more
+ * likely to be a stale echo of whatever geometry or border width it
+ * had a moment before than an independent request it actually wants
+ * honored now.  Left as its own separate constant and its own
+ * separate client field, rather than reusing the shade one outright,
+ * since the two transitions are conceptually distinct even though
+ * the mechanism guarding against a stale echo of either is the same
+ * shape; a future maintainer tuning one is not thereby forced to
+ * also retune the other.
+ *
+ * @see @a handler_configure_request
+ */
+#define WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS (250)
+
 
 #endif  /* ! DEFS_CLIENT_H */

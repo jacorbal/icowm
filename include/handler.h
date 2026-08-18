@@ -45,6 +45,14 @@
  *
  * Applies geometry and stacking requests directly through XCB, keeping
  * the managed client's cached geometry synchronized when applicable.
+ * A request is ignored outright while the window manager itself is
+ * actively moving, resizing, or has this same client in fullscreen,
+ * and also, for a short grace period afterward, right after the
+ * window manager itself shaded, unshaded, or entered or left
+ * fullscreen on this same client, as a stale echo of that transition
+ * rather than a genuine independent request (see
+ * @c WM_SHADE_CONFIGURE_COOLDOWN_MS and
+ * @c WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS).
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces

@@ -328,6 +328,14 @@ typedef struct client_s {
                                                 than a genuine independent
                                                 resize, see
                                                 @a handler_configure_request */
+    struct timespec fullscreen_transition_time; /**< Monotonic time of
+                                                the client's last entry
+                                                into or exit from
+                                                fullscreen; used the
+                                                same way as
+                                                @c shade_transition_time,
+                                                for the same reason, see
+                                                @a handler_configure_request */
 
     uint32_t desktop_id;        /**< Desktop index (@c 0xFFFFFFFF for all) */
     uint32_t screen_id;         /**< Screen index */

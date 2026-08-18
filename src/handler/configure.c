@@ -268,6 +268,55 @@ void handler_configure_request(xcb_connection_t *connection,
             }
         }
 
+        /* Same reasoning, for the same underlying mechanism, right
+         * after entering or leaving fullscreen instead of a shade or
+         * unshade; also covers 'XCB_CONFIG_WINDOW_BORDER_WIDTH', not
+         * just 'geom_mask', since 'ccmd_client_unfullscreen' restores
+         * the client's own border width as part of the same
+         * transition this guards, and a stale echo touching only
+         * that field would otherwise slip through 'geom_mask' alone
+         * and silently undo it, well after the point in this
+         * function that already applies every other bit in 'mask'
+         * unconditionally. */
+        if (mask & (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
+            struct timespec now;
+
+            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+                int64_t elapsed_ms =
+                    ((int64_t) now.tv_sec -
+                        (int64_t)
+                            client->fullscreen_transition_time.tv_sec) *
+                        1000 +
+                    ((int64_t) now.tv_nsec -
+                        (int64_t)
+                            client->fullscreen_transition_time.tv_nsec) /
+                        1000000;
+
+                if (elapsed_ms >= 0 &&
+                        elapsed_ms <
+                            WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS) {
+                    LOGGER_DEBUG("Ignoring 'ConfigureRequest' for" \
+                            " window=0x%x: %lld ms after a" \
+                            " fullscreen transition, within the" \
+                            " %u ms cooldown",
+                            client->window, (long long) elapsed_ms,
+                            (unsigned int)
+                                WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS);
+                    mask = (uint16_t) (mask &
+                            ~(geom_mask |
+                                XCB_CONFIG_WINDOW_BORDER_WIDTH));
+                    if (mask == 0) {
+                        if (connection != NULL && is_reparented) {
+                            s_handler_send_synthetic_configure_notify(
+                                    connection, client);
+                            xcb_flush(connection);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
         if (is_reparented) {
             target = client->frame;
         }
