@@ -570,6 +570,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
             client_sync_decoration_layout(client);
         }
         xcb_flush(wm->connection);
+        wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
     }

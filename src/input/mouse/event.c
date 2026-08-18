@@ -220,7 +220,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
 {
     /* Popup: close unconditionally on any click, then allow processing */
     if (popup_is_open()) {
-        surface_td *surface= lookup_surface_for_root(surfaces,
+        surface_td *surface = lookup_surface_for_root(surfaces,
                 event->root);
 
         popup_close(connection);
