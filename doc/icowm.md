@@ -422,6 +422,15 @@ with a bare `{"ok": true}` on success.
 | `set_layer_normal_client`  | Moves the client back to the ordinary layer |
 | `set_layer_below_client`   | Moves the client to the "always below" layer |
 | `cycle_layer_client`       | Cycles the client through above, normal, and below, in that order |
+| `shade_client`             | Rolls the client up into just its own titlebar |
+| `unshade_client`           | Undoes `shade_client` |
+| `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client` |
+| `fullscreen_client`        | Makes the client fill its own screen, without any decoration |
+| `unfullscreen_client`      | Undoes `fullscreen_client` |
+| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client` |
+| `toggle_decorate_client`   | Shows or hides the client's own titlebar and border |
+| `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer |
+| `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer |
 
 A fullscreen client's own stacking is always forced above every other
 client while it holds focus, including every other above-layer one,
@@ -437,16 +446,6 @@ context menu's own "Layer" submenu is disabled the same way, for the
 same reason: choosing a layer here would have no visible effect until
 it later leaves fullscreen, which would read as broken rather than
 merely deferred.
-
-| `shade_client`             | Rolls the client up into just its own titlebar |
-| `unshade_client`           | Undoes `shade_client` |
-| `toggle_shade_client`      | Toggles between `shade_client` and `unshade_client` |
-| `fullscreen_client`        | Makes the client fill its own screen, without any decoration |
-| `unfullscreen_client`      | Undoes `fullscreen_client` |
-| `toggle_fullscreen_client` | Toggles between `fullscreen_client` and `unfullscreen_client` |
-| `toggle_decorate_client`   | Shows or hides the client's own titlebar and border |
-| `send_client_to_front`     | Raises the client to the front of its own desktop's window stack, independent of its layer |
-| `send_client_to_back`      | Sends the client to the back of its own desktop's window stack, independent of its layer |
 
 #### 5.3.3. Client actions taking their own extra arguments
 
