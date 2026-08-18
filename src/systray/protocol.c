@@ -190,6 +190,24 @@ void systray_protocol_dock(xcb_window_t icon)
         return;
     }
 
+    /* A dock request for a window already tracked is refused outright
+     * rather than adding a second entry for it: 'systray_handle_
+     * destroy' below only ever removes the first matching entry it
+     * finds and returns immediately, so a second one for the same
+     * window would be left dangling, still referencing the window
+     * once it is actually destroyed, and 'systray_layout_reflow'
+     * would keep trying to configure a window ID that either errors
+     * out harmlessly or, worse, has since been reused by the X server
+     * for something else entirely. */
+    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+        if (s_tray.icons[i].window == icon) {
+            LOGGER_NOTICE("Window 0x%x is already docked in the" \
+                    " systray; ignoring duplicate dock request",
+                    icon);
+            return;
+        }
+    }
+
     if (s_tray.icon_count >= WM_SYSTRAY_MAX_ICONS) {
         LOGGER_NOTICE("Systray is full; ignoring dock request for" \
                 " window 0x%x", icon);

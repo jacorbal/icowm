@@ -65,60 +65,50 @@ static uint16_t s_systray_content_width(void)
 
 
 /**
- * @brief Find the topmost currently fullscreen client's own stacking
- *        target, if any
+ * @brief Find the currently fullscreen client the tray's own layer
+ *        should duck behind, if any
  *
- * @return The last fullscreen client found's frame (or window, if it
- *         has no frame), scanning every desktop on every surface, or
- *         @c XCB_WINDOW_NONE if none is currently fullscreen
+ * Scoped to @p s_tray.surface's own currently displayed desktop
+ * only, the one surface the tray itself actually belongs to and the
+ * only desktop whose content can actually be on screen at the same
+ * time as the tray: a client fullscreen on some other surface
+ * (a different physical monitor's own root window) or on a desktop
+ * of @p s_tray.surface that is not the one currently shown is not
+ * visible right now, so it has no bearing on where this one tray
+ * should stack.
  *
- * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every desktop and surface
+ * @return The fullscreen client's own frame (or plain window, if
+ *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen
+ *         on @p s_tray.surface's own current desktop
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p s_tray.surface's own current desktop
  */
 static xcb_window_t s_systray_find_fullscreen_target(void)
 {
-    list_td *surfaces;
-    xcb_window_t target = XCB_WINDOW_NONE;
+    desktop_td *desktop;
+    void *elem;
 
-    surfaces = wm_get_surfaces();
-    if (surfaces == NULL) {
+    if (s_tray.surface == NULL) {
         return XCB_WINDOW_NONE;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
-            snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
-        const cdlist_item_td *dinitial;
-
-        if (surface == NULL || surface->desktops == NULL) {
-            continue;
-        }
-        dnode = cdlist_head(surface->desktops);
-        if (dnode == NULL) {
-            continue;
-        }
-        dinitial = dnode;
-        do {
-            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
-            if (desktop != NULL && desktop->clients != NULL) {
-                void *elem;
-                ohtbl_foreach(desktop->clients, elem) {
-                    client_td *client = (client_td *) elem;
-
-                    if (client->properties.state !=
-                            (uint16_t) CLIENT_STATE_FULLSCREEN) {
-                        continue;
-                    }
-                    target = (client->frame != 0)
-                        ? client->frame : client->window;
-                }
-            }
-            dnode = cdlist_next(dnode);
-        } while (dnode != NULL && dnode != dinitial);
+    desktop = surface_desktop_get(s_tray.surface,
+            s_tray.surface->desktop_cur);
+    if (desktop == NULL || desktop->clients == NULL) {
+        return XCB_WINDOW_NONE;
     }
 
-    return target;
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *client = (client_td *) elem;
+
+        if (client->properties.state ==
+                (uint16_t) CLIENT_STATE_FULLSCREEN) {
+            return (client->frame != 0) ? client->frame : client->window;
+        }
+    }
+
+    return XCB_WINDOW_NONE;
 }
 
 

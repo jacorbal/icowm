@@ -355,8 +355,15 @@ void systray_handle_destroy(wm_td *wm, xcb_window_t window)
         return;
     }
 
-    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+    /* Scans the whole array rather than stopping at the first match:
+     * defense in depth against ever ending up with more than one
+     * entry for the same window (the dock path itself now refuses a
+     * duplicate outright, see 'systray_protocol_dock', but nothing
+     * about this cleanup path should have to assume that always
+     * holds to stay safe) */
+    for (uint16_t i = 0u; i < s_tray.icon_count; /* incremented below */) {
         if (s_tray.icons[i].window != window) {
+            ++i;
             continue;
         }
 
@@ -368,9 +375,11 @@ void systray_handle_destroy(wm_td *wm, xcb_window_t window)
         LOGGER_DEBUG("Systray icon 0x%x undocked (%u remaining)",
                 window, (unsigned int) s_tray.icon_count);
 
-        systray_layout_reflow();
-        return;
+        /* Do not advance 'i': the entry that just shifted into this
+         * same index has not been checked against 'window' yet */
     }
+
+    systray_layout_reflow();
 }
 
 

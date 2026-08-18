@@ -31,28 +31,36 @@
 #include <logger.h>
 #include <surface.h>
 
+/* Local includes */
+#include <cmds/client/geom.h>
+
 
 /**
- * @brief Mark every one of a surface's own desktops as outdated
+ * @brief Mark every one of a surface's own desktops, and every
+ *        client on each of them, as outdated
  *
  * @c desktop_repaint_titlebar_content (render/desktop.c) recomputes
  * whether the pin button belongs on a client's own titlebar
  * (@c hide_pin) fresh every time it runs, from @p surface's own
- * current @c desktop_count, but only actually runs for a desktop
- * whose own @c is_outdated is set (@a surface_render_current_desktop,
- * render/surface.c).  @a surface_action_desktop_add / @c _remove only
- * ever marked @p surface itself outdated, not any of its individual
- * desktops, which left every existing desktop's own clients showing
- * a stale pin button (present or missing) until some unrelated event
- * (a focus change, in practice) happened to mark that one specific
- * desktop outdated on its own.
+ * current @c desktop_count, but reaching it takes clearing two
+ * separate gates, not one: @a desktop_render_full only actually
+ * renders a desktop whose own @c is_outdated is set
+ * (@a surface_render_current_desktop, render/surface.c), and, once
+ * inside, @a desktop_render_one_client only repaints a client's own
+ * titlebar content when that client's own @c is_outdated is
+ * @e also set (render/desktop.c).  @a surface_action_desktop_add /
+ * @c _remove used to mark only @p surface itself, leaving every
+ * existing client's own pin button stale (present or missing) until
+ * some unrelated event (a focus change, in practice, which marks
+ * both the one desktop involved and its one client) happened to
+ * clear both gates for it on its own.
  *
- * @param surface Surface whose own desktops should all be marked
- *                outdated
+ * @param surface Surface whose own desktops and clients should all
+ *                be marked outdated
  *
  * @note No-op if @p surface or its own desktop list is @c NULL
- * @note Complexity: @e O(n), where @e n is @p surface's own desktop
- *       count
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every one of @p surface's own desktops
  */
 static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 {
@@ -74,6 +82,23 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 
         if (desktop != NULL) {
             desktop->is_outdated = true;
+
+            if (desktop->stacking != NULL) {
+                cdlist_item_td *cnode = cdlist_head(desktop->stacking);
+                const cdlist_item_td *cinitial = cnode;
+
+                if (cnode != NULL) {
+                    do {
+                        client_td *client =
+                            (client_td *) cdlist_data(cnode);
+
+                        if (client != NULL) {
+                            client->is_outdated = true;
+                        }
+                        cnode = cdlist_next(cnode);
+                    } while (cnode != NULL && cnode != cinitial);
+                }
+            }
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
@@ -262,6 +287,64 @@ int surface_action_desktop_remove(surface_td *surface)
 }
 
 
+/**
+ * @brief Re-fill every already-maximized client's own geometry
+ *        across every one of a surface's own desktops
+ *
+ * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
+ * applies one client's own workarea fresh; run here for every client
+ * on every desktop @p surface owns, right after its own workarea
+ * actually changed (@a surface_action_toggle_fullsurface), so an
+ * already-maximized window visibly grows or shrinks into the panel-
+ * reserved space that mode just set aside or folded back in, rather
+ * than silently staying at whatever size it already was until the
+ * person happens to un-maximize and re-maximize it by hand.
+ *
+ * @param surface Surface whose own maximized clients should be
+ *                re-filled
+ *
+ * @note No-op if @p surface or its own desktop list is @c NULL
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every one of @p surface's own desktops
+ */
+static void s_surface_refill_maximized_clients(surface_td *surface)
+{
+    cdlist_item_td *dnode;
+    const cdlist_item_td *dinitial;
+
+    if (surface == NULL || surface->desktops == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        desktop_td *d = (desktop_td *) cdlist_data(dnode);
+
+        if (d != NULL && d->stacking != NULL) {
+            cdlist_item_td *cnode = cdlist_head(d->stacking);
+            const cdlist_item_td *cinitial = cnode;
+
+            if (cnode != NULL) {
+                do {
+                    client_td *c = (client_td *) cdlist_data(cnode);
+
+                    if (c != NULL) {
+                        ccmd_client_refill_maximized(c);
+                    }
+                    cnode = cdlist_next(cnode);
+                } while (cnode != NULL && cnode != cinitial);
+            }
+        }
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
 /* Toggle full-surface mode */
 int surface_action_toggle_fullsurface(surface_td *surface)
 {
@@ -284,6 +367,20 @@ int surface_action_toggle_fullsurface(surface_td *surface)
      * 'surface_refresh_workareas' next. */
     surface_refresh_workareas(surface);
 
+    /* Grow or shrink every already-maximized client into whichever
+     * workarea it now resolves to, immediately: the toggle would
+     * otherwise have no visible effect at all on a window that was
+     * already maximized before it ran, since maximize geometry is
+     * only ever computed once, at the moment a client is actually
+     * maximized, not continuously re-derived from the desktop's own
+     * workarea afterward. */
+    s_surface_refill_maximized_clients(surface);
+
+    /* Every desktop needs its own redraw, not just 'surface' itself:
+     * see 's_surface_mark_all_desktops_outdated''s own comment above
+     * for the identical reasoning already applied to desktop add and
+     * remove. */
+    s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;
     xcb_flush(surface->connection);
 

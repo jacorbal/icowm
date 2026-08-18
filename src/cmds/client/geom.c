@@ -513,6 +513,117 @@ bool ccmd_client_monitor_workarea(client_td *client,
 
 
 /**
+ * @brief Re-fill an already-maximized client's own geometry against
+ *        its current workarea
+ *
+ * A maximized client's own geometry, grown or shrunk in place, is
+ * only ever right immediately after actually maximizing it: anything
+ * that later changes what its own workarea resolves to (a panel
+ * mapped or unmapped, @c desktops.margins reloaded, or the surface's
+ * own full-surface mode, @a surface_action_toggle_fullsurface,
+ * surface.h, toggled) leaves it still filling wherever the OLD
+ * workarea was, not the new one, until something re-applies its
+ * maximize geometry from scratch.  This does exactly that: resolved
+ * against @a ccmd_client_monitor_workarea (the same resolution
+ * @a ccmd_client_maximize itself already uses), so the client ends up
+ * exactly refilling the workarea as it now stands, the same as if it
+ * had only just been maximized.
+ *
+ * Only the axis (or axes) @p client's own @c properties.state
+ * actually names gets touched: a client maximized on one axis alone
+ * keeps its own other axis exactly as it already was, rather than
+ * growing it to fill the workarea too and silently turning a
+ * horizontal- or vertical-only maximize into a full one.
+ *
+ * @param client Client to re-fill; a no-op unless it is currently
+ *               maximized on at least one axis
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_refill_maximized(client_td *client)
+{
+    int32_t mx = 0;
+    int32_t my = 0;
+    uint16_t sw;
+    uint16_t sh;
+    const desktop_td *own_desktop;
+    bool is_active;
+    xcb_window_t target;
+    bool touch_x;
+    bool touch_y;
+    uint32_t border;
+    uint16_t mask;
+    uint32_t values[4];
+    int n;
+
+    if (client == NULL || !client_is_maximized_any(client)) {
+        return;
+    }
+
+    if (!ccmd_client_monitor_workarea(client, &mx, &my, &sw, &sh)) {
+        return;
+    }
+
+    own_desktop = wm_get_client_desktop(client);
+    is_active = own_desktop != NULL &&
+        own_desktop->client_active_id == client->id;
+
+    target = ccmd_target_win(client);
+    touch_x = client->properties.state !=
+        (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
+    touch_y = client->properties.state !=
+        (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    border = 2u * client_border_width(client, is_active);
+    mask = 0u;
+    n = 0;
+
+    sw = (uint16_t) ((sw > border) ? sw - border : 0u);
+    sh = (uint16_t) ((sh > border) ? sh - border : 0u);
+
+    if (touch_x) {
+        mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;
+        client->layout.geometry.cur.pos.x = mx;
+        client->layout.geometry.cur.dim.w = sw;
+    }
+    if (touch_y) {
+        mask |= XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT;
+        client->layout.geometry.cur.pos.y = my;
+        client->layout.geometry.cur.dim.h = sh;
+    }
+
+    /* 'xcb_configure_window' requires its own value list in ascending
+     * 'XCB_CONFIG_WINDOW_*' bit order (X, Y, then WIDTH, HEIGHT);
+     * built here explicitly rather than indexed by bit position so
+     * skipping the untouched axis's own two fields (X+WIDTH or
+     * Y+HEIGHT) still leaves the fields that are set in the right
+     * order. */
+    if (mask & XCB_CONFIG_WINDOW_X) {
+        values[n++] = (uint32_t) client->layout.geometry.cur.pos.x;
+    }
+    if (mask & XCB_CONFIG_WINDOW_Y) {
+        values[n++] = (uint32_t) client->layout.geometry.cur.pos.y;
+    }
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+        values[n++] = client->layout.geometry.cur.dim.w;
+    }
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        values[n++] = client->layout.geometry.cur.dim.h;
+    }
+
+    if (mask != 0u) {
+        xcb_configure_window(client->connection, target, mask, values);
+    }
+
+    if (client->frame != 0) {
+        client_sync_decoration_layout(client);
+    }
+
+    client_send_synthetic_configure_notify(client->connection, client);
+    wm_request_client_redraw(client);
+}
+
+
+/**
  * @brief Precondition checks shared by @c ccmd_client_maximize,
  *        @c ccmd_client_maximize_horz, and @c ccmd_client_maximize_vert,
  *        restoring an iconified client and unshading a shaded one

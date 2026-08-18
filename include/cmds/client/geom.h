@@ -169,5 +169,23 @@ bool ccmd_client_monitor_workarea(client_td *client,
         int32_t *out_x, int32_t *out_y,
         uint16_t *out_w, uint16_t *out_h);
 
+/**
+ * @brief Re-fill an already-maximized client's own geometry against
+ *        its current workarea
+ *
+ * Resolved against @a ccmd_client_monitor_workarea (the same
+ * resolution @a ccmd_client_maximize itself already uses), so the
+ * client ends up exactly refilling the workarea as it now stands,
+ * the same as if it had only just been maximized; a no-op unless
+ * @p client is currently maximized on at least one axis.  Only the
+ * axis (or axes) its own @c properties.state actually names gets
+ * touched.
+ *
+ * @param client Client to re-fill
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_refill_maximized(client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_GEOM_H */
