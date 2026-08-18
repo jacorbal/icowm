@@ -164,8 +164,8 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
     }
 
     while (cdlist_size(from_desktop->stacking) > 0) {
-        cdlist_item_td *head = cdlist_head(from_desktop->stacking);
-        client_td *client = (client_td *) cdlist_data(head);
+        cdlist_item_td *const head = cdlist_head(from_desktop->stacking);
+        client_td *const client = (client_td *) cdlist_data(head);
 
         if (client == NULL) {
             break;
@@ -328,7 +328,7 @@ static void s_surface_refill_maximized_clients(surface_td *surface)
 
     dinitial = dnode;
     do {
-        desktop_td *d = (desktop_td *) cdlist_data(dnode);
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
 
         if (d != NULL && d->stacking != NULL) {
             cdlist_item_td *cnode = cdlist_head(d->stacking);
@@ -336,7 +336,7 @@ static void s_surface_refill_maximized_clients(surface_td *surface)
 
             if (cnode != NULL) {
                 do {
-                    client_td *c = (client_td *) cdlist_data(cnode);
+                    client_td *const c = (client_td *) cdlist_data(cnode);
 
                     if (c != NULL) {
                         ccmd_client_refill_maximized(c);

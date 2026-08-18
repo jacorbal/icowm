@@ -27,7 +27,7 @@
 bool ipc_args_get_uint(const cJSON *args, const char *field,
         uint32_t *out)
 {
-    cJSON *item = cJSON_GetObjectItem(args, field);
+    cJSON *const item = cJSON_GetObjectItem(args, field);
 
     if (item == NULL || !cJSON_IsNumber(item) || item->valuedouble < 0.0) {
         return false;
@@ -40,7 +40,7 @@ bool ipc_args_get_uint(const cJSON *args, const char *field,
 /* Read a required signed integer field */
 bool ipc_args_get_int(const cJSON *args, const char *field, int32_t *out)
 {
-    cJSON *item = cJSON_GetObjectItem(args, field);
+    cJSON *const item = cJSON_GetObjectItem(args, field);
 
     if (item == NULL || !cJSON_IsNumber(item)) {
         return false;
@@ -54,7 +54,7 @@ bool ipc_args_get_int(const cJSON *args, const char *field, int32_t *out)
 bool ipc_args_get_string(const cJSON *args, const char *field,
         const char **out)
 {
-    cJSON *item = cJSON_GetObjectItem(args, field);
+    cJSON *const item = cJSON_GetObjectItem(args, field);
 
     if (item == NULL || !cJSON_IsString(item) ||
             item->valuestring == NULL) {
@@ -68,7 +68,7 @@ bool ipc_args_get_string(const cJSON *args, const char *field,
 /* Read a required boolean field */
 bool ipc_args_get_bool(const cJSON *args, const char *field, bool *out)
 {
-    cJSON *item = cJSON_GetObjectItem(args, field);
+    cJSON *const item = cJSON_GetObjectItem(args, field);
 
     if (item == NULL || !cJSON_IsBool(item)) {
         return false;

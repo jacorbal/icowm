@@ -115,7 +115,7 @@ int surface_render_all_desktops(surface_td *surface)
 
     /* Iterate through all desktops (circular list) */
     do {
-        desktop_td *desktop = (desktop_td *) cdlist_data(desktop_node);
+        desktop_td *const desktop = (desktop_td *) cdlist_data(desktop_node);
 
         if (desktop == NULL) {
             LOGGER_WARNING("Desktop in list at position %u is null",

@@ -73,7 +73,7 @@ static struct {
  */
 static void s_run_attempt_launch(xcb_connection_t *connection)
 {
-    surface_td *surface = s_run.surface;
+    surface_td *const surface = s_run.surface;
     const config_td *cfg = s_run.config;
     desktop_td *desktop;
     char command[WM_RUN_COMMAND_MAX_LENGTH];

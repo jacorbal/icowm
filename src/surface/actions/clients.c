@@ -59,7 +59,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 
     initial = node;
     do {
-        client_td *client = (client_td *) cdlist_data(node);
+        client_td *const client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_PIN)) {
             /* Only unmap and track events for clients whose windows are
@@ -138,7 +138,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
     initial = node;
     do {
-        client_td *client = (client_td *) cdlist_data(node);
+        client_td *const client = (client_td *) cdlist_data(node);
         if (client != NULL &&
                 !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 client->properties.state !=
@@ -336,7 +336,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
             cnode = cdlist_head(from_desktop->stacking);
             cinitial = cnode;
             do {
-                client_td *c = (client_td *) cdlist_data(cnode);
+                client_td *const c = (client_td *) cdlist_data(cnode);
 
                 if (c != NULL && client_is_pinned(c) &&
                         n < (int) (sizeof(sticky) / sizeof(sticky[0]))) {
@@ -390,7 +390,7 @@ void surface_clients_reflow(surface_td *surface)
 
     dinitial = dnode;
     do {
-        desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
         cdlist_item_td *cnode;
         const cdlist_item_td *cinitial;
 
@@ -408,7 +408,7 @@ void surface_clients_reflow(surface_td *surface)
 
         cinitial = cnode;
         do {
-            client_td *client = (client_td *) cdlist_data(cnode);
+            client_td *const client = (client_td *) cdlist_data(cnode);
 
             if (client != NULL) {
                 /* Use the frame for decorated windows, the client window

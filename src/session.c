@@ -274,7 +274,7 @@ static int s_session_spawn_command(xcb_connection_t *connection,
 /* Allocate and zero-initialize a new session table */
 session_td *session_init(void)
 {
-    session_td *session = calloc(1, sizeof(session_td));
+    session_td *const session = calloc(1, sizeof(session_td));
 
     if (session == NULL) {
         return NULL;
@@ -342,7 +342,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
         enum session_hook_e hook = (enum session_hook_e) h;
         const char *hook_name = s_session_hook_name(hook);
         list_td **list = s_session_hook_list(session, hook);
-        cJSON *arr = json_get_item(json, hook_name);
+        cJSON *const arr = json_get_item(json, hook_name);
         cJSON *it;
 
         list_clear(*list);
@@ -353,7 +353,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
         cJSON_ArrayForEach(it, arr) {
             if (cJSON_IsString(it) && it->valuestring != NULL &&
                     it->valuestring[0] != '\0') {
-                char *command = calloc(SESSION_MAX_CMD_LEN,
+                char *const command = calloc(SESSION_MAX_CMD_LEN,
                         sizeof(char));
 
                 if (command == NULL) {
@@ -411,7 +411,7 @@ void session_reap_children(void)
     pid_t pid;
 
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        struct session_tracked_pid_s *tracked = s_session_find_pid(pid);
+        struct session_tracked_pid_s *const tracked = s_session_find_pid(pid);
 
         if (tracked != NULL) {
             if (WIFEXITED(status)) {

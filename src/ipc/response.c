@@ -24,7 +24,7 @@
 /* Build a bare success response */
 cJSON *ipc_response_ok(void)
 {
-    cJSON *resp = cJSON_CreateObject();
+    cJSON *const resp = cJSON_CreateObject();
 
     if (resp == NULL) {
         return NULL;
@@ -37,7 +37,7 @@ cJSON *ipc_response_ok(void)
 /* Build a standard failure response */
 cJSON *ipc_response_error(const char *message)
 {
-    cJSON *resp = cJSON_CreateObject();
+    cJSON *const resp = cJSON_CreateObject();
 
     if (resp == NULL) {
         return NULL;

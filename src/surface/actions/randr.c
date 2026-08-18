@@ -944,7 +944,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
  * profiles' call */
 void surface_action_revert_randr_profiles(void)
 {
-    surface_td *surface = s_randr_snapshot_surface;
+    surface_td *const surface = s_randr_snapshot_surface;
     xcb_randr_get_screen_resources_current_cookie_t res_cookie;
     xcb_randr_get_screen_resources_current_reply_t *res_reply;
 

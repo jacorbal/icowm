@@ -131,7 +131,7 @@ void ci_config_load_systray(cJSON *json,
 
         backend_item = cJSON_GetObjectItem(battery_item, "backend");
         if (backend_item) {
-            cJSON *backend_type_item = json_get_item(backend_item,
+            cJSON *const backend_type_item = json_get_item(backend_item,
                     "type");
 
             if (backend_type_item != NULL &&
@@ -169,7 +169,7 @@ void ci_config_load_systray(cJSON *json,
 
             for (int i = 0;
                     i < arr_size && out_count < 2u; ++i) {
-                cJSON *elem = cJSON_GetArrayItem(text_order_item, i);
+                cJSON *const elem = cJSON_GetArrayItem(text_order_item, i);
                 enum config_systray_text_item_e parsed;
 
                 if (elem != NULL && cJSON_IsString(elem) &&

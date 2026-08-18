@@ -113,7 +113,7 @@ void lifecycle_existing_scan(wm_td *wm)
                 desktop_td *desktop =
                     lookup_current_desktop(surface);
                 if (desktop != NULL) {
-                    client_td *client = client_init(
+                    client_td *const client = client_init(
                             wm->connection, wm->ewmh,
                             children[i], &wm->config->theme,
                             &wm->config->base,

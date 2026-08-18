@@ -51,7 +51,7 @@
 static void s_append_client_summary(cJSON *array, const client_td *client,
         const desktop_td *desktop, const surface_td *surface)
 {
-    cJSON *entry = cJSON_CreateObject();
+    cJSON *const entry = cJSON_CreateObject();
     const char *name = (client->info.name != NULL &&
             client->info.name[0] != '\0') ? client->info.name : "";
     const struct geometry_s *geom = &client->layout.geometry.cur;
@@ -110,13 +110,13 @@ cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args)
 
     for (list_item_td *node = list_head(wm->surfaces); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
 
         if (surface == NULL) {
             continue;
         }
         for (uint32_t i = 0; i < surface->desktop_count; ++i) {
-            desktop_td *desktop = surface_desktop_get(surface, i);
+            desktop_td *const desktop = surface_desktop_get(surface, i);
             cJSON *entry;
 
             if (desktop == NULL) {
@@ -156,20 +156,20 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
 
     for (list_item_td *node = list_head(wm->surfaces); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
 
         if (surface == NULL) {
             continue;
         }
         for (uint32_t i = 0; i < surface->desktop_count; ++i) {
-            desktop_td *desktop = surface_desktop_get(surface, i);
+            desktop_td *const desktop = surface_desktop_get(surface, i);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {
                 continue;
             }
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *c = (client_td *) elem;
+                client_td *const c = (client_td *) elem;
 
                 if (c != NULL && !client_is_locked(c)) {
                     s_append_client_summary(array, c, desktop, surface);
@@ -197,7 +197,7 @@ cJSON *ipc_action_get_focused(wm_td *wm, const cJSON *args)
 
     for (list_item_td *node = list_head(wm->surfaces); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         desktop_td *desktop;
         cJSON *entry;
 

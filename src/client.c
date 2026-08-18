@@ -910,7 +910,7 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
                 (uint16_t) CLIENT_TYPE_NOTIFICATION) {
         xcb_get_window_attributes_cookie_t wac =
             xcb_get_window_attributes(connection, window);
-        xcb_get_window_attributes_reply_t *war =
+        xcb_get_window_attributes_reply_t *const war =
             xcb_get_window_attributes_reply(connection, wac, NULL);
         uint32_t existing_mask = (war != NULL)
             ? (uint32_t) war->your_event_mask : 0u;

@@ -51,7 +51,7 @@ int startup_subscribe_randr_events(wm_td *wm)
 
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         xcb_void_cookie_t cookie;
         xcb_generic_error_t *err;
         uint16_t mask;
@@ -152,7 +152,7 @@ int startup_subscribe_root_events(wm_td *wm)
 
     cur = XCB_NONE;
     if (first_surface != NULL) {
-        util_cursor_ctx_td *ctx = util_cursor_ctx_new(wm->connection,
+        util_cursor_ctx_td *const ctx = util_cursor_ctx_new(wm->connection,
                 first_surface->screen);
 
         cur = util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
@@ -165,7 +165,7 @@ int startup_subscribe_root_events(wm_td *wm)
     cur_val[0] = (uint32_t) cur;
     for (list_item_td *cn = list_head(wm->surfaces);
             cn != NULL; cn = list_next(cn)) {
-        surface_td *sv = (surface_td *) list_data(cn);
+        surface_td *const sv = (surface_td *) list_data(cn);
         if (sv == NULL || sv->screen == NULL) {
             continue;
         }

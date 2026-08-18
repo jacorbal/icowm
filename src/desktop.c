@@ -467,7 +467,7 @@ void desktop_update_workarea(desktop_td *desktop,
 
     /* The window manager's own built-in systray is not a managed client
      * (its dock window is override-redirect; see
-     * 'systray_protocol_ensure_window'), so it never appears in
+     * 'systray_protocol_window_ensure'), so it never appears in
      * 'desktop->stacking' above and needs folding in separately here;
      * aggregated the exact same way, since it is a strut source like
      * any other from this function's own point of view.  Skipped, like
@@ -611,7 +611,7 @@ void desktop_mark_outdated(desktop_td *desktop)
 
     initial = node;
     do {
-        client_td *client = (client_td *) cdlist_data(node);
+        client_td *const client = (client_td *) cdlist_data(node);
 
         if (client != NULL) {
             client->is_outdated = true;

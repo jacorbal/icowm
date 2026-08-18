@@ -177,7 +177,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
     defs[5].type = MOUSEBIND_NONE;
 
     if (surfaces != NULL) {
-        list_item_td *head = list_head(surfaces);
+        list_item_td *const head = list_head(surfaces);
         if (head != NULL) {
             const surface_td *first = (surface_td *) list_data(head);
             if (first != NULL) {

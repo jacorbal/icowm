@@ -170,7 +170,7 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
 
     for (unsigned int i = 0;
             i < desktop_count && i < CONFIG_MAX_DESKTOPS; ++i) {
-        cJSON *desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
+        cJSON *const desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
 
         if (desktop_item == NULL) {
             continue;
@@ -253,7 +253,7 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
     settings_count = (unsigned int) cJSON_GetArraySize(desktop_settings);
     for (unsigned int j = 0;
             j < settings_count && j < CONFIG_MAX_DESKTOPS; ++j) {
-        cJSON *setting_item = cJSON_GetArrayItem(desktop_settings,
+        cJSON *const setting_item = cJSON_GetArrayItem(desktop_settings,
                 (int) j);
 
         if (setting_item == NULL) {
@@ -295,7 +295,7 @@ static void s_config_load_screens_nested(cJSON *desktops_array,
      * would be written out of bounds */
     for (unsigned int i = 0;
             i < desktop_count && i < CONFIG_MAX_SCREENS; ++i) {
-        cJSON *desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
+        cJSON *const desktop_item = cJSON_GetArrayItem(desktops_array, (int) i);
 
         if (desktop_item != NULL) {
             s_config_load_screen_desktop_settings(desktop_item, i,

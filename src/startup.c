@@ -81,7 +81,7 @@ int startup_init_randr(wm_td *wm)
      * event arrives (needed by set_orientation/set_resolution) */
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         xcb_randr_get_screen_resources_current_cookie_t res_cookie;
         xcb_randr_get_screen_resources_current_reply_t *res_reply;
         xcb_randr_crtc_t *crtcs;

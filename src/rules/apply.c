@@ -497,7 +497,7 @@ bool rules_apply(wm_td *wm, client_td *client,
         merged.has_opacity_active || merged.has_opacity_inactive;
 
     if (changed) {
-        cJSON *fields = cJSON_CreateObject();
+        cJSON *const fields = cJSON_CreateObject();
 
         if (fields != NULL) {
             cJSON_AddNumberToObject(fields, "client_id",

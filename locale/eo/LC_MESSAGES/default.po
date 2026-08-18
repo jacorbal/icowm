@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: IcoWM 1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-12 20:31+0200\n"
+"POT-Creation-Date: 2026-08-18 00:00+0000\n"
 "PO-Revision-Date: 2026-08-18 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Esperanto\n"
@@ -15,370 +15,421 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: include/defs/uistr.h:39
+#: include/defs/uistr.h:39;
 msgid "[ OK ]"
 msgstr "[ Bone ]"
 
-#: include/defs/uistr.h:43
+#: include/defs/uistr.h:43;
 msgid "Strutless maximization"
 msgstr "Maksimumigo sen panel-spaco"
 
-#: include/defs/uistr.h:44
+#: include/defs/uistr.h:44;
 msgid "Strutted maximization"
 msgstr "Maksimumigo kun panel-spaco"
 
-#: include/defs/uistr.h:45
+#: include/defs/uistr.h:45; include/defs/uistr.h:129;
 msgid "Reload configuration"
 msgstr "Reŝargi agordon"
 
-#: include/defs/uistr.h:46
+#: include/defs/uistr.h:46;
 msgid "Redraw all windows"
 msgstr "Redesegni ĉiujn fenestrojn"
 
-#: include/defs/uistr.h:47
+#: include/defs/uistr.h:47;
 msgid "Exit"
 msgstr "Eliri"
 
-#: include/defs/uistr.h:50
+#: include/defs/uistr.h:50;
 msgid "Send to desktop"
 msgstr "Sendi al labortablo"
 
-#: include/defs/uistr.h:51
+#: include/defs/uistr.h:51;
 msgid "Send to monitor"
 msgstr "Sendi al ekrano"
 
-#: include/defs/uistr.h:52
+#: include/defs/uistr.h:52; include/defs/uistr.h:157;
 msgid "Layer"
 msgstr "Tavolo"
 
-#: include/defs/uistr.h:53
+#: include/defs/uistr.h:53;
 msgid "Always on top"
 msgstr "Ĉiam supre"
 
-#: include/defs/uistr.h:54
+#: include/defs/uistr.h:54;
 msgid "Normal"
 msgstr "Normala"
 
-#: include/defs/uistr.h:55
+#: include/defs/uistr.h:55;
 msgid "Always on bottom"
 msgstr "Ĉiam malsupre"
 
-#: include/defs/uistr.h:56
+#: include/defs/uistr.h:56;
 msgid "All desktops (pin)"
 msgstr "Ĉiuj labortabloj (alfiksi)"
 
-#: include/defs/uistr.h:57
+#: include/defs/uistr.h:57;
 msgid "This desktop only (unpin)"
 msgstr "Nur ĉi tiu labortablo (malfiksi)"
 
-#: include/defs/uistr.h:58
+#: include/defs/uistr.h:58;
 msgid "Restore"
 msgstr "Restaŭri"
 
-#: include/defs/uistr.h:59
+#: include/defs/uistr.h:59;
 msgid "Move"
 msgstr "Movi"
 
-#: include/defs/uistr.h:60
+#: include/defs/uistr.h:60; include/defs/uistr.h:167;
 msgid "Resize"
 msgstr "Regrandigi"
 
-#: include/defs/uistr.h:61
+#: include/defs/uistr.h:61; include/defs/uistr.h:152;
 msgid "Iconify"
 msgstr "Ikonigi"
 
-#: include/defs/uistr.h:62
+#: include/defs/uistr.h:62; include/defs/uistr.h:151;
 msgid "Hide"
 msgstr "Kaŝi"
 
-#: include/defs/uistr.h:63
+#: include/defs/uistr.h:63; include/defs/uistr.h:158;
 msgid "Maximize"
 msgstr "Grandigi"
 
-#: include/defs/uistr.h:64
+#: include/defs/uistr.h:64; include/defs/uistr.h:150;
 msgid "Fullscreen"
 msgstr "Tutekrane"
 
-#: include/defs/uistr.h:65
+#: include/defs/uistr.h:65;
 msgid "Unfullscreen"
 msgstr "Forlasi plenekranan reĝimon"
 
-#: include/defs/uistr.h:66
+#: include/defs/uistr.h:66; include/defs/uistr.h:161;
 msgid "Shade"
 msgstr "Volvi"
 
-#: include/defs/uistr.h:67
+#: include/defs/uistr.h:67;
 msgid "Unshade"
 msgstr "Malvolvi"
 
-#: include/defs/uistr.h:68
+#: include/defs/uistr.h:68; include/defs/uistr.h:149;
 msgid "Decorate"
 msgstr "Ornami"
 
-#: include/defs/uistr.h:69
+#: include/defs/uistr.h:69;
 msgid "Undecorate"
 msgstr "Malornami"
 
-#: include/defs/uistr.h:70
+#: include/defs/uistr.h:70; include/defs/uistr.h:147;
 msgid "Close"
 msgstr "Fermi"
 
-#: include/defs/uistr.h:73
+#: include/defs/uistr.h:73;
 msgid "Go there..."
 msgstr "Iri tien..."
 
-#: include/defs/uistr.h:74
+#: include/defs/uistr.h:74;
 msgid "Add new desktop"
 msgstr "Aldoni novan labortablon"
 
-#: include/defs/uistr.h:75
+#: include/defs/uistr.h:75;
 msgid "Remove last desktop"
 msgstr "Forigi lastan labortablon"
 
-#: include/defs/uistr.h:80
+#: include/defs/uistr.h:76;
+msgid "(no windows)"
+msgstr "(neniuj fenestroj)"
+
+#: include/defs/uistr.h:81;
 msgid "Are you sure you want to exit %s?"
 msgstr "Ĉu vi certe volas eliri el %s?"
 
-#: include/defs/uistr.h:81
+#: include/defs/uistr.h:82;
 msgid "[ Cancel ]"
 msgstr "[ Nuligi ]"
 
-#: include/defs/uistr.h:82
+#: include/defs/uistr.h:83;
 msgid "[ Exit ]"
 msgstr "[ Eliri ]"
 
-#: include/defs/uistr.h:102
+#: include/defs/uistr.h:103;
 msgid "Automatically selecting '%.255s' in %d second(s)"
 msgstr "Aŭtomate elektante '%.255s' post %d sekundo(j)"
 
-#: include/defs/uistr.h:109
-msgid "The 'randr.json' configuration has been applied.  Keep it, or revert to the previous one?"
-msgstr "La agordo de 'randr.json' estas aplikita.  Ĉu konservi ĝin aŭ reveni al la antaŭa?"
+#: include/defs/uistr.h:110;
+msgid ""
+"The 'randr.json' configuration has been applied.  Keep it, or revert to "
+"the previous one?"
+msgstr ""
+"La agordo de 'randr.json' estas aplikita.  Ĉu konservi ĝin aŭ reveni al "
+"la antaŭa?"
 
-#: include/defs/uistr.h:112
+#: include/defs/uistr.h:113;
 msgid "[ Revert ]"
 msgstr "[ Malfari ]"
 
-#: include/defs/uistr.h:113
+#: include/defs/uistr.h:114;
 msgid "[ Keep ]"
 msgstr "[ Konservi ]"
 
-#: include/defs/uistr.h:118
+#: include/defs/uistr.h:119;
 msgid "[Window Manager]"
 msgstr "[Fenestrestro]"
 
-#: include/defs/uistr.h:119
+#: include/defs/uistr.h:120;
 msgid "[Launch]"
 msgstr "[Lanĉi]"
 
-#: include/defs/uistr.h:120
+#: include/defs/uistr.h:121;
 msgid "[Window]"
 msgstr "[Fenestro]"
 
-#: include/defs/uistr.h:121
+#: include/defs/uistr.h:122;
 msgid "[Cycle]"
 msgstr "[Ciklo]"
 
-#: include/defs/uistr.h:123
+#: include/defs/uistr.h:124;
 msgid "Root menu"
 msgstr "Radika menuo"
 
-#: include/defs/uistr.h:124
+#: include/defs/uistr.h:125;
 msgid "Windows menu"
 msgstr "Fenestra menuo"
 
-#: include/defs/uistr.h:125
+#: include/defs/uistr.h:126;
 msgid "Search windows"
 msgstr "Serĉi fenestrojn"
 
-#: include/defs/uistr.h:126
+#: include/defs/uistr.h:127;
 msgid "Show desktop"
 msgstr "Montri labortablon"
 
-#: include/defs/uistr.h:127
+#: include/defs/uistr.h:128;
 msgid "Redraw"
 msgstr "Redesegni"
 
-#: include/defs/uistr.h:129
+#: include/defs/uistr.h:130;
 msgid "Quit"
 msgstr "Eliri"
 
-#: include/defs/uistr.h:130
+#: include/defs/uistr.h:131;
 msgid "This list"
 msgstr "Ĉi tiu listo"
 
-#: include/defs/uistr.h:131
+#: include/defs/uistr.h:132;
 msgid "Fortune"
 msgstr "Diradaĵo de la tago"
 
-#: include/defs/uistr.h:132
+#: include/defs/uistr.h:133;
 msgid "Scratchpad"
 msgstr "Provizora laborspaco"
 
-#: include/defs/uistr.h:133
+#: include/defs/uistr.h:134;
 msgid "Add desktop"
 msgstr "Aldoni labortablon"
 
-#: include/defs/uistr.h:134
+#: include/defs/uistr.h:135;
 msgid "Remove desktop"
 msgstr "Forigi labortablon"
 
-#: include/defs/uistr.h:135
+#: include/defs/uistr.h:136;
 msgid "Toggle strutless maximization"
 msgstr "Baskuligi maksimumigon sen panel-spaco"
 
-#: include/defs/uistr.h:138
+#: include/defs/uistr.h:139;
 msgid "Emergency exit: Ctrl+Mod1+Backspace"
 msgstr "Krizeliro: Ctrl+Mod1+Backspace"
 
-#: include/defs/uistr.h:140
+#: include/defs/uistr.h:141;
 msgid "Terminal"
 msgstr "Terminalo"
 
-#: include/defs/uistr.h:141
+#: include/defs/uistr.h:142;
 msgid "Launcher"
 msgstr "Lanĉilo"
 
-#: include/defs/uistr.h:142
+#: include/defs/uistr.h:143;
 msgid "File manager"
 msgstr "Dosierujestro"
 
-#: include/defs/uistr.h:143
+#: include/defs/uistr.h:144;
 msgid "Web browser"
 msgstr "TTT-legilo"
 
-#: include/defs/uistr.h:144
+#: include/defs/uistr.h:145;
 msgid "Editor"
 msgstr "Redaktilo"
 
-#: include/defs/uistr.h:147
+#: include/defs/uistr.h:148;
 msgid "Kill"
 msgstr "Mortigi"
 
-#: include/defs/uistr.h:152
+#: include/defs/uistr.h:153;
 msgid "Iconify all"
 msgstr "Ikonigi ĉiujn"
 
-#: include/defs/uistr.h:153
+#: include/defs/uistr.h:154;
 msgid "Deiconify all"
 msgstr "Malikonigi ĉiujn"
 
-#: include/defs/uistr.h:154
+#: include/defs/uistr.h:155;
 msgid "Arrange"
 msgstr "Aranĝi"
 
-#: include/defs/uistr.h:155
+#: include/defs/uistr.h:156;
 msgid "Info"
 msgstr "Informoj"
 
-#: include/defs/uistr.h:158
+#: include/defs/uistr.h:159;
 msgid "Next monitor"
 msgstr "Sekva ekrano"
 
-#: include/defs/uistr.h:159
+#: include/defs/uistr.h:160;
 msgid "Pin"
 msgstr "Alfiksi"
 
-#: include/defs/uistr.h:164
+#: include/defs/uistr.h:165;
 msgid "Move (relative)"
 msgstr "Movi (relative)"
 
-#: include/defs/uistr.h:165
+#: include/defs/uistr.h:166;
 msgid "Move (absolute)"
 msgstr "Movi (absolute)"
 
-#: include/defs/uistr.h:167
+#: include/defs/uistr.h:168;
 msgid "Desktops"
 msgstr "Labortabloj"
 
-#: include/defs/uistr.h:168
+#: include/defs/uistr.h:169;
 msgid "Icons"
 msgstr "Piktogramoj"
 
-#: include/defs/uistr.h:169
+#: include/defs/uistr.h:170;
 msgid "Windows"
 msgstr "Fenestroj"
 
-#: include/defs/uistr.h:183
+#: include/defs/uistr.h:184;
 msgid "Go to desktop 0-9: %.*s<0-9>"
 msgstr "Iri al labortablo 0-9: %.*s<0-9>"
 
-#: include/defs/uistr.h:185
+#: include/defs/uistr.h:186;
 msgid "Go to desktop %u: %s"
 msgstr "Iri al labortablo %u: %s"
 
-#: include/defs/uistr.h:196
+#: include/defs/uistr.h:197;
 msgid "Detected activity on desktop [%u]"
 msgstr "Detektita agado en labortablo [%u]"
 
-#: include/defs/uistr.h:206
+#: include/defs/uistr.h:207;
 msgid " -- %s"
 msgstr " -- %s"
 
-#: include/defs/uistr.h:214
+#: include/defs/uistr.h:215;
 msgid " (on surface %u)"
 msgstr " (sur surfaco %u)"
 
-#: include/defs/uistr.h:218
+#: include/defs/uistr.h:219;
 msgid "N/A"
 msgstr "N/A"
 
-#: include/defs/uistr.h:219
+#: include/defs/uistr.h:220;
 msgid "Full, AC"
 msgstr "Plena, kun reto"
 
-#: include/defs/uistr.h:220
+#: include/defs/uistr.h:221;
 msgid "Full"
 msgstr "Plena"
 
-#: include/defs/uistr.h:229
+#: include/defs/uistr.h:230;
 msgid "%u%%"
 msgstr "%u %%"
 
-#: include/defs/uistr.h:237
+#: include/defs/uistr.h:238;
 msgid "AC"
 msgstr "Reto"
 
-#: include/defs/uistr.h:240
-msgid "IcoWM is running in restricted-memory mode.  In this mode: application icons are shown without their own picture, text is drawn with simpler fonts, and there is a limit on how many windows can be open at once.  All of this trades some visual polish for keeping memory use low and predictable."
-msgstr "IcoWM funkcias en limigita-memora reĝimo.  En ĉi tiu reĝimo: aplikaĵaj piktogramoj montriĝas sen sia propra bildo, teksto desegniĝas per pli simplaj tiparoj, kaj ekzistas limo pri kiom da fenestroj povas esti malfermitaj samtempe.  Ĉio ĉi interŝanĝas iom da vida poluro por teni malaltan kaj antaŭvideblan memor-uzon."
+#: include/defs/uistr.h:241;
+msgid ""
+"IcoWM is running in restricted-memory mode.  In this mode: application "
+"icons are shown without their own picture, text is drawn with simpler "
+"fonts, and there is a limit on how many windows can be open at once.  "
+"All of this trades some visual polish for keeping memory use low and "
+"predictable."
+msgstr ""
+"IcoWM funkcias en limigita-memora reĝimo.  En ĉi tiu reĝimo: aplikaĵaj "
+"piktogramoj montriĝas sen sia propra bildo, teksto desegniĝas per pli "
+"simplaj tiparoj, kaj ekzistas limo pri kiom da fenestroj povas esti "
+"malfermitaj samtempe.  Ĉio ĉi interŝanĝas iom da vida poluro por teni "
+"malaltan kaj antaŭvideblan memor-uzon."
 
-#: include/defs/uistr.h:254
-msgid "Error parsing '%s'; possible syntax error.  Reverted to default values."
-msgstr "Eraro dum analizo de '%s'; ebla sintaksa eraro.  Restarigitaj la defaŭltaj valoroj."
+#: include/defs/uistr.h:253;
+msgid ""
+"Error parsing '%s'; possible syntax error.  Reverted to default values."
+msgstr ""
+"Eraro dum analizo de '%s'; ebla sintaksa eraro.  Restarigitaj la "
+"defaŭltaj valoroj."
 
-#: include/defs/uistr.h:257
-msgid "Error parsing the following file(s); possible syntax error(s).  Reverted to default values for each: '%s'"
-msgstr "Eraro dum analizo de la sekva(j) dosiero(j); ebla(j) sintaksa(j) eraro(j).  Restarigitaj la defaŭltaj valoroj por ĉiu: '%s'"
+#: include/defs/uistr.h:255;
+msgid ""
+"Error parsing the following file(s); possible syntax error(s).  "
+"Reverted to default values for each: '%s'"
+msgstr ""
+"Eraro dum analizo de la sekva(j) dosiero(j); ebla(j) sintaksa(j) "
+"eraro(j).  Restarigitaj la defaŭltaj valoroj por ĉiu: '%s'"
 
-#: include/defs/uistr.h:267
-msgid "  Additionally, the theme file '%s' named by 'config.json' was not found; using the built-in default theme instead."
-msgstr "  Krome, la etosa dosiero '%s' nomita en 'config.json' ne troviĝis; uziĝas la enkonstruita defaŭlta etoso anstataŭe."
+#: include/defs/uistr.h:264;
+msgid ""
+"  Additionally, the theme file '%s' named by 'config.json' was not "
+"found; using the built-in default theme instead."
+msgstr ""
+"  Krome, la etosa dosiero '%s' nomita en 'config.json' ne troviĝis; "
+"uziĝas la enkonstruita defaŭlta etoso anstataŭe."
 
-#: include/defs/uistr.h:277
-msgid "IcoWM has reached its configured memory ceiling: using %u MiB of the %u MiB allowed (see the '-M' command-line option).  Close some windows to free up memory before opening more."
-msgstr "IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u MiB permesitaj (vidu la komandlinian opcion '-M').  Fermu kelkajn fenestrojn por malokupi memoron antaŭ ol malfermi pliajn."
+#: include/defs/uistr.h:273;
+msgid ""
+"IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
+msgstr ""
+"IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u MiB "
+"permesitaj (vidu la komandlinian opcion '-M').  Fermu kelkajn "
+"fenestrojn por malokupi memoron antaŭ ol malfermi pliajn."
 
-#: include/defs/uistr.h:282
-msgid "IcoWM is running in restricted-memory mode and will not manage more than %u window(s) at once (see the '-M' command-line option).  Close a window before opening another."
-msgstr "IcoWM funkcias en limigita-memora reĝimo kaj ne administros pli ol %u fenestro(j)n samtempe (vidu la komandlinian opcion '-M').  Fermu fenestron antaŭ ol malfermi alian."
+#: include/defs/uistr.h:277;
+msgid ""
+"IcoWM is running in restricted-memory mode and will not manage more "
+"than %u window(s) at once (see the '-M' command-line option).  Close a "
+"window before opening another."
+msgstr ""
+"IcoWM funkcias en limigita-memora reĝimo kaj ne administros pli ol %u "
+"fenestro(j)n samtempe (vidu la komandlinian opcion '-M').  Fermu "
+"fenestron antaŭ ol malfermi alian."
 
-#: include/defs/uistr.h:290
+#: include/defs/uistr.h:284;
 msgid "There are no open windows in this session at the moment."
 msgstr "Nuntempe ne ekzistas malfermitaj fenestroj en ĉi tiu seanco."
 
-#: include/defs/uistr.h:297
+#: include/defs/uistr.h:291;
 msgid "Run:"
 msgstr "Ruli:"
 
-#: include/defs/uistr.h:304
+#: include/defs/uistr.h:298;
 msgid "Command '%s' not found."
 msgstr "Komando '%s' ne trovita."
 
-#: include/defs/uistr.h:317
+#: include/defs/uistr.h:311;
 msgid "Failed to execute '%s': command not found."
 msgstr "Malsukcesis ruli '%s': komando ne trovita."
 
-#: include/defs/uistr.h:324
-msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
-msgstr "Ho ve!  La orakolo 'fortune' ne loĝas sur ĉi tiu maŝino, tial neniu saĝeco de la antikvuloj povas hodiaŭ esti antaŭdirita.  Mi petas vin alvoki vian pakaĵadministrilon per sorĉo kiel 'sudo apt install fortune-mod' (aŭ kian ajn ĉarmon via distribuo postulas), por ke la saĝuloj de la pasinteco denove povu paroli tra ĉi tiu humila dialogo."
+#: include/defs/uistr.h:318;
+msgid ""
+"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore "
+"no wisdom of the ancients may this day be divined.  Prithee, entreat "
+"thy package steward with an incantation such as 'sudo apt install "
+"fortune-mod' (or whate'er charm thy distribution demandeth), that the "
+"sages of yore might once more speak through this humble dialog."
+msgstr ""
+"Ho ve!  La orakolo 'fortune' ne loĝas sur ĉi tiu maŝino, tial neniu "
+"saĝeco de la antikvuloj povas hodiaŭ esti antaŭdirita.  Mi petas vin "
+"alvoki vian pakaĵadministrilon per sorĉo kiel 'sudo apt install "
+"fortune-mod' (aŭ kian ajn ĉarmon via distribuo postulas), por ke la "
+"saĝuloj de la pasinteco denove povu paroli tra ĉi tiu humila dialogo."

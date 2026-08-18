@@ -216,7 +216,7 @@ static bool s_any_surface_matches(list_td *surfaces,
 {
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
 
         if (surface != NULL && predicate(surface)) {
             return true;
@@ -619,7 +619,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     }
 
     if (surfaces != NULL && !list_is_empty(surfaces)) {
-        surface_td *s0 = (surface_td *) list_data(list_head(surfaces));
+        surface_td *const s0 = (surface_td *) list_data(list_head(surfaces));
         if (s0 != NULL) {
             xcb_flush(s0->connection);
         }

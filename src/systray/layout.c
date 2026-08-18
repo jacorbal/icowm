@@ -84,7 +84,7 @@ static uint16_t s_systray_content_width(void)
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p s_tray.surface's own current desktop
  */
-static xcb_window_t s_systray_find_fullscreen_target(void)
+static xcb_window_t s_systray_fullscreen_target_find(void)
 {
     desktop_td *desktop;
     void *elem;
@@ -100,7 +100,7 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
     }
 
     ohtbl_foreach(desktop->clients, elem) {
-        client_td *client = (client_td *) elem;
+        client_td *const client = (client_td *) elem;
 
         if (client->properties.state ==
                 (uint16_t) CLIENT_STATE_FULLSCREEN) {
@@ -131,7 +131,7 @@ static xcb_window_t s_systray_find_fullscreen_target(void)
  *
  * @see @a systray_below_window
  */
-static void s_systray_push_icons_below(void)
+static void s_systray_icons_push_below(void)
 {
     list_td *surfaces;
 
@@ -142,7 +142,7 @@ static void s_systray_push_icons_below(void)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
@@ -155,12 +155,12 @@ static void s_systray_push_icons_below(void)
         }
         dinitial = dnode;
         do {
-            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
                 ohtbl_foreach(desktop->clients, elem) {
-                    client_td *client = (client_td *) elem;
+                    client_td *const client = (client_td *) elem;
 
                     if (client->is_icon_mapped &&
                             client->icon_window != 0u) {
@@ -191,7 +191,7 @@ static void s_systray_push_icons_below(void)
  *   desktop environments, instead of a systray floating above literally
  *   everything regardless of what the user is doing.  Always resolved
  *   to its final position in one single 'ConfigureWindow' call (cfr.
- *   's_systray_find_fullscreen_target' above), never by raising to the
+ *   's_systray_fullscreen_target_find' above), never by raising to the
  *   top and only then lowering in a second, separate request, which
  *   would flash the tray above fullscreen content for the brief moment
  *   between the two.
@@ -215,13 +215,13 @@ void systray_layout_restack(void)
         xcb_configure_window(s_tray.connection, s_tray.window,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-        s_systray_push_icons_below();
+        s_systray_icons_push_below();
         xcb_flush(s_tray.connection);
         return;
     }
 
     fullscreen_target = (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE)
-        ? s_systray_find_fullscreen_target() : XCB_WINDOW_NONE;
+        ? s_systray_fullscreen_target_find() : XCB_WINDOW_NONE;
 
     /* A single 'ConfigureWindow' call straight to the final position,
      * rather than unconditionally raising to the very top first and
@@ -323,7 +323,7 @@ static monitor_td s_systray_anchor_rect(void)
  *
  * @note Complexity: @e O(1)
  */
-static void s_systray_update_strut(int16_t x, int16_t y, uint16_t w,
+static void s_systray_strut_update(int16_t x, int16_t y, uint16_t w,
         uint16_t h, int32_t border2)
 {
     xcb_ewmh_wm_strut_partial_t partial;
@@ -437,7 +437,7 @@ void systray_layout_reflow(void)
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
-        s_systray_update_strut(0, 0, 0u, 0u, 0);
+        s_systray_strut_update(0, 0, 0u, 0u, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -447,7 +447,7 @@ void systray_layout_reflow(void)
     w = s_systray_content_width();
     if (w == 0u) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
-        s_systray_update_strut(0, 0, 0u, 0u, 0);
+        s_systray_strut_update(0, 0, 0u, 0u, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -500,7 +500,7 @@ void systray_layout_reflow(void)
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT,
             geom_values);
-    s_systray_update_strut(x, y, w, h, border2);
+    s_systray_strut_update(x, y, w, h, border2);
 
     /* Icons sit after the text block when it is on the left, or right
      * at the tray's own left edge otherwise (text block on the right,

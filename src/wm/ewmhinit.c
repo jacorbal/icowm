@@ -76,7 +76,7 @@ static void s_wm_sync_workarea(surface_td *surface)
     }
 
     for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-        desktop_td *desktop = surface_desktop_get(surface, did);
+        desktop_td *const desktop = surface_desktop_get(surface, did);
 
         if (desktop == NULL) {
             workareas[did].x = 0u;
@@ -555,7 +555,7 @@ int wm_ewmh_init(void)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL || surface->screen == NULL) {
             continue;
@@ -630,7 +630,7 @@ void wm_ewmh_sync(void)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         desktop_td *current;
         xcb_window_t active = XCB_NONE;
         xcb_ewmh_coordinates_t *viewport;

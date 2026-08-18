@@ -250,7 +250,7 @@ void cycle_init(xcb_connection_t *connection,
     initial = node;
     if (node != NULL) {
         do {
-            client_td *c = (client_td *) cdlist_data(node);
+            client_td *const c = (client_td *) cdlist_data(node);
             if (c != NULL && client_is_focusable(c) &&
                     !(c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
                 bool want = (is_icon)

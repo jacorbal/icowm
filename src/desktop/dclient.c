@@ -89,7 +89,7 @@ static int s_desktop_clients_enabled_set(desktop_td *desktop,
     }
 
     ohtbl_foreach(desktop->clients, elem) {
-        client_td *client = (client_td *) elem;
+        client_td *const client = (client_td *) elem;
         if (enabled) {
             client_enable(client);
             client_allow_focus(client);
@@ -260,7 +260,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
     /* Find the client in the stacking list */
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
-        cdlist_item_td *initial = node;
+        cdlist_item_td *const initial = node;
         do {
             if (cdlist_data(node) == (void *) client) {
                 /* Found it, move to tail (front/top) or head
@@ -428,7 +428,7 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
 
     initial = node;
     do {
-        client_td *c = (client_td *) cdlist_data(node);
+        client_td *const c = (client_td *) cdlist_data(node);
         if (c != NULL && c->id == id) {
             return c;
         }
@@ -470,7 +470,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
      * so a dialog here would only duplicate what is already on
      * screen. */
     if (!was_urgent && found) {
-        surface_td *surface = wm_get_desktop_surface(desktop);
+        surface_td *const surface = wm_get_desktop_surface(desktop);
         const config_td *config = wm_get_config();
 
         if (surface != NULL && desktop->id != surface->desktop_cur &&
@@ -564,7 +564,7 @@ static void s_desktop_transients_raise(desktop_td *desktop,
         }
         initial = node;
         do {
-            client_td *candidate = (client_td *) cdlist_data(node);
+            client_td *const candidate = (client_td *) cdlist_data(node);
             if (candidate != NULL &&
                     candidate->transient_for == parent->window) {
                 (void) s_desktop_client_send_to_end(desktop, candidate,
@@ -665,7 +665,7 @@ int desktop_action_clients_deiconify_all(desktop_td *desktop)
      * ones currently iconified, leaving every other client (normal,
      * maximized, fullscreen) untouched */
     ohtbl_foreach(desktop->clients, elem) {
-        client_td *client = (client_td *) elem;
+        client_td *const client = (client_td *) elem;
         if (client != NULL && client_is_iconified(client)) {
             enact_client_restore(client);
         }

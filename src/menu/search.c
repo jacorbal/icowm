@@ -252,7 +252,7 @@ static void s_search_collect_candidates(void)
 
     for (uint32_t di = 0; di < s_search.surface->desktop_count &&
             s_search.candidate_count < WM_SEARCH_MAX_ENTRIES; ++di) {
-        desktop_td *desktop = surface_desktop_get(s_search.surface, di);
+        desktop_td *const desktop = surface_desktop_get(s_search.surface, di);
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
@@ -267,7 +267,7 @@ static void s_search_collect_candidates(void)
         }
 
         do {
-            client_td *c = (client_td *) cdlist_data(node);
+            client_td *const c = (client_td *) cdlist_data(node);
 
             if (c != NULL && client_is_focusable(c) &&
                     !(c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) &&
@@ -300,7 +300,7 @@ static void s_search_refilter(void)
     s_search.result_count = 0;
 
     for (int i = 0; i < s_search.candidate_count; ++i) {
-        client_td *c = s_search.candidates[i];
+        client_td *const c = s_search.candidates[i];
         const char *name = (c->info.name != NULL &&
                 c->info.name[0] != '\0') ? c->info.name : "(unnamed)";
         int score = 0;

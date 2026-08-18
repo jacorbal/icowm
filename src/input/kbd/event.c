@@ -126,7 +126,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
-    xcb_connection_t *conn = (surface != NULL) ? surface->connection
+    xcb_connection_t *const conn = (surface != NULL) ? surface->connection
                                                : NULL;
 
     /* Up arrow: go to previous entry */
@@ -200,7 +200,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         surface_td *surface, const config_td *config)
 {
-    xcb_connection_t *conn = (surface != NULL) ? surface->connection
+    xcb_connection_t *const conn = (surface != NULL) ? surface->connection
                                                : NULL;
 
     /* Tab, Left arrow, Right arrow: toggle selected button */
@@ -254,7 +254,7 @@ static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
     if (under_mouse && surface->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
             xcb_query_pointer(surface->connection, surface->screen->root);
-        xcb_query_pointer_reply_t *qr =
+        xcb_query_pointer_reply_t *const qr =
             xcb_query_pointer_reply(surface->connection, qc, NULL);
         if (qr != NULL) {
             *out_x = qr->root_x;
@@ -486,7 +486,7 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
             keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
-        surface_td *surface = s_lookup_surface_fallback(surfaces,
+        surface_td *const surface = s_lookup_surface_fallback(surfaces,
                 event->root);
         if (surface != NULL) {
             cycle_confirm(surface->connection, surfaces, config);
@@ -884,7 +884,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 /* Hardcoded 'Alt+Space': opens the context menu of the
                  * currently active client, anchored at its own position
                  * (unrelated to 'KEYBIND_WM_WINDOWS_MENU') */
-                client_td *client = ik_get_active_client(surface,
+                client_td *const client = ik_get_active_client(surface,
                         surfaces, NULL, NULL);
                 if (client != NULL && surface != NULL &&
                         surface->connection != NULL) {

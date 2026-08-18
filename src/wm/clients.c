@@ -40,14 +40,14 @@ uint32_t wm_for_each_client(void (*action)(client_td *client,
 
     for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;
         }
 
         for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-            desktop_td *desktop = surface_desktop_get(surface, did);
+            desktop_td *const desktop = surface_desktop_get(surface, did);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {
@@ -55,7 +55,7 @@ uint32_t wm_for_each_client(void (*action)(client_td *client,
             }
 
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *client = (client_td *) elem;
+                client_td *const client = (client_td *) elem;
 
                 if (client != NULL) {
                     ++count;

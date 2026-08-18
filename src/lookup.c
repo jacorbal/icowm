@@ -38,7 +38,7 @@ surface_td *lookup_surface_for_root(list_td *surfaces,
 
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         if (surface != NULL && surface->screen != NULL &&
                 surface->screen->root == root) {
             return surface;
@@ -93,7 +93,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 
     for (list_item_td *snode = list_head(surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
@@ -109,7 +109,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
         }
 
         do {
-            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
@@ -142,7 +142,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                 /* Slow path: linear scan for frame, titlebar, icon
                  * window IDs that differ from 'client->id' */
                 ohtbl_foreach(desktop->clients, elem) {
-                    client_td *client = (client_td *) elem;
+                    client_td *const client = (client_td *) elem;
 
                     if (!lookup_client_matches_window(client, window)) {
                         continue;

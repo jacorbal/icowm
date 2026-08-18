@@ -896,7 +896,7 @@ void menu_message_dialog_select_ok(xcb_connection_t *connection,
 void menu_message_dialog_scroll(xcb_connection_t *connection,
         const config_td *config, int32_t delta)
 {
-    s_message_layout_td *lo = &s_message_layout;
+    s_message_layout_td *const lo = &s_message_layout;
     int32_t max_offset;
     int32_t new_offset;
 

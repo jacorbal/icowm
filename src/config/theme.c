@@ -737,7 +737,7 @@ int config_load_theme(const char *filename,
 
         disabled = cJSON_GetObjectItem(menu, "disabled");
         if (disabled) {
-            cJSON *disabled_color = cJSON_GetObjectItem(disabled, "color");
+            cJSON *const disabled_color = cJSON_GetObjectItem(disabled, "color");
             if (disabled_color) {
                 json_load_color(disabled_color, "foreground",
                         &config_theme->menu.disabled_foreground);
@@ -866,10 +866,10 @@ int config_load_theme(const char *filename,
 
         button = cJSON_GetObjectItem(dialog, "button");
         if (button) {
-            cJSON *btn_unselected = cJSON_GetObjectItem(button,
+            cJSON *const btn_unselected = cJSON_GetObjectItem(button,
                     "unselected");
-            cJSON *btn_selected = cJSON_GetObjectItem(button, "selected");
-            cJSON *btn_padding = cJSON_GetObjectItem(button, "padding");
+            cJSON *const btn_selected = cJSON_GetObjectItem(button, "selected");
+            cJSON *const btn_padding = cJSON_GetObjectItem(button, "padding");
 
             s_load_theme_colors(btn_unselected,
                     &config_theme->dialog.button.unselected);

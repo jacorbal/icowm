@@ -102,7 +102,7 @@ static void s_properties_update(surface_td *surface,
 
     // Assume we take the first depth available (modify as necessary)
     if (depth_iter.rem > 0) {
-        xcb_depth_t *depth = depth_iter.data;
+        xcb_depth_t *const depth = depth_iter.data;
         xcb_visualtype_iterator_t visual_iter;
 
         surface->properties.visual_info.properties.depth = depth->depth;
@@ -189,7 +189,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Initialize desktops */
     surface->desktop_count = 0;
     for (uint32_t i = 0; i < desktop_count; ++i) {
-        desktop_td *desktop = desktop_init(surface->connection,
+        desktop_td *const desktop = desktop_init(surface->connection,
                 surface->ewmh,
                 surface_id, i,
                 &(surface->config->base), &(surface->config->theme));
@@ -262,7 +262,7 @@ void surface_update_full(surface_td *surface)
          * in this circular list */
         const cdlist_item_td *desktop_initial = desktop_node;
         do {
-            desktop_td *desktop_cur =
+            desktop_td *const desktop_cur =
                 (desktop_td *) cdlist_data(desktop_node);
                 if (desktop_cur->is_outdated) {
                     desktop_update_full(desktop_cur);
@@ -376,7 +376,7 @@ void surface_refresh_monitors(surface_td *surface)
     it = xcb_randr_get_monitors_monitors_iterator(reply);
     while (it.rem > 0 &&
             surface->monitor_count < WM_SURFACE_MAX_MONITORS) {
-        xcb_randr_monitor_info_t *info = it.data;
+        xcb_randr_monitor_info_t *const info = it.data;
         char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];
         monitor_td *slot;
         bool name_resolved;
@@ -514,7 +514,7 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
     for (size_t i = 0;
             i < surface->desktop_count && current_item != NULL;
             ++i) {
-        desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
+        desktop_td *const desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             void *removed_desktop = NULL;
             /* Remove the desktop */
@@ -553,7 +553,7 @@ desktop_td *surface_desktop_get(surface_td *surface,
     current_item = cdlist_head(surface->desktops);
     for (size_t i = 0; i < surface->desktop_count && current_item != NULL;
             ++i) {
-        desktop_td *desktop = (desktop_td *) cdlist_data(current_item);
+        desktop_td *const desktop = (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             return desktop;
         }
@@ -582,7 +582,7 @@ desktop_td *surface_desktop_prev(surface_td *surface,
             (desktop_td *) cdlist_data(current_item);
 
         if (desktop->id == desktop_id) {
-            cdlist_item_td *prev_item = cdlist_prev(current_item);
+            cdlist_item_td *const prev_item = cdlist_prev(current_item);
             /* Wrapping is detected when the computed previous item is
              * the tail, that only happens when 'current_item' was the
              * head, since 'cdlist_prev' on a circular list wraps
@@ -629,7 +629,7 @@ desktop_td *surface_desktop_next(surface_td *surface,
             (desktop_td *) cdlist_data(current_item);
 
         if (desktop->id == desktop_id) {
-            cdlist_item_td *next_item = cdlist_next(current_item);
+            cdlist_item_td *const next_item = cdlist_next(current_item);
             if (next_item == cdlist_head(surface->desktops)) {
                 if (cycle) {
                     /* Circular behavior; wrap to the first desktop */
@@ -729,7 +729,7 @@ void surface_refresh_workareas(surface_td *surface)
     }
 
     for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        desktop_td *d = surface_desktop_get(surface, did);
+        desktop_td *const d = surface_desktop_get(surface, did);
 
         if (d != NULL) {
             desktop_update_workarea(d,

@@ -84,7 +84,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
 
     desktops_item = cJSON_GetObjectItem(json, "desktops");
     if (desktops_item != NULL) {
-        cJSON *margins =
+        cJSON *const margins =
             cJSON_GetObjectItem(desktops_item, "margins");
 
         if (margins != NULL) {
@@ -149,7 +149,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
      * than duplicating that whole function just to omit two fields. */
     systray_item = cJSON_GetObjectItem(json, "systray");
     if (systray_item != NULL) {
-        cJSON *text_item = cJSON_GetObjectItem(systray_item, "text");
+        cJSON *const text_item = cJSON_GetObjectItem(systray_item, "text");
 
         if (text_item != NULL &&
                 cJSON_GetObjectItem(text_item, "position") != NULL) {

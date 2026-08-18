@@ -355,7 +355,7 @@ void ccmd_client_restore(client_td *client)
      * this window immediately, rather than whichever window was
      * previously active */
     if (was_iconified && client_is_focusable(client)) {
-        desktop_td *desktop = wm_get_client_desktop(client);
+        desktop_td *const desktop = wm_get_client_desktop(client);
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
             desktop->focus_dirty = true;

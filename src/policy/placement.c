@@ -828,7 +828,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
         uint32_t sibling_count = 0u;
 
         ohtbl_foreach(desktop->clients, elem) {
-            client_td *sibling = (client_td *) elem;
+            client_td *const sibling = (client_td *) elem;
 
             if (sibling == client ||
                     client_group_leader(sibling) != leader ||

@@ -338,7 +338,7 @@ void ccmd_client_unhide(client_td *client)
      * behavior, so that clicking a hidden window in the window menu
      * immediately activates it for keyboard input */
     if (client_is_focusable(client)) {
-        desktop_td *desktop = wm_get_client_desktop(client);
+        desktop_td *const desktop = wm_get_client_desktop(client);
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
             desktop->focus_dirty = true;

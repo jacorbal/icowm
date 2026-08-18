@@ -528,7 +528,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
         if (dnode != NULL) {
             dinitial = dnode;
             do {
-                desktop_td *home_desktop=
+                desktop_td *const home_desktop=
                     (desktop_td *) cdlist_data(dnode);
                 if (home_desktop != NULL && home_desktop != desktop &&
                         home_desktop->clients != NULL) {
@@ -815,7 +815,7 @@ void winlist_show(xcb_connection_t *connection,
 
     if (n == 0) {
         root_target[n].type = CTXMENU_LABEL;
-        safe_strncpy(root_target[n].label, "(no windows)",
+        safe_strncpy(root_target[n].label, _(STR_WINLIST_NO_WINDOWS),
                 sizeof(root_target[n].label) - 1u);
         ++n;
     }

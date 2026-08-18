@@ -170,7 +170,7 @@ static void s_wm_all_clients_unmanage(void)
 
     for (snode = list_head(wm->surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
@@ -185,7 +185,7 @@ static void s_wm_all_clients_unmanage(void)
 
         dinitial = dnode;
         do {
-            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->stacking != NULL) {
                 cdlist_item_td *cnode = cdlist_head(desktop->stacking);
@@ -486,7 +486,7 @@ int wm_start(const char *restrict display_name,
     for (unsigned int i = 0; i < screens_managed; ++i) {
         uint32_t desktops_count =
             wm->config->base.screens[i].desktop_count;
-        surface_td *surface =
+        surface_td *const surface =
             surface_init(wm->connection, wm->ewmh,
                     (uint32_t) i, desktops_count, wm->config);
         if (surface == NULL) {
@@ -729,7 +729,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         if (surface != NULL && surface->id == surface_id) {
             return surface;
         }
@@ -762,7 +762,7 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop)
 
     for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;
@@ -826,7 +826,7 @@ void wm_request_client_redraw(client_td *client)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;
@@ -848,7 +848,7 @@ void wm_request_full_redraw(void)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;

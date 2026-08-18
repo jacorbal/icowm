@@ -89,7 +89,7 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
 
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *s = (surface_td *) list_data(node);
+        surface_td *const s = (surface_td *) list_data(node);
 
         if (s != NULL && s->id == client->screen_id) {
             surface = s;

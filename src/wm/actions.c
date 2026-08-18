@@ -79,8 +79,8 @@ static void s_resync_after_reload(void)
 {
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *s = (surface_td *) list_data(snode);
-        struct config_base_s *cb = &(wm->config->base);
+        surface_td *const s = (surface_td *) list_data(snode);
+        struct config_base_s *const cb = &(wm->config->base);
         int32_t tray_x;
         int32_t tray_y;
         uint16_t tray_w;
@@ -141,7 +141,7 @@ static void s_resync_after_reload(void)
                 void *elem;
 
                 ohtbl_foreach(d->clients, elem) {
-                    client_td *c = (client_td *) elem;
+                    client_td *const c = (client_td *) elem;
 
                     if (c != NULL) {
                         client_theme_layout_resync(c,
@@ -275,7 +275,7 @@ int wm_action_config_reload(void)
 
         for (list_item_td *node = list_head(wm->surfaces);
                 node != NULL; node = list_next(node)) {
-            surface_td *s = (surface_td *) list_data(node);
+            surface_td *const s = (surface_td *) list_data(node);
             bool changed = surface_action_apply_randr_profiles(s,
                     !dialog_shown);
 

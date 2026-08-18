@@ -97,7 +97,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
      * nothing to do with the background pixmap at all. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *s = (surface_td *) list_data(snode);
+        surface_td *const s = (surface_td *) list_data(snode);
 
         if (s == NULL || s->screen == NULL ||
                 event->window != s->screen->root) {
@@ -362,7 +362,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
 
     /* Obtain the XCB connection from the first surface */
     if (surfaces != NULL) {
-        list_item_td *head = list_head(surfaces);
+        list_item_td *const head = list_head(surfaces);
         if (head != NULL) {
             const surface_td *first = (surface_td *) list_data(head);
             if (first != NULL) {

@@ -287,7 +287,7 @@ int json_load_config(const char *filename, cJSON **json_out)
     if (!cJSON_IsObject(json_root)) {
         if (cJSON_IsArray(json_root) &&
                 cJSON_GetArraySize(json_root) >= 1) {
-            cJSON *array_first = cJSON_GetArrayItem(json_root, 0);
+            cJSON *const array_first = cJSON_GetArrayItem(json_root, 0);
 
             if (array_first && cJSON_IsObject(array_first)) {
                 json = cJSON_Duplicate(array_first, cJSON_True);

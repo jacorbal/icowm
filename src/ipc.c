@@ -404,7 +404,7 @@ static const char *s_event_bit_to_name(uint32_t type)
 /* Subscribe the given connection to one or more events */
 cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
 {
-    cJSON *events = cJSON_GetObjectItem(args, "events");
+    cJSON *const events = cJSON_GetObjectItem(args, "events");
     cJSON *item;
     cJSON *resp;
     uint32_t requested = 0;
@@ -459,7 +459,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
  * every event it was subscribed to when 'events' is left out */
 cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
 {
-    cJSON *events = cJSON_GetObjectItem(args, "events");
+    cJSON *const events = cJSON_GetObjectItem(args, "events");
     cJSON *resp;
 
     if (events == NULL) {
@@ -649,7 +649,7 @@ static void s_new_client_accept(void)
  */
 static void s_handle_client_data(wm_td *wm, int idx)
 {
-    struct s_ipc_client_s *c = &s_clients[idx];
+    struct s_ipc_client_s *const c = &s_clients[idx];
     ssize_t n;
 
     /* Room for at least one more byte plus the buffer's own null

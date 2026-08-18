@@ -70,7 +70,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     if (event_type == screen_change_type) {
         xcb_randr_screen_change_notify_event_t *randr_event =
             (xcb_randr_screen_change_notify_event_t *) event;
-        surface_td *surface = lookup_surface_for_root(wm->surfaces,
+        surface_td *const surface = lookup_surface_for_root(wm->surfaces,
                 randr_event->root);
 
         if (surface != NULL) {
@@ -113,9 +113,9 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
              * 'set_resolution'/'set_orientation' always have new CRTC
              * metadata */
             if (randr_event->subCode == XCB_RANDR_NOTIFY_CRTC_CHANGE) {
-                xcb_randr_crtc_change_t *cc = &randr_event->u.cc;
+                xcb_randr_crtc_change_t *const cc = &randr_event->u.cc;
                 if (cc->mode != XCB_NONE) {
-                    surface_td *s = lookup_surface_for_root(
+                    surface_td *const s = lookup_surface_for_root(
                             wm->surfaces, cc->window);
                     if (s != NULL) {
                         s->randr.is_known = true;

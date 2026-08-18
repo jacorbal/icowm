@@ -123,7 +123,7 @@ int ci_get_wm_class(xcb_connection_t *connection,
     }
 
     if (reply != NULL && reply->value_len > 0) {
-        char *value = (char *) xcb_get_property_value(reply);
+        char *const value = (char *) xcb_get_property_value(reply);
         size_t value_len = reply->value_len;
         size_t inst_len = 0;
         size_t copy_len;

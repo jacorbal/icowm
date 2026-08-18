@@ -95,7 +95,7 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
         surface_td *surface;
 
         if (s_scratchpad_client->desktop_id != desktop->id) {
-            desktop_td *source = wm_get_client_desktop(
+            desktop_td *const source = wm_get_client_desktop(
                     s_scratchpad_client);
 
             if (source != NULL) {

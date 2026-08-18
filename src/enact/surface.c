@@ -43,7 +43,7 @@
 
 static void s_broadcast_desktop_switched(const surface_td *surface)
 {
-    cJSON *fields = cJSON_CreateObject();
+    cJSON *const fields = cJSON_CreateObject();
 
     if (fields != NULL) {
         cJSON_AddNumberToObject(fields, "surface_id",
@@ -81,7 +81,7 @@ static void s_broadcast_desktop_switched(const surface_td *surface)
  */
 static void s_refresh_keyboard_grabs(void)
 {
-    xcb_key_symbols_t *keysyms = wm_get_keysyms();
+    xcb_key_symbols_t *const keysyms = wm_get_keysyms();
 
     if (keysyms != NULL) {
         keyboard_load(wm_get_surfaces(), keysyms, wm_get_config());

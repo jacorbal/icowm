@@ -295,7 +295,7 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
         const cdlist_item_td *initial = node;
 
         do {
-            client_td *client = (client_td *) cdlist_data(node);
+            client_td *const client = (client_td *) cdlist_data(node);
 
             if (client != NULL && !client_is_locked(client)) {
                 /* Every client on the desktop goes through

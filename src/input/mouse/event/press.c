@@ -177,7 +177,7 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
                 xcb_window_t, int, const config_td *),
         void (*close)(void))
 {
-    surface_td *surface = lookup_surface_for_root(surfaces,
+    surface_td *const surface = lookup_surface_for_root(surfaces,
             event->root);
     bool owns_event = owns_window(event->event);
 
@@ -216,7 +216,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
 {
     /* Popup: close unconditionally on any click, then allow processing */
     if (popup_is_open()) {
-        surface_td *surface = lookup_surface_for_root(surfaces,
+        surface_td *const surface = lookup_surface_for_root(surfaces,
                 event->root);
 
         popup_close(connection);
@@ -369,7 +369,7 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
 
     dinitial = dnode;
     do {
-        desktop_td *d = (desktop_td *) cdlist_data(dnode);
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
 
         if (d != NULL && d != desktop &&
                 d->client_active_id != client->id) {
@@ -465,7 +465,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
         client_td *client, desktop_td *desktop,
         enum wm_mousebind_type_e type, const config_td *config)
 {
-    surface_td *surface = lookup_surface_for_root(surfaces, event->root);
+    surface_td *const surface = lookup_surface_for_root(surfaces, event->root);
 
     if (client != NULL) {
         bool on_titlebar = false;
@@ -506,7 +506,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                         client_td *prev_c = NULL;
 
                         if (desktop->stacking != NULL) {
-                            cdlist_item_td *tail =
+                            cdlist_item_td *const tail =
                                 cdlist_tail(desktop->stacking);
                             if (tail != NULL) {
                                 node = cdlist_prev(tail);
@@ -515,7 +515,7 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 
                         while (node != NULL &&
                                 node != cdlist_tail(desktop->stacking)) {
-                            client_td *c =
+                            client_td *const c =
                                 (client_td *) cdlist_data(node);
                             if (c != NULL && c != client &&
                                     !(c->properties.flags &
@@ -1049,7 +1049,7 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
-    surface_td *surface = lookup_surface_for_root(surfaces,
+    surface_td *const surface = lookup_surface_for_root(surfaces,
             event->root);
 
     if (surface == NULL) {
@@ -1068,11 +1068,11 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
         /* Left-click on the empty desktop: unfocus the active client so
          * all windows lose their selection highlight */
-        desktop_td *desktop =
+        desktop_td *const desktop =
             surface_desktop_get(surface, surface->desktop_cur);
 
         if (desktop != NULL && desktop->client_active_id != 0) {
-            client_td *active = lookup_find_client(surfaces,
+            client_td *const active = lookup_find_client(surfaces,
                     desktop->client_active_id, NULL, NULL);
             if (active != NULL) {
                 enact_client_unfocus(active);

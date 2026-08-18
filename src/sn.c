@@ -200,7 +200,7 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
 
     for (list_item_td *node = list_head(surfaces); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
 
         if (surface == NULL || surface->screen == NULL) {
             continue;

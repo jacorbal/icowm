@@ -118,14 +118,14 @@ static bool s_any_client_urgent(list_td *surfaces)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;
         }
 
         for (uint32_t di = 0; di < surface->desktop_count; ++di) {
-            desktop_td *desktop = surface_desktop_get(surface, di);
+            desktop_td *const desktop = surface_desktop_get(surface, di);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {
@@ -186,7 +186,7 @@ static void s_repaint_urgent_clients(list_td *surfaces)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         desktop_td *desktop;
         void *elem;
         bool repainted_any = false;
@@ -201,7 +201,7 @@ static void s_repaint_urgent_clients(list_td *surfaces)
         }
 
         ohtbl_foreach(desktop->clients, elem) {
-            client_td *c = (client_td *) elem;
+            client_td *const c = (client_td *) elem;
 
             if (c == NULL || !client_is_urgent(c)) {
                 continue;
@@ -252,7 +252,7 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
     if (!had_urgent && s_has_urgent && config != NULL &&
             config->a11y.urgency.sound_bell &&
             surfaces != NULL && !list_is_empty(surfaces)) {
-        surface_td *first =
+        surface_td *const first =
             (surface_td *) list_data(list_head(surfaces));
 
         if (first != NULL && first->connection != NULL) {

@@ -64,7 +64,7 @@ static client_td *s_find_client_by_alarm(list_td *surfaces,
 
     for (list_item_td *snode = list_head(surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *surface = (surface_td *) list_data(snode);
+        surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
@@ -80,13 +80,13 @@ static client_td *s_find_client_by_alarm(list_td *surfaces,
         }
 
         do {
-            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
 
                 ohtbl_foreach(desktop->clients, elem) {
-                    client_td *client = (client_td *) elem;
+                    client_td *const client = (client_td *) elem;
 
                     if (client->sync_alarm == alarm) {
                         return client;

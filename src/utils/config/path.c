@@ -110,7 +110,7 @@ void path_simplify(char *restrict path)
              * that is itself an unresolved '..') or dropped outright
              * (an absolute path already at its own root, which has
              * nothing above it to name). */
-            char *comp_end = (dst > path && *(dst - 1) == '/')
+            char *const comp_end = (dst > path && *(dst - 1) == '/')
                 ? dst - 1 : dst;
             char *comp_start = comp_end;
             bool have_component;

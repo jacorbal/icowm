@@ -131,7 +131,7 @@ int config_load_randr(const char *filename,
     config_randr->output_count = 0u;
 
     for (int i = 0; i < arr_len; ++i) {
-        cJSON *entry = cJSON_GetArrayItem(outputs_arr, i);
+        cJSON *const entry = cJSON_GetArrayItem(outputs_arr, i);
         cJSON *rot_item;
         cJSON *res_obj;
         cJSON *pos_obj;
@@ -157,8 +157,8 @@ int config_load_randr(const char *filename,
 
         pos_obj = cJSON_GetObjectItem(entry, "position");
         if (pos_obj != NULL && cJSON_IsObject(pos_obj)) {
-            cJSON *xv = cJSON_GetObjectItem(pos_obj, "x");
-            cJSON *yv = cJSON_GetObjectItem(pos_obj, "y");
+            cJSON *const xv = cJSON_GetObjectItem(pos_obj, "x");
+            cJSON *const yv = cJSON_GetObjectItem(pos_obj, "y");
 
             if (xv != NULL && cJSON_IsNumber(xv)) {
                 out->position.x = (int32_t) xv->valueint;

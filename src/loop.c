@@ -214,7 +214,7 @@ static void s_loop_close_and_repaint_first_surface(
 
     for (list_item_td *node = list_head(surfaces); node != NULL;
             node = list_next(node)) {
-        surface_td *s = (surface_td *) list_data(node);
+        surface_td *const s = (surface_td *) list_data(node);
         if (s != NULL) {
             found = s;
             break;
@@ -560,7 +560,7 @@ void loop_run(wm_td *wm)
 
             switch (event->response_type & ~0x80u) {
                 case XCB_KEY_PRESS: {
-                    xcb_key_press_event_t *kp =
+                    xcb_key_press_event_t *const kp =
                         (xcb_key_press_event_t *) event;
 
                     s_loop_note_real_input(wm, kp->event,
@@ -577,7 +577,7 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_BUTTON_PRESS: {
-                    xcb_button_press_event_t *bp =
+                    xcb_button_press_event_t *const bp =
                         (xcb_button_press_event_t *) event;
 
                     s_loop_note_real_input(wm, bp->event,
@@ -919,7 +919,7 @@ void loop_update(const wm_td *wm)
 
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         if (surface == NULL) {
             continue;
         }
@@ -945,7 +945,7 @@ void loop_update_full(const wm_td *wm)
 
     for (list_item_td *node = list_head(wm->surfaces);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        surface_td *const surface = (surface_td *) list_data(node);
         if (surface != NULL) {
             surface->is_outdated = true;
         }

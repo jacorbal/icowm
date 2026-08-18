@@ -652,7 +652,7 @@ void drag_end(xcb_connection_t *connection,
 
             if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD) {
                 /* Treat as a click: restore and focus */
-                client_td *ic = s_drag.client;
+                client_td *const ic = s_drag.client;
                 enact_client_restore(ic);
                 if (surface != NULL && desktop != NULL) {
                     focus_apply(NULL, surface, desktop, ic, true, NULL);
