@@ -115,8 +115,28 @@ typedef enum {
 typedef struct ctxmenu_entry_s {
     ctxmenu_entry_type_e type;                  /**< Entry kind */
     char label[WM_CTXMENU_LABEL_MAX_LENGTH];    /**< Visible text */
-    char command[WM_CTXMENU_CMD_MAX_LENGTH];    /**< Shell command */
-    char class_name[CONFIG_MAX_LENGTH_NAME];    /**< @c WM_CLASS override */
+
+    /**
+     * @brief Shell command, and an optional @c WM_CLASS override to
+     *        raise instead of relaunching if a matching window
+     *        already exists, both heap-allocated (@c NULL when unset)
+     *
+     * Only ever set for a @c CTXMENU_COMMAND entry built from
+     * @c menu.json (@c menu/context/menujson.c); every other entry
+     * (every one built directly from C code instead, with its own
+     * @p on_activate below) leaves both @c NULL.  Kept as owned,
+     * individually allocated strings rather than fixed-size buffers
+     * inline in this struct, since only a small, session-long-lived
+     * set of entries (the ones @c menu.json itself defines) ever
+     * needs them at all, while this struct's own many other array
+     * slots (one per window in the window list, one per layer choice,
+     * and so on) never do, and would otherwise all pay for
+     * @c WM_CTXMENU_CMD_MAX_LENGTH + @c CONFIG_MAX_LENGTH_NAME bytes
+     * apiece regardless.
+     */
+    char *command;
+    char *class_name;
+
     bool is_disabled;                           /**< Grayed-out if @c true */
 
     /** Optional callback invoked when the entry is activated */

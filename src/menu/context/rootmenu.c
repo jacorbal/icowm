@@ -258,10 +258,24 @@ void rootmenu_show(xcb_connection_t *connection,
         return;
     }
 
-    /* Copy the already-loaded JSON entries */
+    /* Copy the already-loaded JSON entries.  'command'/'class_name'
+     * are deliberately deep-copied here via their own fresh
+     * 'safe_strndup', not shared with 's_json_entries' own strings:
+     * 'reload_config' (also reachable through the IPC command of the
+     * same name, not just the keybind this menu's own keyboard grab
+     * would otherwise block while open) can free and replace
+     * 's_json_entries' at any moment, including while this exact
+     * 's_entries' copy is still the one 'ctxmenu_show' is actively
+     * displaying; sharing the pointer instead would leave 's_entries'
+     * holding a dangling one the instant that happened. */
     copy_count = s_json_count;
     for (int i = 0; i < copy_count; ++i) {
         s_entries[i] = s_json_entries[i];
+        s_entries[i].command = safe_strndup(s_json_entries[i].command,
+                (size_t) WM_CTXMENU_CMD_MAX_LENGTH - 1u);
+        s_entries[i].class_name = safe_strndup(
+                s_json_entries[i].class_name,
+                (size_t) CONFIG_MAX_LENGTH_NAME - 1u);
     }
 
     /* Footer: [<separator> if JSON is present], Reload, Redraw,
@@ -330,6 +344,14 @@ void rootmenu_close(void)
      * (at shutdown) by 'rootmenu_menu_json_load' or by
      * 'rootmenu_menu_json_free' (read their comments for a change) */
     if (s_entries != NULL) {
+        /* 'command'/'class_name' alone, of everything in each entry,
+         * are 's_entries' own independent copies rather than shared
+         * with 's_json_entries'; see 'rootmenu_show''s own comment on
+         * why, right where they are copied. */
+        for (int i = 0; i < s_entry_count; ++i) {
+            free(s_entries[i].command);
+            free(s_entries[i].class_name);
+        }
         free(s_entries);
         s_entries = NULL;
     }

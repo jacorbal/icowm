@@ -733,11 +733,8 @@ void desktop_render_one_client(desktop_td *desktop,
     bool titlebar_visible;
     bool has_extra_window_border;
     uint32_t border_width;
-    uint16_t top;
-    uint16_t bottom;
     uint16_t left;
     uint16_t right;
-    uint16_t inner_h;
     uint16_t inner_w;
     uint16_t title_h;
 
@@ -880,6 +877,10 @@ void desktop_render_one_client(desktop_td *desktop,
         xcb_configure_window(desktop->connection, target, mask,
                 (uint32_t *) values);
         if (target != client->window) {
+            uint16_t top;
+            uint16_t bottom;
+            uint16_t inner_h;
+
             /* Forced to zero outright for a fullscreen client, rather
              * than trusting 'frame_extents' to already be zero: this
              * is the exact geometry a click or a losing-focus repaint

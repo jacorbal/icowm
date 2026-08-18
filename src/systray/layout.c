@@ -340,8 +340,6 @@ static void s_systray_strut_update(int16_t x, int16_t y, uint16_t w,
      * enabled. */
     if (s_tray.reserve_space && s_tray.surface != NULL &&
             w > 0u && h > 0u) {
-        uint32_t screen_h = s_tray.surface->properties.dim.h;
-
         switch (s_tray.position) {
             case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
             case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
@@ -355,6 +353,7 @@ static void s_systray_strut_update(int16_t x, int16_t y, uint16_t w,
             case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
             case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT: {
                 uint32_t y_u = (uint32_t) y;
+                uint32_t screen_h = s_tray.surface->properties.dim.h;
 
                 partial.bottom = (screen_h > y_u)
                     ? screen_h - y_u : 0u;

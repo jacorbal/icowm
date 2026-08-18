@@ -115,13 +115,13 @@ static bool s_parse_array(const cJSON *arr,
                         sizeof(entries[i].label) - 1u);
             }
             if (cJSON_IsString(cmd_node)) {
-                safe_strncpy(entries[i].command, cmd_node->valuestring,
-                        sizeof(entries[i].command) - 1u);
+                entries[i].command = safe_strndup(cmd_node->valuestring,
+                        (size_t) WM_CTXMENU_CMD_MAX_LENGTH - 1u);
             }
             if (cJSON_IsString(class_node)) {
-                safe_strncpy(entries[i].class_name,
+                entries[i].class_name = safe_strndup(
                         class_node->valuestring,
-                        sizeof(entries[i].class_name) - 1u);
+                        (size_t) CONFIG_MAX_LENGTH_NAME - 1u);
             }
         } else if (safe_strcmp(type_str, "submenu") == 0) {
             entries[i].type = CTXMENU_SUBMENU;
@@ -200,6 +200,9 @@ void menujson_free(ctxmenu_entry_td *entries, int count)
     }
 
     for (int i = 0; i < count; ++i) {
+        free(entries[i].command);
+        free(entries[i].class_name);
+
         if (entries[i].type == CTXMENU_SUBMENU) {
             /* Free the child state allocated in 'userdata' */
             if (entries[i].userdata != NULL) {

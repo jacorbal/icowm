@@ -42,10 +42,16 @@
 /**
  * @brief Maximum desktops shown as top-level entries
  *
- * A cap on how many per-desktop submenus can exist at once; far above
- * any realistic desktop count.
+ * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
+ * for how many desktops a surface can ever have, rather than an
+ * independent number of its own: a smaller, separately-chosen value
+ * here would silently make every desktop past it unreachable from
+ * this menu, exactly the kind of drift that set in when
+ * @c CONFIG_MAX_DESKTOPS itself was later raised without anything
+ * checking whether some other constant had quietly come to assume
+ * the two stayed in step.
  */
-#define WINLIST_MAX_DESKTOPS (16)
+#define WINLIST_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
 
 /**
  * @brief Maximum entries (windows and application-group submenus

@@ -121,6 +121,71 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
 }
 
 
+/**
+ * @brief Strip whatever bits of @p transition_mask overlap @p mask,
+ *        when @p transition_time is still within @p cooldown_ms of now
+ *
+ * Shared by both of @a handler_configure_request's own post-transition
+ * checks (shade/unshade, and entering/leaving fullscreen): a client
+ * that reacts to the @c ConfigureNotify sequence a window-manager-
+ * forced transition just sent it with a delayed @c ConfigureRequest
+ * of its own, once it catches up processing that sequence, is far
+ * more likely to be a stale echo of whatever geometry (or border
+ * width) it had a moment before than an independent request it
+ * genuinely wants honored now.
+ *
+ * @param mask            Value mask bits still under consideration
+ * @param transition_mask Bits this particular transition's own
+ *                         cooldown should strip, if still active
+ * @param transition_time Monotonic time the transition itself last
+ *                         happened at
+ * @param cooldown_ms      How long after @p transition_time a request
+ *                         still counts as a stale echo
+ * @param window          Client window, for the debug log line alone
+ * @param kind            Short, human-readable name of the transition
+ *                         ("shade" or "fullscreen"), for the same log
+ *                         line
+ *
+ * @return @p mask, with @p transition_mask's own bits cleared if the
+ *         cooldown is still active; @p mask unchanged otherwise,
+ *         including when @p mask does not overlap @p transition_mask
+ *         to begin with, or the current time could not be read
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_handler_configure_cooldown_mask(uint16_t mask,
+        uint16_t transition_mask, struct timespec transition_time,
+        unsigned int cooldown_ms, xcb_window_t window, const char *kind)
+{
+    struct timespec now;
+    int64_t elapsed_ms;
+
+    if (!(mask & transition_mask)) {
+        return mask;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return mask;
+    }
+
+    elapsed_ms =
+        ((int64_t) now.tv_sec - (int64_t) transition_time.tv_sec) *
+            1000 +
+        ((int64_t) now.tv_nsec - (int64_t) transition_time.tv_nsec) /
+            1000000;
+
+    if (elapsed_ms < 0 || elapsed_ms >= (int64_t) cooldown_ms) {
+        return mask;
+    }
+
+    LOGGER_DEBUG("Ignoring 'ConfigureRequest' for window=0x%x: %lld ms" \
+            " after a %s transition, within the %u ms cooldown",
+            window, (long long) elapsed_ms, kind, cooldown_ms);
+
+    return (uint16_t) (mask & ~transition_mask);
+}
+
+
 /* Handle a 'CONFIGURE_REQUEST' event */
 void handler_configure_request(xcb_connection_t *connection,
         list_td *surfaces, xcb_configure_request_event_t *event)
@@ -235,37 +300,17 @@ void handler_configure_request(xcb_connection_t *connection,
          * is far more likely to be the client's own delayed, stale
          * reaction to that transition than an independent resize it
          * actually wants. */
-        if (mask & geom_mask) {
-            struct timespec now;
-
-            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-                int64_t elapsed_ms =
-                    ((int64_t) now.tv_sec -
-                        (int64_t) client->shade_transition_time.tv_sec) *
-                        1000 +
-                    ((int64_t) now.tv_nsec -
-                        (int64_t) client->shade_transition_time.tv_nsec) /
-                        1000000;
-
-                if (elapsed_ms >= 0 &&
-                        elapsed_ms < WM_SHADE_CONFIGURE_COOLDOWN_MS) {
-                    LOGGER_DEBUG("Ignoring 'ConfigureRequest' for" \
-                            " window=0x%x: %lld ms after a shade" \
-                            " transition, within the" \
-                            " %u ms cooldown",
-                            client->window, (long long) elapsed_ms,
-                            (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS);
-                    mask = (uint16_t) (mask & ~geom_mask);
-                    if (mask == 0) {
-                        if (connection != NULL && is_reparented) {
-                            s_handler_send_synthetic_configure_notify(
-                                    connection, client);
-                            xcb_flush(connection);
-                        }
-                        return;
-                    }
-                }
+        mask = s_handler_configure_cooldown_mask(mask, geom_mask,
+                client->shade_transition_time,
+                (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS,
+                client->window, "shade");
+        if (mask == 0) {
+            if (connection != NULL && is_reparented) {
+                s_handler_send_synthetic_configure_notify(connection,
+                        client);
+                xcb_flush(connection);
             }
+            return;
         }
 
         /* Same reasoning, for the same underlying mechanism, right
@@ -278,43 +323,18 @@ void handler_configure_request(xcb_connection_t *connection,
          * and silently undo it, well after the point in this
          * function that already applies every other bit in 'mask'
          * unconditionally. */
-        if (mask & (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
-            struct timespec now;
-
-            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-                int64_t elapsed_ms =
-                    ((int64_t) now.tv_sec -
-                        (int64_t)
-                            client->fullscreen_transition_time.tv_sec) *
-                        1000 +
-                    ((int64_t) now.tv_nsec -
-                        (int64_t)
-                            client->fullscreen_transition_time.tv_nsec) /
-                        1000000;
-
-                if (elapsed_ms >= 0 &&
-                        elapsed_ms <
-                            WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS) {
-                    LOGGER_DEBUG("Ignoring 'ConfigureRequest' for" \
-                            " window=0x%x: %lld ms after a" \
-                            " fullscreen transition, within the" \
-                            " %u ms cooldown",
-                            client->window, (long long) elapsed_ms,
-                            (unsigned int)
-                                WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS);
-                    mask = (uint16_t) (mask &
-                            ~(geom_mask |
-                                XCB_CONFIG_WINDOW_BORDER_WIDTH));
-                    if (mask == 0) {
-                        if (connection != NULL && is_reparented) {
-                            s_handler_send_synthetic_configure_notify(
-                                    connection, client);
-                            xcb_flush(connection);
-                        }
-                        return;
-                    }
-                }
+        mask = s_handler_configure_cooldown_mask(mask,
+                (uint16_t) (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH),
+                client->fullscreen_transition_time,
+                (unsigned int) WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS,
+                client->window, "fullscreen");
+        if (mask == 0) {
+            if (connection != NULL && is_reparented) {
+                s_handler_send_synthetic_configure_notify(connection,
+                        client);
+                xcb_flush(connection);
             }
+            return;
         }
 
         if (is_reparented) {

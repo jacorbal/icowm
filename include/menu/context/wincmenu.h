@@ -42,9 +42,16 @@
 
 /**
  * @brief Maximum number of desktops shown in the "Send to desktop"
- *        submenu (capped to avoid oversized menus)
+ *        submenu
+ *
+ * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
+ * for how many desktops a surface can ever have, rather than an
+ * independent number of its own that could silently drift out of
+ * step with it and make some desktop past this cap unreachable from
+ * this submenu; see @c WINLIST_MAX_DESKTOPS (winlist.h) for the exact
+ * same reasoning applied there.
  */
-#define WINCMENU_MAX_DESKTOPS (32)
+#define WINCMENU_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
 
 /**
  * @brief Maximum number of monitors shown in the "Send to monitor"

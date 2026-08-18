@@ -80,7 +80,7 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
 
     if (e.on_activate != NULL) {
         e.on_activate(conn, e.userdata);
-    } else if (e.command[0] != '\0') {
+    } else if (e.command != NULL) {
         lifecycle_launch_dispatch(surf, e.command, e.class_name);
     }
 

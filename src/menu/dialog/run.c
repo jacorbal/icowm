@@ -77,7 +77,6 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
     const config_td *cfg = s_run.config;
     desktop_td *desktop;
     char command[WM_RUN_COMMAND_MAX_LENGTH];
-    char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
     int result;
 
     if (s_run.command_len == 0) {
@@ -96,6 +95,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
 
     result = desktop_action_process_launch(desktop, command);
     if (result != 0) {
+        char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
         snprintf(message, sizeof(message),
                 _(STR_RUN_COMMAND_NOT_FOUND_FMT), command);
         dialog_info_show(connection, surface, cfg, message,
