@@ -32,6 +32,7 @@
 
 /* Project includes */
 #include <config.h>
+#include <enact.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
@@ -95,6 +96,30 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
     (void) connection;
     (void) userdata;
     wm_request_full_redraw();
+}
+
+
+/**
+ * @brief Callback: toggle whether panel/tray struts are set aside on
+ *        the surface this menu was opened on
+ *
+ * A surface-wide setting, not a per-window one, so it lives here
+ * rather than in the window context menu ('Alt+Space'), where it
+ * used to sit.
+ *
+ * @param connection Unused, matches @c ctxmenu_on_activate_fn's own
+ *                   signature
+ * @param userdata   Unused
+ */
+static void s_cb_toggle_strutless_maximize(xcb_connection_t *connection,
+        void *userdata)
+{
+    (void) connection;
+    (void) userdata;
+
+    if (s_surface != NULL) {
+        enact_surface_toggle_strutless_maximize(s_surface);
+    }
 }
 
 
@@ -228,6 +253,15 @@ void rootmenu_show(xcb_connection_t *connection,
         s_entries[fi].type = CTXMENU_SEPARATOR;
         ++fi;
     }
+
+    s_entries[fi].type = CTXMENU_COMMAND;
+    safe_strncpy(s_entries[fi].label,
+            (surface->strutless_maximize)
+                ? _(STR_ROOTMENU_STRUTTED_MAXIMIZATION)
+                : _(STR_ROOTMENU_STRUTLESS_MAXIMIZATION),
+            sizeof(s_entries[fi].label) - 1u);
+    s_entries[fi].on_activate = s_cb_toggle_strutless_maximize;
+    ++fi;
 
     s_entries[fi].type = CTXMENU_COMMAND;
     safe_strncpy(s_entries[fi].label, _(STR_ROOTMENU_RELOAD_CONFIG),

@@ -145,11 +145,11 @@ typedef struct surface_s {
      * @brief Whether panel/tray struts are set aside when computing
      *        every desktop's own work area on this surface
      *
-     * @see @a surface_action_toggle_fullsurface (surface.h)
+     * @see @a surface_action_toggle_strutless_maximize (surface.h)
      * @see @a desktop_update_workarea's own @p ignore_struts
      *      (desktop.h), which this flag feeds directly
      */
-    bool fullsurface;
+    bool strutless_maximize;
     bool showing_desktop;           /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 } surface_td;
@@ -457,7 +457,7 @@ int surface_action_desktop_remove(surface_td *surface);
  * @brief Toggle whether panel/tray struts are set aside when
  *        computing this surface's own desktops' work areas
  *
- * A distraction-free mode: while on, @a desktop_update_workarea
+ * Strutless maximization: while on, @a desktop_update_workarea
  * (desktop.h) folds in only @c desktops.margins from configuration,
  * never a panel's own @c _NET_WM_STRUT_PARTIAL nor the systray's own
  * reservation, so a maximized or smart-placed window can use the
@@ -475,7 +475,7 @@ int surface_action_desktop_remove(surface_td *surface);
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       @p surface
  */
-int surface_action_toggle_fullsurface(surface_td *surface);
+int surface_action_toggle_strutless_maximize(surface_td *surface);
 
 /**
  * @brief Update the surface resolution to the specified dimensions

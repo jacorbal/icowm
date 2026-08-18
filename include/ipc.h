@@ -66,7 +66,8 @@
                                                              grew or
                                                              shrank, or
                                                              its own
-                                                             full-surface
+                                                             strutless-
+                                                             maximization
                                                              mode was
                                                              toggled (no
                                                              free bit

@@ -204,14 +204,14 @@ void handler_configure_request(xcb_connection_t *connection,
          * request for a different position/size is a stale echo of
          * whatever geometry it would rather have, not something to
          * honor, since the WM (not the client) owns this window's
-         * geometry for as long as either holds.  Without this, a client
-         * that fixes its own size in 'WM_NORMAL_HINTS' (e.g.,
-         * 'min_width == max_width') and reacts to being forced into
-         * fullscreen by re-requesting its own preferred size right back
-         * would immediately shrink back down, undoing
-         * 'ccmd_client_fullscreen''s own deliberate choice (see its own
-         * doc comment in 'cmds/client/state.c') to bypass every one of
-         * the client's size hints while fullscreen. */
+         * geometry for as long as either holds.  Without this,
+         * a client that fixes its own size in WM_NORMAL_HINTS (e.g.,
+         * min_width == max_width) and reacts to being forced into
+         * fullscreen by re-requesting its own preferred size right
+         * back would immediately shrink back down, undoing
+         * 'ccmd_client_fullscreen''s own deliberate choice (see its
+         * own doc comment in cmds/client/state.c) to bypass every one
+         * of the client's size hints while fullscreen. */
         wm_owns_geometry =
             client->properties.operation == CLIENT_OPERATION_MOVING ||
             client->properties.operation == CLIENT_OPERATION_RESIZING ||
@@ -625,6 +625,7 @@ void handler_configure_notify(xcb_connection_t *connection,
                 }
             }
             if (geom_changed) {
+                wm_outdate_client(client);
                 wm_outdate_surface(surface);
                 wm_outdate_desktop(desktop);
             } /* ! if (geom_changed) */

@@ -122,8 +122,8 @@ static xcb_atom_t s_bg_atoms[3] = {
  *       @a desktop_invalidate_background_pixmap_cache says the
  *       underlying property actually changed
  */
-static bool s_bg_pixmap_resolved = false;
-static xcb_pixmap_t s_bg_pixmap_cache = XCB_NONE;
+static bool s_bg_pixmap_resolved[CONFIG_MAX_SCREENS];
+static xcb_pixmap_t s_bg_pixmap_cache[CONFIG_MAX_SCREENS];
 
 
 /**
@@ -198,12 +198,16 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
  */
 static xcb_pixmap_t
     s_get_root_background_pixmap(xcb_connection_t *connection,
-            xcb_window_t root)
+            xcb_window_t root, uint32_t screen_id)
 {
-    if (s_bg_pixmap_resolved) {
-        LOGGER_TRACE("Root background pixmap cache hit: 0x%x",
-                s_bg_pixmap_cache);
-        return s_bg_pixmap_cache;
+    if (screen_id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        return XCB_NONE;
+    }
+
+    if (s_bg_pixmap_resolved[screen_id]) {
+        LOGGER_TRACE("Root background pixmap cache hit for screen" \
+                " %u: 0x%x", screen_id, s_bg_pixmap_cache[screen_id]);
+        return s_bg_pixmap_cache[screen_id];
     }
 
     if (connection == NULL || root == XCB_WINDOW_NONE) {
@@ -234,8 +238,8 @@ static xcb_pixmap_t
         free(reply);
 
         if (pixmap != XCB_NONE) {
-            s_bg_pixmap_cache = pixmap;
-            s_bg_pixmap_resolved = true;
+            s_bg_pixmap_cache[screen_id] = pixmap;
+            s_bg_pixmap_resolved[screen_id] = true;
             return pixmap;
         }
     }
@@ -244,20 +248,30 @@ static xcb_pixmap_t
      * is itself a stable outcome worth caching too, not just
      * a successful resolution, so a desktop with no such tool running
      * does not keep paying for this same negative lookup either */
-    LOGGER_TRACE("No external root pixmap property found" \
-            " (checked atoms 0x%x, 0x%x, 0x%x); using configured" \
-            " color", s_bg_atoms[0], s_bg_atoms[1], s_bg_atoms[2]);
-    s_bg_pixmap_cache = XCB_NONE;
-    s_bg_pixmap_resolved = true;
+    LOGGER_TRACE("No external root pixmap property found for screen" \
+            " %u (checked atoms 0x%x, 0x%x, 0x%x); using configured" \
+            " color", screen_id, s_bg_atoms[0], s_bg_atoms[1],
+            s_bg_atoms[2]);
+    s_bg_pixmap_cache[screen_id] = XCB_NONE;
+    s_bg_pixmap_resolved[screen_id] = true;
     return XCB_NONE;
 }
 
 
-/* Invalidate the cached root window background pixmap */
+/* Invalidate the cached root window background pixmap on every
+ * screen: cheap and always correct, even though only one screen's
+ * own property actually changed, since which one that was is not
+ * known at this call site (handler/focus.c, a generic PropertyNotify
+ * handler not otherwise concerned with which screen a client's own
+ * root belongs to) and this only ever runs on the comparatively rare
+ * event of an external wallpaper tool actually changing something,
+ * not on every render pass. */
 void desktop_invalidate_background_pixmap_cache(void)
 {
-    s_bg_pixmap_resolved = false;
-    s_bg_pixmap_cache = XCB_NONE;
+    for (size_t i = 0; i < (size_t) CONFIG_MAX_SCREENS; ++i) {
+        s_bg_pixmap_resolved[i] = false;
+        s_bg_pixmap_cache[i] = XCB_NONE;
+    }
 }
 
 
@@ -316,7 +330,7 @@ int desktop_render_background(desktop_td *desktop)
     }
 
     root_pixmap = s_get_root_background_pixmap(desktop->connection,
-            screen->root);
+            screen->root, desktop->screen_id);
     if (root_pixmap != XCB_NONE) {
         /* An external tool ('xsetbg', 'xsetroot', 'nitrogen', 'feh',
          * &c.) painted the root window and recorded the pixmap ID in
@@ -719,8 +733,11 @@ void desktop_render_one_client(desktop_td *desktop,
     bool titlebar_visible;
     bool has_extra_window_border;
     uint32_t border_width;
+    uint16_t top;
+    uint16_t bottom;
     uint16_t left;
     uint16_t right;
+    uint16_t inner_h;
     uint16_t inner_w;
     uint16_t title_h;
 
@@ -863,10 +880,6 @@ void desktop_render_one_client(desktop_td *desktop,
         xcb_configure_window(desktop->connection, target, mask,
                 (uint32_t *) values);
         if (target != client->window) {
-            uint16_t top;
-            uint16_t bottom;
-            uint16_t inner_h;
-
             /* Forced to zero outright for a fullscreen client, rather
              * than trusting 'frame_extents' to already be zero: this
              * is the exact geometry a click or a losing-focus repaint
@@ -874,8 +887,8 @@ void desktop_render_one_client(desktop_td *desktop,
              * 'frame_extents' happened to hold, showing the frame's
              * own background (set to the theme's border color by
              * 'desktop_repaint_frame_decoration') through the gap left
-             * along the content window's own top and left edges;
-             * visually indistinguishable from a real border, though
+             * along the content window's own top and left edges.
+             * Visually indistinguishable from a real border, though
              * neither an X11 border nor that repaint function was
              * ever actually involved. */
             if (hide_decoration) {
@@ -1119,7 +1132,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     /* Draw background, but only for the desktop currently shown on
      * screen: a non-current desktop's own background is never
      * actually visible (the surface-level repaint that calls this,
-     * in 'render/surface.c', re-applies the current desktop's own
+     * in render/surface.c, re-applies the current desktop's own
      * background again right after every desktop in the list has
      * been rendered, specifically because earlier ones painting
      * theirs would otherwise overwrite it on the one shared root

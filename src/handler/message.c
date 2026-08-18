@@ -186,51 +186,56 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(wm->surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
-            const desktop_td *active_desktop =
-                lookup_current_desktop(surface);
+            desktop_td *active_desktop = lookup_current_desktop(surface);
 
-            /* EWMH's own focus-stealing prevention: a client asking for
-             * '_NET_ACTIVE_WINDOW' does not automatically deserve real
-             * keyboard focus just because it asked.  Its own claim is
-             * weighed against whichever client already holds focus on
-             * the desktop the person is actually looking at right now,
-             * comparing each side's own 'user_time', kept genuinely
-             * current by 'client_update_user_time' (cfr. 'client.c')
-             * every time a real, non-synthetic 'KeyPress'/'ButtonPress'
-             * actually reaches it, not the one-time '_NET_WM_USER_TIME'
-             * snapshot read back when it first mapped.
+            /* EWMH's own focus-stealing prevention: a client asking
+             * for '_NET_ACTIVE_WINDOW' does not automatically deserve
+             * real keyboard focus just because it asked.  Its own
+             * claim is weighed against whichever client already
+             * holds focus on the desktop the person is actually
+             * looking at right now, comparing each side's own
+             * 'user_time', kept genuinely current by
+             * 'client_update_user_time' (client.c) every time a real,
+             * non-synthetic 'KeyPress'/'ButtonPress' actually reaches
+             * it, not the one-time '_NET_WM_USER_TIME' snapshot read
+             * back when it first mapped.
              *
              * A requesting client whose own most recent genuine
-             * interaction is not newer than the one already focused has
-             * a weaker claim on the user's attention at this exact
-             * moment, e.g., an application that finished some
-             * background task and is trying to jump to the front on its
-             * own, unprompted, minutes after the person last touched
-             * it: it is marked urgent instead of stealing focus
-             * outright, the same non-intrusive path already used for
-             * a client's own pre-existing
+             * interaction is not newer than the one already focused
+             * has a weaker claim on the user's attention at this
+             * exact moment, e.g., an application that finished some
+             * background task and is trying to jump to the front on
+             * its own, unprompted, minutes after the person last
+             * touched it: it is marked urgent instead of stealing
+             * focus outright, the same non-intrusive path already
+             * used for a client's own pre-existing
              * '_NET_WM_STATE_DEMANDS_ATTENTION' announcement (see
-             * 's_client_read_pre_existing_state', in 'client.c'), and
-             * the request is not honored any further; whatever already
+             * 's_client_read_pre_existing_state', client.c), and the
+             * request is not honored any further; whatever already
              * had focus keeps it undisturbed.
              *
              * Skipped entirely when nobody has genuinely focused
-             * anything on the current desktop yet ('client_active_id'
-             * still 0), or when the requesting client already is the
-             * one currently focused, since neither case has an actual
-             * rival claim to weigh this one against. */
+             * anything on the current desktop yet
+             * ('client_active_id' still 0), or when the requesting
+             * client already is the one currently focused, since
+             * neither case has an actual rival claim to weigh this
+             * one against. */
             if (active_desktop != NULL &&
                     active_desktop->client_active_id != 0 &&
                     active_desktop->client_active_id != client->id) {
-                const client_td *active = desktop_find_client_by_id(
+                client_td *active = desktop_find_client_by_id(
                         active_desktop,
                         active_desktop->client_active_id);
 
                 if (active != NULL &&
                         !client_user_time_is_newer(client->user_time,
                             active->user_time)) {
-                    client_urge(client);
-                    desktop_action_recompute_urgent(desktop);
+                    /* 'ccmd_client_urge' (cmds/client/basic.c) already
+                     * covers the EWMH state publish and the IPC
+                     * broadcast that setting the flag and recomputing
+                     * urgency alone would leave out, on top of now
+                     * also covering 'wm_outdate_client' itself. */
+                    ccmd_client_urge(client);
                     wm_outdate_desktop(desktop);
                     wm_outdate_surface(surface);
                     return;
@@ -388,6 +393,7 @@ void handler_client_message(wm_td *wm,
         if (client != NULL) {
             client->last_ping_reply = event->data.data32[1];
             client_mark_responsive(client);
+            wm_outdate_client(client);
             wm_outdate_surface(surface);
             wm_outdate_desktop(desktop);
         }

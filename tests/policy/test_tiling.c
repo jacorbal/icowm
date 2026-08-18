@@ -168,6 +168,7 @@ static void s_test_icon_avoids_occupied_slot(void)
     /* Occupies exactly slot 0's own BOTTOM position (8, 560) */
     occupant.icon_window = 999u;
     occupant.is_icon_mapped = true;
+    occupant.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
     occupant.icon_x = 8;
     occupant.icon_y = 560;
 

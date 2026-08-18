@@ -49,10 +49,11 @@
 
 /**
  * @brief Number of fixed footer entries appended after the JSON
- *        entries: <separator>, "Reload configuration", "Redraw all
+ *        entries: <separator>, "Strutless maximization"/"Strutted
+ *        maximization", "Reload configuration", "Redraw all
  *        windows", <separator>, "Exit"
  */
-#define ROOTMENU_FOOTER_COUNT (5)
+#define ROOTMENU_FOOTER_COUNT (6)
 
 /**
  * @brief Maximum total number of root menu entries

@@ -40,6 +40,8 @@
 
 /* Root menu ('src/menu/context/rootmenu.c'): the fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
+#define STR_ROOTMENU_STRUTLESS_MAXIMIZATION "Strutless maximization"
+#define STR_ROOTMENU_STRUTTED_MAXIMIZATION "Strutted maximization"
 #define STR_ROOTMENU_RELOAD_CONFIG "Reload configuration"
 #define STR_ROOTMENU_REDRAW_ALL "Redraw all windows"
 #define STR_ROOTMENU_EXIT "Exit"
@@ -51,8 +53,6 @@
 #define STR_WINCMENU_LAYER_ALWAYS_ON_TOP "Always on top"
 #define STR_WINCMENU_LAYER_NORMAL "Normal"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
-#define STR_WINCMENU_FULLSURFACE_ENABLE "Enable full-surface mode"
-#define STR_WINCMENU_FULLSURFACE_DISABLE "Disable full-surface mode"
 #define STR_WINCMENU_ALL_DESKTOPS_PIN "All desktops (pin)"
 #define STR_WINCMENU_THIS_DESKTOP_UNPIN "This desktop only (unpin)"
 #define STR_WINCMENU_RESTORE "Restore"
@@ -62,7 +62,7 @@
 #define STR_WINCMENU_HIDE "Hide"
 #define STR_WINCMENU_MAXIMIZE "Maximize"
 #define STR_WINCMENU_FULLSCREEN_ENTER "Fullscreen"
-#define STR_WINCMENU_FULLSCREEN_EXIT "Exit Fullscreen"
+#define STR_WINCMENU_UNFULLSCREEN "Unfullscreen"
 #define STR_WINCMENU_SHADE "Shade"
 #define STR_WINCMENU_UNSHADE "Unshade"
 #define STR_WINCMENU_DECORATE "Decorate"
@@ -132,7 +132,7 @@
 #define STR_SHORTCUTS_SCRATCHPAD "Scratchpad"
 #define STR_SHORTCUTS_DESKTOP_ADD "Add desktop"
 #define STR_SHORTCUTS_DESKTOP_REMOVE "Remove desktop"
-#define STR_SHORTCUTS_TOGGLE_FULLSURFACE "Toggle full-surface mode"
+#define STR_SHORTCUTS_TOGGLE_STRUTLESS_MAXIMIZE "Toggle strutless maximization"
 /* Whole, fixed line on its own (no combo of its own to pair with; the
  * combo is itself hardcoded, not user-configurable) */
 #define STR_SHORTCUTS_EMERGENCY_EXIT "Emergency exit: Ctrl+Mod1+Backspace"
@@ -191,16 +191,25 @@
  * visible on its own surface (see 'desktops.notify-activity' in
  * config.json).
  *
- * TRANSLATION: keep every '%u' (a desktop's own index, or, only in the
- * surface-suffix variant, a surface's own index) and every '%s' (a
- * desktop's own name) */
-#define STR_DESKTOP_ACTIVITY_NAMED_FMT \
-    "Detected activity on desktop [%u] -- %s"
+ * TRANSLATION: keep every '%u' (a desktop's own index, or, only in
+ * the surface-suffix variant, a surface's own index) */
 #define STR_DESKTOP_ACTIVITY_UNNAMED_FMT \
     "Detected activity on desktop [%u]"
 
-/* Appended to either message above, only when more than one surface is
- * managed (a single-surface setup, by far the common case, has nothing
+/* Appended right after the message above, only when the desktop that
+ * had activity actually has a name of its own set; kept as its own
+ * separate, tiny translatable string instead of a second, almost
+ * entirely duplicate whole-sentence one, the same reasoning already
+ * applied to the surface-suffix variant right below it.
+ *
+ * TRANSLATION: keep the '%s' (a desktop's own name) */
+#define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT \
+    " -- %s"
+
+/* Appended after the base message above and, if the desktop that had
+ * activity has a name of its own, the name suffix right above this
+ * one too; only when more than one surface is managed (a
+ * single-surface setup, by far the common case, has nothing
  * to disambiguate) */
 #define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT \
     " (on surface %u)"

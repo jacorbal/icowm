@@ -278,8 +278,8 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_goto_desktop(text, sizeof(text), &offset, config);
     }
     s_append_binding(text, sizeof(text), &offset,
-            _(STR_SHORTCUTS_TOGGLE_FULLSURFACE),
-            config->bindings.keyboard.wm.toggle_fullsurface);
+            _(STR_SHORTCUTS_TOGGLE_STRUTLESS_MAXIMIZE),
+            config->bindings.keyboard.wm.toggle_strutless_maximize);
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_REDRAW),
             config->bindings.keyboard.wm.redraw);

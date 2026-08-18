@@ -204,11 +204,15 @@ static int s_desktop_cycle_clients(desktop_td *desktop, bool forward)
         }
     }
 
-    /* Find the next (or previous) non-iconified client */
+    /* Find the next (or previous) non-iconified, non-hidden client:
+     * 'client_is_iconified' alone would still let cycling land on one
+     * hidden via 'KEYBIND_CLIENT_HIDE' (a distinct state from
+     * iconified; see 'client_is_hidden', client.h), silently focusing
+     * a window nothing on screen shows as selected. */
     initial = node;
     do {
         client_td *c = (client_td *) cdlist_data(node);
-        if (c != NULL && !client_is_iconified(c)) {
+        if (c != NULL && !client_is_iconified(c) && !client_is_hidden(c)) {
             enact_client_focus(c);
             return 0;
         }
@@ -476,19 +480,23 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
             uint32_t surface_count = (surfaces != NULL)
                 ? (uint32_t) list_size(surfaces) : 0u;
             char text[WM_DESKTOP_MAX_LENGTH_NAME + 48];
+            size_t used;
+
+            snprintf(text, sizeof(text),
+                    _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
+                    (unsigned int) desktop->id);
 
             if (desktop->name[0] != '\0') {
-                snprintf(text, sizeof(text),
-                        _(STR_DESKTOP_ACTIVITY_NAMED_FMT),
-                        (unsigned int) desktop->id, desktop->name);
-            } else {
-                snprintf(text, sizeof(text),
-                        _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
-                        (unsigned int) desktop->id);
+                used = safe_strlen(text);
+                if (used < sizeof(text)) {
+                    snprintf(text + used, sizeof(text) - used,
+                            _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
+                            desktop->name);
+                }
             }
 
             if (surface_count > 1u) {
-                size_t used = safe_strlen(text);
+                used = safe_strlen(text);
                 if (used < sizeof(text)) {
                     snprintf(text + used, sizeof(text) - used,
                             _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
@@ -506,25 +514,26 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 /**
  * @brief Raise every transient descendant of a client along with it
  *
- * Breadth-first search through @p desktop's own stacking order.  Any
- * client whose own @p transient_for names @p client's window is raised
- * right after it, then the search continues from each of those in turn,
- * so a chain of dialogs (a dialog's own dialog, and so on) rises
- * together rather than only the direct child.
+ * Breadth-first search through @p desktop's own stacking order: any
+ * client whose own @c transient_for names @p client's window is
+ * raised right after it, then the search continues from each of
+ * those in turn, so a chain of dialogs (a dialog's own dialog, and
+ * so on) rises together rather than only the direct child.
  *
  * @param desktop Desktop whose stacking order is searched and updated
- * @param client  Client whose transient descendants get raised too
+ * @param client Client whose transient descendants get raised too
  *
  * @note Bounded by @p desktop's own total client count, so a
- *       @p transient_for cycle (a misbehaving client announcing itself,
- *       directly or indirectly, transient for its own descendant) can
- *       never loop indefinitely; the bound alone is enough to guarantee
- *       termination, so no separate visited set is needed on top of it
+ *       @c transient_for cycle (a misbehaving client announcing
+ *       itself, directly or indirectly, transient for its own
+ *       descendant) can never loop indefinitely; the bound alone is
+ *       enough to guarantee termination, so no separate visited set
+ *       is needed on top of it
  * @note Complexity: @e O(n ^ 2), where @e n is the number of clients
  *       on @p desktop
  */
 static void s_desktop_raise_transients(desktop_td *desktop,
-        const client_td *client)
+        client_td *client)
 {
     queue_td *pending;
     size_t max_iterations;
@@ -541,7 +550,7 @@ static void s_desktop_raise_transients(desktop_td *desktop,
 
     while (!queue_is_empty(pending) && processed < max_iterations) {
         void *data;
-        const client_td *parent;
+        client_td *parent;
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
@@ -570,9 +579,9 @@ static void s_desktop_raise_transients(desktop_td *desktop,
 }
 
 
-/* Send a client to the front of the desktop's window stack, along with
- * every transient descendant it has (a dialog stays above the window it
- * belongs to) */
+/* Send a client to the front of the desktop's window stack, along
+ * with every transient descendant it has (a dialog stays above the
+ * window it belongs to) */
 int desktop_action_client_send_front(desktop_td *desktop,
         client_td *client)
 {
@@ -875,6 +884,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         int wordexp_flags;
         int wr;
         int child_errno;
+        ssize_t write_result;
 
         /* Child: close the read end; write end is close-on-exec */
         close(err_pipe[0]);
@@ -913,9 +923,18 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         }
 
         execvp(words.we_wordv[0], words.we_wordv);
-        /* 'execvp' failed: report 'errno' to parent */
+        /* 'execvp' failed: report 'errno' to parent.  The write
+         * result itself is deliberately unchecked: the child is
+         * already about to '_exit' either way, with nothing left it
+         * could do differently if this particular write failed too,
+         * so there is no meaningful recovery to attempt; captured in
+         * a real variable rather than cast to 'void' directly on the
+         * call, since GCC's own 'warn_unused_result' on 'write' does
+         * not treat a bare '(void)' cast as acknowledging it. */
         child_errno = errno;
-        (void) write(err_pipe[1], &child_errno, sizeof(child_errno));
+        write_result = write(err_pipe[1], &child_errno,
+                sizeof(child_errno));
+        (void) write_result;
 
         wordfree(&words);
         _exit(127);

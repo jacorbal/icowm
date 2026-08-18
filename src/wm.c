@@ -23,6 +23,7 @@
 #include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 
 /* Session includes */
@@ -46,6 +47,7 @@
 /* Project includes */
 #include <config.h>
 #include <config/memguard.h>
+#include <client.h>
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
@@ -82,6 +84,127 @@ wm_td *wm = NULL;   /**< Singleton window manager instance */
 
 
 /**
+ * @brief Release a client back to bare X, undoing this window
+ *        manager's own management of it, without touching its own
+ *        window at all beyond reparenting it
+ *
+ * @c client_destroy (client.h) destroys @c frame/@c titlebar/
+ * @c icon_window (every one of them genuinely owned by this window
+ * manager) and, unless a caller already zeroed it first, @c window
+ * itself too: correct when @c window is already gone (the two
+ * existing callers that zero it first, both in handler/map.c, do so
+ * specifically because theirs already is, one from a real
+ * @c DestroyNotify, the other from a client that never finished
+ * being adopted), but not here: every client reaching this function
+ * is still fully alive, mid-session, with @p client_destroy about to
+ * run on it moments later as this whole window manager instance
+ * itself is torn down (@a s_wm_cleanup), not the client.  A window
+ * manager exiting, being replaced, or reloading must never take a
+ * person's own running applications down with it.
+ *
+ * Reparented back to @p client's own root window, at its own current
+ * absolute on-screen position (recovered from the frame's own
+ * position plus its own frame extents, since @p client's own window
+ * sits at that fixed offset inside its frame, e.g.,
+ * @a ci_create_decorations, cmds/client/state.c), rather than left
+ * inside a frame this window manager is about to destroy right along
+ * with everything else: 'X' does not auto-reparent a window's own
+ * children out from under it, so the reparenting itself, not just the
+ * zeroing below, is what keeps @p client's own window from
+ * disappearing along with its frame the moment this instance's own
+ * cleanup destroys that frame.  A no-op for an already-undecorated
+ * client (@c frame already 0), whose own window already sits
+ * directly under root with nothing to undo.
+ *
+ * @param client Client to release
+ *
+ * @note No-op if @p client, its own connection, or its own window is
+ *       already gone
+ * @note Complexity: @e O(1)
+ */
+static void s_client_unmanage(client_td *client)
+{
+    if (client == NULL || client->connection == NULL ||
+            client->window == 0u) {
+        return;
+    }
+
+    if (client->frame != 0u) {
+        int16_t abs_x = (int16_t) (client->layout.geometry.cur.pos.x +
+                (int32_t) client->layout.frame_extents.left);
+        int16_t abs_y = (int16_t) (client->layout.geometry.cur.pos.y +
+                (int32_t) client->layout.frame_extents.top);
+
+        xcb_reparent_window(client->connection, client->window,
+                client->parent_id, abs_x, abs_y);
+    }
+
+    /* 'client_destroy' only ever destroys 'window' itself when this
+     * is still non-zero; every other field it destroys ('frame',
+     * 'titlebar', 'icon_window') is untouched here, since those are
+     * genuinely this window manager's own resources, correctly torn
+     * down along with the rest of it. */
+    client->window = 0u;
+}
+
+
+/**
+ * @brief Release every client, on every desktop of every managed
+ *        surface, back to bare X before this whole instance's own
+ *        teardown destroys the window manager's own resources
+ *
+ * @a s_client_unmanage does the actual work, once per client; see its
+ * own doc comment for why this has to happen at all.
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every desktop of every managed surface
+ */
+static void s_wm_unmanage_all_clients(void)
+{
+    list_item_td *snode;
+
+    if (wm == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    for (snode = list_head(wm->surfaces); snode != NULL;
+            snode = list_next(snode)) {
+        surface_td *surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        const cdlist_item_td *dinitial;
+
+        if (surface == NULL || surface->desktops == NULL) {
+            continue;
+        }
+
+        dnode = cdlist_head(surface->desktops);
+        if (dnode == NULL) {
+            continue;
+        }
+
+        dinitial = dnode;
+        do {
+            desktop_td *desktop = (desktop_td *) cdlist_data(dnode);
+
+            if (desktop != NULL && desktop->stacking != NULL) {
+                cdlist_item_td *cnode = cdlist_head(desktop->stacking);
+                const cdlist_item_td *cinitial = cnode;
+
+                if (cnode != NULL) {
+                    do {
+                        s_client_unmanage(
+                                (client_td *) cdlist_data(cnode));
+                        cnode = cdlist_next(cnode);
+                    } while (cnode != NULL && cnode != cinitial);
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    } /* ! for (snode) */
+}
+
+
+/**
  * @brief Release every initialized window-manager subsystem
  *
  * Frees only the members that were successfully initialized so it can
@@ -96,6 +219,8 @@ static void s_wm_cleanup(void)
     if (wm == NULL) {
         return;
     }
+
+    s_wm_unmanage_all_clients();
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
@@ -730,10 +855,7 @@ void wm_request_full_redraw(void)
         surface->is_outdated = true;
 
         for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-            desktop_td *desktop = surface_desktop_get(surface, did);
-            if (desktop != NULL) {
-                desktop->is_outdated = true;
-            }
+            desktop_mark_outdated(surface_desktop_get(surface, did));
         }
     } /* ! for (snode) */
 }

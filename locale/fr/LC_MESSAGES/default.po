@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: IcoWM 1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-12 20:31+0200\n"
-"PO-Revision-Date: 2026-08-12 20:31+0200\n"
+"PO-Revision-Date: 2026-08-18 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -15,393 +15,370 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: include/defs/uistr.h:38
+#: include/defs/uistr.h:39
 msgid "[ OK ]"
 msgstr "[ OK ]"
 
-#: include/defs/uistr.h:42
+#: include/defs/uistr.h:43
+msgid "Strutless maximization"
+msgstr "Maximisation sans panneaux"
+
+#: include/defs/uistr.h:44
+msgid "Strutted maximization"
+msgstr "Maximisation avec panneaux"
+
+#: include/defs/uistr.h:45
 msgid "Reload configuration"
 msgstr "Recharger la configuration"
 
-#: include/defs/uistr.h:43
+#: include/defs/uistr.h:46
 msgid "Redraw all windows"
 msgstr "Redessiner toutes les fenêtres"
 
-#: include/defs/uistr.h:44
+#: include/defs/uistr.h:47
 msgid "Exit"
 msgstr "Quitter"
 
-#: include/defs/uistr.h:47
+#: include/defs/uistr.h:50
 msgid "Send to desktop"
 msgstr "Envoyer vers le bureau"
 
-#: include/defs/uistr.h:48
+#: include/defs/uistr.h:51
 msgid "Send to monitor"
 msgstr "Envoyer vers l'écran"
 
-#: include/defs/uistr.h:49;  include/defs/uistr.h:147
+#: include/defs/uistr.h:52
 msgid "Layer"
 msgstr "Plan"
 
-#: include/defs/uistr.h:50
+#: include/defs/uistr.h:53
 msgid "Always on top"
 msgstr "Toujours au premier plan"
 
-#: include/defs/uistr.h:51
+#: include/defs/uistr.h:54
 msgid "Normal"
 msgstr "Normal"
 
-#: include/defs/uistr.h:52
+#: include/defs/uistr.h:55
 msgid "Always on bottom"
 msgstr "Toujours à l'arrière-plan"
 
-#: include/defs/uistr.h:53
+#: include/defs/uistr.h:56
 msgid "All desktops (pin)"
 msgstr "Tous les bureaux (épingler)"
 
-#: include/defs/uistr.h:54
+#: include/defs/uistr.h:57
 msgid "This desktop only (unpin)"
 msgstr "Ce bureau uniquement (détacher)"
 
-#: include/defs/uistr.h:55
+#: include/defs/uistr.h:58
 msgid "Restore"
 msgstr "Restaurer"
 
-#: include/defs/uistr.h:56
+#: include/defs/uistr.h:59
 msgid "Move"
 msgstr "Déplacer"
 
-#: include/defs/uistr.h:57;  include/defs/uistr.h:157
+#: include/defs/uistr.h:60
 msgid "Resize"
 msgstr "Redimensionner"
 
-#: include/defs/uistr.h:58;  include/defs/uistr.h:142
+#: include/defs/uistr.h:61
 msgid "Iconify"
 msgstr "Iconifier"
 
-#: include/defs/uistr.h:59;  include/defs/uistr.h:141
+#: include/defs/uistr.h:62
 msgid "Hide"
 msgstr "Masquer"
 
-#: include/defs/uistr.h:60;  include/defs/uistr.h:148
+#: include/defs/uistr.h:63
 msgid "Maximize"
 msgstr "Agrandir"
 
-#: include/defs/uistr.h:61;  include/defs/uistr.h:140
+#: include/defs/uistr.h:64
 msgid "Fullscreen"
 msgstr "Plein écran"
 
-#: include/defs/uistr.h:62
-msgid "Exit Fullscreen"
+#: include/defs/uistr.h:65
+msgid "Unfullscreen"
 msgstr "Quitter le plein écran"
 
-#: include/defs/uistr.h:63;  include/defs/uistr.h:151
+#: include/defs/uistr.h:66
 msgid "Shade"
 msgstr "Enrouler"
 
-#: include/defs/uistr.h:64
+#: include/defs/uistr.h:67
 msgid "Unshade"
 msgstr "Dérouler"
 
-#: include/defs/uistr.h:65;  include/defs/uistr.h:139
+#: include/defs/uistr.h:68
 msgid "Decorate"
 msgstr "Décorer"
 
-#: include/defs/uistr.h:66
+#: include/defs/uistr.h:69
 msgid "Undecorate"
 msgstr "Ôter la décoration"
 
-#: include/defs/uistr.h:67;  include/defs/uistr.h:137
+#: include/defs/uistr.h:70
 msgid "Close"
 msgstr "Fermer"
 
-#: include/defs/uistr.h:70
+#: include/defs/uistr.h:73
 msgid "Go there..."
 msgstr "Y aller..."
 
+#: include/defs/uistr.h:74
+msgid "Add new desktop"
+msgstr "Ajouter un nouveau bureau"
+
 #: include/defs/uistr.h:75
+msgid "Remove last desktop"
+msgstr "Supprimer le dernier bureau"
+
+#: include/defs/uistr.h:80
 msgid "Are you sure you want to exit %s?"
 msgstr "Voulez-vous vraiment quitter %s ?"
 
-#: include/defs/uistr.h:76
+#: include/defs/uistr.h:81
 msgid "[ Cancel ]"
 msgstr "[ Annuler ]"
 
-#: include/defs/uistr.h:77
+#: include/defs/uistr.h:82
 msgid "[ Exit ]"
 msgstr "[ Quitter ]"
 
-#: include/defs/uistr.h:97
+#: include/defs/uistr.h:102
 msgid "Automatically selecting '%.255s' in %d second(s)"
 msgstr "Sélection automatique de '%.255s' dans %d seconde(s)"
 
-#: include/defs/uistr.h:104
-msgid ""
-"The 'randr.json' configuration has been applied.  Keep it, or revert "
-"to the previous one?"
-msgstr ""
-"La configuration 'randr.json' a été appliquée.  La conserver ou "
-"revenir à la précédente ?"
+#: include/defs/uistr.h:109
+msgid "The 'randr.json' configuration has been applied.  Keep it, or revert to the previous one?"
+msgstr "La configuration 'randr.json' a été appliquée.  La conserver ou revenir à la précédente ?"
 
-#: include/defs/uistr.h:107
+#: include/defs/uistr.h:112
 msgid "[ Revert ]"
 msgstr "[ Revenir ]"
 
-#: include/defs/uistr.h:108
+#: include/defs/uistr.h:113
 msgid "[ Keep ]"
 msgstr "[ Conserver ]"
 
-#: include/defs/uistr.h:113
+#: include/defs/uistr.h:118
 msgid "[Window Manager]"
 msgstr "[Gestionnaire de fenêtres]"
 
-#: include/defs/uistr.h:114
+#: include/defs/uistr.h:119
 msgid "[Launch]"
 msgstr "[Lancer]"
 
-#: include/defs/uistr.h:115
+#: include/defs/uistr.h:120
 msgid "[Window]"
 msgstr "[Fenêtre]"
 
-#: include/defs/uistr.h:116
+#: include/defs/uistr.h:121
 msgid "[Cycle]"
 msgstr "[Parcourir]"
 
-#: include/defs/uistr.h:118
+#: include/defs/uistr.h:123
 msgid "Root menu"
 msgstr "Menu racine"
 
-#: include/defs/uistr.h:119
+#: include/defs/uistr.h:124
 msgid "Windows menu"
 msgstr "Menu des fenêtres"
 
-#: include/defs/uistr.h:120
+#: include/defs/uistr.h:125
 msgid "Search windows"
 msgstr "Rechercher des fenêtres"
 
-#: include/defs/uistr.h:121
+#: include/defs/uistr.h:126
 msgid "Show desktop"
 msgstr "Afficher le bureau"
 
-#: include/defs/uistr.h:122
+#: include/defs/uistr.h:127
 msgid "Redraw"
 msgstr "Redessiner"
 
-#: include/defs/uistr.h:124
+#: include/defs/uistr.h:129
 msgid "Quit"
 msgstr "Quitter"
 
-#: include/defs/uistr.h:125
+#: include/defs/uistr.h:130
 msgid "This list"
 msgstr "Cette liste"
 
-#: include/defs/uistr.h:128
-msgid "Emergency exit: Ctrl+Mod1+Backspace"
-msgstr "Sortie d'urgence : Ctrl+Mod1+Backspace"
-
-#: include/defs/uistr.h:129
+#: include/defs/uistr.h:131
 msgid "Fortune"
 msgstr "Citation du jour"
 
-#: include/defs/uistr.h:130
+#: include/defs/uistr.h:132
 msgid "Scratchpad"
 msgstr "Espace de travail temporaire"
 
-#: include/defs/uistr.h:131
+#: include/defs/uistr.h:133
+msgid "Add desktop"
+msgstr "Ajouter un bureau"
+
+#: include/defs/uistr.h:134
+msgid "Remove desktop"
+msgstr "Supprimer le bureau"
+
+#: include/defs/uistr.h:135
+msgid "Toggle strutless maximization"
+msgstr "Basculer la maximisation sans panneaux"
+
+#: include/defs/uistr.h:138
+msgid "Emergency exit: Ctrl+Mod1+Backspace"
+msgstr "Sortie d'urgence : Ctrl+Mod1+Backspace"
+
+#: include/defs/uistr.h:140
 msgid "Terminal"
 msgstr "Terminal"
 
-#: include/defs/uistr.h:132
+#: include/defs/uistr.h:141
 msgid "Launcher"
 msgstr "Lanceur"
 
-#: include/defs/uistr.h:133
+#: include/defs/uistr.h:142
 msgid "File manager"
 msgstr "Gestionnaire de fichiers"
 
-#: include/defs/uistr.h:134
+#: include/defs/uistr.h:143
 msgid "Web browser"
 msgstr "Navigateur web"
 
-#: include/defs/uistr.h:135
+#: include/defs/uistr.h:144
 msgid "Editor"
 msgstr "Éditeur"
 
-#: include/defs/uistr.h:138
+#: include/defs/uistr.h:147
 msgid "Kill"
 msgstr "Tuer"
 
-#: include/defs/uistr.h:143
+#: include/defs/uistr.h:152
 msgid "Iconify all"
 msgstr "Tout iconifier"
 
-#: include/defs/uistr.h:144
+#: include/defs/uistr.h:153
 msgid "Deiconify all"
 msgstr "Tout désiconifier"
 
-#: include/defs/uistr.h:145
+#: include/defs/uistr.h:154
 msgid "Arrange"
 msgstr "Organiser"
 
-#: include/defs/uistr.h:146
+#: include/defs/uistr.h:155
 msgid "Info"
 msgstr "Infos"
 
-#: include/defs/uistr.h:149
+#: include/defs/uistr.h:158
 msgid "Next monitor"
 msgstr "Écran suivant"
 
-#: include/defs/uistr.h:150
+#: include/defs/uistr.h:159
 msgid "Pin"
 msgstr "Épingler"
 
-#: include/defs/uistr.h:155
+#: include/defs/uistr.h:164
 msgid "Move (relative)"
 msgstr "Déplacer (relatif)"
 
-#: include/defs/uistr.h:156
+#: include/defs/uistr.h:165
 msgid "Move (absolute)"
 msgstr "Déplacer (absolu)"
 
-#: include/defs/uistr.h:158
+#: include/defs/uistr.h:167
 msgid "Desktops"
 msgstr "Bureaux"
 
-#: include/defs/uistr.h:159
+#: include/defs/uistr.h:168
 msgid "Icons"
 msgstr "Icônes"
 
-#: include/defs/uistr.h:160
+#: include/defs/uistr.h:169
 msgid "Windows"
 msgstr "Fenêtres"
 
-#: include/defs/uistr.h:174
+#: include/defs/uistr.h:183
 msgid "Go to desktop 0-9: %.*s<0-9>"
 msgstr "Aller au bureau 0-9 : %.*s<0-9>"
 
-#: include/defs/uistr.h:176
+#: include/defs/uistr.h:185
 msgid "Go to desktop %u: %s"
 msgstr "Aller au bureau %u : %s"
 
-#: include/defs/uistr.h:187
-msgid "Detected activity on desktop [%u] -- %s"
-msgstr "Activité détectée sur le bureau [%u] -- %s"
-
-#: include/defs/uistr.h:189
+#: include/defs/uistr.h:196
 msgid "Detected activity on desktop [%u]"
 msgstr "Activité détectée sur le bureau [%u]"
 
-#: include/defs/uistr.h:194
+#: include/defs/uistr.h:206
+msgid " -- %s"
+msgstr " -- %s"
+
+#: include/defs/uistr.h:214
 msgid " (on surface %u)"
 msgstr " (sur la surface %u)"
 
-#: include/defs/uistr.h:179
+#: include/defs/uistr.h:218
 msgid "N/A"
 msgstr "N/D"
 
-#: include/defs/uistr.h:180
+#: include/defs/uistr.h:219
 msgid "Full, AC"
 msgstr "Pleine, secteur"
 
-#: include/defs/uistr.h:181
+#: include/defs/uistr.h:220
 msgid "Full"
 msgstr "Pleine"
 
-#: include/defs/uistr.h:190
+#: include/defs/uistr.h:229
 msgid "%u%%"
 msgstr "%u %%"
 
-#: include/defs/uistr.h:188
+#: include/defs/uistr.h:237
 msgid "AC"
 msgstr "Secteur"
 
-#: include/defs/uistr.h:185
-msgid ""
-"IcoWM is running in restricted-memory mode.  In this mode: "
-"application icons are shown without their own picture, text is drawn "
-"with simpler fonts, and there is a limit on how many windows can be "
-"open at once.  All of this trades some visual polish for keeping "
-"memory use low and predictable."
-msgstr ""
-"IcoWM fonctionne en mode mémoire restreinte.  Dans ce mode : les "
-"icônes des applications sont affichées sans leur propre image, le "
-"texte est dessiné avec des polices plus simples, et il existe une "
-"limite au nombre de fenêtres pouvant être ouvertes à la fois.  Tout "
-"cela sacrifie un peu de finition visuelle pour garder une utilisation "
-"de la mémoire faible et prévisible."
+#: include/defs/uistr.h:240
+msgid "IcoWM is running in restricted-memory mode.  In this mode: application icons are shown without their own picture, text is drawn with simpler fonts, and there is a limit on how many windows can be open at once.  All of this trades some visual polish for keeping memory use low and predictable."
+msgstr "IcoWM fonctionne en mode mémoire restreinte.  Dans ce mode : les icônes des applications sont affichées sans leur propre image, le texte est dessiné avec des polices plus simples, et il existe une limite au nombre de fenêtres pouvant être ouvertes à la fois.  Tout cela sacrifie un peu de finition visuelle pour garder une utilisation de la mémoire faible et prévisible."
 
-#: include/defs/uistr.h:198
-msgid ""
-"Error parsing '%s'; possible syntax error.  Reverted to default "
-"values."
-msgstr ""
-"Erreur d'analyse de '%s' ; erreur de syntaxe possible.  Retour aux "
-"valeurs par défaut."
+#: include/defs/uistr.h:254
+msgid "Error parsing '%s'; possible syntax error.  Reverted to default values."
+msgstr "Erreur d'analyse de '%s' ; erreur de syntaxe possible.  Retour aux valeurs par défaut."
 
-#: include/defs/uistr.h:201
-msgid ""
-"Error parsing the following file(s); possible syntax error(s).  "
-"Reverted to default values for each: '%s'"
-msgstr ""
-"Erreur d'analyse du/des fichier(s) suivant(s) ; erreur(s) de syntaxe "
-"possible(s).  Retour aux valeurs par défaut pour chacun : '%s'"
+#: include/defs/uistr.h:257
+msgid "Error parsing the following file(s); possible syntax error(s).  Reverted to default values for each: '%s'"
+msgstr "Erreur d'analyse du/des fichier(s) suivant(s) ; erreur(s) de syntaxe possible(s).  Retour aux valeurs par défaut pour chacun : '%s'"
 
-#: include/defs/uistr.h:208
-msgid ""
-"  Additionally, the theme file '%s' named by 'config.json' was not "
-"found; using the built-in default theme instead."
-msgstr ""
-"  De plus, le fichier de thème '%s' nommé par 'config.json' est "
-"introuvable ; utilisation du thème par défaut intégré."
+#: include/defs/uistr.h:267
+msgid "  Additionally, the theme file '%s' named by 'config.json' was not found; using the built-in default theme instead."
+msgstr "  De plus, le fichier de thème '%s' nommé par 'config.json' est introuvable ; utilisation du thème par défaut intégré."
 
-#: include/defs/uistr.h:217
-msgid ""
-"IcoWM has reached its configured memory ceiling: using %u MiB of the "
-"%u MiB allowed (see the '-M' command-line option).  Close some "
-"windows to free up memory before opening more."
-msgstr ""
-"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u "
-"Mio sur les %u Mio autorisés (voir l'option de ligne de commande "
-"'-M').  Fermez quelques fenêtres pour libérer de la mémoire avant "
-"d'en ouvrir d'autres."
+#: include/defs/uistr.h:277
+msgid "IcoWM has reached its configured memory ceiling: using %u MiB of the %u MiB allowed (see the '-M' command-line option).  Close some windows to free up memory before opening more."
+msgstr "IcoWM a atteint son plafond de mémoire configuré : utilisation de %u Mio sur les %u Mio autorisés (voir l'option de ligne de commande '-M').  Fermez quelques fenêtres pour libérer de la mémoire avant d'en ouvrir d'autres."
 
-#: include/defs/uistr.h:222
-msgid ""
-"IcoWM is running in restricted-memory mode and will not manage more "
-"than %u window(s) at once (see the '-M' command-line option).  Close "
-"a window before opening another."
-msgstr ""
-"IcoWM fonctionne en mode mémoire restreinte et ne gérera pas plus de "
-"%u fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  "
-"Fermez une fenêtre avant d'en ouvrir une autre."
+#: include/defs/uistr.h:282
+msgid "IcoWM is running in restricted-memory mode and will not manage more than %u window(s) at once (see the '-M' command-line option).  Close a window before opening another."
+msgstr "IcoWM fonctionne en mode mémoire restreinte et ne gérera pas plus de %u fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  Fermez une fenêtre avant d'en ouvrir une autre."
 
-#: include/defs/uistr.h:230
+#: include/defs/uistr.h:290
 msgid "There are no open windows in this session at the moment."
 msgstr "Aucune fenêtre n'est actuellement ouverte dans cette session."
 
-#: include/defs/uistr.h:244
-msgid ""
-"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore "
-"no wisdom of the ancients may this day be divined.  Prithee, entreat "
-"thy package steward with an incantation such as 'sudo apt install "
-"fortune-mod' (or whate'er charm thy distribution demandeth), that the "
-"sages of yore might once more speak through this humble dialog."
-msgstr ""
-"Hélas !  L'oracle 'fortune' ne demeure point sur cette machine, si "
-"bien qu'aucune sagesse des anciens ne saurait aujourd'hui être devinée.  "
-"Je vous prie d'implorer votre gestionnaire de paquets par quelque "
-"incantation telle que 'sudo apt install fortune-mod' (ou quelque "
-"charme que votre distribution exige), afin que les sages d'antan "
-"puissent derechef parler par cet humble dialogue."
-
-#: include/defs/uistr.h:281
+#: include/defs/uistr.h:297
 msgid "Run:"
 msgstr "Exécuter :"
 
-#: include/defs/uistr.h:288
+#: include/defs/uistr.h:304
 msgid "Command '%s' not found."
 msgstr "Commande '%s' introuvable."
 
-#: include/defs/uistr.h:301
+#: include/defs/uistr.h:317
 msgid "Failed to execute '%s': command not found."
 msgstr "Échec de l'exécution de '%s' : commande introuvable."
+
+#: include/defs/uistr.h:324
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "Hélas !  L'oracle 'fortune' ne demeure point sur cette machine, si bien qu'aucune sagesse des anciens ne saurait aujourd'hui être devinée.  Je vous prie d'implorer votre gestionnaire de paquets par quelque incantation telle que 'sudo apt install fortune-mod' (ou quelque charme que votre distribution exige), afin que les sages d'antan puissent derechef parler par cet humble dialogue."

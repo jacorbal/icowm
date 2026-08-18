@@ -40,7 +40,7 @@
                 "add": "modc+mod1+mods+Right",
                 "remove": "modc+mod1+mods+Left"
             },
-            "toggle-fullsurface": ""
+            "toggle-strutless-maximization": ""
         },
         "launch": {
             "terminal": "modc+mod1+Enter",

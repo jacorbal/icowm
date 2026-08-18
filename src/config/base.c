@@ -685,6 +685,27 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
     s_config_enforce_min_count(
             &config_base->screens[screen_idx].desktop_count, 1u,
             "topology.screens.desktops[].count", filename);
+
+    /* 'config_base->screens[screen_idx].desktops' (config.h) is a
+     * fixed-size 'CONFIG_MAX_DESKTOPS' array; unlike the flat shape
+     * (@a s_config_load_screens_flat, whose own 'desktop_count'
+     * parameter already arrives pre-clamped from its own caller),
+     * this one reads "count" fresh from this one screen's own JSON
+     * entry, with nothing else clamping it before every later
+     * consumer (starting with 'surface_init' at startup, wm.c) takes
+     * it as a trusted upper bound for iterating or indexing that same
+     * array. */
+    if (config_base->screens[screen_idx].desktop_count >
+            (uint32_t) CONFIG_MAX_DESKTOPS) {
+        LOGGER_WARNING("%s: topology.screens.desktops[%u].count (%u)" \
+                " exceeds the configured maximum of %d; clamped",
+                filename, screen_idx,
+                config_base->screens[screen_idx].desktop_count,
+                CONFIG_MAX_DESKTOPS);
+        config_base->screens[screen_idx].desktop_count =
+            (uint32_t) CONFIG_MAX_DESKTOPS;
+    }
+
     json_load_uint(desktop_item, "inaugural",
             &config_base->screens[screen_idx].desktop_inaugural);
 

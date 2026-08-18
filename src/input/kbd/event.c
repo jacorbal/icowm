@@ -389,7 +389,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_9:
         case KEYBIND_DESKTOP_ADD:
         case KEYBIND_DESKTOP_REMOVE:
-        case KEYBIND_WM_TOGGLE_FULLSURFACE:
+        case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
         case KEYBIND_WM_ROOT_MENU:
         case KEYBIND_WM_WINDOWS_MENU:
         case KEYBIND_WM_SEARCH_WINDOWS:
@@ -754,9 +754,9 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 }
                 return;
 
-            case KEYBIND_WM_TOGGLE_FULLSURFACE:
+            case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
                 if (surface != NULL) {
-                    enact_surface_toggle_fullsurface(surface);
+                    enact_surface_toggle_strutless_maximize(surface);
                 }
                 return;
 

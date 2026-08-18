@@ -1065,7 +1065,7 @@ Window manager control shortcuts.
 | `scratchpad` | `modc+mod1+mods+F12` | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
 | `desktop.add` | `modc+mod1+mods+Right` | Add a new, empty desktop to the end of the list. |
 | `desktop.remove` | `modc+mod1+mods+Left` | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
-| `toggle-fullsurface` | *(unbound)* | Toggle whether panel/tray struts are set aside when computing work areas on this surface (distraction-free mode); also reachable via IPC (`toggle_fullsurface`) and its own entry in the window context menu. |
+| `toggle-strutless-maximization` | *(unbound)* | Toggle whether panel/tray struts are set aside when computing work areas on this surface (strutless maximization); also reachable via IPC (`toggle_strutless_maximize`) and its own entry in the root menu. |
 | `redraw`       | `modc+mod1+mods+r` | Force a full redraw of all windows. |
 | `reload`       | `modc+mod1+mods+c` | Reload the configuration files (equivalent to `SIGHUP`). |
 | `quit`         | `modc+mod1+mods+x` | Exit IcoWM. |

@@ -32,6 +32,7 @@
 #include <surface.h>
 
 /* Local includes */
+#include <cmds/client/basic.h>
 #include <cmds/client/geom.h>
 
 
@@ -78,28 +79,7 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 
     initial = node;
     do {
-        desktop_td *desktop = (desktop_td *) cdlist_data(node);
-
-        if (desktop != NULL) {
-            desktop->is_outdated = true;
-
-            if (desktop->stacking != NULL) {
-                cdlist_item_td *cnode = cdlist_head(desktop->stacking);
-                const cdlist_item_td *cinitial = cnode;
-
-                if (cnode != NULL) {
-                    do {
-                        client_td *client =
-                            (client_td *) cdlist_data(cnode);
-
-                        if (client != NULL) {
-                            client->is_outdated = true;
-                        }
-                        cnode = cdlist_next(cnode);
-                    } while (cnode != NULL && cnode != cinitial);
-                }
-            }
-        }
+        desktop_mark_outdated((desktop_td *) cdlist_data(node));
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
 }
@@ -195,6 +175,17 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
         desktop_action_client_add(to_desktop, client);
         client->desktop_id = to_desktop->id;
 
+        /* An iconified client keeps the icon position it already had
+         * on 'from_desktop'; that exact spot is only a coincidence on
+         * 'to_desktop', which may already have an icon of its own
+         * sitting right there.  Relocated to a free spot, the same
+         * way a client repositions its own icon (or gets a fresh
+         * one) whenever a saved position turns out already claimed;
+         * see 'ccmd_client_relocate_icon_if_taken' (cmds/client/
+         * basic.h) for the exact same 'unless claimed' logic applied
+         * to a freshly (re-)iconified client. */
+        ccmd_client_relocate_icon_if_taken(client);
+
         /* A pinned client's own '_NET_WM_DESKTOP' is already the
          * EWMH 'all desktops' sentinel, set once by 'ccmd_client_pin'
          * and never meant to track a specific desktop again; only a
@@ -272,6 +263,20 @@ int surface_action_desktop_remove(surface_td *surface)
     if (was_current) {
         surface_desktop_select_prev(surface, false);
         surface_clients_show(surface, surface->desktop_cur);
+    } else if (fallback->id == surface->desktop_cur) {
+        /* The removed desktop was not the one on screen, but its own
+         * fallback already was, so neither branch above ever ran a
+         * 'show' cycle for it: without this, every client (and every
+         * iconified client's own icon window) 's_surface_desktop_
+         * evacuate' just moved onto it stays exactly as mapped or
+         * unmapped as it was on the desktop just destroyed, which for
+         * anything that was not the surface's own current desktop
+         * before this whole operation started means unmapped, i.e.,
+         * invisible, with nothing else left to ever map it: no further
+         * desktop switch is coming (fallback is already current), and
+         * with only the two desktops involved existing at all, there
+         * may be nowhere left to switch to and back from even by hand. */
+        surface_clients_show(surface, surface->desktop_cur);
     }
 
     if (surface_desktop_rem(surface, desktop->id) != 0) {
@@ -294,7 +299,7 @@ int surface_action_desktop_remove(surface_td *surface)
  * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
  * applies one client's own workarea fresh; run here for every client
  * on every desktop @p surface owns, right after its own workarea
- * actually changed (@a surface_action_toggle_fullsurface), so an
+ * actually changed (@a surface_action_toggle_strutless_maximize), so an
  * already-maximized window visibly grows or shrinks into the panel-
  * reserved space that mode just set aside or folded back in, rather
  * than silently staying at whatever size it already was until the
@@ -345,18 +350,18 @@ static void s_surface_refill_maximized_clients(surface_td *surface)
 }
 
 
-/* Toggle full-surface mode */
-int surface_action_toggle_fullsurface(surface_td *surface)
+/* Toggle strutless-maximization mode */
+int surface_action_toggle_strutless_maximize(surface_td *surface)
 {
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
     }
 
-    LOGGER_DEBUG("Toggling full-surface mode on surface %u",
+    LOGGER_DEBUG("Toggling strutless-maximization mode on surface %u",
             surface->id);
 
-    surface->fullsurface = !surface->fullsurface;
+    surface->strutless_maximize = !surface->strutless_maximize;
 
     /* Recompute every desktop's own work area right away: struts are
      * now folded in, or set aside, differently than a moment ago (see

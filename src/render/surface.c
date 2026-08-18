@@ -188,9 +188,7 @@ void surface_render_current_desktop_repaint(surface_td *surface)
     }
 
     cur = surface_desktop_get(surface, surface->desktop_cur);
-    if (cur != NULL) {
-        cur->is_outdated = true;
-    }
+    desktop_mark_outdated(cur);
 
     (void) surface_render_all_desktops(surface);
 }

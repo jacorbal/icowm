@@ -151,6 +151,38 @@ void ccmd_client_unfocus(client_td *client);
 void ccmd_client_iconify(client_td *client);
 
 /**
+ * @brief Move an already-iconified client's own icon to a fresh,
+ *        non-overlapping spot if its current one is now occupied
+ *
+ * For a client whose icon window already exists (unlike
+ * @a ccmd_client_iconify, which creates one from scratch): checks
+ * @p client's own current @c icon_x/icon_y against every other
+ * already-mapped icon on whichever desktop @p client is on right
+ * now, and, only if that exact spot is taken, resolves a new one via
+ * @a place_icon and moves the icon window there on screen if it is
+ * currently mapped.  A no-op otherwise, so an icon that still has a
+ * free spot keeps it exactly where it was.
+ *
+ * Meant for a client whose desktop just changed out from under it
+ * without the person ever explicitly moving its icon themselves
+ * (@a surface_action_desktop_remove, surface.h, evacuating every
+ * client still on the desktop being removed foremost among them):
+ * the ordinary "reuse the saved position unless claimed" logic
+ * @a ccmd_client_iconify itself already applies to a freshly iconified
+ * client has no equivalent for one that arrives on a desktop it was
+ * never actually iconified on.
+ *
+ * @param client Client whose own icon position to check and, if
+ *               needed, relocate
+ *
+ * @note No-op if @p client is @c NULL, has no icon window, or is not
+ *       currently iconified
+ * @note Complexity: @e O(n), where @e n is the number of already-
+ *       iconified clients on @p client's own current desktop
+ */
+void ccmd_client_relocate_icon_if_taken(client_td *client);
+
+/**
  * @brief Hide the client by minimizing it without iconifying
  *
  * @param client Window to hide

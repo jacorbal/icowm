@@ -217,6 +217,23 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
                 (void) safe_strncpy(line, candidate, sizeof(line) - 1u);
                 line[sizeof(line) - 1u] = '\0';
                 line_len = safe_strlen(line);
+
+                if (fit_len < word_len) {
+                    /* The word itself does not fit within 'candidate'
+                     * own raw buffer capacity at all (a far more
+                     * extreme case than merely overflowing the
+                     * visual wrap target above), so only its own
+                     * first 'fit_len' bytes actually made it onto
+                     * this line.  Rewound here to right after
+                     * whatever was actually consumed, rather than
+                     * past the word's own real end, so its own
+                     * remaining bytes are not silently dropped:
+                     * picked back up as the start of the very next
+                     * line instead, the same as any other word that
+                     * does not fit on the current one. */
+                    i = word_start + fit_len;
+                    break;
+                }
             } else {
                 /* Does not fit and the line already has something on
                  * it: rewind to re-process this same word as the

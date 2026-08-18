@@ -162,7 +162,7 @@ cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args)
     (void) args;
     return NULL;
 }
-cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_strutless_maximize(wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;

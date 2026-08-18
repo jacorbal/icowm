@@ -520,7 +520,8 @@ bool ccmd_client_monitor_workarea(client_td *client,
  * only ever right immediately after actually maximizing it: anything
  * that later changes what its own workarea resolves to (a panel
  * mapped or unmapped, @c desktops.margins reloaded, or the surface's
- * own full-surface mode, @a surface_action_toggle_fullsurface,
+ * own strutless-maximization mode,
+ * @a surface_action_toggle_strutless_maximize,
  * surface.h, toggled) leaves it still filling wherever the OLD
  * workarea was, not the new one, until something re-applies its
  * maximize geometry from scratch.  This does exactly that: resolved

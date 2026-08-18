@@ -45,8 +45,8 @@ cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args);
  *  an error when only one desktop remains on the target surface */
 cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args);
 
-/** @c toggle_fullsurface: argument @c surface_id (optional) */
-cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args);
+/** @c toggle_strutless_maximize: argument @c surface_id (optional) */
+cJSON *ipc_action_toggle_strutless_maximize(wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_SURFACE_H */

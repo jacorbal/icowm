@@ -4,11 +4,12 @@
  * @brief Test battery for surface rendering orchestration
  *
  * desktop_render_full and desktop_render_background (render/desktop.c,
- * both XCB-backed) and surface_desktop_get (surface.c) are stubbed
- * below as controllable, call-recording stand-ins; xcb_flush itself
- * is linked for real, the same way test_urgency.c already does,
- * since surface_render_flush's own only real behavior worth testing
- * is its NULL-connection guard, never actually reaching that call.
+ * both XCB-backed), surface_desktop_get (surface.c), and
+ * desktop_mark_outdated (desktop.c) are stubbed below as controllable,
+ * call-recording stand-ins; xcb_flush itself is linked for real, the
+ * same way test_urgency.c already does, since surface_render_flush's
+ * own only real behavior worth testing is its NULL-connection guard,
+ * never actually reaching that call.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -62,6 +63,14 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
         return NULL;
     }
     return s_desktops_by_id[desktop_id];
+}
+
+
+void desktop_mark_outdated(desktop_td *desktop)
+{
+    if (desktop != NULL) {
+        desktop->is_outdated = true;
+    }
 }
 
 

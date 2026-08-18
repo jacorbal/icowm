@@ -1,11 +1,16 @@
 /**
  * @file input/mouse/drag.c
  *
- * @brief Mouse drag-operation state and implementation
+ * @brief Mouse drag-operation public state machine
  *
  * Manages the singleton drag state used by the move/resize and
- * icon-drag interactions.  All mutable drag state is @c static in this
- * translation unit; no other module accesses it directly.
+ * icon-drag interactions.  Split by sub-concern into
+ * @c drag/overlay.c, @c drag/snap.c, @c drag/outline.c, and
+ * @c drag/warp.c; see @c drag/internal.h for the exact split and why.
+ * All mutable drag state is defined here (@c s_drag, declared
+ * @c extern to the rest of @c input/mouse/drag/ via that same
+ * header) and, from outside this whole module, opaque: no other
+ * module accesses it directly.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -50,141 +55,18 @@
 #include <logger.h>
 #include <lookup.h>
 #include <render/icon.h>
-#include <render/text.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
-
-/* Menu includes */
-#include <menu/notify/desktop.h>
 
 /* Local includes */
 #include <input/mouse.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/bounds.h>
+#include <input/mouse/drag/internal.h>
 
 
-/**
- * @brief Singleton drag state
- */
-static struct {
-    bool active;
-    enum window_operation_e operation;
-    client_td *client;
-    desktop_td *desktop;
-    xcb_window_t drag_window;   /**< Icon window moved, or
-                                 *   'XCB_WINDOW_NONE' for normal drag */
-    int16_t pointer_start_x;
-    int16_t pointer_start_y;
-    int32_t client_start_x;
-    int32_t client_start_y;
-    uint16_t client_start_w;
-    uint16_t client_start_h;
-    uint32_t screen_w;          /**< Screen width for edge snap */
-    uint32_t screen_h;          /**< Screen height for edge snap */
-    uint32_t snap;              /**< Snap distance in pixels */
-    int32_t client_cur_x;       /**< Current X during drag (updated each
-                                     motion notify event) */
-    int32_t client_cur_y;       /**< Current Y during drag */
-    bool anchor_right;          /**< Resize: right edge is fixed (resize
-                                     from left) */
-    bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
-                                     from top) */
-    bool resize_w;              /**< Resize: width is actively being
-                                     changed in this drag */
-    bool resize_h;              /**< Resize: height is actively being
-                                     changed in this drag */
-    xcb_window_t overlay_window;/**< Centered feedback overlay window */
-    bool overlay_is_icon;       /**< Overlay belongs to icon drag */
-    char overlay_text[32];      /**< Current overlay text */
-    bool icon_was_mapped;       /**< Original icon mapped state before
-                                     drag */
-    int16_t last_root_x;        /**< Root-relative pointer position
-                                     'drag_update' last actually acted
-                                     on, so a duplicate 'MotionNotify'
-                                     reporting the same position (the X
-                                     server can deliver one right after
-                                     a grab starts under an
-                                     already-resting pointer) is
-                                     skipped rather than repeating the
-                                     same 'xcb_configure_window' and
-                                     'xcb_flush' for no visible change;
-                                     meaningless until 'has_last_pos' */
-    int16_t last_root_y;        /**< See 'last_root_x' */
-    bool has_last_pos;          /**< Whether 'last_root_x'/'last_root_y'
-                                     hold a real prior position yet;
-                                     false right after 'drag_start' so
-                                     its first 'drag_update' always
-                                     runs regardless of position */
-    bool warp_pending;          /**< Whether the pointer is currently
-                                     held against a warp-eligible
-                                     screen edge, counting down to a
-                                     desktop switch (see 'desktops.warp_on_edge_drag'
-                                     in config.json, config_desktop_s) */
-    bool warp_is_left;          /**< Which edge, only meaningful when
-                                     'warp_pending' */
-    struct timespec warp_due;   /**< When the held edge becomes due to
-                                     warp, only meaningful when
-                                     'warp_pending' */
-    xcb_window_t root;          /**< Root window, saved at 'drag_start'
-                                     so 'drag_update'/'drag_end' can
-                                     draw an outline onto it without
-                                     needing it added to their own
-                                     public signature */
-    bool solid_drag;            /**< Snapshot of
-                                     'config->windows.solid_drag' taken
-                                     at 'drag_start', so a config
-                                     reload mid-drag cannot switch
-                                     behavior out from under an
-                                     already-active one */
-    bool outline_offscreened;   /**< Whether the real window has
-                                     already been moved off-screen for
-                                     the current outline drag;
-                                     'drag_start' itself fires on
-                                     every plain click, with no way
-                                     yet to tell it apart from
-                                     a genuine drag, so this only
-                                     happens once the first real
-                                     'drag_update' confirms actual
-                                     movement, tracked here so it only
-                                     ever happens once */
-    xcb_window_t outline_windows[4]; /**< The outline stand-in used in
-                                           place of moving the real
-                                           window live, when
-                                           '!solid_drag': 4 separate,
-                                           opaque, override-redirect
-                                           strip windows, one per side
-                                           (top, bottom, left, right,
-                                           in that fixed order),
-                                           rather than a single filled
-                                           rectangle, so the middle
-                                           stays uncovered and whatever
-                                           is genuinely underneath
-                                           keeps showing through
-                                           without needing a
-                                           compositor at all.  Each
-                                           entry is 'XCB_WINDOW_NONE'
-                                           whenever no outline drag is
-                                           in progress.  Real X windows
-                                           the server itself manages
-                                           the exposure/repaint of, so
-                                           unlike the XOR rubber-band
-                                           this replaced, nothing else
-                                           redrawing underneath or
-                                           around them (another window
-                                           repainting itself, or an
-                                           edge-warp desktop switch)
-                                           can ever leave a stray
-                                           artifact behind */
-    int32_t client_cur_w;       /**< Current width during a resize
-                                     drag (mirrors 'client_cur_x'/'_y'
-                                     above); needed because an outline
-                                     drag never touches the real client
-                                     until 'drag_end', so
-                                     'layout.geometry.cur' cannot be
-                                     relied on to hold it meanwhile */
-    int32_t client_cur_h;       /**< See 'client_cur_w' */
-} s_drag = {
+drag_state_td s_drag = {
     .active = false,
     .operation = CLIENT_OPERATION_IDLE,
     .client = NULL,
@@ -226,645 +108,6 @@ static struct {
 };
 
 
-/**
- * @brief Synchronizes the active visual of the drag icon window.
- *
- * Thin wrapper over @c ri_render_client_icon_selected (render/icon.c),
- * the same "currently selected" render the icon cycle menu uses for
- * exactly this reason: active colors, caption, and hint indicators,
- * pixmap deliberately left out.  Kept as its own named function here
- * (rather than calling that one directly from every drag-start call
- * site) purely for the descriptive name at each call site; no logic
- * of its own remains to drift out of sync with the shared one now
- * that both need the exact same render.
- *
- * @param connection XCB connection
- */
-static void s_drag_sync_icon_active_visual(xcb_connection_t *connection)
-{
-    ri_render_client_icon_selected(connection, s_drag.client);
-}
-
-
-/**
- * @brief Clamp a 32-bit unsigned value to the 16-bit range
- *
- * Returns @p value converted to @c uint16_t, saturating to
- * @c UINT16_MAX if the input exceeds the maximum 16-bit unsigned value.
- *
- * @param value Unsigned 32-bit value to clamp
- *
- * @return Clamped 16-bit unsigned value
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_drag_u16_sat(uint32_t value)
-{
-    return (value > UINT16_MAX) ? UINT16_MAX : (uint16_t) value;
-}
-
-
-/**
- * @brief Return the full icon-window height for a dragged client
- *
- * Computes the icon height from the base icon square size and adds the
- * caption height when the client theme uses captioned icons.
- *
- * @param client Client whose icon height is requested
- *
- * @return Total icon-window height in pixels
- *
- * @note Complexity: @e O(1)
- */
-static uint16_t s_drag_icon_height(const client_td *client)
-{
-    if (client == NULL || client->theme == NULL) {
-        return (uint16_t) WM_ICON_SQUARE_SIZE;
-    }
-
-    return (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.is_captioned)
-                ? WM_ICON_CAPTION_HEIGHT
-                : 0u));
-}
-
-
-/**
- * @brief Compute the centered overlay position for a target rectangle
- *
- * Centers an overlay of size @p overlay_w by @p overlay_h within the
- * target rectangle and stores the resulting top-left coordinates in
- * @p out_x and @p out_y.  Negative coordinates are clamped to zero
- * before conversion to @c int16_t.
- *
- * @param target_x  Left coordinate of the target rectangle
- * @param target_y  Top coordinate of the target rectangle
- * @param target_w  Width of the target rectangle
- * @param target_h  Height of the target rectangle
- * @param overlay_w Width of the overlay rectangle
- * @param overlay_h Height of the overlay rectangle
- * @param out_x     Computed overlay X coordinate
- * @param out_y     Computed overlay Y coordinate
- *
- * @note Complexity: @e O(1)
- */
-static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h,
-        uint16_t overlay_w, uint16_t overlay_h,
-        int16_t *out_x, int16_t *out_y)
-{
-    int32_t centered_x;
-    int32_t centered_y;
-
-    centered_x = target_x +
-        ((int32_t) target_w - (int32_t) overlay_w) / 2;
-    centered_y = target_y +
-        ((int32_t) target_h - (int32_t) overlay_h) / 2;
-
-    if (centered_x < 0) {
-        centered_x = 0;
-    }
-    if (centered_y < 0) {
-        centered_y = 0;
-    }
-
-    *out_x = (centered_x < INT16_MIN) ? INT16_MIN
-        : (centered_x > INT16_MAX) ? INT16_MAX
-        : (int16_t) centered_x;
-    *out_y = (centered_y < INT16_MIN) ? INT16_MIN
-        : (centered_y > INT16_MAX) ? INT16_MAX
-        : (int16_t) centered_y;
-}
-
-
-/**
- * @brief Destroy and reset the active drag overlay window
- *
- * Destroys the overlay window if it exists and clears the associated
- * overlay state.
- *
- * @param connection XCB connection used to destroy the overlay window
- *
- * @note Complexity: @e O(1)
- */
-static void s_drag_overlay_hide(xcb_connection_t *connection)
-{
-    if (connection != NULL && s_drag.overlay_window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(connection, s_drag.overlay_window);
-    }
-
-    s_drag.overlay_window = XCB_WINDOW_NONE;
-    s_drag.overlay_is_icon = false;
-    s_drag.overlay_text[0] = '\0';
-}
-
-
-/**
- * @brief Show or reposition the drag overlay window
- *
- * Updates the overlay text and mode, computes a centered overlay
- * rectangle for the given target geometry, and either creates the
- * overlay window or moves and resizes the existing one before
- * repainting it.
- *
- * @param connection XCB connection used to manage the overlay window
- * @param is_icon    Whether the overlay should use the active icon theme
- * @param target_x   Left coordinate of the target rectangle
- * @param target_y   Top coordinate of the target rectangle
- * @param target_w   Width of the target rectangle
- * @param target_h   Height of the target rectangle
- * @param text       Overlay text to display
- *
- * @note Complexity: @e O(1)
- */
-static void s_drag_overlay_show(xcb_connection_t *connection,
-        bool is_icon,
-        int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h,
-        const char *text)
-{
-    uint16_t text_w;
-    uint16_t overlay_w;
-    int16_t overlay_x;
-    int16_t overlay_y;
-
-    if (connection == NULL || s_drag.client == NULL || text == NULL ||
-            text[0] == '\0') {
-        return;
-    }
-
-    (void) snprintf(s_drag.overlay_text, sizeof(s_drag.overlay_text),
-            "%s", text);
-    s_drag.overlay_is_icon = is_icon;
-
-    (void) text_renderer_init(connection,
-            (is_icon)
-                ? s_drag.client->theme->icon.active.font
-                : s_drag.client->theme->window.active.font);
-    text_w = text_measure_string(s_drag.overlay_text);
-    overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
-    if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
-        overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
-    }
-
-    s_drag_overlay_rect(target_x, target_y, target_w, target_h,
-            overlay_w, WM_DRAG_OVERLAY_HEIGHT, &overlay_x, &overlay_y);
-
-    if (s_drag.overlay_window == XCB_WINDOW_NONE) {
-        uint16_t create_mask;
-        uint32_t create_values[4];
-
-        s_drag.overlay_window = xcb_generate_id(connection);
-        create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
-            XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
-        create_values[0] = (is_icon)
-            ? s_drag.client->theme->icon.active.color.background
-            : s_drag.client->theme->window.active.color.background;
-        create_values[1] = (is_icon)
-            ? s_drag.client->theme->icon.active.border.color
-            : s_drag.client->theme->window.active.border.color;
-        create_values[2] = 1u;
-        create_values[3] = XCB_EVENT_MASK_EXPOSURE;
-
-        xcb_create_window(connection,
-                XCB_COPY_FROM_PARENT,
-                s_drag.overlay_window,
-                s_drag.client->parent_id,
-                overlay_x, overlay_y,
-                overlay_w, WM_DRAG_OVERLAY_HEIGHT,
-                1,
-                XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                XCB_COPY_FROM_PARENT,
-                create_mask, create_values);
-        xcb_map_window(connection, s_drag.overlay_window);
-    } else {
-        xcb_configure_window(connection, s_drag.overlay_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) {
-                    (uint32_t) overlay_x,
-                    (uint32_t) overlay_y,
-                    overlay_w,
-                    WM_DRAG_OVERLAY_HEIGHT,
-                    XCB_STACK_MODE_ABOVE
-                });
-    }
-
-    drag_repaint_overlay(connection);
-    xcb_flush(connection);
-}
-
-
-/**
- * @brief Compute the absolute value of a 32-bit signed integer
- *
- * Returns the non-negative magnitude of the given value.
- *
- * @param value Input integer
- *
- * @return Absolute value of @p value
- *
- * @note Complexity: @e O(1)
- */
-static int32_t s_drag_abs_i32(int32_t value)
-{
-    return (value < 0) ? -value : value;
-}
-
-
-/**
- * @brief Select the delta with the smaller absolute magnitude
- *
- * Compares two deltas and returns the one whose absolute value
- * is smaller, preserving its original sign.
- *
- * @param current   Current best delta
- * @param candidate Candidate delta to compare
- *
- * @return The delta with the smaller absolute value
- *
- * @note Complexity: @e O(1)
- */
-static int32_t s_drag_closer_delta(int32_t current, int32_t candidate)
-{
-    if (s_drag_abs_i32(candidate) < s_drag_abs_i32(current)) {
-        return candidate;
-    }
-
-    return current;
-}
-
-
-/**
- * @brief Check whether two 1-D ranges overlap or are within snap
- *        distance
- *
- * Determines if two intervals either overlap or are closer than a given
- * snapping threshold, allowing near-alignment behavior.
- *
- * @param start_a Start of first range
- * @param end_a   End of first range
- * @param start_b Start of second range
- * @param end_b   End of second range
- * @param snap    Maximum allowed gap for ranges to be considered
- *                "close"
- *
- * @return @c true if ranges overlap or are within @p snap distance,
- *         otherwise @c false
- *
- * @note Complexity: @e O(1)
- */
-static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
-        int32_t start_b, int32_t end_b, int32_t snap)
-{
-    return !(end_a < start_b - snap || end_b < start_a - snap);
-}
-
-
-/**
- * @brief Apply snapping behavior during client movement
- *
- * Adjusts the proposed position of a moving client so it "snaps" to
- * nearby window edges or screen boundaries when within a configurable
- * threshold.  It compares the moving window against other visible,
- * non-iconified clients on the same desktop and computes the smallest
- * adjustment needed to align edges.
- *
- * Snapping is applied independently along both axes and also considers
- * screen edges if available.
- *
- * @param x      Pointer to the proposed X coordinate (updated in place)
- * @param y      Pointer to the proposed Y coordinate (updated in place)
- * @param width  Width of the moving client
- * @param height Height of the moving client
- *
- * @note Requires a valid global @c s_drag context
- * @note Complexity: @e O(n), where @e n is the number of clients in the
- *       stacking list
- */
-static void s_drag_snap_move(int32_t *x, int32_t *y,
-        uint32_t width, uint32_t height)
-{
-    int32_t snap;
-    int32_t right;
-    int32_t bottom;
-
-    if (x == NULL || y == NULL || s_drag.snap == 0) {
-        return;
-    }
-
-    snap = (int32_t) s_drag.snap;
-    right = *x + (int32_t) width;
-    bottom = *y + (int32_t) height;
-
-    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
-            cdlist_size(s_drag.desktop->stacking) > 0) {
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
-        /* One past 'snap' itself, not 'snap' itself: 'abs(delta) <=
-         * snap' below is what decides whether a candidate actually
-         * applies, so starting exactly at 'snap' would make that
-         * check pass on the untouched initial value alone whenever no
-         * real candidate ever beat it, applying a spurious snap of
-         * exactly the snap distance with no nearby window at all
-         * responsible for it. */
-        int32_t dx = snap + 1;
-        int32_t dy = dx;
-
-        node = cdlist_head(s_drag.desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != s_drag.client &&
-                        !client_is_hidden(other) &&
-                        !client_is_iconified(other)) {
-                    int32_t ox = other->layout.geometry.cur.pos.x;
-                    int32_t oy = other->layout.geometry.cur.pos.y;
-                    int32_t oright = ox +
-                        (int32_t) other->layout.geometry.cur.dim.w;
-                    int32_t obottom = oy +
-                        (int32_t) other->layout.geometry.cur.dim.h;
-
-                    if (s_drag_ranges_close(*y, bottom, oy,
-                                obottom, snap)) {
-                        dx = s_drag_closer_delta(dx, oright - *x);
-                        dx = s_drag_closer_delta(dx, oright - right);
-                        dx = s_drag_closer_delta(dx, ox - right);
-                        dx = s_drag_closer_delta(dx, ox - *x);
-                    }
-
-                    if (s_drag_ranges_close(*x, right, ox,
-                                oright, snap)) {
-                        dy = s_drag_closer_delta(dy, obottom - *y);
-                        dy = s_drag_closer_delta(dy, obottom - bottom);
-                        dy = s_drag_closer_delta(dy, oy - bottom);
-                        dy = s_drag_closer_delta(dy, oy - *y);
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-
-        LOGGER_TRACE("Move snap candidates (x=%d, y=%d, right=%d," \
-                " bottom=%d, dx=%d, dy=%d, snap=%d)",
-                *x, *y, right, bottom, dx, dy, snap);
-
-        if (s_drag_abs_i32(dx) <= snap) {
-            *x += dx;
-            right += dx;
-        }
-
-        if (s_drag_abs_i32(dy) <= snap) {
-            *y += dy;
-            bottom += dy;
-        }
-    }
-
-    if (s_drag.screen_w > 0 &&
-            s_drag_abs_i32(*x) <= snap) {
-        right -= *x;
-        *x = 0;
-    }
-
-    if (s_drag.screen_h > 0 &&
-            s_drag_abs_i32(*y) <= snap) {
-        bottom -= *y;
-        *y = 0;
-    }
-
-    if (s_drag.screen_w > 0 &&
-            s_drag_abs_i32(right -
-                (int32_t) s_drag.screen_w) <= snap) {
-        *x = (int32_t) s_drag.screen_w - (int32_t) width;
-    }
-
-    if (s_drag.screen_h > 0 &&
-            s_drag_abs_i32(bottom -
-                (int32_t) s_drag.screen_h) <= snap) {
-        *y = (int32_t) s_drag.screen_h - (int32_t) height;
-    }
-}
-
-
-/**
- * @brief Position an outline-mode drag's own 4 strip windows (top,
- *        bottom, left, right) to outline a given rectangle
- *
- * Each strip is a separate, opaque, override-redirect window rather
- * than one filled rectangle, so the middle of the outline stays
- * genuinely uncovered: whatever is already on screen there keeps
- * showing through on its own, with no transparency or compositor of
- * any kind involved, and none of the XOR corruption a rubber-band
- * outline is prone to (see the whole outline mechanism's own
- * introduction, 'outline_windows', for the full reasoning), since
- * each strip is a real window the X server itself repaints correctly
- * around, the exact same guarantee any ordinary client window
- * already gets when it moves.
- *
- * @param connection X connection
- * @param x Left edge of the rectangle, in root coordinates
- * @param y Top edge of the rectangle, in root coordinates
- * @param w Rectangle width
- * @param h Rectangle height
- * @param create Whether the 4 strips still need creating (and
- *               mapping) first, rather than already existing and
- *               only needing to move to this new rectangle
- *
- * @note No-op if 'connection' is null
- * @note Complexity: @e O(1)
- */
-static void s_drag_outline_place(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h, bool create)
-{
-    uint32_t bw = (uint32_t) WM_DRAG_OUTLINE_BORDER_WIDTH;
-    /* Each strip's own (x, y, w, h), in 'outline_windows''s own fixed
-     * top/bottom/left/right order; width/height floored at 1, since
-     * 'xcb_create_window'/'xcb_configure_window' both reject a
-     * genuinely zero-sized window outright, which a resize shrinking
-     * past the border's own thickness would otherwise hand them. */
-    uint32_t strip_x[4];
-    uint32_t strip_y[4];
-    uint32_t strip_w[4];
-    uint32_t strip_h[4];
-    uint32_t full_w = (w > 0u) ? w : 1u;
-    uint32_t full_h = (h > 0u) ? h : 1u;
-
-    if (connection == NULL) {
-        return;
-    }
-
-    strip_x[0] = (uint32_t) x; /* top */
-    strip_y[0] = (uint32_t) y;
-    strip_w[0] = full_w;
-    strip_h[0] = bw;
-
-    strip_x[1] = (uint32_t) x; /* bottom */
-    strip_y[1] = (uint32_t) y + ((h > bw) ? h - bw : 0u);
-    strip_w[1] = full_w;
-    strip_h[1] = bw;
-
-    strip_x[2] = (uint32_t) x; /* left */
-    strip_y[2] = (uint32_t) y;
-    strip_w[2] = bw;
-    strip_h[2] = full_h;
-
-    strip_x[3] = (uint32_t) x + ((w > bw) ? w - bw : 0u); /* right */
-    strip_y[3] = (uint32_t) y;
-    strip_w[3] = bw;
-    strip_h[3] = full_h;
-
-    for (int i = 0; i < 4; ++i) {
-        if (create) {
-            uint32_t create_mask;
-            uint32_t create_values[2];
-
-            s_drag.outline_windows[i] = xcb_generate_id(connection);
-            create_mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
-            create_values[0] = (s_drag.client != NULL &&
-                    s_drag.client->theme != NULL)
-                ? s_drag.client->theme->window.active.border.color
-                : 0u;
-            create_values[1] = 1u;
-
-            xcb_create_window(connection,
-                    XCB_COPY_FROM_PARENT,
-                    s_drag.outline_windows[i],
-                    s_drag.root,
-                    (int16_t) strip_x[i], (int16_t) strip_y[i],
-                    (uint16_t) strip_w[i], (uint16_t) strip_h[i],
-                    0,
-                    XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                    XCB_COPY_FROM_PARENT,
-                    create_mask, create_values);
-            xcb_map_window(connection, s_drag.outline_windows[i]);
-        } else if (s_drag.outline_windows[i] != XCB_WINDOW_NONE) {
-            const uint32_t vals[4] = {
-                strip_x[i], strip_y[i], strip_w[i], strip_h[i]
-            };
-
-            xcb_configure_window(connection, s_drag.outline_windows[i],
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                    vals);
-        }
-    }
-    xcb_flush(connection);
-}
-
-
-/**
- * @brief Begin an outline-mode drag: create and map the initial 4
- *        strip windows
- *
- * @param connection X connection
- * @param x Initial left edge, in root coordinates
- * @param y Initial top edge, in root coordinates
- * @param w Initial width
- * @param h Initial height
- *
- * @note No-op if 'connection' is null
- * @note Complexity: @e O(1)
- */
-static void s_drag_outline_start(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h)
-{
-    s_drag_outline_place(connection, x, y, w, h, true);
-}
-
-
-/**
- * @brief Move the outline stand-in's own 4 strip windows to a new
- *        rectangle
- *
- * @param connection X connection
- * @param x New left edge, in root coordinates
- * @param y New top edge, in root coordinates
- * @param w New width
- * @param h New height
- *
- * @note No-op if 'connection' is null
- * @note Complexity: @e O(1)
- */
-static void s_drag_outline_move(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h)
-{
-    s_drag_outline_place(connection, x, y, w, h, false);
-}
-
-
-/**
- * @brief End an outline-mode drag: destroy the 4 strip windows
- *
- * @param connection X connection
- *
- * @note No-op if 'connection' is null, or no outline drag is active
- * @note Complexity: @e O(1)
- */
-static void s_drag_outline_end(xcb_connection_t *connection)
-{
-    if (connection == NULL ||
-            s_drag.outline_windows[0] == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        xcb_destroy_window(connection, s_drag.outline_windows[i]);
-        s_drag.outline_windows[i] = XCB_WINDOW_NONE;
-    }
-    xcb_flush(connection);
-}
-
-
-/**
- * @brief Move the real window being dragged in outline mode off
- *        screen, for the duration of the drag
- *
- * See @c WM_DRAG_OFFSCREEN_POS itself (defs/input.h) for why this,
- * rather than unmapping it, is what keeps it out of sight without
- * ever disturbing real input focus, sloppy focus tracking, or
- * active-window rendering.  A plain @c xcb_configure_window, not
- * @a enact_client_move, since this is a purely visual, temporary
- * relocation with no logical meaning of its own: unlike a real move,
- * it must never touch @p client's own @c layout.geometry.cur.pos,
- * which every other part of the window manager still relies on to
- * reflect wherever the drag is logically taking it, not this
- * incidental physical parking spot.  Moving it back to its own
- * genuine final position is left entirely to whichever one of
- * @a enact_client_move/@a enact_client_resize @a drag_end itself
- * already calls once the drag ends, rather than needing a
- * symmetrical function of its own here.
- *
- * @param connection X connection
- * @param client Client to move off screen
- *
- * @note No-op if @p connection or @p client is null
- * @note Complexity: @e O(1)
- */
-static void s_drag_move_client_offscreen(xcb_connection_t *connection,
-        client_td *client)
-{
-    xcb_window_t target;
-    const uint32_t vals[2] = {
-        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
-    };
-
-    if (connection == NULL || client == NULL) {
-        return;
-    }
-
-    target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame
-        : client->window;
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
-}
-
-
-/* Begin a drag operation for a managed client window */
 void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
@@ -877,7 +120,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         return;
     }
 
-    s_drag_overlay_hide(connection);
+    drag_overlay_hide(connection);
     s_drag.active = true;
     s_drag.client = client;
     s_drag.desktop = desktop;
@@ -966,7 +209,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
      * rather than moving the real window live; see 's_drag.solid_drag'
      * itself for the config option this follows. */
     if (!s_drag.solid_drag) {
-        s_drag_outline_start(connection, s_drag.client_start_x,
+        drag_outline_start(connection, s_drag.client_start_x,
                 s_drag.client_start_y, s_drag.client_start_w,
                 s_drag.client_start_h);
     }
@@ -1088,7 +331,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
         return;
     }
 
-    s_drag_overlay_hide(connection);
+    drag_overlay_hide(connection);
     s_drag.active = true;
     s_drag.client = client;
     s_drag.desktop = desktop;
@@ -1120,7 +363,7 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
-    s_drag_sync_icon_active_visual(connection);
+    drag_sync_icon_active_visual(connection);
 
     xcb_grab_pointer(connection,
             0,
@@ -1136,218 +379,6 @@ void drag_start_icon(xcb_connection_t *connection, xcb_window_t root,
 }
 
 
-/* Snap a resized client against peer windows and screen edges */
-static void s_drag_snap_resize(int32_t *x, int32_t *y,
-        uint32_t *width, uint32_t *height)
-{
-    int32_t snap;
-    int32_t right;
-    int32_t bottom;
-
-    if (x == NULL || y == NULL || width == NULL || height == NULL ||
-            s_drag.snap == 0) {
-        return;
-    }
-
-    snap = (int32_t) s_drag.snap;
-    right = *x + (int32_t) *width;
-    bottom = *y + (int32_t) *height;
-
-    /* Which edge actually moves as the pointer moves depends on which
-     * corner or side the user grabbed: 'anchor_right' means the LEFT
-     * edge is the one being dragged (the right edge stays put), and
-     * symmetrically for 'anchor_bottom' and the top edge.  Every delta
-     * and snap check below has to target whichever edge that is, not
-     * always assume it is the right/bottom edge the way a
-     * left-edge-fixed resize would. */
-    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
-            cdlist_size(s_drag.desktop->stacking) > 0) {
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
-        /* See the matching comment in 's_drag_snap_move' for why this
-         * is 'snap + 1', not 'snap' itself. */
-        int32_t d_horiz = snap + 1;
-        int32_t d_vert = d_horiz;
-
-        node = cdlist_head(s_drag.desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != s_drag.client &&
-                        !client_is_hidden(other) &&
-                        !client_is_iconified(other)) {
-                    int32_t ox = other->layout.geometry.cur.pos.x;
-                    int32_t oy = other->layout.geometry.cur.pos.y;
-                    int32_t oright = ox +
-                        (int32_t) other->layout.geometry.cur.dim.w;
-                    int32_t obottom = oy +
-                        (int32_t) other->layout.geometry.cur.dim.h;
-
-                    if (s_drag_ranges_close(*y, bottom,
-                                oy, obottom, snap)) {
-                        if (s_drag.anchor_right) {
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    oright - *x);
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    ox - *x);
-                        } else {
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    oright - right);
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    ox - right);
-                        }
-                    }
-
-                    if (s_drag_ranges_close(*x, right,
-                                ox, oright, snap)) {
-                        if (s_drag.anchor_bottom) {
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    obottom - *y);
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    oy - *y);
-                        } else {
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    obottom - bottom);
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    oy - bottom);
-                        }
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-
-        LOGGER_TRACE("Resize snap candidates (x=%d, y=%d, right=%d," \
-                " bottom=%d, anchor-right=%d, anchor-bottom=%d," \
-                " d-horiz=%d, d-vert=%d, snap=%d)",
-                *x, *y, right, bottom,
-                (int) s_drag.anchor_right, (int) s_drag.anchor_bottom,
-                d_horiz, d_vert, snap);
-
-        if (s_drag_abs_i32(d_horiz) <= snap) {
-            if (s_drag.anchor_right) {
-                *x += d_horiz;
-                *width = geom_clamp_dim((int32_t) *width - d_horiz);
-            } else {
-                *width = geom_clamp_dim((int32_t) *width + d_horiz);
-            }
-            right = *x + (int32_t) *width;
-        }
-
-        if (s_drag_abs_i32(d_vert) <= snap) {
-            if (s_drag.anchor_bottom) {
-                *y += d_vert;
-                *height = geom_clamp_dim((int32_t) *height - d_vert);
-            } else {
-                *height = geom_clamp_dim((int32_t) *height + d_vert);
-            }
-            bottom = *y + (int32_t) *height;
-        }
-    }
-
-    if (s_drag.screen_w > 0) {
-        if (s_drag.anchor_right) {
-            /* Dragging the left edge: it can snap to the screen's own
-             * left edge, which a resize never checked for before. */
-            if (s_drag_abs_i32(*x) <= snap) {
-                *width = geom_clamp_dim((int32_t) *width + *x);
-                *x = 0;
-            }
-        } else if (s_drag_abs_i32(right -
-                    (int32_t) s_drag.screen_w) <= snap) {
-            *width = geom_clamp_dim((int32_t) s_drag.screen_w - *x);
-        }
-    }
-
-    if (s_drag.screen_h > 0) {
-        if (s_drag.anchor_bottom) {
-            /* Dragging the top edge: same reasoning as the left edge
-             * above, snapping to the screen's own top edge. */
-            if (s_drag_abs_i32(*y) <= snap) {
-                *height = geom_clamp_dim((int32_t) *height + *y);
-                *y = 0;
-            }
-        } else if (s_drag_abs_i32(bottom -
-                    (int32_t) s_drag.screen_h) <= snap) {
-            *height = geom_clamp_dim((int32_t) s_drag.screen_h - *y);
-        }
-    }
-}
-
-
-/**
- * @brief Update the pending warp state from the pointer's current
- *        root-relative X position during a window or icon move
- *
- * Starts (or keeps running, without restarting it) a countdown to
- * switching desktops when the pointer is held against the left or
- * right screen edge, per @a desktops.warp_on_edge_drag in
- * @c config.json; moment the pointer leaves either edge, or when
- * warping is disabled, there is only one desktop, or no configuration
- * can be resolved at all.
- *
- * @param root_x Pointer's current root-relative X position
- *
- * @note Complexity: @e O(1)
- *
- * @see @p config_desktop_s and @a drag_warp_tick, which actually
- *      performs the switch once the countdown elapses
- */
-static void s_drag_check_warp_edge(int16_t root_x)
-{
-    const surface_td *surface;
-    bool at_left;
-    bool at_right;
-
-    if (s_drag.client == NULL) {
-        s_drag.warp_pending = false;
-        return;
-    }
-
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
-        s_drag.warp_pending = false;
-        return;
-    }
-
-    at_left = root_x <= 0;
-    at_right = (int32_t) root_x >= (int32_t) s_drag.screen_w - 1;
-
-    if (!at_left && !at_right) {
-        s_drag.warp_pending = false;
-        return;
-    }
-
-    if (s_drag.warp_pending && s_drag.warp_is_left == at_left) {
-        /* Same edge still held: let the existing countdown keep
-         * running rather than restarting it on every motion event. */
-        return;
-    }
-
-    s_drag.warp_pending = true;
-    s_drag.warp_is_left = at_left;
-    if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
-        s_drag.warp_due.tv_nsec +=
-            (long) WM_DESKTOP_WARP_DELAY_MS * 1000000L;
-        if (s_drag.warp_due.tv_nsec >= 1000000000L) {
-            s_drag.warp_due.tv_sec += 1;
-            s_drag.warp_due.tv_nsec -= 1000000000L;
-        }
-    } else {
-        /* Could not read the clock to schedule the countdown; safer
-         * to not warp at all than to warp immediately on every edge
-         * touch. */
-        s_drag.warp_pending = false;
-    }
-}
-
-
-/* Update the in-progress drag on a motion-notify event */
 void drag_update(xcb_connection_t *connection,
         int16_t root_x, int16_t root_y)
 {
@@ -1381,13 +412,13 @@ void drag_update(xcb_connection_t *connection,
      * fires on every plain click with no way yet to tell a click
      * apart from a real drag; only now, confirmed a real drag rather
      * than a click that never moved, does the real window actually
-     * move off screen (see 's_drag_move_client_offscreen''s own doc
+     * move off screen (see 'drag_move_client_offscreen''s own doc
      * comment).  'outline_offscreened' guards this so it only ever
      * happens once per drag.  Icon drags are always solid (see
      * 'drag_start_icon''s own comment), so this never applies to
      * them at all. */
     if (!s_drag.solid_drag && !s_drag.outline_offscreened) {
-        s_drag_move_client_offscreen(connection, client);
+        drag_move_client_offscreen(connection, client);
         s_drag.outline_offscreened = true;
     }
 
@@ -1416,15 +447,15 @@ void drag_update(xcb_connection_t *connection,
 
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
-            s_drag_overlay_show(connection, true,
+            drag_overlay_show(connection, true,
                     new_x, new_y,
                     (uint16_t) WM_ICON_SQUARE_SIZE,
-                    s_drag_icon_height(client),
+                    drag_icon_height(client),
                     geom_buf);
         } else {
-            s_drag_overlay_hide(connection);
+            drag_overlay_hide(connection);
         }
-        s_drag_check_warp_edge(root_x);
+        drag_check_warp_edge(root_x);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
         bool show_geom = client->config_base != NULL &&
@@ -1432,7 +463,7 @@ void drag_update(xcb_connection_t *connection,
         int32_t new_x = s_drag.client_start_x + dx;
         int32_t new_y = s_drag.client_start_y + dy;
 
-        s_drag_snap_move(&new_x, &new_y,
+        drag_snap_move(&new_x, &new_y,
                 s_drag.client_start_w, s_drag.client_start_h);
 
         s_drag.client_cur_x = new_x;
@@ -1440,7 +471,7 @@ void drag_update(xcb_connection_t *connection,
         if (s_drag.solid_drag) {
             enact_client_move(client, new_x, new_y);
         } else {
-            s_drag_outline_move(connection, new_x, new_y,
+            drag_outline_move(connection, new_x, new_y,
                     s_drag.client_start_w, s_drag.client_start_h);
         }
 
@@ -1449,14 +480,14 @@ void drag_update(xcb_connection_t *connection,
 
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
-            s_drag_overlay_show(connection, false,
+            drag_overlay_show(connection, false,
                     new_x, new_y,
                     s_drag.client_start_w, s_drag.client_start_h,
                     geom_buf);
         } else {
-            s_drag_overlay_hide(connection);
+            drag_overlay_hide(connection);
         }
-        s_drag_check_warp_edge(root_x);
+        drag_check_warp_edge(root_x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         bool show_geom = client->config_base != NULL &&
             client->config_base->windows.show_geom;
@@ -1517,7 +548,7 @@ void drag_update(xcb_connection_t *connection,
                     (int32_t) s_drag.client_start_h + dy);
         }
 
-        s_drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
+        drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
 
         /* 'client_constrain_size' (client/geom.c) expects its own
          * width/height in terms of the client's own content window
@@ -1576,7 +607,7 @@ void drag_update(xcb_connection_t *connection,
         if (s_drag.solid_drag) {
             enact_client_resize(client, new_x, new_y, new_w, new_h);
         } else {
-            s_drag_outline_move(connection, new_x, new_y, new_w, new_h);
+            drag_outline_move(connection, new_x, new_y, new_w, new_h);
         }
         if (show_geom) {
             /* 'new_w'/'new_h' are the decorated frame's own total
@@ -1630,12 +661,12 @@ void drag_update(xcb_connection_t *connection,
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
                         content_w, content_h);
             }
-            s_drag_overlay_show(connection, false,
+            drag_overlay_show(connection, false,
                     new_x, new_y,
-                    s_drag_u16_sat(new_w), s_drag_u16_sat(new_h),
+                    drag_u16_sat(new_w), drag_u16_sat(new_h),
                     geom_buf);
         } else {
-            s_drag_overlay_hide(connection);
+            drag_overlay_hide(connection);
         }
     }
 }
@@ -1743,7 +774,7 @@ void drag_end(xcb_connection_t *connection,
 
                 /* Restore whatever mapped state the icon window had
                  * right before this drag began, the same value
-                 * 's_drag_sync_icon_active_visual' (drag_start_icon)
+                 * 'drag_sync_icon_active_visual' (drag_start_icon)
                  * forced to 'true' for the duration of the drag to
                  * keep it visible while being moved.  Scoped to this
                  * branch alone, rather than run unconditionally for
@@ -1809,12 +840,12 @@ void drag_end(xcb_connection_t *connection,
                     enact_client_move(s_drag.client,
                             s_drag.client_cur_x, s_drag.client_cur_y);
                 }
-                s_drag_outline_end(connection);
+                drag_outline_end(connection);
             }
         }
     }
 
-    s_drag_overlay_hide(connection);
+    drag_overlay_hide(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
@@ -1837,9 +868,9 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
         return;
     }
 
-    s_drag_overlay_hide(connection);
+    drag_overlay_hide(connection);
     /* Moved back from its own off-screen parking spot first (see
-     * 's_drag_move_client_offscreen''s own doc comment), to its own
+     * 'drag_move_client_offscreen''s own doc comment), to its own
      * genuine, never-actually-changed logical position, for a client
      * that survives the cancel (see the comment on
      * 'properties.operation' just below, for exactly this same
@@ -1864,7 +895,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
      * destroys the 4 strip windows, so a client that disappears
      * mid-drag never leaves them stuck on screen with nothing left
      * to ever remove them. */
-    s_drag_outline_end(connection);
+    drag_outline_end(connection);
     s_drag.active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.warp_pending = false;
@@ -1902,106 +933,6 @@ bool drag_is_icon_drag(void)
         s_drag.drag_window == s_drag.client->icon_window;
 }
 
-
-/* Query whether the active drag window matches the overlay window */
-bool drag_is_overlay_window(xcb_window_t window)
-{
-    return s_drag.overlay_window != XCB_WINDOW_NONE &&
-        window == s_drag.overlay_window;
-}
-
-
-/* Return the client currently being dragged, or NULL */
-client_td *drag_client(void)
-{
-    return s_drag.client;
-}
-
-
-/* Repaint the active drag overlay window */
-void drag_repaint_overlay(xcb_connection_t *connection)
-{
-    uint32_t bg;
-    uint32_t fg;
-    uint32_t border;
-    const char *font_name;
-    uint16_t text_w;
-    int16_t text_x;
-    uint16_t overlay_w;
-    int16_t ascent;
-    int16_t descent;
-    int16_t text_y;
-
-    if (connection == NULL ||
-            s_drag.overlay_window == XCB_WINDOW_NONE ||
-            s_drag.client == NULL || s_drag.client->theme == NULL ||
-            s_drag.overlay_text[0] == '\0') {
-        return;
-    }
-
-    if (s_drag.overlay_is_icon) {
-        bg = s_drag.client->theme->icon.active.color.background;
-        fg = s_drag.client->theme->icon.active.color.foreground;
-        border = s_drag.client->theme->icon.active.border.color;
-        font_name = s_drag.client->theme->icon.active.font;
-    } else {
-        bg = s_drag.client->theme->window.active.color.background;
-        fg = s_drag.client->theme->window.active.color.foreground;
-        border = s_drag.client->theme->window.active.border.color;
-        font_name = s_drag.client->theme->window.active.font;
-    }
-
-    xcb_change_window_attributes(connection, s_drag.overlay_window,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) { bg, border });
-    xcb_clear_area(connection, 0, s_drag.overlay_window, 0, 0, 0, 0);
-
-    (void) text_renderer_init(connection, font_name);
-    text_renderer_set_color(fg, bg);
-
-    text_w = text_measure_string(s_drag.overlay_text);
-    /* Horizontally centered within the overlay window's own actual
-     * width, computed with the exact same formula 's_drag_overlay_
-     * show' used to size that window in the first place, rather than
-     * a separately hardcoded threshold that happened to only agree with
-     * it for a wide-enough or narrow-enough string.
-     *
-     * Those two thresholds ('text_w + 2*PAD_X < MIN_WIDTH' here versus
-     * 'text_w < MIN_WIDTH' in the box-sizing formula) disagreeing for
-     * a string in between the two (long enough to push the box wider
-     * than 'MIN_WIDTH', but still short enough of 'MIN_WIDTH' itself to
-     * take the "narrow" branch here) is what left text looking pinned
-     * to the left with a lopsided gap on the right (worst for a string
-     * a few pixels short of exactly 'MIN_WIDTH', which could end up
-     * with zero left margin at all).  Computing the box's own width the
-     * same way here removes the mismatch entirely, for any string
-     * length, not just the ones on either side of it that happened not
-     * to expose the bug. */
-    overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
-
-    if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
-        overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
-    }
-    text_x = (int16_t) ((overlay_w - text_w) / 2u);
-
-    /* Vertically centered baseline for whatever font this theme
-     * actually configures, rather than a single Y hardcoded for one
-     * particular font size: see 'text_font_ascent's comment in
-     * 'render/text.h' for the derivation (ascent placed 'top' pixels
-     * below the box's own top edge, here with 'top' itself computed
-     * from ascent/descent so half the leftover vertical space sits on
-     * each side). */
-    ascent = text_font_ascent();
-    descent = text_font_descent();
-    text_y = (int16_t)
-        (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
-
-    text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
-            text_x, text_y, s_drag.overlay_text);
-}
-
-
-/* Return the current drag position */
 void drag_current_pos(int32_t *x, int32_t *y)
 {
     if (x != NULL) {
@@ -2010,242 +941,4 @@ void drag_current_pos(int32_t *x, int32_t *y)
     if (y != NULL) {
         *y = s_drag.client_cur_y;
     }
-}
-
-
-/* Milliseconds until the pending warp is due */
-int drag_warp_ms_remaining(void)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (!s_drag.warp_pending) {
-        return -1;
-    }
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (s_drag.warp_due.tv_sec - now.tv_sec) * 1000L +
-        (s_drag.warp_due.tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
-
-
-/* Perform the pending warp, if due */
-void drag_warp_tick(xcb_connection_t *connection)
-{
-    surface_td *surface;
-    desktop_td *old_desktop;
-    desktop_td *new_desktop;
-    uint32_t old_desktop_id;
-    uint32_t right_edge_x;
-    int16_t new_root_x;
-    int32_t new_window_x;
-    bool cycle;
-    bool is_icon;
-    bool show_geom;
-
-    if (connection == NULL || !s_drag.warp_pending ||
-            drag_warp_ms_remaining() > 0) {
-        return;
-    }
-
-    s_drag.warp_pending = false;
-
-    if (s_drag.client == NULL ||
-            s_drag.operation != CLIENT_OPERATION_MOVING ||
-            (s_drag.drag_window != XCB_WINDOW_NONE &&
-                s_drag.drag_window != s_drag.client->icon_window)) {
-        /* Not (or no longer) a plain window move or icon move; nothing
-         * to warp for, as a resize never sets 'warp_pending' in the
-         * first place (see 's_drag_check_warp_edge'), but this still
-         * guards against it having somehow become stale. */
-        return;
-    }
-
-    is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
-
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->screen == NULL ||
-            surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
-        return;
-    }
-
-    old_desktop_id = surface->desktop_cur;
-    old_desktop = surface_desktop_get(surface, old_desktop_id);
-    cycle = surface->config->desktops.wrap_at_bounds;
-
-    new_desktop = s_drag.warp_is_left
-        ? surface_desktop_prev(surface, old_desktop_id, cycle)
-        : surface_desktop_next(surface, old_desktop_id, cycle);
-    if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
-        /* Already at the end and 'cycle' is off: nothing to warp to. */
-        return;
-    }
-
-    /* Move the dragged client itself to the new desktop without
-     * touching its mapped state at all: unlike a normal desktop
-     * switch, it must stay visible and uninterrupted throughout the
-     * whole warp, not hidden with the rest of the old desktop's
-     * clients below. */
-    if (old_desktop != NULL) {
-        (void) desktop_action_client_rem(old_desktop, s_drag.client);
-        /* Deliberately never clears 'old_desktop->client_active_id'
-         * here, even though it now names a client no longer actually
-         * on that desktop: left stale like this, exactly like it
-         * already is whenever a desktop's own active client simply
-         * closes while some other desktop is the one currently
-         * shown, is precisely what tells 'surface_clients_show'
-         * (surface/actions.c) to have 'client_focus_fallback' guess
-         * a reasonable replacement once the person switches back,
-         * rather than relinquishing focus outright the way a
-         * 'client_active_id' that was 0 to begin with would.  Actually
-         * clearing it here would collapse that same distinction this
-         * whole session already built 'client_focus_fallback' itself
-         * around, right back into the exact bug that whole thing was
-         * written to fix in the first place. */
-    }
-    (void) desktop_action_client_add(new_desktop, s_drag.client);
-    /* The dragged client is, by construction, always the one the
-     * person is actively engaged with right now; 'new_desktop' itself
-     * has no way to already know that on its own, so without this it
-     * would keep rendering whichever client was its own last
-     * genuinely active one instead, active-window highlight included,
-     * as soon as the drag settles there. */
-    new_desktop->client_active_id = s_drag.client->id;
-    new_desktop->focus_dirty = true;
-
-    /* 'desktop_action_client_rem'/'_add' above only move the client
-     * between each desktop's own stacking list and lookup table;
-     * neither one touches the client's own recorded 'desktop_id'
-     * (unlike 'desktop_action_send_client', the normal "send to another
-     * desktop" path, which does).  Left stale here, anything that reads
-     * a client's desktop from that field directly instead of from
-     * whichever desktop's stacking list it is actually in (the window
-     * list menu's own per-desktop grouping foremost among them) would
-     * keep showing the just-warped client under the desktop it left, or
-     * drop it from view entirely, even though the warp itself already
-     * moved it correctly everywhere else. */
-    s_drag.client->desktop_id = new_desktop->id;
-
-    surface->desktop_cur = new_desktop->id;
-    surface_clients_hide(surface, old_desktop_id);
-    surface_clients_show(surface, new_desktop->id);
-    surface->is_outdated = true;
-
-    /* Same desktop-switch notification a normal (non-warp) switch
-     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose own
-     * thin wrapper over this same call this mirrors): without it, a
-     * warp is the one way to switch desktops that never shows which
-     * one just became active. */
-    notify_desktop_show(surface->connection, surface,
-            surface->desktop_cur, new_desktop->name, surface->config);
-
-    /* Reposition the pointer to the opposite edge, one pixel in from
-     * it rather than exactly on it, so the very next motion notify
-     * does not immediately re-arm another warp back the way it just
-     * came from.  'right_edge_x' clamps to INT16_MAX before the
-     * final cast: 'screen_w' (uint32_t, no compile-time bound of its
-     * own) is not guaranteed to fit int16_t on an extreme multi-
-     * monitor surface, and this pointer position is sent to the X
-     * server as one, via xcb_warp_pointer below. */
-    right_edge_x = (s_drag.screen_w > 1u) ? (s_drag.screen_w - 2u) : 0u;
-    new_root_x = s_drag.warp_is_left
-        ? (int16_t) ((right_edge_x > (uint32_t) INT16_MAX)
-                ? INT16_MAX : right_edge_x)
-        : (int16_t) 1;
-
-    /* Move the dragged window or icon by the exact same delta the
-     * pointer itself is about to jump, so it stays under the cursor
-     * across the warp instead of being left behind on the old desktop's
-     * own edge.  Shifting 'client_cur_x' (the position 'drag_update'
-     * last actually applied, which already folds in any edge-snapping)
-     * is what 'pointer_start_x'/'client_start_x' being left untouched
-     * below relies on.
-     *
-     * With both of those unchanged, the very next real motion notify's
-     * own 'new_x = client_start_x + (root_x - pointer_start_x)' is
-     * a plain linear function of 'root_x', so it naturally reflects the
-     * same shift automatically, for adjusting either baseline here
-     * instead would cancel that shift back out (the bug an earlier
-     * version of this function actually had, i.e, shifting
-     * 'pointer_start_x' to compensate for the pointer jump made the
-     * computed position identical before and after the warp, keeping
-     * the dragged window or icon pinned at its old spot rather than
-     * following the pointer to the new one). */
-    new_window_x = s_drag.client_cur_x +
-        ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
-
-    s_drag.client_cur_x = new_window_x;
-
-    if (is_icon) {
-        uint32_t vals[2];
-
-        show_geom = s_drag.client->config_base != NULL &&
-            s_drag.client->config_base->icons.show_geom;
-
-        vals[0] = (uint32_t) new_window_x;
-        vals[1] = (uint32_t) s_drag.client_cur_y;
-        xcb_configure_window(connection, s_drag.client->icon_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
-    } else {
-        show_geom = s_drag.client->config_base != NULL &&
-            s_drag.client->config_base->windows.show_geom;
-
-        if (s_drag.solid_drag) {
-            enact_client_move(s_drag.client, new_window_x,
-                    s_drag.client_cur_y);
-        } else {
-            /* Same reasoning as the geometry overlay just below: left
-             * untouched here, the outline would stay drawn wherever it
-             * was right before the warp, on the old desktop's own
-             * edge, until whatever real motion notify happens to come
-             * next, rather than following the pointer across
-             * immediately.  Width/height stay 'client_start_w'/'_h'
-             * (never 'client_cur_w'/'_h'), the same as 'drag_update''s
-             * own MOVING branch, since this whole function only ever
-             * runs for a plain move, never a resize (see the early
-             * 'CLIENT_OPERATION_MOVING' guard above), so the size
-             * itself never actually changes here at all. */
-            s_drag_outline_move(connection, new_window_x,
-                    s_drag.client_cur_y, s_drag.client_start_w,
-                    s_drag.client_start_h);
-        }
-    }
-
-    /* Same geometry overlay 'drag_update' keeps current on every real
-     * motion notify.  Without this, it would stay painted at the
-     * position the window (or icon) had right before the warp (on the
-     * old desktop's own edge) until whatever real pointer motion
-     * happens to come next, rather than following it across
-     * immediately. */
-    if (show_geom) {
-        char geom_buf[24];
-
-        (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
-                (int) new_window_x, (int) s_drag.client_cur_y);
-        s_drag_overlay_show(connection, is_icon,
-                new_window_x, s_drag.client_cur_y,
-                is_icon
-                    ? (uint16_t) WM_ICON_SQUARE_SIZE
-                    : s_drag.client_start_w,
-                is_icon
-                    ? s_drag_icon_height(s_drag.client)
-                    : s_drag.client_start_h,
-                geom_buf);
-    }
-
-    xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
-            0, 0, 0, 0, new_root_x, s_drag.last_root_y);
-
-    s_drag.last_root_x = new_root_x;
-    s_drag.desktop = new_desktop;
-
-    xcb_flush(connection);
 }

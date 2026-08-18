@@ -468,28 +468,6 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
 
 
 /**
- * @brief Callback: toggle whether panel/tray struts are set aside on
- *        this surface
- *
- * @param connection Unused, matches @c ctxmenu_on_activate_fn's own
- *                   signature
- * @param userdata   Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_cb_toggle_fullsurface(xcb_connection_t *connection,
-        void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_surface != NULL) {
-        enact_surface_toggle_fullsurface(s_surface);
-    }
-}
-
-
-/**
  * @brief Callback: toggle decoration
  *
  * A rolled-up (shaded) window must be unrolled before its decoration
@@ -832,16 +810,6 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].userdata = &s_layer_state;
     ++n;
 
-    /* Toggle full-surface mode; relabeled to whichever direction it
-     * would actually toggle to next, the same convention "All
-     * desktops (pin)"/"This desktop only (unpin)" already follows
-     * above for stickiness */
-    s_entry_command(&s_entries[n],
-            (surface->fullsurface) ? _(STR_WINCMENU_FULLSURFACE_DISABLE)
-                : _(STR_WINCMENU_FULLSURFACE_ENABLE),
-            s_cb_toggle_fullsurface, NULL, false);
-    ++n;
-
     /* Separator */
     s_entries[n].type = CTXMENU_SEPARATOR;
     ++n;
@@ -883,7 +851,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * 'ccmd_client_fullscreen''s own comment for the full reasoning. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
-                ? _(STR_WINCMENU_FULLSCREEN_EXIT)
+                ? _(STR_WINCMENU_UNFULLSCREEN)
                 : _(STR_WINCMENU_FULLSCREEN_ENTER),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN, false);

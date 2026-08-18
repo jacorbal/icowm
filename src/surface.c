@@ -158,7 +158,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     surface->ewmh = ewmh;
     surface->config = config;
     surface->showing_desktop = false;
-    surface->fullsurface = false;
+    surface->strutless_maximize = false;
     surface->randr.is_known = false;
     surface->randr.output_id = 0u;
     surface->randr.crtc_id = 0u;
@@ -738,7 +738,7 @@ void surface_refresh_workareas(surface_td *surface)
                     (surface->config != NULL)
                         ? &surface->config->desktops : NULL,
                     systray_get_reserved_strut(surface),
-                    surface->fullsurface);
+                    surface->strutless_maximize);
         }
     }
 }

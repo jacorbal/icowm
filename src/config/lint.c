@@ -300,7 +300,7 @@ static const config_lint_key_td s_schema_kb_wm[] = {
         sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])},
     {"desktop", s_schema_wm_desktop,
         sizeof(s_schema_wm_desktop) / sizeof(s_schema_wm_desktop[0])},
-    {"toggle-fullsurface", NULL, 0u}
+    {"toggle-strutless-maximization", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_kb_launch[] = {

@@ -514,11 +514,19 @@ void ccmd_client_unfocus(client_td *client)
  * @brief Whether a remembered icon position is already occupied
  *
  * Checks @p client's saved @p icon_x/@p icon_y against every other
- * client on the same desktop that currently has a mapped icon, so
- * @c ccmd_client_iconify can tell a genuinely free remembered spot
- * from one that another window's icon has since claimed (e.g., because
- * that other window was iconified while @p client was still restored,
- * and happened to land where @p client's own icon last was).
+ * iconified client on the same desktop, so @c ccmd_client_iconify can
+ * tell a genuinely free remembered spot from one that another window's
+ * icon has since claimed (e.g., because that other window was
+ * iconified while @p client was still restored, and happened to land
+ * where @p client's own icon last was).
+ *
+ * Checked against @a client_is_iconified rather than @c is_icon_mapped:
+ * the latter only reflects whether a desktop's own icons are currently
+ * mapped on screen right now (@c false for every client on a desktop
+ * that is not the one currently shown, @a surface_clients_hide,
+ * surface/actions.c, clears it precisely for that reason), so relying
+ * on it here would report every slot on a non-current desktop as
+ * free regardless of how many icons already actually occupy it.
  *
  * @param client Client about to be iconified; its own @p icon_window
  *               may still be non-zero from a previous iconify, in
@@ -558,7 +566,7 @@ static bool s_icon_slot_is_taken(const client_td *client,
         const client_td *other = (const client_td *) cdlist_data(node);
 
         if (other != NULL && other != client &&
-                other->icon_window != 0u && other->is_icon_mapped &&
+                other->icon_window != 0u && client_is_iconified(other) &&
                 geom_intersection_area(
                         client->icon_x, client->icon_y, icon_w, icon_h,
                         other->icon_x, other->icon_y, icon_w, icon_h)
@@ -569,6 +577,54 @@ static bool s_icon_slot_is_taken(const client_td *client,
     } while (node != NULL && node != initial);
 
     return false;
+}
+
+
+/* Relocate an already-iconified client's own icon if its current
+ * spot is now occupied by another one */
+void ccmd_client_relocate_icon_if_taken(client_td *client)
+{
+    uint16_t icon_h;
+    desktop_td *desktop;
+    enum config_icon_placement_e policy = CONFIG_ICON_PLACEMENT_BOTTOM;
+    uint16_t screen_w = 1024u;
+    uint16_t screen_h = 768u;
+    int16_t ix;
+    int16_t iy;
+
+    if (client == NULL || client->theme == NULL ||
+            client->icon_window == 0u || !client_is_iconified(client)) {
+        return;
+    }
+
+    icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
+            ((client->theme->icon.is_captioned)
+             ? WM_ICON_CAPTION_HEIGHT : 0u));
+
+    if (!s_icon_slot_is_taken(client, (uint16_t) WM_ICON_SQUARE_SIZE,
+                icon_h)) {
+        return;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (client->config_base != NULL) {
+        policy = client->config_base->icons.placement_policy;
+    }
+    (void) ccmd_screen_dim(client, &screen_w, &screen_h);
+
+    place_icon(client, desktop, policy,
+            (uint16_t) WM_ICON_SQUARE_SIZE, icon_h,
+            screen_w, screen_h, &ix, &iy);
+
+    client->icon_x = ix;
+    client->icon_y = iy;
+
+    if (client->connection != NULL) {
+        const uint32_t vals[2] = { (uint32_t) ix, (uint32_t) iy };
+
+        xcb_configure_window(client->connection, client->icon_window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+    }
 }
 
 
@@ -1196,6 +1252,7 @@ void ccmd_client_urge(client_td *client)
     if (desktop != NULL) {
         desktop_action_recompute_urgent(desktop);
     }
+    wm_outdate_client(client);
 
     fields = cJSON_CreateObject();
     if (fields != NULL) {
@@ -1227,6 +1284,7 @@ void ccmd_client_unurge(client_td *client)
     if (desktop != NULL) {
         desktop_action_recompute_urgent(desktop);
     }
+    wm_outdate_client(client);
 
     fields = cJSON_CreateObject();
     if (fields != NULL) {

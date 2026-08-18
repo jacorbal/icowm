@@ -156,8 +156,8 @@ void config_set_default_bindings_values(
      * unlike every other binding above.  Explicit here, the same way
      * every other default in this function is explicit, so this
      * reads as an intentional choice rather than a forgotten one. */
-    safe_strncpy(config_bindings->keyboard.wm.toggle_fullsurface,
-            "", sizeof(config_bindings->keyboard.wm.toggle_fullsurface));
+    safe_strncpy(config_bindings->keyboard.wm.toggle_strutless_maximize,
+            "", sizeof(config_bindings->keyboard.wm.toggle_strutless_maximize));
 
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
@@ -369,8 +369,8 @@ int config_load_bindings(const char *filename,
                         CONFIG_MAX_LENGTH_BINDING);
             }
 
-            json_load_string(wm, "toggle-fullsurface",
-                    config_bindings->keyboard.wm.toggle_fullsurface,
+            json_load_string(wm, "toggle-strutless-maximization",
+                    config_bindings->keyboard.wm.toggle_strutless_maximize,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 

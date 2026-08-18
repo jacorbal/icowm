@@ -713,17 +713,19 @@ struct config_bindings_s {
 
             /**
              * @brief Toggles whether panel/tray struts are set aside
-             *        on this surface (distraction-free mode)
+             *        when maximizing or placing a window on this
+             *        surface (strutless maximization)
              *
              * Empty by default, unlike every other binding in this
              * struct: no key combination is bound to it out of the
-             * box, only IPC (@c toggle_fullsurface) and the window
-             * context menu's own "Manage desktops" submenu reach it
-             * until a person opts in with their own binding here.
+             * box, only IPC (@c toggle_strutless_maximize) and the
+             * root menu's own entry reach it until a person opts in
+             * with their own binding here.
              *
-             * @see @a surface_action_toggle_fullsurface (surface.h)
+             * @see @a surface_action_toggle_strutless_maximize
+             *      (surface.h)
              */
-            char toggle_fullsurface[CONFIG_MAX_LENGTH_BINDING];
+            char toggle_strutless_maximize[CONFIG_MAX_LENGTH_BINDING];
         } wm;
 
         struct {

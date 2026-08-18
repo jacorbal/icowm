@@ -154,7 +154,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "goto_prev_desktop",        ipc_action_goto_prev_desktop },
     { "add_desktop",              ipc_action_add_desktop },
     { "remove_desktop",           ipc_action_remove_desktop },
-    { "toggle_fullsurface",       ipc_action_toggle_fullsurface },
+    { "toggle_strutless_maximize",       ipc_action_toggle_strutless_maximize },
 
     /* Whole window manager: ipc/actions/wm.h */
     { "exit_wm",                  ipc_action_exit_wm },

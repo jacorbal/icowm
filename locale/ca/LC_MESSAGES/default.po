@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: IcoWM 1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-12 20:31+0200\n"
-"PO-Revision-Date: 2026-08-12 20:31+0200\n"
+"PO-Revision-Date: 2026-08-18 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Catalan\n"
 "Language: ca\n"
@@ -15,393 +15,370 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: include/defs/uistr.h:38
+#: include/defs/uistr.h:39
 msgid "[ OK ]"
 msgstr "[ D'acord ]"
 
-#: include/defs/uistr.h:42
+#: include/defs/uistr.h:43
+msgid "Strutless maximization"
+msgstr "Maximització sense plafons"
+
+#: include/defs/uistr.h:44
+msgid "Strutted maximization"
+msgstr "Maximització amb plafons"
+
+#: include/defs/uistr.h:45
 msgid "Reload configuration"
 msgstr "Recarrega la configuració"
 
-#: include/defs/uistr.h:43
+#: include/defs/uistr.h:46
 msgid "Redraw all windows"
 msgstr "Redibuixa totes les finestres"
 
-#: include/defs/uistr.h:44
+#: include/defs/uistr.h:47
 msgid "Exit"
 msgstr "Surt"
 
-#: include/defs/uistr.h:47
+#: include/defs/uistr.h:50
 msgid "Send to desktop"
 msgstr "Envia a l'escriptori"
 
-#: include/defs/uistr.h:48
+#: include/defs/uistr.h:51
 msgid "Send to monitor"
 msgstr "Envia al monitor"
 
-#: include/defs/uistr.h:49;  include/defs/uistr.h:147
+#: include/defs/uistr.h:52
 msgid "Layer"
 msgstr "Capa"
 
-#: include/defs/uistr.h:50
+#: include/defs/uistr.h:53
 msgid "Always on top"
 msgstr "Sempre al damunt"
 
-#: include/defs/uistr.h:51
+#: include/defs/uistr.h:54
 msgid "Normal"
 msgstr "Normal"
 
-#: include/defs/uistr.h:52
+#: include/defs/uistr.h:55
 msgid "Always on bottom"
 msgstr "Sempre al fons"
 
-#: include/defs/uistr.h:53
+#: include/defs/uistr.h:56
 msgid "All desktops (pin)"
 msgstr "Tots els escriptoris (fixa)"
 
-#: include/defs/uistr.h:54
+#: include/defs/uistr.h:57
 msgid "This desktop only (unpin)"
 msgstr "Només aquest escriptori (deixa anar)"
 
-#: include/defs/uistr.h:55
+#: include/defs/uistr.h:58
 msgid "Restore"
 msgstr "Restaura"
 
-#: include/defs/uistr.h:56
+#: include/defs/uistr.h:59
 msgid "Move"
 msgstr "Mou"
 
-#: include/defs/uistr.h:57;  include/defs/uistr.h:157
+#: include/defs/uistr.h:60
 msgid "Resize"
 msgstr "Redimensiona"
 
-#: include/defs/uistr.h:58;  include/defs/uistr.h:142
+#: include/defs/uistr.h:61
 msgid "Iconify"
 msgstr "Iconitza"
 
-#: include/defs/uistr.h:59;  include/defs/uistr.h:141
+#: include/defs/uistr.h:62
 msgid "Hide"
 msgstr "Amaga"
 
-#: include/defs/uistr.h:60;  include/defs/uistr.h:148
+#: include/defs/uistr.h:63
 msgid "Maximize"
 msgstr "Maximitza"
 
-#: include/defs/uistr.h:61;  include/defs/uistr.h:140
+#: include/defs/uistr.h:64
 msgid "Fullscreen"
 msgstr "Pantalla completa"
 
-#: include/defs/uistr.h:62
-msgid "Exit Fullscreen"
-msgstr "Surt de pantalla completa"
+#: include/defs/uistr.h:65
+msgid "Unfullscreen"
+msgstr "Sortir de pantalla completa"
 
-#: include/defs/uistr.h:63;  include/defs/uistr.h:151
+#: include/defs/uistr.h:66
 msgid "Shade"
 msgstr "Enrotlla"
 
-#: include/defs/uistr.h:64
+#: include/defs/uistr.h:67
 msgid "Unshade"
 msgstr "Desenrotlla"
 
-#: include/defs/uistr.h:65;  include/defs/uistr.h:139
+#: include/defs/uistr.h:68
 msgid "Decorate"
 msgstr "Decora"
 
-#: include/defs/uistr.h:66
+#: include/defs/uistr.h:69
 msgid "Undecorate"
 msgstr "Treu la decoració"
 
-#: include/defs/uistr.h:67;  include/defs/uistr.h:137
+#: include/defs/uistr.h:70
 msgid "Close"
 msgstr "Tanca"
 
-#: include/defs/uistr.h:70
+#: include/defs/uistr.h:73
 msgid "Go there..."
 msgstr "Vés-hi..."
 
+#: include/defs/uistr.h:74
+msgid "Add new desktop"
+msgstr "Afegir escriptori nou"
+
 #: include/defs/uistr.h:75
+msgid "Remove last desktop"
+msgstr "Suprimir l'últim escriptori"
+
+#: include/defs/uistr.h:80
 msgid "Are you sure you want to exit %s?"
 msgstr "Segur que vols sortir de %s?"
 
-#: include/defs/uistr.h:76
+#: include/defs/uistr.h:81
 msgid "[ Cancel ]"
 msgstr "[ Cancel·la ]"
 
-#: include/defs/uistr.h:77
+#: include/defs/uistr.h:82
 msgid "[ Exit ]"
 msgstr "[ Surt ]"
 
-#: include/defs/uistr.h:97
+#: include/defs/uistr.h:102
 msgid "Automatically selecting '%.255s' in %d second(s)"
 msgstr "Se seleccionarà automàticament '%.255s' d'aquí a %d segon(s)"
 
-#: include/defs/uistr.h:104
-msgid ""
-"The 'randr.json' configuration has been applied.  Keep it, or revert "
-"to the previous one?"
-msgstr ""
-"S'ha aplicat la configuració de 'randr.json'.  La vols mantenir o "
-"tornar a l'anterior?"
+#: include/defs/uistr.h:109
+msgid "The 'randr.json' configuration has been applied.  Keep it, or revert to the previous one?"
+msgstr "S'ha aplicat la configuració de 'randr.json'.  La vols mantenir o tornar a l'anterior?"
 
-#: include/defs/uistr.h:107
+#: include/defs/uistr.h:112
 msgid "[ Revert ]"
 msgstr "[ Reverteix ]"
 
-#: include/defs/uistr.h:108
+#: include/defs/uistr.h:113
 msgid "[ Keep ]"
 msgstr "[ Mantén ]"
 
-#: include/defs/uistr.h:113
+#: include/defs/uistr.h:118
 msgid "[Window Manager]"
 msgstr "[Gestor de finestres]"
 
-#: include/defs/uistr.h:114
+#: include/defs/uistr.h:119
 msgid "[Launch]"
 msgstr "[Executa]"
 
-#: include/defs/uistr.h:115
+#: include/defs/uistr.h:120
 msgid "[Window]"
 msgstr "[Finestra]"
 
-#: include/defs/uistr.h:116
+#: include/defs/uistr.h:121
 msgid "[Cycle]"
 msgstr "[Cicla]"
 
-#: include/defs/uistr.h:118
+#: include/defs/uistr.h:123
 msgid "Root menu"
 msgstr "Menú arrel"
 
-#: include/defs/uistr.h:119
+#: include/defs/uistr.h:124
 msgid "Windows menu"
 msgstr "Menú de finestres"
 
-#: include/defs/uistr.h:120
+#: include/defs/uistr.h:125
 msgid "Search windows"
 msgstr "Cerca finestres"
 
-#: include/defs/uistr.h:121
+#: include/defs/uistr.h:126
 msgid "Show desktop"
 msgstr "Mostra l'escriptori"
 
-#: include/defs/uistr.h:122
+#: include/defs/uistr.h:127
 msgid "Redraw"
 msgstr "Redibuixa"
 
-#: include/defs/uistr.h:124
+#: include/defs/uistr.h:129
 msgid "Quit"
 msgstr "Surt"
 
-#: include/defs/uistr.h:125
+#: include/defs/uistr.h:130
 msgid "This list"
 msgstr "Aquesta llista"
 
-#: include/defs/uistr.h:128
-msgid "Emergency exit: Ctrl+Mod1+Backspace"
-msgstr "Sortida d'emergència: Ctrl+Mod1+Backspace"
-
-#: include/defs/uistr.h:129
+#: include/defs/uistr.h:131
 msgid "Fortune"
 msgstr "Frase del dia"
 
-#: include/defs/uistr.h:130
+#: include/defs/uistr.h:132
 msgid "Scratchpad"
 msgstr "Àrea de treball temporal"
 
-#: include/defs/uistr.h:131
+#: include/defs/uistr.h:133
+msgid "Add desktop"
+msgstr "Afegir escriptori"
+
+#: include/defs/uistr.h:134
+msgid "Remove desktop"
+msgstr "Suprimir escriptori"
+
+#: include/defs/uistr.h:135
+msgid "Toggle strutless maximization"
+msgstr "Alternar maximització sense plafons"
+
+#: include/defs/uistr.h:138
+msgid "Emergency exit: Ctrl+Mod1+Backspace"
+msgstr "Sortida d'emergència: Ctrl+Mod1+Backspace"
+
+#: include/defs/uistr.h:140
 msgid "Terminal"
 msgstr "Terminal"
 
-#: include/defs/uistr.h:132
+#: include/defs/uistr.h:141
 msgid "Launcher"
 msgstr "Llançador"
 
-#: include/defs/uistr.h:133
+#: include/defs/uistr.h:142
 msgid "File manager"
 msgstr "Gestor de fitxers"
 
-#: include/defs/uistr.h:134
+#: include/defs/uistr.h:143
 msgid "Web browser"
 msgstr "Navegador web"
 
-#: include/defs/uistr.h:135
+#: include/defs/uistr.h:144
 msgid "Editor"
 msgstr "Editor"
 
-#: include/defs/uistr.h:138
+#: include/defs/uistr.h:147
 msgid "Kill"
 msgstr "Mata"
 
-#: include/defs/uistr.h:143
+#: include/defs/uistr.h:152
 msgid "Iconify all"
 msgstr "Iconitza-ho tot"
 
-#: include/defs/uistr.h:144
+#: include/defs/uistr.h:153
 msgid "Deiconify all"
 msgstr "Desiconitza-ho tot"
 
-#: include/defs/uistr.h:145
+#: include/defs/uistr.h:154
 msgid "Arrange"
 msgstr "Organitza"
 
-#: include/defs/uistr.h:146
+#: include/defs/uistr.h:155
 msgid "Info"
 msgstr "Informació"
 
-#: include/defs/uistr.h:149
+#: include/defs/uistr.h:158
 msgid "Next monitor"
 msgstr "Monitor següent"
 
-#: include/defs/uistr.h:150
+#: include/defs/uistr.h:159
 msgid "Pin"
 msgstr "Fixa"
 
-#: include/defs/uistr.h:155
+#: include/defs/uistr.h:164
 msgid "Move (relative)"
 msgstr "Mou (relatiu)"
 
-#: include/defs/uistr.h:156
+#: include/defs/uistr.h:165
 msgid "Move (absolute)"
 msgstr "Mou (absolut)"
 
-#: include/defs/uistr.h:158
+#: include/defs/uistr.h:167
 msgid "Desktops"
 msgstr "Escriptoris"
 
-#: include/defs/uistr.h:159
+#: include/defs/uistr.h:168
 msgid "Icons"
 msgstr "Icones"
 
-#: include/defs/uistr.h:160
+#: include/defs/uistr.h:169
 msgid "Windows"
 msgstr "Finestres"
 
-#: include/defs/uistr.h:174
+#: include/defs/uistr.h:183
 msgid "Go to desktop 0-9: %.*s<0-9>"
 msgstr "Vés a l'escriptori 0-9: %.*s<0-9>"
 
-#: include/defs/uistr.h:176
+#: include/defs/uistr.h:185
 msgid "Go to desktop %u: %s"
 msgstr "Vés a l'escriptori %u: %s"
 
-#: include/defs/uistr.h:187
-msgid "Detected activity on desktop [%u] -- %s"
-msgstr "Detectada activitat a l'escriptori [%u] -- %s"
-
-#: include/defs/uistr.h:189
+#: include/defs/uistr.h:196
 msgid "Detected activity on desktop [%u]"
 msgstr "Detectada activitat a l'escriptori [%u]"
 
-#: include/defs/uistr.h:194
+#: include/defs/uistr.h:206
+msgid " -- %s"
+msgstr " -- %s"
+
+#: include/defs/uistr.h:214
 msgid " (on surface %u)"
 msgstr " (a la superfície %u)"
 
-#: include/defs/uistr.h:179
+#: include/defs/uistr.h:218
 msgid "N/A"
 msgstr "N/D"
 
-#: include/defs/uistr.h:180
+#: include/defs/uistr.h:219
 msgid "Full, AC"
 msgstr "Plena, amb CA"
 
-#: include/defs/uistr.h:181
+#: include/defs/uistr.h:220
 msgid "Full"
 msgstr "Plena"
 
-#: include/defs/uistr.h:190
+#: include/defs/uistr.h:229
 msgid "%u%%"
 msgstr "%u %%"
 
-#: include/defs/uistr.h:188
+#: include/defs/uistr.h:237
 msgid "AC"
 msgstr "CA"
 
-#: include/defs/uistr.h:185
-msgid ""
-"IcoWM is running in restricted-memory mode.  In this mode: "
-"application icons are shown without their own picture, text is drawn "
-"with simpler fonts, and there is a limit on how many windows can be "
-"open at once.  All of this trades some visual polish for keeping "
-"memory use low and predictable."
-msgstr ""
-"L'IcoWM s'està executant en mode de memòria restringida.  En aquest "
-"mode: les icones de les aplicacions es mostren sense la imatge "
-"pròpia, el text es dibuixa amb tipus de lletra més senzills i hi ha "
-"un límit de quantes finestres poden estar obertes alhora.  Tot això "
-"intercanvia una mica d'acabat visual per mantenir l'ús de memòria "
-"baix i previsible."
+#: include/defs/uistr.h:240
+msgid "IcoWM is running in restricted-memory mode.  In this mode: application icons are shown without their own picture, text is drawn with simpler fonts, and there is a limit on how many windows can be open at once.  All of this trades some visual polish for keeping memory use low and predictable."
+msgstr "L'IcoWM s'està executant en mode de memòria restringida.  En aquest mode: les icones de les aplicacions es mostren sense la imatge pròpia, el text es dibuixa amb tipus de lletra més senzills i hi ha un límit de quantes finestres poden estar obertes alhora.  Tot això intercanvia una mica d'acabat visual per mantenir l'ús de memòria baix i previsible."
 
-#: include/defs/uistr.h:198
-msgid ""
-"Error parsing '%s'; possible syntax error.  Reverted to default "
-"values."
-msgstr ""
-"Error en analitzar '%s'; possible error de sintaxi.  S'han restaurat "
-"els valors per defecte."
+#: include/defs/uistr.h:254
+msgid "Error parsing '%s'; possible syntax error.  Reverted to default values."
+msgstr "Error en analitzar '%s'; possible error de sintaxi.  S'han restaurat els valors per defecte."
 
-#: include/defs/uistr.h:201
-msgid ""
-"Error parsing the following file(s); possible syntax error(s).  "
-"Reverted to default values for each: '%s'"
-msgstr ""
-"Error en analitzar el(s) fitxer(s) següent(s); possible(s) error(s) "
-"de sintaxi.  S'han restaurat els valors per defecte per a cadascun: "
-"'%s'"
+#: include/defs/uistr.h:257
+msgid "Error parsing the following file(s); possible syntax error(s).  Reverted to default values for each: '%s'"
+msgstr "Error en analitzar el(s) fitxer(s) següent(s); possible(s) error(s) de sintaxi.  S'han restaurat els valors per defecte per a cadascun: '%s'"
 
-#: include/defs/uistr.h:208
-msgid ""
-"  Additionally, the theme file '%s' named by 'config.json' was not "
-"found; using the built-in default theme instead."
-msgstr ""
-"  A més, no s'ha trobat el fitxer de tema '%s' indicat a "
-"'config.json'; s'està fent servir el tema per defecte incorporat."
+#: include/defs/uistr.h:267
+msgid "  Additionally, the theme file '%s' named by 'config.json' was not found; using the built-in default theme instead."
+msgstr "  A més, no s'ha trobat el fitxer de tema '%s' indicat a 'config.json'; s'està fent servir el tema per defecte incorporat."
 
-#: include/defs/uistr.h:217
-msgid ""
-"IcoWM has reached its configured memory ceiling: using %u MiB of the "
-"%u MiB allowed (see the '-M' command-line option).  Close some "
-"windows to free up memory before opening more."
-msgstr ""
-"L'IcoWM ha arribat al límit de memòria configurat: fent servir %u MiB "
-"dels %u MiB permesos (vegeu l'opció de línia d'ordres '-M').  Tanca "
-"algunes finestres per alliberar memòria abans d'obrir-ne més."
+#: include/defs/uistr.h:277
+msgid "IcoWM has reached its configured memory ceiling: using %u MiB of the %u MiB allowed (see the '-M' command-line option).  Close some windows to free up memory before opening more."
+msgstr "L'IcoWM ha arribat al límit de memòria configurat: fent servir %u MiB dels %u MiB permesos (vegeu l'opció de línia d'ordres '-M').  Tanca algunes finestres per alliberar memòria abans d'obrir-ne més."
 
-#: include/defs/uistr.h:222
-msgid ""
-"IcoWM is running in restricted-memory mode and will not manage more "
-"than %u window(s) at once (see the '-M' command-line option).  Close "
-"a window before opening another."
-msgstr ""
-"L'IcoWM s'està executant en mode de memòria restringida i no "
-"gestionarà més de %u finestra/es alhora (vegeu l'opció de línia "
-"d'ordres '-M').  Tanca una finestra abans d'obrir-ne una altra."
+#: include/defs/uistr.h:282
+msgid "IcoWM is running in restricted-memory mode and will not manage more than %u window(s) at once (see the '-M' command-line option).  Close a window before opening another."
+msgstr "L'IcoWM s'està executant en mode de memòria restringida i no gestionarà més de %u finestra/es alhora (vegeu l'opció de línia d'ordres '-M').  Tanca una finestra abans d'obrir-ne una altra."
 
-#: include/defs/uistr.h:230
+#: include/defs/uistr.h:290
 msgid "There are no open windows in this session at the moment."
 msgstr "En aquest moment no hi ha cap finestra oberta en aquesta sessió."
 
-#: include/defs/uistr.h:244
-msgid ""
-"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore "
-"no wisdom of the ancients may this day be divined.  Prithee, entreat "
-"thy package steward with an incantation such as 'sudo apt install "
-"fortune-mod' (or whate'er charm thy distribution demandeth), that the "
-"sages of yore might once more speak through this humble dialog."
-msgstr ""
-"Ai las!  L'oracle 'fortune' no habita en aquesta màquina, per "
-"la qual cosa cap saviesa dels antics no podrà avui ésser endevinada.  "
-"Us prego que supliqueu al vostre gestor de paquets amb un conjur tal "
-"com 'sudo apt install fortune-mod' (o l'encanteri que la vostra "
-"distribució demani), perquè els savis d'antany puguin novament parlar "
-"a través d'aquest humil diàleg."
-
-#: include/defs/uistr.h:281
+#: include/defs/uistr.h:297
 msgid "Run:"
 msgstr "Executa:"
 
-#: include/defs/uistr.h:288
+#: include/defs/uistr.h:304
 msgid "Command '%s' not found."
 msgstr "No s'ha trobat l'ordre '%s'."
 
-#: include/defs/uistr.h:301
+#: include/defs/uistr.h:317
 msgid "Failed to execute '%s': command not found."
 msgstr "No s'ha pogut executar '%s': ordre no trobada."
+
+#: include/defs/uistr.h:324
+msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
+msgstr "Ai las!  L'oracle 'fortune' no habita en aquesta màquina, per la qual cosa cap saviesa dels antics no podrà avui ésser endevinada.  Us prego que supliqueu al vostre gestor de paquets amb un conjur tal com 'sudo apt install fortune-mod' (o l'encanteri que la vostra distribució demani), perquè els savis d'antany puguin novament parlar a través d'aquest humil diàleg."

@@ -107,7 +107,7 @@ cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_strutless_maximize(wm_td *wm, const cJSON *args)
 {
     surface_td *surface = ipc_resolve_surface(wm, args);
 
@@ -115,6 +115,6 @@ cJSON *ipc_action_toggle_fullsurface(wm_td *wm, const cJSON *args)
         return ipc_response_error("no such surface");
     }
 
-    enact_surface_toggle_fullsurface(surface);
+    enact_surface_toggle_strutless_maximize(surface);
     return ipc_response_ok();
 }

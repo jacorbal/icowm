@@ -223,6 +223,29 @@ void desktop_update(desktop_td *desktop);
 void desktop_update_full(desktop_td *desktop);
 
 /**
+ * @brief Mark a desktop and every one of its own clients as outdated
+ *
+ * @c desktop_render_one_client and @c ri_render_client_icon (both
+ * render/desktop.c and render/icon.c) each gate their own repaint on
+ * the specific client's own @c is_outdated, not just its desktop's:
+ * marking only @p desktop itself, the mistake this function exists
+ * to stop repeating, correctly triggers a render pass for @p desktop
+ * but that pass then skips every one of its own clients, since none
+ * of them individually asks for a repaint.  A client stays visually
+ * stale (a stale pin button, a stale icon still shown at a now-
+ * occupied grid slot, and so on) until some unrelated event happens
+ * to mark that one client outdated on its own, e.g., a focus change.
+ *
+ * @param desktop Desktop, and every one of its own clients, to mark
+ *                outdated
+ *
+ * @note No-op if @p desktop or its own stacking list is @c NULL
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+void desktop_mark_outdated(desktop_td *desktop);
+
+/**
  * @brief Clear a desktop by removing all its clients
  *
  * Deallocates each and every client of the desktop and resets the
@@ -584,7 +607,7 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *                       folded in, only @p config_desktop's own
  *                       @p margins (the surface's own "full surface"
  *                       distraction-free toggle; see
- *                       @a surface_action_toggle_fullsurface,
+ *                       @a surface_action_toggle_strutless_maximize,
  *                       surface.h): a deliberate, static reservation
  *                       stays honored even then, only the dynamic
  *                       presence of a panel or the tray is set aside

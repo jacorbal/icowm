@@ -159,8 +159,18 @@ static void s_startup_handle_crash(int signum)
     int len = 0;
     int n = signum;
     struct sigaction sa;
+    ssize_t write_result;
 
-    (void) write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);
+    /* Every 'write' result below is deliberately unchecked: this
+     * handler is already on its way to re-raising 'signum' with its
+     * default disposition right after, terminating the process
+     * either way, so there is no meaningful recovery available if
+     * any one of them fails too.  Each captured in a real variable
+     * rather than cast to 'void' directly on the call, since GCC's
+     * own 'warn_unused_result' on 'write' does not treat a bare
+     * '(void)' cast as acknowledging it. */
+    write_result = write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);
+    (void) write_result;
 
     if (n <= 0) {
         digits[len++] = '0';
@@ -175,8 +185,10 @@ static void s_startup_handle_crash(int signum)
             digits[len++] = rev[--rlen];
         }
     }
-    (void) write(STDERR_FILENO, digits, (size_t) len);
-    (void) write(STDERR_FILENO, s_suffix, sizeof(s_suffix) - 1u);
+    write_result = write(STDERR_FILENO, digits, (size_t) len);
+    (void) write_result;
+    write_result = write(STDERR_FILENO, s_suffix, sizeof(s_suffix) - 1u);
+    (void) write_result;
 
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = SIG_DFL;

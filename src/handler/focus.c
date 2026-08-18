@@ -185,6 +185,7 @@ void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
                 event->atom == client->ewmh->_NET_WM_ICON) ||
             event->atom == XCB_ATOM_WM_HINTS) {
         wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
+        wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
         return;

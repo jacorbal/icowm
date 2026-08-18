@@ -679,12 +679,12 @@ void enact_surface_desktop_remove(surface_td *surface);
  * @brief Toggle whether panel/tray struts are set aside when
  *        computing this surface's own desktops' work areas
  *
- * @param surface Surface to toggle full-surface mode on
+ * @param surface Surface to toggle strutless-maximization mode on
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       @p surface
  */
-void enact_surface_toggle_fullsurface(surface_td *surface);
+void enact_surface_toggle_strutless_maximize(surface_td *surface);
 
 
 /* 'action_wm_e' */

@@ -587,6 +587,39 @@ void desktop_update_full(desktop_td *desktop)
 }
 
 
+/* Mark a desktop and every one of its own clients as outdated */
+void desktop_mark_outdated(desktop_td *desktop)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (desktop == NULL) {
+        return;
+    }
+
+    desktop->is_outdated = true;
+
+    if (desktop->stacking == NULL) {
+        return;
+    }
+
+    node = cdlist_head(desktop->stacking);
+    if (node == NULL) {
+        return;
+    }
+
+    initial = node;
+    do {
+        client_td *client = (client_td *) cdlist_data(node);
+
+        if (client != NULL) {
+            client->is_outdated = true;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+}
+
+
 /* Clear a desktop by removing all its clients */
 void desktop_clear(desktop_td *desktop)
 {
