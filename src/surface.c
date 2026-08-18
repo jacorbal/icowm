@@ -158,6 +158,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     surface->ewmh = ewmh;
     surface->config = config;
     surface->showing_desktop = false;
+    surface->fullsurface = false;
     surface->randr.is_known = false;
     surface->randr.output_id = 0u;
     surface->randr.crtc_id = 0u;

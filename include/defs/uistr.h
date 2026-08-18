@@ -51,9 +51,6 @@
 #define STR_WINCMENU_LAYER_ALWAYS_ON_TOP "Always on top"
 #define STR_WINCMENU_LAYER_NORMAL "Normal"
 #define STR_WINCMENU_LAYER_ALWAYS_ON_BOTTOM "Always on bottom"
-#define STR_WINCMENU_MANAGE_DESKTOPS "Manage desktops"
-#define STR_WINCMENU_DESKTOP_ADD "Add new desktop"
-#define STR_WINCMENU_DESKTOP_REMOVE "Remove last desktop"
 #define STR_WINCMENU_FULLSURFACE_ENABLE "Enable full-surface mode"
 #define STR_WINCMENU_FULLSURFACE_DISABLE "Disable full-surface mode"
 #define STR_WINCMENU_ALL_DESKTOPS_PIN "All desktops (pin)"
@@ -74,6 +71,8 @@
 
 /* All-desktops window list ('src/menu/context/winlist.c') */
 #define STR_WINLIST_GO_THERE "Go there..."
+#define STR_WINLIST_DESKTOP_ADD "Add new desktop"
+#define STR_WINLIST_DESKTOP_REMOVE "Remove last desktop"
 
 /* Quit-confirmation dialog ('src/menu/dialog/quit.c'); the prompt is
  * a format string taking the window manager's own display name (see

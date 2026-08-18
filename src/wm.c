@@ -659,6 +659,14 @@ config_td *wm_get_config(void)
 }
 
 
+/* Return the key symbols table of the singleton window manager
+ * instance */
+xcb_key_symbols_t *wm_get_keysyms(void)
+{
+    return (wm != NULL) ? wm->keysyms : NULL;
+}
+
+
 /* Return the configuration directory prefix */
 const char *wm_get_config_dir(void)
 {

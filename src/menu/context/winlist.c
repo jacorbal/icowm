@@ -62,7 +62,12 @@
 static ctxmenu_state_td s_root;
 
 /** Entries for the top-level (per-desktop) menu */
-static ctxmenu_entry_td s_root_entries[WINLIST_MAX_DESKTOPS + 1];
+/** Entries for the top-level (per-desktop) menu: one @c CTXMENU_SUBMENU
+ *  slot per desktop, plus room for the "(no windows)" fallback and the
+ *  trailing "Add new desktop"/"Remove last desktop" pair (and the
+ *  separator ahead of them); see 'winlist_show''s own tail-append
+ *  below */
+static ctxmenu_entry_td s_root_entries[WINLIST_MAX_DESKTOPS + 4];
 
 /** State for each desktop's submenu */
 static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
@@ -142,6 +147,63 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
     }
 
     s_switch_to_desktop(data->surface, data->desktop_id);
+}
+
+
+/**
+ * @brief Add a new, empty desktop to the surface
+ *
+ * Callback invoked from the window list's own trailing "Add new
+ * desktop" entry.  Not about any particular desktop, unlike
+ * @a s_cb_goto_desktop just above: only @p data->surface is read,
+ * @p data->desktop_id is left unused.
+ *
+ * @param connection XCB connection (unused)
+ * @param userdata   Pointer to a @c winlist_entry_data_td with the
+ *                   target surface
+ */
+static void s_cb_add_desktop(xcb_connection_t *connection, void *userdata)
+{
+    winlist_entry_data_td *data;
+
+    (void) connection;
+
+    data = (winlist_entry_data_td *) userdata;
+    if (data == NULL || data->surface == NULL) {
+        return;
+    }
+
+    enact_surface_desktop_add(data->surface);
+}
+
+
+/**
+ * @brief Remove the surface's own last desktop
+ *
+ * Callback invoked from the window list's own trailing "Remove last
+ * desktop" entry.  A no-op, silently, when only one desktop remains;
+ * see @a surface_action_desktop_remove (surface.h) for the exact
+ * refusal conditions, and this same entry's own @c is_disabled below
+ * (@a winlist_show) for how that state reaches the person before
+ * they even try.
+ *
+ * @param connection XCB connection (unused)
+ * @param userdata   Pointer to a @c winlist_entry_data_td with the
+ *                   target surface
+ */
+static void s_cb_remove_desktop(xcb_connection_t *connection,
+        void *userdata)
+{
+    winlist_entry_data_td *data;
+
+    (void) connection;
+
+    data = (winlist_entry_data_td *) userdata;
+    if (data == NULL || data->surface == NULL) {
+        return;
+    }
+
+    enact_surface_desktop_remove(data->surface);
 }
 
 
@@ -459,10 +521,11 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     }
 
     if (surface->desktops != NULL) {
+        const cdlist_item_td *dinitial;
+
         dnode = cdlist_head(surface->desktops);
         if (dnode != NULL) {
-            const cdlist_item_td *dinitial = dnode;
-
+            dinitial = dnode;
             do {
                 desktop_td *home_desktop=
                     (desktop_td *) cdlist_data(dnode);
@@ -582,6 +645,8 @@ void winlist_show(xcb_connection_t *connection,
     int desktop_count;
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     ctxmenu_entry_td *root_target;
+    winlist_entry_data_td *add_data;
+    winlist_entry_data_td *remove_data;
 
     if (connection == NULL || surface == NULL || config == NULL) {
         return;
@@ -751,6 +816,68 @@ void winlist_show(xcb_connection_t *connection,
         root_target[n].type = CTXMENU_LABEL;
         safe_strncpy(root_target[n].label, "(no windows)",
                 sizeof(root_target[n].label) - 1u);
+        ++n;
+    }
+
+    /* "Add new desktop" / "Remove last desktop", always appended at
+     * the very end after a separator, in both display modes: a
+     * surface-wide action, not tied to any particular desktop's own
+     * window list, so it belongs outside the per-desktop submenu
+     * layer above rather than duplicated into every one of them.
+     * Guarded against whichever buffer 'root_target' actually points
+     * to being completely full already (an extreme number of windows
+     * on the one desktop that exists, in the flattened single-desktop
+     * case): skipped outright rather than overflowing it, the same
+     * defensive reasoning the "Go there" prepend above already
+     * follows for the exact same kind of buffer. */
+    if (n + 3 <= ((desktop_count <= 1)
+                ? WINLIST_MAX_ENTRIES_PER_DESKTOP
+                : (int) (sizeof(s_root_entries) /
+                    sizeof(s_root_entries[0])))) {
+        root_target[n].type = CTXMENU_SEPARATOR;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        ++n;
+
+        add_data = s_alloc_entry_data();
+        root_target[n].type = CTXMENU_COMMAND;
+        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_ADD),
+                sizeof(root_target[n].label) - 1u);
+        root_target[n].is_disabled =
+            (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS);
+        root_target[n].on_activate = s_cb_add_desktop;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        if (add_data != NULL) {
+            add_data->surface = surface;
+            add_data->client = NULL;
+            add_data->desktop_id = 0u;
+        }
+        root_target[n].userdata = add_data;
+        ++n;
+
+        /* Disabled, not omitted, when only one desktop remains:
+         * unlike the desktop-count-driven omission of the whole
+         * per-desktop submenu layer elsewhere in this function, a
+         * person opening this menu specifically to manage desktops
+         * still benefits from seeing this entry exists, just not
+         * currently available, the same way "Send to desktop"'s own
+         * "All desktops (pin)" entry (wincmenu.c) stays visible
+         * rather than disappearing. */
+        remove_data = s_alloc_entry_data();
+        root_target[n].type = CTXMENU_COMMAND;
+        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_REMOVE),
+                sizeof(root_target[n].label) - 1u);
+        root_target[n].is_disabled = (surface->desktop_count <= 1u);
+        root_target[n].on_activate = s_cb_remove_desktop;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        if (remove_data != NULL) {
+            remove_data->surface = surface;
+            remove_data->client = NULL;
+            remove_data->desktop_id = 0u;
+        }
+        root_target[n].userdata = remove_data;
         ++n;
     }
 

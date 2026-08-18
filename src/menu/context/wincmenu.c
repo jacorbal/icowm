@@ -101,13 +101,6 @@ static ctxmenu_entry_td s_layer_entries[WINCMENU_LAYER_COUNT];
 /** State for the "Layer" child menu */
 static ctxmenu_state_td s_layer_state;
 
-/** Entries for the "Manage desktops" submenu */
-static ctxmenu_entry_td
-    s_manage_desktop_entries[WINCMENU_MANAGE_DESKTOPS_COUNT];
-
-/** State for the "Manage desktops" child menu */
-static ctxmenu_state_td s_manage_desktop_state;
-
 /** Per-desktop userdata pool for "Send to desktop" callbacks */
 static wincmenu_send_data_td s_send_data[WINCMENU_MAX_DESKTOPS + 1];
 
@@ -475,53 +468,6 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
 
 
 /**
- * @brief Callback: add a new, empty desktop to the surface
- *
- * Unlike @a s_cb_send_action's own callbacks, not about @p
- * s_target_client at all: operates on @p s_surface directly, since
- * adding a desktop is a surface-wide action, not a per-client one.
- *
- * @param connection Unused, matches @c ctxmenu_on_activate_fn's own
- *                   signature
- * @param userdata   Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_cb_desktop_add(xcb_connection_t *connection, void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_surface != NULL) {
-        enact_surface_desktop_add(s_surface);
-    }
-}
-
-
-/**
- * @brief Callback: remove the surface's own last desktop
- *
- * @param connection Unused, matches @c ctxmenu_on_activate_fn's own
- *                   signature
- * @param userdata   Unused
- *
- * @note No-op if only one desktop remains; see
- *       @a surface_action_desktop_remove (surface.h) for the exact
- *       refusal conditions
- * @note Complexity: @e O(1)
- */
-static void s_cb_desktop_remove(xcb_connection_t *connection, void *userdata)
-{
-    (void) connection;
-    (void) userdata;
-
-    if (s_surface != NULL) {
-        enact_surface_desktop_remove(s_surface);
-    }
-}
-
-
-/**
  * @brief Callback: toggle whether panel/tray struts are set aside on
  *        this surface
  *
@@ -762,25 +708,6 @@ static void s_build_layer_entries(const client_td *client)
 }
 
 
-/**
- * @brief Build the "Manage desktops" submenu entries
- *
- * @param surface Surface the submenu acts on (used to disable
- *                "Remove last desktop" when only one remains)
- */
-static void s_build_manage_desktop_entries(const surface_td *surface)
-{
-    bool only_one_left = (surface->desktop_count <= 1u);
-
-    s_entry_command(&s_manage_desktop_entries[0],
-            _(STR_WINCMENU_DESKTOP_ADD),
-            s_cb_desktop_add, NULL, false);
-    s_entry_command(&s_manage_desktop_entries[1],
-            _(STR_WINCMENU_DESKTOP_REMOVE),
-            s_cb_desktop_remove, NULL, only_one_left);
-}
-
-
 /* Open the window context menu for a client */
 void wincmenu_show(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop, client_td *client,
@@ -868,15 +795,6 @@ void wincmenu_show(xcb_connection_t *connection,
     s_layer_state.entries = s_layer_entries;
     s_layer_state.entry_count = WINCMENU_LAYER_COUNT;
 
-    /* Build "Manage desktops" submenu */
-    memset(s_manage_desktop_entries, 0, sizeof(s_manage_desktop_entries));
-    s_build_manage_desktop_entries(surface);
-
-    memset(&s_manage_desktop_state, 0, sizeof(s_manage_desktop_state));
-    s_manage_desktop_state.window = XCB_WINDOW_NONE;
-    s_manage_desktop_state.entries = s_manage_desktop_entries;
-    s_manage_desktop_state.entry_count = WINCMENU_MANAGE_DESKTOPS_COUNT;
-
     /* Build top-level entries */
     memset(s_entries, 0, sizeof(s_entries));
     n = 0;
@@ -912,17 +830,6 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entries[n].items = s_layer_entries;
     s_entries[n].item_count = WINCMENU_LAYER_COUNT;
     s_entries[n].userdata = &s_layer_state;
-    ++n;
-
-    /* Manage desktops (submenu); always present, unlike "Send to
-     * desktop"/"Send to monitor" above, since a surface can always
-     * gain a new desktop regardless of how many it already has */
-    s_entries[n].type = CTXMENU_SUBMENU;
-    safe_strncpy(s_entries[n].label, _(STR_WINCMENU_MANAGE_DESKTOPS),
-            sizeof(s_entries[n].label) - 1u);
-    s_entries[n].items = s_manage_desktop_entries;
-    s_entries[n].item_count = WINCMENU_MANAGE_DESKTOPS_COUNT;
-    s_entries[n].userdata = &s_manage_desktop_state;
     ++n;
 
     /* Toggle full-surface mode; relabeled to whichever direction it

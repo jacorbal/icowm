@@ -212,6 +212,7 @@ void wm_warn_json_syntax_errors(void);
  * @retval  0 Success
  * @retval  1 No operation has been performed
  *
+ * @note Passing a null pointer has no effect
  * @note Complexity: @e O(m * (1 + n^2)), where @e n is the number of
  *       surfaces, and @e m is the number of desktops per surface, as it
  *       iterates through the array of windows to free each one of them
@@ -390,6 +391,23 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop);
  * @see @p client_td.config_base and @p desktop_td.config_base
  */
 config_td *wm_get_config(void);
+
+/**
+ * @brief Return the key symbols table of the singleton window
+ *        manager instance
+ *
+ * For a module needing @c xcb_key_symbols_t to resolve or re-resolve
+ * a key binding (@a keyboard_load, @c input/kbd/bind.c, is the first
+ * such caller outside @c wm.c itself) without already holding one of
+ * its own, the same reasoning @a wm_get_config already documents for
+ * itself above.
+ *
+ * @return The active key symbols table, or @c NULL when the window
+ *         manager is not initialized or has not yet resolved one
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_key_symbols_t *wm_get_keysyms(void);
 
 /**
  * @brief Return the configuration directory prefix

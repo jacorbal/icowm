@@ -403,11 +403,19 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 /**
  * @brief Add a new desktop associated with the surface
  *
+ * Refused outright once @p surface's own desktop count already
+ * reaches @c CONFIG_MAX_DESKTOPS: @c config_base's own
+ * @c screens[screen_id].desktops array (@c config.h) is a
+ * fixed-size array of exactly that many slots, indexed by the new
+ * desktop's own ID, so adding one more past that point would index
+ * past the end of it.
+ *
  * @param surface Pointer to the surface to receive the action
  *
  * @return Status of the operation
  * @retval  0 Success
- * @retval  1 Failed to perform the action
+ * @retval  1 Failed to perform the action, including already being
+ *            at @c CONFIG_MAX_DESKTOPS
  *
  * @note Complexity: @e O(1)
  */

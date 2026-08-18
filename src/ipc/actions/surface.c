@@ -80,6 +80,11 @@ cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args)
         return ipc_response_error("no such surface");
     }
 
+    if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {
+        return ipc_response_error(
+                "already at the configured maximum number of desktops");
+    }
+
     enact_surface_desktop_add(surface);
     return ipc_response_ok();
 }

@@ -51,7 +51,7 @@
  * @brief Maximum entries (windows and application-group submenus
  *        combined) inside a single desktop's submenu
  */
-#define WINLIST_MAX_ENTRIES_PER_DESKTOP (64)
+#define WINLIST_MAX_ENTRIES_PER_DESKTOP (68)
 
 /**
  * @brief Maximum simultaneously open application-group submenus, summed

@@ -32,6 +32,54 @@
 #include <surface.h>
 
 
+/**
+ * @brief Mark every one of a surface's own desktops as outdated
+ *
+ * @c desktop_repaint_titlebar_content (render/desktop.c) recomputes
+ * whether the pin button belongs on a client's own titlebar
+ * (@c hide_pin) fresh every time it runs, from @p surface's own
+ * current @c desktop_count, but only actually runs for a desktop
+ * whose own @c is_outdated is set (@a surface_render_current_desktop,
+ * render/surface.c).  @a surface_action_desktop_add / @c _remove only
+ * ever marked @p surface itself outdated, not any of its individual
+ * desktops, which left every existing desktop's own clients showing
+ * a stale pin button (present or missing) until some unrelated event
+ * (a focus change, in practice) happened to mark that one specific
+ * desktop outdated on its own.
+ *
+ * @param surface Surface whose own desktops should all be marked
+ *                outdated
+ *
+ * @note No-op if @p surface or its own desktop list is @c NULL
+ * @note Complexity: @e O(n), where @e n is @p surface's own desktop
+ *       count
+ */
+static void s_surface_mark_all_desktops_outdated(surface_td *surface)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (surface == NULL || surface->desktops == NULL) {
+        return;
+    }
+
+    node = cdlist_head(surface->desktops);
+    if (node == NULL) {
+        return;
+    }
+
+    initial = node;
+    do {
+        desktop_td *desktop = (desktop_td *) cdlist_data(node);
+
+        if (desktop != NULL) {
+            desktop->is_outdated = true;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+}
+
+
 /* Add a new desktop to the surface */
 int surface_action_desktop_add(surface_td *surface)
 {
@@ -40,6 +88,20 @@ int surface_action_desktop_add(surface_td *surface)
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
         return -1;
+    }
+
+    /* 'config_base->screens[screen_id].desktops[desktop_id]'
+     * (desktop.c, 's_desktop_read_config_settings' and its own
+     * caller) is a fixed-size 'CONFIG_MAX_DESKTOPS' array indexed by
+     * this new desktop's own ID, itself always 'desktop_count'
+     * before the increment below; refused outright once that would
+     * reach or exceed the array's own real capacity, rather than
+     * indexing past its end. */
+    if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {
+        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
+                " already at the configured maximum of %d",
+                surface->id, CONFIG_MAX_DESKTOPS);
+        return 1;
     }
 
     LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
@@ -62,6 +124,7 @@ int surface_action_desktop_add(surface_td *surface)
         return 1;
     }
 
+    s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;
 
     return 0;
@@ -192,6 +255,7 @@ int surface_action_desktop_remove(surface_td *surface)
         return 1;
     }
 
+    s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;
 
     return 0;
