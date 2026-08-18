@@ -66,6 +66,7 @@
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
+#include <menu/context/winlist.h>
 #include <menu/dialog/message.h>
 
 /* Input includes */
@@ -256,6 +257,15 @@ static void s_wm_cleanup(void)
     }
 
     rootmenu_menu_json_free();
+
+    /* 'winlist_close' is otherwise only ever reached while the menu
+     * is genuinely open, dismissed by the person using it; called
+     * once more here too so its own 's_desktop_entries' (winlist.c),
+     * dynamically allocated since it can no longer just sit in
+     * static storage, is not left for a leak checker to flag on a
+     * clean shutdown, the same reasoning 'rootmenu_menu_json_free'
+     * just above already gets applied for. */
+    winlist_close();
 
     if (wm->config != NULL) {
         config_destroy(wm->config);

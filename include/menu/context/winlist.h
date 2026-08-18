@@ -134,6 +134,14 @@ void winlist_show(xcb_connection_t *connection,
 /**
  * @brief Close the window list menu
  *
+ * Also frees 's_desktop_entries', winlist.c's own dynamically-
+ * allocated array of per-desktop submenu entries (sized fresh, to
+ * the real desktop count, on every 'winlist_show' instead of a
+ * fixed worst-case allocation held for the whole session); safe to
+ * call even when the menu was never open to begin with, or was
+ * already closed, since freeing a null pointer is itself already a
+ * no-op.
+ *
  * @note Complexity: @e O(1)
  */
 void winlist_close(void);

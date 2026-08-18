@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* calloc, free */
 #include <string.h>     /* memset */
 #include <stdio.h>      /* snprintf */
 
@@ -74,9 +75,20 @@ static ctxmenu_entry_td s_root_entries[WINLIST_MAX_DESKTOPS + 4];
 /** State for each desktop's submenu */
 static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
 
-/** Entries for each desktop's submenu */
-static ctxmenu_entry_td
-    s_desktop_entries[WINLIST_MAX_DESKTOPS][WINLIST_MAX_ENTRIES_PER_DESKTOP];
+/** Entries for each desktop's submenu; allocated fresh, sized to the
+ *  real 'surface->desktop_count' (clamped to WINLIST_MAX_DESKTOPS),
+ *  each time 'winlist_show' opens the menu, and freed by
+ *  'winlist_close'.  See the comment where it is allocated in
+ *  'winlist_show' for why a plain free-and-reallocate on every open
+ *  needs no 'realloc' of its own to track 'desktop_count' changing
+ *  over the window manager's own lifetime.  A single 'free' on this
+ *  alone (never a per-row loop, unlike 's_entries' in rootmenu.c) is
+ *  always enough to release it: no entry this file ever builds sets
+ *  its own 'command'/'class_name', only 'on_activate'/'userdata', so
+ *  there is never anything of its own for any individual entry to
+ *  free. */
+static ctxmenu_entry_td (*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP]
+    = NULL;
 
 /** State for each application-group submenu, allocated on demand */
 static ctxmenu_state_td s_appgroup_state[WINLIST_MAX_APPGROUPS];
@@ -523,9 +535,10 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     }
 
     if (surface->desktops != NULL) {
+        const cdlist_item_td *dinitial;
+
         dnode = cdlist_head(surface->desktops);
         if (dnode != NULL) {
-            const cdlist_item_td *dinitial;
             dinitial = dnode;
             do {
                 desktop_td *const home_desktop=
@@ -666,12 +679,41 @@ void winlist_show(xcb_connection_t *connection,
     s_entry_data_used = 0;
     s_appgroup_used = 0;
     memset(s_root_entries, 0, sizeof(s_root_entries));
-    memset(s_desktop_entries, 0, sizeof(s_desktop_entries));
 
-    n = 0;
     cur_did = surface->desktop_cur;
     desktop_count = (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
         ? (int) surface->desktop_count : WINLIST_MAX_DESKTOPS;
+
+    /* Sized to 'desktop_count' itself, computed fresh just above from
+     * 'surface->desktop_count' as it stands at this exact moment,
+     * rather than to 'WINLIST_MAX_DESKTOPS' (the most desktops a
+     * surface could ever have, not how many this one actually does
+     * right now): a session with only two or three desktops in use
+     * no longer pays for the full, far larger worst case every
+     * single time this menu opens.  No 'realloc' of any kind is
+     * needed to track 'desktop_count' changing over the window
+     * manager's own lifetime, since this whole array is already
+     * rebuilt from a blank slate on every single 'winlist_show' call
+     * regardless (matching every entry it holds, which are always
+     * rebuilt fresh too, never carried over from the last time this
+     * menu happened to be open); freeing whatever was allocated last
+     * time and allocating fresh again this time, already the shape
+     * 'winlist_close' followed even before this was dynamic, keeps
+     * naturally matching whatever 'desktop_count' happens to be each
+     * time with no extra bookkeeping between one open and the next.
+     * At least one row always, matching a session's own standing
+     * invariant of never actually reaching zero desktops, but kept
+     * as an explicit floor here regardless, defensively, the same
+     * way 'desktop_count' itself already gets clamped above rather
+     * than trusted outright. */
+    s_desktop_entries = calloc((size_t) ((desktop_count > 0)
+                ? desktop_count : 1),
+            sizeof(*s_desktop_entries));
+    if (s_desktop_entries == NULL) {
+        return;
+    }
+
+    n = 0;
 
     /* A single desktop has nothing to choose between, so the usual
      * per-desktop submenu layer below would only ever wrap around one
@@ -904,6 +946,14 @@ void winlist_show(xcb_connection_t *connection,
 void winlist_close(void)
 {
     ctxmenu_close(&s_root);
+
+    /* See 's_desktop_entries' own comment (its declaration, above)
+     * for why a single 'free' here, with no per-row loop of its own,
+     * is always enough. */
+    if (s_desktop_entries != NULL) {
+        free(s_desktop_entries);
+        s_desktop_entries = NULL;
+    }
 }
 
 
