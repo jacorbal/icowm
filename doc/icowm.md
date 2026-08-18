@@ -286,7 +286,7 @@ here, in every row, in either kind of build.
 | Desktops per screen, ordinary session, no `config.json` at all | 4 | 4 |
 | Screens, or desktops on that single screen, `-M <mib>` given (see 4.1) | 1 | 1 |
 | Most screens an ordinary, unrestricted session can ever track at once | 6 | 1 |
-| Most desktops per screen an ordinary, unrestricted session can ever track at once | 10 | 4 |
+| Most desktops per screen an ordinary, unrestricted session can ever track at once | 32 | 4 |
 | Most physical monitors an ordinary, unrestricted session can ever track at once | 16 | 2 |
 | Most XRandR output profiles you can configure at once, ordinary session | 16 | 2 |
 
