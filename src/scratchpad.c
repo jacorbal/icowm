@@ -287,8 +287,8 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
     if (width > avail_w) {
         width = avail_w;
     }
-    if (height > area_h) {
-        height = area_h;
+    if (height > avail_h) {
+        height = avail_h;
     }
 
     switch (config->base.scratchpad.edge) {
