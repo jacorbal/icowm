@@ -208,7 +208,7 @@ carries its own real, ongoing cost regardless of anything else.  This
 limit is worked out from the ceiling you chose with `-M <mib>`, roughly
 like this:
 
-1. A small slice of the ceiling (6 MiB) is set aside for IcoWM itself,
+1. A small slice of the ceiling (7 MiB) is set aside for IcoWM itself,
    before counting any windows at all.
 2. Whatever is left over is divided up, generously, at a quarter of
    a mebibyte per window.
@@ -286,12 +286,12 @@ here, in every row, in either kind of build.
 | Desktops per screen, ordinary session, no `config.json` at all | 4 | 4 |
 | Screens, or desktops on that single screen, `-M <mib>` given (see 4.1) | 1 | 1 |
 | Most screens an ordinary, unrestricted session can ever track at once | 6 | 1 |
-| Most desktops per screen an ordinary, unrestricted session can ever track at once | 32 | 4 |
+| Most desktops per screen an ordinary, unrestricted session can ever track at once | 16 | 4 |
 | Most physical monitors an ordinary, unrestricted session can ever track at once | 16 | 2 |
 | Most XRandR output profiles you can configure at once, ordinary session | 16 | 2 |
 
 `-M <mib>`'s own smallest accepted value (10 MiB), the memory set aside
-for IcoWM itself before dividing up the rest among windows (6 MiB), the
+for IcoWM itself before dividing up the rest among windows (<7 MiB), the
 rough cost assumed per window (a quarter of a mebibyte), and the hard
 ceiling on how many windows it will ever manage regardless of a very
 generous `-M <mib>` value (64) do not change between the two kinds of

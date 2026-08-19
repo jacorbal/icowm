@@ -90,12 +90,17 @@ static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
 static ctxmenu_entry_td (*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP]
     = NULL;
 
-/** State for each application-group submenu, allocated on demand */
-static ctxmenu_state_td s_appgroup_state[WINLIST_MAX_APPGROUPS];
+/** State for each application-group submenu; allocated fresh, sized
+ *  to 's_count_appgroups_needed''s own result for this exact
+ *  'winlist_show' call, and freed by 'winlist_close'; see
+ *  's_desktop_entries''s own comment (above) for why this needs no
+ *  'realloc' of its own either */
+static ctxmenu_state_td *s_appgroup_state = NULL;
 
-/** Entries for each application-group submenu */
-static ctxmenu_entry_td
-    s_appgroup_entries[WINLIST_MAX_APPGROUPS][WINLIST_MAX_APPGROUP_SIZE];
+/** Entries for each application-group submenu; sized, allocated, and
+ *  freed alongside 's_appgroup_state' above, for the same reason */
+static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
+    = NULL;
 
 /** Number of application-group slots claimed during this 'winlist_show' */
 static int s_appgroup_used = 0;
@@ -373,13 +378,24 @@ static void s_client_entry_append(client_td *client, uint32_t did,
     winlist_entry_data_td *data;
     int n;
 
-    if (client == NULL || surface == NULL || out_entries == NULL ||
-            out_count == NULL) {
+    if (client == NULL || surface == NULL || out_count == NULL) {
         return;
     }
 
     n = *out_count;
     if (n >= out_cap) {
+        return;
+    }
+
+    /* 'out_entries == NULL' means a counting-only pass (see
+     * 's_count_appgroups_needed'): '*out_count' still advances, so
+     * the same per-desktop cap this function enforces just above
+     * stays identical between that pass and a real one, but every
+     * bit of work an entry that will never actually be shown has no
+     * use for is skipped, including claiming one of 's_entry_data''s
+     * own limited slots for it. */
+    if (out_entries == NULL) {
+        *out_count = n + 1;
         return;
     }
 
@@ -485,16 +501,36 @@ static void s_client_collect(client_td *client,
  * of applications (e.g., several Xpad notes) stays short enough to fit
  * on screen without needing to scroll.
  *
- * @param surface     Surface that owns the desktop
- * @param did         Desktop ID whose clients are to be listed
- * @param out_entries Destination entries array for this desktop
- * @param out_count   Entry count in @p out_entries; advanced as entries
- *                    are appended
+ * A counting-only pass, used by @a s_count_appgroups_needed to size
+ * @c s_appgroup_entries before any of it actually exists yet, runs
+ * this exact same collection and grouping logic (so the two can
+ * never drift out of step on what actually counts as a group) with
+ * @p out_entries itself @c NULL: every real side effect (writing an
+ * entry, claiming an @c s_entry_data slot, or touching the real,
+ * shared @c s_appgroup_used / @c s_appgroup_entries / @c
+ * s_appgroup_state) is skipped in that mode, in favor of only
+ * advancing @p out_count (so the same per-desktop cap still applies
+ * identically either way) and, once found, @p out_appgroup_count.
+ *
+ * @param surface           Surface that owns the desktop
+ * @param did               Desktop ID whose clients are to be listed
+ * @param out_entries       Destination entries array for this
+ *                          desktop, or @c NULL for a counting-only
+ *                          pass
+ * @param out_count         Entry count in @p out_entries; advanced
+ *                          as entries are appended (or would be, in
+ *                          a counting-only pass)
+ * @param out_appgroup_count @c NULL for a real pass, using the real
+ *                          @c s_appgroup_* globals as before; non-
+ *                          @c NULL for a counting-only pass, which
+ *                          increments @p *out_appgroup_count once
+ *                          per group found instead of touching them
  *
  * @note Applications with only one window here are listed directly
  */
 static void s_build_desktop_entries(surface_td *surface, uint32_t did,
-        ctxmenu_entry_td *out_entries, int *out_count)
+        ctxmenu_entry_td *out_entries, int *out_count,
+        int *out_appgroup_count)
 {
     client_td *collected[WINLIST_MAX_COLLECTED];
     bool placed[WINLIST_MAX_COLLECTED];
@@ -603,7 +639,9 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
         }
 
         if (*out_count >= WINLIST_MAX_ENTRIES_PER_DESKTOP ||
-                s_appgroup_used >= WINLIST_MAX_APPGROUPS) {
+                (out_appgroup_count != NULL
+                    ? *out_appgroup_count
+                    : s_appgroup_used) >= WINLIST_MAX_APPGROUPS) {
             /* Out of submenu slots: fall back to listing this group's
              * windows directly rather than dropping them silently */
             for (int k = 0; k < member_n; ++k) {
@@ -611,6 +649,20 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                         out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                         out_count);
             }
+            continue;
+        }
+
+        if (out_appgroup_count != NULL) {
+            /* Counting-only pass: this group would consume one
+             * 's_appgroup_used' slot in a real pass, so count it as
+             * such; advance 'out_count' by exactly one too, the same
+             * as the single submenu-marker entry a real pass would
+             * append to the parent desktop's own list for it, and
+             * move on without touching any of the real, shared
+             * appgroup state below, which does not exist yet at this
+             * point. */
+            (*out_appgroup_count)++;
+            (*out_count)++;
             continue;
         }
 
@@ -648,6 +700,51 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 }
 
 
+/**
+ * @brief Count how many application-group submenus this same
+ *        @c winlist_show call will actually go on to create, across
+ *        every desktop
+ *
+ * Runs @a s_build_desktop_entries once per desktop in its own
+ * counting-only mode (see that function's own doc comment),
+ * accumulating the total so @c s_appgroup_entries and
+ * @c s_appgroup_state can be sized to it before either actually
+ * exists, rather than to the fixed worst case @c WINLIST_MAX_APPGROUPS
+ * would otherwise always need to cover regardless of how many groups
+ * this desktop count and these clients actually produce.
+ *
+ * @param surface       Surface whose desktops to count groups across
+ * @param desktop_count Already-clamped desktop count, the same one
+ *                      the real build pass right after this call
+ *                      goes on to iterate itself
+ *
+ * @return Total application-group count, already clamped to
+ *         @c WINLIST_MAX_APPGROUPS
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every desktop counted
+ */
+static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
+{
+    int total;
+    int dummy_count;
+
+    total = 0;
+    if (desktop_count <= 1) {
+        dummy_count = 0;
+        s_build_desktop_entries(surface, 0u, NULL, &dummy_count, &total);
+    } else {
+        for (uint32_t did = 0; (int) did < desktop_count; ++did) {
+            dummy_count = 0;
+            s_build_desktop_entries(surface, did, NULL, &dummy_count,
+                    &total);
+        }
+    }
+
+    return total;
+}
+
+
 /* Open the window list menu */
 void winlist_show(xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
@@ -657,6 +754,7 @@ void winlist_show(xcb_connection_t *connection,
     desktop_td *desktop;
     int n;
     int desktop_count;
+    int needed_appgroups;
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     ctxmenu_entry_td *root_target;
     winlist_entry_data_td *add_data;
@@ -713,6 +811,28 @@ void winlist_show(xcb_connection_t *connection,
         return;
     }
 
+    /* Sized to how many application-group submenus this exact call
+     * will actually go on to create (see 's_count_appgroups_needed'
+     * itself for why that count is trustworthy), rather than to
+     * 'WINLIST_MAX_APPGROUPS' (the most this menu could ever create
+     * across every desktop, an extreme worst case realistically
+     * never approached).  At least one row always, the same
+     * defensive floor 's_desktop_entries' just above already applies
+     * for the same reason, even though a session with genuinely no
+     * multi-window application anywhere would only ever index row
+     * zero regardless. */
+    needed_appgroups = s_count_appgroups_needed(surface, desktop_count);
+    s_appgroup_entries = calloc((size_t) ((needed_appgroups > 0)
+                ? needed_appgroups : 1),
+            sizeof(*s_appgroup_entries));
+    s_appgroup_state = (ctxmenu_state_td *) calloc(
+            (size_t) ((needed_appgroups > 0) ? needed_appgroups : 1),
+            sizeof(*s_appgroup_state));
+    if (s_appgroup_entries == NULL || s_appgroup_state == NULL) {
+        winlist_close();
+        return;
+    }
+
     n = 0;
 
     /* A single desktop has nothing to choose between, so the usual
@@ -735,7 +855,7 @@ void winlist_show(xcb_connection_t *connection,
         desktop = surface_desktop_get(surface, 0u);
         if (desktop != NULL) {
             s_build_desktop_entries(surface, 0u, s_desktop_entries[0],
-                    &n);
+                    &n, NULL);
         }
     } else {
         for (uint32_t did = 0; (int) did < desktop_count; ++did) {
@@ -751,7 +871,7 @@ void winlist_show(xcb_connection_t *connection,
 
             desktop_n = 0;
             s_build_desktop_entries(surface, did, s_desktop_entries[did],
-                    &desktop_n);
+                    &desktop_n, NULL);
 
             is_cur = did == cur_did;
 
@@ -949,10 +1069,19 @@ void winlist_close(void)
 
     /* See 's_desktop_entries' own comment (its declaration, above)
      * for why a single 'free' here, with no per-row loop of its own,
-     * is always enough. */
+     * is always enough; the same reasoning applies to
+     * 's_appgroup_entries' and 's_appgroup_state' right below it. */
     if (s_desktop_entries != NULL) {
         free(s_desktop_entries);
         s_desktop_entries = NULL;
+    }
+    if (s_appgroup_entries != NULL) {
+        free(s_appgroup_entries);
+        s_appgroup_entries = NULL;
+    }
+    if (s_appgroup_state != NULL) {
+        free(s_appgroup_state);
+        s_appgroup_state = NULL;
     }
 }
 

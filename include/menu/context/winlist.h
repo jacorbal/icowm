@@ -116,7 +116,14 @@
  * Iterates over all desktops on @p surface, and for each desktop that
  * has at least one client, adds a label entry for the desktop and one
  * command entry per client.  Any previously open window list menu is
- * closed first.
+ * closed first.  Runs a first, counting-only pass over every client
+ * before actually building anything (see @a s_count_appgroups_needed
+ * and @a s_build_desktop_entries's own doc comments), so its own
+ * dynamically-allocated per-desktop and per-application-group entry
+ * storage can be sized to what this exact call actually needs instead
+ * of a fixed worst case held throughout the window manager's own
+ * whole lifetime regardless of how many desktops or applications a
+ * given session actually has.
  *
  * @param connection XCB connection
  * @param surface    Surface whose clients are listed
@@ -125,7 +132,9 @@
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the total number of clients
- *       across all desktops
+ *       across all desktops; visited twice, once to count and once to
+ *       build, rather than the single pass this used before its own
+ *       storage became dynamically sized
  */
 void winlist_show(xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
