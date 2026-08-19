@@ -28,11 +28,11 @@
 
 /* Public interface */
 /** @c exit_wm: request that IcoWM stop and exit; no arguments */
-cJSON *ipc_action_exit_wm(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_exit_wm(const wm_td *wm, const cJSON *args);
 
 /** @c reload_config: reload every configuration file, the same as
  *  sending IcoWM @c SIGHUP; no arguments */
-cJSON *ipc_action_reload_config(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_reload_config(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_WM_H */

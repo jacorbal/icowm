@@ -35,62 +35,62 @@
 
 /* --- The five that only need "client_id", via the shared wrapper --- */
 
-static void s_center(wm_td *wm, client_td *client, surface_td *surface,
+static void s_center(const wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_center(client);
 }
 
-static void s_move_next_monitor(wm_td *wm, client_td *client,
+static void s_move_next_monitor(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_move_next_monitor(client);
 }
 
-static void s_maximize_horz(wm_td *wm, client_td *client,
+static void s_maximize_horz(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_maximize_horz(client);
 }
 
-static void s_maximize_vert(wm_td *wm, client_td *client,
+static void s_maximize_vert(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_maximize_vert(client);
 }
 
-static void s_maximize(wm_td *wm, client_td *client, surface_td *surface,
+static void s_maximize(const wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_maximize(client);
 }
 
-cJSON *ipc_action_center_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_center_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_center);
 }
 
-cJSON *ipc_action_move_client_to_next_monitor(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client_to_next_monitor(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_move_next_monitor);
 }
 
-cJSON *ipc_action_maximize_client_horz(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_maximize_client_horz(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_maximize_horz);
 }
 
-cJSON *ipc_action_maximize_client_vert(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_maximize_client_vert(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_maximize_vert);
 }
 
-cJSON *ipc_action_maximize_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_maximize_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_maximize);
 }
@@ -98,7 +98,7 @@ cJSON *ipc_action_maximize_client(wm_td *wm, const cJSON *args)
 
 /* --- The three with their own extra arguments --- */
 
-cJSON *ipc_action_move_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client(const wm_td *wm, const cJSON *args)
 {
     int32_t x;
     int32_t y;
@@ -122,7 +122,7 @@ cJSON *ipc_action_move_client(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_move_client_to_monitor(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client_to_monitor(const wm_td *wm, const cJSON *args)
 {
     uint32_t monitor_index;
     client_td *client;
@@ -142,7 +142,7 @@ cJSON *ipc_action_move_client_to_monitor(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_move_resize_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_resize_client(const wm_td *wm, const cJSON *args)
 {
     int32_t x;
     int32_t y;
@@ -174,7 +174,7 @@ cJSON *ipc_action_move_resize_client(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_resize_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args)
 {
     uint32_t w;
     uint32_t h;

@@ -382,7 +382,7 @@ void hi_handle_net_wm_state(client_td *client,
 
 
 /* Handle a '_NET_CURRENT_DESKTOP' client message */
-void hi_handle_net_current_desktop(wm_td *wm,
+void hi_handle_net_current_desktop(const wm_td *wm,
         xcb_client_message_event_t *event)
 {
     surface_td *surface;
@@ -402,7 +402,7 @@ void hi_handle_net_current_desktop(wm_td *wm,
 
 
 /* Handle a '_NET_WM_DESKTOP' client message */
-void hi_handle_net_wm_desktop(wm_td *wm,
+void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface,
         desktop_td *src_desktop)
@@ -470,7 +470,7 @@ void hi_handle_net_wm_desktop(wm_td *wm,
 
 
 /* Handle a '_NET_MOVERESIZE_WINDOW' client message */
-void hi_handle_net_moveresize_window(wm_td *wm,
+void hi_handle_net_moveresize_window(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {
@@ -691,7 +691,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 
 
 /* Handle a '_NET_RESTACK_WINDOW' client message */
-void hi_handle_net_restack_window(wm_td *wm,
+void hi_handle_net_restack_window(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {
@@ -744,7 +744,7 @@ void hi_handle_net_restack_window(wm_td *wm,
 
 
 /* Handle a '_NET_WM_FULLSCREEN_MONITORS' client message */
-void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
+void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {
@@ -778,7 +778,7 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
 
 
 /* Handle a '_NET_WM_MOVERESIZE' client message */
-void hi_handle_net_wm_moveresize(wm_td *wm,
+void hi_handle_net_wm_moveresize(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {

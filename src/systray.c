@@ -61,7 +61,7 @@ struct systray_state_s s_tray;
  *
  * @note Complexity: @e O(1)
  */
-static void s_systray_config_apply(wm_td *wm)
+static void s_systray_config_apply(const wm_td *wm)
 {
     config_td *config = wm_config(wm);
 
@@ -120,9 +120,9 @@ static void s_systray_config_apply(wm_td *wm)
 
 
 /* Acquire the tray selection and create the dock window */
-void systray_init(wm_td *wm)
+void systray_init(const wm_td *wm)
 {
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL || config == NULL ||
             !config->base.systray.is_enabled) {
@@ -407,7 +407,7 @@ void systray_restack(void)
 
 
 /* React to a configuration reload */
-void systray_reload(wm_td *wm)
+void systray_reload(const wm_td *wm)
 {
     bool should_be_enabled;
     bool was_active;

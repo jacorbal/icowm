@@ -79,7 +79,7 @@ static void s_append_client_summary(cJSON *array, const client_td *client,
 
 /* "get_version": report the wire protocol version, not a program
  * version this project does not otherwise track */
-cJSON *ipc_action_get_version(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args)
 {
     cJSON *resp;
 
@@ -96,7 +96,7 @@ cJSON *ipc_action_get_version(wm_td *wm, const cJSON *args)
 
 
 /* "list_desktops": every desktop on every managed surface */
-cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
 {
     cJSON *resp;
     cJSON *array;
@@ -142,7 +142,7 @@ cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args)
 
 /* "list_clients": every managed, focusable client on every desktop
  * of every managed surface */
-cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
 {
     cJSON *resp;
     cJSON *array;
@@ -169,7 +169,7 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
                 continue;
             }
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *const c = (client_td *) elem;
+                const client_td *const c = (client_td *) elem;
 
                 if (c != NULL && !client_is_locked(c)) {
                     s_append_client_summary(array, c, desktop, surface);
@@ -183,7 +183,7 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
 
 
 /* "get_focused": the active client of every managed surface */
-cJSON *ipc_action_get_focused(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args)
 {
     cJSON *resp;
     cJSON *array;

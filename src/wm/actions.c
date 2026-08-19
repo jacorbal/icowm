@@ -80,7 +80,7 @@
  *       surfaces, @e d the number of desktops per surface, and @e c
  *       the number of clients per desktop
  */
-static void s_resync_after_reload(wm_td *wm)
+static void s_resync_after_reload(const wm_td *wm)
 {
     config_td *config = wm_config(wm);
 
@@ -233,7 +233,7 @@ static void s_resync_after_reload(wm_td *wm)
 
 
 /* Rearrange every visible window on the current desktop */
-void wm_action_rearrange(wm_td *wm, surface_td *surface)
+void wm_action_rearrange(const wm_td *wm, surface_td *surface)
 {
     desktop_td *desktop;
 
@@ -251,7 +251,7 @@ void wm_action_rearrange(wm_td *wm, surface_td *surface)
 
 
 /* Reload the configuration */
-int wm_action_config_reload(wm_td *wm)
+int wm_action_config_reload(const wm_td *wm)
 {
     int load_result;
     config_td *config;
@@ -363,7 +363,7 @@ int wm_action_config_reload(wm_td *wm)
 
 
 /* Perform exit actions before stopping the window manager */
-int wm_action_exit(wm_td *wm)
+int wm_action_exit(const wm_td *wm)
 {
     LOGGER_DEBUG("Executing exit actions", L_NARG);
 

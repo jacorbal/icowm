@@ -69,7 +69,7 @@
  *
  * @note Complexity: @e O(1)
  */
-void systray_init(wm_td *wm);
+void systray_init(const wm_td *wm);
 
 /**
  * @brief Fully tear down the tray, i.e., release the selection and
@@ -299,7 +299,7 @@ void systray_handle_surface_resize(wm_td *wm);
  *
  * @note Complexity: @e O(1)
  */
-void systray_reload(wm_td *wm);
+void systray_reload(const wm_td *wm);
 
 /**
  * @brief Re-apply the configured @c systray.layer stacking rule

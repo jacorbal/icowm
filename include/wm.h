@@ -429,7 +429,7 @@ void wm_request_graceful_stop(void);
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
  */
-int wm_action_config_reload(wm_td *wm);
+int wm_action_config_reload(const wm_td *wm);
 
 /**
  * @brief Rearrange every visible window on the given surface's own
@@ -442,7 +442,7 @@ int wm_action_config_reload(wm_td *wm);
  *
  * @note No-op if @p surface is null or has no current desktop
  */
-void wm_action_rearrange(wm_td *wm, surface_td *surface);
+void wm_action_rearrange(const wm_td *wm, surface_td *surface);
 
 /**
  * @brief Perform actions required before destroying the window manager
@@ -455,7 +455,7 @@ void wm_action_rearrange(wm_td *wm, surface_td *surface);
  * @retval  0 Success
  * @retval  1 Failed to perform the operation
  */
-int wm_action_exit(wm_td *wm);
+int wm_action_exit(const wm_td *wm);
 
 /**
  * @brief Return the desktop that currently contains a specific client
@@ -659,7 +659,7 @@ int wm_ewmh_init(wm_td *wm);
  *
  * @param wm Window manager instance
  */
-void wm_ewmh_tick(wm_td *wm);
+void wm_ewmh_tick(const wm_td *wm);
 
 /**
  * @brief Set the emergency exit flag to @c true

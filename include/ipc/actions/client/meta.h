@@ -32,17 +32,17 @@
 
 /* Public interface */
 /** @c rename_client: arguments @c client_id, @c name */
-cJSON *ipc_action_rename_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_rename_client(const wm_td *wm, const cJSON *args);
 
 /** @c reclass_client: arguments @c client_id, @c class_name,
  *  @c instance_name */
-cJSON *ipc_action_reclass_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_reclass_client(const wm_td *wm, const cJSON *args);
 
 /** @c rerole_client: arguments @c client_id, @c role */
-cJSON *ipc_action_rerole_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args);
 
 /** @c set_client_icon: arguments @c client_id, @c icon_name */
-cJSON *ipc_action_set_client_icon(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_META_H */

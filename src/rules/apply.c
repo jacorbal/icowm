@@ -74,7 +74,7 @@
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       source or target desktop during the add/remove operations
  */
-static void s_rules_apply_desktop(wm_td *wm, client_td *client,
+static void s_rules_apply_desktop(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td **desktop_io,
         const struct rules_apply_s *apply)
 {
@@ -370,7 +370,7 @@ static void s_rules_apply_flags(client_td *client,
 
 /* Evaluate all loaded rules against a client and apply the merged
  * result */
-bool rules_apply(wm_td *wm, client_td *client,
+bool rules_apply(const wm_td *wm, client_td *client,
         surface_td **surface_io, desktop_td **desktop_io,
         enum rules_trigger_e trigger)
 {
@@ -380,7 +380,7 @@ bool rules_apply(wm_td *wm, client_td *client,
     uint32_t prev_desktop_id;
     rules_td *rules = wm_rules(wm);
     xcb_connection_t *connection = wm_connection(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL || rules == NULL || client == NULL ||
             surface_io == NULL || desktop_io == NULL ||

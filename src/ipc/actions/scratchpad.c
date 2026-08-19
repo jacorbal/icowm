@@ -26,7 +26,7 @@
 #include <ipc/actions/scratchpad.h>
 
 
-cJSON *ipc_action_toggle_scratchpad(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_scratchpad(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
     desktop_td *desktop;

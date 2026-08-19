@@ -43,35 +43,35 @@
 /** @c set_desktop_background: arguments @c desktop_id (required),
  *  @c surface_id" (optional), @c color (required, a packed @c 0xRRGGBB
  *  value) */
-cJSON *ipc_action_set_desktop_background(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args);
 
 /** @c show_desktop: arguments @c desktop_id (required), @c surface_id
  *  (optional), @c show (required boolean) */
-cJSON *ipc_action_show_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_desktop: arguments @c client_id,
  *  @c target_desktop_id (on the client's own current surface) */
-cJSON *ipc_action_send_client_to_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_front: raise the client to the front of its own
  *  desktop's window stack; argument @c client_id */
-cJSON *ipc_action_send_client_to_front(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_back: send the client to the back of its own
  *  desktop's window stack; argument @c client_id */
-cJSON *ipc_action_send_client_to_back(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args);
 
 /** @c iconify_all: arguments @c desktop_id (optional; the resolved
  *  surface's own current desktop otherwise), @c surface_id (optional) */
-cJSON *ipc_action_iconify_all(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c deiconify_all: same arguments as @c iconify_all */
-cJSON *ipc_action_deiconify_all(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c rearrange_desktop: arguments @c desktop_id (optional; the
  * resolved surface's own current desktop otherwise), @c surface_id
  * (optional) */
-cJSON *ipc_action_rearrange(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_DESKTOP_H */

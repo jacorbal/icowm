@@ -220,7 +220,7 @@ static inline void s_show_logger_destination(FILE *fp,
             fprintf(fp, "in chunks to the innocuous file '%s' ",
                     filename);
         }
-        fprintf(fp, "with level %u\n", level);
+        fprintf(fp, "with level %u\n", (unsigned int) level);
     }
 }
 

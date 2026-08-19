@@ -31,10 +31,10 @@
 #include <ipc/actions/surface.h>
 
 
-cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
-    desktop_td *desktop;
+    const desktop_td *desktop;
     cJSON *error = NULL;
 
     desktop = ipc_resolve_desktop(wm, args, true, &surface, &error);
@@ -47,7 +47,7 @@ cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -60,7 +60,7 @@ cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -73,7 +73,7 @@ cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_add_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -96,7 +96,7 @@ cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_remove_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -113,7 +113,7 @@ cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_toggle_strutless_maximize(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 

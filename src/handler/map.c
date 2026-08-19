@@ -94,7 +94,8 @@ static void s_map_unmanaged(xcb_connection_t *connection,
 
 
 /* Handle a 'MAP_REQUEST' event */
-void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
+void handler_map_request(const wm_td *wm,
+        xcb_map_request_event_t *event)
 {
     surface_td *surface;
     desktop_td *desktop;

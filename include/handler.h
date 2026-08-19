@@ -94,7 +94,8 @@ void handler_configure_notify(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-void handler_map_request(wm_td *wm, xcb_map_request_event_t *event);
+void handler_map_request(const wm_td *wm,
+        xcb_map_request_event_t *event);
 
 /**
  * @brief Handle a @c MAP_NOTIFY event
@@ -216,7 +217,8 @@ void handler_destroy_notify(xcb_connection_t *connection,
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       surfaces
  */
-void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
+void handler_property_notify(const wm_td *wm,
+        xcb_connection_t *connection,
         list_td *surfaces, xcb_property_notify_event_t *event);
 
 /**
@@ -313,7 +315,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
  *
  * @see @c ccmd_client_resize_flush_pending
  */
-void handler_sync_event(wm_td *wm, xcb_generic_event_t *event);
+void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event);
 
 
 #endif  /* ! HANDLER_H */

@@ -685,7 +685,7 @@ void wm_ewmh_sync(wm_td *wm)
 
 
 /* Perform periodic EWMH maintenance: ping and timeout handling */
-void wm_ewmh_tick(wm_td *wm)
+void wm_ewmh_tick(const wm_td *wm)
 {
     struct s_wm_ping_ctx_s ctx;
     xcb_connection_t *connection = wm_connection(wm);

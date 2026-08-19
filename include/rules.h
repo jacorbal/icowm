@@ -128,7 +128,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix);
  *
  * @note Complexity: @e O(n), where @e n is the number of loaded rules
  */
-bool rules_apply(wm_td *wm, client_td *client,
+bool rules_apply(const wm_td *wm, client_td *client,
         surface_td **surface_io, desktop_td **desktop_io,
         enum rules_trigger_e trigger);
 

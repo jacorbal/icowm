@@ -26,42 +26,42 @@
 #include <ipc/actions/client/layer.h>
 
 
-static void s_raise(wm_td *wm, client_td *client, surface_td *surface,
+static void s_raise(const wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_raise(client);
 }
 
-static void s_lower(wm_td *wm, client_td *client, surface_td *surface,
+static void s_lower(const wm_td *wm, client_td *client, surface_td *surface,
         desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_lower(client);
 }
 
-static void s_layer_above(wm_td *wm, client_td *client,
+static void s_layer_above(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_layer_above(client);
 }
 
-static void s_layer_normal(wm_td *wm, client_td *client,
+static void s_layer_normal(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_layer_normal(client);
 }
 
-static void s_layer_below(wm_td *wm, client_td *client,
+static void s_layer_below(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_layer_below(client);
 }
 
-static void s_cycle_layer(wm_td *wm, client_td *client,
+static void s_cycle_layer(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
@@ -69,32 +69,32 @@ static void s_cycle_layer(wm_td *wm, client_td *client,
 }
 
 
-cJSON *ipc_action_raise_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_raise_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_raise);
 }
 
-cJSON *ipc_action_lower_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_lower_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_lower);
 }
 
-cJSON *ipc_action_set_layer_above_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_above_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_above);
 }
 
-cJSON *ipc_action_set_layer_normal_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_normal_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_normal);
 }
 
-cJSON *ipc_action_set_layer_below_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_layer_below_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_below);
 }
 
-cJSON *ipc_action_cycle_layer_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_cycle_layer_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_cycle_layer);
 }

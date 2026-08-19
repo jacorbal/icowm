@@ -35,43 +35,43 @@
 /* Public interface */
 /** @c close_client: politely ask the client to close, or destroy its
  *  window directly if it does not support that */
-cJSON *ipc_action_close_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_close_client(const wm_td *wm, const cJSON *args);
 
 /** @c kill_client: forcibly terminate the client's own X connection */
-cJSON *ipc_action_kill_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_kill_client(const wm_td *wm, const cJSON *args);
 
 /** @c deiconify_client: restore the client if it was iconified */
-cJSON *ipc_action_deiconify_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_deiconify_client(const wm_td *wm, const cJSON *args);
 
 /** @c focus_client: focus and raise the client */
-cJSON *ipc_action_focus_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_focus_client(const wm_td *wm, const cJSON *args);
 
 /** @c unfocus_client: clear input focus from the client, if it had it */
-cJSON *ipc_action_unfocus_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_unfocus_client(const wm_td *wm, const cJSON *args);
 
 /** @c iconify_client: iconify (minimize) the client */
-cJSON *ipc_action_iconify_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_iconify_client(const wm_td *wm, const cJSON *args);
 
 /** @c hide_client: hide the client without iconifying it */
-cJSON *ipc_action_hide_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_hide_client(const wm_td *wm, const cJSON *args);
 
 /** @c unhide_client: undo @c hide_client */
-cJSON *ipc_action_unhide_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_unhide_client(const wm_td *wm, const cJSON *args);
 
 /** @c pin_client: make the client visible on every desktop */
-cJSON *ipc_action_pin_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_pin_client(const wm_td *wm, const cJSON *args);
 
 /** @c unpin_client: undo @c pin_client */
-cJSON *ipc_action_unpin_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_unpin_client(const wm_td *wm, const cJSON *args);
 
 /** @c toggle_pin_client */
-cJSON *ipc_action_toggle_pin_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_toggle_pin_client(const wm_td *wm, const cJSON *args);
 
 /** @c urge_client: mark the client urgent */
-cJSON *ipc_action_urge_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_urge_client(const wm_td *wm, const cJSON *args);
 
 /** @c unurge_client: undo @c urge_client */
-cJSON *ipc_action_unurge_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_unurge_client(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_BASIC_H */

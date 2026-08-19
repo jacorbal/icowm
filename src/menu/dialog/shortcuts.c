@@ -275,8 +275,6 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_binding(text, sizeof(text), &offset,
                 _(STR_SHORTCUTS_DESKTOP_REMOVE),
                 config->bindings.keyboard.wm.desktop.remove);
-    }
-    if (surface->desktop_count > 1u) {
         s_append_goto_desktop(text, sizeof(text), &offset, config);
     }
     s_append_binding(text, sizeof(text), &offset,

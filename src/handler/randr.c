@@ -58,7 +58,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     uint8_t notify_type;
     list_td *surfaces = wm_surfaces(wm);
     xcb_key_symbols_t *keysyms = wm_keysyms(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL || event == NULL || surfaces == NULL ||
             !wm_randr_available(wm)) {

@@ -73,9 +73,9 @@ static uint32_t s_resolve_size(struct config_scratchpad_size_s size,
 
 /* Launch the scratchpad, or toggle its visibility if one is already
  * running */
-void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
+void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
 {
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL || desktop == NULL || config == NULL ||
             !config->base.scratchpad.is_enabled) {

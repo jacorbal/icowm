@@ -256,8 +256,8 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 
 /* Re-apply the configured placement policy to every client on the
  * desktop */
-void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
-        desktop_td *desktop)
+void enact_desktop_clients_rearrange(const wm_td *wm,
+        surface_td *surface, desktop_td *desktop)
 {
     cdlist_item_td *node;
     enum config_placement_policy_e policy;

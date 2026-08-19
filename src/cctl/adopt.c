@@ -42,7 +42,7 @@
 
 
 /* Adopt all pre-existing mapped windows at window manager startup */
-void cctl_adopt_scan(wm_td *wm)
+void cctl_adopt_scan(const wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);
     xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);

@@ -37,9 +37,9 @@ int enact_wm_exit(void)
 
 
 /* Reload the window manager's configuration */
-int enact_wm_configuration_reload(wm_td *wm)
+int enact_wm_configuration_reload(const wm_td *wm)
 {
-    int status = wm_action_config_reload(wm);
+    const int status = wm_action_config_reload(wm);
 
     if (status == 0) {
         ipc_broadcast_event(IPC_EVENT_CONFIG_RELOADED, NULL);

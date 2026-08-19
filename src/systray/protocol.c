@@ -288,7 +288,7 @@ void systray_protocol_dock(xcb_window_t icon)
  * Idempotent: does nothing (beyond returning success) if
  * 's_tray.window_ready' is already 'true'.  Does not acquire the
  * selection; see 'systray_protocol_selection_acquire'. */
-bool systray_protocol_window_ensure(wm_td *wm)
+bool systray_protocol_window_ensure(const wm_td *wm)
 {
     surface_td *surface;
     char selection_name[32];

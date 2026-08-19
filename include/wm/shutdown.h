@@ -60,7 +60,7 @@
  *
  * @see see @a ccmd_client_close in @c cmds/client/basic.h
  */
-void wm_shutdown_begin(wm_td *wm);
+void wm_shutdown_begin(const wm_td *wm);
 
 /**
  * @brief Milliseconds remaining before the shutdown timeout forces the
@@ -96,7 +96,7 @@ int wm_shutdown_ms_remaining(void);
  *
  * @see @a ccmd_client_kill in @c cmds/client/basic.h 
  */
-void wm_shutdown_tick(wm_td *wm);
+void wm_shutdown_tick(const wm_td *wm);
 
 /**
  * @brief Query whether a coordinated shutdown is currently in

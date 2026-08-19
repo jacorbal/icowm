@@ -29,7 +29,7 @@
 #include <ipc/actions/client/meta.h>
 
 
-cJSON *ipc_action_rename_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_rename_client(const wm_td *wm, const cJSON *args)
 {
     const char *name;
     client_td *client;
@@ -49,7 +49,7 @@ cJSON *ipc_action_rename_client(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_reclass_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_reclass_client(const wm_td *wm, const cJSON *args)
 {
     const char *class_name;
     const char *instance_name;
@@ -73,7 +73,7 @@ cJSON *ipc_action_reclass_client(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_rerole_client(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args)
 {
     const char *role;
     client_td *client;
@@ -93,7 +93,7 @@ cJSON *ipc_action_rerole_client(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_set_client_icon(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args)
 {
     const char *icon_name;
     client_td *client;

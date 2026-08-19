@@ -30,7 +30,7 @@
  * @return 0 on success (including when XRandR is unavailable), -1 if
  *         @p wm or its members are null
  */
-int wm_startup_subscribe_randr_events(wm_td *wm);
+int wm_startup_subscribe_randr_events(const wm_td *wm);
 
 /**
  * @brief Subscribe to root window events on all managed surfaces
@@ -44,7 +44,7 @@ int wm_startup_subscribe_randr_events(wm_td *wm);
  *         another window manager already holds the root event
  *         subscription
  */
-int wm_startup_subscribe_root_events(wm_td *wm);
+int wm_startup_subscribe_root_events(const wm_td *wm);
 
 
 #endif  /* ! WM_STARTUP_SUBSCRIBE_H */

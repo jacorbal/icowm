@@ -64,7 +64,7 @@
  *         generic failure response, when the handler could not build
  *         one of its own (allocation failure)
  */
-typedef cJSON *(*s_ipc_cmd_fn)(wm_td *wm, const cJSON *args);
+typedef cJSON *(*s_ipc_cmd_fn)(const wm_td *wm, const cJSON *args);
 
 
 /** One dispatch table entry: a command's own name and handler */

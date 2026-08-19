@@ -32,7 +32,7 @@
  * @note Complexity: @e O(n), where @e n is the total number of
  *       pre-existing windows across all screens
  */
-void cctl_adopt_scan(wm_td *wm);
+void cctl_adopt_scan(const wm_td *wm);
 
 
 #endif  /* ! CCTL_ADOPT_H */

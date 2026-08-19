@@ -30,23 +30,23 @@
 /* Public interface */
 /** @c goto_desktop: arguments @c desktop_id (required), @c surface_id
  *  (optional) */
-cJSON *ipc_action_goto_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c goto_next_desktop: argument @c surface_id (optional) */
-cJSON *ipc_action_goto_next_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c goto_prev_desktop: argument @c surface_id (optional) */
-cJSON *ipc_action_goto_prev_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c add_desktop: argument @c surface_id (optional) */
-cJSON *ipc_action_add_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_add_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c remove_desktop: argument @c surface_id (optional); refused with
  *  an error when only one desktop remains on the target surface */
-cJSON *ipc_action_remove_desktop(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_remove_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c toggle_strutless_maximize: argument @c surface_id (optional) */
-cJSON *ipc_action_toggle_strutless_maximize(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_SURFACE_H */

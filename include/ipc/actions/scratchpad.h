@@ -24,7 +24,7 @@
 
 /** @c toggle_scratchpad: arguments @c desktop_id (optional; the resolved
  *  surface's own current desktop otherwise), @c surface_id (optional) */
-cJSON *ipc_action_toggle_scratchpad(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_toggle_scratchpad(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_SCRATCHPAD_H */

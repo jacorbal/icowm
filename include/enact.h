@@ -524,8 +524,8 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  *
  * @see @a place_apply
  */
-void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
-        desktop_td *desktop);
+void enact_desktop_clients_rearrange(const wm_td *wm,
+        surface_td *surface, desktop_td *desktop);
 
 /**
  * @brief Iconify every client on the desktop
@@ -727,7 +727,7 @@ int enact_wm_exit(void);
  * @note Complexity: @e O(n), where @e n is the size of the
  *       configuration being reloaded
  */
-int enact_wm_configuration_reload(wm_td *wm);
+int enact_wm_configuration_reload(const wm_td *wm);
 
 
 #endif  /* ! ENACT_H */

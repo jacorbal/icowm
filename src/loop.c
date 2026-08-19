@@ -94,12 +94,12 @@
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients inspected by @c lookup_find_client
  */
-static void s_loop_handle_leave_notify(wm_td *wm,
+static void s_loop_handle_leave_notify(const wm_td *wm,
         xcb_leave_notify_event_t *event)
 {
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
     xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || event == NULL) {
@@ -147,7 +147,7 @@ static void s_loop_handle_leave_notify(wm_td *wm,
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients inspected by @c lookup_find_client
  */
-static void s_loop_handle_focus_out(wm_td *wm,
+static void s_loop_handle_focus_out(const wm_td *wm,
         xcb_focus_out_event_t *event)
 {
     surface_td *surface = NULL;
@@ -307,7 +307,7 @@ static const char *s_loop_connection_error_string(int error_code)
  *       the hash-table lookup cost per desktop, the same as
  *       @a lookup_find_client itself, which this wraps
  */
-static void s_loop_note_real_input(wm_td *wm, xcb_window_t window,
+static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
         uint8_t response_type, uint32_t time)
 {
     client_td *client;
@@ -325,7 +325,6 @@ static void s_loop_note_real_input(wm_td *wm, xcb_window_t window,
 void loop_run(wm_td *wm)
 {
     xcb_key_symbols_t *keysyms;
-    xcb_generic_event_t *event;
     xcb_generic_event_t *pending_event = NULL; /**< One-event lookahead
                                                     used to coalesce
                                                     a run of consecutive
@@ -339,7 +338,7 @@ void loop_run(wm_td *wm)
     bool any_outdated;
     xcb_connection_t *connection;
     list_td *surfaces;
-    config_td *config;
+    const config_td *config;
     uint32_t restricted_memory_mib;
     bool randr_available;
     uint8_t randr_base_event;
@@ -396,6 +395,7 @@ void loop_run(wm_td *wm)
     LOGGER_DEBUG("Entering main event loop", L_NARG);
 
     while (wm_is_running(wm)) {
+        xcb_generic_event_t *event;
         int nfds;
         int poll_status;
         int poll_timeout_ms;

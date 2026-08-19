@@ -33,16 +33,16 @@
 
 /* Public interface */
 /** @c move_client: arguments @c client_id, @c x, @c y (both signed) */
-cJSON *ipc_action_move_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_move_client(const wm_td *wm, const cJSON *args);
 
 /** @c center_client: center the client on its current screen */
-cJSON *ipc_action_center_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_center_client(const wm_td *wm, const cJSON *args);
 
 /** @c move_client_to_monitor: arguments @c client_id, @c monitor_index */
-cJSON *ipc_action_move_client_to_monitor(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_move_client_to_monitor(const wm_td *wm, const cJSON *args);
 
 /** @c move_client_to_next_monitor */
-cJSON *ipc_action_move_client_to_next_monitor(wm_td *wm,
+cJSON *ipc_action_move_client_to_next_monitor(const wm_td *wm,
         const cJSON *args);
 
 /**
@@ -53,7 +53,7 @@ cJSON *ipc_action_move_client_to_next_monitor(wm_td *wm,
  * @see @c resize_client below for one that only ever resizes, leaving
  *      position alone
  */
-cJSON *ipc_action_move_resize_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_move_resize_client(const wm_td *wm, const cJSON *args);
 
 /**
  * @brief @c resize_client: arguments @c client_id, @c w, @c h (both
@@ -63,16 +63,16 @@ cJSON *ipc_action_move_resize_client(wm_td *wm, const cJSON *args);
  * @see @c move_resize_client above to move and resize together in one
  *      request instead
  */
-cJSON *ipc_action_resize_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args);
 
 /** @c maximize_client_horz */
-cJSON *ipc_action_maximize_client_horz(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_maximize_client_horz(const wm_td *wm, const cJSON *args);
 
 /** @c maximize_client_vert */
-cJSON *ipc_action_maximize_client_vert(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_maximize_client_vert(const wm_td *wm, const cJSON *args);
 
 /** @c maximize_client: both horizontally and vertically */
-cJSON *ipc_action_maximize_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_maximize_client(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_GEOM_H */

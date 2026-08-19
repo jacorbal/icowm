@@ -102,7 +102,7 @@ static client_td *s_find_client_by_alarm(list_td *surfaces,
 
 
 /* Handle XSync extension notifications */
-void handler_sync_event(wm_td *wm, xcb_generic_event_t *event)
+void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event)
 {
     uint8_t event_type;
     uint8_t alarm_notify_type;

@@ -37,7 +37,7 @@
 
 
 /* Resolve which surface a request refers to */
-surface_td *ipc_resolve_surface(wm_td *wm, const cJSON *args)
+surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args)
 {
     uint32_t surface_id;
 
@@ -54,7 +54,7 @@ surface_td *ipc_resolve_surface(wm_td *wm, const cJSON *args)
 
 /* Resolve which desktop a request refers to, on top of
  * ipc_resolve_surface */
-desktop_td *ipc_resolve_desktop(wm_td *wm, const cJSON *args,
+desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
         bool desktop_id_required, surface_td **out_surface,
         cJSON **out_error)
 {
@@ -93,7 +93,7 @@ desktop_td *ipc_resolve_desktop(wm_td *wm, const cJSON *args,
 
 
 /* Resolve which client a request refers to */
-client_td *ipc_resolve_client(wm_td *wm, const cJSON *args,
+client_td *ipc_resolve_client(const wm_td *wm, const cJSON *args,
         surface_td **out_surface, desktop_td **out_desktop,
         cJSON **out_error)
 {

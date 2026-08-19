@@ -272,7 +272,7 @@ void systray_layout_restack(void);
  *
  * @see @p systray_protocol_selection_acquire
  */
-bool systray_protocol_window_ensure(wm_td *wm);
+bool systray_protocol_window_ensure(const wm_td *wm);
 
 /**
  * @brief Acquire the tray selection on the already-created window

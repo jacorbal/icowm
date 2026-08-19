@@ -34,7 +34,7 @@
 #include <ipc/actions/desktop.h>
 
 
-cJSON *ipc_action_set_desktop_background(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args)
 {
     uint32_t color;
     surface_td *surface = NULL;
@@ -55,7 +55,7 @@ cJSON *ipc_action_set_desktop_background(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_show_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args)
 {
     bool show;
     surface_td *surface = NULL;
@@ -76,7 +76,7 @@ cJSON *ipc_action_show_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_send_client_to_desktop(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args)
 {
     uint32_t target_desktop_id;
     client_td *client;
@@ -108,7 +108,7 @@ cJSON *ipc_action_send_client_to_desktop(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_send_client_to_front(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args)
 {
     client_td *client;
     surface_td *surface = NULL;
@@ -125,7 +125,7 @@ cJSON *ipc_action_send_client_to_front(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_send_client_to_back(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args)
 {
     client_td *client;
     surface_td *surface = NULL;
@@ -142,7 +142,7 @@ cJSON *ipc_action_send_client_to_back(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_iconify_all(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
     desktop_td *desktop;
@@ -158,7 +158,7 @@ cJSON *ipc_action_iconify_all(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_deiconify_all(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
     desktop_td *desktop;
@@ -174,7 +174,7 @@ cJSON *ipc_action_deiconify_all(wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_rearrange(wm_td *wm, const cJSON *args)
+cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
     desktop_td *desktop;

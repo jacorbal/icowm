@@ -53,7 +53,7 @@
  *
  * @note Complexity: @e O(1)
  */
-void xsettings_init(wm_td *wm);
+void xsettings_init(const wm_td *wm);
 
 /**
  * @brief Fully tear down: release the selection and destroy the window
@@ -94,7 +94,7 @@ void xsettings_shutdown(wm_td *wm);
  *
  * @note Complexity: @e O(1)
  */
-void xsettings_reload(wm_td *wm);
+void xsettings_reload(const wm_td *wm);
 
 
 #endif  /* ! XSETTINGS_H */

@@ -60,7 +60,8 @@
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
-void handler_property_notify(wm_td *wm, xcb_connection_t *connection,
+void handler_property_notify(const wm_td *wm,
+        xcb_connection_t *connection,
         list_td *surfaces, xcb_property_notify_event_t *event)
 {
     client_td *client;

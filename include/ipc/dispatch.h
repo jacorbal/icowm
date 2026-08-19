@@ -49,7 +49,7 @@
  *       than @p client itself; every other one ignores the rest of
  *       these parameters
  */
-typedef void (*ipc_client_action_fn)(wm_td *wm, client_td *client,
+typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop);
 
 
@@ -69,7 +69,7 @@ typedef void (*ipc_client_action_fn)(wm_td *wm, client_td *client,
  *
  * @note Complexity: @e O(1)
  */
-cJSON *ipc_dispatch_client_action(wm_td *wm, const cJSON *args,
+cJSON *ipc_dispatch_client_action(const wm_td *wm, const cJSON *args,
         ipc_client_action_fn action);
 
 

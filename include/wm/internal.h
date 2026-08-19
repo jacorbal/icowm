@@ -134,7 +134,8 @@ struct wm_s {
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across every surface and desktop
  */
-uint32_t wm_for_each_client(wm_td *wm, void (*action)(client_td *client,
+uint32_t wm_for_each_client(const wm_td *wm,
+        void (*action)(client_td *client,
             void *userdata), void *userdata);
 
 

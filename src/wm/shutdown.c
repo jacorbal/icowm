@@ -115,7 +115,7 @@ static int s_shutdown_ms_until(const struct timespec *due)
 
 
 /* Begin a coordinated shutdown */
-void wm_shutdown_begin(wm_td *wm)
+void wm_shutdown_begin(const wm_td *wm)
 {
     uint32_t timeout_seconds;
     config_td *config;
@@ -157,7 +157,7 @@ int wm_shutdown_ms_remaining(void)
 
 
 /* Advance the shutdown state machine */
-void wm_shutdown_tick(wm_td *wm)
+void wm_shutdown_tick(const wm_td *wm)
 {
     uint32_t remaining;
 

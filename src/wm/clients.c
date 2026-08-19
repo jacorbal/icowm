@@ -29,7 +29,8 @@
 
 
 /* Visit every currently managed client across every surface and desktop */
-uint32_t wm_for_each_client(wm_td *wm, void (*action)(client_td *client,
+uint32_t wm_for_each_client(const wm_td *wm,
+        void (*action)(client_td *client,
             void *userdata), void *userdata)
 {
     uint32_t count = 0u;

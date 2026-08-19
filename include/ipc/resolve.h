@@ -58,7 +58,7 @@
  *
  * @note Complexity: @e O(1)
  */
-surface_td *ipc_resolve_surface(wm_td *wm, const cJSON *args);
+surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args);
 
 /**
  * @brief Resolve which desktop a request refers to, on top of
@@ -85,7 +85,7 @@ surface_td *ipc_resolve_surface(wm_td *wm, const cJSON *args);
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *ipc_resolve_desktop(wm_td *wm, const cJSON *args,
+desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
         bool desktop_id_required, surface_td **out_surface,
         cJSON **out_error);
 
@@ -110,7 +110,7 @@ desktop_td *ipc_resolve_desktop(wm_td *wm, const cJSON *args,
  *       surfaces, @e d the number of desktops per surface, and @e c the
  *       hash-table lookup cost per desktop
  */
-client_td *ipc_resolve_client(wm_td *wm, const cJSON *args,
+client_td *ipc_resolve_client(const wm_td *wm, const cJSON *args,
         surface_td **out_surface, desktop_td **out_desktop,
         cJSON **out_error);
 

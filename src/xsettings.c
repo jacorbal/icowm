@@ -315,7 +315,7 @@ static void s_xs_publish(void)
  *
  * @param wm Window manager state
  */
-static void s_xs_load_config(wm_td *wm)
+static void s_xs_load_config(const wm_td *wm)
 {
     config_td *config = wm_config(wm);
 
@@ -369,7 +369,7 @@ static bool s_xs_config_changed(const wm_td *wm)
  * @return @c true on success (or if already ready), @c false if it
  *         could not be created
  */
-static bool s_xs_ensure_window(wm_td *wm)
+static bool s_xs_ensure_window(const wm_td *wm)
 {
     surface_td *surface;
     char selection_name[24];
@@ -479,9 +479,9 @@ static void s_xs_release_selection(void)
 
 
 /* Acquire the XSETTINGS selection and publish the settings */
-void xsettings_init(wm_td *wm)
+void xsettings_init(const wm_td *wm)
 {
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL || config == NULL ||
             !config->theme.xsettings.is_enabled) {
@@ -519,7 +519,7 @@ void xsettings_shutdown(wm_td *wm)
 
 
 /* React to a configuration reload */
-void xsettings_reload(wm_td *wm)
+void xsettings_reload(const wm_td *wm)
 {
     bool should_be_enabled;
     config_td *config = wm_config(wm);

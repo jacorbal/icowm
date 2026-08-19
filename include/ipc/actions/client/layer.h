@@ -30,22 +30,22 @@
 
 /* Public interface */
 /** @c raise_client */
-cJSON *ipc_action_raise_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_raise_client(const wm_td *wm, const cJSON *args);
 
 /** @c lower_client */
-cJSON *ipc_action_lower_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_lower_client(const wm_td *wm, const cJSON *args);
 
 /** @c set_layer_above_client: move the client to the "always on top" layer */
-cJSON *ipc_action_set_layer_above_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_layer_above_client(const wm_td *wm, const cJSON *args);
 
 /** @c set_layer_normal_client: move the client back to the ordinary layer */
-cJSON *ipc_action_set_layer_normal_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_layer_normal_client(const wm_td *wm, const cJSON *args);
 
 /** @c set_layer_below_client: move the client to the "always below" layer */
-cJSON *ipc_action_set_layer_below_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_layer_below_client(const wm_td *wm, const cJSON *args);
 
 /** @c cycle_layer_client: cycle the client through above/normal/below */
-cJSON *ipc_action_cycle_layer_client(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_cycle_layer_client(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_LAYER_H */

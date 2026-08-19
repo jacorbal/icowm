@@ -52,7 +52,8 @@
  *       positions tested and @e n is the number of clients on the
  *       current desktop
  */
-bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
+bool place_smart(const wm_td *wm,
+        surface_td *surface, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y);
 
 /**
@@ -69,7 +70,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
  *       where @e g is the number of grid positions tested and @e n is
  *       the number of clients on the desktop
  */
-void place_apply(wm_td *wm, surface_td *surface, client_td *client);
+void place_apply(const wm_td *wm,
+        surface_td *surface, client_td *client);
 
 /**
  * @brief Place the client following the cascade policy, unconditionally
@@ -87,8 +89,8 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client);
  *
  * @note Complexity: @e O(1)
  */
-void place_apply_cascade(wm_td *wm, surface_td *surface,
-        client_td *client);
+void place_apply_cascade(const wm_td *wm,
+        surface_td *surface, client_td *client);
 
 /**
  * @brief Compute the icon window position for a newly iconified client

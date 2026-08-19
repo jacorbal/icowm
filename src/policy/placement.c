@@ -284,7 +284,7 @@ static void s_clip_to_monitor(const surface_td *surface,
  * @note Complexity: @e O(n), where @e n is the number of monitors
  *       on @p surface
  */
-static monitor_td s_reference_monitor(wm_td *wm,
+static monitor_td s_reference_monitor(const wm_td *wm,
         surface_td *surface,
         enum config_placement_monitor_e monitor_policy)
 {
@@ -334,9 +334,9 @@ static monitor_td s_reference_monitor(wm_td *wm,
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients (see @c lookup_find_client)
  */
-static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
-        client_td *client, int32_t wa_x, int32_t wa_y,
-        uint32_t wa_w, uint32_t wa_h)
+static bool s_place_transient_centered(const wm_td *wm,
+        surface_td *surface, client_td *client,
+        int32_t wa_x, int32_t wa_y, uint32_t wa_w, uint32_t wa_h)
 {
     uint32_t fw;
     uint32_t fh;
@@ -438,7 +438,8 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
 
 
 /* Find the best-scoring smart position for a newly mapped client */
-bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
+bool place_smart(const wm_td *wm,
+        surface_td *surface, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
 {
     desktop_td *desktop;
@@ -466,8 +467,8 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     struct geometry_s wa_geom;
     struct dimensions_s screen;
     struct dimensions_s unused_screen;
-    xcb_connection_t *connection = wm_connection(wm);
-    config_td *config = wm_config(wm);
+    const xcb_connection_t *connection = wm_connection(wm);
+    const config_td *config = wm_config(wm);
 
     if (surface == NULL || client == NULL ||
             out_x == NULL || out_y == NULL || wm == NULL ||
@@ -634,7 +635,7 @@ static uint32_t s_cascade_seq = 0;
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_workarea(wm_td *wm, surface_td *surface,
+static void s_place_workarea(const wm_td *wm, surface_td *surface,
         const client_td *client,
         struct geometry_s *out_wa, struct geometry_s *out_mon_wa,
         struct dimensions_s *out_mon_sz)
@@ -681,9 +682,9 @@ static void s_place_workarea(wm_td *wm, surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_finalize(wm_td *wm, const surface_td *surface,
-        client_td *client, int32_t wa_x, int32_t wa_y,
-        int32_t new_x, int32_t new_y)
+static void s_place_finalize(const wm_td *wm,
+        const surface_td *surface, client_td *client,
+        int32_t wa_x, int32_t wa_y, int32_t new_x, int32_t new_y)
 {
     xcb_window_t target;
     xcb_connection_t *connection = wm_connection(wm);
@@ -708,7 +709,8 @@ static void s_place_finalize(wm_td *wm, const surface_td *surface,
 
 
 /* Place the client following the cascade policy, unconditionally */
-void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
+void place_apply_cascade(const wm_td *wm,
+        surface_td *surface, client_td *client)
 {
     const uint32_t cascade_step = 24u;
     uint32_t max_steps;
@@ -755,7 +757,8 @@ void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
 
 
 /* Apply the configured placement policy to a newly mapped client */
-void place_apply(wm_td *wm, surface_td *surface, client_td *client)
+void place_apply(const wm_td *wm,
+        surface_td *surface, client_td *client)
 {
     const uint32_t cascade_step = 24u;
     xcb_query_pointer_cookie_t pointer_cookie;

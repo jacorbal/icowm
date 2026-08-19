@@ -31,16 +31,16 @@
 
 /* Public interface */
 /** @c get_version: no arguments */
-cJSON *ipc_action_get_version(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args);
 
 /** @c list_desktops: no arguments */
-cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args);
 
 /** @c list_clients: no arguments */
-cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args);
 
 /** @c get_focused: no arguments */
-cJSON *ipc_action_get_focused(wm_td *wm, const cJSON *args);
+cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_QUERY_H */

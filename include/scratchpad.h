@@ -59,7 +59,7 @@
  *
  * @see @a scratchpad_notice_client_created
  */
-void scratchpad_toggle(wm_td *wm, desktop_td *desktop);
+void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
 
 /**
  * @brief Claim a newly created client as the scratchpad, if one was

@@ -533,7 +533,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
  *       on @p desktop
  */
 static void s_desktop_transients_raise(desktop_td *desktop,
-        client_td *client)
+        const client_td *client)
 {
     queue_td *pending;
     size_t max_iterations;
@@ -550,7 +550,7 @@ static void s_desktop_transients_raise(desktop_td *desktop,
 
     while (!queue_is_empty(pending) && processed < max_iterations) {
         void *data;
-        client_td *parent;
+        const client_td *parent;
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
