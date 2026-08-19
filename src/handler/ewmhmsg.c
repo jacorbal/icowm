@@ -141,12 +141,12 @@ static void s_handle_wm_state_atom(client_td *client,
         /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s
          * own comment for why fullscreen is deliberately exempt from
          * it, unlike the maximize handling right below. */
-        if (action == WM_STATE_ACTION_ADD) {
+        if (s_wm_state_resolve_add(action,
+                    client->properties.state ==
+                        CLIENT_STATE_FULLSCREEN)) {
             ccmd_client_fullscreen(client);
-        } else if (action == WM_STATE_ACTION_REMOVE) {
-            ccmd_client_unfullscreen(client);
         } else {
-            ccmd_client_toggle_fullscreen(client);
+            ccmd_client_unfullscreen(client);
         }
         return;
     }
