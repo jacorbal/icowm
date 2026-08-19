@@ -353,7 +353,14 @@ bool systray_protocol_window_ensure(const wm_td *wm)
          * ever generated, silently undoing the configured
          * 's_tray.pixmap_size' this module forces on it at dock time;
          * see 'systray_icon_size_enforce' in 'systray.c'. */
-        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+        /* Without this, the server never generates an 'Expose' event
+         * for this window at all, regardless of how correct
+         * 'handler_expose''s own systray check is: a region covered
+         * and then uncovered stays blank until 'systray_clock_tick'
+         * happens to redraw it anyway on its own next per-second
+         * update, rather than right away. */
+        XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT,
             s_tray.window, surface->screen->root,

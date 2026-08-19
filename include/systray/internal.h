@@ -235,18 +235,6 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
 /* systray/layout.c */
 
 /**
- * @brief Reposition the tray window and lay out its docked icons
- *
- * Unmaps the tray window while empty or while the selection is not
- * currently owned (e.g., disabled by configuration, or another tray
- * manager is active), so it never shows on screen in either case;
- * otherwise sizes and moves it to the configured corner of
- * @p s_tray.surface and arranges icons in a single horizontal row
- * inside it, in @p s_tray.icons order.
- */
-void systray_layout_reflow(void);
-
-/**
  * @brief Apply the configured @c systray.layer stacking rule
  *
  * @note Safe to call whenever the tray's stacking might need

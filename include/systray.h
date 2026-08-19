@@ -328,6 +328,25 @@ void systray_reload(const wm_td *wm);
 void systray_restack(void);
 
 /**
+ * @brief Reposition the tray window and lay out its docked icons
+ *
+ * Unmaps the tray window while empty or while the selection is not
+ * currently owned (e.g., disabled by configuration, or another tray
+ * manager is active), so it never shows on screen in either case;
+ * otherwise sizes and moves it to the configured corner of the
+ * surface and arranges icons in a single horizontal row inside it.
+ *
+ * Redraws only from whatever text and icon state is already cached;
+ * never recomputes the clock or re-polls the battery itself, so
+ * calling this alone (e.g., in response to an @c Expose event
+ * revealing a previously covered region) is always cheap regardless
+ * of how often it happens.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of docked icons
+ */
+void systray_layout_reflow(void);
+
+/**
  * @brief How many milliseconds until the systray clock needs its next
  *        redraw
  *

@@ -46,6 +46,9 @@
 #include <menu/dialog/run.h>
 #include <menu/search.h>
 
+/* Systray includes */
+#include <systray.h>
+
 /* Input includes */
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/icon.h>
@@ -92,6 +95,17 @@ void handler_expose(xcb_connection_t *connection,
     /* Drag overlay repaint */
     if (drag_is_overlay_window(event->window)) {
         drag_overlay_repaint(connection);
+        return;
+    }
+
+    /* Systray repaint: redraws whatever text/icons are already
+     * cached (see 'systray_layout_reflow''s own body), never
+     * recomputing the clock or re-polling the battery, so a region
+     * revealed after being covered reappears right away instead of
+     * staying blank until 'systray_clock_tick''s own next per-second
+     * update happens to redraw it anyway. */
+    if (systray_owns_window(event->window)) {
+        systray_layout_reflow();
         return;
     }
 
