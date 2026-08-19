@@ -15,6 +15,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -22,6 +23,7 @@
 
 /* Default initial values */
 #include <defs/desktop.h>
+#include <defs/uistr.h>
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -44,11 +46,15 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <i18n.h>
 #include <logger.h>
 #include <memguard.h>
 #include <scratchpad.h>
 #include <surface.h>
 #include <wm.h>
+
+/* Menu includes */
+#include <menu/dialog/message.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -68,6 +74,115 @@
 
 /* Local includes */
 #include <handler.h>
+
+
+/**
+ * @brief How long @c client_init is allowed to take before this file
+ *        warns that the X server itself may be refusing new
+ *        connections
+ *
+ * @c client_init normally completes in a small fraction of this; a run
+ * this slow is not itself a hang (the function still returns, XCB
+ * requests here are never left waiting forever), but is a strong sign
+ * that the X server is under enough load from other applications that
+ * it cannot answer promptly, exactly the condition
+ * @c STR_SERVER_LIMIT_REACHED describes.
+ *
+ * Derived, not measured: @c client_init currently makes roughly 17
+ * real round trips to the X server (see the atom-cache and pipelining
+ * work in 'client.c' and 'utils/xcb/atom.c'), each well under a
+ * millisecond on a healthy local connection; even a generous 2-5 ms
+ * per round trip puts a normal call at 34-85 ms.  500 ms is 6-15
+ * times that, equivalent to every single one of those round trips
+ * averaging around 30 ms, a degradation too large to be ordinary
+ * jitter.
+ */
+#define MAP_CLIENT_INIT_SLOW_THRESHOLD_MS (500L)
+
+
+/**
+ * @brief Warn through a message dialog that adopting a new window took
+ *        unusually long, most likely because the X server itself is
+ *        low on resources for new client connections
+ *
+ * Guarded the same way every other message dialog in this project is:
+ * never opened on top of one already on screen.  Unlike
+ * @c memguard_warn_client_cap, this has nothing to do with
+ * restricted-memory mode; it is normal-mode's own signal that the X
+ * server, not this window manager, is the one running low on room.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface to center the dialog on
+ * @param config     Active configuration, for the dialog
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_map_warn_server_limit(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config)
+{
+    if (connection == NULL || surface == NULL || config == NULL ||
+            menu_message_dialog_is_open()) {
+        return;
+    }
+
+    LOGGER_WARNING("'client_init' took unusually long; the X server" \
+            " may be low on resources for new client connections",
+            L_NARG);
+
+    menu_message_dialog_show(connection, surface, config,
+            _(STR_SERVER_LIMIT_REACHED), MENU_MSG_LEVEL_WARNING);
+}
+
+
+/**
+ * @brief Call @c client_init, timing how long it takes, and warn
+ *        through a message dialog if it ran unusually slowly
+ *
+ * Every argument here except @p config and @p surface is passed
+ * straight through to @c client_init unchanged; this function adds
+ * nothing to what @c client_init itself does, only measures it from
+ * the outside.
+ *
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection
+ * @param window     Window being adopted; see @c client_init's own
+ *                   doc comment
+ * @param config     Active configuration; supplies @c client_init's
+ *                   own @c theme, @c base, and @c a11y arguments, and
+ *                   is also passed to the warning dialog if shown
+ * @param surface    Surface to center a warning dialog on, if shown
+ *
+ * @return Whatever @c client_init itself returns
+ *
+ * @note Complexity: @e O(1) beyond @c client_init's own
+ */
+static client_td *s_map_init_client_timed(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        config_td *config, surface_td *surface)
+{
+    struct timespec start;
+    struct timespec end;
+    client_td *client;
+    bool have_start_time;
+
+    have_start_time =
+        (clock_gettime(CLOCK_MONOTONIC, &start) == 0);
+
+    client = client_init(connection, ewmh, window,
+            &config->theme, &config->base, &config->a11y);
+
+    if (have_start_time &&
+            clock_gettime(CLOCK_MONOTONIC, &end) == 0) {
+        long elapsed_ms = (end.tv_sec - start.tv_sec) * 1000L +
+            (end.tv_nsec - start.tv_nsec) / 1000000L;
+
+        if (elapsed_ms >= MAP_CLIENT_INIT_SLOW_THRESHOLD_MS) {
+            s_map_warn_server_limit(connection, surface, config);
+        }
+    }
+
+    return client;
+}
 
 
 /**
@@ -174,9 +289,8 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
-    client = client_init(connection, ewmh,
-            event->window, &config->theme, &config->base,
-            &config->a11y);
+    client = s_map_init_client_timed(connection, ewmh,
+            event->window, config, surface);
     if (client == NULL) {
         s_map_unmanaged(connection, event->window);
         return;

@@ -388,19 +388,15 @@ msgstr ""
 "  Ademais, non se atopou o ficheiro de tema '%s' indicado en "
 "'config.json'; estase a usar o tema predeterminado incorporado."
 
-#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
-"manages adds to its own memory use, regardless of that window's own "
-"application.  Close a window before opening more."
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
 msgstr ""
-"IcoWM alcanzou o seu límite de memoria configurado: usando %u "
-"MiB dos %u MiB permitidos (véxase a opción de liña de ordes "
-"'-M').  Cada xanela que xestiona IcoWM engádese ao seu propio "
-"uso de memoria, independentemente da aplicación desa xanela.  "
-"Pecha unha xanela antes de abrir máis."
+"IcoWM alcanzou o seu límite de memoria configurado: usando %u MiB dos "
+"%u MiB permitidos (véxase a opción de liña de ordes '-M').  Pecha "
+"algunhas xanelas para liberar memoria antes de abrir máis."
 
 #: include/defs/uistr.h:281;
 msgid ""
@@ -411,6 +407,16 @@ msgstr ""
 "IcoWM está a executarse en modo de memoria restrinxida e non xestionará "
 "máis de %u xanela(s) á vez (véxase a opción de liña de ordes"
 "'-M').  Pecha unha xanela antes de abrir outra."
+
+#, fuzzy
+msgid ""
+"Could not finish creating a new window.  The graphics server has "
+"reached a resource limit, probably from having too many windows or "
+"applications open.  Close some before opening more."
+msgstr ""
+"Non se puido rematar de crear unha xanela nova.  O servidor gráfico "
+"alcanzou un límite de recursos, probablemente por ter demasiadas xanelas "
+"ou aplicacións abertas.  Pecha algunhas antes de abrir máis."
 
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."

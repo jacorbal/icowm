@@ -471,14 +471,15 @@ int desktop_action_process_launch(desktop_td *desktop,
         const char *executable_path)
 {
     return desktop_action_process_launch_with_class(desktop,
-            executable_path, NULL);
+            executable_path, NULL, NULL);
 }
 
 
 /* Launch a process on the desktop with 'WM_CLASS' override */
 int desktop_action_process_launch_with_class(desktop_td *desktop,
         const char *restrict executable_path,
-        const char *restrict class_name)
+        const char *restrict class_name,
+        pid_t *restrict out_pid)
 {
     pid_t pid;
     int err_pipe[2];
@@ -608,6 +609,10 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
 
     LOGGER_DEBUG("Process for '%s' running with PID %d",
             executable_path, (int) pid);
+
+    if (out_pid != NULL) {
+        *out_pid = pid;
+    }
 
     return 0;
 }

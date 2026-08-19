@@ -49,7 +49,7 @@ void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
     }
     if (class_name != NULL && class_name[0] != '\0') {
         result = desktop_action_process_launch_with_class(desktop,
-                prog, class_name);
+                prog, class_name, NULL);
     } else {
         result = desktop_action_process_launch(desktop, prog);
     }

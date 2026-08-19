@@ -389,19 +389,16 @@ msgstr ""
 "  De plus, le fichier de thème '%s' nommé par 'config.json' est "
 "introuvable ; utilisation du thème par défaut intégré."
 
-#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
-"manages adds to its own memory use, regardless of that window's own "
-"application.  Close a window before opening more."
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
 msgstr ""
-"IcoWM a atteint son plafond de mémoire configuré : utilisation "
-"de %u Mio sur les %u Mio autorisés (voir l'option de ligne de "
-"commande '-M').  Chaque fenêtre gérée par IcoWM s'ajoute à sa "
-"propre consommation de mémoire, quelle que soit l'application de "
-"cette fenêtre.  Fermez une fenêtre avant d'en ouvrir d'autres."
+"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u "
+"Mio sur les %u Mio autorisés (voir l'option de ligne de commande "
+"'-M').  Fermez quelques fenêtres pour libérer de la mémoire avant d'en "
+"ouvrir d'autres."
 
 #: include/defs/uistr.h:281;
 msgid ""
@@ -412,6 +409,17 @@ msgstr ""
 "IcoWM fonctionne en mode mémoire restreinte et ne gérera pas plus de %u "
 "fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  Fermez "
 "une fenêtre avant d'en ouvrir une autre."
+
+#, fuzzy
+msgid ""
+"Could not finish creating a new window.  The graphics server has "
+"reached a resource limit, probably from having too many windows or "
+"applications open.  Close some before opening more."
+msgstr ""
+"Impossible de terminer la création d'une nouvelle fenêtre.  Le serveur "
+"graphique a atteint une limite de ressources, probablement en raison d'un "
+"trop grand nombre de fenêtres ou d'applications ouvertes.  Fermez-en "
+"quelques-unes avant d'en ouvrir d'autres."
 
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."

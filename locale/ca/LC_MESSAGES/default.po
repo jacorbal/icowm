@@ -388,19 +388,15 @@ msgstr ""
 "  A més, no s'ha trobat el fitxer de tema '%s' indicat a 'config.json'; "
 "s'està fent servir el tema per defecte incorporat."
 
-#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
-"manages adds to its own memory use, regardless of that window's own "
-"application.  Close a window before opening more."
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
 msgstr ""
-"L'IcoWM ha arribat al límit de memòria configurat: fent servir "
-"%u MiB dels %u MiB permesos (vegeu l'opció de línia d'ordres "
-"'-M').  Cada finestra que gestiona l'IcoWM s'afegeix al seu "
-"propi ús de memòria, independentment de l'aplicació d'aquesta "
-"finestra.  Tanca una finestra abans d'obrir-ne més."
+"L'IcoWM ha arribat al límit de memòria configurat: fent servir %u MiB "
+"dels %u MiB permesos (vegeu l'opció de línia d'ordres '-M').  Tanca "
+"algunes finestres per alliberar memòria abans d'obrir-ne més."
 
 #: include/defs/uistr.h:281;
 msgid ""
@@ -411,6 +407,16 @@ msgstr ""
 "L'IcoWM s'està executant en mode de memòria restringida i no gestionarà "
 "més de %u finestra/es alhora (vegeu l'opció de línia d'ordres '-M').  "
 "Tanca una finestra abans d'obrir-ne una altra."
+
+#, fuzzy
+msgid ""
+"Could not finish creating a new window.  The graphics server has "
+"reached a resource limit, probably from having too many windows or "
+"applications open.  Close some before opening more."
+msgstr ""
+"No s'ha pogut acabar de crear una finestra nova.  El servidor gràfic ha "
+"arribat a un límit de recursos, probablement per tenir massa finestres o "
+"aplicacions obertes.  Tanca'n algunes abans d'obrir-ne més."
 
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."

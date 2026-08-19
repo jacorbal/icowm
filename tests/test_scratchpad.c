@@ -91,11 +91,21 @@ void client_border_apply(client_td *client, bool use_active_style)
 }
 
 int desktop_action_process_launch_with_class(desktop_td *desktop,
-        const char *executable_path, const char *class_name)
+        const char *executable_path, const char *class_name,
+        pid_t *out_pid)
 {
     (void) desktop;
     (void) executable_path;
     (void) class_name;
+    /* Matches the memset-zeroed 'client_td' instances every test in
+     * this file claims through 's_claim_as_scratchpad': their own
+     * 'process.pid' is 0, not client_init's real '-1' unset default,
+     * so the simulated launch here has to report 0 back for the real
+     * PID check in 'scratchpad_notice_client_created' to still let
+     * this file's own claim path through. */
+    if (out_pid != NULL) {
+        *out_pid = 0;
+    }
     return 0;
 }
 
@@ -221,6 +231,73 @@ static void s_test_notice_created_guards(void)
 
     scratchpad_notice_client_created(NULL);
     TAP_OK(true, "a NULL client is safely ignored, no crash");
+}
+
+
+/* A client reporting a definite, different PID from the one actually
+ * launched (the stub above always reports 0) must never be claimed;
+ * this is the race scratchpad_notice_client_created's own PID check
+ * exists to close */
+static void s_test_notice_created_pid_mismatch(void)
+{
+    wm_td wm;
+    config_td config;
+    desktop_td desktop;
+    client_td wrong_client;
+    client_td matching_client;
+
+    memset(&wm, 0, sizeof(wm));
+    memset(&config, 0, sizeof(config));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&wrong_client, 0, sizeof(wrong_client));
+    memset(&matching_client, 0, sizeof(matching_client));
+    config.base.scratchpad.is_enabled = true;
+    wm.config = &config;
+
+    wrong_client.process.pid = 99999;
+
+    scratchpad_toggle(&wm, &desktop);
+    scratchpad_notice_client_created(&wrong_client);
+    TAP_OK(!scratchpad_is_client(&wrong_client),
+            "a definite PID mismatch is never claimed");
+
+    /* Still awaiting the real launch (PID 0, per the stub above):
+     * claim it now with a matching client so the module's own static
+     * state is clean before the next test runs */
+    matching_client.process.pid = 0;
+    scratchpad_notice_client_created(&matching_client);
+    scratchpad_notice_client_destroyed(&matching_client);
+}
+
+
+/* A client whose own PID is unknown (client_init's real -1 default,
+ * for an application that never sets '_NET_WM_PID') cannot be
+ * disproven by the PID check, so it must still be claimable: an
+ * application that never reports its own PID needs to keep working,
+ * not lose scratchpad support outright */
+static void s_test_notice_created_pid_unknown_fallback(void)
+{
+    wm_td wm;
+    config_td config;
+    desktop_td desktop;
+    client_td client;
+
+    memset(&wm, 0, sizeof(wm));
+    memset(&config, 0, sizeof(config));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&client, 0, sizeof(client));
+    config.base.scratchpad.is_enabled = true;
+    wm.config = &config;
+
+    client.process.pid = (pid_t) -1;
+
+    scratchpad_toggle(&wm, &desktop);
+    scratchpad_notice_client_created(&client);
+    TAP_OK(scratchpad_is_client(&client),
+            "an application that never reports its own PID is" \
+            " still claimed");
+
+    scratchpad_notice_client_destroyed(&client);
 }
 
 
@@ -401,10 +478,12 @@ static void s_test_position_clamps_oversized_fixed_size(void)
 
 int main(void)
 {
-    TAP_PLAN(23);
+    TAP_PLAN(25);
 
     s_test_is_client_lifecycle();
     s_test_notice_created_guards();
+    s_test_notice_created_pid_mismatch();
+    s_test_notice_created_pid_unknown_fallback();
     s_test_position_guards();
     s_test_position_ignore_margins_bottom_fixed();
     s_test_position_workarea_left_max_width();

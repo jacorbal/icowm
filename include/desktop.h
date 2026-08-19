@@ -381,9 +381,36 @@ int desktop_action_process_launch(desktop_td *desktop,
         const char *executable_path);
 
 
+/**
+ * @brief Launch a new process, overriding its @c WM_CLASS
+ *
+ * The override only takes effect if the launched application's own
+ * toolkit honors the standard @c RESOURCE_NAME/RESOURCE_CLASS
+ * environment variables this sets in the child before @c execvp; not
+ * every toolkit does, so a caller matching the eventually-created
+ * client against this launch should prefer @p out_pid over the class
+ * it ends up with.
+ *
+ * @param desktop         Pointer to the desktop to receive the action
+ * @param executable_path Path to the binary file
+ * @param class_name      @c WM_CLASS to request via the child's own
+ *                        environment; @c NULL or empty leaves it alone
+ * @param out_pid         If non-@c NULL, receives the launched
+ *                        process's PID on success; left untouched on
+ *                        any failure, so only ever read this after
+ *                        checking the return value is @c 0
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to fork the process
+ * @retval -2 The executable itself could not be run
+ *
+ * @note Complexity: @e O(1)
+ */
 int desktop_action_process_launch_with_class(desktop_td *desktop,
         const char *restrict executable_path,
-        const char *restrict class_name);
+        const char *restrict class_name,
+        pid_t *restrict out_pid);
 
 /**
  * @brief Terminate a process

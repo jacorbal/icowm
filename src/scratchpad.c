@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>  /* pid_t */
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* Project includes */
 #include <client.h>
@@ -51,6 +53,48 @@ static client_td *s_scratchpad_client = NULL;
  */
 static bool s_awaiting_scratchpad = false;
 
+/**
+ * @brief PID of the process launched by the @a s_awaiting_scratchpad
+ *        currently in progress, or @c -1 when none is
+ *
+ * Checked in @a scratchpad_notice_client_created before a client is
+ * claimed, so a second, unrelated window finishing @c client_init
+ * while this launch is still starting is never mistaken for it:
+ * without this, whichever client happened to finish next, regardless
+ * of what it actually was, got claimed instead, which a burst of
+ * several windows opening at once made easy to trigger in practice.
+ */
+static pid_t s_awaiting_scratchpad_pid = (pid_t) -1;
+
+/**
+ * @brief When the currently in-progress @a s_awaiting_scratchpad
+ *        launch was started
+ *
+ * Only meaningful while @a s_awaiting_scratchpad itself is @c true;
+ * checked in @a scratchpad_toggle to give up on a launch that never
+ * produced a matching client (the process died before creating any
+ * window, or never managed to connect at all, both realistic outcomes
+ * under the exact kind of X-server resource pressure the scratchpad
+ * is often reached for in the first place), rather than leaving
+ * every later toggle silently refusing to try again for the rest of
+ * the session.
+ */
+static struct timespec s_awaiting_scratchpad_since;
+
+/**
+ * @brief How long @a scratchpad_toggle waits for a launch it started
+ *        to produce a matching client before giving up and allowing
+ *        a fresh attempt
+ *
+ * Generous on purpose: a legitimate launch (fork, exec, the
+ * application's own startup, connecting to the X server, and
+ * creating its first window) can genuinely take a few seconds under
+ * ordinary load without anything having gone wrong, and the whole
+ * point of this timeout is only to recover from a launch that is
+ * never coming back, not to second-guess an ordinary slow one.
+ */
+#define SCRATCHPAD_AWAIT_TIMEOUT_SECONDS (10L)
+
 
 /**
  * @brief Resolve one dimension against the given available extent
@@ -83,13 +127,36 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
     }
 
     if (s_scratchpad_client == NULL) {
+        pid_t launched_pid = (pid_t) -1;
+        struct timespec now;
+        bool awaiting_expired = false;
+
         if (s_awaiting_scratchpad) {
-            return;
+            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+                long elapsed_seconds =
+                    now.tv_sec - s_awaiting_scratchpad_since.tv_sec;
+                awaiting_expired = (elapsed_seconds >=
+                        SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
+            }
+            if (!awaiting_expired) {
+                return;
+            }
+            LOGGER_WARNING("Scratchpad launch never produced a" \
+                    " matching client within %ld second(s);" \
+                    " allowing a fresh attempt",
+                    SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
         }
+
         s_awaiting_scratchpad =
             (desktop_action_process_launch_with_class(desktop,
                     config->base.scratchpad.command,
-                    WM_SCRATCHPAD_WM_CLASS) == 0);
+                    WM_SCRATCHPAD_WM_CLASS, &launched_pid) == 0);
+        s_awaiting_scratchpad_pid = s_awaiting_scratchpad
+            ? launched_pid : (pid_t) -1;
+        if (s_awaiting_scratchpad) {
+            (void) clock_gettime(CLOCK_MONOTONIC,
+                    &s_awaiting_scratchpad_since);
+        }
         return;
     }
 
@@ -139,7 +206,27 @@ void scratchpad_notice_client_created(client_td *client)
         return;
     }
 
+    /* A definite mismatch, both PIDs known and different, means this
+     * is provably some other, unrelated window finishing client_init
+     * while the real launch is still starting; left alone, so a
+     * later client that does match still gets the chance to claim
+     * this instead.  A client whose own '_NET_WM_PID' the launched
+     * application never set (client->process.pid still client_init's
+     * own -1 default) cannot be disproven this way, so it still gets
+     * claimed here rather than left waiting forever: for an
+     * application that never reports its PID, this is the same
+     * "claim whoever's next" behavior scratchpad support already had,
+     * not a new risk introduced here, and the alternative (refusing
+     * to ever claim such an application at all) would break the
+     * scratchpad outright for it. */
+    if (client->process.pid != (pid_t) -1 &&
+            s_awaiting_scratchpad_pid != (pid_t) -1 &&
+            client->process.pid != s_awaiting_scratchpad_pid) {
+        return;
+    }
+
     s_awaiting_scratchpad = false;
+    s_awaiting_scratchpad_pid = (pid_t) -1;
     s_scratchpad_client = client;
 
     ccmd_client_reclass(client, WM_SCRATCHPAD_WM_CLASS,

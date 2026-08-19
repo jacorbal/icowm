@@ -388,19 +388,15 @@ msgstr ""
 "  Krome, la etosa dosiero '%s' nomita en 'config.json' ne troviĝis; "
 "uziĝas la enkonstruita defaŭlta etoso anstataŭe."
 
-#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
-"manages adds to its own memory use, regardless of that window's own "
-"application.  Close a window before opening more."
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
 msgstr ""
-"IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u "
-"MiB permesitaj (vidu la komandlinian opcion '-M').  Ĉiu fenestro "
-"administrata de IcoWM aldonas al ĝia propra memor-uzo, "
-"sendepende de la aplikaĵo de tiu fenestro.  Fermu fenestron "
-"antaŭ ol malfermi pliajn."
+"IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u MiB "
+"permesitaj (vidu la komandlinian opcion '-M').  Fermu kelkajn "
+"fenestrojn por malokupi memoron antaŭ ol malfermi pliajn."
 
 #: include/defs/uistr.h:281;
 msgid ""
@@ -411,6 +407,16 @@ msgstr ""
 "IcoWM funkcias en limigita-memora reĝimo kaj ne administros pli ol %u "
 "fenestro(j)n samtempe (vidu la komandlinian opcion '-M').  Fermu "
 "fenestron antaŭ ol malfermi alian."
+
+#, fuzzy
+msgid ""
+"Could not finish creating a new window.  The graphics server has "
+"reached a resource limit, probably from having too many windows or "
+"applications open.  Close some before opening more."
+msgstr ""
+"Ne eblis fini krei novan fenestron.  La grafika servilo atingis rimedan "
+"limon, verŝajne pro tro da fenestroj aŭ aplikaĵoj malfermitaj.  Fermu "
+"kelkajn antaŭ ol malfermi pliajn."
 
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."

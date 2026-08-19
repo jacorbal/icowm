@@ -378,9 +378,8 @@ msgstr ""
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
-"manages adds to its own memory use, regardless of that window's own "
-"application.  Close a window before opening more."
+"MiB allowed (see the '-M' command-line option).  Close some windows to "
+"free up memory before opening more."
 msgstr ""
 
 #: include/defs/uistr.h:281;
@@ -388,6 +387,13 @@ msgid ""
 "IcoWM is running in restricted-memory mode and will not manage more "
 "than %u window(s) at once (see the '-M' command-line option).  Close a "
 "window before opening another."
+msgstr ""
+
+#: include/defs/uistr.h:292;
+msgid ""
+"Could not finish creating a new window.  The graphics server has "
+"reached a resource limit, probably from having too many windows or "
+"applications open.  Close some before opening more."
 msgstr ""
 
 #: include/defs/uistr.h:288;
