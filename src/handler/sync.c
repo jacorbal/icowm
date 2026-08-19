@@ -108,22 +108,23 @@ void handler_sync_event(wm_td *wm, xcb_generic_event_t *event)
     uint8_t alarm_notify_type;
     xcb_sync_alarm_notify_event_t *alarm_event;
     client_td *client;
+    list_td *surfaces = wm_surfaces(wm);
 
-    if (wm == NULL || event == NULL || wm->surfaces == NULL ||
-            !wm->sync_available) {
+    if (wm == NULL || event == NULL || surfaces == NULL ||
+            !wm_sync_available(wm)) {
         return;
     }
 
     event_type = (uint8_t) (event->response_type & ~0x80u);
     alarm_notify_type =
-        (uint8_t) (wm->sync_base_event + XCB_SYNC_ALARM_NOTIFY);
+        (uint8_t) (wm_sync_base_event(wm) + XCB_SYNC_ALARM_NOTIFY);
 
     if (event_type != alarm_notify_type) {
         return;
     }
 
     alarm_event = (xcb_sync_alarm_notify_event_t *) event;
-    client = s_find_client_by_alarm(wm->surfaces,
+    client = s_find_client_by_alarm(surfaces,
             (uint32_t) alarm_event->alarm);
     if (client == NULL) {
         LOGGER_TRACE("'AlarmNotify' for unknown alarm=0x%x; ignoring",

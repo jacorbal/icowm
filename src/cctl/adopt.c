@@ -44,13 +44,17 @@
 /* Adopt all pre-existing mapped windows at window manager startup */
 void cctl_adopt_scan(wm_td *wm)
 {
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
+    config_td *config = wm_config(wm);
+
     if (wm == NULL) {
         return;
     }
 
     LOGGER_DEBUG("Scanning for pre-existing mapped windows", L_NARG);
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(wm_surfaces(wm));
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         xcb_query_tree_cookie_t qt_cookie;
@@ -65,9 +69,9 @@ void cctl_adopt_scan(wm_td *wm)
         LOGGER_TRACE("Querying window tree for surface %u" \
                 " (root %#x)", surface->id, surface->screen->root);
 
-        qt_cookie = xcb_query_tree(wm->connection,
+        qt_cookie = xcb_query_tree(connection,
                 surface->screen->root);
-        qt_reply = xcb_query_tree_reply(wm->connection,
+        qt_reply = xcb_query_tree_reply(connection,
                 qt_cookie, NULL);
         if (qt_reply == NULL) {
             LOGGER_WARNING("Failed to query window tree for surface %u",
@@ -85,9 +89,9 @@ void cctl_adopt_scan(wm_td *wm)
             xcb_get_window_attributes_cookie_t ac;
             xcb_get_window_attributes_reply_t *ar;
 
-            ac = xcb_get_window_attributes(wm->connection, children[i]);
+            ac = xcb_get_window_attributes(connection, children[i]);
             ar = xcb_get_window_attributes_reply(
-                    wm->connection, ac, NULL);
+                    connection, ac, NULL);
 
             if (ar == NULL) {
                 LOGGER_TRACE("Failed to get attributes for window %#x;" \
@@ -101,10 +105,10 @@ void cctl_adopt_scan(wm_td *wm)
                     lookup_current_desktop(surface);
                 if (desktop != NULL) {
                     client_td *const client = client_init(
-                            wm->connection, wm->ewmh,
-                            children[i], &wm->config->theme,
-                            &wm->config->base,
-                            &wm->config->a11y);
+                            connection, ewmh,
+                            children[i], &config->theme,
+                            &config->base,
+                            &config->a11y);
                     if (client != NULL) {
                         /* ReparentWindow on an already-mapped window
                          * generates an 'UnmapNotify'.  Absorb it so
@@ -117,15 +121,15 @@ void cctl_adopt_scan(wm_td *wm)
                         client->screen_id = surface->id;
                         client->desktop_id = desktop->id;
                         desktop_action_client_add(desktop, client);
-                        if (wm->ewmh != NULL) {
+                        if (ewmh != NULL) {
                             uint32_t did =
                                 (client->properties.flags &
                                  CLIENT_FLAG_PIN)
                                 ? WM_DESKTOP_ID_ALL : desktop->id;
-                            xcb_change_property(wm->connection,
+                            xcb_change_property(connection,
                                     XCB_PROP_MODE_REPLACE,
                                     client->window,
-                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    ewmh->_NET_WM_DESKTOP,
                                     XCB_ATOM_CARDINAL, 32, 1, &did);
                         }
 
@@ -154,7 +158,7 @@ void cctl_adopt_scan(wm_td *wm)
                         if (client->frame != 0 &&
                                 client_is_decorated(client)) {
                             client_send_synthetic_configure_notify(
-                                    wm->connection, client);
+                                    connection, client);
                         }
 
                         surface->is_outdated = true;
@@ -172,6 +176,6 @@ void cctl_adopt_scan(wm_td *wm)
         free(qt_reply);
     }
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
     LOGGER_DEBUG("Finished scanning for pre-existing windows", L_NARG);
 }

@@ -75,8 +75,10 @@ static uint32_t s_resolve_size(struct config_scratchpad_size_s size,
  * running */
 void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
 {
-    if (wm == NULL || desktop == NULL || wm->config == NULL ||
-            !wm->config->base.scratchpad.is_enabled) {
+    config_td *config = wm_config(wm);
+
+    if (wm == NULL || desktop == NULL || config == NULL ||
+            !config->base.scratchpad.is_enabled) {
         return;
     }
 
@@ -86,7 +88,7 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
         }
         s_awaiting_scratchpad =
             (desktop_action_process_launch_with_class(desktop,
-                    wm->config->base.scratchpad.command,
+                    config->base.scratchpad.command,
                     WM_SCRATCHPAD_WM_CLASS) == 0);
         return;
     }
@@ -121,8 +123,8 @@ void scratchpad_toggle(wm_td *wm, desktop_td *desktop)
          * this client's own raise just visually covering it instead. */
         surface = wm_get_surface_by_id(desktop->screen_id);
 
-        focus_apply(wm->surfaces, surface, desktop,
-                s_scratchpad_client, true, wm->config);
+        focus_apply(wm_surfaces(wm), surface, desktop,
+                s_scratchpad_client, true, config);
     } else {
         enact_client_hide(s_scratchpad_client);
     }

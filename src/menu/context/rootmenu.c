@@ -54,6 +54,10 @@ static surface_td *s_surface = NULL;
 /** Config stored at open time (needed by the exit callback) */
 static const config_td *s_config = NULL;
 
+/** Window manager instance stored at open time (needed by the
+ *  "Rearrange" and "Reload configuration" callbacks) */
+static wm_td *s_wm = NULL;
+
 
 /** Singleton root menu state */
 static ctxmenu_state_td s_root;
@@ -84,7 +88,7 @@ static void s_cb_rearrange(xcb_connection_t *connection, void *userdata)
     (void) userdata;
 
     if (s_surface != NULL) {
-        wm_action_rearrange(s_surface);
+        wm_action_rearrange(s_wm, s_surface);
     }
 }
 
@@ -100,7 +104,7 @@ static void s_cb_reload(xcb_connection_t *connection, void *userdata)
     (void) connection;
     (void) userdata;
     LOGGER_DEBUG("Reloading root menu configuration", L_NARG);
-    (void) wm_action_config_reload();
+    (void) wm_action_config_reload(s_wm);
 }
 
 
@@ -224,7 +228,7 @@ void rootmenu_menu_json_free(void)
 
 /* Display the root desktop menu; see this function's comment in
  * 'menu/context/rootmenu.h' */
-void rootmenu_show(xcb_connection_t *connection,
+void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
         const config_td *config)
 {
@@ -238,9 +242,10 @@ void rootmenu_show(xcb_connection_t *connection,
 
     rootmenu_close();
 
-    /* Cache surface and config for use by the exit callback */
+    /* Cache surface, config, and wm for use by the callbacks below */
     s_surface = surface;
     s_config = config;
+    s_wm = wm;
 
     /* Total entries: JSON entries + footer */
     /* The leading separator is only added when JSON entries are present
@@ -359,6 +364,7 @@ void rootmenu_close(void)
     s_entry_count = 0;
     s_surface = NULL;
     s_config = NULL;
+    s_wm = NULL;
 }
 
 

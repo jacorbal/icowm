@@ -296,8 +296,8 @@ static monitor_td s_reference_monitor(wm_td *wm,
         return surface_primary_monitor(surface);
     }
 
-    cookie = xcb_query_pointer(wm->connection, surface->screen->root);
-    reply = xcb_query_pointer_reply(wm->connection, cookie, NULL);
+    cookie = xcb_query_pointer(wm_connection(wm), surface->screen->root);
+    reply = xcb_query_pointer_reply(wm_connection(wm), cookie, NULL);
     if (reply != NULL) {
         result = surface_monitor_for_point(surface, reply->root_x,
                 reply->root_y);
@@ -349,6 +349,7 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
     struct geometry_s t_wa;
     struct dimensions_s screen;
     struct dimensions_s t_sz;
+    xcb_connection_t *connection = wm_connection(wm);
 
     if (client->transient_for == XCB_WINDOW_NONE) {
         return false;
@@ -364,7 +365,7 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
      * the frame's root-relative screen position.  Using the stored
      * geometry correctly centers the dialog wherever the parent
      * window is on screen. */
-    parent = lookup_find_client(wm->surfaces,
+    parent = lookup_find_client(wm_surfaces(wm),
             client->transient_for, NULL, NULL);
     if (parent != NULL) {
         int32_t px = parent->layout.geometry.cur.pos.x;
@@ -381,8 +382,8 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
          * window */
         xcb_get_geometry_cookie_t pgc;
         xcb_get_geometry_reply_t *pgr;
-        pgc = xcb_get_geometry(wm->connection, client->transient_for);
-        pgr = xcb_get_geometry_reply(wm->connection, pgc, NULL);
+        pgc = xcb_get_geometry(connection, client->transient_for);
+        pgr = xcb_get_geometry_reply(connection, pgc, NULL);
         if (pgr != NULL) {
             new_x = (int32_t) pgr->x +
                     ((int32_t) pgr->width - (int32_t) fw) / 2;
@@ -424,7 +425,7 @@ static bool s_place_transient_centered(wm_td *wm, surface_td *surface,
 
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame : client->window;
-    xcb_configure_window(wm->connection, target,
+    xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {
                 (uint32_t) new_x,
@@ -465,10 +466,12 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
     struct geometry_s wa_geom;
     struct dimensions_s screen;
     struct dimensions_s unused_screen;
+    xcb_connection_t *connection = wm_connection(wm);
+    config_td *config = wm_config(wm);
 
     if (surface == NULL || client == NULL ||
             out_x == NULL || out_y == NULL || wm == NULL ||
-            wm->connection == NULL || wm->config == NULL) {
+            connection == NULL || config == NULL) {
         return false;
     }
 
@@ -504,7 +507,7 @@ bool place_smart(wm_td *wm, surface_td *surface, client_td *client,
      * monitor or clipping would leave nothing to place into (e.g., a
      * monitor entirely covered by a strut). */
     ref_monitor = s_reference_monitor(wm, surface,
-            wm->config->base.windows.monitor_policy);
+            config->base.windows.monitor_policy);
     wa_geom.pos.x = wa_x;
     wa_geom.pos.y = wa_y;
     wa_geom.dim.w = wa_w;
@@ -655,7 +658,7 @@ static void s_place_workarea(wm_td *wm, surface_td *surface,
     (void) client;
     s_clip_to_monitor(surface, out_wa, &screen,
             s_reference_monitor(wm, surface,
-                    wm->config->base.windows.monitor_policy),
+                    wm_config(wm)->base.windows.monitor_policy),
             out_mon_wa, out_mon_sz);
 }
 
@@ -683,6 +686,7 @@ static void s_place_finalize(wm_td *wm, const surface_td *surface,
         int32_t new_x, int32_t new_y)
 {
     xcb_window_t target;
+    xcb_connection_t *connection = wm_connection(wm);
 
     s_place_apply_gravity(surface, client, &new_x, &new_y);
 
@@ -695,7 +699,7 @@ static void s_place_finalize(wm_td *wm, const surface_td *surface,
         ? client->frame
         : client->window;
 
-    xcb_configure_window(wm->connection, target,
+    xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
     client->layout.geometry.cur.pos.x = new_x;
@@ -716,7 +720,7 @@ void place_apply_cascade(wm_td *wm, surface_td *surface, client_td *client)
     int32_t new_x;
     int32_t new_y;
 
-    if (wm == NULL || wm->config == NULL ||
+    if (wm == NULL || wm_config(wm) == NULL ||
             surface == NULL || client == NULL) {
         return;
     }
@@ -771,8 +775,10 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     desktop_td *desktop;
     xcb_window_t leader;
     bool placed_as_sibling;
+    xcb_connection_t *connection = wm_connection(wm);
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || wm->config == NULL ||
+    if (wm == NULL || config == NULL ||
             surface == NULL || client == NULL) {
         return;
     }
@@ -781,7 +787,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     screen.h = surface->properties.dim.h;
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
-    policy = wm->config->base.windows.placement_policy;
+    policy = config->base.windows.placement_policy;
     leader = client_group_leader(client);
     placed_as_sibling = false;
 
@@ -822,7 +828,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
      * piling up on exactly the same spot as the 2nd. */
     if (leader != XCB_WINDOW_NONE && desktop != NULL &&
             desktop->clients != NULL &&
-            wm->config->base.windows.group_related) {
+            config->base.windows.group_related) {
         void *elem;
         client_td *anchor = NULL;
         uint32_t sibling_count = 0u;
@@ -865,7 +871,7 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     wa_geom.dim.h = wa_h;
     s_clip_to_monitor(surface, &wa_geom, &screen,
             s_reference_monitor(wm, surface,
-                    wm->config->base.windows.monitor_policy),
+                    config->base.windows.monitor_policy),
             &mon_wa, &mon_sz);
 
     if (placed_as_sibling) {
@@ -908,9 +914,9 @@ void place_apply(wm_td *wm, surface_td *surface, client_td *client)
     } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
         xcb_query_pointer_reply_t *pointer_reply;
 
-        pointer_cookie = xcb_query_pointer(wm->connection,
+        pointer_cookie = xcb_query_pointer(connection,
                 surface->screen->root);
-        pointer_reply = xcb_query_pointer_reply(wm->connection,
+        pointer_reply = xcb_query_pointer_reply(connection,
                 pointer_cookie, NULL);
 
         if (pointer_reply == NULL) {

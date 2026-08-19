@@ -56,21 +56,24 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     uint8_t event_type;
     uint8_t screen_change_type;
     uint8_t notify_type;
+    list_td *surfaces = wm_surfaces(wm);
+    xcb_key_symbols_t *keysyms = wm_keysyms(wm);
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || event == NULL || wm->surfaces == NULL ||
-            !wm->randr_available) {
+    if (wm == NULL || event == NULL || surfaces == NULL ||
+            !wm_randr_available(wm)) {
         return;
     }
 
     event_type = (uint8_t) (event->response_type & ~0x80u);
     screen_change_type = (uint8_t)
-        (wm->randr_base_event + XCB_RANDR_SCREEN_CHANGE_NOTIFY);
-    notify_type = (uint8_t) (wm->randr_base_event + XCB_RANDR_NOTIFY);
+        (wm_randr_base_event(wm) + XCB_RANDR_SCREEN_CHANGE_NOTIFY);
+    notify_type = (uint8_t) (wm_randr_base_event(wm) + XCB_RANDR_NOTIFY);
 
     if (event_type == screen_change_type) {
         xcb_randr_screen_change_notify_event_t *randr_event =
             (xcb_randr_screen_change_notify_event_t *) event;
-        surface_td *const surface = lookup_surface_for_root(wm->surfaces,
+        surface_td *const surface = lookup_surface_for_root(surfaces,
                 randr_event->root);
 
         if (surface != NULL) {
@@ -86,7 +89,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
                 (uint32_t) randr_event->config_timestamp;
             s_handler_randr_refresh_surface(surface);
             systray_handle_surface_resize(wm);
-            keyboard_load(wm->surfaces, wm->keysyms, wm->config);
+            keyboard_load(surfaces, keysyms, config);
 
             LOGGER_INFO("XRandR screen change on surface %u: %ux%u",
                     surface->id,
@@ -116,7 +119,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
                 xcb_randr_crtc_change_t *const cc = &randr_event->u.cc;
                 if (cc->mode != XCB_NONE) {
                     surface_td *const s = lookup_surface_for_root(
-                            wm->surfaces, cc->window);
+                            surfaces, cc->window);
                     if (s != NULL) {
                         s->randr.is_known = true;
                         s->randr.crtc_id = (uint32_t) cc->crtc;
@@ -135,19 +138,19 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
              * that was not yet connected at startup still get applied
              * once it is (e.g., a docked laptop's external monitor). */
             if (randr_event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
-                for (list_item_td *node = list_head(wm->surfaces);
+                for (list_item_td *node = list_head(surfaces);
                         node != NULL; node = list_next(node)) {
                     (void) surface_action_apply_randr_profiles(
                             (surface_td *) list_data(node), false);
                 }
             }
 
-            for (list_item_td *node = list_head(wm->surfaces);
+            for (list_item_td *node = list_head(surfaces);
                     node != NULL; node = list_next(node)) {
                 s_handler_randr_refresh_surface(
                         (surface_td *) list_data(node));
             }
-            keyboard_load(wm->surfaces, wm->keysyms, wm->config);
+            keyboard_load(surfaces, keysyms, config);
 
             LOGGER_DEBUG("Processed XRandR notify subcode=%u",
                     (unsigned int) randr_event->subCode);

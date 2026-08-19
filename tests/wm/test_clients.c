@@ -31,8 +31,8 @@
 #include <wm/internal.h>
 
 
-/** The singleton wm_for_each_client itself reads through 'extern
- *  wm_td *wm' (wm/internal.h); this file owns the one real instance */
+/** This file owns the one real wm_td instance, passed explicitly to
+ *  every wm_for_each_client call below */
 wm_td *wm = NULL;
 
 
@@ -72,13 +72,13 @@ static void s_test_null_wm_or_surfaces(void)
     wm_td local_wm;
 
     wm = NULL;
-    TAP_EQ_INT((long) wm_for_each_client(NULL, NULL), 0,
+    TAP_EQ_INT((long) wm_for_each_client(wm, NULL, NULL), 0,
             "a NULL wm singleton visits nothing");
 
     memset(&local_wm, 0, sizeof(local_wm));
     local_wm.surfaces = NULL;
     wm = &local_wm;
-    TAP_EQ_INT((long) wm_for_each_client(NULL, NULL), 0,
+    TAP_EQ_INT((long) wm_for_each_client(wm, NULL, NULL), 0,
             "a NULL surfaces list visits nothing");
 
     wm = NULL;
@@ -94,7 +94,7 @@ static void s_test_empty_surface_list(void)
     local_wm.surfaces = list_init(NULL);
     wm = &local_wm;
 
-    TAP_EQ_INT((long) wm_for_each_client(NULL, NULL), 0,
+    TAP_EQ_INT((long) wm_for_each_client(wm, NULL, NULL), 0,
             "an empty surface list visits nothing");
 
     list_destroy(local_wm.surfaces);
@@ -159,7 +159,7 @@ static void s_test_visits_every_client_across_desktops(void)
 
     s_visited[0] = s_visited[1] = s_visited[2] = false;
     s_seen_userdata = NULL;
-    count = wm_for_each_client(s_recording_action, &marker);
+    count = wm_for_each_client(wm, s_recording_action, &marker);
 
     TAP_EQ_INT((long) count, 3, "all three clients across both" \
             " desktops are counted");
@@ -202,7 +202,7 @@ static void s_test_null_action_only_counts(void)
     list_ins_next(local_wm.surfaces, NULL, &surface);
     wm = &local_wm;
 
-    count = wm_for_each_client(NULL, NULL);
+    count = wm_for_each_client(wm, NULL, NULL);
     TAP_EQ_INT((long) count, 1,
             "a NULL action still counts every client, no crash");
 
@@ -242,7 +242,7 @@ static void s_test_skips_null_desktop_gap(void)
     list_ins_next(local_wm.surfaces, NULL, &surface);
     wm = &local_wm;
 
-    count = wm_for_each_client(NULL, NULL);
+    count = wm_for_each_client(wm, NULL, NULL);
     TAP_EQ_INT((long) count, 1,
             "a NULL-desktop gap is skipped, the rest still counted");
 

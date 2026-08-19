@@ -99,6 +99,8 @@ static void s_loop_handle_leave_notify(wm_td *wm,
 {
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
+    config_td *config = wm_config(wm);
+    xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || event == NULL) {
         return;
@@ -111,15 +113,15 @@ static void s_loop_handle_leave_notify(wm_td *wm,
      * focus. */
     mouse_hover_poll_clear(event->event);
 
-    if (focus_is_sloppy(wm->config) &&
+    if (focus_is_sloppy(config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&
             event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
-            lookup_find_client(wm->surfaces, event->event,
+            lookup_find_client(wm_surfaces(wm), event->event,
                     &surface, &desktop) != NULL) {
         /* Pointer left a managed window; release focus so the cursor
          * resting on the root background leaves all clients visually
          * unfocused */
-        xcb_set_input_focus(wm->connection,
+        xcb_set_input_focus(connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 event->time);
@@ -131,7 +133,7 @@ static void s_loop_handle_leave_notify(wm_td *wm,
         if (surface != NULL) {
             surface->is_outdated = true;
         }
-        xcb_flush(wm->connection);
+        xcb_flush(connection);
     }
 }
 
@@ -156,7 +158,7 @@ static void s_loop_handle_focus_out(wm_td *wm,
 
     if ((event->mode == XCB_NOTIFY_MODE_NORMAL ||
                 event->mode == XCB_NOTIFY_MODE_WHILE_GRABBED) &&
-            lookup_find_client(wm->surfaces, event->event,
+            lookup_find_client(wm_surfaces(wm), event->event,
                     &surface, NULL) != NULL &&
             surface != NULL) {
         surface->is_outdated = true;
@@ -285,7 +287,7 @@ static const char *s_loop_connection_error_string(int error_code)
  *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
  *        prevention to compare against later
  *
- * @param wm Window manager state, for @p wm->surfaces
+ * @param wm Window manager state, for @p surfaces
  * @param window Window a real @c KeyPress or @c ButtonPress named as
  *               its own @c event field, i.e., the one that actually
  *               received it
@@ -314,7 +316,7 @@ static void s_loop_note_real_input(wm_td *wm, xcb_window_t window,
         return;
     }
 
-    client = lookup_find_client(wm->surfaces, window, NULL, NULL);
+    client = lookup_find_client(wm_surfaces(wm), window, NULL, NULL);
     client_update_user_time(client, time);
 }
 
@@ -335,12 +337,29 @@ void loop_run(wm_td *wm)
     struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
     const xcb_generic_error_t *proto_error;
     bool any_outdated;
+    xcb_connection_t *connection;
+    list_td *surfaces;
+    config_td *config;
+    uint32_t restricted_memory_mib;
+    bool randr_available;
+    uint8_t randr_base_event;
+    bool sync_available;
+    uint8_t sync_base_event;
 
-    if (wm == NULL || !wm->is_running) {
+    if (wm == NULL || !wm_is_running(wm)) {
         LOGGER_TRACE("Window manager is not initialized or" \
                 " set to not run", L_NARG);
         return;
     }
+
+    connection = wm_connection(wm);
+    surfaces = wm_surfaces(wm);
+    config = wm_config(wm);
+    restricted_memory_mib = wm_restricted_memory_mib(wm);
+    randr_available = wm_randr_available(wm);
+    randr_base_event = wm_randr_base_event(wm);
+    sync_available = wm_sync_available(wm);
+    sync_base_event = wm_sync_base_event(wm);
 
     if (wm_startup_install_signals() != 0) {
         LOGGER_WARNING("Continuing without termination signal handling",
@@ -352,15 +371,15 @@ void loop_run(wm_td *wm)
                 L_NARG);
     }
 
-    keysyms = xcb_key_symbols_alloc(wm->connection);
+    keysyms = xcb_key_symbols_alloc(connection);
     if (keysyms == NULL) {
         LOGGER_ERROR("Failed to allocate key symbols table", L_NARG);
         return;
     }
-    wm->keysyms = keysyms;
+    wm_set_keysyms(wm, keysyms);
 
-    keyboard_load(wm->surfaces, keysyms, wm->config);
-    mouse_load(wm->surfaces, wm->config);
+    keyboard_load(surfaces, keysyms, config);
+    mouse_load(surfaces, config);
 
     cctl_adopt_scan(wm);
     loop_update_full(wm);
@@ -372,11 +391,11 @@ void loop_run(wm_td *wm)
      * the list empty; 'loop_update_full' then cleared 'is_outdated', so
      * the first main-loop iteration would never trigger a sync on its
      * own. */
-    wm_ewmh_sync();
+    wm_ewmh_sync(wm);
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
 
-    while (wm->is_running) {
+    while (wm_is_running(wm)) {
         int nfds;
         int poll_status;
         int poll_timeout_ms;
@@ -395,21 +414,21 @@ void loop_run(wm_td *wm)
         if (wm_startup_requested_reload()) {
             LOGGER_INFO("'SIGHUP' received; reloading configuration",
                     L_NARG);
-            (void) wm_action_config_reload();
+            (void) wm_action_config_reload(wm);
         }
 
         if (wm_startup_requested_resume()) {
             LOGGER_INFO("'SIGCONT' received; re-establishing" \
                     " input grabs", L_NARG);
-            keyboard_load(wm->surfaces, keysyms, wm->config);
-            mouse_load(wm->surfaces, wm->config);
+            keyboard_load(surfaces, keysyms, config);
+            mouse_load(surfaces, config);
         }
 
         if (wm_startup_requested_child_reap()) {
             session_reap_children();
         }
 
-        conn_error = xcb_connection_has_error(wm->connection);
+        conn_error = xcb_connection_has_error(connection);
         if (conn_error != 0) {
             LOGGER_ERROR("X connection error detected (%s);" \
                     " requesting shutdown",
@@ -418,7 +437,7 @@ void loop_run(wm_td *wm)
             break;
         }
 
-        pfd[0].fd = xcb_get_file_descriptor(wm->connection);
+        pfd[0].fd = xcb_get_file_descriptor(connection);
         pfd[0].events = POLLIN;
         pfd[0].revents = 0;
         nfds = 1;
@@ -447,7 +466,7 @@ void loop_run(wm_td *wm)
                 systray_clock_ms_remaining());
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                urgency_blink_ms_remaining(wm->config));
+                urgency_blink_ms_remaining(config));
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
 
@@ -516,42 +535,42 @@ void loop_run(wm_td *wm)
         }
 
         systray_clock_tick();
-        urgency_blink_tick(wm->surfaces, wm->config);
-        cctl_sn_tick(wm->connection, wm->surfaces);
-        mouse_hover_poll_tick(wm->connection, wm->surfaces);
-        menu_confirm_dialog_tick(wm->connection, wm->config);
-        menu_message_dialog_tick(wm->connection);
-        drag_warp_tick(wm->connection);
-        wm_shutdown_tick();
+        urgency_blink_tick(surfaces, config);
+        cctl_sn_tick(connection, surfaces);
+        mouse_hover_poll_tick(connection, surfaces);
+        menu_confirm_dialog_tick(connection, config);
+        menu_message_dialog_tick(connection);
+        drag_warp_tick(connection);
+        wm_shutdown_tick(wm);
         cctl_kill_tick();
-        if (wm->restricted_memory_mib > 0u &&
-                wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
-            memguard_tick(wm->connection,
-                    (surface_td *) list_data(list_head(wm->surfaces)),
-                    wm->config);
+        if (restricted_memory_mib > 0u &&
+                surfaces != NULL && !list_is_empty(surfaces)) {
+            memguard_tick(connection,
+                    (surface_td *) list_data(list_head(surfaces)),
+                    config);
         }
 
         while ((event = (pending_event != NULL)
                     ? pending_event
-                    : xcb_poll_for_event(wm->connection)) != NULL) {
+                    : xcb_poll_for_event(connection)) != NULL) {
             xcb_motion_notify_event_t *me;
             uint8_t event_type;
 
             pending_event = NULL;
             event_type = (uint8_t) (event->response_type & ~0x80u);
 
-            if (wm->randr_available &&
-                    (event_type == (uint8_t) (wm->randr_base_event +
+            if (randr_available &&
+                    (event_type == (uint8_t) (randr_base_event +
                             XCB_RANDR_SCREEN_CHANGE_NOTIFY) ||
-                     event_type == (uint8_t) (wm->randr_base_event +
+                     event_type == (uint8_t) (randr_base_event +
                             XCB_RANDR_NOTIFY))) {
                 handler_randr_event(wm, event);
                 free(event);
                 continue;
             }
 
-            if (wm->sync_available &&
-                    event_type == (uint8_t) (wm->sync_base_event +
+            if (sync_available &&
+                    event_type == (uint8_t) (sync_base_event +
                             XCB_SYNC_ALARM_NOTIFY)) {
                 handler_sync_event(wm, event);
                 free(event);
@@ -566,14 +585,14 @@ void loop_run(wm_td *wm)
                     s_loop_note_real_input(wm, kp->event,
                             event->response_type, kp->time);
                     keyboard_handle_press(wm, keysyms, kp,
-                            wm->surfaces, wm->config);
+                            surfaces, config);
                     break;
                 }
 
                 case XCB_KEY_RELEASE:
                     keyboard_handle_release(keysyms,
                             (xcb_key_release_event_t *) event,
-                            wm->surfaces, wm->config);
+                            surfaces, config);
                     break;
 
                 case XCB_BUTTON_PRESS: {
@@ -582,15 +601,15 @@ void loop_run(wm_td *wm)
 
                     s_loop_note_real_input(wm, bp->event,
                             event->response_type, bp->time);
-                    mouse_handle_press(wm->connection, wm->surfaces,
-                            bp, wm->config);
+                    mouse_handle_press(wm, connection, surfaces,
+                            bp, config);
                     break;
                 }
 
                 case XCB_BUTTON_RELEASE:
-                    mouse_handle_release(wm->connection, wm->surfaces,
+                    mouse_handle_release(connection, surfaces,
                             (xcb_button_release_event_t *) event,
-                            wm->config);
+                            config);
                     break;
 
                 case XCB_MOTION_NOTIFY:
@@ -615,7 +634,7 @@ void loop_run(wm_td *wm)
                      * still handled, on the very next iteration of
                      * this same loop. */
                     while ((pending_event =
-                                xcb_poll_for_event(wm->connection)) !=
+                                xcb_poll_for_event(connection)) !=
                             NULL) {
                         if ((uint8_t) (pending_event->response_type &
                                     ~0x80u) != XCB_MOTION_NOTIFY) {
@@ -626,7 +645,7 @@ void loop_run(wm_td *wm)
                         me = (xcb_motion_notify_event_t *) event;
                     }
 
-                    drag_update(wm->connection, me->root_x, me->root_y);
+                    drag_update(connection, me->root_x, me->root_y);
                     if (wincmenu_is_open()) {
                         wincmenu_handle_motion(me->event,
                                 me->event_x, me->event_y);
@@ -641,26 +660,26 @@ void loop_run(wm_td *wm)
                              me->child == search_window())) {
                         search_handle_motion(me->event_x, me->event_y);
                     } else if (!drag_is_active()) {
-                        mouse_handle_motion_hover(wm->connection,
-                                wm->surfaces, me);
+                        mouse_handle_motion_hover(connection,
+                                surfaces, me);
                     }
                     break;
 
                 case XCB_ENTER_NOTIFY:
-                    mouse_handle_enter(wm->connection, wm->surfaces,
+                    mouse_handle_enter(connection, surfaces,
                             (xcb_enter_notify_event_t *) event,
-                            wm->config);
+                            config);
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:
-                    handler_configure_notify(wm->connection,
-                            wm->surfaces,
+                    handler_configure_notify(connection,
+                            surfaces,
                             (xcb_configure_notify_event_t *) event);
                     break;
 
                 case XCB_UNMAP_NOTIFY:
-                    handler_unmap_notify(wm->connection,
-                            wm->surfaces,
+                    handler_unmap_notify(connection,
+                            surfaces,
                             (xcb_unmap_notify_event_t *) event);
                     break;
 
@@ -668,30 +687,30 @@ void loop_run(wm_td *wm)
                     systray_handle_destroy(wm,
                             ((xcb_destroy_notify_event_t *)
                                 event)->window);
-                    handler_destroy_notify(wm->connection,
-                            wm->surfaces,
+                    handler_destroy_notify(connection,
+                            surfaces,
                             (xcb_destroy_notify_event_t *) event);
                     break;
 
                 case XCB_PROPERTY_NOTIFY:
-                    handler_property_notify(wm, wm->connection,
-                            wm->surfaces,
+                    handler_property_notify(wm, connection,
+                            surfaces,
                             (xcb_property_notify_event_t *) event);
                     break;
 
                 case XCB_FOCUS_IN:
-                    handler_focus_in(wm->connection, wm->surfaces,
+                    handler_focus_in(connection, surfaces,
                             (xcb_focus_in_event_t *) event);
                     break;
 
                 case XCB_EXPOSE:
-                    handler_expose(wm->connection, wm->surfaces,
-                            (xcb_expose_event_t *) event, wm->config);
+                    handler_expose(connection, surfaces,
+                            (xcb_expose_event_t *) event, config);
                     break;
 
                 case XCB_CONFIGURE_REQUEST:
-                    handler_configure_request(wm->connection,
-                            wm->surfaces,
+                    handler_configure_request(connection,
+                            surfaces,
                             (xcb_configure_request_event_t *) event);
                     break;
 
@@ -706,9 +725,9 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MAPPING_NOTIFY:
-                    handler_mapping_notify(keysyms, wm->surfaces,
+                    handler_mapping_notify(keysyms, surfaces,
                             (xcb_mapping_notify_event_t *) event,
-                            wm->config);
+                            config);
                     break;
 
                 case XCB_LEAVE_NOTIFY:
@@ -722,26 +741,26 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MAP_NOTIFY:
-                    handler_map_notify(wm->connection,
-                            wm->surfaces,
+                    handler_map_notify(connection,
+                            surfaces,
                             (xcb_map_notify_event_t *) event);
                     break;
 
                 case XCB_GRAVITY_NOTIFY:
-                    handler_gravity_notify(wm->connection,
-                            wm->surfaces,
+                    handler_gravity_notify(connection,
+                            surfaces,
                             (xcb_gravity_notify_event_t *) event);
                     break;
 
                 case XCB_CIRCULATE_NOTIFY:
-                    handler_circulate_notify(wm->connection,
-                            wm->surfaces,
+                    handler_circulate_notify(connection,
+                            surfaces,
                             (xcb_circulate_notify_event_t *) event);
                     break;
 
                 case XCB_CIRCULATE_REQUEST:
-                    handler_circulate_request(wm->connection,
-                            wm->surfaces,
+                    handler_circulate_request(connection,
+                            surfaces,
                             (xcb_circulate_request_event_t *) event);
                     break;
 
@@ -869,15 +888,15 @@ void loop_run(wm_td *wm)
          * update triggered by the close is handled in the same
          * iteration. */
         if (popup_is_open() && popup_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(wm->connection,
-                    wm->surfaces, popup_close);
+            s_loop_close_and_repaint_first_surface(connection,
+                    surfaces, popup_close);
         }
 
         /* Auto-close the desktop notify when its timeout has elapsed */
         if (notify_desktop_is_open() &&
                 notify_desktop_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(wm->connection,
-                    wm->surfaces, notify_desktop_close);
+            s_loop_close_and_repaint_first_surface(connection,
+                    surfaces, notify_desktop_close);
         }
 
         /* Only sync EWMH root properties when state actually changed.
@@ -889,7 +908,7 @@ void loop_run(wm_td *wm)
          * 'loop_update' (which clears the flag) gates the sync to
          * iterations where real work happened. */
         any_outdated = false;
-        for (list_item_td *sync_node = list_head(wm->surfaces);
+        for (list_item_td *sync_node = list_head(surfaces);
                 sync_node != NULL; sync_node = list_next(sync_node)) {
             const surface_td *s = (surface_td *) list_data(sync_node);
             if (s != NULL && s->is_outdated) {
@@ -900,24 +919,26 @@ void loop_run(wm_td *wm)
 
         loop_update(wm);
         if (any_outdated) {
-            wm_ewmh_sync();
+            wm_ewmh_sync(wm);
         }
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
     xcb_key_symbols_free(keysyms);
-    wm->keysyms = NULL;
+    wm_set_keysyms(wm, NULL);
 }
 
 
 /* Perform a partial (outdated-only) surface update */
 void loop_update(const wm_td *wm)
 {
-    if (wm == NULL || wm->surfaces == NULL) {
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL) {
         return;
     }
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         if (surface == NULL) {
@@ -937,13 +958,15 @@ void loop_update(const wm_td *wm)
 /* Force a full re-render of all surfaces */
 void loop_update_full(const wm_td *wm)
 {
-    if (wm == NULL || wm->surfaces == NULL) {
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL) {
         return;
     }
 
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         if (surface != NULL) {

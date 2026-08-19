@@ -29,16 +29,17 @@
 
 
 /* Visit every currently managed client across every surface and desktop */
-uint32_t wm_for_each_client(void (*action)(client_td *client,
+uint32_t wm_for_each_client(wm_td *wm, void (*action)(client_td *client,
             void *userdata), void *userdata)
 {
     uint32_t count = 0u;
+    list_td *surfaces = wm_surfaces(wm);
 
-    if (wm == NULL || wm->surfaces == NULL) {
+    if (surfaces == NULL) {
         return 0u;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
 

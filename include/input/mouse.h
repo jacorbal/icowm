@@ -36,6 +36,7 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+#include <wm.h>
 
 
 /**
@@ -117,6 +118,8 @@ enum wm_mousebind_type_e mousebind_at(int idx,
  * client focus clicks, titlebar decoration buttons, desktop cycling,
  * and drag-start for configured move/resize/lower bindings.
  *
+ * @param wm         Window manager instance, needed only for the
+ *                    root-window right-click's own root menu
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
  * @param event      Button-press event
@@ -124,7 +127,7 @@ enum wm_mousebind_type_e mousebind_at(int idx,
  *
  * @note Complexity: @e O(n) for binding lookup; @e O(1) otherwise
  */
-void mouse_handle_press(xcb_connection_t *connection,
+void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config);
 

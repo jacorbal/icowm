@@ -45,10 +45,10 @@ surface_td *ipc_resolve_surface(wm_td *wm, const cJSON *args)
         return wm_get_surface_by_id(surface_id);
     }
 
-    if (wm->surfaces == NULL || list_is_empty(wm->surfaces)) {
+    if (wm_surfaces(wm) == NULL || list_is_empty(wm_surfaces(wm))) {
         return NULL;
     }
-    return (surface_td *) list_data(list_head(wm->surfaces));
+    return (surface_td *) list_data(list_head(wm_surfaces(wm)));
 }
 
 
@@ -105,7 +105,7 @@ client_td *ipc_resolve_client(wm_td *wm, const cJSON *args,
         return NULL;
     }
 
-    client = lookup_find_client(wm->surfaces, (xcb_window_t) client_id,
+    client = lookup_find_client(wm_surfaces(wm), (xcb_window_t) client_id,
             out_surface, out_desktop);
     if (client == NULL) {
         *out_error = ipc_response_error("no such client");

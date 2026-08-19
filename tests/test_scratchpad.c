@@ -33,6 +33,7 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <scratchpad.h>
+#include <wm/internal.h>
 
 
 /* Captures the arguments of the one real call scratchpad_position

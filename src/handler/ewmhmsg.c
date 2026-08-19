@@ -391,7 +391,7 @@ void hi_handle_net_current_desktop(wm_td *wm,
         return;
     }
 
-    surface = lookup_surface_for_root(wm->surfaces, event->window);
+    surface = lookup_surface_for_root(wm_surfaces(wm), event->window);
     if (surface == NULL) {
         return;
     }
@@ -409,6 +409,7 @@ void hi_handle_net_wm_desktop(wm_td *wm,
 {
     uint32_t target_id;
     desktop_td *tgt_desktop;
+    xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || event == NULL || client == NULL) {
         return;
@@ -449,16 +450,16 @@ void hi_handle_net_wm_desktop(wm_td *wm,
         client->ignore_unmap += 2u;
         if (client->titlebar != 0) {
             client->ignore_unmap += 1u;
-            xcb_unmap_window(wm->connection, client->titlebar);
+            xcb_unmap_window(connection, client->titlebar);
         }
-        xcb_unmap_window(wm->connection, target);
+        xcb_unmap_window(connection, target);
     }
 
     client->desktop_id = target_id;
 
-    if (wm->ewmh != NULL) {
-        xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
-                client->window, wm->ewmh->_NET_WM_DESKTOP,
+    if (wm_ewmh(wm) != NULL) {
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &target_id);
     }
 
@@ -482,6 +483,7 @@ void hi_handle_net_moveresize_window(wm_td *wm,
     uint32_t target_values[4];
     xcb_window_t target;
     bool size_changed;
+    xcb_connection_t *connection = wm_connection(wm);
     int i;
 
     if (wm == NULL || event == NULL || client == NULL) {
@@ -562,13 +564,13 @@ void hi_handle_net_moveresize_window(wm_td *wm,
     (void) i;
 
     if (target_mask != 0) {
-        xcb_configure_window(wm->connection, target,
+        xcb_configure_window(connection, target,
                 target_mask, target_values);
         if (size_changed &&
                 client_is_decorated(client) && client->frame != 0) {
             client_decoration_layout_sync(client);
         }
-        xcb_flush(wm->connection);
+        xcb_flush(connection);
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
@@ -696,6 +698,7 @@ void hi_handle_net_restack_window(wm_td *wm,
     uint32_t detail;
     xcb_window_t sibling;
     xcb_window_t target;
+    xcb_connection_t *connection = wm_connection(wm);
     uint16_t mask = 0;
     uint32_t values[2];
     int i = 0;
@@ -733,8 +736,8 @@ void hi_handle_net_restack_window(wm_td *wm,
 
     (void) i;
 
-    xcb_configure_window(wm->connection, target, mask, values);
-    xcb_flush(wm->connection);
+    xcb_configure_window(connection, target, mask, values);
+    xcb_flush(connection);
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
 }
@@ -746,9 +749,10 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {
     uint32_t monitors[4];
+    xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || event == NULL || client == NULL ||
-            wm->ewmh == NULL) {
+            wm_ewmh(wm) == NULL) {
         return;
     }
 
@@ -757,9 +761,9 @@ void hi_handle_net_wm_fullscreen_monitors(wm_td *wm,
     monitors[2] = event->data.data32[2];
     monitors[3] = event->data.data32[3];
 
-    xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             client->window,
-            atom_intern(wm->connection,
+            atom_intern(connection,
                 "_NET_WM_FULLSCREEN_MONITORS", false),
             XCB_ATOM_CARDINAL, 32, 4, monitors);
 
@@ -788,12 +792,14 @@ void hi_handle_net_wm_moveresize(wm_td *wm,
     bool anchor_bottom;
     bool resize_w;
     bool resize_h;
+    xcb_connection_t *connection = wm_connection(wm);
+    config_td *config = wm_config(wm);
 
     (void) desktop;
 
     if (wm == NULL || event == NULL || client == NULL ||
             surface == NULL || surface->screen == NULL ||
-            wm->config == NULL) {
+            config == NULL) {
         return;
     }
 
@@ -801,7 +807,7 @@ void hi_handle_net_wm_moveresize(wm_td *wm,
 
     if (direction == XCB_EWMH_WM_MOVERESIZE_CANCEL) {
         if (drag_is_active()) {
-            drag_cancel(wm->connection, client);
+            drag_cancel(connection, client);
         }
         return;
     }
@@ -826,10 +832,10 @@ void hi_handle_net_wm_moveresize(wm_td *wm,
 
     screen_w = surface->properties.dim.w;
     screen_h = surface->properties.dim.h;
-    snap = wm->config->base.windows.snap;
+    snap = config->base.windows.snap;
 
     if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE) {
-        drag_start(wm->connection, surface->screen->root, client,
+        drag_start(connection, surface->screen->root, client,
                 wm_get_client_desktop(client),
                 CLIENT_OPERATION_MOVING,
                 XCB_CURRENT_TIME,
@@ -845,7 +851,7 @@ void hi_handle_net_wm_moveresize(wm_td *wm,
     s_moveresize_direction_to_anchor(direction, &anchor_right,
             &anchor_bottom, &resize_w, &resize_h);
 
-    drag_start_directed(wm->connection, surface->screen->root,
+    drag_start_directed(connection, surface->screen->root,
             client, wm_get_client_desktop(client),
             XCB_CURRENT_TIME,
             (int16_t) x_root, (int16_t) y_root,

@@ -38,10 +38,9 @@ cJSON *ipc_action_exit_wm(wm_td *wm, const cJSON *args)
 
 cJSON *ipc_action_reload_config(wm_td *wm, const cJSON *args)
 {
-    (void) wm;
     (void) args;
 
-    if (enact_wm_configuration_reload() != 0) {
+    if (enact_wm_configuration_reload(wm) != 0) {
         return ipc_response_error("failed to reload the configuration");
     }
     return ipc_response_ok();

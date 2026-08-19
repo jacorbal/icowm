@@ -26,6 +26,7 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <ipc/dispatch.h>
+#include <wm/internal.h>
 
 
 /** Link-only stand-in for surface_desktop_get (surface.c): lookup.c

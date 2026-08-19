@@ -108,12 +108,12 @@ static void s_rules_apply_desktop(wm_td *wm, client_td *client,
     }
 
     client->desktop_id = target->id;
-    if (wm->ewmh != NULL) {
+    if (wm_ewmh(wm) != NULL) {
         uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
             ? WM_DESKTOP_ID_ALL : target->id;
 
-        xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
-                client->window, wm->ewmh->_NET_WM_DESKTOP,
+        xcb_change_property(wm_connection(wm), XCB_PROP_MODE_REPLACE,
+                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &did);
     }
 
@@ -378,8 +378,11 @@ bool rules_apply(wm_td *wm, client_td *client,
     bool has_match;
     bool changed;
     uint32_t prev_desktop_id;
+    rules_td *rules = wm_rules(wm);
+    xcb_connection_t *connection = wm_connection(wm);
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || wm->rules == NULL || client == NULL ||
+    if (wm == NULL || rules == NULL || client == NULL ||
             surface_io == NULL || desktop_io == NULL ||
             *surface_io == NULL || *desktop_io == NULL) {
         return false;
@@ -389,8 +392,8 @@ bool rules_apply(wm_td *wm, client_td *client,
     has_match = false;
     prev_desktop_id = client->desktop_id;
 
-    for (uint32_t i = 0u; i < wm->rules->count; ++i) {
-        struct rules_rule_s *rule = &wm->rules->rules[i];
+    for (uint32_t i = 0u; i < rules->count; ++i) {
+        struct rules_rule_s *rule = &rules->rules[i];
 
         if (!ri_when_matches(rule->when, trigger)) {
             continue;
@@ -470,25 +473,25 @@ bool rules_apply(wm_td *wm, client_td *client,
              * 'event->window == client->window', so it needs no
              * token of its own. */
             client->ignore_unmap += 2u;
-            xcb_unmap_window(wm->connection, client->window);
+            xcb_unmap_window(connection, client->window);
             if (client->frame != 0) {
-                xcb_unmap_window(wm->connection, client->frame);
+                xcb_unmap_window(connection, client->frame);
             }
         } else {
             if (client->frame != 0) {
-                xcb_map_window(wm->connection, client->frame);
+                xcb_map_window(connection, client->frame);
             }
-            xcb_map_window(wm->connection, client->window);
+            xcb_map_window(connection, client->window);
         }
     }
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
-    s_rules_apply_geometry(wm->connection, *surface_io, client, &merged);
+    s_rules_apply_geometry(connection, *surface_io, client, &merged);
 
     if (merged.has_focus && merged.focus &&
-            wm->config != NULL && client_is_focusable(client)) {
-        focus_apply(wm->surfaces, *surface_io, *desktop_io,
-                client, true, wm->config);
+            config != NULL && client_is_focusable(client)) {
+        focus_apply(wm_surfaces(wm), *surface_io, *desktop_io,
+                client, true, config);
     }
 
     changed = merged.has_desktop || merged.has_monitor ||

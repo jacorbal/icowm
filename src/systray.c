@@ -46,7 +46,8 @@ struct systray_state_s s_tray;
 
 
 /**
- * @brief Copy every systray setting from @p wm->config into @p s_tray,
+ * @brief Copy every systray setting from @p wm's own configuration
+ *        into @p s_tray,
  *        and refresh the clock/battery text for the values just copied
  *
  * The part @a systray_init and @a systray_reload both need identically
@@ -62,15 +63,17 @@ struct systray_state_s s_tray;
  */
 static void s_systray_config_apply(wm_td *wm)
 {
-    s_tray.position = wm->config->base.systray.position;
-    s_tray.reserve_space = wm->config->base.systray.reserve_space;
-    s_tray.strut_margins.top = wm->config->base.systray.margins.top;
-    s_tray.strut_margins.right = wm->config->base.systray.margins.right;
+    config_td *config = wm_config(wm);
+
+    s_tray.position = config->base.systray.position;
+    s_tray.reserve_space = config->base.systray.reserve_space;
+    s_tray.strut_margins.top = config->base.systray.margins.top;
+    s_tray.strut_margins.right = config->base.systray.margins.right;
     s_tray.strut_margins.bottom =
-        wm->config->base.systray.margins.bottom;
-    s_tray.strut_margins.left = wm->config->base.systray.margins.left;
-    s_tray.monitor.anchor = wm->config->base.systray.monitor.anchor;
-    s_tray.monitor.index = wm->config->base.systray.monitor.index;
+        config->base.systray.margins.bottom;
+    s_tray.strut_margins.left = config->base.systray.margins.left;
+    s_tray.monitor.anchor = config->base.systray.monitor.anchor;
+    s_tray.monitor.index = config->base.systray.monitor.index;
 
     /* A configured '0' (or anything absurdly small) would otherwise
      * make every docked icon invisible, or divide the icon row's own
@@ -78,39 +81,39 @@ static void s_systray_config_apply(wm_td *wm)
      * least, the same defensive floor 'height' below already applied
      * against the old fixed 'WM_SYSTRAY_ICON_SIZE' constant. */
     s_tray.pixmap_size = (uint16_t)
-        ((wm->config->theme.systray.pixmap.size > 0u)
-            ? wm->config->theme.systray.pixmap.size : 1u);
-    s_tray.pixmap_pad = (uint16_t) wm->config->theme.systray.pixmap.padding;
+        ((config->theme.systray.pixmap.size > 0u)
+            ? config->theme.systray.pixmap.size : 1u);
+    s_tray.pixmap_pad = (uint16_t) config->theme.systray.pixmap.padding;
 
-    s_tray.height = (uint16_t) ((wm->config->theme.systray.height >
+    s_tray.height = (uint16_t) ((config->theme.systray.height >
             s_tray.pixmap_size)
-        ? wm->config->theme.systray.height : s_tray.pixmap_size);
-    s_tray.order = wm->config->base.systray.order;
-    s_tray.layer = wm->config->base.systray.layer;
-    s_tray.clock_enabled = wm->config->base.systray.clock.is_enabled;
+        ? config->theme.systray.height : s_tray.pixmap_size);
+    s_tray.order = config->base.systray.order;
+    s_tray.layer = config->base.systray.layer;
+    s_tray.clock_enabled = config->base.systray.clock.is_enabled;
     safe_strncpy(s_tray.clock_format,
-            wm->config->base.systray.clock.format,
+            config->base.systray.clock.format,
             sizeof(s_tray.clock_format));
-    s_tray.battery_enabled = wm->config->base.systray.battery.is_enabled;
+    s_tray.battery_enabled = config->base.systray.battery.is_enabled;
     s_tray.battery_threshold_charged =
-        wm->config->base.systray.battery.threshold.charged;
+        config->base.systray.battery.threshold.charged;
     s_tray.battery_threshold_low =
-        wm->config->base.systray.battery.threshold.low;
+        config->base.systray.battery.threshold.low;
     s_tray.battery_threshold_critical =
-        wm->config->base.systray.battery.threshold.critical;
+        config->base.systray.battery.threshold.critical;
     s_tray.battery_backend_type =
-        wm->config->base.systray.battery.backend.type;
+        config->base.systray.battery.backend.type;
     s_tray.battery_backend_number =
-        wm->config->base.systray.battery.backend.number;
+        config->base.systray.battery.backend.number;
     s_tray.battery_poll_seconds =
-        wm->config->base.systray.battery.poll_seconds;
-    s_tray.text_position = wm->config->base.systray.text.position;
-    s_tray.text_valign = wm->config->theme.systray.text.valign;
-    s_tray.text_gap = (uint16_t) wm->config->theme.systray.text.gap;
-    s_tray.text_order[0] = wm->config->base.systray.text.order[0];
-    s_tray.text_order[1] = wm->config->base.systray.text.order[1];
-    s_tray.text_order_count = wm->config->base.systray.text.order_count;
-    s_tray.theme = &wm->config->theme;
+        config->base.systray.battery.poll_seconds;
+    s_tray.text_position = config->base.systray.text.position;
+    s_tray.text_valign = config->theme.systray.text.valign;
+    s_tray.text_gap = (uint16_t) config->theme.systray.text.gap;
+    s_tray.text_order[0] = config->base.systray.text.order[0];
+    s_tray.text_order[1] = config->base.systray.text.order[1];
+    s_tray.text_order_count = config->base.systray.text.order_count;
+    s_tray.theme = &config->theme;
     systray_text_refresh_clock();
     systray_text_refresh_battery();
 }
@@ -119,8 +122,10 @@ static void s_systray_config_apply(wm_td *wm)
 /* Acquire the tray selection and create the dock window */
 void systray_init(wm_td *wm)
 {
-    if (wm == NULL || wm->config == NULL ||
-            !wm->config->base.systray.is_enabled) {
+    config_td *config = wm_config(wm);
+
+    if (wm == NULL || config == NULL ||
+            !config->base.systray.is_enabled) {
         return;
     }
 
@@ -139,7 +144,7 @@ void systray_init(wm_td *wm)
      * own: see 'is_embedding_enabled''s comment in 'config.h' for why
      * restricted-memory mode is the one profile that always leaves it
      * 'false' */
-    if (wm->config->base.systray.is_embedding_enabled) {
+    if (config->base.systray.is_embedding_enabled) {
         (void) systray_protocol_selection_acquire();
     }
 
@@ -406,12 +411,13 @@ void systray_reload(wm_td *wm)
 {
     bool should_be_enabled;
     bool was_active;
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || wm->config == NULL) {
+    if (wm == NULL || config == NULL) {
         return;
     }
 
-    should_be_enabled = wm->config->base.systray.is_enabled;
+    should_be_enabled = config->base.systray.is_enabled;
     was_active = s_tray.is_active;
     s_systray_config_apply(wm);
     systray_protocol_apply_theme_style();
@@ -456,7 +462,7 @@ void systray_reload(wm_td *wm)
          * disabled the window alone (already showing its own
          * clock/battery text via 's_systray_config_apply' above) is
          * enough on its own */
-        if (ready && wm->config->base.systray.is_embedding_enabled) {
+        if (ready && config->base.systray.is_embedding_enabled) {
             (void) systray_protocol_selection_acquire();
         }
 

@@ -83,7 +83,7 @@ static void s_dispatch_to_client_handler(wm_td *wm,
     surface_td *surface;
     desktop_td *desktop;
 
-    client = lookup_find_client(wm->surfaces, event->window,
+    client = lookup_find_client(wm_surfaces(wm), event->window,
             &surface, &desktop);
     if (client != NULL) {
         handler(wm, event, client, surface, desktop);
@@ -123,8 +123,12 @@ void handler_client_message(wm_td *wm,
     xcb_atom_t net_restack_window;
     xcb_atom_t net_wm_fullscreen_monitors;
     xcb_atom_t net_wm_moveresize;
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
+    list_td *surfaces = wm_surfaces(wm);
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || event == NULL || wm->ewmh == NULL) {
+    if (wm == NULL || event == NULL || ewmh == NULL) {
         return;
     }
 
@@ -139,25 +143,25 @@ void handler_client_message(wm_td *wm,
      * function itself is cheap to call when the message type does not
      * match, since it just compares two already-interned atoms and
      * returns. */
-    cctl_sn_handle_client_message(wm->connection, wm->surfaces, event);
+    cctl_sn_handle_client_message(connection, surfaces, event);
 
     if (systray_owns_window(event->window)) {
         systray_handle_client_message(wm, event);
         return;
     }
 
-    net_restack_window = atom_intern(wm->connection,
+    net_restack_window = atom_intern(connection,
             "_NET_RESTACK_WINDOW", false);
-    net_wm_fullscreen_monitors = atom_intern(wm->connection,
+    net_wm_fullscreen_monitors = atom_intern(connection,
             "_NET_WM_FULLSCREEN_MONITORS", false);
-    net_wm_moveresize = atom_intern(wm->connection,
+    net_wm_moveresize = atom_intern(connection,
             "_NET_WM_MOVERESIZE", false);
 
-    if (event->type == wm->ewmh->_NET_WM_STATE) {
-        client = lookup_find_client(wm->surfaces, event->window,
+    if (event->type == ewmh->_NET_WM_STATE) {
+        client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
-            hi_handle_net_wm_state(client, event, wm->ewmh,
+            hi_handle_net_wm_state(client, event, ewmh,
                     surface, desktop);
         }
         return;
@@ -181,8 +185,8 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    if (event->type == wm->ewmh->_NET_ACTIVE_WINDOW) {
-        client = lookup_find_client(wm->surfaces, event->window,
+    if (event->type == ewmh->_NET_ACTIVE_WINDOW) {
+        client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
             desktop_td *const active_desktop = lookup_current_desktop(surface);
@@ -258,11 +262,11 @@ void handler_client_message(wm_td *wm,
                         desktop_action_client_rem(desktop, client);
                         desktop_action_client_add(cur_desktop, client);
                         client->desktop_id = cur_id;
-                        if (wm->ewmh != NULL) {
-                            xcb_change_property(wm->connection,
+                        if (ewmh != NULL) {
+                            xcb_change_property(connection,
                                     XCB_PROP_MODE_REPLACE,
                                     client->window,
-                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    ewmh->_NET_WM_DESKTOP,
                                     XCB_ATOM_CARDINAL, 32, 1, &cur_id);
                         }
                         desktop = cur_desktop;
@@ -287,11 +291,11 @@ void handler_client_message(wm_td *wm,
                         desktop_action_client_add(cur_desktop, client);
                         client->desktop_id = surface->desktop_cur;
 
-                        if (wm->ewmh != NULL) {
-                            xcb_change_property(wm->connection,
+                        if (ewmh != NULL) {
+                            xcb_change_property(connection,
                                     XCB_PROP_MODE_REPLACE,
                                     client->window,
-                                    wm->ewmh->_NET_WM_DESKTOP,
+                                    ewmh->_NET_WM_DESKTOP,
                                     XCB_ATOM_CARDINAL, 32, 1,
                                     &surface->desktop_cur);
                         }
@@ -305,8 +309,8 @@ void handler_client_message(wm_td *wm,
             }
 
             if (desktop != NULL) {
-                focus_apply(wm->surfaces, surface, desktop, client,
-                        true, wm->config);
+                focus_apply(surfaces, surface, desktop, client,
+                        true, config);
             }
 
             wm_outdate_surface(surface);
@@ -315,8 +319,8 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    if (event->type == wm->ewmh->_NET_CLOSE_WINDOW) {
-        client = lookup_find_client(wm->surfaces, event->window,
+    if (event->type == ewmh->_NET_CLOSE_WINDOW) {
+        client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
             ccmd_client_close(client);
@@ -324,18 +328,18 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    if (event->type == wm->ewmh->_NET_WM_DESKTOP) {
+    if (event->type == ewmh->_NET_WM_DESKTOP) {
         s_dispatch_to_client_handler(wm, event,
                 hi_handle_net_wm_desktop);
         return;
     }
 
-    if (event->type == wm->ewmh->_NET_CURRENT_DESKTOP) {
+    if (event->type == ewmh->_NET_CURRENT_DESKTOP) {
         hi_handle_net_current_desktop(wm, event);
         return;
     }
 
-    if (event->type == wm->ewmh->_NET_MOVERESIZE_WINDOW) {
+    if (event->type == ewmh->_NET_MOVERESIZE_WINDOW) {
         s_dispatch_to_client_handler(wm, event,
                 hi_handle_net_moveresize_window);
         return;
@@ -343,8 +347,8 @@ void handler_client_message(wm_td *wm,
 
     /* EWMH §5.3: pre-map frame-extents request; reply immediately
      * so the application can size itself before mapping */
-    if (event->type == wm->ewmh->_NET_REQUEST_FRAME_EXTENTS) {
-        client = lookup_find_client(wm->surfaces, event->window,
+    if (event->type == ewmh->_NET_REQUEST_FRAME_EXTENTS) {
+        client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
 
         if (client != NULL && client->ewmh != NULL) {
@@ -354,19 +358,19 @@ void handler_client_message(wm_td *wm,
             extents[1] = (uint32_t) client->layout.frame_extents.right;
             extents[2] = (uint32_t) client->layout.frame_extents.top;
             extents[3] = (uint32_t) client->layout.frame_extents.bottom;
-            xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
-                    event->window, wm->ewmh->_NET_FRAME_EXTENTS,
+            xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+                    event->window, ewmh->_NET_FRAME_EXTENTS,
                     XCB_ATOM_CARDINAL, 32, 4, extents);
-            xcb_flush(wm->connection);
+            xcb_flush(connection);
         }
         return;
     }
 
     /* EWMH §5.13: show/hide all desktop windows */
-    if (event->type == wm->ewmh->_NET_SHOWING_DESKTOP) {
+    if (event->type == ewmh->_NET_SHOWING_DESKTOP) {
         bool show = event->data.data32[0] != 0u;
 
-        for (list_item_td *snode = list_head(wm->surfaces);
+        for (list_item_td *snode = list_head(surfaces);
                 snode != NULL; snode = list_next(snode)) {
             surface_td *const surf = (surface_td *) list_data(snode);
 
@@ -374,20 +378,20 @@ void handler_client_message(wm_td *wm,
                 continue;
             }
             hi_handle_net_showing_desktop(surf, show);
-            xcb_ewmh_set_showing_desktop(wm->ewmh,
+            xcb_ewmh_set_showing_desktop(ewmh,
                     (int) surf->id, (show) ? 1u : 0u);
         }
 
-        xcb_flush(wm->connection);
+        xcb_flush(connection);
         return;
     }
 
     /* EWMH §4.6 & ICCCM §4.2.8: intercept '_NET_WM_PING' pong replies
      * sent from clients back to the root window. */
-    if (event->type == wm->ewmh->WM_PROTOCOLS &&
-            event->data.data32[0] == (uint32_t) wm->ewmh->_NET_WM_PING) {
+    if (event->type == ewmh->WM_PROTOCOLS &&
+            event->data.data32[0] == (uint32_t) ewmh->_NET_WM_PING) {
         xcb_window_t ping_window = (xcb_window_t) event->data.data32[2];
-        client = lookup_find_client(wm->surfaces, ping_window,
+        client = lookup_find_client(surfaces, ping_window,
                 &surface, &desktop);
         if (client != NULL) {
             client->last_ping_reply = event->data.data32[1];
@@ -399,10 +403,10 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    wm_change_state = atom_intern(wm->connection, "WM_CHANGE_STATE", true);
+    wm_change_state = atom_intern(connection, "WM_CHANGE_STATE", true);
     if (event->type == wm_change_state &&
             event->data.data32[0] == ICCCM_ICONIC_STATE) {
-        client = lookup_find_client(wm->surfaces, event->window,
+        client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL) {
             ccmd_client_iconify(client);

@@ -108,7 +108,7 @@ cJSON *ipc_action_list_desktops(wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "desktops");
 
-    for (list_item_td *node = list_head(wm->surfaces); node != NULL;
+    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
 
@@ -154,7 +154,7 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "clients");
 
-    for (list_item_td *node = list_head(wm->surfaces); node != NULL;
+    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
 
@@ -169,14 +169,14 @@ cJSON *ipc_action_list_clients(wm_td *wm, const cJSON *args)
                 continue;
             }
             ohtbl_foreach(desktop->clients, elem) {
-                const client_td *const c = (client_td *) elem;
+                client_td *const c = (client_td *) elem;
 
                 if (c != NULL && !client_is_locked(c)) {
                     s_append_client_summary(array, c, desktop, surface);
                 }
             }
-        } /* ! for (i) */
-    } /* ! for (node) */
+        }
+    }
 
     return resp;
 }
@@ -195,7 +195,7 @@ cJSON *ipc_action_get_focused(wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "focused");
 
-    for (list_item_td *node = list_head(wm->surfaces); node != NULL;
+    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         desktop_td *desktop;

@@ -549,11 +549,11 @@ int wm_start(const char *restrict display_name,
                 L_NARG);
     }
 
-    if (wm_ewmh_init() != 0) {
+    if (wm_ewmh_init(wm) != 0) {
         LOGGER_WARNING("Failed to initialize EWMH root metadata",
                 L_NARG);
     }
-    wm_ewmh_sync();
+    wm_ewmh_sync(wm);
 
     systray_init(wm);
     xsettings_init(wm);
@@ -712,7 +712,7 @@ int wm_request_stop(void)
  * close first */
 void wm_request_graceful_stop(void)
 {
-    wm_shutdown_begin();
+    wm_shutdown_begin(wm);
 }
 
 

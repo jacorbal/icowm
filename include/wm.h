@@ -58,65 +58,223 @@ typedef struct session_s session_td;
  * program as well as the relationships between different screens and
  * their respective windows.
  *
- * The @p is_running flag indicates whether the window manager is
- * currently operational, while the @p surfaces linked list holds
- * references to all surfaces being managed.  The @p config pointer
- * allows for customization of the window manager's settings; events
- * that affect window behavior and user interactions are dispatched
- * from @a loop_run instead, not tracked as a field here.
-
+ * Opaque outside @c wm.c and @c wm/instance.c: every field is reached
+ * only through the accessor functions declared below, never through
+ * direct member access.  @c wm/internal.h (private to @c wm.c and
+ * @c wm/instance.c) holds the real definition.
+ *
  * @see @c loop.h
  */
-typedef struct {
-    xcb_connection_t *connection;   /**< Pointer to XCB connection */
-    xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
-    xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
-    list_td *surfaces;              /**< List of surfaces */
-    uint32_t screenp;               /**< Preferred screen */
+typedef struct wm_s wm_td;
 
-    /**
-     * Key symbols table used to translate keycodes to keysyms for
-     * keyboard binding grabs; owned and freed by @a loop_run, which
-     * allocates it once at startup.
-     *
-     * Stored here so @a wm_action_config_reload can re-run @a
-     * keyboard_load with the current bindings after every reload
-     * trigger (@c SIGHUP, the reload keybinding, and the root menu's
-     * "Reload configuration" entry) without each of those three call
-     * sites needing its own copy of this pointer. */
-    xcb_key_symbols_t *keysyms;
 
-    bool randr_available;           /**< XRandR extension availability */
-    uint8_t randr_base_event;       /**< XRandR base event code */
-    bool sync_available;            /**< XSync extension availability */
-    uint8_t sync_base_event;        /**< XSync base event code */
-    config_td *config;              /**< Window manager configuration */
-    rules_td *rules;                /**< Window matching rules */
-    session_td *session;            /**< Session hooks */
-    const char *config_dir_prefix;  /**< Config dir. passed at startup,
-                                         for @c NULL if the default
-                                         config. dir. is used; kept to
-                                         reuse it on config. reload */
+/* Field accessors ('wm/instance.c'); every wm/ sub-module and every
+ * external caller reaches wm_td's own fields only through these,
+ * never through direct member access */
+/**
+ * @brief XCB connection handle
+ *
+ * @param wm Window manager instance
+ *
+ * @return The connection, or @c NULL before @a wm_start has run
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_connection_t *wm_connection(const wm_td *wm);
 
-    bool is_running;                /**< Running state flag */
-    bool is_emergency_exit;         /**< Set when an emergency exit is
-                                         requested; suppresses pending
-                                         session hooks on shutdown */
+/**
+ * @brief EWMH connection handle
+ *
+ * @param wm Window manager instance
+ *
+ * @return The EWMH connection, or @c NULL before @a wm_start has run
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_ewmh_connection_t *wm_ewmh(const wm_td *wm);
 
-    /**
-     * @brief Restricted-memory mode's available-memory ceiling, in
-     *        mebibytes, or @c 0 when the mode is not active
-     *
-     * Set once at startup from the @c -M command-line option and never
-     * changed afterward.  Consulted by @a loop_run's periodic
-     * low-memory check, which warns once system-wide available memory
-     * drops below it.
-     *
-     * @see @c main.c for the @c -M option, and @c utils/sysmem.h
-     * @see @a wm_start
-     */
-    uint32_t restricted_memory_mib;
-} wm_td;
+/**
+ * @brief List of managed surfaces
+ *
+ * @param wm Window manager instance
+ *
+ * @return The surface list, or @c NULL before @a wm_start has run
+ *
+ * @note Complexity: @e O(1)
+ */
+list_td *wm_surfaces(const wm_td *wm);
+
+/**
+ * @brief Key symbols table used to translate keycodes to keysyms
+ *
+ * @param wm Window manager instance
+ *
+ * @return The key symbols table, or @c NULL if none is currently
+ *         loaded
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_key_symbols_t *wm_keysyms(const wm_td *wm);
+
+/**
+ * @brief XRandR extension availability
+ *
+ * @param wm Window manager instance
+ *
+ * @return Whether the XRandR extension was found at startup
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_randr_available(const wm_td *wm);
+
+/**
+ * @brief XRandR base event code
+ *
+ * @param wm Window manager instance
+ *
+ * @return The base event code, meaningless if @a wm_randr_available
+ *         is @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+uint8_t wm_randr_base_event(const wm_td *wm);
+
+/**
+ * @brief XSync extension availability
+ *
+ * @param wm Window manager instance
+ *
+ * @return Whether the XSync extension was found at startup
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_sync_available(const wm_td *wm);
+
+/**
+ * @brief XSync base event code
+ *
+ * @param wm Window manager instance
+ *
+ * @return The base event code, meaningless if @a wm_sync_available
+ *         is @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+uint8_t wm_sync_base_event(const wm_td *wm);
+
+/**
+ * @brief Window manager configuration
+ *
+ * @param wm Window manager instance
+ *
+ * @return The active configuration, or @c NULL before @a wm_start has
+ *         run
+ *
+ * @note Complexity: @e O(1)
+ */
+config_td *wm_config(const wm_td *wm);
+
+/**
+ * @brief Window matching rules table
+ *
+ * @param wm Window manager instance
+ *
+ * @return The rules table, or @c NULL before @a wm_start has run
+ *
+ * @note Complexity: @e O(1)
+ */
+rules_td *wm_rules(const wm_td *wm);
+
+/**
+ * @brief Session hooks table
+ *
+ * @param wm Window manager instance
+ *
+ * @return The session hooks table, or @c NULL before @a wm_start has
+ *         run
+ *
+ * @note Complexity: @e O(1)
+ */
+session_td *wm_session(const wm_td *wm);
+
+/**
+ * @brief Configuration directory passed at startup
+ *
+ * @param wm Window manager instance
+ *
+ * @return The configuration directory, or @c NULL if the default
+ *         configuration directory is used
+ *
+ * @note Complexity: @e O(1)
+ */
+const char *wm_config_dir_prefix(const wm_td *wm);
+
+/**
+ * @brief Running state flag
+ *
+ * @param wm Window manager instance
+ *
+ * @return Whether the window manager is currently operational
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_is_running(const wm_td *wm);
+
+/**
+ * @brief Restricted-memory mode's available-memory ceiling
+ *
+ * @param wm Window manager instance
+ *
+ * @return The ceiling in mebibytes, or @c 0 when the mode is not
+ *         active
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t wm_restricted_memory_mib(const wm_td *wm);
+
+/**
+ * @brief Set the @c _NET_SUPPORTING_WM_CHECK window
+ *
+ * @param wm  Window manager instance
+ * @param win The support window
+ *
+ * @note Complexity: @e O(1)
+ */
+void wm_set_ewmh_support_win(wm_td *wm, xcb_window_t win);
+
+/**
+ * @brief Set the key symbols table
+ *
+ * @param wm      Window manager instance
+ * @param keysyms The new key symbols table, or @c NULL to clear it
+ *
+ * @note Complexity: @e O(1)
+ */
+void wm_set_keysyms(wm_td *wm, xcb_key_symbols_t *keysyms);
+
+/**
+ * @brief Set XRandR availability and its base event code together
+ *
+ * @param wm          Window manager instance
+ * @param available   Whether the XRandR extension was found
+ * @param base_event  The base event code; meaningless if @p available
+ *                    is @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+void wm_set_randr(wm_td *wm, bool available, uint8_t base_event);
+
+/**
+ * @brief Set XSync availability and its base event code together
+ *
+ * @param wm          Window manager instance
+ * @param available   Whether the XSync extension was found
+ * @param base_event  The base event code; meaningless if @p available
+ *                    is @c false
+ *
+ * @note Complexity: @e O(1)
+ */
+void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
 
 
 /* Public interface */
@@ -257,6 +415,8 @@ void wm_request_graceful_stop(void);
 /**
  * @brief Reload the configuration from the configuration files
  *
+ * @param wm Window manager instance
+ *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to perform the operation
@@ -269,32 +429,33 @@ void wm_request_graceful_stop(void);
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
  */
-int wm_action_config_reload(void);
+int wm_action_config_reload(wm_td *wm);
 
 /**
  * @brief Rearrange every visible window on the given surface's own
  *        current desktop
  *
- * A thin wrapper around @a enact_desktop_clients_rearrange for callers
- * (the root menu) that only have a @c surface_td, not the window
- * manager singleton itself.
+ * A thin wrapper around @a enact_desktop_clients_rearrange.
  *
+ * @param wm      Window manager instance
  * @param surface Surface whose current desktop to rearrange
  *
  * @note No-op if @p surface is null or has no current desktop
  */
-void wm_action_rearrange(surface_td *surface);
+void wm_action_rearrange(wm_td *wm, surface_td *surface);
 
 /**
  * @brief Perform actions required before destroying the window manager
  *
  * Executes necessary actions required before invoking @a wm_stop
  *
+ * @param wm Window manager instance
+ *
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 Failed to perform the operation
  */
-int wm_action_exit(void);
+int wm_action_exit(wm_td *wm);
 
 /**
  * @brief Return the desktop that currently contains a specific client
@@ -468,10 +629,12 @@ void wm_request_full_redraw(void);
  * desktop counts, current desktop, workarea, client lists, and active
  * window.
  *
+ * @param wm Window manager instance
+ *
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients across all desktops
  */
-void wm_ewmh_sync(void);
+void wm_ewmh_sync(wm_td *wm);
 
 /**
  * @brief Initialize EWMH root support metadata
@@ -479,11 +642,13 @@ void wm_ewmh_sync(void);
  * Creates the supporting window and publishes @c _NET_SUPPORTED and
  * @c _NET_SUPPORTING_WM_CHECK properties.
  *
+ * @param wm Window manager instance
+ *
  * @return 0 on success, or non-zero on failure
  *
  * @note Complexity: @e O(1)
  */
-int wm_ewmh_init(void);
+int wm_ewmh_init(wm_td *wm);
 
 /**
  * @brief Run periodic EWMH maintenance tasks
@@ -491,8 +656,10 @@ int wm_ewmh_init(void);
  * Sends @c _NET_WM_PING probes to responsive clients, marks timed out
  * clients as unresponsive, and refreshes EWMH metadata that depends on
  * runtime state.
+ *
+ * @param wm Window manager instance
  */
-void wm_ewmh_tick(void);
+void wm_ewmh_tick(wm_td *wm);
 
 /**
  * @brief Set the emergency exit flag to @c true

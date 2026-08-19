@@ -720,12 +720,14 @@ int enact_wm_exit(void);
 /**
  * @brief Reload the window manager's configuration
  *
+ * @param wm Window manager instance
+ *
  * @return @c 0 on success, non-zero otherwise
  *
  * @note Complexity: @e O(n), where @e n is the size of the
  *       configuration being reloaded
  */
-int enact_wm_configuration_reload(void);
+int enact_wm_configuration_reload(wm_td *wm);
 
 
 #endif  /* ! ENACT_H */

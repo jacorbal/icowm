@@ -843,7 +843,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                 return;
 
             case KEYBIND_WM_RELOAD:
-                (void) wm_action_config_reload();
+                (void) wm_action_config_reload(wm);
                 return;
 
             case KEYBIND_WM_ROOT_MENU:
@@ -861,7 +861,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                                     CONFIG_MENU_POSITION_UNDER_MOUSE,
                             &mx, &my);
 
-                    rootmenu_show(surface->connection, surface,
+                    rootmenu_show(wm, surface->connection, surface,
                             mx, my, config);
                 }
                 return;

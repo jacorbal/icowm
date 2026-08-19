@@ -36,6 +36,9 @@
 /* System includes */
 #include <stdbool.h>
 
+/* Project includes */
+#include <wm.h>
+
 
 /**
  * @brief Begin a coordinated shutdown
@@ -50,12 +53,14 @@
  * Calling this while a shutdown is already in progress has no further
  * effect.
  *
+ * @param wm Window manager instance
+ *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients across every surface and desktop
  *
  * @see see @a ccmd_client_close in @c cmds/client/basic.h
  */
-void wm_shutdown_begin(void);
+void wm_shutdown_begin(wm_td *wm);
 
 /**
  * @brief Milliseconds remaining before the shutdown timeout forces the
@@ -83,13 +88,15 @@ int wm_shutdown_ms_remaining(void);
  * main loop iteration the same way every other timed subsystem's own
  * @c *_tick already is.
  *
+ * @param wm Window manager instance
+ *
  * @note A no-op unless a shutdown is currently in progress
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across every surface and desktop
  *
  * @see @a ccmd_client_kill in @c cmds/client/basic.h 
  */
-void wm_shutdown_tick(void);
+void wm_shutdown_tick(wm_td *wm);
 
 /**
  * @brief Query whether a coordinated shutdown is currently in

@@ -263,13 +263,14 @@ void enact_desktop_clients_rearrange(wm_td *wm, surface_td *surface,
     enum config_placement_policy_e policy;
     bool single_spot_policy;
     bool is_first;
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || wm->config == NULL || surface == NULL ||
+    if (wm == NULL || config == NULL || surface == NULL ||
             desktop == NULL) {
         return;
     }
 
-    policy = wm->config->base.windows.placement_policy;
+    policy = config->base.windows.placement_policy;
     single_spot_policy =
         (policy == CONFIG_PLACEMENT_POLICY_CENTERED) ||
         (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE);

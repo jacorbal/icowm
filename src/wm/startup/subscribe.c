@@ -41,15 +41,18 @@
 /* Subscribe to XRandR notifications on each managed root window */
 int wm_startup_subscribe_randr_events(wm_td *wm)
 {
-    if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
+    xcb_connection_t *connection = wm_connection(wm);
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL || connection == NULL) {
         return -1;
     }
 
-    if (!wm->randr_available) {
+    if (!wm_randr_available(wm)) {
         return 0;
     }
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         xcb_void_cookie_t cookie;
@@ -65,9 +68,9 @@ int wm_startup_subscribe_randr_events(wm_td *wm)
                XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
                XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY;
 
-        cookie = xcb_randr_select_input_checked(wm->connection,
+        cookie = xcb_randr_select_input_checked(connection,
                 surface->screen->root, mask);
-        err = xcb_request_check(wm->connection, cookie);
+        err = xcb_request_check(connection, cookie);
         if (err != NULL) {
             LOGGER_WARNING("Failed to subscribe XRandR events on"
                     " surface %u (XCB error code %u)",
@@ -80,7 +83,7 @@ int wm_startup_subscribe_randr_events(wm_td *wm)
                 " (root %#x)", surface->id, surface->screen->root);
     }
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
     return 0;
 }
 
@@ -92,8 +95,10 @@ int wm_startup_subscribe_root_events(wm_td *wm)
     xcb_cursor_t cur;
     uint32_t cur_val[1];
     surface_td *first_surface;
+    xcb_connection_t *connection = wm_connection(wm);
+    list_td *surfaces = wm_surfaces(wm);
 
-    if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
+    if (wm == NULL || surfaces == NULL || connection == NULL) {
         return -1;
     }
 
@@ -105,7 +110,7 @@ int wm_startup_subscribe_root_events(wm_td *wm)
                 XCB_EVENT_MASK_BUTTON_RELEASE        |
                 XCB_EVENT_MASK_PROPERTY_CHANGE;
 
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         xcb_void_cookie_t cookie;
@@ -116,9 +121,9 @@ int wm_startup_subscribe_root_events(wm_td *wm)
         }
 
         cookie = xcb_change_window_attributes_checked(
-                wm->connection, surface->screen->root,
+                connection, surface->screen->root,
                 XCB_CW_EVENT_MASK, values);
-        err = xcb_request_check(wm->connection, cookie);
+        err = xcb_request_check(connection, cookie);
         if (err != NULL) {
             LOGGER_FATAL("Cannot subscribe to root events on" \
                     " surface %u; another window manager may be" \
@@ -140,7 +145,7 @@ int wm_startup_subscribe_root_events(wm_td *wm)
      * "left_ptr" cursor; see 'defs/cursor.h' for that fallback
      * glyph's named constant. */
     first_surface = NULL;
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
 
@@ -152,28 +157,28 @@ int wm_startup_subscribe_root_events(wm_td *wm)
 
     cur = XCB_NONE;
     if (first_surface != NULL) {
-        util_cursor_ctx_td *const ctx = util_cursor_ctx_new(wm->connection,
+        util_cursor_ctx_td *const ctx = util_cursor_ctx_new(connection,
                 first_surface->screen);
 
         cur = util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
         util_cursor_ctx_free(ctx);
     }
     if (cur == XCB_NONE) {
-        xcb_flush(wm->connection);
+        xcb_flush(connection);
         return 0;
     }
     cur_val[0] = (uint32_t) cur;
-    for (list_item_td *cn = list_head(wm->surfaces);
+    for (list_item_td *cn = list_head(surfaces);
             cn != NULL; cn = list_next(cn)) {
         surface_td *const sv = (surface_td *) list_data(cn);
         if (sv == NULL || sv->screen == NULL) {
             continue;
         }
-        xcb_change_window_attributes(wm->connection,
+        xcb_change_window_attributes(connection,
                 sv->screen->root, XCB_CW_CURSOR, cur_val);
     }
-    xcb_free_cursor(wm->connection, cur);
+    xcb_free_cursor(connection, cur);
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
     return 0;
 }

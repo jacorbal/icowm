@@ -294,37 +294,41 @@ bool systray_protocol_window_ensure(wm_td *wm)
     char selection_name[32];
     uint32_t mask;
     uint32_t values[4];
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
+    config_td *config = wm_config(wm);
+    list_td *surfaces = wm_surfaces(wm);
 
     if (s_tray.window_ready) {
         return true;
     }
 
-    if (wm == NULL || wm->connection == NULL || wm->config == NULL ||
-            wm->surfaces == NULL) {
+    if (wm == NULL || connection == NULL || config == NULL ||
+            surfaces == NULL) {
         return false;
     }
 
-    surface = (surface_td *) list_data(list_head(wm->surfaces));
+    surface = (surface_td *) list_data(list_head(surfaces));
     if (surface == NULL || surface->screen == NULL) {
         return false;
     }
 
-    s_tray.connection = wm->connection;
-    s_tray.ewmh = wm->ewmh;
+    s_tray.connection = connection;
+    s_tray.ewmh = ewmh;
     s_tray.surface = surface;
 
     (void) snprintf(selection_name, sizeof(selection_name),
             "_NET_SYSTEM_TRAY_S%u", (unsigned int) surface->id);
-    s_tray.selection_atom = atom_intern(wm->connection, selection_name,
+    s_tray.selection_atom = atom_intern(connection, selection_name,
             false);
-    s_tray.manager_atom = atom_intern(wm->connection, "MANAGER", false);
-    s_tray.opcode_atom = atom_intern(wm->connection,
+    s_tray.manager_atom = atom_intern(connection, "MANAGER", false);
+    s_tray.opcode_atom = atom_intern(connection,
             "_NET_SYSTEM_TRAY_OPCODE", false);
-    s_tray.orientation_atom = atom_intern(wm->connection,
+    s_tray.orientation_atom = atom_intern(connection,
             "_NET_SYSTEM_TRAY_ORIENTATION", false);
-    s_tray.visual_atom = atom_intern(wm->connection,
+    s_tray.visual_atom = atom_intern(connection,
             "_NET_SYSTEM_TRAY_VISUAL", false);
-    s_tray.xembed_atom = atom_intern(wm->connection, "_XEMBED", false);
+    s_tray.xembed_atom = atom_intern(connection, "_XEMBED", false);
 
     if (s_tray.selection_atom == XCB_ATOM_NONE ||
             s_tray.opcode_atom == XCB_ATOM_NONE ||
@@ -334,13 +338,13 @@ bool systray_protocol_window_ensure(wm_td *wm)
         return false;
     }
 
-    s_tray.window = xcb_generate_id(wm->connection);
+    s_tray.window = xcb_generate_id(connection);
     mask = XCB_CW_BACK_PIXEL   |
         XCB_CW_BORDER_PIXEL    |
         XCB_CW_OVERRIDE_REDIRECT |
         XCB_CW_EVENT_MASK;
-    values[0] = wm->config->theme.systray.style.color.background;
-    values[1] = wm->config->theme.systray.style.border.color;
+    values[0] = config->theme.systray.style.color.background;
+    values[1] = config->theme.systray.style.border.color;
     values[2] = 1;   /* override_redirect: never managed as a client */
     values[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
         /* Without this, a docked icon's own resize attempt on itself
@@ -351,16 +355,16 @@ bool systray_protocol_window_ensure(wm_td *wm)
          * see 'systray_icon_size_enforce' in 'systray.c'. */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
 
-    xcb_create_window(wm->connection, XCB_COPY_FROM_PARENT,
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT,
             s_tray.window, surface->screen->root,
             0, 0, 1, s_tray.height,
-            (uint16_t) wm->config->theme.systray.style.border.width,
+            (uint16_t) config->theme.systray.style.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
-    atom_set_window_opacity(wm->connection, s_tray.window,
+    atom_set_window_opacity(connection, s_tray.window,
             config_theme_opacity_to_raw(
-                wm->config->theme.systray.style.opacity));
-    xcb_flush(wm->connection);
+                config->theme.systray.style.opacity));
+    xcb_flush(connection);
 
     s_tray.window_ready = true;
     return true;

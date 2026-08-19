@@ -1040,12 +1040,13 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
  * Right-click opens the root desktop menu; middle-click opens the
  * window list.
  *
+ * @param wm         Window manager instance, for the root menu
  * @param connection Active XCB connection
  * @param surfaces   Surface list
  * @param event      Incoming button-press event
  * @param config     Active configuration
  */
-static void s_mouse_handle_root_press(xcb_connection_t *connection,
+static void s_mouse_handle_root_press(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
@@ -1057,7 +1058,7 @@ static void s_mouse_handle_root_press(xcb_connection_t *connection,
     }
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
-        rootmenu_show(connection, surface,
+        rootmenu_show(wm, connection, surface,
                 (int16_t) event->root_x, (int16_t) event->root_y,
                 config);
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
@@ -1147,7 +1148,7 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 /* Public event handlers */
 
 /* Dispatch a button-press event */
-void mouse_handle_press(xcb_connection_t *connection,
+void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
@@ -1286,7 +1287,7 @@ void mouse_handle_press(xcb_connection_t *connection,
             /* No managed client: check for a root-window click */
             if (event->event == event->root ||
                     event->child == XCB_NONE) {
-                s_mouse_handle_root_press(connection, surfaces, event,
+                s_mouse_handle_root_press(wm, connection, surfaces, event,
                         config);
                 return;
             }

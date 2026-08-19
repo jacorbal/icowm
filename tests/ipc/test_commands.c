@@ -34,6 +34,7 @@
 
 /* Project includes */
 #include <wm.h>
+#include <wm/internal.h>
 
 /* Local includes */
 #include <harness/tap.h>

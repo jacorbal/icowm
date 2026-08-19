@@ -67,22 +67,27 @@
  * @brief Resynchronize every already-managed surface, desktop, and
  *        client after a configuration reload
  *
- * A configuration reload updates @p wm->config in place, but anything
- * already derived from it before the reload (a desktop's resolved
- * background color, a client's cached frame dimensions) has to be
- * explicitly recomputed or repainted; nothing else does that on its
- * own just because the underlying configuration changed underneath it.
+ * A configuration reload updates @p wm's own configuration in place,
+ * but anything already derived from it before the reload (a desktop's
+ * resolved background color, a client's cached frame dimensions) has
+ * to be explicitly recomputed or repainted; nothing else does that on
+ * its own just because the underlying configuration changed
+ * underneath it.
+ *
+ * @param wm Window manager instance
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
  *       surfaces, @e d the number of desktops per surface, and @e c
  *       the number of clients per desktop
  */
-static void s_resync_after_reload(void)
+static void s_resync_after_reload(wm_td *wm)
 {
-    for (list_item_td *snode = list_head(wm->surfaces);
+    config_td *config = wm_config(wm);
+
+    for (list_item_td *snode = list_head(wm_surfaces(wm));
             snode != NULL; snode = list_next(snode)) {
         surface_td *const s = (surface_td *) list_data(snode);
-        struct config_base_s *const cb = &(wm->config->base);
+        struct config_base_s *const cb = &(config->base);
         int32_t tray_x;
         int32_t tray_y;
         uint16_t tray_w;
@@ -124,14 +129,14 @@ static void s_resync_after_reload(void)
 
                 d->background.bg.color =
                     (new_color == WM_DESKTOP_BG_COLOR_UNSET)
-                    ? wm->config->theme.desktop.color.background
+                    ? config->theme.desktop.color.background
                     : new_color;
             }
 
             /* Resize every already-decorated client's frame to match
              * whatever 'window.titlebar.height' and border width the
              * just-reloaded theme now specifies.  'client->theme' is
-             * a shared pointer into 'wm->config->theme' that
+             * a shared pointer into 'wm_config(wm)->theme' that
              * 'config_load' above already updated in place, so colors,
              * fonts, and button lists all take effect on their own the
              * next time each client repaints; only the cached
@@ -194,7 +199,7 @@ static void s_resync_after_reload(void)
                                 c->icon_y = icon_y;
                                 vals[0] = (uint32_t) icon_x;
                                 vals[1] = (uint32_t) icon_y;
-                                xcb_configure_window(wm->connection,
+                                xcb_configure_window(wm_connection(wm),
                                         c->icon_window,
                                         XCB_CONFIG_WINDOW_X |
                                         XCB_CONFIG_WINDOW_Y,
@@ -228,7 +233,7 @@ static void s_resync_after_reload(void)
 
 
 /* Rearrange every visible window on the current desktop */
-void wm_action_rearrange(surface_td *surface)
+void wm_action_rearrange(wm_td *wm, surface_td *surface)
 {
     desktop_td *desktop;
 
@@ -246,26 +251,31 @@ void wm_action_rearrange(surface_td *surface)
 
 
 /* Reload the configuration */
-int wm_action_config_reload(void)
+int wm_action_config_reload(wm_td *wm)
 {
     int load_result;
+    config_td *config;
+    const char *config_dir_prefix;
 
     LOGGER_DEBUG("Reloading configuration", L_NARG);
 
-    if (wm == NULL || wm->config == NULL) {
+    config = wm_config(wm);
+    if (config == NULL) {
         LOGGER_ERROR("Window manager is not initialized", L_NARG);
         return 1;
     }
+
+    config_dir_prefix = wm_config_dir_prefix(wm);
 
     json_syntax_errors_reset();
     config_missing_theme_reset();
     /* Same two entirely separate paths 'wm_start' chooses between
      * ('config/memguard.h'); a reload takes the same one it started
-     * with, since 'wm->restricted_memory_mib' never changes for the
-     * life of the process. */
-    load_result = (wm->restricted_memory_mib > 0u)
-        ? config_load_memguard(wm->config, wm->config_dir_prefix)
-        : config_load(wm->config, wm->config_dir_prefix);
+     * with, since 'wm_restricted_memory_mib(wm)' never changes for
+     * the life of the process. */
+    load_result = (wm_restricted_memory_mib(wm) > 0u)
+        ? config_load_memguard(config, config_dir_prefix)
+        : config_load(config, config_dir_prefix);
     if (load_result != 0) {
         LOGGER_ERROR("Failed to reload configuration", L_NARG);
         /* Whatever caused the load to fail outright is far more likely
@@ -290,26 +300,26 @@ int wm_action_config_reload(void)
      * remembers only the single most recent snapshot, so a second
      * surface changing in the same reload has no dialog of its own to
      * revert through regardless. */
-    if (wm->surfaces != NULL) {
+    if (wm_surfaces(wm) != NULL) {
         bool dialog_shown = false;
 
-        for (list_item_td *node = list_head(wm->surfaces);
+        for (list_item_td *node = list_head(wm_surfaces(wm));
                 node != NULL; node = list_next(node)) {
             surface_td *const s = (surface_td *) list_data(node);
             bool changed = surface_action_apply_randr_profiles(s,
                     !dialog_shown);
 
             if (changed && !dialog_shown) {
-                dialog_rrsafe_show(wm->connection, s, wm->config);
+                dialog_rrsafe_show(wm_connection(wm), s, config);
                 dialog_shown = true;
             }
         }
     }
 
     /* Re-establish keyboard/mouse binding grabs from the just-reloaded
-     * 'wm->config->bindings': 'config_load' above already refreshed
-     * that in-memory data (it loads 'bindings.json' too, not just
-     * 'config.json'), but the X server grabs 'keyboard_load' and
+     * configuration's own bindings: 'config_load' above already
+     * refreshed that in-memory data (it loads 'bindings.json' too, not
+     * just 'config.json'), but the X server grabs 'keyboard_load' and
      * 'mouse_load' set up at startup are a separate, one-time action
      * that nothing was re-running on reload, so a changed binding had
      * no actual effect until the window manager was restarted.
@@ -317,10 +327,10 @@ int wm_action_config_reload(void)
      * Both functions release every grab they previously made before
      * re-grabbing, so a binding that changed does not end up with both
      * its old and new key/button combination active at once. */
-    if (wm->keysyms != NULL) {
-        keyboard_load(wm->surfaces, wm->keysyms, wm->config);
+    if (wm_keysyms(wm) != NULL) {
+        keyboard_load(wm_surfaces(wm), wm_keysyms(wm), config);
     }
-    mouse_load(wm->surfaces, wm->config);
+    mouse_load(wm_surfaces(wm), config);
 
     /* Reload the systray reacting to config. reload */
     systray_reload(wm);
@@ -329,22 +339,22 @@ int wm_action_config_reload(void)
     xsettings_reload(wm);
 
     cctl_sn_set_timeout_seconds(
-            wm->config->base.startup_notification.timeout_seconds);
+            config->base.startup_notification.timeout_seconds);
 
-    if (wm->rules != NULL) {
-        (void) rules_load(wm->rules, wm->config_dir_prefix);
+    if (wm_rules(wm) != NULL) {
+        (void) rules_load(wm_rules(wm), config_dir_prefix);
     }
-    if (wm->session != NULL) {
-        (void) session_load(wm->session, wm->config_dir_prefix);
+    if (wm_session(wm) != NULL) {
+        (void) session_load(wm_session(wm), config_dir_prefix);
     }
-    rootmenu_menu_json_load(wm->config_dir_prefix);
+    rootmenu_menu_json_load(config_dir_prefix);
 
-    s_resync_after_reload();
+    s_resync_after_reload(wm);
 
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
     wm_json_syntax_errors_warn();
-    if (wm->session != NULL) {
-        session_run_hook(wm->session, wm->connection,
+    if (wm_session(wm) != NULL) {
+        session_run_hook(wm_session(wm), wm_connection(wm),
                 SESSION_HOOK_RELOAD);
     }
 
@@ -353,7 +363,7 @@ int wm_action_config_reload(void)
 
 
 /* Perform exit actions before stopping the window manager */
-int wm_action_exit(void)
+int wm_action_exit(wm_td *wm)
 {
     LOGGER_DEBUG("Executing exit actions", L_NARG);
 

@@ -101,6 +101,10 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     client_td *client;
     uint32_t max_clients;
     cJSON *fields;
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
+    config_td *config = wm_config(wm);
+    list_td *surfaces = wm_surfaces(wm);
 
     if (wm == NULL || event == NULL) {
         LOGGER_ERROR("Received null pointer in map request handler",
@@ -111,18 +115,18 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
     LOGGER_TRACE("Map request event (window=0x%x, parent=0x%x)",
             event->window, event->parent);
 
-    if (lookup_find_client(wm->surfaces,
+    if (lookup_find_client(surfaces,
                 event->window, NULL, NULL) != NULL) {
         LOGGER_TRACE("Window %#x already managed; mapping directly",
                 event->window);
 
-        s_map_unmanaged(wm->connection, event->window);
+        s_map_unmanaged(connection, event->window);
         return;
     }
 
-    surface = lookup_surface_for_root(wm->surfaces, event->parent);
-    if (surface == NULL && !list_is_empty(wm->surfaces)) {
-        surface = (surface_td *) list_data(list_head(wm->surfaces));
+    surface = lookup_surface_for_root(surfaces, event->parent);
+    if (surface == NULL && !list_is_empty(surfaces)) {
+        surface = (surface_td *) list_data(list_head(surfaces));
     }
     if (surface == NULL) {
         LOGGER_ERROR("No surface found for 'MAP_REQUEST' on root %#x",
@@ -135,7 +139,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         LOGGER_ERROR("No current desktop on surface %u; mapping without"
                 " management", surface->id);
 
-        s_map_unmanaged(wm->connection, event->window);
+        s_map_unmanaged(connection, event->window);
         return;
     }
 
@@ -164,16 +168,16 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     if (max_clients > 0u &&
             ohtbl_size(desktop->clients) >= max_clients) {
-        memguard_warn_client_cap(wm->connection, surface,
-                wm->config);
+        memguard_warn_client_cap(connection, surface,
+                config);
         return;
     }
 
-    client = client_init(wm->connection, wm->ewmh,
-            event->window, &wm->config->theme, &wm->config->base,
-            &wm->config->a11y);
+    client = client_init(connection, ewmh,
+            event->window, &config->theme, &config->base,
+            &config->a11y);
     if (client == NULL) {
-        s_map_unmanaged(wm->connection, event->window);
+        s_map_unmanaged(connection, event->window);
         return;
     }
 
@@ -185,19 +189,19 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
                 event->window, desktop->id);
         client->window = 0;
         client_destroy(client);
-        s_map_unmanaged(wm->connection, event->window);
+        s_map_unmanaged(connection, event->window);
         return;
     }
 
     scratchpad_position(client, desktop, surface);
 
     /* Advertise the desktop this client belongs to per EWMH */
-    if (wm->ewmh != NULL) {
+    if (ewmh != NULL) {
         uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
             ? WM_DESKTOP_ID_ALL : desktop->id;
 
-        xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
-                client->window, wm->ewmh->_NET_WM_DESKTOP,
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+                client->window, ewmh->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &did);
     }
 
@@ -223,22 +227,22 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
         ccmd_client_iconify(client);
     } else {
         if (client->titlebar != 0) {
-            xcb_map_window(wm->connection, client->titlebar);
+            xcb_map_window(connection, client->titlebar);
         }
 
         if (client->frame != 0) {
-            xcb_map_window(wm->connection, client->frame);
-            xcb_map_window(wm->connection, client->window);
+            xcb_map_window(connection, client->frame);
+            xcb_map_window(connection, client->window);
         } else {
-            xcb_map_window(wm->connection, event->window);
+            xcb_map_window(connection, event->window);
         }
 
         client_unhide(client);
 
-        if (wm->config->base.windows.focus.focus_new &&
+        if (config->base.windows.focus.focus_new &&
                 client_is_focusable(client)) {
-            focus_apply(wm->surfaces, surface, desktop, client, true,
-                    wm->config);
+            focus_apply(surfaces, surface, desktop, client, true,
+                    config);
         }
 
         /* ICCCM §4.2.3: after both place_apply and rules_apply have
@@ -259,8 +263,8 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
          * without it a fragment of the window content can appear
          * outside the configured frame bounds until a focus change or
          * move forces a redraw. */
-        client_send_synthetic_configure_notify(wm->connection, client);
-        xcb_clear_area(wm->connection, 1, client->window, 0, 0, 0, 0);
+        client_send_synthetic_configure_notify(connection, client);
+        xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
         /* EWMH's own correct way for a client to request fullscreen
          * from the outset (see 'initial_fullscreen''s own doc comment,
@@ -297,7 +301,7 @@ void handler_map_request(wm_td *wm, xcb_map_request_event_t *event)
 
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
 
     LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
             event->window, client->info.name, desktop->id);

@@ -120,6 +120,7 @@ $(O_DIR)/tests/policy/test_focus: $(TESTS_DIR)/policy/test_focus.c \
 
 $(O_DIR)/tests/test_scratchpad: $(TESTS_DIR)/test_scratchpad.c \
 		$(S_DIR)/scratchpad.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/utils/safe/safeflg.c \
 		$(S_DIR)/utils/safe/safestr.c \
 		$(S_DIR)/logger.c
@@ -141,6 +142,7 @@ $(O_DIR)/tests/ipc/test_resolve: $(TESTS_DIR)/ipc/test_resolve.c \
 		$(S_DIR)/ipc/args.c \
 		$(S_DIR)/ipc/response.c \
 		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
@@ -153,6 +155,7 @@ $(O_DIR)/tests/ipc/test_dispatch: $(TESTS_DIR)/ipc/test_dispatch.c \
 		$(S_DIR)/ipc/args.c \
 		$(S_DIR)/ipc/response.c \
 		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
@@ -162,12 +165,14 @@ $(O_DIR)/tests/ipc/test_dispatch: $(TESTS_DIR)/ipc/test_dispatch.c \
 $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 		$(S_DIR)/ipc/commands.c \
 		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/ohtbl.c
 	@mkdir -p $(@D)
@@ -234,6 +239,7 @@ $(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/policy/placement.c \
+		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c \
 		$(S_DIR)/utils/geom.c \

@@ -418,8 +418,11 @@ static void s_wm_ping_client_action(client_td *client, void *userdata)
 
 
 /* Create and publish root EWMH metadata required by compliant clients */
-int wm_ewmh_init(void)
+int wm_ewmh_init(wm_td *wm)
 {
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
+    list_td *surfaces = wm_surfaces(wm);
     xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
     xcb_window_t support;
@@ -433,26 +436,26 @@ int wm_ewmh_init(void)
     xcb_atom_t manager_atom = XCB_ATOM_NONE;
     uint32_t icon_size_hints[6];
 
-    if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL) {
+    if (wm == NULL || connection == NULL || ewmh == NULL) {
         return 1;
     }
 
     /* Intern atoms not exposed directly by 'xcb_ewmh_connection_t' */
-    net_wm_state_focused = atom_intern(wm->connection,
+    net_wm_state_focused = atom_intern(connection,
             "_NET_WM_STATE_FOCUSED", false);
-    net_wm_win_type_notif = atom_intern(wm->connection,
+    net_wm_win_type_notif = atom_intern(connection,
             "_NET_WM_WINDOW_TYPE_NOTIFICATION", false);
-    net_wm_icon_geometry = atom_intern(wm->connection,
+    net_wm_icon_geometry = atom_intern(connection,
             "_NET_WM_ICON_GEOMETRY", false);
-    wm_icon_size_atom = atom_intern(wm->connection,
+    wm_icon_size_atom = atom_intern(connection,
             "WM_ICON_SIZE", false);
-    net_restack_window = atom_intern(wm->connection,
+    net_restack_window = atom_intern(connection,
             "_NET_RESTACK_WINDOW", false);
-    net_wm_fullscreen_monitors = atom_intern(wm->connection,
+    net_wm_fullscreen_monitors = atom_intern(connection,
             "_NET_WM_FULLSCREEN_MONITORS", false);
-    net_wm_moveresize = atom_intern(wm->connection,
+    net_wm_moveresize = atom_intern(connection,
             "_NET_WM_MOVERESIZE", false);
-    manager_atom = atom_intern(wm->connection, "MANAGER", false);
+    manager_atom = atom_intern(connection, "MANAGER", false);
 
     /* ICCCM §4.1.3: announce the fixed icon dimensions to clients */
     icon_size_hints[0] = WM_ICON_SQUARE_SIZE;   /* min_width */
@@ -462,98 +465,98 @@ int wm_ewmh_init(void)
     icon_size_hints[4] = 1u;                    /* width_inc */
     icon_size_hints[5] = 1u;                    /* height_inc */
 
-    support = xcb_generate_id(wm->connection);
-    xcb_create_window(wm->connection,
+    support = xcb_generate_id(connection);
+    xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             support,
             xcb_setup_roots_iterator(xcb_get_setup(
-                        wm->connection)).data->root,
+                        connection)).data->root,
             0, 0, 1, 1,
             0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
             0, NULL);
-    wm->ewmh_support_win = support;
+    wm_set_ewmh_support_win(wm, support);
 
-    xcb_ewmh_set_wm_name(wm->ewmh, support,
+    xcb_ewmh_set_wm_name(ewmh, support,
             sizeof(WM_EWMH_NAME) - 1u, WM_EWMH_NAME);
-    xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
-            support, wm->ewmh->_NET_SUPPORTING_WM_CHECK,
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            support, ewmh->_NET_SUPPORTING_WM_CHECK,
             XCB_ATOM_WINDOW, 32, 1, &support);
 
-    supported_atoms[n_supported++] = wm->ewmh->_NET_SUPPORTED;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_SUPPORTING_WM_CHECK;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_CLIENT_LIST;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_CLIENT_LIST_STACKING;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_NUMBER_OF_DESKTOPS;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_CURRENT_DESKTOP;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_GEOMETRY;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_VIEWPORT;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WORKAREA;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_NAMES;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STRUT_PARTIAL;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STRUT;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_ACTIVE_WINDOW;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_NAME;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ICON_NAME;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_DESKTOP;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_HIDDEN;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_FULLSCREEN;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MAXIMIZED_VERT;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_ABOVE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_BELOW;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_STICKY;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SHADED;
+    supported_atoms[n_supported++] = ewmh->_NET_SUPPORTED;
+    supported_atoms[n_supported++] = ewmh->_NET_SUPPORTING_WM_CHECK;
+    supported_atoms[n_supported++] = ewmh->_NET_CLIENT_LIST;
+    supported_atoms[n_supported++] = ewmh->_NET_CLIENT_LIST_STACKING;
+    supported_atoms[n_supported++] = ewmh->_NET_NUMBER_OF_DESKTOPS;
+    supported_atoms[n_supported++] = ewmh->_NET_CURRENT_DESKTOP;
+    supported_atoms[n_supported++] = ewmh->_NET_DESKTOP_GEOMETRY;
+    supported_atoms[n_supported++] = ewmh->_NET_DESKTOP_VIEWPORT;
+    supported_atoms[n_supported++] = ewmh->_NET_WORKAREA;
+    supported_atoms[n_supported++] = ewmh->_NET_DESKTOP_NAMES;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STRUT_PARTIAL;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STRUT;
+    supported_atoms[n_supported++] = ewmh->_NET_ACTIVE_WINDOW;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_NAME;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ICON_NAME;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_DESKTOP;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_HIDDEN;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_FULLSCREEN;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_MAXIMIZED_VERT;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_ABOVE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_BELOW;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_STICKY;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_SHADED;
     supported_atoms[n_supported++] =
-        wm->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_TASKBAR;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_SKIP_PAGER;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_CLOSE_WINDOW;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DOCK;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_NORMAL;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DIALOG;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_MOVERESIZE_WINDOW;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_FRAME_EXTENTS;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_REQUEST_FRAME_EXTENTS;
+        ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_SKIP_TASKBAR;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_SKIP_PAGER;
+    supported_atoms[n_supported++] = ewmh->_NET_CLOSE_WINDOW;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_DOCK;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_NORMAL;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_DIALOG;
+    supported_atoms[n_supported++] = ewmh->_NET_MOVERESIZE_WINDOW;
+    supported_atoms[n_supported++] = ewmh->_NET_FRAME_EXTENTS;
+    supported_atoms[n_supported++] = ewmh->_NET_REQUEST_FRAME_EXTENTS;
     supported_atoms[n_supported++] = net_restack_window;
     supported_atoms[n_supported++] = net_wm_fullscreen_monitors;
     supported_atoms[n_supported++] = net_wm_moveresize;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_DESKTOP_LAYOUT;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_STATE_MODAL;
+    supported_atoms[n_supported++] = ewmh->_NET_DESKTOP_LAYOUT;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_STATE_MODAL;
     supported_atoms[n_supported++] = net_wm_state_focused;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ALLOWED_ACTIONS;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MOVE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_RESIZE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MINIMIZE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_SHADE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_STICK;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_FULLSCREEN;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_CLOSE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_ABOVE;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_ACTION_BELOW;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_PING;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_USER_TIME;
-    if (wm->sync_available) {
-        supported_atoms[n_supported++] = wm->ewmh->_NET_WM_SYNC_REQUEST;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ALLOWED_ACTIONS;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_MOVE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_RESIZE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_MINIMIZE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_SHADE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_STICK;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_FULLSCREEN;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_CLOSE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_ABOVE;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_ACTION_BELOW;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_PING;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_USER_TIME;
+    if (wm_sync_available(wm)) {
+        supported_atoms[n_supported++] = ewmh->_NET_WM_SYNC_REQUEST;
         supported_atoms[n_supported++] =
-            wm->ewmh->_NET_WM_SYNC_REQUEST_COUNTER;
+            ewmh->_NET_WM_SYNC_REQUEST_COUNTER;
     }
-    supported_atoms[n_supported++] = wm->ewmh->_NET_SHOWING_DESKTOP;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_DESKTOP;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_MENU;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_UTILITY;
-    supported_atoms[n_supported++] = wm->ewmh->_NET_WM_WINDOW_TYPE_SPLASH;
+    supported_atoms[n_supported++] = ewmh->_NET_SHOWING_DESKTOP;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_DESKTOP;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_MENU;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_UTILITY;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_SPLASH;
     supported_atoms[n_supported++] = net_wm_win_type_notif;
     supported_atoms[n_supported++] = net_wm_icon_geometry;
 
-    for (list_item_td *snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
 
@@ -561,9 +564,9 @@ int wm_ewmh_init(void)
             continue;
         }
 
-        xcb_ewmh_set_supporting_wm_check(wm->ewmh,
+        xcb_ewmh_set_supporting_wm_check(ewmh,
                 surface->screen->root, support);
-        xcb_ewmh_set_supported(wm->ewmh, (int) surface->id,
+        xcb_ewmh_set_supported(ewmh, (int) surface->id,
                 n_supported, supported_atoms);
 
         if (manager_atom != XCB_ATOM_NONE) {
@@ -573,16 +576,16 @@ int wm_ewmh_init(void)
 
             snprintf(selection_name, sizeof(selection_name),
                     "WM_S%u", surface->id);
-            selection_atom = atom_intern(wm->connection,
+            selection_atom = atom_intern(connection,
                     selection_name, false);
 
             if (selection_atom != XCB_ATOM_NONE) {
                 xcb_get_selection_owner_reply_t *owner_reply;
 
-                xcb_set_selection_owner(wm->connection, support,
+                xcb_set_selection_owner(connection, support,
                         selection_atom, XCB_CURRENT_TIME);
-                owner_reply = xcb_get_selection_owner_reply(wm->connection,
-                        xcb_get_selection_owner(wm->connection,
+                owner_reply = xcb_get_selection_owner_reply(connection,
+                        xcb_get_selection_owner(connection,
                             selection_atom), NULL);
                 if (owner_reply != NULL &&
                         owner_reply->owner == support) {
@@ -596,7 +599,7 @@ int wm_ewmh_init(void)
                     manager_event.data.data32[2] = support;
                     manager_event.data.data32[3] = 0u;
                     manager_event.data.data32[4] = 0u;
-                    xcb_send_event(wm->connection, 0,
+                    xcb_send_event(connection, 0,
                             surface->screen->root,
                             XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                             (const char *) &manager_event);
@@ -610,25 +613,28 @@ int wm_ewmh_init(void)
         /* ICCCM §4.1.3: announce fixed icon dimensions on the root
          * window */
         if (wm_icon_size_atom != XCB_ATOM_NONE) {
-            xcb_change_property(wm->connection, XCB_PROP_MODE_REPLACE,
+            xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
                     surface->screen->root, wm_icon_size_atom,
                     wm_icon_size_atom, 32, 6, icon_size_hints);
         }
     }
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
     return 0;
 }
 
 
 /* Synchronize EWMH root properties for all managed surfaces */
-void wm_ewmh_sync(void)
+void wm_ewmh_sync(wm_td *wm)
 {
-    if (wm == NULL || wm->surfaces == NULL || wm->ewmh == NULL) {
+    xcb_connection_t *connection = wm_connection(wm);
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL || wm_ewmh(wm) == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
         desktop_td *current;
@@ -657,7 +663,7 @@ void wm_ewmh_sync(void)
         current = surface_desktop_get(surface, surface->desktop_cur);
         if (current != NULL && current->client_active_id != XCB_NONE) {
             const client_td *active_client =
-                lookup_find_client(wm->surfaces,
+                lookup_find_client(surfaces,
                         current->client_active_id, NULL, NULL);
             if (active_client != NULL) {
                 active = active_client->window;
@@ -674,24 +680,26 @@ void wm_ewmh_sync(void)
         s_wm_sync_client_lists(surface);
     }
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
 }
 
 
 /* Perform periodic EWMH maintenance: ping and timeout handling */
-void wm_ewmh_tick(void)
+void wm_ewmh_tick(wm_td *wm)
 {
     struct s_wm_ping_ctx_s ctx;
+    xcb_connection_t *connection = wm_connection(wm);
+    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
 
-    if (wm == NULL || wm->connection == NULL || wm->ewmh == NULL ||
-            wm->surfaces == NULL) {
+    if (wm == NULL || connection == NULL || ewmh == NULL ||
+            wm_surfaces(wm) == NULL) {
         return;
     }
 
-    ctx.ewmh = wm->ewmh;
+    ctx.ewmh = ewmh;
     ctx.now = (uint32_t) time(NULL);
     ctx.timeout = (uint32_t) WM_EWMH_PING_TIMEOUT_SECONDS;
-    (void) wm_for_each_client(s_wm_ping_client_action, &ctx);
+    (void) wm_for_each_client(wm, s_wm_ping_client_action, &ctx);
 
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
 }

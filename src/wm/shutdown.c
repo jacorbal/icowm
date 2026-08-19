@@ -115,15 +115,16 @@ static int s_shutdown_ms_until(const struct timespec *due)
 
 
 /* Begin a coordinated shutdown */
-void wm_shutdown_begin(void)
+void wm_shutdown_begin(wm_td *wm)
 {
     uint32_t timeout_seconds;
+    config_td *config;
 
     if (s_shutdown_in_progress) {
         return;
     }
 
-    if (wm_for_each_client(NULL, NULL) == 0u) {
+    if (wm_for_each_client(wm, NULL, NULL) == 0u) {
         LOGGER_DEBUG("No managed clients to wait for;" \
                 " stopping right away", L_NARG);
         (void) wm_request_stop();
@@ -132,10 +133,11 @@ void wm_shutdown_begin(void)
 
     LOGGER_INFO("Coordinated shutdown started;" \
             " asking every managed client to close", L_NARG);
-    (void) wm_for_each_client(s_shutdown_close_client, NULL);
+    (void) wm_for_each_client(wm, s_shutdown_close_client, NULL);
 
-    timeout_seconds = (wm != NULL && wm->config != NULL)
-        ? wm->config->base.shutdown.timeout_seconds : 15u;
+    config = wm_config(wm);
+    timeout_seconds = (config != NULL)
+        ? config->base.shutdown.timeout_seconds : 15u;
 
     s_shutdown_in_progress = true;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_shutdown_deadline);
@@ -155,7 +157,7 @@ int wm_shutdown_ms_remaining(void)
 
 
 /* Advance the shutdown state machine */
-void wm_shutdown_tick(void)
+void wm_shutdown_tick(wm_td *wm)
 {
     uint32_t remaining;
 
@@ -163,7 +165,7 @@ void wm_shutdown_tick(void)
         return;
     }
 
-    remaining = wm_for_each_client(NULL, NULL);
+    remaining = wm_for_each_client(wm, NULL, NULL);
     if (remaining == 0u) {
         LOGGER_INFO("Every managed client closed;" \
                 " finishing shutdown", L_NARG);
@@ -178,7 +180,7 @@ void wm_shutdown_tick(void)
 
     LOGGER_NOTICE("Shutdown timeout elapsed with %u client(s)" \
             " still open; forcing them closed", remaining);
-    (void) wm_for_each_client(s_shutdown_kill_client, NULL);
+    (void) wm_for_each_client(wm, s_shutdown_kill_client, NULL);
     s_shutdown_in_progress = false;
     (void) wm_request_stop();
 }

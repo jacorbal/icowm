@@ -45,6 +45,7 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+#include <wm.h>
 
 
 /**
@@ -108,6 +109,9 @@ void rootmenu_menu_json_free(void);
  * the fixed footer entries, and shows the result at (@p x, @p y).  Any
  * previously open root menu is closed first.
  *
+ * @param wm         Window manager instance, cached for the
+ *                    "Rearrange" and "Reload configuration" entries'
+ *                    own callbacks
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
  * @param x          Requested X origin (root coordinates)
@@ -117,7 +121,7 @@ void rootmenu_menu_json_free(void);
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries
  */
-void rootmenu_show(xcb_connection_t *connection,
+void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
         surface_td *surface, int16_t x, int16_t y,
         const config_td *config);
 

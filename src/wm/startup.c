@@ -44,23 +44,24 @@ int wm_startup_init_randr(wm_td *wm)
     const xcb_query_extension_reply_t *ext;
     xcb_randr_query_version_reply_t *ver_reply;
     xcb_randr_query_version_cookie_t ver_cookie;
+    xcb_connection_t *connection = wm_connection(wm);
+    list_td *surfaces = wm_surfaces(wm);
 
-    if (wm == NULL || wm->connection == NULL) {
+    if (wm == NULL || connection == NULL) {
         return -1;
     }
 
-    wm->randr_available = false;
-    wm->randr_base_event = 0u;
+    wm_set_randr(wm, false, 0u);
 
-    ext = xcb_get_extension_data(wm->connection, &xcb_randr_id);
+    ext = xcb_get_extension_data(connection, &xcb_randr_id);
     if (ext == NULL || !ext->present) {
         LOGGER_NOTICE("XRandR extension is unavailable on this X server",
                 L_NARG);
         return 0;
     }
 
-    ver_cookie = xcb_randr_query_version(wm->connection, 1u, 5u);
-    ver_reply = xcb_randr_query_version_reply(wm->connection,
+    ver_cookie = xcb_randr_query_version(connection, 1u, 5u);
+    ver_reply = xcb_randr_query_version_reply(connection,
             ver_cookie, NULL);
     if (ver_reply == NULL) {
         LOGGER_WARNING("Failed to query XRandR version;" \
@@ -68,18 +69,17 @@ int wm_startup_init_randr(wm_td *wm)
         return 0;
     }
 
-    wm->randr_available = true;
-    wm->randr_base_event = ext->first_event;
+    wm_set_randr(wm, true, ext->first_event);
     LOGGER_INFO("XRandR enabled (server version %u.%u, base event=%u)",
             (unsigned int) ver_reply->major_version,
             (unsigned int) ver_reply->minor_version,
-            (unsigned int) wm->randr_base_event);
+            (unsigned int) ext->first_event);
     free(ver_reply);
 
     /* Query initial CRTC/output state for each managed surface so that
      * 'surface->randr' fields are populated before the first RandR
      * event arrives (needed by set_orientation/set_resolution) */
-    for (list_item_td *node = list_head(wm->surfaces);
+    for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         xcb_randr_get_screen_resources_current_cookie_t res_cookie;
@@ -92,9 +92,9 @@ int wm_startup_init_randr(wm_td *wm)
         }
 
         res_cookie = xcb_randr_get_screen_resources_current(
-                wm->connection, surface->screen->root);
+                connection, surface->screen->root);
         res_reply = xcb_randr_get_screen_resources_current_reply(
-                wm->connection, res_cookie, NULL);
+                connection, res_cookie, NULL);
         if (res_reply == NULL) {
             continue;
         }
@@ -109,10 +109,10 @@ int wm_startup_init_randr(wm_td *wm)
             xcb_randr_get_crtc_info_cookie_t ci_cookie;
             xcb_randr_get_crtc_info_reply_t *crtc_info;
 
-            ci_cookie = xcb_randr_get_crtc_info(wm->connection,
+            ci_cookie = xcb_randr_get_crtc_info(connection,
                     crtcs[ci], res_reply->config_timestamp);
             crtc_info = xcb_randr_get_crtc_info_reply(
-                    wm->connection, ci_cookie, NULL);
+                    connection, ci_cookie, NULL);
 
             if (crtc_info == NULL) {
                 continue;
@@ -163,35 +163,34 @@ int wm_startup_init_sync(wm_td *wm)
     const xcb_query_extension_reply_t *ext;
     xcb_sync_initialize_reply_t *ver_reply;
     xcb_sync_initialize_cookie_t ver_cookie;
+    xcb_connection_t *connection = wm_connection(wm);
 
-    if (wm == NULL || wm->connection == NULL) {
+    if (wm == NULL || connection == NULL) {
         return -1;
     }
 
-    wm->sync_available = false;
-    wm->sync_base_event = 0u;
+    wm_set_sync(wm, false, 0u);
 
-    ext = xcb_get_extension_data(wm->connection, &xcb_sync_id);
+    ext = xcb_get_extension_data(connection, &xcb_sync_id);
     if (ext == NULL || !ext->present) {
         LOGGER_NOTICE("XSync extension is unavailable on this X server;" \
                 " '_NET_WM_SYNC_REQUEST' will not be offered", L_NARG);
         return 0;
     }
 
-    ver_cookie = xcb_sync_initialize(wm->connection, 3u, 0u);
-    ver_reply = xcb_sync_initialize_reply(wm->connection, ver_cookie, NULL);
+    ver_cookie = xcb_sync_initialize(connection, 3u, 0u);
+    ver_reply = xcb_sync_initialize_reply(connection, ver_cookie, NULL);
     if (ver_reply == NULL) {
         LOGGER_WARNING("Failed to query XSync version;" \
                 " disabling '_NET_WM_SYNC_REQUEST'", L_NARG);
         return 0;
     }
 
-    wm->sync_available = true;
-    wm->sync_base_event = ext->first_event;
+    wm_set_sync(wm, true, ext->first_event);
     LOGGER_INFO("XSync enabled (server version %u.%u, base event=%u)",
             (unsigned int) ver_reply->major_version,
             (unsigned int) ver_reply->minor_version,
-            (unsigned int) wm->sync_base_event);
+            (unsigned int) ext->first_event);
     free(ver_reply);
 
     return 0;

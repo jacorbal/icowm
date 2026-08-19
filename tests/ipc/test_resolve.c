@@ -37,6 +37,7 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <ipc/resolve.h>
+#include <wm/internal.h>
 
 
 /** Controllable stand-in for wm_get_surface_by_id (wm.c): tests set

@@ -317,18 +317,20 @@ static void s_xs_publish(void)
  */
 static void s_xs_load_config(wm_td *wm)
 {
+    config_td *config = wm_config(wm);
+
     safe_strncpy(s_xs.gtk_theme_name,
-            wm->config->theme.xsettings.theme.gtk_theme_name,
+            config->theme.xsettings.theme.gtk_theme_name,
             sizeof(s_xs.gtk_theme_name));
     safe_strncpy(s_xs.icon_theme_name,
-            wm->config->theme.xsettings.theme.icon_theme_name,
+            config->theme.xsettings.theme.icon_theme_name,
             sizeof(s_xs.icon_theme_name));
     safe_strncpy(s_xs.cursor_theme_name,
-            wm->config->theme.xsettings.theme.cursor_theme_name,
+            config->theme.xsettings.theme.cursor_theme_name,
             sizeof(s_xs.cursor_theme_name));
     s_xs.cursor_theme_size =
-        wm->config->theme.xsettings.theme.cursor_theme_size;
-    s_xs.dpi = wm->config->theme.xsettings.dpi;
+        config->theme.xsettings.theme.cursor_theme_size;
+    s_xs.dpi = config->theme.xsettings.dpi;
 }
 
 
@@ -342,15 +344,17 @@ static void s_xs_load_config(wm_td *wm)
  */
 static bool s_xs_config_changed(const wm_td *wm)
 {
+    config_td *config = wm_config(wm);
+
     return safe_strcmp(s_xs.gtk_theme_name,
-                wm->config->theme.xsettings.theme.gtk_theme_name) != 0 ||
+                config->theme.xsettings.theme.gtk_theme_name) != 0 ||
         safe_strcmp(s_xs.icon_theme_name,
-                wm->config->theme.xsettings.theme.icon_theme_name) != 0 ||
+                config->theme.xsettings.theme.icon_theme_name) != 0 ||
         safe_strcmp(s_xs.cursor_theme_name,
-                wm->config->theme.xsettings.theme.cursor_theme_name) != 0 ||
+                config->theme.xsettings.theme.cursor_theme_name) != 0 ||
         s_xs.cursor_theme_size !=
-            wm->config->theme.xsettings.theme.cursor_theme_size ||
-        s_xs.dpi != wm->config->theme.xsettings.dpi;
+            config->theme.xsettings.theme.cursor_theme_size ||
+        s_xs.dpi != config->theme.xsettings.dpi;
 }
 
 
@@ -371,30 +375,32 @@ static bool s_xs_ensure_window(wm_td *wm)
     char selection_name[24];
     uint32_t mask;
     uint32_t values[1];
+    xcb_connection_t *connection = wm_connection(wm);
+    list_td *surfaces = wm_surfaces(wm);
 
     if (s_xs.window_ready) {
         return true;
     }
 
-    if (wm == NULL || wm->connection == NULL || wm->surfaces == NULL) {
+    if (wm == NULL || connection == NULL || surfaces == NULL) {
         return false;
     }
 
-    surface = (surface_td *) list_data(list_head(wm->surfaces));
+    surface = (surface_td *) list_data(list_head(surfaces));
     if (surface == NULL || surface->screen == NULL) {
         return false;
     }
 
-    s_xs.connection = wm->connection;
+    s_xs.connection = connection;
     s_xs.surface = surface;
 
     (void) snprintf(selection_name, sizeof(selection_name),
             "_XSETTINGS_S%u", (unsigned int) surface->id);
-    s_xs.selection_atom = atom_intern(wm->connection, selection_name,
+    s_xs.selection_atom = atom_intern(connection, selection_name,
             false);
-    s_xs.settings_atom = atom_intern(wm->connection,
+    s_xs.settings_atom = atom_intern(connection,
             "_XSETTINGS_SETTINGS", false);
-    s_xs.manager_atom = atom_intern(wm->connection, "MANAGER", false);
+    s_xs.manager_atom = atom_intern(connection, "MANAGER", false);
 
     if (s_xs.selection_atom == XCB_ATOM_NONE ||
             s_xs.settings_atom == XCB_ATOM_NONE) {
@@ -403,16 +409,16 @@ static bool s_xs_ensure_window(wm_td *wm)
         return false;
     }
 
-    s_xs.window = xcb_generate_id(wm->connection);
+    s_xs.window = xcb_generate_id(connection);
     mask = XCB_CW_OVERRIDE_REDIRECT;
     values[0] = 1;   /* override_redirect: never managed as a client */
 
-    xcb_create_window(wm->connection, XCB_COPY_FROM_PARENT,
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT,
             s_xs.window, surface->screen->root,
             -1, -1, 1, 1, 0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
-    xcb_flush(wm->connection);
+    xcb_flush(connection);
 
     s_xs.window_ready = true;
     return true;
@@ -475,8 +481,10 @@ static void s_xs_release_selection(void)
 /* Acquire the XSETTINGS selection and publish the settings */
 void xsettings_init(wm_td *wm)
 {
-    if (wm == NULL || wm->config == NULL ||
-            !wm->config->theme.xsettings.is_enabled) {
+    config_td *config = wm_config(wm);
+
+    if (wm == NULL || config == NULL ||
+            !config->theme.xsettings.is_enabled) {
         return;
     }
 
@@ -514,12 +522,13 @@ void xsettings_shutdown(wm_td *wm)
 void xsettings_reload(wm_td *wm)
 {
     bool should_be_enabled;
+    config_td *config = wm_config(wm);
 
-    if (wm == NULL || wm->config == NULL) {
+    if (wm == NULL || config == NULL) {
         return;
     }
 
-    should_be_enabled = wm->config->theme.xsettings.is_enabled;
+    should_be_enabled = config->theme.xsettings.is_enabled;
 
     if (s_xs.selection_owned && !should_be_enabled) {
         LOGGER_INFO("XSETTINGS disabled by configuration reload", L_NARG);

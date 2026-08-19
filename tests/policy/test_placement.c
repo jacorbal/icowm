@@ -40,6 +40,7 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <policy/placement.h>
+#include <wm/internal.h>
 
 
 /* ===== XCB stand-ins (libxcb itself is never linked here) ===== */
