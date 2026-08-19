@@ -122,8 +122,67 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
 
 
 /**
+ * @brief Strip WIDTH and/or HEIGHT from @p mask when the requested
+ *        value exactly matches @p cur_w/@p cur_h, regardless of any
+ *        transition or cooldown
+ *
+ * Requesting a dimension the window itself already has right now is
+ * a true no-op: applying it changes nothing, so absorbing it carries
+ * no risk no matter how much time has passed since anything last
+ * happened to this client.  Called once, unconditionally, ahead of
+ * either transition-specific cooldown below, since this same
+ * reasoning holds regardless of which one (if either) might also
+ * apply.
+ *
+ * @param event Requested geometry to compare
+ * @param mask  Value mask bits still under consideration
+ * @param cur_w Width the window manager currently has this client set
+ *              to
+ * @param cur_h Height the window manager currently has this client
+ *              set to
+ * @param is_reparented/on_inner/left/right/top/bottom  Same meaning,
+ *              and same frame-extent adjustment, as this function's
+ *              own caller applies further down for the same fields
+ *
+ * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its own
+ *         requested value already matches what is currently set
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint16_t s_handler_configure_wh_matches_current(
+        const xcb_configure_request_event_t *event, uint16_t mask,
+        uint32_t cur_w, uint32_t cur_h, bool is_reparented,
+        bool on_inner, uint16_t left, uint16_t right, uint16_t top,
+        uint16_t bottom)
+{
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+        uint32_t req_w = (is_reparented && on_inner)
+            ? (uint32_t) event->width + left + right
+            : (uint32_t) event->width;
+
+        if (req_w == cur_w) {
+            mask = (uint16_t) (mask & ~XCB_CONFIG_WINDOW_WIDTH);
+        }
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        uint32_t req_h = (is_reparented && on_inner)
+            ? (uint32_t) event->height + top + bottom
+            : (uint32_t) event->height;
+
+        if (req_h == cur_h) {
+            mask = (uint16_t) (mask & ~XCB_CONFIG_WINDOW_HEIGHT);
+        }
+    }
+
+    return mask;
+}
+
+
+/**
  * @brief Strip whatever bits of @p transition_mask overlap @p mask,
- *        when @p transition_time is still within @p cooldown_ms of now
+ *        when @p transition_time is still within @p cooldown_ms of
+ *        now
  *
  * Shared by both of @a handler_configure_request's own post-transition
  * checks (shade/unshade, and entering/leaving fullscreen): a client
@@ -134,9 +193,35 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
  * width) it had a moment before than an independent request it
  * genuinely wants honored now.
  *
+ * WIDTH and HEIGHT specifically are only ever stripped here when the
+ * request's own value, once adjusted the same way
+ * @a s_handler_configure_wh_matches_current already is, also matches
+ * @p old_w/@p old_h (the client's own dimensions right before this
+ * transition): a request for some other, genuinely different size
+ * arriving within the same cooldown window is let through rather
+ * than blanket-suppressed, since only a value already known to be
+ * suspicious (either the imposed one, checked unconditionally by
+ * @a s_handler_configure_wh_matches_current already, or the client's
+ * own prior one, checked here) has any real chance of being this
+ * exact kind of stale echo to begin with.  Every other bit
+ * @p transition_mask carries (X, Y, and, for fullscreen,
+ * @c XCB_CONFIG_WINDOW_BORDER_WIDTH) has no comparable "old" value
+ * of its own worth checking against, so those stay exactly as
+ * content-blind as before: stripped whenever @p mask overlaps them
+ * at all, for as long as the cooldown itself is still active.
+ *
+ * @param event           The 'ConfigureRequest' event itself, for the
+ *                         same WIDTH/HEIGHT comparison
  * @param mask            Value mask bits still under consideration
  * @param transition_mask Bits this particular transition's own
  *                         cooldown should strip, if still active
+ * @param old_w           Width the client itself had right before
+ *                         this transition
+ * @param old_h           Height the client itself had right before
+ *                         this transition
+ * @param is_reparented/on_inner/left/right/top/bottom  Same meaning
+ *                         as @a s_handler_configure_wh_matches_current's
+ *                         own parameters
  * @param transition_time Monotonic time the transition itself last
  *                         happened at
  * @param cooldown_ms      How long after @p transition_time a request
@@ -146,19 +231,24 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
  *                         ("shade" or "fullscreen"), for the same log
  *                         line
  *
- * @return @p mask, with @p transition_mask's own bits cleared if the
- *         cooldown is still active; @p mask unchanged otherwise,
- *         including when @p mask does not overlap @p transition_mask
- *         to begin with, or the current time could not be read
+ * @return @p mask, with @p transition_mask's own bits cleared as
+ *         described above if the cooldown is still active; @p mask
+ *         unchanged otherwise, including when @p mask does not
+ *         overlap @p transition_mask to begin with, or the current
+ *         time could not be read
  *
  * @note Complexity: @e O(1)
  */
-static uint16_t s_handler_configure_cooldown_mask(uint16_t mask,
-        uint16_t transition_mask, struct timespec transition_time,
+static uint16_t s_handler_configure_cooldown_mask(
+        const xcb_configure_request_event_t *event, uint16_t mask,
+        uint16_t transition_mask, uint32_t old_w, uint32_t old_h,
+        bool is_reparented, bool on_inner, uint16_t left, uint16_t right,
+        uint16_t top, uint16_t bottom, struct timespec transition_time,
         unsigned int cooldown_ms, xcb_window_t window, const char *kind)
 {
     struct timespec now;
     int64_t elapsed_ms;
+    uint16_t strip_mask;
 
     if (!(mask & transition_mask)) {
         return mask;
@@ -178,11 +268,43 @@ static uint16_t s_handler_configure_cooldown_mask(uint16_t mask,
         return mask;
     }
 
+    /* Every bit 'transition_mask' carries other than WIDTH/HEIGHT
+     * (X, Y, and, for fullscreen, BORDER_WIDTH) stays exactly as
+     * content-blind as before; only WIDTH/HEIGHT additionally
+     * require matching 'old_w'/'old_h' once found within the window
+     * at all. */
+    strip_mask = (uint16_t) (transition_mask &
+            ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT));
+
+    if ((transition_mask & mask & XCB_CONFIG_WINDOW_WIDTH)) {
+        uint32_t req_w = (is_reparented && on_inner)
+            ? (uint32_t) event->width + left + right
+            : (uint32_t) event->width;
+
+        if (req_w == old_w) {
+            strip_mask |= XCB_CONFIG_WINDOW_WIDTH;
+        }
+    }
+
+    if ((transition_mask & mask & XCB_CONFIG_WINDOW_HEIGHT)) {
+        uint32_t req_h = (is_reparented && on_inner)
+            ? (uint32_t) event->height + top + bottom
+            : (uint32_t) event->height;
+
+        if (req_h == old_h) {
+            strip_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+        }
+    }
+
+    if (!(mask & strip_mask)) {
+        return mask;
+    }
+
     LOGGER_DEBUG("Ignoring 'ConfigureRequest' for window=0x%x: %lld ms" \
             " after a %s transition, within the %u ms cooldown",
             window, (long long) elapsed_ms, kind, cooldown_ms);
 
-    return (uint16_t) (mask & ~transition_mask);
+    return (uint16_t) (mask & ~strip_mask);
 }
 
 
@@ -294,13 +416,33 @@ void handler_configure_request(xcb_connection_t *connection,
             }
         }
 
+        /* A request for a dimension the client already has right now
+         * is a true no-op regardless of any transition or cooldown;
+         * see 's_handler_configure_wh_matches_current' itself for
+         * why this alone is always safe. */
+        mask = s_handler_configure_wh_matches_current(event, mask,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h,
+                is_reparented, on_inner, left, right, top, bottom);
+        if (mask == 0) {
+            if (connection != NULL && is_reparented) {
+                s_handler_send_synthetic_configure_notify(connection,
+                        client);
+                xcb_flush(connection);
+            }
+            return;
+        }
+
         /* Ignore a geometry request that lands shortly after the
          * window manager itself just shaded or unshaded this client:
          * see 'WM_SHADE_CONFIGURE_COOLDOWN_MS' for why such a request
          * is far more likely to be the client's own delayed, stale
          * reaction to that transition than an independent resize it
          * actually wants. */
-        mask = s_handler_configure_cooldown_mask(mask, geom_mask,
+        mask = s_handler_configure_cooldown_mask(event, mask, geom_mask,
+                client->layout.geometry.old.dim.w,
+                client->layout.geometry.old.dim.h,
+                is_reparented, on_inner, left, right, top, bottom,
                 client->shade_transition_time,
                 (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS,
                 client->window, "shade");
@@ -323,8 +465,11 @@ void handler_configure_request(xcb_connection_t *connection,
          * and silently undo it, well after the point in this
          * function that already applies every other bit in 'mask'
          * unconditionally. */
-        mask = s_handler_configure_cooldown_mask(mask,
+        mask = s_handler_configure_cooldown_mask(event, mask,
                 (uint16_t) (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH),
+                client->layout.geometry.old.dim.w,
+                client->layout.geometry.old.dim.h,
+                is_reparented, on_inner, left, right, top, bottom,
                 client->fullscreen_transition_time,
                 (unsigned int) WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS,
                 client->window, "fullscreen");
