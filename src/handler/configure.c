@@ -134,15 +134,20 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
  * reasoning holds regardless of which one (if either) might also
  * apply.
  *
- * @param event Requested geometry to compare
- * @param mask  Value mask bits still under consideration
- * @param cur_w Width the window manager currently has this client set
- *              to
- * @param cur_h Height the window manager currently has this client
- *              set to
- * @param is_reparented/on_inner/left/right/top/bottom  Same meaning,
- *              and same frame-extent adjustment, as this function's
- *              own caller applies further down for the same fields
+ * @param event       Requested geometry to compare
+ * @param mask        Value mask bits still under consideration
+ * @param cur_w       Width the window manager currently has this
+ *                    client set to
+ * @param cur_h       Height the window manager currently has this
+ *                    client set to
+ * @param is_reparented Whether this client has a separate frame
+ *                    window of its own
+ * @param on_inner    Whether @p event targets the content window
+ *                    directly rather than the frame
+ * @param left        Frame extent to the left of the content window
+ * @param right       Frame extent to the right of the content window
+ * @param top         Frame extent above the content window
+ * @param bottom      Frame extent below the content window
  *
  * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its own
  *         requested value already matches what is currently set
@@ -219,9 +224,16 @@ static uint16_t s_handler_configure_wh_matches_current(
  *                         this transition
  * @param old_h           Height the client itself had right before
  *                         this transition
- * @param is_reparented/on_inner/left/right/top/bottom  Same meaning
- *                         as @a s_handler_configure_wh_matches_current's
- *                         own parameters
+ * @param is_reparented   Whether this client has a separate frame
+ *                         window of its own
+ * @param on_inner        Whether @p event targets the content window
+ *                         directly rather than the frame
+ * @param left            Frame extent to the left of the content
+ *                         window
+ * @param right           Frame extent to the right of the content
+ *                         window
+ * @param top             Frame extent above the content window
+ * @param bottom          Frame extent below the content window
  * @param transition_time Monotonic time the transition itself last
  *                         happened at
  * @param cooldown_ms      How long after @p transition_time a request

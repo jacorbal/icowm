@@ -337,7 +337,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
  * resize on that client's acknowledgement.
  *
  * @return Status of the query
- * @retval  true when @a startup_init_sync found XSync present and
+ * @retval  true when @a wm_startup_init_sync found XSync present and
  *               queryable
  * @retval false otherwise (including when the window manager is not
  *               initialized)

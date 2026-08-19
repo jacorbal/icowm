@@ -1,11 +1,11 @@
 /**
- * @file startup.c
+ * @file wm/startup.c
  *
  * @brief Window manager startup helpers: extension probing
  *
- * Split by competency into @c startup/install.c (registering signal
- * handlers), @c startup/handle.c (the handlers themselves and the
- * flags they set), and @c startup/subscribe.c (X server event
+ * Split by competency into @c wm/startup/install.c (registering signal
+ * handlers), @c wm/startup/handle.c (the handlers themselves and the
+ * flags they set), and @c wm/startup/subscribe.c (X server event
  * subscriptions), leaving this file with the two X extension probes
  * that belong to no single one of those.
  */
@@ -35,11 +35,11 @@
 #include <wm.h>
 
 /* Local includes */
-#include <startup.h>
+#include <wm/startup.h>
 
 
 /* Probe XRandR support and cache extension metadata in 'wm' */
-int startup_init_randr(wm_td *wm)
+int wm_startup_init_randr(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_randr_query_version_reply_t *ver_reply;
@@ -158,7 +158,7 @@ int startup_init_randr(wm_td *wm)
 
 
 /* Probe XSync extension support and cache metadata in 'wm' */
-int startup_init_sync(wm_td *wm)
+int wm_startup_init_sync(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_sync_initialize_reply_t *ver_reply;

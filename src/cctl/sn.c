@@ -1,5 +1,5 @@
 /**
- * @file sn.c
+ * @file cctl/sn.c
  *
  * @brief freedesktop.org Startup Notification protocol implementation
  */
@@ -41,7 +41,7 @@
 #include <surface.h>
 
 /* Local includes */
-#include <sn.h>
+#include <cctl/sn.h>
 
 
 /** One launch sequence this window manager started and is waiting on */
@@ -153,7 +153,7 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
  * Every following chunk (if the text does not fit in one) uses
  * @c _NET_STARTUP_INFO instead, exactly as @c libstartup-notification
  * does, so any conforming listener can reassemble it the same way
- * @a sn_handle_client_message does on the receiving end.
+ * @a cctl_sn_handle_client_message does on the receiving end.
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
@@ -331,7 +331,7 @@ static void s_handle_complete_message(xcb_connection_t *connection,
 
 
 /* Begin a startup-notification sequence for a launched process */
-bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
+bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
         const char *restrict name, char *restrict out_id,
         size_t out_id_size)
 {
@@ -398,7 +398,7 @@ bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
 
 
 /* Handle an incoming startup-notification 'ClientMessage' */
-void sn_handle_client_message(xcb_connection_t *connection,
+void cctl_sn_handle_client_message(xcb_connection_t *connection,
         list_td *surfaces, const xcb_client_message_event_t *event)
 {
     s_reassembly_td *slot;
@@ -442,7 +442,7 @@ void sn_handle_client_message(xcb_connection_t *connection,
 
 
 /* Milliseconds until the next pending sequence times out */
-int sn_ms_remaining(void)
+int cctl_sn_ms_remaining(void)
 {
     struct timespec now;
     int64_t soonest_ms = -1;
@@ -477,7 +477,7 @@ int sn_ms_remaining(void)
 
 
 /* Expire any pending sequence whose timeout has elapsed */
-void sn_tick(xcb_connection_t *connection, list_td *surfaces)
+void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
 {
     struct timespec now;
     uint8_t i;
@@ -516,7 +516,7 @@ void sn_tick(xcb_connection_t *connection, list_td *surfaces)
 
 
 /* Cancel a pending sequence immediately */
-void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
+void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
         const char *id)
 {
     if (connection == NULL || surfaces == NULL || id == NULL) {
@@ -528,7 +528,7 @@ void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
 
 
 /* Override how many seconds a sequence waits before being expired */
-void sn_set_timeout_seconds(uint32_t seconds)
+void cctl_sn_set_timeout_seconds(uint32_t seconds)
 {
     if (seconds == 0u) {
         return;

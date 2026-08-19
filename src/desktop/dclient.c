@@ -46,7 +46,7 @@
 #include <client.h>
 #include <enact.h>
 #include <logger.h>
-#include <sn.h>
+#include <cctl/sn.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -533,7 +533,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
  *       on @p desktop
  */
 static void s_desktop_transients_raise(desktop_td *desktop,
-        const client_td *client)
+        client_td *client)
 {
     queue_td *pending;
     size_t max_iterations;
@@ -550,7 +550,7 @@ static void s_desktop_transients_raise(desktop_td *desktop,
 
     while (!queue_is_empty(pending) && processed < max_iterations) {
         void *data;
-        const client_td *parent;
+        client_td *parent;
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
@@ -858,7 +858,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
      * needs no separate check of its own. */
     have_startup_id = (desktop->connection != NULL) &&
         desktop->config_base->startup_notification.is_enabled &&
-        sn_begin(desktop->connection, wm_get_surfaces(),
+        cctl_sn_begin(desktop->connection, wm_get_surfaces(),
                 executable_path, startup_id, sizeof(startup_id));
 
     /* Create a close-on-exec pipe so the parent can detect 'execvp'
@@ -952,7 +952,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         LOGGER_WARNING("Failed to launch '%s': %s",
                 executable_path, strerror(exec_errno));
         if (have_startup_id) {
-            sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
+            cctl_sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
         }
         return -2;
     }

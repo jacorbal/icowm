@@ -1,5 +1,5 @@
 /**
- * @file wm/kill.h
+ * @file cctl/kill.h
  *
  * @brief Escalating an unresponsive client's kill from the X11 protocol
  *        level to its owning process
@@ -21,7 +21,7 @@
  * alive once that window elapses.  A client that already exited on its
  * own in the meantime is left alone.
  *
- * @see @a wm_kill_register, called from @a ccmd_client_kill itself
+ * @see @a cctl_kill_register, called from @a ccmd_client_kill itself
  * @see @c defs/kill.h for the timeout and pending-slot count this
  *      module itself is bound by
  *
@@ -36,8 +36,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef WM_KILL_H
-#define WM_KILL_H
+#ifndef CCTL_KILL_H
+#define CCTL_KILL_H
 
 
 /* System includes */
@@ -61,7 +61,7 @@
  * @note Complexity: @e O(n), where @e n is
  *       @c WM_KILL_ESCALATE_MAX_PENDING
  */
-void wm_kill_register(pid_t pid);
+void cctl_kill_register(pid_t pid);
 
 /**
  * @brief Milliseconds remaining before the closest pending escalation
@@ -78,7 +78,7 @@ void wm_kill_register(pid_t pid);
  *
  * @see @a loop_run, obviously located in @c loop.c
  */
-int wm_kill_ms_remaining(void);
+int cctl_kill_ms_remaining(void);
 
 /**
  * @brief Advance every pending kill escalation
@@ -92,7 +92,7 @@ int wm_kill_ms_remaining(void);
  * @note Complexity: @e O(n), where @e n is
  *       @c WM_KILL_ESCALATE_MAX_PENDING
  */
-void wm_kill_tick(void);
+void cctl_kill_tick(void);
 
 
-#endif  /* ! WM_KILL_H */
+#endif  /* ! CCTL_KILL_H */

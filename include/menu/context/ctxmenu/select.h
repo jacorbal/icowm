@@ -29,7 +29,7 @@
  *
  * Closes the entire menu hierarchy first (releasing keyboard and pointer
  * grabs), then invokes the entry's @p on_activate callback or calls
- * @c lifecycle_launch_dispatch for command entries.  Closing before the
+ * @c cctl_launch_dispatch for command entries.  Closing before the
  * callback allows the callback to establish its own grabs (e.g., for
  * interactive keyboard move or resize) without conflicting with the
  * menu's active grab.  For separator, label, or disabled entries no

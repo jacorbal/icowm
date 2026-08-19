@@ -68,17 +68,17 @@
 
 /* Project includes */
 #include <handler.h>
-#include <lifecycle.h>
+#include <cctl/adopt.h>
 #include <lookup.h>
 #include <logger.h>
 #include <memguard.h>
-#include <sn.h>
-#include <startup/handle.h>
-#include <startup/install.h>
+#include <cctl/sn.h>
+#include <wm/startup/handle.h>
+#include <wm/startup/install.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
-#include <wm/kill.h>
+#include <cctl/kill.h>
 #include <wm/shutdown.h>
 
 /* Local includes */
@@ -342,12 +342,12 @@ void loop_run(wm_td *wm)
         return;
     }
 
-    if (startup_install_signals() != 0) {
+    if (wm_startup_install_signals() != 0) {
         LOGGER_WARNING("Continuing without termination signal handling",
                 L_NARG);
     }
 
-    if (startup_install_crash_handlers() != 0) {
+    if (wm_startup_install_crash_handlers() != 0) {
         LOGGER_WARNING("Continuing without fatal-signal diagnostics",
                 L_NARG);
     }
@@ -362,12 +362,12 @@ void loop_run(wm_td *wm)
     keyboard_load(wm->surfaces, keysyms, wm->config);
     mouse_load(wm->surfaces, wm->config);
 
-    lifecycle_existing_scan(wm);
+    cctl_adopt_scan(wm);
     loop_update_full(wm);
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
-     * adopted by 'lifecycle_existing_scan'.  The earlier 'wm_ewmh_sync'
+     * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync'
      * call in 'wm_init' ran before any clients were managed, leaving
      * the list empty; 'loop_update_full' then cleared 'is_outdated', so
      * the first main-loop iteration would never trigger a sync on its
@@ -385,27 +385,27 @@ void loop_run(wm_td *wm)
         int ipc_count = ipc_poll_fds(ipc_fds,
                 (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
 
-        if (startup_requested_stop()) {
+        if (wm_startup_requested_stop()) {
             LOGGER_INFO("Termination signal received;" \
                     " requesting shutdown", L_NARG);
             wm_request_stop();
             break;
         }
 
-        if (startup_requested_reload()) {
+        if (wm_startup_requested_reload()) {
             LOGGER_INFO("'SIGHUP' received; reloading configuration",
                     L_NARG);
             (void) wm_action_config_reload();
         }
 
-        if (startup_requested_resume()) {
+        if (wm_startup_requested_resume()) {
             LOGGER_INFO("'SIGCONT' received; re-establishing" \
                     " input grabs", L_NARG);
             keyboard_load(wm->surfaces, keysyms, wm->config);
             mouse_load(wm->surfaces, wm->config);
         }
 
-        if (startup_requested_child_reap()) {
+        if (wm_startup_requested_child_reap()) {
             session_reap_children();
         }
 
@@ -449,7 +449,7 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 urgency_blink_ms_remaining(wm->config));
 
-        s_loop_tighten_poll_timeout(&poll_timeout_ms, sn_ms_remaining());
+        s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
 
         /* Shorter still while a resize-cursor poll target is being
          * tracked (see 'mouse_hover_poll_tick' in input/mouse.h), so
@@ -489,10 +489,10 @@ void loop_run(wm_td *wm)
                 wm_shutdown_ms_remaining());
 
         /* Shorter still while a process kill is pending escalation
-         * to 'SIGKILL' (see 'wm_kill_tick' in wm/kill.h), for the
+         * to 'SIGKILL' (see 'cctl_kill_tick' in wm/kill.h), for the
          * same reason. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                wm_kill_ms_remaining());
+                cctl_kill_ms_remaining());
 
         poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
@@ -517,13 +517,13 @@ void loop_run(wm_td *wm)
 
         systray_clock_tick();
         urgency_blink_tick(wm->surfaces, wm->config);
-        sn_tick(wm->connection, wm->surfaces);
+        cctl_sn_tick(wm->connection, wm->surfaces);
         mouse_hover_poll_tick(wm->connection, wm->surfaces);
         menu_confirm_dialog_tick(wm->connection, wm->config);
         menu_message_dialog_tick(wm->connection);
         drag_warp_tick(wm->connection);
         wm_shutdown_tick();
-        wm_kill_tick();
+        cctl_kill_tick();
         if (wm->restricted_memory_mib > 0u &&
                 wm->surfaces != NULL && !list_is_empty(wm->surfaces)) {
             memguard_tick(wm->connection,

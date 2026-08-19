@@ -1,5 +1,5 @@
 /**
- * @file startup/handle.c
+ * @file wm/startup/handle.c
  *
  * @brief Signal handlers and the flags they set, queried back by the
  *        main loop
@@ -24,7 +24,7 @@
 #include <unistd.h>     /* write */
 
 /* Local includes */
-#include <startup/handle.h>
+#include <wm/startup/handle.h>
 
 
 /**
@@ -56,11 +56,11 @@ static volatile sig_atomic_t s_child_reap_requested = 0;
  *
  * Records the signal number; the actual shutdown is handled from the
  * normal execution context in the main loop via
- * @c startup_requested_stop.
+ * @c wm_startup_requested_stop.
  *
  * @param signum Number of the received signal
  */
-void startup_handle_signal(int signum)
+void wm_startup_handle_signal(int signum)
 {
     s_stop_signal_received = signum;
 }
@@ -69,13 +69,13 @@ void startup_handle_signal(int signum)
 /**
  * @brief Signal handler for @c SIGHUP (configuration reload)
  *
- * Sets a flag consumed by @c startup_requested_reload.  The actual
+ * Sets a flag consumed by @c wm_startup_requested_reload.  The actual
  * reload is deferred to the main loop so that it runs in a safe context
  * without async-signal-safety constraints.
  *
  * @param signum Number of the received signal (always @c SIGHUP)
  */
-void startup_handle_reload(int signum)
+void wm_startup_handle_reload(int signum)
 {
     (void) signum;
     s_reload_signal_received = 1;
@@ -85,13 +85,13 @@ void startup_handle_reload(int signum)
 /**
  * @brief Signal handler for @c SIGCONT (VT resume)
  *
- * Sets a flag consumed by @c startup_requested_resume so that the main
+ * Sets a flag consumed by @c wm_startup_requested_resume so that the main
  * loop can re-establish keyboard and mouse grabs after returning from
  * a virtual-terminal switch.
  *
  * @param signum Number of the received signal (always @c SIGCONT)
  */
-void startup_handle_resume(int signum)
+void wm_startup_handle_resume(int signum)
 {
     (void) signum;
     s_resume_signal_received = 1;
@@ -106,7 +106,7 @@ void startup_handle_resume(int signum)
  *
  * @param signum Number of the received signal (always @c SIGCHLD)
  */
-void startup_handle_child(int signum)
+void wm_startup_handle_child(int signum)
 {
     (void) signum;
     s_child_reap_requested = 1;
@@ -116,7 +116,7 @@ void startup_handle_child(int signum)
 /**
  * @brief Async-signal-safe handler for fatal signals
  *
- * See @c startup_install_crash_handlers in startup/install.h for the full
+ * See @c wm_startup_install_crash_handlers in wm/startup/install.h for the full
  * reasoning: this cannot recover and keep running, only make sure
  * dying is not silent.  Every operation here is restricted to what
  * POSIX guarantees is safe from within a signal handler: the @c write
@@ -130,7 +130,7 @@ void startup_handle_child(int signum)
  *
  * @param signum Number of the received fatal signal
  */
-void startup_handle_crash(int signum)
+void wm_startup_handle_crash(int signum)
 {
     static const char s_prefix[] = "icowm: fatal signal ";
     static const char s_suffix[] = "; terminating (see above for" \
@@ -181,14 +181,14 @@ void startup_handle_crash(int signum)
 }
 
 /* Query whether a termination signal has been received */
-bool startup_requested_stop(void)
+bool wm_startup_requested_stop(void)
 {
     return s_stop_signal_received != 0;
 }
 
 
 /* Query whether a 'SIGHUP' configuration-reload request was received */
-bool startup_requested_reload(void)
+bool wm_startup_requested_reload(void)
 {
     if (s_reload_signal_received != 0) {
         s_reload_signal_received = 0;
@@ -200,7 +200,7 @@ bool startup_requested_reload(void)
 
 
 /* Query whether a 'SIGCONT' (VT resume) was received */
-bool startup_requested_resume(void)
+bool wm_startup_requested_resume(void)
 {
     if (s_resume_signal_received != 0) {
         s_resume_signal_received = 0;
@@ -212,7 +212,7 @@ bool startup_requested_resume(void)
 
 
 /* Query whether a pending child-reap request was received */
-bool startup_requested_child_reap(void)
+bool wm_startup_requested_child_reap(void)
 {
     if (s_child_reap_requested != 0) {
         s_child_reap_requested = 0;

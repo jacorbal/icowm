@@ -21,7 +21,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <lifecycle.h>
+#include <cctl/launch.h>
 #include <surface.h>
 
 /* Local includes */
@@ -81,7 +81,7 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
     if (e.on_activate != NULL) {
         e.on_activate(conn, e.userdata);
     } else if (e.command != NULL) {
-        lifecycle_launch_dispatch(surf, e.command, e.class_name);
+        cctl_launch_dispatch(surf, e.command, e.class_name);
     }
 
     return true;

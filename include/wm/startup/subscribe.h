@@ -1,5 +1,5 @@
 /**
- * @file startup/subscribe.h
+ * @file wm/startup/subscribe.h
  *
  * @brief Subscribing to X server events on every managed surface
  *
@@ -13,8 +13,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef STARTUP_SUBSCRIBE_H
-#define STARTUP_SUBSCRIBE_H
+#ifndef WM_STARTUP_SUBSCRIBE_H
+#define WM_STARTUP_SUBSCRIBE_H
 
 
 /* Project includes */
@@ -30,7 +30,7 @@
  * @return 0 on success (including when XRandR is unavailable), -1 if
  *         @p wm or its members are null
  */
-int startup_subscribe_randr_events(wm_td *wm);
+int wm_startup_subscribe_randr_events(wm_td *wm);
 
 /**
  * @brief Subscribe to root window events on all managed surfaces
@@ -44,7 +44,7 @@ int startup_subscribe_randr_events(wm_td *wm);
  *         another window manager already holds the root event
  *         subscription
  */
-int startup_subscribe_root_events(wm_td *wm);
+int wm_startup_subscribe_root_events(wm_td *wm);
 
 
-#endif  /* ! STARTUP_SUBSCRIBE_H */
+#endif  /* ! WM_STARTUP_SUBSCRIBE_H */

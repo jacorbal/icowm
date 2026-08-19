@@ -53,10 +53,10 @@
 #include <lookup.h>
 #include <loop.h>
 #include <memguard.h>
-#include <startup.h>
-#include <startup/subscribe.h>
+#include <wm/startup.h>
+#include <wm/startup/subscribe.h>
 #include <surface.h>
-#include <sn.h>
+#include <cctl/sn.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -524,15 +524,15 @@ int wm_start(const char *restrict display_name,
                 " on surface %u", surface->desktop_cur, i);
     }
 
-    if (startup_subscribe_root_events(wm) != 0) {
+    if (wm_startup_subscribe_root_events(wm) != 0) {
         s_wm_cleanup();
         return 9;
     }
 
     mouse_resize_cursors_init(wm->connection);
-    (void) startup_init_randr(wm);
-    (void) startup_subscribe_randr_events(wm);
-    (void) startup_init_sync(wm);
+    (void) wm_startup_init_randr(wm);
+    (void) wm_startup_subscribe_randr_events(wm);
+    (void) wm_startup_init_sync(wm);
 
     /* Not fatal if it fails, the same reasoning as EWMH root
      * metadata just below: a working window manager without its
@@ -557,7 +557,7 @@ int wm_start(const char *restrict display_name,
 
     systray_init(wm);
     xsettings_init(wm);
-    sn_set_timeout_seconds(
+    cctl_sn_set_timeout_seconds(
             wm->config->base.startup_notification.timeout_seconds);
 
     LOGGER_DEBUG("Setting running status flag to" \

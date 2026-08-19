@@ -170,6 +170,8 @@ $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/policy/test_urgency: $(TESTS_DIR)/policy/test_urgency.c \
 		$(S_DIR)/policy/urgency.c \

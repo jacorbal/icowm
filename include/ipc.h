@@ -202,7 +202,7 @@
  *
  * @see @c XDG_DIR_RUNTIME in @c utils/config/path.h
  * @see @c defs/ipc.h for @c IPC_* definitions
- * @see @a startup_subscribe_root_events
+ * @see @a wm_startup_subscribe_root_events
  */
 int ipc_init(void);
 

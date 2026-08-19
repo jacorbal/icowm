@@ -270,7 +270,7 @@ void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces);
  * @brief Create the eight border-resize cursors used for hover feedback
  *
  * Allocates the cursors once for the whole session (matching the
- * left-pointer cursor already set up in @a startup_subscribe_root_events)
+ * left-pointer cursor already set up in @a wm_startup_subscribe_root_events)
  * so that @a mouse_handle_motion_hover only ever has to look one up,
  * never create one.  Safe to call more than once; only the first call
  * actually allocates anything.

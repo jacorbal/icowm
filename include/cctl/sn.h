@@ -1,5 +1,5 @@
 /**
- * @file sn.h
+ * @file cctl/sn.h
  *
  * @brief freedesktop.org Startup Notification protocol
  *
@@ -37,8 +37,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef SN_H
-#define SN_H
+#ifndef CCTL_SN_H
+#define CCTL_SN_H
 
 
 /* System includes */
@@ -71,7 +71,7 @@
  *
  * @note Complexity: @e O(1)
  */
-void sn_set_timeout_seconds(uint32_t seconds);
+void cctl_sn_set_timeout_seconds(uint32_t seconds);
 
 /**
  * @brief Begin a startup-notification sequence for a process about to
@@ -79,7 +79,7 @@ void sn_set_timeout_seconds(uint32_t seconds);
  *
  * Generates a unique startup ID, broadcasts @c _NET_STARTUP_INFO_BEGIN
  * on every managed root window, shows the busy cursor, and registers
- * the sequence so it can be expired by @a sn_tick if nothing ever
+ * the sequence so it can be expired by @a cctl_sn_tick if nothing ever
  * completes it.
  *
  * @param connection XCB connection
@@ -100,7 +100,7 @@ void sn_set_timeout_seconds(uint32_t seconds);
  * @note Complexity: @e O(s), where @e s is the number of managed
  *       surfaces
  */
-bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
+bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
         const char *restrict name, char *restrict out_id,
         size_t out_id_size);
 
@@ -122,7 +122,7 @@ bool sn_begin(xcb_connection_t *connection, list_td *surfaces,
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
-void sn_handle_client_message(xcb_connection_t *connection,
+void cctl_sn_handle_client_message(xcb_connection_t *connection,
         list_td *surfaces, const xcb_client_message_event_t *event);
 
 /**
@@ -134,7 +134,7 @@ void sn_handle_client_message(xcb_connection_t *connection,
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
-int sn_ms_remaining(void);
+int cctl_sn_ms_remaining(void);
 
 /**
  * @brief Cancel a pending sequence immediately, e.g., because the
@@ -144,13 +144,13 @@ int sn_ms_remaining(void);
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
- * @param id         Startup ID previously returned by @a sn_begin
+ * @param id         Startup ID previously returned by @a cctl_sn_begin
  *
  * @note A no-op if @p id does not name a currently pending sequence
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
-void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
+void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
         const char *id);
 
 /**
@@ -158,7 +158,7 @@ void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
  *
  * Restores the normal cursor on every managed root window once no
  * sequence remains pending, whether it ended by timing out here or by
- * an earlier call to @a sn_handle_client_message.
+ * an earlier call to @a cctl_sn_handle_client_message.
  *
  * @param connection XCB connection
  * @param surfaces   Managed surfaces, one root window per screen
@@ -166,7 +166,7 @@ void sn_cancel(xcb_connection_t *connection, list_td *surfaces,
  * @note Complexity: @e O(s + p), where @e s is the number of managed
  *       surfaces and @e p is the number of currently pending sequences
  */
-void sn_tick(xcb_connection_t *connection, list_td *surfaces);
+void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces);
 
 
-#endif  /* ! SN_H */
+#endif  /* ! CCTL_SN_H */

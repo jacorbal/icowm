@@ -302,7 +302,7 @@
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
     "Command '%s' not found."
 
-/* 'lifecycle_launch_dispatch' (src/lifecycle.c): shown as a blocking
+/* 'cctl_launch_dispatch' (src/cctl/launch.c): shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
  * a keybind-triggered program (e.g., 'programs.terminal') could not be
  * found or executed.  Unlike the run-box, where a bad command is a

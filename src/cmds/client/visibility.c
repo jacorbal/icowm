@@ -47,7 +47,6 @@
 #include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
-#include <wm/kill.h>
 
 /* Local includes */
 #include <cmds/client/basic.h>

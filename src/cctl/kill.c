@@ -1,5 +1,5 @@
 /**
- * @file wm/kill.c
+ * @file cctl/kill.c
  *
  * @brief Kill escalation implementation
  */
@@ -29,7 +29,7 @@
 #include <defs/kill.h>
 
 /* Local includes */
-#include <wm/kill.h>
+#include <cctl/kill.h>
 
 
 /** One process still being watched for kill escalation */
@@ -110,7 +110,7 @@ static void s_kill_deadline_from_now(struct timespec *out,
 
 
 /* Register a process for kill escalation */
-void wm_kill_register(pid_t pid)
+void cctl_kill_register(pid_t pid)
 {
     if (pid <= 0) {
         return;
@@ -133,7 +133,7 @@ void wm_kill_register(pid_t pid)
 
 
 /* Milliseconds remaining before the closest pending escalation fires */
-int wm_kill_ms_remaining(void)
+int cctl_kill_ms_remaining(void)
 {
     int closest_ms = -1;
 
@@ -155,7 +155,7 @@ int wm_kill_ms_remaining(void)
 
 
 /* Advance every pending kill escalation */
-void wm_kill_tick(void)
+void cctl_kill_tick(void)
 {
     for (size_t i = 0u; i < WM_KILL_ESCALATE_MAX_PENDING; ++i) {
         if (!s_kill_pending[i].in_use) {

@@ -1,5 +1,5 @@
 /**
- * @file startup/install.c
+ * @file wm/startup/install.c
  *
  * @brief Registering signal handlers with the OS
  *
@@ -24,8 +24,8 @@
 #include <logger.h>
 
 /* Local includes */
-#include <startup/handle.h>
-#include <startup/install.h>
+#include <wm/startup/handle.h>
+#include <wm/startup/install.h>
 
 
 /**
@@ -52,20 +52,20 @@ static int s_startup_install_handler(int signum,
 
 
 /* Install POSIX signal handlers for graceful termination */
-int startup_install_signals(void)
+int wm_startup_install_signals(void)
 {
     if (s_startup_install_handler(SIGHUP,
-                startup_handle_reload, 0) != 0 ||
+                wm_startup_handle_reload, 0) != 0 ||
             s_startup_install_handler(SIGINT,
-                startup_handle_signal, 0) != 0 ||
+                wm_startup_handle_signal, 0) != 0 ||
             s_startup_install_handler(SIGQUIT,
-                startup_handle_signal, 0) != 0 ||
+                wm_startup_handle_signal, 0) != 0 ||
             s_startup_install_handler(SIGTERM,
-                startup_handle_signal, 0) != 0 ||
+                wm_startup_handle_signal, 0) != 0 ||
             s_startup_install_handler(SIGCONT,
-                startup_handle_resume, 0) != 0 ||
+                wm_startup_handle_resume, 0) != 0 ||
             s_startup_install_handler(SIGCHLD,
-                startup_handle_child, SA_NOCLDSTOP) != 0) {
+                wm_startup_handle_child, SA_NOCLDSTOP) != 0) {
         LOGGER_ERROR("Failed to install startup signal handlers",
                 L_NARG);
         return -1;
@@ -77,16 +77,16 @@ int startup_install_signals(void)
 
 /* Install handlers for fatal signals that log a diagnostic before
  * dying */
-int startup_install_crash_handlers(void)
+int wm_startup_install_crash_handlers(void)
 {
     if (s_startup_install_handler(SIGSEGV,
-                startup_handle_crash, 0) != 0 ||
+                wm_startup_handle_crash, 0) != 0 ||
             s_startup_install_handler(SIGABRT,
-                startup_handle_crash, 0) != 0 ||
+                wm_startup_handle_crash, 0) != 0 ||
             s_startup_install_handler(SIGBUS,
-                startup_handle_crash, 0) != 0 ||
+                wm_startup_handle_crash, 0) != 0 ||
             s_startup_install_handler(SIGFPE,
-                startup_handle_crash, 0) != 0) {
+                wm_startup_handle_crash, 0) != 0) {
         LOGGER_ERROR("Failed to install fatal-signal handlers",
                 L_NARG);
         return -1;

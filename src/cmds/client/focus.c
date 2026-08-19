@@ -53,7 +53,7 @@
 #include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
-#include <wm/kill.h>
+#include <cctl/kill.h>
 
 /* Local includes */
 #include <cmds/client/basic.h>
@@ -256,11 +256,11 @@ void ccmd_client_kill(client_td *client)
      * the process exits on its own shortly after.  A genuinely
      * unresponsive client, stuck in some loop that never processes
      * its own X connection at all, never notices that loss and keeps
-     * running regardless; 'wm_kill_register' watches for exactly
+     * running regardless; 'cctl_kill_register' watches for exactly
      * that and sends a real 'SIGKILL' if it is still alive once its
-     * own bounded window elapses.  See wm/kill.h's own doc comment
+     * own bounded window elapses.  See cctl/kill.h's own doc comment
      * for the full reasoning. */
-    wm_kill_register(client->process.pid);
+    cctl_kill_register(client->process.pid);
 }
 
 

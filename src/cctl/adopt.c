@@ -1,8 +1,7 @@
 /**
- * @file lifecycle.c
+ * @file cctl/adopt.c
  *
- * @brief Window manager startup scan, client name refresh, and launch
- *        dispatch
+ * @brief Window manager startup scan implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,13 +23,10 @@
 #include <adt/list.h>
 
 /* Default initial values */
-#include <defs/config.h>
 #include <defs/desktop.h>
 
 /* Project includes */
-#include <action.h>
 #include <client.h>
-#include <config.h>
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
@@ -41,21 +37,12 @@
 /* Render includes */
 #include <render/outdate.h>
 
-/* Default initial values */
-#include <defs/uistr.h>
-
-/* Project includes */
-#include <i18n.h>
-
-/* Menu includes */
-#include <menu/dialog/info.h>
-
 /* Local includes */
-#include <lifecycle.h>
+#include <cctl/adopt.h>
 
 
 /* Adopt all pre-existing mapped windows at window manager startup */
-void lifecycle_existing_scan(wm_td *wm)
+void cctl_adopt_scan(wm_td *wm)
 {
     if (wm == NULL) {
         return;
@@ -187,37 +174,4 @@ void lifecycle_existing_scan(wm_td *wm)
 
     xcb_flush(wm->connection);
     LOGGER_DEBUG("Finished scanning for pre-existing windows", L_NARG);
-}
-
-
-/* Build and enqueue a launch event for a desktop */
-void lifecycle_launch_dispatch(surface_td *surface, const char *restrict prog,
-        const char *restrict class_name)
-{
-    desktop_td *desktop;
-    int result;
-
-    if (surface == NULL || prog == NULL || prog[0] == '\0') {
-        return;
-    }
-
-    desktop = lookup_current_desktop(surface);
-    if (desktop == NULL) {
-        return;
-    }
-    if (class_name != NULL && class_name[0] != '\0') {
-        result = desktop_action_process_launch_with_class(desktop,
-                prog, class_name);
-    } else {
-        result = desktop_action_process_launch(desktop, prog);
-    }
-    if (result == -2 && surface->connection != NULL &&
-            surface->config != NULL) {
-        char msg[256];
-
-        (void) snprintf(msg, sizeof(msg),
-                _(STR_LAUNCH_COMMAND_NOT_FOUND_FMT), prog);
-        dialog_info_show(surface->connection, surface,
-                surface->config, msg, MENU_MSG_LEVEL_WARNING);
-    }
 }

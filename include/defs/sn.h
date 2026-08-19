@@ -28,7 +28,7 @@
  * @note Overridable via @a startup-notification.timeout-seconds in
  *       @c config.json
  *
- * @see @p sn_set_timeout_seconds
+ * @see @p cctl_sn_set_timeout_seconds
  */
 #define SN_TIMEOUT_SECONDS (15)
 

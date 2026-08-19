@@ -281,8 +281,8 @@ struct config_base_s {
      * @brief Whether launching a program begins a startup-notification
      *        sequence at all, and that sequence's own timeout
      *
-     * @see @p sn_begin (its only call site checks @p is_enabled first)
-     *      and @p sn_set_timeout_seconds / @c SN_TIMEOUT_SECONDS in
+     * @see @p cctl_sn_begin (its only call site checks @p is_enabled first)
+     *      and @p cctl_sn_set_timeout_seconds / @c SN_TIMEOUT_SECONDS in
      *      @c sn.h for what @p timeout_seconds controls and its
      *      built-in default.
      */

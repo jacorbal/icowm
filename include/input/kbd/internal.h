@@ -64,11 +64,11 @@ client_td *ik_get_active_client(surface_td *surface,
  * @brief Launch a configured program for the given binding type
  *
  * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @a lifecycle_launch_dispatch.
+ * configuration and calls @a cctl_launch_dispatch.
  *
  * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
  *                constants)
- * @param surface Current surface passed to @a lifecycle_launch_dispatch
+ * @param surface Current surface passed to @a cctl_launch_dispatch
  * @param config  Active configuration holding the program paths
  */
 void ik_handle_launch(enum wm_keybind_type_e btype,

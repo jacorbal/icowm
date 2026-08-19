@@ -27,10 +27,8 @@
 /* Default initial values */
 #include <defs/desktop.h>
 #include <defs/input.h>
+#include <defs/sn.h>
 #include <defs/urgency.h>
-
-/* Project includes */
-#include <sn.h>
 
 /* Local includes */
 #include <config.h>

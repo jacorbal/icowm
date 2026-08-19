@@ -1,5 +1,5 @@
 /**
- * @file startup/subscribe.c
+ * @file wm/startup/subscribe.c
  *
  * @brief Subscribing to X server events on every managed surface
  *
@@ -35,11 +35,11 @@
 #include <surface.h>
 
 /* Local includes */
-#include <startup/subscribe.h>
+#include <wm/startup/subscribe.h>
 
 
 /* Subscribe to XRandR notifications on each managed root window */
-int startup_subscribe_randr_events(wm_td *wm)
+int wm_startup_subscribe_randr_events(wm_td *wm)
 {
     if (wm == NULL || wm->surfaces == NULL || wm->connection == NULL) {
         return -1;
@@ -86,7 +86,7 @@ int startup_subscribe_randr_events(wm_td *wm)
 
 
 /* Subscribe to root window events on all managed surfaces */
-int startup_subscribe_root_events(wm_td *wm)
+int wm_startup_subscribe_root_events(wm_td *wm)
 {
     uint32_t values[1];
     xcb_cursor_t cur;
