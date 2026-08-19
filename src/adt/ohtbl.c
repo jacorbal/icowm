@@ -146,7 +146,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
     bool has_insert_pos = false;
 
     /* Re-dimension the table if size is bigger than
-     * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions */
+     * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
         if (ohtbl_resize_double(htbl) != 0) {
@@ -165,7 +165,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 
         if (htbl->table[position] == NULL) {
             /* Empty slot ends the probe; prefer any earlier vacated
-             * slot so deleted tombstones are reused first. */
+             * slot so deleted tombstones are reused first */
             if (!has_insert_pos) {
                 insert_pos = position;
             }
@@ -176,7 +176,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
             return 0;
         } else if (htbl->table[position] == htbl->vacated) {
             /* Vacated slot: record as candidate but keep probing for
-             * a possible duplicate further in the chain. */
+             * a possible duplicate further in the chain */
             if (!has_insert_pos) {
                 insert_pos = position;
                 has_insert_pos = true;
@@ -208,9 +208,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
     bool has_insert_pos = false;
 
     /* Re-dimension the table if size is bigger than
-     * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions, the same
-     * guard 'ohtbl_insert' applies before probing at all, so the
-     * probe below never needs to resize partway through itself */
+     * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
         if (ohtbl_resize_double(htbl) != 0) {
@@ -218,18 +216,14 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
         }
     }
 
-    /* Same single-pass probe 'ohtbl_insert' uses: detect a match to
-     * overwrite and locate the first available slot simultaneously
-     * using double hashing.  The first vacated slot is recorded as a
-     * candidate insertion position; a null slot ends the probe chain
-     * (no match can lie beyond it), so we commit there immediately. */
+    /* Same single-pass probe */
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(data) +
                 (i * htbl->h2(data))) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
             /* Empty slot ends the probe; prefer any earlier vacated
-             * slot so deleted tombstones are reused first. */
+             * slot so deleted tombstones are reused first */
             if (!has_insert_pos) {
                 insert_pos = position;
             }
@@ -242,7 +236,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
             /* Vacated slot: record as candidate but keep probing for
              * a possible match further in the chain, rather than
              * inserting a second copy of an existing key past its
-             * own now-vacated original probe path. */
+             * own now-vacated original probe path */
             if (!has_insert_pos) {
                 insert_pos = position;
                 has_insert_pos = true;
@@ -293,7 +287,7 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
              * 'OHTBL_SHRINK_COOLDOWN_MS'; see that constant's own
              * doc comment (ohtbl.h) for why shrinking, unlike
              * growing, is worth delaying at all rather than acting
-             * on it the moment it is first true. */
+             * on it the moment it is first true */
             if (htbl->size < (size_t)
                     ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
                 struct timespec now;
@@ -333,7 +327,7 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
                      * which is not an error; only a negative return
                      * (allocation failure) must turn this already-
                      * successful removal into an error, hence the
-                     * '<0' and not '!=0'. */
+                     * '<0' and not '!=0' */
                     if (ohtbl_resize_halve(htbl) < 0) {
                         return -2;
                     }
