@@ -109,8 +109,19 @@ static void s_kill_deadline_from_now(struct timespec *out,
 }
 
 
-/* Register a process for kill escalation */
-void wm_kill_register(pid_t pid)
+/**
+ * @brief Shared implementation behind @a wm_kill_register and
+ *        @a wm_kill_test_register_with_timeout
+ *
+ * @param pid        Process to watch; a no-op if not strictly positive
+ * @param timeout_ms Milliseconds from now the deadline should fall at
+ *
+ * @note A no-op, silently, once @c WM_KILL_ESCALATE_MAX_PENDING
+ *       registrations are already pending at once
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_KILL_ESCALATE_MAX_PENDING
+ */
+static void s_kill_register_with_timeout(pid_t pid, uint32_t timeout_ms)
 {
     if (pid <= 0) {
         return;
@@ -121,7 +132,7 @@ void wm_kill_register(pid_t pid)
             s_kill_pending[i].in_use = true;
             s_kill_pending[i].pid = pid;
             s_kill_deadline_from_now(&s_kill_pending[i].deadline,
-                    WM_KILL_ESCALATE_TIMEOUT_MS);
+                    timeout_ms);
             return;
         }
     }
@@ -129,6 +140,32 @@ void wm_kill_register(pid_t pid)
     LOGGER_DEBUG("No free kill-escalation slot for pid %d;" \
             " leaving 'xcb_kill_client' as the only attempt made",
             (int) pid);
+}
+
+
+/* Register a process for kill escalation */
+void wm_kill_register(pid_t pid)
+{
+    s_kill_register_with_timeout(pid, WM_KILL_ESCALATE_TIMEOUT_MS);
+}
+
+
+/* Register a process for kill escalation with an explicit timeout,
+ * for test harnesses only; see this function's own comment in
+ * 'wm/kill.h' */
+void wm_kill_test_register_with_timeout(pid_t pid, uint32_t timeout_ms)
+{
+    s_kill_register_with_timeout(pid, timeout_ms);
+}
+
+
+/* Clear every pending kill escalation, for test harnesses only; see
+ * this function's own comment in 'wm/kill.h' */
+void wm_kill_test_reset(void)
+{
+    for (size_t i = 0u; i < WM_KILL_ESCALATE_MAX_PENDING; ++i) {
+        s_kill_pending[i].in_use = false;
+    }
 }
 
 

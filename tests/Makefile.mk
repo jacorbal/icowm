@@ -43,6 +43,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/ipc/test_dispatch \
     $(O_DIR)/tests/ipc/test_commands \
     $(O_DIR)/tests/wm/test_clients \
+    $(O_DIR)/tests/wm/test_kill \
     $(O_DIR)/tests/policy/test_urgency \
     $(O_DIR)/tests/test_rules \
     $(O_DIR)/tests/input/mouse/test_bounds \
@@ -170,6 +171,11 @@ $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/ohtbl.c
+
+$(O_DIR)/tests/wm/test_kill: $(TESTS_DIR)/wm/test_kill.c \
+		$(S_DIR)/wm/kill.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
