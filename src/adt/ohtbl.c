@@ -22,12 +22,14 @@ static char s_vacated;
 
 
 /**
- * @brief Cancel a shrink wait outstanding, if @p size has climbed back
- *        up to or above @c OHTBL_MIN_LOAD_FACTOR since it began
+ * @brief Cancel a shrink wait outstanding, if @p size has climbed
+ *        back up to or above @c OHTBL_MIN_LOAD_FACTOR since it began
  *
  * Called right after @p size grows by one, so a burst of insertions
- * arriving before @c OHTBL_SHRINK_COOLDOWN_MS runs out drops the whole
- * pending shrink outright rather than merely pausing it.
+ * arriving before @c OHTBL_SHRINK_COOLDOWN_MS runs out drops the
+ * whole pending shrink outright rather than merely pausing it; see
+ * @c OHTBL_SHRINK_COOLDOWN_MS's own doc comment (ohtbl.h) for why
+ * this is worth doing at all.
  *
  * @param htbl Table just grown by one element
  *
@@ -202,37 +204,49 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 /* Update an existing element, or insert it as new if didn't exist */
 int ohtbl_update(ohtbl_td *htbl, const void *data)
 {
-    /* Use double hashing to hash the key */
+    size_t insert_pos = 0;
+    bool has_insert_pos = false;
+
+    /* Re-dimension the table if size is bigger than
+     * (OHTBL_MAX_LOAD_FACTOR * 100)% of its positions, the same
+     * guard 'ohtbl_insert' applies before probing at all, so the
+     * probe below never needs to resize partway through itself */
+    if (htbl->size >=
+            (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
+        if (ohtbl_resize_double(htbl) != 0) {
+            return -2;
+        }
+    }
+
+    /* Same single-pass probe 'ohtbl_insert' uses: detect a match to
+     * overwrite and locate the first available slot simultaneously
+     * using double hashing.  The first vacated slot is recorded as a
+     * candidate insertion position; a null slot ends the probe chain
+     * (no match can lie beyond it), so we commit there immediately. */
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(data) +
                 (i * htbl->h2(data))) % htbl->positions;
 
-        if (htbl->table[position] == NULL ||
-                htbl->table[position] == htbl->vacated) {
-            /* Check if we need to resize before inserting */
-            if (htbl->size >= (size_t)
-                    ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
-                if (ohtbl_resize_double(htbl) != 0) {
-                    return -2;
-                }
-
-                /* After resize, positions and table have changed;
-                 * re-probe from the start to find the correct slot */
-                for (size_t j = 0; j < htbl->positions; ++j) {
-                    position = (htbl->h1(data) +
-                            (j * htbl->h2(data))) % htbl->positions;
-                    if (htbl->table[position] == NULL ||
-                            htbl->table[position] == htbl->vacated) {
-                        break;
-                    }
-                }
+        if (htbl->table[position] == NULL) {
+            /* Empty slot ends the probe; prefer any earlier vacated
+             * slot so deleted tombstones are reused first. */
+            if (!has_insert_pos) {
+                insert_pos = position;
             }
 
-            /* Insert the element as new increasing the table size */
-            htbl->table[position] = (void *) data;
+            htbl->table[insert_pos] = (void *) data;
             htbl->size++;
             s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
             return 0;
+        } else if (htbl->table[position] == htbl->vacated) {
+            /* Vacated slot: record as candidate but keep probing for
+             * a possible match further in the chain, rather than
+             * inserting a second copy of an existing key past its
+             * own now-vacated original probe path. */
+            if (!has_insert_pos) {
+                insert_pos = position;
+                has_insert_pos = true;
+            }
         } else if (htbl->match(htbl->table[position], data)) {
             /* Overwrite the old value with the new one */
             htbl->table[position] = (void *) data;
@@ -240,7 +254,16 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
         }
     } /* ! for */
 
-    /* Return that nothing was done */
+    /* All positions probed; insert at the first vacated slot if one was
+     * found (table is full of vacated/occupied but non-null) */
+    if (has_insert_pos) {
+        htbl->table[insert_pos] = (void *) data;
+        htbl->size++;
+        s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
+        return 0;
+    }
+
+    /* Return that the hash functions were selected incorrectly */
     return -1;
 }
 

@@ -143,9 +143,6 @@ int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
         /* Inserting at tail */
         if (item->next == cdlist->head) {
             cdlist->tail = new_item;
-        } else {
-            /* Link new item to the next item's previous pointer */
-            item->next->prev = new_item;
         }
         /* Link current item to new item */
         item->next = new_item;

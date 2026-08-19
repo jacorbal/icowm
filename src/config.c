@@ -5,25 +5,34 @@
  *        implementation
  */
 /*
- * NOTE, i.e., MUSINGS AND ADMONITIONS TO MINE OWN REFLECTIVE INNER SELF:
+ *  MUSINGS AND ADMONITIONS UNTO MINE OWN REFLECTIVE INNER SELF, WHICH
+ *                           DWELLETH WITHIN
  *
- * Regarding the forthcoming extant self (Sat Mar 22 05:01 CET 2025):
- *      The current state of this code is significantly suboptimal.
- *      I implore you to initiate refactoring at your earliest
- *      convenience, or at a time that is deemed more suitable.
+ * Regarding mine own forthcoming self (Sat Mar 22 05:01 CET 2025):
+ *      The present state of this code is grievously suboptimal.
+ *      I implore thee to undertake its refactoring at thy earliest
+ *      convenience, or at such hour as seemeth more fitting.
  *
  * Regarding the whilom expired self (Sun Mar 23 06:12 CET 2025):
- *      Should've done it correctly from the very outset and avoided
- *      future headaches: *my* current headaches.
+ *      Thou shouldst have done it rightly from the very outset, and
+ *      spared future headaches: *my* current headaches.
  *
  * Regarding the erstwhile selves now faded (Sun Jan 11 22:18 CET 2026):
  *      I find myself ensnared in the dire consequences of this wretched
  *      code, which continues to vex my weary soul with its torment.
  *      Each passing hour doth remind me of the ill-advised choices of
- *      yore; verily, I remain a prisoner of my own flawed creations.
+ *      yore; verily, I remain a prisoner of mine own flawed creations.
  *
  * Regarding my rambling selves of yesteryear (Sat Feb 14 11:36 CET 2026):
- *      Pish, let it matter not, ye idle knaves!  I shall change naught!
+ *      Pish!  Let it matter not, ye idle knaves!  I shall alter naught!
+ *
+ * Regarding the self now undone by toil (Sun Aug 09 04:38 CET 2026):
+ *      Much have I attempted, and all that mortal vigour would permit;
+ *      beyond this point, I can but yield.  I did endeavour to bear
+ *      this cursed contrivance further, yet my spirit faltered and my
+ *      limbs denied me.  Alas, by fatigue am I brought low;
+ *      O weariness, begotten of refactoring, thou most merciless of
+ *      foes!
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

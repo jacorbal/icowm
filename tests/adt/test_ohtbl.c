@@ -448,6 +448,48 @@ static void s_test_update_inserts_new_and_overwrites_existing(void)
 }
 
 
+/* ohtbl_update must not stop at a vacated (tombstone) slot when
+ * deciding there is no existing match to overwrite: doing so would
+ * insert a second, unreachable copy of an already-present key rather
+ * than finding and overwriting the real one further along the same
+ * probe chain.  's_hash1' returning the key's own value with 8
+ * positions makes 0 and 8 collide at the same first probe slot,
+ * setting this up deliberately rather than leaving it to chance. */
+static void s_test_update_skips_tombstones_to_find_existing_key(void)
+{
+    ohtbl_td *htbl = ohtbl_init(8, 8, s_hash1, s_hash2,
+            s_int_match, NULL);
+    int a = 0;
+    int b = 8;
+    int b_new = 8;
+    int removed_key = 0;
+    void *removed_data = &removed_key;
+    int found_key = 8;
+    void *found = &found_key;
+    int rc;
+
+    ohtbl_insert(htbl, &a);
+    ohtbl_insert(htbl, &b);
+    TAP_EQ_INT(ohtbl_size(htbl), 2, "both colliding keys inserted");
+
+    /* Removing 'a' leaves a tombstone at 'b''s own first probe slot */
+    ohtbl_remove(htbl, &removed_data);
+    TAP_EQ_INT(ohtbl_size(htbl), 1, "one item left after removing 'a'");
+
+    rc = ohtbl_update(htbl, &b_new);
+    TAP_EQ_INT(rc, 0, "update on 'b' succeeds");
+    TAP_EQ_INT(ohtbl_size(htbl), 1,
+            "size stays 1: 'b' was found and overwritten, not" \
+            " duplicated into the tombstone");
+
+    ohtbl_lookup(htbl, &found);
+    TAP_OK(found == &b_new,
+            "lookup returns the overwritten pointer");
+
+    ohtbl_destroy(htbl);
+}
+
+
 /* ohtbl_reset clears every stored item (size back to 0) without
  * changing the table's own positions, and the table stays usable
  * for fresh inserts afterward */
@@ -586,7 +628,7 @@ static void s_test_null_table_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(53);
+    TAP_PLAN(58);
 
     s_test_init_resolves_min_positions_correctly();
     s_test_empty_table();
@@ -601,6 +643,7 @@ int main(void)
     s_test_shrink_cancelled_on_recovery();
     s_test_shrink_happens_once_cooldown_elapses();
     s_test_update_inserts_new_and_overwrites_existing();
+    s_test_update_skips_tombstones_to_find_existing_key();
     s_test_reset_clears_without_freeing_positions();
     s_test_foreach_visits_every_valid_item_once();
     s_test_init_quick_matches_positions();
