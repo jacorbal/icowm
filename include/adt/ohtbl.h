@@ -5,9 +5,9 @@
  *
  * The hash table dynamically resizes itself when the number of stored
  * elements exceeds or falls below a predefined threshold, a load
- * factor, ensuring that operations on the table remain efficient.  The
- * resizing process involves doubling or halving the current capacity
- * and rehashing existing items to the new storage arrangement.
+ * factor, ensuring that operations on the table remain efficient.
+ * The resizing process involves doubling or halving the current
+ * capacity and rehashing existing items to the new storage arrangement.
  *
  * @ingroup adt
  */
@@ -19,6 +19,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
+#include <time.h>       /* struct timespec */
 
 
 /**
@@ -66,6 +67,37 @@
  * @see @a ohtbl_remove
  */
 #define OHTBL_MIN_LOAD_FACTOR (0.25f)
+
+/**
+ * @brief Milliseconds a table must stay continuously below
+ *        @c OHTBL_MIN_LOAD_FACTOR before a shrink actually happens
+ *
+ * A caller that removes and soon reinserts elements in bursts (for
+ * instance, a batch removal immediately followed by a batch of the same
+ * or similar elements coming back) would otherwise pay for two full
+ * rehashes, one shrinking down and another growing straight back up,
+ * for no lasting reduction in memory use.  Growing itself is never
+ * delayed this way, only shrinking: understaffing the table during
+ * active use degrades every operation's own expected probe length,
+ * a real, immediate cost, while a table that is merely larger than it
+ * strictly needs to be for a little longer than necessary costs nothing
+ * but the otherwise-unused memory itself.
+ *
+ * Time starts counting the moment @p ohtbl->size first drops below the
+ * threshold, not from each individual removal thereafter; if enough
+ * elements come back before this many milliseconds pass, the whole
+ * pending shrink is dropped and the count only starts over the next
+ * time occupancy falls below the threshold again, whenever that next
+ * happens to be.
+ *
+ * @note This has no effect on growing, nor on the occupancy threshold
+ *       itself (@c OHTBL_MIN_LOAD_FACTOR); it only delays acting on
+ *       that threshold once crossed downward
+ * @note A suggested value is 2000 (two seconds)
+ *
+ * @see @a ohtbl_remove, @a ohtbl_insert
+ */
+#define OHTBL_SHRINK_COOLDOWN_MS (2000)
 
 
 /**
@@ -132,6 +164,30 @@ typedef struct {
 
     size_t size;        /**< Size of the open-addressed hash table */
     void **table;       /**< Table to allocate items in */
+
+    /**
+     * @brief Whether @p size has dropped below
+     *        @c OHTBL_MIN_LOAD_FACTOR and a shrink is waiting out
+     *        @c OHTBL_SHRINK_COOLDOWN_MS before actually happening
+     *
+     * A @c false value whenever nothing is currently waiting.  Either
+     * the table has never dropped below the threshold since it was last
+     * actually resized, or it did but climbed back above the threshold
+     * again (via @a ohtbl_insert) before the cooldown itself ran out,
+     * cancelling the wait outright rather than merely pausing it.
+     *
+     * @see @c OHTBL_SHRINK_COOLDOWN_MS for the reasoning behind
+     *      delaying a shrink at all
+     */
+    bool shrink_pending;
+
+    /**
+     * @brief Monotonic time @p size first dropped below
+     *        @c OHTBL_MIN_LOAD_FACTOR, starting the current wait
+     *
+     * @note Only meaningful while @p shrink_pending is @c true
+     */
+    struct timespec shrink_eligible_since;
 } ohtbl_td;
 
 

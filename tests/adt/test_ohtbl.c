@@ -256,8 +256,11 @@ static void s_test_grows_past_max_load_factor(void)
 }
 
 
-/* Removing enough items to fall under OHTBL_MIN_LOAD_FACTOR shrinks
- * the table, but never below its own min_positions */
+/* Removing enough items to fall under OHTBL_MIN_LOAD_FACTOR marks a
+ * shrink pending, but does not shrink the table right away, and even
+ * once one eventually happens, still never below its own
+ * min_positions; see the three tests right after this one for the
+ * cooldown mechanism itself */
 static void s_test_shrinks_but_not_below_min_positions(void)
 {
     ohtbl_td *htbl = ohtbl_init(16, 8, s_hash1, s_hash2,
@@ -282,6 +285,130 @@ static void s_test_shrinks_but_not_below_min_positions(void)
             "positions never fell below min_positions");
     TAP_EQ_INT((long) htbl->min_positions, 8,
             "min_positions itself is unchanged");
+
+    ohtbl_destroy(htbl);
+}
+
+
+/* Crossing below OHTBL_MIN_LOAD_FACTOR marks a shrink pending, but
+ * leaves 'positions' untouched until OHTBL_SHRINK_COOLDOWN_MS has
+ * genuinely passed; see that constant's own doc comment (ohtbl.h)
+ * for why */
+static void s_test_shrink_is_deferred(void)
+{
+    ohtbl_td *htbl = ohtbl_init(16, 8, s_hash1, s_hash2,
+            s_int_match, NULL);
+    int values[16];
+    size_t positions_before;
+
+    for (int i = 0; i < 16; ++i) {
+        values[i] = i;
+        ohtbl_insert(htbl, &values[i]);
+    }
+    positions_before = htbl->positions;
+
+    /* Drop just under the min load factor */
+    for (int i = 0; i < 9; ++i) {
+        int key = i;
+        void *data = &key;
+
+        ohtbl_remove(htbl, &data);
+    }
+
+    TAP_OK(htbl->shrink_pending,
+            "crossing below the min load factor marks a shrink" \
+            " pending");
+    TAP_EQ_INT((long) htbl->positions, (long) positions_before,
+            "but does not shrink the table right away");
+
+    ohtbl_destroy(htbl);
+}
+
+
+/* Climbing back up to OHTBL_MIN_LOAD_FACTOR before the cooldown
+ * elapses cancels the pending shrink outright, rather than merely
+ * postponing it */
+static void s_test_shrink_cancelled_on_recovery(void)
+{
+    ohtbl_td *htbl = ohtbl_init(16, 8, s_hash1, s_hash2,
+            s_int_match, NULL);
+    int values[16];
+    size_t positions_before;
+    int refill = 100;
+
+    for (int i = 0; i < 16; ++i) {
+        values[i] = i;
+        ohtbl_insert(htbl, &values[i]);
+    }
+    positions_before = htbl->positions;
+
+    for (int i = 0; i < 9; ++i) {
+        int key = i;
+        void *data = &key;
+
+        ohtbl_remove(htbl, &data);
+    }
+    TAP_OK(htbl->shrink_pending, "shrink is pending after the drop");
+
+    ohtbl_insert(htbl, &refill);
+
+    TAP_OK(!htbl->shrink_pending,
+            "reinserting back above the threshold cancels the" \
+            " pending shrink");
+    TAP_EQ_INT((long) htbl->positions, (long) positions_before,
+            "positions were never actually touched either way");
+
+    ohtbl_destroy(htbl);
+}
+
+
+/* Once OHTBL_SHRINK_COOLDOWN_MS has genuinely elapsed while
+ * continuously below the min load factor, the next removal that
+ * re-checks it actually shrinks the table this time, still never
+ * below its own min_positions.  Simulated by back-dating
+ * 'shrink_eligible_since' directly rather than a real wait, so this
+ * stays as fast as every other test here despite exercising the
+ * cooldown's own far side. */
+static void s_test_shrink_happens_once_cooldown_elapses(void)
+{
+    ohtbl_td *htbl = ohtbl_init(16, 8, s_hash1, s_hash2,
+            s_int_match, NULL);
+    int values[16];
+    size_t positions_before;
+    int last_key;
+    void *last_data;
+
+    for (int i = 0; i < 16; ++i) {
+        values[i] = i;
+        ohtbl_insert(htbl, &values[i]);
+    }
+    positions_before = htbl->positions;
+
+    for (int i = 0; i < 9; ++i) {
+        int key = i;
+        void *data = &key;
+
+        ohtbl_remove(htbl, &data);
+    }
+    TAP_OK(htbl->shrink_pending,
+            "shrink pending after crossing the threshold");
+    TAP_EQ_INT((long) htbl->positions, (long) positions_before,
+            "not yet shrunk");
+
+    htbl->shrink_eligible_since.tv_sec -=
+        (OHTBL_SHRINK_COOLDOWN_MS / 1000) + 1;
+
+    last_key = 9;
+    last_data = &last_key;
+    ohtbl_remove(htbl, &last_data);
+
+    TAP_OK(!htbl->shrink_pending,
+            "no longer pending once the cooldown elapses and the" \
+            " table actually shrinks");
+    TAP_OK(htbl->positions < positions_before,
+            "table did shrink once the cooldown elapsed");
+    TAP_OK(htbl->positions >= htbl->min_positions,
+            "still never below min_positions");
 
     ohtbl_destroy(htbl);
 }
@@ -459,7 +586,7 @@ static void s_test_null_table_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(43);
+    TAP_PLAN(53);
 
     s_test_init_resolves_min_positions_correctly();
     s_test_empty_table();
@@ -470,6 +597,9 @@ int main(void)
     s_test_remove_missing_fails();
     s_test_grows_past_max_load_factor();
     s_test_shrinks_but_not_below_min_positions();
+    s_test_shrink_is_deferred();
+    s_test_shrink_cancelled_on_recovery();
+    s_test_shrink_happens_once_cooldown_elapses();
     s_test_update_inserts_new_and_overwrites_existing();
     s_test_reset_clears_without_freeing_positions();
     s_test_foreach_visits_every_valid_item_once();

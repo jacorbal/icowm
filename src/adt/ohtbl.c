@@ -4,9 +4,14 @@
  * @brief Open-addressed hash table (closed hashing) implementation
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
+#include <stdint.h>     /* int64_t */
 #include <stdlib.h>     /* calloc, malloc, free, NULL */
+#include <time.h>       /* clock_gettime, CLOCK_MONOTONIC, timespec */
 
 /* Local includes */
 #include <adt/ohtbl.h>
@@ -14,6 +19,28 @@
 
 /* Reserve a sentinel memory address for vacated elements */
 static char s_vacated;
+
+
+/**
+ * @brief Cancel a shrink wait outstanding, if @p size has climbed back
+ *        up to or above @c OHTBL_MIN_LOAD_FACTOR since it began
+ *
+ * Called right after @p size grows by one, so a burst of insertions
+ * arriving before @c OHTBL_SHRINK_COOLDOWN_MS runs out drops the whole
+ * pending shrink outright rather than merely pausing it.
+ *
+ * @param htbl Table just grown by one element
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ohtbl_cancel_pending_shrink_if_recovered(ohtbl_td *htbl)
+{
+    if (htbl->shrink_pending &&
+            htbl->size >= (size_t)
+                ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
+        htbl->shrink_pending = false;
+    }
+}
 
 
 /* Initialize a new open-addressed hash table */
@@ -58,6 +85,10 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
 
     /* Initialize the number of elements in the table */
     htbl->size = 0;
+
+    /* No shrink wait outstanding yet; see 'OHTBL_SHRINK_COOLDOWN_MS'
+     * own doc comment (ohtbl.h) */
+    htbl->shrink_pending = false;
 
     return htbl;
 }
@@ -139,6 +170,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 
             htbl->table[insert_pos] = (void *) data;
             htbl->size++;
+            s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
             return 0;
         } else if (htbl->table[position] == htbl->vacated) {
             /* Vacated slot: record as candidate but keep probing for
@@ -158,6 +190,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
     if (has_insert_pos) {
         htbl->table[insert_pos] = (void *) data;
         htbl->size++;
+        s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
         return 0;
     }
 
@@ -198,6 +231,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
             /* Insert the element as new increasing the table size */
             htbl->table[position] = (void *) data;
             htbl->size++;
+            s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
             return 0;
         } else if (htbl->match(htbl->table[position], data)) {
             /* Overwrite the old value with the new one */
@@ -230,18 +264,56 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
             htbl->table[position] = htbl->vacated;
             htbl->size--;
 
-            /* Re-dimension table if size if smaller than
-             * ('OHTBL_MIN_LOAD_FACTOR' * 100)% of its positions */
+            /* Re-dimension the table if size has dropped below
+             * ('OHTBL_MIN_LOAD_FACTOR' * 100)% of its positions,
+             * once that has held continuously for
+             * 'OHTBL_SHRINK_COOLDOWN_MS'; see that constant's own
+             * doc comment (ohtbl.h) for why shrinking, unlike
+             * growing, is worth delaying at all rather than acting
+             * on it the moment it is first true. */
             if (htbl->size < (size_t)
                     ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
-                /* A return of '1' from 'ohtbl_resize_halve()' means the
-                 * table is already at its minimum size and was
-                 * intentionally left untouched, which is not an error;
-                 * only a negative return (allocation failure) must turn
-                 * this already-successful removal into an error, hence
-                 * the '<0' and not '!=0'. */
-                if (ohtbl_resize_halve(htbl) < 0) {
-                    return -2;
+                struct timespec now;
+                bool cooldown_elapsed = true;
+
+                if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+                    if (!htbl->shrink_pending) {
+                        htbl->shrink_pending = true;
+                        htbl->shrink_eligible_since = now;
+                        cooldown_elapsed = false;
+                    } else {
+                        int64_t elapsed_ms =
+                            ((int64_t) now.tv_sec -
+                                (int64_t)
+                                    htbl->shrink_eligible_since.tv_sec)
+                                * 1000 +
+                            ((int64_t) now.tv_nsec -
+                                (int64_t)
+                                    htbl->shrink_eligible_since.tv_nsec)
+                                / 1000000;
+
+                        cooldown_elapsed = (elapsed_ms >=
+                                (int64_t) OHTBL_SHRINK_COOLDOWN_MS);
+                    }
+                }
+                /* else: the clock itself is unavailable; fall back
+                 * to shrinking right away ('cooldown_elapsed'
+                 * already defaults to 'true' above) rather than
+                 * risk never shrinking at all */
+
+                if (cooldown_elapsed) {
+                    htbl->shrink_pending = false;
+
+                    /* A return of '1' from 'ohtbl_resize_halve()'
+                     * means the table is already at its minimum
+                     * size and was intentionally left untouched,
+                     * which is not an error; only a negative return
+                     * (allocation failure) must turn this already-
+                     * successful removal into an error, hence the
+                     * '<0' and not '!=0'. */
+                    if (ohtbl_resize_halve(htbl) < 0) {
+                        return -2;
+                    }
                 }
             }
 
@@ -315,6 +387,11 @@ int ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
     /* Update pointers and new positions */
     htbl->table = new_table;
     htbl->positions = new_positions;
+
+    /* Any resize, in either direction, starts a fresh assessment of
+     * whether the new capacity is itself underused; see
+     * 'OHTBL_SHRINK_COOLDOWN_MS''s own doc comment (ohtbl.h) */
+    htbl->shrink_pending = false;
 
     return 0;
 }
