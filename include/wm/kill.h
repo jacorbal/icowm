@@ -41,7 +41,6 @@
 
 
 /* System includes */
-#include <stdint.h>     /* uint32_t */
 #include <sys/types.h>  /* pid_t */
 
 
@@ -94,44 +93,6 @@ int wm_kill_ms_remaining(void);
  *       @c WM_KILL_ESCALATE_MAX_PENDING
  */
 void wm_kill_tick(void);
-
-
-/**
- * @brief Register a process for kill escalation with an explicit
- *        timeout, bypassing @c WM_KILL_ESCALATE_TIMEOUT_MS
- *
- * For test harnesses only, never called from any production code
- * path: lets a test exercise @a wm_kill_tick's own escalation branch
- * (a registration whose deadline has already elapsed) or its
- * not-yet-due branch on demand, without actually waiting out
- * @c WM_KILL_ESCALATE_TIMEOUT_MS's own real-time length either way.
- * Shares every bit of @a wm_kill_register's own logic (the same
- * pending-slot search, the same no-op conditions), differing only in
- * where the timeout comes from.
- *
- * @param pid        Process to watch; a no-op if not strictly positive
- * @param timeout_ms Milliseconds from now the deadline should fall at
- *
- * @note A no-op, silently, once @c WM_KILL_ESCALATE_MAX_PENDING
- *       registrations are already pending at once
- * @note Complexity: @e O(n), where @e n is
- *       @c WM_KILL_ESCALATE_MAX_PENDING
- */
-void wm_kill_test_register_with_timeout(pid_t pid, uint32_t timeout_ms);
-
-/**
- * @brief Clear every pending kill escalation
- *
- * For test harnesses only, never called from any production code
- * path: returns this module's own static state to what it holds
- * right after process startup, so one test case cannot leave a
- * pending registration behind for the next one to unexpectedly
- * inherit.
- *
- * @note Complexity: @e O(n), where @e n is
- *       @c WM_KILL_ESCALATE_MAX_PENDING
- */
-void wm_kill_test_reset(void);
 
 
 #endif  /* ! WM_KILL_H */

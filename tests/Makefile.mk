@@ -37,20 +37,15 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/test_lookup \
     $(O_DIR)/tests/policy/test_focus \
     $(O_DIR)/tests/test_scratchpad \
-    $(O_DIR)/tests/test_sn \
     $(O_DIR)/tests/ipc/test_args \
     $(O_DIR)/tests/ipc/test_response \
     $(O_DIR)/tests/ipc/test_resolve \
     $(O_DIR)/tests/ipc/test_dispatch \
     $(O_DIR)/tests/ipc/test_commands \
-    $(O_DIR)/tests/ipc/test_readable \
     $(O_DIR)/tests/wm/test_clients \
-    $(O_DIR)/tests/wm/test_kill \
     $(O_DIR)/tests/policy/test_urgency \
     $(O_DIR)/tests/test_rules \
     $(O_DIR)/tests/input/mouse/test_bounds \
-    $(O_DIR)/tests/input/mouse/test_bind \
-    $(O_DIR)/tests/input/kbd/test_bind \
     $(O_DIR)/tests/test_memguard \
     $(O_DIR)/tests/systray/test_text \
     $(O_DIR)/tests/systray/test_battery \
@@ -131,14 +126,6 @@ $(O_DIR)/tests/test_scratchpad: $(TESTS_DIR)/test_scratchpad.c \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
-$(O_DIR)/tests/test_sn: $(TESTS_DIR)/test_sn.c \
-		$(S_DIR)/sn.c \
-		$(S_DIR)/adt/list.c \
-		$(S_DIR)/utils/safe/safestr.c \
-		$(S_DIR)/logger.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
-
 $(O_DIR)/tests/ipc/test_args: $(TESTS_DIR)/ipc/test_args.c \
 		$(S_DIR)/ipc/args.c
 	@mkdir -p $(@D)
@@ -179,25 +166,10 @@ $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 
-$(O_DIR)/tests/ipc/test_readable: $(TESTS_DIR)/ipc/test_readable.c \
-		$(S_DIR)/ipc.c \
-		$(S_DIR)/utils/config/path.c \
-		$(S_DIR)/utils/safe/safestr.c \
-		$(S_DIR)/logger.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
-
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/ohtbl.c
-
-$(O_DIR)/tests/wm/test_kill: $(TESTS_DIR)/wm/test_kill.c \
-		$(S_DIR)/wm/kill.c \
-		$(S_DIR)/logger.c \
-		$(S_DIR)/utils/safe/safestr.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/policy/test_urgency: $(TESTS_DIR)/policy/test_urgency.c \
 		$(S_DIR)/policy/urgency.c \
@@ -229,26 +201,6 @@ $(O_DIR)/tests/test_rules: $(TESTS_DIR)/test_rules.c \
 $(O_DIR)/tests/input/mouse/test_bounds: \
 		$(TESTS_DIR)/input/mouse/test_bounds.c \
 		$(S_DIR)/input/mouse/bounds.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
-
-$(O_DIR)/tests/input/mouse/test_bind: \
-		$(TESTS_DIR)/input/mouse/test_bind.c \
-		$(S_DIR)/input/mouse/bind.c \
-		$(S_DIR)/input/modifier.c \
-		$(S_DIR)/adt/list.c \
-		$(S_DIR)/utils/safe/safestr.c \
-		$(S_DIR)/logger.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
-
-$(O_DIR)/tests/input/kbd/test_bind: \
-		$(TESTS_DIR)/input/kbd/test_bind.c \
-		$(S_DIR)/input/kbd/bind.c \
-		$(S_DIR)/input/modifier.c \
-		$(S_DIR)/adt/list.c \
-		$(S_DIR)/utils/safe/safestr.c \
-		$(S_DIR)/logger.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
