@@ -43,6 +43,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/ipc/test_resolve \
     $(O_DIR)/tests/ipc/test_dispatch \
     $(O_DIR)/tests/ipc/test_commands \
+    $(O_DIR)/tests/ipc/test_readable \
     $(O_DIR)/tests/wm/test_clients \
     $(O_DIR)/tests/wm/test_kill \
     $(O_DIR)/tests/policy/test_urgency \
@@ -175,6 +176,14 @@ $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 		$(S_DIR)/ipc/commands.c \
 		$(S_DIR)/ipc/response.c \
 		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/test_readable: $(TESTS_DIR)/ipc/test_readable.c \
+		$(S_DIR)/ipc.c \
+		$(S_DIR)/utils/config/path.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 

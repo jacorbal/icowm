@@ -211,9 +211,7 @@ static size_t s_h2(const void *data)
      * the line just above, so a future edit to that forcing logic that
      * accidentally breaks it is caught immediately in a debug build
      * rather than silently producing an invalid double-hashing step
-     * size.
-     *
-     * Compiled out entirely in the default release build (NDEBUG). */
+     * size. */
     assert(hash2 != 0u);
 
     return hash2;
