@@ -122,11 +122,11 @@ CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
               -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
               -Wunreachable-code -Wmissing-format-attribute \
-              -Wdeprecated
+              -Wdeprecated -fwrapv
 
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
              -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
-             -Wno-suggest-attribute=format   -fwrapv
+             -Wno-suggest-attribute=format
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
                -Wswitch-enum -Wcovered-switch-default -Wreserved-identifier \
@@ -231,7 +231,8 @@ LDFLAGS += -fsanitize=address -fPIE
 CCFLAGS += -fanalyzer
 .endif
 .else
-CCFLAGS += -DNDEBUG -O${CCOPT}
+CCFLAGS += -DNDEBUG -O${CCOPT} -flto
+LDFLAGS += -flto
 .endif
 
 # Use 'make clean && make STRIP=1' to discard symbols from object files

@@ -70,12 +70,12 @@ static bool s_id_match(const void *key1, const void *key2)
 
 /* Records whether the action ran, and with which arguments */
 static bool s_action_called;
-static wm_td *s_action_wm;
+static const wm_td *s_action_wm;
 static client_td *s_action_client;
 static surface_td *s_action_surface;
 static desktop_td *s_action_desktop;
 
-static void s_recording_action(wm_td *wm, client_td *client,
+static void s_recording_action(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     s_action_called = true;
