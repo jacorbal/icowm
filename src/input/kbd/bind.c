@@ -753,3 +753,29 @@ enum wm_keybind_type_e keyboard_binding_at(int idx,
 
     return s_keybindings[idx].type;
 }
+
+
+/* Clear the binding table, for test harnesses only; see this
+ * function's own comment in 'input/kbd/bind.h' */
+void keyboard_test_reset(void)
+{
+    s_keybindings_count = 0;
+}
+
+
+/* Directly append a binding entry, for test harnesses only; see
+ * this function's own comment in 'input/kbd/bind.h' */
+bool keyboard_test_add_binding(enum wm_keybind_type_e type,
+        xcb_keysym_t keysym, uint16_t modmask)
+{
+    if (s_keybindings_count >= WM_MAX_KEYBINDINGS) {
+        return false;
+    }
+
+    s_keybindings[s_keybindings_count].keysym = keysym;
+    s_keybindings[s_keybindings_count].modmask = modmask;
+    s_keybindings[s_keybindings_count].type = type;
+    ++s_keybindings_count;
+
+    return true;
+}

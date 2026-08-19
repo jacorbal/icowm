@@ -271,4 +271,42 @@ enum wm_keybind_type_e keyboard_binding_at(int idx,
         xcb_keysym_t *keysym_out, uint16_t *modmask_out);
 
 
+/**
+ * @brief Clear the binding table
+ *
+ * For test harnesses only, never called from any production code
+ * path: returns this module's own binding table to what it holds
+ * right after process startup, so one test case cannot leave a
+ * binding behind for the next one to unexpectedly inherit.
+ *
+ * @note Complexity: @e O(1)
+ */
+void keyboard_test_reset(void);
+
+/**
+ * @brief Directly append a binding entry to the binding table
+ *
+ * For test harnesses only, never called from any production code
+ * path: lets a test populate the binding table @a keyboard_find,
+ * @a keyboard_find_action, and the two accessors below all read
+ * from, without going through @a keyboard_load's own real work
+ * (config lookups, binding-string parsing, and installing passive
+ * grabs on every managed root window over a working XCB connection),
+ * none of which any of those four functions' own logic depends on.
+ *
+ * @param type    Action type for the new entry
+ * @param keysym  Keysym for the new entry
+ * @param modmask Modifier mask for the new entry
+ *
+ * @return Status of the operation
+ * @retval  true on success
+ * @retval false if the binding table is already at
+ *               @c WM_MAX_KEYBINDINGS
+ *
+ * @note Complexity: @e O(1)
+ */
+bool keyboard_test_add_binding(enum wm_keybind_type_e type,
+        xcb_keysym_t keysym, uint16_t modmask);
+
+
 #endif  /* ! INPUT_KBD_BIND_H */
