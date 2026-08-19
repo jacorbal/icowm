@@ -32,5 +32,21 @@
  */
 #define SN_TIMEOUT_SECONDS (15)
 
+/** Maximum length of a generated or received startup ID */
+#define SN_ID_MAX_LEN (128)
+
+/** Maximum simultaneously pending (unacknowledged) launch sequences */
+#define SN_MAX_PENDING (16)
+
+/** Maximum reassembly length for one incoming chunked message */
+#define SN_MSG_MAX_LEN (512)
+
+/** Maximum simultaneous in-progress incoming reassemblies (one per
+ *  sender window sending interleaved chunks) */
+#define SN_MAX_REASSEMBLY (8)
+
+/** Bytes of text payload in one format-8 @c ClientMessage */
+#define SN_CHUNK_LEN (20)
+
 
 #endif  /* ! DEFS_SN_H */

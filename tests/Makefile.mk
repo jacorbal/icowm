@@ -37,6 +37,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/test_lookup \
     $(O_DIR)/tests/policy/test_focus \
     $(O_DIR)/tests/test_scratchpad \
+    $(O_DIR)/tests/test_sn \
     $(O_DIR)/tests/ipc/test_args \
     $(O_DIR)/tests/ipc/test_response \
     $(O_DIR)/tests/ipc/test_resolve \
@@ -126,6 +127,14 @@ $(O_DIR)/tests/test_scratchpad: $(TESTS_DIR)/test_scratchpad.c \
 		$(S_DIR)/logger.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
+$(O_DIR)/tests/test_sn: $(TESTS_DIR)/test_sn.c \
+		$(S_DIR)/sn.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/ipc/test_args: $(TESTS_DIR)/ipc/test_args.c \
 		$(S_DIR)/ipc/args.c
