@@ -220,7 +220,7 @@ MSG_DEPS = $(MSG_OBJS:.o=.d)
 all: mkdirs $(TARGET) $(MSG_TARGET) ctags
 	@echo "Build $(BUILD_NUMBER)"
 
-parallel:
+parallel: ctags
 	$(MAKE) -j$(JOBS) all
 
 mkdirs:
