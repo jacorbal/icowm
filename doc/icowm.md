@@ -110,7 +110,7 @@ for this shortcut in the first place.
 | `-c <config_dir>` | Set the configuration directory, overriding the lookup order described in `config.md` section 1. |
 | `-C`              | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
 | `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4. Must be at least 14. |
-| `-s`              | Disable the IPC control socket entirely for this run: `ipc_init` is never called at all, rather than being attempted and possibly failing. See section 5 for what the socket does. |
+| `-s`              | Disable the IPC control socket entirely for this run: the socket is never set up at all, rather than being attempted and possibly failing. See section 5 for what the socket does. |
 
 ### 3.2. Logging
 
@@ -480,7 +480,7 @@ read as broken rather than merely deferred.
 | `goto_desktop`      | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
 | `goto_next_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own next desktop, wrapping around after the last one |
 | `goto_prev_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
-| `add_desktop`       | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's own last one.  Refused, with an error, once `CONFIG_MAX_DESKTOPS` is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `add_desktop`       | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's own last one.  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
 | `remove_desktop`    | `surface_id` (optional)                          | Removes the resolved surface's own last desktop, moving any client still on it to the one before it.  Refused, with an error, while only one desktop remains |
 
 #### 5.3.6. Whole window manager

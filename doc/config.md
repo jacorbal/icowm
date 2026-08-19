@@ -1967,28 +1967,24 @@ Accepted `rotation` values are: `"normal"`, `"left"` (90°), `"right"`
 
 RandR is scoped to a single X screen: CRTCs, outputs, and modes are
 queried and configured against one screen's root window, with no
-cross-screen notion at the protocol level.
-`surface_action_apply_randr_profiles` is called once per surface (X
-screen managed), querying and applying RandR state independently for
-each.  `outputs[]` itself, however, is a single list in
-`config_randr_s`, shared by every surface, with no per-screen field.  On
-a multi-GPU setup where two X screens each expose an output of the same
-name, the matching profile is applied identically to both, with no way
-to scope it to one screen only.  Not applicable to the common case of
-one X screen managing several outputs via RandR 1.5 monitors, nor in
-practice to most multi-screen setups either, since output names are
-driver/GPU- assigned and are not normally reused across independent
-GPUs.
+cross-screen notion at the protocol level.  RandR profiles are applied
+once per surface (X screen managed), querying and applying RandR state
+independently for each.  `outputs[]` itself, however, is a single list
+shared by every surface, with no per-screen field.  On a multi-GPU setup
+where two X screens each expose an output of the same name, the matching
+profile is applied identically to both, with no way to scope it to one
+screen only.  Not applicable to the common case of one X screen managing
+several outputs via RandR 1.5 monitors, nor in practice to most
+multi-screen setups either, since output names are driver/GPU- assigned
+and are not normally reused across independent GPUs.
 
 ### 5.4. Reload behavior
 
-`randr.json` is re-read on configuration reload (`KEYBIND_WM_RELOAD`
-/ `ACTION_WM_RELOAD`), updating `config->randr` in memory, and
-`wm_action_config_reload` immediately applies it (`surface_action_
-apply_randr_profiles`), before rules, keyboard/mouse bindings, or any
-other reload step, so a resync of clients or desktops elsewhere in the
-same reload already reflects the new screen geometry if RandR itself
-just changed it.
+`randr.json` is re-read on every configuration reload and applied
+immediately, before rules, keyboard/mouse bindings, or any other reload
+step, so a resync of clients or desktops elsewhere in the same reload
+already reflects the new screen geometry if RandR itself just changed
+it.
 
 If that application actually changed anything, a confirm dialog appears,
 centered on the affected screen: "The 'randr.json' configuration has
@@ -2009,14 +2005,13 @@ first screen to actually change is offered the dialog: only one confirm
 dialog can be open at a time, and only the single most recent change is
 remembered well enough to revert.
 
-Every call to `surface_action_apply_randr_profiles` compares each
-configured profile against the matching output's actual current state
-first (resolution, position, rotation, primary status) and issues an
-XRandR write for it only when at least one of them genuinely
-differs.  A `randr.json` whose profiles already match reality therefore
-issues no XRandR requests at all, including on a reload triggered by an
-unrelated file (e.g., `config.json`), and on a hotplug event for an
-output some other profile targets.
+Every reload compares each configured profile against the matching
+output's actual current state first (resolution, position, rotation,
+primary status) and issues an XRandR write for it only when at least one
+of them genuinely differs.  A `randr.json` whose profiles already match
+reality therefore issues no XRandR requests at all, including on
+a reload triggered by an unrelated file (e.g., `config.json`), and on
+a hotplug event for an output some other profile targets.
 
 ```json
 {
@@ -2113,8 +2108,8 @@ a faster, more attention-grabbing blink; raise it for a slower one.
 ### 6.2. Reload behavior
 
 Unlike `topology` in `config.json` (section 2.1), every field here does
-take effect on a configuration reload (`KEYBIND_WM_RELOAD` / `SIGHUP`
-/ the root menu's "Reload configuration" entry): none of them describe
+take effect on a configuration reload (the reload keybind, `SIGHUP`, or
+the root menu's "Reload configuration" entry): none of them describe
 screen or desktop topology, so none of the concerns that keep `topology`
 reload-only-at-startup apply here.
 
@@ -2456,8 +2451,7 @@ At this moment there's only one kind of `"type"`, which is `"label"`.
 | `"name"`  | string | yes      | Label text shown in the parent menu      |
 | `"items"` | array  | yes      | Nested array of entry objects (any type) |
 
-Sub-menus can be nested to the depth limit defined by
-`WM_CTXMENU_MAX_DEPTH` (default: 4).
+Sub-menus can be nested up to 4 levels deep.
 
 ---
 
