@@ -154,7 +154,7 @@ static bool s_parse_binding(const config_td *config,
     char buf[128];
     char *token;
     char *save;
-    char *prev_tok = NULL;
+    const char *prev_tok = NULL;
     size_t len;
 
     if (binding == NULL || binding[0] == '\0') {
