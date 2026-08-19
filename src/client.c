@@ -443,14 +443,36 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
         xcb_window_t window, client_td *client)
 {
     xcb_atom_t client_leader_atom;
+    xcb_get_property_cookie_t hints_cookie;
     xcb_get_property_cookie_t client_leader_cookie;
+    xcb_get_property_cookie_t transient_cookie;
     xcb_icccm_wm_hints_t wm_hints;
     xcb_window_t transient = XCB_WINDOW_NONE;
 
+    /* None of the three properties below depends on either of the
+     * other two, so every request is sent up front, before any reply
+     * is awaited; this leaves the server free to work on all three at
+     * once instead of only ever seeing the next one after this
+     * process has already finished handling the previous reply.
+     * 'atom_intern' below is itself cached (see 'utils/xcb/atom.c'),
+     * so this holds exactly on every call after the very first one in
+     * a session; only that first, cold-cache call briefly blocks
+     * between sending the first and third request here, resolving
+     * 'WM_CLIENT_LEADER' once for the rest of the session's own
+     * lifetime. */
+    hints_cookie = xcb_icccm_get_wm_hints(connection, window);
+
+    client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
+    client_leader_cookie = (client_leader_atom != XCB_ATOM_NONE)
+        ? xcb_get_property(connection, 0, window,
+                client_leader_atom, XCB_ATOM_WINDOW, 0, 1)
+        : (xcb_get_property_cookie_t) { 0 };
+
+    transient_cookie = xcb_icccm_get_wm_transient_for(connection, window);
+
     /* Read 'WM_HINTS': input model and window group */
     memset(&wm_hints, 0, sizeof(wm_hints));
-    if (xcb_icccm_get_wm_hints_reply(connection,
-                xcb_icccm_get_wm_hints(connection, window),
+    if (xcb_icccm_get_wm_hints_reply(connection, hints_cookie,
                 &wm_hints, NULL)) {
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
             client->wm_input_hint = (wm_hints.input != 0);
@@ -472,12 +494,9 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
      * to the same application for placement (see 'client_group_leader'
      * and 'place_apply') */
     client->client_leader = XCB_WINDOW_NONE;
-    client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
     if (client_leader_atom != XCB_ATOM_NONE) {
         xcb_get_property_reply_t *client_leader_reply;
 
-        client_leader_cookie = xcb_get_property(connection, 0, window,
-                client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
         client_leader_reply = xcb_get_property_reply(connection,
                 client_leader_cookie, NULL);
         if (client_leader_reply != NULL) {
@@ -494,8 +513,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
 
     /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent */
     client->transient_for = XCB_WINDOW_NONE;
-    if (xcb_icccm_get_wm_transient_for_reply(connection,
-                xcb_icccm_get_wm_transient_for(connection, window),
+    if (xcb_icccm_get_wm_transient_for_reply(connection, transient_cookie,
                 &transient, NULL)) {
         client->transient_for = transient;
     }
@@ -953,6 +971,8 @@ client_td *client_init(xcb_connection_t *connection,
         const struct config_a11y_s *a11y)
 {
     client_td *client;
+    xcb_get_window_attributes_cookie_t attr_cookie;
+    xcb_get_geometry_cookie_t geom_cookie;
     xcb_get_geometry_reply_t *geom_reply;
     xcb_get_window_attributes_reply_t *attr_reply;
     char wm_class[256];
@@ -963,13 +983,28 @@ client_td *client_init(xcb_connection_t *connection,
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
+    /* Both requests are sent before either reply is awaited: neither
+     * depends on the other's value, so the server can work on both at
+     * once.  Geometry's own reply is still collected (and discarded)
+     * even on the rare override-redirect rejection path just below,
+     * rather than left uncollected, so a window this function ends up
+     * never managing never leaves a stray unclaimed reply sitting in
+     * this connection's own queue. */
+    attr_cookie = xcb_get_window_attributes(connection, window);
+    geom_cookie = xcb_get_geometry(connection, window);
+
     /* Reject override-redirect windows, for they manage themselves */
     attr_reply = xcb_get_window_attributes_reply(connection,
-            xcb_get_window_attributes(connection, window), NULL);
+            attr_cookie, NULL);
     if (attr_reply != NULL) {
         bool skip = attr_reply->override_redirect;
         free(attr_reply);
         if (skip) {
+            geom_reply = xcb_get_geometry_reply(connection,
+                    geom_cookie, NULL);
+            if (geom_reply != NULL) {
+                free(geom_reply);
+            }
             LOGGER_TRACE("Skipping override-redirect window %#x",
                     window);
             return NULL;
@@ -980,6 +1015,10 @@ client_td *client_init(xcb_connection_t *connection,
     if (client == NULL) {
         LOGGER_ERROR("Failed to allocate memory for managed client",
                 L_NARG);
+        geom_reply = xcb_get_geometry_reply(connection, geom_cookie, NULL);
+        if (geom_reply != NULL) {
+            free(geom_reply);
+        }
         return NULL;
     }
 
@@ -990,9 +1029,9 @@ client_td *client_init(xcb_connection_t *connection,
     client->window = window;
     client->id = window;
 
-    /* Query existing geometry */
-    geom_reply = xcb_get_geometry_reply(connection,
-            xcb_get_geometry(connection, window), NULL);
+    /* Collect the geometry request sent at the very top of this
+     * function, alongside the window-attributes one above */
+    geom_reply = xcb_get_geometry_reply(connection, geom_cookie, NULL);
     if (geom_reply != NULL) {
         client->parent_id = geom_reply->root;
         client->layout.geometry.cur.pos.x = geom_reply->x;

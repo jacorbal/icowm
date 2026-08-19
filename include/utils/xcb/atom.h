@@ -35,6 +35,12 @@
 /**
  * @brief Intern an X atom by its string name
  *
+ * Cached internally by (@p name, @p only_if_exists): a name already
+ * resolved once returns instantly from that cache on every later call,
+ * with no X server round trip at all, since the small, fixed set of
+ * well-known EWMH/ICCCM atom names this project ever interns never
+ * changes meaning for the lifetime of the connection.
+ *
  * @param connection      XCB connection
  * @param name            Null-terminated atom name
  * @param only_if_exists  @c true to only look the atom up, never
@@ -49,7 +55,8 @@
  * @return The interned atom, or @c XCB_ATOM_NONE if @p connection or
  *         @p name is @c NULL, or the request itself failed
  *
- * @note Complexity: @e O(1), a single round trip to the X server
+ * @note Complexity: @e O(1) on a cache hit; otherwise @e O(1) plus a
+ *       single round trip to the X server to resolve and cache it
  */
 xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
         bool only_if_exists);

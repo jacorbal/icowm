@@ -471,7 +471,8 @@ int wm_ewmh_init(wm_td *wm)
     supported_atoms[n_supported++] = net_wm_icon_geometry;
 
     for (list_item_td *snode = list_head(surfaces);
-            snode != NULL; snode = list_next(snode)) {
+            snode != NULL;
+            snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
 
         if (surface == NULL || surface->screen == NULL) {
@@ -549,7 +550,8 @@ void wm_ewmh_sync(wm_td *wm)
     }
 
     for (list_item_td *snode = list_head(surfaces);
-            snode != NULL; snode = list_next(snode)) {
+            snode != NULL;
+            snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
         desktop_td *current;
         xcb_window_t active = XCB_NONE;
