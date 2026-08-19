@@ -238,43 +238,6 @@ void surface_destroy(surface_td *surface)
 }
 
 
-/* Soft surface update */
-void surface_update(surface_td *surface)
-{
-    /* Establish that this surface is already updated */
-    surface->is_outdated = false;
-}
-
-
-/* Full surface update */
-void surface_update_full(surface_td *surface)
-{
-    cdlist_item_td *desktop_node = cdlist_head(surface->desktops);
-
-    LOGGER_TRACE("Fully updating surface %u", surface->id);
-
-    /* Soft update */
-    surface_update(surface);
-
-    /* Update all desktops */
-    if (desktop_node != NULL) {
-        /* Reference to the initial node not to end up an infinite loop
-         * in this circular list */
-        const cdlist_item_td *desktop_initial = desktop_node;
-        do {
-            desktop_td *const desktop_cur =
-                (desktop_td *) cdlist_data(desktop_node);
-                if (desktop_cur->is_outdated) {
-                    desktop_update_full(desktop_cur);
-                }
-                desktop_node = cdlist_next(desktop_node);
-        } while (desktop_node != desktop_initial);
-    }
-
-    LOGGER_TRACE("Updated surface %u", surface->id);
-}
-
-
 /* Resize the surface */
 void surface_resize(surface_td *surface,
         uint32_t width, uint32_t height)

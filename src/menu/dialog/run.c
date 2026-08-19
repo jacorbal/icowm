@@ -59,6 +59,35 @@ static struct {
 
 
 /**
+ * @brief Close the run-box and restore whichever window had input
+ *        focus before it opened
+ *
+ * @param connection XCB connection
+ *
+ * @note A no-op if the run-box is not currently open
+ * @note Complexity: @e O(1)
+ */
+static void s_run_destroy(xcb_connection_t *connection)
+{
+    if (connection == NULL || s_run.window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
+    xcb_destroy_window(connection, s_run.window);
+
+    if (s_run.prev_focus != XCB_WINDOW_NONE) {
+        xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
+                s_run.prev_focus, XCB_CURRENT_TIME);
+    }
+
+    memset(&s_run, 0, sizeof(s_run));
+    s_run.window = XCB_WINDOW_NONE;
+    xcb_flush(connection);
+}
+
+
+/**
  * @brief Attempt to launch the currently typed command, showing an
  *        informational dialog if it could not be found or run
  *
@@ -85,7 +114,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
 
     safe_strncpy(command, s_run.command, sizeof(command));
 
-    run_destroy(connection);
+    s_run_destroy(connection);
 
     desktop = (surface != NULL)
         ? surface_desktop_get(surface, surface->desktop_cur) : NULL;
@@ -121,7 +150,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     }
 
     if (run_is_open()) {
-        run_destroy(connection);
+        s_run_destroy(connection);
     }
 
     memset(&s_run, 0, sizeof(s_run));
@@ -190,28 +219,6 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
 }
 
 
-/* Close the run-box and restore whichever window had input focus
- * before it opened */
-void run_destroy(xcb_connection_t *connection)
-{
-    if (connection == NULL || s_run.window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_run.window);
-
-    if (s_run.prev_focus != XCB_WINDOW_NONE) {
-        xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
-                s_run.prev_focus, XCB_CURRENT_TIME);
-    }
-
-    memset(&s_run, 0, sizeof(s_run));
-    s_run.window = XCB_WINDOW_NONE;
-    xcb_flush(connection);
-}
-
-
 /* Query whether the run-box is currently open */
 bool run_is_open(void)
 {
@@ -237,7 +244,7 @@ void run_handle_keypress(xcb_connection_t *connection,
     }
 
     if (keysym == 0xff1bu) {   /* Escape */
-        run_destroy(connection);
+        s_run_destroy(connection);
         return;
     }
 

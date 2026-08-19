@@ -933,13 +933,6 @@ bool wincmenu_is_open(void)
 }
 
 
-/* Return the root window context menu XCB window */
-xcb_window_t wincmenu_window(void)
-{
-    return s_root.window;
-}
-
-
 /* Check whether 'win' belongs to the window context menu hierarchy */
 bool wincmenu_owns_window(xcb_window_t win)
 {

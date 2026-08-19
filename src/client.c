@@ -1144,15 +1144,3 @@ client_td *client_init(xcb_connection_t *connection,
 
     return client;
 }
-
-
-/* Update the content of the specified client */
-void client_update(client_td *client)
-{
-    if (client == NULL) {
-        return;
-    }
-
-    LOGGER_TRACE("Updated client %p (window %#x)",
-            (void *) client, client->window);
-}

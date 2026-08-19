@@ -53,19 +53,5 @@ void loop_run(wm_td *wm);
  */
 void loop_update(const wm_td *wm);
 
-/**
- * @brief Force a full re-render of all surfaces
- *
- * Marks every surface as outdated and then delegates to @c loop_update.
- * Called once before entering the event loop so pre-existing windows
- * are drawn from scratch.
- *
- * @param wm Window manager state
- *
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces
- *       and @e m is the number of desktops
- */
-void loop_update_full(const wm_td *wm);
-
 
 #endif  /* ! LOOP_H */

@@ -87,17 +87,6 @@ bool search_is_open(void);
 xcb_window_t search_window(void);
 
 /**
- * @brief Check whether a given window belongs to the search widget
- *
- * @param win Window to test
- *
- * @return @c true when @p win is the search widget's own window
- *
- * @note Complexity: @e O(1)
- */
-bool search_owns_window(xcb_window_t win);
-
-/**
  * @brief Handle a key press while the search widget is open
  *
  * A printable character appends to the query and re-filters the match

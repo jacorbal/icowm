@@ -98,15 +98,5 @@ int wm_shutdown_ms_remaining(void);
  */
 void wm_shutdown_tick(const wm_td *wm);
 
-/**
- * @brief Query whether a coordinated shutdown is currently in
- *        progress
- *
- * @return @c true while waiting for clients to close on their own
- *
- * @note Complexity: @e O(1)
- */
-bool wm_shutdown_is_in_progress(void);
-
 
 #endif  /* ! WM_SHUTDOWN_H */

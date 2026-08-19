@@ -443,13 +443,6 @@ xcb_window_t search_window(void)
 }
 
 
-/* Check whether a given window belongs to the search widget */
-bool search_owns_window(xcb_window_t win)
-{
-    return s_search.window != XCB_WINDOW_NONE && s_search.window == win;
-}
-
-
 /* Initialize the window-search widget */
 void search_init(list_td *surfaces, xcb_connection_t *connection,
         surface_td *surface, const config_td *cfg)

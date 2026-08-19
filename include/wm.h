@@ -445,19 +445,6 @@ int wm_action_config_reload(const wm_td *wm);
 void wm_action_rearrange(const wm_td *wm, surface_td *surface);
 
 /**
- * @brief Perform actions required before destroying the window manager
- *
- * Executes necessary actions required before invoking @a wm_stop
- *
- * @param wm Window manager instance
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the operation
- */
-int wm_action_exit(const wm_td *wm);
-
-/**
  * @brief Return the desktop that currently contains a specific client
  *
  * Searches all surfaces and desktops managed by the singleton window
@@ -586,19 +573,6 @@ config_td *wm_get_config(void);
 xcb_key_symbols_t *wm_get_keysyms(void);
 
 /**
- * @brief Return the configuration directory prefix
- *
- * Returns the value of @c config_dir_prefix passed to @a wm_start, or
- * @c NULL if the default directory is being used.  The returned pointer
- * is valid for the lifetime of the window manager instance.
- *
- * @return Configuration directory prefix, or @c NULL
- *
- * @note Complexity: @e O(1)
- */
-const char *wm_get_config_dir(void);
-
-/**
  * @brief Mark the client owner desktop and surface as outdated
  *
  * Locates the desktop currently owning @p client and marks that desktop
@@ -649,17 +623,6 @@ void wm_ewmh_sync(wm_td *wm);
  * @note Complexity: @e O(1)
  */
 int wm_ewmh_init(wm_td *wm);
-
-/**
- * @brief Run periodic EWMH maintenance tasks
- *
- * Sends @c _NET_WM_PING probes to responsive clients, marks timed out
- * clients as unresponsive, and refreshes EWMH metadata that depends on
- * runtime state.
- *
- * @param wm Window manager instance
- */
-void wm_ewmh_tick(const wm_td *wm);
 
 /**
  * @brief Set the emergency exit flag to @c true

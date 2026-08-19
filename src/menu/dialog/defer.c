@@ -106,13 +106,6 @@ void menu_dialog_defer_cancel(void)
 }
 
 
-/* Whether a deferred action is currently pending */
-bool menu_dialog_defer_is_pending(void)
-{
-    return s_defer_pending;
-}
-
-
 /* Milliseconds remaining until the pending deferred action becomes
  * due */
 int menu_dialog_defer_ms_remaining(void)

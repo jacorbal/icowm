@@ -627,15 +627,6 @@ static inline void client_geometry_restore(client_td *client)
 }
 
 
-/* Set the focus on client, if focusable, but take no action */
-static inline void client_focus(client_td *client)
-{
-    if (client->properties.flags & CLIENT_FLAG_FOCUSABLE) {
-        client->properties.focusing = CLIENT_FOCUSING_FOCUSED;
-    }
-}
-
-
 /* Remove the focus from the client, but take no action */
 static inline void client_unfocus(client_td *client)
 {
@@ -1019,19 +1010,6 @@ client_td *client_init(xcb_connection_t *connection,
         const struct config_a11y_s *a11y);
 
 /**
- * @brief Update the content of the specified client
- *
- * Performs a soft update on the client by refreshing its internal state
- * as needed.  This may include checking for property changes and
- * synchronizing the visual state with the internal representation.
- *
- * @param client Pointer to the client to be updated
- *
- * @note Complexity: @e O(1)
- */
-void client_update(client_td *client);
-
-/**
  * @brief Refresh the managed client's name from X11 properties
  *
  * Queries @c _NET_WM_NAME (UTF-8) first, then falls back to @c WM_NAME,
@@ -1067,18 +1045,6 @@ void client_props_refresh_role(client_td *client);
  * @note Complexity: @e O(n), where @e n is the length of the name
  */
 void client_props_refresh_icon_name(client_td *client);
-
-/**
- * @brief Refresh @c WM_HINTS fields from X11 properties
- *
- * Re-reads @c WM_HINTS from the X server and updates @p client with the
- * current input model, urgency flag, and window group.
- *
- * @param client Client to update
- *
- * @note Complexity: @e O(1)
- */
-void client_props_refresh_wm_hints(client_td *client);
 
 /**
  * @brief Refresh @c WM_NORMAL_HINTS size-constraints from X11

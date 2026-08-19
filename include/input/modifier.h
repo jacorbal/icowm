@@ -27,24 +27,6 @@
 
 
 /**
- * @brief Resolve configured modifier aliases such as @c modc or @c mods
- *
- * Expands symbolic modifier aliases from the configuration into their
- * actual configured string values.  If the token does not match a known
- * alias, the original token is returned unchanged.
- *
- * @param config Configuration holding the alias strings
- * @param token  Modifier token to resolve
- *
- * @return Resolved modifier string, or the original token if no alias
- *         matches
- *
- * @note Complexity: @e O(1)
- */
-const char *im_resolve_modifier_token(const config_td *config,
-        const char *token);
-
-/**
  * @brief Map a single modifier token to an XCB modifier mask
  *
  * Converts a textual modifier name into the corresponding XCB modifier

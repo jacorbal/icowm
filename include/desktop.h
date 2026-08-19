@@ -202,27 +202,6 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 void desktop_destroy(desktop_td *desktop);
 
 /**
- * @brief Soft desktop update
- *
- * @param desktop Pointer to the desktop to update softly
- *
- * @note Complexity: @e O(1)
- */
-void desktop_update(desktop_td *desktop);
-
-/**
- * @brief Full desktop update
- *
- * Updates the desktop by updating all its clients.
- *
- * @param desktop Pointer to the desktop to update fully
- *
- * @note Complexity: @e O(1) because that's the order of the access to
- *       a hash table of clients
- */
-void desktop_update_full(desktop_td *desktop);
-
-/**
  * @brief Mark a desktop and every one of its own clients as outdated
  *
  * @c desktop_render_one_client and @c ri_render_client_icon (both
@@ -315,51 +294,6 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
 void desktop_action_recompute_urgent(desktop_td *desktop);
 
 /**
- * @brief Rename the desktop
- *
- * @param desktop Pointer to the desktop to receive the action
- * @param name    New name for the desktop
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_rename(desktop_td *desktop, const char *name);
-
-/**
- * @brief Send a client to another desktop
- *
- * @param desktop    Pointer to the desktop to receive the action
- * @param client     Pointer to the client to be sent
- * @param desktop_id Destination desktop identifier
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_client_send(desktop_td *desktop, client_td *client,
-        uint32_t desktop_id);
-
-/**
- * @brief Update the desktop background color
- *
- * @param desktop Pointer to the desktop to receive the action
- * @param color   New color
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_background_update(desktop_td *desktop,
-        uint32_t color);
-
-/**
  * @brief Set a client to the front
  *
  * Brings the specified client to the top of the stacking order,
@@ -397,22 +331,6 @@ int desktop_action_client_send_back(desktop_td *desktop,
         client_td *client);
 
 /**
- * @brief Rearrange clients on the current desktop
- *
- * Alters the positions of clients on the current desktop.
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(n), where @e n is the number of clients to
- *       rearrange
- */
-int desktop_action_clients_rearrange(desktop_td *desktop);
-
-/**
  * @brief Iconify (minimize) all clients on the current desktop
  *
  * Sets all visible clients on the current desktop to an iconified state
@@ -446,90 +364,6 @@ int desktop_action_clients_iconify_all(desktop_td *desktop);
  *       desktop
  */
 int desktop_action_clients_deiconify_all(desktop_td *desktop);
-
-/**
- * @brief Cycle through active clients on the current desktop
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(n), where @e n is the number of active clients
- */
-int desktop_action_cycle_clients_active(desktop_td *desktop);
-
-/**
- * @brief Cycle through active clients in reverse order on the desktop
- *
- * Focuses the nearest non-iconified client that comes before the
- * currently active client in the stacking order.
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval -1 Invalid desktop pointer
- *
- * @note Complexity: @e O(n), where @e n is the number of active clients
- */
-int desktop_action_cycle_clients_prev(desktop_td *desktop);
-
-/**
- * @brief Cycle through iconified clients on the current desktop
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(n), where @e n is the number of iconified
- *       clients
- */
-int desktop_action_cycle_clients_icons(desktop_td *desktop);
-
-/**
- * @brief Lock the current desktop session, preventing unauthorized
- *        access
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_lock(desktop_td *desktop);
-
-/**
- * @brief Unlock the current desktop session, allowing user access
- *
- * @param desktop Pointer to the desktop to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_unlock(desktop_td *desktop);
-
-/**
- * @brief Change the layout of the current desktop
- *
- * @param desktop Pointer to the desktop to receive the action
- * @param layout  New layout configuration
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_set_layout(desktop_td *desktop, const char *layout);
 
 /**
  * @brief Launch a new process

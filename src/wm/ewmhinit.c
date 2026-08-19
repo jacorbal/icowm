@@ -331,92 +331,6 @@ static void s_wm_sync_desktop_names(surface_td *surface)
 }
 
 
-/**
- * @brief Send an @c _NET_WM_PING probe to a client and update its state
- *
- * Checks whether a previously sent ping has timed out without a reply,
- * marking the client as unresponsive if so. Otherwise, sends a new
- * @c _NET_WM_PING client message if enough time has elapsed since the
- * last ping, and records the timestamp of the sent probe.
- *
- * @param client  Pointer to the client to ping
- * @param ewmh    EWMH connection used to build the ping message
- * @param now     Current timestamp
- * @param timeout Maximum allowed time without a ping reply before the
- *                client is considered unresponsive
- *
- * @note Complexity: @e O(1)
- */
-static void s_wm_ping_client(client_td *client,
-        const xcb_ewmh_connection_t *ewmh,
-        uint32_t now, uint32_t timeout)
-{
-    xcb_client_message_event_t ev;
-
-    if (client == NULL || client->connection == NULL || ewmh == NULL ||
-            client->window == XCB_NONE || !client->has_net_wm_ping) {
-        return;
-    }
-
-    if (client->last_ping_sent != 0u &&
-            client->last_ping_reply != client->last_ping_sent &&
-            now >= client->last_ping_sent &&
-            now - client->last_ping_sent >= timeout) {
-        client_mark_unresponsive(client);
-    }
-
-    if (client->last_ping_sent != 0u &&
-            now >= client->last_ping_sent &&
-            now - client->last_ping_sent <
-                (uint32_t) WM_EWMH_PING_INTERVAL_SECONDS) {
-        return;
-    }
-
-    memset(&ev, 0, sizeof(ev));
-    ev.response_type = XCB_CLIENT_MESSAGE;
-    ev.format = 32;
-    ev.window = client->window;
-    ev.type = ewmh->WM_PROTOCOLS;
-    ev.data.data32[0] = (uint32_t) ewmh->_NET_WM_PING;
-    ev.data.data32[1] = now;
-    ev.data.data32[2] = (uint32_t) client->window;
-
-    xcb_send_event(client->connection, 0, client->window,
-            XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
-    client->last_ping_sent = now;
-}
-
-
-/**
- * @brief Context @c s_wm_ping_client_action passes
- *        @a s_wm_ping_client's own extra arguments through
- *        @a wm_for_each_client's single @c void* userdata slot
- */
-struct s_wm_ping_ctx_s {
-    xcb_ewmh_connection_t *ewmh;
-    uint32_t now;
-    uint32_t timeout;
-};
-
-
-/**
- * @brief Adapts @c s_wm_ping_client to @c wm_for_each_client's own
- *        action signature
- *
- * @param client   Client to ping
- * @param userdata Points to a @c struct s_wm_ping_ctx_s
- *
- * @note Complexity: @e O(1)
- */
-static void s_wm_ping_client_action(client_td *client, void *userdata)
-{
-    const struct s_wm_ping_ctx_s *ctx =
-        (struct s_wm_ping_ctx_s *) userdata;
-
-    s_wm_ping_client(client, ctx->ewmh, ctx->now, ctx->timeout);
-}
-
-
 /* Create and publish root EWMH metadata required by compliant clients */
 int wm_ewmh_init(wm_td *wm)
 {
@@ -679,27 +593,6 @@ void wm_ewmh_sync(wm_td *wm)
         s_wm_sync_workarea(surface);
         s_wm_sync_client_lists(surface);
     }
-
-    xcb_flush(connection);
-}
-
-
-/* Perform periodic EWMH maintenance: ping and timeout handling */
-void wm_ewmh_tick(const wm_td *wm)
-{
-    struct s_wm_ping_ctx_s ctx;
-    xcb_connection_t *connection = wm_connection(wm);
-    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
-
-    if (wm == NULL || connection == NULL || ewmh == NULL ||
-            wm_surfaces(wm) == NULL) {
-        return;
-    }
-
-    ctx.ewmh = ewmh;
-    ctx.now = (uint32_t) time(NULL);
-    ctx.timeout = (uint32_t) WM_EWMH_PING_TIMEOUT_SECONDS;
-    (void) wm_for_each_client(wm, s_wm_ping_client_action, &ctx);
 
     xcb_flush(connection);
 }

@@ -804,17 +804,6 @@ xcb_key_symbols_t *wm_get_keysyms(void)
 }
 
 
-/* Return the configuration directory prefix */
-const char *wm_get_config_dir(void)
-{
-    if (wm == NULL) {
-        return NULL;
-    }
-
-    return wm->config_dir_prefix;
-}
-
-
 /* Mark the client owner desktop and surface as outdated */
 void wm_request_client_redraw(client_td *client)
 {

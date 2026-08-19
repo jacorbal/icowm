@@ -255,13 +255,6 @@ int ipc_init(void)
 }
 
 
-/* Return the listening socket's own file descriptor */
-int ipc_socket_fd(void)
-{
-    return s_ipc_fd;
-}
-
-
 /* Destroy the IPC control socket */
 void ipc_destroy(void)
 {

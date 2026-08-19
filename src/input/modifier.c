@@ -33,8 +33,22 @@
 #include <input/modifier.h>
 
 
-/* Resolve configured modifier aliases such as 'modc' or 'mods' */
-const char *im_resolve_modifier_token(const config_td *config,
+/**
+ * @brief Resolve configured modifier aliases such as @c modc or @c mods
+ *
+ * Expands symbolic modifier aliases from the configuration into their
+ * actual configured string values.  If the token does not match a known
+ * alias, the original token is returned unchanged.
+ *
+ * @param config Configuration holding the alias strings
+ * @param token  Modifier token to resolve
+ *
+ * @return Resolved modifier string, or the original token if no alias
+ *         matches
+ *
+ * @note Complexity: @e O(1)
+ */
+static const char *s_im_resolve_modifier_token(const config_td *config,
         const char *token)
 {
     if (token == NULL || config == NULL) {
@@ -58,7 +72,7 @@ const char *im_resolve_modifier_token(const config_td *config,
 uint16_t im_parse_modifier_token(const config_td *config,
         const char *token)
 {
-    const char *resolved = im_resolve_modifier_token(config, token);
+    const char *resolved = s_im_resolve_modifier_token(config, token);
 
     if (resolved == NULL || resolved[0] == '\0') {
         return 0;

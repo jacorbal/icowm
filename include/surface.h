@@ -488,38 +488,6 @@ int surface_action_desktop_remove(surface_td *surface);
 int surface_action_toggle_strutless_maximize(surface_td *surface);
 
 /**
- * @brief Update the surface resolution to the specified dimensions
- *
- * @param surface    Pointer to the surface to receive the action
- * @param resolution Structure for new dimensions of new resolution
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- *
- * @see @c dimensions_s
- */
-int surface_action_set_resolution(surface_td *surface,
-        struct dimensions_s resolution);
-
-/**
- * @brief Update the orientation of the surface
- *
- * @param surface     Pointer to the surface to receive the action
- * @param orientation New orientation for the surface (e.g., portrait or
- *                    landscape)
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int surface_action_set_orientation(surface_td *surface, int orientation);
-
-/**
  * @brief Apply every configured RandR output profile that matches
  *        a currently-connected output on this surface
  *
@@ -597,19 +565,6 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
  *       snapshotted call actually changed
  */
 void surface_action_revert_randr_profiles(void);
-
-/**
- * @brief Apply the current surface configuration settings
- *
- * @param surface Pointer to the surface to receive the action
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int surface_action_configure_settings(surface_td *surface);
 
 /**
  * @brief Unmap all non-sticky client windows belonging to a desktop

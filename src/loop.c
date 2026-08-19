@@ -321,6 +321,40 @@ static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
 }
 
 
+/**
+ * @brief Force a full re-render of all surfaces
+ *
+ * Marks every surface as outdated and then delegates to @c loop_update.
+ * Called once before entering the event loop so pre-existing windows
+ * are drawn from scratch.
+ *
+ * @param wm Window manager state
+ *
+ * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ *       and @e m is the number of desktops
+ */
+static void s_loop_update_full(const wm_td *wm)
+{
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL) {
+        return;
+    }
+
+    LOGGER_TRACE("Fully updating window manager", L_NARG);
+
+    for (list_item_td *node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *const surface = (surface_td *) list_data(node);
+        if (surface != NULL) {
+            surface->is_outdated = true;
+        }
+    }
+
+    loop_update(wm);
+}
+
+
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
@@ -381,7 +415,7 @@ void loop_run(wm_td *wm)
     mouse_load(surfaces, config);
 
     cctl_adopt_scan(wm);
-    loop_update_full(wm);
+    s_loop_update_full(wm);
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
@@ -952,27 +986,4 @@ void loop_update(const wm_td *wm)
             }
         }
     }
-}
-
-
-/* Force a full re-render of all surfaces */
-void loop_update_full(const wm_td *wm)
-{
-    list_td *surfaces = wm_surfaces(wm);
-
-    if (wm == NULL || surfaces == NULL) {
-        return;
-    }
-
-    LOGGER_TRACE("Fully updating window manager", L_NARG);
-
-    for (list_item_td *node = list_head(surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface != NULL) {
-            surface->is_outdated = true;
-        }
-    }
-
-    loop_update(wm);
 }

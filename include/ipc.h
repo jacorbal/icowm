@@ -207,20 +207,6 @@
 int ipc_init(void);
 
 /**
- * @brief Return the listening socket's own file descriptor
- *
- * Meant to be added to the caller's own @p poll (or equivalent) set
- * alongside the X connection's descriptor; this header does not itself
- * read from or accept connections on it.
- *
- * @return The descriptor, or @c -1 when @a ipc_init was never called,
- *         or failed, or @a ipc_destroy has since been called
- *
- * @note Complexity: @e O(1)
- */
-int ipc_socket_fd(void);
-
-/**
  * @brief Destroy the IPC control socket
  *
  * Closes the listening descriptor and removes the socket's own file
@@ -248,8 +234,6 @@ void ipc_destroy(void);
  *         not up at all) up to @p max
  *
  * @note Complexity: @e O(1)
- *
- * @see @p ipc_socket_fd
  */
 int ipc_poll_fds(int *out_fds, int max);
 

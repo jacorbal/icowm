@@ -175,15 +175,6 @@ bool rootmenu_handle_click(xcb_connection_t *connection,
 bool rootmenu_is_open(void);
 
 /**
- * @brief Return the root desktop menu XCB window
- *
- * @return The menu's @c xcb_window_t, or @c XCB_WINDOW_NONE
- *
- * @note Complexity: @e O(1)
- */
-xcb_window_t rootmenu_window(void);
-
-/**
  * @brief Check whether @p win belongs to the root menu hierarchy
  *
  * @param win XCB window to test

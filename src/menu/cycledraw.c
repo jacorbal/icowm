@@ -242,7 +242,7 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  *       added
  * @note Complexity: @e O(1)
  */
-uint32_t mi_cycle_preview_border_width(const client_td *client,
+static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
         const config_td *config, bool is_icon_menu, bool is_highlighted)
 {
     uint32_t border_width;
@@ -306,7 +306,7 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
         return;
     }
 
-    border_width = mi_cycle_preview_border_width(client, config,
+    border_width = s_mi_cycle_preview_border_width(client, config,
             is_icon_menu, is_highlighted);
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);

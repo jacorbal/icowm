@@ -1170,16 +1170,3 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
     return 0;
 }
-
-
-/* Flush drawing operations */
-void desktop_render_flush(desktop_td *desktop)
-{
-    if (desktop == NULL || desktop->connection == NULL) {
-        LOGGER_ERROR("Invalid desktop or connection for flushing",
-                L_NARG);
-        return;
-    }
-
-    xcb_flush(desktop->connection);
-}

@@ -161,15 +161,6 @@ bool wincmenu_handle_click(xcb_connection_t *connection,
 bool wincmenu_is_open(void);
 
 /**
- * @brief Return the root window context menu XCB window
- *
- * @return The menu's @c xcb_window_t, or @c XCB_WINDOW_NONE
- *
- * @note Complexity: @e O(1)
- */
-xcb_window_t wincmenu_window(void);
-
-/**
  * @brief Check whether @p win belongs to the window context menu
  *        hierarchy
  *

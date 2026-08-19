@@ -123,22 +123,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         const config_td *cfg);
 
 /**
- * @brief Return the border width for a cycle-preview target
- *
- * @param client         Client associated with the target
- * @param cfg            Active configuration
- * @param is_icon_menu   Whether the cycle menu shows icons
- * @param is_highlighted Whether the target is currently highlighted
- *
- * @return Border width to apply
- *
- * @note Implemented in @c menu/cycledraw.c
- * @note Complexity: @e O(1)
- */
-uint32_t mi_cycle_preview_border_width(const client_td *client,
-        const config_td *cfg, bool is_icon_menu, bool is_highlighted);
-
-/**
  * @brief Apply preview border color and width to a target window
  *
  * @param connection     Active XCB connection

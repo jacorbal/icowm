@@ -286,17 +286,3 @@ xcb_window_t popup_window(void)
 {
     return s_popup_window;
 }
-
-
-/* Return the modifier mask that opened the info popup */
-uint16_t popup_modifier(void)
-{
-    return s_popup_modifier;
-}
-
-
-/* Return the keycode that opened the info popup */
-xcb_keycode_t popup_keycode(void)
-{
-    return s_popup_keycode;
-}

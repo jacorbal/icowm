@@ -191,15 +191,6 @@ bool winlist_handle_click(xcb_connection_t *connection,
 bool winlist_is_open(void);
 
 /**
- * @brief Return the window list menu XCB window
- *
- * @return The menu's @c xcb_window_t, or @c XCB_WINDOW_NONE
- *
- * @note Complexity: @e O(1)
- */
-xcb_window_t winlist_window(void);
-
-/**
  * @brief Check whether @p win belongs to the window list menu
  *
  * @param win XCB window to test

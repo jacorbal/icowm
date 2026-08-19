@@ -1109,13 +1109,6 @@ bool winlist_is_open(void)
 }
 
 
-/* Return the window list menu XCB window */
-xcb_window_t winlist_window(void)
-{
-    return s_root.window;
-}
-
-
 /* Check whether 'win' belongs to the window list menu */
 bool winlist_owns_window(xcb_window_t win)
 {

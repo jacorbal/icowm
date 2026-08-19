@@ -549,43 +549,6 @@ void desktop_destroy(desktop_td *desktop)
 }
 
 
-/* Soft desktop update */
-void desktop_update(desktop_td *desktop)
-{
-    if (desktop == NULL) {
-        return;
-    }
-
-    /* Establish that this desktop is already updated */
-    desktop->is_outdated = false;
-}
-
-
-/* Full desktop update */
-void desktop_update_full(desktop_td *desktop)
-{
-    void *elem;
-
-    if (desktop == NULL) {
-        return;
-    }
-
-    LOGGER_TRACE("Fully updating desktop %u ('%s')",
-            desktop->id, desktop->name);
-
-    /* Soft update */
-    desktop_update(desktop);
-
-    /* Update all clients on the hash table */
-    ohtbl_foreach(desktop->clients, elem) {
-        client_update((client_td *) elem);
-    }
-
-    LOGGER_TRACE("Updated desktop %u ('%s')",
-            desktop->id, desktop->name);
-}
-
-
 /* Mark a desktop and every one of its own clients as outdated */
 void desktop_mark_outdated(desktop_td *desktop)
 {
@@ -616,75 +579,4 @@ void desktop_mark_outdated(desktop_td *desktop)
         }
         node = cdlist_next(node);
     } while (node != NULL && node != initial);
-}
-
-
-/* Clear a desktop by removing all its clients */
-void desktop_clear(desktop_td *desktop)
-{
-    client_td *client;
-
-    if (desktop == NULL) {
-        return;
-    }
-
-    LOGGER_DEBUG("Preparing to clear desktop %u ('%s')",
-            desktop->id, desktop->name);
-
-    if (desktop->stacking != NULL) {
-        while (true) {
-            client = NULL;
-            if (cdlist_rem_next(desktop->stacking, NULL,
-                        (void **) &client) != 0) {
-                break;
-            }
-            /* The list may legitimately contain null data pointers;
-             * destroy only valid clients. */
-            if (client != NULL) {
-                client_destroy(client);
-            }
-        }
-    }
-
-    if (desktop->clients != NULL) {
-        ohtbl_reset(desktop->clients);
-    }
-}
-
-
-/* Rename the desktop */
-int desktop_action_rename(desktop_td *desktop, const char *name)
-{
-    if (desktop == NULL || name == NULL) {
-        LOGGER_ERROR("Invalid desktop or name pointer", L_NARG);
-        return -1;
-    }
-
-    LOGGER_DEBUG("Renaming desktop %u ('%s') to '%s'",
-            desktop->id, desktop->name, name);
-
-    snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME, "%s", name);
-    desktop->name[WM_DESKTOP_MAX_LENGTH_NAME - 1] = '\0';
-    desktop->is_outdated = true;
-
-    return 0;
-}
-
-
-/* Update the desktop background color */
-int desktop_action_background_update(desktop_td *desktop, uint32_t color)
-{
-    if (desktop == NULL) {
-        return -1;
-    }
-
-    LOGGER_DEBUG("Updating background color of desktop %u ('%s')"
-            " to 0x%08x", desktop->id, desktop->name, color);
-
-    desktop->background.is_image = false;
-    desktop->background.use_root_pixmap = false;
-    desktop->background.bg.color = color;
-    desktop->is_outdated = true;
-
-    return 0;
 }

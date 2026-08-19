@@ -41,6 +41,8 @@
  *        confirmed
  *
  * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_on_quit_confirm(xcb_connection_t *connection)
 {
@@ -62,55 +64,4 @@ void dialog_quit_show(xcb_connection_t *connection,
             prompt, _(STR_DIALOG_QUIT_CANCEL), _(STR_DIALOG_QUIT_EXIT),
             s_on_quit_confirm, NULL, 0u);
 
-}
-
-
-/* Destroy the quit-confirmation dialog */
-void dialog_quit_close(xcb_connection_t *connection)
-{
-    menu_confirm_dialog_close(connection);
-}
-
-
-/* Repaint the quit-confirmation dialog */
-void dialog_quit_repaint(xcb_connection_t *connection,
-        const config_td *config)
-{
-    menu_confirm_dialog_repaint(connection, config);
-}
-
-
-/* Handle a mouse click in the quit-confirmation dialog */
-bool dialog_quit_handle_click(xcb_connection_t *connection,
-        const config_td *config, int x, int y)
-{
-    return menu_confirm_dialog_handle_click(connection, config, x, y);
-}
-
-
-/* Cycle to the next button */
-void dialog_quit_toggle_selection(void)
-{
-    menu_confirm_dialog_toggle_selection();
-}
-
-
-/* Activate the currently selected button */
-void dialog_quit_accept(xcb_connection_t *connection)
-{
-    menu_confirm_dialog_accept(connection);
-}
-
-
-/* Query whether the confirmation dialog is currently visible */
-bool dialog_quit_is_open(void)
-{
-    return menu_confirm_dialog_is_open();
-}
-
-
-/* Return the confirmation dialog window identifier */
-xcb_window_t dialog_quit_window(void)
-{
-    return menu_confirm_dialog_window();
 }

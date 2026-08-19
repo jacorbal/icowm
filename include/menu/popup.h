@@ -110,31 +110,6 @@ bool popup_is_open(void);
 xcb_window_t popup_window(void);
 
 /**
- * @brief Return the modifier mask that opened the info popup
- *
- * Used by the key-release handler to detect when to auto-close.
- *
- * @return The modifier mask, with locking bits already stripped, or
- *         @c 0 if the popup was opened without a modifier (never
- *         auto-closes)
- *
- * @note Complexity: @e O(1)
- */
-uint16_t popup_modifier(void);
-
-/**
- * @brief Return the keycode that opened the info popup
- *
- * Used by the key-release handler to detect when to auto-close on
- * release of the binding key itself.
- *
- * @return Opening keycode, or @c 0 if no popup is open
- *
- * @note Complexity: @e O(1)
- */
-xcb_keycode_t popup_keycode(void);
-
-/**
  * @brief Return the milliseconds remaining before the popup auto-closes
  *
  * Computes the remaining time until @c WM_INFO_POPUP_TIMEOUT_MS has

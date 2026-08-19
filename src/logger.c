@@ -433,29 +433,3 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
     pthread_mutex_unlock(&logger_mutex);
     return retval;
 }
-
-
-/* Set the logger to always track */
-void logger_tracking_on(void)
-{
-    pthread_mutex_lock(&logger_mutex);
-
-    if (logger != NULL && !logger->is_tracking) {
-        logger->is_tracking = true;
-    }
-
-    pthread_mutex_unlock(&logger_mutex);
-}
-
-
-/* Set the logger to never track except in 'LOG_TRACE' level */
-void logger_tracking_off(void)
-{
-    pthread_mutex_lock(&logger_mutex);
-
-    if (logger != NULL && logger->is_tracking) {
-        logger->is_tracking = false;
-    }
-
-    pthread_mutex_unlock(&logger_mutex);
-}

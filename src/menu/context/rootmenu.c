@@ -392,13 +392,6 @@ bool rootmenu_is_open(void)
 }
 
 
-/* Return the root desktop menu XCB window */
-xcb_window_t rootmenu_window(void)
-{
-    return s_root.window;
-}
-
-
 /* Check whether 'win' belongs to the root menu hierarchy */
 bool rootmenu_owns_window(xcb_window_t win)
 {

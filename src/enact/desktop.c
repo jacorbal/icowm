@@ -141,30 +141,6 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 }
 
 
-/* Add a client to the desktop */
-void enact_desktop_client_add(desktop_td *desktop, client_td *client)
-{
-    if (desktop == NULL || client == NULL) {
-        return;
-    }
-
-    desktop_action_client_add(desktop, client);
-    xcb_flush(desktop->connection);
-}
-
-
-/* Remove a client from the desktop */
-void enact_desktop_client_remove(desktop_td *desktop, client_td *client)
-{
-    if (desktop == NULL || client == NULL) {
-        return;
-    }
-
-    desktop_action_client_rem(desktop, client);
-    xcb_flush(desktop->connection);
-}
-
-
 /* Send a client from one desktop to another */
 void enact_desktop_client_send(desktop_td *desktop, client_td *client,
         desktop_td *target)
@@ -424,41 +400,4 @@ void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
             modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
-}
-
-
-/* Launch a program associated with the desktop */
-pid_t enact_desktop_command_launch(desktop_td *desktop,
-        const char *command)
-{
-    int result;
-
-    if (desktop == NULL || command == NULL) {
-        return -1;
-    }
-
-    result = desktop_action_process_launch(desktop, command);
-
-    if (result == -2) {
-        char msg[256];
-        surface_td *surface;
-        const config_td *config;
-
-        /* 'execvp' failed: already logged by
-         * 'desktop_action_process_launch'.
-         * Also show an informational dialog so user gets feedback. */
-        (void) snprintf(msg, sizeof(msg), "Cannot launch: '%s'",
-                command);
-
-        surface = wm_get_surface_by_id(desktop->screen_id);
-        config = (surface != NULL) ? surface->config : NULL;
-        if (surface != NULL && config != NULL &&
-                surface->connection != NULL) {
-            dialog_info_show(surface->connection, surface, config,
-                    msg, MENU_MSG_LEVEL_WARNING);
-        }
-        return -1;
-    }
-
-    return (pid_t) result;
 }

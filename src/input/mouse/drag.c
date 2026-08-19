@@ -112,6 +112,51 @@ drag_state_td s_drag = {
 };
 
 
+/**
+ * @brief Move the real window being dragged in outline mode off
+ *        screen, for the duration of the drag
+ *
+ * See @c WM_DRAG_OFFSCREEN_POS itself (@c defs/input.h) for why this,
+ * rather than unmapping it, is what keeps it out of sight without
+ * ever disturbing real input focus, sloppy focus tracking, or
+ * active-window rendering.  A plain @c xcb_configure_window, not
+ * @a enact_client_move, since this is a purely visual, temporary
+ * relocation with no logical meaning of its own: unlike a real move,
+ * it must never touch @p client's own @c layout.geometry.cur.pos,
+ * which every other part of the window manager still relies on to
+ * reflect wherever the drag is logically taking it, not this
+ * incidental physical parking spot.  Moving it back to its own
+ * genuine final position is left entirely to whichever one of
+ * @a enact_client_move/@a enact_client_resize @a drag_end itself
+ * already calls once the drag ends, rather than needing a
+ * symmetrical function of its own here.
+ *
+ * @param connection X connection
+ * @param client Client to move off screen
+ *
+ * @note No-op if @p connection or @p client is null
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_client_move_offscreen(xcb_connection_t *connection,
+        client_td *client)
+{
+    xcb_window_t target;
+    const uint32_t vals[2] = {
+        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
+    };
+
+    if (connection == NULL || client == NULL) {
+        return;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+}
+
+
 void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
@@ -364,7 +409,7 @@ void drag_update(xcb_connection_t *connection,
      * 'drag_icon_start''s own comment), so this never applies to
      * them at all. */
     if (!s_drag.solid_drag && !s_drag.outline_offscreened) {
-        drag_client_move_offscreen(connection, client);
+        s_drag_client_move_offscreen(connection, client);
         s_drag.outline_offscreened = true;
     }
 
@@ -882,41 +927,9 @@ bool drag_is_active(void)
 }
 
 
-/* Return the current drag position */
-void drag_current_pos(int32_t *restrict x, int32_t *restrict y)
-{
-    if (x != NULL) {
-        *x = s_drag.client_cur_x;
-    }
-    if (y != NULL) {
-        *y = s_drag.client_cur_y;
-    }
-}
-
-
 /* Move the real window being dragged in outline mode off screen, for
  * the duration of the drag; see the header's own doc comment for the
  * full reasoning */
-void drag_client_move_offscreen(xcb_connection_t *connection,
-        client_td *client)
-{
-    xcb_window_t target;
-    const uint32_t vals[2] = {
-        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
-    };
-
-    if (connection == NULL || client == NULL) {
-        return;
-    }
-
-    target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame
-        : client->window;
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
-}
-
-
 /* Return the client currently being dragged, or NULL */
 client_td *drag_client(void)
 {

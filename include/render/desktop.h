@@ -168,18 +168,6 @@ void desktop_render_one_client(desktop_td *desktop,
 int desktop_render_full(desktop_td *desktop, bool is_current);
 
 /**
- * @brief Flush drawing operations to the X server
- *
- * Sends all accumulated drawing commands to the X server to make the
- * changes visible on screen.
- *
- * @param desktop Pointer to the desktop
- *
- * @note Complexity: @e O(1)
- */
-void desktop_render_flush(desktop_td *desktop);
-
-/**
  * @brief Draw the buttons configured in @c window.titlebar.buttons on
  *        a titlebar window
  *

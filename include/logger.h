@@ -250,17 +250,6 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
         const char *restrict fmt, ...);
 
 /**
- * @brief Set the logger to always show the calling function in messages
- */
-void logger_tracking_on(void);
-
-/**
- * @brief Set the logger to never show the calling function in messages
- *        except in those of level @c LOG_TRACE
- */
-void logger_tracking_off(void);
-
-/**
  * @brief Logger helper macro for various severity levels
  *
  * Macro that calls the @a LOGGER_* macros with the appropriate level

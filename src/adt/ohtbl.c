@@ -45,6 +45,145 @@ static void s_ohtbl_cancel_pending_shrink_if_recovered(ohtbl_td *htbl)
 }
 
 
+/**
+ * @brief Resize the open-addressed hash table to a new capacity
+ *
+ * Resizes the current positions of the hash table to the specific new
+ * capacity, and rehashes all existing items into the new table. If the
+ * memory allocation for the new table fails, the operation is aborted
+ * and an error code is returned.
+ *
+ * @param htbl          Pointer to the hash table to be resized
+ * @param new_positions New positions to resize to
+ *
+ * @return Status of the resize operation
+ * @retval  0 Resize operation was successful
+ * @retval -1 Failed to allocate memory for the new table
+ *
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
+ * @note Complexity: @e O(n), where @e n is the number of elements in
+ *       the hash table
+ */
+static int s_ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
+{
+    void **new_table;
+
+    /* Initialize a new table */
+    new_table = calloc(new_positions, sizeof(void *));
+    if (new_table == NULL) {
+        return -1;
+    }
+
+    /* Re-hash previous elements in new table */
+    for (size_t i = 0; i < htbl->positions; ++i) {
+        void *element = htbl->table[i];
+        if (element != NULL && element != htbl->vacated) {
+            /* Only re-insert valid elements */
+            for (size_t j = 0; j < new_positions; ++j) {
+                /* Search new position */
+                size_t position = (htbl->h1(element) +
+                        (j * htbl->h2(element))) % new_positions;
+                if (new_table[position] == NULL) {
+                    /* Found empty position */
+                    new_table[position] = element;
+                    break;
+                }
+            } /* ! for (j) */
+        }
+    } /* ! for (i) */
+
+    /* Deallocate previous table */
+    free(htbl->table);
+
+    /* Update pointers and new positions */
+    htbl->table = new_table;
+    htbl->positions = new_positions;
+
+    /* Any resize, in either direction, starts a fresh assessment of
+     * whether the new capacity is itself underused; see
+     * 'OHTBL_SHRINK_COOLDOWN_MS''s own doc comment (ohtbl.h) */
+    htbl->shrink_pending = false;
+
+    return 0;
+}
+
+
+/**
+ * @brief Double the current size of the open-addressed hash table
+ *
+ * Invokes the resize operation to increase the capacity of the hash
+ * table by doubling the current number of positions.
+ *
+ * This doubling is triggered on insertions when the load factor exceeds
+ * the defined maximum load factor (@c OHTBL_MAX_LOAD_FACTOR).
+ *
+ * @param htbl Pointer to the hash table to be doubled in size
+ *
+ * @return Status of the resize operation
+ * @retval  0 Resize operation was successful
+ * @retval -1 Failed to allocate memory for the new table
+ *
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
+ * @note Complexity: @e O(n), where @e n is the number of elements in
+ *       the hash table
+ *
+ * @see @a s_ohtbl_resize
+ */
+static int s_ohtbl_resize_double(ohtbl_td *htbl)
+{
+    size_t new_positions;
+
+    /* Set initial positions by doubling the previous value */
+    new_positions = (size_t) (htbl->positions * 2);
+    return s_ohtbl_resize(htbl, new_positions);
+}
+
+
+/**
+ * @brief Halve the current size of the open-addressed hash table
+ *
+ * Invokes the resize operation to decrease the capacity of the hash
+ * table by halving the current number of positions.
+ *
+ * This halving is triggered on removals when the load factor falls
+ * below the minimum load factor (@c OHTBL_MIN_LOAD_FACTOR), as long as
+ * the table size does not go below the specified minimum positions.
+ *
+ * @param htbl Pointer to the hash table to be halved in size
+ *
+ * @return Status of the resize operation
+ * @retval  0 Resize operation was successful
+ * @retval  1 Below threshold of minimum size
+ * @retval -1 Memory allocation for the new table failed
+ *
+ * @note It is assumed that the current table is using open addressing
+ *       and that structures for each item are still valid after
+ *       rehashing
+ * @note Complexity: @e O(n), where @e n is the number of elements in
+ *       the hash table
+ *
+ * @see @a s_ohtbl_resize
+ */
+static int s_ohtbl_resize_halve(ohtbl_td *htbl)
+{
+    size_t new_positions;
+
+    /* Set initial positions by halving the previous value */
+    new_positions = (size_t) (htbl->positions / 2);
+
+    /* Prevent the table to go below a threshold */
+    if (new_positions < htbl->min_positions) {
+        return 1;
+    }
+
+    return s_ohtbl_resize(htbl, new_positions);
+}
+
+
 /* Initialize a new open-addressed hash table */
 ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
         size_t (*h1)(const void *key), size_t (*h2)(const void *key),
@@ -149,7 +288,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
      * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
-        if (ohtbl_resize_double(htbl) != 0) {
+        if (s_ohtbl_resize_double(htbl) != 0) {
             return -2;
         }
     }
@@ -211,7 +350,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
      * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
     if (htbl->size >=
             (size_t) ((float) htbl->positions * OHTBL_MAX_LOAD_FACTOR)) {
-        if (ohtbl_resize_double(htbl) != 0) {
+        if (s_ohtbl_resize_double(htbl) != 0) {
             return -2;
         }
     }
@@ -328,7 +467,7 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
                      * (allocation failure) must turn this already-
                      * successful removal into an error, hence the
                      * '<0' and not '!=0' */
-                    if (ohtbl_resize_halve(htbl) < 0) {
+                    if (s_ohtbl_resize_halve(htbl) < 0) {
                         return -2;
                     }
                 }
@@ -366,77 +505,4 @@ int ohtbl_lookup(const ohtbl_td *htbl, void **data)
 
     /* Return that the data was not found */
     return -1;
-}
-
-
-/* Resize the table to a new size */
-int ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
-{
-    void **new_table;
-
-    /* Initialize a new table */
-    new_table = calloc(new_positions, sizeof(void *));
-    if (new_table == NULL) {
-        return -1;
-    }
-
-    /* Re-hash previous elements in new table */
-    for (size_t i = 0; i < htbl->positions; ++i) {
-        void *element = htbl->table[i];
-        if (element != NULL && element != htbl->vacated) {
-            /* Only re-insert valid elements */
-            for (size_t j = 0; j < new_positions; ++j) {
-                /* Search new position */
-                size_t position = (htbl->h1(element) +
-                        (j * htbl->h2(element))) % new_positions;
-                if (new_table[position] == NULL) {
-                    /* Found empty position */
-                    new_table[position] = element;
-                    break;
-                }
-            } /* ! for (j) */
-        }
-    } /* ! for (i) */
-
-    /* Deallocate previous table */
-    free(htbl->table);
-
-    /* Update pointers and new positions */
-    htbl->table = new_table;
-    htbl->positions = new_positions;
-
-    /* Any resize, in either direction, starts a fresh assessment of
-     * whether the new capacity is itself underused; see
-     * 'OHTBL_SHRINK_COOLDOWN_MS''s own doc comment (ohtbl.h) */
-    htbl->shrink_pending = false;
-
-    return 0;
-}
-
-
-/* Doubles the current size of the open-addressed hash table */
-int ohtbl_resize_double(ohtbl_td *htbl)
-{
-    size_t new_positions;
-
-    /* Set initial positions by doubling the previous value */
-    new_positions = (size_t) (htbl->positions * 2);
-    return ohtbl_resize(htbl, new_positions);
-}
-
-
-/* Halves the current size of the open-addressed hash table */
-int ohtbl_resize_halve(ohtbl_td *htbl)
-{
-    size_t new_positions;
-
-    /* Set initial positions by halving the previous value */
-    new_positions = (size_t) (htbl->positions / 2);
-
-    /* Prevent the table to go below a threshold */
-    if (new_positions < htbl->min_positions) {
-        return 1;
-    }
-
-    return ohtbl_resize(htbl, new_positions);
 }

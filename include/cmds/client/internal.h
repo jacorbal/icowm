@@ -47,19 +47,6 @@
 
 /* Internal interface */
 /**
- * @brief Retrieve the ID of the currently active window for a screen
- *
- * @param ewmh      Pointer to the EWMH connection
- * @param screen_id Screen identifier
- *
- * @return ID of the active window, or @c XCB_WINDOW_NONE on error
- *
- * @note Complexity: @e O(1)
- */
-xcb_window_t ccmd_active_win(xcb_ewmh_connection_t *ewmh,
-        uint32_t screen_id);
-
-/**
  * @brief Intern an atom name in the X11 system
  *
  * @param connection Pointer to the X11 connection

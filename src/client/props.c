@@ -310,39 +310,6 @@ void client_props_refresh_role(client_td *client)
 }
 
 
-/* Re-read 'WM_HINTS' and update the client's input model, urgency, and
- * group */
-void client_props_refresh_wm_hints(client_td *client)
-{
-    xcb_icccm_wm_hints_t hints;
-    xcb_get_property_cookie_t cookie;
-    int ok;
-
-    memset(&hints, 0, sizeof(hints));
-    cookie = xcb_icccm_get_wm_hints(client->connection, client->window);
-    ok = xcb_icccm_get_wm_hints_reply(client->connection, cookie,
-            &hints, NULL);
-
-    if (!ok) {
-        return;
-    }
-
-    if (hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-        client->wm_input_hint = (hints.input != 0);
-    }
-
-    if (hints.flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP) {
-        client->group_leader = hints.window_group;
-    }
-
-    if (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
-        ccmd_client_urge(client);
-    } else {
-        ccmd_client_unurge(client);
-    }
-}
-
-
 /* Re-read 'WM_NORMAL_HINTS' and update the client's size-hint fields */
 void client_props_refresh_normal_hints(client_td *client)
 {

@@ -360,17 +360,3 @@ int wm_action_config_reload(const wm_td *wm)
 
     return 0;
 }
-
-
-/* Perform exit actions before stopping the window manager */
-int wm_action_exit(const wm_td *wm)
-{
-    LOGGER_DEBUG("Executing exit actions", L_NARG);
-
-    if (wm == NULL) {
-        return 1;
-    }
-
-    wm_request_stop();
-    return 0;
-}

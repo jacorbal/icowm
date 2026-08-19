@@ -184,10 +184,3 @@ void wm_shutdown_tick(const wm_td *wm)
     s_shutdown_in_progress = false;
     (void) wm_request_stop();
 }
-
-
-/* Query whether a coordinated shutdown is currently in progress */
-bool wm_shutdown_is_in_progress(void)
-{
-    return s_shutdown_in_progress;
-}

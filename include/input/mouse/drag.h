@@ -226,48 +226,5 @@ bool drag_is_active(void);
  */
 client_td *drag_client(void);
 
-/**
- * @brief Return the current drag position
- *
- * Writes the most-recently applied target position into @p x and @p y.
- * For a window move this is the frame top-left; for an icon drag this
- * is the icon window top-left.  Both values are zero when no drag is
- * active.
- *
- * @param x Output X coordinate (may be null)
- * @param y Output Y coordinate (may be null)
- *
- * @note Complexity: @e O(1)
- */
-void drag_current_pos(int32_t *restrict x, int32_t *restrict y);
-
-/**
- * @brief Move the real window being dragged in outline mode off
- *        screen, for the duration of the drag
- *
- * See @c WM_DRAG_OFFSCREEN_POS itself (@c defs/input.h) for why this,
- * rather than unmapping it, is what keeps it out of sight without
- * ever disturbing real input focus, sloppy focus tracking, or
- * active-window rendering.  A plain @c xcb_configure_window, not
- * @a enact_client_move, since this is a purely visual, temporary
- * relocation with no logical meaning of its own: unlike a real move,
- * it must never touch @p client's own @c layout.geometry.cur.pos,
- * which every other part of the window manager still relies on to
- * reflect wherever the drag is logically taking it, not this
- * incidental physical parking spot.  Moving it back to its own
- * genuine final position is left entirely to whichever one of
- * @a enact_client_move/@a enact_client_resize @a drag_end itself
- * already calls once the drag ends, rather than needing a
- * symmetrical function of its own here.
- *
- * @param connection X connection
- * @param client Client to move off screen
- *
- * @note No-op if @p connection or @p client is null
- * @note Complexity: @e O(1)
- */
-void drag_client_move_offscreen(xcb_connection_t *connection,
-        client_td *client);
-
 
 #endif  /* ! INPUT_MOUSE_DRAG_H */

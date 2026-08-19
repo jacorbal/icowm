@@ -70,17 +70,6 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
         const config_td *cfg);
 
 /**
- * @brief Close the run-box and restore whichever window had input
- *        focus before it opened
- *
- * @param connection XCB connection
- *
- * @note A no-op if the run-box is not currently open
- * @note Complexity: @e O(1)
- */
-void run_destroy(xcb_connection_t *connection);
-
-/**
  * @brief Query whether the run-box is currently open
  *
  * @return @c true while a run-box window exists

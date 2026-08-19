@@ -32,23 +32,6 @@
 #include <cmds/client/internal.h>
 
 
-/* Retrieve the ID of the currently active window for a screen */
-xcb_window_t ccmd_active_win(xcb_ewmh_connection_t *ewmh,
-        uint32_t screen_id)
-{
-    xcb_window_t active_window;
-    xcb_get_property_cookie_t cookie =
-        xcb_ewmh_get_active_window(ewmh, (int) screen_id);
-
-    if (!xcb_ewmh_get_active_window_reply(ewmh, cookie,
-                &active_window, NULL)) {
-        return XCB_WINDOW_NONE;
-    }
-
-    return active_window;
-}
-
-
 /* Intern an atom name in the X11 system */
 xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
         const char *name)

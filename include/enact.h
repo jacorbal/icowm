@@ -449,26 +449,6 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color);
 void enact_desktop_show(desktop_td *desktop, bool show);
 
 /**
- * @brief Add a client to the desktop
- *
- * @param desktop Desktop to add to
- * @param client  Client to add
- *
- * @note Complexity: @e O(1)
- */
-void enact_desktop_client_add(desktop_td *desktop, client_td *client);
-
-/**
- * @brief Remove a client from the desktop
- *
- * @param desktop Desktop to remove from
- * @param client  Client to remove
- *
- * @note Complexity: @e O(1)
- */
-void enact_desktop_client_remove(desktop_td *desktop, client_td *client);
-
-/**
  * @brief Send a client from one desktop to another
  *
  * @param desktop Desktop the client currently lives on
@@ -620,19 +600,6 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
 void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg);
-
-/**
- * @brief Launch a program associated with the desktop
- *
- * @param desktop Desktop the program is launched for
- * @param command Shell command to launch
- *
- * @return Process ID of the launched command, or @c -1 on failure
- *
- * @note Complexity: @e O(1)
- */
-pid_t enact_desktop_command_launch(desktop_td *desktop,
-        const char *command);
 
 
 /* 'action_surface_e' */

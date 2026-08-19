@@ -91,16 +91,6 @@ void menu_dialog_defer_schedule(xcb_connection_t *connection,
 void menu_dialog_defer_cancel(void);
 
 /**
- * @brief Whether a deferred action is currently pending
- *
- * @return @c true if @a menu_dialog_defer_tick still has a callback
- *         left to run
- *
- * @note Complexity: @e O(1)
- */
-bool menu_dialog_defer_is_pending(void);
-
-/**
  * @brief Milliseconds remaining until the pending deferred action
  *        becomes due
  *
