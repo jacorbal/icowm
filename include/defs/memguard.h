@@ -55,15 +55,16 @@
  *
  * @note Set from an actual measurement (a fresh restricted-memory
  *       session's own @c VmRSS, sampled with no client windows open)
- *       rather than a guess, the highest reading seen was a little
- *       under 6 MiB, so this sits one MiB above that, both to round
- *       to a whole number and to leave a little slack for a system with
- *       somewhat heavier XCB, font, or @c libc overhead than whichever
- *       one that measurement was taken on
+ *       rather than a guess, the highest reading seen across several
+ *       runs, including some under heavy window/desktop churn, was
+ *       a little under 7 MiB, so this sits one MiB above that, both to
+ *       round to a whole number and to leave a little slack for
+ *       a system with somewhat heavier XCB, font, or @c libc overhead
+ *       than whichever one that measurement was taken on
  *
  * @see @c memguard_max_clients
  */
-#define MEMGUARD_BASELINE_MIB (6u)
+#define MEMGUARD_BASELINE_MIB (8u)
 
 /**
  * @brief Smallest @c -M ceiling IcoWM will actually accept, and the
@@ -76,13 +77,13 @@
  * still keeps the baseline alone, with no client windows open at all,
  * comfortably under the hysteresis threshold
  * @c (MEMGUARD_BASELINE_MIB / @c MEMGUARD_HYSTERESIS_PERCENT) rounds up
- * to 7 MiB exactly; this sits further above even that, at the baseline
+ * to 9 MiB exactly; this sits further above even that, at the baseline
  * occupying 60% of the ceiling, so a session starts out well clear of
  * the warning threshold rather than teetering right at its edge).
  * @c -M rejects anything below this floor outright (see @c main.c),
  * since a ceiling that tight could not realistically run IcoWM at all.
  */
-#define MEMGUARD_MIN_CEILING_MIB (10u)
+#define MEMGUARD_MIN_CEILING_MIB (14u)
 
 /**
  * @brief Font name every theme text style is redirected to under
