@@ -48,6 +48,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/policy/test_urgency \
     $(O_DIR)/tests/test_rules \
     $(O_DIR)/tests/input/mouse/test_bounds \
+    $(O_DIR)/tests/input/mouse/test_bind \
     $(O_DIR)/tests/input/kbd/test_bind \
     $(O_DIR)/tests/test_memguard \
     $(O_DIR)/tests/systray/test_text \
@@ -219,6 +220,16 @@ $(O_DIR)/tests/test_rules: $(TESTS_DIR)/test_rules.c \
 $(O_DIR)/tests/input/mouse/test_bounds: \
 		$(TESTS_DIR)/input/mouse/test_bounds.c \
 		$(S_DIR)/input/mouse/bounds.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/test_bind: \
+		$(TESTS_DIR)/input/mouse/test_bind.c \
+		$(S_DIR)/input/mouse/bind.c \
+		$(S_DIR)/input/modifier.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

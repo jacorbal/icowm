@@ -22,6 +22,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>     /* strtol */
 #include <string.h>     /* memcpy */
 #include <strings.h>    /* strcasecmp */
 
@@ -312,4 +313,30 @@ enum wm_mousebind_type_e mousebind_at(int idx,
     }
 
     return s_mousebindings[idx].type;
+}
+
+
+/* Clear the binding table, for test harnesses only; see this
+ * function's own comment in 'input/mouse.h' */
+void mousebind_test_reset(void)
+{
+    s_mousebindings_count = 0;
+}
+
+
+/* Directly append a binding entry, for test harnesses only; see
+ * this function's own comment in 'input/mouse.h' */
+bool mousebind_test_add_binding(enum wm_mousebind_type_e type,
+        xcb_button_index_t button, uint16_t modmask)
+{
+    if (s_mousebindings_count >= WM_MAX_MOUSEBINDINGS) {
+        return false;
+    }
+
+    s_mousebindings[s_mousebindings_count].button = button;
+    s_mousebindings[s_mousebindings_count].modmask = modmask;
+    s_mousebindings[s_mousebindings_count].type = type;
+    ++s_mousebindings_count;
+
+    return true;
 }

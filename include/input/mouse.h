@@ -395,4 +395,42 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
         list_td *surfaces, xcb_motion_notify_event_t *event);
 
 
+/**
+ * @brief Clear the binding table
+ *
+ * For test harnesses only, never called from any production code
+ * path: returns this module's own binding table to what it holds
+ * right after process startup, so one test case cannot leave a
+ * binding behind for the next one to unexpectedly inherit.
+ *
+ * @note Complexity: @e O(1)
+ */
+void mousebind_test_reset(void);
+
+/**
+ * @brief Directly append a binding entry to the binding table
+ *
+ * For test harnesses only, never called from any production code
+ * path: lets a test populate the binding table @a mousebind_count
+ * and @a mousebind_at both read from, without going through
+ * @a mouse_load's own real work (config lookups, binding-string
+ * parsing, and installing passive grabs on every managed root
+ * window over a working XCB connection), neither of which either
+ * accessor's own logic depends on.
+ *
+ * @param type    Action type for the new entry
+ * @param button  Button index for the new entry
+ * @param modmask Modifier mask for the new entry
+ *
+ * @return Status of the operation
+ * @retval  true on success
+ * @retval false if the binding table is already at
+ *               @c WM_MAX_MOUSEBINDINGS
+ *
+ * @note Complexity: @e O(1)
+ */
+bool mousebind_test_add_binding(enum wm_mousebind_type_e type,
+        xcb_button_index_t button, uint16_t modmask);
+
+
 #endif  /* ! INPUT_MOUSE_H */
