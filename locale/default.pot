@@ -378,8 +378,9 @@ msgstr ""
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Close some windows to "
-"free up memory before opening more."
+"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
+"manages adds to its own memory use, regardless of that window's own "
+"application.  Close a window before opening more."
 msgstr ""
 
 #: include/defs/uistr.h:281;

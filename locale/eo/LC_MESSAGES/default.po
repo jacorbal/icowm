@@ -388,15 +388,19 @@ msgstr ""
 "  Krome, la etosa dosiero '%s' nomita en 'config.json' ne troviĝis; "
 "uziĝas la enkonstruita defaŭlta etoso anstataŭe."
 
+#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Close some windows to "
-"free up memory before opening more."
+"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
+"manages adds to its own memory use, regardless of that window's own "
+"application.  Close a window before opening more."
 msgstr ""
-"IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u MiB "
-"permesitaj (vidu la komandlinian opcion '-M').  Fermu kelkajn "
-"fenestrojn por malokupi memoron antaŭ ol malfermi pliajn."
+"IcoWM atingis sian agorditan memor-limon: uzante %u MiB el %u "
+"MiB permesitaj (vidu la komandlinian opcion '-M').  Ĉiu fenestro "
+"administrata de IcoWM aldonas al ĝia propra memor-uzo, "
+"sendepende de la aplikaĵo de tiu fenestro.  Fermu fenestron "
+"antaŭ ol malfermi pliajn."
 
 #: include/defs/uistr.h:281;
 msgid ""

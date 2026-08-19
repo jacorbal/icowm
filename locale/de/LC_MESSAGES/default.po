@@ -389,15 +389,19 @@ msgstr ""
 "  Außerdem wurde die in 'config.json' genannte Themendatei '%s' nicht "
 "gefunden; das eingebaute Standardthema wird stattdessen verwendet."
 
+#, fuzzy
 #: include/defs/uistr.h:277;
 msgid ""
 "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Close some windows to "
-"free up memory before opening more."
+"MiB allowed (see the '-M' command-line option).  Each window IcoWM "
+"manages adds to its own memory use, regardless of that window's own "
+"application.  Close a window before opening more."
 msgstr ""
-"IcoWM hat die konfigurierte Speicherobergrenze erreicht: %u MiB von %u "
-"MiB zulässigen werden verwendet (siehe die Befehlszeilenoption '-M').  "
-"Schließen Sie einige Fenster, um Speicher freizugeben, bevor Sie "
+"IcoWM hat die konfigurierte Speicherobergrenze erreicht: %u MiB "
+"von %u MiB zulässigen werden verwendet (siehe die "
+"Befehlszeilenoption '-M').  Jedes von IcoWM verwaltete Fenster "
+"erhöht dessen eigenen Speicherverbrauch, unabhängig von der "
+"Anwendung dieses Fensters.  Schließen Sie ein Fenster, bevor Sie "
 "weitere öffnen."
 
 #: include/defs/uistr.h:281;

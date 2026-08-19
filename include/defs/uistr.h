@@ -276,8 +276,9 @@
  * language) */
 #define STR_MEMGUARD_CEILING_REACHED_FMT \
     "IcoWM has reached its configured memory ceiling: using %u MiB " \
-    "of the %u MiB allowed (see the '-M' command-line option).  " \
-    "Close some windows to free up memory before opening more."
+    "of the %u MiB allowed (see the '-M' command-line option).  Each " \
+    "window IcoWM manages adds to its own memory use, regardless of " \
+    "that window's own application.  Close a window before opening more."
 #define STR_MEMGUARD_CLIENT_CAP_REACHED_FMT \
     "IcoWM is running in restricted-memory mode and will not manage " \
     "more than %u window(s) at once (see the '-M' command-line " \
