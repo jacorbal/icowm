@@ -617,7 +617,7 @@ void ccmd_client_refill_maximized(client_td *client)
         (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
     touch_y = client->properties.state !=
         (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
-    border = 2u * client_border_width(client, is_active);
+    border = 2u * client_border_width(client, is_active, false);
     mask = 0u;
     n = 0;
 
@@ -737,7 +737,7 @@ void ccmd_client_maximize_horz(client_td *client)
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
-    border = 2u * client_border_width(client, is_active);
+    border = 2u * client_border_width(client, is_active, false);
 
     sw = (uint16_t) ((sw > border) ? sw - border : 0u);
 
@@ -857,7 +857,7 @@ void ccmd_client_maximize_vert(client_td *client)
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
-    border = 2u * client_border_width(client, is_active);
+    border = 2u * client_border_width(client, is_active, false);
 
     sh = (uint16_t) ((sh > border) ? sh - border : 0u);
 
@@ -1019,7 +1019,7 @@ void ccmd_client_maximize(client_td *client)
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
-    border = 2u * client_border_width(client, is_active);
+    border = 2u * client_border_width(client, is_active, false);
 
     sw = (uint16_t) ((sw > border) ? sw - border : 0u);
     sh = (uint16_t) ((sh > border) ? sh - border : 0u);

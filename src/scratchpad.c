@@ -280,7 +280,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
      * actually draw, rather than 'border_override.width' alone, which
      * could be narrower than what a11y ends up enforcing and so reserve
      * too little room here for it. */
-    border = client_border_width(client, true);
+    border = client_border_width(client, true, false);
     avail_w = (area_w > 2u * border) ? area_w - 2u * border : 0u;
     avail_h = (area_h > 2u * border) ? area_h - 2u * border : 0u;
 

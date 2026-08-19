@@ -580,7 +580,20 @@ void ccmd_client_unfullscreen(client_td *client)
     target = ccmd_target_win(client);
     client_geometry_restore(client);
 
-    border_width = (uint16_t) client_border_width(client, true);
+    /* 'ignore_frame=true': 'client->frame' is already non-zero here
+     * (it persists across the whole fullscreen cycle, never destroyed
+     * or recreated), but 'layout.frame_extents' does not yet reflect
+     * that: it was zeroed out by 'ccmd_client_fullscreen' on entry
+     * and is exactly what the block below is about to (re)establish.
+     * Without this, 'client_border_width''s own 'frame != 0' guard
+     * (correct for every other caller, where the frame already does
+     * account for it) returns 0 here unconditionally, collapsing
+     * 'inner_w'/'inner_h' below to the frame's own full size and
+     * 'frame_extents.left'/'.right' to 0 right along with it: the
+     * border theme color never disappears, there is simply no frame
+     * pixel width left for it to occupy, the client's own content
+     * drawn flush against the frame's outer edge instead. */
+    border_width = (uint16_t) client_border_width(client, true, true);
 
     /* Configured BEFORE the frame/target itself shrinks further down,
      * for the same reason 'ccmd_client_fullscreen' now configures its
@@ -770,7 +783,13 @@ void ccmd_client_toggle_decorate(client_td *client)
         mouse_hover_poll_clear(client->frame);
     }
 
-    bw = (int32_t) client_border_width(client, true);
+    /* 'ignore_frame=true': computed once here, before this toggle's own
+     * direction (remove or restore) is even decided below, and used by
+     * both; whichever one runs, this represents the border width the
+     * client/frame is being configured to, not one its current framing
+     * state (about to change either way) already accounts for.  Same
+     * reasoning as 'ccmd_client_unfullscreen''s own identical call. */
+    bw = (int32_t) client_border_width(client, true, true);
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
     keep_focus = true;
@@ -960,7 +979,15 @@ void ccmd_client_toggle_decorate(client_td *client)
              * 'keep_focus' below), so its border width right after
              * this toggle is always the active one, regardless of
              * whichever one it had a moment ago. */
-            uint32_t border = 2u * client_border_width(client, true);
+            /* 'ignore_frame=false': by this point the decorate/
+             * undecorate branch above has already settled, so
+             * 'client->frame' now correctly reflects whether one
+             * exists; for a now-decorated client this correctly stays
+             * 0, since the frame's own size (not an additional
+             * border atop it) already fills the workarea, matching
+             * 'target' being the frame itself just below. */
+            uint32_t border = 2u * client_border_width(client, true,
+                    false);
             uint16_t mask = 0u;
             uint32_t values[4];
             int n = 0;

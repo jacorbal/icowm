@@ -141,12 +141,12 @@ static void s_handle_wm_state_atom(client_td *client,
         /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s
          * own comment for why fullscreen is deliberately exempt from
          * it, unlike the maximize handling right below. */
-        if (s_wm_state_resolve_add(action,
-                    client->properties.state ==
-                        CLIENT_STATE_FULLSCREEN)) {
+        if (action == WM_STATE_ACTION_ADD) {
             ccmd_client_fullscreen(client);
-        } else {
+        } else if (action == WM_STATE_ACTION_REMOVE) {
             ccmd_client_unfullscreen(client);
+        } else {
+            ccmd_client_toggle_fullscreen(client);
         }
         return;
     }
@@ -443,7 +443,7 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
         /* Account for the 'UnmapNotify' events so
          * 'handler_unmap_notify' does not treat this WM-initiated unmap
          * as a client self-close and set 'CLIENT_FLAG_HIDDEN'.  Two
-         * events arrive for the unmapped target (0SubstructureNotify'
+         * events arrive for the unmapped target ('SubstructureNotify'
          * on parent + 'StructureNotify' on target) and one additional
          * event for the titlebar via the frame's
          * 'SubstructureNotify'. */

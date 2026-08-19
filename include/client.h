@@ -734,10 +734,20 @@ void client_border_apply(client_td *client, bool use_active_style);
  * a client to fill an area without its own border ever spilling past
  * that area's own edge
  *
- * @param client    Client to query
- * @param is_active Ignored when @p border_override.is_set; otherwise
- *                  @c true for @p theme->window.active.border.width,
- *                  @c false for @p .inactive
+ * @param client       Client to query
+ * @param is_active    Ignored when @p border_override.is_set; otherwise
+ *                      @c true for @p theme->window.active.border.width,
+ *                      @c false for @p .inactive
+ * @param ignore_frame Skip the @c 0 short-circuit this function
+ *                      otherwise always takes for an already-framed
+ *                      client (see this function's own body); needed
+ *                      by a caller computing the width to (re)establish
+ *                      @p client->layout.frame_extents with in the
+ *                      first place, e.g. @a ccmd_client_unfullscreen,
+ *                      for which @p client->frame already being
+ *                      non-zero does not yet mean the frame already
+ *                      accounts for it the way it does for every other
+ *                      caller
  *
  * @return @p client's own current border width; @c 0 if @p client is
  *         @c NULL or has no theme
@@ -747,7 +757,7 @@ void client_border_apply(client_td *client, bool use_active_style);
  * @see @a ccmd_client_maximize in @c cmds/client/geom.c
  */
 static inline uint32_t client_border_width(const client_td *client,
-        bool is_active)
+        bool is_active, bool ignore_frame)
 {
     uint32_t base_width;
 
@@ -761,8 +771,11 @@ static inline uint32_t client_border_width(const client_td *client,
      * undecorated client's own window.  A caller reserving room for
      * a client's own border has nothing to reserve here, so this
      * returns 0 for a decorated client ('frame != 0') even though
-     * 'window.active/inactive.border.width' below is not itself 0. */
-    if (client == NULL || client->theme == NULL || client->frame != 0) {
+     * 'window.active/inactive.border.width' below is not itself 0,
+     * unless @p ignore_frame says this specific caller's own frame
+     * does not actually reflect that yet. */
+    if (client == NULL || client->theme == NULL ||
+            (!ignore_frame && client->frame != 0)) {
         return 0u;
     }
 
