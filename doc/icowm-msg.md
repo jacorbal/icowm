@@ -30,13 +30,13 @@ part of IcoWM proper and documented there.
 ## 1. What `icowm-msg` is
 
 `icowm-msg` is a small, standalone command-line client for IcoWM's own
-IPC control socket (`icowm.md` section 5). It builds one JSON request
+IPC control socket (`icowm.md` section 5).  It builds one JSON request
 line out of its own command-line arguments, sends it to a running
 IcoWM's control socket, and prints back whatever IcoWM answers with.
 
 It is built and installed alongside IcoWM itself, as a second, entirely
 separate binary (see `make help`): building or rebuilding one never
-forces a rebuild of the other. It is also deliberately independent of
+forces a rebuild of the other.  It is also deliberately independent of
 the rest of the project at the source level: it links only against
 `cjson`, for the JSON it reads and writes, and never touches X11, XCB,
 or any font library, since a small IPC client has no reason to pull in
@@ -64,9 +64,9 @@ The full response line IcoWM sends back is printed to `stdout` exactly
 as received, on one line, whether the command succeeded or not.
 
 `-w <events> [-n <count>]` is a different mode entirely, covered in full
-in section 9: it subscribes to events instead of sending a command. `-K`
-and `-W` each list one build-in reference (every known command name,
-every known event name) and exit; see section 5.
+in section 9: it subscribes to events instead of sending a command.
+Options `-K` and `-W` each list one build-in reference (every known
+command name, every known event name) and exit; see section 5.
 
 ## 3. Argument value types
 
@@ -86,11 +86,11 @@ happens to look like a number but is meant as text (a client's own new
 name that is only digits, say) is sent as a number instead; none of the
 commands `icowm.md` section 5.3 documents currently have a string
 argument this could affect, but it is worth knowing about if a future
-one ever does. The `0x` form is only ever a convenience for values more
+one ever does.  The `0x` form is only ever a convenience for values more
 naturally read that way (a window ID copied from `list_clients`,
 a packed `RRGGBB` color): it reaches IcoWM exactly as its decimal
 equivalent would, since JSON itself has no separate hexadecimal number
-syntax to send it as. For example, these two commands are equivalent:
+syntax to send it as.  For example, these two commands are equivalent:
 
 ```sh
 icowm-msg move_client client_id=23068673 x=100 y=200
@@ -114,7 +114,7 @@ an explanation on `stderr` naming the offending argument.
 |-------------|---------|
 | `0`         | The command reached IcoWM and it reported success (`"ok": true` in the printed response) |
 | `1`         | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's own `"error"` field |
-| `2`         | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option). Nothing is printed to `stdout` in this case; the reason is on `stderr` |
+| `2`         | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option).  Nothing is printed to `stdout` in this case; the reason is on `stderr` |
 
 A script that only cares whether the command worked can check the exit
 status alone, without parsing the response at all.
@@ -130,14 +130,14 @@ status alone, without parsing the response at all.
 | `-w <events>` | Subscribe instead of sending a command; see section 9 |
 | `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see section 9); rejected as an error on its own |
 
-`-h`, `-v`, `-K`, and `-W` all exit `0`. Any other option is rejected:
+`-h`, `-v`, `-K`, and `-W` all exit `0`.  Any other option is rejected:
 usage is printed to `stderr` and `icowm-msg` exits `2`.
 
 `-K`'s own list is a plain, hand-maintained snapshot of the server's own
 command table, kept here so it works offline the same way `-h` and `-v`
 already do, rather than needing a running IcoWM to query.  That means it
 can, in principle, drift out of sync with the server's own table over
-time. It is used only to answer `-K`'s own question, never to locally
+time.  It is used only to answer `-K`'s own question, never to locally
 validate or reject a command before sending it: an ordinary command
 still reaches the server exactly as documented throughout the rest of
 this file, unfiltered, so a stale `-K` listing here only makes its own
@@ -191,7 +191,7 @@ $ icowm-msg get_focused | jq -r '.focused[0].client_id'
 **`icowm-msg: failed to connect to '<path>': No such file or
 directory`, followed by `Is IcoWM running, with its IPC socket up?`**
 
-There is nothing listening at the resolved socket path yet. This means
+There is nothing listening at the resolved socket path yet.  This means
 one of:
 
 - IcoWM is not currently running.
@@ -206,7 +206,7 @@ one of:
   to something different in the shell running `icowm-msg` than it was in
   the session IcoWM itself started under (a remote shell, a different
   user, or a terminal from before `$XDG_RUNTIME_DIR` was changed, for
-  instance). `icowm-msg` resolves the socket path the same way IcoWM
+  instance).  `icowm-msg` resolves the socket path the same way IcoWM
   itself does (`icowm.md` section 5.1): under `$XDG_RUNTIME_DIR/icowm/`,
   or `/tmp/icowm-<uid>/icowm/` when that variable is unset, so the two
   need to agree on that variable to find the same socket.
@@ -215,14 +215,14 @@ one of:
 
 This does not happen for a well-formed response: any response
 `icowm-msg` successfully reads and prints already parses as JSON, by
-construction. If it were ever seen, it would mean IcoWM sent back
+construction.  If it were ever seen, it would mean IcoWM sent back
 something that could not be parsed as JSON at all (not: `"ok": false`,
 which parses fine and exits `1`), and would be worth reporting as an
 IcoWM bug rather than an `icowm-msg` one.
 
 **`icowm-msg: argument 'foo' is not in 'key=value' form`**
 
-An argument after `<command>` had no `=` in it at all. Every argument
+An argument after `<command>` had no `=` in it at all.  Every argument
 past the command name must be `key=value`; see section 3.
 
 ## 8. Command reference
@@ -289,8 +289,8 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `goto_desktop`                | `desktop_id` [`surface_id`]              | Switches the resolved surface to that desktop |
 | `goto_next_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own next desktop |
 | `goto_prev_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own previous desktop |
-| `add_desktop`                 | [`surface_id`]                           | Adds a new desktop after the resolved surface's own last one. Refused, with an error, once `CONFIG_MAX_DESKTOPS` is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`              | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it. Refused, with an error, while only one desktop remains |
+| `add_desktop`                 | [`surface_id`] | Adds a new desktop after the resolved surface's own last one.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`              | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it.  Refused, with an error, while only one desktop remains |
 | `exit_wm`                     | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`               | none                                     | Reloads every configuration file |
 | `toggle_scratchpad`           | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
@@ -307,11 +307,11 @@ any `key=value` arguments are not used in this mode at all.
 icowm-msg -w <events> [-n <count>]
 ```
 
-`<events>` is a comma-separated list of event names (no spaces),
-e.g., `window_mapped,desktop_switched`. `-n <count>` stops watching
-after that many events have arrived, printing them and then exiting `0`;
-left out, `icowm-msg` watches forever, until the connection drops or the
-process is killed. `-n` on its own, without `-w`, is rejected as an
+`<events>` is a comma-separated list of event names (no spaces), e.g.,
+`window_mapped,desktop_switched`.  `-n <count>` stops watching after
+that many events have arrived, printing them and then exiting `0`; left
+out, `icowm-msg` watches forever, until the connection drops or the
+process is killed.  `-n` on its own, without `-w`, is rejected as an
 error, since it has nothing to count events for.
 
 ### 9.1. What each event reports
@@ -384,7 +384,7 @@ That last `2` case is worth calling out on its own: unlike the ordinary
 request/response mode, a watch that has already printed real events can
 still end in failure, if the connection drops before `-n` is reached
 (or, with no `-n` at all, at any point, since nothing but the connection
-itself ever ends it). `icowm-msg` reports this on `stderr` before
+itself ever ends it).  `icowm-msg` reports this on `stderr` before
 exiting, the same way it reports any other connection failure:
 
 ```sh
