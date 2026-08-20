@@ -26,14 +26,14 @@
  *        nearest screen/monitor edge, and between one such icon and
  *        the next
  *
- * See @c place_icon (policy/placement.h): added to @c WM_ICON_SQUARE_
- * SIZE (and an icon's own caption height, when captioned) to get the
- * grid's own step between one candidate slot and the next, and used
- * on its own as the offset from the screen edge the very first slot
- * starts at.  A single value serves both roles, rather than two
- * separate ones, since nothing in this project distinguishes "space
- * from the screen edge" from "space between icons" as a design
- * choice.
+ * See @c place_icon_apply (policy/placement/icon.h): added to
+ * @c WM_ICON_SQUARE_SIZE (and an icon's own caption height, when
+ * captioned) to get the grid's own step between one candidate slot
+ * and the next, and used on its own as the offset from the screen
+ * edge the very first slot starts at.  A single value serves both
+ * roles, rather than two separate ones, since nothing in this project
+ * distinguishes "space from the screen edge" from "space between
+ * icons" as a design choice.
  */
 #define WM_ICON_GRID_MARGIN (8u)
 
@@ -66,7 +66,8 @@
  * already keeps from a screen edge or another icon, rather than some
  * other value picked independently.
  *
- * @see @a icon_avoid_systray_overlap in @c policy/placement.h
+ * @see @a place_icon_avoid_systray_overlap in
+ *      @c policy/placement/icon.h
  */
 #define WM_ICON_SYSTRAY_GAP (8u)
 

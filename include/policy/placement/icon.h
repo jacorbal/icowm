@@ -3,12 +3,9 @@
  *
  * @brief Icon placement policy declarations
  *
- * Pushes an already-proposed icon position away from the systray's
- * own current rectangle, if the two would overlap there.
- *
- * @see @c policy/placement.h for @c tiling_icon itself, which resolves
- *      that proposed position in the first place; both are implemented
- *      in @c policy/tiling.c
+ * Computes an iconified client's own icon-window position, and pushes
+ * an already-proposed icon position away from the systray's own
+ * current rectangle, if the two would overlap there.
  *
  * @ingroup policy
  */
@@ -20,8 +17,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef POLICY_TILING_H
-#define POLICY_TILING_H
+#ifndef POLICY_PLACEMENT_ICON_H
+#define POLICY_PLACEMENT_ICON_H
 
 
 /* System includes */
@@ -114,4 +111,4 @@ bool place_icon_avoid_systray_overlap(
         const struct geometry_s *workarea);
 
 
-#endif  /* ! POLICY_TILING_H */
+#endif  /* ! POLICY_PLACEMENT_ICON_H */

@@ -132,8 +132,8 @@ void ccmd_client_focus_fallback(const client_td *client);
  * A new window is placed either at the client's own remembered
  * @c icon_x/icon_y (if any, and not since claimed by another icon;
  * see @c s_icon_slot_is_taken, private to @c cmds/client/icon.c) or
- * via @c place_icon otherwise, then created with the theme's inactive
- * icon colors.  An already-existing icon window is simply
+ * via @c place_icon_apply otherwise, then created with the theme's
+ * inactive icon colors.  An already-existing icon window is simply
  * re-configured to its saved position, which may have changed since
  * if the user dragged it.
  *

@@ -99,13 +99,13 @@ void ccmd_client_focus(client_td *client);
  * Run twice, not once: a first pass over that same search restricted
  * to clients sharing @p exclude's own @c WM_CLIENT_LEADER (ICCCM
  * §4.1.2.5) takes precedence over an equally-recent but unrelated
- * window, the same group-awareness @a place_apply
- * (policy/placement.c) already applies when placing a new sibling
- * window, and the same reasoning Openbox's own @c focus_valid_target
- * (focus.c) weighs group membership for.  A second, plain pass with
- * no group restriction runs only when the first finds nothing, so a
- * client with no group-mates left visible falls back exactly as it
- * always did.
+ * window, the same group-awareness @a place_window_apply
+ * (policy/placement/window.c) already applies when placing a new
+ * sibling window, and the same reasoning Openbox's own
+ * @c focus_valid_target (focus.c) weighs group membership for.
+ * A second, plain pass with no group restriction runs only when the
+ * first finds nothing, so a client with no group-mates left visible
+ * falls back exactly as it always did.
  *
  * The winner, if any, is
  * given real focus through @a ccmd_client_focus itself (not a raw
@@ -165,9 +165,9 @@ void ccmd_client_iconify(client_td *client);
  * @p client's own current @c icon_x/icon_y against every other
  * already-mapped icon on whichever desktop @p client is on right
  * now, and, only if that exact spot is taken, resolves a new one via
- * @a place_icon and moves the icon window there on screen if it is
- * currently mapped.  A no-op otherwise, so an icon that still has a
- * free spot keeps it exactly where it was.
+ * @a place_icon_apply and moves the icon window there on screen if it
+ * is currently mapped.  A no-op otherwise, so an icon that still has
+ * a free spot keeps it exactly where it was.
  *
  * Meant for a client whose desktop just changed out from under it
  * without the person ever explicitly moving its icon themselves

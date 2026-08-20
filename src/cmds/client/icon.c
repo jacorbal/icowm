@@ -271,8 +271,9 @@ void ccmd_client_ensure_icon_window(client_td *client,
          * exact spot (e.g., it was free when this client was last
          * iconified, but has since been taken by a window that got
          * iconified while this one was restored).  In that case fall
-         * through to 'place_icon' just like a client with no remembered
-         * position at all, so the two icons never overlap. */
+         * through to 'place_icon_apply' just like a client with no
+         * remembered position at all, so the two icons never
+         * overlap. */
         desktop = wm_get_client_desktop(client);
         if (client->icon_x >= 0 && client->icon_y >= 0 &&
                 !s_icon_slot_is_taken(client,
@@ -292,12 +293,13 @@ void ccmd_client_ensure_icon_window(client_td *client,
                     screen_dim, &icon_pos);
             ix = (int16_t) icon_pos.x;
             iy = (int16_t) icon_pos.y;
-            /* 'place_icon' works in a (0,0)-relative coordinate space
-             * bounded by 'screen_w'/'screen_h' alone; offset by
+            /* 'place_icon_apply' works in a (0,0)-relative coordinate
+             * space bounded by 'screen_w'/'screen_h' alone; offset by
              * 'mx'/'my', the target monitor's own origin plus its
-             * top/left margin, so the icon lands on that monitor within
-             * the combined surface, past whatever margin is configured,
-             * rather than always in its raw top-left corner. */
+             * top/left margin, so the icon lands on that monitor
+             * within the combined surface, past whatever margin is
+             * configured, rather than always in its raw top-left
+             * corner. */
             ix = (int16_t) (ix + mx);
             iy = (int16_t) (iy + my);
         }
@@ -310,9 +312,10 @@ void ccmd_client_ensure_icon_window(client_td *client,
          * systray/layout.c): the tray still visually occupies real
          * screen space either way, so a final check against its actual
          * current rectangle, the same one a drag or a config reload
-         * already goes through (see 'icon_avoid_systray_overlap''s
-         * comment), catches what that coarser shrink alone still
-         * misses.  A tray docked in a corner, reaching only partway
+         * already goes through (see
+         * 'place_icon_avoid_systray_overlap''s comment), catches what
+         * that coarser shrink alone still misses.  A tray docked in
+         * a corner, reaching only partway
          * along an edge, being the case that shrink cannot express at
          * all: it only ever knows the tray's own side widths, nothing
          * about how far along that edge it actually reaches. */

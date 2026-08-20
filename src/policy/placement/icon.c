@@ -3,19 +3,22 @@
  *
  * @brief Icon placement policy implementation
  *
- * Implements @c place_icon, which computes the screen position for
- * a newly iconified client window.  Extracted from
- * @c policy/placement.c to keep that file focused on floating/smart
- * window placement.
+ * Implements @c place_icon_apply, which computes the screen position
+ * for a newly iconified client window, and
+ * @c place_icon_avoid_systray_overlap, which pushes an already-
+ * proposed icon position away from the systray's own current
+ * rectangle.  Split out of @c policy/placement/window.c to keep that
+ * file focused on floating/smart window placement.
  *
  * @note "Tiling" here is the classic 1980s/90s window-manager sense
  *       (TWM, FVWM, and similar), i.e., arranging iconified windows'
  *       own icon markers into a non-overlapping grid on the desktop, as
- *       @a place_icon does.  Therefore, it is unrelated to the modern
- *       "tiling window manager" sense of tiling the application windows
- *       themselves, for IcoWM gently places those as floating windows.
+ *       @a place_icon_apply does.  Therefore, it is unrelated to the
+ *       modern "tiling window manager" sense of tiling the application
+ *       windows themselves, for IcoWM gently places those as floating
+ *       windows.
  *
- * @see @c policy/placement.c
+ * @see @c policy/placement/window.c
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -60,9 +63,10 @@
  * @brief Whether an icon-sized rectangle at (@p ix, @p iy) overlaps any
  *        already-occupied one
  *
- * Used by @a place_icon to reject a candidate slot the moment it shares
- * any area at all with an existing icon, rather than only rejecting the
- * exact grid cell that icon's own position happens to fall into.
+ * Used by @a place_icon_apply to reject a candidate slot the moment
+ * it shares any area at all with an existing icon, rather than only
+ * rejecting the exact grid cell that icon's own position happens to
+ * fall into.
  *
  * An icon's saved @c icon_x / @c icon_y is not guaranteed to be
  * grid-aligned relative to whichever monitor a new icon is being placed
@@ -112,7 +116,7 @@ static bool s_place_icon_rect_overlaps_any(int32_t ix, int32_t iy,
  * @brief Convert a slot index to its top-left pixel position for one of
  *        the non-SMART edge-anchored placement policies
  *
- * Shared by @c place_icon's own slot search (which needs every
+ * Shared by @c place_icon_apply's own slot search (which needs every
  * candidate slot's pixel position to test for overlap) and its final
  * conversion of whichever slot search ends up choosing, so the two can
  * never disagree about what a given slot index actually means on

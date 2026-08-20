@@ -75,8 +75,8 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
  * via @a ccmd_client_reclass, marked to skip the taskbar and pager the
  * same way any client requesting that itself would be, stripped of
  * decoration, and has its own @p rule_position_locked set so the
- * ordinary map-time @a place_apply never touches its geometry.  That
- * geometry is applied separately, by @a scratchpad_position, once
+ * ordinary map-time @a place_window_apply never touches its geometry.
+ * That geometry is applied separately, by @a scratchpad_position, once
  * @p client's own desktop and surface are known (client_init runs
  * before either is assigned).
  *

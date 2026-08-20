@@ -17,8 +17,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef POLICY_PLACEMENT_H
-#define POLICY_PLACEMENT_H
+#ifndef POLICY_PLACEMENT_WINDOW_H
+#define POLICY_PLACEMENT_WINDOW_H
 
 
 /* System includes */
@@ -57,7 +57,7 @@ void place_window_apply(const wm_td *wm,
  * actually configured.  Meant for callers that need a predictable,
  * non-overlapping spread across several clients in a row (see
  * @a enact_desktop_clients_rearrange), not for placing a single newly
- * mapped client, which should call @a place_apply instead
+ * mapped client, which should call @a place_window_apply instead
  *
  * @param wm      Window manager instance
  * @param surface Surface the client lives on
@@ -69,4 +69,4 @@ void place_window_apply_cascade(const wm_td *wm,
         surface_td *surface, client_td *client);
 
 
-#endif  /* ! POLICY_PLACEMENT_H */
+#endif  /* ! POLICY_PLACEMENT_WINDOW_H */

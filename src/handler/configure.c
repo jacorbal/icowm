@@ -757,11 +757,11 @@ void handler_configure_notify(xcb_connection_t *connection,
              *    border-width adjustment that happens before placement
              *    in client_init.  That pre-placement event carries
              *    the application's initial position, often (0,0), which
-             *    can arrive late (after place_apply already stored the
-             *    centered coordinates) and corrupt the stored position.
-             *    When the subsequent render uses the corrupted
-             *    coordinates the window is moved to the wrong position,
-             *    which in turn queues another stale
+             *    can arrive late (after place_window_apply already
+             *    stored the centered coordinates) and corrupt the
+             *    stored position.  When the subsequent render uses the
+             *    corrupted coordinates the window is moved to the
+             *    wrong position, which in turn queues another stale
              *    'SubStructureNotify', creating a render loop that
              *    manifests as continuous flickering until the window is
              *    iconified/restored.
@@ -771,12 +771,13 @@ void handler_configure_notify(xcb_connection_t *connection,
              * alike): the 'StructureNotify' copy (same data, always
              * correct) handles all legitimate updates.  For decorated
              * clients this also prevents stale 'SubStructureNotify'
-             * events from placement (place_apply) from overwriting the
-             * position set by rules_apply: when the event loop sees the
-             * stale placement 'SubStructureNotify' it would update the
-             * stored position and trigger a re-render, which then
-             * re-configures the frame to the old placement position,
-             * overriding the rules-specified position entirely. */
+             * events from placement (place_window_apply) from
+             * overwriting the position set by rules_apply: when the
+             * event loop sees the stale placement 'SubStructureNotify'
+             * it would update the stored position and trigger
+             * a re-render, which then re-configures the frame to the
+             * old placement position, overriding the rules-specified
+             * position entirely. */
             if (event->event != event->window) {
                 return;
             }

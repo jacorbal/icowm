@@ -974,7 +974,7 @@ void client_aspect_ratio_clamp(const client_td *client,
  * This must be called after any WM-initiated change to the client's
  * screen-relative position or content size:
  *
- * - after the initial frame placement (@a place_apply);
+ * - after the initial frame placement (@a place_window_apply);
  * - after a keyboard or programmatic resize (@a ccmd_client_resize);
  * - after a gravity-triggered repositioning.
  *

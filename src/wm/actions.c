@@ -181,8 +181,9 @@ static void s_resync_after_reload(const wm_td *wm)
                          * on its own: nothing else here (or anywhere
                          * else) re-checks an already-placed icon's own
                          * position against the tray's, only a fresh
-                         * 'place_icon' call or a drag ever does (see
-                         * 'icon_avoid_systray_overlap''s comment). */
+                         * 'place_icon_apply' call or a drag ever does
+                         * (see 'place_icon_avoid_systray_overlap''s
+                         * comment). */
                         if (tray_visible && c->is_icon_mapped &&
                                 c->icon_window != 0u) {
                             int16_t icon_x = c->icon_x;

@@ -144,12 +144,12 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     /* A window left behind by 'exclude' from the same application
      * (sharing its own 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more
      * natural fallback than an unrelated one equally close in MRU
-     * order, the same reasoning 'place_apply' (policy/placement.c)
-     * already applies when placing a new sibling window near its
-     * own group; mirrors how Openbox's own 'focus_valid_target'
-     * (focus.c) weighs group membership when picking a focus
-     * target.  Tried first and only as a preference, not a
-     * requirement: falls through to the plain MRU search below,
+     * order, the same reasoning 'place_window_apply'
+     * (policy/placement/window.c) already applies when placing a new
+     * sibling window near its own group; mirrors how Openbox's own
+     * 'focus_valid_target' (focus.c) weighs group membership when
+     * picking a focus target.  Tried first and only as a preference,
+     * not a requirement: falls through to the plain MRU search below,
      * unchanged from before, whenever no such sibling qualifies. */
     exclude_leader = (exclude != NULL)
         ? client_group_leader(exclude) : XCB_WINDOW_NONE;

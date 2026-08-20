@@ -3,9 +3,9 @@
  *
  * @brief Private constants and helpers shared across policy modules
  *
- * Declares cost-weight constants used by both @c policy/placement.c
- * (for window scoring) and @c policy/tiling.c (for icon placement
- * scoring).
+ * Declares cost-weight constants used by both
+ * @c policy/placement/window.c (for window scoring) and
+ * @c policy/placement/icon.c (for icon placement scoring).
  *
  * @note Must not be included outside of @c src/policy/
  */

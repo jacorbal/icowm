@@ -462,7 +462,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
  * @c WM_HINTS supplies the input model, initial iconic state, window
  * group, and urgency; @c WM_CLIENT_LEADER (ICCCM §5.1) and
  * @c WM_HINTS' own window group together let @c client_group_leader
- * and @c place_apply cluster windows belonging to the same
+ * and @c place_window_apply cluster windows belonging to the same
  * application; @c WM_TRANSIENT_FOR identifies dialogs and their
  * parent.
  *
@@ -504,7 +504,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
     /* Read 'WM_CLIENT_LEADER': ICCCM §5.1 property used, together with
      * the 'WM_HINTS' window group above, to cluster windows belonging
      * to the same application for placement (see 'client_group_leader'
-     * and 'place_apply') */
+     * and 'place_window_apply') */
     client->client_leader = XCB_WINDOW_NONE;
     client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
     if (client_leader_atom != XCB_ATOM_NONE) {
@@ -907,9 +907,10 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  * delivered to the window manager: at this point the window has not
  * yet been placed, so the event would carry the X-server-initial
  * position (typically (0,0)), and 'handler_configure_notify' would
- * overwrite the placement position computed later by 'place_apply',
- * causing an undecorated window to flicker back to the origin on
- * every render cycle.  Dock windows always get zero border width.
+ * overwrite the placement position computed later by
+ * 'place_window_apply', causing an undecorated window to flicker back
+ * to the origin on every render cycle.  Dock windows always get zero
+ * border width.
  *
  * The explicit plain-pointer cursor set here, once, is what makes the
  * resize cursor set while hovering the frame's own border reliably

@@ -38,10 +38,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/pair.h> /* strut_partial_s */
+
 /* Project includes */
 #include <config.h>
 #include <surface.h>
-#include <types/pair.h> /* strut_partial_s */
 #include <wm.h>
 
 /* Local includes */

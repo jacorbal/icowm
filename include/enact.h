@@ -483,9 +483,9 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  * A transient dialog among them is the one exception.  It is
  * re-centered over its own parent per ICCCM §4.1.2.6 instead of being
  * run through the configured policy, since every client goes through
- * @a place_apply itself, the same general placement engine a window is
- * run through when first mapped, not a simplified rearrange-only
- * routine.
+ * @a place_window_apply itself, the same general placement engine
+ * a window is run through when first mapped, not a simplified
+ * rearrange-only routine.
  *
  * @param wm      Window manager instance (needed to locate a
  *                transient's parent, which can live on a different
@@ -496,7 +496,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop
  *
- * @see @a place_apply
+ * @see @a place_window_apply
  */
 void enact_desktop_clients_rearrange(const wm_td *wm,
         surface_td *surface, desktop_td *desktop);

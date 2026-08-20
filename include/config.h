@@ -150,7 +150,7 @@ struct config_base_s {
          * cursor within it, depending on the placement policy),
          * @c primary always picks the one RandR reports as primary.
          *
-         * @see @a place_apply, @a place_smart
+         * @see @a place_window_apply
          */
         enum config_placement_monitor_e {
             CONFIG_PLACEMENT_MONITOR_POINTER = 0,
@@ -163,7 +163,7 @@ struct config_base_s {
          *        several windows of the same application) instead of
          *        running the placement policy above for it
          *
-         * @see @a place_apply
+         * @see @a place_window_apply
          */
         bool group_related;
     } windows;
