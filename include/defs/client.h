@@ -29,7 +29,7 @@
  * The one true floor every resize path is guaranteed to respect,
  * interactive (mouse or keyboard) or not, regardless of whether that
  * particular path also happens to know about a client's own size hints:
- * @a geom_dim_clamp (@c utils/geom.c), the lowest-level generic clamp
+ * @a geom_dim_clamp (@c utils/geom.h), the lowest-level generic clamp
  * several of them share, floors to exactly this value on its own, with
  * no client or hints in scope to reason about a floor any more specific
  * than "always safe to show and still grab".

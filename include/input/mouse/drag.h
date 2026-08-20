@@ -118,16 +118,15 @@ void drag_start_directed(xcb_connection_t *connection,
  * @brief Begin a resize drag, locking out whichever axis (or axes)
  *        @p axis_w_locked / @p axis_h_locked mark as unavailable
  *
- * For a client maximized on one axis only (horizontal or vertical; see
- * @a client_is_maximized_horz / @a client_is_maximized_vert), that axis
- * is snapped exactly to its workarea edge, so it has nothing left to
- * drag it wider or narrower with, the same way a fully maximized or
- * fullscreen client cannot be resized at all.  The other, still-free
- * axis keeps working exactly as a normal border drag would.  Calls @c
- * drag_start for everything else (state recording, the pointer grab,
- * and its own normal per-axis inference from @p root_pos), then clears
- * whichever axis flag(s) @p axis_w_locked / @p axis_h_locked ask for;
- * if that leaves neither axis resizable at all (the grab point was
+ * For a client maximized on one axis only (horizontal or vertical),
+ * that axis is snapped exactly to its workarea edge, so it has nothing
+ * left to drag it wider or narrower with, the same way a fully
+ * maximized or fullscreen client cannot be resized at all.  The other,
+ * still-free axis keeps working exactly as a normal border drag would.
+ * Calls @c drag_start for everything else (state recording, the pointer
+ * grab, and its own normal per-axis inference from @p root_pos), then
+ * clears whichever axis flag(s) @p axis_w_locked / @p axis_h_locked ask
+ * for; if that leaves neither axis resizable at all (the grab point was
  * only ever near the locked edge), the drag is cancelled outright via
  * @a drag_cancel rather than left running inert.
  *
@@ -149,6 +148,8 @@ void drag_start_directed(xcb_connection_t *connection,
  * @note Cfr. Karp, O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell',
  *       2nd ed., ch. 2: "Maximized windows can't be moved or resized"
  * @note Complexity: @e O(1)
+ *
+ * @see @a client_is_maximized_horz and @a client_is_maximized_vert
  */
 void drag_start_resize_axis_locked(xcb_connection_t *connection,
         xcb_window_t root, client_td *client, desktop_td *desktop,
